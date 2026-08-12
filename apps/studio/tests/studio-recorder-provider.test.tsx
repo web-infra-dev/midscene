@@ -108,6 +108,11 @@ function createConnectedStudioContext({
   const stopRecorderSession = vi.fn(async () => ({ ok: true }));
   const clearRecorderScreenshotAssets = vi.fn(async () => undefined);
   const pruneRecorderScreenshotAssets = vi.fn(async () => undefined);
+  const acquireRecorderScreenshotAssetLease = vi.fn(
+    async (sessionId: string, purpose: string) =>
+      `lease-${sessionId}-${purpose}`,
+  );
+  const releaseRecorderScreenshotAssetLease = vi.fn(async () => undefined);
   const getRecorderScreenshotAsset = vi.fn(
     async (): Promise<string | null> => null,
   );
@@ -125,6 +130,8 @@ function createConnectedStudioContext({
     stopRecorderSession,
     clearRecorderScreenshotAssets,
     pruneRecorderScreenshotAssets,
+    acquireRecorderScreenshotAssetLease,
+    releaseRecorderScreenshotAssetLease,
     getRecorderScreenshotAsset,
     getRecorderEvents,
     getInterfaceInfo: resolvedGetInterfaceInfo,
@@ -201,6 +208,8 @@ function createConnectedStudioContext({
     startRecorderSession,
     stopRecorderSession,
     pruneRecorderScreenshotAssets,
+    acquireRecorderScreenshotAssetLease,
+    releaseRecorderScreenshotAssetLease,
     getRecorderScreenshotAsset,
     getRecorderEvents,
     getInterfaceInfo: resolvedGetInterfaceInfo,
@@ -283,7 +292,7 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(startRecorderSession).toHaveBeenCalledWith(
       mounted.recorder?.currentSession?.id,
     );
-    expect(getRecorderEvents).toHaveBeenCalledWith(0);
+    expect(getRecorderEvents).toHaveBeenCalledWith(0, 15_000);
     expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
       actionType: 'Click',
@@ -482,7 +491,7 @@ describe('StudioRecorderProvider preview recording', () => {
         await mounted.recorder?.startRecording();
       });
       await flushPromises();
-      expect(getRecorderEvents).toHaveBeenCalledWith(0);
+      expect(getRecorderEvents).toHaveBeenCalledWith(0, 15_000);
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(500);
@@ -491,7 +500,7 @@ describe('StudioRecorderProvider preview recording', () => {
         await vi.advanceTimersByTimeAsync(500);
       });
       expect(getRecorderEvents).toHaveBeenCalledTimes(2);
-      expect(getRecorderEvents).toHaveBeenNthCalledWith(2, 0);
+      expect(getRecorderEvents).toHaveBeenNthCalledWith(2, 0, 15_000);
 
       await act(async () => {
         firstPoll.resolve({ events: [firstEvent], nextIndex: 1 });
@@ -500,7 +509,7 @@ describe('StudioRecorderProvider preview recording', () => {
       await flushPromises();
 
       expect(getRecorderEvents).toHaveBeenCalledTimes(3);
-      expect(getRecorderEvents).toHaveBeenNthCalledWith(3, 1);
+      expect(getRecorderEvents).toHaveBeenNthCalledWith(3, 1, 15_000);
       expect(mounted.recorder?.currentSession?.events).toMatchObject([
         { hashId: 'click-first' },
         { hashId: 'click-second' },
@@ -1917,7 +1926,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await flushPromises();
 
     expect(stopRecorderSession).toHaveBeenCalledTimes(1);
-    expect(getRecorderEvents).toHaveBeenLastCalledWith(0);
+    expect(getRecorderEvents).toHaveBeenLastCalledWith(0, 1_000);
     expect(mounted.recorder?.currentSession?.status).toBe('completed');
     expect(mounted.recorder?.currentSession?.events).toHaveLength(1);
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
@@ -1929,7 +1938,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('shows server finalization progress until the high-water log is drained', async () => {
+  it('discovers server finalization after Stop and drains the high-water log', async () => {
     vi.useFakeTimers();
     const finalEvent = {
       type: 'click',
@@ -1960,6 +1969,8 @@ describe('StudioRecorderProvider preview recording', () => {
       degraded: 0,
       pending: 1,
       startedAt,
+      deadlineAt: startedAt + 60_000,
+      timings: { stopRequestedAt: startedAt },
     };
     const { context, stopRecorderSession, getRecorderEvents } =
       createConnectedStudioContext();
@@ -1967,7 +1978,9 @@ describe('StudioRecorderProvider preview recording', () => {
     let finalizationPolls = 0;
     stopRecorderSession.mockImplementation(async () => {
       stopStarted = true;
-      return { ok: true, finalization: finalizing };
+      // The Stop response may be lost or time out after the server accepted
+      // it. Polling must still discover and drain that finalization job.
+      return { ok: true };
     });
     getRecorderEvents.mockImplementation(async (cursor = 0) => {
       if (!stopStarted) {
@@ -1985,6 +1998,9 @@ describe('StudioRecorderProvider preview recording', () => {
           },
         };
       }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
       return {
         events: [],
         nextLogSequence: 1,
@@ -2428,7 +2444,10 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(mounted.recorder?.currentSession?.name).toBe(
       'Browsing Midscene.js Documentation',
     );
-    expect(mounted.recorder?.currentSession?.description).toBe(
+    expect(mounted.recorder?.currentSession?.description).toContain(
+      'Recorded 1 events and 1 user actions (click: 1).',
+    );
+    expect(mounted.recorder?.currentSession?.metadataDescription).toBe(
       'The user visited the Midscene.js introduction page.',
     );
 
@@ -2629,8 +2648,12 @@ describe('StudioRecorderProvider preview recording', () => {
       timestamp: 123,
       hashId: 'click-asset-backed',
     };
-    const { context, getRecorderScreenshotAsset } =
-      createConnectedStudioContext({ events: [event] });
+    const {
+      context,
+      getRecorderScreenshotAsset,
+      acquireRecorderScreenshotAssetLease,
+      releaseRecorderScreenshotAssetLease,
+    } = createConnectedStudioContext({ events: [event] });
     getRecorderScreenshotAsset.mockResolvedValue(
       'data:image/jpeg;base64,c2hvdA==',
     );
@@ -2665,6 +2688,22 @@ describe('StudioRecorderProvider preview recording', () => {
     });
     expect(mounted.recorder?.currentSession?.events[0].screenshotWithBox).toBe(
       undefined,
+    );
+    expect(acquireRecorderScreenshotAssetLease).toHaveBeenCalledWith(
+      sessionId,
+      'generation',
+    );
+    expect(releaseRecorderScreenshotAssetLease).toHaveBeenCalledWith(
+      sessionId,
+      `lease-${sessionId}-generation`,
+    );
+    expect(
+      acquireRecorderScreenshotAssetLease.mock.invocationCallOrder[0],
+    ).toBeLessThan(getRecorderScreenshotAsset.mock.invocationCallOrder[0]);
+    expect(
+      getRecorderScreenshotAsset.mock.invocationCallOrder.at(-1)!,
+    ).toBeLessThan(
+      releaseRecorderScreenshotAssetLease.mock.invocationCallOrder.at(-1)!,
     );
 
     await mounted.cleanup();

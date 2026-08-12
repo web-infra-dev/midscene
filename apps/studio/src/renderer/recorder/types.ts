@@ -24,6 +24,12 @@ export type StudioRecordingStatus =
 
 export interface StudioRecorderFinalization {
   jobId: string;
+  status:
+    | 'finalizing'
+    | 'completed'
+    | 'completed_with_warnings'
+    | 'cancelled'
+    | 'failed';
   actionHighWaterMark: number;
   accepted: number;
   captured: number;
@@ -31,8 +37,21 @@ export interface StudioRecorderFinalization {
   pending: number;
   described?: number;
   startedAt: number;
+  deadlineAt: number;
   completedAt?: number;
   finalLogSequence?: number;
+  timings: {
+    stopRequestedAt: number;
+    queueDrainedAt?: number;
+    assetsReleasedAt?: number;
+    completedAt?: number;
+    durationMs?: number;
+    studioStopRequestedAt?: number;
+    studioTerminalObservedAt?: number;
+    studioCursorReachedAt?: number;
+    studioDurationMs?: number;
+  };
+  reason?: 'deadline_exceeded' | 'cancelled' | 'capture_failed';
   error?: string;
 }
 export type StudioRecorderGenerationStepId = 'prepare' | 'metadata' | 'code';
