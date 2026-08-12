@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deployment Retry Recovery</title>
+    <style>
+      :root {
+        color: #172033;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 48px;
+        background: #f3f6fb;
+      }
+
+      main {
+        width: min(960px, 100%);
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 32px;
+      }
+
+      .lede {
+        margin: 0 0 28px;
+        color: #647087;
+      }
+
+      .notice {
+        display: none;
+        margin-bottom: 20px;
+        padding: 16px 18px;
+        border: 1px solid #e8a735;
+        border-radius: 10px;
+        background: #fff7e6;
+        color: #713f12;
+        font-weight: 650;
+      }
+
+      .notice[data-visible="true"] {
+        display: block;
+      }
+
+      .projects {
+        overflow: hidden;
+        border: 1px solid #dce3ee;
+        border-radius: 14px;
+        background: white;
+        box-shadow: 0 18px 50px rgb(40 58 90 / 10%);
+      }
+
+      .project {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) 180px 180px;
+        gap: 20px;
+        align-items: center;
+        padding: 22px 24px;
+        border-bottom: 1px solid #e6ebf3;
+      }
+
+      .project:last-child {
+        border-bottom: 0;
+      }
+
+      .project h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+
+      .project p {
+        margin: 0;
+        color: #758198;
+        font-size: 14px;
+      }
+
+      .status {
+        justify-self: start;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: #526078;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .status[data-state="blocked"] {
+        background: #fff0d5;
+        color: #8a4b0c;
+      }
+
+      .status[data-state="deployed"] {
+        background: #dcf7e7;
+        color: #147a42;
+      }
+
+      button {
+        justify-self: stretch;
+        padding: 11px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #315fd3;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 750;
+      }
+
+      button:hover {
+        background: #244db8;
+      }
+
+      button:disabled {
+        background: #98a5bb;
+        cursor: default;
+      }
+
+      .success {
+        display: none;
+        margin-top: 22px;
+        padding: 18px;
+        border: 1px solid #91d8ad;
+        border-radius: 10px;
+        background: #edfbf2;
+        color: #13683b;
+        font-weight: 750;
+      }
+
+      .success[data-visible="true"] {
+        display: block;
+      }
+    </style>
+  </head>
+  <body data-deployment-state="ready">
+    <main>
+      <h1>Deployment Center</h1>
+      <p class="lede">Select a project and complete its deployment.</p>
+
+      <div
+        class="notice"
+        id="retry-notice"
+        role="alert"
+        data-visible="false"
+      >
+        Transient lock detected. The first Atlas deployment attempt did not
+        start. Retry the same Atlas deployment.
+      </div>
+
+      <section class="projects" aria-label="Projects awaiting deployment">
+        <article class="project">
+          <div>
+            <h2>Project Orion</h2>
+            <p>Search indexing service</p>
+          </div>
+          <span class="status">Ready</span>
+          <button type="button">Deploy Orion</button>
+        </article>
+
+        <article class="project" data-project="atlas">
+          <div>
+            <h2>Project Atlas</h2>
+            <p>Billing reconciliation service</p>
+          </div>
+          <span class="status" id="atlas-status" data-state="ready">
+            Ready
+          </span>
+          <button
+            id="deploy-atlas"
+            type="button"
+            data-target-id="deploy-atlas"
+          >
+            Deploy Atlas
+          </button>
+        </article>
+
+        <article class="project">
+          <div>
+            <h2>Project Vega</h2>
+            <p>Analytics export worker</p>
+          </div>
+          <span class="status">Ready</span>
+          <button type="button">Deploy Vega</button>
+        </article>
+      </section>
+
+      <div class="success" id="success" role="status" data-visible="false">
+        Project Atlas is Deployed.
+      </div>
+    </main>
+
+    <script>
+      const atlasButton = document.querySelector('#deploy-atlas');
+      const atlasStatus = document.querySelector('#atlas-status');
+      const retryNotice = document.querySelector('#retry-notice');
+      const success = document.querySelector('#success');
+
+      window.__recordRetryEvents = [];
+      window.__recordRetryAttempts = 0;
+
+      atlasButton.addEventListener('click', () => {
+        window.__recordRetryAttempts += 1;
+
+        if (window.__recordRetryAttempts === 1) {
+          window.__recordRetryEvents.push('atlas-attempt-1-blocked');
+          document.body.dataset.deploymentState = 'blocked';
+          atlasStatus.dataset.state = 'blocked';
+          atlasStatus.textContent = 'Blocked — retry required';
+          atlasButton.textContent = 'Retry Deploy Atlas';
+          retryNotice.dataset.visible = 'true';
+          return;
+        }
+
+        window.__recordRetryEvents.push('atlas-attempt-2-succeeded');
+        document.body.dataset.deploymentState = 'deployed';
+        atlasStatus.dataset.state = 'deployed';
+        atlasStatus.textContent = 'Deployed';
+        atlasButton.textContent = 'Atlas Deployed';
+        atlasButton.disabled = true;
+        retryNotice.dataset.visible = 'false';
+        success.dataset.visible = 'true';
+      });
+    </script>
+  </body>
+</html>
