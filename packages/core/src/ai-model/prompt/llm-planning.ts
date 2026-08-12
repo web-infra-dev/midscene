@@ -236,12 +236,14 @@ export async function systemPromptToTaskPlanning({
   locatePromptSpec,
   includeLocateInPlanning,
   includeThought,
+  includeLog,
   includeSubGoals,
 }: {
   actionSpace: DeviceAction<any>[];
   locatePromptSpec?: LocateResultPromptSpec;
   includeLocateInPlanning: boolean;
   includeThought?: boolean;
+  includeLog?: boolean;
   includeSubGoals?: boolean;
 }) {
   const preferredLanguage = getPreferredLanguage();
@@ -264,6 +266,7 @@ export async function systemPromptToTaskPlanning({
   const actionStepNotes = buildActionStepNotes(actionList);
 
   const shouldIncludeThought = includeThought ?? true;
+  const shouldIncludeLog = includeLog ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
 
   const locateExample = (prompt: string, exampleValueIndex: number) =>
@@ -288,6 +291,8 @@ export async function systemPromptToTaskPlanning({
 
   const planningTag = (content: string) =>
     shouldIncludeThought ? `<planning>${content}</planning>\n` : '';
+  const logTag = (content: string) =>
+    shouldIncludeLog ? `<log>${content}</log>\n` : '';
 
   // Sub-goals related content - only included when shouldIncludeSubGoals is true
   const step1Title = shouldIncludeSubGoals
@@ -480,7 +485,7 @@ ${
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step ${actionStepNumber}: Determine Next Action (related tags: ${shouldIncludeLog ? '<log>, ' : ''}<action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${shouldIncludeSubGoals ? ' and the plan' : ''}.
 
@@ -501,7 +506,9 @@ ${
 }### Supporting actions list
 
 ${actionList}
-
+${
+  shouldIncludeLog
+    ? `
 ### Log to give user feedback (preamble message)
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
@@ -515,7 +522,9 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - <log>Click the login button</log>
 - <log>Scroll to find the 'Yes' button in popup</log>
 - <log>Previous actions failed to find the 'Yes' button, i will try again</log>
-- <log>Go back to find the login button</log>
+- <log>Go back to find the login button</log>`
+    : ''
+}
 
 ### If there is some action to do ...
 
@@ -579,8 +588,7 @@ ${
 
 **Path B: If the ${shouldIncludeSubGoals ? 'goal is NOT complete' : 'instruction is NOT fulfilled'} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
-<log>...</log>
-<action-type>...</action-type>
+${shouldIncludeLog ? '<log>...</log>\n' : ''}<action-type>...</action-type>
 <action-param-json>...</action-param-json>
 
 <!-- OR if there's an error -->
@@ -731,8 +739,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-${planningTag('The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.')}<log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
+${planningTag('The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.')}${logTag('Click on the Name field to start filling the form')}<action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": ${locateNameField}
@@ -747,8 +754,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
-${planningTag("The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.")}<log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
+${planningTag("The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.")}${logTag("Typing 'John' into the Name field")}<action-type>Input</action-type>
 <action-param-json>
 {
   "value": "John"
@@ -763,8 +769,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
-${planningTag("The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.")}<log>Moving to the Email field</log>
-<action-type>Tap</action-type>
+${planningTag("The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.")}${logTag('Moving to the Email field')}<action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": ${locateEmailField}
@@ -779,8 +784,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
-${planningTag("The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.")}<log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
+${planningTag("The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.")}${logTag('Typing email address into the Email field')}<action-type>Input</action-type>
 <action-param-json>
 {
   "value": "john@example.com"

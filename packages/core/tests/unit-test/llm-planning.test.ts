@@ -752,7 +752,7 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should ignore planning reasoning when thought parsing is disabled', () => {
+  it('should generate the log from the action in fast mode', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <planning>This should not be exposed in fast mode</planning>
@@ -764,15 +764,31 @@ describe('parseXMLPlanningResponse', () => {
     const result = parseXMLPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
-      { includeThought: false },
+      { includeThought: false, includeLog: false },
     );
 
     expect(result).not.toHaveProperty('thought');
-    expect(result.log).toBe('Tap the button');
+    expect(result.log).toBe('Tap - Button');
     expect(result.action).toEqual({
       type: 'Tap',
       param: { locate: { prompt: 'Button' } },
     });
+  });
+
+  it('should omit locate coordinates from a generated fast log', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<action-type>Input</action-type>
+<action-param-json>{"value":"demo-user","locate":{"prompt":"Username input field","bbox":[375,445,625,505]}}</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+      { includeThought: false, includeLog: false },
+    );
+
+    expect(result.log).toBe('Input - Username input field');
   });
 
   it('should parse XML response with null action', () => {

@@ -1224,7 +1224,7 @@ If any explicit step lacks completion evidence in the current execution history,
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -1303,20 +1303,6 @@ ONLY if the task is not complete: Think what the next action is according to the
     }
     </action-param-json>
 
-### Log to give user feedback (preamble message)
-
-The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
-
-- **Use English**
-- **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
-- **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
-- **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
-
-**Examples:**
-- <log>Click the login button</log>
-- <log>Scroll to find the 'Yes' button in popup</log>
-- <log>Previous actions failed to find the 'Yes' button, i will try again</log>
-- <log>Go back to find the login button</log>
 
 ### If there is some action to do ...
 
@@ -1357,7 +1343,6 @@ Return in XML format following this decision flow:
 
 **Path B: If the instruction is NOT fulfilled yet (Step 3)**
 <!-- Determine next action -->
-<log>...</log>
 <action-type>...</action-type>
 <action-param-json>...</action-param-json>
 
@@ -1376,7 +1361,6 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -1394,7 +1378,6 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
-<log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
 {
@@ -1410,7 +1393,6 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
-<log>Moving to the Email field</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -1428,7 +1410,6 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
-<log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
 {

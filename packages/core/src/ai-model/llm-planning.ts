@@ -35,13 +35,55 @@ const warnLog = getDebug('planning', { console: true });
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
 
+function actionLogFromParamValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return String(value);
+  return JSON.stringify(value) ?? String(value);
+}
+
+/**
+ * Build a compact execution-history entry from a parsed action. Locate
+ * coordinates are intentionally omitted because the locate prompt already
+ * describes the target and is more useful in later planning turns.
+ */
+function generateLogFromAction(action: PlanningAction): string {
+  const param = action.param;
+  if (param === null || param === undefined) {
+    return action.type;
+  }
+  if (typeof param !== 'object') {
+    return `${action.type} - ${actionLogFromParamValue(param)}`;
+  }
+
+  const { locate, ...otherParams } = param as Record<string, unknown>;
+  const locatePrompt =
+    locate && typeof locate === 'object'
+      ? (locate as { prompt?: unknown }).prompt
+      : undefined;
+  const locateDescription =
+    typeof locate === 'string'
+      ? locate
+      : typeof locatePrompt === 'string'
+        ? locatePrompt
+        : undefined;
+  if (locateDescription) {
+    return `${action.type} - ${locateDescription}`;
+  }
+
+  const paramDescription = Object.entries(otherParams)
+    .map(([key, value]) => `${key}: ${actionLogFromParamValue(value)}`)
+    .join(', ');
+
+  return [action.type, paramDescription].filter(Boolean).join(' - ');
+}
+
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse.
  */
 export function parseXMLPlanningResponse(
   xmlString: string,
   jsonParser: JsonParser,
-  options?: { includeThought?: boolean },
+  options?: { includeThought?: boolean; includeLog?: boolean },
 ): RawResponsePlanningAIResponse {
   // Use <planning> instead of <thought> to avoid colliding with Gemini thought
   // summaries, which may also be emitted as <thought> in OpenAI-compatible
@@ -51,7 +93,6 @@ export function parseXMLPlanningResponse(
       ? undefined
       : extractXMLTag(xmlString, 'planning');
   const memory = extractXMLTag(xmlString, 'memory');
-  const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
   const actionType = extractXMLTag(xmlString, 'action-type');
   const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
@@ -106,6 +147,11 @@ export function parseXMLPlanningResponse(
     };
   }
 
+  const log =
+    options?.includeLog === false && action
+      ? generateLogFromAction(action)
+      : extractXMLTag(xmlString, 'log') || '';
+
   return {
     ...(thought ? { thought } : {}),
     ...(memory ? { memory } : {}),
@@ -130,6 +176,7 @@ type CallAndParsePlanningResponseOptions = {
   locateResultAdapter?: LocateResultAdapter;
   locateResultContext: LocateResultContext;
   includeThought: boolean;
+  includeLog: boolean;
 };
 
 async function callAndParsePlanningResponse(
@@ -149,6 +196,7 @@ async function callAndParsePlanningResponse(
     locateResultAdapter,
     locateResultContext,
     includeThought,
+    includeLog,
   } = options;
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
@@ -165,7 +213,7 @@ async function callAndParsePlanningResponse(
       const planFromAI = parseXMLPlanningResponse(
         response.content,
         modelRuntime.adapter.jsonParser,
-        { includeThought },
+        { includeThought, includeLog },
       );
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
@@ -234,12 +282,14 @@ export async function plan(
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.effort === 'deepThink';
   const includeThought = opts.effort !== 'fast';
+  const includeLog = opts.effort !== 'fast';
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     locatePromptSpec: locateResultAdapter?.promptSpec,
     includeLocateInPlanning: opts.includeLocateInPlanning,
     includeThought,
+    includeLog,
     includeSubGoals,
   });
 
@@ -360,6 +410,7 @@ export async function plan(
       contentSize: preparedImage.contentSize,
     },
     includeThought,
+    includeLog,
   });
 
   let shouldContinuePlanning = true;

@@ -80,8 +80,7 @@ describe('plan XML parse retry', () => {
 
   it('uses the action-only XML protocol for fast effort', async () => {
     vi.mocked(callAI).mockResolvedValueOnce(
-      mockAIResponse(`<log>Tap the button</log>
-<action-type>Tap</action-type>
+      mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
     );
 
@@ -97,7 +96,9 @@ describe('plan XML parse retry', () => {
     const systemPrompt = vi.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
     expect(systemPrompt).not.toEqual(expect.stringContaining('<planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
+    expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
     expect(result.thought).toBeUndefined();
+    expect(result.log).toBe('Tap');
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
   });
 

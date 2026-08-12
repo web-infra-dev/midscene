@@ -342,13 +342,16 @@ describe('system prompts', () => {
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeThought: false,
+      includeLog: false,
       includeSubGoals: false,
     });
 
     expect(prompt).not.toContain('<planning>');
     expect(prompt).not.toContain('</planning>');
     expect(prompt).not.toContain('related tags: <planning>');
-    expect(prompt).toContain('<log>...</log>');
+    expect(prompt).not.toContain('<log>');
+    expect(prompt).not.toContain('</log>');
+    expect(prompt).not.toContain('related tags: <log>');
     expect(prompt).toContain('<action-type>...</action-type>');
     expect(prompt).toContain('<action-param-json>...</action-param-json>');
     expect(prompt).toMatchSnapshot();
