@@ -212,10 +212,7 @@
     .clear-button-container {
       position: absolute;
       top: 16px;
-      // PlaygroundApp.less positions the shared control at -4px with
-      // !important. Override that host rule and leave enough inset for the
-      // full 32px hit target to remain visible in the narrow side panel.
-      right: 12px !important;
+      right: 8px;
       z-index: 20;
 
       .clear-button {
@@ -249,12 +246,10 @@
 
       .list-item:has(.progress-row) > div:has(> .progress-row)::after {
         position: absolute;
-        // Start at the current status icon's lower edge and bridge the
-        // shared skin's -8px inter-row margin to the next status icon.
-        top: 23px;
-        bottom: -8px;
-        left: 7px;
-        width: 2px;
+        top: 30px;
+        bottom: 0;
+        left: 8px;
+        width: 1px;
         background: var(--extension-timeline-connector, #d9d9d9);
         content: '';
       }
@@ -267,7 +262,7 @@
 }
 
 [data-theme='dark'] .chrome-extension-playground {
-  --extension-timeline-connector: #bfbfbf;
+  --extension-timeline-connector: #8c8c8c;
 
   // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
   // bypasses the playground root's dark foreground token and makes any
@@ -286,7 +281,7 @@
   .chrome-extension-execution-timeline-skin
     .list-item:has(.progress-row)
     > div:has(> .progress-row)::after {
-    background-color: #bfbfbf !important;
+    background-color: #8c8c8c !important;
   }
 
   .system-message-header .system-message-title {
