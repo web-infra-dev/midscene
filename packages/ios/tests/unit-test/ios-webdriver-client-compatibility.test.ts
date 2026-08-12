@@ -131,6 +131,17 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
   });
 
+  describe('pressKey()', () => {
+    it('should reject key combinations before invoking WDA', async () => {
+      const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
+
+      await expect(client.pressKey('Control+A')).rejects.toThrow(
+        'iOS keyboardPress does not support key combinations: "Control+A"',
+      );
+      expect(makeRequestSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getScreenScale() fallback logic', () => {
     it('should return scale when endpoint succeeds with scale value', async () => {
       const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');

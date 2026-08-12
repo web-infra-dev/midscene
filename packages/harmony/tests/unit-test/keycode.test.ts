@@ -59,16 +59,6 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each([
-    ['Control+A', ['2072', '2017']],
-    ['Ctrl+a', ['2072', '2017']],
-    ['Shift+1', ['2047', '2001']],
-    ['Control+Shift+A', ['2072', '2047', '2017']],
-    ['Control + Alt + Delete', ['2072', '2045', '2071']],
-  ])('maps key combination %s to %j', (keyName, expectedCodes) => {
-    expect(resolveHarmonyKeyCodes(keyName as string)).toEqual(expectedCodes);
-  });
-
-  it.each([
     '?',
     '+',
     '/',
@@ -89,19 +79,18 @@ describe('resolveHarmonyKeyCodes', () => {
   });
 
   it.each([
-    [
-      'Control+Alt+Shift+A',
-      'HarmonyOS key combinations support at most 3 key codes: Control+Alt+Shift+A',
-    ],
-    [
-      'Back+Enter',
-      'HarmonyOS system key events cannot be combined: Back+Enter',
-    ],
-    ['Control+', 'Invalid HarmonyOS key combination: Control+'],
-    ['Control++', 'Invalid HarmonyOS key combination: Control++'],
-    ['Shift+Slash', 'Unsupported HarmonyOS keyboardPress key: "Slash"'],
-  ])('rejects invalid key combination %s', (keyName, message) => {
-    expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(message);
+    'Control+A',
+    'Ctrl+a',
+    'Shift+1',
+    'Control+Shift+A',
+    'Control + Alt + Delete',
+    'Control+',
+    'Control++',
+    'Shift+Slash',
+  ])('rejects key combination %s', (keyName) => {
+    expect(() => resolveHarmonyKeyCodes(keyName)).toThrow(
+      `HarmonyOS keyboardPress does not support key combinations: ${JSON.stringify(keyName)}`,
+    );
   });
 
   it('rejects an empty key name', () => {

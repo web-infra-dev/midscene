@@ -1726,6 +1726,15 @@ Stdout:
       expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
     });
 
+    it('press should reject key combinations before invoking ADB', async () => {
+      await expect(
+        device.inputPrimitives.keyboard.keyboardPress('Control+A'),
+      ).rejects.toThrow(
+        'Android keyboardPress does not support key combinations: "Control+A"',
+      );
+      expect(mockAdb.shell).not.toHaveBeenCalled();
+    });
+
     it('press should handle case-insensitive key names', async () => {
       // Test lowercase keys
       await device.inputPrimitives.keyboard.keyboardPress('enter');

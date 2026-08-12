@@ -20,9 +20,6 @@ const namedHarmonyKeyCodeMap = {
   Power: 'Power',
 } as const satisfies Record<string, string>;
 
-const harmonySystemKeyEvents = new Set(['Back', 'Home', 'Power']);
-const maxHarmonyKeyCodesPerEvent = 3;
-
 const keyNameAliasMap = new Map<string, string>([
   ['return', 'Enter'],
   ['esc', 'Escape'],
@@ -42,17 +39,6 @@ const caseInsensitiveNamedKeyCodeMap = new Map(
 
 function numericKeyCode(value: number): string {
   return String(value);
-}
-
-function splitHarmonyKeyCombination(keyName: string): string[] | undefined {
-  if (!keyName.includes('+')) return undefined;
-
-  const parts = keyName.split('+');
-  const keys = parts.map((key) => key.trim());
-  if (keys.some((key) => key.length === 0)) {
-    throw new Error(`Invalid HarmonyOS key combination: ${keyName}`);
-  }
-  return keys;
 }
 
 function resolveSingleHarmonyKeyCodes(keyName: string): string[] {
@@ -100,7 +86,7 @@ function unsupportedKeyboardPressKey(keyName: string): Error {
  * Resolve a deliberately small set of logical keyboard key names to the codes
  * accepted by HarmonyOS `uitest uiInput keyEvent`. A-Z and 0-9 identify their
  * standard platform key codes. Text results such as "?" are intentionally not
- * inferred from key combinations and should be entered with typeText().
+ * inferred from a keyboard layout and should be entered with typeText().
  * Back/Home/Power are the only supported string values at the HDC boundary.
  */
 export function resolveHarmonyKeyCodes(keyName: string): string[] {
@@ -111,23 +97,10 @@ export function resolveHarmonyKeyCodes(keyName: string): string[] {
   if (trimmedKeyName === '+') {
     return resolveSingleHarmonyKeyCodes(keyName);
   }
-
-  const combination = splitHarmonyKeyCombination(trimmedKeyName);
-  if (!combination) return resolveSingleHarmonyKeyCodes(keyName);
-
-  const resolvedCodes = combination.flatMap(resolveSingleHarmonyKeyCodes);
-  const uniqueCodes = [...new Set(resolvedCodes)];
-
-  if (uniqueCodes.some((code) => harmonySystemKeyEvents.has(code))) {
+  if (trimmedKeyName.includes('+')) {
     throw new Error(
-      `HarmonyOS system key events cannot be combined: ${keyName}`,
+      `HarmonyOS keyboardPress does not support key combinations: ${JSON.stringify(keyName)}`,
     );
   }
-  if (uniqueCodes.length > maxHarmonyKeyCodesPerEvent) {
-    throw new Error(
-      `HarmonyOS key combinations support at most ${maxHarmonyKeyCodesPerEvent} key codes: ${keyName}`,
-    );
-  }
-
-  return uniqueCodes;
+  return resolveSingleHarmonyKeyCodes(keyName);
 }

@@ -402,6 +402,16 @@ describe('HarmonyDevice', () => {
         expect(mockHdc.keyEvent).not.toHaveBeenCalled();
       },
     );
+
+    it('should reject key combinations before connecting to HDC', async () => {
+      await expect(
+        device.inputPrimitives.keyboard.keyboardPress('Control+A'),
+      ).rejects.toThrow(
+        'HarmonyOS keyboardPress does not support key combinations: "Control+A"',
+      );
+      expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+    });
   });
 
   describe('keyboardPress', () => {
@@ -420,11 +430,6 @@ describe('HarmonyDevice', () => {
     ])('should map %s to keycode %s', async (key, code) => {
       await device.inputPrimitives.keyboard.keyboardPress(key);
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
-    });
-
-    it('should forward a supported key combination as one key event', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Control+A');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2072', '2017');
     });
   });
 

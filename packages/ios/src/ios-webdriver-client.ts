@@ -128,6 +128,12 @@ export class IOSWebDriverClient extends WebDriverClient {
     this.ensureSession();
     debugIOS(`Attempting to press key: ${key}`);
 
+    if (key.trim() !== '+' && key.includes('+')) {
+      throw new Error(
+        `iOS keyboardPress does not support key combinations: ${JSON.stringify(key)}`,
+      );
+    }
+
     // iOS platform has limited keyboard event support, using practical solutions
     if (key === 'Enter' || key === 'Return' || key === 'return') {
       debugIOS('Handling Enter/Return key for iOS');
