@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
+import { resolveExternalResourcePath } from './resource-path';
 
 const debugScrcpy = getDebug('android:scrcpy');
 const warnScrcpy = getDebug('android:scrcpy', { console: true });
@@ -320,7 +321,9 @@ export class ScrcpyScreenshotManager {
     const androidPkgJson = createRequire(import.meta.url).resolve(
       '@midscene/android/package.json',
     );
-    return path.join(path.dirname(androidPkgJson), 'bin', 'scrcpy-server');
+    return resolveExternalResourcePath(
+      path.join(path.dirname(androidPkgJson), 'bin', 'scrcpy-server'),
+    );
   }
 
   /**
