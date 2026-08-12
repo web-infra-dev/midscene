@@ -15,6 +15,7 @@ import {
   vi,
 } from 'vitest';
 import { AndroidDevice, escapeForShell } from '../../src/device';
+import { ScrcpyFreshFrameUnavailableError } from '../../src/scrcpy-manager';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
@@ -527,6 +528,81 @@ describe('AndroidDevice', () => {
       );
       expect(actions.map((action) => action.name)).toContain('Launch');
       expect(actions.map((action) => action.name)).toContain('Terminate');
+    });
+
+    it('routes representative built-in action surfaces through one scrcpy barrier', async () => {
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+      vi.spyOn(device as any, 'tapPoint').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'homeRaw').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'pullDownRaw').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'launchRaw').mockResolvedValue(device);
+
+      const cases: Array<[string, () => Promise<unknown>]> = [
+        [
+          'input primitive',
+          () => device.inputPrimitives.pointer.tap({ x: 10, y: 20 }),
+        ],
+        ['direct API', () => device.home()],
+        [
+          'pull action',
+          () =>
+            device
+              .actionSpace()
+              .find((action) => action.name === 'PullGesture')!
+              .call({ direction: 'down' }),
+        ],
+        [
+          'platform action',
+          () =>
+            device
+              .actionSpace()
+              .find((action) => action.name === 'Launch')!
+              .call({ uri: 'com.android.settings' }),
+        ],
+      ];
+
+      for (const [surface, invoke] of cases) {
+        markActionBarrier.mockClear();
+        await invoke();
+        expect(markActionBarrier, surface).toHaveBeenCalledOnce();
+      }
+    });
+
+    it('moves one scrcpy barrier for a composite action', async () => {
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      const dragPoint = vi
+        .spyOn(device as any, 'dragPoint')
+        .mockResolvedValue(undefined);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+
+      await device.inputPrimitives.touch.swipe(
+        { x: 100, y: 800 },
+        { x: 100, y: 200 },
+        { repeat: 3 },
+      );
+
+      expect(dragPoint).toHaveBeenCalledTimes(3);
+      expect(markActionBarrier).toHaveBeenCalledOnce();
+    });
+
+    it('moves one scrcpy barrier when a composite action partially fails', async () => {
+      const actionError = new Error('second swipe failed');
+      const markActionBarrier = vi.fn().mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'dragPoint')
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(actionError);
+      (device as any).scrcpyAdapter = { markActionBarrier };
+
+      await expect(
+        device.inputPrimitives.touch.swipe(
+          { x: 100, y: 800 },
+          { x: 100, y: 200 },
+          { repeat: 2 },
+        ),
+      ).rejects.toBe(actionError);
+
+      expect(markActionBarrier).toHaveBeenCalledOnce();
     });
   });
 
@@ -1048,6 +1124,70 @@ Stdout:
       expect(forceScreenshotSpy).not.toHaveBeenCalled();
     });
 
+    it('should recommend a network-aware videoBitRate when scrcpy falls back to ADB', async () => {
+      const adapter = (device as any).getScrcpyAdapter();
+      vi.spyOn(adapter, 'isEnabled').mockReturnValue(true);
+      vi.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
+        new Error('stream recovery failed'),
+      );
+      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue({
+        physicalWidth: 1080,
+        physicalHeight: 1920,
+        dpr: 1,
+        orientation: 0,
+      });
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await expect(device.screenshotBase64()).resolves.toContain(
+        mockBuffer.toString('base64'),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
+        ),
+      );
+    });
+
+    it('starts scrcpy recovery only after the ADB fallback screenshot completes', async () => {
+      const adapter = (device as any).getScrcpyAdapter();
+      vi.spyOn(adapter, 'isEnabled').mockReturnValue(true);
+      vi.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
+        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+      );
+      const recover = vi
+        .spyOn(adapter, 'recoverAfterAdbScreenshot')
+        .mockImplementation(() => {});
+      const deviceInfo = {
+        physicalWidth: 1080,
+        physicalHeight: 1920,
+        dpr: 1,
+        orientation: 0,
+      };
+      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue(
+        deviceInfo,
+      );
+      const mockBuffer = createValidPngBuffer();
+      mockAdb.takeScreenshot.mockImplementation(async () => {
+        expect(recover).not.toHaveBeenCalled();
+        return mockBuffer;
+      });
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await expect(device.screenshotBase64()).resolves.toContain(
+        mockBuffer.toString('base64'),
+      );
+      expect(recover).toHaveBeenCalledWith(deviceInfo);
+    });
+
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
       const mockBuffer = createValidPngBuffer();
@@ -1308,7 +1448,13 @@ Stdout:
           autoDismissKeyboard: false,
         };
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+        const execYadbRaw = vi
+          .spyOn(device as any, 'execYadbRaw')
+          .mockResolvedValue(undefined);
+        // Keyboard typing is a composite visual action and now calls the raw
+        // yadb primitive to avoid creating a nested freshness barrier. Keep
+        // the existing assertions pointed at that primitive's spy.
+        (device as any).execYadb = execYadbRaw;
         mockAdb.isSoftKeyboardPresent.mockResolvedValue({
           isKeyboardShown: false,
           canCloseKeyboard: true,
@@ -2163,7 +2309,7 @@ Stdout:
 
     it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'scroll')
+        .spyOn(device as any, 'scrollRaw')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, -100, undefined, true, 'up');
@@ -2171,7 +2317,7 @@ Stdout:
 
     it('scrollDown should call scroll with positive Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'scroll')
+        .spyOn(device as any, 'scrollRaw')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, 100, undefined, true, 'down');

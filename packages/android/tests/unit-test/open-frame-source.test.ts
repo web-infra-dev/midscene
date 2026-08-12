@@ -12,10 +12,23 @@ const spsPacket = (): { type: string; data: Buffer } => ({
   type: 'configuration',
   data: Buffer.from([0x00, 0x00, 0x00, 0x01, 0x67, 0xaa]),
 });
-const dataPacket = (tag: number): { type: string; data: Buffer } => ({
+const dataPacket = (
+  tag: number,
+): { type: string; data: Buffer; pts: bigint } => ({
   type: 'data',
   data: idrFrame(tag),
+  pts: 1_000_000n + BigInt(tag),
 });
+
+const calibrateFrameClock = (manager: ScrcpyScreenshotManager): void => {
+  (manager as any).deviceClockCalibration = {
+    deviceUptimeUs: 1_000_000n,
+    hostMonotonicUs: 10_000_000n,
+    hostWallTimeMs: 2_000,
+    roundTripUs: 10_000n,
+  };
+  vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+};
 
 describe('ScrcpyScreenshotManager keyframe subscription', () => {
   afterEach(() => {
@@ -24,6 +37,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
 
   it('fans out raw keyframes (with header + ts) to subscribers', () => {
     const manager = new ScrcpyScreenshotManager({} as any);
+    calibrateFrameClock(manager);
     const received: RawKeyframe[] = [];
     manager.subscribeKeyframes((frame) => received.push(frame));
 
@@ -41,6 +55,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
 
   it('stops delivering after unsubscribe', () => {
     const manager = new ScrcpyScreenshotManager({} as any);
+    calibrateFrameClock(manager);
     const received: RawKeyframe[] = [];
     const unsubscribe = manager.subscribeKeyframes((f) => received.push(f));
 
@@ -54,6 +69,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
 
   it('keeps the connection alive while subscribed (resets idle timer per frame)', () => {
     const manager = new ScrcpyScreenshotManager({} as any);
+    calibrateFrameClock(manager);
     const resetSpy = vi.spyOn(manager as any, 'resetIdleTimer');
     manager.subscribeKeyframes(() => {});
     resetSpy.mockClear();
@@ -67,6 +83,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
 
   it('exposes the latest raw keyframe', () => {
     const manager = new ScrcpyScreenshotManager({} as any);
+    calibrateFrameClock(manager);
     expect(manager.getLatestRawKeyframe()).toBeNull();
 
     (manager as any).processFrame(spsPacket());
@@ -106,15 +123,19 @@ describe('AndroidDevice frame-source capability', () => {
       header: Buffer.from([0x67]),
       capturedAt: 2000,
     };
+    let latestFrame: RawKeyframe | null = frameA;
     const decode = vi
       .fn()
       .mockImplementation(async (f: RawKeyframe) => `decoded-${f.data[5]}`);
     const unsubscribe = vi.fn();
     (device as any).scrcpyAdapter = {
       isEnabled: () => true,
-      getLatestRawKeyframe: () => frameA,
+      getLatestRawKeyframe: () => latestFrame,
       subscribeKeyframes: vi.fn().mockImplementation(async (_info, cb) => {
-        listener = cb;
+        listener = (frame) => {
+          latestFrame = frame;
+          cb(frame);
+        };
         return unsubscribe;
       }),
       decodeRawKeyframeToJpegBase64: decode,
@@ -130,6 +151,11 @@ describe('AndroidDevice frame-source capability', () => {
     expect(source!.latest()?.ref).toBe(frameB);
     expect(source!.latest()?.capturedAt).toBe(2000);
     expect(decode).not.toHaveBeenCalled();
+
+    // If the manager invalidates its cache (for example because transport
+    // backlog was detected), the frame source must not retain an old ref.
+    latestFrame = null;
+    expect(source!.latest()).toBeNull();
 
     // decode() materializes exactly the sampled refs, in order
     const images = await source!.decode([
