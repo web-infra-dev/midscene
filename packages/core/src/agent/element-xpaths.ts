@@ -15,7 +15,14 @@ export interface LoadedElementXpath {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const normalizedElementName = (name: string) => name.trim().toLowerCase();
+const normalizedElementName = (name: string) =>
+  name
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/["“”「」『』]/g, '')
+    .replace(/^(?:the|a|an)\s+/, '')
+    .replace(/\s+/g, ' ');
 
 function parseElementXpathFile(
   content: string,

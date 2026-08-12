@@ -101,7 +101,7 @@ elements:
           type: 'Input',
           param: {
             value: 'Alice',
-            locate: { prompt: 'first NAME input' },
+            locate: { prompt: 'the "first NAME input"' },
           },
         },
         {
@@ -155,7 +155,7 @@ elements:
         param: {
           value: 'Alice',
           locate: {
-            prompt: 'first NAME input',
+            prompt: 'the "first NAME input"',
             xpath: '//*[@id="first-name"]',
           },
         },
