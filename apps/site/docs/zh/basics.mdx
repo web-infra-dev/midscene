@@ -2,13 +2,19 @@
 
 本文概述 Midscene 的核心概念，包括 Agent 的用法、架构、抽象方式和能力边界。你将了解 Agent 如何连接 AI 模型与目标界面，以及如何实现交互、断言等操作。
 
+:::info
+
+你可以在 Playground 中零代码试用下文介绍的所有 API，并直接查看运行效果。开始使用请参考[快速开始](./quick-start#零代码体验chrome-插件)。
+
+:::
+
 ## 规划并交互
 
 ### `aiAct`
 
-[`aiAct`](./reference/#agentaiact) 接收用自然语言描述的目标。它会观察界面，规划操作步骤，定位目标元素并执行操作，直至完成目标。提示词也可以包含断言条件，Midscene 会在执行过程中验证这些条件。
+[`aiAct`](./reference/#agentaiact) 接收用自然语言描述的目标。它会观察界面，规划操作步骤，定位目标元素并执行操作，直至完成目标。提示词也可以包含断言条件。Midscene 会在执行过程中验证这些条件，并在断言失败时及时抛出错误。
 
-`aiAct` 灵活且自主，适合处理多步骤、包含条件分支或执行路径不确定的任务。每轮规划都可能调用模型，因此它通常比即时交互消耗更多时间和 token。
+`aiAct` 灵活且自主，适合处理多步骤、包含条件分支或执行路径不确定的任务。执行期间，`aiAct` 会基于最新的界面状态持续进行 AI 规划，因此它通常比即时交互消耗更多时间和 token。
 
 典型用法：
 
@@ -36,7 +42,7 @@ agent.setAIActContext(
 await agent.aiAct('完成结账表单，在下单前停止', {
   deepThink: true,
   deepLocate: true,
-  context: '测试账号已保存收货地址。',
+  context: '如果出现地址确认弹窗，请选择默认收货地址。',
 });
 ```
 
@@ -56,7 +62,7 @@ await agent.aiAct('完成结账表单，在下单前停止', {
 await agent.aiTap('购物车中的结账按钮');
 ```
 
-当目标较小或视觉特征不明显时，可以启用 `deepLocate`：
+当目标较小或视觉特征不明显时，可以启用 `deepLocate` （多轮深度定位）：
 
 ```typescript
 await agent.aiTap('右上角的购物车图标', {
@@ -104,6 +110,7 @@ await agent.aiAssert('购物车中有一件商品，并且页面显示了小计�
 const items = await agent.aiQuery<
   Array<{ name: string; price: number }>
 >('购物车中的商品，{name: string, price: number}[]');
+// items 示例：[{ name: '无线耳机', price: 99.9 }]
 ```
 
 ### `aiBoolean`
@@ -114,19 +121,22 @@ const items = await agent.aiQuery<
 
 ```typescript
 const loginDialogVisible = await agent.aiBoolean('登录对话框是否可见');
+// loginDialogVisible 示例：true
 ```
 
-其他便捷方法包括：返回数字的 `aiNumber`，以及返回字符串的 `aiString` 和 `aiAsk`。
+其他便捷方法包括：返回数字的 [`aiNumber`](./reference/#agentainumber)，以及返回字符串的 [`aiString`](./reference/#agentaistring) 和 [`aiAsk`](./reference/#agentaiask)。
 
 ## 用 JavaScript 编排工作流 {#javascript-orchestration}
 
-`aiAct` 将执行路径交给 Agent 规划。JavaScript 编排则将条件、循环和步骤顺序写入代码。界面理解类 API 为控制流提供界面状态，即时交互 API 负责执行指定操作。
+使用 Midscene 编排自动化时，有两种基本方式：使用 `aiAct`，或使用 JavaScript 编排。以下代码用这两种方式完成同一个任务。
 
-JavaScript 编排具有很强的确定性。执行路径明确写在代码中，开发者可以使用熟悉的调试工具，并精确控制每个分支的行为。
+使用 `aiAct`：
 
-确定性也会降低灵活性。代码只能处理显式编写的情况。例如，分辨率变化可能使页面需要额外滚动，突然出现的弹窗也可能阻断后续操作。如果脚本没有处理这些情况，整个工作流就容易失败。相比之下，`aiAct` 可以在执行过程中观察当前界面并重新规划。
+```typescript
+await agent.aiAct('检查列表中的所有记录，将未完成的记录标记为已完成');
+```
 
-以下工作流将循环和条件判断写在 JavaScript 中。Midscene 负责读取界面状态并执行每次点击：
+使用 JavaScript 编排：
 
 ```typescript
 const recordNames = await agent.aiQuery<string[]>('列表中的所有记录名称');
@@ -142,12 +152,19 @@ for (const recordName of recordNames) {
 }
 ```
 
-没有一种方案适用于所有自动化脚本：
+`aiAct` 将执行路径交给 Agent 规划。JavaScript 编排则将条件、循环和步骤顺序写入代码。在上面的 JavaScript 示例中，界面理解类 API 为控制流提供界面状态，即时交互 API 负责执行指定操作。
 
-| 方案 | 执行路径的控制者 | 对 UI 变化的适应能力 | 适用场景 |
-| --- | --- | --- | --- |
-| `aiAct` | Agent | 可以观察界面并重新规划 | 目标明确，但操作步骤或 UI 状态可能变化 |
-| JavaScript 编排 | 代码 | 需要显式处理每种变化 | 流程稳定，且需要精确的分支、循环或调试 |
-| 混合使用 | Agent 和代码 | 在自主性与显式控制之间取得平衡 | 整体流程固定，但局部任务的执行路径不确定 |
+JavaScript 编排具有很强的确定性。执行路径明确写在代码中，开发者可以使用熟悉的调试工具，并精确控制每个分支的行为。
 
-请根据具体任务选择方案，无须在整个脚本中只使用一种方案。可以将稳定的业务规则和控制流写入 JavaScript，将需要适应意外 UI 状态的步骤交给 `aiAct`。选择时，应综合考虑稳定性、灵活性、模型成本、执行延迟和维护成本。
+JavaScript 编排也有明显的弊端：不能响应没有预知的 UI 变化，如分辨率变化可能带来额外的滚动，临时弹窗也可能遮挡目标元素。如果代码没有覆盖这些变化，工作流就会失败。
+
+我们建议按以下原则选型：
+
+1. 默认使用 `aiAct` 驱动操作目标。让 Agent 根据最新的界面状态决定具体步骤，可以更好地适应页面变化。
+2. 只有在操作流程明确且稳定时，才使用 JavaScript 编排。此时可以将确定的条件、循环和步骤顺序直接写入代码。
+
+:::warning
+
+不要让模型脱离实际界面状态，预先猜测完整的操作路径，再生成由大量 `aiTap` 等即时交互 API 堆叠而成的脚本。这类脚本缺少可靠的流程依据，出现问题后也很难定位和调试，通常无法稳定运行。
+
+:::

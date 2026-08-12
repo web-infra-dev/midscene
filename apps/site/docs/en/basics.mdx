@@ -2,13 +2,19 @@
 
 This page provides a conceptual overview of Midscene, including how to use an Agent, its architecture and abstractions, and the boundaries of its capabilities. You will learn how an Agent connects AI models to a target interface and how to choose among planning and interaction, instant interaction, and Insight.
 
+:::info
+
+You can try every API introduced below in the Playground without writing code and see the results immediately. See [Quick Start](./quick-start#try-it-with-no-code-chrome-extension) to get started.
+
+:::
+
 ## Plan and interact
 
 ### `aiAct`
 
-[`aiAct`](./reference/#agentaiact) accepts a goal described in natural language. It observes the interface, plans the next steps, locates the target elements, and executes the actions until the goal is complete. The prompt can also include assertions that Midscene should verify during execution.
+[`aiAct`](./reference/#agentaiact) accepts a goal described in natural language. It observes the interface, plans the next steps, locates the target elements, and executes the actions until the goal is complete. The prompt can also include assertions. Midscene verifies these assertions during execution and throws an error promptly if one fails.
 
-`aiAct` is flexible and autonomous, so it works well when a task has multiple steps, conditional branches, or an uncertain execution path. Each planning cycle can require model calls, which means it usually takes more time and tokens than an instant interaction.
+`aiAct` is flexible and autonomous, so it works well when a task has multiple steps, conditional branches, or an uncertain execution path. During execution, `aiAct` continuously uses AI to plan from the latest interface state, which means it usually takes more time and tokens than an instant interaction.
 
 Typical usage:
 
@@ -36,7 +42,7 @@ The key per-call options are:
 await agent.aiAct('Complete the checkout form and stop before placing the order', {
   deepThink: true,
   deepLocate: true,
-  context: 'The test account already has a saved shipping address.',
+  context: 'If an address confirmation dialog appears, select the default shipping address.',
 });
 ```
 
@@ -104,6 +110,7 @@ Typical usage:
 const items = await agent.aiQuery<
   Array<{ name: string; price: number }>
 >('The products in the shopping cart, {name: string, price: number}[]');
+// Example items value: [{ name: 'Wireless headphones', price: 99.9 }]
 ```
 
 ### `aiBoolean`
@@ -116,19 +123,24 @@ Typical usage:
 const loginDialogVisible = await agent.aiBoolean(
   'Is the login dialog visible?',
 );
+// Example loginDialogVisible value: true
 ```
 
-Related convenience methods include `aiNumber` for numbers and `aiString` or `aiAsk` for strings.
+Related convenience methods include [`aiNumber`](./reference/#agentainumber) for numbers and [`aiString`](./reference/#agentaistring) or [`aiAsk`](./reference/#agentaiask) for strings.
 
 ## Orchestrate workflows with JavaScript {#javascript-orchestration}
 
-`aiAct` delegates the execution path to the Agent. JavaScript orchestration keeps conditions, loops, and step order in code. Insight APIs provide the state used by the control flow, while instant interaction APIs execute the specified actions.
+Midscene offers two basic ways to orchestrate automation: use `aiAct`, or orchestrate the workflow with JavaScript. The following examples complete the same task using each approach.
 
-JavaScript orchestration is a practical and highly deterministic approach. Because the execution path is explicit, developers can use familiar debugging tools and control how each branch behaves.
+Using `aiAct`:
 
-That determinism comes at the cost of flexibility. Code only handles situations that it explicitly describes. A resolution change may require an unexpected scroll, and a popup may block the next action. Unless the script includes logic for those cases, the entire workflow can become fragile. By contrast, `aiAct` can observe the current interface and replan as it runs.
+```typescript
+await agent.aiAct(
+  'Check every record in the list and mark any incomplete record as completed',
+);
+```
 
-For example, the following workflow puts the loop and condition in JavaScript. Midscene reads the UI state and performs each click:
+Using JavaScript orchestration:
 
 ```typescript
 const recordNames = await agent.aiQuery<string[]>('All record names in the list');
@@ -144,12 +156,19 @@ for (const recordName of recordNames) {
 }
 ```
 
-There is no single best approach for every automation script:
+`aiAct` delegates the execution path to the Agent, while JavaScript orchestration keeps conditions, loops, and step order in code. In the JavaScript example above, Insight APIs provide state to the control flow, and instant interaction APIs execute specified actions.
 
-| Approach | Who controls the execution path | Ability to adapt to UI changes | Suitable scenarios |
-| --- | --- | --- | --- |
-| `aiAct` | Agent | Can observe the interface and replan | The goal is clear, but the steps or UI state may vary |
-| JavaScript orchestration | Code | Changes must be handled explicitly | The flow is stable and requires precise branches, loops, or debugging |
-| Hybrid | Agent and code | Balance autonomy with explicit control | The overall flow is fixed, but some local tasks have uncertain paths |
+JavaScript orchestration is a practical and highly deterministic approach. Because the execution path is explicit, developers can use familiar debugging tools and control how each branch behaves.
 
-Choose at the level of each task rather than applying one approach to the entire script. Stable business rules and control flow can live in JavaScript. Steps that need to adapt to unexpected UI states can remain in `aiAct`. Consider stability, flexibility, model cost, latency, and maintenance together.
+JavaScript orchestration can respond only to situations handled in the code. A resolution change may require an extra scroll, and a temporary popup may cover the target element. If the code does not account for these changes, the workflow fails. `aiAct`, by contrast, observes the latest interface state and adjusts its next actions accordingly.
+
+Use the following guidelines when choosing an approach:
+
+1. Use `aiAct` by default to drive operation goals. Letting the Agent choose the specific steps from the latest interface state makes the workflow more adaptable to UI changes.
+2. Use JavaScript orchestration only when the operation flow is well understood and stable. In that case, write the known conditions, loops, and step order directly in code.
+
+:::warning
+
+Do not ask a model to guess the complete operation path without observing the actual interface and generate a JavaScript script that stacks many instant interaction calls such as `aiTap`. Such scripts lack a reliable basis for their flow, are difficult to diagnose and debug, and usually do not run reliably.
+
+:::

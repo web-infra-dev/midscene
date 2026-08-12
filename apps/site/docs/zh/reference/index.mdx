@@ -117,7 +117,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 
 #### `aiAct()` 或 `ai()` {#agentaiact}
 
-这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
+这个方法允许你通过自然语言描述 UI 操作目标和断言条件。执行期间，Midscene 会基于最新的界面状态持续进行 AI 规划和操作，直至完成目标。如果提示词中的断言失败，`aiAct` 会及时抛出错误。
 
 :::info 向后兼容
 
@@ -145,7 +145,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
 
 - 参数：
 
-  - `prompt: string | object` - 用自然语言描述的操作内容，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `prompt: string | object` - 用自然语言描述的操作目标和断言条件，或[使用图片作为提示词](#使用图片作为提示词)。断言条件不是必填项。
   - `options?: object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
@@ -166,8 +166,10 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
 - 示例：
 
 ```typescript
-// 基本用法
-await agent.aiAct('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
+// 操作并验证结果
+await agent.aiAct(
+  '搜索耳机，将第一件商品加入购物车，并确认购物车数量变为 1',
+);
 
 // 使用 .ai 简写形式
 await agent.ai(

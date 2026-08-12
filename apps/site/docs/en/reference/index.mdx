@@ -119,7 +119,7 @@ Below are the main APIs available for the various Agents in Midscene. `agent.ai(
 
 #### `aiAct()` or `ai()` {#agentaiact}
 
-This method allows you to perform a series of UI actions described in natural language. Midscene automatically plans the steps and executes them.
+This method accepts UI goals and assertions described in natural language. During execution, Midscene continuously uses AI to plan and act from the latest interface state until the goal is complete. If an assertion in the prompt fails, `aiAct` throws an error promptly.
 
 :::info Backward compatibility
 
@@ -147,7 +147,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
 
 - Parameters:
 
-  - `prompt: string | object` — A natural language description of the UI steps, or [prompting with images](#prompting-with-images).
+  - `prompt: string | object` — A natural language description of the UI goal and any optional assertions, or [prompting with images](#prompting-with-images).
   - `options?: object` — Optional configuration:
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `deepThink?: 'unset' | true | false` — Controls the planning implementation used by Midscene when `aiAct` performs planning. See [`deepThink` planning mode](#aiact-deepthink).
@@ -168,9 +168,9 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
 - Examples:
 
 ```typescript
-// Basic usage
+// Perform actions and verify the result
 await agent.aiAct(
-  'Type "JavaScript" into the search box, then click the search button',
+  'Search for headphones, add the first item to the cart, and confirm that the cart count changes to 1',
 );
 
 // Using the shorthand .ai form
