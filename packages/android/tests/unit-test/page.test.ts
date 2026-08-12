@@ -1448,7 +1448,13 @@ Stdout:
           autoDismissKeyboard: false,
         };
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+        const execYadbRaw = vi
+          .spyOn(device as any, 'execYadbRaw')
+          .mockResolvedValue(undefined);
+        // Keyboard typing is a composite visual action and now calls the raw
+        // yadb primitive to avoid creating a nested freshness barrier. Keep
+        // the existing assertions pointed at that primitive's spy.
+        (device as any).execYadb = execYadbRaw;
         mockAdb.isSoftKeyboardPresent.mockResolvedValue({
           isKeyboardShown: false,
           canCloseKeyboard: true,
@@ -2303,7 +2309,7 @@ Stdout:
 
     it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'scroll')
+        .spyOn(device as any, 'scrollRaw')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, -100, undefined, true, 'up');
@@ -2311,7 +2317,7 @@ Stdout:
 
     it('scrollDown should call scroll with positive Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'scroll')
+        .spyOn(device as any, 'scrollRaw')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, 100, undefined, true, 'down');
