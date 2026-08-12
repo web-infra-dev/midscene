@@ -518,6 +518,7 @@ function createMarkdownReplayManifest(
   session: StudioRecordingSession,
   source: 'ai' | 'local-fallback',
   screenshotEvidence: RecorderManifestScreenshotEvidence[] = [],
+  screenshotSelectionLimit = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
 ) {
   type ManifestSemantic = {
     source: string;
@@ -562,6 +563,38 @@ function createMarkdownReplayManifest(
   const screenshotEvidenceByEventIndex = new Map(
     screenshotEvidence.map((evidence) => [evidence.eventIndex, evidence]),
   );
+  const screenshotCandidateIndexes = session.events
+    .map((event, eventIndex) =>
+      event.screenshotAsset ||
+      event.screenshotBefore ||
+      event.screenshotAfter ||
+      event.screenshotWithBox
+        ? eventIndex
+        : -1,
+    )
+    .filter((eventIndex) => eventIndex >= 0);
+  const screenshotCandidateIndexSet = new Set(screenshotCandidateIndexes);
+  const selectedScreenshotIndexes = Array.from(
+    screenshotEvidenceByEventIndex.keys(),
+  ).sort((left, right) => left - right);
+  const eligibleScreenshotIndexes = new Set(
+    selectMidsceneRecorderScreenshotEvents(
+      session.events,
+      session.events.length,
+    ).map((selection) => selection.eventIndex),
+  );
+  const intendedScreenshotIndexes = new Set(
+    selectMidsceneRecorderScreenshotEvents(
+      session.events,
+      Math.max(0, screenshotSelectionLimit),
+    ).map((selection) => selection.eventIndex),
+  );
+  const omittedScreenshotIndexes = screenshotCandidateIndexes.filter(
+    (eventIndex) => !screenshotEvidenceByEventIndex.has(eventIndex),
+  );
+  const unavailableScreenshotIndexes = session.events
+    .map((_event, eventIndex) => eventIndex)
+    .filter((eventIndex) => !screenshotCandidateIndexSet.has(eventIndex));
   const events = session.events.map((event, eventIndex) => {
     const semantic = getMidsceneRecorderSemantic(event);
     const evidence = screenshotEvidenceByEventIndex.get(eventIndex);
@@ -589,6 +622,18 @@ function createMarkdownReplayManifest(
             },
           }
         : {}),
+      screenshotSelection: evidence
+        ? { status: 'selected' as const }
+        : screenshotCandidateIndexSet.has(eventIndex)
+          ? {
+              status: 'omitted' as const,
+              reason: intendedScreenshotIndexes.has(eventIndex)
+                ? ('asset-unavailable' as const)
+                : eligibleScreenshotIndexes.has(eventIndex)
+                  ? ('selection-limit' as const)
+                  : ('selection-policy' as const),
+            }
+          : { status: 'unavailable' as const },
       semantic: serializeSemantic(semantic) || {
         source: 'heuristic',
         status: 'ready',
@@ -599,6 +644,16 @@ function createMarkdownReplayManifest(
   const descriptionSourceCounts = events.reduce<Record<string, number>>(
     (counts, event) => {
       counts[event.semantic.source] = (counts[event.semantic.source] || 0) + 1;
+      return counts;
+    },
+    {},
+  );
+  const screenshotOmissionReasonCounts = events.reduce<Record<string, number>>(
+    (counts, event) => {
+      if (event.screenshotSelection.status === 'omitted') {
+        const reason = event.screenshotSelection.reason;
+        counts[reason] = (counts[reason] || 0) + 1;
+      }
       return counts;
     },
     {},
@@ -617,7 +672,31 @@ function createMarkdownReplayManifest(
         createStudioRecorderDeterministicDescription(session),
       aiNarrative: session.metadataDescription,
       finalization: session.finalization,
+      enrichment: {
+        session: session.enrichment,
+        exportedDescriptionSourceCounts: descriptionSourceCounts,
+        unresolvedEventIndexes: events
+          .filter((event) => event.semantic.status !== 'ready')
+          .map((event) => event.index),
+      },
       descriptionSourceCounts,
+      visualEvidence: {
+        selectionLimit: Math.max(0, screenshotSelectionLimit),
+        candidateCount: screenshotCandidateIndexes.length,
+        selectedCount: selectedScreenshotIndexes.length,
+        omittedCount: omittedScreenshotIndexes.length,
+        unavailableCount: unavailableScreenshotIndexes.length,
+        omissionReasonCounts: screenshotOmissionReasonCounts,
+        selectedEventIndexes: selectedScreenshotIndexes.map(
+          (eventIndex) => eventIndex + 1,
+        ),
+        omittedEventIndexes: omittedScreenshotIndexes.map(
+          (eventIndex) => eventIndex + 1,
+        ),
+        unavailableEventIndexes: unavailableScreenshotIndexes.map(
+          (eventIndex) => eventIndex + 1,
+        ),
+      },
       events,
     },
     null,
@@ -1017,6 +1096,7 @@ export function createStudioRecorderArchivePlan(
           session,
           markdownSource,
           sessionAssets.evidence,
+          remainingScreenshots,
         ),
       },
       {

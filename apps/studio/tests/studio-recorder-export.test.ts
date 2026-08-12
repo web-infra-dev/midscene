@@ -470,6 +470,87 @@ describe('studio recorder export', () => {
     expect(archivedAssetIds[0]).toBe('asset-1');
     expect(archivedAssetIds.at(-1)).toBe('asset-25');
     expect(loadAsset).toHaveBeenCalledTimes(20);
+
+    const manifestEntry = plan.textEntries.find(
+      (entry) => entry.archivePath === 'recording.manifest.json',
+    );
+    const manifest = JSON.parse(manifestEntry?.content || '{}');
+    expect(manifest.visualEvidence).toEqual({
+      selectionLimit: 20,
+      candidateCount: 25,
+      selectedCount: 20,
+      omittedCount: 5,
+      unavailableCount: 0,
+      omissionReasonCounts: { 'selection-limit': 5 },
+      selectedEventIndexes: expect.arrayContaining([1, 25]),
+      omittedEventIndexes: expect.any(Array),
+      unavailableEventIndexes: [],
+    });
+    expect(manifest.visualEvidence.omittedEventIndexes).toHaveLength(5);
+    for (const eventIndex of manifest.visualEvidence.omittedEventIndexes) {
+      expect(manifest.events[eventIndex - 1].screenshotSelection).toEqual({
+        status: 'omitted',
+        reason: 'selection-limit',
+      });
+    }
+  });
+
+  it('distinguishes deduplicated visual evidence from selection-limit omissions', () => {
+    const target = {
+      platformId: 'web' as const,
+      label: 'Web',
+      values: { url: 'https://example.com' },
+    };
+    const session: StudioRecordingSession = {
+      id: 'session-duplicate-evidence',
+      name: 'Duplicate evidence',
+      status: 'completed',
+      target,
+      events: [1, 2].map((sequence) => ({
+        type: 'click' as const,
+        platformId: 'web' as const,
+        actionType: 'Click',
+        rawPayload: {},
+        target,
+        pageInfo: { width: 1280, height: 720 },
+        screenshotAsset: {
+          id: 'shared-asset',
+          mimeType: 'image/png',
+          bytes: 12,
+        },
+        timestamp: sequence,
+        hashId: `duplicate-${sequence}`,
+        eventId: `duplicate-${sequence}`,
+        sequence,
+      })),
+      createdAt: 1,
+      updatedAt: 2,
+    };
+
+    const plan = createStudioRecorderMarkdownArchivePlan(session);
+    const manifestEntry = plan.textEntries.find(
+      (entry) => entry.archivePath === 'recording.manifest.json',
+    );
+    const manifest = JSON.parse(manifestEntry?.content || '{}');
+
+    expect(plan.assetEntries).toHaveLength(1);
+    expect(manifest.events[0].screenshotSelection).toEqual({
+      status: 'selected',
+    });
+    expect(manifest.events[1].screenshotSelection).toEqual({
+      status: 'omitted',
+      reason: 'selection-policy',
+    });
+    expect(manifest.visualEvidence).toMatchObject({
+      candidateCount: 2,
+      selectedCount: 1,
+      omittedCount: 1,
+      unavailableCount: 0,
+      omissionReasonCounts: { 'selection-policy': 1 },
+      selectedEventIndexes: [1],
+      omittedEventIndexes: [2],
+      unavailableEventIndexes: [],
+    });
   });
 
   it('records exact sequence facts and keeps AI narrative separate in the manifest', () => {
@@ -567,11 +648,13 @@ describe('studio recorder export', () => {
         bytes: 12,
         sha256: 'deadbeef',
       },
+      screenshotSelection: { status: 'selected' },
     });
     expect(manifest.events[1]).toMatchObject({
       index: 2,
       parentEventId: 'event-1',
       type: 'navigation',
+      screenshotSelection: { status: 'unavailable' },
     });
   });
 
