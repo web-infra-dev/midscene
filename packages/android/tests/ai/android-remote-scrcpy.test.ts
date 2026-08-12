@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { AndroidDevice } from '@/index';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
+import { AndroidDevice } from '../../src';
 
 const RUN_REMOTE_SCRCPY_E2E =
   process.env.AI_TEST_TYPE === 'android' &&

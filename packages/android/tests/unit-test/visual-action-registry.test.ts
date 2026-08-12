@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createVisualActionRegistry } from '@/visual-action-registry';
 import ts from 'typescript';
 import { describe, expect, it, vi } from 'vitest';
+import { createVisualActionRegistry } from '../../src/visual-action-registry';
 
 const lowLevelVisualMutationMethods = new Set([
   'doubleTapPoint',
