@@ -168,11 +168,17 @@ function browserRecorderArchivePickerOptions(defaultFileName: string) {
 
 /**
  * Opens the browser picker while the caller still owns transient user
- * activation. `undefined` means unsupported; `null` means user-cancelled.
+ * activation. Electron owns its destination picker, so the browser picker
+ * must not reserve a second, empty file when both APIs are exposed.
+ * `undefined` means unsupported or delegated to Electron; `null` means
+ * user-cancelled.
  */
 export async function chooseBrowserRecorderArchiveFile(
   defaultFileName: string,
 ): Promise<BrowserRecorderArchiveFileHandle | null | undefined> {
+  if (getRecorderArchiveShell()?.chooseFileSavePath) {
+    return undefined;
+  }
   const picker = (window as BrowserFilePickerWindow).showSaveFilePicker;
   if (!picker) {
     return undefined;

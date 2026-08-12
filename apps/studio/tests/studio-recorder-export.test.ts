@@ -2,6 +2,7 @@
 import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  chooseBrowserRecorderArchiveFile,
   createStudioRecorderArchivePlan,
   createStudioRecorderDeterministicDescription,
   createStudioRecorderMarkdownArchivePlan,
@@ -120,6 +121,21 @@ describe('studio recorder export', () => {
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(click).toHaveBeenCalled();
     expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('does not open a browser picker when Electron owns archive export', async () => {
+    const showSaveFilePicker = vi.fn();
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker =
+      showSaveFilePicker;
+    (window as Window & { electronShell?: unknown }).electronShell = {
+      chooseFileSavePath: vi.fn(),
+      writeFile: vi.fn(),
+    } satisfies Partial<ElectronShellApi>;
+
+    await expect(
+      chooseBrowserRecorderArchiveFile('recording.zip'),
+    ).resolves.toBeUndefined();
+    expect(showSaveFilePicker).not.toHaveBeenCalled();
   });
 
   it('exports Markdown replay zip with screenshot files', async () => {
