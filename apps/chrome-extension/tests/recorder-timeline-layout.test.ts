@@ -28,7 +28,24 @@ describe('Chrome Recorder timeline layout', () => {
     );
 
     expect(styles).toMatch(
-      /\.chrome-extension-execution-timeline-skin\s*\{[\s\S]*?\.clear-button-container\s*\{[\s\S]*?right:\s*8px;/,
+      /\.chrome-extension-execution-timeline-skin\s*\{[\s\S]*?\.clear-button-container\s*\{[\s\S]*?right:\s*12px\s*!important;/,
+    );
+  });
+
+  it('draws a high-contrast connector across adjacent progress rows', async () => {
+    const styles = await readFile(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        '../src/components/playground/index.less',
+      ),
+      'utf8',
+    );
+
+    expect(styles).toMatch(
+      /\.list-item:has\(\.progress-row\)\s*>\s*div:has\(>\s*\.progress-row\)::after\s*\{[\s\S]*?top:\s*23px;[\s\S]*?bottom:\s*-8px;[\s\S]*?left:\s*7px;[\s\S]*?width:\s*2px;/,
+    );
+    expect(styles).toMatch(
+      /\[data-theme='dark'\]\s+\.chrome-extension-playground\s*\{[\s\S]*?--extension-timeline-connector:\s*#bfbfbf;/,
     );
   });
 });
