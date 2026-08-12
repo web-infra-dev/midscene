@@ -9,6 +9,7 @@ import {
 } from '../../../src/env/parse-model-config';
 import { UITarsModelVersion } from '../../../src/env/types';
 import {
+  MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
@@ -136,5 +137,77 @@ describe('parseOpenaiSdkConfig', () => {
     });
 
     expect(result.temperature).toBeUndefined();
+  });
+
+  it('parses model image input capabilities from JSON', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON: JSON.stringify({
+          maxBytes: 4_000_000,
+          maxTotalBytes: 8_000_000,
+          maxLongEdge: 1600,
+          minLongEdge: 400,
+          maxImages: 6,
+        }),
+      },
+    });
+
+    expect(result.imageInput).toEqual({
+      maxBytes: 4_000_000,
+      maxTotalBytes: 8_000_000,
+      maxLongEdge: 1600,
+      minLongEdge: 400,
+      maxImages: 6,
+    });
+  });
+
+  it('rejects invalid model image input capabilities', () => {
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: {
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON: JSON.stringify({
+            maxLongEdge: 256,
+            minLongEdge: 512,
+          }),
+        },
+      }),
+    ).toThrow('minLongEdge must not exceed maxLongEdge');
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: {
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON: JSON.stringify({
+            maxImages: 0,
+          }),
+        },
+      }),
+    ).toThrow('maxImages must be a positive number');
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: {
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON: JSON.stringify({
+            maxImages: 0.5,
+          }),
+        },
+      }),
+    ).toThrow('maxImages must be at least 1');
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: {
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_MODEL_IMAGE_INPUT_CONFIG_JSON: JSON.stringify({
+            maxImageCount: 3,
+          }),
+        },
+      }),
+    ).toThrow('maxImageCount is not supported');
   });
 });

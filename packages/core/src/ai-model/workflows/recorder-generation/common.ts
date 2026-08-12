@@ -1,6 +1,8 @@
+import type { IModelConfig } from '@midscene/shared/env';
 import {
   type ModelInputImageBatchNormalizationOptions,
   normalizeImagesForModel,
+  resolveModelInputImageCapabilities,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
@@ -71,6 +73,12 @@ export interface RecorderGenerationContext {
 }
 
 export type ChromeRecordedEvent = MidsceneRecorderEvent;
+
+export function resolveRecorderModelInputImageOptions(
+  modelConfig: Pick<IModelConfig, 'imageInput'>,
+): ModelInputImageBatchNormalizationOptions {
+  return resolveModelInputImageCapabilities(modelConfig.imageInput);
+}
 
 export async function prepareRecorderModelInputImageEntries(
   screenshots: string[],

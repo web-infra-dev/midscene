@@ -32,6 +32,8 @@ export {
   DEFAULT_MODEL_INPUT_IMAGE_MAX_TOTAL_BYTES,
   normalizeImageForModel,
   normalizeImagesForModel,
+  resolveModelInputImageCapabilities,
+  type ModelInputImageCapabilities,
   type ModelInputImageBatchNormalizationOptions,
   type ModelInputImageBatchNormalizationResult,
   type ModelInputImageDegradedReason,

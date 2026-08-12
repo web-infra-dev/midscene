@@ -23,6 +23,7 @@ import {
   UITarsModelVersion,
 } from './types';
 
+import type { ModelInputImageCapabilities } from '../img';
 import { getDebug } from '../logger';
 
 import { assert } from '../utils';
@@ -181,6 +182,55 @@ const parseTemperature = (rawValue: string | undefined): number | undefined => {
   return Number.isFinite(temperature) ? temperature : undefined;
 };
 
+const parseImageInputCapabilities = (
+  key: string,
+  rawValue: string | undefined,
+): ModelInputImageCapabilities | undefined => {
+  const parsed = parseJson(key, rawValue);
+  if (parsed === undefined) {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${key} must be a JSON object.`);
+  }
+  const properties = [
+    'maxBytes',
+    'maxTotalBytes',
+    'maxLongEdge',
+    'minLongEdge',
+    'maxImages',
+  ] as const;
+  const supportedProperties = new Set<string>(properties);
+  for (const property of Object.keys(parsed)) {
+    if (!supportedProperties.has(property)) {
+      throw new Error(`${key}.${property} is not supported.`);
+    }
+  }
+  const capabilities: ModelInputImageCapabilities = {};
+  for (const property of properties) {
+    const value = (parsed as Record<string, unknown>)[property];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+      throw new Error(`${key}.${property} must be a positive number.`);
+    }
+    const normalized = Math.floor(value);
+    if (normalized < 1) {
+      throw new Error(`${key}.${property} must be at least 1.`);
+    }
+    capabilities[property] = normalized;
+  }
+  if (
+    capabilities.minLongEdge &&
+    capabilities.maxLongEdge &&
+    capabilities.minLongEdge > capabilities.maxLongEdge
+  ) {
+    throw new Error(`${key}.minLongEdge must not exceed maxLongEdge.`);
+  }
+  return capabilities;
+};
+
 /**
  * Parse OpenAI SDK config
  */
@@ -231,6 +281,10 @@ export const parseOpenaiSdkConfig = ({
   );
   const extraBodyStr: string | undefined = provider[keys.extraBody];
   const extraBody = parseJson(keys.extraBody, extraBodyStr);
+  const imageInput = parseImageInputCapabilities(
+    keys.imageInput,
+    provider[keys.imageInput],
+  );
   const temperature = parseTemperature(provider[keys.temperature]);
 
   const modelFamily = modelFamilyRaw as unknown as TModelFamily;
@@ -246,6 +300,7 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
+    imageInput,
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,

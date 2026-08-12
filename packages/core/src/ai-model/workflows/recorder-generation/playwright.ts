@@ -22,6 +22,7 @@ import {
   prepareEventSummary,
   prepareRecorderModelInputImages,
   processEventsForLLM,
+  resolveRecorderModelInputImageOptions,
   validateEvents,
 } from './common';
 
@@ -92,7 +93,10 @@ export const generatePlaywrightTest = async (
   // Get screenshots for visual context
   const screenshots = await prepareRecorderModelInputImages(
     getScreenshotsForLLM(events, options.maxScreenshots || 3),
-    { context: 'recorder Playwright generation' },
+    {
+      ...resolveRecorderModelInputImageOptions(modelConfig),
+      context: 'recorder Playwright generation',
+    },
   );
 
   // Create prompt text
@@ -176,7 +180,10 @@ export const generatePlaywrightTestStream = async (
   // Get screenshots for visual context
   const screenshots = await prepareRecorderModelInputImages(
     getScreenshotsForLLM(events, options.maxScreenshots || 3),
-    { context: 'recorder Playwright generation' },
+    {
+      ...resolveRecorderModelInputImageOptions(modelConfig),
+      context: 'recorder Playwright generation',
+    },
   );
 
   // Create prompt text

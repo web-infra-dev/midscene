@@ -31,6 +31,7 @@ import {
   prepareRecorderGenerationContext,
   prepareRecorderModelInputImageEntries,
   processEventsForLLM,
+  resolveRecorderModelInputImageOptions,
   validateEvents,
 } from './common';
 
@@ -198,12 +199,16 @@ function createModelRuntime(modelConfig: IModelConfig) {
 
 async function createRecorderYamlPrompt(
   input: RecorderYamlGenerationInput,
+  modelConfig: IModelConfig,
 ): Promise<ChatCompletionMessageParam[]> {
   const { summary: rawSummary, screenshotAssets: rawScreenshotAssets } =
     prepareRecorderGenerationContext(input);
   const normalizedScreenshots = await prepareRecorderModelInputImageEntries(
     rawScreenshotAssets.map((asset) => asset.dataUrl),
-    { context: 'recorder YAML generation' },
+    {
+      ...resolveRecorderModelInputImageOptions(modelConfig),
+      context: 'recorder YAML generation',
+    },
   );
   const screenshotAssets = normalizedScreenshots.map((image) => {
     const asset = rawScreenshotAssets[image.index];
@@ -246,7 +251,7 @@ export const generateRecorderYamlTest = async (
   modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
-    const prompt = await createRecorderYamlPrompt(input);
+    const prompt = await createRecorderYamlPrompt(input, modelConfig);
     const response = await callAIWithStringResponse(
       prompt,
       createModelRuntime(modelConfig),
@@ -268,7 +273,7 @@ export const generateRecorderYamlTestStream = async (
   modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
-    const prompt = await createRecorderYamlPrompt(input);
+    const prompt = await createRecorderYamlPrompt(input, modelConfig);
     const modelRuntime = createModelRuntime(modelConfig);
     if (options.stream && options.onChunk) {
       return await callAI(prompt, modelRuntime, {

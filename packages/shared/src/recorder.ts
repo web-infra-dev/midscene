@@ -82,7 +82,8 @@ export interface MidsceneRecorderCaptureError {
     | 'asset_storage_failed'
     | 'model_image_invalid'
     | 'model_image_too_large'
-    | 'model_image_total_too_large';
+    | 'model_image_total_too_large'
+    | 'model_image_count_exceeded';
   message: string;
 }
 

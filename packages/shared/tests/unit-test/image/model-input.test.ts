@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 import {
   normalizeImageForModel,
   normalizeImagesForModel,
+  resolveModelInputImageCapabilities,
 } from '../../../src/img/model-input';
 
 function toDataUrl(buffer: Buffer, mimeType: string) {
@@ -67,5 +68,60 @@ describe('model input image normalization', () => {
     expect(result.images).toHaveLength(1);
     expect(result.omitted).toHaveLength(1);
     expect(result.omitted[0].error.code).toBe('model_image_total_too_large');
+  });
+
+  test('enforces a provider-specific image count budget', async () => {
+    const png = await sharp({
+      create: {
+        width: 32,
+        height: 32,
+        channels: 3,
+        background: '#abcdef',
+      },
+    })
+      .png()
+      .toBuffer();
+    const dataUrl = toDataUrl(png, 'image/png');
+
+    const result = await normalizeImagesForModel([dataUrl, dataUrl, dataUrl], {
+      maxImages: 2,
+    });
+
+    expect(result.images.map((image) => image.index)).toEqual([0, 1]);
+    expect(result.omitted).toEqual([
+      expect.objectContaining({
+        index: 2,
+        error: expect.objectContaining({
+          code: 'model_image_count_exceeded',
+        }),
+      }),
+    ]);
+  });
+
+  test('resolves explicit provider capabilities over conservative defaults', () => {
+    expect(
+      resolveModelInputImageCapabilities({
+        maxBytes: 16,
+        maxTotalBytes: 12,
+        maxLongEdge: 1024,
+        minLongEdge: 256,
+        maxImages: 3,
+      }),
+    ).toEqual({
+      maxBytes: 12,
+      maxTotalBytes: 12,
+      maxLongEdge: 1024,
+      minLongEdge: 256,
+      maxImages: 3,
+    });
+    expect(() =>
+      resolveModelInputImageCapabilities({
+        maxLongEdge: 256,
+        minLongEdge: 512,
+      }),
+    ).toThrow('minLongEdge must not exceed maxLongEdge');
+    expect(() =>
+      resolveModelInputImageCapabilities({ maxImages: 0.5 }),
+    ).toThrow('maxImages must be at least 1');
   });
 });

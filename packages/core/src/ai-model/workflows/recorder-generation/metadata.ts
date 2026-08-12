@@ -11,6 +11,7 @@ import { callAIWithObjectResponse } from '../../service-caller';
 import {
   compactRecorderSemanticForGeneration,
   prepareRecorderModelInputImages,
+  resolveRecorderModelInputImageOptions,
 } from './common';
 
 export interface RecorderMetadataGenerationInput {
@@ -90,7 +91,10 @@ export async function generateRecorderSessionMetadata(
       input.events,
       input.maxScreenshots ?? 1,
     ),
-    { context: 'recorder metadata' },
+    {
+      ...resolveRecorderModelInputImageOptions(modelConfig),
+      context: 'recorder metadata',
+    },
   );
   const messageContent: any[] = [
     {

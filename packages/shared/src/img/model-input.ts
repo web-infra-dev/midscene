@@ -26,6 +26,15 @@ export interface ModelInputImageNormalizationOptions {
   minLongEdge?: number;
 }
 
+/** Limits advertised by a model/provider for one multimodal request. */
+export interface ModelInputImageCapabilities
+  extends ModelInputImageNormalizationOptions {
+  /** Aggregate decoded image bytes allowed in one request. */
+  maxTotalBytes?: number;
+  /** Maximum number of images allowed in one request. */
+  maxImages?: number;
+}
+
 export interface ModelInputImageNormalizationDetails {
   originalBytes: number;
   finalBytes: number;
@@ -47,7 +56,8 @@ export interface ModelInputImageNormalizationFailure {
     code:
       | 'model_image_invalid'
       | 'model_image_too_large'
-      | 'model_image_total_too_large';
+      | 'model_image_total_too_large'
+      | 'model_image_count_exceeded';
     message: string;
   };
   originalBytes: number;
@@ -60,10 +70,8 @@ export type ModelInputImageNormalizationResult =
   | ModelInputImageNormalizationSuccess
   | ModelInputImageNormalizationFailure;
 
-export interface ModelInputImageBatchNormalizationOptions
-  extends ModelInputImageNormalizationOptions {
-  maxTotalBytes?: number;
-}
+export type ModelInputImageBatchNormalizationOptions =
+  ModelInputImageCapabilities;
 
 export interface ModelInputImageBatchNormalizationResult {
   images: Array<ModelInputImageNormalizationSuccess & { index: number }>;
@@ -84,6 +92,56 @@ function dimensionsForLongEdge(
   return {
     width: Math.max(1, Math.round(width * scale)),
     height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function positiveCapability(
+  name: keyof ModelInputImageCapabilities,
+  value: number | undefined,
+) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Model image capability ${name} must be positive.`);
+  }
+  const normalized = Math.floor(value);
+  if (normalized < 1) {
+    throw new Error(`Model image capability ${name} must be at least 1.`);
+  }
+  return normalized;
+}
+
+/** Resolves explicit provider capabilities over conservative defaults. */
+export function resolveModelInputImageCapabilities(
+  capabilities: ModelInputImageCapabilities | undefined,
+): Required<ModelInputImageCapabilities> {
+  const maxBytes =
+    positiveCapability('maxBytes', capabilities?.maxBytes) ??
+    DEFAULT_MODEL_INPUT_IMAGE_MAX_BYTES;
+  const maxTotalBytes =
+    positiveCapability('maxTotalBytes', capabilities?.maxTotalBytes) ??
+    DEFAULT_MODEL_INPUT_IMAGE_MAX_TOTAL_BYTES;
+  const maxLongEdge =
+    positiveCapability('maxLongEdge', capabilities?.maxLongEdge) ??
+    DEFAULT_MODEL_INPUT_IMAGE_MAX_LONG_EDGE;
+  const minLongEdge =
+    positiveCapability('minLongEdge', capabilities?.minLongEdge) ??
+    DEFAULT_MODEL_INPUT_IMAGE_MIN_LONG_EDGE;
+  const maxImages =
+    positiveCapability('maxImages', capabilities?.maxImages) ??
+    Number.MAX_SAFE_INTEGER;
+  if (minLongEdge > maxLongEdge) {
+    throw new Error(
+      'Model image capability minLongEdge must not exceed maxLongEdge.',
+    );
+  }
+  return {
+    maxBytes: Math.min(maxBytes, maxTotalBytes),
+    maxTotalBytes,
+    maxLongEdge,
+    minLongEdge,
+    maxImages,
   };
 }
 
@@ -256,20 +314,29 @@ export async function normalizeImagesForModel(
   images: string[],
   options: ModelInputImageBatchNormalizationOptions = {},
 ): Promise<ModelInputImageBatchNormalizationResult> {
-  const maxTotalBytes =
-    options.maxTotalBytes ?? DEFAULT_MODEL_INPUT_IMAGE_MAX_TOTAL_BYTES;
-  if (!Number.isFinite(maxTotalBytes) || maxTotalBytes <= 0) {
-    throw new Error('normalizeImagesForModel: maxTotalBytes must be positive.');
-  }
+  const capabilities = resolveModelInputImageCapabilities(options);
+  const { maxTotalBytes, maxImages } = capabilities;
 
   const normalized: ModelInputImageBatchNormalizationResult = {
     images: [],
     omitted: [],
     totalBytes: 0,
   };
-  const maxImageBytes = options.maxBytes ?? DEFAULT_MODEL_INPUT_IMAGE_MAX_BYTES;
+  const maxImageBytes = capabilities.maxBytes;
 
   for (const [index, image] of images.entries()) {
+    if (normalized.images.length >= maxImages) {
+      normalized.omitted.push({
+        index,
+        ok: false,
+        error: {
+          code: 'model_image_count_exceeded',
+          message: `Model image count budget of ${maxImages} is exhausted.`,
+        },
+        originalBytes: 0,
+      });
+      continue;
+    }
     const remainingBytes = maxTotalBytes - normalized.totalBytes;
     if (remainingBytes <= 0) {
       normalized.omitted.push({
@@ -285,7 +352,8 @@ export async function normalizeImagesForModel(
     }
 
     const result = await normalizeImageForModel(image, {
-      ...options,
+      maxLongEdge: capabilities.maxLongEdge,
+      minLongEdge: capabilities.minLongEdge,
       maxBytes: Math.min(maxImageBytes, remainingBytes),
     });
     if (!result.ok) {

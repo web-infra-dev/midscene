@@ -5,7 +5,11 @@ import {
   isNonRetryableAIRequestError,
 } from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
-import { normalizeImagesForModel } from '@midscene/shared/img';
+import {
+  type ModelInputImageBatchNormalizationOptions,
+  normalizeImagesForModel,
+  resolveModelInputImageCapabilities,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   MidsceneRecorderEvent,
@@ -456,6 +460,7 @@ async function describeWithRetry(
   target: MidsceneRecorderTarget | undefined,
   highlightedScreenshot: string,
   modelRuntime: ModelRuntime,
+  imageInput: ModelInputImageBatchNormalizationOptions,
   options: Required<
     Pick<DescribeRecorderUIEventOptions, 'maxRetries' | 'retryDelayMs'>
   >,
@@ -465,7 +470,7 @@ async function describeWithRetry(
   if (afterScreenshot && afterScreenshot !== highlightedScreenshot) {
     screenshots.push(afterScreenshot);
   }
-  const normalized = await normalizeImagesForModel(screenshots);
+  const normalized = await normalizeImagesForModel(screenshots, imageInput);
   const highlightedImage = normalized.images.find((image) => image.index === 0);
   if (!highlightedImage) {
     const failure = normalized.omitted.find((image) => image.index === 0);
@@ -718,6 +723,7 @@ export async function describeRecorderUIEvent(
       input.target,
       screenshotWithBox || screenshot,
       modelRuntime,
+      resolveModelInputImageCapabilities(modelConfig.imageInput),
       {
         maxRetries: options.maxRetries ?? RECORDER_UI_DESCRIBER_DEFAULT_RETRIES,
         retryDelayMs:
