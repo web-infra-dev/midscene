@@ -79,6 +79,14 @@ const mapRunErrorsToCases = (
       add(item, message);
     }
   };
+  const matchesTestModule = (
+    file: TestRunResult['files'][number],
+    testModule: string | undefined,
+  ): boolean =>
+    !!testModule &&
+    [file.name, file.testPath].some(
+      (key) => key === testModule || key?.includes(testModule),
+    );
   const matchFileCase = (
     file: TestRunResult['files'][number],
   ): GeneratedYamlTestCase | undefined => {
@@ -91,19 +99,10 @@ const mapRunErrorsToCases = (
     }
     return undefined;
   };
-  const isBatchFile = (file: TestRunResult['files'][number]): boolean => {
-    if (!project.batchTest) return false;
-    for (const key of [file.name, file.testPath]) {
-      if (
-        key &&
-        (key === project.batchTest.testModule ||
-          key.includes(project.batchTest.testModule))
-      ) {
-        return true;
-      }
-    }
-    return false;
-  };
+  const isBatchFile = (file: TestRunResult['files'][number]): boolean =>
+    matchesTestModule(file, project.batchTest?.testModule);
+  const isSequentialFile = (file: TestRunResult['files'][number]): boolean =>
+    matchesTestModule(file, project.sequentialTestModule);
   const isBatchTest = (testName: string): boolean =>
     testName === project.batchTest?.testName;
 
@@ -111,7 +110,7 @@ const mapRunErrorsToCases = (
     const fileCase = matchFileCase(file);
     for (const error of file.errors ?? []) {
       const message = errorMessage(error);
-      if (isBatchFile(file)) {
+      if (isBatchFile(file) || isSequentialFile(file)) {
         addAll(message);
       } else {
         add(fileCase, message);

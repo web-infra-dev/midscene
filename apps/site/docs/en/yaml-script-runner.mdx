@@ -269,6 +269,10 @@ Run with:
 midscene --config ./config.yaml
 ```
 
+Set `concurrent: 1` (the default) when scripts must run in the exact order of
+the `files` list. With a value greater than `1`, scripts are independent and the
+test scheduler may start or finish them in a different order.
+
 #### Run a setup before parallel scripts
 
 When several independent scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Setup and main scripts share one browser context, so the login state is carried over. `setup` requires `shareBrowserContext: true`.
