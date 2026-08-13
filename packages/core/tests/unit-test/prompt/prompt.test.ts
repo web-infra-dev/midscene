@@ -2,6 +2,7 @@ import { systemPromptToLocateElement } from '@/ai-model';
 import { getModelAdapter } from '@/ai-model/models';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import {
+  buildActionExample,
   buildStandardPlanningSystemPrompt,
   descriptionForAction,
 } from '@/ai-model/prompt/planning';
@@ -49,6 +50,23 @@ const locatePromptSpecFor = (
 };
 
 describe('action space', () => {
+  it('builds an action output protocol example', () => {
+    const actionExample = buildActionExample({
+      name: 'Tap',
+      sample: { locate: { prompt: 'the Submit button' } },
+      call: async () => {},
+    });
+
+    expect(actionExample).toBe(`<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "the Submit button"
+  }
+}
+</action-param-json>`);
+  });
+
   it('action without param, no locate needed', () => {
     const action = descriptionForAction({
       name: 'Tap',

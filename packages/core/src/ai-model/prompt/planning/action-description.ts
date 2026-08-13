@@ -1,4 +1,3 @@
-import { findAllMidsceneLocatorField } from '@/common';
 import type { DeviceAction } from '@/types';
 import {
   getZodDescription,
@@ -6,6 +5,7 @@ import {
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
+import { buildActionExample } from './action-example';
 
 export const locateParamSchemaDescription = (
   promptSpec?: LocateResultPromptSpec,
@@ -51,36 +51,6 @@ const findDefaultValue = (field: unknown): any | undefined => {
   }
 
   return undefined;
-};
-
-/**
- * Inject model locate results into locate fields of a sample object.
- * Walks the sample and for any locate field (identified by paramSchema),
- * adds a fake locate result when includeLocateInPlanning is true.
- */
-const injectLocateResultIntoSample = (
-  sample: Record<string, any>,
-  locateFields: string[],
-  promptSpec: LocateResultPromptSpec,
-): Record<string, any> => {
-  const resultKey = promptSpec.resultKey;
-  const sampleResults = promptSpec.exampleValues;
-  const result = { ...sample };
-  let sampleResultIndex = 0;
-  for (const field of locateFields) {
-    if (
-      result[field] &&
-      typeof result[field] === 'object' &&
-      result[field].prompt
-    ) {
-      result[field] = {
-        ...result[field],
-        [resultKey]: sampleResults[sampleResultIndex % sampleResults.length],
-      };
-      sampleResultIndex++;
-    }
-  }
-  return result;
 };
 
 export const descriptionForAction = (
@@ -180,19 +150,16 @@ export const descriptionForAction = (
     }
   }
 
-  // Render sample if provided, using the same XML tag format as the real output
-  if (action.sample && typeof action.sample === 'object') {
-    const locateFields = findAllMidsceneLocatorField(action.paramSchema);
-    const sampleWithLocateResult =
-      includeLocateInPlanning && locatePromptSpec
-        ? injectLocateResultIntoSample(
-            action.sample,
-            locateFields,
-            locatePromptSpec,
-          )
-        : action.sample;
-    const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithLocateResult, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
-    fields.push(sampleStr);
+  const actionExample = buildActionExample(
+    action,
+    includeLocateInPlanning ? locatePromptSpec : undefined,
+  );
+  if (actionExample) {
+    const indentedActionExample = actionExample.replace(
+      /\n/g,
+      `\n${tab}${tab}`,
+    );
+    fields.push(`- sample:\n${tab}${tab}${indentedActionExample}`);
   }
 
   return `- ${action.name}, ${action.description || 'No description provided'}
