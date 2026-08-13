@@ -3,7 +3,7 @@ import type {
   SubGoal,
   SubGoalStatus,
 } from '@/types';
-import type { JsonParser } from '../../service-caller/json';
+import type { JsonParser } from '../../shared/json';
 import { extractXMLTag } from '../../shared/xml';
 
 /**

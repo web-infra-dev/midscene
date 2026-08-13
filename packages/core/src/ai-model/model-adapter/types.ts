@@ -11,7 +11,7 @@ import type {
   JsonParser,
   JsonParserContext,
   JsonParserSource,
-} from '../service-caller/json';
+} from '../shared/json';
 import type {
   LocateResultAdapter,
   LocateResultAdapterDefinition,

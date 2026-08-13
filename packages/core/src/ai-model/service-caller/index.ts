@@ -42,12 +42,12 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { getVersion } from '../../utils';
 import type { ModelRuntime } from '../models';
+import type { JsonParserSource } from '../shared/json';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
 } from './codex-app-server';
 import type { CodexAppServerRecordEvent } from './codex-app-server';
-import type { JsonParserSource } from './json';
 import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
@@ -71,8 +71,8 @@ import type { AIArgs } from './types';
 export {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
-} from './json';
-export type { JsonParser } from './json';
+} from '../shared/json';
+export type { JsonParser } from '../shared/json';
 
 /**
  * Internal field name stamped onto every AIUsageInfo shaped by callAI().

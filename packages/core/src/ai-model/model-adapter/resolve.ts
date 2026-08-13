@@ -1,4 +1,4 @@
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
