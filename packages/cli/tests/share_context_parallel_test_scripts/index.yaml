@@ -3,8 +3,8 @@ continueOnError: true
 shareBrowserContext: true
 
 page:
-  # The integration test overrides this with its dynamically allocated server URL.
-  url: http://127.0.0.1/share-context-test.html
+  # The integration test injects its dynamically allocated server origin.
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
   viewportWidth: 800
   viewportHeight: 600
 
