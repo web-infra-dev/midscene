@@ -1,7 +1,7 @@
 import { ConversationHistory } from '@/ai-model/conversation-history';
-import { plan } from '@/ai-model/llm-planning';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import { plan } from '@/ai-model/workflows/planning';
 import { buildYamlFlowFromPlans, getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';

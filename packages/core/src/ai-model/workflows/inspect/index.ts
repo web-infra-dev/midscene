@@ -4,4 +4,4 @@ export {
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
-} from '../../inspect';
+} from './inspect';

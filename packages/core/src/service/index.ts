@@ -1,10 +1,4 @@
 import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
-import {
-  AiExtractElementInfo,
-  AiLocateElement,
-  AiLocateSection,
-  buildSearchAreaConfig,
-} from '@/ai-model/inspect';
 import type { ModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import {
@@ -12,6 +6,12 @@ import {
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
 import type { AIArgs } from '@/ai-model/types';
+import {
+  AiExtractElementInfo,
+  AiLocateElement,
+  AiLocateSection,
+  buildSearchAreaConfig,
+} from '@/ai-model/workflows/inspect';
 import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
 import type {
   AIDescribeElementResponse,

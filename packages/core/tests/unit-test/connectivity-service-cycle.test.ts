@@ -25,7 +25,7 @@ vi.mock('@/ai-model/service-caller/index', () => ({
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/inspect', () => ({
+vi.mock('@/ai-model/workflows/inspect', () => ({
   AiExtractElementInfo: mocks.AiExtractElementInfo,
   AiLocateElement: mocks.AiLocateElement,
   AiLocateSection: mocks.AiLocateSection,

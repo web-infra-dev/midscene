@@ -7,27 +7,27 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { buildYamlFlowFromPlans } from '../common';
-import { planningModelFamilyRequiredForLocateMessage } from './errors';
-import { systemPromptToTaskPlanning } from './prompt/llm-planning';
+import { buildYamlFlowFromPlans } from '../../../common';
+import { planningModelFamilyRequiredForLocateMessage } from '../../errors';
+import { systemPromptToTaskPlanning } from '../../prompt/llm-planning';
 import {
   extractXMLTag,
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
-} from './prompt/util';
-import { AIResponseParseError, callAI } from './service-caller/index';
-import type { JsonParser, JsonParserSource } from './service-caller/json';
+} from '../../prompt/util';
+import { AIResponseParseError, callAI } from '../../service-caller/index';
+import type { JsonParser, JsonParserSource } from '../../service-caller/json';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
-} from './service-caller/semantic-retry';
+} from '../../service-caller/semantic-retry';
 import type {
   LocateResultAdapter,
   LocateResultContext,
-} from './shared/model-locate-result';
-import { prepareModelImage } from './workflows/image-preprocess';
-import { normalizePlanningActionLocateFields } from './workflows/planning/locate-normalization';
-import type { PlanOptions } from './workflows/planning/types';
+} from '../../shared/model-locate-result';
+import { prepareModelImage } from '../image-preprocess';
+import { normalizePlanningActionLocateFields } from './locate-normalization';
+import type { PlanOptions } from './types';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });

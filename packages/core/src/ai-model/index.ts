@@ -44,9 +44,9 @@ export {
   AiExtractElementInfo,
   AiLocateSection,
   AiJudgeOrderSensitive,
-} from './inspect';
+} from './workflows/inspect';
 
-export { plan } from './llm-planning';
+export { plan } from './workflows/planning';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,

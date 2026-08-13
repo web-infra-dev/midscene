@@ -14,54 +14,51 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import type { TMultimodalPrompt, TUserPrompt } from '../common';
+import type { TMultimodalPrompt, TUserPrompt } from '../../../common';
 import {
   expandSearchArea,
   multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
   userPromptToString,
-} from '../common';
-import type { ModelRuntime } from './models';
+} from '../../../common';
+import type { ModelRuntime } from '../../models';
 import {
   extractDataQueryPrompt,
   parseXMLExtractionResponse,
   systemPromptToExtract,
-} from './prompt/extraction';
+} from '../../prompt/extraction';
 import {
   findElementPrompt,
   systemPromptToLocateElement,
-} from './prompt/llm-locator';
+} from '../../prompt/llm-locator';
 import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
-} from './prompt/llm-section-locator';
+} from '../../prompt/llm-section-locator';
 import {
   orderSensitiveJudgePrompt,
   systemPromptToJudgeOrderSensitive,
-} from './prompt/order-sensitive-judge';
+} from '../../prompt/order-sensitive-judge';
 import {
   AIResponseParseError,
   callAI,
   callAIWithObjectResponse,
   parseAIObjectResponse,
-} from './service-caller/index';
+} from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
-} from './service-caller/semantic-retry';
-import { prepareModelImage } from './workflows/image-preprocess';
-import {
-  mergePixelBboxesToRect,
-  pixelBboxToRect,
-} from './workflows/inspect/locate-result-rect';
-import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './workflows/inspect/search-area-mapping';
+} from '../../service-caller/semantic-retry';
+import { prepareModelImage } from '../image-preprocess';
+import { mergePixelBboxesToRect, pixelBboxToRect } from './locate-result-rect';
+import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping';
 import type {
   LocateModelResponse,
   LocateOptions,
   LocateRequestContext,
   LocateResult,
   SearchAreaConfig,
-} from './workflows/inspect/types';
+} from './types';
 
 export type InspectAIArgs = [
   ChatCompletionSystemMessageParam,
@@ -79,7 +76,7 @@ function formatLocateModelContext(modelRuntime: ModelRuntime): string {
 export {
   userPromptToString as extraTextFromUserPrompt,
   multimodalPromptToChatMessages as promptsToChatParam,
-} from '../common';
+} from '../../../common';
 
 function hasLocateResult(input: unknown, resultKey: string) {
   if (!input || typeof input !== 'object') {

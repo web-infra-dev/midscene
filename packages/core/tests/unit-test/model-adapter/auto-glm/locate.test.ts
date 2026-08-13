@@ -1,8 +1,8 @@
-import { AiLocateElement } from '@/ai-model/inspect';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanningTapLocator } from '@/ai-model/models/auto-glm/locate';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { AiLocateElement } from '@/ai-model/workflows/inspect';
 import type { LocateOptions } from '@/ai-model/workflows/inspect/types';
 import type { UIContext } from '@/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,4 +1,5 @@
-import { plan } from '../../llm-planning';
-import type { PlanFn } from './types';
-
-export const genericXmlPlan: PlanFn = plan;
+export {
+  plan,
+  plan as genericXmlPlan,
+  parseXMLPlanningResponse,
+} from './generic-xml';

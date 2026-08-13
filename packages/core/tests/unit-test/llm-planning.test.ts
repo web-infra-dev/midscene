@@ -1,10 +1,10 @@
-import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
 import { getModelAdapter } from '@/ai-model/models';
 import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
 } from '@/ai-model/prompt/util';
+import { parseXMLPlanningResponse } from '@/ai-model/workflows/planning';
 import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import {
