@@ -261,6 +261,23 @@ describe('action space', () => {
       "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
   });
+
+  it('does not infer RunAdbShell availability from an action description', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      actionSpace: [
+        {
+          name: 'Tap',
+          description: 'Tap the RunAdbShell button shown in the current UI',
+          call: async () => {},
+        },
+      ],
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).not.toContain(
+      "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
+    );
+  });
 });
 
 describe('system prompts', () => {

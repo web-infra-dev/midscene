@@ -4,7 +4,8 @@ import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import { locateGroundingRules } from '../locate-grounding-rules';
 import { locateParamExample } from '../locate-param-example';
-import { descriptionForAction } from './action-description';
+import { buildActionSpaceDescription } from './action-description';
+import { buildPlanningActionGuidelines } from './action-guidelines';
 import { buildPlanningMultiTurnExample } from './examples';
 
 const OBSERVE_STEP_NOTES = [
@@ -28,21 +29,6 @@ const MEMORY_STEP_NOTES = [
   '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
 ].join('\n');
 
-const RUN_ADB_SHELL_ACTION_GUIDANCE =
-  "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action.";
-
-const buildActionStepNotes = (actionList: string) =>
-  [
-    '### Action Guidelines',
-    '',
-    ...(actionList.includes('RunAdbShell')
-      ? [RUN_ADB_SHELL_ACTION_GUIDANCE]
-      : []),
-    '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
-    '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
-    '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
-  ].join('\n');
-
 export async function buildStandardPlanningSystemPrompt({
   actionSpace,
   locatePromptSpec,
@@ -60,14 +46,11 @@ export async function buildStandardPlanningSystemPrompt({
     throw new Error(planningModelFamilyRequiredForLocateMessage());
   }
 
-  const actionDescriptionList = actionSpace.map((action) => {
-    return descriptionForAction(action, {
-      includeLocateInPlanning,
-      locatePromptSpec,
-    });
+  const actionList = buildActionSpaceDescription(actionSpace, {
+    includeLocateInPlanning,
+    locatePromptSpec,
   });
-  const actionList = actionDescriptionList.join('\n');
-  const actionStepNotes = buildActionStepNotes(actionList);
+  const actionStepNotes = buildPlanningActionGuidelines(actionSpace);
 
   const shouldIncludeSubGoals = includeSubGoals ?? false;
 

@@ -199,3 +199,12 @@ export const descriptionForAction = (
 ${tab}${fields.join(`\n${tab}`)}
 `.trim();
 };
+
+export const buildActionSpaceDescription = (
+  actionSpace: DeviceAction<any>[],
+  options: {
+    includeLocateInPlanning?: boolean;
+    locatePromptSpec?: LocateResultPromptSpec;
+  } = {},
+) =>
+  actionSpace.map((action) => descriptionForAction(action, options)).join('\n');
