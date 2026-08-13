@@ -5,8 +5,8 @@ import type {
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { callAI, callAIWithStringResponse } from '../index';
-import { getModelRuntime } from '../models';
+import { getModelRuntime } from '../../models';
+import { callAI, callAIWithStringResponse } from '../../service-caller';
 // Import shared utilities and types from yaml generation.
 import {
   type ChromeRecordedEvent,
@@ -22,7 +22,7 @@ import {
   prepareEventSummary,
   processEventsForLLM,
   validateEvents,
-} from './recorder-generation-common';
+} from './common';
 
 // Playwright-specific interfaces
 export interface PlaywrightGenerationOptions {

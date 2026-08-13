@@ -6,9 +6,9 @@ import {
   getMidsceneRecorderScreenshotsForLLM,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
-import { getModelRuntime } from '../models';
-import { callAIWithObjectResponse } from '../service-caller/index';
-import { compactRecorderSemanticForGeneration } from './recorder-generation-common';
+import { getModelRuntime } from '../../models';
+import { callAIWithObjectResponse } from '../../service-caller';
+import { compactRecorderSemanticForGeneration } from './common';
 
 export interface RecorderMetadataGenerationInput {
   target: MidsceneRecorderTarget;

@@ -1,9 +1,9 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateRecorderSessionMetadata } from '../../../src/ai-model/prompt/recorder-metadata-generator';
-import { callAIWithObjectResponse } from '../../../src/ai-model/service-caller';
+import { callAIWithObjectResponse } from '../../../../src/ai-model/service-caller';
+import { generateRecorderSessionMetadata } from '../../../../src/ai-model/workflows/recorder-generation/metadata';
 
-vi.mock('../../../src/ai-model/service-caller', () => ({
+vi.mock('../../../../src/ai-model/service-caller', () => ({
   callAIWithObjectResponse: vi.fn(),
 }));
 

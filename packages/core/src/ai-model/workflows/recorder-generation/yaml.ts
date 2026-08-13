@@ -9,12 +9,9 @@ import {
   type MidsceneRecorderTarget,
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
-import {
-  type ChatCompletionMessageParam,
-  callAI,
-  callAIWithStringResponse,
-} from '../index';
-import { getModelRuntime } from '../models';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import { getModelRuntime } from '../../models';
+import { callAI, callAIWithStringResponse } from '../../service-caller';
 import {
   type ChromeRecordedEvent,
   type EventCounts,
@@ -34,7 +31,7 @@ import {
   prepareRecorderGenerationContext,
   processEventsForLLM,
   validateEvents,
-} from './recorder-generation-common';
+} from './common';
 
 export type YamlGenerationOptions = RecorderGenerationOptions;
 export type RecorderYamlGenerationInput = RecorderGenerationInput;
