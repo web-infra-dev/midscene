@@ -41,10 +41,6 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { getVersion } from '../../utils';
-import {
-  isModelCallRecordingEnabled,
-  recordModelCallEvent,
-} from '../model-call-recorder';
 import type { ModelRuntime } from '../models';
 import type { AIArgs } from '../types';
 import {
@@ -53,6 +49,10 @@ import {
 } from './codex-app-server';
 import type { CodexAppServerRecordEvent } from './codex-app-server';
 import type { JsonParserSource } from './json';
+import {
+  isModelCallRecordingEnabled,
+  recordModelCallEvent,
+} from './model-call-recorder';
 import {
   type OpenAIErrorResponseContext,
   formatOpenAIAPIErrorDetails,
