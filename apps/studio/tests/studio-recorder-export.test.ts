@@ -10,6 +10,7 @@ import {
   createStudioRecorderSessionFacts,
   createStudioRecorderZipBase64,
   generateStudioRecorderMarkdown,
+  getStudioRecorderArchiveFileName,
   materializeStudioRecorderSessionScreenshots,
   saveStudioRecorderArchive,
   saveStudioRecorderFile,
@@ -25,6 +26,12 @@ describe('studio recorder export', () => {
     (window as Window & { electronShell?: unknown }).electronShell = undefined;
     (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker =
       undefined;
+  });
+
+  it('uses a timestamped filename for recorder ZIP exports', () => {
+    expect(getStudioRecorderArchiveFileName(1_786_609_529_578)).toBe(
+      'midscene-studio-recordings-1786609529578.zip',
+    );
   });
 
   it('materializes screenshot assets only in the export copy', async () => {

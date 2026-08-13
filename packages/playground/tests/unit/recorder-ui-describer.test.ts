@@ -208,7 +208,7 @@ describe('recorder-ui-describer', () => {
   });
 
   it('does not retry a deterministic image_too_large recorder request', async () => {
-    vi.mocked(callAIWithObjectResponse).mockRejectedValue(
+    rs.mocked(callAIWithObjectResponse).mockRejectedValue(
       Object.assign(new Error('image_too_large: image must be under 10MB'), {
         code: 'image_too_large',
         status: 400,
@@ -242,7 +242,7 @@ describe('recorder-ui-describer', () => {
     const started = new Promise<void>((resolve) => {
       resolveStarted = resolve;
     });
-    vi.mocked(callAIWithObjectResponse).mockImplementationOnce(
+    rs.mocked(callAIWithObjectResponse).mockImplementationOnce(
       async (_messages, _runtime, options) => {
         resolveStarted();
         return new Promise((_resolve, reject) => {
@@ -275,7 +275,7 @@ describe('recorder-ui-describer', () => {
 
     await expect(promise).rejects.toThrow('model request cancelled');
     expect(callAIWithObjectResponse).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(callAIWithObjectResponse).mock.calls[0][2]).toEqual({
+    expect(rs.mocked(callAIWithObjectResponse).mock.calls[0][2]).toEqual({
       abortSignal: controller.signal,
     });
   });

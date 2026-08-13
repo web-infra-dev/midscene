@@ -163,15 +163,22 @@ export class MjpegStreamHandler {
   }
 
   private wrapFrameLease(lease: InterfaceMjpegFrameLease): RecorderFrameLease {
-    const convert = (frame: ReturnType<InterfaceMjpegFrameLease['latest']>) =>
-      frame
-        ? {
-            screenshot: toMjpegFrameDataUrl(frame.data, frame.contentType),
-            capturedAt: frame.capturedAt,
-            frameToken: frame.frameToken,
-            source: 'shared-frame-stream' as const,
-          }
-        : undefined;
+    let cachedSnapshot: RecorderFrameSnapshot | undefined;
+    const convert = (frame: ReturnType<InterfaceMjpegFrameLease['latest']>) => {
+      if (!frame) {
+        return undefined;
+      }
+      if (cachedSnapshot?.frameToken === frame.frameToken) {
+        return cachedSnapshot;
+      }
+      cachedSnapshot = {
+        screenshot: toMjpegFrameDataUrl(frame.data, frame.contentType),
+        capturedAt: frame.capturedAt,
+        frameToken: frame.frameToken,
+        source: 'shared-frame-stream' as const,
+      };
+      return cachedSnapshot;
+    };
     return {
       latest: async () => convert(lease.latest()),
       waitForFrameAfter: async (capturedAt, timeoutMs) =>

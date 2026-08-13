@@ -65,10 +65,6 @@ export interface MidsceneRecorderFrameBinding {
   ageMs?: number;
   /** Time spent waiting for a fresh producer frame before selecting this one. */
   waitedMs?: number;
-  /** Whether the producer token matched the previous interaction's before-frame. */
-  reusedPreviousToken?: boolean;
-  /** Why the recorder used the synchronous screenshot fallback. */
-  fallbackReason?: 'missing_frame' | 'stale_frame' | 'reused_frame';
 }
 
 export interface MidsceneRecorderEnrichmentRevisions {

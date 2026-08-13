@@ -9,6 +9,7 @@ import type { Request, Response } from 'express';
 const DATA_URL_BASE64_PREFIX = /^data:image\/\w+;base64,/;
 
 const noopDebug: DebugFunction = () => {};
+const MAX_SOURCE_CAPTURE_FUTURE_SKEW_MS = 1000;
 
 type ActiveInterface = PageAgent['interface'];
 
@@ -436,7 +437,45 @@ export class InterfaceMjpegHub {
             signal: controller.signal,
             onFrame: (frame) => {
               if (controller.signal.aborted) return;
-              const capturedAt = Date.now();
+              const receivedAt = Date.now();
+              const sourceCapturedAt = frame.capturedAt;
+              const hasSourceCaptureTime = sourceCapturedAt !== undefined;
+              if (
+                hasSourceCaptureTime &&
+                (!Number.isFinite(sourceCapturedAt) || sourceCapturedAt <= 0)
+              ) {
+                this.debug(
+                  'drop interface stream frame with invalid capture time %s',
+                  frame.capturedAt,
+                );
+                return;
+              }
+              if (
+                hasSourceCaptureTime &&
+                sourceCapturedAt >
+                  receivedAt + MAX_SOURCE_CAPTURE_FUTURE_SKEW_MS
+              ) {
+                this.debug(
+                  'drop interface stream frame with future capture time %d; received at %d',
+                  sourceCapturedAt,
+                  receivedAt,
+                );
+                return;
+              }
+              const capturedAt = sourceCapturedAt ?? receivedAt;
+              if (
+                producer.lastFrame &&
+                (capturedAt < producer.lastFrame.capturedAt ||
+                  (hasSourceCaptureTime &&
+                    capturedAt === producer.lastFrame.capturedAt))
+              ) {
+                this.debug(
+                  'drop non-monotonic interface stream frame captured at %d; latest is %d',
+                  capturedAt,
+                  producer.lastFrame.capturedAt,
+                );
+                return;
+              }
               const timestampedFrame: TimestampedMjpegStreamFrame = {
                 ...frame,
                 capturedAt,

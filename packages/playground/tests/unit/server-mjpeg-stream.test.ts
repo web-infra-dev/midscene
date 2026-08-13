@@ -170,11 +170,20 @@ describe('PlaygroundServer MJPEG streaming', () => {
   test('GET /mjpeg streams frames from an interface MJPEG producer', async () => {
     const stop = rs.fn();
     let capturedSignal: AbortSignal | undefined;
+    let emitFrame:
+      | ((frame: {
+          data: string;
+          contentType: string;
+          capturedAt?: number;
+        }) => void)
+      | undefined;
     const startMjpegStream = rs.fn(async ({ signal, onFrame }) => {
       capturedSignal = signal;
+      emitFrame = onFrame;
       onFrame({
         data: Buffer.from('frame-one').toString('base64'),
         contentType: 'image/jpeg',
+        capturedAt: 1_786_609_529_578,
       });
       return { stop };
     });
@@ -214,6 +223,23 @@ describe('PlaygroundServer MJPEG streaming', () => {
       expect(
         response.chunks.some((chunk) => chunk.toString() === 'frame-one'),
       ).toBe(true);
+      expect(
+        (server as any)._mjpegHandler.getLastFrameSnapshot().capturedAt,
+      ).toBe(1_786_609_529_578);
+
+      emitFrame?.({
+        data: Buffer.from('duplicate-time-frame').toString('base64'),
+        contentType: 'image/jpeg',
+        capturedAt: 1_786_609_529_578,
+      });
+      emitFrame?.({
+        data: Buffer.from('future-frame').toString('base64'),
+        contentType: 'image/jpeg',
+        capturedAt: Date.now() + 10_000,
+      });
+      expect((server as any)._mjpegHandler.getLastFrameBase64()).toBe(
+        `data:image/jpeg;base64,${Buffer.from('frame-one').toString('base64')}`,
+      );
 
       request.listeners.get('close')?.();
       expect(capturedSignal?.aborted).toBe(false);
@@ -227,8 +253,8 @@ describe('PlaygroundServer MJPEG streaming', () => {
   });
 
   test('recorder lease reuses and keeps the preview frame producer alive', async () => {
-    const stop = vi.fn();
-    const startMjpegStream = vi.fn(async ({ onFrame }) => {
+    const stop = rs.fn();
+    const startMjpegStream = rs.fn(async ({ onFrame }) => {
       onFrame({
         data: Buffer.from('shared-recorder-frame').toString('base64'),
         contentType: 'image/jpeg',
@@ -249,7 +275,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } as any);
 
     await server.launch(6138);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const startRecorderHandler = getRouteHandler(
         server,
@@ -271,7 +297,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
       expect(startMjpegStream).toHaveBeenCalledTimes(1);
 
       request.listeners.get('close')?.();
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(stop).not.toHaveBeenCalled();
 
       const stopRecorderHandler = getRouteHandler(
@@ -280,20 +306,20 @@ describe('PlaygroundServer MJPEG streaming', () => {
         '/recorder/stop',
       );
       await stopRecorderHandler({}, createMockStreamResponse());
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
   test('recorder lease consumes opaque cross-platform frame refs and decodes each frame once', async () => {
     const frame = { ref: { opaque: 'frame-1' }, capturedAt: 100 };
-    const decode = vi.fn(async () => [
+    const decode = rs.fn(async () => [
       `data:image/jpeg;base64,${Buffer.from('decoded-frame').toString('base64')}`,
     ]);
-    const stop = vi.fn(async () => undefined);
-    const openFrameSource = vi.fn(async () => ({
+    const stop = rs.fn(async () => undefined);
+    const openFrameSource = rs.fn(async () => ({
       latest: () => frame,
       decode,
       stop,
@@ -312,7 +338,7 @@ describe('PlaygroundServer MJPEG streaming', () => {
     } as any);
 
     await server.launch(6146);
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     try {
       const startResponse = createMockStreamResponse();
       await getRouteHandler(
@@ -344,10 +370,10 @@ describe('PlaygroundServer MJPEG streaming', () => {
       )({}, createMockStreamResponse());
       await server.waitForRecorderIdle();
       expect(stop).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(2000);
+      await rs.advanceTimersByTimeAsync(2000);
       expect(stop).toHaveBeenCalledOnce();
     } finally {
-      vi.useRealTimers();
+      rs.useRealTimers();
     }
   });
 
@@ -359,14 +385,14 @@ describe('PlaygroundServer MJPEG streaming', () => {
           stop: () => Promise<void>;
         }) => void)
       | undefined;
-    const staleStop = vi.fn(async () => undefined);
-    const openFrameSource = vi.fn(
+    const staleStop = rs.fn(async () => undefined);
+    const openFrameSource = rs.fn(
       () =>
         new Promise<any>((resolve) => {
           resolveSource = resolve;
         }),
     );
-    const screenshotBase64 = vi.fn(
+    const screenshotBase64 = rs.fn(
       async () =>
         `data:image/png;base64,${Buffer.from('fallback-frame').toString('base64')}`,
     );

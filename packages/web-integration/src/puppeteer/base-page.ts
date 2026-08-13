@@ -76,6 +76,8 @@ type ScreencastFrameEvent = {
   metadata?: {
     deviceWidth?: number;
     deviceHeight?: number;
+    /** CDP Network.TimeSinceEpoch, expressed in seconds. */
+    timestamp?: number;
   };
 };
 
@@ -125,6 +127,19 @@ function isTransientNavigationError(error: unknown) {
   return /execution context was destroyed|frame was detached|context was destroyed|net::ERR_ABORTED/i.test(
     error.message,
   );
+}
+
+function getScreencastFrameCapturedAt(timestamp?: number): number | undefined {
+  if (
+    typeof timestamp !== 'number' ||
+    !Number.isFinite(timestamp) ||
+    timestamp <= 0
+  ) {
+    return undefined;
+  }
+  // Floor instead of round so a frame delivered before an action boundary
+  // cannot appear one millisecond in the future solely due to conversion.
+  return Math.floor(timestamp * 1000);
 }
 
 function hasMatchingFrameAspectRatio(
@@ -866,8 +881,8 @@ export class Page<
           height: event.metadata?.deviceHeight ?? 0,
         };
         // JPEG dimensions are what the preview actually displays. Prefer
-        // them over compositor metadata: the latter may be stale while a
-        // viewport resize or navigation is in flight.
+        // them over compositor metadata: the latter may be stale or use a
+        // different coordinate space on high-DPR displays.
         const frameSize = jpegSizeFromBase64(event.data) ?? compositorFrameSize;
         const isExpectedFrame =
           !expectedViewportSize ||
@@ -912,9 +927,13 @@ export class Page<
             this.activeMjpegStream.hasReceivedScreencastFrame = true;
           }
           try {
+            const capturedAt = getScreencastFrameCapturedAt(
+              event.metadata?.timestamp,
+            );
             onFrame({
               data: event.data,
               contentType: 'image/jpeg',
+              ...(capturedAt === undefined ? {} : { capturedAt }),
             });
           } catch (error) {
             reportStreamError(error);
@@ -1031,7 +1050,7 @@ export class Page<
       onFrame: (frame) => {
         latest = {
           ref: `data:${frame.contentType ?? 'image/jpeg'};base64,${frame.data}`,
-          capturedAt: Date.now(),
+          capturedAt: frame.capturedAt ?? Date.now(),
         };
       },
       onError: (error) => {

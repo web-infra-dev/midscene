@@ -1305,3 +1305,7 @@ export function getStudioRecorderExportVariantFileName(
 ) {
   return `${sanitizeFileName(session.name)}-${sanitizeFileName(variant)}.${extension}`;
 }
+
+export function getStudioRecorderArchiveFileName(timestamp = Date.now()) {
+  return `midscene-studio-recordings-${timestamp}.zip`;
+}

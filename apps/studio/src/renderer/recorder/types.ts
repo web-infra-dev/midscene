@@ -90,11 +90,6 @@ export interface StudioInterfaceInfo {
   actionTypes?: string[];
 }
 
-export interface StudioScreenshotRef {
-  screenshot: string;
-  timestamp: number;
-}
-
 export interface StudioRecordedEvent extends MidsceneRecorderEvent {
   platformId: StudioPlatformId;
   actionType: string;

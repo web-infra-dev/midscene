@@ -119,12 +119,17 @@ describe('Page startMjpegStream', () => {
     await handlers.get('Page.screencastFrame')?.({
       data: 'ZnJhbWU=',
       sessionId: 42,
-      metadata: { deviceWidth: 1280, deviceHeight: 768 },
+      metadata: {
+        deviceWidth: 1280,
+        deviceHeight: 768,
+        timestamp: 1_786_609_529.5789,
+      },
     });
 
     expect(onFrame).toHaveBeenCalledWith({
       data: 'ZnJhbWU=',
       contentType: 'image/jpeg',
+      capturedAt: 1_786_609_529_578,
     });
     expect(send).toHaveBeenCalledWith('Page.screencastFrameAck', {
       sessionId: 42,
@@ -187,6 +192,55 @@ describe('Page startMjpegStream', () => {
     expect(onError).not.toHaveBeenCalled();
     // A rejected CDP frame must still ACK; otherwise the stream cannot later
     // recover when Chromium emits a correctly sized frame.
+    expect(send).toHaveBeenCalledWith('Page.screencastFrameAck', {
+      sessionId: 42,
+    });
+
+    await handle.stop();
+  });
+
+  it('accepts a DPR-scaled frame when JPEG and compositor dimensions differ', async () => {
+    const handlers = new Map<string, (event: any) => unknown>();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const detach = vi.fn().mockResolvedValue(undefined);
+    const client = {
+      send,
+      detach,
+      on: vi.fn((event: string, handler: (event: any) => unknown) => {
+        handlers.set(event, handler);
+      }),
+      off: vi.fn(),
+    };
+    const dprScaledFrame = jpegBase64(3840, 2160);
+    const mockPage = {
+      bringToFront: vi.fn().mockResolvedValue(undefined),
+      evaluate: vi.fn().mockResolvedValue({ width: 3840, height: 2160 }),
+      screenshot: vi.fn().mockResolvedValue(jpegBase64(2048, 1152)),
+      url: () => 'http://example.com',
+      target: () => ({
+        createCDPSession: vi.fn().mockResolvedValue(client),
+      }),
+    } as any;
+    const onFrame = vi.fn();
+    const onError = vi.fn();
+    const page = new Page(mockPage, 'puppeteer');
+    const handle = await page.startMjpegStream({ onFrame, onError });
+    (page as any).activeMjpegStream.hasReceivedScreencastFrame = true;
+    onFrame.mockClear();
+
+    await handlers.get('Page.screencastFrame')?.({
+      data: dprScaledFrame,
+      sessionId: 42,
+      metadata: { deviceWidth: 1920, deviceHeight: 1080 },
+    });
+    expect(onFrame).toHaveBeenCalledWith({
+      data: dprScaledFrame,
+      contentType: 'image/jpeg',
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect((page as any).activeMjpegStream.hasReceivedScreencastFrame).toBe(
+      true,
+    );
     expect(send).toHaveBeenCalledWith('Page.screencastFrameAck', {
       sessionId: 42,
     });

@@ -35,6 +35,7 @@ import {
   generateStudioRecorderJson,
   generateStudioRecorderPlaywright,
   generateStudioRecorderYaml,
+  getStudioRecorderArchiveFileName,
   getStudioRecorderExportVariantFileName,
   materializeStudioRecorderSessionScreenshots,
   saveStudioRecorderArchive,
@@ -3239,15 +3240,10 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       if (type === 'markdown' && !initialSession.generatedCode?.markdown) {
         throw new Error('Generate AI Markdown before downloading.');
       }
+      const markdownArchiveFileName = getStudioRecorderArchiveFileName();
       const browserFileHandle =
         type === 'markdown'
-          ? await chooseBrowserRecorderArchiveFile(
-              getStudioRecorderExportVariantFileName(
-                initialSession,
-                'markdown',
-                'zip',
-              ),
-            )
+          ? await chooseBrowserRecorderArchiveFile(markdownArchiveFileName)
           : undefined;
       if (browserFileHandle === null) {
         return;
@@ -3272,11 +3268,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         await saveRecorderArchiveWithProgress(
           {
             title: 'Export Recorder Markdown Replay',
-            defaultFileName: getStudioRecorderExportVariantFileName(
-              session,
-              'markdown',
-              'zip',
-            ),
+            defaultFileName: markdownArchiveFileName,
             browserFileHandle,
             plan: createStudioRecorderMarkdownArchivePlan(session),
             getAssetUrl: (assetId) =>
@@ -3359,9 +3351,9 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     if (!stateRef.current.sessions.length) {
       return;
     }
-    const browserFileHandle = await chooseBrowserRecorderArchiveFile(
-      'midscene-studio-recordings.zip',
-    );
+    const archiveFileName = getStudioRecorderArchiveFileName();
+    const browserFileHandle =
+      await chooseBrowserRecorderArchiveFile(archiveFileName);
     if (browserFileHandle === null) {
       return;
     }
@@ -3373,7 +3365,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     await saveRecorderArchiveWithProgress(
       {
         title: 'Export Recorder Archive',
-        defaultFileName: 'midscene-studio-recordings.zip',
+        defaultFileName: archiveFileName,
         browserFileHandle,
         plan: createStudioRecorderArchivePlan(sessions),
         getAssetUrl: (assetId) =>

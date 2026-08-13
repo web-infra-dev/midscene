@@ -31,6 +31,12 @@ export interface MjpegStreamFrame {
   /** Raw base64-encoded image bytes WITHOUT a `data:image/...;base64,` prefix. */
   data: string;
   contentType?: string;
+  /**
+   * Source capture time in Unix epoch milliseconds. Producers should preserve
+   * the platform timestamp instead of replacing it with callback receipt time.
+   * Explicit timestamps must increase monotonically for newly captured frames.
+   */
+  capturedAt?: number;
 }
 
 export interface MjpegStreamHandle {
