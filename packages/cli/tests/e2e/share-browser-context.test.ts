@@ -1,12 +1,13 @@
-import { readFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { basename, join } from 'node:path';
-import { execa } from 'execa';
+import { createConfig } from '@/config-factory';
+import { runYamlBatch } from '@/yaml-batch-executor';
+import { resolveWebTarget } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 90 * 1000,
+  testTimeout: 60 * 1000,
 });
 
 describe('shareBrowserContext CLI YAML e2e', () => {
@@ -39,42 +40,48 @@ describe('shareBrowserContext CLI YAML e2e', () => {
   const runFixture = async ({
     scriptDir,
     indexFile,
-    summaryName,
+    targetSource,
+    targetDeclaredInIndex = true,
     expectedScripts,
   }: {
     scriptDir: string;
     indexFile: string;
-    summaryName: string;
+    targetSource: 'page' | 'browser' | 'web';
+    targetDeclaredInIndex?: boolean;
     expectedScripts: string[];
   }) => {
     const indexYamlPath = join(scriptDir, indexFile);
-    const summaryPath = join(
-      scriptDir,
-      'midscene_run',
-      'output',
-      `${summaryName}-${Date.now()}.json`,
-    );
-    const cliBin = join(__dirname, '../../bin/midscene');
+    const previousCwd = process.cwd();
+    const previousOrigin = process.env.SHARED_BROWSER_TEST_ORIGIN;
 
-    await execa(cliBin, ['--config', indexYamlPath, '--summary', summaryPath], {
-      cwd: scriptDir,
-      env: {
-        ...process.env,
-        SHARED_BROWSER_TEST_ORIGIN: testOrigin,
-      },
-      timeout: 60 * 1000,
-    });
+    process.chdir(scriptDir);
+    process.env.SHARED_BROWSER_TEST_ORIGIN = testOrigin;
+    try {
+      const config = await createConfig(indexYamlPath);
+      const resolvedTarget = resolveWebTarget(config.globalConfig ?? {});
+      if (targetDeclaredInIndex) {
+        expect(resolvedTarget?.source).toBe(targetSource);
+      } else {
+        expect(resolvedTarget).toBeUndefined();
+      }
+      const results = await runYamlBatch(config, {
+        generateSummary: false,
+        printExecutionPlan: false,
+      });
 
-    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
-    expect(summary.summary).toMatchObject({
-      total: expectedScripts.length,
-      successful: expectedScripts.length,
-    });
-    expect(
-      summary.results
-        .map((result: { script: string }) => basename(result.script))
-        .sort(),
-    ).toEqual([...expectedScripts].sort());
+      expect(results).toHaveLength(expectedScripts.length);
+      expect(results.every((result) => result.success)).toBe(true);
+      expect(results.map((result) => basename(result.file)).sort()).toEqual(
+        [...expectedScripts].sort(),
+      );
+    } finally {
+      process.chdir(previousCwd);
+      if (previousOrigin === undefined) {
+        Reflect.deleteProperty(process.env, 'SHARED_BROWSER_TEST_ORIGIN');
+      } else {
+        process.env.SHARED_BROWSER_TEST_ORIGIN = previousOrigin;
+      }
+    }
   };
 
   test.each([
@@ -87,7 +94,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
         indexFile,
-        summaryName: `e2e-${targetSource}`,
+        targetSource,
         expectedScripts: [
           '00-setup.yaml',
           '01-search.yaml',
@@ -102,7 +109,8 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     await runFixture({
       scriptDir: join(__dirname, '../share_context_test_scripts'),
       indexFile: 'index.yaml',
-      summaryName: 'e2e-sequential',
+      targetSource: 'web',
+      targetDeclaredInIndex: false,
       expectedScripts: ['01-login.yaml', '02-check-login.yaml'],
     });
   });
