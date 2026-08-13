@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
+import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mergePixelBboxesToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
+import { mergePixelBboxesToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
 import { expandSearchArea } from '@/common';
 
 it('mergePixelBboxesToRect', () => {

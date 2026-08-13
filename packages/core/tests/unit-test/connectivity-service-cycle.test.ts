@@ -25,11 +25,14 @@ vi.mock('@/ai-model/service-caller/index', () => ({
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/workflows/inspect', () => ({
-  AiExtractElementInfo: mocks.AiExtractElementInfo,
+vi.mock('@/ai-model/workflows/grounding', () => ({
   AiLocateElement: mocks.AiLocateElement,
   AiLocateSection: mocks.AiLocateSection,
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
+}));
+
+vi.mock('@/ai-model/workflows/insight', () => ({
+  AiExtractElementInfo: mocks.AiExtractElementInfo,
 }));
 
 import { runConnectivityTest } from '@/ai-model/connectivity';

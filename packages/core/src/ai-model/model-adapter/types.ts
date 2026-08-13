@@ -17,7 +17,7 @@ import type {
   LocateResultAdapterDefinition,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
-import type { LocateFn } from '../workflows/inspect/types';
+import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';

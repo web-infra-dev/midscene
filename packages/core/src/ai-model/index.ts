@@ -35,10 +35,12 @@ export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export {
   AiLocateElement,
-  AiExtractElementInfo,
   AiLocateSection,
+} from './workflows/grounding';
+export {
+  AiExtractElementInfo,
   AiJudgeOrderSensitive,
-} from './workflows/inspect';
+} from './workflows/insight';
 
 export { standardPlan } from './workflows/planning';
 export {

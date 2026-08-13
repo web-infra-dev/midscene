@@ -29,10 +29,10 @@ vi.mock('@midscene/shared/img', async () => {
 });
 
 import { callAI } from '@/ai-model/service-caller/index';
-import { AiExtractElementInfo } from '@/ai-model/workflows/inspect';
+import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import { preProcessImageUrl } from '@midscene/shared/img';
 
-describe('AiExtractElementInfo prompt assembly', () => {
+describe('insight extraction prompt assembly', () => {
   const modelConfig: IModelConfig = {
     modelFamily: 'qwen2.5-vl',
     modelName: 'test-model',

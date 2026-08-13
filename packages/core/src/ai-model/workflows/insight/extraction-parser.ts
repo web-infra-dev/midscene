@@ -3,7 +3,7 @@ import { parseModelResponseJson } from '../../shared/json';
 import { extractXMLTag } from '../../shared/xml';
 
 /**
- * Parse XML response from LLM and convert to AIDataExtractionResponse
+ * Parse an insight XML response into extracted data.
  */
 export function parseXMLExtractionResponse<T>(
   xmlString: string,

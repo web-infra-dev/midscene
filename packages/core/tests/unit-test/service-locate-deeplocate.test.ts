@@ -5,7 +5,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/workflows/inspect', () => ({
+vi.mock('@/ai-model/workflows/grounding', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   AiExtractElementInfo: vi.fn(),
   AiLocateElement: vi.fn(),
@@ -17,7 +17,7 @@ import {
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
-} from '@/ai-model/workflows/inspect';
+} from '@/ai-model/workflows/grounding';
 
 describe('service.locate deepLocate routing', () => {
   const modelConfig: IModelConfig = {

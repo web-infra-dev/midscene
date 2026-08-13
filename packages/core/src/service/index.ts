@@ -7,12 +7,12 @@ import {
 import type { AIArgs } from '@/ai-model/service-caller/types';
 import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
 import {
-  AiExtractElementInfo,
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
-} from '@/ai-model/workflows/inspect';
-import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
+} from '@/ai-model/workflows/grounding';
+import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
+import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,

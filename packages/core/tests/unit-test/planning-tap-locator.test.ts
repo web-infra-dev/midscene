@@ -1,6 +1,6 @@
 import type { ResolvedCustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
 import { AIResponseParseError } from '@/ai-model/service-caller';
-import { resolvePlanningTapLocator } from '@/ai-model/workflows/inspect/planning-action-locate';
+import { resolvePlanningTapLocator } from '@/ai-model/workflows/grounding/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import { ScreenshotItem } from '@/screenshot-item';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
