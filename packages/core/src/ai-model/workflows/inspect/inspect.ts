@@ -25,7 +25,6 @@ import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
 import {
   extractDataQueryPrompt,
-  parseXMLExtractionResponse,
   systemPromptToExtract,
 } from '../../prompt/extraction';
 import {
@@ -50,6 +49,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import { parseXMLExtractionResponse } from './extraction-parser';
 import { mergePixelBboxesToRect, pixelBboxToRect } from './locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping';
 import type {
