@@ -1,6 +1,6 @@
 # Model Strategy
 
-Midscene's model strategy serves two goals. First, it uses pure vision to understand the interface that users actually see, keeping automation independent of the rendering stack. Second, it supports flexible single-model and multi-model configurations so users can choose a suitable combination for their business requirements.
+Midscene's model strategy serves two goals. First, it uses pure vision to understand the interface that users actually see, keeping automation independent of the rendering stack. Second, it uses a default multimodal model for the complete automation workflow and supports combining multiple models for complex scenarios.
 
 ## A pure-vision approach based on the visible interface
 
@@ -21,9 +21,11 @@ Data extraction and page-understanding workloads can still include DOM data when
 
 <span id="advanced-combining-multiple-models" />
 
-## Single-model and multi-model configurations
+## Combine models for complex scenarios
 
-Midscene always requires a Default model. It can independently handle task planning, element localization, page understanding, and the rest of the automation workload, or serve as the foundation of a multi-model combination. Depending on their business requirements, users can use only the Default model or add Planning and Insight models as needed. In a multi-model combination, the three model roles can work together in one automation task:
+Midscene uses a multimodal Default model for task planning, element localization, page understanding, and the rest of the automation workflow. This default approach covers most UI automation scenarios and lets users get started with minimal configuration.
+
+When complex planning, data extraction, or page understanding requires specialized model capabilities, users can add Planning and Insight models to the Default model. Each model contributes its strengths to the same automation workflow:
 
 | Model | Role in the combination |
 | --- | --- |
@@ -31,7 +33,7 @@ Midscene always requires a Default model. It can independently handle task plann
 | Planning model | Enhances planning for complex goals, multi-step tasks, and branching scenarios |
 | Insight model | Enhances data extraction, assertions, and page understanding |
 
-A multi-model combination can increase task latency and token usage.
+This collaboration extends Midscene's ability to handle complex tasks, but it can also increase task latency and token usage. Start with the Default model, then introduce specialized models only for a clear capability bottleneck.
 
 ## Next steps
 
