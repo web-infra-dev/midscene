@@ -9,7 +9,7 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import { systemPromptToTaskPlanning } from '../../prompt/llm-planning';
+import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -142,11 +142,10 @@ export async function standardPlan(
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.deepThink === true;
 
-  const systemPrompt = await systemPromptToTaskPlanning({
+  const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
     locatePromptSpec: locateResultAdapter?.promptSpec,
     includeLocateInPlanning: opts.includeLocateInPlanning,
-    includeThought: true, // always include thought
     includeSubGoals,
   });
 

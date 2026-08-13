@@ -1,5 +1,5 @@
 import { getModelAdapter } from '@/ai-model/models';
-import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
+import { descriptionForAction } from '@/ai-model/prompt/planning';
 import { parseXMLPlanningResponse } from '@/ai-model/workflows/planning';
 import {
   parseMarkFinishedIndexes,
@@ -421,7 +421,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- TestAction, Test action with ZodEffects
         - type: "TestAction"
@@ -442,7 +442,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- ValidateEmail, Validate email action
         - type: "ValidateEmail"
@@ -466,7 +466,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- DoubleNumber, Double the number
         - type: "DoubleNumber"
@@ -487,7 +487,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- UnionTest, Test union types
         - type: "UnionTest"
@@ -508,7 +508,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- MultiUnion, Multiple union types
         - type: "MultiUnion"
@@ -531,7 +531,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- FlexibleInput, Accepts string or number
         - type: "FlexibleInput"
@@ -552,7 +552,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- OptionalEmail, Optional email field
         - type: "OptionalEmail"
@@ -573,7 +573,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- OptionalUnion, Optional union field
         - type: "OptionalUnion"
@@ -597,7 +597,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- NullableTransform, Nullable transform field
         - type: "NullableTransform"
@@ -620,7 +620,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     // The transform wraps the union, so we should get string | number from the inner union
     expect(description).toMatchInlineSnapshot(`
       "- ComplexField, Complex field with union and transform
@@ -645,7 +645,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     // Fields with .default() are optional
     expect(description).toMatchInlineSnapshot(`
       "- DefaultTransform, Field with default and transform
@@ -670,7 +670,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       call: async () => {},
     };
 
-    const description = descriptionForAction(action, 'string');
+    const description = descriptionForAction(action);
     expect(description).toMatchInlineSnapshot(`
       "- NestedUnion, Nested union type
         - type: "NestedUnion"

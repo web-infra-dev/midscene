@@ -1,10 +1,10 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import { getModelAdapter } from '@/ai-model/models';
-import {
-  descriptionForAction,
-  systemPromptToTaskPlanning,
-} from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
+import {
+  buildStandardPlanningSystemPrompt,
+  descriptionForAction,
+} from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
   defineActionInput,
@@ -30,8 +30,14 @@ vi.mock('@midscene/shared/env', async (importOriginal) => {
   };
 });
 
-const mockLocatorScheme =
-  '{"bbox": [number, number, number, number], "prompt": string}';
+const mockLocatePromptSpec: LocateResultPromptSpec = {
+  resultKey: 'bbox',
+  resultValueSchema: '[number, number, number, number]',
+  resultValueDescription: 'bounding box coordinates',
+  resultNoun: 'bounding box',
+  resultNounPlural: 'bounding boxes',
+  exampleValues: [[0, 0, 100, 100]],
+};
 const locatePromptSpecFor = (
   modelFamily: TModelFamily,
 ): LocateResultPromptSpec => {
@@ -44,14 +50,11 @@ const locatePromptSpecFor = (
 
 describe('action space', () => {
   it('action without param, no locate needed', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Tap',
-        description: 'Tap the element',
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      call: async () => {},
+    });
     expect(action).toMatchInlineSnapshot(`
       "- Tap, Tap the element
         - type: "Tap""
@@ -59,19 +62,16 @@ describe('action space', () => {
   });
 
   it('action with param, no locate needed', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Tap',
-        description: 'Tap the element',
-        paramSchema: z.object({
-          foo: z.string().describe('The foo to be tapped'),
-          bar: z.number().optional().describe('An optional bar value'),
-          help: z.string().describe('Help information for this action'),
-        }),
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      paramSchema: z.object({
+        foo: z.string().describe('The foo to be tapped'),
+        bar: z.number().optional().describe('An optional bar value'),
+        help: z.string().describe('Help information for this action'),
+      }),
+      call: async () => {},
+    });
     expect(action).toMatchInlineSnapshot(`
       "- Tap, Tap the element
         - type: "Tap"
@@ -116,7 +116,10 @@ describe('action space', () => {
         }),
         call: async () => {},
       },
-      mockLocatorScheme,
+      {
+        includeLocateInPlanning: true,
+        locatePromptSpec: mockLocatePromptSpec,
+      },
     );
     expect(action).toMatchInlineSnapshot(`
       "- Tap, Tap the element
@@ -125,8 +128,8 @@ describe('action space', () => {
           - value: string // The value to be tapped
           - value2?: number // The value to be tapped
           - value3?: number // The value 3, default: 345
-          - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
-          - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped for the second time
+          - locate: {bbox: [number, number, number, number], prompt: string } // bounding box coordinates // The element to be tapped
+          - locate2?: {bbox: [number, number, number, number], prompt: string } // bounding box coordinates // The element to be tapped for the second time
           - scrollType?: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type, default: "once"
           - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type, default: "Tap"
           - option?: number // An optional option value"
@@ -134,17 +137,14 @@ describe('action space', () => {
   });
 
   it('action with object param schema (Launch-like)', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Launch',
-        description: 'Launch an app or URL',
-        paramSchema: z.object({
-          uri: z.string().describe('The URI to launch'),
-        }),
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
+    const action = descriptionForAction({
+      name: 'Launch',
+      description: 'Launch an app or URL',
+      paramSchema: z.object({
+        uri: z.string().describe('The URI to launch'),
+      }),
+      call: async () => {},
+    });
     expect(action).toMatchInlineSnapshot(`
       "- Launch, Launch an app or URL
         - type: "Launch"
@@ -154,17 +154,14 @@ describe('action space', () => {
   });
 
   it('action with object param schema (RunAdbShell-like)', () => {
-    const action = descriptionForAction(
-      {
-        name: 'RunAdbShell',
-        description: 'Execute ADB shell command',
-        paramSchema: z.object({
-          command: z.string().describe('ADB shell command to execute'),
-        }),
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
+    const action = descriptionForAction({
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command',
+      paramSchema: z.object({
+        command: z.string().describe('ADB shell command to execute'),
+      }),
+      call: async () => {},
+    });
     expect(action).toMatchInlineSnapshot(`
       "- RunAdbShell, Execute ADB shell command
         - type: "RunAdbShell"
@@ -180,7 +177,6 @@ describe('action space', () => {
         keyboardPress: async () => {},
         typeText: async () => {},
       }),
-      mockLocatorScheme,
     );
 
     expect(action).toContain('only the inserted characters for typeOnly mode');
@@ -192,7 +188,6 @@ describe('action space', () => {
   it('keyboard press tells the planner to omit locate for the current selection', () => {
     const action = descriptionForAction(
       defineActionKeyboardPress(async () => {}),
-      mockLocatorScheme,
     );
 
     expect(action).toContain('locate?:');
@@ -211,7 +206,6 @@ describe('action space', () => {
         swipe: async () => {},
         size: async () => ({ width: 1080, height: 2400 }),
       }),
-      mockLocatorScheme,
     );
 
     expect(action).toContain('adjust a continuous control such as a slider');
@@ -221,7 +215,7 @@ describe('action space', () => {
   });
 
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -235,7 +229,7 @@ describe('action space', () => {
   });
 
   it('planning prompt recommends swipe for touch sliders', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -258,7 +252,7 @@ describe('action space', () => {
       call: async () => '',
     };
 
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: [...mockActionSpace, runAdbShellAction],
       includeLocateInPlanning: false,
     });
@@ -271,7 +265,7 @@ describe('action space', () => {
 
 describe('system prompts', () => {
   it('planning - cot', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -280,7 +274,7 @@ describe('system prompts', () => {
 
   it('planning - includeLocateInPlanning requires modelFamily', async () => {
     await expect(
-      systemPromptToTaskPlanning({
+      buildStandardPlanningSystemPrompt({
         actionSpace: mockActionSpace,
         includeLocateInPlanning: true,
       }),
@@ -288,7 +282,7 @@ describe('system prompts', () => {
   });
 
   it('planning - qwen - cot', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
       includeLocateInPlanning: true,
@@ -297,7 +291,7 @@ describe('system prompts', () => {
   });
 
   it('planning - qwen - cot without bbox', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -306,7 +300,7 @@ describe('system prompts', () => {
   });
 
   it('planning - gemini', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('gemini'),
       includeLocateInPlanning: true,
@@ -315,7 +309,7 @@ describe('system prompts', () => {
   });
 
   it('planning - android', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
       includeLocateInPlanning: true,
@@ -324,7 +318,7 @@ describe('system prompts', () => {
   });
 
   it('planning - includeSubGoals true', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -333,7 +327,7 @@ describe('system prompts', () => {
   });
 
   it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -358,7 +352,7 @@ describe('system prompts', () => {
   });
 
   it('planning - includeSubGoals true should contain sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -382,7 +376,7 @@ describe('system prompts', () => {
   });
 
   it('planning - includeSubGoals true should include sub-goal examples', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -396,7 +390,7 @@ describe('system prompts', () => {
   });
 
   it('planning - includeSubGoals false should not include sub-goal examples', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -409,7 +403,7 @@ describe('system prompts', () => {
   });
 
   it('planning should include priority override guidance for input verification', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -430,7 +424,7 @@ describe('system prompts', () => {
   });
 
   it('planning should include dropdown scrolling guidance', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -455,7 +449,7 @@ describe('system prompts', () => {
   });
 
   it('planning should include durable change completion guidance', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -472,7 +466,7 @@ describe('system prompts', () => {
   });
 
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -493,7 +487,7 @@ describe('system prompts', () => {
   });
 
   it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -513,7 +507,7 @@ describe('system prompts', () => {
   });
 
   it('planning - multi-turn example with includeLocateInPlanning true should have bbox in locate', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen3-vl'),
       includeLocateInPlanning: true,
@@ -527,7 +521,7 @@ describe('system prompts', () => {
   });
 
   it('planning - multi-turn example with includeLocateInPlanning false should not have bbox in locate', async () => {
-    const prompt = await systemPromptToTaskPlanning({
+    const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
