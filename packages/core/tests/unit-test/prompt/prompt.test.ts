@@ -296,6 +296,20 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('prepends a standard planning prompt supplement', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      locatePromptSpec: locatePromptSpecFor('qwen3'),
+      includeLocateInPlanning: true,
+      systemPromptSupplement: '[CRITICAL COORDINATE RULE]',
+    });
+
+    expect(prompt.trimStart().startsWith('[CRITICAL COORDINATE RULE]')).toBe(
+      true,
+    );
+    expect(prompt).toContain('Target: You are an expert');
+  });
+
   it('planning - qwen - cot without bbox', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,

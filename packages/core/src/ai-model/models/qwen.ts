@@ -27,6 +27,13 @@ const qwen3BboxCoordinatesMeta = {
   normalizedBy: 1000,
 } as const;
 
+const qwen3PlanningCoordinateSupplement = `[CRITICAL COORDINATE RULE]
+Every bbox number MUST be an integer within [0, 1000]. Any bbox value greater
+than 1000 or less than 0 is INVALID and forbidden. bbox is normalized to the
+0-1000 space, it has NOTHING to do with the screenshot's pixel width/height.
+Before writing action-param-json, self-check all four bbox numbers; if any
+falls outside [0, 1000], recompute it in the 0-1000 normalized space.`;
+
 function topLeftPointToPixelBbox(x: number, y: number): PixelBbox {
   return [
     Math.round(x),
@@ -133,6 +140,10 @@ const buildQwen25ChatCompletionParams = (
 };
 
 const qwen3Adapter: ModelAdapterDefinition = {
+  planning: {
+    systemPromptSupplement: ({ includeLocateInPlanning }) =>
+      includeLocateInPlanning ? qwen3PlanningCoordinateSupplement : undefined,
+  },
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwenChatCompletionParams,

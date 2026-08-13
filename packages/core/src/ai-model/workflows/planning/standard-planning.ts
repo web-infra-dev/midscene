@@ -141,6 +141,12 @@ export async function standardPlan(
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.deepThink === true;
+  const systemPromptSupplement =
+    adapter.planning.kind === 'standard'
+      ? adapter.planning.systemPromptSupplement?.({
+          includeLocateInPlanning: opts.includeLocateInPlanning,
+        })
+      : undefined;
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
@@ -148,6 +154,7 @@ export async function standardPlan(
     includeLocateInPlanning: opts.includeLocateInPlanning,
     includeThought: true, // always include thought
     includeSubGoals,
+    systemPromptSupplement,
   });
 
   const preparedImage = await prepareModelImage({

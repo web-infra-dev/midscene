@@ -162,10 +162,21 @@ interface PlanningPolicy {
   supportsActionDeepLocate: boolean;
 }
 
+export interface StandardPlanningPromptContext {
+  includeLocateInPlanning: boolean;
+}
+
+interface StandardPlanningPromptSupplementPolicy {
+  systemPromptSupplement?: (
+    context: StandardPlanningPromptContext,
+  ) => string | undefined;
+}
+
 export type PlanningAdapter =
-  | (PlanningPolicy & {
-      kind: 'standard';
-    })
+  | (PlanningPolicy &
+      StandardPlanningPromptSupplementPolicy & {
+        kind: 'standard';
+      })
   | (PlanningPolicy & {
       kind: 'custom';
       planFn: PlanFn;
@@ -173,9 +184,10 @@ export type PlanningAdapter =
     });
 
 export type PlanningDefinition =
-  | (Partial<PlanningPolicy> & {
-      kind?: 'standard';
-    })
+  | (Partial<PlanningPolicy> &
+      StandardPlanningPromptSupplementPolicy & {
+        kind?: 'standard';
+      })
   | (Partial<PlanningPolicy> &
       (
         | {

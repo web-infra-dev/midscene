@@ -62,5 +62,6 @@ export function resolvePlanning(
     defaultReplanningCycleLimit:
       planning?.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
     supportsActionDeepLocate: planning?.supportsActionDeepLocate ?? true,
+    systemPromptSupplement: planning?.systemPromptSupplement,
   };
 }

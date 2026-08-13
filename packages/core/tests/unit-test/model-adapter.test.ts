@@ -271,8 +271,46 @@ describe('ResolvedModelAdapter', () => {
       cacheEnabled: false,
       defaultReplanningCycleLimit: 7,
       supportsActionDeepLocate: false,
+      systemPromptSupplement: undefined,
     });
     expect(adapter.locate.supportsSearchArea).toBe(false);
+  });
+
+  it('keeps standard planning prompt supplements from adapter definitions', () => {
+    const systemPromptSupplement = ({
+      includeLocateInPlanning,
+    }: {
+      includeLocateInPlanning: boolean;
+    }) =>
+      includeLocateInPlanning
+        ? 'Coordinate values must be normalized.'
+        : undefined;
+    const adapter = new ResolvedModelAdapter(
+      {
+        planning: {
+          systemPromptSupplement,
+        },
+      },
+      'test-standard-prompt-supplement',
+    );
+
+    expect(adapter.planning.kind).toBe('standard');
+    if (adapter.planning.kind !== 'standard') {
+      throw new Error('adapter should use standard planning');
+    }
+    expect(adapter.planning.systemPromptSupplement).toBe(
+      systemPromptSupplement,
+    );
+    expect(
+      adapter.planning.systemPromptSupplement?.({
+        includeLocateInPlanning: true,
+      }),
+    ).toBe('Coordinate values must be normalized.');
+    expect(
+      adapter.planning.systemPromptSupplement?.({
+        includeLocateInPlanning: false,
+      }),
+    ).toBeUndefined();
   });
 
   it('throws for unknown json parser presets', () => {

@@ -237,12 +237,14 @@ export async function systemPromptToTaskPlanning({
   includeLocateInPlanning,
   includeThought,
   includeSubGoals,
+  systemPromptSupplement,
 }: {
   actionSpace: DeviceAction<any>[];
   locatePromptSpec?: LocateResultPromptSpec;
   includeLocateInPlanning: boolean;
   includeThought?: boolean;
   includeSubGoals?: boolean;
+  systemPromptSupplement?: string;
 }) {
   const preferredLanguage = getPreferredLanguage();
 
@@ -377,7 +379,7 @@ After some time, when the last sub-goal is also completed, you can mark it as do
   const checkGoalStepNumber = shouldIncludeSubGoals ? 3 : 2;
   const actionStepNumber = shouldIncludeSubGoals ? 4 : 3;
 
-  return `
+  return `${systemPromptSupplement ? `\n${systemPromptSupplement}` : ''}
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
 ${step1Title}
