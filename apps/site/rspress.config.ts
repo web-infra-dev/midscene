@@ -196,10 +196,6 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Web browser',
           },
           {
-            text: 'Quick experience by Chrome extension',
-            link: '/quick-experience',
-          },
-          {
             text: 'Integrate with Playwright',
             link: '/integrate-with-playwright',
           },
@@ -344,10 +340,6 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: 'Web 浏览器',
-          },
-          {
-            text: '通过 Chrome 插件快速体验',
-            link: '/zh/quick-experience',
           },
           {
             text: '集成到 Playwright',
@@ -666,6 +658,10 @@ export default defineConfig(async () => {
             to: '/platforms/ios',
           },
           {
+            from: '^/quick-experience(?:\\.html)?/?$',
+            to: '/quick-start#chrome-extension',
+          },
+          {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
             to: '/platforms/android',
           },
@@ -700,6 +696,10 @@ export default defineConfig(async () => {
           {
             from: '^/zh/blog-support-ios-automation(?:\\.html)?/?$',
             to: '/zh/platforms/ios',
+          },
+          {
+            from: '^/zh/quick-experience(?:\\.html)?/?$',
+            to: '/zh/quick-start#chrome-extension',
           },
           {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',

@@ -64,7 +64,7 @@ Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任�
 ## 🚀 开始使用
 
 - **几分钟写出第一个脚本**：[快速开始](https://midscenejs.com/zh/quick-start)。
-- **想零代码？** 用 [Chrome 插件](https://midscenejs.com/zh/quick-experience) 在任意网页上直接体验。
+- **想零代码？** 用 [Chrome 插件](https://midscenejs.com/zh/quick-start#chrome-extension) 在任意网页上直接体验。
 - **其他平台**：[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 与[桌面端](https://midscenejs.com/zh/platforms/desktop) 的上手指南。
 
 ## ✨ 多模态模型驱动

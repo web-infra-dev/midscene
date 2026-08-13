@@ -87,7 +87,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-experience',
+  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
@@ -114,8 +114,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
-  platformWebLink: '/quick-experience.html',
-  platformPCLink: '/quick-experience.html',
+  platformWebLink: '/quick-start#chrome-extension',
+  platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };

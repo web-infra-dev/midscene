@@ -2,7 +2,7 @@
 
 Playground is the fastest way to try Midscene without writing code.
 
-- **Web (Chrome Extension)**: <https://midscenejs.com/quick-experience.html>
+- **Web (Chrome Extension)**: <https://midscenejs.com/quick-start.html#chrome-extension>
 - **Android**: <https://midscenejs.com/android-getting-started.html#try-playground-no-code>
 - **iOS**: <https://midscenejs.com/ios-getting-started.html#try-playground-no-code>
 - **Computer (Desktop)**: <https://midscenejs.com/computer-getting-started.html#try-playground-no-code>
