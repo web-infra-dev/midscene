@@ -1,5 +1,6 @@
 web:
-  url: http://127.0.0.1:18527/share-context-test.html
+  # The integration test overrides this with its dynamically allocated server URL.
+  url: http://127.0.0.1/share-context-test.html
   viewportWidth: 800
   viewportHeight: 600
 
