@@ -88,6 +88,13 @@ const reportGroupIdMap = new Map<string, string>();
 declare const __DEV_REPORT_PATH__: string;
 
 export function getReportTpl() {
+  // Report Viewer builds must not embed the report template from a previous
+  // Core build. Doing so creates a feedback loop where every Report rebuild
+  // contains another copy of the previous bundle.
+  if (IS_REPORT_BUILD) {
+    return '';
+  }
+
   if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
     return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
