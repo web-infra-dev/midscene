@@ -1,11 +1,11 @@
 import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
 import type {
   LocatePlanningAction,
   ScrollPlanningAction,
-} from '../../shared/planning-action';
+} from '../../model-adapter/planning-action';
+import type { CoordinateDistanceAxis } from '../../shared/model-locate-result';
 
 const debug = getDebug('auto-glm-actions');
 
