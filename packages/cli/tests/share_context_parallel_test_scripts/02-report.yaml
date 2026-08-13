@@ -1,9 +1,3 @@
-web:
-  # The integration test overrides this with its dynamically allocated server URL.
-  url: http://127.0.0.1/share-context-test.html
-  viewportWidth: 800
-  viewportHeight: 600
-
 tasks:
   - name: Verify report tab isolation and setup state
     flow:
