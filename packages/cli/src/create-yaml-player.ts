@@ -22,6 +22,7 @@ import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import {
+  type SessionStorageSnapshot,
   buildDownloadBehavior,
   puppeteerAgentForTarget,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -32,6 +33,16 @@ export interface SingleYamlExecutionResult {
   success: boolean;
   file: string;
   player: ScriptPlayer<MidsceneYamlScriptEnv>;
+}
+
+export interface CreateYamlPlayerOptions {
+  headed?: boolean;
+  keepWindow?: boolean;
+  browser?: Browser;
+  page?: Page;
+  /** Seeded into the task page before its first same-origin navigation. */
+  sessionStorageSnapshot?: SessionStorageSnapshot;
+  testId?: string;
 }
 
 const debug = getDebug('create-yaml-player');
@@ -88,13 +99,7 @@ function buildAgentOptions(
 export async function createYamlPlayer(
   file: string,
   script?: MidsceneYamlScript,
-  options?: {
-    headed?: boolean;
-    keepWindow?: boolean;
-    browser?: Browser;
-    page?: Page;
-    testId?: string;
-  },
+  options?: CreateYamlPlayerOptions,
 ): Promise<ScriptPlayer<MidsceneYamlScriptEnv>> {
   const yamlScript =
     script || parseYamlScript(readFileSync(file, 'utf-8'), file);
@@ -227,6 +232,7 @@ export async function createYamlPlayer(
             },
             cdpBrowser as Browser,
             options?.page,
+            options?.sessionStorageSnapshot,
           );
 
           // Replace the default browser close with disconnect for CDP
@@ -259,6 +265,7 @@ export async function createYamlPlayer(
             },
             options?.browser,
             options?.page,
+            options?.sessionStorageSnapshot,
           );
           freeFn.push(...newFreeFn);
 

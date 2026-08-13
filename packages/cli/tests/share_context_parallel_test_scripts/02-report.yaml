@@ -1,0 +1,43 @@
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Verify report tab isolation and setup state
+    flow:
+      - javascript: |
+          (async function() {
+            const caseId = 'report';
+            const caseIds = ['search', 'report', 'settings'];
+            window.name = caseId;
+            sessionStorage.setItem('owner', caseId);
+            localStorage.setItem(`parallel-ready:${caseId}`, 'true');
+
+            const deadline = Date.now() + 10000;
+            while (caseIds.some((id) => localStorage.getItem(`parallel-ready:${id}`) !== 'true')) {
+              if (Date.now() > deadline) {
+                throw new Error('Timed out waiting for all parallel YAML pages');
+              }
+              await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            if (!document.cookie.includes('authToken=parallel-token')) {
+              throw new Error(`Setup cookie was not shared: ${document.cookie}`);
+            }
+            if (localStorage.getItem('userId') !== 'parallel-user') {
+              throw new Error('Setup localStorage was not shared');
+            }
+            if (sessionStorage.getItem('sessionId') !== 'setup-session') {
+              throw new Error('Setup sessionStorage was not copied');
+            }
+            if (window.name !== caseId || sessionStorage.getItem('owner') !== caseId) {
+              throw new Error(`Page state leaked into report: window=${window.name}, owner=${sessionStorage.getItem('owner')}`);
+            }
+            document.querySelector('h1').textContent = 'Parallel YAML: report';
+            checkLoginStatus();
+            return caseId;
+          })()
+      - recordToReport: Report tab verification passed
+        content: The report YAML inherited setup login state and retained isolated window and sessionStorage state while all three YAML files ran concurrently.

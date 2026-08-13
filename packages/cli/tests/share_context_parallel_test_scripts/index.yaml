@@ -1,0 +1,10 @@
+concurrent: 3
+continueOnError: true
+shareBrowserContext: true
+
+setup: 00-setup.yaml
+
+files:
+  - 01-search.yaml
+  - 02-report.yaml
+  - 03-settings.yaml

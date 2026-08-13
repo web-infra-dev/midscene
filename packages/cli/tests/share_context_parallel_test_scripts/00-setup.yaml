@@ -1,0 +1,19 @@
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Establish shared login state
+    flow:
+      - javascript: |
+          (function() {
+            document.cookie = 'authToken=parallel-token; path=/';
+            localStorage.setItem('userId', 'parallel-user');
+            sessionStorage.setItem('sessionId', 'setup-session');
+            document.querySelector('h1').textContent = 'Setup: shared login state established';
+            checkLoginStatus();
+            return true;
+          })()
+      - recordToReport: Setup login state
+        content: Cookie, localStorage, and sessionStorage have been initialized before launching the parallel YAML files.

@@ -16,33 +16,27 @@ import type {
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import puppeteer from 'puppeteer';
+import type { SessionStorageSnapshot } from '@midscene/web/puppeteer-agent-launcher';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+const { mockCaptureSessionStorageSnapshot } = vi.hoisted(() => ({
+  mockCaptureSessionStorageSnapshot: vi.fn(),
+}));
 
 // Mock all dependencies
 vi.mock('node:fs');
 vi.mock('puppeteer', () => ({
   default: {
-    launch: vi.fn().mockResolvedValue({
-      close: vi.fn().mockResolvedValue(undefined),
-      newPage: vi.fn().mockResolvedValue({
-        browser: vi.fn().mockReturnValue({}),
-        close: vi.fn().mockResolvedValue(undefined),
-      }),
-    }),
-    connect: vi.fn().mockResolvedValue({
-      disconnect: vi.fn(),
-      close: vi.fn().mockResolvedValue(undefined),
-      newPage: vi.fn().mockResolvedValue({
-        browser: vi.fn().mockReturnValue({}),
-        close: vi.fn().mockResolvedValue(undefined),
-      }),
-      pages: vi.fn().mockResolvedValue([]),
-    }),
+    launch: vi.fn(),
+    connect: vi.fn(),
   },
 }));
 vi.mock('@/create-yaml-player');
 vi.mock('@midscene/shared/common');
+vi.mock('@midscene/shared/logger', () => ({
+  getDebug: () => vi.fn(),
+}));
 vi.mock('@midscene/core/yaml', async (importOriginal) => {
   const original = await importOriginal<typeof import('@midscene/core/yaml')>();
   return {
@@ -64,6 +58,7 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
     >();
   return {
     ...original,
+    captureSessionStorageSnapshot: mockCaptureSessionStorageSnapshot,
     buildDownloadBehavior: (downloadPath: string | undefined) =>
       downloadPath
         ? {
@@ -99,6 +94,44 @@ const mockYamlScript = {
   web: { url: 'http://test.com' },
 };
 
+const defaultSessionStorageSnapshot: SessionStorageSnapshot = {
+  origin: 'http://test.com',
+  entries: [['sessionId', 'setup-session']],
+};
+
+interface MockPage {
+  browser: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
+  isClosed: ReturnType<typeof vi.fn>;
+  evaluate: ReturnType<typeof vi.fn>;
+}
+
+const createMockBrowser = (
+  sessionStorageSnapshot: SessionStorageSnapshot = defaultSessionStorageSnapshot,
+) => {
+  const pages: MockPage[] = [];
+  const browser = {
+    close: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn(),
+    pages: vi.fn(async () => [...pages]),
+    newPage: vi.fn(),
+  };
+  browser.newPage.mockImplementation(async () => {
+    let closed = false;
+    const page = {
+      browser: vi.fn(() => browser),
+      close: vi.fn(async () => {
+        closed = true;
+      }),
+      isClosed: vi.fn(() => closed),
+      evaluate: vi.fn().mockResolvedValue(sessionStorageSnapshot),
+    };
+    pages.push(page);
+    return page;
+  });
+  return browser;
+};
+
 // Mock ScriptPlayer
 const createMockPlayer = (
   success = true,
@@ -127,6 +160,27 @@ const createMockPlayer = (
 describe('BatchRunner', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockCaptureSessionStorageSnapshot.mockImplementation(async (page: Page) => {
+      if (page.isClosed()) {
+        throw new Error('The setup page was closed');
+      }
+      const snapshot = (await page.evaluate(() => ({
+        origin: window.location.origin,
+        entries: Object.entries(window.sessionStorage),
+      }))) as SessionStorageSnapshot;
+      if (!snapshot.origin || snapshot.origin === 'null') {
+        throw new Error('The setup page has an opaque origin');
+      }
+      return snapshot;
+    });
+
+    vi.mocked(puppeteer.launch).mockResolvedValue(
+      createMockBrowser() as unknown as Browser,
+    );
+    vi.mocked(puppeteer.connect).mockResolvedValue(
+      createMockBrowser() as unknown as Browser,
+    );
 
     vi.mocked(readFileSync).mockReturnValue('mock yaml content');
     vi.mocked(mkdirSync).mockImplementation(() => undefined);
@@ -169,6 +223,15 @@ describe('BatchRunner', () => {
         expect.any(Object),
         expect.objectContaining({ browser: browserInstance }),
       );
+
+      const pageByFile = new Map(
+        vi
+          .mocked(createYamlPlayer)
+          .mock.calls.map(([file, , options]) => [file, options?.page]),
+      );
+      expect(pageByFile.get('web1.yml')).toBeDefined();
+      expect(pageByFile.get('web2.yml')).toBeDefined();
+      expect(pageByFile.get('web1.yml')).not.toBe(pageByFile.get('web2.yml'));
     });
 
     test('should pass chromeArgs from global config to puppeteer.launch when shareBrowserContext is true', async () => {
@@ -344,15 +407,12 @@ describe('BatchRunner', () => {
     test('should disconnect (not close) browser in CDP mode', async () => {
       const mockDisconnect = vi.fn();
       const mockClose = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(puppeteer.connect).mockResolvedValue({
-        disconnect: mockDisconnect,
-        close: mockClose,
-        newPage: vi.fn().mockResolvedValue({
-          browser: vi.fn().mockReturnValue({}),
-          close: vi.fn().mockResolvedValue(undefined),
-        }),
-        pages: vi.fn().mockResolvedValue([]),
-      } as any);
+      const cdpBrowser = createMockBrowser();
+      cdpBrowser.disconnect = mockDisconnect;
+      cdpBrowser.close = mockClose;
+      vi.mocked(puppeteer.connect).mockResolvedValue(
+        cdpBrowser as unknown as Browser,
+      );
 
       const config = {
         ...mockBatchConfig,
@@ -454,6 +514,62 @@ describe('BatchRunner', () => {
       expect(results[2].success).toBe(true);
       expect(results[2].executed).toBe(true);
     });
+
+    test('preserves an execution error when closing its page also fails', async () => {
+      const executionError = new Error('execution exploded');
+      const browser = createMockBrowser();
+      const page = {
+        browser: vi.fn(() => browser),
+        close: vi.fn().mockRejectedValue(new Error('page close failed')),
+        isClosed: vi.fn().mockReturnValue(false),
+        evaluate: vi.fn().mockResolvedValue(defaultSessionStorageSnapshot),
+      };
+      browser.newPage.mockResolvedValue(page);
+      vi.mocked(puppeteer.launch).mockResolvedValue(
+        browser as unknown as Browser,
+      );
+      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+        const player = createMockPlayer(true);
+        player.run = vi.fn().mockRejectedValue(executionError);
+        return player;
+      });
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+      });
+
+      await expect(runner.run()).rejects.toBe(executionError);
+      expect(page.close).toHaveBeenCalledTimes(1);
+      expect(browser.close).toHaveBeenCalledTimes(1);
+    });
+
+    test('surfaces a page cleanup error after a successful execution', async () => {
+      const browser = createMockBrowser();
+      const page = {
+        browser: vi.fn(() => browser),
+        close: vi.fn().mockRejectedValue(new Error('page close failed')),
+        isClosed: vi.fn().mockReturnValue(false),
+        evaluate: vi.fn().mockResolvedValue(defaultSessionStorageSnapshot),
+      };
+      browser.newPage.mockResolvedValue(page);
+      vi.mocked(puppeteer.launch).mockResolvedValue(
+        browser as unknown as Browser,
+      );
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+      });
+
+      await expect(runner.run()).rejects.toThrow(
+        'Failed to close a YAML execution page',
+      );
+      expect(page.close).toHaveBeenCalledTimes(1);
+      expect(browser.close).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Summary file generation', () => {
@@ -533,6 +649,101 @@ describe('BatchRunner', () => {
       ]);
     });
 
+    test('runs parallel YAML files on isolated pages after setup and copies sessionStorage', async () => {
+      const runState = new Map<
+        string,
+        { page: unknown; sessionStorageSnapshot: unknown }
+      >();
+      const mainFiles = new Set(['search.yml', 'report.yml']);
+      let setupFinished = false;
+      let releaseMainFiles: (() => void) | undefined;
+      const allMainFilesStarted = new Promise<void>((resolve) => {
+        releaseMainFiles = resolve;
+      });
+
+      vi.mocked(createYamlPlayer).mockImplementation(
+        async (file, _script, options) => {
+          const player = createMockPlayer(true);
+          (player as unknown as { run: () => Promise<void> }).run = vi.fn(
+            async () => {
+              runState.set(file, {
+                page: options?.page,
+                sessionStorageSnapshot: options?.sessionStorageSnapshot,
+              });
+
+              if (file === 'login.yml') {
+                expect(runState.size).toBe(1);
+                setupFinished = true;
+              } else {
+                expect(setupFinished).toBe(true);
+                if (
+                  [...runState.keys()].filter((name) => mainFiles.has(name))
+                    .length === mainFiles.size
+                ) {
+                  releaseMainFiles?.();
+                }
+                await allMainFilesStarted;
+              }
+
+              player.status = 'done';
+            },
+          );
+          return player;
+        },
+      );
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      const setupPage = runState.get('login.yml')?.page;
+      const searchPage = runState.get('search.yml')?.page;
+      const reportPage = runState.get('report.yml')?.page;
+      expect(setupPage).toBeDefined();
+      expect(searchPage).toBeDefined();
+      expect(reportPage).toBeDefined();
+      expect(new Set([setupPage, searchPage, reportPage]).size).toBe(3);
+      expect(runState.get('login.yml')?.sessionStorageSnapshot).toBeUndefined();
+      expect(runState.get('search.yml')?.sessionStorageSnapshot).toEqual({
+        origin: 'http://test.com',
+        entries: [['sessionId', 'setup-session']],
+      });
+      expect(runState.get('report.yml')?.sessionStorageSnapshot).toEqual({
+        origin: 'http://test.com',
+        entries: [['sessionId', 'setup-session']],
+      });
+
+      const browser = await vi.mocked(puppeteer.launch).mock.results[0].value;
+      expect(browser.newPage).toHaveBeenCalledTimes(3);
+      for (const page of await browser.pages()) {
+        expect(page.close).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    test('creates a fresh page for every YAML when concurrency is one', async () => {
+      const pageByFile = new Map<string, unknown>();
+      vi.mocked(createYamlPlayer).mockImplementation(
+        async (file, _script, options) => {
+          const player = createMockPlayer(true);
+          (player as unknown as { run: () => Promise<void> }).run = vi.fn(
+            async () => {
+              pageByFile.set(file, options?.page);
+              player.status = 'done';
+            },
+          );
+          return player;
+        },
+      );
+
+      const runner = new BatchRunner({
+        ...setupConfig,
+        concurrent: 1,
+      });
+      await runner.run();
+
+      expect(pageByFile.size).toBe(3);
+      expect(new Set(pageByFile.values()).size).toBe(3);
+    });
+
     test('aborts main files when the setup file fails', async () => {
       const runOrder: string[] = [];
       trackRunOrder(runOrder, (file) => file !== 'login.yml');
@@ -547,6 +758,59 @@ describe('BatchRunner', () => {
         'report.yml',
         'search.yml',
       ]);
+    });
+
+    test('aborts main files when setup is only partially successful', async () => {
+      const runOrder: string[] = [];
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const player = createMockPlayer(true);
+        (player as unknown as { run: () => Promise<void> }).run = vi.fn(
+          async () => {
+            runOrder.push(file);
+            player.status = 'done';
+            if (file === 'login.yml') {
+              player.taskStatusList = [
+                {
+                  name: 'Optional-looking prerequisite',
+                  flow: [{ javascript: 'false' }],
+                  status: 'error',
+                  totalSteps: 1,
+                  currentStep: 0,
+                  error: new Error('Login prerequisite failed'),
+                },
+              ];
+            }
+          },
+        );
+        return player;
+      });
+
+      const runner = new BatchRunner(setupConfig);
+      await runner.run();
+
+      expect(runOrder).toEqual(['login.yml']);
+      expect(runner.getPartialFailedFiles()).toEqual(['login.yml']);
+      expect(runner.getNotExecutedFiles().sort()).toEqual([
+        'report.yml',
+        'search.yml',
+      ]);
+    });
+
+    test('fails explicitly when the setup page has an opaque origin', async () => {
+      const browser = createMockBrowser({ origin: 'null', entries: [] });
+      vi.mocked(puppeteer.launch).mockResolvedValue(
+        browser as unknown as Browser,
+      );
+
+      const runner = new BatchRunner(setupConfig);
+      await expect(runner.run()).rejects.toThrow(
+        'The setup page has an opaque origin',
+      );
+
+      expect(browser.newPage).toHaveBeenCalledTimes(1);
+      expect(browser.close).toHaveBeenCalledTimes(1);
+      const [setupPage] = await browser.pages();
+      expect(setupPage.close).toHaveBeenCalledTimes(1);
     });
 
     test('throws when setup is set without shareBrowserContext', async () => {

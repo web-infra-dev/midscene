@@ -1,10 +1,13 @@
 import path from 'node:path';
 import {
+  type SessionStorageSnapshot,
+  captureSessionStorageSnapshot,
   defaultViewportHeight,
   defaultViewportWidth,
   launchPuppeteerPage,
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
+import type { Browser, Page } from 'puppeteer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockLaunch } = vi.hoisted(() => ({
@@ -25,6 +28,11 @@ const createPageMock = () => ({
   setUserAgent: vi.fn().mockResolvedValue(undefined),
   setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
   setViewport: vi.fn().mockResolvedValue(undefined),
+  evaluate: vi.fn().mockResolvedValue(undefined),
+  evaluateOnNewDocument: vi
+    .fn()
+    .mockResolvedValue({ identifier: 'session-storage-restore' }),
+  removeScriptToEvaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
   browser: vi.fn(() => browserMock),
@@ -42,9 +50,10 @@ vi.mock('puppeteer', () => ({
 describe('launchPuppeteerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
-    mockNewPage.mockResolvedValue(pageMock as any);
+    mockNewPage.mockResolvedValue(pageMock as unknown as Page);
   });
 
   it('uses default viewport window size for headed runs', async () => {
@@ -127,7 +136,10 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({
       url: 'https://example.com',
       // YAML may yield booleans/numbers for unquoted values
-      extraHTTPHeaders: { 'X-Flag': true, 'X-Num': 123 } as any,
+      extraHTTPHeaders: {
+        'X-Flag': true,
+        'X-Num': 123,
+      } as unknown as Record<string, string>,
     });
 
     expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith({
@@ -194,7 +206,7 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
+      browserMock as unknown as Browser,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
@@ -207,11 +219,200 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
-      pageMock as any,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('restores setup sessionStorage before the first navigation and removes the preload afterward', async () => {
+    const snapshot: SessionStorageSnapshot = {
+      origin: 'https://example.com',
+      entries: [
+        ['sessionId', 'setup-session'],
+        ['csrfToken', 'setup-csrf'],
+      ],
+    };
+
+    await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
+      snapshot,
+    );
+
+    expect(pageMock.evaluateOnNewDocument).toHaveBeenCalledWith(
+      expect.any(Function),
+      snapshot,
+    );
+    expect(
+      pageMock.evaluateOnNewDocument.mock.invocationCallOrder[0],
+    ).toBeLessThan(pageMock.goto.mock.invocationCallOrder[0]);
+    expect(pageMock.removeScriptToEvaluateOnNewDocument).toHaveBeenCalledWith(
+      'session-storage-restore',
+    );
+    expect(pageMock.goto.mock.invocationCallOrder[0]).toBeLessThan(
+      pageMock.removeScriptToEvaluateOnNewDocument.mock.invocationCallOrder[0],
+    );
+
+    const setItem = vi.fn();
+    vi.stubGlobal('window', {
+      location: { origin: 'https://example.com' },
+      sessionStorage: { setItem },
+    });
+    const restoreSessionStorage = pageMock.evaluateOnNewDocument.mock
+      .calls[0][0] as (value: SessionStorageSnapshot) => void;
+    restoreSessionStorage(snapshot);
+    expect(setItem.mock.calls).toEqual(snapshot.entries);
+
+    setItem.mockClear();
+    vi.stubGlobal('window', {
+      location: { origin: 'https://other.example.com' },
+      sessionStorage: { setItem },
+    });
+    restoreSessionStorage(snapshot);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it('does not install a sessionStorage preload without a setup snapshot', async () => {
+    await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
+    );
+
+    expect(pageMock.evaluateOnNewDocument).not.toHaveBeenCalled();
+    expect(pageMock.removeScriptToEvaluateOnNewDocument).not.toHaveBeenCalled();
+  });
+
+  it('captures setup sessionStorage with its current origin', async () => {
+    pageMock.evaluate = vi.fn().mockResolvedValue({
+      origin: 'https://example.com',
+      entries: [['sessionId', 'setup-session']],
+    });
+
+    await expect(
+      captureSessionStorageSnapshot(pageMock as unknown as Page),
+    ).resolves.toEqual({
+      origin: 'https://example.com',
+      entries: [['sessionId', 'setup-session']],
+    });
+  });
+
+  it('rejects sessionStorage capture from a closed page or opaque origin', async () => {
+    pageMock.isClosed.mockReturnValueOnce(true);
+    await expect(
+      captureSessionStorageSnapshot(pageMock as unknown as Page),
+    ).rejects.toThrow('The setup page was closed');
+
+    pageMock.isClosed.mockReturnValue(false);
+    pageMock.evaluate = vi.fn().mockResolvedValue({
+      origin: 'null',
+      entries: [],
+    });
+    await expect(
+      captureSessionStorageSnapshot(pageMock as unknown as Page),
+    ).rejects.toThrow('The setup page has an opaque origin');
+  });
+
+  it('adds context when setup sessionStorage capture fails', async () => {
+    pageMock.evaluate.mockRejectedValueOnce(
+      new Error('Execution context lost'),
+    );
+
+    await expect(
+      captureSessionStorageSnapshot(pageMock as unknown as Page),
+    ).rejects.toThrow('Failed to capture sessionStorage from the setup page');
+  });
+
+  it('propagates navigation errors instead of treating them as network-idle failures', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+        { origin: 'https://example.invalid', entries: [] },
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
+    expect(pageMock.removeScriptToEvaluateOnNewDocument).toHaveBeenCalledWith(
+      'session-storage-restore',
+    );
+  });
+
+  it('preserves a navigation error when preload cleanup also fails', async () => {
+    const navigationError = new Error('navigation failed');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+    pageMock.removeScriptToEvaluateOnNewDocument.mockRejectedValueOnce(
+      new Error('cleanup failed'),
+    );
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.com' },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+        { origin: 'https://example.com', entries: [] },
+      ),
+    ).rejects.toBe(navigationError);
+  });
+
+  it('only applies continueOnNetworkIdleError to network-idle failures', async () => {
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: true },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).resolves.toMatchObject({ page: pageMock });
+
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: false },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).rejects.toThrow('failed to wait for network idle');
+  });
+
+  it('throws a contextual error when preload cleanup fails after navigation succeeds', async () => {
+    pageMock.removeScriptToEvaluateOnNewDocument.mockRejectedValueOnce(
+      new Error('CDP session closed'),
+    );
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.com' },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+        { origin: 'https://example.com', entries: [] },
+      ),
+    ).rejects.toThrow('failed to remove the sessionStorage preload');
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
@@ -224,7 +425,10 @@ describe('launchPuppeteerPage', () => {
       },
     });
 
-    expect((agent.page as any).waitForNetworkIdleTimeout).toBe(4321);
+    expect(
+      (agent.page as unknown as { waitForNetworkIdleTimeout: number })
+        .waitForNetworkIdleTimeout,
+    ).toBe(4321);
   });
 
   it('requires browser mode for autoFollowNewPage', async () => {

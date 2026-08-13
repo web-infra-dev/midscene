@@ -111,6 +111,7 @@ interface FreeFn {
 }
 
 const launcherDebug = getDebug('puppeteer:launcher');
+const launcherWarning = getDebug('puppeteer:launcher', { console: true });
 
 export function buildDownloadBehavior(
   downloadPath: string | undefined,
@@ -129,6 +130,51 @@ export interface BuildChromeArgsOptions {
   userAgent?: string;
   windowSize?: { width: number; height: number };
   chromeArgs?: string[];
+}
+
+/**
+ * A copy of one page's sessionStorage for a single origin. Browser contexts
+ * share cookies and localStorage, but sessionStorage belongs to a page, so a
+ * setup page must explicitly seed it into each independent task page.
+ */
+export interface SessionStorageSnapshot {
+  readonly origin: string;
+  readonly entries: ReadonlyArray<readonly [string, string]>;
+}
+
+/**
+ * Capture the sessionStorage state of a setup page for its current origin.
+ * Opaque origins cannot be matched safely during a later navigation, so they
+ * are rejected instead of silently producing an unusable snapshot.
+ */
+export async function captureSessionStorageSnapshot(
+  page: Page,
+): Promise<SessionStorageSnapshot> {
+  if (page.isClosed()) {
+    throw new Error(
+      'The setup page was closed before its sessionStorage could be copied to the main YAML files',
+    );
+  }
+
+  let snapshot: SessionStorageSnapshot;
+  try {
+    snapshot = await page.evaluate(() => ({
+      origin: window.location.origin,
+      entries: Object.entries(window.sessionStorage),
+    }));
+  } catch (error) {
+    throw new Error('Failed to capture sessionStorage from the setup page', {
+      cause: error,
+    });
+  }
+
+  if (!snapshot.origin || snapshot.origin === 'null') {
+    throw new Error(
+      'The setup page has an opaque origin, so its sessionStorage cannot be copied to the main YAML files',
+    );
+  }
+
+  return snapshot;
 }
 
 /**
@@ -196,6 +242,7 @@ export async function launchPuppeteerPage(
   },
   browser?: Browser,
   existingPage?: Page,
+  sessionStorageSnapshot?: SessionStorageSnapshot,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -254,15 +301,14 @@ export async function launchPuppeteerPage(
     'preference',
     preference,
   );
-  // If an existing page is provided, reuse it instead of creating a new one
-  // This allows sharing localStorage and sessionStorage between YAML files
+  // Callers may provide a page when they need to own its lifecycle. Otherwise
+  // create a new page in the supplied browser (or a newly launched browser).
   let page: Page;
   let browserInstance = browser;
 
   if (existingPage) {
-    // Reuse the existing page - this preserves localStorage and sessionStorage
     page = existingPage;
-    launcherDebug('reusing existing page for shared browser context');
+    launcherDebug('using caller-provided page');
 
     // Get the browser instance from the existing page
     if (!browserInstance) {
@@ -322,33 +368,83 @@ export async function launchPuppeteerPage(
     await page.setViewport(viewportConfig);
   }
 
+  const sessionStorageRestoreScript = sessionStorageSnapshot
+    ? await page.evaluateOnNewDocument((snapshot: SessionStorageSnapshot) => {
+        if (window.location.origin !== snapshot.origin) {
+          return;
+        }
+        for (const [key, value] of snapshot.entries) {
+          window.sessionStorage.setItem(key, value);
+        }
+      }, sessionStorageSnapshot)
+    : undefined;
+
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
       ? target.waitForNetworkIdle.timeout
       : defaultWaitForNetworkIdleTimeout;
 
+  let pageInitializationFailed = false;
+  let pageInitializationError: unknown;
   try {
     launcherDebug('goto', target.url);
     await page.goto(target.url);
+
     if (waitForNetworkIdleTimeout > 0) {
       launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
-      await page.waitForNetworkIdle({
-        timeout: waitForNetworkIdleTimeout,
-      });
+      try {
+        await page.waitForNetworkIdle({
+          timeout: waitForNetworkIdleTimeout,
+        });
+      } catch (error) {
+        if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
+          throw new Error(`failed to wait for network idle: ${error}`, {
+            cause: error,
+          });
+        }
+        launcherWarning(
+          `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
+          error,
+        );
+      }
     }
-  } catch (e) {
-    if (
-      typeof target.waitForNetworkIdle?.continueOnNetworkIdleError ===
-        'boolean' &&
-      !target.waitForNetworkIdle?.continueOnNetworkIdleError
-    ) {
-      const newError = new Error(`failed to wait for network idle: ${e}`, {
-        cause: e,
-      });
-      throw newError;
+  } catch (error) {
+    pageInitializationFailed = true;
+    pageInitializationError = error;
+  }
+
+  let preloadCleanupFailed = false;
+  let preloadCleanupError: unknown;
+  if (sessionStorageRestoreScript) {
+    try {
+      await page.removeScriptToEvaluateOnNewDocument(
+        sessionStorageRestoreScript.identifier,
+      );
+    } catch (error) {
+      preloadCleanupFailed = true;
+      preloadCleanupError = error;
     }
-    const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
-    console.warn(newMessage);
+  }
+
+  if (pageInitializationFailed) {
+    if (preloadCleanupFailed) {
+      launcherWarning(
+        'failed to remove the sessionStorage preload after page initialization failed; preserving the original error',
+        preloadCleanupError,
+      );
+    }
+    if (pageInitializationError instanceof Error) {
+      throw pageInitializationError;
+    }
+    throw new Error('failed to initialize the Puppeteer page', {
+      cause: pageInitializationError,
+    });
+  }
+
+  if (preloadCleanupFailed) {
+    throw new Error('failed to remove the sessionStorage preload', {
+      cause: preloadCleanupError,
+    });
   }
 
   return { page, freeFn };
@@ -375,12 +471,14 @@ export async function puppeteerAgentForTarget(
   >,
   browser?: Browser,
   existingPage?: Page,
+  sessionStorageSnapshot?: SessionStorageSnapshot,
 ) {
   const { page, freeFn } = await launchPuppeteerPage(
     target,
     preference,
     browser,
     existingPage,
+    sessionStorageSnapshot,
   );
   const aiActContext = resolveAiActionContext(target, preference);
 

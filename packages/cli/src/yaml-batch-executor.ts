@@ -13,9 +13,11 @@ import {
   parseYamlScript,
   resolveWebTarget,
 } from '@midscene/core/yaml';
+import { getDebug } from '@midscene/shared/logger';
 import {
   buildChromeArgs,
   buildDownloadBehavior,
+  captureSessionStorageSnapshot,
   defaultViewportHeight,
   defaultViewportWidth,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -23,10 +25,14 @@ import {
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
-import { createYamlPlayer } from './create-yaml-player';
+import {
+  type CreateYamlPlayerOptions,
+  createYamlPlayer,
+} from './create-yaml-player';
 import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
+  isYamlPlayerSuccessful,
   printExecutionFinished,
   printExecutionPlan,
   writeExecutionSummaryFile,
@@ -39,6 +45,8 @@ import {
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
+
+const batchWarning = getDebug('yaml-batch-executor', { console: true });
 
 export interface BatchRunnerConfig {
   files: string[];
@@ -78,12 +86,7 @@ interface BatchFileContext {
   file: string;
   executionConfig: MidsceneYamlScript;
   outputPath?: string;
-  options: {
-    headed?: boolean;
-    keepWindow?: boolean;
-    browser?: Browser;
-    page?: Page;
-  };
+  options: CreateYamlPlayerOptions;
 }
 
 export interface RunYamlBatchOptions {
@@ -107,9 +110,10 @@ class YamlBatchExecutor {
     const { keepWindow, headed } = this.config;
     const setup = this.config.setup;
 
-    // The setup file relies on the shared page to hand prerequisite state to
-    // the main files. Enforce that invariant here too, so the executor stays
-    // correct even if it is constructed directly, bypassing the config layer.
+    // The setup file relies on the shared browser context to hand prerequisite
+    // state to the main files. Enforce that invariant here too, so the executor
+    // stays correct even if it is constructed directly, bypassing the config
+    // layer.
     if (setup && !this.config.shareBrowserContext) {
       throw new Error(
         'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
@@ -125,7 +129,6 @@ class YamlBatchExecutor {
     let setupContext: BatchFileContext | undefined;
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
-    let sharedPage: Page | null = null;
 
     try {
       // Create the setup context (prerequisite) before the main files so the
@@ -211,14 +214,11 @@ class YamlBatchExecutor {
           });
         }
 
-        // Create a shared page instance that will be reused across all YAML files
-        // This ensures localStorage and sessionStorage are preserved between files
-        sharedPage = await browser.newPage();
-
-        // Assign the browser instance and shared page to all contexts
+        // Share the browser context, not the page. Each YAML receives its own
+        // page when it starts so concurrent tasks cannot navigate or mutate one
+        // another's DOM. Cookies and origin storage remain shared by Chromium.
         for (const context of allContexts) {
           context.options.browser = browser;
-          context.options.page = sharedPage;
         }
       }
 
@@ -336,6 +336,7 @@ class YamlBatchExecutor {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
+        keepPageOpen = false,
       ): Promise<MidsceneYamlFileContext & { duration: number }> => {
         // Find the corresponding player in allFileContexts
         const allFileContext = allFileContexts.find(
@@ -355,33 +356,45 @@ class YamlBatchExecutor {
           allFileContext.player.output = context.outputPath;
         }
 
-        // Record start time
-        const startTime = Date.now();
+        const ownedPage = await this.createPageForContext(context);
+        let executionFailed = false;
+        try {
+          // Record start time
+          const startTime = Date.now();
 
-        // Run the player
-        await allFileContext.player.run();
+          // Run the player
+          await allFileContext.player.run();
 
-        // Calculate duration
-        const endTime = Date.now();
-        const duration = endTime - startTime;
+          // Calculate duration
+          const endTime = Date.now();
+          const duration = endTime - startTime;
 
-        const executedContext: MidsceneYamlFileContext & { duration: number } =
-          {
+          const executedContext: MidsceneYamlFileContext & {
+            duration: number;
+          } = {
             file: context.file,
             player: allFileContext.player,
             duration,
           };
 
-        if (!isTTY) {
-          console.log(
-            contextTaskListSummary(
-              allFileContext.player.taskStatusList,
-              executedContext,
-            ),
-          );
-        }
+          if (!isTTY) {
+            console.log(
+              contextTaskListSummary(
+                allFileContext.player.taskStatusList,
+                executedContext,
+              ),
+            );
+          }
 
-        return executedContext;
+          return executedContext;
+        } catch (error) {
+          executionFailed = true;
+          throw error;
+        } finally {
+          if (ownedPage && !keepPageOpen && !this.config.keepWindow) {
+            await this.closePage(ownedPage, executionFailed);
+          }
+        }
       };
 
       // Run the setup file first, if any. A setup failure aborts the batch:
@@ -390,9 +403,31 @@ class YamlBatchExecutor {
       // the setup file establishes.
       let setupFailed = false;
       if (setupContext) {
-        const executedContext = await executeFile(setupContext);
-        executedResults.push(executedContext);
-        setupFailed = executedContext.player.status === 'error';
+        let setupExecutionFailed = false;
+        try {
+          const executedContext = await executeFile(setupContext, true);
+          executedResults.push(executedContext);
+          setupFailed = !isYamlPlayerSuccessful(executedContext.player);
+
+          if (!setupFailed && setupContext.options.page) {
+            const sessionStorageSnapshot = await captureSessionStorageSnapshot(
+              setupContext.options.page,
+            );
+            for (const context of fileContextList) {
+              context.options.sessionStorageSnapshot = sessionStorageSnapshot;
+            }
+          }
+        } catch (error) {
+          setupExecutionFailed = true;
+          throw error;
+        } finally {
+          if (setupContext.options.page && !this.config.keepWindow) {
+            await this.closePage(
+              setupContext.options.page,
+              setupExecutionFailed,
+            );
+          }
+        }
       }
 
       if (setupFailed) {
@@ -427,6 +462,62 @@ class YamlBatchExecutor {
     return { executedResults, notExecutedContexts };
   }
 
+  /**
+   * Create an isolated page for one YAML execution while retaining the shared
+   * browser context. The page is created inside the concurrency limiter via
+   * executeFile, so the number of live task pages cannot exceed `concurrent`.
+   */
+  private async createPageForContext(
+    context: BatchFileContext,
+  ): Promise<Page | undefined> {
+    const webTarget = resolveWebTarget(context.executionConfig)?.target;
+    if (!context.options.browser || !webTarget || webTarget.bridgeMode) {
+      return undefined;
+    }
+
+    const page = await context.options.browser.newPage();
+    context.options.page = page;
+    return page;
+  }
+
+  private async closePage(
+    page: Page,
+    preservePriorError = false,
+  ): Promise<void> {
+    try {
+      if (!page.isClosed()) {
+        await page.close();
+      }
+    } catch (error) {
+      if (preservePriorError) {
+        batchWarning(
+          'failed to close a YAML execution page after execution had already failed; preserving the original error',
+          error,
+        );
+        return;
+      }
+      throw new Error('Failed to close a YAML execution page', {
+        cause: error,
+      });
+    }
+  }
+
+  private throwUnexpectedExecutionError(
+    settledResults: PromiseSettledResult<void>[],
+  ): void {
+    const rejected = settledResults.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    if (rejected) {
+      if (rejected.reason instanceof Error) {
+        throw rejected.reason;
+      }
+      throw new Error('Unexpected YAML execution failure', {
+        cause: rejected.reason,
+      });
+    }
+  }
+
   private async executeConcurrently(
     fileContextList: BatchFileContext[],
     executeFile: (
@@ -448,7 +539,8 @@ class YamlBatchExecutor {
           executedResults.push(executedContext);
         }),
       );
-      await Promise.allSettled(tasks);
+      const settledResults = await Promise.allSettled(tasks);
+      this.throwUnexpectedExecutionError(settledResults);
     } else {
       // Execute with concurrency but stop new tasks when failure occurs
       let shouldStop = false;
@@ -474,7 +566,8 @@ class YamlBatchExecutor {
         }),
       );
 
-      await Promise.allSettled(tasks);
+      const settledResults = await Promise.allSettled(tasks);
+      this.throwUnexpectedExecutionError(settledResults);
 
       // Handle not executed contexts
       if (shouldStop) {
