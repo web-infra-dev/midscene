@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 
 // Keep the injected bridge independent from the recorder package's React UI
 // exports. Importing its barrel entry adds the entire timeline and Ant Design
