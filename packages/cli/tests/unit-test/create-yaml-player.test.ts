@@ -195,6 +195,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -230,6 +231,7 @@ describe('create-yaml-player', () => {
           autoFollowNewPage: true,
         }),
         expect.any(Object),
+        undefined,
         undefined,
         undefined,
       );
@@ -417,6 +419,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         undefined,
         undefined,
+        undefined,
       );
     });
   });
@@ -564,6 +567,7 @@ describe('create-yaml-player', () => {
         expect.objectContaining({
           cache: false,
         }),
+        undefined,
         undefined,
         undefined,
       );
@@ -1179,6 +1183,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // sessionStorage snapshot
       );
     });
 
@@ -1350,6 +1355,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // sessionStorage snapshot
       );
     });
 
@@ -1395,6 +1401,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // sessionStorage snapshot
       );
     });
 
@@ -1489,6 +1496,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
+        undefined, // no sessionStorage snapshot
       );
     });
 
@@ -1590,6 +1598,7 @@ describe('create-yaml-player', () => {
         }),
         expect.any(Object),
         undefined,
+        undefined,
       );
     });
 
@@ -1644,6 +1653,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         mockSharedBrowser,
         mockSharedPage,
+        undefined,
       );
     });
 

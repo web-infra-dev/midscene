@@ -62,15 +62,23 @@ export function createNotExecutedYamlResult(
   };
 }
 
+export function isYamlPlayerSuccessful(
+  player: ScriptPlayer<MidsceneYamlScriptEnv>,
+): boolean {
+  return (
+    player.status !== 'error' &&
+    !player.taskStatusList?.some((task) => task.status === 'error')
+  );
+}
+
 export function createExecutedYamlResult(options: {
   file: string;
   player: ScriptPlayer<MidsceneYamlScriptEnv>;
   duration: number;
 }): MidsceneYamlConfigResult {
   const { file, player, duration } = options;
-  const hasFailedTasks =
-    player.taskStatusList?.some((task) => task.status === 'error') ?? false;
   const hasPlayerError = player.status === 'error';
+  const hasFailedTasks = !isYamlPlayerSuccessful(player) && !hasPlayerError;
 
   let success: boolean;
   let resultType: 'success' | 'failed' | 'partialFailed';
