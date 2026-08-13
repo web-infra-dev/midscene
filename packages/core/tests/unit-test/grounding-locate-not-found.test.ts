@@ -1,8 +1,11 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI, parseAIObjectResponse } from '@/ai-model/service-caller/index';
-import { AiLocateElement, AiLocateSection } from '@/ai-model/workflows/inspect';
-import type { LocateFn } from '@/ai-model/workflows/inspect/types';
+import {
+  AiLocateElement,
+  AiLocateSection,
+} from '@/ai-model/workflows/grounding';
+import type { LocateFn } from '@/ai-model/workflows/grounding/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../utils';
@@ -18,7 +21,7 @@ vi.mock('@/ai-model/service-caller/index', async () => {
   };
 });
 
-describe('locate not-found parsing', () => {
+describe('grounding locate not-found parsing', () => {
   const modelConfig: IModelConfig = {
     modelFamily: 'qwen2.5-vl',
     modelName: 'test-model',

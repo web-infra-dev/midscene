@@ -4,7 +4,7 @@ import path from 'node:path';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import { MIDSCENE_RECORD_MODEL_CALL } from '@midscene/shared/env/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ModelCallRecorder } from '../../src/ai-model/model-call-recorder';
+import { ModelCallRecorder } from '../../../src/ai-model/service-caller/model-call-recorder';
 
 const runDirs: string[] = [];
 
@@ -73,7 +73,7 @@ describe('model call recorder', () => {
     setupRuntime();
     vi.resetModules();
     const { ModelCallRecorder: RuntimeRecorder } = await import(
-      '../../src/ai-model/model-call-recorder'
+      '../../../src/ai-model/service-caller/model-call-recorder'
     );
     const recorder = new RuntimeRecorder();
 
@@ -98,7 +98,7 @@ describe('model call recorder', () => {
       getMidsceneRunBaseDir: () => '/tmp/midscene-model-record-test',
     }));
     const { ModelCallRecorder: RuntimeRecorder } = await import(
-      '../../src/ai-model/model-call-recorder'
+      '../../../src/ai-model/service-caller/model-call-recorder'
     );
     const recorder = new RuntimeRecorder();
 

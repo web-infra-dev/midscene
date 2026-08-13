@@ -1,6 +1,6 @@
 import { createLocateResultAdapter } from '@/ai-model/shared/model-locate-result';
 import { locateResultExampleRegions } from '@/ai-model/shared/model-locate-result/prompt-spec';
-import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
+import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
 import { describe, expect, it, vi } from 'vitest';
 
 const locateCtx = (width: number, height: number) => ({

@@ -2,7 +2,7 @@ import { getModelAdapter } from '@/ai-model/models';
 import {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
-} from '@/ai-model/service-caller/json';
+} from '@/ai-model/shared/json';
 import { describe, expect, it } from 'vitest';
 
 describe('extractJSONFromCodeBlock', () => {

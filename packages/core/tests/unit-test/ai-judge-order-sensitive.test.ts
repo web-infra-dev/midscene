@@ -1,6 +1,6 @@
 import { getModelRuntime } from '@/ai-model/models';
 import { callAIWithObjectResponse } from '@/ai-model/service-caller';
-import { AiJudgeOrderSensitive } from '@/ai-model/workflows/inspect';
+import { AiJudgeOrderSensitive } from '@/ai-model/workflows/insight';
 import type { AIUsageInfo } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -35,7 +35,7 @@ describe('service-caller OpenAI error handling', () => {
   });
 
   afterEach(() => {
-    vi.unmock('@/ai-model/model-call-recorder');
+    vi.unmock('@/ai-model/service-caller/model-call-recorder');
     vi.resetModules();
   });
 
@@ -307,7 +307,7 @@ describe('service-caller OpenAI error handling', () => {
   it('uses the successful retry attempt for the final record', async () => {
     const events: Array<Record<string, unknown>> = [];
     vi.resetModules();
-    vi.doMock('@/ai-model/model-call-recorder', () => ({
+    vi.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
       isModelCallRecordingEnabled: () => true,
       recordModelCallEvent: (event: Record<string, unknown>) => {
         events.push(event);
@@ -354,7 +354,7 @@ describe('service-caller OpenAI error handling', () => {
   it('records every streaming chunk with its sequence', async () => {
     const events: Array<Record<string, unknown>> = [];
     vi.resetModules();
-    vi.doMock('@/ai-model/model-call-recorder', () => ({
+    vi.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
       isModelCallRecordingEnabled: () => true,
       recordModelCallEvent: (event: Record<string, unknown>) => {
         events.push(event);

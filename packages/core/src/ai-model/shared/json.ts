@@ -13,7 +13,7 @@ import { jsonrepair } from 'jsonrepair';
  * [{"type":"Tap"}, {"type":"Hover"}], are outside the supported contract and
  * are not reliably recoverable.
  *
- * This legacy extractor is also used by extraction responses that can be any
+ * This extractor is also used by extraction responses that can be any
  * JSON value. In those cases, arrays/strings/numbers have no object braces and
  * pass through unchanged.
  */

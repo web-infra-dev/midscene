@@ -1,15 +1,18 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { callAI, callAIWithStringResponse } from '../../../src/ai-model';
+import {
+  callAI,
+  callAIWithStringResponse,
+} from '../../../../src/ai-model/service-caller';
 import {
   type ChromeRecordedEvent,
   generateRecorderYamlTest,
   generateRecorderYamlTestStream,
   generateYamlTest,
   generateYamlTestStream,
-} from '../../../src/ai-model/prompt/yaml-generator';
+} from '../../../../src/ai-model/workflows/recorder-generation/yaml';
 
-vi.mock('../../../src/ai-model', () => ({
+vi.mock('../../../../src/ai-model/service-caller', () => ({
   callAI: vi.fn(),
   callAIWithStringResponse: vi.fn(),
 }));

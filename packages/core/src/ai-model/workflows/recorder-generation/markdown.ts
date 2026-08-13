@@ -11,13 +11,13 @@ import {
   stringifyMidsceneRecorderTargetBlock,
 } from '@midscene/shared/recorder';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { callAIWithStringResponse } from '../index';
-import { getModelRuntime } from '../models';
+import { getModelRuntime } from '../../models';
+import { callAIWithStringResponse } from '../../service-caller';
 import {
   type RecorderGenerationInput,
   prepareRecorderGenerationContext,
   validateEvents,
-} from './recorder-generation-common';
+} from './common';
 
 export type RecorderMarkdownGenerationInput = RecorderGenerationInput;
 

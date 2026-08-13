@@ -99,7 +99,7 @@ export class ConversationHistory {
     return this.snapshot();
   }
 
-  // Sub-goal management methods
+  // Planning sub-goal management methods
 
   /**
    * Set all sub-goals, replacing any existing ones.

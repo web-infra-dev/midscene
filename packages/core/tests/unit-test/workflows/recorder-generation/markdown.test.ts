@@ -1,13 +1,13 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { callAIWithStringResponse } from '../../../src/ai-model';
+import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
+import type { ChromeRecordedEvent } from '../../../../src/ai-model/workflows/recorder-generation/common';
 import {
   createRecorderMarkdownReplayPrompt,
   generateRecorderMarkdownReplay,
-} from '../../../src/ai-model/prompt/markdown-generator';
-import type { ChromeRecordedEvent } from '../../../src/ai-model/prompt/recorder-generation-common';
+} from '../../../../src/ai-model/workflows/recorder-generation/markdown';
 
-vi.mock('../../../src/ai-model', () => ({
+vi.mock('../../../../src/ai-model/service-caller', () => ({
   callAIWithStringResponse: vi.fn(),
 }));
 

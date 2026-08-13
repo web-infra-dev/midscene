@@ -4,7 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,

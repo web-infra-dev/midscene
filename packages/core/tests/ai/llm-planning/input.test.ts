@@ -1,4 +1,4 @@
-import { ConversationHistory, plan } from '@/ai-model';
+import { ConversationHistory, standardPlan } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,7 +21,7 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime,
@@ -42,7 +42,7 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime,

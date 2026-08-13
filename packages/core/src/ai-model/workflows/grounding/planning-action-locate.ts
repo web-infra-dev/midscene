@@ -4,10 +4,10 @@ import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
 import { ScreenshotItem } from '../../../screenshot-item';
-import { ConversationHistory } from '../../conversation-history';
 import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import { AIResponseParseError } from '../../service-caller/index';
+import { ConversationHistory } from '../planning/conversation-history';
 import { runCustomPlanning } from '../planning/custom-planning';
 import type { PlanOptions } from '../planning/types';
 import type {
@@ -17,7 +17,7 @@ import type {
   LocateRequestContext,
 } from './types';
 
-const debugInspect = getDebug('ai:inspect');
+const debugGrounding = getDebug('ai:grounding');
 
 const planningActionLocatorActionSpace: DeviceAction[] = [
   {
@@ -96,7 +96,7 @@ export function resolvePlanningTapLocator<TParsed>(
       usage = planningResponse.usage;
       reasoningContent = planningResponse.log;
 
-      debugInspect('planning-tap-locator rawResponse:', rawResponse);
+      debugGrounding('planning-tap-locator rawResponse:', rawResponse);
 
       const locatedPixelBbox = definition.getLocatedPixelBbox(
         planningResponse.actions ?? [],
@@ -124,7 +124,7 @@ export function resolvePlanningTapLocator<TParsed>(
       errors = [
         errorMessage || 'Failed to parse planning tap locator response',
       ];
-      debugInspect('planning-tap-locator parse error:', errors[0]);
+      debugGrounding('planning-tap-locator parse error:', errors[0]);
     }
 
     return {
