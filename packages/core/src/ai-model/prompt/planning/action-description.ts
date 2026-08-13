@@ -3,6 +3,7 @@ import {
   getZodDescription,
   getZodTypeName,
 } from '@midscene/shared/zod-schema-utils';
+import yaml from 'js-yaml';
 import type { z } from 'zod';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { buildActionExample } from './action-example';
@@ -11,7 +12,7 @@ export const locateParamSchemaDescription = (
   promptSpec?: LocateResultPromptSpec,
 ) => {
   if (promptSpec) {
-    return `{${promptSpec.resultKey}: ${promptSpec.resultValueSchema}, prompt: string } // ${promptSpec.resultValueDescription}`;
+    return `{ prompt: string, ${promptSpec.resultKey}: ${promptSpec.resultValueSchema} /* ${promptSpec.resultValueDescription} */ }`;
   }
   return '{ prompt: string /* description of the target element */ }';
 };
@@ -53,7 +54,22 @@ const findDefaultValue = (field: unknown): any | undefined => {
   return undefined;
 };
 
-export const descriptionForAction = (
+type ActionParamDescription = {
+  type: string;
+  optional?: true;
+  description?: string;
+  default?: unknown;
+  instruction?: string;
+};
+
+type ActionDescription = {
+  type: string;
+  description: string;
+  param?: Record<string, ActionParamDescription> | ActionParamDescription;
+  sample?: string;
+};
+
+export const buildActionDescription = (
   action: DeviceAction<any>,
   {
     includeLocateInPlanning = false,
@@ -66,16 +82,13 @@ export const descriptionForAction = (
   const locateParamTypeDescription = locateParamSchemaDescription(
     includeLocateInPlanning ? locatePromptSpec : undefined,
   );
-  const tab = '  ';
-  const fields: string[] = [];
-
-  // Add the action type field
-  fields.push(`- type: "${action.name}"`);
+  const actionDescription: ActionDescription = {
+    type: action.name,
+    description: action.description || 'No description provided',
+  };
 
   // Handle paramSchema if it exists
   if (action.paramSchema) {
-    const paramLines: string[] = [];
-
     // Check if paramSchema is a ZodObject with shape
     const schema = action.paramSchema as {
       _def?: { typeName?: string };
@@ -84,8 +97,8 @@ export const descriptionForAction = (
     const isZodObject = schema._def?.typeName === 'ZodObject';
 
     if (isZodObject && schema.shape) {
-      // Original logic for ZodObject schemas
       const shape = schema.shape;
+      const param: Record<string, ActionParamDescription> = {};
 
       for (const [key, field] of Object.entries(shape)) {
         if (field && typeof field === 'object') {
@@ -94,59 +107,42 @@ export const descriptionForAction = (
             typeof (field as { isOptional?: () => boolean }).isOptional ===
               'function' &&
             (field as { isOptional: () => boolean }).isOptional();
-          const keyWithOptional = isOptional ? `${key}?` : key;
-
-          // Get the type name using extracted helper
           const typeName = getZodTypeName(field, locateParamTypeDescription);
-
-          // Get description using extracted helper
           const description = getZodDescription(field as z.ZodTypeAny);
-
-          // Check if field has a default value by searching the wrapper chain
           const defaultValue = findDefaultValue(field);
           const hasDefault = defaultValue !== undefined;
 
-          // Build param line for this field
-          let paramLine = `${keyWithOptional}: ${typeName}`;
-          const comments: string[] = [];
+          const paramDescription: ActionParamDescription = {
+            type: typeName,
+          };
+          if (isOptional) {
+            paramDescription.optional = true;
+          }
           if (description) {
-            comments.push(description);
+            paramDescription.description = description;
           }
           if (hasDefault) {
-            const defaultStr =
-              typeof defaultValue === 'string'
-                ? `"${defaultValue}"`
-                : JSON.stringify(defaultValue);
-            comments.push(`default: ${defaultStr}`);
-          }
-          if (comments.length > 0) {
-            paramLine += ` // ${comments.join(', ')}`;
+            paramDescription.default = defaultValue;
           }
 
-          paramLines.push(paramLine);
+          param[key] = paramDescription;
         }
       }
 
-      // Add the param section to fields if there are paramLines
-      if (paramLines.length > 0) {
-        fields.push('- param:');
-        paramLines.forEach((line) => {
-          fields.push(`  - ${line}`);
-        });
+      if (Object.keys(param).length > 0) {
+        actionDescription.param = param;
       }
     } else {
-      // Handle non-object schemas (string, number, etc.)
       const typeName = getZodTypeName(schema);
       const description = getZodDescription(schema as z.ZodTypeAny);
-
-      // For simple types, indicate that param should be the direct value, not an object
-      let paramDescription = `- param: ${typeName}`;
+      const paramDescription: ActionParamDescription = {
+        type: typeName,
+        instruction: 'Pass the value directly, not as an object.',
+      };
       if (description) {
-        paramDescription += ` // ${description}`;
+        paramDescription.description = description;
       }
-      paramDescription += ' (pass the value directly, not as an object)';
-
-      fields.push(paramDescription);
+      actionDescription.param = paramDescription;
     }
   }
 
@@ -155,16 +151,10 @@ export const descriptionForAction = (
     includeLocateInPlanning ? locatePromptSpec : undefined,
   );
   if (actionExample) {
-    const indentedActionExample = actionExample.replace(
-      /\n/g,
-      `\n${tab}${tab}`,
-    );
-    fields.push(`- sample:\n${tab}${tab}${indentedActionExample}`);
+    actionDescription.sample = actionExample;
   }
 
-  return `- ${action.name}, ${action.description || 'No description provided'}
-${tab}${fields.join(`\n${tab}`)}
-`.trim();
+  return actionDescription;
 };
 
 export const buildActionSpaceDescription = (
@@ -174,4 +164,13 @@ export const buildActionSpaceDescription = (
     locatePromptSpec?: LocateResultPromptSpec;
   } = {},
 ) =>
-  actionSpace.map((action) => descriptionForAction(action, options)).join('\n');
+  yaml
+    .dump(
+      actionSpace.map((action) => buildActionDescription(action, options)),
+      {
+        indent: 2,
+        lineWidth: -1,
+        noRefs: true,
+      },
+    )
+    .trim();

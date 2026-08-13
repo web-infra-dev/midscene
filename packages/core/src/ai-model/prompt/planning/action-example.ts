@@ -38,14 +38,13 @@ export const buildActionExample = (
     return undefined;
   }
 
-  const sampleWithLocateResult =
-    locatePromptSpec
-      ? injectLocateResultIntoSample(
-          action.sample,
-          findAllMidsceneLocatorField(action.paramSchema),
-          locatePromptSpec,
-        )
-      : action.sample;
+  const sampleWithLocateResult = locatePromptSpec
+    ? injectLocateResultIntoSample(
+        action.sample,
+        findAllMidsceneLocatorField(action.paramSchema),
+        locatePromptSpec,
+      )
+    : action.sample;
 
   return `<action-type>${action.name}</action-type>
 <action-param-json>

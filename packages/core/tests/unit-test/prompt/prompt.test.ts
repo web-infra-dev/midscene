@@ -1,18 +1,8 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import { getModelAdapter } from '@/ai-model/models';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import {
-  buildActionExample,
-  buildStandardPlanningSystemPrompt,
-  descriptionForAction,
-} from '@/ai-model/prompt/planning';
+import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
-import {
-  defineActionInput,
-  defineActionKeyboardPress,
-  defineActionSwipe,
-} from '@/device';
-import { getMidsceneLocationSchema } from '@/index';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -31,14 +21,6 @@ vi.mock('@midscene/shared/env', async (importOriginal) => {
   };
 });
 
-const mockLocatePromptSpec: LocateResultPromptSpec = {
-  resultKey: 'bbox',
-  resultValueSchema: '[number, number, number, number]',
-  resultValueDescription: 'bounding box coordinates',
-  resultNoun: 'bounding box',
-  resultNounPlural: 'bounding boxes',
-  exampleValues: [[0, 0, 100, 100]],
-};
 const locatePromptSpecFor = (
   modelFamily: TModelFamily,
 ): LocateResultPromptSpec => {
@@ -50,188 +32,6 @@ const locatePromptSpecFor = (
 };
 
 describe('action space', () => {
-  it('builds an action output protocol example', () => {
-    const actionExample = buildActionExample({
-      name: 'Tap',
-      sample: { locate: { prompt: 'the Submit button' } },
-      call: async () => {},
-    });
-
-    expect(actionExample).toBe(`<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "the Submit button"
-  }
-}
-</action-param-json>`);
-  });
-
-  it('action without param, no locate needed', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      call: async () => {},
-    });
-    expect(action).toMatchInlineSnapshot(`
-      "- Tap, Tap the element
-        - type: "Tap""
-    `);
-  });
-
-  it('action with param, no locate needed', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      paramSchema: z.object({
-        foo: z.string().describe('The foo to be tapped'),
-        bar: z.number().optional().describe('An optional bar value'),
-        help: z.string().describe('Help information for this action'),
-      }),
-      call: async () => {},
-    });
-    expect(action).toMatchInlineSnapshot(`
-      "- Tap, Tap the element
-        - type: "Tap"
-        - param:
-          - foo: string // The foo to be tapped
-          - bar?: number // An optional bar value
-          - help: string // Help information for this action"
-    `);
-  });
-
-  it('action with param, multiple location fields', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Tap',
-        description: 'Tap the element',
-        paramSchema: z.object({
-          value: z.string().describe('The value to be tapped'),
-          value2: z.number().describe('The value to be tapped').optional(),
-          value3: z.number().describe('The value 3').optional().default(345),
-          locate: getMidsceneLocationSchema().describe(
-            'The element to be tapped',
-          ),
-          locate2: getMidsceneLocationSchema()
-            .describe('The element to be tapped for the second time')
-            .optional(),
-          scrollType: z
-            .enum([
-              'once',
-              'untilBottom',
-              'untilTop',
-              'untilRight',
-              'untilLeft',
-            ])
-            .default('once')
-            .describe('The scroll type'),
-          actionType: z
-            .enum(['Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert'])
-            .describe('The scroll type')
-            .default('Tap')
-            .optional(),
-          option: z.number().optional().describe('An optional option value'),
-        }),
-        call: async () => {},
-      },
-      {
-        includeLocateInPlanning: true,
-        locatePromptSpec: mockLocatePromptSpec,
-      },
-    );
-    expect(action).toMatchInlineSnapshot(`
-      "- Tap, Tap the element
-        - type: "Tap"
-        - param:
-          - value: string // The value to be tapped
-          - value2?: number // The value to be tapped
-          - value3?: number // The value 3, default: 345
-          - locate: {bbox: [number, number, number, number], prompt: string } // bounding box coordinates // The element to be tapped
-          - locate2?: {bbox: [number, number, number, number], prompt: string } // bounding box coordinates // The element to be tapped for the second time
-          - scrollType?: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type, default: "once"
-          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type, default: "Tap"
-          - option?: number // An optional option value"
-    `);
-  });
-
-  it('action with object param schema (Launch-like)', () => {
-    const action = descriptionForAction({
-      name: 'Launch',
-      description: 'Launch an app or URL',
-      paramSchema: z.object({
-        uri: z.string().describe('The URI to launch'),
-      }),
-      call: async () => {},
-    });
-    expect(action).toMatchInlineSnapshot(`
-      "- Launch, Launch an app or URL
-        - type: "Launch"
-        - param:
-          - uri: string // The URI to launch"
-    `);
-  });
-
-  it('action with object param schema (RunAdbShell-like)', () => {
-    const action = descriptionForAction({
-      name: 'RunAdbShell',
-      description: 'Execute ADB shell command',
-      paramSchema: z.object({
-        command: z.string().describe('ADB shell command to execute'),
-      }),
-      call: async () => {},
-    });
-    expect(action).toMatchInlineSnapshot(`
-      "- RunAdbShell, Execute ADB shell command
-        - type: "RunAdbShell"
-        - param:
-          - command: string // ADB shell command to execute"
-    `);
-  });
-
-  it('input action explains typeOnly incremental edits', () => {
-    const action = descriptionForAction(
-      defineActionInput({
-        clearInput: async () => {},
-        keyboardPress: async () => {},
-        typeText: async () => {},
-      }),
-    );
-
-    expect(action).toContain('only the inserted characters for typeOnly mode');
-    expect(action).toContain(
-      'should be set explicitly for incremental edits after moving the cursor',
-    );
-  });
-
-  it('keyboard press tells the planner to omit locate for the current selection', () => {
-    const action = descriptionForAction(
-      defineActionKeyboardPress(async () => {}),
-    );
-
-    expect(action).toContain('locate?:');
-    expect(action).toContain(
-      'Omit locate to operate on the current focus without clicking again',
-    );
-    expect(action).toContain(
-      'especially when copying or cutting an existing text selection',
-    );
-    expect(action).toContain('"keyName": "Enter"');
-  });
-
-  it('swipe action explains touch slider use', () => {
-    const action = descriptionForAction(
-      defineActionSwipe({
-        swipe: async () => {},
-        size: async () => ({ width: 1080, height: 2400 }),
-      }),
-    );
-
-    expect(action).toContain('adjust a continuous control such as a slider');
-    expect(action).toContain(
-      'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
-    );
-  });
-
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,

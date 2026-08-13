@@ -299,8 +299,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
