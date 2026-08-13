@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { yamlProgressLogPrefix } from '@/framework/progress-reporter';
+import { createRstestYamlProject } from '@/framework/rstest-project';
 import {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
@@ -263,6 +264,110 @@ test(${JSON.stringify(name)}, async () => {
       expect(Math.max(aStart || 0, bStart || 0)).toBeLessThanOrEqual(
         Math.min(aEnd || 0, bEnd || 0),
       );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('runs serial YAML cases in config order', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-ordered-'));
+    const marker = join(root, 'ordered-events.jsonl');
+    const framework = join(root, 'framework.mjs');
+    const yamlFiles = [
+      join(root, 'third.yaml'),
+      join(root, 'first.yaml'),
+      join(root, 'third.yaml'),
+      join(root, 'second.yaml'),
+    ];
+
+    for (const file of yamlFiles) {
+      writeFileSync(file, 'web:\n  url: about:blank\ntasks: []\n');
+    }
+    writeFileSync(
+      framework,
+      `import { appendFileSync } from 'node:fs';
+
+export function defineYamlCaseTest(test, options) {
+  test(options.testName, async () => {
+    appendFileSync(${JSON.stringify(marker)}, JSON.stringify(options.yamlFile) + '\\n');
+  });
+}
+`,
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: yamlFiles,
+        projectDir: root,
+        outputDir: join(root, 'output'),
+        frameworkImport: framework,
+        maxConcurrency: 1,
+      });
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project,
+      });
+
+      expect(exitCode).toBe(0);
+      expect(
+        readFileSync(marker, 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => JSON.parse(line)),
+      ).toEqual(yamlFiles);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('retries a serial YAML case before bailing without starting the next case', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-ordered-bail-'));
+    const marker = join(root, 'ordered-bail-events.jsonl');
+    const framework = join(root, 'framework.mjs');
+    const yamlFiles = [join(root, 'first.yaml'), join(root, 'second.yaml')];
+
+    for (const file of yamlFiles) {
+      writeFileSync(file, 'web:\n  url: about:blank\ntasks: []\n');
+    }
+    writeFileSync(
+      framework,
+      `import { appendFileSync } from 'node:fs';
+
+export function defineYamlCaseTest(test, options) {
+  test(options.testName, async () => {
+    appendFileSync(${JSON.stringify(marker)}, JSON.stringify(options.yamlFile) + '\\n');
+    if (options.yamlFile.endsWith('first.yaml')) {
+      throw new Error('first failed');
+    }
+  });
+}
+`,
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: yamlFiles,
+        projectDir: root,
+        outputDir: join(root, 'output'),
+        frameworkImport: framework,
+        maxConcurrency: 1,
+        retry: 1,
+        bail: 1,
+      });
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project,
+      });
+
+      expect(exitCode).toBe(1);
+      expect(
+        readFileSync(marker, 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => JSON.parse(line)),
+      ).toEqual([yamlFiles[0], yamlFiles[0]]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
