@@ -126,6 +126,12 @@ jobs:
     - name: Run tests with coverage
       run: pnpm run test:coverage
 
+    # Run Chrome/Rstest after full-workspace coverage so it does not compete
+    # with the other Nx projects for runner resources.
+    - name: Run CLI shared-browser YAML e2e
+      timeout-minutes: 5
+      run: pnpm --filter @midscene/cli test:e2e:shared-browser
+
     - name: Upload coverage reports
       id: upload-coverage
       if: always()
