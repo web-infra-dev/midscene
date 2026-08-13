@@ -1,8 +1,8 @@
 import type { TUserPrompt } from '@/common';
 import type { DeviceAction, PlanningAIResponse, UIContext } from '@/types';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
-import type { ConversationHistory } from '../../conversation-history';
 import type { ModelRuntime } from '../../models';
+import type { ConversationHistory } from './conversation-history';
 
 export interface PlanOptions {
   context: UIContext;

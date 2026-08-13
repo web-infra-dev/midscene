@@ -42,7 +42,6 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { getVersion } from '../../utils';
 import type { ModelRuntime } from '../models';
-import type { AIArgs } from '../types';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
@@ -68,6 +67,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from './semantic-retry';
+import type { AIArgs } from './types';
 export {
   extractJSONFromCodeBlock,
   parseModelResponseJson,

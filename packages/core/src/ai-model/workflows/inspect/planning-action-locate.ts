@@ -4,10 +4,10 @@ import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { type TUserPrompt, getMidsceneLocationSchema } from '../../../common';
 import { ScreenshotItem } from '../../../screenshot-item';
-import { ConversationHistory } from '../../conversation-history';
 import type { ResolvedCustomPlanningDefinition } from '../../model-adapter/custom-planning-types';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import { AIResponseParseError } from '../../service-caller/index';
+import { ConversationHistory } from '../planning/conversation-history';
 import { runCustomPlanning } from '../planning/custom-planning';
 import type { PlanOptions } from '../planning/types';
 import type {

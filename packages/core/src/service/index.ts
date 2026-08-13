@@ -1,11 +1,11 @@
-import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
 import type { ModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import {
   AIResponseParseError,
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
-import type { AIArgs } from '@/ai-model/types';
+import type { AIArgs } from '@/ai-model/service-caller/types';
+import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
 import {
   AiExtractElementInfo,
   AiLocateElement,

@@ -6,8 +6,8 @@ import {
   getZodTypeName,
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
-import { planningModelFamilyRequiredForLocateMessage } from '../errors';
 import type { LocateResultPromptSpec } from '../shared/model-locate-result';
+import { planningModelFamilyRequiredForLocateMessage } from '../shared/model-locate-result/errors';
 import { locateGroundingRules } from './locate-grounding-rules';
 import { locateParamExample } from './locate-param-example';
 

@@ -44,10 +44,10 @@ export { standardPlan } from './workflows/planning';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,
-} from './conversation-history';
+} from './workflows/planning';
 export type { SubGoal, SubGoalStatus } from '@/types';
 
-export type { AIArgs } from './types';
+export type { AIArgs } from './service-caller/types';
 
 export {
   getMidsceneLocationSchema,
