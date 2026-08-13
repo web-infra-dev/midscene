@@ -323,33 +323,44 @@ describe('MidsceneReporter', () => {
       expect(readdirSync(outputDir).length).toBeGreaterThan(0);
     });
 
-    it('should shorten separate-mode filenames for very long titles', async () => {
-      const reporter = new MidsceneReporter({ type: 'separate' });
-      const reportPath = createReportFile(
-        'long-title-report',
-        'long-title-data',
-      );
-      const longTitle = 'policy-template-name-duplicates-existing-name-'.repeat(
-        20,
-      );
+    it.each([
+      ['single-html', '.html'],
+      ['html-and-external-assets', ''],
+    ] as const)(
+      'should keep separate-mode %s output names within the filesystem byte limit',
+      async (outputFormat, expectedExtension) => {
+        const reporter = new MidsceneReporter({
+          type: 'separate',
+          outputFormat,
+        });
+        const reportPath = createReportFile(
+          `long-title-report-${outputFormat}`,
+          'long-title-data',
+        );
+        const longTitle =
+          '1426803-【配置-策略模板配置】【创建策略模板】策略模板名称与当前存在的名称重复'.repeat(
+            10,
+          );
 
-      reporter.onTestEnd(
-        {
-          id: 'test-id-long',
-          title: longTitle,
-          annotations: [
-            { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
-          ],
-        } as TestCase,
-        { status: 'passed', duration: 50 } as TestResult,
-      );
+        reporter.onTestEnd(
+          {
+            id: `test-id-${outputFormat}`,
+            title: longTitle,
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as TestCase,
+          { status: 'passed', duration: 50 } as TestResult,
+        );
 
-      await reporter.onEnd();
+        await reporter.onEnd();
 
-      const [fileName] = readdirSync(outputDir);
-      expect(Buffer.byteLength(fileName, 'utf8')).toBeLessThan(200);
-      expect(fileName).toMatch(/^playwright-.+-[0-9a-f]{10}-\d{4}-/);
-    });
+        const [outputName] = readdirSync(outputDir);
+        expect(Buffer.byteLength(outputName, 'utf8')).toBeLessThanOrEqual(255);
+        expect(outputName.endsWith(expectedExtension)).toBe(true);
+        expect(outputName).toMatch(/^playwright-.+-[0-9a-f]{10}-\d{4}-/);
+      },
+    );
 
     it('should log and skip missing report paths', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });

@@ -39,6 +39,7 @@ import {
 import { getReportTpl } from './utils';
 
 const warnReport = getDebug('report-generator', { console: true });
+const maxReportFilenameBytes = 255;
 
 export interface IReportGenerator {
   /**
@@ -160,7 +161,7 @@ export class ReportGenerator implements IReportGenerator {
     },
   ): IReportGenerator {
     assertReportGenerationOptions(opts);
-    validateReportFileName(reportFileName);
+    validateReportFileName(reportFileName, opts.outputFormat);
     if (opts.generateReport === false) return nullReportGenerator;
 
     // In browser environment, file system is not available
@@ -477,7 +478,10 @@ function ensureHtmlFileName(reportFileName: string): string {
     : `${reportFileName}.html`;
 }
 
-function validateReportFileName(reportFileName: string): void {
+function validateReportFileName(
+  reportFileName: string,
+  outputFormat?: 'single-html' | 'html-and-external-assets',
+): void {
   if (!reportFileName?.trim()) {
     throw new Error('reportFileName must be a non-empty string');
   }
@@ -491,6 +495,17 @@ function validateReportFileName(reportFileName: string): void {
   if (/[:*?"<>|]/.test(reportFileName)) {
     throw new Error(
       'reportFileName contains illegal filename characters: : * ? " < > |',
+    );
+  }
+
+  const filenameComponent =
+    outputFormat === 'html-and-external-assets'
+      ? reportFileName
+      : ensureHtmlFileName(reportFileName);
+  const filenameBytes = new TextEncoder().encode(filenameComponent).byteLength;
+  if (filenameBytes > maxReportFilenameBytes) {
+    throw new Error(
+      `reportFileName produces a filename component of ${filenameBytes} UTF-8 bytes; maximum is ${maxReportFilenameBytes}`,
     );
   }
 }
