@@ -1,14 +1,12 @@
 import { readFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { basename, join } from 'node:path';
-import { createConfig } from '@/config-factory';
-import { runFrameworkTestConfig } from '@/framework/command';
-import { resolveWebTarget } from '@midscene/core/yaml';
+import { execa } from 'execa';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 90 * 1000,
 });
 
 describe('shareBrowserContext CLI YAML e2e', () => {
@@ -41,64 +39,42 @@ describe('shareBrowserContext CLI YAML e2e', () => {
   const runFixture = async ({
     scriptDir,
     indexFile,
-    targetSource,
-    targetDeclaredInIndex = true,
+    summaryName,
     expectedScripts,
   }: {
     scriptDir: string;
     indexFile: string;
-    targetSource: 'page' | 'browser' | 'web';
-    targetDeclaredInIndex?: boolean;
+    summaryName: string;
     expectedScripts: string[];
   }) => {
     const indexYamlPath = join(scriptDir, indexFile);
-    const frameworkImport = join(
-      __dirname,
-      '../../src/framework/rstest-entry.ts',
+    const summaryPath = join(
+      scriptDir,
+      'midscene_run',
+      'output',
+      `${summaryName}-${Date.now()}.json`,
     );
-    const previousCwd = process.cwd();
+    const cliBin = join(__dirname, '../../bin/midscene');
 
-    process.chdir(scriptDir);
-    try {
-      const config = await createConfig(indexYamlPath);
-      const resolvedTarget = resolveWebTarget(config.globalConfig ?? {});
-      if (targetDeclaredInIndex) {
-        expect(resolvedTarget?.source).toBe(targetSource);
-      } else {
-        expect(resolvedTarget).toBeUndefined();
-      }
-      config.globalConfig = {
-        ...config.globalConfig,
-        [targetSource]: {
-          ...config.globalConfig?.[targetSource],
-          url: `${testOrigin}/share-context-test.html`,
-        },
-      };
-      const exitCode = await runFrameworkTestConfig(config, {
-        projectDir: scriptDir,
-        frameworkImport,
-        stdio: 'pipe',
-      });
+    await execa(cliBin, ['--config', indexYamlPath, '--summary', summaryPath], {
+      cwd: scriptDir,
+      env: {
+        ...process.env,
+        SHARED_BROWSER_TEST_ORIGIN: testOrigin,
+      },
+      timeout: 60 * 1000,
+    });
 
-      expect(exitCode).toBe(0);
-      const summary = JSON.parse(
-        readFileSync(
-          join(scriptDir, 'midscene_run', 'output', config.summary),
-          'utf8',
-        ),
-      );
-      expect(summary.summary).toMatchObject({
-        total: expectedScripts.length,
-        successful: expectedScripts.length,
-      });
-      expect(
-        summary.results
-          .map((result: { script: string }) => basename(result.script))
-          .sort(),
-      ).toEqual([...expectedScripts].sort());
-    } finally {
-      process.chdir(previousCwd);
-    }
+    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({
+      total: expectedScripts.length,
+      successful: expectedScripts.length,
+    });
+    expect(
+      summary.results
+        .map((result: { script: string }) => basename(result.script))
+        .sort(),
+    ).toEqual([...expectedScripts].sort());
   };
 
   test.each([
@@ -111,7 +87,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
         indexFile,
-        targetSource,
+        summaryName: `e2e-${targetSource}`,
         expectedScripts: [
           '00-setup.yaml',
           '01-search.yaml',
@@ -126,8 +102,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     await runFixture({
       scriptDir: join(__dirname, '../share_context_test_scripts'),
       indexFile: 'index.yaml',
-      targetSource: 'web',
-      targetDeclaredInIndex: false,
+      summaryName: 'e2e-sequential',
       expectedScripts: ['01-login.yaml', '02-check-login.yaml'],
     });
   });

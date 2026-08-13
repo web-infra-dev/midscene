@@ -27,7 +27,9 @@ export default defineConfig({
     // because rstest rejects bare --minWorkers/--maxWorkers. Local AI runs
     // keep the default worker count.
     ...(enableAiTest && process.env.CI ? { minWorkers: 1, maxWorkers: 4 } : {}),
-    ...(enableCliE2eTest ? { fileParallelism: false, maxWorkers: 1 } : {}),
+    ...(enableCliE2eTest
+      ? { fileParallelism: false, maxWorkers: 1, retry: 0 }
+      : {}),
   },
   resolve: {
     alias: {

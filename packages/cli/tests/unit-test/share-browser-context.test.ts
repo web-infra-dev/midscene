@@ -17,11 +17,18 @@ describe('shareBrowserContext YAML configuration', () => {
 
   const createFixtureConfig = async (scriptDir: string, indexFile: string) => {
     const previousCwd = process.cwd();
+    const previousOrigin = process.env.SHARED_BROWSER_TEST_ORIGIN;
     process.chdir(scriptDir);
+    process.env.SHARED_BROWSER_TEST_ORIGIN = 'http://127.0.0.1';
     try {
       return await createConfig(join(scriptDir, indexFile));
     } finally {
       process.chdir(previousCwd);
+      if (previousOrigin === undefined) {
+        Reflect.deleteProperty(process.env, 'SHARED_BROWSER_TEST_ORIGIN');
+      } else {
+        process.env.SHARED_BROWSER_TEST_ORIGIN = previousOrigin;
+      }
     }
   };
 
