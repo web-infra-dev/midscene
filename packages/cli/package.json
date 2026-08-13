@@ -15,6 +15,7 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
+    "test:e2e:shared-browser": "CLI_E2E=true vitest --run tests/e2e/share-browser-context.test.ts",
     "test:ai": "AITEST=true vitest --run",
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
   },
