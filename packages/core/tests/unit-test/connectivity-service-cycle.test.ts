@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   callAIWithObjectResponse: vi.fn(),
   AiExtractElementInfo: vi.fn(),
   AiLocateElement: vi.fn(),
+  AiLocateAllElements: vi.fn(),
   AiLocateSection: vi.fn(),
   buildSearchAreaConfig: vi.fn(),
 }));
@@ -28,6 +29,7 @@ vi.mock('@/ai-model/service-caller/index', () => ({
 vi.mock('@/ai-model/inspect', () => ({
   AiExtractElementInfo: mocks.AiExtractElementInfo,
   AiLocateElement: mocks.AiLocateElement,
+  AiLocateAllElements: mocks.AiLocateAllElements,
   AiLocateSection: mocks.AiLocateSection,
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
 }));

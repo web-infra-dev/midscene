@@ -41,6 +41,7 @@ export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export {
   AiLocateElement,
+  AiLocateAllElements,
   AiExtractElementInfo,
   AiLocateSection,
   AiJudgeOrderSensitive,

@@ -61,6 +61,18 @@ export interface LocateModelResponse {
   errors?: string[];
 }
 
+export interface LocateAllResult {
+  parseResult: {
+    elements: LocateResultElement[];
+    errors?: string[];
+    fatalError?: boolean;
+  };
+  rawResponse: string;
+  rawChoiceMessage?: unknown;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+}
+
 export type LocateFn = (
   elementDescription: TUserPrompt,
   options: LocateOptions,
