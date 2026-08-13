@@ -2,7 +2,7 @@ concurrent: 3
 continueOnError: true
 shareBrowserContext: true
 
-page:
+browser:
   # The integration test overrides this with its dynamically allocated server URL.
   url: http://127.0.0.1/share-context-test.html
   viewportWidth: 800

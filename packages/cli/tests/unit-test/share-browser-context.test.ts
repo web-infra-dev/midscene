@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
 import { runFrameworkTestConfig } from '@/framework/command';
+import { resolveWebTarget } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
@@ -37,9 +38,20 @@ describe('shareBrowserContext - Storage Sharing', () => {
     });
   });
 
-  test('should run setup first and copy its state into isolated parallel pages', async () => {
-    const scriptDir = join(__dirname, '../share_context_parallel_test_scripts');
-    const indexYamlPath = join(scriptDir, 'index.yaml');
+  const runFixture = async ({
+    scriptDir,
+    indexFile,
+    targetSource,
+    targetDeclaredInIndex = true,
+    expectedScripts,
+  }: {
+    scriptDir: string;
+    indexFile: string;
+    targetSource: 'page' | 'browser' | 'web';
+    targetDeclaredInIndex?: boolean;
+    expectedScripts: string[];
+  }) => {
+    const indexYamlPath = join(scriptDir, indexFile);
     const frameworkImport = join(
       __dirname,
       '../../src/framework/rstest-entry.ts',
@@ -49,10 +61,16 @@ describe('shareBrowserContext - Storage Sharing', () => {
     process.chdir(scriptDir);
     try {
       const config = await createConfig(indexYamlPath);
+      const resolvedTarget = resolveWebTarget(config.globalConfig ?? {});
+      if (targetDeclaredInIndex) {
+        expect(resolvedTarget?.source).toBe(targetSource);
+      } else {
+        expect(resolvedTarget).toBeUndefined();
+      }
       config.globalConfig = {
         ...config.globalConfig,
-        web: {
-          ...config.globalConfig?.web,
+        [targetSource]: {
+          ...config.globalConfig?.[targetSource],
           url: `${testOrigin}/share-context-test.html`,
         },
       };
@@ -69,19 +87,48 @@ describe('shareBrowserContext - Storage Sharing', () => {
           'utf8',
         ),
       );
-      expect(summary.summary).toMatchObject({ total: 4, successful: 4 });
+      expect(summary.summary).toMatchObject({
+        total: expectedScripts.length,
+        successful: expectedScripts.length,
+      });
       expect(
         summary.results
           .map((result: { script: string }) => basename(result.script))
           .sort(),
-      ).toEqual([
-        '00-setup.yaml',
-        '01-search.yaml',
-        '02-report.yaml',
-        '03-settings.yaml',
-      ]);
+      ).toEqual([...expectedScripts].sort());
     } finally {
       process.chdir(previousCwd);
     }
+  };
+
+  test.each([
+    { targetSource: 'page' as const, indexFile: 'index.yaml' },
+    { targetSource: 'browser' as const, indexFile: 'index-browser.yaml' },
+    { targetSource: 'web' as const, indexFile: 'index-web.yaml' },
+  ])(
+    'should run setup first and copy its state into isolated parallel pages using $targetSource',
+    async ({ targetSource, indexFile }) => {
+      await runFixture({
+        scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
+        indexFile,
+        targetSource,
+        expectedScripts: [
+          '00-setup.yaml',
+          '01-search.yaml',
+          '02-report.yaml',
+          '03-settings.yaml',
+        ],
+      });
+    },
+  );
+
+  test('should preserve setup state for a sequential shared-browser batch', async () => {
+    await runFixture({
+      scriptDir: join(__dirname, '../share_context_test_scripts'),
+      indexFile: 'index.yaml',
+      targetSource: 'web',
+      targetDeclaredInIndex: false,
+      expectedScripts: ['01-login.yaml', '02-check-login.yaml'],
+    });
   });
 });
