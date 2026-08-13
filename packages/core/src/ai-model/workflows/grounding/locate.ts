@@ -4,7 +4,6 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
 import {
-  multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '../../../common';
@@ -23,6 +22,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { pixelBboxToRect } from './locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping';
 import type {
@@ -39,10 +39,8 @@ import {
 
 const debugGrounding = getDebug('ai:grounding');
 
-export {
-  userPromptToString as extraTextFromUserPrompt,
-  multimodalPromptToChatMessages as promptsToChatParam,
-} from '../../../common';
+export { userPromptToString as extraTextFromUserPrompt } from '../../../common';
+export { multimodalPromptToChatMessages as promptsToChatParam } from '../../shared/multimodal-prompt';
 
 export async function AiLocateElement(
   options: LocateOptions & { targetElementDescription: TUserPrompt },

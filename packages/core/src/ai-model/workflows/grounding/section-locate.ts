@@ -8,8 +8,6 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
 import {
-  expandSearchArea,
-  multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '../../../common';
@@ -29,8 +27,9 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { mergePixelBboxesToRect } from './locate-result-rect';
-import { buildSearchAreaConfig } from './search-area';
+import { buildSearchAreaConfig, expandSearchArea } from './search-area';
 import type { SearchAreaConfig } from './types';
 import {
   type GroundingAIArgs,

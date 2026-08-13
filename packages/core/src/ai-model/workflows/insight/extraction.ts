@@ -5,7 +5,6 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt } from '../../../common';
-import { multimodalPromptToChatMessages } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import {
   extractDataQueryPrompt,
@@ -16,6 +15,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { parseXMLExtractionResponse } from './extraction-parser';
 
 type InsightAIArgs = [
