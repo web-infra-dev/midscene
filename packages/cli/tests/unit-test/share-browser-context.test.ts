@@ -12,6 +12,13 @@ vi.setConfig({
 });
 
 describe('shareBrowserContext - Storage Sharing', () => {
+  const scriptDir = join(__dirname, '../share_context_parallel_test_scripts');
+  const expectedScripts = [
+    '00-setup.yaml',
+    '01-search.yaml',
+    '02-report.yaml',
+    '03-settings.yaml',
+  ];
   let server: ReturnType<typeof createServer>;
   let testOrigin: string;
 
@@ -38,20 +45,40 @@ describe('shareBrowserContext - Storage Sharing', () => {
     });
   });
 
-  const runFixture = async ({
-    scriptDir,
-    indexFile,
-    targetSource,
-    targetDeclaredInIndex = true,
-    expectedScripts,
-  }: {
-    scriptDir: string;
-    indexFile: string;
-    targetSource: 'page' | 'browser' | 'web';
-    targetDeclaredInIndex?: boolean;
-    expectedScripts: string[];
-  }) => {
-    const indexYamlPath = join(scriptDir, indexFile);
+  const createFixtureConfig = async (indexFile: string) => {
+    const previousCwd = process.cwd();
+    process.chdir(scriptDir);
+    try {
+      return await createConfig(join(scriptDir, indexFile));
+    } finally {
+      process.chdir(previousCwd);
+    }
+  };
+
+  test.each([
+    { targetSource: 'page' as const, indexFile: 'index.yaml' },
+    { targetSource: 'browser' as const, indexFile: 'index-browser.yaml' },
+    { targetSource: 'web' as const, indexFile: 'index-web.yaml' },
+  ])(
+    'should resolve setup and parallel files from the $targetSource YAML target',
+    async ({ targetSource, indexFile }) => {
+      const config = await createFixtureConfig(indexFile);
+
+      expect(resolveWebTarget(config.globalConfig ?? {})?.source).toBe(
+        targetSource,
+      );
+      expect(config).toMatchObject({
+        concurrent: 3,
+        shareBrowserContext: true,
+      });
+      expect(basename(config.setup ?? '')).toBe(expectedScripts[0]);
+      expect(config.files.map((file) => basename(file))).toEqual(
+        expectedScripts.slice(1),
+      );
+    },
+  );
+
+  test('should run setup first and copy its state into isolated parallel pages', async () => {
     const frameworkImport = join(
       __dirname,
       '../../src/framework/rstest-entry.ts',
@@ -60,17 +87,11 @@ describe('shareBrowserContext - Storage Sharing', () => {
 
     process.chdir(scriptDir);
     try {
-      const config = await createConfig(indexYamlPath);
-      const resolvedTarget = resolveWebTarget(config.globalConfig ?? {});
-      if (targetDeclaredInIndex) {
-        expect(resolvedTarget?.source).toBe(targetSource);
-      } else {
-        expect(resolvedTarget).toBeUndefined();
-      }
+      const config = await createConfig(join(scriptDir, 'index.yaml'));
       config.globalConfig = {
         ...config.globalConfig,
-        [targetSource]: {
-          ...config.globalConfig?.[targetSource],
+        page: {
+          ...config.globalConfig?.page,
           url: `${testOrigin}/share-context-test.html`,
         },
       };
@@ -99,36 +120,5 @@ describe('shareBrowserContext - Storage Sharing', () => {
     } finally {
       process.chdir(previousCwd);
     }
-  };
-
-  test.each([
-    { targetSource: 'page' as const, indexFile: 'index.yaml' },
-    { targetSource: 'browser' as const, indexFile: 'index-browser.yaml' },
-    { targetSource: 'web' as const, indexFile: 'index-web.yaml' },
-  ])(
-    'should run setup first and copy its state into isolated parallel pages using $targetSource',
-    async ({ targetSource, indexFile }) => {
-      await runFixture({
-        scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
-        indexFile,
-        targetSource,
-        expectedScripts: [
-          '00-setup.yaml',
-          '01-search.yaml',
-          '02-report.yaml',
-          '03-settings.yaml',
-        ],
-      });
-    },
-  );
-
-  test('should preserve setup state for a sequential shared-browser batch', async () => {
-    await runFixture({
-      scriptDir: join(__dirname, '../share_context_test_scripts'),
-      indexFile: 'index.yaml',
-      targetSource: 'web',
-      targetDeclaredInIndex: false,
-      expectedScripts: ['01-login.yaml', '02-check-login.yaml'],
-    });
   });
 });
