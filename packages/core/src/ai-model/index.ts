@@ -40,7 +40,7 @@ export {
   AiJudgeOrderSensitive,
 } from './workflows/inspect';
 
-export { plan } from './workflows/planning';
+export { standardPlan } from './workflows/planning';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,

@@ -1,7 +1,7 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -584,7 +584,7 @@ export class TaskExecutor {
             const planImpl =
               planningModel.adapter.planning.kind === 'custom'
                 ? planningModel.adapter.planning.planFn
-                : genericXmlPlan;
+                : standardPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {

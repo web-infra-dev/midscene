@@ -1,5 +1,2 @@
-export {
-  plan,
-  plan as genericXmlPlan,
-  parseXMLPlanningResponse,
-} from './generic-xml';
+export { standardPlan } from './standard-planning';
+export { parseXMLPlanningResponse } from './standard-planning-parser';

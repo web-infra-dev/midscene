@@ -1,7 +1,7 @@
 import type { AIDataExtractionResponse, ServiceExtractParam } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
 import { parseModelResponseJson } from '../service-caller/json';
-import { extractXMLTag } from './util';
+import { extractXMLTag } from '../shared/xml';
 
 export function buildTypeQueryDemandValue(
   type: 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',

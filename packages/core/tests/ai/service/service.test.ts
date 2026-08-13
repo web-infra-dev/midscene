@@ -1,5 +1,4 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { distance } from '@/ai-model/prompt/util';
 import Service from '@/service';
 import { sleep } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
@@ -17,6 +16,13 @@ const locateTestOptions = {
   timeout: 12 * 60 * 1000,
   retry: 0,
 };
+
+function distance(
+  point1: { x: number; y: number },
+  point2: { x: number; y: number },
+) {
+  return Math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2);
+}
 
 describe.skipIf(!modelConfig.modelFamily)(
   'service locate with deep think',
