@@ -21,6 +21,7 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '../../../common';
+import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
 import {
   extractDataQueryPrompt,
@@ -49,7 +50,6 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
-import { prepareModelImage } from '../image-preprocess';
 import { mergePixelBboxesToRect, pixelBboxToRect } from './locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping';
 import type {

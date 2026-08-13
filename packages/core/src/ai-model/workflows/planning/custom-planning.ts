@@ -7,11 +7,11 @@ import type {
   CustomPlanningMessageConfig,
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
+import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
-import { prepareModelImage } from '../image-preprocess';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 

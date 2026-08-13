@@ -9,6 +9,7 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { planningModelFamilyRequiredForLocateMessage } from '../../errors';
+import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { systemPromptToTaskPlanning } from '../../prompt/llm-planning';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
@@ -19,7 +20,6 @@ import type {
   LocateResultAdapter,
   LocateResultContext,
 } from '../../shared/model-locate-result';
-import { prepareModelImage } from '../image-preprocess';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import { parseXMLPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';

@@ -1,4 +1,4 @@
-import { prepareModelImage } from '@/ai-model/workflows/image-preprocess';
+import { prepareModelImage } from '@/ai-model/model-adapter/image-preprocess';
 import { buildSearchAreaConfig } from '@/ai-model/workflows/inspect';
 import {
   cropByRect,
