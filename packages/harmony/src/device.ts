@@ -328,22 +328,7 @@ export class HarmonyDevice implements AbstractInterface {
       } else {
         // Bundle name or app name
         const bundleName = this.resolvePackageName(uri) ?? uri;
-        try {
-          await hdc.startAbility(bundleName, 'EntryAbility');
-        } catch (e: any) {
-          if (!e.message?.includes('resolve ability')) throw e;
-          // EntryAbility not found, auto-discover the main ability
-          const mainAbility = await hdc.queryMainAbility(bundleName);
-          if (!mainAbility) {
-            throw new Error(
-              `Cannot find a launchable ability for ${bundleName}`,
-            );
-          }
-          debugDevice(
-            `EntryAbility not found, using discovered ability: ${mainAbility}`,
-          );
-          await hdc.startAbility(bundleName, mainAbility);
-        }
+        await hdc.launchBundle(bundleName);
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {

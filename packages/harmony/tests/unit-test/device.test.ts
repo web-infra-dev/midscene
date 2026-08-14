@@ -21,7 +21,7 @@ const mockHdc = {
     ),
   fileRecv: rs.fn().mockResolvedValue(undefined),
   startAbility: rs.fn().mockResolvedValue(undefined),
-  queryMainAbility: rs.fn().mockResolvedValue(undefined),
+  launchBundle: rs.fn().mockResolvedValue(undefined),
   forceStop: rs.fn().mockResolvedValue(undefined),
   clearTextField: rs.fn().mockResolvedValue(undefined),
 };
@@ -497,12 +497,10 @@ describe('HarmonyDevice', () => {
       );
     });
 
-    it('should use startAbility with EntryAbility for plain bundle name', async () => {
+    it('should launch a plain bundle name through HDC bundle resolution', async () => {
       await device.launch('com.example.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.example.app',
-        'EntryAbility',
-      );
+
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.example.app');
     });
 
     it('should throw with descriptive error on launch failure', async () => {
@@ -769,9 +767,8 @@ describe('HarmonyDevice', () => {
         browser: 'com.huawei.hmos.browser',
       });
       await device.launch('Browser');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith(
         'com.huawei.hmos.browser',
-        'EntryAbility',
       );
     });
 
@@ -779,10 +776,7 @@ describe('HarmonyDevice', () => {
       await device.connect();
       device.setAppNameMapping({});
       await device.launch('com.unknown.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.unknown.app',
-        'EntryAbility',
-      );
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.unknown.app');
     });
   });
 
