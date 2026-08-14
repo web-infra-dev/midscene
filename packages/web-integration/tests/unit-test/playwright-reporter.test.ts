@@ -229,6 +229,43 @@ describe('MidsceneReporter', () => {
       expect(existsSync(reportPathB)).toBe(false);
     });
 
+    it('should keep reports distinct when tests in different suites share a title', async () => {
+      const reporter = new MidsceneReporter({ type: 'separate' });
+      const reportPathA = createReportFile('same-title-suite-a', 'suite-a');
+      const reportPathB = createReportFile('same-title-suite-b', 'suite-b');
+
+      for (const [id, suiteTitle, reportPath] of [
+        ['test-id-suite-a', 'suite a', reportPathA],
+        ['test-id-suite-b', 'suite b', reportPathB],
+      ]) {
+        reporter.onTestEnd(
+          {
+            id,
+            title: 'same leaf title',
+            parent: { title: suiteTitle },
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as unknown as TestCase,
+          { status: 'passed', duration: 50 } as TestResult,
+        );
+      }
+
+      await reporter.onEnd();
+
+      const outputFiles = readdirSync(outputDir).filter((fileName) =>
+        fileName.endsWith('.html'),
+      );
+      expect(outputFiles).toHaveLength(2);
+      expect(
+        outputFiles.map((fileName) =>
+          readFileSync(join(outputDir, fileName), 'utf-8'),
+        ),
+      ).toEqual(expect.arrayContaining(['suite-a', 'suite-b']));
+      expect(existsSync(reportPathA)).toBe(false);
+      expect(existsSync(reportPathB)).toBe(false);
+    });
+
     it('should remove the whole source directory after copying a directory-based report', async () => {
       const reporter = new MidsceneReporter({
         type: 'merged',

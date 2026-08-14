@@ -34,12 +34,13 @@ function truncateUtf8ByBytes(value: string, maxBytes: number): string {
 export function buildPlaywrightReportTag(
   title: string,
   uniqueSuffix?: string,
+  hashSource = title,
 ): string {
   const safeTitle = replaceIllegalPathCharsAndSpace(title).replace(
     /[\\/]/g,
     '-',
   );
-  const titleHash = getCompactHash(title);
+  const titleHash = getCompactHash(hashSource);
   const trailingSegments = uniqueSuffix
     ? `-${titleHash}-${uniqueSuffix}`
     : `-${titleHash}`;

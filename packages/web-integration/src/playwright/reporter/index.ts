@@ -25,7 +25,7 @@ interface MidsceneReporterOptions {
 
 class MidsceneReporter implements Reporter {
   private mergedFilename?: string;
-  private testTitleToFilename = new Map<string, string>();
+  private testIdToFilename = new Map<string, string>();
   private reportsByTestId = new Map<
     string,
     {
@@ -54,16 +54,16 @@ class MidsceneReporter implements Reporter {
     return reporterType;
   }
 
-  private getSeparatedFilename(testTitle: string): string {
-    if (!this.testTitleToFilename.has(testTitle)) {
-      const baseTag = buildPlaywrightReportTag(testTitle);
+  private getSeparatedFilename(testTitle: string, testId: string): string {
+    if (!this.testIdToFilename.has(testId)) {
+      const baseTag = buildPlaywrightReportTag(testTitle, undefined, testId);
       const generatedFilename = getReportFileName(baseTag);
-      this.testTitleToFilename.set(testTitle, generatedFilename);
+      this.testIdToFilename.set(testId, generatedFilename);
     }
-    return this.testTitleToFilename.get(testTitle)!;
+    return this.testIdToFilename.get(testId)!;
   }
 
-  private getReportFilename(testTitle?: string): string {
+  private getReportFilename(testTitle?: string, testId?: string): string {
     if (this.mode === 'merged') {
       if (!this.mergedFilename) {
         this.mergedFilename = getReportFileName('playwright-merged');
@@ -72,13 +72,14 @@ class MidsceneReporter implements Reporter {
     }
     if (this.mode === 'separate') {
       if (!testTitle) throw new Error('testTitle is required in separate mode');
-      return this.getSeparatedFilename(testTitle);
+      if (!testId) throw new Error('testId is required in separate mode');
+      return this.getSeparatedFilename(testTitle, testId);
     }
     throw new Error(`Unknown mode: ${this.mode}`);
   }
 
-  private getReportPath(testTitle?: string): string {
-    const fileName = this.getReportFilename(testTitle);
+  private getReportPath(testTitle?: string, testId?: string): string {
+    const fileName = this.getReportFilename(testTitle, testId);
     if (this.outputFormat === 'html-and-external-assets') {
       return join(getMidsceneRunSubDir('report'), fileName, 'index.html');
     }
@@ -222,12 +223,12 @@ class MidsceneReporter implements Reporter {
 
   private finalizeSeparateReports(): void {
     this.ensureOutputRoot();
-    for (const entry of this.reportsByTestId.values()) {
-      const targetName = this.getReportFilename(entry.testTitle);
+    for (const [testId, entry] of this.reportsByTestId) {
+      const targetName = this.getReportFilename(entry.testTitle, testId);
       if (entry.reports.length === 1) {
         const firstReport = entry.reports[0];
         if (firstReport.reportFilePath) {
-          const targetPath = this.getReportPath(entry.testTitle);
+          const targetPath = this.getReportPath(entry.testTitle, testId);
           this.finalizeSingleReport(firstReport.reportFilePath, targetPath);
           printReportMsg(targetPath);
           continue;
