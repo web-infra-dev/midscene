@@ -53,9 +53,11 @@ export interface BatchRunnerConfig {
   /**
    * A setup yaml file executed before the main `files`. It reuses the shared
    * browser context, so any prerequisite state (e.g. a login) is visible to
-   * every main file. A setup failure aborts the batch and leaves the main files
-   * not executed. Only honored when `shareBrowserContext` is true; the config
-   * layer rejects other combinations.
+   * every main file. Serial batches reuse the setup page; parallel batches
+   * copy its initial same-origin sessionStorage into isolated task pages. A
+   * setup failure aborts the batch and leaves the main files not executed.
+   * Only honored when `shareBrowserContext` is true; the config layer rejects
+   * other combinations.
    */
   setup?: string;
   concurrent: number;
@@ -332,7 +334,15 @@ class YamlBatchExecutor {
       ttyRenderer.start();
     }
 
+    let serialSharedPage: Page | undefined;
+    let batchExecutionFailed = false;
     try {
+      // Preserve the legacy serial behavior: one shared page carries
+      // page-scoped state such as sessionStorage from setup through every YAML
+      // file. Parallel batches still create one page per YAML because a page
+      // cannot safely serve concurrent navigations and interactions.
+      serialSharedPage = await this.createSerialSharedPage(orderedContexts);
+
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
@@ -409,7 +419,11 @@ class YamlBatchExecutor {
           executedResults.push(executedContext);
           setupFailed = !isYamlPlayerSuccessful(executedContext.player);
 
-          if (!setupFailed && setupContext.options.page) {
+          if (
+            !setupFailed &&
+            setupContext.options.page &&
+            setupContext.options.page !== serialSharedPage
+          ) {
             const sessionStorageSnapshot = await captureSessionStorageSnapshot(
               setupContext.options.page,
             );
@@ -421,7 +435,11 @@ class YamlBatchExecutor {
           setupExecutionFailed = true;
           throw error;
         } finally {
-          if (setupContext.options.page && !this.config.keepWindow) {
+          if (
+            setupContext.options.page &&
+            setupContext.options.page !== serialSharedPage &&
+            !this.config.keepWindow
+          ) {
             await this.closePage(
               setupContext.options.page,
               setupExecutionFailed,
@@ -453,13 +471,54 @@ class YamlBatchExecutor {
           );
         }
       }
+    } catch (error) {
+      batchExecutionFailed = true;
+      throw error;
     } finally {
       if (ttyRenderer) {
         ttyRenderer.stop();
       }
+      if (serialSharedPage && !this.config.keepWindow) {
+        await this.closePage(serialSharedPage, batchExecutionFailed);
+      }
     }
 
     return { executedResults, notExecutedContexts };
+  }
+
+  /**
+   * A serial shared-browser batch intentionally reuses one page so page-scoped
+   * state remains continuous. Parallel batches cannot share a page safely and
+   * continue to allocate an isolated page for each YAML execution.
+   */
+  private async createSerialSharedPage(
+    contexts: BatchFileContext[],
+  ): Promise<Page | undefined> {
+    if (!this.config.shareBrowserContext || this.config.concurrent !== 1) {
+      return undefined;
+    }
+
+    const firstWebContext = contexts.find((context) => {
+      const webTarget = resolveWebTarget(context.executionConfig)?.target;
+      return context.options.browser && webTarget && !webTarget.bridgeMode;
+    });
+    const browser = firstWebContext?.options.browser;
+    if (!browser) {
+      return undefined;
+    }
+
+    const page = await browser.newPage();
+    for (const context of contexts) {
+      const webTarget = resolveWebTarget(context.executionConfig)?.target;
+      if (
+        context.options.browser === browser &&
+        webTarget &&
+        !webTarget.bridgeMode
+      ) {
+        context.options.page = page;
+      }
+    }
+    return page;
   }
 
   /**
@@ -472,6 +531,12 @@ class YamlBatchExecutor {
   ): Promise<Page | undefined> {
     const webTarget = resolveWebTarget(context.executionConfig)?.target;
     if (!context.options.browser || !webTarget || webTarget.bridgeMode) {
+      return undefined;
+    }
+
+    // A preassigned page belongs to the serial batch and is closed once after
+    // all YAML files finish, not after this individual execution.
+    if (context.options.page) {
       return undefined;
     }
 

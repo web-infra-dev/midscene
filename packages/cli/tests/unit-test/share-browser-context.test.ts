@@ -69,6 +69,7 @@ describe('shareBrowserContext YAML configuration', () => {
     expect(basename(config.setup ?? '')).toBe('01-login.yaml');
     expect(config.files.map((file) => basename(file))).toEqual([
       '02-check-login.yaml',
+      '03-check-session-continuity.yaml',
     ]);
   });
 });

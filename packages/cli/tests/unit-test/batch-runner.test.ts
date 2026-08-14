@@ -719,14 +719,16 @@ describe('BatchRunner', () => {
       }
     });
 
-    test('creates a fresh page for every YAML when concurrency is one', async () => {
+    test('reuses one page for every YAML when concurrency is one', async () => {
       const pageByFile = new Map<string, unknown>();
+      const snapshotByFile = new Map<string, unknown>();
       vi.mocked(createYamlPlayer).mockImplementation(
         async (file, _script, options) => {
           const player = createMockPlayer(true);
           (player as unknown as { run: () => Promise<void> }).run = vi.fn(
             async () => {
               pageByFile.set(file, options?.page);
+              snapshotByFile.set(file, options?.sessionStorageSnapshot);
               player.status = 'done';
             },
           );
@@ -741,7 +743,52 @@ describe('BatchRunner', () => {
       await runner.run();
 
       expect(pageByFile.size).toBe(3);
-      expect(new Set(pageByFile.values()).size).toBe(3);
+      expect(new Set(pageByFile.values()).size).toBe(1);
+      expect([...snapshotByFile.values()]).toEqual([
+        undefined,
+        undefined,
+        undefined,
+      ]);
+      expect(mockCaptureSessionStorageSnapshot).not.toHaveBeenCalled();
+
+      const browser = await vi.mocked(puppeteer.launch).mock.results[0].value;
+      expect(browser.newPage).toHaveBeenCalledTimes(1);
+      const [page] = await browser.pages();
+      expect(page.close).toHaveBeenCalledTimes(1);
+    });
+
+    test('preserves a serial execution error when closing the shared page also fails', async () => {
+      const executionError = new Error('serial execution exploded');
+      const browser = createMockBrowser();
+      browser.newPage.mockImplementation(async () => {
+        const page = {
+          browser: vi.fn(() => browser),
+          close: vi
+            .fn()
+            .mockRejectedValue(new Error('shared page close failed')),
+          isClosed: vi.fn().mockReturnValue(false),
+          evaluate: vi.fn().mockResolvedValue(defaultSessionStorageSnapshot),
+        };
+        return page;
+      });
+      vi.mocked(puppeteer.launch).mockResolvedValue(
+        browser as unknown as Browser,
+      );
+      vi.mocked(createYamlPlayer).mockImplementation(async () => {
+        const player = createMockPlayer(true);
+        player.run = vi.fn().mockRejectedValue(executionError);
+        return player;
+      });
+
+      const runner = new BatchRunner({
+        ...setupConfig,
+        setup: undefined,
+        files: ['web1.yml'],
+        concurrent: 1,
+      });
+
+      await expect(runner.run()).rejects.toBe(executionError);
+      expect(browser.newPage).toHaveBeenCalledTimes(1);
     });
 
     test('aborts main files when the setup file fails', async () => {

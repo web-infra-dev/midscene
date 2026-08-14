@@ -125,13 +125,17 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     },
   );
 
-  test('should preserve setup state for a sequential shared-browser batch', async () => {
+  test('should preserve page-scoped state throughout a sequential shared-browser batch', async () => {
     await runFixture({
       scriptDir: join(__dirname, '../share_context_test_scripts'),
       indexFile: 'index.yaml',
       targetSource: 'web',
       targetDeclaredInIndex: false,
-      expectedScripts: ['01-login.yaml', '02-check-login.yaml'],
+      expectedScripts: [
+        '01-login.yaml',
+        '02-check-login.yaml',
+        '03-check-session-continuity.yaml',
+      ],
     });
   });
 });
