@@ -872,7 +872,7 @@ export function FeatureSections() {
                 href={tUrl(t('featureMobileWorldBenchmarkLink'))}
                 score="78.6%"
                 title="MobileWorld Benchmark"
-                details={`${t('benchmark')} 78.6% · 92/117`}
+                details="78.6% · GUI-ONLY"
                 description={t('featureMobileWorldBenchmarkDesc')}
                 positionClassName="order-2 md:order-none md:col-start-2 md:row-start-1"
               />
