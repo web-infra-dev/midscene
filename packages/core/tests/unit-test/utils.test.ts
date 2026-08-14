@@ -519,6 +519,19 @@ describe('insertScriptBeforeClosingHtml', () => {
     expect(result).toEqual([]);
   });
 
+  it('findAllMidsceneLocatorField - does not infer locator from prompt alone', () => {
+    const result = findAllMidsceneLocatorField(
+      z.object({
+        request: z.object({
+          prompt: z.string(),
+          temperature: z.number(),
+        }),
+      }),
+    );
+
+    expect(result).toEqual([]);
+  });
+
   it('findAllMidsceneLocatorField - requiredOnly parameter', () => {
     const schema = z.object({
       a: getMidsceneLocationSchema(),
