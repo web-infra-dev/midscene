@@ -63,8 +63,8 @@ Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任�
 
 ## 🚀 开始使用
 
-- **几分钟写出第一个脚本**：[快速开始](https://midscenejs.com/zh/quick-start)。
-- **想零代码？** 用 [Chrome 插件](https://midscenejs.com/zh/quick-start#chrome-extension) 在任意网页上直接体验。
+- **在 Chrome 中体验 Midscene**：通过[快速开始](https://midscenejs.com/zh/quick-start)配置模型、安装 Chrome Extension，并运行第一条自然语言指令。
+- **编写第一个脚本**：按照 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 集成指南创建 Agent，并运行完整的浏览器脚本。
 - **其他平台**：[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 与[桌面端](https://midscenejs.com/zh/platforms/desktop) 的上手指南。
 
 ## ✨ 多模态模型驱动

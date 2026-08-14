@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
 import { TiltCard } from './TiltCard';
 
@@ -20,6 +21,14 @@ const GradientIcon = () => (
   </svg>
 );
 
+function FeatureSectionColumns({ children }: { children: ReactNode }) {
+  return (
+    <div className="mx-auto grid w-full max-w-[1218px] grid-cols-1 items-start gap-8 lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-14">
+      {children}
+    </div>
+  );
+}
+
 interface BenchmarkLinkCardProps {
   href: string;
   score: string;
@@ -34,47 +43,45 @@ function BenchmarkLinkCard({
   details,
 }: BenchmarkLinkCardProps) {
   return (
-    <div className="w-full md:w-[381px]">
-      <TiltCard
-        href={href}
-        className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
+    <TiltCard
+      href={href}
+      className="rounded-2xl w-full min-w-0 md:w-[381px] h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
+    >
+      <div
+        className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
+        style={{
+          backgroundImage: 'url(/images/backgrounds/grid-light.svg)',
+        }}
       >
-        <div
-          className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
-          style={{
-            backgroundImage: 'url(/images/backgrounds/grid-light.svg)',
-          }}
-        >
-          <div className="font-sans font-semibold text-[#0555FF]">
-            <span className="text-[40px] md:text-[56px] leading-none">
-              {score}
-            </span>
-          </div>
-          <div className="mt-2 font-sans text-sm text-black/60 text-center">
-            <div>{title}</div>
-            <div>{details}</div>
-          </div>
+        <div className="font-sans font-semibold text-[#0555FF]">
+          <span className="text-[40px] md:text-[56px] leading-none">
+            {score}
+          </span>
         </div>
-        <div
-          className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
-          style={{
-            backgroundImage: 'url(/images/backgrounds/grid-dark.svg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        >
-          <div className="font-sans font-semibold text-[#80A8FF]">
-            <span className="text-[40px] md:text-[56px] leading-none">
-              {score}
-            </span>
-          </div>
-          <div className="mt-2 font-sans text-sm text-white/60 text-center">
-            <div>{title}</div>
-            <div>{details}</div>
-          </div>
+        <div className="mt-2 font-sans text-sm text-black/60 text-center">
+          <div>{title}</div>
+          <div>{details}</div>
         </div>
-      </TiltCard>
-    </div>
+      </div>
+      <div
+        className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
+        style={{
+          backgroundImage: 'url(/images/backgrounds/grid-dark.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="font-sans font-semibold text-[#80A8FF]">
+          <span className="text-[40px] md:text-[56px] leading-none">
+            {score}
+          </span>
+        </div>
+        <div className="mt-2 font-sans text-sm text-white/60 text-center">
+          <div>{title}</div>
+          <div>{details}</div>
+        </div>
+      </div>
+    </TiltCard>
   );
 }
 
@@ -85,10 +92,10 @@ export function FeatureSections() {
   return (
     <div className="flex flex-col w-full bg-white dark:bg-[#121212] px-5 md:px-10 lg:px-0">
       {/* Section 1: CLIENTS */}
-      <div className="w-full flex flex-col items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row items-start lg:justify-around px-0 md:px-0 gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
+      <div className="w-full flex items-center justify-center py-20">
+        <FeatureSectionColumns>
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="w-full flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
               {t('clientsTitle')}
             </div>
@@ -124,7 +131,7 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Cards */}
-          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* Web Card */}
@@ -321,7 +328,7 @@ export function FeatureSections() {
               </TiltCard>
             </div>
           </div>
-        </div>
+        </FeatureSectionColumns>
       </div>
 
       {/* Divider */}
@@ -334,9 +341,9 @@ export function FeatureSections() {
 
       {/* Section 2: MODELS */}
       <div className="w-full flex items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row items-start lg:justify-around gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
+        <FeatureSectionColumns>
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[360px] flex flex-col items-start gap-4 md:gap-8">
+          <div className="w-full flex flex-col items-start gap-4 md:gap-8">
             <span className="font-mono font-medium text-sm md:text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
               {t('modelsTitle')}
             </span>
@@ -372,7 +379,7 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Model cards */}
-          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row - Seed and Qwen */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* Model 1 - Seed */}
@@ -520,7 +527,7 @@ export function FeatureSections() {
               </TiltCard>
             </div>
           </div>
-        </div>
+        </FeatureSectionColumns>
       </div>
 
       {/* Divider */}
@@ -533,9 +540,9 @@ export function FeatureSections() {
 
       {/* Section 3: DEBUGGING */}
       <div className="w-full flex items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row items-start lg:justify-around gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
+        <FeatureSectionColumns>
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="w-full flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
               {t('debuggingTitle')}
             </div>
@@ -571,7 +578,7 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Feature cards */}
-          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* Rich APIs Card */}
@@ -846,7 +853,7 @@ export function FeatureSections() {
               </div>
             </div>
           </div>
-        </div>
+        </FeatureSectionColumns>
       </div>
 
       {/* Divider */}
@@ -859,8 +866,8 @@ export function FeatureSections() {
 
       {/* Section 4: BENCHMARKS */}
       <div className="w-full flex items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row items-start lg:justify-around gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
-          <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
+        <FeatureSectionColumns>
+          <div className="w-full flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
               {t('benchmarksTitle')}
             </div>
@@ -877,7 +884,7 @@ export function FeatureSections() {
             </div>
           </div>
 
-          <div className="w-full lg:w-[802px] grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="w-full flex flex-col md:flex-row gap-6">
             <BenchmarkLinkCard
               href={tUrl(t('featureBenchmarkLink'))}
               score="93.1%"
@@ -892,7 +899,7 @@ export function FeatureSections() {
               details={`${t('benchmark')} 78.6% · 92/117`}
             />
           </div>
-        </div>
+        </FeatureSectionColumns>
       </div>
     </div>
   );
