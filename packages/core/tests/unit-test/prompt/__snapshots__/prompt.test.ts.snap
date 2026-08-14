@@ -28,9 +28,8 @@ todo title, string
 
 exports[`extract element > systemPromptToExtract 1`] = `
 "
-You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+Your task is to understand the data requirements in <DATA_DEMAND> and extract the requested structured data from the provided UI evidence.
 
-The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
 The user will provide a current screenshot to evaluate, and may provide its contents. Base your answer on the current screenshot and its contents when provided. Treat them as the primary source of truth for what is currently visible or true.
 
@@ -38,9 +37,19 @@ If a key specifies a JSON data type (such as Number, String, Boolean, Object, Ar
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
+The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+
+If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
+
+The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
+
+Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+
+Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
+
 
 Return in the following XML format:
-<observation>brief evidence observed for the extraction, less than 300 words. Use English in this field.</observation>
+<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use English in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
@@ -114,9 +123,8 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 exports[`extract element > systemPromptToExtract with reference images and without screenshot 1`] = `
 "
-You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+Your task is to understand the data requirements in <DATA_DEMAND> and extract the requested structured data from the provided UI evidence.
 
-The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
 The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.
 
@@ -126,9 +134,19 @@ If a key specifies a JSON data type (such as Number, String, Boolean, Object, Ar
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
+The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+
+If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
+
+The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
+
+Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+
+Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
+
 
 Return in the following XML format:
-<observation>brief evidence observed for the extraction, less than 300 words. Use English in this field.</observation>
+<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use English in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
@@ -202,9 +220,8 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 exports[`extract element > systemPromptToExtract with screenshot and reference images 1`] = `
 "
-You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+Your task is to understand the data requirements in <DATA_DEMAND> and extract the requested structured data from the provided UI evidence.
 
-The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
 The user will provide a current screenshot to evaluate, and may provide its contents. Base your answer on the current screenshot and its contents when provided. Treat them as the primary source of truth for what is currently visible or true.
 
@@ -214,9 +231,19 @@ If a key specifies a JSON data type (such as Number, String, Boolean, Object, Ar
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
+The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+
+If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
+
+The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
+
+Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+
+Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
+
 
 Return in the following XML format:
-<observation>brief evidence observed for the extraction, less than 300 words. Use English in this field.</observation>
+<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use English in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
@@ -290,9 +317,8 @@ By viewing the screenshot and page contents, you can extract the following data:
 
 exports[`extract element > systemPromptToExtract without screenshot 1`] = `
 "
-You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+Your task is to understand the data requirements in <DATA_DEMAND> and extract the requested structured data from the provided UI evidence.
 
-The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.
 
 The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.
 
@@ -300,9 +326,19 @@ If a key specifies a JSON data type (such as Number, String, Boolean, Object, Ar
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
+The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+
+If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
+
+The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
+
+Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+
+Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
+
 
 Return in the following XML format:
-<observation>brief evidence observed for the extraction, less than 300 words. Use English in this field.</observation>
+<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use English in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 

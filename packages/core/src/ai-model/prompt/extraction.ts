@@ -27,16 +27,14 @@ export function systemPromptToExtract(options?: {
   const screenshotIncluded = options?.screenshotIncluded ?? true;
   const referenceImagesIncluded = options?.referenceImagesIncluded ?? false;
 
-  const contextPrompts = [
-    "The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.",
-  ];
+  const evidenceSourcePrompts: string[] = [];
 
   if (screenshotIncluded) {
-    contextPrompts.push(
+    evidenceSourcePrompts.push(
       'The user will provide a current screenshot to evaluate, and may provide its contents. Base your answer on the current screenshot and its contents when provided. Treat them as the primary source of truth for what is currently visible or true.',
     );
   } else {
-    contextPrompts.push(
+    evidenceSourcePrompts.push(
       'The user will not provide a current screenshot. Use only the supplied page contents and other inputs, and do not infer unsupported visual details.',
     );
   }
@@ -44,26 +42,37 @@ export function systemPromptToExtract(options?: {
   if (referenceImagesIncluded) {
     const referenceImagesPrompt =
       'Reference images are supporting context only unless <DATA_DEMAND> explicitly asks for comparison, matching, or reasoning about them.';
-    contextPrompts.push(
+    evidenceSourcePrompts.push(
       screenshotIncluded
         ? `${referenceImagesPrompt} Do not conclude that something exists in the current screenshot solely because it appears in a reference image; when they conflict, trust the current screenshot and its contents.`
         : `${referenceImagesPrompt} Do not treat reference images as direct evidence of the current state unless the demand explicitly asks you to use them that way.`,
     );
   }
-  const contextPrompt = contextPrompts.join('\n\n');
+  const evidenceSourcePrompt = evidenceSourcePrompts.join('\n\n');
 
   return `
-You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
+Your task is to understand the data requirements in <DATA_DEMAND> and extract the requested structured data from the provided UI evidence.
 
-${contextPrompt}
+
+${evidenceSourcePrompt}
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
+The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+
+If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
+
+The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
+
+Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+
+Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
+
 
 Return in the following XML format:
-<observation>brief evidence observed for the extraction, less than 300 words. Use ${preferredLanguage} in this field.</observation>
+<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use ${preferredLanguage} in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
