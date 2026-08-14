@@ -60,19 +60,15 @@ If a key specifies a JSON data type (such as Number, String, Boolean, Object, Ar
 
 When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
 
-The <observation> should briefly explain the observed evidence, the necessary reasoning, and the preliminary conclusion used for data extraction.
+In <observation>, briefly state the observed evidence and the necessary reasoning used for data extraction. If there are multiple candidate answers, select the one best supported by the evidence and explain why.
 
-If multiple candidate answers appear reasonable, briefly compare them and state the criterion used to select the final answer.
-
-The reasoning should progress linearly and decisively toward a conclusion. Once the available evidence is sufficient to support a conclusion, stop further deliberation and proceed to <data-json>.
-
-Do not repeatedly reconsider the same candidate answers, repeat the same calculation, ask yourself rhetorical questions, or overturn a well-supported conclusion without new evidence.
+Do not enumerate rejected candidates, describe intermediate deliberation, repeatedly reconsider the answer, or question and answer yourself without new evidence.
 
 Keep the <observation> concise: use no more than five sentences and fewer than 300 words.
 
 
 Return in the following XML format:
-<observation>brief evidence, necessary reasoning, and the preliminary conclusion used for the extraction. Use ${preferredLanguage} in this field.</observation>
+<observation>brief observed evidence and the necessary reasoning used for data extraction. Use ${preferredLanguage} in this field.</observation>
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
