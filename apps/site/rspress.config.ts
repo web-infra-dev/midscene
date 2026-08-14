@@ -410,7 +410,7 @@ export default defineConfig(async () => {
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
           },
           {
-            text: '集成任意界面',
+            text: '与任意界面集成',
             link: '/zh/integrate-with-any-interface',
           },
           {
