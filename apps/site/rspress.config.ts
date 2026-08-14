@@ -166,31 +166,27 @@ export default defineConfig(async () => {
             link: '/basics',
           },
           {
-            text: 'Quick start 🔥',
-            link: '/quick-start',
+            text: 'Model strategy',
+            link: '/model-strategy',
           },
           {
             text: 'Showcases',
             link: '/showcases',
           },
           {
-            text: 'Control any platform with Skills',
-            link: '/skills',
+            sectionHeaderText: 'Getting Started',
           },
           {
-            sectionHeaderText: 'Models',
+            text: 'Quick start',
+            link: '/quick-start',
           },
           {
-            text: 'Supported models & setup 🔥',
+            text: 'Supported models & setup',
             link: '/model-common-config',
           },
           {
-            text: 'Model strategy',
-            link: '/model-strategy',
-          },
-          {
-            text: 'Debugging & observability',
-            link: '/model-debugging-observability',
+            text: 'Control any platform with Skills',
+            link: '/skills',
           },
           {
             sectionHeaderText: 'Web browser',
@@ -256,6 +252,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced guides',
           },
           {
+            text: 'Model debugging & observability',
+            link: '/model-debugging-observability',
+          },
+          {
             text: 'Process report files',
             link: '/consume-report-file',
           },
@@ -312,31 +312,27 @@ export default defineConfig(async () => {
             link: '/zh/basics',
           },
           {
-            text: '快速开始 🔥',
-            link: '/zh/quick-start',
+            text: '模型策略',
+            link: '/zh/model-strategy',
           },
           {
             text: '案例展示',
             link: '/zh/showcases',
           },
           {
-            text: '使用 Skills 控制任意平台',
-            link: '/zh/skills',
+            sectionHeaderText: '开始使用',
           },
           {
-            sectionHeaderText: '模型',
+            text: '快速开始',
+            link: '/zh/quick-start',
           },
           {
-            text: '支持的模型与配置 🔥',
+            text: '支持的模型与配置',
             link: '/zh/model-common-config',
           },
           {
-            text: '模型策略',
-            link: '/zh/model-strategy',
-          },
-          {
-            text: '调试与可观测性',
-            link: '/zh/model-debugging-observability',
+            text: '使用 Skills 控制任意平台',
+            link: '/zh/skills',
           },
           {
             sectionHeaderText: 'Web 浏览器',
@@ -400,6 +396,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '模型调试与可观测性',
+            link: '/zh/model-debugging-observability',
           },
           {
             text: '处理报告文件',
