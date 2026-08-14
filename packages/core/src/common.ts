@@ -1,39 +1,10 @@
 import type {
-  BaseElement,
   DeviceAction,
-  ElementTreeNode,
   MidsceneYamlFlowItem,
   PlanningAction,
-  Size,
 } from '@/types';
-import { NodeType } from '@midscene/shared/constants';
-import { treeToList } from '@midscene/shared/extractor';
-import { compositeElementInfoImg } from '@midscene/shared/img';
-import { assert, isPlainObject } from '@midscene/shared/utils';
+import { isPlainObject } from '@midscene/shared/utils';
 import { z } from 'zod';
-
-export async function markupImageForLLM(
-  screenshotBase64: string,
-  tree: ElementTreeNode<BaseElement>,
-  size: Size,
-) {
-  const elementsInfo = treeToList(tree);
-  const elementsPositionInfoWithoutText = elementsInfo!.filter(
-    (elementInfo) => {
-      if (elementInfo.attributes.nodeType === NodeType.TEXT) {
-        return false;
-      }
-      return true;
-    },
-  );
-
-  const imagePayload = await compositeElementInfoImg({
-    inputImgBase64: screenshotBase64,
-    elementsPositionInfo: elementsPositionInfoWithoutText,
-    size,
-  });
-  return imagePayload;
-}
 
 export function findActionInActionSpaceOrThrow(
   planType: string,
@@ -211,33 +182,6 @@ const formatPromptWithImages = (
   return promptString;
 };
 
-export const dumpMidsceneLocatorField = (field: any): string => {
-  assert(
-    ifMidsceneLocatorField(field),
-    'field is not a midscene locator field',
-  );
-
-  // If field is a string, return it directly
-  if (typeof field === 'string') {
-    return field;
-  }
-
-  // If field is an object with prompt property
-  if (field && typeof field === 'object' && field.prompt) {
-    // If prompt is a string, return it directly
-    if (typeof field.prompt === 'string') {
-      return field.prompt;
-    }
-    // If prompt is a TUserPrompt object, extract the prompt string
-    if (typeof field.prompt === 'object' && field.prompt.prompt) {
-      return formatPromptWithImages(field.prompt);
-    }
-  }
-
-  // Fallback: try to convert to string
-  return String(field);
-};
-
 export const findAllMidsceneLocatorField = (
   zodType?: z.ZodType<any>,
   requiredOnly?: boolean,
@@ -252,6 +196,8 @@ export const findAllMidsceneLocatorField = (
     const keys = Object.keys(zodObject.shape);
     return keys.filter((key) => {
       const field = zodObject.shape[key];
+      // TODO: A similar locator-field check exists as isMidsceneLocatorField in
+      // @midscene/shared/zod-schema-utils.
       if (!ifMidsceneLocatorField(field)) {
         return false;
       }
