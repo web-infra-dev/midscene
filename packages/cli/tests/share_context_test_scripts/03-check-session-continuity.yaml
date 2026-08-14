@@ -1,0 +1,21 @@
+# Third YAML file - Verifies page-scoped state from the previous main file
+web:
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Check serial page state is continuous
+    flow:
+      - javascript: |
+          (function() {
+            const sessionId = sessionStorage.getItem('sessionId');
+            if (sessionId !== 'session-from-first-main') {
+              throw new Error(`Serial sessionStorage was not preserved! Expected "session-from-first-main", got "${sessionId}"`);
+            }
+            if (window.name !== 'first-main-complete') {
+              throw new Error(`Serial page identity was not preserved! Expected window.name "first-main-complete", got "${window.name}"`);
+            }
+            return { sessionId, windowName: window.name };
+          })()
+        name: check_serial_page_state

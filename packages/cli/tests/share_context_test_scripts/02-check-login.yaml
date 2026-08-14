@@ -36,6 +36,10 @@ tasks:
               throw new Error('localStorage was lost! Expected "user-456", got null');
             }
 
+            // The next serial YAML must observe these page-scoped mutations.
+            sessionStorage.setItem('sessionId', 'session-from-first-main');
+            window.name = 'first-main-complete';
+
             return result;
           })()
         name: check_storage
