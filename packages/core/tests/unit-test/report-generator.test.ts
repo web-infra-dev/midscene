@@ -1232,6 +1232,34 @@ describe('ReportGenerator — append-only model', () => {
         'reportFileName contains illegal filename characters',
       );
     });
+
+    it('should validate single-html report names by their final UTF-8 byte length', () => {
+      expect(() =>
+        ReportGenerator.create('中'.repeat(83), { generateReport: false }),
+      ).not.toThrow();
+      expect(() =>
+        ReportGenerator.create('中'.repeat(84), { generateReport: false }),
+      ).toThrow(
+        'reportFileName produces a filename component of 257 UTF-8 bytes; maximum is 255',
+      );
+    });
+
+    it('should validate directory report names without reserving an HTML extension', () => {
+      expect(() =>
+        ReportGenerator.create('中'.repeat(85), {
+          generateReport: false,
+          outputFormat: 'html-and-external-assets',
+        }),
+      ).not.toThrow();
+      expect(() =>
+        ReportGenerator.create('中'.repeat(86), {
+          generateReport: false,
+          outputFormat: 'html-and-external-assets',
+        }),
+      ).toThrow(
+        'reportFileName produces a filename component of 258 UTF-8 bytes; maximum is 255',
+      );
+    });
   });
 
   describe('lazy loading — memory release behavior', () => {

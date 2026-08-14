@@ -46,6 +46,7 @@ vi.mock('@/playwright/index', () => {
 });
 
 import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
+import { MAX_PLAYWRIGHT_REPORT_TAG_BYTES } from '@/playwright/report-filename';
 
 const createPage = () =>
   ({
@@ -103,6 +104,27 @@ describe('PlaywrightAiFixture reportFileName derivation', () => {
     // replaceIllegalPathCharsAndSpace turns ' ' and '#' into '-', so the
     // retry marker surfaces as "(retry--2)" on disk.
     expect(opts.reportFileName).toContain('login-case(retry--2)');
+  });
+
+  it('caps Chinese titles by UTF-8 bytes and appends a stable hash', async () => {
+    const longTitle =
+      '1426803-【配置-策略模板配置】【创建策略模板】策略模板名称与当前存在的名称重复'.repeat(
+        10,
+      );
+    const opts = await runAi({
+      testId: 'uuid',
+      titlePath: ['1426803.spec.ts', longTitle],
+      annotations: [],
+      retry: 1,
+    });
+
+    expect(Buffer.byteLength(opts.reportFileName, 'utf8')).toBeLessThanOrEqual(
+      MAX_PLAYWRIGHT_REPORT_TAG_BYTES,
+    );
+    expect(opts.reportFileName).toMatch(
+      /^playwright-.+-[0-9a-f]{10}-[0-9a-f-]{36}$/,
+    );
+    expect(opts.groupName).toContain('策略模板名称与当前存在的名称重复');
   });
 
   it('preserves the page-level uuid suffix so multiple pages in one test do not clash', async () => {

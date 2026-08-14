@@ -229,6 +229,43 @@ describe('MidsceneReporter', () => {
       expect(existsSync(reportPathB)).toBe(false);
     });
 
+    it('should keep reports distinct when tests in different suites share a title', async () => {
+      const reporter = new MidsceneReporter({ type: 'separate' });
+      const reportPathA = createReportFile('same-title-suite-a', 'suite-a');
+      const reportPathB = createReportFile('same-title-suite-b', 'suite-b');
+
+      for (const [id, suiteTitle, reportPath] of [
+        ['test-id-suite-a', 'suite a', reportPathA],
+        ['test-id-suite-b', 'suite b', reportPathB],
+      ]) {
+        reporter.onTestEnd(
+          {
+            id,
+            title: 'same leaf title',
+            parent: { title: suiteTitle },
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as unknown as TestCase,
+          { status: 'passed', duration: 50 } as TestResult,
+        );
+      }
+
+      await reporter.onEnd();
+
+      const outputFiles = readdirSync(outputDir).filter((fileName) =>
+        fileName.endsWith('.html'),
+      );
+      expect(outputFiles).toHaveLength(2);
+      expect(
+        outputFiles.map((fileName) =>
+          readFileSync(join(outputDir, fileName), 'utf-8'),
+        ),
+      ).toEqual(expect.arrayContaining(['suite-a', 'suite-b']));
+      expect(existsSync(reportPathA)).toBe(false);
+      expect(existsSync(reportPathB)).toBe(false);
+    });
+
     it('should remove the whole source directory after copying a directory-based report', async () => {
       const reporter = new MidsceneReporter({
         type: 'merged',
@@ -322,6 +359,45 @@ describe('MidsceneReporter', () => {
 
       expect(readdirSync(outputDir).length).toBeGreaterThan(0);
     });
+
+    it.each([
+      ['single-html', '.html'],
+      ['html-and-external-assets', ''],
+    ] as const)(
+      'should keep separate-mode %s output names within the filesystem byte limit',
+      async (outputFormat, expectedExtension) => {
+        const reporter = new MidsceneReporter({
+          type: 'separate',
+          outputFormat,
+        });
+        const reportPath = createReportFile(
+          `long-title-report-${outputFormat}`,
+          'long-title-data',
+        );
+        const longTitle =
+          '1426803-【配置-策略模板配置】【创建策略模板】策略模板名称与当前存在的名称重复'.repeat(
+            10,
+          );
+
+        reporter.onTestEnd(
+          {
+            id: `test-id-${outputFormat}`,
+            title: longTitle,
+            annotations: [
+              { type: 'MIDSCENE_DUMP_ANNOTATION', description: reportPath },
+            ],
+          } as TestCase,
+          { status: 'passed', duration: 50 } as TestResult,
+        );
+
+        await reporter.onEnd();
+
+        const [outputName] = readdirSync(outputDir);
+        expect(Buffer.byteLength(outputName, 'utf8')).toBeLessThanOrEqual(255);
+        expect(outputName.endsWith(expectedExtension)).toBe(true);
+        expect(outputName).toMatch(/^playwright-.+-[0-9a-f]{10}-\d{4}-/);
+      },
+    );
 
     it('should log and skip missing report paths', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
