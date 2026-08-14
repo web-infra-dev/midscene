@@ -1,16 +1,12 @@
 # Midscene.js - 视觉驱动的 UI 测试与自动化
 
-Midscene 是一个用于视觉驱动 UI 测试与自动化的开源 SDK。你用自然语言描述每一步，Midscene 会驱动多模态模型为你规划并操作界面。它覆盖 Web、移动端、桌面端，甚至 `<canvas>` 场景。
-
-:::info 准备动手？
-前往 [快速开始](./quick-start)，几分钟内跑通你的第一个自动化；或者通过 [Chrome 插件](./quick-experience) 零代码体验。
-:::
+Midscene 是一个用于视觉驱动 UI 测试与自动化的开源 SDK。你用自然语言描述操作目标，Midscene 会驱动多模态模型为你规划并操作界面。它覆盖 Web、移动端、桌面端，甚至 `<canvas>` 场景。
 
 ## 为什么选择 Midscene
 
 大多数 UI 自动化都依赖页面结构，包括读取 DOM 或无障碍树的 AI 工具。页面结构既脆弱又不完整：选择器一重构就失效；缺少语义化标注的元素，如纯图标按钮、自定义渲染的控件和 `<canvas>`，对它们是“看不见”的；原生应用和跨域 iframe 也难以触达；页面结构还无法判断界面实际看起来是否正确。
 
-Midscene 走了一条不同的路：它**仅凭截图**、借助多模态模型工作，你只需像真人测试那样用自然语言描述每一步。这会改变 UI 测试的体验：
+Midscene 走了一条不同的路：它**仅凭截图**、借助多模态模型工作，你只需像真人测试那样用自然语言描述操作目标和验证条件。这会改变 UI 测试的体验：
 
 - **不再因每次重构而失效。** 标记或样式变化时无需再追着改选择器，用例的维护成本大幅下降。
 - **触达每个元素、每种界面。** 只要人眼能看到，Midscene 就能定位。没有语义化标注的元素、`<canvas>`、原生应用，以及基于结构的工具够不到的跨域 iframe，都可以处理。
@@ -24,33 +20,7 @@ Midscene 走了一条不同的路：它**仅凭截图**、借助多模态模型�
 
 只要能截图，Midscene 就能工作。Web 浏览器、Android、iOS、HarmonyOS、桌面应用，以及[任意自定义界面](./integrate-with-any-interface)，全部通过同一套 API。每个平台在侧边栏都有各自的上手指南。
 
-你可以用 JavaScript SDK 或 YAML 编写自动化，并在 [API 参考](./reference/#common) 中查阅 `aiAct`、`aiQuery`、`aiAssert` 等所有方法。
-
-## 两种自动化风格
-
-### 自动规划
-
-AI 自主规划并执行流程，完成任务。
-
-```javascript
-await aiAct('逐一点击所有记录。如果某个记录包含文本"completed"，则跳过它');
-```
-
-### 工作流风格
-
-将复杂逻辑拆分为多个步骤，以提高自动化代码的稳定性。
-
-```javascript
-const recordList = await agent.aiQuery('string[], the record list')
-for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
-  if (!hasCompleted) {
-    await agent.aiTap(record)
-  }
-}
-```
-
-> 关于工作流风格的更多内容，请参阅 [使用 JavaScript 优化 AI 自动化代码](./use-javascript-to-optimize-ai-automation-code)。
+你可以用 JavaScript SDK 或 YAML 编写自动化，并在 [API 参考](./reference/#common) 中查阅 `aiAct`、`aiQuery`、`aiAssert` 等所有方法。如需了解各类 API 的职责，以及如何在 `aiAct` 与 JavaScript 编排之间选择，请参阅[基本概念](./basics)。
 
 ## 多模态模型驱动
 
@@ -65,6 +35,17 @@ Midscene 支持众多具备极强 UI 定位能力的常用多模态模型。你�
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
 更多 iOS、Android、桌面端与自定义界面的实战案例，见 [案例展示](./showcases)。
+
+## Benchmark 成绩
+
+Midscene 在两个 Android Agent benchmark 中取得了以下成绩：
+
+| Benchmark | 成绩 | 测试配置 | 完整报告 |
+| --- | --- | --- | --- |
+| AndroidWorld | Pass@1 **93.10%**、Pass@2 **95.69%**、Pass@3 **97.41%** | Midscene 1.9.5、Gemini-3.5-Flash | [查看报告](./android-world-benchmark-report) |
+| MobileWorld | Pass@1 **78.63%（92/117）** | Midscene 1.10.3、Gemini-3.6-Flash | [查看报告](./mobile-world-benchmark-report) |
+
+完整报告包含运行配置、验证条件说明和每项任务的执行记录。
 
 ## 资源与社区
 

@@ -162,38 +162,34 @@ export default defineConfig(async () => {
             link: '/introduction',
           },
           {
-            text: 'Quick start 🔥',
-            link: '/quick-start',
-          },
-          {
-            text: 'Showcases',
-            link: '/showcases',
-          },
-          {
-            text: 'Control any platform with Skills 🔥',
-            link: '/skills',
-          },
-          {
-            sectionHeaderText: 'Models',
-          },
-          {
-            text: 'Supported models & setup 🔥',
-            link: '/model-common-config',
+            text: 'The Basics',
+            link: '/basics',
           },
           {
             text: 'Model strategy',
             link: '/model-strategy',
           },
           {
-            text: 'Debugging & observability',
-            link: '/model-debugging-observability',
+            text: 'Showcases',
+            link: '/showcases',
+          },
+          {
+            sectionHeaderText: 'Getting Started',
+          },
+          {
+            text: 'Quick start',
+            link: '/quick-start',
+          },
+          {
+            text: 'Supported models & setup',
+            link: '/model-common-config',
+          },
+          {
+            text: 'Control any platform with Skills',
+            link: '/skills',
           },
           {
             sectionHeaderText: 'Web browser',
-          },
-          {
-            text: 'Quick experience by Chrome extension',
-            link: '/quick-experience',
           },
           {
             text: 'Integrate with Playwright',
@@ -256,6 +252,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced guides',
           },
           {
+            text: 'Model debugging & observability',
+            link: '/model-debugging-observability',
+          },
+          {
             text: 'Process report files',
             link: '/consume-report-file',
           },
@@ -270,10 +270,6 @@ export default defineConfig(async () => {
           {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
-          },
-          {
-            text: 'Optimize automation with JavaScript',
-            link: '/use-javascript-to-optimize-ai-automation-code',
           },
           {
             sectionHeaderText: 'Resources',
@@ -312,38 +308,34 @@ export default defineConfig(async () => {
             link: '/zh/introduction',
           },
           {
-            text: '快速开始 🔥',
-            link: '/zh/quick-start',
-          },
-          {
-            text: '案例展示',
-            link: '/zh/showcases',
-          },
-          {
-            text: '使用 Skills 控制任意平台 🔥',
-            link: '/zh/skills',
-          },
-          {
-            sectionHeaderText: '模型',
-          },
-          {
-            text: '支持的模型与配置 🔥',
-            link: '/zh/model-common-config',
+            text: '基本概念',
+            link: '/zh/basics',
           },
           {
             text: '模型策略',
             link: '/zh/model-strategy',
           },
           {
-            text: '调试与可观测性',
-            link: '/zh/model-debugging-observability',
+            text: '案例展示',
+            link: '/zh/showcases',
+          },
+          {
+            sectionHeaderText: '开始使用',
+          },
+          {
+            text: '快速开始',
+            link: '/zh/quick-start',
+          },
+          {
+            text: '支持的模型与配置',
+            link: '/zh/model-common-config',
+          },
+          {
+            text: '使用 Skills 控制任意平台',
+            link: '/zh/skills',
           },
           {
             sectionHeaderText: 'Web 浏览器',
-          },
-          {
-            text: '通过 Chrome 插件快速体验',
-            link: '/zh/quick-experience',
           },
           {
             text: '集成到 Playwright',
@@ -406,6 +398,10 @@ export default defineConfig(async () => {
             sectionHeaderText: '进阶指南',
           },
           {
+            text: '模型调试与可观测性',
+            link: '/zh/model-debugging-observability',
+          },
+          {
             text: '处理报告文件',
             link: '/zh/consume-report-file',
           },
@@ -414,16 +410,12 @@ export default defineConfig(async () => {
             link: '/zh/advanced/bdd-style-scripts-with-gherkin',
           },
           {
-            text: '集成任意界面',
+            text: '与任意界面集成',
             link: '/zh/integrate-with-any-interface',
           },
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
-          },
-          {
-            text: '使用 JavaScript 优化自动化流程',
-            link: '/zh/use-javascript-to-optimize-ai-automation-code',
           },
           {
             sectionHeaderText: '资源',
@@ -639,7 +631,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/use-javascript-to-optimize-ai-automation-code',
+            to: '/basics#javascript-orchestration',
+          },
+          {
+            from: '^/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/basics#javascript-orchestration',
           },
           {
             from: '^/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
@@ -660,6 +656,10 @@ export default defineConfig(async () => {
           {
             from: '^/blog-support-ios-automation(?:\\.html)?/?$',
             to: '/platforms/ios',
+          },
+          {
+            from: '^/quick-experience(?:\\.html)?/?$',
+            to: '/quick-start#chrome-extension',
           },
           {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
@@ -698,6 +698,10 @@ export default defineConfig(async () => {
             to: '/zh/platforms/ios',
           },
           {
+            from: '^/zh/quick-experience(?:\\.html)?/?$',
+            to: '/zh/quick-start#chrome-extension',
+          },
+          {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',
             to: '/zh/platforms/android',
           },
@@ -715,7 +719,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/zh/use-javascript-to-optimize-ai-automation-code',
+            to: '/zh/basics#javascript-orchestration',
+          },
+          {
+            from: '^/zh/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/zh/basics#javascript-orchestration',
           },
           {
             from: '^/zh/bridge-mode-by-chrome-extension(?:\\.html)?/?$',

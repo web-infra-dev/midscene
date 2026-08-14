@@ -65,7 +65,7 @@ export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
 
   if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-start.html#chrome-extension-faq';
   }
 
   if (errorMessage.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {

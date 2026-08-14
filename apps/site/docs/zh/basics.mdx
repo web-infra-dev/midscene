@@ -1,0 +1,167 @@
+# 基本概念
+
+本文概述 Midscene 的核心概念，包括 Agent 的用法、架构、抽象方式和能力边界。你将了解 Agent 如何连接 AI 模型与目标界面，以及如何实现交互、断言等操作。
+
+:::info
+
+你可以在 Playground 中零代码试用下文介绍的所有 API，并直接查看运行效果。开始使用请参考[快速开始](./quick-start#chrome-extension)。
+
+:::
+
+## 规划并交互
+
+### `aiAct`
+
+[`aiAct`](./reference/#agentaiact) 接收用自然语言描述的目标。它会观察界面，规划操作步骤，定位目标元素并执行操作，直至完成目标。提示词也可以包含断言条件。Midscene 会在执行过程中验证这些条件，并在断言失败时及时抛出错误。
+
+`aiAct` 灵活且自主，适合处理多步骤、包含条件分支或执行路径不确定的任务。执行期间，`aiAct` 会基于最新的界面状态持续进行 AI 规划，因此它通常比即时交互消耗更多时间和 token。
+
+典型用法：
+
+```typescript
+await agent.aiAct(
+  '搜索耳机，将第一件商品加入购物车，并确认购物车数量变为 1',
+);
+```
+
+如需为后续所有 `aiAct` 调用补充业务上下文，可以使用 [`agent.setAIActContext()`](./reference/#agentsetaiactcontext)：
+
+```typescript
+agent.setAIActContext(
+  '如果出现 Cookie 授权弹窗，请先关闭。页面中的价格单位是美元。',
+);
+```
+
+`aiAct` 提供以下单次调用配置：
+
+- `deepThink`：加强任务拆解，并通过不同的模型调用分别完成规划和元素定位。该选项可以提高复杂任务的稳定性，但会增加模型调用次数和延迟。
+- `deepLocate`：增加一次模型调用，提高元素定位的准确性。当目标元素较小或容易与周围元素混淆时，可以启用该选项。
+- `context`：仅为本次调用补充业务知识或其他背景信息。对于 `aiAct`，该选项会覆盖 Agent 级别的 `aiActContext`。显式传入空字符串也会覆盖原有内容。
+
+```typescript
+await agent.aiAct('完成结账表单，在下单前停止', {
+  deepThink: true,
+  deepLocate: true,
+  context: '如果出现地址确认弹窗，请选择默认收货地址。',
+});
+```
+
+## 即时交互
+
+即时交互类 API 每次只执行一个指定操作：先定位 UI 元素，再对该元素执行固定动作。
+
+这类 API 不会规划多个步骤。对于“如果出现弹窗，先关闭弹窗，然后点击结账按钮”这类需求，请使用 `aiAct`。即时交互 API 会将提示词视为目标元素的描述，而非工作流。
+
+### `aiTap`
+
+[`aiTap`](./reference/#agentaitap) 用于定位并点击元素。
+
+典型用法：
+
+```typescript
+await agent.aiTap('购物车中的结账按钮');
+```
+
+当目标较小或视觉特征不明显时，可以启用 `deepLocate` （多轮深度定位）：
+
+```typescript
+await agent.aiTap('右上角的购物车图标', {
+  deepLocate: true,
+});
+```
+
+### `aiInput`
+
+[`aiInput`](./reference/#agentaiinput) 用于定位输入框并输入指定内容。它默认使用 `replace` 模式：先清空输入框中的现有内容，再输入新内容。
+
+典型用法：
+
+```typescript
+await agent.aiInput('邮箱地址输入框', {
+  value: 'user@example.com',
+});
+```
+
+其他输入模式包括 `typeOnly` 和 `clear`。`typeOnly` 会保留现有内容，`clear` 仅清空输入框。
+
+即时交互 API 还包括 `aiHover`、`aiClearInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiDoubleClick` 和 `aiRightClick`。各 API 支持的平台不同，详见 API 参考中的[规划与交互](./reference/#planning-interaction)。
+
+## 界面理解（Insight）
+
+界面理解类 API 只观察界面并返回分析结果，不会操作界面。它们默认使用当前截图。在 Web 页面中，如果任务需要读取截图中不可见的 DOM 信息，可以传入 `domIncluded`。
+
+### `aiAssert`
+
+[`aiAssert`](./reference/#agentaiassert) 用于检查自然语言描述的条件。条件成立时，该方法正常结束；条件不成立时，该方法会抛出错误，并在错误信息中说明模型返回的原因。
+
+典型用法：
+
+```typescript
+await agent.aiAssert('购物车中有一件商品，并且页面显示了小计金额');
+```
+
+### `aiQuery`
+
+[`aiQuery`](./reference/#agentaiquery) 用于从界面中提取结构化数据。请在提示词中描述所需数据，以及数据的预期类型或结构。
+
+典型用法：
+
+```typescript
+const items = await agent.aiQuery<
+  Array<{ name: string; price: number }>
+>('购物车中的商品，{name: string, price: number}[]');
+// items 示例：[{ name: '无线耳机', price: 99.9 }]
+```
+
+### `aiBoolean`
+
+[`aiBoolean`](./reference/#agentaiboolean) 用于询问与界面有关的问题，并返回布尔值。
+
+典型用法：
+
+```typescript
+const loginDialogVisible = await agent.aiBoolean('登录对话框是否可见');
+// loginDialogVisible 示例：true
+```
+
+其他便捷方法包括：返回数字的 [`aiNumber`](./reference/#agentainumber)，以及返回字符串的 [`aiString`](./reference/#agentaistring) 和 [`aiAsk`](./reference/#agentaiask)。
+
+## 用 JavaScript 编排工作流 {#javascript-orchestration}
+
+使用 Midscene 编排自动化时，有两种基本方式：使用 `aiAct`，或使用 JavaScript 编排。
+
+以下代码展示了这两种方式完成同一个任务。
+
+使用 `aiAct`：
+
+```typescript
+await agent.aiAct('检查列表中的所有记录，将未完成的记录标记为已完成');
+```
+
+使用 JavaScript 编排：
+
+```typescript
+const recordNames = await agent.aiQuery<string[]>('列表中的所有记录名称');
+
+for (const recordName of recordNames) {
+  const completed = await agent.aiBoolean(
+    `名为“${recordName}”的记录是否标记为“已完成”`,
+  );
+
+  if (!completed) {
+    await agent.aiTap(`名为“${recordName}”的记录`);
+  }
+}
+```
+
+从上面的示例可以看出，在 `aiAct` 模式下，Agent 负责规划执行路径。使用 JavaScript 编排时，开发者需要在代码中定义条件、循环和步骤顺序。
+
+JavaScript 编排的执行路径明确，开发者可以精确控制每个分支的行为。因此，这种方式具有很强的确定性。
+
+但是，JavaScript 编排只能响应代码已经覆盖的 UI 变化。例如，分辨率变化可能导致页面需要额外滚动。如果代码没有处理这类变化，工作流就会失败。
+
+选择编排方式时，建议遵循以下原则：
+
+1. 默认使用 `aiAct` 执行操作目标。Agent 会根据最新的界面状态决定具体步骤，因此能更好地适应页面变化。
+2. 仅当操作流程明确且稳定时，才使用 JavaScript 编排。
+3. 如果 JavaScript 编排代码越来越难以维护，或成功率持续下降，建议改用 `aiAct`。

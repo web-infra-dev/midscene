@@ -73,6 +73,11 @@ and more`,
   debuggingDesc2: 'Supports extending your own UI action agents',
   debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
 
+  // Feature Sections - BENCHMARKS
+  benchmarksTitle: 'EVALUATION',
+  benchmarksHeading: 'Benchmarks',
+  benchmarksDesc: "Explore Midscene's results on AndroidWorld and MobileWorld.",
+
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
   featureRichAPIsDesc:
@@ -86,13 +91,9 @@ and more`,
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
     'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
-  featureBenchmarkDesc:
-    'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
-  featureMobileWorldBenchmarkDesc:
-    'Review the MobileWorld benchmark score, run configuration, reports, and validation notes.',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-experience',
+  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
@@ -120,8 +121,8 @@ and more`,
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
-  platformWebLink: '/quick-experience.html',
-  platformPCLink: '/quick-experience.html',
+  platformWebLink: '/quick-start#chrome-extension',
+  platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

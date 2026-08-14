@@ -67,6 +67,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
   debuggingDesc3: '大幅降低 UI 测试的维护成本',
 
+  // Feature Sections - BENCHMARKS
+  benchmarksTitle: '评测',
+  benchmarksHeading: 'Benchmark 成绩',
+  benchmarksDesc: '查看 Midscene 在 AndroidWorld 和 MobileWorld 上的成绩。',
+
   // Feature Cards
   featureRichAPIs: '丰富的 API',
   featureRichAPIsDesc:
@@ -80,13 +85,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
     '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
-  featureBenchmarkDesc:
-    '查看 AndroidWorld benchmark 分数、运行配置、报告文件和验收备注。',
-  featureMobileWorldBenchmarkDesc:
-    '查看 MobileWorld benchmark 分数、运行配置、报告文件和验收备注。',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-experience',
+  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
@@ -113,8 +114,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
-  platformWebLink: '/quick-experience.html',
-  platformPCLink: '/quick-experience.html',
+  platformWebLink: '/quick-start#chrome-extension',
+  platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };

@@ -60,7 +60,7 @@ Midscene works anywhere you can take a screenshot — web browsers, Android, iOS
 ## 🚀 Get started
 
 - **Write your first script** in a few minutes — [Quick start](https://midscenejs.com/quick-start).
-- **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-experience).
+- **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-start#chrome-extension).
 - **Other platforms** — getting-started guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), and [desktop](https://midscenejs.com/platforms/desktop).
 
 ## ✨ Driven by Multimodal Models
