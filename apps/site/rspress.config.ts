@@ -101,6 +101,9 @@ export default defineConfig(async () => {
         checkDeadLinks: true,
       },
     },
+    mediumZoom: {
+      selector: '.rspress-doc img:not(.no-zoom)',
+    },
     themeConfig: {
       lastUpdated: true,
       llmsUI: {
