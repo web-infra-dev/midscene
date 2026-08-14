@@ -39,12 +39,14 @@ describe('shareBrowserContext CLI YAML e2e', () => {
 
   const runFixture = async ({
     scriptDir,
+    executionScriptDir,
     indexFile,
     targetSource,
     targetDeclaredInIndex = true,
     expectedScripts,
   }: {
     scriptDir: string;
+    executionScriptDir?: string;
     indexFile: string;
     targetSource: 'page' | 'browser' | 'web';
     targetDeclaredInIndex?: boolean;
@@ -64,7 +66,18 @@ describe('shareBrowserContext CLI YAML e2e', () => {
       } else {
         expect(resolvedTarget).toBeUndefined();
       }
-      const results = await runYamlBatch(config, {
+      const executionConfig = executionScriptDir
+        ? {
+            ...config,
+            setup: config.setup
+              ? join(executionScriptDir, basename(config.setup))
+              : undefined,
+            files: config.files.map((file) =>
+              join(executionScriptDir, basename(file)),
+            ),
+          }
+        : config;
+      const results = await runYamlBatch(executionConfig, {
         generateSummary: false,
         printExecutionPlan: false,
       });
@@ -93,6 +106,13 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     async ({ targetSource, indexFile }) => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
+        // The report fixtures exercise the same assertions and are used for
+        // the published Goofy evidence. CI omits explicit report screenshots
+        // so this regression only fails on browser-state or tab-isolation bugs.
+        executionScriptDir: join(
+          __dirname,
+          '../share_context_parallel_e2e_scripts',
+        ),
         indexFile,
         targetSource,
         expectedScripts: [
