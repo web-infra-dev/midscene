@@ -59,8 +59,8 @@ Midscene works anywhere you can take a screenshot — web browsers, Android, iOS
 
 ## 🚀 Get started
 
-- **Write your first script** in a few minutes — [Quick start](https://midscenejs.com/quick-start).
-- **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-start#chrome-extension).
+- **Try Midscene in Chrome** — use the [Quick start](https://midscenejs.com/quick-start) to configure a model, install the Chrome extension, and run your first natural-language instruction.
+- **Write your first script** — create an Agent and run a complete browser script with [Playwright](https://midscenejs.com/integrate-with-playwright) or [Puppeteer](https://midscenejs.com/integrate-with-puppeteer).
 - **Other platforms** — getting-started guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), and [desktop](https://midscenejs.com/platforms/desktop).
 
 ## ✨ Driven by Multimodal Models
