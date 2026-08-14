@@ -14,7 +14,7 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
     await importOriginal<typeof import('@/ai-model/workflows/planning')>();
   return {
     ...actual,
-    genericXmlPlan: vi.fn().mockResolvedValue({
+    standardPlan: vi.fn().mockResolvedValue({
       actions: [
         {
           type: 'Click',

@@ -4,7 +4,7 @@ import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {
-  plan,
+  standardPlan,
   AiLocateElement,
   runConnectivityTest,
   getMidsceneLocationSchema,

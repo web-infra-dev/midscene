@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';

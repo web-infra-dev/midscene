@@ -1,6 +1,6 @@
 import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
 import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
-import { resolvePlanningTapLocator } from '../workflows/inspect/planning-action-locate';
+import { resolvePlanningTapLocator } from '../workflows/grounding/planning-action-locate';
 import type { ResolvedCustomPlanningDefinition } from './custom-planning-types';
 import type { LocateAdapter, ModelAdapterDefinition } from './types';
 

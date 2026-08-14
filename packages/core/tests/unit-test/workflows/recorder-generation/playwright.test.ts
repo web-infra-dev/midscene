@@ -1,6 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { callAIWithStringResponse } from '../../../src/ai-model';
+import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -13,10 +13,10 @@ import {
   prepareEventSummary,
   processEventsForLLM,
   validateEvents,
-} from '../../../src/ai-model/prompt/playwright-generator';
+} from '../../../../src/ai-model/workflows/recorder-generation/playwright';
 
 // Mock the callAi function
-vi.mock('../../../src/ai-model', () => ({
+vi.mock('../../../../src/ai-model/service-caller', () => ({
   callAIWithStringResponse: vi.fn(),
 }));
 

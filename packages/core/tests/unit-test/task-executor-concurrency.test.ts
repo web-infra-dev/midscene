@@ -5,13 +5,13 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
     await importOriginal<typeof import('@/ai-model/workflows/planning')>();
   return {
     ...actual,
-    genericXmlPlan: vi.fn(),
+    standardPlan: vi.fn(),
   };
 });
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, ExecutorContext } from '@/types';
@@ -99,7 +99,7 @@ describe('TaskExecutor concurrency isolation', () => {
 
     const seenHistories: any[] = [];
 
-    vi.mocked(genericXmlPlan).mockImplementation(
+    vi.mocked(standardPlan).mockImplementation(
       async (_instruction, opts: any) => {
         seenHistories.push(opts.conversationHistory);
         if (seenHistories.length === 2) {
@@ -172,7 +172,7 @@ describe('TaskExecutor concurrency isolation', () => {
       },
     });
 
-    vi.mocked(genericXmlPlan).mockImplementation(async (instruction: any) => {
+    vi.mocked(standardPlan).mockImplementation(async (instruction: any) => {
       // Gate B's plan until A is executing inside its action batch, so the
       // two batches are guaranteed to overlap.
       if (instruction === 'B') {
@@ -302,7 +302,7 @@ describe('TaskExecutor concurrency isolation', () => {
       },
     });
 
-    vi.mocked(genericXmlPlan).mockResolvedValue({
+    vi.mocked(standardPlan).mockResolvedValue({
       actions: [
         {
           type: 'Noop',
@@ -362,7 +362,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -432,7 +432,7 @@ Stdout:
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -505,7 +505,7 @@ Stdout:
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -624,7 +624,7 @@ mCurrentFocus=Window{abc}`;
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -720,7 +720,7 @@ ${thirdPlanningFeedback}`);
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -781,7 +781,7 @@ ${thirdPlanningFeedback}`);
       yamlFlow: [],
     } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,

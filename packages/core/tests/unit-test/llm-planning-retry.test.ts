@@ -1,7 +1,7 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
-import { plan } from '@/ai-model/llm-planning';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import { standardPlan } from '@/ai-model/workflows/planning';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildYamlFlowFromPlans, getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -95,7 +95,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
       );
 
-    const result = await plan('tap the button', {
+    const result = await standardPlan('tap the button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
@@ -146,8 +146,8 @@ describe('plan XML parse retry', () => {
       deepThink: false,
     } as const;
 
-    await plan('tap the button', options);
-    await plan('tap the button', options);
+    await standardPlan('tap the button', options);
+    await standardPlan('tap the button', options);
 
     const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
     expect(secondRequestMessages).toContainEqual(rawAssistantMessage);
@@ -180,8 +180,8 @@ describe('plan XML parse retry', () => {
       deepThink: false,
     } as const;
 
-    await plan('tap the button', options);
-    await plan('tap the button', options);
+    await standardPlan('tap the button', options);
+    await standardPlan('tap the button', options);
 
     const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
     expect(secondRequestMessages).not.toContainEqual(rawAssistantMessage);
@@ -201,7 +201,7 @@ describe('plan XML parse retry', () => {
       .mockRejectedValueOnce(requestError);
 
     await expect(
-      plan('tap the button', {
+      standardPlan('tap the button', {
         context: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
@@ -220,7 +220,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
     );
 
-    await plan('terminate the app, launch it, then tap the AI button', {
+    await standardPlan('terminate the app, launch it, then tap the AI button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
@@ -250,7 +250,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
     );
 
-    await plan('tap the button', {
+    await standardPlan('tap the button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
@@ -298,7 +298,7 @@ describe('plan XML parse retry', () => {
       .mockImplementationOnce(captureYamlFlowInput)
       .mockImplementationOnce(captureYamlFlowInput);
 
-    const result = await plan('tap submit', {
+    const result = await standardPlan('tap submit', {
       context: mockContext(),
       actionSpace,
       modelRuntime: getModelRuntime({

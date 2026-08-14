@@ -1,6 +1,7 @@
 import type { PixelBbox } from '@/ai-model/shared/model-locate-result';
 import type { SearchAreaImageMapping } from './types';
 
+/** Map a bbox in the prepared search-area image back to screenshot pixels. */
 export function mapSearchAreaPixelBboxToOriginalPixelBbox(
   [left, top, right, bottom]: PixelBbox,
   mapping?: SearchAreaImageMapping,

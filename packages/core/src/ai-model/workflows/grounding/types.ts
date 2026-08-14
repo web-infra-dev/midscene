@@ -4,6 +4,7 @@ import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import type { TUserPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
 
+/** Maps coordinates from a prepared search-area image back to the screenshot. */
 export interface SearchAreaImageMapping {
   offset: {
     x: number;

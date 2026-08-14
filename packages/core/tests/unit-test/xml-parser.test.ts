@@ -1,4 +1,4 @@
-import { extractXMLTag } from '@/ai-model/prompt/util';
+import { extractXMLTag } from '@/ai-model/shared/xml';
 import { describe, expect, it } from 'vitest';
 
 describe('extractXMLTag', () => {

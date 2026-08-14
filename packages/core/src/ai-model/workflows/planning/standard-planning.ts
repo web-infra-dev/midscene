@@ -7,113 +7,28 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { buildYamlFlowFromPlans } from '../common';
-import { planningModelFamilyRequiredForLocateMessage } from './errors';
-import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import {
-  extractXMLTag,
-  parseMarkFinishedIndexes,
-  parseSubGoalsFromXML,
-} from './prompt/util';
-import { AIResponseParseError, callAI } from './service-caller/index';
-import type { JsonParser, JsonParserSource } from './service-caller/json';
+import { buildYamlFlowFromPlans } from '../../../common';
+import { prepareModelImage } from '../../model-adapter/image-preprocess';
+import { systemPromptToTaskPlanning } from '../../prompt/llm-planning';
+import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
-} from './service-caller/semantic-retry';
+} from '../../service-caller/semantic-retry';
 import type {
   LocateResultAdapter,
   LocateResultContext,
-} from './shared/model-locate-result';
-import { prepareModelImage } from './workflows/image-preprocess';
-import { normalizePlanningActionLocateFields } from './workflows/planning/locate-normalization';
-import type { PlanOptions } from './workflows/planning/types';
+} from '../../shared/model-locate-result';
+import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
+import { normalizePlanningActionLocateFields } from './locate-normalization';
+import { parseXMLPlanningResponse } from './standard-planning-parser';
+import type { PlanOptions } from './types';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
-
-/**
- * Parse XML response from LLM and convert to RawResponsePlanningAIResponse.
- */
-export function parseXMLPlanningResponse(
-  xmlString: string,
-  jsonParser: JsonParser,
-): RawResponsePlanningAIResponse {
-  // Use <planning> instead of <thought> to avoid colliding with Gemini thought
-  // summaries, which may also be emitted as <thought> in OpenAI-compatible
-  // response content.
-  const thought = extractXMLTag(xmlString, 'planning');
-  const memory = extractXMLTag(xmlString, 'memory');
-  const log = extractXMLTag(xmlString, 'log') || '';
-  const error = extractXMLTag(xmlString, 'error');
-  const actionType = extractXMLTag(xmlString, 'action-type');
-  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
-
-  // Parse <complete> tag with success attribute
-  const completeGoalRegex =
-    /<complete\s+success="(true|false)">([\s\S]*?)<\/complete>/i;
-  const completeGoalMatch = xmlString.match(completeGoalRegex);
-  let finalizeMessage: string | undefined;
-  let finalizeSuccess: boolean | undefined;
-
-  if (completeGoalMatch) {
-    finalizeSuccess = completeGoalMatch[1] === 'true';
-    finalizeMessage = completeGoalMatch[2]?.trim() || undefined;
-  }
-
-  // Parse sub-goal related tags
-  const updatePlanContent = extractXMLTag(xmlString, 'update-plan-content');
-  const markSubGoalDone = extractXMLTag(xmlString, 'mark-sub-goal-done');
-
-  const updateSubGoals = updatePlanContent
-    ? parseSubGoalsFromXML(updatePlanContent)
-    : undefined;
-  const markFinishedIndexes = markSubGoalDone
-    ? parseMarkFinishedIndexes(markSubGoalDone)
-    : undefined;
-
-  // Parse action
-  let action: any = null;
-  if (actionType && actionType.toLowerCase() !== 'null') {
-    // Strip any trailing XML tags that LLM might have leaked into the action type
-    // e.g. "KeyboardPress</action-type>\n<action-param-json>" -> "KeyboardPress"
-    const type = actionType.split('<')[0].trim();
-    let param: any = undefined;
-
-    if (actionParamStr) {
-      try {
-        // Parse the JSON string in action-param-json
-        param = jsonParser(actionParamStr, {
-          source: 'planning-action-param',
-          preserveStringValueKeys:
-            type.toLowerCase() === 'input' ? ['value'] : undefined,
-        });
-      } catch (e) {
-        throw new Error(`Failed to parse action-param-json: ${e}`);
-      }
-    }
-
-    action = {
-      type,
-      ...(param !== undefined ? { param } : {}),
-    };
-  }
-
-  return {
-    ...(thought ? { thought } : {}),
-    ...(memory ? { memory } : {}),
-    log,
-    ...(error ? { error } : {}),
-    action,
-    ...(finalizeMessage !== undefined ? { finalizeMessage } : {}),
-    ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
-    ...(updateSubGoals?.length ? { updateSubGoals } : {}),
-    ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
-  };
-}
 
 type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
 
@@ -203,7 +118,7 @@ async function callAndParsePlanningResponse(
   });
 }
 
-export async function plan(
+export async function standardPlan(
   userInstruction: TUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {

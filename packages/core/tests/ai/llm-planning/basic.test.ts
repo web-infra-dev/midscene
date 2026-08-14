@@ -1,4 +1,4 @@
-import { ConversationHistory, plan } from '@/ai-model';
+import { ConversationHistory, standardPlan } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,7 +21,7 @@ describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
-    const { actions, shouldContinuePlanning } = await plan(
+    const { actions, shouldContinuePlanning } = await standardPlan(
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
         context,
@@ -40,7 +40,7 @@ describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
 
   it('scroll page', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions, shouldContinuePlanning } = await plan(
+    const { actions, shouldContinuePlanning } = await standardPlan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
       {
         context,
@@ -91,7 +91,7 @@ describe('planning', () => {
   todoInstructions.forEach(({ name, instruction }) => {
     it(`todo mvc - ${name}`, async () => {
       const { context } = await getContextFromFixture('todo');
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
         modelRuntime,
@@ -110,7 +110,7 @@ describe('planning', () => {
 
   it('scroll some element', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions } = await plan(
+    const { actions } = await standardPlan(
       'Scroll left the status filters (with a button named "completed")',
       {
         context,
@@ -128,7 +128,7 @@ describe('planning', () => {
 
   it('should not throw in an "if" statement', async () => {
     const { context } = await getContextFromFixture('todo');
-    const { actions, error } = await plan(
+    const { actions, error } = await standardPlan(
       'If there is a cookie prompt, close it',
       {
         context,
@@ -146,7 +146,7 @@ describe('planning', () => {
 
   it('should make mark unfinished when something is not found', async () => {
     const { context } = await getContextFromFixture('todo');
-    const res = await plan(
+    const res = await standardPlan(
       'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
       {
         context,

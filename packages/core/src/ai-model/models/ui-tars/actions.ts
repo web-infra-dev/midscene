@@ -5,7 +5,7 @@ import { assert } from '@midscene/shared/utils';
 import type {
   DragAndDropPlanningAction,
   LocatePlanningAction,
-} from '../../shared/planning-action';
+} from '../../model-adapter/planning-action';
 import type { UiTarsParsedPlanningResponse } from './parser';
 
 const debug = getDebug('ui-tars-planning');

@@ -1,5 +1,5 @@
 import { getModelRuntime } from '@/ai-model/models';
-import { AiLocateSection } from '@/ai-model/workflows/inspect';
+import { AiLocateSection } from '@/ai-model/workflows/grounding';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';

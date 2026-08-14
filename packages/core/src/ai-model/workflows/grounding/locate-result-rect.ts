@@ -1,6 +1,7 @@
 import type { PixelBbox } from '@/ai-model/shared/model-locate-result';
 import type { Rect } from '@/types';
 
+/** Merge model pixel bboxes into one screenshot rectangle. */
 export function mergePixelBboxesToRect(pixelBboxes: PixelBbox[]): Rect {
   const minLeft = Math.min(...pixelBboxes.map(([left]) => left));
   const minTop = Math.min(...pixelBboxes.map(([, top]) => top));
