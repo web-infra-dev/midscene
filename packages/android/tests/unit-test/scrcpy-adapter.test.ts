@@ -15,9 +15,7 @@ const mocks = vi.hoisted(() => ({
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
   Adb: vi.fn().mockImplementation(() => ({})),
-  AdbServerClient: vi.fn().mockImplementation(() => ({
-    createTransport: vi.fn().mockResolvedValue({}),
-  })),
+  AdbServerClient: vi.fn().mockImplementation(() => ({})),
 }));
 
 vi.mock('@yume-chan/adb-server-node-tcp', () => ({
@@ -300,7 +298,7 @@ describe('ScrcpyDeviceAdapter', () => {
       });
       expect(mocks.createAdbServerTransport).toHaveBeenCalledWith(
         expect.any(Object),
-        { serial: 'device' },
+        'device',
       );
     });
 

@@ -1,6 +1,15 @@
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { AdbServerClient } from '@yume-chan/adb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAdbServerTransport } from '../../src/adb-server-transport';
+
+const execFileAsync = promisify(execFile);
+const rejectionFixturePath = path.resolve(
+  __dirname,
+  'fixtures/adb-server-transport-rejection.ts',
+);
 
 const connectedDevice = {
   serial: 'device',
@@ -13,6 +22,15 @@ function createMockAdbServerClient(): AdbServerClient {
   const connector = {
     connect() {
       throw new Error('Unexpected ADB server connection');
+    },
+    addReverseTunnel() {
+      throw new Error('Unexpected reverse tunnel creation');
+    },
+    removeReverseTunnel() {
+      throw new Error('Unexpected reverse tunnel removal');
+    },
+    clearReverseTunnels() {
+      throw new Error('Unexpected reverse tunnel cleanup');
     },
   } satisfies AdbServerClient.ServerConnector;
   return new AdbServerClient(connector);
@@ -31,7 +49,7 @@ describe('createAdbServerTransport', () => {
     vi.restoreAllMocks();
   });
 
-  it('handles disconnect monitor failures without changing rejection semantics', async () => {
+  it('preserves disconnect rejection semantics and aborts the monitor', async () => {
     const client = createMockAdbServerClient();
     const error = new Error('ExactReadable ended');
     let rejectDisconnect = (_reason: Error): void => {
@@ -49,28 +67,29 @@ describe('createAdbServerTransport', () => {
       },
     );
 
-    const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown) => {
-      unhandledRejections.push(reason);
-    };
-    process.on('unhandledRejection', onUnhandledRejection);
+    const transport = await createAdbServerTransport(client, 'device');
+    const rejection = expect(transport.disconnected).rejects.toBe(error);
 
-    try {
-      const transport = await createAdbServerTransport(client, {
-        serial: 'device',
-      });
-      const rejection = expect(transport.disconnected).rejects.toBe(error);
+    rejectDisconnect(error);
 
-      rejectDisconnect(error);
+    await rejection;
 
-      await rejection;
-      await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(disconnectSignal?.aborted).toBe(true);
+  });
 
-      expect(disconnectSignal?.aborted).toBe(true);
-      expect(unhandledRejections).toEqual([]);
-    } finally {
-      process.off('unhandledRejection', onUnhandledRejection);
-    }
+  it('does not leak the disconnect rejection to the Node.js process', async () => {
+    const { stdout } = await execFileAsync(
+      process.execPath,
+      [
+        '--unhandled-rejections=strict',
+        '--import',
+        'tsx',
+        rejectionFixturePath,
+      ],
+      { cwd: path.resolve(__dirname, '../..') },
+    );
+
+    expect(stdout).toBe('');
   });
 
   it('aborts the disconnect monitor after the transport closes', async () => {
@@ -89,9 +108,7 @@ describe('createAdbServerTransport', () => {
       },
     );
 
-    const transport = await createAdbServerTransport(client, {
-      serial: 'device',
-    });
+    const transport = await createAdbServerTransport(client, 'device');
 
     await transport.close();
     await expect(transport.disconnected).resolves.toBeUndefined();
@@ -99,20 +116,32 @@ describe('createAdbServerTransport', () => {
     expect(disconnectSignal?.aborted).toBe(true);
   });
 
-  it('throws when the device disappears during transport creation', async () => {
+  it('preserves the requested serial when the device metadata snapshot misses the transport', async () => {
     const client = createMockAdbServerClient();
     vi.spyOn(client, 'getDeviceFeatures').mockResolvedValue({
       transportId: 1n,
       features: [],
     });
     vi.spyOn(client, 'getDevices').mockResolvedValue([]);
-    const waitForDisconnect = vi.spyOn(client, 'waitForDisconnect');
+    const waitForDisconnect = vi
+      .spyOn(client, 'waitForDisconnect')
+      .mockImplementation((_transportId, options) => {
+        return new Promise((_, reject) => {
+          options?.signal?.addEventListener('abort', () => {
+            reject(options.signal?.reason);
+          });
+        });
+      });
 
-    await expect(
-      createAdbServerTransport(client, { serial: 'device' }),
-    ).rejects.toThrow(
-      'Failed to create ADB transport: device with transport ID 1 is no longer connected',
-    );
-    expect(waitForDisconnect).not.toHaveBeenCalled();
+    const transport = await createAdbServerTransport(client, 'device');
+
+    expect(transport.serial).toBe('device');
+    expect(waitForDisconnect).toHaveBeenCalledWith(1n, {
+      unref: true,
+      signal: expect.any(AbortSignal),
+    });
+
+    await transport.close();
+    await expect(transport.disconnected).resolves.toBeUndefined();
   });
 });

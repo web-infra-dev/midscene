@@ -11,7 +11,7 @@ import type { AdbServerClient, AdbServerTransport } from '@yume-chan/adb';
  */
 export async function createAdbServerTransport(
   client: AdbServerClient,
-  device: AdbServerClient.DeviceSelector,
+  serial: string,
 ): Promise<AdbServerTransport> {
   const [{ AdbBanner, AdbServerTransport }, { AbortController }] =
     await Promise.all([
@@ -19,15 +19,15 @@ export async function createAdbServerTransport(
       import('@yume-chan/stream-extra'),
     ]);
 
-  const { transportId, features } = await client.getDeviceFeatures(device);
+  const { transportId, features } = await client.getDeviceFeatures({ serial });
   const devices = await client.getDevices();
   const info = devices.find((item) => item.transportId === transportId);
-  if (!info) {
-    throw new Error(
-      `Failed to create ADB transport: device with transport ID ${transportId} is no longer connected`,
-    );
-  }
-  const banner = new AdbBanner(info.product, info.model, info.device, features);
+  const banner = new AdbBanner(
+    info?.product,
+    info?.model,
+    info?.device,
+    features,
+  );
 
   const waitAbortController = new AbortController();
   const disconnected = client.waitForDisconnect(transportId, {
@@ -36,7 +36,7 @@ export async function createAdbServerTransport(
   });
   const transport = new AdbServerTransport(
     client,
-    info.serial,
+    info?.serial ?? serial,
     banner,
     transportId,
     disconnected,

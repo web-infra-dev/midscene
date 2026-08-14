@@ -196,7 +196,7 @@ export class ScrcpyDeviceAdapter {
         new AdbServerNodeTcpConnector(adbServerEndpoint),
       );
       const adb = new Adb(
-        await createAdbServerTransport(adbClient, { serial: this.deviceId }),
+        await createAdbServerTransport(adbClient, this.deviceId),
       );
 
       const config = this.resolveConfig(deviceInfo);
