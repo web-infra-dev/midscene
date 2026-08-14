@@ -1,131 +1,98 @@
-import { PackageManagerTabs } from '@theme';
-import QuickModelConfig from './common/quick-model-config.mdx';
+import SetupEnv from './common/setup-env.mdx';
 import ShowcaseWeb from './showcases-web.mdx';
 
 # Quick Start
 
-Get a feel for Midscene in a few minutes. There are two ways to start, and you can do either one first:
+The Chrome extension is Midscene's API Playground for the web. You can try Midscene's interaction, data extraction, and interface-checking capabilities on any web page without setting up a project.
 
-- **No code** — install the Chrome extension and try Midscene on any web page, without setting up a project.
-- **Write a script** — use the JavaScript SDK to build a repeatable automation.
-
-Both need a multimodal model configured, so let's set that up first.
+This guide walks you through configuring a model, installing the Chrome extension, and running your first natural-language instruction. After validating instructions in the Playground, you can integrate the same capabilities into automation code.
 
 ## Configure a model
 
-<QuickModelConfig />
+Before using the Chrome extension, prepare a multimodal model with UI localization capabilities.
 
-> Using a different model (Doubao, GLM, Gemini, GPT-5…)? See [Supported models and setup](./model-common-config) for every supported provider.
+<SetupEnv />
 
-You'll reuse these values in whichever path you pick below — paste them into the extension's settings, or set them as environment variables for the SDK.
+After installing the Chrome extension, paste this configuration into its settings.
 
-For all configuration options, see [Model configuration](./model-config).
+## Install the Chrome extension {#chrome-extension}
 
-## Try it with no code (Chrome extension) {#chrome-extension}
+1. Use the button below to install Midscene from the Chrome Web Store:
 
-Think of the extension as a **playground for Midscene** — much like an API Playground, it's an interactive sandbox where you can try natural-language prompts, preview the results immediately, and debug, all without writing or running any code. Because it shares the same core as the `@midscene/web` SDK, anything you validate here behaves the same once you script it.
+   <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" alt="Install Midscene from the Chrome Web Store" width="200" /></a>
+
+2. Open **Midscene** from the Chrome extensions list. The Midscene sidebar appears on the right side of the browser.
+3. Click the settings icon in the sidebar, paste the complete configuration from [Configure a model](#configure-a-model), and save it.
+
+<span id="chrome-extension-faq" />
+
+**FAQ**
+
+<details>
+<summary>Can I install the Chrome extension manually?</summary>
+
+If you cannot access the Chrome Web Store, download the installation package from the [GitHub Releases page](https://github.com/web-infra-dev/midscene/releases) and install it manually. Manual installations do not receive automatic updates.
+
+</details>
+
+<details>
+<summary>It fails with `Cannot access a chrome-extension:// URL of different extension`</summary>
+
+This error usually indicates a conflict between Midscene and another Chrome extension. For example, another Chrome extension may have injected an `<iframe />` or `<script />` into the page.
+
+Follow these steps to find the conflicting Chrome extension:
+
+1. Open the page's developer tools, find an `<iframe />` or `<script />` whose URL starts with `chrome-extension://`, and copy the extension ID from the URL.
+2. Open `chrome://extensions/`, find the Chrome extension by its ID, and disable it.
+3. Refresh the page and try again.
+
+</details>
+
+<details>
+<summary>I get a 403 error when using an Ollama model</summary>
+
+Set the `OLLAMA_ORIGINS="*"` environment variable to allow the Chrome extension to access the Ollama model.
+
+</details>
+
+## Complete your first task
+
+Open any web page and enter a natural-language instruction in the Midscene sidebar that matches the current page. For example:
+
+- Plan and interact (`aiAct`): `Click the login button`.
+- Extract structured data (`aiQuery`): `Products on the page, {name: string, price: number}[]`.
+- Check the interface (`aiAssert`): `A navigation bar appears at the top of the page`.
+
+When you run the instruction, Midscene understands the current page and either performs the action or returns the result. The following example shows the Chrome extension filling out a GitHub sign-up form:
 
 <ShowcaseWeb />
 
-See [Showcases](./showcases) for more examples.
+## Integrate Playground instructions into code
 
-1. Install [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) from the Chrome Web Store:
+The Chrome extension shares its core capabilities with `@midscene/web`. After validating natural-language instructions in the Playground, use the corresponding Agent APIs to integrate them into UI test scripts:
 
-   <a href="https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief" target="_blank"><img src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/chrome_extension_store_btn.png" width="200" /></a>
+```typescript
+// Plan and perform interactions
+await agent.aiAct('Click the login button');
 
-2. Open the **Midscene** panel (it may be folded under the Chrome extensions icon) — a sidebar appears on the right side of the browser.
-3. Click the settings (gear) icon and paste your model configuration. The extension accepts the same `export KEY="value"` format shown in [Configure a model](#configure-a-model) above.
-4. Open any web page, type an instruction — an action, a data query, or an assertion — and watch Midscene operate the page for you.
-
-## Chrome extension FAQ {#chrome-extension-faq}
-
-### Can I install the extension manually?
-
-If you cannot access the Chrome Web Store, you can download the installation package from the [Releases page](https://github.com/web-infra-dev/midscene/releases) on GitHub and install it manually. Manual installations do not receive automatic updates.
-
-### Extension fails to run and shows 'Cannot access a chrome-extension:// URL of different extension'
-
-It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh.
-
-To find the suspicious plugins:
-
-1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
-2. Copy the ID from the url, open `chrome://extensions/` , use cmd+f to find the plugin with the same ID, disable it.
-3. Refresh the page, try again.
-
-### Getting a 403 error when using Ollama model in Chrome extension
-
-You need to set the environment variable `OLLAMA_ORIGINS="*"` to allow the Chrome extension to access the Ollama model.
-
-## Write your first script (SDK)
-
-Prefer code? Build a repeatable automation with the JavaScript SDK. This example uses the browser (Playwright).
-
-### Step 1. Install dependencies
-
-<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
-
-### Step 2. Set the model environment variables
-
-Set the values from [Configure a model](#configure-a-model) as environment variables, or put them in a `.env` file and load it with [dotenv](https://www.npmjs.com/package/dotenv).
-
-### Step 3. Write the script
-
-Save the following as `./demo.ts`. It opens eBay, searches for headphones, reads the result list, and asserts the page state — all described in natural language:
-
-```typescript title="./demo.ts"
-import { chromium } from 'playwright';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-import 'dotenv/config'; // load environment variables from .env if present
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-Promise.resolve(
-  (async () => {
-    const browser = await chromium.launch({ headless: false }); // 👀 watch it run
-    const page = await browser.newPage();
-    await page.goto('https://www.ebay.com');
-    await sleep(3000);
-
-    // 👀 init the Midscene agent
-    const agent = new PlaywrightAgent(page);
-
-    // 👀 act with natural language
-    await agent.aiAct('type "Headphones" in the search box, then hit Enter');
-    await agent.aiWaitFor('there is at least one headphone product in the list');
-
-    // 👀 extract structured data
-    const items = await agent.aiQuery(
-      '{ title: string, price: number }[], the headphone products in the list',
-    );
-    console.log('headphones in stock:', items);
-
-    // 👀 assert with natural language
-    await agent.aiAssert('There is a category filter on the left side');
-
-    await browser.close();
-  })(),
+// Extract structured data
+const products = await agent.aiQuery<Array<{ name: string; price: number }>>(
+  'Products on the page, {name: string, price: number}[]',
 );
+
+// Check the interface
+await agent.aiAssert('A navigation bar appears at the top of the page');
 ```
 
-### Step 4. Run it
+This example only shows the API call pattern. To create an Agent and run a complete browser script, continue with [Integrate with Playwright](./integrate-with-playwright) or [Integrate with Puppeteer](./integrate-with-puppeteer). To learn when to use each API category, read [The Basics](./basics). For all options, see the [API reference](./reference/#common).
 
-```bash
-npx tsx demo.ts
-```
+## Use Midscene on other platforms
 
-### Step 5. View the report
+Midscene provides the same complete automation capabilities on Android, iOS, HarmonyOS, and desktop, with a dedicated Playground for each platform. Before using a Playground, prepare the device environment for that platform. For example, Android requires adb to be installed and configured. See the following guides for platform requirements, Playground launch instructions, and troubleshooting.
 
-After a successful run, Midscene prints something like:
-
-```log
-Midscene - report file updated: ./midscene_run/report/some_id.html
-```
-
-Open that HTML file in your browser to replay every action, query, and assertion step by step. The report is the tool most developers rely on to understand and debug what the AI did.
-
-## Next steps
-
-- **Use it in your tests**: [Integrate with Playwright](./integrate-with-playwright) to add Midscene to your existing suite.
-- **Other platforms**: get started on [Android](./platforms/android), [iOS](./platforms/ios), [HarmonyOS](./platforms/harmonyos), or [desktop](./platforms/desktop).
-- **Go further**: understand model roles with [Model strategy](./model-strategy), or look up every method in the [API reference](./reference/#common).
+| Platform | Platform guide |
+| --- | --- |
+| Android | [Android](./platforms/android) |
+| iOS | [iOS](./platforms/ios) |
+| HarmonyOS | [HarmonyOS](./platforms/harmonyos) |
+| Desktop | [Windows, macOS, and Linux](./platforms/desktop) |
