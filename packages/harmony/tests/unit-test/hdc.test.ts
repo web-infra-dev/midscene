@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import * as nodeUtilActual from 'node:util' with { rstest: 'importActual' };
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -9,6 +11,12 @@ function commandResult(stdout: string) {
 
 function bundleDump(bundleInfo: Record<string, unknown>): string {
   return `com.example.app:\n${JSON.stringify(bundleInfo)}`;
+}
+
+// Captured from real HarmonyOS 5.0 `bm dump` output. The fixtures retain
+// launch-relevant fields while omitting device-specific and sensitive data.
+function realBundleDumpFixture(filename: string): string {
+  return readFileSync(join(__dirname, 'fixtures', filename), 'utf8');
 }
 
 function shellCommands(): string[] {
@@ -131,6 +139,33 @@ describe('HdcClient', () => {
   });
 
   describe('launchBundle', () => {
+    it.each([
+      [
+        'Huawei Video with a short main ability name',
+        'bm-dump-huawei-video.txt',
+        'com.huawei.hmsapp.himovie',
+        'aa start -a MainAbility -b com.huawei.hmsapp.himovie -m entry',
+      ],
+      [
+        'Camera with a fully-qualified main ability and multiple modules',
+        'bm-dump-camera.txt',
+        'com.huawei.hmos.camera',
+        'aa start -a com.huawei.hmos.camera.MainAbility -b com.huawei.hmos.camera -m phone',
+      ],
+    ])(
+      'should resolve a real bm dump fixture: %s',
+      async (_, fixture, bundle, command) => {
+        mockExecFile
+          .mockResolvedValueOnce(commandResult(realBundleDumpFixture(fixture)))
+          .mockResolvedValueOnce(commandResult(''));
+
+        const hdc = new HdcClient({});
+        await hdc.launchBundle(bundle);
+
+        expect(shellCommands()).toEqual([`bm dump -n ${bundle}`, command]);
+      },
+    );
+
     it('should launch the declared main element from the entry module', async () => {
       mockExecFile
         .mockResolvedValueOnce(
