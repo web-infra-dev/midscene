@@ -59,10 +59,6 @@ export {
   validateEvents,
 };
 
-function createModelRuntime(modelConfig: IModelConfig) {
-  return getModelRuntime(modelConfig);
-}
-
 /**
  * Generates Playwright test code from recorded events
  */
@@ -71,7 +67,7 @@ export const generatePlaywrightTest = async (
   options: PlaywrightGenerationOptions,
   modelConfig: IModelConfig,
 ): Promise<string> => {
-  const modelRuntime = createModelRuntime(modelConfig);
+  const modelRuntime = getModelRuntime(modelConfig);
 
   // Validate input
   validateEvents(events);
@@ -158,7 +154,7 @@ export const generatePlaywrightTestStream = async (
   options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions,
   modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
-  const modelRuntime = createModelRuntime(modelConfig);
+  const modelRuntime = getModelRuntime(modelConfig);
 
   // Validate input
   validateEvents(events);

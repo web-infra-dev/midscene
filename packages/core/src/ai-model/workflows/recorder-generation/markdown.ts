@@ -157,10 +157,6 @@ function normalizeGeneratedMarkdown(content: string) {
   return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
-function createModelRuntime(modelConfig: IModelConfig) {
-  return getModelRuntime(modelConfig);
-}
-
 export function createRecorderMarkdownReplayPrompt(
   input: RecorderMarkdownGenerationInput,
 ): ChatCompletionMessageParam[] {
@@ -326,7 +322,7 @@ export async function generateRecorderMarkdownReplay(
     const prompt = await createRecorderMarkdownReplayPromptForGeneration(input);
     const response = await callAIWithStringResponse(
       prompt,
-      createModelRuntime(modelConfig),
+      getModelRuntime(modelConfig),
     );
 
     if (response?.content && typeof response.content === 'string') {

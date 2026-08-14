@@ -193,10 +193,6 @@ function normalizeGeneratedYaml(content: string) {
   return `${(fencedMatch?.[1] ?? trimmed).trim()}\n`;
 }
 
-function createModelRuntime(modelConfig: IModelConfig) {
-  return getModelRuntime(modelConfig);
-}
-
 async function createRecorderYamlPrompt(
   input: RecorderYamlGenerationInput,
   modelConfig: IModelConfig,
@@ -254,7 +250,7 @@ export const generateRecorderYamlTest = async (
     const prompt = await createRecorderYamlPrompt(input, modelConfig);
     const response = await callAIWithStringResponse(
       prompt,
-      createModelRuntime(modelConfig),
+      getModelRuntime(modelConfig),
     );
 
     if (response?.content && typeof response.content === 'string') {
@@ -274,7 +270,7 @@ export const generateRecorderYamlTestStream = async (
 ): Promise<StreamingAIResponse> => {
   try {
     const prompt = await createRecorderYamlPrompt(input, modelConfig);
-    const modelRuntime = createModelRuntime(modelConfig);
+    const modelRuntime = getModelRuntime(modelConfig);
     if (options.stream && options.onChunk) {
       return await callAI(prompt, modelRuntime, {
         stream: true,

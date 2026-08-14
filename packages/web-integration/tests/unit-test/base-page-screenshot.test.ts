@@ -260,6 +260,44 @@ describe('Page screenshotBase64', () => {
     vi.useRealTimers();
   });
 
+  it('times out a stuck Puppeteer screenshot instead of blocking the queue forever', async () => {
+    vi.useFakeTimers();
+
+    const screenshot = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce('cmVjb3ZlcmVk');
+    const page = new Page(
+      {
+        screenshot,
+        evaluate: vi.fn(),
+        url: () => 'http://example.com',
+      } as any,
+      'puppeteer',
+    );
+
+    const stuck = page.screenshotBase64().then(
+      () => undefined,
+      (error) => error,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 1000);
+
+    await expect(stuck).resolves.toMatchObject({
+      message: 'Puppeteer screenshot timeout after 10000ms.',
+    });
+
+    // The serialized queue must remain usable after a timed-out capture.
+    const recovered = page.screenshotBase64();
+    await vi.advanceTimersByTimeAsync(0);
+    await expect(recovered).resolves.toContain(
+      'data:image/jpeg;base64,cmVjb3ZlcmVk',
+    );
+    expect(screenshot).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
   it('serializes captures and keeps the queue usable after a failure', async () => {
     let rejectFirst!: (reason?: unknown) => void;
     const first = new Promise<string>((_resolve, reject) => {

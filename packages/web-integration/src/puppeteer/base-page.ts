@@ -68,7 +68,30 @@ const VISUAL_UPDATE_FOLLOWUP_DELAY_MS = 800;
 // stops scheduling animation frames (e.g. backgrounded tab).
 const FLUSH_VISUAL_UPDATE_TIMEOUT_MS = 50;
 const PREVIEW_SCREENSHOT_MAX_LONG_EDGE = 3840;
+// Puppeteer's page.screenshot() has no built-in timeout. Because every capture
+// is serialized through screenshotCaptureQueue, a call that never settles would
+// block all subsequent recorder/preview screenshots on this page forever. Cap
+// it to match the Playwright/CDP paths (10s).
+const SCREENSHOT_CAPTURE_TIMEOUT_MS = 10 * 1000;
 const DATA_URL_BASE64_PREFIX = /^data:image\/\w+;base64,/;
+
+// Reject if the wrapped promise does not settle within timeoutMs. Used to keep
+// a stuck native screenshot from blocking the serialized capture queue.
+function withScreenshotTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timeout after ${timeoutMs}ms.`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    clearTimeout(timeoutId);
+  }) as Promise<T>;
+}
 
 type ScreencastFrameEvent = {
   data: string;
@@ -542,15 +565,19 @@ export class Page<
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
-      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
-        type: imgType,
-        quality,
-        encoding: 'base64',
-        ...(options.optimizeForSpeed !== undefined
-          ? { optimizeForSpeed: options.optimizeForSpeed }
-          : {}),
-        ...(clip ? { clip, captureBeyondViewport: true } : {}),
-      });
+      const result = await withScreenshotTimeout(
+        (this.underlyingPage as PuppeteerPage).screenshot({
+          type: imgType,
+          quality,
+          encoding: 'base64',
+          ...(options.optimizeForSpeed !== undefined
+            ? { optimizeForSpeed: options.optimizeForSpeed }
+            : {}),
+          ...(clip ? { clip, captureBeyondViewport: true } : {}),
+        }),
+        SCREENSHOT_CAPTURE_TIMEOUT_MS,
+        'Puppeteer screenshot',
+      );
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
       if (clip) {
