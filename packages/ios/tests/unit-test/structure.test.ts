@@ -38,6 +38,8 @@ describe('iOS Package Structure', () => {
       expect(actionNames).toContain('LongPress');
       expect(actionNames).toContain('Swipe');
       expect(actionNames).toContain('IOSAppSwitcher');
+      expect(actionNames).toContain('IOSGetClipboard');
+      expect(actionNames).toContain('IOSSetClipboard');
     });
 
     it('should respect configuration options', () => {
