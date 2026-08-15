@@ -46,17 +46,15 @@ export async function imageInfoOfBase64(
   }
 
   const { PhotonImage } = await getPhoton();
-  // Support both sync (Photon) and async (Canvas fallback) versions
-  let result: ReturnType<typeof PhotonImage.new_from_base64>;
+  let image: ReturnType<typeof PhotonImage.new_from_base64>;
   try {
-    result = PhotonImage.new_from_base64(base64Data);
+    image = PhotonImage.new_from_base64(base64Data);
   } catch (error) {
     throw new Error(
       `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
       { cause: error },
     );
   }
-  const image = result instanceof Promise ? await result : result;
   const width = image.get_width();
   const height = image.get_height();
   image.free();
