@@ -6,9 +6,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   changelogLink: '了解更多',
 
   // Banner - Title
-  heroTitle: 'Midscene.js',
-  heroSubtitle:
-    '开源、视觉驱动的 UI 测试——用自然语言编写测试用例，自动化任意平台。',
+  heroTitle: '面向 E2E 测试的 GUI Agent',
+  heroSubtitle: '视觉驱动，全平台覆盖，测试工具开箱即用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',

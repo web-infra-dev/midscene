@@ -14,7 +14,8 @@
 </div>
 
 <p align="center">
-  开源、视觉驱动的 UI 测试。用自然语言编写测试用例，自动化任意平台。
+  <strong>面向 E2E 测试的 GUI Agent</strong><br />
+  视觉驱动，全平台覆盖，测试工具开箱即用。
 </p>
 
 <p align="center">

@@ -4,9 +4,8 @@ export const EN_US = {
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'Midscene.js',
-  heroSubtitle:
-    'Open-source, vision-driven UI testing — write tests in natural language, automate any platform.',
+  heroTitle: 'GUI Agent for E2E Testing',
+  heroSubtitle: 'Vision-driven. Cross-platform. Batteries included.',
 
   // Banner - Stats
   githubStars: 'Github Stars',

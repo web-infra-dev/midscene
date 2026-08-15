@@ -14,7 +14,8 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Open-source, vision-driven UI testing — write tests in natural language, automate any platform.
+  <strong>GUI Agent for E2E Testing</strong><br />
+  Vision-driven. Cross-platform. Batteries included.
 </p>
 
 <p align="center">
