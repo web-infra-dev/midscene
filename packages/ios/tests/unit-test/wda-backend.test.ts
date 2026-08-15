@@ -1,6 +1,69 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 import type { IOSWebDriverClient as IOSWebDriverClientType } from '../../src/ios-webdriver-client';
+
+function createClientWithSession() {
+  const client = new IOSWebDriverClient({
+    port: DEFAULT_WDA_PORT,
+    host: 'localhost',
+  });
+  // Bypass createSession() — we only want to observe outbound HTTP calls.
+  (client as any).sessionId = 'session-under-test';
+  const makeRequest = vi
+    .spyOn(client as any, 'makeRequest')
+    .mockResolvedValue(undefined);
+  return { client, makeRequest };
+}
+
+describe('IOSWebDriverClient pasteboard', () => {
+  it('getPasteboard POSTs contentType and base64-decodes the response', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockResolvedValue({
+      value: Buffer.from('Hello 世界', 'utf8').toString('base64'),
+    });
+
+    const text = await client.getPasteboard();
+
+    expect(makeRequest).toHaveBeenCalledWith(
+      'POST',
+      '/session/session-under-test/wda/getPasteboard',
+      { contentType: 'plaintext' },
+    );
+    expect(text).toBe('Hello 世界');
+  });
+
+  it('getPasteboard returns an empty string when WDA reports no value', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockResolvedValue({ value: '' });
+
+    await expect(client.getPasteboard()).resolves.toBe('');
+  });
+
+  it('getPasteboard rejects when the request itself fails', async () => {
+    const { client, makeRequest } = createClientWithSession();
+    makeRequest.mockRejectedValue(new Error('WDA HTTP error: 500'));
+
+    await expect(client.getPasteboard()).rejects.toThrow(
+      'Failed to read pasteboard',
+    );
+  });
+
+  it('setPasteboard POSTs base64-encoded content and contentType', async () => {
+    const { client, makeRequest } = createClientWithSession();
+
+    await client.setPasteboard('Hello 世界');
+
+    expect(makeRequest).toHaveBeenCalledWith(
+      'POST',
+      '/session/session-under-test/wda/setPasteboard',
+      {
+        content: Buffer.from('Hello 世界', 'utf8').toString('base64'),
+        contentType: 'plaintext',
+      },
+    );
+  });
+});
 
 describe('IOSWebDriverClient - Simple Tests', () => {
   describe('Module Structure', () => {
@@ -38,6 +101,8 @@ describe('IOSWebDriverClient - Simple Tests', () => {
         'tap',
         'swipe',
         'typeText',
+        'getPasteboard',
+        'setPasteboard',
         'pressKey',
         'launchApp',
         'openUrl',
