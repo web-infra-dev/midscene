@@ -758,9 +758,11 @@ async function encodeRgbaWithSharp(
   const output = await Sharp(Buffer.from(pixels), {
     raw: { width, height, channels: 4 },
   })
-    .jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
+    // Keep synthetic marker edges and colors exact; these pixels carry model
+    // semantics and are more important than the small extra payload.
+    .webp({ lossless: true, effort: 1 })
     .toBuffer();
-  return createImgBase64ByFormat('jpeg', output.toString('base64'));
+  return createImgBase64ByFormat('webp', output.toString('base64'));
 }
 
 export const compositeElementInfoImg = async (options: {
