@@ -5,7 +5,7 @@ Midscene.js Computer Desktop Automation - AI-powered desktop automation for:
 - local desktop control on Windows, macOS, and Linux
 - remote Windows desktop control over the RDP protocol
 
-See <https://midscenejs.com/computer-introduction.html>.
+See <https://midscenejs.com/platforms/desktop>.
 
 ## RDP support
 
