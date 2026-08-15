@@ -105,9 +105,22 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
     const reportOptions = this.readCliReportAgentOptions();
+    // Behavior args (e.g. screenshotShrinkFactor) may have been supplied only
+    // on `connect`. Because CLI commands run in separate, stateless processes,
+    // fall back to the values persisted in the report session so options
+    // survive across `connect` → `act`/`tap`. Command-provided args win.
+    const persistedBehaviorArgs = extractAgentBehaviorInitArgs(
+      this.readPersistedAgentInitArgs() as
+        | Partial<AgentBehaviorInitArgs>
+        | undefined,
+    );
+    const behaviorArgs: AgentBehaviorInitArgs = {
+      ...(persistedBehaviorArgs ?? {}),
+      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
+    };
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
-      ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
+      ...behaviorArgs,
       ...(initArgs?.useScrcpy ? { scrcpyConfig: { enabled: true } } : {}),
       ...(reportOptions ?? {}),
     });
@@ -133,6 +146,15 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
           const reportSession = this.createNewCliReportSession(
             deviceId ?? 'auto',
           );
+          if (reportSession) {
+            // Persist behavior args so later stateless commands inherit them.
+            const behaviorArgs = extractAgentBehaviorInitArgs(initArgs);
+            if (behaviorArgs && Object.keys(behaviorArgs).length > 0) {
+              reportSession.agentInitArgs = {
+                ...behaviorArgs,
+              } as Record<string, unknown>;
+            }
+          }
           this.commitCliReportSession(reportSession);
           if (this.agent) {
             try {

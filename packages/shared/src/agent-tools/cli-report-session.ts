@@ -9,6 +9,14 @@ export interface CliReportSession {
   reportFileName: string;
   reportPath: string;
   createdAt: number;
+  /**
+   * Agent construction args captured at `connect` time. CLI commands are
+   * stateless between invocations (each runs in its own process), so options
+   * passed only to `connect` — e.g. `screenshotShrinkFactor` — would otherwise
+   * be lost on the next `act`/`tap` process. Persisting them here lets the
+   * follow-up command rebuild the agent with the same behavior.
+   */
+  agentInitArgs?: Record<string, unknown>;
 }
 
 const sessionDirName = 'cli-report-session';
