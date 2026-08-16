@@ -6,7 +6,7 @@ import { locateGroundingRules } from '../locate-grounding-rules';
 import { buildActionSpaceDescription } from './action-description';
 import { buildActionExample, createSampleTapAction } from './action-example';
 import { buildPlanningActionGuidelines } from './action-guidelines';
-import { buildPlanningMultiTurnExample } from './examples';
+import { buildPlanningMultiTurnExample } from './multi-turn-example';
 
 const OBSERVE_STEP_NOTES = [
   '### Observation Guidelines',
