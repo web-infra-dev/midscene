@@ -56,7 +56,6 @@ describe('buildActionExample', () => {
     const actionExample = buildActionExample({
       name: 'Tap',
       sample: { locate: { prompt: 'the Submit button' } },
-      call: async () => {},
     });
 
     expect(actionExample).toBe(`<action-type>Tap</action-type>
