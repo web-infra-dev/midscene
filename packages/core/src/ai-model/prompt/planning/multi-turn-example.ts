@@ -5,16 +5,28 @@ import {
   createSampleTapAction,
 } from './action-example';
 import { buildPlanningResponseExample } from './planning-response-example';
+import { buildSubGoalsText } from './sub-goals-text';
 
-type BuildPlanningMultiTurnExampleOptions = {
-  includeSubGoals: boolean;
-  locatePromptSpec?: LocateResultPromptSpec;
+const sampleNameSubGoal = {
+  index: 1,
+  description: "Fill in the Name field with 'John'",
+};
+const sampleEmailSubGoal = {
+  index: 2,
+  description: "Fill in the Email field with 'john@example.com'",
+};
+const sampleReturnEmailSubGoal = {
+  index: 3,
+  description: 'Return the filled email address',
 };
 
 export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
   locatePromptSpec,
-}: BuildPlanningMultiTurnExampleOptions) => {
+}: {
+  includeSubGoals: boolean;
+  locatePromptSpec?: LocateResultPromptSpec;
+}) => {
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     includeSubGoals ? content : fallbackContent;
 
@@ -59,19 +71,16 @@ ${buildPlanningResponseExample({
   updateSubGoals: includeSubGoals
     ? [
         {
-          index: 1,
+          ...sampleNameSubGoal,
           status: 'pending',
-          description: "Fill in the Name field with 'John'",
         },
         {
-          index: 2,
+          ...sampleEmailSubGoal,
           status: 'pending',
-          description: "Fill in the Email field with 'john@example.com'",
         },
         {
-          index: 3,
+          ...sampleReturnEmailSubGoal,
           status: 'pending',
-          description: 'Return the filled email address',
         },
       ]
     : undefined,
@@ -83,14 +92,18 @@ ${buildPlanningResponseExample({
 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-${renderSubGoalsContent(`
-Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
-Actions performed for current sub-goal:
-- Click on the Name field to start filling the form`)}
+
+${renderSubGoalsContent(
+  buildSubGoalsText([
+    {
+      ...sampleNameSubGoal,
+      status: 'running',
+      logs: ['Click on the Name field to start filling the form'],
+    },
+    { ...sampleEmailSubGoal, status: 'pending' },
+    { ...sampleReturnEmailSubGoal, status: 'pending' },
+  ]),
+)}
 
 **Screenshot:** [Shows the form with Name field now focused/active]
 
@@ -109,15 +122,21 @@ ${buildPlanningResponseExample({
 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-${renderSubGoalsContent(`
-Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
-Actions performed for current sub-goal:
-- Click on the Name field to start filling the form
-- Typing 'John' into the Name field`)}
+
+${renderSubGoalsContent(
+  buildSubGoalsText([
+    {
+      ...sampleNameSubGoal,
+      status: 'running',
+      logs: [
+        'Click on the Name field to start filling the form',
+        "Typing 'John' into the Name field",
+      ],
+    },
+    { ...sampleEmailSubGoal, status: 'pending' },
+    { ...sampleReturnEmailSubGoal, status: 'pending' },
+  ]),
+)}
 
 **Screenshot:** [Shows the form with Name field containing 'John']
 
@@ -140,14 +159,18 @@ ${buildPlanningResponseExample({
 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-${renderSubGoalsContent(`
-Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
-Actions performed for current sub-goal:
-- Moving to the Email field`)}
+
+${renderSubGoalsContent(
+  buildSubGoalsText([
+    { ...sampleNameSubGoal, status: 'finished' },
+    {
+      ...sampleEmailSubGoal,
+      status: 'running',
+      logs: ['Moving to the Email field'],
+    },
+    { ...sampleReturnEmailSubGoal, status: 'pending' },
+  ]),
+)}
 
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
@@ -166,15 +189,21 @@ ${buildPlanningResponseExample({
 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-${renderSubGoalsContent(`
-Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
-Actions performed for current sub-goal:
-- Moving to the Email field
-- Typing email address into the Email field`)}
+
+${renderSubGoalsContent(
+  buildSubGoalsText([
+    { ...sampleNameSubGoal, status: 'finished' },
+    {
+      ...sampleEmailSubGoal,
+      status: 'running',
+      logs: [
+        'Moving to the Email field',
+        'Typing email address into the Email field',
+      ],
+    },
+    { ...sampleReturnEmailSubGoal, status: 'pending' },
+  ]),
+)}
 
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
