@@ -6,6 +6,7 @@ export {
   createSampleTapAction,
 } from './action-example';
 export type { ActionExampleDefinition } from './action-example';
+export { buildPlanningResponseExample } from './planning-response-example';
 export {
   buildActionDescription,
   buildActionSpaceDescription,
