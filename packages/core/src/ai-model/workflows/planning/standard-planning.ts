@@ -142,11 +142,21 @@ export async function standardPlan(
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.deepThink === true;
 
+  if (opts.includeLocateInPlanning && !locateResultAdapter) {
+    throw new Error(
+      planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
+    );
+  }
+
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
-    locatePromptSpec: locateResultAdapter?.promptSpec,
-    includeLocateInPlanning: opts.includeLocateInPlanning,
     includeSubGoals,
+    ...(opts.includeLocateInPlanning && locateResultAdapter
+      ? {
+          includeLocateInPlanning: true,
+          locatePromptSpec: locateResultAdapter.promptSpec,
+        }
+      : { includeLocateInPlanning: false }),
   });
 
   const preparedImage = await prepareModelImage({

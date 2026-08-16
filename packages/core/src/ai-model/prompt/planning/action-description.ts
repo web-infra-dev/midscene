@@ -146,10 +146,9 @@ export const buildActionDescription = (
     }
   }
 
-  const actionExample = buildActionExample(
-    action,
-    includeLocateInPlanning ? locatePromptSpec : undefined,
-  );
+  const actionExample = buildActionExample(action, {
+    locatePromptSpec: includeLocateInPlanning ? locatePromptSpec : undefined,
+  });
   if (actionExample) {
     actionDescription.sample = actionExample;
   }

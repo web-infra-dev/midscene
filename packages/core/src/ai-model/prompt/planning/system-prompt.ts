@@ -3,8 +3,8 @@ import { getPreferredLanguage } from '@midscene/shared/env';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import { locateGroundingRules } from '../locate-grounding-rules';
-import { locateParamExample } from '../locate-param-example';
 import { buildActionSpaceDescription } from './action-description';
+import { buildActionExample, createSampleTapAction } from './action-example';
 import { buildPlanningActionGuidelines } from './action-guidelines';
 import { buildPlanningMultiTurnExample } from './examples';
 
@@ -29,17 +29,29 @@ const MEMORY_STEP_NOTES = [
   '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
 ].join('\n');
 
-export async function buildStandardPlanningSystemPrompt({
-  actionSpace,
-  locatePromptSpec,
-  includeLocateInPlanning,
-  includeSubGoals,
-}: {
+type BuildStandardPlanningSystemPromptInput = {
   actionSpace: DeviceAction<any>[];
-  locatePromptSpec?: LocateResultPromptSpec;
-  includeLocateInPlanning: boolean;
   includeSubGoals?: boolean;
-}) {
+} & (
+  | {
+      includeLocateInPlanning: true;
+      locatePromptSpec: LocateResultPromptSpec;
+    }
+  | {
+      includeLocateInPlanning: false;
+      locatePromptSpec?: never;
+    }
+);
+
+export async function buildStandardPlanningSystemPrompt(
+  input: BuildStandardPlanningSystemPromptInput,
+) {
+  const {
+    actionSpace,
+    includeLocateInPlanning,
+    locatePromptSpec,
+    includeSubGoals,
+  } = input;
   const preferredLanguage = getPreferredLanguage();
 
   if (includeLocateInPlanning && !locatePromptSpec) {
@@ -53,26 +65,6 @@ export async function buildStandardPlanningSystemPrompt({
   const actionStepNotes = buildPlanningActionGuidelines(actionSpace);
 
   const shouldIncludeSubGoals = includeSubGoals ?? false;
-
-  const locateExample = (prompt: string, exampleValueIndex: number) =>
-    locateParamExample(
-      prompt,
-      includeLocateInPlanning ? locatePromptSpec : undefined,
-      locatePromptSpec?.exampleValues[exampleValueIndex] ??
-        locatePromptSpec?.exampleValues[0],
-    );
-  const locateExample1 = locateExample(
-    'Add to cart button for Sauce Labs Backpack',
-    1,
-  );
-  const locateNameField = locateExample(
-    'Name input field in the registration form',
-    2,
-  );
-  const locateEmailField = locateExample(
-    'Email input field in the registration form',
-    3,
-  );
 
   // Sub-goals related content - only included when shouldIncludeSubGoals is true
   const step1Title = shouldIncludeSubGoals
@@ -302,12 +294,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateExample1}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
+  {
+    locatePromptSpec,
+  },
+)}
 
 ### If you think there is an error ...
 
@@ -362,7 +354,6 @@ ${
 <error>...</error>
 ${buildPlanningMultiTurnExample({
   includeSubGoals: shouldIncludeSubGoals,
-  locateNameField,
-  locateEmailField,
+  locatePromptSpec,
 })}`;
 }

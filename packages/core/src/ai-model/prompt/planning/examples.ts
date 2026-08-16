@@ -1,13 +1,18 @@
+import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
+import {
+  buildActionExample,
+  createSampleInputAction,
+  createSampleTapAction,
+} from './action-example';
+
 type BuildPlanningMultiTurnExampleOptions = {
   includeSubGoals: boolean;
-  locateNameField: string;
-  locateEmailField: string;
+  locatePromptSpec?: LocateResultPromptSpec;
 };
 
 export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
-  locateNameField,
-  locateEmailField,
+  locatePromptSpec,
 }: BuildPlanningMultiTurnExampleOptions) => {
   if (includeSubGoals) {
     return `
@@ -30,12 +35,13 @@ Below is an example of a multi-turn conversation for "fill out the registration 
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateNameField}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Name input field in the registration form'),
+  {
+    locatePromptSpec,
+    locateResultExampleIndex: 2,
+  },
+)}
 
 ### Turn 2 - After clicking Name field
 
@@ -55,12 +61,7 @@ Actions performed for current sub-goal:
 **Your response:**
 <planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
 <log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "John"
-}
-</action-param-json>
+${buildActionExample(createSampleInputAction('John'))}
 
 ### Turn 3 - After entering name
 
@@ -85,12 +86,13 @@ Actions performed for current sub-goal:
 </mark-sub-goal-done>
 <memory>Name field has been filled with 'John'</memory>
 <log>Moving to the Email field</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateEmailField}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Email input field in the registration form'),
+  {
+    locatePromptSpec,
+    locateResultExampleIndex: 3,
+  },
+)}
 
 ### Turn 4 - After clicking Email field
 
@@ -110,12 +112,7 @@ Actions performed for current sub-goal:
 **Your response:**
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
 <log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "john@example.com"
-}
-</action-param-json>
+${buildActionExample(createSampleInputAction('john@example.com'))}
 
 ### Turn 5 - After entering email (Goal accomplished)
 
@@ -158,12 +155,13 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Your response:**
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateNameField}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Name input field in the registration form'),
+  {
+    locatePromptSpec,
+    locateResultExampleIndex: 2,
+  },
+)}
 
 ### Turn 2 - After clicking Name field
 
@@ -175,12 +173,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "John"
-}
-</action-param-json>
+${buildActionExample(createSampleInputAction('John'))}
 
 ### Turn 3 - After entering name
 
@@ -192,12 +185,13 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateEmailField}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Email input field in the registration form'),
+  {
+    locatePromptSpec,
+    locateResultExampleIndex: 3,
+  },
+)}
 
 ### Turn 4 - After clicking Email field
 
@@ -209,12 +203,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "john@example.com"
-}
-</action-param-json>
+${buildActionExample(createSampleInputAction('john@example.com'))}
 
 ### Turn 5 - After entering email (Instruction fulfilled)
 

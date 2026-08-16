@@ -109,6 +109,7 @@ describe('system prompts', () => {
 
   it('planning - includeLocateInPlanning requires modelFamily', async () => {
     await expect(
+      // @ts-expect-error Verify the runtime guard for untyped callers.
       buildStandardPlanningSystemPrompt({
         actionSpace: mockActionSpace,
         includeLocateInPlanning: true,

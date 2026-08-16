@@ -1,6 +1,8 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
-import type { LocateResultPromptSpec } from '../shared/model-locate-result';
-import { formatLocateExampleValue } from './locate-param-example';
+import {
+  type LocateResultPromptSpec,
+  formatLocateExampleValue,
+} from '../shared/model-locate-result';
 
 export function systemPromptToLocateSection(
   promptSpec: LocateResultPromptSpec,

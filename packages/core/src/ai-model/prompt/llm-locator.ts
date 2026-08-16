@@ -1,7 +1,9 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
-import type { LocateResultPromptSpec } from '../shared/model-locate-result';
+import {
+  type LocateResultPromptSpec,
+  formatLocateExampleValue,
+} from '../shared/model-locate-result';
 import { locateGroundingRules } from './locate-grounding-rules';
-import { formatLocateExampleValue } from './locate-param-example';
 
 export function systemPromptToLocateElement(
   promptSpec: LocateResultPromptSpec,

@@ -1,5 +1,11 @@
 export { buildStandardPlanningSystemPrompt } from './system-prompt';
-export { buildActionExample } from './action-example';
+export {
+  buildActionExample,
+  buildPlanningActionOutput,
+  createSampleInputAction,
+  createSampleTapAction,
+} from './action-example';
+export type { ActionExampleDefinition } from './action-example';
 export {
   buildActionDescription,
   buildActionSpaceDescription,

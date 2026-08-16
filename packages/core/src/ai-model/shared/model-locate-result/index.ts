@@ -2,6 +2,7 @@ export {
   createLocateResultAdapter,
   resolveLocateResultCoordinates,
 } from './factory';
+export { formatLocateExampleValue } from './prompt-spec';
 export { createCoordinateDistanceToPixels } from './coordinate-distance';
 export {
   isBboxLocateResultValue,
