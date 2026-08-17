@@ -89,6 +89,17 @@
     "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
     "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
   },
+  "nx": {
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist",
+          "!{projectRoot}/dist/lib/report-html-template.js",
+          "!{projectRoot}/dist/es/report-html-template.mjs"
+        ]
+      }
+    }
+  },
   "dependencies": {
     "@midscene/shared": "workspace:*",
     "@ui-tars/action-parser": "1.2.3",

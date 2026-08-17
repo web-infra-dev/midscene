@@ -141,6 +141,9 @@ async function main() {
 async function build() {
   try {
     await run('pnpm', ['run', 'build']);
+    await run('node', [
+      'apps/report/scripts/validate-core-report-template.mjs',
+    ]);
   } catch (error) {
     console.error(chalk.red('Error building packages'));
     throw error;

@@ -22,6 +22,7 @@ import {
   uuid,
 } from '@midscene/shared/utils';
 import { IS_REPORT_BUILD } from './constants';
+import { REPORT_HTML_TEMPLATE } from './report-html-template';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -88,12 +89,13 @@ const reportGroupIdMap = new Map<string, string>();
 declare const __DEV_REPORT_PATH__: string;
 
 export function getReportTpl() {
+  if (IS_REPORT_BUILD) {
+    return '';
+  }
   if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
     return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
-  const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
-
-  return reportTpl;
+  return REPORT_HTML_TEMPLATE;
 }
 
 /**

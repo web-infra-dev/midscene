@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/ios" --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_IOS_DIAGNOSTICS_DIR/build.log"
-          node apps/report/scripts/inject-report-template.mjs
+          node apps/report/scripts/validate-core-report-template.mjs
 
       - name: Validate iOS package outputs
         id: package-smoke

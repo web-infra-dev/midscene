@@ -94,7 +94,7 @@ jobs:
           set -euo pipefail
           pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/android" --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_ANDROID_DIAGNOSTICS_DIR/build.log"
-          node apps/report/scripts/inject-report-template.mjs
+          node apps/report/scripts/validate-core-report-template.mjs
 
       - name: Validate Android package outputs
         id: package-smoke
