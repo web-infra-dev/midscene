@@ -14,6 +14,8 @@ import { buildPlanningMultiTurnExample } from './multi-turn-example';
 type BuildStandardPlanningSystemPromptInput = {
   actionSpace: DeviceAction<any>[];
   includeSubGoals?: boolean;
+  includeThought?: boolean;
+  includeLog?: boolean;
   actionOutputProtocol?: PlanningActionOutputProtocol;
 } & (
   | {
@@ -34,6 +36,8 @@ export async function buildStandardPlanningSystemPrompt(
     includeLocateInPlanning,
     locatePromptSpec,
     includeSubGoals,
+    includeThought = true,
+    includeLog = true,
     actionOutputProtocol = defaultMidsceneActionOutputProtocol,
   } = input;
   const preferredLanguage = getPreferredLanguage();
@@ -57,6 +61,10 @@ export async function buildStandardPlanningSystemPrompt(
   const shouldIncludeSubGoals = includeSubGoals ?? false;
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     shouldIncludeSubGoals ? content : fallbackContent;
+  const renderThoughtContent = (content: string, fallbackContent = '') =>
+    includeThought ? content : fallbackContent;
+  const renderLogContent = (content: string, fallbackContent = '') =>
+    includeLog ? content : fallbackContent;
 
   // Step numbering adjusts based on whether sub-goals are included
   // When includeSubGoals=false, memory step is skipped
@@ -68,7 +76,7 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: ${renderSubGoalsContent(
     'Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)',
-    'Observe (related tags: <planning>)',
+    renderThoughtContent('Observe (related tags: <planning>)', 'Observe'),
   )}
 
 First, observe the current screenshot and previous logs${renderSubGoalsContent(
@@ -81,16 +89,16 @@ ${renderSubGoalsContent(`### Observation Guidelines
 - Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
 - If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.`)}
 
-### <planning> tag (REQUIRED)
+${renderThoughtContent(`### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: ${renderSubGoalsContent(
-    "What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action?",
-    'What is the current state based on the screenshot? What should be the next action?',
-  )} Write it naturally without numbering or section headers.
+  "What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action?",
+  'What is the current state based on the screenshot? What should be the next action?',
+)} Write it naturally without numbering or section headers.
 
-CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
@@ -240,7 +248,7 @@ ${renderSubGoalsContent(
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output ${actionOutputTagsText}. The task ends here.
 
-## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, ${actionOutputTagsText}, <error>)
+## Step ${actionStepNumber}: Determine Next Action (related tags: ${renderLogContent('<log>, ')}${actionOutputTagsText}, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${renderSubGoalsContent(' and the plan')}.
 
@@ -267,7 +275,7 @@ ${includeLocateInPlanning ? locateGroundingRules() : ''}
 
 ${actionList}
 
-### Log to give user feedback (preamble message)
+${renderLogContent(`### Log to give user feedback (preamble message)
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
@@ -280,7 +288,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - <log>Click the login button</log>
 - <log>Scroll to find the 'Yes' button in popup</log>
 - <log>Previous actions failed to find the 'Yes' button, i will try again</log>
-- <log>Go back to find the login button</log>
+- <log>Go back to find the login button</log>`)}
 
 ### If there is some action to do ...
 
@@ -311,9 +319,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include (REQUIRED):**
+${renderThoughtContent(`**Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
-<planning>Your planning details here. NEVER skip this tag.</planning>
+<planning>Your planning details here. NEVER skip this tag.</planning>`)}
 ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided in the previous response -->
 <update-plan-content>...</update-plan-content>
 
@@ -332,7 +340,7 @@ ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided i
 
 **Path B: If the ${renderSubGoalsContent('goal is NOT complete', 'instruction is NOT fulfilled')} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
-<log>...</log>
+${renderLogContent('<log>...</log>')}
 ${actionOutputProtocol.actionOutputPlaceholder}
 
 <!-- OR if there's an error -->
@@ -340,6 +348,8 @@ ${actionOutputProtocol.actionOutputPlaceholder}
 
 ${buildPlanningMultiTurnExample({
   includeSubGoals: shouldIncludeSubGoals,
+  includeThought,
+  includeLog,
   locatePromptSpec,
   actionOutputProtocol,
 })}`;

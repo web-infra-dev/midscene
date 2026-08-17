@@ -21,7 +21,7 @@ import type {
 } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
-import { parseXMLPlanningResponse } from './standard-planning-parser';
+import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
 
 const debug = getDebug('planning');
@@ -29,7 +29,6 @@ const warnLog = getDebug('planning', { console: true });
 
 const noPreviousActionsText =
   'No previous actions have been executed in this aiAct execution yet. If the instruction asks for actions, choose the first action to execute.';
-
 type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
 
 type CallAndParsePlanningResponseOptions = {
@@ -40,6 +39,8 @@ type CallAndParsePlanningResponseOptions = {
   actionSpace: PlanOptions['actionSpace'];
   locateResultAdapter?: LocateResultAdapter;
   locateResultContext: LocateResultContext;
+  includeThought: boolean;
+  includeLog: boolean;
 };
 
 async function callAndParsePlanningResponse(
@@ -58,6 +59,8 @@ async function callAndParsePlanningResponse(
     actionSpace,
     locateResultAdapter,
     locateResultContext,
+    includeThought,
+    includeLog,
   } = options;
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
@@ -71,9 +74,15 @@ async function callAndParsePlanningResponse(
         },
       ),
     parseResponse: (response) => {
-      const planFromAI = parseXMLPlanningResponse(
+      const planFromAI = parseStandardPlanningResponse(
         response.content,
         modelRuntime.adapter.jsonParser,
+        {
+          includeThought,
+          ...(includeLog
+            ? { logSource: 'model' }
+            : { logSource: 'action', actionSpace }),
+        },
       );
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
@@ -140,7 +149,9 @@ export async function standardPlan(
       : undefined;
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
-  const includeSubGoals = opts.deepThink === true;
+  const includeSubGoals = opts.effort === 'deepThink';
+  const includeThought = opts.effort !== 'fast';
+  const includeLog = opts.effort !== 'fast';
 
   if (opts.includeLocateInPlanning && !locateResultAdapter) {
     throw new Error(
@@ -150,6 +161,8 @@ export async function standardPlan(
 
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
+    includeThought,
+    includeLog,
     includeSubGoals,
     ...(opts.includeLocateInPlanning && locateResultAdapter
       ? {
@@ -275,6 +288,8 @@ export async function standardPlan(
       preparedSize: preparedImage.preparedSize,
       contentSize: preparedImage.contentSize,
     },
+    includeThought,
+    includeLog,
   });
 
   let shouldContinuePlanning = true;
