@@ -157,7 +157,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
     - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
-    - `loadExtraActions?: string[]`：为本次调用加载预先录制的 UI Action YAML 文件。默认值为 `undefined`，即不加载 Extra Action。每个文件代表一次设备操作，并成为一个供通用规划器使用的无参数 Action。规划器选中后，Midscene 会在执行前将其展开为录制好的单个底层 Action。该选项仅支持 Node.js，不支持自定义规划适配器。相对路径基于当前工作目录解析。文件无效、名称重复、规划适配器不受支持或底层 Action 不可用时，Midscene 会在规划开始前抛出错误。
+    - `loadExtraActions?: string[]`：为本次调用加载一个或多个 `*.actions.yaml` Manifest。每个文件可以包含多个 Extra Action。`validWhenTargetExists` 指向的元素存在时，动作会排在通用 Action Space 之前；没有这个条件的动作始终可用。该选项仅支持 Node.js 和通用规划适配器。Manifest 无效、名称重复、界面类型不匹配或底层 Action 不可用时，Midscene 会在规划前抛出错误。
     - `loadElementXpaths?: string[]`：为本次调用加载已知 UI 元素名称到 XPath 的 YAML 映射。Midscene 会把映射提供给规划器，并在执行前为匹配的 Action 注入 XPath。XPath 匹配成功时使用确定性的 DOM 解析，不调用定位模型；元素名未匹配或 XPath 已失效时，回退到普通 AI Locate。该选项仅支持 Node.js，相对路径基于当前工作目录解析。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
@@ -189,30 +189,37 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 
 ##### 加载预先录制的 UI Action
 
-一个 Extra Action 文件定义一次可复用的设备操作。
+一个 Action Manifest 可以包含多个可复用操作。`action.name` 引用 Action Space 中的现有 Action，`action.param` 直接使用该 Action 的参数结构。
 
-`name` 是展示给规划器的操作名称。`actionName` 指向当前界面 `Action Space` 中已有的 Action。`actionParam` 必须且只能包含一项参数：
-
-```yaml title="extra-action.yaml"
-name: 点击确定按钮
-actionName: tap
-actionParam:
-  - xpath: /path/to/#confirm-button
+```yaml title="checkout.actions.yaml"
+version: 1
+interface: web
+actions:
+  - name: 点击结算弹窗的确定按钮
+    validWhenTargetExists:
+      strategy: xpath
+      selector: //div[@role="dialog"]//button[@data-testid="confirm"]
+    action:
+      name: Tap
+      param:
+        locate:
+          prompt: 结算弹窗的确定按钮
+          target:
+            strategy: xpath
+            selector: //div[@role="dialog"]//button[@data-testid="confirm"]
 ```
 
-在单次 `aiAct` 中传入一个或多个文件：
-
 ```typescript
-await agent.aiAct('填写表单', {
-  loadExtraActions: ['./extra-action.yaml'],
+await agent.aiAct('确认结算', {
+  loadExtraActions: ['./checkout.actions.yaml'],
 });
 ```
 
-该选项仅支持 Node.js 和通用规划适配器。如果当前模型使用 UI-TARS、AutoGLM 等自定义规划适配器，`aiAct` 会在读取文件或调用模型之前抛出错误。
+每轮规划前，Midscene 会检查所有 `validWhenTargetExists`，但不会滚动、聚焦、点击或改变页面状态。目标存在的动作会全部披露，并排在通用 Actions 之前。即使披露集合发生变化，同一个动作在本次 `aiAct` 中也始终使用同一个无参数别名。模型只会看到别名和动作 `name`，不会看到 selector。模型返回别名后，Midscene 使用本轮同一份披露快照，将它展开为一个内置 Action。
 
-Extra Action 只对本次调用的规划器可见，不会修改 Agent 的 `Action Space`。`name` 不能包含尖括号、换行符或控制字符。`actionName` 可以填写 Action 名称或 `interfaceAlias`，匹配时不区分大小写。`actionParam` 必须只包含一项，规划开始前 Midscene 会根据目标 Action 校验该参数。若要复用多次操作，请将每次操作分别录制为一个文件，再通过 `loadExtraActions` 传入全部文件路径。
+执行时，Midscene 会重新把 `target` 解析为最新 Rect。如果目标失效，会继续使用 Locate Cache，再回退到 AI Locate。`target` 是正式字段；旧资产中的 `xpath` 仍可读取，但同一个 locator 不能同时包含 `target` 和 `xpath`。
 
-若底层 Action 只有一个定位字段，可以使用上面的简写。参数直接包含 `prompt`、`xpath` 或 `locatedPixelBbox` 即可。Midscene 只会把定位属性移入定位字段，`Input` 的 `value`、`mode` 等其他参数仍保留在顶层。如果定位参数包含 XPath 或 `locatedPixelBbox`，但没有提示词，Midscene 会使用 Extra Action 的 `name` 作为备用定位提示词。
+Extra Action 仅对当前 `aiAct` 生效，不会修改 Agent。该能力只支持通用规划适配器。UI-TARS、AutoGLM 等自定义适配器会在调用模型前报错。
 
 ##### 加载已知元素 XPath
 
@@ -236,7 +243,7 @@ await agent.aiAct(
 );
 ```
 
-规划器仍然负责选择 Action，并生成 Input 值等动态参数。当 Action 需要定位映射内的元素时，规划器使用映射键作为定位提示词，Midscene 在生成可执行任务前注入对应 XPath。可直接作用于当前焦点元素的 Action 不需要重复添加 locator。XPath 解析成功时，Locate 任务不会调用模型；规划器使用了未映射的提示词或 XPath 已失效时，Midscene 保留现有的 AI Locate 回退。该映射仅对本次调用生效，不会修改 Agent，同时会进入 Plan Cache 的键。缓存 YAML 会保留 XPath，因此缓存回放也不需要调用定位模型。
+规划器仍然负责选择 Action，并生成 Input 值等动态参数。当 Action 需要定位映射内的元素时，规划器使用映射键作为定位提示词，Midscene 在生成可执行任务前把对应 XPath 注入为 `target`。可直接作用于当前焦点元素的 Action 不需要重复添加 locator。目标解析成功时，Locate 任务不会调用模型；规划器使用了未映射的提示词或 XPath 已失效时，Midscene 保留现有的 AI Locate 回退。该映射仅对本次调用生效，不会修改 Agent，同时会进入 Plan Cache 的键。缓存 YAML 会保留 target，因此缓存回放也不需要调用定位模型。
 
 ##### 在 `aiAct` 提示词中上传文件
 

@@ -1,14 +1,21 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import yaml from 'js-yaml';
+import {
+  type ExtraActionDefinition,
+  type ExtraActionManifest,
+  parseExtraActionManifest,
+} from './agent/extra-action-manifest';
+import {
+  type LocatorTarget,
+  LocatorTargetSchema,
+  xpathLocatorTarget,
+} from './locator';
 import { collectDedupedExecutions } from './report';
 import type { ExecutionTask } from './types';
 
-export interface UIActionDefinition {
-  name: string;
-  actionName: string;
-  actionParam: [unknown];
-}
+export type UIActionDefinition = ExtraActionDefinition;
+export type UIActionManifest = ExtraActionManifest;
 
 export interface AnalyzeReportActionsOptions {
   htmlPath: string;
@@ -19,7 +26,9 @@ export interface AnalyzeReportActionsOptions {
 export interface AnalyzeReportActionsResult {
   outputDir: string;
   actionFiles: string[];
+  actionCount: number;
   coordinateFallbackFiles: string[];
+  coordinateFallbackActionCount: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,11 +42,23 @@ function firstNonEmptyString(...values: unknown[]): string | undefined {
   );
 }
 
-function firstXpath(value: unknown): string | undefined {
-  if (!isRecord(value)) return undefined;
-  const xpaths = value.xpaths;
-  if (!Array.isArray(xpaths)) return undefined;
-  return firstNonEmptyString(...xpaths);
+function firstTarget(value: unknown): LocatorTarget | undefined {
+  if (!isRecord(value) || !Array.isArray(value.targets)) return undefined;
+  for (const target of value.targets) {
+    const parsed = LocatorTargetSchema.safeParse(target);
+    if (parsed.success) return parsed.data;
+  }
+  return undefined;
+}
+
+function firstLegacyXpath(value: unknown): string | undefined {
+  if (!isRecord(value) || !Array.isArray(value.xpaths)) return undefined;
+  return firstNonEmptyString(...value.xpaths);
+}
+
+function targetFromValue(value: unknown): LocatorTarget | undefined {
+  const parsed = LocatorTargetSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function validLocatedPixelBbox(
@@ -52,12 +73,7 @@ function validLocatedPixelBbox(
 
 function isLocatedElement(value: unknown): value is Record<string, unknown> & {
   description?: string;
-  rect: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
+  rect: { left: number; top: number; width: number; height: number };
 } {
   if (!isRecord(value) || !isRecord(value.rect)) return false;
   const { left, top, width, height } = value.rect;
@@ -70,35 +86,46 @@ function locatorFromTask(
   locateTask: ExecutionTask | undefined,
   locatedElement: Record<string, unknown> & {
     description?: string;
-    rect: {
-      left: number;
-      top: number;
-      width: number;
-      height: number;
-    };
+    rect: { left: number; top: number; width: number; height: number };
   },
-): { value: Record<string, unknown>; usedCoordinateFallback: boolean } {
+): {
+  value: Record<string, unknown>;
+  target?: LocatorTarget;
+  usedCoordinateFallback: boolean;
+} {
   const sourceParam = isRecord(locateTask?.param) ? locateTask.param : {};
   const hitContext = isRecord(locateTask?.hitBy?.context)
     ? locateTask.hitBy.context
     : {};
-
   const prompt =
     sourceParam.prompt ??
     firstNonEmptyString(sourceParam.promptDisplay, locatedElement.description);
-  const xpath = firstNonEmptyString(
+  const attemptedTargetFailed =
+    typeof hitContext.targetResolutionError === 'string' &&
+    hitContext.targetResolutionError.trim().length > 0;
+  const target =
+    (!attemptedTargetFailed
+      ? (targetFromValue(sourceParam.target) ??
+        targetFromValue(hitContext.target))
+      : undefined) ??
+    firstTarget(hitContext.cacheToSave) ??
+    firstTarget(hitContext.cacheEntry);
+  const legacyXpath = firstNonEmptyString(
     sourceParam.xpath,
     hitContext.xpath,
-    firstXpath(hitContext.cacheToSave),
-    firstXpath(hitContext.cacheEntry),
+    firstLegacyXpath(hitContext.cacheToSave),
+    firstLegacyXpath(hitContext.cacheEntry),
   );
+  const normalizedTarget =
+    target ?? (legacyXpath ? xpathLocatorTarget(legacyXpath) : undefined);
 
-  if (xpath) {
+  if (normalizedTarget) {
     return {
       value: {
         ...(prompt !== undefined ? { prompt } : {}),
-        xpath,
+        target: normalizedTarget,
       },
+      target: normalizedTarget,
       usedCoordinateFallback: false,
     };
   }
@@ -112,7 +139,6 @@ function locatorFromTask(
     locatedElement.rect.left + locatedElement.rect.width,
     locatedElement.rect.top + locatedElement.rect.height,
   ];
-
   return {
     value: {
       ...(prompt !== undefined ? { prompt } : {}),
@@ -126,70 +152,68 @@ function restoreStableLocators(
   value: unknown,
   locateTasks: ExecutionTask[],
   locateIndex: { value: number },
-): { value: unknown; usedCoordinateFallback: boolean } {
+): {
+  value: unknown;
+  targets: LocatorTarget[];
+  usedCoordinateFallback: boolean;
+} {
   if (isLocatedElement(value)) {
     const result = locatorFromTask(locateTasks[locateIndex.value], value);
     locateIndex.value += 1;
-    return result;
+    return {
+      value: result.value,
+      targets: result.target ? [result.target] : [],
+      usedCoordinateFallback: result.usedCoordinateFallback,
+    };
   }
-
   if (Array.isArray(value)) {
-    let usedCoordinateFallback = false;
-    const restored = value.map((item) => {
-      const result = restoreStableLocators(item, locateTasks, locateIndex);
-      usedCoordinateFallback ||= result.usedCoordinateFallback;
-      return result.value;
-    });
-    return { value: restored, usedCoordinateFallback };
-  }
-
-  if (isRecord(value)) {
-    let usedCoordinateFallback = false;
-    const restored = Object.fromEntries(
-      Object.entries(value).map(([key, item]) => {
-        const result = restoreStableLocators(item, locateTasks, locateIndex);
-        usedCoordinateFallback ||= result.usedCoordinateFallback;
-        return [key, result.value];
-      }),
+    const restored = value.map((item) =>
+      restoreStableLocators(item, locateTasks, locateIndex),
     );
-    return { value: restored, usedCoordinateFallback };
+    return {
+      value: restored.map((item) => item.value),
+      targets: restored.flatMap((item) => item.targets),
+      usedCoordinateFallback: restored.some(
+        (item) => item.usedCoordinateFallback,
+      ),
+    };
   }
-
-  return { value, usedCoordinateFallback: false };
-}
-
-function flattenSingleLocatorShortcut(
-  originalParam: unknown,
-  restoredParam: unknown,
-): unknown {
-  if (!isRecord(originalParam) || !isRecord(restoredParam)) {
-    return restoredParam;
+  if (isRecord(value)) {
+    const restored = Object.entries(value).map(
+      ([key, item]) =>
+        [key, restoreStableLocators(item, locateTasks, locateIndex)] as const,
+    );
+    return {
+      value: Object.fromEntries(
+        restored.map(([key, item]) => [key, item.value]),
+      ),
+      targets: restored.flatMap(([, item]) => item.targets),
+      usedCoordinateFallback: restored.some(
+        ([, item]) => item.usedCoordinateFallback,
+      ),
+    };
   }
-
-  const locatorFields = Object.entries(originalParam).filter(([, value]) =>
-    isLocatedElement(value),
-  );
-  if (locatorFields.length !== 1) return restoredParam;
-
-  const [locatorField] = locatorFields[0];
-  const restoredLocator = restoredParam[locatorField];
-  if (!isRecord(restoredLocator)) return restoredParam;
-
-  return {
-    ...Object.fromEntries(
-      Object.entries(restoredParam).filter(([key]) => key !== locatorField),
-    ),
-    ...restoredLocator,
-  };
+  return { value, targets: [], usedCoordinateFallback: false };
 }
 
 function actionNameFromTask(
   task: ExecutionTask,
+  plannedAction: Record<string, unknown> | undefined,
   planLog: string | undefined,
 ): string {
   const actionName = task.subType || 'Action';
-  if (planLog) {
-    const sanitizedPlanLog = Array.from(planLog)
+  const extraActionName = isRecord(task.hitBy?.context)
+    ? firstNonEmptyString(task.hitBy.context.extraActionName)
+    : undefined;
+  if (task.hitBy?.from === 'Extra Action' && extraActionName) {
+    return extraActionName;
+  }
+  const planningDescription = firstNonEmptyString(
+    plannedAction?.thought,
+    planLog,
+  );
+  if (planningDescription) {
+    const sanitizedPlanningDescription = Array.from(planningDescription)
       .map((character) => {
         const codePoint = character.codePointAt(0);
         const invalid =
@@ -206,13 +230,12 @@ function actionNameFromTask(
       .replace(/\s+/g, ' ')
       .trim();
     if (
-      sanitizedPlanLog &&
-      sanitizedPlanLog.toLowerCase() !== actionName.toLowerCase()
+      sanitizedPlanningDescription &&
+      sanitizedPlanningDescription.toLowerCase() !== actionName.toLowerCase()
     ) {
-      return sanitizedPlanLog;
+      return sanitizedPlanningDescription;
     }
   }
-
   if (isRecord(task.param)) {
     for (const value of Object.values(task.param)) {
       if (isLocatedElement(value) && value.description) {
@@ -239,64 +262,72 @@ function extractUIActions(
 
   for (const execution of executions) {
     let planLog: string | undefined;
+    let plannedActions: Record<string, unknown>[] = [];
+    let planActionCount = 0;
     let pendingLocateTasks: ExecutionTask[] = [];
-
     for (const task of execution.tasks) {
       if (task.type === 'Planning' && task.subType === 'Plan') {
-        planLog = isRecord(task.output)
-          ? firstNonEmptyString(task.output.log)
-          : undefined;
+        const planOutput = isRecord(task.output) ? task.output : {};
+        planLog = firstNonEmptyString(planOutput.log);
+        plannedActions = Array.isArray(planOutput.actions)
+          ? planOutput.actions.filter(isRecord)
+          : [];
+        planActionCount = plannedActions.length;
+        pendingLocateTasks = [];
         continue;
       }
-
       if (task.type === 'Planning' && task.subType === 'Locate') {
-        pendingLocateTasks.push(task);
+        if (task.status === 'finished') {
+          pendingLocateTasks.push(task);
+        }
         continue;
       }
-
       if (task.type !== 'Action Space') continue;
+
+      if (task.subType === 'Finished') {
+        pendingLocateTasks = [];
+        continue;
+      }
 
       const locateTasks = pendingLocateTasks;
       pendingLocateTasks = [];
-      const currentPlanLog = planLog;
-      planLog = undefined;
-
-      if (task.status !== 'finished' || task.subType === 'Finished') {
-        continue;
-      }
+      const plannedAction = plannedActions.shift();
+      const currentPlanLog = planActionCount <= 1 ? planLog : undefined;
+      if (task.status !== 'finished') continue;
 
       const restored = restoreStableLocators(task.param, locateTasks, {
         value: 0,
       });
-      const baseName = actionNameFromTask(task, currentPlanLog);
+      const baseName = actionNameFromTask(task, plannedAction, currentPlanLog);
       const nameCount = (nameCounts.get(baseName) ?? 0) + 1;
       nameCounts.set(baseName, nameCount);
       actions.push({
         definition: {
           name: nameCount === 1 ? baseName : `${baseName} (${nameCount})`,
-          actionName: task.subType || 'Action',
-          actionParam: [
-            flattenSingleLocatorShortcut(task.param, restored.value),
-          ],
+          ...(restored.targets.length > 0
+            ? { validWhenTargetExists: restored.targets[0] }
+            : {}),
+          action: {
+            name: task.subType || 'Action',
+            ...(restored.value !== undefined && restored.value !== null
+              ? { param: restored.value }
+              : {}),
+          },
         },
         usedCoordinateFallback: restored.usedCoordinateFallback,
       });
     }
   }
-
   return actions;
 }
 
 function resolveReportHtmlPath(htmlPath: string): string {
   const normalizedPath = path.resolve(htmlPath);
-
   if (!existsSync(normalizedPath)) {
     throw new Error(`analyzeReportActions: report does not exist: ${htmlPath}`);
   }
-
   const stats = statSync(normalizedPath);
   if (!stats.isDirectory()) return normalizedPath;
-
   const indexHtmlPath = path.join(normalizedPath, 'index.html');
   if (!existsSync(indexHtmlPath)) {
     throw new Error(
@@ -306,21 +337,23 @@ function resolveReportHtmlPath(htmlPath: string): string {
   return indexHtmlPath;
 }
 
-function defaultAnalyzeOutputDir(resolvedHtmlPath: string): string {
-  const reportDir = path.dirname(resolvedHtmlPath);
-  const reportBaseName = path.basename(
+function reportBaseName(resolvedHtmlPath: string): string {
+  const baseName = path.basename(
     resolvedHtmlPath,
     path.extname(resolvedHtmlPath),
   );
+  return baseName === 'index'
+    ? path.basename(path.dirname(resolvedHtmlPath))
+    : baseName;
+}
 
-  if (reportBaseName === 'index') {
-    return path.join(
-      path.dirname(reportDir),
-      `${path.basename(reportDir)}-ui-actions`,
-    );
-  }
-
-  return path.join(reportDir, `${reportBaseName}-ui-actions`);
+function defaultAnalyzeOutputDir(resolvedHtmlPath: string): string {
+  const reportDir = path.dirname(resolvedHtmlPath);
+  const baseName = reportBaseName(resolvedHtmlPath);
+  return path.basename(resolvedHtmlPath, path.extname(resolvedHtmlPath)) ===
+    'index'
+    ? path.join(path.dirname(reportDir), `${baseName}-ui-actions`)
+    : path.join(reportDir, `${baseName}-ui-actions`);
 }
 
 export function analyzeReportActions(
@@ -329,51 +362,66 @@ export function analyzeReportActions(
   if (!options.htmlPath) {
     throw new Error('analyzeReportActions: htmlPath is required');
   }
-
   const resolvedHtmlPath = resolveReportHtmlPath(options.htmlPath);
   const outputDir = path.resolve(
     options.outputDir ?? defaultAnalyzeOutputDir(resolvedHtmlPath),
   );
-  const { executions } = collectDedupedExecutions(resolvedHtmlPath);
+  const { executions, manifestInterfaces } =
+    collectDedupedExecutions(resolvedHtmlPath);
+  const normalizedManifestInterfaces = manifestInterfaces.map((value) =>
+    value.trim(),
+  );
+  const uniqueManifestInterfaces = new Set(normalizedManifestInterfaces);
+  const manifestInterface = Array.from(uniqueManifestInterfaces)[0];
+  if (
+    !manifestInterface ||
+    uniqueManifestInterfaces.size !== 1 ||
+    manifestInterface === 'mixed' ||
+    manifestInterface === 'unknown'
+  ) {
+    throw new Error(
+      `analyzeReportActions: every report dump with executions must declare the same canonical manifestInterface; received ${JSON.stringify(normalizedManifestInterfaces)}`,
+    );
+  }
   const actions = extractUIActions(executions);
-
   if (actions.length === 0) {
     throw new Error(
       `analyzeReportActions: no successful UI actions found in ${options.htmlPath}`,
     );
   }
 
-  const actionFiles = actions.map((action, index) =>
-    path.join(
-      outputDir,
-      `${String(index + 1).padStart(3, '0')}-${action.definition.actionName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'action'}.yaml`,
-    ),
+  const actionFile = path.join(
+    outputDir,
+    `${reportBaseName(resolvedHtmlPath)}.actions.yaml`,
   );
-  const existingFiles = actionFiles.filter((file) => existsSync(file));
-  if (existingFiles.length > 0 && !options.overwrite) {
+  if (existsSync(actionFile) && !options.overwrite) {
     throw new Error(
-      `analyzeReportActions: output file already exists: ${existingFiles[0]}. Pass overwrite: true or --overwrite to replace generated UI Actions.`,
+      `analyzeReportActions: output file already exists: ${actionFile}. Pass overwrite: true or --overwrite to replace the generated Action Manifest.`,
     );
   }
-
-  mkdirSync(outputDir, { recursive: true });
-  actions.forEach((action, index) => {
-    writeFileSync(
-      actionFiles[index],
-      yaml.dump(action.definition, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true,
-      }),
-      'utf-8',
-    );
+  const manifest: UIActionManifest = {
+    version: 1,
+    interface: manifestInterface,
+    actions: actions.map((action) => action.definition),
+  };
+  const manifestYaml = yaml.dump(manifest, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
   });
+  parseExtraActionManifest(manifestYaml, actionFile);
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(actionFile, manifestYaml, 'utf-8');
 
+  const coordinateFallbackActionCount = actions.filter(
+    (action) => action.usedCoordinateFallback,
+  ).length;
   return {
     outputDir,
-    actionFiles,
-    coordinateFallbackFiles: actionFiles.filter(
-      (_file, index) => actions[index].usedCoordinateFallback,
-    ),
+    actionFiles: [actionFile],
+    actionCount: actions.length,
+    coordinateFallbackFiles:
+      coordinateFallbackActionCount > 0 ? [actionFile] : [],
+    coordinateFallbackActionCount,
   };
 }

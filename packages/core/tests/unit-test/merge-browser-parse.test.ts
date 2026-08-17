@@ -47,6 +47,7 @@ function createDump(screenshots: ScreenshotItem[]): ReportActionDump {
 
   return new ReportActionDump({
     sdkVersion: '1.0.0-test',
+    manifestInterface: 'web',
     groupName: 'test-group',
     groupDescription: 'test desc',
     modelBriefs: [{ name: 'test-model' }],
@@ -88,6 +89,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     const dump = createDump([screenshot]);
     const groupMeta: ReportMeta = {
       sdkVersion: dump.sdkVersion,
+      manifestInterface: dump.manifestInterface,
       groupName: dump.groupName,
       groupDescription: dump.groupDescription,
       modelBriefs: dump.modelBriefs,
@@ -130,6 +132,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
       const dump = createDump(screenshots);
       const groupMeta: ReportMeta = {
         sdkVersion: dump.sdkVersion,
+        manifestInterface: dump.manifestInterface,
         groupName: dump.groupName,
         groupDescription: dump.groupDescription,
         modelBriefs: dump.modelBriefs,
@@ -213,6 +216,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     const dump = createDump([screenshot]);
     const groupMeta: ReportMeta = {
       sdkVersion: dump.sdkVersion,
+      manifestInterface: dump.manifestInterface,
       groupName: dump.groupName,
       groupDescription: dump.groupDescription,
       modelBriefs: dump.modelBriefs,

@@ -42,6 +42,7 @@ async function writeAndFinalize(
     groupName: dump.groupName,
     groupDescription: dump.groupDescription,
     sdkVersion: dump.sdkVersion,
+    manifestInterface: dump.manifestInterface,
     modelBriefs: dump.modelBriefs,
     deviceType: dump.deviceType,
   };
@@ -69,6 +70,7 @@ function createDump(groupName: string, taskCount: number): ReportActionDump {
 
   return new ReportActionDump({
     sdkVersion: '1.0.0-test',
+    manifestInterface: 'web',
     groupName,
     groupDescription: `desc of ${groupName}`,
     modelBriefs: [{ name: 'test-model' }],
@@ -404,6 +406,7 @@ describe('ReportMergingTool merged dump count verification', () => {
       const groupMeta: ReportMeta = {
         groupName: `multi-group-${i}`,
         sdkVersion: '1.0.0-test',
+        manifestInterface: 'web',
         modelBriefs: [{ name: 'test-model' }],
       };
       for (let e = 0; e < execsPerReport; e++) {

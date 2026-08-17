@@ -580,6 +580,8 @@ export class Agent<
       executions: [],
       modelBriefs: [],
       deviceType: this.interface.interfaceType,
+      manifestInterface:
+        this.interface.manifestInterface?.() ?? this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
@@ -692,6 +694,7 @@ export class Agent<
       sdkVersion: this.dump.sdkVersion,
       modelBriefs: this.dump.modelBriefs,
       deviceType: this.dump.deviceType,
+      manifestInterface: this.dump.manifestInterface,
     };
   }
 

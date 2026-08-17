@@ -160,8 +160,17 @@ export class ReportActionDump implements IReportActionDump {
   modelBriefs: IReportActionDump['modelBriefs'];
   executions: ExecutionDump[];
   deviceType?: string;
+  manifestInterface: string;
 
   constructor(data: IReportActionDump) {
+    if (
+      typeof data.manifestInterface !== 'string' ||
+      !data.manifestInterface.trim()
+    ) {
+      throw new Error(
+        'ReportActionDump: manifestInterface must be a non-empty string',
+      );
+    }
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -170,6 +179,7 @@ export class ReportActionDump implements IReportActionDump {
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
     this.deviceType = data.deviceType;
+    this.manifestInterface = data.manifestInterface.trim();
   }
 
   /**
@@ -218,6 +228,7 @@ export class ReportActionDump implements IReportActionDump {
       modelBriefs: this.modelBriefs,
       executions: this.executions.map((exec) => exec.toJSON()),
       deviceType: this.deviceType,
+      manifestInterface: this.manifestInterface,
     };
   }
 

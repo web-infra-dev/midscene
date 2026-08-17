@@ -128,6 +128,7 @@ export {
   type AnalyzeReportActionsOptions,
   type AnalyzeReportActionsResult,
   type UIActionDefinition,
+  type UIActionManifest,
 } from './report-analyzer';
 
 // ScreenshotItem
