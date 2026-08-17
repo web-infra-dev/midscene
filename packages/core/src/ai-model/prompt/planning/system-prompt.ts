@@ -298,6 +298,7 @@ ${buildActionExample(
   createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
   {
     locatePromptSpec,
+    locateResultExampleIndex: 1,
   },
 )}
 

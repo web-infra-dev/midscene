@@ -699,7 +699,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [100, 100, 200, 200]
+    "bbox": [345, 442, 458, 483]
   }
 }
 </action-param-json>
@@ -1429,7 +1429,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [100, 100, 200, 200]
+    "bbox": [442, 345, 483, 458]
   }
 }
 </action-param-json>
@@ -2280,7 +2280,7 @@ For example:
 {
   "locate": {
     "prompt": "Add to cart button for Sauce Labs Backpack",
-    "bbox": [100, 100, 200, 200]
+    "bbox": [345, 442, 458, 483]
   }
 }
 </action-param-json>
