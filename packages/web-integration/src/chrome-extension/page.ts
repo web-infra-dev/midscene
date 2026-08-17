@@ -9,6 +9,7 @@ import { limitOpenNewTabScript } from '@/web-element';
 import type {
   ElementCacheFeature,
   ElementTreeNode,
+  LocatorTarget,
   Point,
   Rect,
   Size,
@@ -30,7 +31,9 @@ import {
   type WebElementCacheFeature,
   buildRectFromElementInfo,
   judgeOrderSensitive,
+  sanitizeLocatorTargets,
   sanitizeXpaths,
+  targetsFromXpaths,
 } from '../common/cache-helper';
 import {
   type KeyInput,
@@ -156,6 +159,10 @@ function serializeError(error: Error): {
 
 export default class ChromeExtensionProxyPage implements AbstractInterface {
   interfaceType = 'chrome-extension-proxy';
+
+  manifestInterface() {
+    return 'web';
+  }
 
   public forceSameTabNavigation: boolean;
 
@@ -742,29 +749,68 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     try {
       const isOrderSensitive = await judgeOrderSensitive(options, debug);
       const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
-      return { xpaths: sanitizeXpaths(xpaths) };
+      return { targets: targetsFromXpaths(xpaths) };
     } catch (error) {
       debug('cacheFeatureForPoint failed: %O', error);
-      return { xpaths: [] };
+      return { targets: [] };
     }
   }
 
-  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+  async probeLocatorTargets(
+    targets: readonly LocatorTarget[],
+    options?: { signal?: AbortSignal },
+  ): Promise<readonly boolean[]> {
+    options?.signal?.throwIfAborted();
+    const selectors = targets.map((target) => {
+      if (target.strategy !== 'xpath') {
+        throw new Error(
+          `Unsupported locator target strategy: ${target.strategy}`,
+        );
+      }
+      return target.selector;
+    });
+    const script = await getHtmlElementScript();
+    await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: script,
+    });
+    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `${JSON.stringify(selectors)}.map((xpath) => window.midscene_element_inspector.getNodeCountByXpath(xpath) > 0)`,
+      returnByValue: true,
+    });
+    options?.signal?.throwIfAborted();
+    return result.result.value;
+  }
 
-    for (const xpath of xpaths) {
+  async resolveLocatorTarget(target: LocatorTarget): Promise<Rect> {
+    if (target.strategy !== 'xpath') {
+      throw new Error(
+        `Unsupported locator target strategy: ${target.strategy}`,
+      );
+    }
+    const elementInfo = await this.getElementInfoByXpath(target.selector);
+    if (!elementInfo?.rect) {
+      throw new Error(`XPath target does not exist: ${target.selector}`);
+    }
+    return buildRectFromElementInfo(elementInfo);
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const targets = sanitizeLocatorTargets(feature as WebElementCacheFeature);
+
+    for (const target of targets) {
       try {
-        const elementInfo = await this.getElementInfoByXpath(xpath);
-        if (elementInfo?.rect) {
-          return buildRectFromElementInfo(elementInfo);
-        }
+        return await this.resolveLocatorTarget(target);
       } catch (error) {
-        debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
+        debug(
+          'rectMatchesCacheFeature failed for target %o: %O',
+          target,
+          error,
+        );
       }
     }
 
     throw new Error(
-      `No matching element rect found for cache feature (tried ${xpaths.length} xpath(s))`,
+      `No matching element rect found for cache feature (tried ${targets.length} target(s))`,
     );
   }
 

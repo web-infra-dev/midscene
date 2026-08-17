@@ -10,6 +10,7 @@ import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
+import type { LocatorTarget } from '../locator';
 import type {
   ElementCacheFeature,
   Rect,
@@ -172,6 +173,9 @@ export interface ComputerInputPrimitives extends InputPrimitives {
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
+  /** Canonical platform name accepted by Extra Action manifests. */
+  manifestInterface?(): string;
+
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
@@ -186,6 +190,13 @@ export abstract class AbstractInterface {
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
   ): Promise<Rect>;
+  /** Side-effect-free batch existence check used for conditional disclosure. */
+  probeLocatorTargets?(
+    targets: readonly LocatorTarget[],
+    options?: { signal?: AbortSignal },
+  ): Promise<readonly boolean[]>;
+  /** Resolve a stable target to a fresh logical-coordinate Rect for execution. */
+  resolveLocatorTarget?(target: LocatorTarget): Promise<Rect>;
 
   abstract getUITree?(): Promise<UITreeSnapshot>;
 

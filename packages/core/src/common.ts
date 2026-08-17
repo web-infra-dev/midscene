@@ -16,6 +16,7 @@ import {
 import { assert, isPlainObject } from '@midscene/shared/utils';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import { z } from 'zod';
+import { LocatorTargetSchema } from './locator';
 
 /**
  * Expand the search area to at least 400 x 400 pixels
@@ -287,6 +288,7 @@ const MidsceneLocationInput = z
       .describe('@deprecated Use `deepLocate` instead.'),
     cacheable: z.boolean().optional(),
     xpath: z.union([z.string(), z.boolean()]).optional(),
+    target: LocatorTargetSchema.optional(),
   })
   .passthrough();
 
@@ -299,10 +301,23 @@ export const getMidsceneLocationSchema = () => {
 };
 
 export const ifMidsceneLocatorField = (field: any): boolean => {
-  // Handle optional fields by getting the inner type
+  // Unwrap optional/nullable/effect wrappers before checking the object shape.
   let actualField = field;
-  if (actualField._def?.typeName === 'ZodOptional') {
-    actualField = actualField._def.innerType;
+  const visited = new Set<unknown>();
+  while (actualField?._def && !visited.has(actualField)) {
+    visited.add(actualField);
+    if (
+      actualField._def.typeName === 'ZodOptional' ||
+      actualField._def.typeName === 'ZodNullable'
+    ) {
+      actualField = actualField._def.innerType;
+      continue;
+    }
+    if (actualField._def.typeName === 'ZodEffects') {
+      actualField = actualField._def.schema;
+      continue;
+    }
+    break;
   }
 
   // Check if this is a ZodObject
@@ -408,7 +423,9 @@ export const dumpActionParam = (
       } else if (typeof fieldValue === 'object') {
         // Check if this field is actually a MidsceneLocationType object
         if (fieldValue.prompt) {
-          const preserveLocatorObject = typeof fieldValue.xpath === 'string';
+          const preserveLocatorObject =
+            typeof fieldValue.xpath === 'string' ||
+            fieldValue.target !== undefined;
           // If prompt is a string, use it directly
           if (typeof fieldValue.prompt === 'string') {
             result[fieldName] = preserveLocatorObject

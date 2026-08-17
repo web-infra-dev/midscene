@@ -4,6 +4,7 @@ import type {
   DeviceAction,
   ElementCacheFeature,
   ElementTreeNode,
+  LocatorTarget,
   Point,
   Rect,
   Size,
@@ -40,7 +41,9 @@ import {
   type WebElementCacheFeature,
   buildRectFromElementInfo,
   judgeOrderSensitive,
+  sanitizeLocatorTargets,
   sanitizeXpaths,
+  targetsFromXpaths,
 } from '../common/cache-helper';
 import {
   type KeyInput,
@@ -225,6 +228,10 @@ export class Page<
   private visualUpdateFollowupTimer?: ReturnType<typeof setTimeout>;
   interfaceType: AgentType;
 
+  manifestInterface() {
+    return 'web';
+  }
+
   actionSpace(): DeviceAction[] {
     const defaultActions = commonWebActionsForWebPage(
       this,
@@ -390,43 +397,65 @@ export class Page<
       if (!sanitized.length) {
         debugPage('cacheFeatureForPoint: no xpath found at point %o', center);
       }
-      return { xpaths: sanitized };
+      return { targets: targetsFromXpaths(sanitized) };
     } catch (error) {
       debugPage('cacheFeatureForPoint failed: %s', error);
-      return { xpaths: [] };
+      return { targets: [] };
     }
   }
 
-  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
-    debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
-
-    for (const xpath of xpaths) {
-      try {
-        debugPage('rectMatchesCacheFeature: evaluating xpath: %s', xpath);
-        const elementInfo = await this.getElementInfoByXpath(xpath);
-        if (elementInfo?.rect) {
-          debugPage(
-            'rectMatchesCacheFeature: found element, rect: %o',
-            elementInfo.rect,
-          );
-          return buildRectFromElementInfo(elementInfo);
-        }
-        debugPage(
-          'rectMatchesCacheFeature: element found but no rect (elementInfo: %o)',
-          elementInfo,
+  async probeLocatorTargets(
+    targets: readonly LocatorTarget[],
+    options?: { signal?: AbortSignal },
+  ): Promise<readonly boolean[]> {
+    options?.signal?.throwIfAborted();
+    const selectors = targets.map((target) => {
+      if (target.strategy !== 'xpath') {
+        throw new Error(
+          `Unsupported locator target strategy: ${target.strategy}`,
         );
+      }
+      return target.selector;
+    });
+    const elementInfosScriptContent = getElementInfosScriptContent();
+    const result = await this.evaluateJavaScript<boolean[]>(
+      `${elementInfosScriptContent}${JSON.stringify(selectors)}.map((xpath) => midscene_element_inspector.getNodeCountByXpath(xpath) > 0)`,
+    );
+    options?.signal?.throwIfAborted();
+    return result;
+  }
+
+  async resolveLocatorTarget(target: LocatorTarget): Promise<Rect> {
+    if (target.strategy !== 'xpath') {
+      throw new Error(
+        `Unsupported locator target strategy: ${target.strategy}`,
+      );
+    }
+    const elementInfo = await this.getElementInfoByXpath(target.selector);
+    if (!elementInfo?.rect) {
+      throw new Error(`XPath target does not exist: ${target.selector}`);
+    }
+    return buildRectFromElementInfo(elementInfo);
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const targets = sanitizeLocatorTargets(feature as WebElementCacheFeature);
+    debugPage('rectMatchesCacheFeature: trying %d target(s)', targets.length);
+
+    for (const target of targets) {
+      try {
+        return await this.resolveLocatorTarget(target);
       } catch (error) {
         debugPage(
-          'rectMatchesCacheFeature failed for xpath %s: %s',
-          xpath,
+          'rectMatchesCacheFeature failed for target %o: %s',
+          target,
           error,
         );
       }
     }
 
     throw new Error(
-      `No matching element rect found for the provided cache feature (tried ${xpaths.length} xpath(s): ${xpaths.join(', ')})`,
+      `No matching element rect found for the provided cache feature (tried ${targets.length} target(s))`,
     );
   }
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getElementInfoByXpath,
+  getNodeCountByXpath,
   getNodeInfoByXpath,
   getXpathsByPoint,
 } from '../../src/extractor/locator';
@@ -303,6 +304,59 @@ describe('locator', () => {
 
       // Restore original mock
       global.document.evaluate = originalEvaluate;
+    });
+  });
+
+  describe('getNodeCountByXpath', () => {
+    it('returns every match without requiring a unique final node', () => {
+      global.document.evaluate = vi.fn(
+        () =>
+          ({
+            snapshotLength: 3,
+            snapshotItem: () => null,
+          }) as unknown as XPathResult,
+      );
+
+      expect(getNodeCountByXpath('//button')).toBe(3);
+    });
+
+    it('counts matches inside a uniquely resolved iframe', () => {
+      const frameDocument = {
+        evaluate: vi.fn(
+          () =>
+            ({
+              snapshotLength: 2,
+              snapshotItem: () => null,
+            }) as unknown as XPathResult,
+        ),
+      } as unknown as Document;
+      const iframe = {
+        nodeType: Node.ELEMENT_NODE,
+        tagName: 'IFRAME',
+        contentDocument: frameDocument,
+      } as unknown as HTMLIFrameElement;
+      global.document.evaluate = vi.fn(
+        () =>
+          ({
+            snapshotLength: 1,
+            snapshotItem: () => iframe,
+          }) as unknown as XPathResult,
+      );
+
+      expect(getNodeCountByXpath('/html/body/iframe[1]|>>|//button')).toBe(2);
+      expect(frameDocument.evaluate).toHaveBeenCalledOnce();
+    });
+
+    it('rejects an ambiguous intermediate iframe without probing children', () => {
+      global.document.evaluate = vi.fn(
+        () =>
+          ({
+            snapshotLength: 2,
+            snapshotItem: () => null,
+          }) as unknown as XPathResult,
+      );
+
+      expect(getNodeCountByXpath('/html/body/iframe|>>|//button')).toBe(0);
     });
   });
 
