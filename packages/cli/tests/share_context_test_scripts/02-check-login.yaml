@@ -1,20 +1,16 @@
-# Second YAML file - Checks if storage is preserved
+# Second YAML file - Checks browser-context sharing and page-state isolation
 web:
   url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
   viewportWidth: 800
   viewportHeight: 600
 
 tasks:
-  - name: Check storage is preserved
+  - name: Check browser-context state is shared and page state is isolated
     flow:
       # Check storage via JavaScript
       - javascript: |
           (function() {
-            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-              const [key, value] = cookie.trim().split('=');
-              if (key) acc[key] = value;
-              return acc;
-            }, {});
+            const cookies = readCookies();
 
             const result = {
               cookie_authToken: cookies.authToken || null,
@@ -28,18 +24,20 @@ tasks:
             console.log('localStorage userId:', result.localStorage_userId);
             console.log('sessionStorage sessionId:', result.sessionStorage_sessionId);
 
-            // Verify all storage types are preserved
-            if (!result.sessionStorage_sessionId) {
-              throw new Error('sessionStorage was lost! Expected "session-789", got null');
+            if (result.cookie_authToken !== 'test-token-123') {
+              throw new Error(`Cookie was lost! Expected "test-token-123", got "${result.cookie_authToken}"`);
             }
-            if (!result.localStorage_userId) {
-              throw new Error('localStorage was lost! Expected "user-456", got null');
+            if (result.localStorage_userId !== 'user-456') {
+              throw new Error(`localStorage was lost! Expected "user-456", got "${result.localStorage_userId}"`);
+            }
+            if (result.sessionStorage_sessionId !== null) {
+              throw new Error(`Setup sessionStorage leaked! Expected null, got "${result.sessionStorage_sessionId}"`);
             }
 
-            // The next serial YAML must observe these page-scoped mutations.
+            // The next serial YAML must not observe these page-scoped mutations.
             sessionStorage.setItem('sessionId', 'session-from-first-main');
             window.name = 'first-main-complete';
 
             return result;
           })()
-        name: check_storage
+        name: check_context_sharing_and_page_isolation
