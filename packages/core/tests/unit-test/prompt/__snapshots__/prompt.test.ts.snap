@@ -476,13 +476,18 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <planning> tag (REQUIRED)
+
+
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+
+
+
 
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
@@ -572,7 +577,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
-
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -693,6 +697,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -720,8 +725,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
-<!-- Step 1: Observe -->
+<!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
+
 
 **Then choose ONE of the following paths:**
 
@@ -736,6 +742,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
@@ -849,13 +856,18 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <planning> tag (REQUIRED)
+
+
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+
+
+
 
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
@@ -945,6 +957,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 
 ### Supporting actions list
@@ -1053,6 +1066,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1079,8 +1093,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
-<!-- Step 1: Observe -->
+<!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
+
 
 **Then choose ONE of the following paths:**
 
@@ -1095,6 +1110,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
@@ -1206,13 +1222,18 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <planning> tag (REQUIRED)
+
+
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+
+
+
 
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
@@ -1302,7 +1323,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
-
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -1423,6 +1443,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1450,8 +1471,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
-<!-- Step 1: Observe -->
+<!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
+
 
 **Then choose ONE of the following paths:**
 
@@ -1466,6 +1488,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
@@ -1584,7 +1607,7 @@ First, observe the current screenshot and previous logs, then break down the use
 - Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
 - If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.
 
-* <planning> tag (REQUIRED)
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
@@ -1592,8 +1615,7 @@ Include your planning details in the <planning> tag. It should answer: What is t
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
-
-* <update-plan-content> tag
+### <update-plan-content> tag
 
 Use this structure to give or update your plan:
 
@@ -1603,7 +1625,7 @@ Use this structure to give or update your plan:
   ...
 </update-plan-content>
 
-* <mark-sub-goal-done> tag
+### <mark-sub-goal-done> tag
 
 Use this structure to mark a sub-goal as done:
 
@@ -1613,7 +1635,7 @@ Use this structure to mark a sub-goal as done:
 
 IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
 
-* Note
+### Note
 
 During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
 
@@ -1650,7 +1672,7 @@ After some time, when the last sub-goal is also completed, you can mark it as do
 
 ## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
-Use \`<memory>\` to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
+Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
 - Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
 - When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
@@ -1666,7 +1688,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Determine if the entire task is completed based on the current screenshot and the status of all sub-goals.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -1722,6 +1744,8 @@ You may output <complete success="true"> only when the current execution history
 
 If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
 
+
+
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step 4.
@@ -1746,6 +1770,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 
 ### Supporting actions list
@@ -1854,6 +1879,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1882,7 +1908,6 @@ Return in XML format following this decision flow:
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
-
 <!-- required when no update-plan-content is provided in the previous response -->
 <update-plan-content>...</update-plan-content>
 
@@ -1907,6 +1932,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
@@ -2057,13 +2083,18 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <planning> tag (REQUIRED)
+
+
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+
+
+
 
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
@@ -2153,7 +2184,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
-
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -2274,6 +2304,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -2301,8 +2332,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
-<!-- Step 1: Observe -->
+<!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
+
 
 **Then choose ONE of the following paths:**
 
@@ -2317,6 +2349,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
@@ -2430,13 +2463,18 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <planning> tag (REQUIRED)
+
+
+### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
 Include your planning details in the <planning> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write it naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
+
+
+
 
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
@@ -2526,6 +2564,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 
 ### Supporting actions list
@@ -2634,6 +2673,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
 - Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -2660,8 +2700,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include (REQUIRED):**
-<!-- Step 1: Observe -->
+<!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
+
 
 **Then choose ONE of the following paths:**
 
@@ -2676,6 +2717,7 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
 
 ## Multi-turn Conversation Example
 
