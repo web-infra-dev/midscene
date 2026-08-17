@@ -16,6 +16,7 @@ import {
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
+  type AiActEffort,
   type AssertOptions,
   type DeepThinkOption,
   type DeviceAction,
@@ -118,6 +119,7 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
+  effort?: AiActEffort;
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1135,14 +1137,31 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const aiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
-      // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
-      let deepThink = opt?.deepThink === true;
-      if (deepThink && planningModel.adapter.planning.kind === 'custom') {
-        warn(
-          `The "deepThink" option is not supported for aiAct with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
-        );
-        deepThink = false;
-      }
+      // Resolve the public planning controls at the API boundary. Internal
+      // aiAct plumbing only uses effort from this point onward. The explicit
+      // effort option takes precedence over deepThink when both are provided.
+      const effort: AiActEffort = (() => {
+        const resolvedEffort =
+          opt?.effort ?? (opt?.deepThink === true ? 'deepThink' : 'balance');
+
+        if (opt?.effort !== undefined) {
+          warn(
+            'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+          );
+        }
+
+        if (
+          resolvedEffort === 'deepThink' &&
+          planningModel.adapter.planning.kind === 'custom'
+        ) {
+          warn(
+            `The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
+          );
+          return 'balance';
+        }
+
+        return resolvedEffort;
+      })();
 
       let deepLocate = opt?.deepLocate;
       if (
@@ -1154,15 +1173,6 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         );
         deepLocate = false;
       }
-
-      const noIndividualLocateModel = planningModel.config.slot === 'default';
-
-      const includeLocateInPlanning = !deepThink && noIndividualLocateModel;
-
-      debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
-        deepThink,
-        noIndividualLocateModel,
-      });
 
       const cacheable = opt?.cacheable;
       const replanningCycleLimit =
@@ -1201,17 +1211,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       }
 
       // If cache matched but is not executable, fall through to normal execution
-      const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         planningModel,
         defaultModel,
-        includeLocateInPlanning,
         aiActContext,
         cacheable,
         replanningCycleLimit,
-        imagesIncludeCount,
-        deepThink,
+        effort,
         undefined,
         deepLocate,
         abortSignal,

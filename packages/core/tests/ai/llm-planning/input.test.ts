@@ -27,6 +27,7 @@ describe('automation - planning input', () => {
         modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -48,6 +49,7 @@ describe('automation - planning input', () => {
         modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
