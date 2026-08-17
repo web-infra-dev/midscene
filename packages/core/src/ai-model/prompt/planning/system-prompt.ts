@@ -5,11 +5,16 @@ import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-
 import { locateGroundingRules } from '../locate-grounding-rules';
 import { buildActionSpaceDescription } from './action-description';
 import { buildActionExample, createSampleTapAction } from './action-example';
+import {
+  type PlanningActionOutputProtocol,
+  defaultMidsceneActionOutputProtocol,
+} from './action-output-protocol';
 import { buildPlanningMultiTurnExample } from './multi-turn-example';
 
 type BuildStandardPlanningSystemPromptInput = {
   actionSpace: DeviceAction<any>[];
   includeSubGoals?: boolean;
+  actionOutputProtocol?: PlanningActionOutputProtocol;
 } & (
   | {
       includeLocateInPlanning: true;
@@ -29,6 +34,7 @@ export async function buildStandardPlanningSystemPrompt(
     includeLocateInPlanning,
     locatePromptSpec,
     includeSubGoals,
+    actionOutputProtocol = defaultMidsceneActionOutputProtocol,
   } = input;
   const preferredLanguage = getPreferredLanguage();
 
@@ -39,10 +45,14 @@ export async function buildStandardPlanningSystemPrompt(
   const actionList = buildActionSpaceDescription(actionSpace, {
     includeLocateInPlanning,
     locatePromptSpec,
+    actionOutputProtocol,
   });
   const hasRunAdbShell = actionSpace.some(
     (action) => action.name === 'RunAdbShell',
   );
+  const actionOutputTagsText = actionOutputProtocol.actionOutputTagNames
+    .map((tagName) => `<${tagName}>`)
+    .join(', ');
 
   const shouldIncludeSubGoals = includeSubGoals ?? false;
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
@@ -228,9 +238,9 @@ ${renderSubGoalsContent(
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. ${renderSubGoalsContent('It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. ')}No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the ${renderSubGoalsContent('expected goal is not accomplished and cannot be accomplished', 'instruction is not fulfilled and cannot be fulfilled')}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output ${actionOutputTagsText}. The task ends here.
 
-## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, ${actionOutputTagsText}, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${renderSubGoalsContent(' and the plan')}.
 
@@ -274,9 +284,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 ### If there is some action to do ...
 
-- Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
+${actionOutputProtocol.actionOutputRules}
 
 For example:
 ${buildActionExample(
@@ -284,6 +292,7 @@ ${buildActionExample(
   {
     locatePromptSpec,
     locateResultExampleIndex: 1,
+    actionOutputProtocol,
   },
 )}
 
@@ -296,7 +305,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output ${actionOutputTagsText} if there is no action to do.
 
 ## Return Format
 
@@ -324,8 +333,7 @@ ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided i
 **Path B: If the ${renderSubGoalsContent('goal is NOT complete', 'instruction is NOT fulfilled')} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
 <log>...</log>
-<action-type>...</action-type>
-<action-param-json>...</action-param-json>
+${actionOutputProtocol.actionOutputPlaceholder}
 
 <!-- OR if there's an error -->
 <error>...</error>
@@ -333,5 +341,6 @@ ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided i
 ${buildPlanningMultiTurnExample({
   includeSubGoals: shouldIncludeSubGoals,
   locatePromptSpec,
+  actionOutputProtocol,
 })}`;
 }

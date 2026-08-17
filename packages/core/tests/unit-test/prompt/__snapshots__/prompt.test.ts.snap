@@ -559,7 +559,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -718,7 +718,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
@@ -939,7 +939,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -1086,7 +1086,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
@@ -1305,7 +1305,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -1464,7 +1464,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
@@ -1752,7 +1752,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -1899,7 +1899,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
@@ -2166,7 +2166,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -2325,7 +2325,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
@@ -2546,7 +2546,7 @@ If any explicit step lacks completion evidence in the current execution history,
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type>, <action-param-json>. The task ends here.
 
 ## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -2693,7 +2693,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action-type>, <action-param-json> if there is no action to do.
 
 ## Return Format
 
