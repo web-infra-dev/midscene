@@ -267,7 +267,10 @@ describe('createReportCliCommands', () => {
         param: {
           locate: {
             prompt: 'Confirm button',
-            xpath: '/html/body/button[1]',
+            target: {
+              strategy: 'xpath',
+              selector: '/html/body/button[1]',
+            },
           },
         },
       }),

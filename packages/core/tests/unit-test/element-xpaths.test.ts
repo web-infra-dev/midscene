@@ -7,13 +7,17 @@ import {
   elementXpathsPlanningContext,
   loadElementXpaths,
 } from '@/agent/element-xpaths';
+import {
+  getExtraActionSource,
+  setExtraActionSource,
+} from '@/agent/extra-actions';
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { genericXmlPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, PlanningAction } from '@/types';
 import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -101,7 +105,10 @@ elements:
           type: 'Input',
           param: {
             value: 'Alice',
-            locate: { prompt: 'first NAME input' },
+            locate: {
+              prompt:
+                'the "first NAME input" as specified in known UI elements',
+            },
           },
         },
         {
@@ -144,7 +151,10 @@ elements:
           },
         },
       ],
-      [{ name: 'First name input', xpath: '//*[@id="first-name"]' }],
+      [
+        { name: 'Name input', xpath: '//*[@id="generic-name"]' },
+        { name: 'First name input', xpath: '//*[@id="first-name"]' },
+      ],
       [action],
     );
 
@@ -155,8 +165,11 @@ elements:
         param: {
           value: 'Alice',
           locate: {
-            prompt: 'first NAME input',
-            xpath: '//*[@id="first-name"]',
+            prompt: 'the "first NAME input" as specified in known UI elements',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
@@ -183,7 +196,10 @@ elements:
           value: 'Dora',
           locate: {
             prompt: 'First name input',
-            xpath: '//*[@id="first-name"]',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
@@ -193,11 +209,64 @@ elements:
           value: 'Eve',
           locate: {
             prompt: 'First name input',
-            xpath: '//*[@id="first-name"]',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
     ]);
+  });
+
+  it('falls back when a locator prompt contains equally specific map keys', () => {
+    const action = inputAction();
+    const plans: PlanningAction[] = [
+      {
+        type: 'Input',
+        param: {
+          value: 'Alice',
+          locate: { prompt: 'Use Alpha input or Bravo input' },
+        },
+      },
+    ];
+
+    const mapped = applyElementXpathsToPlans(
+      plans,
+      [
+        { name: 'Alpha input', xpath: '//*[@id="alpha"]' },
+        { name: 'Bravo input', xpath: '//*[@id="bravo"]' },
+      ],
+      [action],
+    );
+
+    expect(mapped).toEqual({ plans, mapped: false });
+  });
+
+  it('preserves internal Extra Action provenance when a map transforms the plan', () => {
+    const plan: PlanningAction = {
+      type: 'Input',
+      param: {
+        value: 'Alice',
+        locate: { prompt: 'First name input' },
+      },
+    };
+    const source = {
+      type: 'extra-action' as const,
+      name: 'Fill the first name',
+      alias: 'MidsceneExtraAction_1',
+      sourcePath: '/tmp/profile.actions.yaml',
+    };
+    setExtraActionSource(plan, source);
+
+    const mapped = applyElementXpathsToPlans(
+      [plan],
+      [{ name: 'First name input', xpath: '//*[@id="first-name"]' }],
+      [inputAction()],
+    );
+
+    expect(mapped.mapped).toBe(true);
+    expect(getExtraActionSource(mapped.plans[0])).toEqual(source);
   });
 
   it('rejects invalid and conflicting map entries before planning', async () => {
@@ -294,7 +363,7 @@ elements:
       locate,
     } as unknown as Service;
     const taskExecutor = new TaskExecutor(mockInterface, mockService, {
-      replanningCycleLimit: 1,
+      replanningCycleLimit: 20,
       actionSpace: [action],
     });
     vi.mocked(genericXmlPlan).mockResolvedValue({
@@ -329,7 +398,7 @@ elements:
 
     expect(locate).not.toHaveBeenCalled();
     expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
-      xpaths: ['//*[@id="first-name"]'],
+      targets: [{ strategy: 'xpath', selector: '//*[@id="first-name"]' }],
     });
     expect(inputCall).toHaveBeenCalledOnce();
     expect(result.output?.yamlFlow).toEqual([
@@ -338,15 +407,23 @@ elements:
         value: 'Alice',
         locate: {
           prompt: 'First name input',
-          xpath: '//*[@id="first-name"]',
+          target: {
+            strategy: 'xpath',
+            selector: '//*[@id="first-name"]',
+          },
         },
       },
     ]);
     expect(
       result.runner.tasks.find((task) => task.subType === 'Locate')?.hitBy,
     ).toEqual({
-      from: 'User expected path',
-      context: { xpath: '//*[@id="first-name"]' },
+      from: 'User target',
+      context: {
+        target: {
+          strategy: 'xpath',
+          selector: '//*[@id="first-name"]',
+        },
+      },
     });
 
     const replayAction = vi.fn();
@@ -371,9 +448,96 @@ elements:
         value: 'Alice',
         locate: expect.objectContaining({
           prompt: 'First name input',
-          xpath: '//*[@id="first-name"]',
+          target: {
+            strategy: 'xpath',
+            selector: '//*[@id="first-name"]',
+          },
         }),
       }),
     );
+  });
+
+  it('preserves the locator prompt when a mapped XPath falls back to AI locate', async () => {
+    const inputCall = vi.fn();
+    const locate = vi.fn().mockResolvedValue({
+      element: {
+        description: 'first name input found by AI',
+        center: [1, 1],
+        rect: { left: 0, top: 0, width: 1, height: 1 },
+      },
+    });
+    const action = inputAction(inputCall);
+    const mockInterface = {
+      interfaceType: 'web',
+      actionSpace: () => [action],
+      rectMatchesCacheFeature: vi
+        .fn()
+        .mockRejectedValue(new Error('stale XPath')),
+    } as unknown as AbstractInterface;
+    const mockService = {
+      contextRetrieverFn: vi.fn().mockResolvedValue({
+        screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
+        shotSize: { width: 1, height: 1 },
+        shrunkShotToLogicalRatio: 1,
+        tree: { id: 'root', attributes: {}, children: [] },
+      }),
+      locate,
+    } as unknown as Service;
+    const taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [action],
+    });
+    vi.mocked(genericXmlPlan).mockResolvedValue({
+      actions: [
+        {
+          type: 'Input',
+          param: {
+            value: 'Alice',
+            locate: {
+              prompt: 'First name input',
+              locatedPixelBbox: [20, 20, 40, 40],
+            },
+          },
+        },
+      ],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+    } as any);
+
+    await taskExecutor.action(
+      'Fill the profile form',
+      modelRuntime(),
+      modelRuntime(),
+      false,
+      {
+        elementXpaths: [
+          {
+            name: 'First name input',
+            xpath: '//*[@id="stale-first-name"]',
+          },
+        ],
+      },
+    );
+
+    expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+      targets: [
+        {
+          strategy: 'xpath',
+          selector: '//*[@id="stale-first-name"]',
+        },
+      ],
+    });
+    expect(locate).toHaveBeenCalledOnce();
+    expect(locate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        prompt: 'First name input',
+        target: {
+          strategy: 'xpath',
+          selector: '//*[@id="stale-first-name"]',
+        },
+      }),
+    );
+    expect(locate.mock.calls[0][0]).not.toHaveProperty('locatedPixelBbox');
+    expect(inputCall).toHaveBeenCalledOnce();
   });
 });

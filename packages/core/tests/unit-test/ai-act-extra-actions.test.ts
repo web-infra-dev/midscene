@@ -54,11 +54,6 @@ describe('aiAct extra action integration', () => {
       delayBeforeRunner: 0,
       delayAfterRunner: 0,
     };
-    const extraPlanningAction: DeviceAction = {
-      name: 'MidsceneExtraAction_1',
-      description: 'Run a recorded action',
-      call: vi.fn(),
-    };
     const mockInterface = {
       interfaceType: 'web',
       actionSpace: () => [inputAction],
@@ -83,7 +78,7 @@ describe('aiAct extra action integration', () => {
     vi.mocked(genericXmlPlan).mockResolvedValue({
       actions: [
         {
-          type: extraPlanningAction.name,
+          type: 'MidsceneExtraAction_1',
           param: {},
           thought: 'fill the username',
         },
@@ -94,14 +89,15 @@ describe('aiAct extra action integration', () => {
 
     const extraActions = [
       {
-        name: '填写用户名',
-        planningAction: extraPlanningAction,
+        alias: 'MidsceneExtraAction_1',
+        name: 'Fill the username',
+        sourcePath: '/tmp/example.actions.yaml',
         plan: {
           type: 'Input',
           param: {
             value: 'Alice',
             locate: {
-              prompt: '填写用户名',
+              prompt: 'Username input',
               locatedPixelBbox: [0, 0, 1, 1],
             },
           },
@@ -110,19 +106,28 @@ describe('aiAct extra action integration', () => {
     ];
 
     const result = await taskExecutor.action(
-      '填写表单',
+      'Fill the form',
       modelRuntime(),
       modelRuntime(),
       false,
       {
-        extraActions: createExtraActionExecutionOptions(extraActions),
+        extraActions: createExtraActionExecutionOptions(
+          extraActions,
+          undefined,
+        ),
       },
     );
 
     expect(vi.mocked(genericXmlPlan).mock.calls[0][1].actionSpace).toEqual([
+      expect.objectContaining({
+        name: 'MidsceneExtraAction_1',
+        description: expect.stringContaining('Fill the username'),
+      }),
       inputAction,
-      extraPlanningAction,
     ]);
+    expect(vi.mocked(genericXmlPlan).mock.calls[0][1].hasExtraActions).toBe(
+      true,
+    );
     expect(inputCall).toHaveBeenCalledOnce();
     expect(inputCall.mock.calls[0][0]).toMatchObject({
       value: 'Alice',
@@ -158,9 +163,113 @@ describe('aiAct extra action integration', () => {
       'Input',
       expect.objectContaining({
         value: 'Alice',
-        locate: expect.objectContaining({ prompt: '填写用户名' }),
+        locate: expect.objectContaining({ prompt: 'Username input' }),
       }),
     );
+  });
+
+  it('refreshes disclosure on every planning round while keeping aliases stable', async () => {
+    const tapCall = vi.fn();
+    const tapAction: DeviceAction = {
+      name: 'Tap',
+      description: 'Tap an element',
+      call: tapCall,
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
+    };
+    const probeLocatorTargets = vi
+      .fn()
+      .mockResolvedValueOnce([true, false])
+      .mockResolvedValueOnce([false, true]);
+    const mockInterface = {
+      interfaceType: 'web',
+      actionSpace: () => [tapAction],
+      probeLocatorTargets,
+    } as unknown as AbstractInterface;
+    const mockService = {
+      contextRetrieverFn: vi.fn().mockResolvedValue({
+        screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
+        shotSize: { width: 1, height: 1 },
+        shrunkShotToLogicalRatio: 1,
+        tree: {
+          id: 'root',
+          attributes: {},
+          children: [],
+        },
+      }),
+    } as unknown as Service;
+    const taskExecutor = new TaskExecutor(mockInterface, mockService, {
+      replanningCycleLimit: 1,
+      actionSpace: [tapAction],
+    });
+    vi.mocked(genericXmlPlan)
+      .mockResolvedValueOnce({
+        actions: [
+          {
+            type: 'MidsceneExtraAction_1',
+            param: {},
+            thought: 'run the first action',
+          },
+        ],
+        shouldContinuePlanning: true,
+      } as any)
+      .mockResolvedValueOnce({
+        actions: [
+          {
+            type: 'MidsceneExtraAction_2',
+            param: {},
+            thought: 'run the second action',
+          },
+        ],
+        shouldContinuePlanning: false,
+      } as any);
+
+    await taskExecutor.action(
+      'Complete both steps',
+      modelRuntime(),
+      modelRuntime(),
+      false,
+      {
+        extraActions: createExtraActionExecutionOptions(
+          [
+            {
+              alias: 'MidsceneExtraAction_1',
+              name: 'Run the first action',
+              sourcePath: '/tmp/example.actions.yaml',
+              validWhenTargetExists: {
+                strategy: 'xpath',
+                selector: '//button[@id="first"]',
+              },
+              plan: { type: 'Tap', param: undefined },
+            },
+            {
+              alias: 'MidsceneExtraAction_2',
+              name: 'Run the second action',
+              sourcePath: '/tmp/example.actions.yaml',
+              validWhenTargetExists: {
+                strategy: 'xpath',
+                selector: '//button[@id="second"]',
+              },
+              plan: { type: 'Tap', param: undefined },
+            },
+          ],
+          mockInterface,
+        ),
+      },
+    );
+
+    expect(probeLocatorTargets).toHaveBeenCalledTimes(2);
+    expect(
+      vi
+        .mocked(genericXmlPlan)
+        .mock.calls.map((call) =>
+          call[1].actionSpace.map((action) => action.name),
+        ),
+    ).toEqual([
+      ['MidsceneExtraAction_1', 'Tap'],
+      ['MidsceneExtraAction_2', 'Tap'],
+    ]);
+    expect(tapCall).toHaveBeenCalledTimes(2);
   });
 
   it('loads files through the public aiAct option and separates its plan cache', async () => {
@@ -168,10 +277,13 @@ describe('aiAct extra action integration', () => {
     const filePath = join(dir, 'extra-action.yaml');
     await writeFile(
       filePath,
-      `name: 点击确定按钮
-actionName: tap
-actionParam:
-  - xpath: /path/to/#confirm-button
+      `version: 1
+interface: web
+actions:
+  - name: Click the confirm button
+    action:
+      name: tap
+      param: {}
 `,
     );
 
@@ -185,10 +297,11 @@ actionParam:
       const action = vi.fn().mockResolvedValue({
         output: {
           output: 'done',
-          yamlFlow: [],
+          yamlFlow: [{ Tap: {} }],
         },
       });
       const matchPlanCache = vi.fn();
+      const updateOrAppendCacheRecord = vi.fn();
       (agent as any).opts = {};
       (agent as any).interface = { interfaceType: 'web' };
       (agent as any).fullActionSpace = [tapAction];
@@ -196,35 +309,46 @@ actionParam:
       (agent as any).taskCache = {
         matchPlanCache,
         isCacheResultUsed: true,
-        updateOrAppendCacheRecord: vi.fn(),
+        updateOrAppendCacheRecord,
       };
       (agent as any).resolveModelRuntime = vi.fn(() => modelRuntime());
       (agent as any).resolveReplanningCycleLimit = vi.fn(() => 1);
 
       await expect(
-        agent.aiAct('填写表单', { loadExtraActions: [filePath] }),
+        agent.aiAct('Fill the form', { loadExtraActions: [filePath] }),
       ).resolves.toBe('done');
 
       expect(matchPlanCache.mock.calls[0][0]).toContain(
         '<midscene_extra_actions>',
       );
       expect(matchPlanCache.mock.calls[0][0]).toContain(
-        '"name":"点击确定按钮"',
+        'extra-actions-snapshot:v1:',
+      );
+      expect(updateOrAppendCacheRecord).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'plan',
+          prompt: matchPlanCache.mock.calls[0][0],
+        }),
+        undefined,
       );
       const executionOptions = action.mock.calls[0].at(-1);
       expect(executionOptions).toEqual(
         expect.objectContaining({
           extraActions: expect.objectContaining({
-            actionSpace: [
-              expect.objectContaining({
-                name: 'MidsceneExtraAction_1',
-                description: expect.stringContaining('点击确定按钮'),
-              }),
-            ],
-            expandPlans: expect.any(Function),
+            createSnapshot: expect.any(Function),
+            initialSnapshot: expect.objectContaining({
+              fingerprint: expect.stringMatching(/^extra-actions-snapshot:v1:/),
+            }),
           }),
         }),
       );
+      const snapshot = await executionOptions.extraActions.createSnapshot();
+      expect(snapshot.actionSpace).toEqual([
+        expect.objectContaining({
+          name: 'MidsceneExtraAction_1',
+          description: expect.stringContaining('Click the confirm button'),
+        }),
+      ]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -254,7 +378,7 @@ actionParam:
     );
 
     await expect(
-      agent.aiAct('填写表单', {
+      agent.aiAct('Fill the form', {
         loadExtraActions: ['/path/that/does/not/need/to/exist.yaml'],
       }),
     ).rejects.toThrow(

@@ -259,6 +259,7 @@ describe('action space', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: [...mockActionSpace, extraAction],
       includeLocateInPlanning: false,
+      hasExtraActions: true,
     });
 
     expect(prompt).toContain(

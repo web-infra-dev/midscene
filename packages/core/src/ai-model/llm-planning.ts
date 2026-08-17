@@ -225,6 +225,7 @@ export async function plan(
     includeLocateInPlanning: opts.includeLocateInPlanning,
     includeThought: true, // always include thought
     includeSubGoals,
+    hasExtraActions: opts.hasExtraActions,
   });
 
   const preparedImage = await prepareModelImage({

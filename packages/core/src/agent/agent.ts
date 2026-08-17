@@ -76,7 +76,6 @@ import {
 } from './element-xpaths';
 import {
   createExtraActionExecutionOptions,
-  extraActionsCacheKey,
   loadExtraActions,
 } from './extra-actions';
 import { FileChooserAccepter } from './file-chooser';
@@ -1107,7 +1106,14 @@ export class Agent<
       const extraActions = await loadExtraActions(
         extraActionPaths,
         this.fullActionSpace,
+        this.interface.manifestInterface?.() ?? this.interface.interfaceType,
       );
+      const extraActionExecution = createExtraActionExecutionOptions(
+        extraActions,
+        this.interface,
+      );
+      let initialExtraActionSnapshot =
+        await extraActionExecution?.createSnapshot({ signal: abortSignal });
       const elementXpaths = await loadElementXpaths(
         opt?.loadElementXpaths ?? [],
       );
@@ -1124,10 +1130,13 @@ export class Agent<
         taskPrompt,
         aiActContext,
       );
-      const extraActionKey = extraActionsCacheKey(extraActions);
-      const cachePrompt = extraActionKey
-        ? `${promptWithContext}\n\n<midscene_extra_actions>${extraActionKey}</midscene_extra_actions>`
-        : promptWithContext;
+      const cachePromptForSnapshot = (fingerprint?: string) =>
+        fingerprint
+          ? `${promptWithContext}\n\n<midscene_extra_actions>${fingerprint}</midscene_extra_actions>`
+          : promptWithContext;
+      const cachePrompt = cachePromptForSnapshot(
+        initialExtraActionSnapshot?.fingerprint,
+      );
       // Controls the aiAct planning mode, such as sub-goal prompts and locate result strategy.
       let deepThink = opt?.deepThink === true;
       if (deepThink && planningModel.adapter.planning.kind === 'custom') {
@@ -1191,6 +1200,10 @@ export class Agent<
               error instanceof Error ? error.message : String(error)
             }`,
           );
+          initialExtraActionSnapshot =
+            await extraActionExecution?.createSnapshot({
+              signal: abortSignal,
+            });
         }
       }
 
@@ -1210,7 +1223,12 @@ export class Agent<
           deepLocate,
           abortSignal,
           reportOptions: internalReportDisplay,
-          extraActions: createExtraActionExecutionOptions(extraActions),
+          extraActions: extraActionExecution
+            ? {
+                ...extraActionExecution,
+                initialSnapshot: initialExtraActionSnapshot,
+              }
+            : undefined,
           elementXpaths,
         },
       );

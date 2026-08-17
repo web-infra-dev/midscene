@@ -14,6 +14,7 @@ export interface PlanOptions {
   imagesIncludeCount?: number;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
   deepThink?: boolean;
+  hasExtraActions?: boolean;
   referenceImageMessages?: ChatCompletionUserMessageParam[];
   abortSignal?: AbortSignal;
 }

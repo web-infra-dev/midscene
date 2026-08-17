@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { findAllMidsceneLocatorField } from '@/ai-model';
+import { xpathLocatorTarget } from '@/locator';
 import type { DeviceAction, PlanningAction } from '@/types';
 import yaml from 'js-yaml';
+import { getExtraActionSource, setExtraActionSource } from './extra-actions';
 
 interface ElementXpathFile {
   elements: Record<string, string>;
@@ -15,7 +17,14 @@ export interface LoadedElementXpath {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const normalizedElementName = (name: string) => name.trim().toLowerCase();
+const normalizedElementName = (name: string) =>
+  name
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/["“”「」『』]/g, '')
+    .replace(/^(?:the|a|an)\s+/, '')
+    .replace(/\s+/g, ' ');
 
 function parseElementXpathFile(
   content: string,
@@ -146,12 +155,52 @@ function locatorPromptText(locator: unknown): string | undefined {
 }
 
 function locatorAlreadyResolved(locator: unknown): boolean {
-  return isPlainObject(locator) && typeof locator.xpath === 'string';
+  return (
+    isPlainObject(locator) &&
+    (typeof locator.xpath === 'string' || locator.target !== undefined)
+  );
 }
 
-function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
+function xpathForLocatorPrompt(
+  prompt: string,
+  elements: LoadedElementXpath[],
+): string | undefined {
+  const normalizedPrompt = normalizedElementName(prompt);
+  const exactMatch = elements.find(
+    ({ name }) => normalizedElementName(name) === normalizedPrompt,
+  );
+  if (exactMatch) {
+    return exactMatch.xpath;
+  }
+
+  const paddedPrompt = ` ${normalizedPrompt} `;
+  const containedMatches = elements
+    .map((element) => ({
+      ...element,
+      normalizedName: normalizedElementName(element.name),
+    }))
+    .filter(({ normalizedName }) =>
+      paddedPrompt.includes(` ${normalizedName} `),
+    )
+    .sort(
+      (left, right) => right.normalizedName.length - left.normalizedName.length,
+    );
+
+  if (containedMatches.length === 0) {
+    return undefined;
+  }
+  if (
+    containedMatches[1]?.normalizedName.length ===
+    containedMatches[0].normalizedName.length
+  ) {
+    return undefined;
+  }
+  return containedMatches[0].xpath;
+}
+
+function locatorWithTarget(locator: unknown, prompt: string, xpath: string) {
   if (typeof locator === 'string') {
-    return { prompt: locator, xpath };
+    return { prompt: locator, target: xpathLocatorTarget(xpath) };
   }
 
   const {
@@ -166,7 +215,7 @@ function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
   return {
     ...locatorWithoutCoordinates,
     prompt,
-    xpath,
+    target: xpathLocatorTarget(xpath),
   };
 }
 
@@ -179,9 +228,6 @@ export function applyElementXpathsToPlans(
     return { plans, mapped: false };
   }
 
-  const xpathByName = new Map(
-    elements.map(({ name, xpath }) => [normalizedElementName(name), xpath]),
-  );
   let mapped = false;
 
   const transformedPlans = plans.map((plan) => {
@@ -204,17 +250,23 @@ export function applyElementXpathsToPlans(
       if (!prompt) {
         continue;
       }
-      const xpath = xpathByName.get(normalizedElementName(prompt));
+      const xpath = xpathForLocatorPrompt(prompt, elements);
       if (!xpath) {
         continue;
       }
 
       transformedParam ??= { ...plan.param };
-      transformedParam[field] = locatorWithXpath(locator, prompt, xpath);
+      transformedParam[field] = locatorWithTarget(locator, prompt, xpath);
       mapped = true;
     }
 
-    return transformedParam ? { ...plan, param: transformedParam } : plan;
+    if (!transformedParam) return plan;
+    const transformedPlan = { ...plan, param: transformedParam };
+    const extraActionSource = getExtraActionSource(plan);
+    if (extraActionSource) {
+      setExtraActionSource(transformedPlan, extraActionSource);
+    }
+    return transformedPlan;
   });
 
   return { plans: transformedPlans, mapped };
