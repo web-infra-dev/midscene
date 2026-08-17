@@ -16,14 +16,14 @@
 
 | Case | 测试内容 | 测试报告 | 步骤数（脚本 / 模型调用 / Loop） | Token（输入 / 输出） | 输入缓存占比 | 费用 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| 1 | 销量榜：轿车、燃油车与预设价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html) | 8 / 16 / 11 | 130,044（126,935 / 3,109） | 70.7% | ¥0.215 |
-| 2 | 销量榜：SUV 与插电式混动 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html) | 4 / 14 / 12 | 139,782（137,310 / 2,472） | 72.8% | ¥0.212 |
-| 3 | 新能源榜：SUV、纯电动与预设价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html) | 8 / 18 / 13 | 156,275（149,996 / 6,279） | 69.3% | ¥0.299 |
-| 4 | 降价榜：MPV、新能源与自定义价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html) | 13 / 29 / 20 | 262,194（253,991 / 8,203） | 68.6% | ¥0.474 |
-| 5 | 榜单切换与筛选重置 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html) | 16 / 28 / 19 | 222,971（217,283 / 5,688） | 69.9% | ¥0.378 |
-| **合计** | 5 个 Case | — | **49 / 105 / 75** | **911,266（885,515 / 25,751）** | **70.0%** | **¥1.578** |
-| **平均** | 每个 Case | — | **9.8 / 21 / 15** | **182,253.2（177,103 / 5,150.2）** | **70.0%** | **¥0.316** |
+| 1 | 销量榜：轿车、燃油车与预设价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html) | 8 / 16 / 11 | 130,044（126,935 / 3,109） | 70.7% | ¥0.203 |
+| 2 | 销量榜：SUV 与插电式混动 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html) | 4 / 14 / 12 | 139,782（137,310 / 2,472） | 72.8% | ¥0.200 |
+| 3 | 新能源榜：SUV、纯电动与预设价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html) | 8 / 18 / 13 | 156,275（149,996 / 6,279） | 69.3% | ¥0.283 |
+| 4 | 降价榜：MPV、新能源与自定义价格 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html) | 13 / 29 / 20 | 262,194（253,991 / 8,203） | 68.6% | ¥0.448 |
+| 5 | 榜单切换与筛选重置 | [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html) | 16 / 28 / 19 | 222,971（217,283 / 5,688） | 69.9% | ¥0.357 |
+| **合计** | 5 个 Case | — | **49 / 105 / 75** | **911,266（885,515 / 25,751）** | **70.0%** | **¥1.491** |
+| **平均** | 每个 Case | — | **9.8 / 21 / 15** | **182,253.2（177,103 / 5,150.2）** | **70.0%** | **¥0.298** |
 
 :::info 计价口径
-输入单价按 `$0.423 / M Tokens`、缓存读取单价按 `$0.08452 / M Tokens`、输出单价按 `$2.113 / M Tokens` 计算，人民币费用按 `$1 ≈ ¥7.2` 估算。5 个 Case 平均消耗约 182,253 Token，平均费用约 ¥0.316。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
+输入单价按 `$0.423 / M Tokens`、缓存读取单价按 `$0.08452 / M Tokens`、输出单价按 `$2.113 / M Tokens` 计算，人民币费用按 `$1 ≈ ¥6.8` 估算。5 个 Case 平均消耗约 182,253 Token，平均费用约 ¥0.298。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
 :::
