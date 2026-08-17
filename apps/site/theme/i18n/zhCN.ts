@@ -6,7 +6,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   changelogLink: '了解更多',
 
   // Banner - Title
-  heroTitle: '面向 E2E 测试的 GUI Agent',
+  heroTitle: 'Midscene.js — 面向 E2E 测试的 GUI Agent',
   heroSubtitle: '视觉驱动，全平台覆盖，测试工具开箱即用。',
 
   // Banner - Stats
@@ -41,12 +41,10 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
-  modelsHeading: `视觉模型
- 多模型组合
- 适配开源模型`,
-  modelsDesc1: '视觉定位元素精准，无需维护选择器',
-  modelsDesc2: '多模型协同提升完成率',
-  modelsDesc3: '自带模型，含表现强劲的开源选项',
+  modelsHeading: '以纯视觉为核心',
+  modelsDesc1: '直接分析截图，无需维护 Selector 或额外标注',
+  modelsDesc2: '默认使用单模型，复杂场景按需增加专用模型',
+  modelsDesc3: '支持多种适配模型，包括可自托管选项',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
@@ -59,9 +57,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: '开发体验',
-  debuggingHeading: `丰富的 API
-和工具`,
+  debuggingTitle: '测试工具箱',
+  debuggingHeading: '开箱即用的 UI 测试套件',
   debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
   debuggingDesc3: '大幅降低 UI 测试的维护成本',

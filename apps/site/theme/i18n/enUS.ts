@@ -4,7 +4,7 @@ export const EN_US = {
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'GUI Agent for E2E Testing',
+  heroTitle: 'Midscene.js — GUI Agent for E2E Testing',
   heroSubtitle: 'Vision-driven. Cross-platform. Batteries included.',
 
   // Banner - Stats
@@ -43,12 +43,10 @@ and more`,
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: `Vision Models
- Multi-model combination
- Adapt open-source models`,
-  modelsDesc1: 'Vision locates elements precisely — no selectors to maintain',
-  modelsDesc2: 'Multi-model setups raise completion rates',
-  modelsDesc3: 'Bring your own model, including strong open-source options',
+  modelsHeading: 'Pure vision at the core',
+  modelsDesc1: 'Works from screenshots — no selectors or annotations',
+  modelsDesc2: 'Start with one model; add specialists for complex tasks',
+  modelsDesc3: 'Choose from supported models, including self-hosted options',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
@@ -65,9 +63,9 @@ and more`,
     'Pair a planning model with a vision model to raise task completion rates.',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: 'DEVELOPER EXPERIENCE',
-  debuggingHeading: `Rich APIs
-& Tools`,
+  debuggingTitle: 'TESTING TOOLKIT',
+  debuggingHeading: `Ready-to-use
+UI testing toolkit`,
   debuggingDesc1: 'Practical APIs to script tests and control automation flows',
   debuggingDesc2: 'Supports extending your own UI action agents',
   debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
