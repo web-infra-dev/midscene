@@ -4,6 +4,7 @@ import type {
   HarmonyDeviceOpt,
   IOSDeviceOpt,
 } from './device';
+import type { LocatorTarget } from './locator';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
@@ -16,6 +17,8 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
   deepThink?: boolean; // alias for deepLocate
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
+  /** Stable locator reference. `xpath` remains supported as a legacy alias. */
+  target?: LocatorTarget;
   uiContext?: UIContext;
   fileChooserAccept?: string | string[]; // file path(s) to upload when tapping triggers a file chooser
 }

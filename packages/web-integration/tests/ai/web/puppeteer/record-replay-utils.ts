@@ -6,8 +6,16 @@ import yaml from 'js-yaml';
 
 interface UIActionDefinition {
   name: string;
-  actionName: string;
-  actionParam: [unknown];
+  action: {
+    name: string;
+    param?: unknown;
+  };
+}
+
+interface UIActionManifest {
+  version: 1;
+  interface: string;
+  actions: UIActionDefinition[];
 }
 
 interface XpathLocator {
@@ -25,22 +33,32 @@ function xpathLocators(value: unknown): XpathLocator[] {
   }
   if (!isRecord(value)) return [];
 
-  const ownLocator =
-    typeof value.xpath === 'string' && value.xpath.trim()
-      ? [
-          {
-            prompt:
-              typeof value.prompt === 'string' && value.prompt.trim()
-                ? value.prompt.trim()
-                : undefined,
-            xpath: value.xpath.trim(),
-          },
-        ]
-      : [];
+  const target = isRecord(value.target) ? value.target : undefined;
+  const xpath =
+    target?.strategy === 'xpath' &&
+    typeof target.selector === 'string' &&
+    target.selector.trim()
+      ? target.selector.trim()
+      : typeof value.xpath === 'string' && value.xpath.trim()
+        ? value.xpath.trim()
+        : undefined;
+  const ownLocator = xpath
+    ? [
+        {
+          prompt:
+            typeof value.prompt === 'string' && value.prompt.trim()
+              ? value.prompt.trim()
+              : undefined,
+          xpath,
+        },
+      ]
+    : [];
   return [
     ...ownLocator,
     ...Object.entries(value)
-      .filter(([key]) => key !== 'xpath' && key !== 'prompt')
+      .filter(
+        ([key]) => key !== 'xpath' && key !== 'target' && key !== 'prompt',
+      )
       .flatMap(([, item]) => xpathLocators(item)),
   ];
 }
@@ -76,32 +94,36 @@ export async function generateRecordXpathMap(
   const elements: Record<string, string> = {};
   const steps: RecordXpathMapArtifact['steps'] = [];
 
-  for (const [actionIndex, actionFile] of analysis.actionFiles.entries()) {
-    const definition = yaml.load(
+  let actionIndex = 0;
+  for (const actionFile of analysis.actionFiles) {
+    const manifest = yaml.load(
       await readFile(actionFile, 'utf8'),
-    ) as UIActionDefinition;
-    for (const [locatorIndex, locator] of xpathLocators(
-      definition.actionParam[0],
-    ).entries()) {
-      const baseName = locator.prompt || definition.name;
-      let elementName = baseName;
-      let suffix = 2;
-      while (
-        elements[elementName] !== undefined &&
-        elements[elementName] !== locator.xpath
-      ) {
-        elementName = `${baseName} [observed step ${actionIndex + 1}.${locatorIndex + 1}; alternative ${suffix}]`;
-        suffix += 1;
+    ) as UIActionManifest;
+    for (const definition of manifest.actions) {
+      actionIndex += 1;
+      for (const [locatorIndex, locator] of xpathLocators(
+        definition.action.param,
+      ).entries()) {
+        const baseName = locator.prompt || definition.name;
+        let elementName = baseName;
+        let suffix = 2;
+        while (
+          elements[elementName] !== undefined &&
+          elements[elementName] !== locator.xpath
+        ) {
+          elementName = `${baseName} [observed step ${actionIndex}.${locatorIndex + 1}; alternative ${suffix}]`;
+          suffix += 1;
+        }
+        elements[elementName] = locator.xpath;
+        steps.push({
+          step: actionIndex,
+          actionFile: path.basename(actionFile),
+          actionName: definition.action.name,
+          actionDisplayName: definition.name,
+          elementName,
+          xpath: locator.xpath,
+        });
       }
-      elements[elementName] = locator.xpath;
-      steps.push({
-        step: actionIndex + 1,
-        actionFile: path.basename(actionFile),
-        actionName: definition.actionName,
-        actionDisplayName: definition.name,
-        elementName,
-        xpath: locator.xpath,
-      });
     }
   }
 
@@ -112,7 +134,7 @@ export async function generateRecordXpathMap(
   }
   if (analysis.coordinateFallbackFiles.length > 0) {
     throw new Error(
-      `Record report contains ${analysis.coordinateFallbackFiles.length} coordinate-only action(s); cannot build a complete XPath Map: ${reportPath}`,
+      `Record report contains ${analysis.coordinateFallbackActionCount} coordinate-only action(s); cannot build a complete XPath Map: ${reportPath}`,
     );
   }
 

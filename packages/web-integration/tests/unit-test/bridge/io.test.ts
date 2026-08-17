@@ -277,6 +277,10 @@ describe('bridge-io', () => {
     await server.listen();
 
     const callOrder: string[] = [];
+    let resolveCallProcessed!: () => void;
+    const callProcessed = new Promise<void>((resolve) => {
+      resolveCallProcessed = resolve;
+    });
 
     // Simulate OLD behavior: no gate before connect
     let confirmationPromise: Promise<boolean> | null = null;
@@ -291,6 +295,7 @@ describe('bridge-io', () => {
           if (!allowed) throw new Error('Connection denied by user');
         }
         callOrder.push(`processed:${method}`);
+        resolveCallProcessed();
         return 'ok';
       },
     );
@@ -302,13 +307,12 @@ describe('bridge-io', () => {
 
     // OLD: connect first, THEN set gate — too late!
     await client.connect();
+    await callProcessed;
 
     // Gate set after connect — queued call already arrived and bypassed the check
     confirmationPromise = new Promise<boolean>((resolve) => {
       resolveConfirmation = resolve;
     });
-
-    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // BUG: call was processed without waiting for confirmation!
     expect(callOrder).toEqual(['processed:connectNewTabWithUrl']);

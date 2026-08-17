@@ -27,6 +27,7 @@ describe('html-utils', () => {
   it('generates a compact agent analysis comment for report HTML', () => {
     const comment = generateAgentReportComment({
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'checkout -- flow',
       modelBriefs: [
         {
@@ -63,6 +64,7 @@ describe('html-utils', () => {
   it('falls back agent comment model info to task usage', () => {
     const comment = generateAgentReportComment({
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'usage model report',
       modelBriefs: [],
       executions: [
@@ -96,6 +98,7 @@ describe('html-utils', () => {
   it('keeps agent analysis comments optional for incomplete execution dumps', () => {
     const comment = generateAgentReportComment({
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'incomplete report',
       modelBriefs: [],
       executions: [

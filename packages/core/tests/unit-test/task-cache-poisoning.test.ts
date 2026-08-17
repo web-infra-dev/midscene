@@ -20,7 +20,9 @@ function seedStaleLocate(taskCache: TaskCache, prompt: string, xpath: string) {
   internal.cache.caches.push({
     type: 'locate',
     prompt,
-    cache: { xpaths: [xpath] },
+    cache: {
+      targets: [{ strategy: 'xpath', selector: xpath }],
+    },
   });
   internal.cacheOriginalLength = internal.cache.caches.length;
 }
@@ -36,7 +38,9 @@ describe('locate cache poisoning regression (#2529)', () => {
     // First locate consumes the stale entry (cache hit on the wrong element).
     const matched = cache.matchLocateCache('click submit');
     expect(matched).toBeDefined();
-    expect(matched?.cacheContent.cache?.xpaths).toEqual(['wrong/xpath']);
+    expect(matched?.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'wrong/xpath' },
+    ]);
 
     // The action using that element failed -> the replan loop marks it stale.
     cache.markLocateCacheStale('click submit');
@@ -50,19 +54,23 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'click submit',
-        cache: { xpaths: ['correct/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'correct/xpath' }],
+        },
       },
       undefined,
     );
 
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(1);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['correct/xpath']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'correct/xpath' },
+    ]);
   });
 
   it('appends (does not replace) a consumed entry that was never marked stale', () => {
     // Without a stale mark, a re-locate after a consumed hit must append, not
-    // overwrite — the prior hit may have been correct.
+    // overwrite because the prior hit may have been correct.
     const cache = new TaskCache(uuid(), true);
     seedStaleLocate(cache, 'click submit', 'first/xpath');
 
@@ -73,15 +81,21 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'click submit',
-        cache: { xpaths: ['second/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'second/xpath' }],
+        },
       },
       undefined,
     );
 
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(2);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['first/xpath']);
-    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['second/xpath']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'first/xpath' },
+    ]);
+    expect(internal.cache.caches[1].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'second/xpath' },
+    ]);
   });
 
   it('appends a new entry when nothing was consumed for the prompt', () => {
@@ -91,14 +105,18 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'fresh prompt',
-        cache: { xpaths: ['some/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'some/xpath' }],
+        },
       },
       undefined,
     );
 
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(1);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['some/xpath']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'some/xpath' },
+    ]);
   });
 
   it('does not cross-replace entries for different prompts', () => {
@@ -115,7 +133,9 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'click cancel',
-        cache: { xpaths: ['cancel/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'cancel/xpath' }],
+        },
       },
       undefined,
     );
@@ -123,7 +143,9 @@ describe('locate cache poisoning regression (#2529)', () => {
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(2);
     expect(internal.cache.caches[0].prompt).toBe('click submit');
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['wrong/xpath']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'wrong/xpath' },
+    ]);
     expect(internal.cache.caches[1].prompt).toBe('click cancel');
   });
 
@@ -133,18 +155,30 @@ describe('locate cache poisoning regression (#2529)', () => {
     const cache = new TaskCache(uuid(), true);
 
     cache.updateOrAppendCacheRecord(
-      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/1'] } },
+      {
+        type: 'locate',
+        prompt: 'row action',
+        cache: { targets: [{ strategy: 'xpath', selector: 'row/1' }] },
+      },
       undefined,
     );
     cache.updateOrAppendCacheRecord(
-      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/2'] } },
+      {
+        type: 'locate',
+        prompt: 'row action',
+        cache: { targets: [{ strategy: 'xpath', selector: 'row/2' }] },
+      },
       undefined,
     );
 
     const internal = getTaskCacheInternal(cache);
     expect(internal.cache.caches).toHaveLength(2);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['row/1']);
-    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/2']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'row/1' },
+    ]);
+    expect(internal.cache.caches[1].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'row/2' },
+    ]);
   });
 
   it('appends instead of overwriting when the same prompt overflows without failure', () => {
@@ -154,30 +188,48 @@ describe('locate cache poisoning regression (#2529)', () => {
     const cache = new TaskCache(uuid(), true);
     const internal = getTaskCacheInternal(cache);
     internal.cache.caches.push(
-      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/1'] } },
-      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/2'] } },
+      {
+        type: 'locate',
+        prompt: 'row action',
+        cache: { targets: [{ strategy: 'xpath', selector: 'row/1' }] },
+      },
+      {
+        type: 'locate',
+        prompt: 'row action',
+        cache: { targets: [{ strategy: 'xpath', selector: 'row/2' }] },
+      },
     );
     internal.cacheOriginalLength = 2;
 
     // Three occurrences in one run: the first two hit, the third misses.
     expect(
-      cache.matchLocateCache('row action')?.cacheContent.cache?.xpaths,
-    ).toEqual(['row/1']);
+      cache.matchLocateCache('row action')?.cacheContent.cache?.targets,
+    ).toEqual([{ strategy: 'xpath', selector: 'row/1' }]);
     expect(
-      cache.matchLocateCache('row action')?.cacheContent.cache?.xpaths,
-    ).toEqual(['row/2']);
+      cache.matchLocateCache('row action')?.cacheContent.cache?.targets,
+    ).toEqual([{ strategy: 'xpath', selector: 'row/2' }]);
     expect(cache.matchLocateCache('row action')).toBeUndefined();
 
     cache.updateOrAppendCacheRecord(
-      { type: 'locate', prompt: 'row action', cache: { xpaths: ['row/3'] } },
+      {
+        type: 'locate',
+        prompt: 'row action',
+        cache: { targets: [{ strategy: 'xpath', selector: 'row/3' }] },
+      },
       undefined,
     );
 
     // Both original entries are preserved; the third occurrence is appended.
     expect(internal.cache.caches).toHaveLength(3);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['row/1']);
-    expect(internal.cache.caches[1].cache?.xpaths).toEqual(['row/2']);
-    expect(internal.cache.caches[2].cache?.xpaths).toEqual(['row/3']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'row/1' },
+    ]);
+    expect(internal.cache.caches[1].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'row/2' },
+    ]);
+    expect(internal.cache.caches[2].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'row/3' },
+    ]);
   });
 
   it('markLocateCacheStale is a no-op when nothing was consumed', () => {
@@ -191,7 +243,9 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'click submit',
-        cache: { xpaths: ['correct/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'correct/xpath' }],
+        },
       },
       undefined,
     );
@@ -213,7 +267,9 @@ describe('locate cache poisoning regression (#2529)', () => {
       {
         type: 'locate',
         prompt: 'click submit',
-        cache: { xpaths: ['correct/xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'correct/xpath' }],
+        },
       },
       undefined,
     );
@@ -221,7 +277,9 @@ describe('locate cache poisoning regression (#2529)', () => {
     const internal = getTaskCacheInternal(cache);
     // In-memory entry is replaced in place...
     expect(internal.cache.caches).toHaveLength(1);
-    expect(internal.cache.caches[0].cache?.xpaths).toEqual(['correct/xpath']);
+    expect(internal.cache.caches[0].cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'correct/xpath' },
+    ]);
     // ...but nothing is written to disk in read-only mode.
     expect(existsSync(filePath)).toBe(false);
   });

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { TUserPrompt } from '@/ai-model';
+import { LocatorTargetSchema, xpathLocatorTarget } from '@/locator';
 import type { ElementCacheFeature } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -34,6 +35,35 @@ export interface LocateCache {
   cache?: ElementCacheFeature;
   /** @deprecated kept for backward compatibility */
   xpaths?: string[];
+}
+
+function normalizeLegacyXpathCache(locateCache: LocateCache): LocateCache {
+  const cache = locateCache.cache ?? {};
+  const targets = Array.isArray(cache.targets)
+    ? cache.targets.flatMap((target) => {
+        const result = LocatorTargetSchema.safeParse(target);
+        return result.success ? [result.data] : [];
+      })
+    : [];
+  const nestedXpaths = Array.isArray(cache.xpaths) ? cache.xpaths : [];
+  const topLevelXpaths = Array.isArray(locateCache.xpaths)
+    ? locateCache.xpaths
+    : [];
+  const legacyTargets = [...nestedXpaths, ...topLevelXpaths]
+    .filter(
+      (xpath): xpath is string =>
+        typeof xpath === 'string' && xpath.trim().length > 0,
+    )
+    .map((xpath) => xpathLocatorTarget(xpath));
+  const { xpaths: _legacyXpaths, ...cacheWithoutXpaths } = cache;
+  locateCache.cache = {
+    ...cacheWithoutXpaths,
+    targets: targets.length > 0 ? targets : legacyTargets,
+  };
+  if ('xpaths' in locateCache) {
+    locateCache.xpaths = undefined;
+  }
+  return locateCache;
 }
 
 export interface MatchCacheResult<T extends PlanningCache | LocateCache> {
@@ -163,13 +193,7 @@ export class TaskCache {
         !this.matchedCacheIndices.has(key)
       ) {
         if (item.type === 'locate') {
-          const locateItem = item as LocateCache;
-          if (!locateItem.cache && Array.isArray(locateItem.xpaths)) {
-            locateItem.cache = { xpaths: locateItem.xpaths };
-          }
-          if ('xpaths' in locateItem) {
-            locateItem.xpaths = undefined;
-          }
+          normalizeLegacyXpathCache(item as LocateCache);
         }
         this.matchedCacheIndices.add(key);
         const consumeKey = `${type}:${promptStr}`;
@@ -267,6 +291,9 @@ export class TaskCache {
   }
 
   appendCache(cache: PlanningCache | LocateCache) {
+    if (cache.type === 'locate') {
+      normalizeLegacyXpathCache(cache);
+    }
     debug('will append cache', cache);
     this.cache.caches.push(cache);
 
@@ -390,11 +417,15 @@ export class TaskCache {
 
       // Sort caches to ensure plan entries come before locate entries for better readability
       // Create a sorted copy for writing to disk while keeping in-memory order unchanged
-      const sortedCaches = [...this.cache.caches].sort((a, b) => {
-        if (a.type === 'plan' && b.type === 'locate') return -1;
-        if (a.type === 'locate' && b.type === 'plan') return 1;
-        return 0;
-      });
+      const sortedCaches = this.cache.caches
+        .map((cache) =>
+          cache.type === 'locate' ? normalizeLegacyXpathCache(cache) : cache,
+        )
+        .sort((a, b) => {
+          if (a.type === 'plan' && b.type === 'locate') return -1;
+          if (a.type === 'locate' && b.type === 'plan') return 1;
+          return 0;
+        });
 
       const cacheToWrite = {
         ...this.cache,
@@ -429,7 +460,8 @@ export class TaskCache {
       (target as PlanningCache).yamlWorkflow = newRecord.yamlWorkflow;
     } else {
       const locateCache = target as LocateCache;
-      locateCache.cache = newRecord.cache;
+      const normalizedRecord = normalizeLegacyXpathCache(newRecord);
+      locateCache.cache = normalizedRecord.cache;
       if ('xpaths' in locateCache) {
         locateCache.xpaths = undefined;
       }

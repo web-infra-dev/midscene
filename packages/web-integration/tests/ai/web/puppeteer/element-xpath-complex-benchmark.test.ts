@@ -26,6 +26,11 @@ interface BenchmarkCase {
   targetId: string;
   action: string;
   expectXpathHit: boolean;
+  acceptance?: {
+    visibleText: string;
+    allowIntermediateActions: boolean;
+    requireWrongThenTargetOnRecord?: boolean;
+  };
 }
 
 const aiActEfforts = ['fast', 'balance', 'deepThink'] as const;
@@ -133,12 +138,31 @@ const benchmarkCases: Record<string, BenchmarkCase> = {
     'card-reserve-stock-copy',
     'copy',
   ),
-  'card-audit-collapse': benchmarkCase(
-    'workflow-cards',
-    'Click the collapse icon in the Write audit log card exactly once.',
-    'card-write-audit-log-collapse',
-    'collapse',
-  ),
+  'card-audit-collapse': {
+    ...benchmarkCase(
+      'workflow-cards',
+      'Click the collapse icon in the Write audit log card exactly once. Acceptance criteria: do not finish until the Write audit log card body is no longer visible and the fixed status panel at the bottom-right reads "Success: Write audit log card is collapsed". If both conditions are not visible after an attempt, that attempt missed the requested control; use the status panel description of the actual hit element to locate it again and retry. A missed click does not count as clicking the requested control.',
+      'card-write-audit-log-collapse',
+      'collapse',
+    ),
+    acceptance: {
+      visibleText: 'Success: Write audit log card is collapsed',
+      allowIntermediateActions: true,
+    },
+  },
+  'card-audit-collapse-recovery': {
+    ...benchmarkCase(
+      'workflow-cards',
+      'Click the collapse icon in the live Write audit log workflow card exactly once. Do not finish until the fixed status panel reads "Success: Write audit log card is collapsed". If the page reports that a click reached a read-only preview or another wrong control, use that feedback to find the live card and retry within this same aiAct.',
+      'card-write-audit-log-collapse',
+      'collapse',
+    ),
+    acceptance: {
+      visibleText: 'Success: Write audit log card is collapsed',
+      allowIntermediateActions: true,
+      requireWrongThenTargetOnRecord: true,
+    },
+  },
   'overlay-policy-dialog': benchmarkCase(
     'overlay',
     'Close the Unsaved policy changes dialog using its top-right close icon exactly once.',
@@ -374,6 +398,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
 
     const fixtureUrl = new URL(`file://${fixturePath}`);
     fixtureUrl.searchParams.set('scene', selectedCase.scene);
+    fixtureUrl.searchParams.set('case', caseId);
     const { originPage, reset } = await launchPage(fixtureUrl.toString(), {
       viewport: { width: 1440, height: 900 },
     });
@@ -432,7 +457,36 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         ).__complexBenchmarkActions,
     );
     const stateEvidence = await originPage.evaluate(
-      ({ scene, targetId }) => {
+      ({ scene, targetId, acceptance }) => {
+        if (acceptance) {
+          const misses = (
+            window as typeof window & {
+              __complexBenchmarkMisses?: Array<{
+                attempt: number;
+                clickedDescription: string;
+              }>;
+            }
+          ).__complexBenchmarkMisses;
+          const targetElement = document.querySelector<HTMLElement>(
+            `[data-target-id="${targetId}"]`,
+          );
+          const targetCardCollapsed =
+            targetElement?.closest<HTMLElement>('.workflow-card')?.dataset
+              .collapsed === 'true';
+          const actualText =
+            document.querySelector<HTMLElement>('#last-action')?.textContent;
+          return {
+            expectation: 'card-collapsed-and-visible-acceptance-text',
+            expectedText: acceptance.visibleText,
+            actualText,
+            targetCardCollapsed,
+            missCount: misses?.length ?? 0,
+            misses: misses ?? [],
+            matched:
+              targetCardCollapsed && actualText === acceptance.visibleText,
+          };
+        }
+
         if (scene === 'overlay') {
           const targetElementPresent = Array.from(
             document.querySelectorAll<HTMLElement>('[data-target-id]'),
@@ -468,7 +522,11 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
           matched: true,
         };
       },
-      { scene: selectedCase.scene, targetId: selectedCase.targetId },
+      {
+        scene: selectedCase.scene,
+        targetId: selectedCase.targetId,
+        acceptance: selectedCase.acceptance,
+      },
     );
     const expectedClicks = [
       {
@@ -476,15 +534,36 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         action: selectedCase.action,
       },
     ];
-    const domMatched =
-      JSON.stringify(actualClicks) === JSON.stringify(expectedClicks);
+    const targetClickCount = actualClicks.filter(
+      (click) =>
+        click.targetId === selectedCase.targetId &&
+        click.action === selectedCase.action,
+    ).length;
+    const endsAtExpectedTarget =
+      targetClickCount === 1 &&
+      JSON.stringify(actualClicks.at(-1)) === JSON.stringify(expectedClicks[0]);
+    const requireWrongThenTarget =
+      variant === 'baseline' &&
+      generateRecordMap &&
+      selectedCase.acceptance?.requireWrongThenTargetOnRecord;
+    const wrongThenTargetMatched =
+      actualClicks.length === 2 &&
+      JSON.stringify(actualClicks[0]) !== JSON.stringify(expectedClicks[0]) &&
+      endsAtExpectedTarget;
+    const domMatched = requireWrongThenTarget
+      ? wrongThenTargetMatched
+      : selectedCase.acceptance?.allowIntermediateActions
+        ? endsAtExpectedTarget
+        : JSON.stringify(actualClicks) === JSON.stringify(expectedClicks);
     const xpathResolved = useGeneratedXpath
       ? locate.xpathHits > 0
       : useElementXpaths
         ? selectedCase.expectXpathHit
-          ? locate.xpathHits === 1 &&
-            locate.resolvedXpaths.length === 1 &&
-            locate.resolvedXpaths[0] === expectedXpath
+          ? selectedCase.acceptance
+            ? locate.xpathHits >= 1 && locate.resolvedXpaths.length >= 1
+            : locate.xpathHits === 1 &&
+              locate.resolvedXpaths.length === 1 &&
+              locate.resolvedXpaths[0] === expectedXpath
           : locate.xpathHits === 0
         : locate.xpathHits === 0;
 
@@ -541,6 +620,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
         recordXpath,
         generateRecordMap,
         modelRetryCount: process.env.MIDSCENE_MODEL_RETRY_COUNT,
+        modelTemperature: process.env.MIDSCENE_MODEL_TEMPERATURE,
         modelReasoningEnabled: process.env.MIDSCENE_MODEL_REASONING_ENABLED,
       },
       model: {
@@ -554,6 +634,14 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
       locateEvidence: locate,
       expectedClicks,
       actualClicks,
+      targetClickCount,
+      recoveryEvidence: {
+        requiredOnRecord: Boolean(requireWrongThenTarget),
+        wrongThenTargetMatched,
+        firstAction: actualClicks[0],
+        finalAction: actualClicks.at(-1),
+      },
+      acceptance: selectedCase.acceptance,
       stateEvidence,
       expectedXpath,
       domMatched,
@@ -601,7 +689,7 @@ it.skipIf(!process.env.ELEMENT_XPATH_COMPLEX_VARIANT)(
     );
 
     if (runError) throw runError;
-    expect(actualClicks).toEqual(expectedClicks);
+    expect(domMatched).toBe(true);
     expect(xpathResolved).toBe(true);
     expect(stateEvidence.matched).toBe(true);
   },

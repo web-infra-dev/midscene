@@ -122,6 +122,10 @@ export const getBridgePageInCliSide = (options?: {
         return BridgePageType;
       }
 
+      if (prop === 'manifestInterface') {
+        return () => 'web';
+      }
+
       if (prop === 'actionSpace') {
         return () => commonWebActionsForWebPage(proxyPage);
       }
@@ -168,6 +172,18 @@ export const getBridgePageInCliSide = (options?: {
               return fileChooserError;
             },
           };
+        };
+      }
+
+      if (prop === 'probeLocatorTargets') {
+        return async (
+          targets: unknown[],
+          options?: { signal?: AbortSignal },
+        ) => {
+          options?.signal?.throwIfAborted();
+          const result = await bridgeCaller(prop)(targets);
+          options?.signal?.throwIfAborted();
+          return result;
         };
       }
 

@@ -291,6 +291,7 @@ export async function plan(
     includeThought,
     includeLog,
     includeSubGoals,
+    hasExtraActions: opts.hasExtraActions,
   });
 
   const preparedImage = await prepareModelImage({

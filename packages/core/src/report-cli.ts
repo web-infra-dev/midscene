@@ -120,6 +120,7 @@ async function markdownFromReport(
     groupDescription: baseDump.groupDescription,
     modelBriefs: baseDump.modelBriefs,
     deviceType: baseDump.deviceType,
+    manifestInterface: baseDump.manifestInterface,
     executions,
   });
 
@@ -460,7 +461,7 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
 const analyzeCommandDefinition: ReportCliCommandDefinition = {
   name: 'analyze',
   description:
-    'Extract successful UI actions from a Midscene HTML report into one reusable YAML file per device operation.',
+    'Extract successful UI actions from a Midscene HTML report into a reusable *.actions.yaml manifest.',
   schema: {
     htmlPath: z
       .string()
@@ -499,8 +500,8 @@ const analyzeCommandDefinition: ReportCliCommandDefinition = {
       overwrite: overwriteFlag,
     });
     const fallbackMessage =
-      result.coordinateFallbackFiles.length > 0
-        ? ` ${result.coordinateFallbackFiles.length} action(s) use locatedPixelBbox because no XPath was recorded.`
+      result.coordinateFallbackActionCount > 0
+        ? ` ${result.coordinateFallbackActionCount} action(s) use locatedPixelBbox because no stable target was recorded.`
         : '';
 
     return {
@@ -508,7 +509,7 @@ const analyzeCommandDefinition: ReportCliCommandDefinition = {
       content: [
         {
           type: 'text',
-          text: `Analyzed ${result.actionFiles.length} UI action(s). Output path: ${result.outputDir}.${fallbackMessage}`,
+          text: `Analyzed ${result.actionCount} UI action(s) into ${result.actionFiles[0]}.${fallbackMessage}`,
         },
       ],
     };

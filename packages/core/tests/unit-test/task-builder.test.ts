@@ -1,3 +1,4 @@
+import { setExtraActionSource } from '@/agent/extra-actions';
 import { TaskBuilder, locatePlanForLocate } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
@@ -66,6 +67,246 @@ describe('TaskBuilder', () => {
       deepLocate: true,
     });
     expect(plan.param).not.toHaveProperty('deepThink');
+  });
+
+  it('normalizes the legacy xpath alias into a target', () => {
+    const plan = locatePlanForLocate({
+      prompt: 'confirm button',
+      xpath: '//button[@id="confirm"]',
+    });
+
+    expect(plan.param).toEqual({
+      prompt: 'confirm button',
+      target: {
+        strategy: 'xpath',
+        selector: '//button[@id="confirm"]',
+      },
+    });
+    expect(() =>
+      locatePlanForLocate({
+        prompt: 'confirm button',
+        xpath: '//button',
+        target: { strategy: 'xpath', selector: '//button' },
+      }),
+    ).toThrow('`target` and `xpath` cannot be used in the same locator');
+  });
+
+  it('resolves a target before AI locate and reports the Extra Action source', async () => {
+    const tapAction: DeviceAction = {
+      name: 'Tap',
+      description: 'tap an element',
+      paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+      call: vi.fn(),
+      delayBeforeRunner: 0,
+      delayAfterRunner: 0,
+    };
+    const mockInterface = new MockInterface([tapAction]);
+    mockInterface.resolveLocatorTarget = vi.fn(async () => ({
+      left: 10,
+      top: 20,
+      width: 100,
+      height: 40,
+    }));
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate: vi.fn(),
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+    const extraActionPlan: PlanningAction = {
+      type: 'Tap',
+      param: {
+        locate: {
+          prompt: 'confirm button',
+          target: {
+            strategy: 'xpath',
+            selector: '//button[@id="confirm"]',
+          },
+        },
+      },
+    };
+    setExtraActionSource(extraActionPlan, {
+      type: 'extra-action',
+      name: 'Click the confirm button',
+      alias: 'MidsceneExtraAction_1',
+      sourcePath: '/tmp/example.actions.yaml',
+    });
+    const { tasks } = await taskBuilder.build(
+      [extraActionPlan],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+
+    const locateResult = await tasks[0].executor(tasks[0].param, {
+      task: { timing: {} },
+      uiContext: {
+        shrunkShotToLogicalRatio: 1,
+        deprecatedDpr: 1,
+      },
+    } as any);
+
+    expect(insightService.locate).not.toHaveBeenCalled();
+    expect(locateResult).toMatchObject({
+      output: {
+        element: {
+          center: [59, 39],
+          rect: { left: 10, top: 20, width: 100, height: 40 },
+        },
+      },
+      hitBy: {
+        from: 'Extra Action target',
+        context: {
+          target: {
+            strategy: 'xpath',
+            selector: '//button[@id="confirm"]',
+          },
+          extraActionName: 'Click the confirm button',
+          extraActionAlias: 'MidsceneExtraAction_1',
+        },
+      },
+    });
+
+    const actionResult = await tasks[1].executor(tasks[1].param, {
+      task: { timing: {} },
+      uiContext: {
+        shrunkShotToLogicalRatio: 1,
+        deprecatedDpr: 1,
+      },
+    } as any);
+    expect(actionResult).toMatchObject({
+      hitBy: {
+        from: 'Extra Action',
+        context: {
+          extraActionName: 'Click the confirm button',
+          extraActionAlias: 'MidsceneExtraAction_1',
+        },
+      },
+    });
+  });
+
+  it('falls back to AI locate when target resolution fails', async () => {
+    const tapAction: DeviceAction = {
+      name: 'Tap',
+      description: 'tap an element',
+      paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+      call: vi.fn(),
+    };
+    const mockInterface = new MockInterface([tapAction]);
+    mockInterface.resolveLocatorTarget = vi.fn(async () => {
+      throw new Error('target is stale');
+    });
+    const locate = vi.fn(async () => ({
+      element: {
+        center: [30, 30],
+        rect: { left: 20, top: 20, width: 20, height: 20 },
+        description: 'confirm button',
+      },
+      dump: { taskInfo: { durationMs: 1 } },
+    }));
+    const insightService = {
+      contextRetrieverFn: vi.fn(),
+      locate,
+    } as unknown as Service;
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: insightService,
+      actionSpace: mockInterface.actionSpace(),
+    });
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'confirm button',
+              target: { strategy: 'xpath', selector: '//button' },
+            },
+          },
+        },
+      ],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+
+    const locateResult = await tasks[0].executor(tasks[0].param, {
+      task: { timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
+    } as any);
+
+    expect(locate).toHaveBeenCalledOnce();
+    expect(locateResult).toMatchObject({
+      hitBy: {
+        from: 'AI',
+        context: {
+          target: { strategy: 'xpath', selector: '//button' },
+          targetResolutionError: 'target is stale',
+        },
+      },
+    });
+  });
+
+  it('falls back to AI locate when target resolution returns an invalid rect', async () => {
+    const tapAction: DeviceAction = {
+      name: 'Tap',
+      description: 'tap an element',
+      paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+      call: vi.fn(),
+    };
+    const mockInterface = new MockInterface([tapAction]);
+    mockInterface.resolveLocatorTarget = vi.fn(async () => ({
+      left: 10,
+      top: 20,
+      width: 0,
+      height: 40,
+    }));
+    const locate = vi.fn(async () => ({
+      element: {
+        center: [30, 30] as [number, number],
+        rect: { left: 20, top: 20, width: 20, height: 20 },
+        description: 'confirm button',
+      },
+      dump: { taskInfo: { durationMs: 1 } },
+    }));
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: { contextRetrieverFn: vi.fn(), locate } as unknown as Service,
+      actionSpace: mockInterface.actionSpace(),
+    });
+    const { tasks } = await taskBuilder.build(
+      [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'confirm button',
+              target: { strategy: 'xpath', selector: '//button' },
+            },
+          },
+        },
+      ],
+      mockModelRuntime,
+      mockModelRuntime,
+    );
+
+    const locateResult = await tasks[0].executor(tasks[0].param, {
+      task: { timing: {} },
+      uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
+    } as any);
+
+    expect(locate).toHaveBeenCalledOnce();
+    expect(locateResult).toMatchObject({
+      hitBy: {
+        from: 'AI',
+        context: {
+          targetResolutionError: expect.stringContaining(
+            'Invalid locate result rect size',
+          ),
+        },
+      },
+    });
   });
 
   it('dispatches plans using handler registry', async () => {

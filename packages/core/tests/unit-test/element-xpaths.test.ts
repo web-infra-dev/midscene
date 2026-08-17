@@ -7,6 +7,10 @@ import {
   elementXpathsPlanningContext,
   loadElementXpaths,
 } from '@/agent/element-xpaths';
+import {
+  getExtraActionSource,
+  setExtraActionSource,
+} from '@/agent/extra-actions';
 import { TaskExecutor } from '@/agent/tasks';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
@@ -162,7 +166,10 @@ elements:
           value: 'Alice',
           locate: {
             prompt: 'the "first NAME input" as specified in known UI elements',
-            xpath: '//*[@id="first-name"]',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
@@ -189,7 +196,10 @@ elements:
           value: 'Dora',
           locate: {
             prompt: 'First name input',
-            xpath: '//*[@id="first-name"]',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
@@ -199,7 +209,10 @@ elements:
           value: 'Eve',
           locate: {
             prompt: 'First name input',
-            xpath: '//*[@id="first-name"]',
+            target: {
+              strategy: 'xpath',
+              selector: '//*[@id="first-name"]',
+            },
           },
         },
       },
@@ -228,6 +241,32 @@ elements:
     );
 
     expect(mapped).toEqual({ plans, mapped: false });
+  });
+
+  it('preserves internal Extra Action provenance when a map transforms the plan', () => {
+    const plan: PlanningAction = {
+      type: 'Input',
+      param: {
+        value: 'Alice',
+        locate: { prompt: 'First name input' },
+      },
+    };
+    const source = {
+      type: 'extra-action' as const,
+      name: 'Fill the first name',
+      alias: 'MidsceneExtraAction_1',
+      sourcePath: '/tmp/profile.actions.yaml',
+    };
+    setExtraActionSource(plan, source);
+
+    const mapped = applyElementXpathsToPlans(
+      [plan],
+      [{ name: 'First name input', xpath: '//*[@id="first-name"]' }],
+      [inputAction()],
+    );
+
+    expect(mapped.mapped).toBe(true);
+    expect(getExtraActionSource(mapped.plans[0])).toEqual(source);
   });
 
   it('rejects invalid and conflicting map entries before planning', async () => {
@@ -359,7 +398,7 @@ elements:
 
     expect(locate).not.toHaveBeenCalled();
     expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
-      xpaths: ['//*[@id="first-name"]'],
+      targets: [{ strategy: 'xpath', selector: '//*[@id="first-name"]' }],
     });
     expect(inputCall).toHaveBeenCalledOnce();
     expect(result.output?.yamlFlow).toEqual([
@@ -368,15 +407,23 @@ elements:
         value: 'Alice',
         locate: {
           prompt: 'First name input',
-          xpath: '//*[@id="first-name"]',
+          target: {
+            strategy: 'xpath',
+            selector: '//*[@id="first-name"]',
+          },
         },
       },
     ]);
     expect(
       result.runner.tasks.find((task) => task.subType === 'Locate')?.hitBy,
     ).toEqual({
-      from: 'User expected path',
-      context: { xpath: '//*[@id="first-name"]' },
+      from: 'User target',
+      context: {
+        target: {
+          strategy: 'xpath',
+          selector: '//*[@id="first-name"]',
+        },
+      },
     });
 
     const replayAction = vi.fn();
@@ -401,7 +448,10 @@ elements:
         value: 'Alice',
         locate: expect.objectContaining({
           prompt: 'First name input',
-          xpath: '//*[@id="first-name"]',
+          target: {
+            strategy: 'xpath',
+            selector: '//*[@id="first-name"]',
+          },
         }),
       }),
     );
@@ -470,13 +520,21 @@ elements:
     );
 
     expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
-      xpaths: ['//*[@id="stale-first-name"]'],
+      targets: [
+        {
+          strategy: 'xpath',
+          selector: '//*[@id="stale-first-name"]',
+        },
+      ],
     });
     expect(locate).toHaveBeenCalledOnce();
     expect(locate.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         prompt: 'First name input',
-        xpath: '//*[@id="stale-first-name"]',
+        target: {
+          strategy: 'xpath',
+          selector: '//*[@id="stale-first-name"]',
+        },
       }),
     );
     expect(locate.mock.calls[0][0]).not.toHaveProperty('locatedPixelBbox');

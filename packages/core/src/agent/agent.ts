@@ -84,7 +84,6 @@ import {
 } from './element-xpaths';
 import {
   createExtraActionExecutionOptions,
-  extraActionsCacheKey,
   loadExtraActions,
 } from './extra-actions';
 import { FileChooserAccepter } from './file-chooser';
@@ -623,6 +622,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       executions: [],
       modelBriefs: [],
       deviceType: this.interface.interfaceType,
+      manifestInterface:
+        this.interface.manifestInterface?.() ?? this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
@@ -742,6 +743,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       sdkVersion: this.dump.sdkVersion,
       modelBriefs: this.dump.modelBriefs,
       deviceType: this.dump.deviceType,
+      manifestInterface: this.dump.manifestInterface,
     };
   }
 
@@ -1156,7 +1158,14 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const extraActions = await loadExtraActions(
         extraActionPaths,
         this.fullActionSpace,
+        this.interface.manifestInterface?.() ?? this.interface.interfaceType,
       );
+      const extraActionExecution = createExtraActionExecutionOptions(
+        extraActions,
+        this.interface,
+      );
+      let initialExtraActionSnapshot =
+        await extraActionExecution?.createSnapshot({ signal: abortSignal });
       const elementXpaths = await loadElementXpaths(
         opt?.loadElementXpaths ?? [],
       );
@@ -1173,10 +1182,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         taskPrompt,
         aiActContext,
       );
-      const extraActionKey = extraActionsCacheKey(extraActions);
-      const cachePrompt = extraActionKey
-        ? `${promptWithContext}\n\n<midscene_extra_actions>${extraActionKey}</midscene_extra_actions>`
-        : promptWithContext;
+      const cachePromptForSnapshot = (fingerprint?: string) =>
+        fingerprint
+          ? `${promptWithContext}\n\n<midscene_extra_actions>${fingerprint}</midscene_extra_actions>`
+          : promptWithContext;
+      const cachePrompt = cachePromptForSnapshot(
+        initialExtraActionSnapshot?.fingerprint,
+      );
 
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
@@ -1261,6 +1273,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
               error instanceof Error ? error.message : String(error)
             }`,
           );
+          initialExtraActionSnapshot =
+            await extraActionExecution?.createSnapshot({
+              signal: abortSignal,
+            });
         }
       }
 
@@ -1279,7 +1295,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           deepLocate,
           abortSignal,
           reportOptions: internalReportDisplay,
-          extraActions: createExtraActionExecutionOptions(extraActions),
+          extraActions: extraActionExecution
+            ? {
+                ...extraActionExecution,
+                initialSnapshot: initialExtraActionSnapshot,
+              }
+            : undefined,
           elementXpaths,
         },
       );

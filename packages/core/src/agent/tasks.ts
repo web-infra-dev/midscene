@@ -44,6 +44,7 @@ import {
   applyElementXpathsToPlans,
 } from './element-xpaths';
 import { ExecutionSession } from './execution-session';
+import type { ExtraActionSnapshot } from './extra-actions';
 import { withFileChooser } from './file-chooser';
 import {
   type AgentProgressPublisher,
@@ -91,11 +92,10 @@ interface TaskExecutorActionOptions {
   abortSignal?: AbortSignal;
   reportOptions?: ActionReportOptions;
   extraActions?: {
-    actionSpace: DeviceAction[];
-    expandPlans: (plans: PlanningAction[]) => {
-      plans: PlanningAction[];
-      expanded: boolean;
-    };
+    initialSnapshot?: ExtraActionSnapshot;
+    createSnapshot: (options?: {
+      signal?: AbortSignal;
+    }) => Promise<ExtraActionSnapshot>;
   };
   elementXpaths?: LoadedElementXpath[];
 }
@@ -533,10 +533,10 @@ export class TaskExecutor {
     } = options;
     const conversationHistory = new ConversationHistory();
     const baseActionSpace = this.getActionSpace();
-    const actionSpace = [
-      ...baseActionSpace,
-      ...(extraActions?.actionSpace ?? []),
-    ];
+    let latestExtraActionSnapshot:
+      | Awaited<ReturnType<NonNullable<typeof extraActions>['createSnapshot']>>
+      | undefined;
+    let pendingInitialExtraActionSnapshot = extraActions?.initialSnapshot;
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
 
@@ -659,6 +659,14 @@ export class TaskExecutor {
             assert(uiContext, 'uiContext is required for Planning task');
             assert(param.effort, 'effort is required for Planning Plan task');
             const planningUiContext = uiContext as UIContext;
+            latestExtraActionSnapshot =
+              pendingInitialExtraActionSnapshot ??
+              (await extraActions?.createSnapshot({ signal: abortSignal }));
+            pendingInitialExtraActionSnapshot = undefined;
+            const actionSpace = [
+              ...(latestExtraActionSnapshot?.actionSpace ?? []),
+              ...baseActionSpace,
+            ];
             const timing = executorContext.task.timing;
             await this.emitAiActProgress('plan_thinking', {
               planIndex,
@@ -694,6 +702,8 @@ export class TaskExecutor {
                 includeLocateInPlanning,
                 imagesIncludeCount: param.imagesIncludeCount,
                 effort: param.effort,
+                hasExtraActions:
+                  (latestExtraActionSnapshot?.actionSpace.length ?? 0) > 0,
                 referenceImageMessages,
                 abortSignal,
               });
@@ -809,7 +819,7 @@ export class TaskExecutor {
 
       // Execute planned actions
       const plans = planResult?.actions || [];
-      const expansion = extraActions?.expandPlans(plans) ?? {
+      const expansion = latestExtraActionSnapshot?.expandPlans(plans) ?? {
         plans,
         expanded: false,
       };

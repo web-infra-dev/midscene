@@ -64,6 +64,7 @@ const defaultReportMeta: ReportMeta = {
   groupName: 'test-group',
   groupDescription: 'test',
   sdkVersion: '1.0.0-test',
+  manifestInterface: 'web',
   modelBriefs: [],
 };
 
@@ -98,6 +99,7 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
     const sameReportMeta: ReportMeta = {
       groupName: 'Midscene Report', // default groupName
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       modelBriefs: [],
     };
 
@@ -146,6 +148,7 @@ describe('Issue 3: execution persistence requires id', () => {
     const groupMeta: ReportMeta = {
       groupName: 'dedup-test',
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       modelBriefs: [],
     };
 

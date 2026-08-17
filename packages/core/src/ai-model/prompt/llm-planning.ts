@@ -44,16 +44,14 @@ const RUN_ADB_SHELL_ACTION_GUIDANCE =
 const EXTRA_ACTION_GUIDANCE =
   '- Actions named MidsceneExtraAction_* are exact pre-recorded operations. When one matches the next requested operation, you MUST use it instead of rebuilding that operation with a low-level action such as Tap or Input.';
 
-const buildActionStepNotes = (actionList: string) =>
+const buildActionStepNotes = (actionList: string, hasExtraActions: boolean) =>
   [
     '### Action Guidelines',
     '',
     ...(actionList.includes('RunAdbShell')
       ? [RUN_ADB_SHELL_ACTION_GUIDANCE]
       : []),
-    ...(actionList.includes('MidsceneExtraAction_')
-      ? [EXTRA_ACTION_GUIDANCE]
-      : []),
+    ...(hasExtraActions ? [EXTRA_ACTION_GUIDANCE] : []),
     '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
     '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
     '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
@@ -243,6 +241,7 @@ export async function systemPromptToTaskPlanning({
   includeThought,
   includeLog,
   includeSubGoals,
+  hasExtraActions = false,
 }: {
   actionSpace: DeviceAction<any>[];
   locatePromptSpec?: LocateResultPromptSpec;
@@ -250,6 +249,7 @@ export async function systemPromptToTaskPlanning({
   includeThought?: boolean;
   includeLog?: boolean;
   includeSubGoals?: boolean;
+  hasExtraActions?: boolean;
 }) {
   const preferredLanguage = getPreferredLanguage();
 
@@ -268,7 +268,7 @@ export async function systemPromptToTaskPlanning({
     );
   });
   const actionList = actionDescriptionList.join('\n');
-  const actionStepNotes = buildActionStepNotes(actionList);
+  const actionStepNotes = buildActionStepNotes(actionList, hasExtraActions);
 
   const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeLog = includeLog ?? true;

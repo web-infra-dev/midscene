@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { findAllMidsceneLocatorField } from '@/ai-model';
+import { xpathLocatorTarget } from '@/locator';
 import type { DeviceAction, PlanningAction } from '@/types';
 import yaml from 'js-yaml';
+import { getExtraActionSource, setExtraActionSource } from './extra-actions';
 
 interface ElementXpathFile {
   elements: Record<string, string>;
@@ -153,7 +155,10 @@ function locatorPromptText(locator: unknown): string | undefined {
 }
 
 function locatorAlreadyResolved(locator: unknown): boolean {
-  return isPlainObject(locator) && typeof locator.xpath === 'string';
+  return (
+    isPlainObject(locator) &&
+    (typeof locator.xpath === 'string' || locator.target !== undefined)
+  );
 }
 
 function xpathForLocatorPrompt(
@@ -193,9 +198,9 @@ function xpathForLocatorPrompt(
   return containedMatches[0].xpath;
 }
 
-function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
+function locatorWithTarget(locator: unknown, prompt: string, xpath: string) {
   if (typeof locator === 'string') {
-    return { prompt: locator, xpath };
+    return { prompt: locator, target: xpathLocatorTarget(xpath) };
   }
 
   const {
@@ -210,7 +215,7 @@ function locatorWithXpath(locator: unknown, prompt: string, xpath: string) {
   return {
     ...locatorWithoutCoordinates,
     prompt,
-    xpath,
+    target: xpathLocatorTarget(xpath),
   };
 }
 
@@ -251,11 +256,17 @@ export function applyElementXpathsToPlans(
       }
 
       transformedParam ??= { ...plan.param };
-      transformedParam[field] = locatorWithXpath(locator, prompt, xpath);
+      transformedParam[field] = locatorWithTarget(locator, prompt, xpath);
       mapped = true;
     }
 
-    return transformedParam ? { ...plan, param: transformedParam } : plan;
+    if (!transformedParam) return plan;
+    const transformedPlan = { ...plan, param: transformedParam };
+    const extraActionSource = getExtraActionSource(plan);
+    if (extraActionSource) {
+      setExtraActionSource(transformedPlan, extraActionSource);
+    }
+    return transformedPlan;
   });
 
   return { plans: transformedPlans, mapped };

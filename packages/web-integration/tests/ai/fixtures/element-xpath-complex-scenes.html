@@ -259,6 +259,19 @@
         background: white;
         box-shadow: 0 5px 16px rgba(38, 51, 77, 0.08);
       }
+      .workflow-card[data-collapsed='true'] {
+        min-height: 0;
+      }
+      .workflow-card[data-collapsed='true'] .card-body {
+        display: none;
+      }
+      .workflow-card[data-rejected='true'] {
+        border-color: #f97066;
+        box-shadow: 0 0 0 3px #fee4e2;
+      }
+      .workflow-card[data-rejected='true'] .card-head {
+        background: #fff4f2;
+      }
       .card-head {
         display: flex;
         align-items: center;
@@ -487,7 +500,9 @@
     <script>
       const params = new URLSearchParams(location.search);
       const scene = params.get('scene') || 'grouped-table';
+      const benchmarkCase = params.get('case');
       window.__complexBenchmarkActions = [];
+      window.__complexBenchmarkMisses = [];
 
       function record(targetId, action) {
         window.__complexBenchmarkActions.push({ targetId, action });
@@ -631,11 +646,25 @@
         ['finish-workflow', 'Finish workflow', 'End', 'Return success'],
       ];
 
+      const recoveryCards = [
+        ...cards.slice(0, 6),
+        ['write-audit-log-preview', 'Write audit log', 'Preview', 'Read-only template'],
+        ['finish-workflow', 'Finish workflow', 'End', 'Return success'],
+        ['archive-orders', 'Archive completed orders', 'Storage', 'Cold archive'],
+        ['publish-metrics', 'Publish workflow metrics', 'Analytics', 'Operations board'],
+        ['write-audit-log', 'Write audit log', 'Live workflow', 'Compliance archive'],
+        ['close-run', 'Close workflow run', 'End', 'Return success'],
+      ];
+
       function renderWorkflowCards() {
+        const visibleCards =
+          benchmarkCase === 'card-audit-collapse-recovery'
+            ? recoveryCards
+            : cards;
         document.querySelector('#root').innerHTML = shell(
           'Workflow designer',
-          'Eight visually similar cards · four icon-only tools on every card',
-          `<div class="canvas-grid">${cards.map(([id, title, type, detail]) => `
+          `${visibleCards.length} visually similar cards · four icon-only tools on every card`,
+          `<div class="canvas-grid">${visibleCards.map(([id, title, type, detail]) => `
             <article class="workflow-card" data-card-id="${id}">
               <header class="card-head"><span class="card-title">${title}</span>
                 <span class="card-tools">${Object.entries(toolIcons).map(([action, icon]) => `
@@ -647,9 +676,37 @@
         );
         document.querySelectorAll('.card-tools button').forEach((button) => {
           const action = button.getAttribute('aria-label');
-          button.addEventListener('click', () =>
-            record(button.dataset.targetId, action),
-          );
+          button.addEventListener('click', () => {
+            const targetId = button.dataset.targetId;
+            record(targetId, action);
+            if (targetId === 'card-write-audit-log-collapse') {
+              button.closest('.workflow-card').dataset.collapsed = 'true';
+              button.setAttribute('aria-expanded', 'false');
+              document.querySelector('#last-action').textContent =
+                'Success: Write audit log card is collapsed';
+            } else if (benchmarkCase === 'card-audit-collapse-recovery') {
+              const card = button.closest('.workflow-card');
+              const cardTitle = card
+                ?.querySelector('.card-title')
+                ?.textContent?.trim();
+              const cardDetail = card
+                ?.querySelector('.card-body strong:last-child')
+                ?.textContent?.trim();
+              const clickedDescription = `${action} control in the "${cardTitle}" card (${cardDetail})`;
+              const miss = {
+                attempt: window.__complexBenchmarkMisses.length + 1,
+                clickedDescription,
+              };
+              window.__complexBenchmarkMisses.push(miss);
+              card.dataset.rejected = 'true';
+              document.querySelector('#last-action').textContent =
+                `Attempt ${miss.attempt} missed: clicked ${clickedDescription}. This is not the live Write audit log card. The live card uses "Compliance archive"; retry its collapse control.`;
+              document.querySelectorAll('.workflow-card').forEach((item) => {
+                item.hidden = item.dataset.cardId !== 'write-audit-log';
+              });
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }
+          });
         });
       }
 
@@ -758,6 +815,37 @@
       const render = renderers[scene];
       if (!render) throw new Error(`Unknown scene: ${scene}`);
       render();
+
+      if (benchmarkCase === 'card-audit-collapse') {
+        document.addEventListener('click', (event) => {
+          const clickedElement =
+            event.target instanceof Element ? event.target : null;
+          const requestedControl = clickedElement?.closest(
+            '[data-target-id="card-write-audit-log-collapse"]',
+          );
+          if (requestedControl) return;
+
+          const card = clickedElement?.closest('.workflow-card');
+          const cardTitle = card
+            ?.querySelector('.card-title')
+            ?.textContent?.trim();
+          const controlName = clickedElement
+            ?.closest('button')
+            ?.getAttribute('aria-label');
+          const clickedDescription = cardTitle
+            ? controlName
+              ? `${controlName} control in the "${cardTitle}" card`
+              : `the "${cardTitle}" card`
+            : 'an element outside the requested card control';
+          const miss = {
+            attempt: window.__complexBenchmarkMisses.length + 1,
+            clickedDescription,
+          };
+          window.__complexBenchmarkMisses.push(miss);
+          document.querySelector('#last-action').textContent =
+            `Attempt ${miss.attempt} missed: clicked ${clickedDescription}. The Write audit log card is still expanded; reinspect and retry.`;
+        });
+      }
     </script>
   </body>
 </html>
