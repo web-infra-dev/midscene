@@ -9,7 +9,7 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import { systemPromptToTaskPlanning } from '../../prompt/llm-planning';
+import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -142,12 +142,21 @@ export async function standardPlan(
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.deepThink === true;
 
-  const systemPrompt = await systemPromptToTaskPlanning({
+  if (opts.includeLocateInPlanning && !locateResultAdapter) {
+    throw new Error(
+      planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
+    );
+  }
+
+  const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
-    locatePromptSpec: locateResultAdapter?.promptSpec,
-    includeLocateInPlanning: opts.includeLocateInPlanning,
-    includeThought: true, // always include thought
     includeSubGoals,
+    ...(opts.includeLocateInPlanning && locateResultAdapter
+      ? {
+          includeLocateInPlanning: true,
+          locatePromptSpec: locateResultAdapter.promptSpec,
+        }
+      : { includeLocateInPlanning: false }),
   });
 
   const preparedImage = await prepareModelImage({
@@ -293,6 +302,9 @@ export async function standardPlan(
 
   assert(planFromAI, "can't get plans from AI");
 
+  // TODO: The plan log is recorded before its action has executed, so a failed
+  // action may still appear in the next round as an action already performed.
+  // Move this write to the successful action execution path in TaskExecutor.action.
   // Update sub-goals in conversation history only in planning deep-think mode.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {

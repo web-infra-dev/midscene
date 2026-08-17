@@ -1,22 +1,12 @@
-import { findAllMidsceneLocatorField } from '@/common';
 import type { DeviceAction } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import {
-  getZodDescription,
-  getZodTypeName,
-} from '@midscene/shared/zod-schema-utils';
-import type { z } from 'zod';
-import type { LocateResultPromptSpec } from '../shared/model-locate-result';
-import { planningModelFamilyRequiredForLocateMessage } from '../shared/model-locate-result/errors';
-import { locateGroundingRules } from './locate-grounding-rules';
-import { locateParamExample } from './locate-param-example';
-
-const locateParamSchemaDescription = (promptSpec?: LocateResultPromptSpec) => {
-  if (promptSpec) {
-    return `{${promptSpec.resultKey}: ${promptSpec.resultValueSchema}, prompt: string } // ${promptSpec.resultValueDescription}`;
-  }
-  return '{ prompt: string /* description of the target element */ }';
-};
+import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
+import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
+import { locateGroundingRules } from '../locate-grounding-rules';
+import { buildActionSpaceDescription } from './action-description';
+import { buildActionExample, createSampleTapAction } from './action-example';
+import { buildPlanningActionGuidelines } from './action-guidelines';
+import { buildPlanningMultiTurnExample } from './multi-turn-example';
 
 const OBSERVE_STEP_NOTES = [
   '### Observation Guidelines',
@@ -39,255 +29,42 @@ const MEMORY_STEP_NOTES = [
   '- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.',
 ].join('\n');
 
-const RUN_ADB_SHELL_ACTION_GUIDANCE =
-  "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action.";
-
-const buildActionStepNotes = (actionList: string) =>
-  [
-    '### Action Guidelines',
-    '',
-    ...(actionList.includes('RunAdbShell')
-      ? [RUN_ADB_SHELL_ACTION_GUIDANCE]
-      : []),
-    '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.',
-    '- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.',
-    '- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.',
-  ].join('\n');
-
-/**
- * Find ZodDefault in the wrapper chain and return its default value
- */
-const findDefaultValue = (field: unknown): any | undefined => {
-  let current = field;
-  const visited = new Set<unknown>();
-
-  while (current && !visited.has(current)) {
-    visited.add(current);
-    const currentWithDef = current as {
-      _def?: {
-        typeName?: string;
-        defaultValue?: () => any;
-        innerType?: unknown;
-      };
-    };
-
-    if (!currentWithDef._def?.typeName) break;
-
-    if (currentWithDef._def.typeName === 'ZodDefault') {
-      return currentWithDef._def.defaultValue?.();
-    }
-
-    // Continue unwrapping if it's a wrapper type
-    if (
-      currentWithDef._def.typeName === 'ZodOptional' ||
-      currentWithDef._def.typeName === 'ZodNullable'
-    ) {
-      current = currentWithDef._def.innerType;
-    } else {
-      break;
-    }
-  }
-
-  return undefined;
-};
-
-/**
- * Inject model locate results into locate fields of a sample object.
- * Walks the sample and for any locate field (identified by paramSchema),
- * adds a fake locate result when includeLocateInPlanning is true.
- */
-const injectLocateResultIntoSample = (
-  sample: Record<string, any>,
-  locateFields: string[],
-  promptSpec: LocateResultPromptSpec,
-): Record<string, any> => {
-  const resultKey = promptSpec.resultKey;
-  const sampleResults = promptSpec.exampleValues;
-  const result = { ...sample };
-  let sampleResultIndex = 0;
-  for (const field of locateFields) {
-    if (
-      result[field] &&
-      typeof result[field] === 'object' &&
-      result[field].prompt
-    ) {
-      result[field] = {
-        ...result[field],
-        [resultKey]: sampleResults[sampleResultIndex % sampleResults.length],
-      };
-      sampleResultIndex++;
-    }
-  }
-  return result;
-};
-
-export const descriptionForAction = (
-  action: DeviceAction<any>,
-  locateParamTypeDescription: string,
-  includeLocateInPlanning = false,
-  locatePromptSpec?: LocateResultPromptSpec,
-) => {
-  const tab = '  ';
-  const fields: string[] = [];
-
-  // Add the action type field
-  fields.push(`- type: "${action.name}"`);
-
-  // Handle paramSchema if it exists
-  if (action.paramSchema) {
-    const paramLines: string[] = [];
-
-    // Check if paramSchema is a ZodObject with shape
-    const schema = action.paramSchema as {
-      _def?: { typeName?: string };
-      shape?: Record<string, unknown>;
-    };
-    const isZodObject = schema._def?.typeName === 'ZodObject';
-
-    if (isZodObject && schema.shape) {
-      // Original logic for ZodObject schemas
-      const shape = schema.shape;
-
-      for (const [key, field] of Object.entries(shape)) {
-        if (field && typeof field === 'object') {
-          // Check if field is optional
-          const isOptional =
-            typeof (field as { isOptional?: () => boolean }).isOptional ===
-              'function' &&
-            (field as { isOptional: () => boolean }).isOptional();
-          const keyWithOptional = isOptional ? `${key}?` : key;
-
-          // Get the type name using extracted helper
-          const typeName = getZodTypeName(field, locateParamTypeDescription);
-
-          // Get description using extracted helper
-          const description = getZodDescription(field as z.ZodTypeAny);
-
-          // Check if field has a default value by searching the wrapper chain
-          const defaultValue = findDefaultValue(field);
-          const hasDefault = defaultValue !== undefined;
-
-          // Build param line for this field
-          let paramLine = `${keyWithOptional}: ${typeName}`;
-          const comments: string[] = [];
-          if (description) {
-            comments.push(description);
-          }
-          if (hasDefault) {
-            const defaultStr =
-              typeof defaultValue === 'string'
-                ? `"${defaultValue}"`
-                : JSON.stringify(defaultValue);
-            comments.push(`default: ${defaultStr}`);
-          }
-          if (comments.length > 0) {
-            paramLine += ` // ${comments.join(', ')}`;
-          }
-
-          paramLines.push(paramLine);
-        }
-      }
-
-      // Add the param section to fields if there are paramLines
-      if (paramLines.length > 0) {
-        fields.push('- param:');
-        paramLines.forEach((line) => {
-          fields.push(`  - ${line}`);
-        });
-      }
-    } else {
-      // Handle non-object schemas (string, number, etc.)
-      const typeName = getZodTypeName(schema);
-      const description = getZodDescription(schema as z.ZodTypeAny);
-
-      // For simple types, indicate that param should be the direct value, not an object
-      let paramDescription = `- param: ${typeName}`;
-      if (description) {
-        paramDescription += ` // ${description}`;
-      }
-      paramDescription += ' (pass the value directly, not as an object)';
-
-      fields.push(paramDescription);
-    }
-  }
-
-  // Render sample if provided, using the same XML tag format as the real output
-  if (action.sample && typeof action.sample === 'object') {
-    const locateFields = findAllMidsceneLocatorField(action.paramSchema);
-    const sampleWithLocateResult =
-      includeLocateInPlanning && locatePromptSpec
-        ? injectLocateResultIntoSample(
-            action.sample,
-            locateFields,
-            locatePromptSpec,
-          )
-        : action.sample;
-    const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithLocateResult, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
-    fields.push(sampleStr);
-  }
-
-  return `- ${action.name}, ${action.description || 'No description provided'}
-${tab}${fields.join(`\n${tab}`)}
-`.trim();
-};
-
-export async function systemPromptToTaskPlanning({
-  actionSpace,
-  locatePromptSpec,
-  includeLocateInPlanning,
-  includeThought,
-  includeSubGoals,
-}: {
+type BuildStandardPlanningSystemPromptInput = {
   actionSpace: DeviceAction<any>[];
-  locatePromptSpec?: LocateResultPromptSpec;
-  includeLocateInPlanning: boolean;
-  includeThought?: boolean;
   includeSubGoals?: boolean;
-}) {
+} & (
+  | {
+      includeLocateInPlanning: true;
+      locatePromptSpec: LocateResultPromptSpec;
+    }
+  | {
+      includeLocateInPlanning: false;
+      locatePromptSpec?: never;
+    }
+);
+
+export async function buildStandardPlanningSystemPrompt(
+  input: BuildStandardPlanningSystemPromptInput,
+) {
+  const {
+    actionSpace,
+    includeLocateInPlanning,
+    locatePromptSpec,
+    includeSubGoals,
+  } = input;
   const preferredLanguage = getPreferredLanguage();
 
   if (includeLocateInPlanning && !locatePromptSpec) {
     throw new Error(planningModelFamilyRequiredForLocateMessage());
   }
 
-  const actionDescriptionList = actionSpace.map((action) => {
-    return descriptionForAction(
-      action,
-      locateParamSchemaDescription(
-        includeLocateInPlanning ? locatePromptSpec : undefined,
-      ),
-      includeLocateInPlanning,
-      locatePromptSpec,
-    );
+  const actionList = buildActionSpaceDescription(actionSpace, {
+    includeLocateInPlanning,
+    locatePromptSpec,
   });
-  const actionList = actionDescriptionList.join('\n');
-  const actionStepNotes = buildActionStepNotes(actionList);
+  const actionStepNotes = buildPlanningActionGuidelines(actionSpace);
 
-  const shouldIncludeThought = includeThought ?? true;
   const shouldIncludeSubGoals = includeSubGoals ?? false;
-
-  const locateExample = (prompt: string, exampleValueIndex: number) =>
-    locateParamExample(
-      prompt,
-      includeLocateInPlanning ? locatePromptSpec : undefined,
-      locatePromptSpec?.exampleValues[exampleValueIndex] ??
-        locatePromptSpec?.exampleValues[0],
-    );
-  const locateExample1 = locateExample(
-    'Add to cart button for Sauce Labs Backpack',
-    1,
-  );
-  const locateNameField = locateExample(
-    'Name input field in the registration form',
-    2,
-  );
-  const locateEmailField = locateExample(
-    'Email input field in the registration form',
-    3,
-  );
-
-  const planningTag = (content: string) =>
-    shouldIncludeThought ? `<planning>${content}</planning>\n` : '';
 
   // Sub-goals related content - only included when shouldIncludeSubGoals is true
   const step1Title = shouldIncludeSubGoals
@@ -514,15 +291,16 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateExample1}
-}
-</action-param-json>
+${buildActionExample(
+  createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
+  {
+    locatePromptSpec,
+    locateResultExampleIndex: 1,
+  },
+)}
 
 ### If you think there is an error ...
 
@@ -575,222 +353,8 @@ ${
 
 <!-- OR if there's an error -->
 <error>...</error>
-${
-  shouldIncludeSubGoals
-    ? `
-## Multi-turn Conversation Example
-
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
-
-### Turn 1 - Initial instruction
-
-**User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
-
-**Screenshot:** [Shows a registration form with empty Name and Email fields]
-
-**Your response:**
-<planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
-<update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
-  <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
-</update-plan-content>
-<log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateNameField}
-}
-</action-param-json>
-
-### Turn 2 - After clicking Name field
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
-Actions performed for current sub-goal:
-- Click on the Name field to start filling the form
-
-**Screenshot:** [Shows the form with Name field now focused/active]
-
-**Your response:**
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
-<log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "John"
-}
-</action-param-json>
-
-### Turn 3 - After entering name
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
-Actions performed for current sub-goal:
-- Click on the Name field to start filling the form
-- Typing 'John' into the Name field
-
-**Screenshot:** [Shows the form with Name field containing 'John']
-
-**Your response:**
-<planning>The Name field now shows 'John'. Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.</planning>
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-<memory>Name field has been filled with 'John'</memory>
-<log>Moving to the Email field</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateEmailField}
-}
-</action-param-json>
-
-### Turn 4 - After clicking Email field
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
-Actions performed for current sub-goal:
-- Moving to the Email field
-
-**Screenshot:** [Shows the form with Name='John' and Email field focused]
-
-**Your response:**
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
-<log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "john@example.com"
-}
-</action-param-json>
-
-### Turn 5 - After entering email (Goal accomplished)
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
-3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
-Actions performed for current sub-goal:
-- Moving to the Email field
-- Typing email address into the Email field
-
-**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
-
-**Your response:**
-<planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.</planning>
-<mark-sub-goal-done>
-  <sub-goal index="2" status="finished" />
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
-<complete success="true">john@example.com</complete>
-`
-    : `
-## Multi-turn Conversation Example
-
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
-
-### Turn 1 - Initial instruction
-
-**User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
-
-**Screenshot:** [Shows a registration form with empty Name and Email fields]
-
-**Your response:**
-<planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
-<log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateNameField}
-}
-</action-param-json>
-
-### Turn 2 - After clicking Name field
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-**Screenshot:** [Shows the form with Name field now focused/active]
-
-**Your response:**
-<planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
-<log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "John"
-}
-</action-param-json>
-
-### Turn 3 - After entering name
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-**Screenshot:** [Shows the form with Name field containing 'John']
-
-**Your response:**
-<planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
-<log>Moving to the Email field</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": ${locateEmailField}
-}
-</action-param-json>
-
-### Turn 4 - After clicking Email field
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-**Screenshot:** [Shows the form with Name='John' and Email field focused]
-
-**Your response:**
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
-<log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "john@example.com"
-}
-</action-param-json>
-
-### Turn 5 - After entering email (Instruction fulfilled)
-
-**User message:**
-The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
-
-**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
-
-**Your response:**
-<planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
-<complete success="true">john@example.com</complete>
-`
-}`;
+${buildPlanningMultiTurnExample({
+  includeSubGoals: shouldIncludeSubGoals,
+  locatePromptSpec,
+})}`;
 }

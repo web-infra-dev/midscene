@@ -568,9 +568,11 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -583,87 +585,90 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [
-          345,
-          442,
-          458,
-          483
-        ]
+        "bbox": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -686,8 +691,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -744,6 +749,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
@@ -761,9 +767,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -778,9 +787,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
@@ -798,9 +810,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -815,9 +830,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 "
@@ -923,26 +941,37 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
+
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: { prompt: string /* description of the target element */ } // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: { prompt: string /* description of the target element */ } // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
@@ -952,17 +981,27 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: { prompt: string /* description of the target element */ } // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: { prompt: string /* description of the target element */ } // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
@@ -972,12 +1011,16 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: { prompt: string /* description of the target element */ } // The element to drag
-    - to: { prompt: string /* description of the target element */ } // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
@@ -1008,8 +1051,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1065,6 +1108,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
@@ -1081,9 +1125,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -1098,9 +1145,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
@@ -1117,9 +1167,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -1134,9 +1187,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 "
@@ -1242,9 +1298,11 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -1257,87 +1315,90 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [ymin, xmin, ymax, xmax] normalized to 0-1000 relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height. */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [
-          442,
-          345,
-          483,
-          458
-        ]
+        "bbox": [442, 345, 483, 458]
       }
     }
     </action-param-json>
@@ -1360,8 +1421,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1418,6 +1479,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
@@ -1435,9 +1497,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -1452,9 +1517,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
@@ -1472,9 +1540,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -1489,9 +1560,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 "
@@ -1668,26 +1742,37 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
+
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: { prompt: string /* description of the target element */ } // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: { prompt: string /* description of the target element */ } // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
@@ -1697,17 +1782,27 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: { prompt: string /* description of the target element */ } // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: { prompt: string /* description of the target element */ } // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
@@ -1717,12 +1812,16 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: { prompt: string /* description of the target element */ } // The element to drag
-    - to: { prompt: string /* description of the target element */ } // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
@@ -1753,8 +1852,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1821,6 +1920,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
   <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
@@ -1853,6 +1953,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -1879,6 +1980,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.</planning>
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
@@ -1910,6 +2012,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -1936,6 +2039,7 @@ Actions performed for current sub-goal:
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.</planning>
 <mark-sub-goal-done>
   <sub-goal index="2" status="finished" />
@@ -2045,9 +2149,11 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
 
 ## Important Notes for Locating Elements:
 - First identify the target primitive from the user's description, then locate that primitive only. Treat labels, owners, rows, columns, and surrounding text as context unless the description says they are the target.
@@ -2060,87 +2166,90 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
       "value": "test@example.com",
       "locate": {
         "prompt": "the email input field",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
       "value": "down",
       "locate": {
         "prompt": "the product list area",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The element to drag
-    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string, bbox: [number, number, number, number] /* 2d bounding box, should be [xmin, ymin, xmax, ymax] in actual pixel coordinates relative to the screenshot. */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
       "from": {
         "prompt": "the \\"report.pdf\\" file icon",
-        "bbox": [
-          100,
-          100,
-          200,
-          200
-        ]
+        "bbox": [100, 100, 200, 200]
       },
       "to": {
         "prompt": "the upload drop zone",
-        "bbox": [
-          345,
-          442,
-          458,
-          483
-        ]
+        "bbox": [345, 442, 458, 483]
       }
     }
     </action-param-json>
@@ -2163,8 +2272,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -2221,6 +2330,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
@@ -2238,9 +2348,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -2255,9 +2368,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
@@ -2275,9 +2391,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -2292,9 +2411,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 "
@@ -2400,26 +2522,37 @@ ONLY if the task is not complete: Think what the next action is according to the
 
 ### Action Guidelines
 
+
 - For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
 
+
 ### Supporting actions list
 
-- Tap, Tap the element
-  - type: "Tap"
-  - param:
-    - locate: { prompt: string /* description of the target element */ } // The element to be tapped
-- Sleep, Sleep for a period of time
-  - type: "Sleep"
-  - param:
-    - timeMs: number // The duration of the sleep in milliseconds
-- Input, Input text into the input field
-  - type: "Input"
-  - param:
-    - value: string // The value to be input
-    - locate?: { prompt: string /* description of the target element */ } // The input field to target
-  - sample:
+- type: Tap
+  description: Tap the element
+  param:
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to be tapped
+- type: Sleep
+  description: Sleep for a period of time
+  param:
+    timeMs:
+      type: number
+      description: The duration of the sleep in milliseconds
+- type: Input
+  description: Input text into the input field
+  param:
+    value:
+      type: string
+      description: The value to be input
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The input field to target
+  sample: |-
     <action-type>Input</action-type>
     <action-param-json>
     {
@@ -2429,17 +2562,27 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- KeyboardPress, Press a keyboard key
-  - type: "KeyboardPress"
-  - param:
-    - value: string // The key to be pressed
-    - locate?: { prompt: string /* description of the target element */ } // The element to target for key press
-- Scroll, Scroll the page
-  - type: "Scroll"
-  - param:
-    - value: string // The scroll direction or amount
-    - locate?: { prompt: string /* description of the target element */ } // The element to scroll
-  - sample:
+- type: KeyboardPress
+  description: Press a keyboard key
+  param:
+    value:
+      type: string
+      description: The key to be pressed
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to target for key press
+- type: Scroll
+  description: Scroll the page
+  param:
+    value:
+      type: string
+      description: The scroll direction or amount
+    locate:
+      type: '{ prompt: string /* description of the target element */ }'
+      optional: true
+      description: The element to scroll
+  sample: |-
     <action-type>Scroll</action-type>
     <action-param-json>
     {
@@ -2449,12 +2592,16 @@ ONLY if the task is not complete: Think what the next action is according to the
       }
     }
     </action-param-json>
-- DragAndDrop, Drag an element to another position
-  - type: "DragAndDrop"
-  - param:
-    - from: { prompt: string /* description of the target element */ } // The element to drag
-    - to: { prompt: string /* description of the target element */ } // The drop target
-  - sample:
+- type: DragAndDrop
+  description: Drag an element to another position
+  param:
+    from:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The element to drag
+    to:
+      type: '{ prompt: string /* description of the target element */ }'
+      description: The drop target
+  sample: |-
     <action-type>DragAndDrop</action-type>
     <action-param-json>
     {
@@ -2485,8 +2632,8 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
+- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -2542,6 +2689,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
+
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
@@ -2558,9 +2706,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field now focused/active]
 
 **Your response:**
+
 <planning>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
@@ -2575,9 +2726,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name field containing 'John']
 
 **Your response:**
+
 <planning>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</planning>
 <log>Moving to the Email field</log>
 <action-type>Tap</action-type>
@@ -2594,9 +2748,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
 **Your response:**
+
 <planning>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
@@ -2611,9 +2768,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
+
+
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
+
 <planning>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</planning>
 <complete success="true">john@example.com</complete>
 "

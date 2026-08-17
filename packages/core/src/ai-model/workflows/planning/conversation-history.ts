@@ -1,5 +1,6 @@
 import type { SubGoal } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import { buildSubGoalsText } from '../../prompt/planning/sub-goals-text';
 
 export interface ConversationHistoryOptions {
   initialMessages?: ChatCompletionMessageParam[];
@@ -247,29 +248,7 @@ export class ConversationHistory {
    * Includes actions performed (logs) for the current sub-goal.
    */
   subGoalsToText(): string {
-    if (this.subGoals.length === 0) {
-      return '';
-    }
-
-    const lines = this.subGoals.map((goal) => {
-      return `${goal.index}. ${goal.description} (${goal.status})`;
-    });
-
-    // Running goal takes priority, otherwise show first pending
-    const currentGoal =
-      this.subGoals.find((goal) => goal.status === 'running') ||
-      this.subGoals.find((goal) => goal.status === 'pending');
-
-    let currentGoalText = '';
-    if (currentGoal) {
-      currentGoalText = `\nCurrent sub-goal is: ${currentGoal.description}`;
-      if (currentGoal.logs && currentGoal.logs.length > 0) {
-        const logLines = currentGoal.logs.map((log) => `- ${log}`).join('\n');
-        currentGoalText += `\nActions performed for current sub-goal:\n${logLines}`;
-      }
-    }
-
-    return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
+    return buildSubGoalsText(this.subGoals);
   }
 
   // Historical log management methods (used in non-deepThink mode)
