@@ -190,7 +190,7 @@ await agent.aiTap('Login button', {
 });
 ```
 
-For more information about `deepLocate`, please refer to the [API documentation](/reference/#common).
+For more information about `deepLocate`, please refer to the [API documentation](/reference/#deep-locate-deeplocate).
 
 ### 6. Increase the browser DPR to 2 on web
 

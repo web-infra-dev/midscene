@@ -190,7 +190,7 @@ await agent.aiTap('登录按钮', {
 });
 ```
 
-更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#common)。
+更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#深度定位deeplocate)。
 
 ### 6. 在 web 浏览器中将 dpr 提高到 2
 
