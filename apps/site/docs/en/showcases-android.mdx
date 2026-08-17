@@ -3,3 +3,21 @@
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
 
 View the full report of this task: [report.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html)
+
+### Doubao Seed 2.1 Turbo cost reference
+
+The following figures come from five Android test cases for the ranking filters in the Dongchedi app, run with `doubao-seed-2-1-turbo-260628` on a device with a 720 × 1600 resolution.
+
+| Case | Scenario | Test report | Steps (script / model calls / loops) | Tokens (input / output) | Input cache ratio | Cost |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| 1 | Sales ranking: sedan, fuel, and preset price | [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html) | 8 / 16 / 11 | 130,044 (126,935 / 3,109) | 70.7% | ¥0.215 |
+| 2 | Sales ranking: SUV and plug-in hybrid | [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html) | 4 / 14 / 12 | 139,782 (137,310 / 2,472) | 72.8% | ¥0.212 |
+| 3 | New-energy ranking: SUV, battery electric, and preset price | [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html) | 8 / 18 / 13 | 156,275 (149,996 / 6,279) | 69.3% | ¥0.299 |
+| 4 | Price-drop ranking: MPV, new energy, and custom price | [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html) | 13 / 29 / 20 | 262,194 (253,991 / 8,203) | 68.6% | ¥0.474 |
+| 5 | Ranking switch and filter reset | [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html) | 16 / 28 / 19 | 222,971 (217,283 / 5,688) | 69.9% | ¥0.378 |
+| **Total** | 5 cases | — | **49 / 105 / 75** | **911,266 (885,515 / 25,751)** | **70.0%** | **¥1.578** |
+| **Average** | Per case | — | **9.8 / 21 / 15** | **182,253.2 (177,103 / 5,150.2)** | **70.0%** | **¥0.316** |
+
+:::info Pricing assumptions
+Input tokens are priced at `$0.423 / M tokens`, cache reads at `$0.08452 / M tokens`, and output tokens at `$2.113 / M tokens`. CNY costs use an estimated exchange rate of `$1 ≈ ¥7.2`. The five cases average approximately 182,253 tokens and ¥0.316 per case. These figures reflect this test run only; actual costs vary with task complexity, cache hit rate, and model pricing.
+:::
