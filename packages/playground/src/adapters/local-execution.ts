@@ -351,8 +351,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       );
     }
 
-    // Try to get reportHTML separately - this may fail in browser environment
-    // where fs.readFileSync is not available
+    // Try to get reportHTML separately so failures do not affect dump retrieval.
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
         const html = this.agent.reportHTMLString();
@@ -365,8 +364,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         }
       }
     } catch (error) {
-      // reportHTMLString may throw in browser environment (fs not available)
-      // This is expected, just continue with dump data only
+      // Report generation is best-effort here; continue with dump data only.
       console.warn(
         '[LocalExecutionAdapter] reportHTMLString not available in this environment',
       );
