@@ -1,6 +1,7 @@
 import { basename, dirname, relative } from 'node:path';
 import type {
   MidsceneYamlScriptEnv,
+  MidsceneYamlTask,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
@@ -180,5 +181,26 @@ export const contextTaskListSummary = (
   if (prefixLines.length > 0) lines.push(...paddingLines(prefixLines));
   if (currentLine.length > 0) lines.push(...paddingLines(currentLine));
   if (suffixText.length > 0) lines.push(...paddingLines(suffixText));
+  return lines.join('\n');
+};
+
+/**
+ * Render a YAML file before its ScriptPlayer exists. Batch execution creates
+ * the player together with its page inside the concurrency slot, so the TTY
+ * still needs a lightweight pending representation for queued files.
+ */
+export const pendingContextTaskListSummary = (
+  file: string,
+  tasks: MidsceneYamlTask[],
+) => {
+  const filePathToShow = relative(process.cwd(), file);
+  const lines = [
+    `${indicatorForStatus('init')} ${chalk.gray(filePathToShow)}`.trim(),
+  ];
+
+  for (const task of tasks) {
+    lines.push(...paddingLines([`${indicatorForStatus('init')} ${task.name}`]));
+  }
+
   return lines.join('\n');
 };

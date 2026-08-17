@@ -66,6 +66,19 @@
   </div>
 
   <script>
+    function readCookies() {
+      return Object.fromEntries(
+        document.cookie
+          .split(';')
+          .map((cookie) => cookie.trim())
+          .filter(Boolean)
+          .map((cookie) => {
+            const separator = cookie.indexOf('=');
+            return [cookie.slice(0, separator), cookie.slice(separator + 1)];
+          }),
+      );
+    }
+
     // Login function - sets cookie, localStorage, and sessionStorage
     function login() {
       // Set cookie
@@ -87,11 +100,7 @@
     // Check login status
     function checkLoginStatus() {
       // Check cookie
-      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {});
+      const cookies = readCookies();
       const hasAuthToken = !!cookies.authToken;
 
       // Check localStorage

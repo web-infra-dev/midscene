@@ -11,4 +11,4 @@ tasks:
             return true;
           })()
       - recordToReport: Setup login state
-        content: Cookie, localStorage, and sessionStorage have been initialized before launching the parallel YAML files.
+        content: Cookie, localStorage, and sessionStorage have been initialized. The main YAML files should inherit only browser-context state.

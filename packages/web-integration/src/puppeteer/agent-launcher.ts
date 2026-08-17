@@ -133,51 +133,6 @@ export interface BuildChromeArgsOptions {
 }
 
 /**
- * A copy of one page's sessionStorage for a single origin. Browser contexts
- * share cookies and localStorage, but sessionStorage belongs to a page, so a
- * setup page must explicitly seed it into each independent task page.
- */
-export interface SessionStorageSnapshot {
-  readonly origin: string;
-  readonly entries: ReadonlyArray<readonly [string, string]>;
-}
-
-/**
- * Capture the sessionStorage state of a setup page for its current origin.
- * Opaque origins cannot be matched safely during a later navigation, so they
- * are rejected instead of silently producing an unusable snapshot.
- */
-export async function captureSessionStorageSnapshot(
-  page: Page,
-): Promise<SessionStorageSnapshot> {
-  if (page.isClosed()) {
-    throw new Error(
-      'The setup page was closed before its sessionStorage could be copied to the main YAML files',
-    );
-  }
-
-  let snapshot: SessionStorageSnapshot;
-  try {
-    snapshot = await page.evaluate(() => ({
-      origin: window.location.origin,
-      entries: Object.entries(window.sessionStorage),
-    }));
-  } catch (error) {
-    throw new Error('Failed to capture sessionStorage from the setup page', {
-      cause: error,
-    });
-  }
-
-  if (!snapshot.origin || snapshot.origin === 'null') {
-    throw new Error(
-      'The setup page has an opaque origin, so its sessionStorage cannot be copied to the main YAML files',
-    );
-  }
-
-  return snapshot;
-}
-
-/**
  * Builds Chrome launch arguments with sensible defaults.
  *
  * Platform-specific behavior:
@@ -242,7 +197,6 @@ export async function launchPuppeteerPage(
   },
   browser?: Browser,
   existingPage?: Page,
-  sessionStorageSnapshot?: SessionStorageSnapshot,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -368,83 +322,31 @@ export async function launchPuppeteerPage(
     await page.setViewport(viewportConfig);
   }
 
-  const sessionStorageRestoreScript = sessionStorageSnapshot
-    ? await page.evaluateOnNewDocument((snapshot: SessionStorageSnapshot) => {
-        if (window.location.origin !== snapshot.origin) {
-          return;
-        }
-        for (const [key, value] of snapshot.entries) {
-          window.sessionStorage.setItem(key, value);
-        }
-      }, sessionStorageSnapshot)
-    : undefined;
-
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
       ? target.waitForNetworkIdle.timeout
       : defaultWaitForNetworkIdleTimeout;
 
-  let pageInitializationFailed = false;
-  let pageInitializationError: unknown;
-  try {
-    launcherDebug('goto', target.url);
-    await page.goto(target.url);
+  launcherDebug('goto', target.url);
+  await page.goto(target.url);
 
-    if (waitForNetworkIdleTimeout > 0) {
-      launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
-      try {
-        await page.waitForNetworkIdle({
-          timeout: waitForNetworkIdleTimeout,
-        });
-      } catch (error) {
-        if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
-          throw new Error(`failed to wait for network idle: ${error}`, {
-            cause: error,
-          });
-        }
-        launcherWarning(
-          `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
-          error,
-        );
-      }
-    }
-  } catch (error) {
-    pageInitializationFailed = true;
-    pageInitializationError = error;
-  }
-
-  let preloadCleanupFailed = false;
-  let preloadCleanupError: unknown;
-  if (sessionStorageRestoreScript) {
+  if (waitForNetworkIdleTimeout > 0) {
+    launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
     try {
-      await page.removeScriptToEvaluateOnNewDocument(
-        sessionStorageRestoreScript.identifier,
-      );
+      await page.waitForNetworkIdle({
+        timeout: waitForNetworkIdleTimeout,
+      });
     } catch (error) {
-      preloadCleanupFailed = true;
-      preloadCleanupError = error;
-    }
-  }
-
-  if (pageInitializationFailed) {
-    if (preloadCleanupFailed) {
+      if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
+        throw new Error(`failed to wait for network idle: ${error}`, {
+          cause: error,
+        });
+      }
       launcherWarning(
-        'failed to remove the sessionStorage preload after page initialization failed; preserving the original error',
-        preloadCleanupError,
+        `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
+        error,
       );
     }
-    if (pageInitializationError instanceof Error) {
-      throw pageInitializationError;
-    }
-    throw new Error('failed to initialize the Puppeteer page', {
-      cause: pageInitializationError,
-    });
-  }
-
-  if (preloadCleanupFailed) {
-    throw new Error('failed to remove the sessionStorage preload', {
-      cause: preloadCleanupError,
-    });
   }
 
   return { page, freeFn };
@@ -471,14 +373,12 @@ export async function puppeteerAgentForTarget(
   >,
   browser?: Browser,
   existingPage?: Page,
-  sessionStorageSnapshot?: SessionStorageSnapshot,
 ) {
   const { page, freeFn } = await launchPuppeteerPage(
     target,
     preference,
     browser,
     existingPage,
-    sessionStorageSnapshot,
   );
   const aiActContext = resolveAiActionContext(target, preference);
 

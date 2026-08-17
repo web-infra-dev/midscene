@@ -1,4 +1,5 @@
-import { resolveIsTTY } from '@/printer';
+import { join } from 'node:path';
+import { pendingContextTaskListSummary, resolveIsTTY } from '@/printer';
 import { describe, expect, it } from 'vitest';
 
 describe('resolveIsTTY', () => {
@@ -25,5 +26,22 @@ describe('resolveIsTTY', () => {
 
   it('does not treat TERM=xterm as non-interactive', () => {
     expect(resolveIsTTY({ TERM: 'xterm-256color' }, true)).toBe(true);
+  });
+});
+
+describe('pendingContextTaskListSummary', () => {
+  it('renders queued YAML tasks before their player is created', () => {
+    const summary = pendingContextTaskListSummary(
+      join(process.cwd(), 'queued.yaml'),
+      [
+        { name: 'Prepare state', flow: [] },
+        { name: 'Verify state', flow: [] },
+      ],
+    );
+
+    expect(summary).toContain('queued.yaml');
+    expect(summary).toContain('Prepare state');
+    expect(summary).toContain('Verify state');
+    expect(summary.match(/◌/g)).toHaveLength(3);
   });
 });

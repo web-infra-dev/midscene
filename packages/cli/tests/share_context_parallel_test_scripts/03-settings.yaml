@@ -8,24 +8,34 @@ tasks:
             window.name = caseId;
             sessionStorage.setItem('owner', caseId);
             localStorage.setItem(`parallel-ready:${caseId}`, 'true');
+            document.cookie = `parallel-${caseId}=${caseId}; path=/`;
 
             const deadline = Date.now() + 10000;
-            while (caseIds.some((id) => localStorage.getItem(`parallel-ready:${id}`) !== 'true')) {
+            while (
+              caseIds.some((id) => localStorage.getItem(`parallel-ready:${id}`) !== 'true') ||
+              caseIds.some((id) => readCookies()[`parallel-${id}`] !== id)
+            ) {
               if (Date.now() > deadline) {
-                throw new Error('Timed out waiting for all parallel YAML pages');
+                throw new Error(`Timed out waiting for all parallel YAML pages: ${document.cookie}`);
               }
               await new Promise((resolve) => setTimeout(resolve, 20));
             }
 
             await new Promise((resolve) => setTimeout(resolve, 100));
-            if (!document.cookie.includes('authToken=parallel-token')) {
+            const cookies = readCookies();
+            if (cookies.authToken !== 'parallel-token') {
               throw new Error(`Setup cookie was not shared: ${document.cookie}`);
+            }
+            for (const id of caseIds) {
+              if (cookies[`parallel-${id}`] !== id) {
+                throw new Error(`Parallel cookie from ${id} was not shared: ${document.cookie}`);
+              }
             }
             if (localStorage.getItem('userId') !== 'parallel-user') {
               throw new Error('Setup localStorage was not shared');
             }
-            if (sessionStorage.getItem('sessionId') !== 'setup-session') {
-              throw new Error('Setup sessionStorage was not copied');
+            if (sessionStorage.getItem('sessionId') !== null) {
+              throw new Error('Setup sessionStorage leaked into the settings page');
             }
             if (window.name !== caseId || sessionStorage.getItem('owner') !== caseId) {
               throw new Error(`Page state leaked into settings: window=${window.name}, owner=${sessionStorage.getItem('owner')}`);
@@ -35,4 +45,4 @@ tasks:
             return caseId;
           })()
       - recordToReport: Settings tab verification passed
-        content: The settings YAML inherited setup login state and retained isolated window and sessionStorage state while all three YAML files ran concurrently.
+        content: The settings YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, and retained isolated window and sessionStorage state.

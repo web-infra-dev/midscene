@@ -17,7 +17,6 @@ import { getDebug } from '@midscene/shared/logger';
 import {
   buildChromeArgs,
   buildDownloadBehavior,
-  captureSessionStorageSnapshot,
   defaultViewportHeight,
   defaultViewportWidth,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -42,6 +41,7 @@ import {
   contextInfo,
   contextTaskListSummary,
   isTTY,
+  pendingContextTaskListSummary,
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
@@ -53,11 +53,12 @@ export interface BatchRunnerConfig {
   /**
    * A setup yaml file executed before the main `files`. It reuses the shared
    * browser context, so any prerequisite state (e.g. a login) is visible to
-   * every main file. Serial batches reuse the setup page; parallel batches
-   * copy its initial same-origin sessionStorage into isolated task pages. A
-   * setup failure aborts the batch and leaves the main files not executed.
-   * Only honored when `shareBrowserContext` is true; the config layer rejects
-   * other combinations.
+   * every main file when that state belongs to the browser context, such as
+   * cookies or same-origin localStorage. Page-scoped state such as
+   * sessionStorage is isolated because every YAML gets its own page. A setup
+   * failure aborts the batch and leaves the main files not executed. Only
+   * honored when `shareBrowserContext` is true; the config layer rejects other
+   * combinations.
    */
   setup?: string;
   concurrent: number;
@@ -88,7 +89,12 @@ interface BatchFileContext {
   file: string;
   executionConfig: MidsceneYamlScript;
   outputPath?: string;
-  options: CreateYamlPlayerOptions;
+  options: Omit<CreateYamlPlayerOptions, 'page'>;
+}
+
+interface BatchExecutionRecord {
+  context: BatchFileContext;
+  player?: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
 export interface RunYamlBatchOptions {
@@ -293,34 +299,41 @@ class YamlBatchExecutor {
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }> = [];
 
-    // Pre-create all player contexts for displaying task lists. The setup file
-    // comes first so the rendered plan reflects the setup-then-parallel order.
-    const allFileContexts: MidsceneYamlFileContext[] = [];
+    // Keep display records for every file, but create each ScriptPlayer only
+    // after its page exists inside the concurrency slot. This avoids relying on
+    // a mutable options object to inject the page after player construction.
     const orderedContexts = setupContext
       ? [setupContext, ...fileContextList]
       : fileContextList;
-    for (const context of orderedContexts) {
-      // Create a ScriptPlayer that will be used for actual execution
-      const player = await createYamlPlayer(
-        context.file,
-        context.executionConfig,
-        context.options,
-      );
-      allFileContexts.push({
-        file: context.file,
-        player,
-      });
-    }
+    const executionRecords: BatchExecutionRecord[] = orderedContexts.map(
+      (context) => ({ context }),
+    );
+    const executionRecordByContext = new Map(
+      executionRecords.map((record) => [record.context, record]),
+    );
 
     // Setup TTY renderer
     let ttyRenderer: TTYWindowRenderer | undefined;
     if (isTTY) {
       const summaryContents = () => {
         const summary: string[] = [''];
-        for (const context of allFileContexts) {
-          summary.push(
-            contextTaskListSummary(context.player.taskStatusList, context),
-          );
+        for (const record of executionRecords) {
+          if (record.player) {
+            const fileContext = {
+              file: record.context.file,
+              player: record.player,
+            };
+            summary.push(
+              contextTaskListSummary(record.player.taskStatusList, fileContext),
+            );
+          } else {
+            summary.push(
+              pendingContextTaskListSummary(
+                record.context.file,
+                record.context.executionConfig.tasks,
+              ),
+            );
+          }
         }
         summary.push('');
         return summary;
@@ -334,46 +347,51 @@ class YamlBatchExecutor {
       ttyRenderer.start();
     }
 
-    let serialSharedPage: Page | undefined;
-    let batchExecutionFailed = false;
     try {
-      // Preserve the legacy serial behavior: one shared page carries
-      // page-scoped state such as sessionStorage from setup through every YAML
-      // file. Parallel batches still create one page per YAML because a page
-      // cannot safely serve concurrent navigations and interactions.
-      serialSharedPage = await this.createSerialSharedPage(orderedContexts);
-
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
-        keepPageOpen = false,
       ): Promise<MidsceneYamlFileContext & { duration: number }> => {
-        // Find the corresponding player in allFileContexts
-        const allFileContext = allFileContexts.find(
-          (c) => c.file === context.file,
-        );
-        if (!allFileContext) {
-          throw new Error(`Player not found for file: ${context.file}`);
+        const executionRecord = executionRecordByContext.get(context);
+        if (!executionRecord) {
+          throw new Error(
+            `Execution record not found for file: ${context.file}`,
+          );
         }
 
-        if (!isTTY) {
-          const { mergedText } = contextInfo(allFileContext);
-          console.log(mergedText);
-        }
-
-        // Set output path if specified
-        if (context.outputPath) {
-          allFileContext.player.output = context.outputPath;
-        }
-
-        const ownedPage = await this.createPageForContext(context);
+        let ownedPage: Page | undefined;
         let executionFailed = false;
         try {
+          ownedPage = await this.createPageForContext(context);
+          const player = await createYamlPlayer(
+            context.file,
+            context.executionConfig,
+            {
+              ...context.options,
+              page: ownedPage,
+            },
+          );
+          executionRecord.player = player;
+
+          const fileContext: MidsceneYamlFileContext = {
+            file: context.file,
+            player,
+          };
+
+          if (!isTTY) {
+            const { mergedText } = contextInfo(fileContext);
+            console.log(mergedText);
+          }
+
+          if (context.outputPath) {
+            player.output = context.outputPath;
+          }
+
           // Record start time
           const startTime = Date.now();
 
           // Run the player
-          await allFileContext.player.run();
+          await player.run();
 
           // Calculate duration
           const endTime = Date.now();
@@ -383,16 +401,13 @@ class YamlBatchExecutor {
             duration: number;
           } = {
             file: context.file,
-            player: allFileContext.player,
+            player,
             duration,
           };
 
           if (!isTTY) {
             console.log(
-              contextTaskListSummary(
-                allFileContext.player.taskStatusList,
-                executedContext,
-              ),
+              contextTaskListSummary(player.taskStatusList, executedContext),
             );
           }
 
@@ -401,7 +416,7 @@ class YamlBatchExecutor {
           executionFailed = true;
           throw error;
         } finally {
-          if (ownedPage && !keepPageOpen && !this.config.keepWindow) {
+          if (ownedPage && !this.config.keepWindow) {
             await this.closePage(ownedPage, executionFailed);
           }
         }
@@ -413,39 +428,9 @@ class YamlBatchExecutor {
       // the setup file establishes.
       let setupFailed = false;
       if (setupContext) {
-        let setupExecutionFailed = false;
-        try {
-          const executedContext = await executeFile(setupContext, true);
-          executedResults.push(executedContext);
-          setupFailed = !isYamlPlayerSuccessful(executedContext.player);
-
-          if (
-            !setupFailed &&
-            setupContext.options.page &&
-            setupContext.options.page !== serialSharedPage
-          ) {
-            const sessionStorageSnapshot = await captureSessionStorageSnapshot(
-              setupContext.options.page,
-            );
-            for (const context of fileContextList) {
-              context.options.sessionStorageSnapshot = sessionStorageSnapshot;
-            }
-          }
-        } catch (error) {
-          setupExecutionFailed = true;
-          throw error;
-        } finally {
-          if (
-            setupContext.options.page &&
-            setupContext.options.page !== serialSharedPage &&
-            !this.config.keepWindow
-          ) {
-            await this.closePage(
-              setupContext.options.page,
-              setupExecutionFailed,
-            );
-          }
-        }
+        const executedContext = await executeFile(setupContext);
+        executedResults.push(executedContext);
+        setupFailed = !isYamlPlayerSuccessful(executedContext.player);
       }
 
       if (setupFailed) {
@@ -471,15 +456,9 @@ class YamlBatchExecutor {
           );
         }
       }
-    } catch (error) {
-      batchExecutionFailed = true;
-      throw error;
     } finally {
       if (ttyRenderer) {
         ttyRenderer.stop();
-      }
-      if (serialSharedPage && !this.config.keepWindow) {
-        await this.closePage(serialSharedPage, batchExecutionFailed);
       }
     }
 
@@ -487,43 +466,9 @@ class YamlBatchExecutor {
   }
 
   /**
-   * A serial shared-browser batch intentionally reuses one page so page-scoped
-   * state remains continuous. Parallel batches cannot share a page safely and
-   * continue to allocate an isolated page for each YAML execution.
-   */
-  private async createSerialSharedPage(
-    contexts: BatchFileContext[],
-  ): Promise<Page | undefined> {
-    if (!this.config.shareBrowserContext || this.config.concurrent !== 1) {
-      return undefined;
-    }
-
-    const firstWebContext = contexts.find((context) => {
-      const webTarget = resolveWebTarget(context.executionConfig)?.target;
-      return context.options.browser && webTarget && !webTarget.bridgeMode;
-    });
-    const browser = firstWebContext?.options.browser;
-    if (!browser) {
-      return undefined;
-    }
-
-    const page = await browser.newPage();
-    for (const context of contexts) {
-      const webTarget = resolveWebTarget(context.executionConfig)?.target;
-      if (
-        context.options.browser === browser &&
-        webTarget &&
-        !webTarget.bridgeMode
-      ) {
-        context.options.page = page;
-      }
-    }
-    return page;
-  }
-
-  /**
    * Create an isolated page for one YAML execution while retaining the shared
-   * browser context. The page is created inside the concurrency limiter via
+   * browser context. Page-scoped state is intentionally not carried between
+   * YAML files. The page is created inside the concurrency limiter via
    * executeFile, so the number of live task pages cannot exceed `concurrent`.
    */
   private async createPageForContext(
@@ -534,15 +479,7 @@ class YamlBatchExecutor {
       return undefined;
     }
 
-    // A preassigned page belongs to the serial batch and is closed once after
-    // all YAML files finish, not after this individual execution.
-    if (context.options.page) {
-      return undefined;
-    }
-
-    const page = await context.options.browser.newPage();
-    context.options.page = page;
-    return page;
+    return context.options.browser.newPage();
   }
 
   private async closePage(
@@ -621,12 +558,21 @@ class YamlBatchExecutor {
             return;
           }
 
-          const executedContext = await executeFile(context);
-          executedResults.push(executedContext);
+          try {
+            const executedContext = await executeFile(context);
+            executedResults.push(executedContext);
 
-          if (executedContext.player.status === 'error' && !stopLock.value) {
+            if (!isYamlPlayerSuccessful(executedContext.player)) {
+              stopLock.value = true;
+              shouldStop = true;
+            }
+          } catch (error) {
+            // Unexpected execution errors still abort the batch, but setting
+            // the lock here prevents already-queued YAML files from starting
+            // while Promise.allSettled drains the limiter.
             stopLock.value = true;
             shouldStop = true;
+            throw error;
           }
         }),
       );

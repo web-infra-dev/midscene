@@ -1,16 +1,21 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
 import { runYamlBatch } from '@/yaml-batch-executor';
 import { resolveWebTarget } from '@midscene/core/yaml';
+import { execa } from 'execa';
 import { createServer } from 'http-server';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 120 * 1000,
 });
 
 describe('shareBrowserContext CLI YAML e2e', () => {
+  const generateReportEvidence =
+    process.env.SHARED_BROWSER_REPORT_EVIDENCE === 'true';
   let server: ReturnType<typeof createServer>;
   let testOrigin: string;
 
@@ -102,17 +107,16 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     { targetSource: 'browser' as const, indexFile: 'index-browser.yaml' },
     { targetSource: 'web' as const, indexFile: 'index-web.yaml' },
   ])(
-    'should run setup first and copy its state into isolated parallel pages using $targetSource',
+    'should share browser-context state without copying page state using $targetSource',
     async ({ targetSource, indexFile }) => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
-        // The report fixtures exercise the same assertions and are used for
-        // the published Goofy evidence. CI omits explicit report screenshots
+        // The report fixtures exercise the same assertions and can generate
+        // human-readable local reports. CI omits explicit report screenshots
         // so this regression only fails on browser-state or tab-isolation bugs.
-        executionScriptDir: join(
-          __dirname,
-          '../share_context_parallel_e2e_scripts',
-        ),
+        executionScriptDir: generateReportEvidence
+          ? undefined
+          : join(__dirname, '../share_context_parallel_e2e_scripts'),
         indexFile,
         targetSource,
         expectedScripts: [
@@ -125,7 +129,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     },
   );
 
-  test('should preserve page-scoped state throughout a sequential shared-browser batch', async () => {
+  test('should isolate page-scoped state throughout a sequential shared-browser batch', async () => {
     await runFixture({
       scriptDir: join(__dirname, '../share_context_test_scripts'),
       indexFile: 'index.yaml',
@@ -137,5 +141,66 @@ describe('shareBrowserContext CLI YAML e2e', () => {
         '03-check-session-continuity.yaml',
       ],
     });
+  });
+
+  test('should execute a shared-browser batch through the built CLI entrypoint', async () => {
+    const scriptDir = join(__dirname, '../share_context_parallel_e2e_scripts');
+    const runDir = mkdtempSync(join(tmpdir(), 'midscene-cli-e2e-'));
+    const summaryFile = 'cli-shared-browser-summary.json';
+    const cliEntry = join(__dirname, '../../dist/lib/index.js');
+
+    try {
+      const result = await execa(
+        process.execPath,
+        [
+          cliEntry,
+          '--config',
+          join(scriptDir, 'index.yaml'),
+          '--summary',
+          summaryFile,
+        ],
+        {
+          cwd: scriptDir,
+          env: {
+            ...process.env,
+            CI: '1',
+            MIDSCENE_RUN_DIR: runDir,
+            SHARED_BROWSER_TEST_ORIGIN: testOrigin,
+          },
+          reject: false,
+        },
+      );
+
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `CLI shared-browser smoke failed with exit code ${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+        );
+      }
+
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', summaryFile), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({
+        total: 4,
+        successful: 4,
+        failed: 0,
+        partialFailed: 0,
+        notExecuted: 0,
+      });
+      expect(
+        summary.results
+          .map((item: { script: string }) => basename(item.script))
+          .sort(),
+      ).toEqual(
+        [
+          '00-setup.yaml',
+          '01-search.yaml',
+          '02-report.yaml',
+          '03-settings.yaml',
+        ].sort(),
+      );
+    } finally {
+      rmSync(runDir, { recursive: true, force: true });
+    }
   });
 });

@@ -215,11 +215,11 @@ Call the Agent's [`runYaml`](./reference/#runyaml) method to execute YAML from J
 The CLI provides parameters to control how scripts run:
 
 - `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns; when a glob pattern or directory matches multiple files, matched files are added to the execution list in lexicographic path order.
-- `--setup <file>`: A setup script that runs before the main `--files`. It runs inside the same shared browser context, so prerequisite state such as a login established here is visible to every main script. A serial batch reuses one tab from setup through all main scripts. In a parallel batch, each main script runs in an independent tab initialized with a copy of the setup tab's same-origin `sessionStorage`. A setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`.
+- `--setup <file>`: A setup script that runs before the main `--files`. It runs inside the same shared browser context, so context-scoped prerequisite state such as cookies and same-origin `localStorage` is visible to every main script. Every YAML script, including setup and serial scripts, runs in its own tab; page-scoped state such as `sessionStorage` is not carried between scripts. A setup failure aborts the whole batch and the main scripts are reported as not executed. Requires `--share-browser-context`.
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
 - `--retry <number>`: Number of times to retry a failed script. Only the scripts that failed in the previous attempt are retried, which helps with unstable networks or unstable model output. Default `0`. (Not effective together with `--share-browser-context`, where the whole batch shares a single run.)
-- `--share-browser-context`: Share one browser context (cookies, `localStorage`, etc.) across scripts. With `--concurrent 1`, the batch reuses one tab, so page-scoped state such as `sessionStorage` remains continuous. With concurrency greater than `1`, each script receives an independent tab; see the parallel limitation below. Default off.
+- `--share-browser-context`: Share one browser context (cookies, same-origin `localStorage`, etc.) across scripts while giving every YAML script an independent tab. Page-scoped state such as `sessionStorage`, the DOM, URL, and `window.name` is not shared, even with `--concurrent 1`. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
 - `--headed`: Run in a headed browser instead of headless.
 - `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
@@ -271,10 +271,10 @@ midscene --config ./config.yaml
 
 #### Run a setup before scripts
 
-When several scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Setup and main scripts share one browser context, so cookies and origin storage carry over. With `concurrent: 1`, setup and every main script reuse one tab, preserving `sessionStorage` and other page-scoped state between scripts. With concurrency greater than `1`, every main script receives an independent tab. The setup tab's same-origin `sessionStorage` is copied into each main tab before its first navigation. The setup page must finish at a non-opaque origin so its `sessionStorage` has a transferable origin. `setup` requires `shareBrowserContext: true`.
+When several scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Setup and main scripts share one browser context, so cookies and same-origin `localStorage` carry over. Every YAML script receives an independent tab, including when `concurrent` is `1`. The setup tab's `sessionStorage`, DOM, URL, `window.name`, and other page-scoped state are not copied into main tabs. `setup` requires `shareBrowserContext: true`.
 
-:::warning Parallel shared-context limitation
-When `concurrent` is greater than `1`, the main scripts run in independent tabs. Each tab receives only the initial same-origin `sessionStorage` snapshot captured after `setup`; later `sessionStorage`, DOM, and other page-scoped changes are not shared between scripts. Cookies and `localStorage` remain shared, but concurrent writes can race. Parallel scripts must not depend on execution order or another script's page state. Use cookies, `localStorage` with explicit coordination, or backend state when tasks need mutable shared data.
+:::warning Page-scoped state is not shared
+`shareBrowserContext` follows browser-native storage boundaries: it does not copy or synchronize `sessionStorage` between tabs. If setup establishes authentication only in `sessionStorage`, the main scripts will not inherit that login. Prefer cookies, same-origin `localStorage`, or backend state for prerequisites that must be visible to multiple scripts. When scripts run concurrently, shared-state writes can race, so coordinate them explicitly.
 :::
 
 ```yaml
