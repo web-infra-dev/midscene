@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>GUI Agent for E2E Testing</strong><br />
-  Vision-driven. Cross-platform. Batteries included.
+  AI-powered vision. Cross-platform. Batteries included.
 </p>
 
 <div align="center">

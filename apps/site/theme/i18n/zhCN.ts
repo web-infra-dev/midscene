@@ -7,7 +7,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: 'Midscene.js — 面向 E2E 测试的 GUI Agent',
-  heroSubtitle: '视觉驱动，全平台覆盖，测试工具开箱即用。',
+  heroSubtitle: 'AI 视觉驱动。全平台覆盖。开箱即用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
