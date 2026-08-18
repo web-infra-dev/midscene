@@ -138,6 +138,7 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
+    loadExtraActions?: string[];
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -159,6 +160,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // s
       - **Note**: In Chrome extension Bridge mode, local file uploads require the Midscene extension's "Allow access to file URLs" permission. Enable it in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
       - **Note**: Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
     - `fileChooserAllowedDir?: string` — Explicitly authorizes the directory this `aiAct` call may access for prompt-driven file uploads. Without it, model-planned file uploads are rejected. Relative paths in the prompt are resolved against this directory and then validated; absolute paths are validated directly against this directory. Symlinks located within this directory are also allowed. We recommend using the test case's `fixtures` directory to reduce the risk of sensitive-file uploads caused by AI hallucinations or page prompt injection.
+    - `loadExtraActions?: string[]` — Loads one or more versioned `*.actions.yaml` manifests for this call. Midscene exposes every manifest action whose `validWhenTargetExists` target exists in the current planning snapshot. Extra Actions are listed before generic Actions and expand into one existing device Action when selected. This Node.js-only option requires the generic planning adapter. Relative paths are resolved from the current working directory.
     - `abortSignal?: AbortSignal` — Signal used to cancel the `aiAct` call. When aborted, Midscene stops the planning loop and throws an error. Use it to implement timeouts or user-initiated cancellation.
 
 - Return value:
@@ -200,6 +202,38 @@ await agent.aiAct('Complete the GitHub account registration form. The region mus
 `deepThink` accepts `'unset' | true | false`. The legacy `'unset'` value behaves the same as `false`.
 
 `deepThink` does not control model-native thinking. See [Model-native thinking](../model-config#model-native-reasoning) for the related environment variables.
+
+##### Load reusable Extra Actions
+
+An Action Manifest stores named device operations together with deterministic locator targets:
+
+```yaml title="checkout.actions.yaml"
+version: 1
+interface: web
+actions:
+  - name: Click the checkout confirm button
+    validWhenTargetExists:
+      strategy: xpath
+      selector: //div[@role="dialog"]//button[@data-testid="confirm"]
+    action:
+      name: Tap
+      param:
+        locate:
+          prompt: Checkout confirm button
+          target:
+            strategy: xpath
+            selector: //div[@role="dialog"]//button[@data-testid="confirm"]
+```
+
+Load one or more manifests for a single call:
+
+```typescript
+await agent.aiAct('Confirm checkout', {
+  loadExtraActions: ['./checkout.actions.yaml'],
+});
+```
+
+Disclosure only probes the declared `validWhenTargetExists` targets and does not change page state. If a selected target resolves, Midscene converts it to a fresh rectangle and executes the underlying Action. If target resolution fails, Midscene falls back to the existing cache and AI locate path. Invalid manifests, incompatible interfaces, duplicate names, unsupported custom planning adapters, and unavailable underlying Actions throw before planning.
 
 ##### Upload files from an `aiAct` prompt
 

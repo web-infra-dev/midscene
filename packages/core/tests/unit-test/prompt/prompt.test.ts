@@ -99,6 +99,25 @@ describe('action space', () => {
       "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
   });
+
+  it('requires matching pre-recorded operations when extra actions are available', async () => {
+    const extraAction = {
+      name: 'MidsceneExtraAction_1',
+      description: 'Fill the first name field with Alice',
+      sample: {},
+      call: async () => {},
+    };
+
+    const prompt = await buildStandardPlanningSystemPrompt({
+      actionSpace: [...mockActionSpace, extraAction],
+      includeLocateInPlanning: false,
+      hasExtraActions: true,
+    });
+
+    expect(prompt).toContain(
+      'When one matches the next requested operation, you MUST use it instead of rebuilding that operation with a low-level action',
+    );
+  });
 });
 
 describe('system prompts', () => {

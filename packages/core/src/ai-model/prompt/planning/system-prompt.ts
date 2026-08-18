@@ -5,6 +5,7 @@ import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-
 import { locateGroundingRules } from '../locate-grounding-rules';
 import { buildActionSpaceDescription } from './action-description';
 import { buildActionExample, createSampleTapAction } from './action-example';
+import { buildPlanningActionGuidelines } from './action-guidelines';
 import {
   type PlanningActionOutputProtocol,
   defaultMidsceneActionOutputProtocol,
@@ -17,6 +18,7 @@ type BuildStandardPlanningSystemPromptInput = {
   includeThought?: boolean;
   includeLog?: boolean;
   actionOutputProtocol?: PlanningActionOutputProtocol;
+  hasExtraActions?: boolean;
 } & (
   | {
       includeLocateInPlanning: true;
@@ -39,6 +41,7 @@ export async function buildStandardPlanningSystemPrompt(
     includeThought = true,
     includeLog = true,
     actionOutputProtocol = defaultMidsceneActionOutputProtocol,
+    hasExtraActions,
   } = input;
   const preferredLanguage = getPreferredLanguage();
 
@@ -51,9 +54,10 @@ export async function buildStandardPlanningSystemPrompt(
     locatePromptSpec,
     actionOutputProtocol,
   });
-  const hasRunAdbShell = actionSpace.some(
-    (action) => action.name === 'RunAdbShell',
-  );
+  const actionStepNotes = buildPlanningActionGuidelines(
+    actionSpace,
+    hasExtraActions,
+  ).trimEnd();
   const actionOutputTagsText = actionOutputProtocol.actionOutputTagNames
     .map((tagName) => `<${tagName}>`)
     .join(', ');
@@ -258,16 +262,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
-### Action Guidelines
-
-${
-  hasRunAdbShell
-    ? "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action."
-    : ''
-}
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
-- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+${actionStepNotes}
 
 ${includeLocateInPlanning ? locateGroundingRules() : ''}
 
