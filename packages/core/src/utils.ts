@@ -22,6 +22,7 @@ import {
   uuid,
 } from '@midscene/shared/utils';
 import { IS_REPORT_BUILD } from './constants';
+import { REPORT_HTML_TEMPLATE } from './report-html-template';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -88,10 +89,25 @@ const reportGroupIdMap = new Map<string, string>();
 declare const __DEV_REPORT_PATH__: string;
 
 export function getReportTpl() {
-  if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
-    return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
+  // Report builds replace IS_REPORT_BUILD with true. Keep this early return
+  // statically analyzable so the bundler removes the unreachable template
+  // branch, including its placeholder literal, before validating the HTML.
+  if (IS_REPORT_BUILD) {
+    return '';
   }
-  const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
+
+  const reportTpl =
+    typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__
+      ? fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8')
+      : REPORT_HTML_TEMPLATE;
+
+  // Keep this literal in sync with the placeholder in report-html-template.ts
+  // and reportTemplateMagicString in scripts/report-template-utils.mjs.
+  if (reportTpl.includes('REPLACE_ME_WITH_REPORT_HTML')) {
+    throw new Error(
+      'Report template contains an unresolved placeholder. Rebuild the workspace without Nx cache.',
+    );
+  }
 
   return reportTpl;
 }

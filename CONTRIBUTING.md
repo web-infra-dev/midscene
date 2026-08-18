@@ -152,13 +152,14 @@ cd apps/playground && pnpm run dev
 cd apps/chrome-extension && pnpm run dev
 ```
 
-### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
+### Unresolved report template error
 
-`apps/report` is not standalone at runtime. Its built `index.html` template is
-injected back into `packages/core/dist` during build. If report UI changes do
-not show up, or you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, the
-template injection is usually stale. Rebuild the entire workspace without Nx
-cache to fix it:
+`apps/report` is not standalone at runtime. Its built `index.html` is written
+to the standalone report template modules in `packages/core/dist` during
+build. If report UI changes do not show up, report generation fails with
+`Report template contains an unresolved placeholder`, or an older report file
+contains `REPLACE_ME_WITH_REPORT_HTML`, the template modules are usually stale.
+Rebuild the entire workspace without Nx cache to fix it:
 
 ```sh
 # Rebuild the entire project without cache

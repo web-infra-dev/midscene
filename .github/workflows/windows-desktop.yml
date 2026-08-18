@@ -9,6 +9,7 @@ on:
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/report-template-utils.mjs'
+      - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -192,9 +193,9 @@ jobs:
             throw '@midscene/report or @midscene/computer failed to build.'
           }
 
-          node apps/report/scripts/inject-report-template.mjs
+          node scripts/validate-core-report-template.mjs
           if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to inject the report template into @midscene/core.'
+            throw 'Invalid report template modules in @midscene/core.'
           }
 
       - name: Validate computer package outputs

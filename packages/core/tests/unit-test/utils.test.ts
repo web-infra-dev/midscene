@@ -5,7 +5,7 @@ import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   ifPlanLocateParamHasLocatedPixelBbox,
@@ -14,6 +14,7 @@ import {
   transformLogicalRectToScreenshotRect,
 } from '../../src/agent/utils';
 import {
+  getReportTpl,
   getTmpDir,
   getTmpFile,
   insertScriptBeforeClosingHtml,
@@ -27,6 +28,24 @@ import {
 } from '../../src/yaml/utils';
 import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
+const { readFileSyncMock } = vi.hoisted(() => ({
+  readFileSyncMock: vi.fn(),
+}));
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  readFileSyncMock.mockImplementation(actual.readFileSync);
+
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      readFileSync: readFileSyncMock,
+    },
+    readFileSync: readFileSyncMock,
+  };
+});
+
 function createTempHtmlFile(content: string): string {
   const filePath = getTmpFile('html');
   if (!filePath) {
@@ -37,6 +56,12 @@ function createTempHtmlFile(content: string): string {
 }
 
 describe('utils', () => {
+  it('rejects an unresolved report template placeholder', () => {
+    readFileSyncMock.mockReturnValueOnce('REPLACE_ME_WITH_REPORT_HTML');
+
+    expect(() => getReportTpl()).toThrow('unresolved placeholder');
+  });
+
   it('tmpDir', () => {
     const testDir = getTmpDir();
     expect(typeof testDir).toBe('string');

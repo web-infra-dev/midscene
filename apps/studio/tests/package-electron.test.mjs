@@ -1448,15 +1448,16 @@ describe('package-electron helpers', () => {
   });
 
   it('detects unresolved report template placeholders in runtime output only', async () => {
+    const reportTemplatePlaceholderFixture = 'REPLACE_ME_WITH_REPORT_HTML';
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
     try {
       await fs.writeFile(
         path.join(root, 'guard.js'),
-        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+        `if (html.includes('${reportTemplatePlaceholderFixture}')) reportHTML = null;`,
       );
       await fs.writeFile(
         path.join(root, 'bundle.js.map'),
-        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+        `{"sourcesContent":["const reportTpl = '${reportTemplatePlaceholderFixture}';"]}`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
@@ -1465,7 +1466,7 @@ describe('package-electron helpers', () => {
 
       await fs.writeFile(
         path.join(root, 'utils.js'),
-        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+        `const reportTpl = '${reportTemplatePlaceholderFixture}';`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
