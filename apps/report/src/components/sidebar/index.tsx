@@ -26,6 +26,7 @@ import {
   markdownZipDownloadTooltip,
 } from '../../utils/markdown-export';
 import {
+  getExtraActionSourceInfo,
   hasDeepLocateFlag,
   hasDeepThinkFlag,
   hasObserverAssertionFlag,
@@ -193,6 +194,31 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         Cache
       </Tag>
     ) : null;
+  };
+
+  const getExtraActionTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const source = getExtraActionSourceInfo(task);
+    if (!source) {
+      return null;
+    }
+
+    const tooltip = [source.name, source.alias].filter(Boolean).join(' · ');
+    const tag = (
+      <Tag
+        className="extra-action-tag"
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+        bordered={false}
+      >
+        {source.label}
+      </Tag>
+    );
+
+    return tooltip ? <Tooltip title={tooltip}>{tag}</Tooltip> : tag;
   };
 
   const getDomIncludedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
@@ -646,6 +672,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getExtraActionTag(task)}
             {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getXPathTag(task)}

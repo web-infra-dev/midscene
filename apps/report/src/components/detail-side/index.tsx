@@ -23,6 +23,7 @@ import {
 } from '@midscene/visualizer';
 import { Tag, Tooltip } from 'antd';
 import { useState } from 'react';
+import { getExtraActionSourceInfo } from '../../utils/report-task-tags';
 import { isElementField, useExecutionDump } from '../store';
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -454,6 +455,40 @@ const DetailSide = (): JSX.Element => {
               key: 'hitBy',
               content: (() => {
                 const hitBy = task.hitBy as any;
+                const extraActionSource = getExtraActionSourceInfo(task);
+                if (extraActionSource) {
+                  return (
+                    <>
+                      <div>
+                        <strong>from:</strong> {extraActionSource.source}
+                      </div>
+                      {extraActionSource.name ? (
+                        <div>
+                          <strong>name:</strong> {extraActionSource.name}
+                        </div>
+                      ) : null}
+                      {extraActionSource.alias ? (
+                        <div>
+                          <strong>alias:</strong> {extraActionSource.alias}
+                        </div>
+                      ) : null}
+                      {extraActionSource.target !== undefined ? (
+                        <>
+                          <div>
+                            <strong>target:</strong>
+                          </div>
+                          <pre>
+                            {JSON.stringify(
+                              extraActionSource.target,
+                              undefined,
+                              2,
+                            )}
+                          </pre>
+                        </>
+                      ) : null}
+                    </>
+                  );
+                }
                 // Special handling for Cache with yamlString
                 if (hitBy.from === 'Cache' && hitBy.context?.yamlString) {
                   return (
