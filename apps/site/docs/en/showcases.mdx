@@ -32,9 +32,11 @@ This page introduces cross-platform GUI Agent, E2E test, and community showcases
 
 ## E2E Test Scenarios
 
+### Dongchedi App: Doubao Seed 2.1 Turbo
+
 The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ranking filters in the Android Dongchedi app on a device with a 720 × 1600 resolution.
 
-### Case 1: Sales ranking test
+#### Case 1: Sales ranking test
 
 - **Test scope:** Verify that the sales ranking correctly applies the combined filters for sedan, the month before last, fuel, and a preset CNY 180,000–250,000 price range, and displays the corresponding results
 - **Steps:** 8 / 16 (script / model calls)
@@ -42,7 +44,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Cost:** $0.0299
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html)
 
-### Case 2: Sales ranking combined-filter test
+#### Case 2: Sales ranking combined-filter test
 
 - **Test scope:** Verify that the sales ranking correctly applies the combined filters for SUV, the previous month, and plug-in hybrid, and displays the corresponding results
 - **Steps:** 4 / 14 (script / model calls)
@@ -50,7 +52,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Cost:** $0.0295
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html)
 
-### Case 3: New-energy ranking test
+#### Case 3: New-energy ranking test
 
 - **Test scope:** Verify that the new-energy ranking correctly applies the combined filters for SUV, the last six months, battery electric, and a preset CNY 180,000–250,000 price range, and displays the corresponding results
 - **Steps:** 8 / 18 (script / model calls)
@@ -58,7 +60,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Cost:** $0.0415
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html)
 
-### Case 4: Price-drop ranking test
+#### Case 4: Price-drop ranking test
 
 - **Test scope:** Verify that the price-drop ranking correctly applies the combined filters for MPV, the last year, new energy, and a custom CNY 150,000–300,000 price range, and displays the corresponding results
 - **Steps:** 13 / 29 (script / model calls)
@@ -66,7 +68,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Cost:** $0.0658
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html)
 
-### Case 5: Ranking switch and filter reset test
+#### Case 5: Ranking switch and filter reset test
 
 - **Test scope:** Verify that switching from the sales ranking to the new-energy ranking resets dependent filters correctly, and that subsequent filtering and reset-to-default behavior work as expected
 - **Steps:** 16 / 28 (script / model calls)
@@ -74,8 +76,32 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Cost:** $0.0525
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html)
 
-:::info Pricing assumptions
+:::info Doubao pricing assumptions
 Input tokens are priced at `$0.423 / M tokens`, cache reads at `$0.08452 / M tokens`, and output tokens at `$2.113 / M tokens`. The five cases cost approximately `$0.2192` in total and average `$0.0438` per case. These figures reflect this test run only; actual costs vary with task complexity, cache hit rate, and model pricing.
+:::
+
+### Reddit App: Qwen 3.7 Plus
+
+The following two test cases use `qwen/qwen3.7-plus` to test community search, joining, and post upvoting in the Android Reddit app on a device with a 720 × 1600 resolution.
+
+#### Case 1: Search for and join the Midscene community
+
+- **Test scope:** Search Reddit for Midscene, open the exact `r/midscene` community, join it if needed, and verify that the account has joined
+- **Steps:** 7 / 17 (script / model calls)
+- **Tokens:** Input 147,127 (34,816 cached) / output 3,418
+- **Cost:** $0.0425
+- **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/reddit/01-search-and-join-midscene-community.html)
+
+#### Case 2: Upvote the first post in the Midscene community
+
+- **Test scope:** Open the exact `r/midscene` community, upvote the first post in its post list if needed, and verify that it is upvoted
+- **Steps:** 6 / 12 (script / model calls)
+- **Tokens:** Input 103,231 (8,704 cached) / output 3,142
+- **Cost:** $0.0348
+- **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/reddit/02-upvote-first-post-in-midscene-community.html)
+
+:::info Qwen pricing assumptions
+Input tokens are priced at `$0.32 / M tokens`, cache reads at `$0.064 / M tokens`, and output tokens at `$1.28 / M tokens`. The two cases cost approximately `$0.0774` in total and average `$0.0387` per case. These figures reflect this test run only; actual costs vary with task complexity, cache hit rate, and model pricing.
 :::
 
 
