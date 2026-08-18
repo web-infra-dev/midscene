@@ -4,6 +4,7 @@ import {
   createSampleInputAction,
   createSampleTapAction,
 } from './action-example';
+import type { PlanningActionOutputProtocol } from './action-output-protocol';
 import { buildPlanningResponseExample } from './planning-response-example';
 import { buildSubGoalsText } from './sub-goals-text';
 
@@ -23,9 +24,11 @@ const sampleReturnEmailSubGoal = {
 export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
   locatePromptSpec,
+  actionOutputProtocol,
 }: {
   includeSubGoals: boolean;
   locatePromptSpec?: LocateResultPromptSpec;
+  actionOutputProtocol: PlanningActionOutputProtocol;
 }) => {
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     includeSubGoals ? content : fallbackContent;
@@ -35,18 +38,23 @@ export const buildPlanningMultiTurnExample = ({
     {
       locatePromptSpec,
       locateResultExampleIndex: 2,
+      actionOutputProtocol,
     },
   );
-  const inputNameExample = buildActionExample(createSampleInputAction('John'));
+  const inputNameExample = buildActionExample(createSampleInputAction('John'), {
+    actionOutputProtocol,
+  });
   const tapEmailFieldExample = buildActionExample(
     createSampleTapAction('Email input field in the registration form'),
     {
       locatePromptSpec,
       locateResultExampleIndex: 3,
+      actionOutputProtocol,
     },
   );
   const inputEmailExample = buildActionExample(
     createSampleInputAction('john@example.com'),
+    { actionOutputProtocol },
   );
 
   return `
