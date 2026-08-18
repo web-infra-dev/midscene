@@ -634,6 +634,26 @@ describe('Agent with custom OpenAI client', () => {
       expect(actionSpy.mock.calls[0][6]).toBe('fast');
     });
 
+    it('should reject fast effort before running custom planning', async () => {
+      const mockInterface = createMockInterface();
+      const agent = new Agent(mockInterface, {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
+        },
+      });
+      const actionSpy = vi.spyOn((agent as any).taskExecutor, 'action');
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      await expect(
+        agent.aiAct('click the submit button', { effort: 'fast' }),
+      ).rejects.toThrow(
+        'The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: auto-glm).',
+      );
+
+      expect(actionSpy).not.toHaveBeenCalled();
+    });
+
     it('should support deepThink and normalize unsupported custom planning', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {

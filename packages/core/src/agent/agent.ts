@@ -1151,6 +1151,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         }
 
         if (
+          resolvedEffort === 'fast' &&
+          planningModel.adapter.planning.kind === 'custom'
+        ) {
+          throw new Error(
+            `The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}).`,
+          );
+        }
+
+        if (
           resolvedEffort === 'deepThink' &&
           planningModel.adapter.planning.kind === 'custom'
         ) {
