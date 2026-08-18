@@ -136,6 +136,7 @@ function aiAct(
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
+    loadExtraActions?: string[];
     abortSignal?: AbortSignal;
     context?: string;
   },
@@ -157,6 +158,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
       - **注意**：Chrome extension Bridge mode 上传本地文件时，需要在 `chrome://extensions` > Midscene > “Details” 中开启插件的 “Allow access to file URLs” 权限。开启后请从目标 `http(s)://` 页面重新连接桥接模式。
       - **注意**：Chrome extension Bridge mode 不支持目录上传输入框（`webkitdirectory` / `directory`）。如需上传目录，请使用 Playwright。
     - `fileChooserAllowedDir?: string`：显式授权当前 `aiAct` 通过提示词上传文件时可访问的目录。未配置时，模型规划的文件上传会被拒绝。配置后，提示词中的相对路径会基于此目录解析，并校验是否位于此目录下；绝对路径则直接校验是否位于此目录下。位于此目录下的 symlink 也允许上传。建议将其设置为测试用例的 `fixtures` 目录，以避免 AI 幻觉或页面提示词攻击导致 `aiAct` 上传敏感文件。
+    - `loadExtraActions?: string[]`：为本次调用加载一个或多个带版本的 `*.actions.yaml` Manifest。Midscene 会披露当前规划快照中 `validWhenTargetExists` 对应 target 存在的全部 Extra Action，并将它们排在通用 Action 前面。模型选中后，每个 Extra Action 只展开成一个现有设备 Action。该选项仅支持 Node.js 和通用规划适配器；相对路径基于当前工作目录解析。
     - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
 - 返回值：
@@ -197,6 +199,38 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 `deepThink` 支持 `'unset' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
 
 `deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
+
+##### 加载可复用的 Extra Action
+
+Action Manifest 使用名称和确定性 target 描述可复用的设备操作：
+
+```yaml title="checkout.actions.yaml"
+version: 1
+interface: web
+actions:
+  - name: Click the checkout confirm button
+    validWhenTargetExists:
+      strategy: xpath
+      selector: //div[@role="dialog"]//button[@data-testid="confirm"]
+    action:
+      name: Tap
+      param:
+        locate:
+          prompt: Checkout confirm button
+          target:
+            strategy: xpath
+            selector: //div[@role="dialog"]//button[@data-testid="confirm"]
+```
+
+一次调用可以加载一个或多个 Manifest：
+
+```typescript
+await agent.aiAct('Confirm checkout', {
+  loadExtraActions: ['./checkout.actions.yaml'],
+});
+```
+
+披露阶段只探测 Manifest 声明的 `validWhenTargetExists` target，不会改变页面状态。模型选中 Extra Action 后，Midscene 会把 target 解析为最新 rect，再执行底层 Action；如果 target 解析失败，则回退到原有缓存和 AI Locate。Manifest 无效、interface 不兼容、名称重复、自定义规划适配器不受支持或底层 Action 不存在时，会在规划前抛出错误。
 
 ##### 在 `aiAct` 提示词中上传文件
 

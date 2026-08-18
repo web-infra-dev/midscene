@@ -287,7 +287,8 @@ export function buildDetailedLocateParam(
   let prompt = normalizedLocatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
   let deepLocate = false;
   let cacheable = true;
-  let xpath = undefined;
+  let xpath: LocateOption['xpath'];
+  let target: LocateOption['target'];
 
   if (typeof opt === 'object' && opt !== null) {
     // Backward-compatible: accept `deepThink` as a deprecated alias for `deepLocate`.
@@ -297,6 +298,12 @@ export function buildDetailedLocateParam(
     deepLocate = opt.deepLocate ?? opt.deepThink ?? false;
     cacheable = opt.cacheable ?? true;
     xpath = opt.xpath;
+    target = opt.target;
+    if (target !== undefined && xpath !== undefined) {
+      throw new Error(
+        '`target` and `xpath` cannot be used in the same locator',
+      );
+    }
     if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {
       console.warn(
         'conflict prompt for item',
@@ -339,7 +346,7 @@ export function buildDetailedLocateParam(
     ...(context ? { promptDisplay, context } : {}),
     deepLocate,
     cacheable,
-    xpath,
+    ...(target ? { target } : { xpath }),
   };
 }
 

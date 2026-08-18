@@ -2,6 +2,7 @@ import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { findActionInActionSpaceOrThrow } from '@/common';
 import type { AbstractInterface } from '@/device';
+import { xpathLocatorTarget } from '@/locator';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
 import type {
@@ -25,6 +26,7 @@ import { sleep } from '@/utils';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { getExtraActionSource, setExtraActionSource } from './extra-actions';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -83,9 +85,17 @@ function normalizeLocateParam(
   }
 
   const { deepThink, ...rest } = param as LocateParamWithDeprecatedAlias;
+  if (rest.target !== undefined && rest.xpath !== undefined) {
+    throw new Error('`target` and `xpath` cannot be used in the same locator');
+  }
   const deepLocate = rest.deepLocate ?? deepThink;
+  const { xpath, ...withoutXpath } = rest;
+  const normalized =
+    typeof xpath === 'string'
+      ? { ...withoutXpath, target: xpathLocatorTarget(xpath) }
+      : withoutXpath;
 
-  return deepLocate === undefined ? rest : { ...rest, deepLocate };
+  return deepLocate === undefined ? normalized : { ...normalized, deepLocate };
 }
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
@@ -228,12 +238,17 @@ export class TaskBuilder {
       action.paramSchema,
       true,
     );
+    const extraActionSource = getExtraActionSource(plan);
 
     locateFields.forEach((field) => {
       if (param[field]) {
+        const locateParam = param[field];
         // Always use createLocateTask for all locate params.
         // This ensures cache writing happens even when locatedPixelBbox is available
-        const locatePlan = locatePlanForLocate(param[field]);
+        const locatePlan = locatePlanForLocate(locateParam);
+        if (extraActionSource) {
+          setExtraActionSource(locatePlan, extraActionSource);
+        }
         debug(
           'will prepend locate param for field',
           `action.type=${planType}`,
@@ -243,7 +258,7 @@ export class TaskBuilder {
         );
         const locateTask = this.createLocateTask(
           locatePlan,
-          param[field],
+          locateParam,
           context,
           (result) => {
             param[field] = result;
@@ -377,6 +392,17 @@ export class TaskBuilder {
 
         return {
           output: actionResult,
+          ...(extraActionSource
+            ? {
+                hitBy: {
+                  from: 'Extra Action',
+                  context: {
+                    extraActionName: extraActionSource.name,
+                    extraActionAlias: extraActionSource.alias,
+                  },
+                },
+              }
+            : {}),
         };
       },
     };
@@ -477,51 +503,69 @@ export class TaskBuilder {
           ? matchElementFromPlan(paramWithLocatedPixelBbox)
           : undefined;
 
-        // from locatedPixelBbox (direct plan hit)
-        // when deepLocate is enabled, locatedPixelBbox should be used as search
-        // area hint, not as a final direct hit
-        const elementFromPlan = param.deepLocate
-          ? undefined
-          : planLocatedElement;
-        const isPlanDirectHit = !!elementFromPlan;
-
-        // from xpath
-        let rectFromXpath: Rect | undefined;
-        if (
-          !isPlanDirectHit &&
-          param.xpath &&
-          this.interface.rectMatchesCacheFeature
-        ) {
+        // Resolve stable targets before using model-provided coordinates. The
+        // resolver returns a fresh logical-coordinate Rect on every execution.
+        let elementFromTarget: LocateResultElement | undefined;
+        let targetResolutionError: string | undefined;
+        if (param.target) {
           try {
-            rectFromXpath = await this.interface.rectMatchesCacheFeature({
-              xpaths: [param.xpath],
-            });
-          } catch {
-            // xpath locate failed, allow fallback to cache or AI locate
-          }
-        }
-
-        const elementFromXpath = rectFromXpath
-          ? generateElementByRect(
-              // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
+            let rectFromTarget: Rect | undefined;
+            if (this.interface.resolveLocatorTarget) {
+              rectFromTarget = await this.interface.resolveLocatorTarget(
+                param.target,
+              );
+            } else if (
+              param.target.strategy === 'xpath' &&
+              this.interface.rectMatchesCacheFeature
+            ) {
+              rectFromTarget = await this.interface.rectMatchesCacheFeature({
+                targets: [param.target],
+              });
+            }
+            if (!rectFromTarget) {
+              throw new Error(
+                `Current interface cannot resolve locator target strategy: ${param.target.strategy}`,
+              );
+            }
+            const candidate = generateElementByRect(
+              // target Rect is in logical coordinates and actions use the
+              // screenshot coordinate space inside the task runner.
               transformLogicalRectToScreenshotRect(
-                rectFromXpath,
+                rectFromTarget,
                 shrunkShotToLogicalRatio,
               ),
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
-            )
-          : undefined;
+            );
+            const invalidTargetReason = invalidLocateElementReason(candidate);
+            if (invalidTargetReason) {
+              throw new Error(invalidTargetReason);
+            }
+            elementFromTarget = candidate;
+          } catch (error) {
+            targetResolutionError =
+              error instanceof Error ? error.message : String(error);
+            debug(
+              'target resolution failed, falling back to cache or AI locate: %s',
+              targetResolutionError,
+            );
+          }
+        }
+        const isTargetHit = !!elementFromTarget;
 
-        const isXpathHit = !!elementFromXpath;
+        // from locatedPixelBbox (direct plan hit). When deepLocate is enabled,
+        // the bbox remains a search-area hint rather than a final direct hit.
+        const elementFromPlan =
+          isTargetHit || param.deepLocate ? undefined : planLocatedElement;
+        const isPlanDirectHit = !!elementFromPlan;
 
         const cachePrompt = param.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
         const elementFromCacheResult =
-          isPlanDirectHit || isXpathHit
+          isPlanDirectHit || isTargetHit
             ? null
             : await matchElementFromCache(
                 {
@@ -545,7 +589,7 @@ export class TaskBuilder {
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
         const timing = taskContext.task.timing;
-        if (!isXpathHit && !isCacheHit && !isPlanDirectHit) {
+        if (!isTargetHit && !isCacheHit && !isPlanDirectHit) {
           try {
             setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
@@ -570,8 +614,8 @@ export class TaskBuilder {
         }
 
         const element =
+          elementFromTarget ||
           elementFromPlan ||
-          elementFromXpath ||
           elementFromCache ||
           elementFromAiLocate;
 
@@ -672,18 +716,31 @@ export class TaskBuilder {
 
         let hitBy: ExecutionTaskHitBy | undefined;
 
-        if (isPlanDirectHit && paramWithLocatedPixelBbox) {
+        const extraActionMetadata = getExtraActionSource(plan);
+        const attemptedTargetContext = param.target
+          ? {
+              target: param.target,
+              ...(targetResolutionError ? { targetResolutionError } : {}),
+              ...(extraActionMetadata?.name
+                ? { extraActionName: extraActionMetadata.name }
+                : {}),
+              ...(extraActionMetadata?.alias
+                ? { extraActionAlias: extraActionMetadata.alias }
+                : {}),
+            }
+          : {};
+
+        if (isTargetHit && param.target) {
+          hitBy = {
+            from: extraActionMetadata ? 'Extra Action target' : 'User target',
+            context: attemptedTargetContext,
+          };
+        } else if (isPlanDirectHit && paramWithLocatedPixelBbox) {
           hitBy = {
             from: 'Plan',
             context: {
               locatedPixelBbox: paramWithLocatedPixelBbox.locatedPixelBbox,
-            },
-          };
-        } else if (isXpathHit) {
-          hitBy = {
-            from: 'User expected path',
-            context: {
-              xpath: param.xpath,
+              ...attemptedTargetContext,
             },
           };
         } else if (isCacheHit) {
@@ -692,7 +749,13 @@ export class TaskBuilder {
             context: {
               cacheEntry,
               cacheToSave: currentCacheEntry,
+              ...attemptedTargetContext,
             },
+          };
+        } else {
+          hitBy = {
+            from: 'AI',
+            context: attemptedTargetContext,
           };
         }
 

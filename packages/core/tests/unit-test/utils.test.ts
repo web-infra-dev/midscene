@@ -237,7 +237,7 @@ describe('utils', () => {
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // We expect the file to be approximately 700MB plus template overhead
-      const expectedMinSize = 1000; // 10 reports × 100MB
+      const expectedMinSize = 1000; // 10 reports x 100MB
       expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
     },
   );
@@ -308,6 +308,23 @@ describe('buildDetailedLocateParam', () => {
       cacheable: false,
       xpath: undefined,
     });
+  });
+
+  it('accepts target and rejects target with the legacy xpath alias', () => {
+    const target = {
+      strategy: 'xpath' as const,
+      selector: '//button[@id="confirm"]',
+    };
+
+    expect(
+      buildDetailedLocateParam('Click the confirm button', { target }),
+    ).toMatchObject({ target });
+    expect(() =>
+      buildDetailedLocateParam('Click the confirm button', {
+        target,
+        xpath: '//button[@id="confirm"]',
+      }),
+    ).toThrow('`target` and `xpath` cannot be used in the same locator');
   });
 });
 
@@ -441,7 +458,7 @@ describe('insertScriptBeforeClosingHtml', () => {
     <h1>Bug Case</h1>
   </body>
   <script>
-    { "hello": "你好", "world": "世界" }
+    { "hello": "hello", "world": "world" }
   </script>
 </html>`;
     const filePath = createTempHtmlFile(html);
@@ -464,7 +481,7 @@ describe('insertScriptBeforeClosingHtml', () => {
     //       <h1>Bug Case</h1>
     //     </body>
     //     <script>
-    //       { "hello": "你好", "world": "世界" }
+    //       { "hello": "hello", "world": "world" }
     // -   </script>
     // - <script>large</script>
     // +   </scri<script>large</script>

@@ -164,6 +164,7 @@ export async function standardPlan(
     includeThought,
     includeLog,
     includeSubGoals,
+    hasExtraActions: opts.hasExtraActions,
     ...(opts.includeLocateInPlanning && locateResultAdapter
       ? {
           includeLocateInPlanning: true,

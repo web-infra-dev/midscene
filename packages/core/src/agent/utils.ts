@@ -399,6 +399,18 @@ export async function matchElementFromCache(
   try {
     const rect =
       await context.interfaceInstance.rectMatchesCacheFeature(cacheEntry);
+    const rectValues = [rect.left, rect.top, rect.width, rect.height];
+    if (
+      rectValues.some(
+        (value) => typeof value !== 'number' || !Number.isFinite(value),
+      ) ||
+      rect.width <= 0 ||
+      rect.height <= 0
+    ) {
+      throw new Error(
+        `Cache target returned an invalid rect: ${JSON.stringify(rect)}`,
+      );
+    }
     const element: LocateResultElement = {
       center: [
         Math.round(rect.left + rect.width / 2),

@@ -40,19 +40,25 @@ describe('agent with forceSameTabNavigation', () => {
       xpath: inputXpath,
     });
     const log = await agent._unstableLogContent();
-    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User expected path');
-    expect(log.executions[0].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
+    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User target');
+    expect(log.executions[0].tasks[0].hitBy?.context?.target).toEqual({
+      strategy: 'xpath',
+      selector: inputXpath,
+    });
     await agent.aiKeyboardPress('The search input box', {
       keyName: 'Enter',
       xpath: inputXpath,
     });
     await sleep(2000);
     const log1 = await agent._unstableLogContent();
-    expect(log1.executions[1].tasks[0].hitBy?.from).toBe('User expected path');
-    expect(log1.executions[1].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
+    expect(log1.executions[1].tasks[0].hitBy?.from).toBe('User target');
+    expect(log1.executions[1].tasks[0].hitBy?.context?.target).toEqual({
+      strategy: 'xpath',
+      selector: inputXpath,
+    });
     await agent.aiTap('The search result link for "midscene" project');
     const log2 = await agent._unstableLogContent();
-    expect(log2.executions[2].tasks[0].hitBy?.from).toBe(undefined); // AI model
+    expect(log2.executions[2].tasks[0].hitBy?.from).toBe('AI');
     await sleep(2000);
     await agent.aiAssert('the page is "midscene github"');
   });

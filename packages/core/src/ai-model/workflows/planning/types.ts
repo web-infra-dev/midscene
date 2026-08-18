@@ -19,6 +19,7 @@ export interface PlanOptions {
   imagesIncludeCount?: number;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
   effort: AiActEffort;
+  hasExtraActions?: boolean;
   referenceImageMessages?: ChatCompletionUserMessageParam[];
   abortSignal?: AbortSignal;
 }
