@@ -2489,9 +2489,18 @@ ${Object.keys(size)
    */
   private async shellInputKeyCombination(...keyCodes: number[]): Promise<void> {
     const adb = await this.getAdb();
-    await adb.shell(
-      `input${this.getDisplayArg()} keycombination ${keyCodes.join(' ')}`,
-    );
+    const command = `input${this.getDisplayArg()} keycombination ${keyCodes.join(' ')}`;
+    const stdout = await runAdbShellStdoutOrThrow(adb, command);
+
+    // Android's input shell command can print errors such as
+    // "Unknown command: keycombination" while still exiting successfully.
+    // A successful keycombination is silent, so any output means the command
+    // was not reliably applied and the caller must use the legacy fallback.
+    if (stdout.trim()) {
+      throw new Error(
+        `Android keycombination command returned unexpected output: ${stdout.trim()}`,
+      );
+    }
   }
 
   /**

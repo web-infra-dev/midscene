@@ -1876,6 +1876,7 @@ Stdout:
     describe('clearInput', () => {
       beforeEach(() => {
         mockAdb.getApiLevel.mockResolvedValue(35);
+        mockAdb.shell.mockResolvedValue('');
       });
 
       it('should select all and forward-delete on Android 12 and newer', async () => {
@@ -1886,6 +1887,7 @@ Stdout:
         expect(mockAdb.shell).toHaveBeenNthCalledWith(
           1,
           'input keycombination 113 29',
+          expect.objectContaining({ outputFormat: 'full' }),
         );
         expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
         expect(mockAdb.clearTextField).not.toHaveBeenCalled();
@@ -1904,6 +1906,7 @@ Stdout:
         expect(mockAdb.shell).toHaveBeenNthCalledWith(
           1,
           'input keycombination 113 29',
+          expect.objectContaining({ outputFormat: 'full' }),
         );
         expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
         expect(mockAdb.shell).toHaveBeenNthCalledWith(3, "input text '15'");
@@ -1917,6 +1920,7 @@ Stdout:
         expect(mockAdb.shell).toHaveBeenNthCalledWith(
           1,
           'input -d 2 keycombination 113 29',
+          expect.objectContaining({ outputFormat: 'full' }),
         );
         expect(mockAdb.shell).toHaveBeenNthCalledWith(
           2,
@@ -1944,6 +1948,33 @@ Stdout:
 
         await device.clearInput();
 
+        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
+      });
+
+      it('should fall back when keycombination reports an unknown command on stdout', async () => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.shell.mockResolvedValueOnce('Unknown command: keycombination');
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          'input keycombination 113 29',
+          expect.objectContaining({ outputFormat: 'full' }),
+        );
+        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
+      });
+
+      it('should fall back when keycombination writes to stderr', async () => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.shell.mockResolvedValueOnce({
+          stdout: '',
+          stderr: 'Unknown command: keycombination',
+        } as any);
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
         expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
       });
 
