@@ -46,64 +46,6 @@ const debugDevice = getDebug('harmony:device');
 
 let screenshotResizeScaleWarned = false;
 
-// ArkUI input component types that hold user-editable text. Used by
-// `resolveClearLength` to size `clearTextField` calls precisely instead of
-// always defaulting to the 100-key upper bound.
-const INPUT_FIELD_TYPES = new Set(['TextInput', 'TextArea', 'SearchField']);
-
-interface InputField {
-  text: string;
-  bounds: { x1: number; y1: number; x2: number; y2: number };
-}
-
-function parseBounds(raw: unknown): InputField['bounds'] | null {
-  // Harmony layout bounds look like "[x1,y1][x2,y2]".
-  if (typeof raw !== 'string') return null;
-  const m = raw.match(/\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]/);
-  if (!m) return null;
-  return {
-    x1: Number(m[1]),
-    y1: Number(m[2]),
-    x2: Number(m[3]),
-    y2: Number(m[4]),
-  };
-}
-
-function collectInputFields(layout: unknown): InputField[] {
-  const fields: InputField[] = [];
-  const visit = (node: unknown) => {
-    if (!node || typeof node !== 'object') return;
-    const n = node as {
-      attributes?: Record<string, unknown>;
-      children?: unknown[];
-    };
-    const attrs = n.attributes ?? {};
-    if (INPUT_FIELD_TYPES.has(String(attrs.type))) {
-      const bounds = parseBounds(attrs.bounds);
-      if (bounds) {
-        fields.push({ text: String(attrs.text ?? ''), bounds });
-      }
-    }
-    for (const child of n.children ?? []) visit(child);
-  };
-  visit(layout);
-  return fields;
-}
-
-function pickFieldByPoint(
-  fields: InputField[],
-  point: [number, number],
-): InputField | undefined {
-  const [px, py] = point;
-  return fields.find(
-    ({ bounds: b }) => px >= b.x1 && px <= b.x2 && py >= b.y1 && py <= b.y2,
-  );
-}
-
-function pickLongestField(fields: InputField[]): InputField {
-  return fields.reduce((a, b) => (b.text.length > a.text.length ? b : a));
-}
-
 export class HarmonyDevice implements AbstractInterface {
   private deviceId: string;
   private hdc: HdcClient | null = null;
@@ -485,15 +427,10 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     if (shouldReplace) {
-      // Focus the field, then send precisely enough Backspaces to clear it.
-      // The length is taken from the current layout to avoid the ~10s cost of
-      // always sending 100 keys (each `uitest uiInput keyEvent` is ~300ms).
+      // Focus the field, select all text, then delete the selection.
       await hdc.click(x, y);
       await sleep(100);
-      const length = await this.resolveClearLength(element);
-      if (length > 0) {
-        await hdc.clearTextField(length);
-      }
+      await hdc.clearTextField();
       await sleep(100);
     }
 
@@ -528,41 +465,7 @@ export class HarmonyDevice implements AbstractInterface {
       await sleep(100);
     }
 
-    const length = await this.resolveClearLength(element);
-    if (length > 0) {
-      await hdc.clearTextField(length);
-    }
-  }
-
-  /**
-   * Decide how many Backspaces `clearTextField` should send. Each
-   * `uitest uiInput keyEvent` invocation costs ~300ms cold-start, so blindly
-   * defaulting to 100 makes every clear take ~10s. Instead, snapshot the UI
-   * once (~1s for `uitest dumpLayout`) and tighten the bound to the current
-   * field's text length plus a small padding for transient IME composing.
-   * Falls back to the safe upper bound if the layout can't be parsed.
-   */
-  private async resolveClearLength(element?: {
-    center: [number, number];
-  }): Promise<number> {
-    const PADDING = 2;
-    const FALLBACK_LENGTH = 100;
-    try {
-      const hdc = await this.getHdc();
-      const layoutJson = await hdc.dumpLayout();
-      const layout = JSON.parse(layoutJson);
-      const fields = collectInputFields(layout);
-      if (fields.length === 0) return FALLBACK_LENGTH;
-      const target = element
-        ? (pickFieldByPoint(fields, element.center) ?? pickLongestField(fields))
-        : pickLongestField(fields);
-      return target.text.length + PADDING;
-    } catch (e) {
-      debugDevice(
-        `resolveClearLength: layout probe failed, falling back to ${FALLBACK_LENGTH}: ${e}`,
-      );
-      return FALLBACK_LENGTH;
-    }
+    await hdc.clearTextField();
   }
 
   private async pressKey(key: string): Promise<void> {

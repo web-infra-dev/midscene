@@ -319,27 +319,6 @@ export class HdcClient {
     return await this.shell(`snapshot_display -f ${remotePath}`);
   }
 
-  /**
-   * Capture the current UI layout via `uitest dumpLayout` and return the JSON
-   * string. The dump is written to a fixed device path then `cat`'d back in
-   * the same shell round-trip to avoid a separate `hdc file recv` call.
-   */
-  async dumpLayout(): Promise<string> {
-    const remotePath = '/data/local/tmp/midscene_layout.json';
-    const output = await this.shell(
-      `uitest dumpLayout -p ${remotePath} && cat ${remotePath}`,
-    );
-    // `uitest dumpLayout` prints a "DumpLayout saved to:..." preamble before
-    // `cat`'s JSON body. Find the first JSON object brace and return the rest.
-    const jsonStart = output.indexOf('{');
-    if (jsonStart < 0) {
-      throw new Error(
-        `dumpLayout: no JSON body in output: ${output.slice(0, 200)}`,
-      );
-    }
-    return output.slice(jsonStart);
-  }
-
   async click(x: number, y: number): Promise<void> {
     await this.runUiInput(
       'click',
@@ -433,33 +412,11 @@ export class HdcClient {
     await this.runUiInput('keyEvent', joinedKeys, joinedKeys);
   }
 
-  /**
-   * Clear the focused text field by sending repeated Backspace(2055) key
-   * events. `uitest uiInput keyEvent` only accepts up to 3 keyCodes per call
-   * (any more triggers "Too many parameters." with zero presses injected),
-   * so we pack codes into 3-key batches and chain the calls with shell `;`
-   * to keep a single hdc round-trip — mirroring Android adb's
-   * "one shell, many keys" design despite the per-call cap.
-   */
-  async clearTextField(length = 100): Promise<void> {
-    if (!Number.isSafeInteger(length) || length < 0) {
-      throw new Error(
-        'HDC clearTextField length must be a non-negative safe integer',
-      );
-    }
-    if (length === 0) return;
-
-    const maxKeysPerCall = 3;
-    const backspaceKeyCode = '2055';
-    const cmds: string[] = [];
-    let remaining = length;
-    while (remaining > 0) {
-      const n = Math.min(maxKeysPerCall, remaining);
-      const codes = Array(n).fill(backspaceKeyCode).join(' ');
-      cmds.push(`uitest uiInput keyEvent ${codes}`);
-      remaining -= n;
-    }
-    const output = await this.shell(cmds.join(';'));
+  /** Select all text in the focused field with Ctrl+A, then delete it. */
+  async clearTextField(): Promise<void> {
+    const output = await this.shell(
+      'uitest uiInput keyEvent 2072 2017;uitest uiInput keyEvent 2055',
+    );
     this.assertUiInputSucceeded('clearTextField', output);
   }
 

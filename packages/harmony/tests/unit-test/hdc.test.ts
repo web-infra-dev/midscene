@@ -759,46 +759,8 @@ activeMode: 1216x2688, refreshRate=60`,
     });
   });
 
-  describe('dumpLayout', () => {
-    it('should dump and cat layout in a single shell round-trip and strip the preamble', async () => {
-      mockExecFile.mockResolvedValue({
-        stdout:
-          'DumpLayout saved to:/data/local/tmp/midscene_layout.json\n{"attributes":{"type":"Root"},"children":[]}\n',
-        stderr: '',
-      });
-
-      const hdc = new HdcClient({});
-      const json = await hdc.dumpLayout();
-
-      expect(mockExecFile).toHaveBeenCalledTimes(1);
-      expect(mockExecFile).toHaveBeenCalledWith(
-        expect.any(String),
-        [
-          'shell',
-          'uitest dumpLayout -p /data/local/tmp/midscene_layout.json && cat /data/local/tmp/midscene_layout.json',
-        ],
-        expect.any(Object),
-      );
-      expect(json.startsWith('{')).toBe(true);
-      expect(JSON.parse(json)).toEqual({
-        attributes: { type: 'Root' },
-        children: [],
-      });
-    });
-
-    it('should throw when the shell output contains no JSON body', async () => {
-      mockExecFile.mockResolvedValue({
-        stdout: 'uitest: cannot find display',
-        stderr: '',
-      });
-
-      const hdc = new HdcClient({});
-      await expect(hdc.dumpLayout()).rejects.toThrow('no JSON body');
-    });
-  });
-
   describe('clearTextField', () => {
-    it('should throw when a batched key event reports an error', async () => {
+    it('should throw when the select-all and delete command reports an error', async () => {
       mockExecFile.mockResolvedValue({
         stdout: 'Too many parameters.\n',
         stderr: '',
@@ -806,69 +768,26 @@ activeMode: 1216x2688, refreshRate=60`,
 
       const hdc = new HdcClient({});
 
-      await expect(hdc.clearTextField(4)).rejects.toThrow(
+      await expect(hdc.clearTextField()).rejects.toThrow(
         'HDC uiInput clearTextField failed: Too many parameters.',
       );
     });
 
-    it.each([-1, 1.5, Number.NaN])(
-      'should reject invalid clear length %s before invoking HDC',
-      async (length) => {
-        const hdc = new HdcClient({});
-
-        await expect(hdc.clearTextField(length)).rejects.toThrow(
-          'HDC clearTextField length must be a non-negative safe integer',
-        );
-        expect(mockExecFile).not.toHaveBeenCalled();
-      },
-    );
-
-    it('should chain 3-key batches with semicolons in a single shell call', async () => {
+    it('should select all with Ctrl+A and delete in one shell call', async () => {
       mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
 
       const hdc = new HdcClient({});
-      await hdc.clearTextField(7);
-
-      // 7 Backspaces packed into 3+3+1 batches, chained with `;`
-      const expected = [
-        'uitest uiInput keyEvent 2055 2055 2055',
-        'uitest uiInput keyEvent 2055 2055 2055',
-        'uitest uiInput keyEvent 2055',
-      ].join(';');
+      await hdc.clearTextField();
 
       expect(mockExecFile).toHaveBeenCalledTimes(1);
       expect(mockExecFile).toHaveBeenCalledWith(
         expect.any(String),
-        ['shell', expected],
+        [
+          'shell',
+          'uitest uiInput keyEvent 2072 2017;uitest uiInput keyEvent 2055',
+        ],
         expect.any(Object),
       );
-    });
-
-    it('should cap each uitest invocation at 3 keyCodes (uitest limit)', async () => {
-      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
-
-      const hdc = new HdcClient({});
-      await hdc.clearTextField(100);
-
-      const args = mockExecFile.mock.calls[0][1] as string[];
-      expect(args[0]).toBe('shell');
-      const cmds = args[1].split(';');
-      // 100 keys / 3 per batch = 34 calls (33 full + 1 with a single key)
-      expect(cmds).toHaveLength(34);
-      for (const cmd of cmds) {
-        const codes = cmd.replace('uitest uiInput keyEvent ', '').split(' ');
-        expect(codes.length).toBeLessThanOrEqual(3);
-        for (const c of codes) expect(c).toBe('2055');
-      }
-    });
-
-    it('should no-op when length is 0', async () => {
-      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
-
-      const hdc = new HdcClient({});
-      await hdc.clearTextField(0);
-
-      expect(mockExecFile).not.toHaveBeenCalled();
     });
   });
 });

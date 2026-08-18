@@ -261,8 +261,8 @@ describe('HarmonyDevice', () => {
 
       // 1. click to focus
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      // 2. clearTextField to batch-delete existing content
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      // 2. clearTextField to select and delete existing content
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
       // 3. actual inputText
       expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'new text');
     });
@@ -366,10 +366,10 @@ describe('HarmonyDevice', () => {
   });
 
   describe('clearInput', () => {
-    it('should call clearTextField to batch-delete text', async () => {
+    it('should call clearTextField to select and delete text', async () => {
       await device.connect();
       await device.clearInput();
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
     });
 
     it('should click element before clearing when element is provided', async () => {
@@ -377,7 +377,7 @@ describe('HarmonyDevice', () => {
       const element = { center: [100, 200] as [number, number] } as any;
       await device.clearInput(element);
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
     });
   });
 
