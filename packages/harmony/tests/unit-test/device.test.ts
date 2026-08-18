@@ -489,6 +489,15 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
     });
 
+    it('should not replace a direct URI with an app name mapping', async () => {
+      device.setAppNameMapping({
+        'myapp://page': 'com.example.app/MainAbility',
+      });
+      await device.launch('myapp://page');
+      expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
+      expect(mockHdc.startAbility).not.toHaveBeenCalled();
+    });
+
     it('should use startAbility for bundleName/abilityName format', async () => {
       await device.launch('com.example.app/MainAbility');
       expect(mockHdc.startAbility).toHaveBeenCalledWith(
@@ -537,6 +546,22 @@ describe('HarmonyDevice', () => {
       });
       await device.terminate('Music');
       expect(mockHdc.forceStop).toHaveBeenCalledWith('com.huawei.hmsapp.music');
+    });
+
+    it('should use only the bundle part of a mapped bundle/ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('Video');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
+    });
+
+    it('should resolve the mapped bundle part of an explicit ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('video/MainAbility');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
     });
 
     it('should throw on terminate failure', async () => {
@@ -770,6 +795,19 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.launchBundle).toHaveBeenCalledWith(
         'com.huawei.hmos.browser',
       );
+    });
+
+    it('should start an explicit ability from app name mapping', async () => {
+      await device.connect();
+      device.setAppNameMapping({
+        'Video App': 'com.example.video/PhoneAbility',
+      });
+      await device.launch('video-app');
+      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+        'com.example.video',
+        'PhoneAbility',
+      );
+      expect(mockHdc.launchBundle).not.toHaveBeenCalled();
     });
 
     it('should fall back to original name if not in mapping', async () => {

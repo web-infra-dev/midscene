@@ -2644,13 +2644,15 @@ import { HarmonyAgent } from '@midscene/harmony';
 
 ```ts
 const agent = new HarmonyAgent(device, {
-  // 通用 Agent 参数...
+  appNameMapping: {
+    视频: 'com.example.video/PhoneAbility',
+  },
 });
 ```
 
 **HarmonyOS 特有选项**
 
-- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的 bundle name；若未找到映射，则按原样尝试启动 `target`。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name 或显式 `bundle/Ability` 目标。仅填写 bundle name 时，Agent 会读取 bundle 元数据并解析其声明的启动 Ability；显式目标会跳过该查询。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应目标；若未找到映射，则按原样尝试启动 `target`。
 - 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
@@ -2676,11 +2678,12 @@ const agent = new HarmonyAgent(device, {
 function launch(uri: string): Promise<void>;
 ```
 
-- `uri: string` —— 可以是应用 bundle name（如 `com.huawei.hmos.settings`），也可以是在 `appNameMapping` 中注册的应用名称。如果传入 `http://` 或 `https://` 开头的 URL，将通过浏览器打开。
+- `uri: string` —— 可以是应用 bundle name（如 `com.huawei.hmos.settings`）、显式 `bundle/Ability` 目标，也可以是在 `appNameMapping` 中注册的应用名称。如果传入 `http://` 或 `https://` 开头的 URL，将通过浏览器打开。
 
 ```ts
 await agent.launch('com.huawei.hmos.settings'); // 打开系统设置
 await agent.launch('com.huawei.hmos.camera');    // 打开相机
+await agent.launch('视频'); // 打开映射的指定 Ability
 ```
 
 <a id="harmonyos-agentrunhdcshell"></a>
