@@ -83,6 +83,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
+    "sync-report-template": "node ../../scripts/sync-core-report-template.mjs",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true vitest --run",

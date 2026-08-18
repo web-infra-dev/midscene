@@ -12,9 +12,14 @@ export const reportTemplateModulePaths = {
 
 const reportDumpOpeningTag =
   '<script type="midscene_web_dump" type="application/json" data-group-id="';
-const defaultReportTemplatePath = path.resolve(
+const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../apps/report/dist/index.html',
+  '..',
+);
+const defaultCoreDistDir = path.join(repositoryRoot, 'packages/core/dist');
+const defaultReportTemplatePath = path.join(
+  repositoryRoot,
+  'apps/report/dist/index.html',
 );
 
 function validateReportTemplateSize(size, label) {
@@ -83,6 +88,20 @@ export function writeReportTemplateModules(coreDistDir, html) {
   }
 
   return writtenFiles;
+}
+
+export function syncCoreReportTemplateModules({
+  coreDistDir = defaultCoreDistDir,
+  reportTemplatePath = defaultReportTemplatePath,
+} = {}) {
+  if (!fs.existsSync(reportTemplatePath)) {
+    throw new Error(`Report template not found at ${reportTemplatePath}.`);
+  }
+
+  return writeReportTemplateModules(
+    coreDistDir,
+    fs.readFileSync(reportTemplatePath, 'utf8'),
+  );
 }
 
 export function validateCoreReportTemplateModules(

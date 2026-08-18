@@ -6,7 +6,7 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
-import { writeReportTemplateModules } from '../../scripts/report-template-utils.mjs';
+import { syncCoreReportTemplateModules } from '../../scripts/report-template-utils.mjs';
 import {
   commonIgnoreWarnings,
   createTypeCheckPlugin,
@@ -38,16 +38,7 @@ const writeReportTemplate = () => ({
     onAfterBuild: (arg0: ({ compiler }: { compiler: any }) => void) => void;
   }) {
     api.onAfterBuild(() => {
-      const srcPath = path.join(__dirname, 'dist', 'index.html');
-      if (!fs.existsSync(srcPath)) {
-        throw new Error(`Report template not found at ${srcPath}.`);
-      }
-      const corePkgDir = path.join(__dirname, '..', '..', 'packages', 'core');
-      const corePkgDistDir = path.join(corePkgDir, 'dist');
-      const writtenFiles = writeReportTemplateModules(
-        corePkgDistDir,
-        fs.readFileSync(srcPath, 'utf-8'),
-      );
+      const writtenFiles = syncCoreReportTemplateModules();
       console.log(
         `[@midscene/report] Report template written to ${writtenFiles.length} core module(s).`,
       );

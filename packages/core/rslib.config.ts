@@ -1,7 +1,6 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rslib/core';
-import { writeReportTemplateModules } from '../../scripts/report-template-utils.mjs';
+import { syncCoreReportTemplateModules } from '../../scripts/report-template-utils.mjs';
 import { createTypeCheckPlugin } from '../../scripts/rsbuild-utils.ts';
 import { version } from './package.json';
 
@@ -9,30 +8,14 @@ const writeExistingReportTemplate = () => ({
   name: 'write-existing-report-template',
   setup: (api: { onAfterBuild: (fn: () => void) => void }) => {
     api.onAfterBuild(() => {
-      const reportTplPath = path.resolve(
-        __dirname,
-        '../../apps/report/dist/index.html',
-      );
-
-      if (!fs.existsSync(reportTplPath)) {
-        console.warn(
-          '[@midscene/core] Report template not found; keeping the placeholder template.',
-        );
-        return;
-      }
-
-      const distDir = path.resolve(__dirname, 'dist');
       try {
-        const writtenFiles = writeReportTemplateModules(
-          distDir,
-          fs.readFileSync(reportTplPath, 'utf-8'),
-        );
+        const writtenFiles = syncCoreReportTemplateModules();
         console.log(
           `[@midscene/core] Existing report template written to ${writtenFiles.length} module(s).`,
         );
       } catch (error) {
         console.warn(
-          `[@midscene/core] Existing report template is invalid; keeping the placeholder template. ${error}`,
+          `[@midscene/core] Existing report template is unavailable or invalid; keeping the placeholder template. ${error}`,
         );
       }
     });

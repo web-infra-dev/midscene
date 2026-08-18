@@ -152,18 +152,64 @@ cd apps/playground && pnpm run dev
 cd apps/chrome-extension && pnpm run dev
 ```
 
-### Unresolved report template error
+### Core's embedded Report template
 
-`apps/report` is not standalone at runtime. Its built `index.html` is written
-to the standalone report template modules in `packages/core/dist` during
-build. If report UI changes do not show up, report generation fails with
-`Report template contains an unresolved placeholder`, or an older report file
-contains `REPLACE_ME_WITH_REPORT_HTML`, the template modules are usually stale.
-Rebuild the entire workspace without Nx cache to fix it:
+The Core package includes a complete Report HTML template in its build output.
+This allows Core to generate reports when it runs independently or is embedded
+in another environment, such as a browser extension or Studio, without a
+runtime dependency on `@midscene/report`.
+
+However, Report itself depends on Core. Making the Core build depend on Report
+would create a circular dependency, so the template is generated and
+synchronized as follows:
+
+1. The Report template module in the Core source contains only a placeholder.
+   The Core build emits CJS and ESM template modules, which do not contain the
+   real Report HTML before synchronization.
+
+2. After Report builds `apps/report/dist/index.html`, it writes that HTML into
+   the two Core template modules:
+
+   - `packages/core/dist/lib/report-html-template.js`
+   - `packages/core/dist/es/report-html-template.mjs`
+
+3. In the Nx cache model, the Report HTML and the two Core template modules
+   belong to the same `@midscene/report:build` output set. Whether Report runs
+   its build or restores it from Nx cache, all three files are produced or
+   restored together and remain consistent.
+
+4. For local development convenience, every actual Core build also tries to
+   synchronize an existing Report HTML into the two Core template modules.
+   This is a best-effort convenience; the Report build remains the
+   authoritative owner of the template files.
+
+#### When the Core build hits Nx cache
+
+When the Core build is restored from Nx cache, the build does not actually run,
+so its post-build Report synchronization does not run either. The result
+depends on whether the workspace already contains a synchronized template:
+
+- If the template modules are missing or still contain the placeholder, Core
+  cannot generate reports normally and may fail with an unresolved placeholder
+  or missing-module error.
+- If Report was built previously and Core already contains a complete template,
+  report generation usually succeeds, but it may use the previously built
+  Report page instead of the page corresponding to the current source.
+
+This only occurs when Core is built or restored without running or restoring
+the Report build. Running `@midscene/report:build` produces or restores the
+Report HTML and both Core template modules together, making them consistent
+again:
 
 ```sh
-# Rebuild the entire project without cache
-pnpm run build:skip-cache
+pnpm exec nx build @midscene/report
+```
+
+If `apps/report/dist/index.html` already exists and only the Core template
+modules need to be repaired, synchronize them directly:
+
+```sh
+pnpm --filter @midscene/core sync-report-template
 ```
 
 ---

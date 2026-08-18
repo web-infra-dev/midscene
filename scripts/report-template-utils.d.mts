@@ -13,6 +13,10 @@ export declare function writeReportTemplateModules(
   coreDistDir: string,
   html: string,
 ): string[];
+export declare function syncCoreReportTemplateModules(options?: {
+  coreDistDir?: string;
+  reportTemplatePath?: string;
+}): string[];
 export declare function validateCoreReportTemplateModules(
   coreDistDir: string,
   options?: {

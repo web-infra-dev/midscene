@@ -59,7 +59,7 @@ describe('utils', () => {
   it('rejects an unresolved report template placeholder', () => {
     readFileSyncMock.mockReturnValueOnce('REPLACE_ME_WITH_REPORT_HTML');
 
-    expect(() => getReportTpl()).toThrow('unresolved placeholder');
+    expect(() => getReportTpl()).toThrow('pnpm exec nx build @midscene/report');
   });
 
   it('tmpDir', () => {

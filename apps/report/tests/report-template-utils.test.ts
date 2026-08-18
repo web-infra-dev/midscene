@@ -6,6 +6,7 @@ import {
   reportTemplateMagicString,
   reportTemplateMaxBytes,
   reportTemplateModulePaths,
+  syncCoreReportTemplateModules,
   validateCoreReportTemplateModules,
   validateReportHtml,
   writeReportTemplateModules,
@@ -83,6 +84,31 @@ describe('report template utils', () => {
           reportTemplatePath,
         }),
       ).toThrow('3 MiB size limit');
+    } finally {
+      fs.rmSync(coreDistDir, { recursive: true });
+    }
+  });
+
+  it('synchronizes an existing Report build into Core', () => {
+    const coreDistDir = fs.mkdtempSync(
+      path.join(process.cwd(), '.midscene-report-template-sync-'),
+    );
+    const reportTemplatePath = path.join(coreDistDir, 'report.html');
+    try {
+      fs.writeFileSync(reportTemplatePath, html);
+      expect(
+        syncCoreReportTemplateModules({ coreDistDir, reportTemplatePath }),
+      ).toHaveLength(2);
+      expect(() =>
+        validateCoreReportTemplateModules(coreDistDir, {
+          reportTemplatePath,
+        }),
+      ).not.toThrow();
+
+      fs.rmSync(reportTemplatePath);
+      expect(() =>
+        syncCoreReportTemplateModules({ coreDistDir, reportTemplatePath }),
+      ).toThrow('not found');
     } finally {
       fs.rmSync(coreDistDir, { recursive: true });
     }

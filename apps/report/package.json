@@ -22,6 +22,11 @@
           "{workspaceRoot}/package.json",
           "{workspaceRoot}/scripts/report-template-utils.mjs",
           "{workspaceRoot}/scripts/report-template-utils.d.mts"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{workspaceRoot}/packages/core/dist/lib/report-html-template.js",
+          "{workspaceRoot}/packages/core/dist/es/report-html-template.mjs"
         ]
       }
     }

@@ -105,7 +105,7 @@ export function getReportTpl() {
   // and reportTemplateMagicString in scripts/report-template-utils.mjs.
   if (reportTpl.includes('REPLACE_ME_WITH_REPORT_HTML')) {
     throw new Error(
-      'Report template contains an unresolved placeholder. Rebuild the workspace without Nx cache.',
+      'Report template contains an unresolved placeholder. Build Report with "pnpm exec nx build @midscene/report", or run "pnpm --filter @midscene/core sync-report-template" if apps/report/dist/index.html already exists.',
     );
   }
 
