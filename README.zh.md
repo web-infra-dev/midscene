@@ -3,25 +3,27 @@
 </p>
 
 <h1 align="center">Midscene.js</h1>
+
+<p align="center">
+  <strong>面向 E2E 测试的 GUI Agent</strong><br />
+  AI 视觉驱动。全平台覆盖。开箱即用。
+</p>
+
 <div align="center">
 
 [English](./README.md) | 简体中文
 
-<strong>官网</strong>: <a href="https://midscenejs.com/">https://midscenejs.com/</a>
+<strong>官网</strong>：<a href="https://midscenejs.com/">https://midscenejs.com/</a>
 
 <a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 </div>
 
 <p align="center">
-  开源、视觉驱动的 UI 测试。用自然语言编写测试用例，自动化任意平台。
-</p>
-
-<p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
-  <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
+  <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
   <a href="https://deepwiki.com/web-infra-dev/midscene">
@@ -31,7 +33,7 @@
 
 ## 📣 Midscene Skills 已上线
 
-使用 [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) 搭配 [OpenClaw](https://github.com/OpenClaw/OpenClaw) 控制任意平台
+使用 [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) 搭配 [OpenClaw](https://github.com/OpenClaw/OpenClaw)，测试并自动化 Web、移动端和桌面端界面。
 
 ## 案例
 
@@ -107,7 +109,7 @@ Midscene 在 UI 操作上完全采用纯视觉路线：元素定位仅基于截�
 - [UI-TARS](https://github.com/bytedance/ui-tars) 提供开源 Agent 模型 UI-TARS。
 - [Qwen-VL](https://github.com/QwenLM/Qwen-VL) 提供开源多模态模型 Qwen-VL。
 - [scrcpy](https://github.com/Genymobile/scrcpy) 与 [yume-chan](https://github.com/yume-chan) 让我们能在浏览器中控制 Android 设备。
-- [appium-adb](https://github.com/appium/appium-adb) 提供 adb 的 JavaScript 桥接。
+- [appium-adb](https://github.com/appium/appium-adb) 提供 ADB 的 JavaScript 桥接。
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 提供 JavaScript 操作 XCTest 能力。
 - [YADB](https://github.com/ysbing/YADB) 提供 yadb 工具以提升文本输入性能。
 - [libnut-core](https://github.com/nut-tree/libnut-core) 提供跨平台原生键鼠控制。
@@ -121,7 +123,7 @@ Midscene 在 UI 操作上完全采用纯视觉路线：元素定位仅基于截�
 ```bibtex
 @software{Midscene.js,
   author = {Xiao Zhou, Tao Yu, YiBing Lin},
-  title = {Midscene.js: Your AI Operator for Web, Android, iOS, Automation & Testing.},
+  title = {Midscene.js: GUI Agent for E2E Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

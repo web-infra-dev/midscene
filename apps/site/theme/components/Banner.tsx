@@ -32,7 +32,7 @@ export function Banner() {
 
           {/* Title Section */}
           <div className="mt-8 md:mt-12 flex flex-col items-start gap-y-4 md:gap-y-8">
-            <h1 className="font-sans font-extrabold text-[32px] md:text-[64px] tracking-[0.64px] md:tracking-[1.6px] leading-[32px] md:leading-[72px] text-black/90 dark:text-white/90">
+            <h1 className="font-sans font-extrabold text-[32px] md:text-[52px] tracking-[0.64px] md:tracking-[1.3px] leading-[36px] md:leading-[60px] text-black/90 dark:text-white/90">
               {t('heroTitle')}
             </h1>
             <p className="font-sans text-sm md:text-lg leading-[16px] md:leading-[18px] tracking-[-0.28px] md:tracking-[-0.36px] text-black/70 dark:text-white/70">
