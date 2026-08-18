@@ -136,6 +136,27 @@ type ParseStandardPlanningResponseOptions = {
     }
 );
 
+function buildNonActionPlanningLog(
+  response: RawResponsePlanningAIResponse,
+): string {
+  if (response.error) {
+    return `Error - ${response.error}`;
+  }
+
+  if (response.finalizeSuccess !== undefined) {
+    return [
+      `Complete - success: ${response.finalizeSuccess}`,
+      response.finalizeMessage
+        ? `message: ${response.finalizeMessage}`
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  return 'No action';
+}
+
 export function parseStandardPlanningResponse(
   xmlString: string,
   jsonParser: JsonParser,
@@ -153,6 +174,6 @@ export function parseStandardPlanningResponse(
     ...response,
     log: response.action
       ? buildPlanningActionLog(response.action, options.actionSpace)
-      : 'No action',
+      : buildNonActionPlanningLog(response),
   };
 }

@@ -552,7 +552,7 @@ describe('parseXMLPlanningResponse', () => {
     );
   });
 
-  it('should use a fallback log in fast mode when there is no action', () => {
+  it('should generate the log from a complete response in fast mode', () => {
     const result = parseStandardPlanningResponse(
       '<log>Model-generated completion log</log><complete success="true">done</complete>',
       getModelAdapter('doubao-vision').jsonParser,
@@ -563,8 +563,23 @@ describe('parseXMLPlanningResponse', () => {
       },
     );
 
-    expect(result.log).toBe('No action');
+    expect(result.log).toBe('Complete - success: true, message: done');
     expect(result.finalizeSuccess).toBe(true);
+  });
+
+  it('should generate the log from an error response in fast mode', () => {
+    const result = parseStandardPlanningResponse(
+      '<log>Model-generated error log</log><error>Button unavailable</error>',
+      getModelAdapter('doubao-vision').jsonParser,
+      {
+        includeThought: false,
+        logSource: 'action',
+        actionSpace: [],
+      },
+    );
+
+    expect(result.log).toBe('Error - Button unavailable');
+    expect(result.error).toBe('Button unavailable');
   });
 
   it('should parse XML response with null action', () => {
