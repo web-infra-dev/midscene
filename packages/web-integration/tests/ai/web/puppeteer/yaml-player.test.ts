@@ -3,6 +3,7 @@ import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { assert } from '@midscene/shared/utils';
 import { describe, expect, test, vi } from 'vitest';
+import { DEFAULT_TEST_TIMEOUT } from './test-utils';
 
 const runYaml = async (yamlString: string, ignoreStatusAssertion = false) => {
   const script = parseYamlScript(yamlString);
@@ -103,5 +104,5 @@ describe(
       expect(player.taskStatusList[1].status).toBe('done');
     });
   },
-  120 * 1000,
+  DEFAULT_TEST_TIMEOUT,
 );
