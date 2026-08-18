@@ -9,6 +9,7 @@ import type {
   UIContext,
 } from '@/index';
 import Service from '@/service';
+import { TaskExecutionError } from '@/task-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeContext } from '../../utils';
 
@@ -390,6 +391,44 @@ describe(
       const latestError = runner.latestErrorTask();
       expect(latestError).toBe(runner.tasks[2]);
       expect(latestError?.errorMessage).toBe('third-error');
+    });
+
+    it('serializes task execution errors without the runtime execution graph', async () => {
+      const runner = new TaskRunner(
+        'error-serialization-test',
+        fakeUIContextBuilder,
+      );
+      const originalError = new Error('task-failed');
+
+      await runner.append({
+        type: 'Action Space',
+        executor: async () => {
+          throw originalError;
+        },
+      });
+
+      let caughtError: TaskExecutionError | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as TaskExecutionError;
+      }
+
+      expect(caughtError).toBeInstanceOf(TaskExecutionError);
+      expect(caughtError?.name).toBe('TaskExecutionError');
+      expect(caughtError?.message).toBe('task-failed');
+      expect(caughtError?.cause).toBe(originalError);
+      expect(caughtError?.runner).toBe(runner);
+      expect(caughtError?.errorTask).toBe(runner.latestErrorTask());
+      expect(caughtError?.errorTask?.errorStack).toBe(originalError.stack);
+
+      const serializedError = JSON.parse(JSON.stringify(caughtError));
+      expect(serializedError).toEqual({
+        name: 'TaskExecutionError',
+        message: 'task-failed',
+        stack: expect.stringContaining('TaskExecutionError: task-failed'),
+      });
+      expect(JSON.stringify(serializedError)).not.toContain('Function<');
     });
   },
 );

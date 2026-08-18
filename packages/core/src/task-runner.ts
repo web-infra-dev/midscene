@@ -406,9 +406,7 @@ export class TaskRunner {
       const messageBase =
         errorTask?.errorMessage ||
         (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
-      const stack = errorTask?.errorStack;
-      const message = stack ? `${messageBase}\n${stack}` : messageBase;
-      finalizeError = new TaskExecutionError(message, this, errorTask, {
+      finalizeError = new TaskExecutionError(messageBase, this, errorTask, {
         cause: errorTask?.error,
       });
       await this.emitSnapshotChange(finalizeError);
@@ -495,7 +493,24 @@ export class TaskExecutionError extends Error {
     options?: { cause?: unknown },
   ) {
     super(message, options);
+    this.name = 'TaskExecutionError';
     this.runner = runner;
     this.errorTask = errorTask;
+  }
+
+  /**
+   * Keep runtime execution metadata out of serialized error transports.
+   *
+   * Test runners serialize thrown errors across worker boundaries. Exposing the
+   * runner and task there makes them recursively traverse the complete execution
+   * graph, including Error prototypes and task executors. The original objects
+   * remain available on the live error instance and through `cause`.
+   */
+  toJSON(): { name: string; message: string; stack?: string } {
+    return {
+      name: this.name,
+      message: this.message,
+      stack: this.stack,
+    };
   }
 }
