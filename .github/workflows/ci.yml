@@ -75,6 +75,9 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Check Report build feedback loop
+      run: pnpm run check:report-build-feedback-loop
+
     - name: Check CLI CJS bundle on minimum supported Node
       run: |
         node - <<'EOF'
