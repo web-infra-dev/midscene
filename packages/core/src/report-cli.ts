@@ -15,6 +15,7 @@ import {
   collectDedupedExecutions,
   splitReportHtmlByExecution,
 } from './report';
+import { analyzeReportActions } from './report-analyzer';
 import { reportToMarkdown } from './report-markdown';
 import type { MarkdownAttachment } from './report-markdown';
 import type { ReportFileAttributes, TestStatus } from './types';
@@ -119,6 +120,7 @@ async function markdownFromReport(
     groupDescription: baseDump.groupDescription,
     modelBriefs: baseDump.modelBriefs,
     deviceType: baseDump.deviceType,
+    manifestInterface: baseDump.manifestInterface,
     executions,
   });
 
@@ -456,11 +458,73 @@ const reportCommandDefinition: ReportCliCommandDefinition = {
   },
 };
 
+const analyzeCommandDefinition: ReportCliCommandDefinition = {
+  name: 'analyze',
+  description:
+    'Extract successful UI actions from a Midscene HTML report into a reusable *.actions.yaml manifest.',
+  schema: {
+    htmlPath: z
+      .string()
+      .optional()
+      .describe(
+        'Input report HTML path. The CLI also accepts it positionally: midscene analyze report.html.',
+      ),
+    outputDir: z
+      .string()
+      .optional()
+      .describe(
+        'Output directory. Defaults to a sibling <report-name>-ui-actions directory.',
+      ),
+    overwrite: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .describe('Overwrite generated UI Action files that already exist.'),
+  },
+  handler: async (args) => {
+    const { htmlPath, outputDir, overwrite } = args as {
+      htmlPath?: string;
+      outputDir?: string;
+      overwrite?: unknown;
+    };
+    if (!htmlPath) {
+      throw new Error(
+        'analyze: report HTML path is required (e.g. midscene analyze report.html)',
+      );
+    }
+
+    const overwriteFlag =
+      overwrite === true || overwrite === 'true' || overwrite === '1';
+    const result = analyzeReportActions({
+      htmlPath,
+      outputDir,
+      overwrite: overwriteFlag,
+    });
+    const fallbackMessage =
+      result.coordinateFallbackActionCount > 0
+        ? ` ${result.coordinateFallbackActionCount} action(s) use locatedPixelBbox because no stable target was recorded.`
+        : '';
+
+    return {
+      isError: false,
+      content: [
+        {
+          type: 'text',
+          text: `Analyzed ${result.actionCount} UI action(s) into ${result.actionFiles[0]}.${fallbackMessage}`,
+        },
+      ],
+    };
+  },
+};
+
 export function createReportCliCommands(): ReportCliCommandEntry[] {
   return [
     {
       name: 'report-tool',
       def: reportCommandDefinition,
+    },
+    {
+      name: 'analyze',
+      def: analyzeCommandDefinition,
     },
   ];
 }

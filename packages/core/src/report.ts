@@ -181,12 +181,17 @@ function mergedAgentReportComment(reports: ReportActionDump[]): string {
   const deviceTypes = Array.from(
     new Set(reports.map((report) => report.deviceType).filter(Boolean)),
   );
+  const manifestInterfaces = Array.from(
+    new Set(reports.map((report) => report.manifestInterface)),
+  );
   const mergedReport = new ReportActionDump({
     sdkVersion: reports[0].sdkVersion || getVersion(),
     groupName: 'Merged Midscene Report',
     groupDescription: 'Agent-readable summary for merged report HTML',
     modelBriefs: reports.flatMap((report) => report.modelBriefs ?? []),
     deviceType: deviceTypes.length === 1 ? deviceTypes[0] : 'mixed',
+    manifestInterface:
+      manifestInterfaces.length === 1 ? manifestInterfaces[0] : 'mixed',
     executions: reports.flatMap((report) => report.executions ?? []),
   });
   return generateAgentReportComment(mergedReport);
@@ -201,6 +206,7 @@ export class ReportMergingTool {
       groupName,
       groupDescription,
       modelBriefs: [],
+      manifestInterface: 'unknown',
       executions: [],
     }).serialize();
   }
@@ -254,11 +260,17 @@ export class ReportMergingTool {
     // id are always kept (they may be distinct despite sharing the same name).
     const base = ReportActionDump.fromSerializedString(unescaped[0]);
     const allExecutions = [...base.executions];
+    const manifestInterfaces = new Set([base.manifestInterface]);
     for (let i = 1; i < unescaped.length; i++) {
       const other = ReportActionDump.fromSerializedString(unescaped[i]);
       allExecutions.push(...other.executions);
+      manifestInterfaces.add(other.manifestInterface);
     }
     base.executions = dedupeExecutionsKeepLatest(allExecutions);
+    base.manifestInterface =
+      manifestInterfaces.size === 1
+        ? Array.from(manifestInterfaces)[0]
+        : 'mixed';
     return base.serialize();
   }
 
@@ -486,6 +498,7 @@ export interface SplitReportHtmlResult {
 export interface CollectedReportExecutions {
   baseDump: ReportActionDump;
   executions: IExecutionDump[];
+  manifestInterfaces: string[];
 }
 
 /**
@@ -517,6 +530,7 @@ export function collectDedupedExecutions(
   });
 
   const executions: IExecutionDump[] = [];
+  const manifestInterfaces: string[] = [];
   executionSerial = 0;
   streamDumpScriptsSync(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
@@ -528,6 +542,9 @@ export function collectDedupedExecutions(
     );
     if (!baseDump) {
       baseDump = groupedDump;
+    }
+    if (groupedDump.executions.length > 0) {
+      manifestInterfaces.push(groupedDump.manifestInterface);
     }
 
     for (const execution of groupedDump.executions) {
@@ -551,6 +568,7 @@ export function collectDedupedExecutions(
   return {
     baseDump,
     executions,
+    manifestInterfaces,
   };
 }
 
@@ -645,6 +663,7 @@ export function splitReportHtmlByExecution(
       groupDescription: baseDump.groupDescription,
       modelBriefs: baseDump.modelBriefs,
       deviceType: baseDump.deviceType,
+      manifestInterface: baseDump.manifestInterface,
       executions: [execution],
     });
 

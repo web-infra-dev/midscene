@@ -759,6 +759,19 @@ export class TaskBuilder {
           };
         }
 
+        if (currentCacheEntry && !hitBy?.context.cacheToSave) {
+          if (hitBy) {
+            hitBy.context.cacheToSave = currentCacheEntry;
+          } else {
+            hitBy = {
+              from: 'AI',
+              context: {
+                cacheToSave: currentCacheEntry,
+              },
+            };
+          }
+        }
+
         const promptDisplay = param.promptDisplay;
         const elementForAction = promptDisplay
           ? {

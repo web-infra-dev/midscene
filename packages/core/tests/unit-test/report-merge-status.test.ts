@@ -109,6 +109,7 @@ describe('mergeReportFiles status derivation', () => {
       groupName,
       groupDescription: `${groupName}-desc`,
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [execution],
     });
@@ -186,6 +187,7 @@ describe('mergeReportFiles status derivation', () => {
         groupName,
         groupDescription: `${groupName}-desc`,
         sdkVersion: '1.0.0-test',
+        manifestInterface: 'web',
         modelBriefs: [],
         executions: [exec],
       });

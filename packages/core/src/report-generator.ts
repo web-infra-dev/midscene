@@ -328,6 +328,7 @@ export class ReportGenerator implements IReportGenerator {
       groupDescription: reportMeta.groupDescription,
       modelBriefs: reportMeta.modelBriefs,
       deviceType: reportMeta.deviceType,
+      manifestInterface: reportMeta.manifestInterface,
       executions: [execution],
     });
   }
@@ -415,6 +416,7 @@ export class ReportGenerator implements IReportGenerator {
       groupDescription: this.lastReportMeta.groupDescription,
       modelBriefs: this.lastReportMeta.modelBriefs,
       deviceType: this.lastReportMeta.deviceType,
+      manifestInterface: this.lastReportMeta.manifestInterface,
       executions: Array.from(this.executionsByKey.values()),
     });
     await appendFileAsync(

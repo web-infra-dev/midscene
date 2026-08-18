@@ -207,6 +207,7 @@ const normalizeDump = (dump: DumpInput): IReportActionDump | null => {
         groupName: 'Execution',
         modelBriefs: [],
         executions: [dump as ExecutionDump],
+        manifestInterface: 'unknown',
       };
 };
 

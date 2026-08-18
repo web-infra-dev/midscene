@@ -7,12 +7,13 @@ import { createConfig, createFilesConfig } from './config-factory';
 import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
 import { runModelCommand } from './model-command';
+import { normalizeReportCommandArgs } from './report-command';
 
 Promise.resolve(
   (async () => {
     const rawArgs = process.argv.slice(2);
     const [firstArg] = rawArgs;
-    if (firstArg === 'report-tool') {
+    if (firstArg === 'report-tool' || firstArg === 'analyze') {
       await runToolsCLI(
         {
           initTools: async () => undefined,
@@ -21,7 +22,7 @@ Promise.resolve(
         } as unknown as BaseMidsceneTools,
         'midscene',
         {
-          argv: rawArgs,
+          argv: normalizeReportCommandArgs(rawArgs),
           version,
           extraCommands: createReportCliCommands(),
         },
