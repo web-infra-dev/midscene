@@ -41,7 +41,9 @@ describe('LocalExecutionAdapter', () => {
       destroy: rs.fn(),
       dumpDataString: rs
         .fn()
-        .mockReturnValue(JSON.stringify({ executions: [{}] })),
+        .mockReturnValue(
+          JSON.stringify({ executions: [{}], manifestInterface: 'web' }),
+        ),
       reportHTMLString: rs.fn().mockReturnValue(''),
       writeOutActionDumps: rs.fn(),
       resetDump: rs.fn(),

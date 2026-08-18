@@ -165,6 +165,7 @@ describe('ExecutionDump', () => {
 describe('ReportActionDump', () => {
   const createMockReportActionDumpData = (): IReportActionDump => ({
     sdkVersion: '1.0.0',
+    manifestInterface: 'web',
     groupName: 'Test Group',
     groupDescription: 'A test group description',
     modelBriefs: [{ name: 'model1' }, { name: 'model2' }],
@@ -213,6 +214,7 @@ describe('ReportActionDump', () => {
 
       const data: IReportActionDump = {
         sdkVersion: '1.0.0',
+        manifestInterface: 'web',
         groupName: 'Test',
         modelBriefs: [],
         executions: [executionDump],
@@ -225,6 +227,7 @@ describe('ReportActionDump', () => {
     it('should handle optional fields', () => {
       const data: IReportActionDump = {
         sdkVersion: '1.0.0',
+        manifestInterface: 'web',
         groupName: 'Minimal Group',
         modelBriefs: [],
         executions: [],
@@ -281,6 +284,7 @@ describe('ReportActionDump', () => {
 
       const dump = new ReportActionDump({
         sdkVersion: '1.0.0',
+        manifestInterface: 'web',
         groupName: 'Inline Screenshot Test',
         modelBriefs: [],
         executions: [
@@ -391,6 +395,7 @@ describe('ReportActionDump', () => {
     it('should handle complex nested structures', () => {
       const complexData: IReportActionDump = {
         sdkVersion: '2.0.0',
+        manifestInterface: 'web',
         groupName: 'Complex Group',
         groupDescription: 'A complex test',
         modelBriefs: [{ name: 'openai/gpt-4' }, { name: 'anthropic/claude' }],
@@ -450,6 +455,7 @@ describe('ExecutionDump and ReportActionDump integration', () => {
     // Create ReportActionDump with ExecutionDump instances
     const groupedDump = new ReportActionDump({
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'Integration Test',
       modelBriefs: [],
       executions: [execution1, execution2],

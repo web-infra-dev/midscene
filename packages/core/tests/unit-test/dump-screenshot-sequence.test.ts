@@ -61,6 +61,7 @@ describe('dump serialization drops screenshotSequence', () => {
   it('omits screenshotSequence from serializeWithInlineScreenshots() (inline mode)', () => {
     const reportData: IReportActionDump = {
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'screenshot-sequence',
       modelBriefs: [],
       executions: [buildExecutionDumpData()],

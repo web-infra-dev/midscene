@@ -40,6 +40,7 @@ const defaultReportMeta: ReportMeta = {
   groupName: 'test-group',
   groupDescription: 'test',
   sdkVersion: '1.0.0-test',
+  manifestInterface: 'web',
   modelBriefs: [],
 };
 

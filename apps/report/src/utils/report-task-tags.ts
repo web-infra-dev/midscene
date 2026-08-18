@@ -10,6 +10,14 @@ type PlanningLocateParam = NonNullable<ExecutionTaskPlanningLocate['param']>;
 type EffortParam = Pick<PlanningParam, 'effort'>;
 type DeepLocateParam = Pick<PlanningLocateParam, 'deepLocate'>;
 
+export interface ExtraActionSourceInfo {
+  source: 'Extra Action' | 'Extra Action target';
+  label: 'Extra Action' | 'Extra Target';
+  name?: string;
+  alias?: string;
+  target?: unknown;
+}
+
 type ConsumedDumpFlagKeys = {
   effort: keyof Pick<PlanningParam, 'effort'>;
   deepLocate: keyof Pick<PlanningLocateParam, 'deepLocate'>;
@@ -44,4 +52,27 @@ export function hasDeepLocateFlag(task: ExecutionTask): boolean {
  */
 export function hasObserverAssertionFlag(task: ExecutionTask): boolean {
   return task.recorder?.some((r) => r.timing === 'observed-frame') ?? false;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+export function getExtraActionSourceInfo(
+  task: ExecutionTask,
+): ExtraActionSourceInfo | undefined {
+  const from = task.hitBy?.from;
+  if (from !== 'Extra Action' && from !== 'Extra Action target') {
+    return undefined;
+  }
+
+  const context = task.hitBy?.context;
+
+  return {
+    source: from,
+    label: from === 'Extra Action' ? 'Extra Action' : 'Extra Target',
+    name: nonEmptyString(context?.extraActionName),
+    alias: nonEmptyString(context?.extraActionAlias),
+    ...(context?.target !== undefined ? { target: context.target } : {}),
+  };
 }

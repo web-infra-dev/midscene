@@ -88,6 +88,7 @@ describe('report-markdown', () => {
   it('merges all executions into one markdown and keeps file snapshot', async () => {
     const report: IReportActionDump = {
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'report-group',
       modelBriefs: [],
       executions: [
@@ -249,6 +250,7 @@ describe('report-markdown', () => {
   it('includes model metadata, token usage, and task context for agent analysis', () => {
     const report: IReportActionDump = {
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'agent-ready-report',
       modelBriefs: [
         {
@@ -331,6 +333,7 @@ describe('report-markdown', () => {
   it('falls back report model info to task usage when model briefs are missing', () => {
     const report: IReportActionDump = {
       sdkVersion: '1.0.0',
+      manifestInterface: 'web',
       groupName: 'usage-model-report',
       modelBriefs: [],
       executions: [

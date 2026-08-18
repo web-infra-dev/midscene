@@ -5,6 +5,7 @@ import type {
 } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
 import {
+  getExtraActionSourceInfo,
   hasDeepLocateFlag,
   hasDeepThinkFlag,
   hasObserverAssertionFlag,
@@ -133,5 +134,72 @@ describe('report task tag flags', () => {
     } as unknown as ExecutionTask;
 
     expect(hasObserverAssertionFlag(task)).toBe(false);
+  });
+
+  it('describes an action selected from the extra action space', () => {
+    const task = {
+      type: 'Action',
+      subType: 'Tap',
+      taskId: 'extra-action',
+      status: 'finished',
+      hitBy: {
+        from: 'Extra Action',
+        context: {
+          extraActionName: 'Click the confirm button',
+          extraActionAlias: 'MidsceneExtraAction_1',
+        },
+      },
+    } as unknown as ExecutionTask;
+
+    expect(getExtraActionSourceInfo(task)).toEqual({
+      source: 'Extra Action',
+      label: 'Extra Action',
+      name: 'Click the confirm button',
+      alias: 'MidsceneExtraAction_1',
+    });
+  });
+
+  it('describes target resolution triggered by an extra action', () => {
+    const target = {
+      strategy: 'xpath',
+      selector: '//button[@id="confirm"]',
+    };
+    const task = {
+      type: 'Planning',
+      subType: 'Locate',
+      taskId: 'extra-target',
+      status: 'finished',
+      hitBy: {
+        from: 'Extra Action target',
+        context: {
+          extraActionName: 'Click the confirm button',
+          extraActionAlias: 'MidsceneExtraAction_1',
+          target,
+        },
+      },
+    } as unknown as ExecutionTask;
+
+    expect(getExtraActionSourceInfo(task)).toEqual({
+      source: 'Extra Action target',
+      label: 'Extra Target',
+      name: 'Click the confirm button',
+      alias: 'MidsceneExtraAction_1',
+      target,
+    });
+  });
+
+  it('does not mark unrelated hit sources as extra actions', () => {
+    const task = {
+      type: 'Planning',
+      subType: 'Locate',
+      taskId: 'cached-target',
+      status: 'finished',
+      hitBy: {
+        from: 'Cache',
+        context: {},
+      },
+    } as unknown as ExecutionTask;
+
+    expect(getExtraActionSourceInfo(task)).toBeUndefined();
   });
 });

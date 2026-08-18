@@ -44,6 +44,7 @@ describe('IOSAgent', () => {
 
     // Create a mock device with actionSpace
     mockDevice = {
+      interfaceType: 'ios',
       connect: vi.fn().mockResolvedValue(undefined),
       launch: vi.fn().mockResolvedValue(undefined),
       terminate: vi.fn().mockResolvedValue(undefined),
@@ -197,6 +198,7 @@ describe('IOSAgent', () => {
       MockedIOSDevice.mockImplementationOnce(
         () =>
           ({
+            interfaceType: 'ios',
             connect: connectSpy,
             actionSpace: vi.fn().mockReturnValue([]),
             setAppNameMapping: vi.fn(),
@@ -219,6 +221,7 @@ describe('IOSAgent', () => {
         moduleName,
         () => ({
           IOSDevice: class {
+            interfaceType = 'ios';
             connect = connectSpy;
             actionSpace = actionSpaceSpy;
             setAppNameMapping = setAppNameMappingSpy;
@@ -247,6 +250,7 @@ describe('IOSAgent', () => {
         moduleName,
         () => ({
           default: class {
+            interfaceType = 'ios';
             connect = connectSpy;
             actionSpace = actionSpaceSpy;
             setAppNameMapping = setAppNameMappingSpy;

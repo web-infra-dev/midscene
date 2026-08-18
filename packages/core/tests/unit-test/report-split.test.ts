@@ -77,6 +77,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'split-test',
       groupDescription: 'split-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-1', screenshot1)],
     });
@@ -84,6 +85,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'split-test',
       groupDescription: 'split-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-2', screenshot2)],
     });
@@ -144,6 +146,7 @@ describe('splitReportHtmlByExecution', () => {
         groupName: 'large-split-test',
         groupDescription: 'large-split-test',
         sdkVersion: '1.0.0-test',
+        manifestInterface: 'web',
         modelBriefs: [],
         executions: [createExecution(`exec-${i}`, sharedScreenshot)],
       });
@@ -174,6 +177,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'dedup-test',
       groupDescription: 'dedup-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-1', oldScreenshot)],
     });
@@ -181,6 +185,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'dedup-test',
       groupDescription: 'dedup-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-1', newScreenshot)],
     });
@@ -234,6 +239,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'absolute-path-test',
       groupDescription: 'absolute-path-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-1', screenshotRef)],
     });
@@ -280,6 +286,7 @@ describe('splitReportHtmlByExecution', () => {
       groupName: 'fallback-test',
       groupDescription: 'fallback-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-fallback', screenshotRef)],
     });

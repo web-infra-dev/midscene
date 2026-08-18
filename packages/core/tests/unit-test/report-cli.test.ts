@@ -8,9 +8,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseCliArgs, runToolsCLI } from '@midscene/shared/cli';
+import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { loadExtraActions } from '../../src/agent/extra-actions';
+import { getMidsceneLocationSchema } from '../../src/ai-model';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
+import { analyzeReportActions } from '../../src/report-analyzer';
 import {
   createReportCliCommands,
   mergeReportFiles,
@@ -59,6 +64,140 @@ function createExecution(
   });
 }
 
+function createActionExecution(options?: {
+  xpath?: string;
+  includeFailedAction?: boolean;
+  extraActionName?: string;
+}): ExecutionDump {
+  const locateHitBy = options?.xpath
+    ? {
+        from: 'Plan',
+        context: {
+          locatedPixelBbox: [10, 20, 110, 70],
+          cacheToSave: {
+            targets: [{ strategy: 'xpath', selector: options.xpath }],
+          },
+        },
+      }
+    : {
+        from: 'Plan',
+        context: {
+          locatedPixelBbox: [10, 20, 110, 70],
+        },
+      };
+
+  const tasks = [
+    {
+      taskId: 'plan-tap',
+      type: 'Planning',
+      subType: 'Plan',
+      param: {},
+      output: {
+        log: 'Click the confirm button',
+        actions: [
+          {
+            type: 'Tap',
+            thought: 'Click the confirm button',
+          },
+        ],
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'locate-confirm',
+      type: 'Planning',
+      subType: 'Locate',
+      param: {
+        prompt: 'Confirm button',
+        locatedPixelBbox: [10, 20, 110, 70],
+      },
+      hitBy: locateHitBy,
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'tap-confirm',
+      type: 'Action Space',
+      subType: 'Tap',
+      param: {
+        locate: {
+          description: 'Confirm button',
+          rect: { left: 10, top: 20, width: 100, height: 50 },
+          center: [60, 45],
+        },
+      },
+      ...(options?.extraActionName
+        ? {
+            hitBy: {
+              from: 'Extra Action',
+              context: {
+                extraActionName: options.extraActionName,
+                extraActionAlias: 'MidsceneExtraAction_1',
+              },
+            },
+          }
+        : {}),
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'plan-input',
+      type: 'Planning',
+      subType: 'Plan',
+      param: {},
+      output: {
+        log: 'Type the saved value',
+        actions: [
+          {
+            type: 'Input',
+            thought: 'Type the saved value',
+          },
+        ],
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    {
+      taskId: 'input-value',
+      type: 'Action Space',
+      subType: 'Input',
+      param: {
+        value: 'saved value',
+      },
+      executor: async () => undefined,
+      status: 'finished',
+    },
+    ...(options?.includeFailedAction
+      ? [
+          {
+            taskId: 'failed-tap',
+            type: 'Action Space',
+            subType: 'Tap',
+            param: {},
+            executor: async () => undefined,
+            status: 'failed',
+          },
+        ]
+      : []),
+    {
+      taskId: 'finished-marker',
+      type: 'Action Space',
+      subType: 'Finished',
+      param: null,
+      executor: async () => undefined,
+      status: 'finished',
+    },
+  ];
+
+  return new ExecutionDump({
+    id: 'action-execution',
+    logTime: Date.now(),
+    name: 'action execution',
+    tasks: tasks as any,
+  });
+}
+
 describe('createReportCliCommands', () => {
   let tmpDir: string;
 
@@ -73,10 +212,648 @@ describe('createReportCliCommands', () => {
     }
   });
 
-  it('exposes report-tool as the only generic report command', () => {
-    const [command] = createReportCliCommands();
-    expect(command.name).toBe('report-tool');
-    expect('aliases' in command).toBe(false);
+  it('exposes report-tool and analyze as generic report commands', () => {
+    const commands = createReportCliCommands();
+    expect(commands.map((command) => command.name)).toEqual([
+      'report-tool',
+      'analyze',
+    ]);
+    expect(commands.every((command) => !('aliases' in command))).toBe(true);
+  });
+
+  it('exports successful device operations into one loadable Action Manifest', async () => {
+    const reportPath = join(tmpDir, 'action-report.html');
+    const report = new ReportActionDump({
+      groupName: 'action-export',
+      sdkVersion: '1.0.0-test',
+      deviceType: 'web',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [
+        createActionExecution({
+          xpath: '/html/body/button[1]',
+          includeFailedAction: true,
+        }),
+      ],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'action-export',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+
+    expect(result.actionFiles.map((file) => file.split('/').pop())).toEqual([
+      'action-report.actions.yaml',
+    ]);
+    expect(result.actionCount).toBe(2);
+    expect(result.coordinateFallbackFiles).toEqual([]);
+    expect(yaml.load(readFileSync(result.actionFiles[0], 'utf-8'))).toEqual({
+      version: 1,
+      interface: 'web',
+      actions: [
+        {
+          name: 'Click the confirm button',
+          validWhenTargetExists: {
+            strategy: 'xpath',
+            selector: '/html/body/button[1]',
+          },
+          action: {
+            name: 'Tap',
+            param: {
+              locate: {
+                prompt: 'Confirm button',
+                target: {
+                  strategy: 'xpath',
+                  selector: '/html/body/button[1]',
+                },
+              },
+            },
+          },
+        },
+        {
+          name: 'Type the saved value',
+          action: {
+            name: 'Input',
+            param: { value: 'saved value' },
+          },
+        },
+      ],
+    });
+
+    const loaded = await loadExtraActions(result.actionFiles, [
+      {
+        name: 'Tap',
+        description: 'Tap an element',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+        }),
+        call: async () => undefined,
+      },
+      {
+        name: 'Input',
+        description: 'Input text',
+        paramSchema: z.object({
+          value: z.string(),
+        }),
+        call: async () => undefined,
+      },
+    ]);
+    expect(loaded.map((action) => action.plan)).toEqual([
+      expect.objectContaining({
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'Confirm button',
+            target: {
+              strategy: 'xpath',
+              selector: '/html/body/button[1]',
+            },
+          },
+        },
+      }),
+      expect.objectContaining({
+        type: 'Input',
+        param: { value: 'saved value' },
+      }),
+    ]);
+  });
+
+  it('requires a canonical manifest interface instead of inferring one from deviceType', () => {
+    const reportPath = join(tmpDir, 'missing-manifest-interface.html');
+    const report = new ReportActionDump({
+      groupName: 'missing-manifest-interface',
+      sdkVersion: '1.0.0-test',
+      deviceType: 'puppeteer',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [createActionExecution({ xpath: '//button' })],
+    });
+    const reportWithoutManifestInterface = {
+      ...JSON.parse(report.serialize()),
+      manifestInterface: undefined,
+    };
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(JSON.stringify(reportWithoutManifestInterface), {
+        'data-group-id': 'missing-manifest-interface',
+      }),
+      'utf-8',
+    );
+
+    expect(() => analyzeReportActions({ htmlPath: reportPath })).toThrow(
+      'manifestInterface must be a non-empty string',
+    );
+  });
+
+  it('rejects reports that combine executions from different manifest interfaces', () => {
+    const reportPath = join(tmpDir, 'mixed-manifest-interfaces.html');
+    const webReport = new ReportActionDump({
+      groupName: 'web-actions',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [createActionExecution({ xpath: '//button[@id="web"]' })],
+    });
+    const androidReport = new ReportActionDump({
+      groupName: 'android-actions',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'android',
+      modelBriefs: [],
+      executions: [createActionExecution({ xpath: '//button[@id="android"]' })],
+    });
+    writeFileSync(
+      reportPath,
+      [
+        generateDumpScriptTag(webReport.serialize(), {
+          'data-group-id': 'web-actions',
+        }),
+        generateDumpScriptTag(androidReport.serialize(), {
+          'data-group-id': 'android-actions',
+        }),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    expect(() => analyzeReportActions({ htmlPath: reportPath })).toThrow(
+      'received ["web","android"]',
+    );
+  });
+
+  it('does not pair a failed locate from an earlier plan with a recovered action', () => {
+    const reportPath = join(tmpDir, 'recovered-locate.html');
+    const execution = new ExecutionDump({
+      id: 'recovered-locate',
+      logTime: Date.now(),
+      name: 'recovered locate',
+      tasks: [
+        {
+          taskId: 'wrong-plan',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {},
+          output: {
+            log: 'Try the wrong button',
+            actions: [{ type: 'Tap', thought: 'Try the wrong button' }],
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'wrong-locate',
+          type: 'Planning',
+          subType: 'Locate',
+          param: {
+            prompt: 'Wrong button',
+            target: {
+              strategy: 'xpath',
+              selector: '//button[@id="wrong"]',
+            },
+          },
+          status: 'failed',
+        },
+        {
+          taskId: 'recovery-plan',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {},
+          output: {
+            log: 'Click the correct button',
+            actions: [{ type: 'Tap', thought: 'Click the correct button' }],
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'correct-locate',
+          type: 'Planning',
+          subType: 'Locate',
+          param: {
+            prompt: 'Correct button',
+            target: {
+              strategy: 'xpath',
+              selector: '//button[@id="correct"]',
+            },
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'correct-action',
+          type: 'Action Space',
+          subType: 'Tap',
+          param: {
+            locate: {
+              description: 'Correct button',
+              rect: { left: 10, top: 20, width: 100, height: 50 },
+              center: [60, 45],
+            },
+          },
+          status: 'finished',
+        },
+      ] as any,
+    });
+    const report = new ReportActionDump({
+      groupName: 'recovered-locate',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'recovered-locate',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+    expect(manifest.actions).toHaveLength(1);
+    expect(manifest.actions[0]).toMatchObject({
+      name: 'Click the correct button',
+      validWhenTargetExists: {
+        strategy: 'xpath',
+        selector: '//button[@id="correct"]',
+      },
+      action: {
+        param: {
+          locate: {
+            target: {
+              strategy: 'xpath',
+              selector: '//button[@id="correct"]',
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('exports the fallback target after a supplied target fails to resolve', () => {
+    const reportPath = join(tmpDir, 'target-fallback.html');
+    const failedTarget = {
+      strategy: 'xpath' as const,
+      selector: '//button[@id="missing"]',
+    };
+    const fallbackTarget = {
+      strategy: 'xpath' as const,
+      selector: '//button[@id="actual"]',
+    };
+    const execution = new ExecutionDump({
+      id: 'target-fallback',
+      logTime: Date.now(),
+      name: 'target fallback',
+      tasks: [
+        {
+          taskId: 'plan',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {},
+          output: {
+            actions: [
+              { type: 'Tap', thought: 'Click the actual fallback button' },
+            ],
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'locate',
+          type: 'Planning',
+          subType: 'Locate',
+          param: {
+            prompt: 'Actual fallback button',
+            target: failedTarget,
+          },
+          hitBy: {
+            from: 'AI',
+            context: {
+              target: failedTarget,
+              targetResolutionError: 'XPath target does not exist',
+              cacheToSave: { targets: [fallbackTarget] },
+            },
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'action',
+          type: 'Action Space',
+          subType: 'Tap',
+          param: {
+            locate: {
+              description: 'Actual fallback button',
+              rect: { left: 10, top: 20, width: 100, height: 50 },
+              center: [60, 45],
+            },
+          },
+          status: 'finished',
+        },
+      ] as any,
+    });
+    const report = new ReportActionDump({
+      groupName: 'target-fallback',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'target-fallback',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+    expect(manifest.actions[0]).toMatchObject({
+      validWhenTargetExists: fallbackTarget,
+      action: {
+        param: {
+          locate: {
+            target: fallbackTarget,
+          },
+        },
+      },
+    });
+  });
+
+  it('uses each planned action thought when one plan contains multiple actions', () => {
+    const reportPath = join(tmpDir, 'multi-action-plan.html');
+    const locatedElement = (description: string) => ({
+      description,
+      rect: { left: 10, top: 20, width: 100, height: 50 },
+      center: [60, 45],
+    });
+    const execution = new ExecutionDump({
+      id: 'multi-action-plan',
+      logTime: Date.now(),
+      name: 'multi action plan',
+      tasks: [
+        {
+          taskId: 'plan',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {},
+          output: {
+            log: 'Complete both operations',
+            actions: [
+              { type: 'Tap', thought: 'Click the primary button' },
+              { type: 'Input', thought: 'Enter the saved value' },
+            ],
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'locate-primary',
+          type: 'Planning',
+          subType: 'Locate',
+          param: {
+            prompt: 'Primary button',
+            target: {
+              strategy: 'xpath',
+              selector: '//button[@id="primary"]',
+            },
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'tap-primary',
+          type: 'Action Space',
+          subType: 'Tap',
+          param: { locate: locatedElement('Primary button') },
+          status: 'finished',
+        },
+        {
+          taskId: 'locate-input',
+          type: 'Planning',
+          subType: 'Locate',
+          param: {
+            prompt: 'Saved value input',
+            target: {
+              strategy: 'xpath',
+              selector: '//input[@id="saved"]',
+            },
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'input-value',
+          type: 'Action Space',
+          subType: 'Input',
+          param: {
+            value: 'saved value',
+            locate: locatedElement('Saved value input'),
+          },
+          status: 'finished',
+        },
+      ] as any,
+    });
+    const report = new ReportActionDump({
+      groupName: 'multi-action-plan',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'multi-action-plan',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+    expect(manifest.actions.map((action: any) => action.name)).toEqual([
+      'Click the primary button',
+      'Enter the saved value',
+    ]);
+  });
+
+  it('uses the first of multiple action targets as the disclosure condition', () => {
+    const reportPath = join(tmpDir, 'multi-target-swipe.html');
+    const startTarget = {
+      strategy: 'xpath' as const,
+      selector: '//div[@id="slider-handle"]',
+    };
+    const endTarget = {
+      strategy: 'xpath' as const,
+      selector: '//div[@id="slider-end"]',
+    };
+    const locatedElement = (description: string, left: number) => ({
+      description,
+      rect: { left, top: 20, width: 20, height: 20 },
+      center: [left + 10, 30],
+    });
+    const execution = new ExecutionDump({
+      id: 'multi-target-swipe',
+      logTime: Date.now(),
+      name: 'multi target swipe',
+      tasks: [
+        {
+          taskId: 'plan',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {},
+          output: {
+            actions: [{ type: 'Swipe', thought: 'Move the slider to the end' }],
+          },
+          status: 'finished',
+        },
+        {
+          taskId: 'locate-start',
+          type: 'Planning',
+          subType: 'Locate',
+          param: { prompt: 'Slider handle', target: startTarget },
+          status: 'finished',
+        },
+        {
+          taskId: 'locate-end',
+          type: 'Planning',
+          subType: 'Locate',
+          param: { prompt: 'Slider end', target: endTarget },
+          status: 'finished',
+        },
+        {
+          taskId: 'swipe',
+          type: 'Action Space',
+          subType: 'Swipe',
+          param: {
+            start: locatedElement('Slider handle', 10),
+            end: locatedElement('Slider end', 200),
+            duration: 300,
+          },
+          status: 'finished',
+        },
+      ] as any,
+    });
+    const report = new ReportActionDump({
+      groupName: 'multi-target-swipe',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'multi-target-swipe',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+    expect(manifest.actions[0]).toMatchObject({
+      validWhenTargetExists: startTarget,
+      action: {
+        name: 'Swipe',
+        param: {
+          start: { target: startTarget },
+          end: { target: endTarget },
+          duration: 300,
+        },
+      },
+    });
+  });
+
+  it('preserves the recorded Extra Action name when exporting a replay report', () => {
+    const reportPath = join(tmpDir, 'replayed-extra-action.html');
+    const report = new ReportActionDump({
+      groupName: 'replayed-extra-action',
+      sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [
+        createActionExecution({
+          xpath: '//button',
+          extraActionName: 'Recorded checkout confirmation',
+        }),
+      ],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'replayed-extra-action',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+    expect(manifest.actions[0].name).toBe('Recorded checkout confirmation');
+  });
+
+  it('falls back to locatedPixelBbox for reports without a recorded xpath', () => {
+    const reportPath = join(tmpDir, 'historical-report.html');
+    const report = new ReportActionDump({
+      groupName: 'historical-action-export',
+      sdkVersion: '1.0.0-test',
+      deviceType: 'web',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [createActionExecution()],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'historical-action-export',
+      }),
+      'utf-8',
+    );
+
+    const result = analyzeReportActions({ htmlPath: reportPath });
+    const manifest = yaml.load(
+      readFileSync(result.actionFiles[0], 'utf-8'),
+    ) as any;
+
+    expect(result.coordinateFallbackFiles).toEqual([result.actionFiles[0]]);
+    expect(result.coordinateFallbackActionCount).toBe(1);
+    expect(manifest.actions[0].action.param.locate).toEqual({
+      prompt: 'Confirm button',
+      locatedPixelBbox: [10, 20, 110, 70],
+    });
+  });
+
+  it('does not overwrite generated UI Actions unless requested', () => {
+    const reportPath = join(tmpDir, 'overwrite-report.html');
+    const report = new ReportActionDump({
+      groupName: 'overwrite-action-export',
+      sdkVersion: '1.0.0-test',
+      deviceType: 'web',
+      manifestInterface: 'web',
+      modelBriefs: [],
+      executions: [createActionExecution({ xpath: '//button' })],
+    });
+    writeFileSync(
+      reportPath,
+      generateDumpScriptTag(report.serialize(), {
+        'data-group-id': 'overwrite-action-export',
+      }),
+      'utf-8',
+    );
+
+    const first = analyzeReportActions({ htmlPath: reportPath });
+    expect(() => analyzeReportActions({ htmlPath: reportPath })).toThrow(
+      'output file already exists',
+    );
+    expect(() =>
+      analyzeReportActions({ htmlPath: reportPath, overwrite: true }),
+    ).not.toThrow();
+    expect(existsSync(first.actionFiles[0])).toBe(true);
   });
 
   it('runs report split through the generic report command', async () => {
@@ -89,6 +866,7 @@ describe('createReportCliCommands', () => {
       groupName: 'split-test',
       groupDescription: 'split-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-1', screenshot1)],
     });
@@ -96,6 +874,7 @@ describe('createReportCliCommands', () => {
       groupName: 'split-test',
       groupDescription: 'split-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-2', screenshot2)],
     });
@@ -140,6 +919,7 @@ describe('createReportCliCommands', () => {
       groupName: 'sdk-test',
       groupDescription: 'sdk split test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-sdk-1', screenshot)],
     });
@@ -203,6 +983,7 @@ describe('createReportCliCommands', () => {
       groupName: 'sdk-markdown-test',
       groupDescription: 'sdk markdown test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-sdk-md-1', screenshot)],
     });
@@ -275,6 +1056,7 @@ describe('createReportCliCommands', () => {
       groupName: 'split-dir-test',
       groupDescription: 'split-dir-test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-dir-1', screenshot)],
     });
@@ -339,6 +1121,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-test',
       groupDescription: 'markdown export test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-1', screenshot1)],
     });
@@ -346,6 +1129,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-test',
       groupDescription: 'markdown export test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-2', screenshot2)],
     });
@@ -389,6 +1173,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-dedup-test',
       groupDescription: 'markdown export dedup test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-dedup', oldScreenshot)],
     });
@@ -396,6 +1181,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-dedup-test',
       groupDescription: 'markdown export dedup test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-dedup', newScreenshot)],
     });
@@ -446,6 +1232,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-file-test',
       groupDescription: 'markdown export file ref test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-file', screenshotRef)],
     });
@@ -508,6 +1295,7 @@ describe('createReportCliCommands', () => {
       groupName: 'markdown-rel-file-test',
       groupDescription: 'markdown export relative file ref test',
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution('exec-md-rel', screenshotRef)],
     });
@@ -558,6 +1346,7 @@ describe('createReportCliCommands', () => {
       groupName,
       groupDescription: `${groupName}-desc`,
       sdkVersion: '1.0.0-test',
+      manifestInterface: 'web',
       modelBriefs: [],
       executions: [createExecution(executionId, screenshot)],
     });

@@ -68,6 +68,19 @@ function buildProgressContent(task: any): string {
   return description ? `${action} - ${description}` : action;
 }
 
+const manifestInterfaceForDeviceType = (deviceType?: string): string => {
+  if (!deviceType) return 'unknown';
+  return [
+    'web',
+    'puppeteer',
+    'playwright',
+    'chrome-extension-proxy',
+    'static',
+  ].includes(deviceType)
+    ? 'web'
+    : deviceType;
+};
+
 /**
  * Convert ExecutionDump to ReportActionDump for replay scripts
  * @param dump - The execution dump containing tasks and their usage information
@@ -85,6 +98,7 @@ function wrapExecutionDumpForReplay(
     modelBriefs: [],
     executions: [dump],
     deviceType,
+    manifestInterface: manifestInterfaceForDeviceType(deviceType),
   };
 }
 
