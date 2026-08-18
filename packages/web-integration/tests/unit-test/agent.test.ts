@@ -212,6 +212,7 @@ describe('PageAgent reportFileName', () => {
     const mockPageWithoutType = {
       ...mockPage,
       interfaceType: undefined,
+      manifestInterface: () => 'web',
     } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {

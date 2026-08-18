@@ -61,7 +61,8 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
+        dumpDataString: () =>
+          JSON.stringify({ executions: [{}], manifestInterface: 'web' }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
@@ -218,7 +219,8 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
+        dumpDataString: () =>
+          JSON.stringify({ executions: [{}], manifestInterface: 'web' }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
