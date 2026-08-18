@@ -36,41 +36,41 @@ import ShowcaseComputer from './showcases-computer.mdx';
 
 ### 用例 1：销量榜功能测试
 
-- **测试内容：** 筛选轿车、燃油车和预设价格
-- **步骤数：** 8 / 16 / 11（脚本 / 模型调用 / Loop）
-- **Token 量：** 130,044（输入 126,935 / 输出 3,109）
+- **测试内容：** 验证销量榜在选择“轿车 + 上上个月 + 燃油车 + 18–25 万”时，组合筛选和结果展示是否正确
+- **步骤数：** 8 / 16（脚本 / 模型调用）
+- **Token 量：** 输入 126,935（缓存 89,760）/ 输出 3,109
 - **费用：** ¥0.203
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html)
 
 ### 用例 2：销量榜组合筛选测试
 
-- **测试内容：** 筛选 SUV 和插电式混动
-- **步骤数：** 4 / 14 / 12（脚本 / 模型调用 / Loop）
-- **Token 量：** 139,782（输入 137,310 / 输出 2,472）
+- **测试内容：** 验证销量榜在选择“SUV + 上个月 + 插电式混动”时，组合筛选和结果展示是否正确
+- **步骤数：** 4 / 14（脚本 / 模型调用）
+- **Token 量：** 输入 137,310（缓存 100,000）/ 输出 2,472
 - **费用：** ¥0.200
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html)
 
 ### 用例 3：新能源榜功能测试
 
-- **测试内容：** 筛选 SUV、纯电动和预设价格
-- **步骤数：** 8 / 18 / 13（脚本 / 模型调用 / Loop）
-- **Token 量：** 156,275（输入 149,996 / 输出 6,279）
+- **测试内容：** 验证新能源榜在选择“SUV + 近半年 + 纯电动 + 18–25 万”时，组合筛选和结果展示是否正确
+- **步骤数：** 8 / 18（脚本 / 模型调用）
+- **Token 量：** 输入 149,996（缓存 103,896）/ 输出 6,279
 - **费用：** ¥0.283
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html)
 
 ### 用例 4：降价榜功能测试
 
-- **测试内容：** 筛选 MPV、新能源和自定义价格
-- **步骤数：** 13 / 29 / 20（脚本 / 模型调用 / Loop）
-- **Token 量：** 262,194（输入 253,991 / 输出 8,203）
+- **测试内容：** 验证降价榜在选择“MPV + 近一年 + 新能源”并设置 15–30 万自定义价格时，组合筛选和结果展示是否正确
+- **步骤数：** 13 / 29（脚本 / 模型调用）
+- **Token 量：** 输入 253,991（缓存 174,176）/ 输出 8,203
 - **费用：** ¥0.448
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html)
 
 ### 用例 5：榜单切换与筛选重置测试
 
-- **测试内容：** 切换榜单并重置筛选条件
-- **步骤数：** 16 / 28 / 19（脚本 / 模型调用 / Loop）
-- **Token 量：** 222,971（输入 217,283 / 输出 5,688）
+- **测试内容：** 验证从销量榜切换至新能源榜时关联筛选条件是否正确重置，并验证后续筛选及恢复默认状态是否正确
+- **步骤数：** 16 / 28（脚本 / 模型调用）
+- **Token 量：** 输入 217,283（缓存 151,848）/ 输出 5,688
 - **费用：** ¥0.357
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html)
 
