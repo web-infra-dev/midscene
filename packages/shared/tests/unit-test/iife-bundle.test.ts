@@ -16,6 +16,7 @@ interface GlobalWithMidscene {
     isNotContainerElement: unknown;
     getElementXpath: unknown;
     getElementInfoByXpath: unknown;
+    getNodeCountByXpath: unknown;
     descriptionOfTree: unknown;
     getXpathsByPoint: unknown;
     truncateText: unknown;
@@ -92,6 +93,8 @@ describe('IIFE bundle runtime behavior', () => {
         'getElementXpath',
         // Used by Puppeteer and Chrome Extension cache lookup flows.
         'getElementInfoByXpath',
+        // Used by Extra Action disclosure to batch-check target existence.
+        'getNodeCountByXpath',
         // Not found in runtime calls; suspected removable from the IIFE surface.
         'descriptionOfTree',
         // Used by Puppeteer and Chrome Extension cache lookup flows.

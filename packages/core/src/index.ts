@@ -38,6 +38,12 @@ export {
 } from './types';
 
 export { z };
+export {
+  LocatorTargetSchema,
+  XPathLocatorTargetSchema,
+  xpathLocatorTarget,
+  type LocatorTarget,
+} from './locator';
 
 export default Service;
 export { TaskRunner, Service, getVersion };

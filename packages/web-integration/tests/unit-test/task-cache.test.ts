@@ -218,7 +218,12 @@ describe('TaskCache', { timeout: 20000 }, () => {
     const planningCachedYamlWorkflow = 'test-yaml-workflow';
 
     const locateCachedPrompt = 'test-locate';
-    const locateCachedCache = { xpaths: ['test-xpath-1', 'test-xpath-2'] };
+    const locateCachedCache = {
+      targets: [
+        { strategy: 'xpath', selector: 'test-xpath-1' },
+        { strategy: 'xpath', selector: 'test-xpath-2' },
+      ],
+    };
 
     const cacheFilePath = prepareCache(
       [
@@ -258,7 +263,12 @@ describe('TaskCache', { timeout: 20000 }, () => {
 
     // test update cache
     cachedLocateCacheUpdateFn((cache) => {
-      cache.cache = { xpaths: ['test-xpath-3', 'test-xpath-4'] };
+      cache.cache = {
+        targets: [
+          { strategy: 'xpath', selector: 'test-xpath-3' },
+          { strategy: 'xpath', selector: 'test-xpath-4' },
+        ],
+      };
     });
 
     expect(newTaskCache.cache.caches).toMatchSnapshot();
@@ -273,8 +283,8 @@ describe('TaskCache', { timeout: 20000 }, () => {
 
   it('should correctly read cache files containing YAML folded block scalar (>-) format', () => {
     const longXpath =
-      '/html/body/div[1]/div[1]/div[10]/section[1]/div[normalize-space()="立即投保"]';
-    const prompt = '立即投保';
+      '/html/body/div[1]/div[1]/div[10]/section[1]/div[normalize-space()="Buy insurance now"]';
+    const prompt = 'Buy insurance now';
 
     // First create a normal cache file
     const cacheFilePath = prepareCache([
@@ -295,7 +305,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
     const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
     const located = newTaskCache.matchLocateCache(prompt);
     expect(located).toBeDefined();
-    expect(located?.cacheContent.cache?.xpaths).toEqual([longXpath]);
+    expect(located?.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: longXpath },
+    ]);
   });
 
   it('should match plan cache with image prompt by deep equality', () => {
@@ -351,7 +363,29 @@ describe('TaskCache', { timeout: 20000 }, () => {
 
     const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
     const located = newTaskCache.matchLocateCache('legacy-locate');
-    expect(located?.cacheContent.cache?.xpaths).toEqual(legacyXpaths);
+    expect(located?.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: legacyXpaths[0] },
+    ]);
+  });
+
+  it('falls back to legacy xpaths when cached targets are all invalid', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'locate',
+        prompt: 'legacy-fallback',
+        cache: {
+          targets: [{ strategy: 'xpath', selector: '' }],
+          xpaths: ['legacy-valid-xpath'],
+        },
+      },
+    ]);
+
+    const taskCache = new TaskCache(uuid(), true, cacheFilePath);
+    const located = taskCache.matchLocateCache('legacy-fallback');
+    expect(located?.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'legacy-valid-xpath' },
+    ]);
+    expect(located?.cacheContent.cache).not.toHaveProperty('xpaths');
   });
 
   it('updateOrAppendCacheRecord writes cache entry and clears legacy xpaths', () => {
@@ -371,12 +405,16 @@ describe('TaskCache', { timeout: 20000 }, () => {
       {
         type: 'locate',
         prompt: 'update-locate',
-        cache: { xpaths: ['new-xpath'] },
+        cache: {
+          targets: [{ strategy: 'xpath', selector: 'new-xpath' }],
+        },
       },
       matched,
     );
 
-    expect(matched?.cacheContent.cache?.xpaths).toEqual(['new-xpath']);
+    expect(matched?.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'new-xpath' },
+    ]);
     expect(matched?.cacheContent.xpaths).toBeUndefined();
 
     const persisted = yaml.load(
@@ -385,7 +423,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
     const persistedLocate = persisted.caches.find(
       (entry: any) => entry.prompt === 'update-locate',
     );
-    expect(persistedLocate.cache.xpaths).toEqual(['new-xpath']);
+    expect(persistedLocate.cache.targets).toEqual([
+      { strategy: 'xpath', selector: 'new-xpath' },
+    ]);
     expect(persistedLocate.xpaths).toBeUndefined();
   });
 
@@ -595,8 +635,12 @@ describe('TaskCache', { timeout: 20000 }, () => {
     expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
 
     // Verify that locate entries maintain their relative order
-    expect(diskCaches[2].cache.xpaths).toEqual(['xpath-1']);
-    expect(diskCaches[3].cache.xpaths).toEqual(['xpath-2']);
+    expect(diskCaches[2].cache.targets).toEqual([
+      { strategy: 'xpath', selector: 'xpath-1' },
+    ]);
+    expect(diskCaches[3].cache.targets).toEqual([
+      { strategy: 'xpath', selector: 'xpath-2' },
+    ]);
   });
 });
 
@@ -710,7 +754,9 @@ describe('TaskCache read-only mode', () => {
 
     const locateCache = cache.matchLocateCache('locate-prompt');
     expect(locateCache).toBeDefined();
-    expect(locateCache!.cacheContent.cache?.xpaths).toEqual(['test-xpath']);
+    expect(locateCache!.cacheContent.cache?.targets).toEqual([
+      { strategy: 'xpath', selector: 'test-xpath' },
+    ]);
   });
 
   it('should set readOnlyMode property correctly', () => {

@@ -9,9 +9,15 @@ exports[`TaskCache > save and retrieve cache from file 1`] = `
   },
   {
     "cache": {
-      "xpaths": [
-        "test-xpath-1",
-        "test-xpath-2",
+      "targets": [
+        {
+          "selector": "test-xpath-1",
+          "strategy": "xpath",
+        },
+        {
+          "selector": "test-xpath-2",
+          "strategy": "xpath",
+        },
       ],
     },
     "prompt": "test-locate",
@@ -29,9 +35,15 @@ exports[`TaskCache > save and retrieve cache from file 2`] = `
   },
   {
     "cache": {
-      "xpaths": [
-        "test-xpath-3",
-        "test-xpath-4",
+      "targets": [
+        {
+          "selector": "test-xpath-3",
+          "strategy": "xpath",
+        },
+        {
+          "selector": "test-xpath-4",
+          "strategy": "xpath",
+        },
       ],
     },
     "prompt": "test-locate",
@@ -50,9 +62,11 @@ caches:
   - type: locate
     prompt: test-locate
     cache:
-      xpaths:
-        - test-xpath-3
-        - test-xpath-4
+      targets:
+        - strategy: xpath
+          selector: test-xpath-3
+        - strategy: xpath
+          selector: test-xpath-4
 "
 `;
 
