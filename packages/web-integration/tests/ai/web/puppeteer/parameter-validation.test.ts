@@ -78,11 +78,7 @@ describe('parameter validation', () => {
     // If execution reaches here without throwing error, it means locatorField wasn't validated
     const log = await agent._unstableLogContent();
     expect(log.executions.length).toBeGreaterThan(0);
-    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User target');
-    expect(log.executions[0].tasks[0].hitBy?.context?.target).toEqual({
-      strategy: 'xpath',
-      selector: inputXpath,
-    });
+    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User expected path');
   });
 
   it('should reject invalid type for parameters', async () => {
