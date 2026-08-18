@@ -230,15 +230,17 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
     ];
 
     const feature = (await agent.page.cacheFeatureForPoint?.(point)) as
-      | { xpaths: string[] }
+      | {
+          targets: Array<{ strategy: 'xpath'; selector: string }>;
+        }
       | undefined;
 
     expect(feature).toBeDefined();
-    expect(feature!.xpaths).toBeDefined();
-    expect(feature!.xpaths.length).toBeGreaterThan(0);
+    expect(feature!.targets).toBeDefined();
+    expect(feature!.targets.length).toBeGreaterThan(0);
     // Should contain compound xpath with |>>| for iframe element
-    expect(feature!.xpaths[0]).toContain('|>>|');
-    expect(feature!.xpaths[0]).toMatch(/iframe/);
+    expect(feature!.targets[0].selector).toContain('|>>|');
+    expect(feature!.targets[0].selector).toMatch(/iframe/);
   });
 
   it('rectMatchesCacheFeature should resolve compound xpath and return valid rect', async () => {
@@ -270,9 +272,11 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
       Math.round(iframeRect.top + 80),
     ];
     const feature = (await agent.page.cacheFeatureForPoint?.(point)) as
-      | { xpaths: string[] }
+      | {
+          targets: Array<{ strategy: 'xpath'; selector: string }>;
+        }
       | undefined;
-    expect(feature!.xpaths[0]).toContain('|>>|');
+    expect(feature!.targets[0].selector).toContain('|>>|');
 
     // Now use rectMatchesCacheFeature to validate the cached xpath
     const rect = await agent.page.rectMatchesCacheFeature?.(feature!);
