@@ -52,7 +52,7 @@ describe('agent with forceSameTabNavigation', () => {
     expect(log1.executions[1].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
     await agent.aiTap('The search result link for "midscene" project');
     const log2 = await agent._unstableLogContent();
-    expect(log2.executions[2].tasks[0].hitBy?.from).toBe(undefined); // AI model
+    expect(log2.executions[2].tasks[0].hitBy?.from).toBe('AI');
     await sleep(2000);
     await agent.aiAssert('the page is "midscene github"');
   });
