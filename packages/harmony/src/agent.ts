@@ -19,8 +19,9 @@ const debugAgent = getDebug('harmony:agent');
 
 export type HarmonyAgentOpt = AgentOpt & {
   /**
-   * Custom mapping of app names to bundle names
-   * User-provided mappings will take precedence over default mappings
+   * Custom mapping of app names to bundle names or explicit bundle/ability
+   * targets. Bundle-only targets use bundle metadata to resolve their declared
+   * launch ability. User-provided mappings take precedence over defaults.
    */
   appNameMapping?: Record<string, string>;
 };
@@ -38,16 +39,14 @@ export class HarmonyAgent extends PageAgent<HarmonyDevice> {
   home!: WrappedAction<DeviceActionHarmonyHomeButton>;
   recentApps!: WrappedAction<DeviceActionHarmonyRecentAppsButton>;
 
-  private appNameMapping: Record<string, string>;
-
   constructor(device: HarmonyDevice, opts?: HarmonyAgentOpt) {
     super(device, opts);
-    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+    const appNameMapping = mergeAndNormalizeAppNameMapping(
       defaultAppNameMapping,
       opts?.appNameMapping,
     );
 
-    device.setAppNameMapping(this.appNameMapping);
+    device.setAppNameMapping(appNameMapping);
 
     this.back =
       this.createActionWrapper<DeviceActionHarmonyBackButton>(

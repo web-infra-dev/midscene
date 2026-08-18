@@ -702,14 +702,14 @@ describe('create-yaml-player', () => {
       );
     });
 
-    test('should pass all HarmonyOS device options from YAML to agentFromHdcDevice', async () => {
+    test('should launch a mapped explicit HarmonyOS ability from YAML', async () => {
       const mockHarmonyOptions = {
         deviceId: 'harmony-device-1',
         hdcPath: '/custom/path/to/hdc',
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'esc-first' as const,
-        appNameMapping: { 携程: 'com.ctrip.harmonynext' },
-        launch: 'com.example.app',
+        appNameMapping: { XXX: 'com.XXX/PhoneAbility' },
+        launch: 'XXX',
       };
 
       const mockScript: MidsceneYamlScript = {

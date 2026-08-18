@@ -1,10 +1,33 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { ScriptPlayer } from '@/yaml/player';
+import { parseYamlScript } from '@/yaml/utils';
 import { describe, expect, test, vi } from 'vitest';
 
 describe('YAML player output', () => {
+  test.each([
+    ['legacy target', 'target', 'abc.json'],
+    ['web', 'web', 'def.json'],
+  ])(
+    'resolves configured output paths for the %s environment without launching an agent',
+    (_label, environmentKey, fileName) => {
+      const setupAgent = vi.fn();
+      const relativeOutput = `./midscene_run/output/${fileName}`;
+      const script = parseYamlScript(`
+${environmentKey}:
+  url: https://example.test
+  output: ${relativeOutput}
+tasks: []
+`);
+
+      const player = new ScriptPlayer(script, setupAgent);
+
+      expect(player.output).toBe(resolve(process.cwd(), relativeOutput));
+      expect(setupAgent).not.toHaveBeenCalled();
+    },
+  );
+
   test('flushes assertion result before marking the task as failed', async () => {
     const outputDir = mkdtempSync(join(tmpdir(), 'midscene-yaml-output-'));
     const outputPath = join(outputDir, 'result.json');

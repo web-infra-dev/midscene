@@ -74,6 +74,24 @@ describe('HarmonyAgent', () => {
         }),
       );
     });
+
+    it('should preserve an explicit ability in a custom app mapping', () => {
+      const mockPage = new HarmonyDevice('test-device');
+      const setAppNameMappingSpy = rs.spyOn(mockPage, 'setAppNameMapping');
+
+      new HarmonyAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+        appNameMapping: {
+          XXX: 'com.XXX/PhoneAbility',
+        },
+      });
+
+      expect(setAppNameMappingSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          xxx: 'com.XXX/PhoneAbility',
+        }),
+      );
+    });
   });
 
   describe('launch', () => {

@@ -22,7 +22,11 @@ import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { normalizeForComparison, repeat } from '@midscene/shared/utils';
+import {
+  mergeAndNormalizeAppNameMapping,
+  normalizeForComparison,
+  repeat,
+} from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
 import { resolveHarmonyKeyCodes } from './keycode';
 
@@ -297,13 +301,28 @@ export class HarmonyDevice implements AbstractInterface {
     return this.connecting;
   }
 
+  /**
+   * Set app-name aliases used by launch and terminate.
+   * Keys are normalized here so callers do not need to know the internal
+   * comparison format.
+   */
   public setAppNameMapping(mapping: Record<string, string>): void {
-    this.appNameMapping = mapping;
+    this.appNameMapping = mergeAndNormalizeAppNameMapping({}, mapping);
   }
 
-  private resolvePackageName(appName: string): string | undefined {
+  private resolveMappedAppTarget(appName: string): string | undefined {
     const normalizedAppName = normalizeForComparison(appName);
     return this.appNameMapping[normalizedAppName];
+  }
+
+  private resolveBundleNameForTerminate(target: string): string {
+    const mappedTarget = this.resolveMappedAppTarget(target);
+    if (mappedTarget) return mappedTarget.split('/')[0];
+
+    const [bundleOrAppName] = target.split('/');
+    return (
+      this.resolveMappedAppTarget(bundleOrAppName) ?? bundleOrAppName
+    ).split('/')[0];
   }
 
   public async launch(uri: string): Promise<HarmonyDevice> {
@@ -313,22 +332,22 @@ export class HarmonyDevice implements AbstractInterface {
 
     try {
       debugDevice(`Launching app: ${uri}`);
-      if (
-        uri.startsWith('http://') ||
-        uri.startsWith('https://') ||
-        uri.includes('://')
-      ) {
+      // Preserve direct URI behavior while allowing mapped targets to use any
+      // launch shape supported by this method.
+      const target = uri.includes('://')
+        ? uri
+        : (this.resolveMappedAppTarget(uri) ?? uri);
+      if (target.includes('://')) {
         // URI with scheme - use aa start -U
-        const sanitizedUri = uri.replace(/[`$\\;"'|&<>(){}]/g, '');
+        const sanitizedUri = target.replace(/[`$\\;"'|&<>(){}]/g, '');
         await hdc.shell(`aa start -U ${sanitizedUri}`);
-      } else if (uri.includes('/')) {
+      } else if (target.includes('/')) {
         // Format: bundleName/abilityName
-        const [bundleName, abilityName] = uri.split('/');
+        const [bundleName, abilityName] = target.split('/');
         await hdc.startAbility(bundleName, abilityName);
       } else {
         // Bundle name or app name
-        const bundleName = this.resolvePackageName(uri) ?? uri;
-        await hdc.launchBundle(bundleName);
+        await hdc.launchBundle(target);
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -347,16 +366,15 @@ export class HarmonyDevice implements AbstractInterface {
    * If uri contains "/" (e.g. com.example.app/MainAbility), only the bundle part is used.
    */
   public async terminate(uri: string): Promise<void> {
-    const bundlePart = uri.includes('/') ? uri.split('/')[0] : uri;
-    const resolved = this.resolvePackageName(bundlePart) ?? bundlePart;
+    const bundleName = this.resolveBundleNameForTerminate(uri);
     const hdc = await this.getHdc();
     try {
-      debugDevice(`Terminating app: ${resolved}`);
-      await hdc.forceStop(resolved);
-      debugDevice(`Successfully terminated: ${resolved}`);
+      debugDevice(`Terminating app: ${bundleName}`);
+      await hdc.forceStop(bundleName);
+      debugDevice(`Successfully terminated: ${bundleName}`);
     } catch (error: any) {
-      debugDevice(`Error terminating ${resolved}: ${error}`);
-      throw new Error(`Failed to terminate ${resolved}: ${error.message}`, {
+      debugDevice(`Error terminating ${bundleName}: ${error}`);
+      throw new Error(`Failed to terminate ${bundleName}: ${error.message}`, {
         cause: error,
       });
     }

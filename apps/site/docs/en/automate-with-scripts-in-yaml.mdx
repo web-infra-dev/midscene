@@ -470,9 +470,10 @@ harmony:
   # Whether to auto dismiss keyboard after input, optional, defaults to false.
   autoDismissKeyboard: <boolean>
 
-  # Custom mapping of app names to bundle names, optional. User-provided mappings take precedence over defaults.
+  # Custom mapping of app names to bundle names or explicit bundle/ability targets, optional.
+  # User-provided mappings take precedence over defaults.
   appNameMapping:
-    <app-name>: <bundle-name>
+    <app-name>: <bundle-name-or-bundle/ability>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
@@ -484,16 +485,18 @@ harmony:
 
 **`launch` - Launch App**
 
-Launch a HarmonyOS app by its bundle name.
+Launch a HarmonyOS app by its bundle name or an explicit `bundle/Ability` target.
 
 ```yaml
 harmony:
   deviceId: 'test-device'
+  appNameMapping:
+    Video: com.example.video/PhoneAbility
 
 tasks:
   - name: Launch app
     flow:
-      - launch: com.example.app
+      - launch: Video
 ```
 
 **`terminate` - Terminate App**

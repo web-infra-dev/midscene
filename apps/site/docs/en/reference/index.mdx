@@ -2694,13 +2694,15 @@ import { HarmonyAgent } from '@midscene/harmony';
 
 ```ts
 const agent = new HarmonyAgent(device, {
-  // common Agent options...
+  appNameMapping: {
+    Video: 'com.example.video/PhoneAbility',
+  },
 });
 ```
 
 **HarmonyOS-specific options**
 
-- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names. When you pass an app name to `launch(target)`, the Agent uses the mapped bundle name when available; otherwise, it launches `target` as provided.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names or explicit `bundle/Ability` targets. Bundle-only values use bundle metadata to resolve the declared launch ability; explicit targets bypass that lookup. When you pass an app name to `launch(target)`, the Agent uses the mapped target when available; otherwise, it launches `target` as provided.
 - All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
@@ -2726,11 +2728,12 @@ Launch a HarmonyOS app.
 function launch(uri: string): Promise<void>;
 ```
 
-- `uri: string` — App bundle name, app name registered in `appNameMapping`, or HTTP/HTTPS URL. Midscene opens HTTP and HTTPS URLs in the browser.
+- `uri: string` — App bundle name, explicit `bundle/Ability` target, app name registered in `appNameMapping`, or HTTP/HTTPS URL. Midscene opens HTTP and HTTPS URLs in the browser.
 
 ```ts
 await agent.launch('com.huawei.hmos.settings'); // Open Settings
 await agent.launch('com.huawei.hmos.camera');    // Open Camera
+await agent.launch('Video'); // Open the mapped explicit ability
 ```
 
 <a id="harmonyos-agentrunhdcshell"></a>
