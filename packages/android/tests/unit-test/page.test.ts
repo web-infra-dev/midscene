@@ -40,6 +40,7 @@ const createMockAdb = () => ({
   hideKeyboard: vi.fn(),
   push: vi.fn(),
   isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
+  getApiLevel: vi.fn().mockResolvedValue(35),
 });
 
 let mockAdbInstance: ReturnType<typeof createMockAdb>;
@@ -1870,6 +1871,93 @@ Stdout:
     it('press should call keyevent for mapped keys', async () => {
       await device.inputPrimitives.keyboard.keyboardPress('Enter');
       expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 66');
+    });
+
+    describe('clearInput', () => {
+      beforeEach(() => {
+        mockAdb.getApiLevel.mockResolvedValue(35);
+      });
+
+      it('should select all and forward-delete on Android 12 and newer', async () => {
+        mockAdb.getApiLevel.mockResolvedValue(31);
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(
+          1,
+          'input keycombination 113 29',
+        );
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
+        expect(mockAdb.clearTextField).not.toHaveBeenCalled();
+      });
+
+      it('should clear before typing replacement text', async () => {
+        const target = { center: [100, 200] as [number, number] } as any;
+        vi.spyOn(device as any, 'tapPoint').mockResolvedValue(undefined);
+
+        await device.inputPrimitives.keyboard.typeText('15', {
+          target,
+          replace: true,
+          autoDismissKeyboard: false,
+        });
+
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(
+          1,
+          'input keycombination 113 29',
+        );
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(3, "input text '15'");
+      });
+
+      it('should target the configured display for select-all and deletion', async () => {
+        device.options = { displayId: 2 };
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(
+          1,
+          'input -d 2 keycombination 113 29',
+        );
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(
+          2,
+          'input -d 2 keyevent 112',
+        );
+      });
+
+      it('should preserve batch deletion on Android 11 and older', async () => {
+        mockAdb.getApiLevel.mockResolvedValue(30);
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+
+        await device.clearInput();
+
+        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
+        expect(mockAdb.shell).not.toHaveBeenCalledWith(
+          expect.stringContaining('keycombination'),
+        );
+      });
+
+      it('should fall back when an Android 12+ device rejects the combination', async () => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.shell.mockRejectedValueOnce(
+          new Error('Unknown command: keycombination'),
+        );
+
+        await device.clearInput();
+
+        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
+      });
+
+      it('should preserve display-aware deletion on legacy Android', async () => {
+        mockAdb.getApiLevel.mockResolvedValue(30);
+        device.options = { displayId: 2 };
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringMatching(/^input -d 2 keyevent (?:67 112 ){99}67 112$/),
+        );
+      });
     });
 
     it('press should reject key combinations before invoking ADB', async () => {

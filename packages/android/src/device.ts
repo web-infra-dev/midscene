@@ -70,6 +70,12 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+const androidKeyCombinationMinApiLevel = 31;
+const androidKeyCodes = {
+  ctrlLeft: 113,
+  a: 29,
+  forwardDelete: 112,
+} as const;
 const SCREENSHOT_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const SCREENSHOT_STRATEGY_AUTO = 'auto' as const;
 type ScrollDirection = 'up' | 'down' | 'left' | 'right';
@@ -1595,11 +1601,50 @@ ${Object.keys(size)
     }
 
     const adb = await this.getAdb();
+
+    if (!(await this.tryClearInputWithKeyCombination(adb))) {
+      await this.clearInputForLegacyAndroid(adb);
+    }
+
+    if (await adb.isSoftKeyboardPresent()) {
+      return;
+    }
+
+    if (element) {
+      await this.tapPoint({ x: element.center[0], y: element.center[1] });
+    }
+  }
+
+  private async tryClearInputWithKeyCombination(adb: ADB): Promise<boolean> {
+    if ((await adb.getApiLevel()) < androidKeyCombinationMinApiLevel) {
+      return false;
+    }
+
+    try {
+      // Android 12 added the shell `input keycombination` command. Select all
+      // before deleting so clearing is independent of the current cursor
+      // position. Forward Delete is intentional: some OEM input fields
+      // collapse the selection and remove only one character for KEYCODE_DEL.
+      await this.shellInputKeyCombination(
+        androidKeyCodes.ctrlLeft,
+        androidKeyCodes.a,
+      );
+      await this.shellInputKeyevent(androidKeyCodes.forwardDelete);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      warnDevice(
+        `Android select-all clear failed; falling back to legacy deletion: ${message}`,
+      );
+      return false;
+    }
+  }
+
+  private async clearInputForLegacyAndroid(adb: ADB): Promise<void> {
     const isNonDefaultDisplay =
       typeof this.options?.displayId === 'number' &&
       this.options.displayId !== 0;
-
-    const IME_STRATEGY =
+    const imeStrategy =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       IME_STRATEGY_YADB_FOR_NON_ASCII;
@@ -1613,7 +1658,7 @@ ${Object.keys(size)
         keys.push(67, 112); // KEYCODE_DEL, KEYCODE_FORWARD_DEL
       }
       await this.shellInputKeyevent(...keys);
-    } else if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+    } else if (imeStrategy === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
       // clearTextField() batches all key events into a single shell command for better performance
       await this.ensureYadb();
@@ -1625,14 +1670,6 @@ ${Object.keys(size)
         // `app_process` (ART launcher) does not accept the `-d <displayId>` flag.
         'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
       );
-    }
-
-    if (await adb.isSoftKeyboardPresent()) {
-      return;
-    }
-
-    if (element) {
-      await this.tapPoint({ x: element.center[0], y: element.center[1] });
     }
   }
 
@@ -2442,6 +2479,18 @@ ${Object.keys(size)
     const adb = await this.getAdb();
     await adb.shell(
       `input${this.getDisplayArg()} keyevent ${keyCodes.join(' ')}`,
+    );
+  }
+
+  /**
+   * Send a simultaneous Android key combination through the display-aware
+   * shell input primitive. The command is available on Android 12 / API 31+
+   * and callers must guard older platform versions.
+   */
+  private async shellInputKeyCombination(...keyCodes: number[]): Promise<void> {
+    const adb = await this.getAdb();
+    await adb.shell(
+      `input${this.getDisplayArg()} keycombination ${keyCodes.join(' ')}`,
     );
   }
 
