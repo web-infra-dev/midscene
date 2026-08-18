@@ -9,18 +9,21 @@ import {
 
 const mocks = vi.hoisted(() => ({
   AdbServerNodeTcpConnector: vi.fn(),
+  createAdbServerTransport: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 vi.mock('@yume-chan/adb', () => ({
   Adb: vi.fn().mockImplementation(() => ({})),
-  AdbServerClient: vi.fn().mockImplementation(() => ({
-    createTransport: vi.fn().mockResolvedValue({}),
-  })),
+  AdbServerClient: vi.fn().mockImplementation(() => ({})),
 }));
 
 vi.mock('@yume-chan/adb-server-node-tcp', () => ({
   AdbServerNodeTcpConnector: mocks.AdbServerNodeTcpConnector,
+}));
+
+vi.mock('../../src/adb-server-transport', () => ({
+  createAdbServerTransport: mocks.createAdbServerTransport,
 }));
 
 // Mock ScrcpyScreenshotManager returned by dynamic import in ensureManager
@@ -293,6 +296,10 @@ describe('ScrcpyDeviceAdapter', () => {
         host: '127.0.0.1',
         port: 5037,
       });
+      expect(mocks.createAdbServerTransport).toHaveBeenCalledWith(
+        expect.any(Object),
+        'device',
+      );
     });
 
     it('should connect to the resolved ADB server endpoint', async () => {
