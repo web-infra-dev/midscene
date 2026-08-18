@@ -1,10 +1,12 @@
 import type {
+  DeviceAction,
   RawResponsePlanningAIResponse,
   SubGoal,
   SubGoalStatus,
 } from '@/types';
 import type { JsonParser } from '../../shared/json';
 import { extractXMLTag } from '../../shared/xml';
+import { buildPlanningActionLog } from './planning-action-log';
 
 /**
  * Parse sub-goals from XML content.
@@ -51,11 +53,14 @@ export function parseMarkFinishedIndexes(xmlContent: string): number[] {
 export function parseXMLPlanningResponse(
   xmlString: string,
   jsonParser: JsonParser,
+  options: { includeThought: boolean },
 ): RawResponsePlanningAIResponse {
   // Use <planning> instead of <thought> to avoid colliding with Gemini thought
   // summaries, which may also be emitted as <thought> in OpenAI-compatible
   // response content.
-  const thought = extractXMLTag(xmlString, 'planning');
+  const thought = options.includeThought
+    ? extractXMLTag(xmlString, 'planning')
+    : undefined;
   const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
@@ -116,5 +121,59 @@ export function parseXMLPlanningResponse(
     ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
     ...(updateSubGoals?.length ? { updateSubGoals } : {}),
     ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
+  };
+}
+
+type ParseStandardPlanningResponseOptions = {
+  includeThought: boolean;
+} & (
+  | {
+      logSource?: 'model';
+    }
+  | {
+      logSource: 'action';
+      actionSpace: DeviceAction<any>[];
+    }
+);
+
+function buildNonActionPlanningLog(
+  response: RawResponsePlanningAIResponse,
+): string {
+  if (response.error) {
+    return `Error - ${response.error}`;
+  }
+
+  if (response.finalizeSuccess !== undefined) {
+    return [
+      `Complete - success: ${response.finalizeSuccess}`,
+      response.finalizeMessage
+        ? `message: ${response.finalizeMessage}`
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  return 'No action';
+}
+
+export function parseStandardPlanningResponse(
+  xmlString: string,
+  jsonParser: JsonParser,
+  options: ParseStandardPlanningResponseOptions,
+): RawResponsePlanningAIResponse {
+  const response = parseXMLPlanningResponse(xmlString, jsonParser, {
+    includeThought: options.includeThought,
+  });
+
+  if (options.logSource !== 'action') {
+    return response;
+  }
+
+  return {
+    ...response,
+    log: response.action
+      ? buildPlanningActionLog(response.action, options.actionSpace)
+      : buildNonActionPlanningLog(response),
   };
 }

@@ -78,6 +78,30 @@ describe('plan XML parse retry', () => {
     vi.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it('uses the action-only XML protocol for fast effort', async () => {
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{}</action-param-json>`),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'fast',
+    });
+
+    const systemPrompt = vi.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
+    expect(systemPrompt).not.toEqual(expect.stringContaining('<planning>'));
+    expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
+    expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
+    expect(result.thought).toBeUndefined();
+    expect(result.log).toBe('{"type":"Tap","param":{}}');
+    expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
+  });
+
   it('uses model retry settings when XML response parsing fails', async () => {
     vi.mocked(callAI)
       .mockResolvedValueOnce(
@@ -105,7 +129,7 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(3);
@@ -143,7 +167,7 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
       conversationHistory,
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     } as const;
 
     await standardPlan('tap the button', options);
@@ -177,7 +201,7 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory,
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     } as const;
 
     await standardPlan('tap the button', options);
@@ -207,7 +231,7 @@ describe('plan XML parse retry', () => {
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: false,
-        deepThink: false,
+        effort: 'balance',
       }),
     ).rejects.toBe(requestError);
 
@@ -226,7 +250,7 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     });
 
     const messages = vi.mocked(callAI).mock.calls[0]?.[0];
@@ -259,7 +283,7 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(latestImageDetail()).toBe('high');
@@ -307,7 +331,7 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);

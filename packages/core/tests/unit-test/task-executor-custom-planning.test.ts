@@ -62,8 +62,8 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
     config: {
       modelName: 'custom-planning-model',
       modelDescription: 'custom-planning-model',
-      intent: 'planning',
-      slot: 'planning',
+      intent: 'default',
+      slot: 'default',
     },
     adapter: new ResolvedModelAdapter(
       {
@@ -156,8 +156,6 @@ describe('TaskExecutor custom planning adapters', () => {
       'prompt',
       customPlanningModel,
       defaultModel(),
-      true,
-      undefined,
       undefined,
       undefined,
       undefined,

@@ -1,11 +1,15 @@
 import { getModelAdapter } from '@/ai-model/models';
-import { parseXMLPlanningResponse } from '@/ai-model/workflows/planning';
+import {
+  parseStandardPlanningResponse,
+  parseXMLPlanningResponse as parseXMLPlanningResponseWithOptions,
+} from '@/ai-model/workflows/planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
 } from '@/ai-model/workflows/planning/standard-planning-parser';
 import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
+import { actionInputParamSchema, actionTapParamSchema } from '@/device';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
@@ -13,6 +17,14 @@ import {
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+
+const parseXMLPlanningResponse = (
+  xmlString: string,
+  jsonParser: Parameters<typeof parseXMLPlanningResponseWithOptions>[1],
+) =>
+  parseXMLPlanningResponseWithOptions(xmlString, jsonParser, {
+    includeThought: true,
+  });
 
 describe('llm planning - doubao', () => {
   beforeEach(() => {
@@ -477,6 +489,97 @@ describe('parseXMLPlanningResponse', () => {
         },
       },
     });
+  });
+
+  it('should generate the log from the action in fast mode', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<planning>This should not be exposed in fast mode</planning>
+<log>Tap the button</log>
+<action-type>Tap</action-type>
+<action-param-json>{"locate":{"prompt":"Button"}}</action-param-json>
+    `.trim();
+
+    const result = parseStandardPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+      {
+        includeThought: false,
+        logSource: 'action',
+        actionSpace: [
+          {
+            name: 'Tap',
+            paramSchema: actionTapParamSchema,
+            call: vi.fn(),
+          },
+        ],
+      },
+    );
+
+    expect(result).not.toHaveProperty('thought');
+    expect(result.log).toBe('Tap - locate: Button');
+    expect(result.action).toEqual({
+      type: 'Tap',
+      param: { locate: { prompt: 'Button' } },
+    });
+  });
+
+  it('should omit locate coordinates from a generated fast log', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<action-type>Input</action-type>
+<action-param-json>{"value":"demo-user","locate":{"prompt":"Username input field","bbox":[375,445,625,505]}}</action-param-json>
+    `.trim();
+
+    const result = parseStandardPlanningResponse(
+      xml,
+      getModelAdapter(modelFamily).jsonParser,
+      {
+        includeThought: false,
+        logSource: 'action',
+        actionSpace: [
+          {
+            name: 'Input',
+            paramSchema: actionInputParamSchema,
+            call: vi.fn(),
+          },
+        ],
+      },
+    );
+
+    expect(result.log).toBe(
+      'Input - value: demo-user, locate: Username input field',
+    );
+  });
+
+  it('should generate the log from a complete response in fast mode', () => {
+    const result = parseStandardPlanningResponse(
+      '<log>Model-generated completion log</log><complete success="true">done</complete>',
+      getModelAdapter('doubao-vision').jsonParser,
+      {
+        includeThought: false,
+        logSource: 'action',
+        actionSpace: [],
+      },
+    );
+
+    expect(result.log).toBe('Complete - success: true, message: done');
+    expect(result.finalizeSuccess).toBe(true);
+  });
+
+  it('should generate the log from an error response in fast mode', () => {
+    const result = parseStandardPlanningResponse(
+      '<log>Model-generated error log</log><error>Button unavailable</error>',
+      getModelAdapter('doubao-vision').jsonParser,
+      {
+        includeThought: false,
+        logSource: 'action',
+        actionSpace: [],
+      },
+    );
+
+    expect(result.log).toBe('Error - Button unavailable');
+    expect(result.error).toBe('Button unavailable');
   });
 
   it('should parse XML response with null action', () => {

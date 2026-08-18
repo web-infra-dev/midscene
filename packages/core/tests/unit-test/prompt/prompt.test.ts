@@ -219,6 +219,26 @@ describe('system prompts', () => {
     );
   });
 
+  it('planning - fast output omits planning reasoning', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+      includeThought: false,
+      includeLog: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).not.toContain('<planning>');
+    expect(prompt).not.toContain('</planning>');
+    expect(prompt).not.toContain('related tags: <planning>');
+    expect(prompt).not.toContain('<log>');
+    expect(prompt).not.toContain('</log>');
+    expect(prompt).not.toContain('related tags: <log>');
+    expect(prompt).toContain('<action-type>...</action-type>');
+    expect(prompt).toContain('<action-param-json>...</action-param-json>');
+    expect(prompt).toMatchSnapshot();
+  });
+
   it('planning - includeSubGoals true should contain sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,

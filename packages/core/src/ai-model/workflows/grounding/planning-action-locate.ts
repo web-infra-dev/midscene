@@ -52,6 +52,7 @@ async function buildPlanningTapLocatorPlanOptions(
     actionSpace: planningActionLocatorActionSpace,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
+    effort: 'balance',
     referenceImageMessages: locateRequest.referenceImageMessages,
   };
 }

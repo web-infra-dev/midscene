@@ -23,10 +23,14 @@ const sampleReturnEmailSubGoal = {
 
 export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
+  includeThought,
+  includeLog,
   locatePromptSpec,
   actionOutputProtocol,
 }: {
   includeSubGoals: boolean;
+  includeThought: boolean;
+  includeLog: boolean;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
 }) => {
@@ -72,10 +76,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Your response:**
 
 ${buildPlanningResponseExample({
-  planning: `The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. ${renderSubGoalsContent(
-    "I'll break this down into sub-goals and start with the Name field.",
-    'I should start by clicking on the Name field.',
-  )} Note: The instruction is to fill the form only (not submit), and return the email at the end.`,
+  planning: includeThought
+    ? `The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. ${renderSubGoalsContent(
+        "I'll break this down into sub-goals and start with the Name field.",
+        'I should start by clicking on the Name field.',
+      )} Note: The instruction is to fill the form only (not submit), and return the email at the end.`
+    : undefined,
   updateSubGoals: includeSubGoals
     ? [
         {
@@ -92,7 +98,9 @@ ${buildPlanningResponseExample({
         },
       ]
     : undefined,
-  log: 'Click on the Name field to start filling the form',
+  log: includeLog
+    ? 'Click on the Name field to start filling the form'
+    : undefined,
   actionExample: tapNameFieldExample,
 })}
 
@@ -118,11 +126,13 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
-  planning: `The Name field is now focused. I need to type 'John' into this field. ${renderSubGoalsContent(
-    'Current sub-goal is running, will be completed after input.',
-    "After this, I'll need to fill the Email field as well.",
-  )}`,
-  log: "Typing 'John' into the Name field",
+  planning: includeThought
+    ? `The Name field is now focused. I need to type 'John' into this field. ${renderSubGoalsContent(
+        'Current sub-goal is running, will be completed after input.',
+        "After this, I'll need to fill the Email field as well.",
+      )}`
+    : undefined,
+  log: includeLog ? "Typing 'John' into the Name field" : undefined,
   actionExample: inputNameExample,
 })}
 
@@ -151,15 +161,17 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
-  planning: `The Name field now shows 'John'. ${renderSubGoalsContent(
-    'Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.',
-    "Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.",
-  )}`,
+  planning: includeThought
+    ? `The Name field now shows 'John'. ${renderSubGoalsContent(
+        'Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.',
+        "Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.",
+      )}`
+    : undefined,
   markSubGoalsDone: includeSubGoals ? [1] : undefined,
   memory: includeSubGoals
     ? "Name field has been filled with 'John'"
     : undefined,
-  log: 'Moving to the Email field',
+  log: includeLog ? 'Moving to the Email field' : undefined,
   actionExample: tapEmailFieldExample,
 })}
 
@@ -185,11 +197,13 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
-  planning: `The Email field is now focused. I'll enter 'john@example.com'. ${renderSubGoalsContent(
-    'After this, sub-goal 2 will be complete and my task will be done.',
-    'After this, both required fields will be filled and my task will be complete.',
-  )}`,
-  log: 'Typing email address into the Email field',
+  planning: includeThought
+    ? `The Email field is now focused. I'll enter 'john@example.com'. ${renderSubGoalsContent(
+        'After this, sub-goal 2 will be complete and my task will be done.',
+        'After this, both required fields will be filled and my task will be complete.',
+      )}`
+    : undefined,
+  log: includeLog ? 'Typing email address into the Email field' : undefined,
   actionExample: inputEmailExample,
 })}
 
@@ -218,10 +232,12 @@ ${renderSubGoalsContent(
 **Your response:**
 
 ${buildPlanningResponseExample({
-  planning: `Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. ${renderSubGoalsContent(
-    "Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.",
-    "The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.",
-  )}`,
+  planning: includeThought
+    ? `Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. ${renderSubGoalsContent(
+        "Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.",
+        "The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.",
+      )}`
+    : undefined,
   markSubGoalsDone: includeSubGoals ? [2, 3] : undefined,
   complete: {
     success: true,

@@ -197,6 +197,8 @@ export interface LocateResult {
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
 
+export type AiActEffort = 'fast' | 'balance' | 'deepThink';
+
 export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
@@ -756,7 +758,7 @@ export interface ExecutionTaskPlanningParam {
   replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
-  deepThink?: DeepThinkOption;
+  effort?: AiActEffort;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }
