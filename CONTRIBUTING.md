@@ -186,20 +186,13 @@ synchronized as follows:
 #### When the Core build hits Nx cache
 
 When the Core build is restored from Nx cache, the build does not actually run,
-so its post-build Report synchronization does not run either. The result
-depends on whether the workspace already contains a synchronized template:
+so its post-build Report synchronization does not run either. If the Core
+template modules are missing or still contain the placeholder, restoring the
+Core build from cache cannot create or repair them. Core may then fail to
+generate reports with an unresolved-placeholder or missing-module error.
 
-- If the template modules are missing or still contain the placeholder, Core
-  cannot generate reports normally and may fail with an unresolved placeholder
-  or missing-module error.
-- If Report was built previously and Core already contains a complete template,
-  report generation usually succeeds, but it may use the previously built
-  Report page instead of the page corresponding to the current source.
-
-This only occurs when Core is built or restored without running or restoring
-the Report build. Running `@midscene/report:build` produces or restores the
-Report HTML and both Core template modules together, making them consistent
-again:
+Build or restore `@midscene/report:build` to produce the Report HTML and both
+Core template modules together:
 
 ```sh
 pnpm exec nx build @midscene/report
