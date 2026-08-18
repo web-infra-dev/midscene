@@ -35,7 +35,6 @@ export default defineConfig({
   coverage: createCoverageConfig(__dirname),
   include: testFiles,
   testTimeout: 3 * 60 * 1000, // Global timeout set to 10 seconds
-  errors: process.env.CI ? { unhandled: false } : undefined, // showcase.test.ts is not stable
   source: {
     define: defineVersion(version),
   },
