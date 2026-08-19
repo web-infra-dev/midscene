@@ -152,54 +152,59 @@ cd apps/playground && pnpm run dev
 cd apps/chrome-extension && pnpm run dev
 ```
 
-### Core's embedded Report template
+### Report template contains an unresolved placeholder / Cannot find module './report-html-template.js'
 
-The Core package includes a complete Report HTML template in its build output.
-This allows Core to generate reports when it runs independently or is embedded
-in another environment, such as a browser extension or Studio, without a
-runtime dependency on `@midscene/report`.
+#### Background: Core's embedded Report template
 
-However, Report itself depends on Core. Making the Core build depend on Report
-would create a circular dependency, so the template is generated and
-synchronized as follows:
+Core embeds a complete Report HTML template so it can generate reports without
+a runtime dependency on `@midscene/report`. Because Report itself depends on
+Core, the Core source contains only a placeholder; `@midscene/report:build`
+owns writing the real HTML into the Core CJS and ESM template modules. An actual
+Core build also tries to synchronize an existing Report HTML as a best-effort
+convenience.
 
-1. The Report template module in the Core source contains only a placeholder.
-   The Core build emits CJS and ESM template modules, which do not contain the
-   real Report HTML before synchronization.
+#### When the unresolved-placeholder error occurs
 
-2. After Report builds `apps/report/dist/index.html`, it writes that HTML into
-   the two Core template modules:
+This usually happens in one of these development scenarios:
 
-   - `packages/core/dist/lib/report-html-template.js`
-   - `packages/core/dist/es/report-html-template.mjs`
+- Core is built before Report has produced a valid
+  `apps/report/dist/index.html`, for example because Report has not been built
+  or its build failed. Core's best-effort synchronization then leaves the
+  generated placeholder modules in place.
+- Placeholder modules already exist on disk, and a cached Core build skips the
+  synchronization hook that could have replaced them.
 
-3. In the Nx cache model, the Report HTML and the two Core template modules
-   belong to the same `@midscene/report:build` output set. Whether Report runs
-   its build or restores it from Nx cache, all three files are produced or
-   restored together and remain consistent.
+Core can still load in both cases, but report generation throws this error
+instead of producing an invalid report.
 
-4. For local development convenience, every actual Core build also tries to
-   synchronize an existing Report HTML into the two Core template modules.
-   This is a best-effort convenience; the Report build remains the
-   authoritative owner of the template files.
+#### When the missing-module error occurs
 
-#### When the Core build hits Nx cache
+Nx does not save or restore the two template modules as part of the
+`@midscene/core:build` cache. The missing-module error occurs only when all of
+the following are true:
 
-When the Core build is restored from Nx cache, the build does not actually run,
-so its post-build Report synchronization does not run either. If the Core
-template modules are missing or still contain the placeholder, restoring the
-Core build from cache cannot create or repair them. Core may then fail to
-generate reports with an unresolved-placeholder or missing-module error.
+1. A valid local Core build cache already exists.
+2. `packages/core/dist`, or its template modules, is removed without clearing
+   that cache.
+3. Only Core is rebuilt, and the build is restored from the cache, so neither
+   the real build nor its synchronization hook runs.
 
-Build or restore `@midscene/report:build` to produce the Report HTML and both
-Core template modules together:
+The excluded template modules are not restored, so loading Core fails
+immediately. Current CI does not restore `.nx/cache` or use Nx remote caching,
+and `pnpm clean` removes both cache and dist, so this is unlikely in normal
+workflows.
+
+#### Resolution
+
+Both errors can be resolved by building Report, which produces the HTML and
+both Core template modules:
 
 ```sh
 pnpm exec nx build @midscene/report
 ```
 
-If `apps/report/dist/index.html` already exists and only the Core template
-modules need to be repaired, synchronize them directly:
+For either error, if `apps/report/dist/index.html` already exists and only the
+Core template modules need to be repaired, synchronize them directly:
 
 ```sh
 pnpm --filter @midscene/core sync-report-template

@@ -101,6 +101,14 @@ export function getReportTpl() {
       ? fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8')
       : REPORT_HTML_TEMPLATE;
 
+  // reportTpl is expected to be replaced with the real Report HTML during the
+  // Report build. If it still contains the placeholder, synchronization did
+  // not complete. This can happen when the Report build fails, or when a cached
+  // Core build skips its synchronization hook while the placeholder is already
+  // present. This should normally occur only during development; the release
+  // pipeline validates that Core's reportTpl has been fully replaced. Throw
+  // explicitly and tell the user to rebuild instead of producing an invalid
+  // report.
   // Keep this literal in sync with the placeholder in report-html-template.ts
   // and reportTemplateMagicString in scripts/report-template-utils.mjs.
   if (reportTpl.includes('REPLACE_ME_WITH_REPORT_HTML')) {
