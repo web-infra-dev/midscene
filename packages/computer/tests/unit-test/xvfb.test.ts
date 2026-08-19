@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import { waitForCliInterrupt } from '@midscene/shared/cli/interrupt';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   checkXvfbInstalled,
   createXvfbSigintCleanup,
@@ -9,15 +9,15 @@ import {
   needsXvfb,
 } from '../../src/xvfb';
 
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
+rs.mock('node:fs', () => ({
+  existsSync: rs.fn(() => false),
 }));
 
-vi.mock('node:child_process', () => ({
-  execSync: vi.fn(() => {
+rs.mock('node:child_process', () => ({
+  execSync: rs.fn(() => {
     throw new Error('not found');
   }),
-  spawn: vi.fn(),
+  spawn: rs.fn(),
 }));
 
 describe('needsXvfb', () => {
@@ -56,12 +56,12 @@ describe('needsXvfb', () => {
 
 describe('findAvailableDisplay', () => {
   it('should return startFrom when no lock files exist', () => {
-    vi.mocked(existsSync).mockReturnValue(false);
+    rs.mocked(existsSync).mockReturnValue(false);
     expect(findAvailableDisplay(99)).toBe(99);
   });
 
   it('should skip occupied display numbers', () => {
-    vi.mocked(existsSync)
+    rs.mocked(existsSync)
       .mockReturnValueOnce(true) // :99 occupied
       .mockReturnValueOnce(true) // :100 occupied
       .mockReturnValueOnce(false); // :101 free
@@ -69,7 +69,7 @@ describe('findAvailableDisplay', () => {
   });
 
   it('should throw if no display is available', () => {
-    vi.mocked(existsSync).mockReturnValue(true);
+    rs.mocked(existsSync).mockReturnValue(true);
     expect(() => findAvailableDisplay(99)).toThrow(
       'No available display number found',
     );
@@ -83,7 +83,7 @@ describe('checkXvfbInstalled', () => {
 
   it('should return true when Xvfb is installed', async () => {
     const { execSync } = await import('node:child_process');
-    vi.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
+    rs.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
     expect(checkXvfbInstalled()).toBe(true);
   });
 });
@@ -91,7 +91,7 @@ describe('checkXvfbInstalled', () => {
 describe('createXvfbSigintCleanup', () => {
   it('cleans up when the host only has unrelated SIGINT listeners', () => {
     const source = new EventEmitter();
-    const cleanup = vi.fn();
+    const cleanup = rs.fn();
     source.on('SIGINT', () => {});
     source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
 
@@ -102,7 +102,7 @@ describe('createXvfbSigintCleanup', () => {
 
   it('defers cleanup while a foreground recorder is handling SIGINT', async () => {
     const source = new EventEmitter();
-    const cleanup = vi.fn();
+    const cleanup = rs.fn();
     source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
     const stopped = waitForCliInterrupt(0, source);
 

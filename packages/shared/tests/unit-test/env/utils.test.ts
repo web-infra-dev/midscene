@@ -1,13 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { MIDSCENE_RUN_DIR } from '../../../src/env';
 import { getBasicEnvValue } from '../../../src/env/basic';
 
 describe('getBasicEnvValue', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
   it('should return the value of the given env key', () => {
-    vi.stubEnv(MIDSCENE_RUN_DIR, '<test-run-dir>');
+    rs.stubEnv(MIDSCENE_RUN_DIR, '<test-run-dir>');
     expect(getBasicEnvValue(MIDSCENE_RUN_DIR)).toBe('<test-run-dir>');
   });
 

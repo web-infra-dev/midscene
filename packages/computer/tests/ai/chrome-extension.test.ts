@@ -4,7 +4,7 @@
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
@@ -14,7 +14,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+rs.setConfig({ testTimeout: 360 * 1000 });
 
 describe('chrome extension smoke test', () => {
   let agent: ComputerAgent;

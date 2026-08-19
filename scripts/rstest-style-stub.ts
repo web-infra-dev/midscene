@@ -1,3 +1,5 @@
+import type { Rspack, RstestConfig } from '@rstest/core';
+
 /**
  * Makes `.less` imports inert during rstest runs.
  *
@@ -27,11 +29,11 @@
  */
 export const stubStyleRules = {
   tools: {
-    rspack: (config: any) => {
+    rspack: (config: Rspack.Configuration) => {
       config.module ??= {};
       config.module.rules ??= [];
       config.module.rules.push({ test: /\.less$/, type: 'asset/source' });
       return config;
     },
   },
-};
+} satisfies Pick<RstestConfig, 'tools'>;

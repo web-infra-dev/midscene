@@ -3,7 +3,7 @@ import type {
   LocateResultElement,
   Size,
 } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ComputerAgent, RDPDevice, agentForRDPComputer } from '../../../src';
 import type {
   RDPBackendClient,

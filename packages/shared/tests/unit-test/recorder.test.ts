@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import type { MidsceneRecorderEvent } from '../../src/recorder';
 import {
   DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,

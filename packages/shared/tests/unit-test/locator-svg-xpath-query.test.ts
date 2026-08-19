@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from '@rstest/core';
 import { getNodeInfoByXpath } from '../../src/extractor/locator';
 
 // Setup a real DOM environment with SVG elements

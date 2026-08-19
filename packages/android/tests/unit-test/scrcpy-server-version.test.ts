@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { AdbScrcpyOptions3_3_3 } from '@yume-chan/adb-scrcpy';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SCRCPY_PROTOCOL_VERSION,
   SCRCPY_SERVER_VERSION_TAG,
@@ -53,7 +53,7 @@ describe('scrcpy server version helper', () => {
     tempDirs.push(dirPath);
 
     const destinationPath = path.join(dirPath, 'scrcpy-server-v3.3.3');
-    const fetchImpl = vi.fn(async () => ({
+    const fetchImpl = rs.fn(async () => ({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode('server-binary').buffer,
       status: 200,
@@ -85,7 +85,7 @@ describe('scrcpy server version helper', () => {
     const destinationPath = path.join(dirPath, 'scrcpy-server-v3.3.3');
     const apiAssetUrl =
       'https://api.github.com/repos/Genymobile/scrcpy/releases/assets/123';
-    const fetchImpl = vi.fn(async (url: string) => {
+    const fetchImpl = rs.fn(async (url: string) => {
       if (
         url ===
         'https://github.com/Genymobile/scrcpy/releases/download/v3.3.3/scrcpy-server-v3.3.3'
@@ -182,7 +182,7 @@ describe('scrcpy server version helper', () => {
     await fs.writeFile(serverBinPath, 'old-server');
     await fs.writeFile(downloadedFile, 'new-server');
 
-    const rename = vi.fn(async (fromPath: string, toPath: string) => {
+    const rename = rs.fn(async (fromPath: string, toPath: string) => {
       if (fromPath === downloadedFile && toPath === serverBinPath) {
         throw new Error('rename failed');
       }
