@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login with Advertisement Popup</title>
+    <style>
+      :root {
+        color: #152033;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background: linear-gradient(145deg, #eef4ff, #f8faff 55%, #e8efff);
+      }
+
+      .login-card {
+        width: min(400px, calc(100vw - 40px));
+        padding: 40px;
+        border: 1px solid #dce4f2;
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 20px 60px rgb(43 61 96 / 16%);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+      }
+
+      .subtitle {
+        margin: 0 0 30px;
+        color: #68758b;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #bcc8da;
+        border-radius: 8px;
+        font: inherit;
+      }
+
+      input:focus {
+        border-color: #3267d6;
+        outline: 3px solid rgb(50 103 214 / 14%);
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      .login-button {
+        width: 100%;
+        padding: 13px 18px;
+        background: #3267d6;
+        color: white;
+      }
+
+      .login-button:hover {
+        background: #2556bd;
+      }
+
+      .success {
+        display: none;
+        text-align: center;
+      }
+
+      .success-icon {
+        display: grid;
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 18px;
+        place-items: center;
+        border-radius: 50%;
+        background: #ddf7e8;
+        color: #16834b;
+        font-size: 30px;
+      }
+
+      .success p {
+        margin-bottom: 0;
+        color: #68758b;
+      }
+
+      .ad-overlay {
+        position: fixed;
+        z-index: 10;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgb(16 28 49 / 72%);
+      }
+
+      .ad-overlay[hidden] {
+        display: none;
+      }
+
+      .ad-dialog {
+        position: relative;
+        width: min(460px, calc(100vw - 48px));
+        min-height: 390px;
+        padding: 58px 42px 42px;
+        border: 4px solid #ffd45c;
+        border-radius: 22px;
+        background: linear-gradient(150deg, #fff8dc, #ffe18b);
+        box-shadow: 0 28px 90px rgb(0 0 0 / 38%);
+        text-align: center;
+      }
+
+      .ad-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #e8492f;
+        color: white;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .ad-dialog h2 {
+        margin: 24px 0 12px;
+        color: #5c3510;
+        font-size: 34px;
+        line-height: 1.1;
+      }
+
+      .ad-dialog p {
+        margin: 0 auto;
+        max-width: 320px;
+        color: #79501f;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+
+      .ad-offer {
+        margin-top: 26px;
+        color: #d74328;
+        font-size: 28px;
+        font-weight: 850;
+      }
+
+      .close-ad {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 2px solid #6c481c;
+        border-radius: 50%;
+        background: white;
+        color: #4e3213;
+        font-size: 25px;
+        line-height: 1;
+      }
+
+      .close-ad:hover {
+        background: #fff3cc;
+      }
+    </style>
+  </head>
+  <body data-login-state="signed-out">
+    <main class="login-card">
+      <form id="login-form">
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to continue to your account.</p>
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button class="login-button" type="submit">Log in</button>
+      </form>
+
+      <section class="success" id="success" aria-live="polite">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h1>Login successful</h1>
+        <p>You are now signed in.</p>
+      </section>
+    </main>
+
+    <div class="ad-overlay" id="ad-overlay" hidden>
+      <section
+        class="ad-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ad-title"
+      >
+        <button class="close-ad" id="close-ad" type="button" aria-label="Close advertisement">
+          ×
+        </button>
+        <span class="ad-badge">SPECIAL OFFER</span>
+        <h2 id="ad-title">A surprise deal just for you!</h2>
+        <p>Upgrade today and unlock all premium features.</p>
+        <div class="ad-offer">Save 50%</div>
+      </section>
+    </div>
+
+    <script>
+      const form = document.querySelector('#login-form');
+      const username = document.querySelector('#username');
+      const overlay = document.querySelector('#ad-overlay');
+      const closeAd = document.querySelector('#close-ad');
+      const success = document.querySelector('#success');
+
+      let adHasOpened = false;
+      let openAdTimer;
+
+      username.addEventListener('input', () => {
+        if (adHasOpened || !username.value.trim()) {
+          return;
+        }
+
+        window.clearTimeout(openAdTimer);
+        openAdTimer = window.setTimeout(() => {
+          adHasOpened = true;
+          overlay.hidden = false;
+          closeAd.focus();
+        }, 250);
+      });
+
+      closeAd.addEventListener('click', () => {
+        overlay.hidden = true;
+        document.querySelector('#password').focus();
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        if (!form.reportValidity()) {
+          return;
+        }
+
+        form.hidden = true;
+        success.style.display = 'block';
+        document.body.dataset.loginState = 'signed-in';
+      });
+    </script>
+  </body>
+</html>

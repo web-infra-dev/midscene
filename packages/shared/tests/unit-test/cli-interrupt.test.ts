@@ -3,11 +3,11 @@ import {
   hasActiveCliInterruptWaiter,
   waitForCliInterrupt,
 } from '@/cli/interrupt';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 describe('waitForCliInterrupt', () => {
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('resolves on SIGINT and removes its listener', async () => {
@@ -23,12 +23,12 @@ describe('waitForCliInterrupt', () => {
   });
 
   it('uses the watchdog to finalize a forgotten recording', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const source = new EventEmitter();
     const stopped = waitForCliInterrupt(5000, source);
 
     expect(hasActiveCliInterruptWaiter(source)).toBe(true);
-    await vi.advanceTimersByTimeAsync(5000);
+    await rs.advanceTimersByTimeAsync(5000);
 
     await expect(stopped).resolves.toBe('watchdog');
     expect(hasActiveCliInterruptWaiter(source)).toBe(false);

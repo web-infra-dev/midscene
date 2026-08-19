@@ -1,7 +1,10 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import { getModelAdapter } from '@/ai-model/models';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
+import {
+  type PlanningActionOutputProtocol,
+  buildStandardPlanningSystemPrompt,
+} from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -99,6 +102,35 @@ describe('action space', () => {
 });
 
 describe('system prompts', () => {
+  it('planning delegates action output content to the configured protocol', async () => {
+    const actionOutputProtocol: PlanningActionOutputProtocol = {
+      actionOutputTagNames: ['custom-action'],
+      actionOutputRules: 'CUSTOM_ACTION_OUTPUT_RULES',
+      actionOutputPlaceholder: '<custom-action>...</custom-action>',
+      buildActionOutput: ({ type }) => `<custom-action type="${type}" />`,
+    };
+
+    const prompt = await buildStandardPlanningSystemPrompt({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+      actionOutputProtocol,
+    });
+
+    expect(prompt).toContain('related tags: <log>, <custom-action>, <error>');
+    expect(prompt).toContain(
+      'If you output <complete>, do NOT output <custom-action>. The task ends here.',
+    );
+    expect(prompt).toContain('CUSTOM_ACTION_OUTPUT_RULES');
+    expect(prompt).toContain(
+      "Don't output <custom-action> if there is no action to do.",
+    );
+    expect(prompt).toContain('<custom-action>...</custom-action>');
+    expect(prompt).toContain('<custom-action type="Tap" />');
+    expect(prompt).toContain('<custom-action type="Input" />');
+    expect(prompt).not.toContain('<action-type>');
+    expect(prompt).not.toContain('<action-param-json>');
+  });
+
   it('planning - cot', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
@@ -185,6 +217,26 @@ describe('system prompts', () => {
     expect(prompt).not.toContain(
       '## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)',
     );
+  });
+
+  it('planning - fast output omits planning reasoning', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+      includeThought: false,
+      includeLog: false,
+      includeSubGoals: false,
+    });
+
+    expect(prompt).not.toContain('<planning>');
+    expect(prompt).not.toContain('</planning>');
+    expect(prompt).not.toContain('related tags: <planning>');
+    expect(prompt).not.toContain('<log>');
+    expect(prompt).not.toContain('</log>');
+    expect(prompt).not.toContain('related tags: <log>');
+    expect(prompt).toContain('<action-type>...</action-type>');
+    expect(prompt).toContain('<action-param-json>...</action-param-json>');
+    expect(prompt).toMatchSnapshot();
   });
 
   it('planning - includeSubGoals true should contain sub-goal tags', async () => {

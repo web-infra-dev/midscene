@@ -13,7 +13,7 @@
 import { type ChildProcess, execSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
@@ -24,7 +24,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+rs.setConfig({ testTimeout: 360 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -160,6 +160,7 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
 
   it(
     'open side panel and switch to Bridge Mode',
+    { timeout: 20 * 60 * 1000, retry: 0 },
     async () => {
       await agent.aiAct(
         'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
@@ -207,7 +208,6 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
         );
       }
     },
-    { timeout: 20 * 60 * 1000, retry: 0 },
   );
 
   // ── Test: bridge connects to a real server ────────────────────────────

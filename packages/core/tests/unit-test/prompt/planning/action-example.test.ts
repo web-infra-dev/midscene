@@ -2,6 +2,7 @@ import {
   buildActionExample,
   buildPlanningActionOutput,
   createSampleTapAction,
+  defaultMidsceneActionOutputProtocol,
 } from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { getMidsceneLocationSchema } from '@/common';
@@ -53,10 +54,13 @@ describe('buildPlanningActionOutput', () => {
 
 describe('buildActionExample', () => {
   it('builds an action output protocol example', () => {
-    const actionExample = buildActionExample({
-      name: 'Tap',
-      sample: { locate: { prompt: 'the Submit button' } },
-    });
+    const actionExample = buildActionExample(
+      {
+        name: 'Tap',
+        sample: { locate: { prompt: 'the Submit button' } },
+      },
+      { actionOutputProtocol: defaultMidsceneActionOutputProtocol },
+    );
 
     expect(actionExample).toBe(`<action-type>Tap</action-type>
 <action-param-json>
@@ -87,6 +91,7 @@ describe('buildActionExample', () => {
       {
         locatePromptSpec,
         locateResultExampleIndex: 2,
+        actionOutputProtocol: defaultMidsceneActionOutputProtocol,
       },
     );
 
@@ -107,6 +112,7 @@ describe('buildActionExample', () => {
         },
       },
       {
+        actionOutputProtocol: defaultMidsceneActionOutputProtocol,
         locatePromptSpec: {
           resultKey: 'bbox',
           resultValueSchema: '[number, number, number, number]',

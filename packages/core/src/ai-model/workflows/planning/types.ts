@@ -1,5 +1,10 @@
 import type { TUserPrompt } from '@/common';
-import type { DeviceAction, PlanningAIResponse, UIContext } from '@/types';
+import type {
+  AiActEffort,
+  DeviceAction,
+  PlanningAIResponse,
+  UIContext,
+} from '@/types';
 import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../../models';
 import type { ConversationHistory } from './conversation-history';
@@ -13,7 +18,7 @@ export interface PlanOptions {
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
-  deepThink?: boolean;
+  effort: AiActEffort;
   referenceImageMessages?: ChatCompletionUserMessageParam[];
   abortSignal?: AbortSignal;
 }

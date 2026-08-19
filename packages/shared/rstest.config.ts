@@ -1,7 +1,8 @@
 import path from 'node:path';
+import { defineConfig } from '@rstest/core';
 import dotenv from 'dotenv';
-import { defineConfig } from 'vitest/config';
-import { createCoverageConfig } from '../../scripts/vitest-coverage';
+import { createCoverageConfig } from '../../scripts/rstest-coverage';
+import { defineVersion, photonExternal } from '../../scripts/rstest-shared';
 import { version } from './package.json';
 
 /**
@@ -16,19 +17,17 @@ const enableAiTest = Boolean(process.env.AITEST);
 const basicTest = ['tests/unit-test/**/*.test.ts'];
 
 export default defineConfig({
-  test: {
-    coverage: createCoverageConfig(__dirname),
-    include: enableAiTest ? ['tests/ai/**/*.test.ts', ...basicTest] : basicTest,
-  },
+  coverage: createCoverageConfig(__dirname),
+  include: enableAiTest ? ['tests/ai/**/*.test.ts', ...basicTest] : basicTest,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  define: {
-    __VERSION__: JSON.stringify(version),
+  source: {
+    define: defineVersion(version),
   },
-  ssr: {
-    external: ['@silvia-odwyer/photon'],
+  output: {
+    externals: photonExternal,
   },
 });

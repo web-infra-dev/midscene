@@ -3,7 +3,7 @@ import {
   getErrorStack,
   serializeError,
 } from '@/agent-tools/error-formatter';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('getErrorMessage', () => {
   it('returns the Error.message for Error instances', () => {

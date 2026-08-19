@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { version } from '../../../package.json';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
 import {

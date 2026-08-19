@@ -7,28 +7,28 @@ import type {
 type PlanningParam = NonNullable<ExecutionTaskPlanningParam>;
 type PlanningLocateParam = NonNullable<ExecutionTaskPlanningLocate['param']>;
 
-type DeepThinkParam = Pick<PlanningParam, 'deepThink'>;
+type EffortParam = Pick<PlanningParam, 'effort'>;
 type DeepLocateParam = Pick<PlanningLocateParam, 'deepLocate'>;
 
 type ConsumedDumpFlagKeys = {
-  deepThink: keyof Pick<PlanningParam, 'deepThink'>;
+  effort: keyof Pick<PlanningParam, 'effort'>;
   deepLocate: keyof Pick<PlanningLocateParam, 'deepLocate'>;
 };
 
 export const consumedDumpFlagKeys = {
-  deepThink: 'deepThink',
+  effort: 'effort',
   deepLocate: 'deepLocate',
 } as const satisfies ConsumedDumpFlagKeys;
 
 export function hasDeepThinkFlag(task: ExecutionTask): boolean {
-  // deepThink is an aiAct planning-phase flag, not a per-locate-task flag.
+  // effort is an aiAct planning-phase option, not a per-locate-task flag.
   if (task.type !== 'Planning' || task.subType === 'Locate') {
     return false;
   }
 
-  const param = task.param as Partial<DeepThinkParam> | undefined;
+  const param = task.param as Partial<EffortParam> | undefined;
 
-  return param?.[consumedDumpFlagKeys.deepThink] === true;
+  return param?.[consumedDumpFlagKeys.effort] === 'deepThink';
 }
 
 export function hasDeepLocateFlag(task: ExecutionTask): boolean {

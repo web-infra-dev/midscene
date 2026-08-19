@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   ScrcpyFreshFrameUnavailableError,
   ScrcpyScreenshotManager,
@@ -20,20 +20,20 @@ const dataPacket = (tag: number, pts: bigint) => ({
 
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('validateEnvironment', () => {
     it('should succeed when ffmpeg is available', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       await expect(manager.validateEnvironment()).resolves.toBeUndefined();
     });
 
     it('should throw when ffmpeg is not available', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(false);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(false);
 
       await expect(manager.validateEnvironment()).rejects.toThrow(
         'ffmpeg is not available',
@@ -42,7 +42,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should throw when checkFfmpegAvailable throws an error', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockRejectedValue(
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockRejectedValue(
         new Error('unexpected error'),
       );
 
@@ -53,7 +53,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should cache ffmpeg check result (only check once on success)', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const spy = vi
+      const spy = rs
         .spyOn(manager as any, 'checkFfmpegAvailable')
         .mockResolvedValue(true);
 
@@ -65,10 +65,10 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should be independent from ensureConnected', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      vi.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
+      rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       // validateEnvironment should not trigger ensureConnected logic
-      const ensureConnectedSpy = vi.spyOn(manager, 'ensureConnected');
+      const ensureConnectedSpy = rs.spyOn(manager, 'ensureConnected');
 
       await manager.validateEnvironment();
 
@@ -173,7 +173,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).scrcpyClient = {};
       (manager as any).videoStream = {};
-      const readClock = vi
+      const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValue({
           deviceUptimeUs: 1_000_000n,
@@ -251,10 +251,10 @@ describe('ScrcpyScreenshotManager', () => {
         'The underlying readable ended before the struct was deserialized',
       );
       const reader = {
-        read: vi.fn().mockRejectedValue(streamError),
-        cancel: vi.fn().mockRejectedValue(streamError),
+        read: rs.fn().mockRejectedValue(streamError),
+        cancel: rs.fn().mockRejectedValue(streamError),
       };
-      const close = vi.fn().mockResolvedValue(undefined);
+      const close = rs.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = reader;
       (manager as any).scrcpyClient = { close };
       (manager as any).videoStream = {};
@@ -272,10 +272,10 @@ describe('ScrcpyScreenshotManager', () => {
     it('should disconnect the current session after a clean stream end', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const reader = {
-        read: vi.fn().mockResolvedValue({ done: true }),
-        cancel: vi.fn().mockResolvedValue(undefined),
+        read: rs.fn().mockResolvedValue({ done: true }),
+        cancel: rs.fn().mockResolvedValue(undefined),
       };
-      const close = vi.fn().mockResolvedValue(undefined);
+      const close = rs.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = reader;
       (manager as any).scrcpyClient = { close };
       (manager as any).videoStream = {};
@@ -291,13 +291,13 @@ describe('ScrcpyScreenshotManager', () => {
     it('should not disconnect a replacement session when an obsolete reader ends', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const obsoleteReader = {
-        read: vi.fn().mockResolvedValue({ done: true }),
-        cancel: vi.fn().mockResolvedValue(undefined),
+        read: rs.fn().mockResolvedValue({ done: true }),
+        cancel: rs.fn().mockResolvedValue(undefined),
       };
       const replacementReader = {
-        cancel: vi.fn().mockResolvedValue(undefined),
+        cancel: rs.fn().mockResolvedValue(undefined),
       };
-      const close = vi.fn().mockResolvedValue(undefined);
+      const close = rs.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = replacementReader;
       (manager as any).scrcpyClient = { close };
       (manager as any).videoStream = {};
@@ -324,7 +324,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('samples the device uptime and brackets it with host clocks', async () => {
-      const spawnWaitText = vi.fn().mockResolvedValue({
+      const spawnWaitText = rs.fn().mockResolvedValue({
         exitCode: 0,
         stdout: 'mLastWakeTime=1000 (50 ms ago)',
         stderr: '',
@@ -334,10 +334,10 @@ describe('ScrcpyScreenshotManager', () => {
           shellProtocol: { spawnWaitText },
         },
       } as any);
-      vi.spyOn(manager as any, 'monotonicTimeUs')
+      rs.spyOn(manager as any, 'monotonicTimeUs')
         .mockReturnValueOnce(10_000_000n)
         .mockReturnValueOnce(10_020_000n);
-      vi.spyOn(Date, 'now')
+      rs.spyOn(Date, 'now')
         .mockReturnValueOnce(2_000)
         .mockReturnValueOnce(2_020);
 
@@ -354,7 +354,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('drops frames captured before the device-clock barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const listener = vi.fn();
+      const listener = rs.fn();
       manager.subscribeKeyframes(listener);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
@@ -362,7 +362,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
       const barrier = await manager.setFreshnessBarrier(
         'completed input action',
@@ -385,7 +385,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('projects every barrier from one stream-epoch clock sample', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const readClock = vi
+      const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValue({
           deviceUptimeUs: 1_000_000n,
@@ -394,7 +394,7 @@ describe('ScrcpyScreenshotManager', () => {
           roundTripUs: 10_000n,
         });
       await manager.ensureFrameClockCalibration();
-      vi.spyOn(manager as any, 'monotonicTimeUs')
+      rs.spyOn(manager as any, 'monotonicTimeUs')
         .mockReturnValueOnce(10_100_000n)
         .mockReturnValueOnce(10_250_000n);
 
@@ -418,7 +418,7 @@ describe('ScrcpyScreenshotManager', () => {
             roundTripUs: bigint;
           }) => void)
         | undefined;
-      const readClock = vi
+      const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockReturnValue(
           new Promise((resolve) => {
@@ -452,7 +452,7 @@ describe('ScrcpyScreenshotManager', () => {
             roundTripUs: bigint;
           }) => void)
         | undefined;
-      vi.spyOn(manager as any, 'readDeviceClockCalibration').mockReturnValue(
+      rs.spyOn(manager as any, 'readDeviceClockCalibration').mockReturnValue(
         new Promise((resolve) => {
           resolveClock = resolve;
         }),
@@ -473,7 +473,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('requires a stream-epoch clock anchor before arming a barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const readClock = vi.spyOn(manager as any, 'readDeviceClockCalibration');
+      const readClock = rs.spyOn(manager as any, 'readDeviceClockCalibration');
 
       await expect(
         manager.setFreshnessBarrier('completed input action'),
@@ -484,7 +484,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('takes a new clock sample after the stream epoch is reset', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const readClock = vi
+      const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValueOnce({
           deviceUptimeUs: 1_000_000n,
@@ -517,7 +517,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
 
       (manager as any).processFrame(spsPacket());
       (manager as any).processFrame(dataPacket(0x01, 1_050_000n));
@@ -537,8 +537,8 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
-      vi.spyOn(Date, 'now').mockReturnValue(9_999_999_999_999);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
+      rs.spyOn(Date, 'now').mockReturnValue(9_999_999_999_999);
 
       expect((manager as any).estimateFrameAgeUs(1_050_000n)).toBe(50_000n);
     });
@@ -551,7 +551,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 5_000_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
       expect((manager as any).estimateFrameAge(1_000_000n)).toEqual({
         estimatedAgeUs: 0n,
@@ -569,7 +569,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 20_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
       expect((manager as any).isFrameAgeAcceptable(1_000_000n)).toBe(true);
 
@@ -585,7 +585,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
       (manager as any).processFrame(spsPacket());
       (manager as any).processFrame(dataPacket(0x01, 1_050_000n));
@@ -603,7 +603,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).processFrame(dataPacket(0x03, 1_200_000n));
       expect(manager.getLatestRawKeyframe()).toBeNull();
 
-      const readClock = vi
+      const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValue({
           deviceUptimeUs: 200_000n,
@@ -621,7 +621,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('hides over-age frames from continuous frame consumers', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const listener = vi.fn();
+      const listener = rs.fn();
       manager.subscribeKeyframes(listener);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 2_000_000n,
@@ -629,7 +629,7 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
       (manager as any).processFrame(spsPacket());
       (manager as any).processFrame(dataPacket(0x01, 1_000_000n));
@@ -652,13 +652,13 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_100_000n);
 
-      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
-      const waitForNext = vi.spyOn(manager as any, 'waitForNextKeyframe');
-      const setBarrier = vi.spyOn(manager, 'setFreshnessBarrier');
-      const decode = vi
+      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      const waitForNext = rs.spyOn(manager as any, 'waitForNextKeyframe');
+      const setBarrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const decode = rs
         .spyOn(manager as any, 'decodeH264ToJpeg')
         .mockResolvedValue(Buffer.from('jpeg'));
 
@@ -684,18 +684,18 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
-      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
-      vi.spyOn(manager as any, 'waitForNextKeyframe').mockResolvedValue({
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      rs.spyOn(manager as any, 'waitForNextKeyframe').mockResolvedValue({
         data: Buffer.from('current'),
         header: Buffer.from('header'),
         ptsUs: 2_006_000n,
         estimatedAgeMs: 0,
         capturedAt: 2_000,
       });
-      const barrier = vi.spyOn(manager, 'setFreshnessBarrier');
-      const decode = vi
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const decode = rs
         .spyOn(manager as any, 'decodeH264ToJpeg')
         .mockResolvedValue(Buffer.from('jpeg'));
 
@@ -720,18 +720,18 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
-      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      vi.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
-      vi.spyOn(manager as any, 'waitForNextKeyframe').mockResolvedValue({
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      rs.spyOn(manager as any, 'waitForNextKeyframe').mockResolvedValue({
         data: Buffer.from('current'),
         header: Buffer.from('header'),
         ptsUs: 2_006_000n,
         estimatedAgeMs: 0,
         capturedAt: 2_000,
       });
-      const barrier = vi.spyOn(manager, 'setFreshnessBarrier');
-      vi.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
         Buffer.from('jpeg'),
       );
 
@@ -752,17 +752,17 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const ensureConnected = vi
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const ensureConnected = rs
         .spyOn(manager, 'ensureConnected')
         .mockResolvedValue();
-      const disconnect = vi.spyOn(manager, 'disconnect').mockResolvedValue();
-      const barrier = vi.spyOn(manager, 'setFreshnessBarrier');
-      vi.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValue(
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      rs.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValue(
         new Error('no post-action frame'),
       );
-      const decode = vi.spyOn(manager as any, 'decodeH264ToJpeg');
+      const decode = rs.spyOn(manager as any, 'decodeH264ToJpeg');
 
       await expect(manager.getScreenshotJpeg()).rejects.toBeInstanceOf(
         ScrcpyFreshFrameUnavailableError,
@@ -799,8 +799,8 @@ describe('ScrcpyScreenshotManager', () => {
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
       };
-      vi.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      vi.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      rs.spyOn(manager, 'disconnect').mockResolvedValue();
 
       await expect(manager.getScreenshotJpeg()).rejects.toThrow(
         /has no PTS metadata/,
@@ -816,7 +816,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).lastRawKeyframe = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
       (manager as any).keyframeResolvers = [() => {}];
-      (manager as any).streamReader = { cancel: vi.fn() };
+      (manager as any).streamReader = { cancel: rs.fn() };
       (manager as any).frameFreshnessBarrierPtsUs = 123n;
       (manager as any).deviceClockCalibration = {};
       (manager as any).lastFramePtsUs = 456n;
@@ -850,7 +850,7 @@ describe('ScrcpyScreenshotManager', () => {
     it('should handle scrcpyClient.close() error gracefully', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).scrcpyClient = {
-        close: vi.fn().mockRejectedValue(new Error('close failed')),
+        close: rs.fn().mockRejectedValue(new Error('close failed')),
       };
 
       // Should not throw
@@ -861,7 +861,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('should cancel streamReader to stop consumeFramesLoop', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
-      const cancelFn = vi.fn().mockResolvedValue(undefined);
+      const cancelFn = rs.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = { cancel: cancelFn };
 
       await manager.disconnect();
@@ -877,7 +877,7 @@ describe('ScrcpyScreenshotManager', () => {
         resolveCancel = resolve;
       });
       (manager as any).streamReader = {
-        cancel: vi.fn().mockReturnValue(cancelPromise),
+        cancel: rs.fn().mockReturnValue(cancelPromise),
       };
 
       let disconnected = false;
@@ -896,7 +896,7 @@ describe('ScrcpyScreenshotManager', () => {
     it('should handle streamReader.cancel() error gracefully', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).streamReader = {
-        cancel: vi.fn().mockRejectedValue(new Error('stream already errored')),
+        cancel: rs.fn().mockRejectedValue(new Error('stream already errored')),
       };
 
       await expect(manager.disconnect()).resolves.toBeUndefined();
@@ -907,7 +907,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       let clientNulledBeforeClose = false;
       (manager as any).scrcpyClient = {
-        close: vi.fn().mockImplementation(async () => {
+        close: rs.fn().mockImplementation(async () => {
           // At this point, scrcpyClient should already be null
           clientNulledBeforeClose = (manager as any).scrcpyClient === null;
         }),

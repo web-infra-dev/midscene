@@ -13,7 +13,7 @@ import {
   readUIObservationRecord,
   writeUIObservationRecord,
 } from '@/agent-tools/observation-record';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 
 const directories: string[] = [];
 

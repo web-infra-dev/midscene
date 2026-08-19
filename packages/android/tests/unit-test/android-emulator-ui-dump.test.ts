@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   dumpUiHierarchyWithRetry,
   isTransientAdbTransportError,
@@ -12,14 +12,14 @@ type ShellResult = string | Error;
 
 function createAdbMock(results: ShellResult[]) {
   const queue = [...results];
-  const shell = vi.fn(async () => {
+  const shell = rs.fn(async () => {
     const result = queue.shift();
     if (result instanceof Error) {
       throw result;
     }
     return result ?? '';
   });
-  const waitForDevice = vi.fn(async () => undefined);
+  const waitForDevice = rs.fn(async () => undefined);
   const adb: UiDumpAdb = { shell, waitForDevice };
   return { adb, shell, waitForDevice };
 }
@@ -83,7 +83,7 @@ describe('Android emulator UI hierarchy dump', () => {
       '',
       '<hierarchy />',
     ]);
-    const onRetry = vi.fn();
+    const onRetry = rs.fn();
 
     await expect(
       dumpUiHierarchyWithRetry(adb, { ...options, onRetry }),
@@ -121,7 +121,7 @@ describe('Android emulator UI hierarchy dump', () => {
     phase: 'read' | 'validate';
   }>)('retries $name', async ({ results, phase }) => {
     const { adb } = createAdbMock(results);
-    const onRetry = vi.fn();
+    const onRetry = rs.fn();
 
     await expect(
       dumpUiHierarchyWithRetry(adb, { ...options, onRetry }),
@@ -164,7 +164,7 @@ describe('Android emulator UI hierarchy dump', () => {
 
   it('stops after the configured number of attempts', async () => {
     const failure = execError('uiautomator was not ready', 255);
-    const shell = vi.fn(async (command: string) => {
+    const shell = rs.fn(async (command: string) => {
       if (command.startsWith('uiautomator dump')) {
         throw failure;
       }
@@ -172,9 +172,9 @@ describe('Android emulator UI hierarchy dump', () => {
     });
     const adb: UiDumpAdb = {
       shell,
-      waitForDevice: vi.fn(async () => undefined),
+      waitForDevice: rs.fn(async () => undefined),
     };
-    const onRetry = vi.fn();
+    const onRetry = rs.fn();
 
     await expect(
       dumpUiHierarchyWithRetry(adb, {

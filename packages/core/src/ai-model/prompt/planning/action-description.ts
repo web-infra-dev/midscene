@@ -7,6 +7,7 @@ import yaml from 'js-yaml';
 import type { z } from 'zod';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { buildActionExample } from './action-example';
+import type { PlanningActionOutputProtocol } from './action-output-protocol';
 
 export const locateParamSchemaDescription = (
   promptSpec?: LocateResultPromptSpec,
@@ -74,10 +75,12 @@ export const buildActionDescription = (
   {
     includeLocateInPlanning = false,
     locatePromptSpec,
+    actionOutputProtocol,
   }: {
     includeLocateInPlanning?: boolean;
     locatePromptSpec?: LocateResultPromptSpec;
-  } = {},
+    actionOutputProtocol: PlanningActionOutputProtocol;
+  },
 ) => {
   const locateParamTypeDescription = locateParamSchemaDescription(
     includeLocateInPlanning ? locatePromptSpec : undefined,
@@ -148,6 +151,7 @@ export const buildActionDescription = (
 
   const actionExample = buildActionExample(action, {
     locatePromptSpec: includeLocateInPlanning ? locatePromptSpec : undefined,
+    actionOutputProtocol,
   });
   if (actionExample) {
     actionDescription.sample = actionExample;
@@ -161,7 +165,8 @@ export const buildActionSpaceDescription = (
   options: {
     includeLocateInPlanning?: boolean;
     locatePromptSpec?: LocateResultPromptSpec;
-  } = {},
+    actionOutputProtocol: PlanningActionOutputProtocol;
+  },
 ) =>
   yaml
     .dump(

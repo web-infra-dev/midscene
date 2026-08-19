@@ -1,6 +1,7 @@
 import {
   buildActionDescription,
   buildActionSpaceDescription,
+  defaultMidsceneActionOutputProtocol,
 } from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
@@ -24,11 +25,26 @@ const mockLocatePromptSpec: LocateResultPromptSpec = {
 
 const buildActionDescriptions = (
   action: Parameters<typeof buildActionDescription>[0],
-  options?: Parameters<typeof buildActionDescription>[1],
-) => ({
-  actionDescription: buildActionDescription(action, options),
-  actionSpaceDescription: buildActionSpaceDescription([action], options),
-});
+  options: Omit<
+    Parameters<typeof buildActionDescription>[1],
+    'actionOutputProtocol'
+  > = {},
+) => {
+  const optionsWithActionOutputProtocol = {
+    ...options,
+    actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+  };
+  return {
+    actionDescription: buildActionDescription(
+      action,
+      optionsWithActionOutputProtocol,
+    ),
+    actionSpaceDescription: buildActionSpaceDescription(
+      [action],
+      optionsWithActionOutputProtocol,
+    ),
+  };
+};
 
 describe('buildActionDescription and buildActionSpaceDescription', () => {
   it('serializes action descriptions as valid YAML', () => {
@@ -48,7 +64,9 @@ describe('buildActionDescription and buildActionSpaceDescription', () => {
       },
     ];
 
-    const actionSpaceDescription = buildActionSpaceDescription(actionSpace);
+    const actionSpaceDescription = buildActionSpaceDescription(actionSpace, {
+      actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+    });
 
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Tap
@@ -68,7 +86,11 @@ describe('buildActionDescription and buildActionSpaceDescription', () => {
           </action-param-json>"
     `);
     expect(yaml.load(actionSpaceDescription)).toEqual(
-      actionSpace.map((action) => buildActionDescription(action)),
+      actionSpace.map((action) =>
+        buildActionDescription(action, {
+          actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+        }),
+      ),
     );
   });
 
