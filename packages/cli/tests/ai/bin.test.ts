@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getTmpFile } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
+import { describe, expect, test } from '@rstest/core';
 import { execa } from 'execa';
-import { describe, expect, test } from 'vitest';
 
 const cliBin = require.resolve('../../bin/midscene');
 

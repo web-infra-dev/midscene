@@ -2,12 +2,12 @@ import {
   BrowserPageManager,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 type PageMock = {
   id: string;
   closed?: boolean;
-  bringToFront: ReturnType<typeof vi.fn>;
+  bringToFront: ReturnType<typeof rs.fn>;
 };
 
 type NewPageEvent = {
@@ -17,7 +17,7 @@ type NewPageEvent = {
 
 const createPage = (id: string): PageMock => ({
   id,
-  bringToFront: vi.fn(),
+  bringToFront: rs.fn(),
 });
 
 function createManager(options?: {
@@ -26,7 +26,7 @@ function createManager(options?: {
 }) {
   let activePage = createPage('initial');
   const handlers = new Set<(event: NewPageEvent) => void>();
-  const debug = vi.fn();
+  const debug = rs.fn();
   const newPage = options?.newPage ?? createPage('created');
 
   const manager = new BrowserPageManager<PageMock, NewPageEvent>({
@@ -89,7 +89,7 @@ describe('BrowserPageManager', () => {
     expect(ctx.activePage.id).toBe('initial');
 
     ctx.emit({ kind: 'page', page: nextPage });
-    await vi.waitFor(() => expect(ctx.activePage).toBe(nextPage));
+    await rs.waitFor(() => expect(ctx.activePage).toBe(nextPage));
     expect(nextPage.bringToFront).toHaveBeenCalledTimes(1);
   });
 

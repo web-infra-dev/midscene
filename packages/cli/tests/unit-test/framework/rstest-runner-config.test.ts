@@ -2,13 +2,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runRstestYamlProject } from '@/framework/rstest-runner';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  runRstest: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  runRstest: rs.fn(),
 }));
 
-vi.mock('@rstest/core/api', () => ({
+rs.mock('@rstest/core/api', () => ({
   runRstest: mocks.runRstest,
 }));
 

@@ -1,12 +1,12 @@
 import type { Cache } from '@midscene/core';
 import { processCacheConfig } from '@midscene/core/utils';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 // Mock the global config manager to control environment variables
-vi.mock('@midscene/shared/env', () => ({
+rs.mock('@midscene/shared/env', () => ({
   MIDSCENE_CACHE: 'MIDSCENE_CACHE',
   globalConfigManager: {
-    getEnvConfigInBoolean: vi.fn(),
+    getEnvConfigInBoolean: rs.fn(),
   },
 }));
 
@@ -14,7 +14,7 @@ import { globalConfigManager } from '@midscene/shared/env';
 
 describe('processCacheConfig in CLI', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('Basic cache configuration', () => {
@@ -65,7 +65,7 @@ describe('processCacheConfig in CLI', () => {
 
   describe('Environment variable support (MIDSCENE_CACHE)', () => {
     test('should enable legacy cacheId when MIDSCENE_CACHE is true', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 
@@ -80,7 +80,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should disable legacy cacheId when MIDSCENE_CACHE is false', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         false,
       );
 
@@ -93,7 +93,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should prefer new cache config over legacy cacheId', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 
@@ -108,7 +108,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should prefer new cache config over legacy cacheId even when env is false', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         false,
       );
 
@@ -123,7 +123,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should prefer explicit cache false over legacy cacheId', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 
@@ -224,7 +224,7 @@ describe('processCacheConfig in CLI', () => {
 
   describe('Backward compatibility', () => {
     test('should handle legacy cacheId with environment variable correctly', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 
@@ -237,7 +237,7 @@ describe('processCacheConfig in CLI', () => {
     });
 
     test('should ignore legacy cacheId when environment variable is not set', () => {
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         false,
       );
 

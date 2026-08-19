@@ -5,7 +5,7 @@ import {
   resolveViewportSize,
   resolveWebViewportSize,
 } from '@/common/viewport';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('viewport helpers', () => {
   it('uses the shared default viewport size', () => {
