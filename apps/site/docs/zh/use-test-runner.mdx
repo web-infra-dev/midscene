@@ -223,8 +223,6 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 
 当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
 
----
-
 ## 查看测试结果
 
 每次测试运行结束后，你可以在控制台直接看到用例的执行状态和简要汇总。同时，运行器会在本地生成可视化的测试报告。
@@ -242,8 +240,6 @@ midscene_run/report/
 你只需在浏览器中打开该目录下的 HTML 文件，即可直观地看到每一个 `aiAct` 和 `aiAssert` 的执行轨迹、元素定位结果以及完整的历史截图。
 
 > **提示**：如果想修改可视化报告的默认保存目录，可以通过修改 `midscene.config.ts` 中的 `output.reportDir` 配置来实现。
-
----
 
 ## 当前限制
 

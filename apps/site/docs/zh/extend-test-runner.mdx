@@ -4,8 +4,6 @@
 
 如果你想先了解整体设计，请阅读 [Test Runner 概览](./test-runner-overview)。
 
----
-
 ## 快速开始
 
 下面通过一个简单的示例项目，展示如何快速搭建一个测试项目，并在其中切换浏览器 UA 语言。
@@ -187,8 +185,6 @@ pnpm exec midscene-test
 
 运行器会自动加载 `midscene.config.ts`，查找满足条件的测试用例并执行。
 
----
-
 ## 注册自定义业务 Node
 
 通过 `defineNode()`，你可以将复杂的接口调用、数据库操作、清理任务或特定的浏览器交互封装为具名 Node。封装后，用例作者可以直接在测试用例中调用它们。
@@ -294,8 +290,6 @@ const refundOrder = defineNode({
 * `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
 * `case` 或 `document`：当前执行位置的详细信息。
 
----
-
 ## 进阶实战：多节点协作与状态共享
 
 在实际业务测试中，多个 Node 常常需要共享上下文状态。例如，订单退款用例需要在 `beforeEach` 中创建订单并记录订单 ID，在 `steps` 中访问该 ID 进行退款，最后在 `afterEach` 中进行数据清理。
@@ -383,8 +377,6 @@ const cleanupOrder = defineNode<
 export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 ```
 
----
-
 ## 集成 Midscene Agent 与生成说明文档
 
 ### 集成 Midscene Agent
@@ -421,8 +413,6 @@ pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.t
 ```
 
 生成的文档包含当前 Test Project 实际注册的全部 Node，其中包括 `createMidsceneNodes()` 返回的六个内置 Node。Node 按名称排序。Zod `inputSchema` 会自动转换为 JSON Schema。
-
----
 
 ## 配置和管理 Test Project
 
@@ -464,8 +454,6 @@ export default defineTestProject<ProjectContext>({
    * 单个 Project 内部，所有的工作流文档（Workflow Documents）、用例（Cases）和步骤（Steps）依然**严格串行**执行，以保证测试的确定性。
    * 当你需要同时驱动多台手机设备或多个浏览器实例时，应当创建多个不同的 `projects` 声明并增大并发数。
 3. **生命周期清理**：使用 `defineProjectSetup()` 声明环境准备动作。利用 `onTeardown()` 注册销毁钩子，确保即便测试意外中断或运行中途出错，已获取的长生命周期资源也能按照后进先出的逆序被安全释放。
-
----
 
 ## 管理测试运行结果与 CI 对接
 
@@ -542,8 +530,6 @@ export default defineTestProject<ProjectContext>({
 * **`schemaVersion`**：当前结构协议版本，目前为 `3`。
 * **`exitCode`**：命令行退出码。当发生任何用例失败（failed）、文档解析失败（document-failed）或收集阶段发生静态校验错误（collection-errors）时，其值会输出为 `1`，供 CI/CD 流水线做状态拦截。
 * **`summary`**：详细的运行数据指标（包含成功、失败、跳过、静态校验错误的用例数汇总）。
-
----
 
 ## 编程式 API
 
