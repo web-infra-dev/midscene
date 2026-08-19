@@ -9,11 +9,7 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import {
-  type PlanningActionOutputProtocol,
-  buildStandardPlanningSystemPrompt,
-  defaultMidsceneActionOutputProtocol,
-} from '../../prompt/planning';
+import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -45,7 +41,6 @@ type CallAndParsePlanningResponseOptions = {
   locateResultContext: LocateResultContext;
   includeThought: boolean;
   includeLog: boolean;
-  actionOutputProtocol: PlanningActionOutputProtocol;
 };
 
 async function callAndParsePlanningResponse(
@@ -66,8 +61,14 @@ async function callAndParsePlanningResponse(
     locateResultContext,
     includeThought,
     includeLog,
-    actionOutputProtocol,
   } = options;
+  assert(
+    modelRuntime.adapter.planning.kind === 'standard',
+    'callAndParsePlanningResponse requires a standard planning adapter',
+  );
+  const actionOutputProtocol =
+    modelRuntime.adapter.planning.protocol.actionOutputProtocol;
+
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
       callAI(
@@ -80,17 +81,13 @@ async function callAndParsePlanningResponse(
         },
       ),
     parseResponse: (response) => {
-      const planFromAI = parseStandardPlanningResponse(
-        response.content,
-        modelRuntime.adapter.jsonParser,
-        {
-          includeThought,
-          actionOutputProtocol,
-          ...(includeLog
-            ? { logSource: 'model' }
-            : { logSource: 'action', actionSpace }),
-        },
-      );
+      const planFromAI = parseStandardPlanningResponse(response.content, {
+        includeThought,
+        actionOutputProtocol,
+        ...(includeLog
+          ? { logSource: 'model' }
+          : { logSource: 'action', actionSpace }),
+      });
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
@@ -143,6 +140,11 @@ export async function standardPlan(
   const { adapter } = modelRuntime;
   const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
+  assert(
+    adapter.planning.kind === 'standard',
+    'standardPlan requires a standard planning adapter',
+  );
+  const planningProtocol = adapter.planning.protocol;
 
   if (opts.includeLocateInPlanning && !modelRuntime.config.modelFamily) {
     throw new Error(
@@ -159,7 +161,6 @@ export async function standardPlan(
   const includeSubGoals = opts.effort === 'deepThink';
   const includeThought = opts.effort !== 'fast';
   const includeLog = opts.effort !== 'fast';
-  const actionOutputProtocol = defaultMidsceneActionOutputProtocol;
 
   if (opts.includeLocateInPlanning && !locateResultAdapter) {
     throw new Error(
@@ -172,7 +173,7 @@ export async function standardPlan(
     includeThought,
     includeLog,
     includeSubGoals,
-    actionOutputProtocol,
+    planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultAdapter
       ? {
           includeLocateInPlanning: true,
@@ -299,7 +300,6 @@ export async function standardPlan(
     },
     includeThought,
     includeLog,
-    actionOutputProtocol,
   });
 
   let shouldContinuePlanning = true;

@@ -21,6 +21,7 @@ import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
+import type { StandardPlanningProtocol } from './planning-protocol';
 
 export type {
   ImagePreprocessPolicy,
@@ -165,6 +166,7 @@ interface PlanningPolicy {
 export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'standard';
+      protocol: StandardPlanningProtocol;
     })
   | (PlanningPolicy & {
       kind: 'custom';
@@ -175,6 +177,7 @@ export type PlanningAdapter =
 export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
+      protocol?: StandardPlanningProtocol;
     })
   | (Partial<PlanningPolicy> &
       (

@@ -1,4 +1,6 @@
 import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
+import { defaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
+import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
@@ -148,6 +150,10 @@ describe('ResolvedModelAdapter', () => {
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: true,
     });
+    if (adapter.planning.kind !== 'standard') {
+      throw new Error('default adapter should use standard planning');
+    }
+    expect(adapter.planning.protocol).toBe(defaultMidscenePlanningProtocol);
     expect(adapter.locate.kind).toBe('standard');
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
@@ -252,12 +258,20 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('applies standard planning overrides from adapter definitions', () => {
+    const planningProtocol: StandardPlanningProtocol = {
+      ...defaultMidscenePlanningProtocol,
+      actionSpaceProtocol: {
+        ...defaultMidscenePlanningProtocol.actionSpaceProtocol,
+        title: 'Test actions',
+      },
+    };
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
           cacheEnabled: false,
           defaultReplanningCycleLimit: 7,
           supportsActionDeepLocate: false,
+          protocol: planningProtocol,
         },
         locate: {
           supportsSearchArea: false,
@@ -271,6 +285,7 @@ describe('ResolvedModelAdapter', () => {
       cacheEnabled: false,
       defaultReplanningCycleLimit: 7,
       supportsActionDeepLocate: false,
+      protocol: planningProtocol,
     });
     expect(adapter.locate.supportsSearchArea).toBe(false);
   });

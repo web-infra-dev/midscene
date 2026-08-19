@@ -1,10 +1,10 @@
+import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import {
-  buildActionExample,
+  buildActionOutputExample,
   createSampleInputAction,
   createSampleTapAction,
-} from './action-example';
-import type { PlanningActionOutputProtocol } from './action-output-protocol';
+} from './action-output-example';
 import { buildPlanningResponseExample } from './planning-response-example';
 import { buildSubGoalsText } from './sub-goals-text';
 
@@ -34,31 +34,35 @@ export const buildPlanningMultiTurnExample = ({
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
 }) => {
+  const buildActionOutput = actionOutputProtocol.buildActionOutput;
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     includeSubGoals ? content : fallbackContent;
 
-  const tapNameFieldExample = buildActionExample(
+  const tapNameFieldActionOutputExample = buildActionOutputExample(
     createSampleTapAction('Name input field in the registration form'),
     {
       locatePromptSpec,
       locateResultExampleIndex: 2,
-      actionOutputProtocol,
+      buildActionOutput,
     },
   );
-  const inputNameExample = buildActionExample(createSampleInputAction('John'), {
-    actionOutputProtocol,
-  });
-  const tapEmailFieldExample = buildActionExample(
+  const inputNameActionOutputExample = buildActionOutputExample(
+    createSampleInputAction('John'),
+    {
+      buildActionOutput,
+    },
+  );
+  const tapEmailFieldActionOutputExample = buildActionOutputExample(
     createSampleTapAction('Email input field in the registration form'),
     {
       locatePromptSpec,
       locateResultExampleIndex: 3,
-      actionOutputProtocol,
+      buildActionOutput,
     },
   );
-  const inputEmailExample = buildActionExample(
+  const inputEmailActionOutputExample = buildActionOutputExample(
     createSampleInputAction('john@example.com'),
-    { actionOutputProtocol },
+    { buildActionOutput },
   );
 
   return `
@@ -101,7 +105,7 @@ ${buildPlanningResponseExample({
   log: includeLog
     ? 'Click on the Name field to start filling the form'
     : undefined,
-  actionExample: tapNameFieldExample,
+  actionOutputExample: tapNameFieldActionOutputExample,
 })}
 
 ### Turn 2 - After clicking Name field
@@ -133,7 +137,7 @@ ${buildPlanningResponseExample({
       )}`
     : undefined,
   log: includeLog ? "Typing 'John' into the Name field" : undefined,
-  actionExample: inputNameExample,
+  actionOutputExample: inputNameActionOutputExample,
 })}
 
 ### Turn 3 - After entering name
@@ -172,7 +176,7 @@ ${buildPlanningResponseExample({
     ? "Name field has been filled with 'John'"
     : undefined,
   log: includeLog ? 'Moving to the Email field' : undefined,
-  actionExample: tapEmailFieldExample,
+  actionOutputExample: tapEmailFieldActionOutputExample,
 })}
 
 ### Turn 4 - After clicking Email field
@@ -204,7 +208,7 @@ ${buildPlanningResponseExample({
       )}`
     : undefined,
   log: includeLog ? 'Typing email address into the Email field' : undefined,
-  actionExample: inputEmailExample,
+  actionOutputExample: inputEmailActionOutputExample,
 })}
 
 ### Turn 5 - After entering email (${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')})

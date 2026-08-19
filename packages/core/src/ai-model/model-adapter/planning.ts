@@ -7,6 +7,7 @@ import type {
   CustomPlanningDefinition,
   ResolvedCustomPlanningDefinition,
 } from './custom-planning-types';
+import { defaultMidscenePlanningProtocol } from './default-planning-protocol';
 import type { ModelAdapterDefinition, PlanningAdapter } from './types';
 
 const defaultReplanningCycleLimit = 20;
@@ -62,5 +63,6 @@ export function resolvePlanning(
     defaultReplanningCycleLimit:
       planning?.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
     supportsActionDeepLocate: planning?.supportsActionDeepLocate ?? true,
+    protocol: planning?.protocol ?? defaultMidscenePlanningProtocol,
   };
 }
