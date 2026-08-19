@@ -13,7 +13,7 @@ import {
   resolveDefaultFrameworkImport,
   resolveTestName,
 } from '@/framework/rstest-project';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-rstest-'));
 

@@ -8,18 +8,18 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type RstestTest, defineYamlCaseTest } from '@/framework/rstest-entry';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  rstestTest: vi.fn(),
-  runYamlCaseResult: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  rstestTest: rs.fn(),
+  runYamlCaseResult: rs.fn(),
 }));
 
-vi.mock('@rstest/core', () => ({
+rs.mock('@rstest/core', () => ({
   test: mocks.rstestTest,
 }));
 
-vi.mock('@/framework/yaml-case', () => ({
+rs.mock('@/framework/yaml-case', () => ({
   runYamlCaseResult: mocks.runYamlCaseResult,
   createYamlCaseFailure: (result: { error?: string }) =>
     new Error(result.error || 'YAML case failed'),
@@ -32,7 +32,7 @@ const injectedRstestTest = () => mocks.rstestTest as unknown as RstestTest;
 
 describe('defineYamlCaseTest', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   test('preserves failed attempts when Rstest retries a YAML case', async () => {

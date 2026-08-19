@@ -1,10 +1,10 @@
 import { forceChromeSelectRendering } from '@/puppeteer/base-page';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const createMockPage = () =>
   ({
-    evaluate: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
+    evaluate: rs.fn().mockResolvedValue(undefined),
+    on: rs.fn(),
   }) as any;
 
 describe('forceChromeSelectRendering', () => {

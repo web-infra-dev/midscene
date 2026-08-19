@@ -10,46 +10,39 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
+import * as agentActual from '@midscene/core/agent' with {
+  rstest: 'importActual',
+};
 import { ReportMergingTool } from '@midscene/core/report';
+import * as sharedUtils from '@midscene/shared/utils';
 import type { TestCase, TestResult } from '@playwright/test/reporter';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@midscene/shared/common', () => ({
-  getMidsceneRunSubDir: vi.fn(),
+rs.mock('@midscene/shared/common', () => ({
+  getMidsceneRunSubDir: rs.fn(),
 }));
 
-vi.mock('@midscene/core/agent', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/core/agent')>();
-  return {
-    ...actual,
-    printReportMsg: vi.fn(),
-  };
-});
-
-vi.mock('@midscene/shared/utils', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@midscene/shared/utils')>();
-  return {
-    ...actual,
-    logMsg: vi.fn(),
-  };
-});
+rs.mock('@midscene/core/agent', () => ({
+  ...agentActual,
+  printReportMsg: rs.fn(),
+}));
 
 describe('MidsceneReporter', () => {
   let tempDir: string;
   let outputDir: string;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
+    rs.spyOn(sharedUtils, 'logMsg').mockImplementation(() => {});
     tempDir = mkdtempSync(join(tmpdir(), 'midscene-test-'));
     outputDir = join(tempDir, 'output');
 
     const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
-    vi.mocked(getMidsceneRunSubDir).mockReturnValue(outputDir);
+    rs.mocked(getMidsceneRunSubDir).mockReturnValue(outputDir);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -88,7 +81,7 @@ describe('MidsceneReporter', () => {
   describe('report collection', () => {
     it('should ignore tests without Midscene annotations', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
-      const mergeSpy = vi.spyOn<any, any>(
+      const mergeSpy = rs.spyOn<any, any>(
         reporter as any,
         'finalizeMergedReport',
       );
@@ -302,7 +295,7 @@ describe('MidsceneReporter', () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
       const reportPathA = createReportFile('failed-merge-source-a');
       const reportPathB = createReportFile('failed-merge-source-b');
-      vi.spyOn(
+      rs.spyOn(
         ReportMergingTool.prototype,
         'mergeReports',
       ).mockImplementationOnce(() => {

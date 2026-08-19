@@ -1,5 +1,5 @@
 import { resolveIsTTY } from '@/printer';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('resolveIsTTY', () => {
   it('returns true on a real interactive TTY', () => {

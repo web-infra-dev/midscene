@@ -4,13 +4,13 @@ import { join } from 'node:path';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
 import { runYamlBatch } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  runYamlBatch: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  runYamlBatch: rs.fn(),
 }));
 
-vi.mock('@/yaml-batch-executor', () => ({
+rs.mock('@/yaml-batch-executor', () => ({
   runYamlBatch: mocks.runYamlBatch,
 }));
 
@@ -35,7 +35,7 @@ const createConfig = (files: string[]) => ({
 
 describe('runYamlBatchInRstest', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   test('runs the shared batch executor without duplicate summary output and writes result files', async () => {

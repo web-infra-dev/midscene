@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { launchPage } from './utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 

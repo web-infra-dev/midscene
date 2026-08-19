@@ -1,7 +1,7 @@
 import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
+import { describe, expect, it } from '@rstest/core';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,

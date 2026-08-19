@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
 import { runFrameworkTestConfig } from '@/framework/command';
+import { afterAll, beforeAll, describe, expect, rs, test } from '@rstest/core';
 import { createServer } from 'http-server';
-import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 60 * 1000,
 });
 

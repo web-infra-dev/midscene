@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,
@@ -51,7 +51,7 @@ describe(
       });
     });
 
-    it.skipIf(process.env.CI)('find widgets in antd', async () => {
+    it.skipIf(!!process.env.CI)('find widgets in antd', async () => {
       const { originPage, reset } = await launchPage(
         'https://ant.design/components/form/', // will be banned by the website on CI
       );
