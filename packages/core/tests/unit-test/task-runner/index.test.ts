@@ -398,10 +398,16 @@ describe(
         'error-serialization-test',
         fakeUIContextBuilder,
       );
-      const originalError = new Error('task-failed');
+      const originalError = Object.assign(new TypeError('task-failed'), {
+        code: 'E_TASK_FAILED',
+        status: 503,
+        requestID: 'request-123',
+        ignoredObject: { shouldNotBeSerialized: true },
+      });
 
       await runner.append({
         type: 'Action Space',
+        subType: 'Tap',
         executor: async () => {
           throw originalError;
         },
@@ -427,8 +433,28 @@ describe(
         name: 'TaskExecutionError',
         message: 'task-failed',
         stack: expect.stringContaining('TaskExecutionError: task-failed'),
+        cause: {
+          name: 'TypeError',
+          message: 'task-failed',
+          stack: expect.stringContaining('TypeError: task-failed'),
+          code: 'E_TASK_FAILED',
+          status: 503,
+          requestID: 'request-123',
+        },
+        task: {
+          taskId: caughtError?.errorTask?.taskId,
+          type: 'Action Space',
+          subType: 'Tap',
+          status: 'failed',
+          errorMessage: 'task-failed',
+        },
       });
-      expect(JSON.stringify(serializedError)).not.toContain('Function<');
+      const serializedText = JSON.stringify(serializedError);
+      expect(serializedText).not.toContain('Function<');
+      expect(serializedError).not.toHaveProperty('runner');
+      expect(serializedError).not.toHaveProperty('errorTask');
+      expect(serializedError.task).not.toHaveProperty('executor');
+      expect(serializedError.cause).not.toHaveProperty('ignoredObject');
     });
   },
 );

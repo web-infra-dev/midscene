@@ -38,6 +38,85 @@ export interface TaskRunnerEvent {
   runner: TaskRunner;
 }
 
+type SerializedErrorCause = {
+  name: string;
+  message: string;
+  stack?: string;
+  code?: string | number;
+  status?: string | number;
+  statusCode?: number;
+  requestId?: string;
+  requestID?: string;
+  type?: string;
+  errno?: string | number;
+  syscall?: string;
+  hostname?: string;
+};
+
+type SerializedErrorTask = {
+  taskId: string;
+  type: ExecutionTask['type'];
+  subType?: string;
+  status: ExecutionTask['status'];
+  errorMessage?: string;
+};
+
+type SerializedTaskExecutionError = {
+  name: string;
+  message: string;
+  stack?: string;
+  cause?: SerializedErrorCause;
+  task?: SerializedErrorTask;
+};
+
+const ERROR_CAUSE_DIAGNOSTIC_KEYS = [
+  'code',
+  'status',
+  'statusCode',
+  'requestId',
+  'requestID',
+  'type',
+  'errno',
+  'syscall',
+  'hostname',
+] as const;
+
+function serializeErrorCause(cause: unknown): SerializedErrorCause | undefined {
+  if (cause === undefined) {
+    return undefined;
+  }
+
+  if (cause === null || typeof cause !== 'object') {
+    return {
+      name: 'NonError',
+      message: String(cause),
+    };
+  }
+
+  const causeRecord = cause as Record<string, unknown>;
+  const serialized: SerializedErrorCause = {
+    name:
+      typeof causeRecord.name === 'string' ? causeRecord.name : 'UnknownError',
+    message:
+      typeof causeRecord.message === 'string'
+        ? causeRecord.message
+        : 'Error without a message',
+  };
+
+  if (typeof causeRecord.stack === 'string') {
+    serialized.stack = causeRecord.stack;
+  }
+
+  for (const key of ERROR_CAUSE_DIAGNOSTIC_KEYS) {
+    const value = causeRecord[key];
+    if (typeof value === 'string' || typeof value === 'number') {
+      Object.assign(serialized, { [key]: value });
+    }
+  }
+
+  return serialized;
+}
+
 export type TaskRunnerEventListener = (
   event: TaskRunnerEvent,
 ) => Promise<void> | void;
@@ -499,18 +578,30 @@ export class TaskExecutionError extends Error {
   }
 
   /**
-   * Keep runtime execution metadata out of serialized error transports.
+   * Expose a compact diagnostic summary to serialized error transports.
    *
-   * Test runners serialize thrown errors across worker boundaries. Exposing the
-   * runner and task there makes them recursively traverse the complete execution
-   * graph, including Error prototypes and task executors. The original objects
-   * remain available on the live error instance and through `cause`.
+   * Test runners serialize thrown errors across worker boundaries. The cause
+   * and failed-task summary preserve actionable diagnostics there, while keeping
+   * the complete runner graph, task executor, and arbitrary SDK payloads out.
+   * The original objects remain available on the live error instance.
    */
-  toJSON(): { name: string; message: string; stack?: string } {
+  toJSON(): SerializedTaskExecutionError {
+    const task = this.errorTask
+      ? {
+          taskId: this.errorTask.taskId,
+          type: this.errorTask.type,
+          subType: this.errorTask.subType,
+          status: this.errorTask.status,
+          errorMessage: this.errorTask.errorMessage,
+        }
+      : undefined;
+
     return {
       name: this.name,
       message: this.message,
       stack: this.stack,
+      cause: serializeErrorCause(this.cause),
+      task,
     };
   }
 }
