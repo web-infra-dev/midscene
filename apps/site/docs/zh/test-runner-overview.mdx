@@ -1,0 +1,93 @@
+# Test Runner 概览：自然语言与扩展节点
+
+在 Midscene 的大量实践后，我们认为：**在 AI 时代，自动化测试用例的主体应当是自然语言。**
+
+用自然语言直接描述测试意图，不仅符合人类的表达习惯，也极具业务表达力。为了让这些自然语言流程既便于人类编写与评审，也便于 AI/Agent 理解与维护，我们选择声明式的 YAML 作为结构载体。
+
+同时，真实项目中的测试流程往往还需要调用外部工具或脚本（如调用业务接口、准备测试数据、管理浏览器资源）。因此，`@midscene/test` 确立了一套长期演进的测试范式：**以自然语言驱动测试主线，以可编程节点（Node）作为扩展能力辅助**。
+
+## 核心设计：自然语言为主，编程节点为辅
+
+在该范式下，测试框架的设计被清晰地划分为两条线：
+
+* **主线（自然语言 + YAML）**：承载 80% 以上的业务测试意图。通过声明式 YAML 组装用例，用自然语言描述界面操作（如 `aiAct`）与校验（如 `aiAssert`）。
+* **辅线（TypeScript Node）**：提供 20% 的可编程扩展能力。使用 TypeScript 注册自定义 Node，负责接口调用、数据准备与资源管理。
+
+面向这套设计，`@midscene/test` 在平台开发者与用例作者之间建立了清晰的协作平衡点：
+
+* **测试框架维护（平台开发者）**：使用 TypeScript 接入浏览器、Agent、外部工具和业务接口，统一管理运行资源和执行生命周期。
+* **测试用例维护（用例作者 / Agent）**：人类或 Agent 使用 YAML 组合框架提供的能力，直接用自然语言编写和维护测试用例，无需编写 JavaScript 或关注底层实现。
+
+## 实战场景：验证订单退款流程
+
+假设电商团队需要验证已支付订单的退款流程：
+
+1. **编程节点（辅助）**：用例开始前调用订单接口或脚本创建测试订单；用例完成后清理测试订单。
+2. **自然语言（主线）**：Agent 根据 YAML 中的自然语言指令，在页面上提交退款申请并检查结果。
+
+```yaml
+# 1. 编程节点：数据与环境准备
+beforeEach:
+  - order.prepare:
+      status: paid
+  - browser.openRefundPage: {}
+
+# 2. 自然语言：业务测试意图
+cases:
+  - name: 已支付订单可以申请全额退款
+    steps:
+      - aiAct: 点击申请退款，选择全额退款并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为订单的全部金额
+          message: 全额退款申请提交失败
+
+  - name: 已支付订单可以申请部分退款
+    steps:
+      - aiAct: 点击申请退款，输入退款金额 10 元并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为 10 元
+          message: 部分退款申请提交失败
+
+# 3. 编程节点：资源清理
+afterEach:
+  - order.cleanup: {}
+
+```
+
+框架维护者注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup` 等自定义 Node 负责数据与页面管理，Midscene Node 负责界面操作与校验。测试意图与技术实现彼此分离，两类维护工作可以独立演进。
+
+## 运行器架构与执行生命周期
+
+运行器直接执行一套规范的 YAML 协议。它会在获取 Project 资源前完成全部选中计划的解析、规范化、变量解析和校验，不引入单独的 IR：
+
+```text
+midscene.config.ts ── Projects / setup / Node Registry
+                            │
+Workflow YAML ── collect and validate ── Normalized Steps
+                                            │
+                        Execution Project 有界调度器
+                                            │
+                      Document / Case / Step 串行生命周期
+                                            │
+                         Node 执行 + 只读 history
+                                            │
+                         summary.json + facts + reports
+
+```
+
+### 项目隔离与并发控制
+
+一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。
+
+`test.maxConcurrency` 限制一次 run 中同时处于 active 状态的 Execution Project 数量，默认值为 `1`。一个并发 slot 覆盖从 Project setup 开始到 teardown 完成的完整生命周期。每个 Project 内部的 Workflow Document、Case、retry 和 Step 仍保持串行。
+
+### 多层级生命周期
+
+* **Project setup**：管理浏览器或设备连接等长生命周期资源。
+* **Workflow Document (`beforeAll` / `afterAll`)**：管理一个 Workflow Document 的业务准备与清理。
+* **Node teardown**：管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
+
+## 接下来
+
+* 阅读 [编写和运行测试用例](./use-test-runner)，了解 Case、Step、生命周期和运行结果。
+* 阅读 [扩展和维护 Test Runner](./extend-test-runner)，了解如何注册 Node、管理运行资源和配置 Test Project。

@@ -1,8 +1,8 @@
-# 编写和运行 YAML 测试用例
+# 编写和运行测试用例
 
-框架维护者完成 Test Project 配置后，人类或 Agent 可以使用项目注册的 Node 编写 YAML 测试用例。开始编写前，建议运行 `describe-nodes` 生成 Node Reference，确认项目提供的能力和输入参数。
+框架维护者完成 Test Project 配置后，人类或 Agent 可以使用项目注册的 Node 编写测试用例。开始编写前，建议运行 `describe-nodes` 生成 Node Reference，确认项目提供的能力和输入参数。
 
-如果你尚不了解整体设计，请先阅读 [YAML 测试运行器概览](./yaml-test-runner-overview)。如果项目尚未配置，请阅读[扩展和维护 YAML 测试运行器](./extend-yaml-test-runner)。
+如果你尚不了解整体设计，请先阅读 [Test Runner 概览](./test-runner-overview)。如果项目尚未配置，请阅读[扩展和维护 Test Runner](./extend-test-runner)。
 
 ## 核心概念
 
@@ -18,12 +18,12 @@ Test Project 配置
                 └── Node
 ```
 
-- **Node（节点）**：平台开发者注册的执行能力，例如 `aiAssert` 或 `order.create`。
-- **Step（步骤）**：在 YAML 中对 Node 的一次调用。
-- **Case（用例）**：由多个 Step 组成的具名测试用例。
 - **Test Project（测试项目）**：由 `midscene.config.ts` 定义的顶层配置，负责注册共享 Node，并配置默认运行目标或 `projects` 数组。
 - **Execution Project**：Test Project 内的一项子配置，描述一个运行目标及其平台、Project setup、文件和标签筛选、变量与 retry 策略；它不是独立于 Test Project 的同级实体。
 - **Workflow Document（工作流文档）**：被 Execution Project 选中的 YAML 文件，包含生命周期和多个 Case。
+- **Case（用例）**：由多个 Step 组成的具名测试用例。
+- **Step（步骤）**：在 YAML 中对 Node 的一次调用。
+- **Node（节点）**：平台开发者注册的执行能力，例如 `aiAssert` 或 `order.create`。
 
 Node 定义团队可用的执行能力，YAML 定义每个测试用例如何组合这些能力。
 
@@ -186,80 +186,71 @@ Project teardown
 
 Project setup 在该 Project 的 Workflow Document 之前只执行一次，Project teardown 始终按 LIFO 顺序执行。收到中断信号时，当前 Step 会被取消，但 cleanup hook 与已注册 teardown 会使用可执行清理工作的 signal。
 
-## 运行项目
+## 运行测试
 
-运行当前目录中的 Test Project：
+在项目根目录下，使用以下命令运行 YAML 测试用例：
 
 ```bash
 pnpm exec midscene-test
 ```
 
-运行指定目录中的项目：
+### 指定用例目录或文件
+
+默认情况下，运行器会递归查找并执行项目根目录下的所有 `.yaml` 和 `.yml` 文件（自动忽略 `node_modules` 和 `.git`）。
+
+如果你只想执行特定目录或特定用例文件，可以将其作为参数传入：
 
 ```bash
-pnpm exec midscene-test ./e2e
+# 运行指定目录下的所有用例
+pnpm exec midscene-test ./cases/smoke
+
+# 运行单个指定的用例文件
+pnpm exec midscene-test ./cases/order.yaml
 ```
 
-指定配置文件或结果目录：
+### 过滤运行目标与配置文件
+
+如果项目配置了多个运行平台或环境，你可以指定仅运行特定的 Execution Project，或者通过命令行指定自定义配置文件：
 
 ```bash
-pnpm exec midscene-test \
-  --config ./config/midscene.config.ts \
-  --result-dir ./test-results
-```
-
-选择一个或多个命名 Execution Project：
-
-```bash
+# 只运行名为 android-smoke 和 ios-regression 的 Execution Project
 pnpm exec midscene-test --project android-smoke --project ios-regression
+
+# 使用指定的配置文件运行测试
+pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-Execution Project 之间可以并发执行。`test.maxConcurrency` 是正整数，限制一次 run 中同时处于 active 状态的已选 Project 数量，默认为 `1`。Project 从 setup 开始到 teardown 完成一直占用一个 slot。在单个 Project 内部，Workflow Document、Case、attempt 与 Step 仍然串行，`projects[].retry` 会重试整个失败 Case。
+当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
 
-即使各 Project 的完成顺序不同，最终结果仍始终按配置顺序列出 Project。并发 Project 的实时 progress 可能交错，每行会带有 Project 名称，便于识别来源。
+---
 
-`test.bail` 达到配置的最终失败 Case 数，或运行收到中断时，调度器不再启动新 Project。已启动的 Project 会在下一个调度边界停止后续工作，完成生命周期清理，并在 teardown 结束后才释放并发 slot。中断还会按上文说明取消当前 Step。
+## 查看测试结果
 
-### 查看运行结果
+每次测试运行结束后，你可以在控制台直接看到用例的执行状态和简要汇总。同时，运行器会在本地生成可视化的测试报告。
 
-每次运行都会把公开摘要和 fact 文件写入同一个运行目录：
+### Midscene 可视化报告
+
+运行器会自动将详细的测试步骤、界面截图和 AI 决策过程记录到交互式 HTML 报告中。
+
+默认情况下，报告保存在：
 
 ```text
-midscene_run/
-└── report/
-    └── <最终 Midscene 报告>
-
-<result-dir>/<YYYYMMDDHHmmss>-<UUID前8位>/
-├── summary.json
-└── project-<零基 index>/
-    ├── documents/<document-id>/
-    │   ├── document.json
-    │   └── cases/<case-id>/<attempt-id>.json
-    └── collection-errors/<error-id>.json
+midscene_run/report/
 ```
 
-run ID 使用本地时间 `YYYYMMDDHHmmss`，后接 `-` 和 `randomUUID()` 的前 8 位小写十六进制字符。Project ID 格式为 `project-<index>`，其中 index 是 Project 在完整 `projects` 配置中的零基下标；隐式 default Project 使用 `project-0`，筛选 Project 时不会重新编号。`documentId` 与 `caseId` 继续按照 Project ID、规范化后的源文件路径以及（对 Case 而言）源文件内 index 计算。在 summary 索引和详细 fact 中，Document 都不再包含 `documentRunId`，Case attempt 都使用 `attemptId`，不再使用 `runId`。
+你只需在浏览器中打开该目录下的 HTML 文件，即可直观地看到每一个 `aiAct` 和 `aiAssert` 的执行轨迹、元素定位结果以及完整的历史截图。
 
-`summary.json` 是公开消费协议，逐项包含：
+> **提示**：如果想修改可视化报告的默认保存目录，可以通过修改 `midscene.config.ts` 中的 `output.reportDir` 配置来实现。
 
-- 本次运行的 `schemaVersion`（当前为 `3`）、`runId`、开始/结束时间、耗时、最终 `status` 与 CLI `exitCode`。
-- Test Project 根目录、配置文件，以及相对 summary 文件记录的 `factsRoot` 和 `reportDir`，便于 CI 和可视化工具整体移动产物目录。
-- `summary` 汇总计数，包括通过、失败、未运行、被过滤的 Case，以及收集、Document 和 Project 失败数。
-- 每个 Execution Project 的 `projectId`、展示名称、平台、retry、文件与标签筛选、发现/选择/过滤数量，以及 Project setup/teardown 生命周期状态。
-- 每个 Case、attempt 和 Workflow Document 的状态、来源位置、内部结果文件路径及最终 Midscene 报告索引。
-- 每个收集错误的来源文件和对应错误事实文件路径。
-
-内部 fact 文件保存完整 Step 输入、输出、耗时与规范化错误。`--result-dir` 指定包含所有运行目录的结果根目录；`output.reportDir` 仍是 `midscene.config.ts` 中的独立配置。
-
-Case 失败或未运行、Document 失败或发生收集错误时，CLI 会返回退出码 `1`。
+---
 
 ## 当前限制
 
-当前版本暂不支持以下能力：
+目前版本的测试运行器存在以下局限性，在编写用例时需予以注意：
 
-- 单个 Execution Project 内的 Workflow Document、Case、retry 或 Step 并行。
-- DAG、分支或循环。
-- Workflow Document 之间的数据依赖。
-- 从远程 URL、npm 包或 Git 仓库加载 YAML。
+* **无并行执行**：在单个 Execution Project 内部，所有的 Workflow Document、Case、Attempt 和 Step 均为串行执行，暂不支持用例维度的并发。
+* **无控制流**：不支持 DAG（有向无环图）、分支（If-Else）或循环（Loop）等控制流，用例按照声明顺序线性执行。
+* **无用例间数据依赖**：不同的 Workflow Document 之间是完全隔离的，无法传递或共享执行中的数据。
+* **仅限本地加载**：暂不支持直接从远程 URL、npm 包或 Git 仓库加载并执行 YAML 文件。
 
-运行器会在执行前收集并校验所有 YAML 文件。未知的顶层字段、未知 Node、空 `cases` 或无效 Step 都会产生收集错误（collection error）。运行器会立即报告这些错误，不会等到执行相应 Case 时才报告。
+此外，运行器会在执行前对所有 YAML 文件进行静态收集和校验。若存在未知的顶层字段、未注册的 Node 或无效的 Step，运行器会立即抛出收集错误（Collection Error）并中断运行，不会等到执行该 Case 时才报错。
