@@ -43,82 +43,39 @@ import { createMidsceneNodes } from '@midscene/test/midscene';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { chromium, type Browser, type Page } from 'playwright';
 
-const VIEWPORT = { width: 1280, height: 768 };
-const LANGUAGE_LOCALES = {
-  en: 'en-US',
-  zh: 'zh-CN',
-};
-
 interface ProjectContext {
   browser: Browser;
   page: Page;
   agent?: PlaywrightAgent;
 }
 
-const setLanguageInputSchema = z.strictObject({
-  language: z
-    .enum(['en', 'zh'])
-    .describe('用于创建 Playwright Context 的 UA 语言。'),
+const geoInputSchema = z.strictObject({
+  latitude: z.number().describe('模拟位置的纬度。'),
+  longitude: z.number().describe('模拟位置的经度。'),
 });
 
-const openPage = async (page: Page, url: string) => {
-  const response = await page.goto(url, {
-    waitUntil: 'domcontentloaded',
-    timeout: 30_000,
-  });
-
-  if (!response?.ok()) {
-    throw new Error(
-      `Page returned an unsuccessful HTTP status: ${response?.status() ?? 'no response'}`,
-    );
-  }
-};
-
-const setUserAgentLanguage = defineNode<
-  typeof setLanguageInputSchema,
-  { language: string; locale: string; url: string },
+// 1. 注册自定义 Node：模拟地理位置 (GPS 定位)
+const mockLocation = defineNode<
+  typeof geoInputSchema,
+  unknown,
   ProjectContext
 >({
-  name: 'browser.setLanguage',
-  title: '设置 UA 语言',
-  description: '切换浏览器 UA 语言，并重新打开当前页面。',
-  inputSchema: setLanguageInputSchema,
+  name: 'browser.mockLocation',
+  title: '模拟地理位置',
+  description: '伪造浏览器的 GPS 地理位置定位。',
+  inputSchema: geoInputSchema,
   async execute({ input, context }) {
-    const language = input.language;
-    const locale = LANGUAGE_LOCALES[language];
-
-    const previousPage = context.page;
-    const previousBrowserContext = previousPage.context();
-    const browserContext = await context.browser.newContext({
-      locale,
-      viewport: VIEWPORT,
+    const browserContext = context.page.context();
+    // 注入地理位置模拟权限并设置经纬度
+    await browserContext.grantPermissions(['geolocation']);
+    await browserContext.setGeolocation({
+      latitude: input.latitude,
+      longitude: input.longitude,
     });
-    const page = await browserContext.newPage();
-
-    try {
-      await openPage(page, previousPage.url());
-      await page.waitForFunction(
-        (expectedLanguage) =>
-          document.documentElement.lang === expectedLanguage,
-        language,
-        { timeout: 10_000 },
-      );
-    } catch (error) {
-      await browserContext.close();
-      throw error;
-    }
-
-    context.page = page;
-    context.agent = undefined;
-    await previousBrowserContext.close();
-
-    return {
-      summary: `Set UA language to ${language}`,
-      data: { language, locale, url: page.url() },
-    };
   },
 });
 
+// 集成 Midscene 内置的 AI 能力节点（如 aiAct, aiAssert 等）
 const midsceneNodes = createMidsceneNodes<ProjectContext>({
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
@@ -126,21 +83,20 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
   },
 });
 
+// 2. 声明浏览器环境的启动与清理
 const playwrightSetup = defineProjectSetup<ProjectContext>({
   name: 'playwright',
   platform: 'web',
   async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
-    const browserContext = await browser.newContext({
-      viewport: VIEWPORT,
-    });
+    const browserContext = await browser.newContext();
     const page = await browserContext.newPage();
-    await openPage(page, 'https://midscenejs.com');
     return { browser, page };
   },
 });
 
+// 3. 导出项目配置
 export default defineTestProject<ProjectContext>({
   projects: [
     {
@@ -148,10 +104,9 @@ export default defineTestProject<ProjectContext>({
       platform: 'web',
       setup: playwrightSetup,
       files: { include: ['cases/**/*.{yaml,yml}'] },
-      tags: { include: ['smoke'], exclude: ['manual'] },
     },
   ],
-  nodes: [setUserAgentLanguage, ...midsceneNodes],
+  nodes: [mockLocation, ...midsceneNodes],
 });
 ```
 
@@ -161,20 +116,17 @@ export default defineTestProject<ProjectContext>({
 
 ```yaml filename=cases/midscene.yaml
 cases:
-  - name: Midscene 文档语言跟随 UA 切换
+  - name: 模拟地理位置并展示特定地区门店
     tags: [smoke]
     steps:
-      - browser.setLanguage:
-          language: en
-      - aiAct: 点击页面中的 Documentation 按钮，进入 Midscene 文档页
+      - browser.mockLocation:
+          latitude: 35.6762
+          longitude: 139.6503   # 模拟在东京 (Tokyo)
+      - launch:
+          uri: https://yoursite.com/stores
       - aiAssert:
-          prompt: 当前页面是 Midscene 的英文文档页，页面主体和导航使用英文
-          message: Midscene 文档页没有显示为英文
-      - browser.setLanguage:
-          language: zh
-      - aiAssert:
-          prompt: 当前页面是 Midscene 的中文文档页，页面主体和导航使用中文
-          message: Midscene 文档页没有显示为中文
+          prompt: 页面上成功加载并展示了“东京”或其临近区域的门店推荐列表
+          message: 地理位置 Mock 未能正确生效
 ```
 
 在项目根目录下执行测试：
@@ -256,9 +208,9 @@ cases:
 
 `inputSchema` 是可选字段，我们强烈建议你声明此字段。
 
-1. **类型推导与校验**：声明后，运行器会在进入 `execute()` 前自动执行 Zod 校验，如果输入不匹配，将直接抛出 `NodeInputValidationError`，并在编译期提供强类型推导（无需另外声明 TypeScript 接口）。
+1. **类型推导与校验**：声明后，运行器会在进入 `execute()` 前自动执行 Zod 校验。若输入不匹配，将直接抛出 `NodeInputValidationError` 异常，并在编译期提供强类型推导（无需额外声明 TypeScript 接口）。
 2. **拒绝未知参数**：推荐使用 `z.strictObject()`。若用例传入了多余的未知字段，运行器会及时拦截并报错。
-3. **元数据输出**：字段上的 `.describe()` 信息会直接输出到 Node Reference，作为 AI Agent 或用例编写者的参考手册。
+3. **说明书自动集成**：字段上的 `.describe()` 信息会直接编译进自动生成的 Node 说明书，作为 AI Agent 或人类用例编写者的参考手册。
 
 ```ts
 const refundInputSchema = z.strictObject({
@@ -281,16 +233,16 @@ const refundOrder = defineNode({
 
 `execute(ctx)` 接收的 `ctx` 包含以下常用字段：
 
-* `input`：YAML 传入并经过 Zod 校验后的业务参数。
+* `input`：从 YAML 传入并经过 Zod 校验后的业务参数。
 * `$`：由运行器控制的通用 Step 属性（如规范化后的 `timeout` 和 `continue-on-error`）。
-* `signal`：超时或运行取消时触发的 `AbortSignal`，应用在内部异步请求或任务中以实现提前优雅退出。
+* `signal`：超时或运行取消时触发的 `AbortSignal`，建议在内部异步请求或长耗时任务中使用它以实现提前优雅退出。
 * `context`：在 `defineProjectSetup()` 中返回并共享的项目级运行时资源。
-* `history`：深度只读、JSON 兼容的已完成 Node 历史。Agent Node 会自动读取并利用此字段理解上下文。
-* `onTeardown()`：注册当前 Node 所创建资源的清理函数，支持 Attempt 级别或 Document 级，按 LIFO（后进先出）顺序执行。
+* `history`：深度只读、JSON 兼容的已运行 Node 历史。AI Agent 节点会自动读取并利用此字段理解上下文。
+* `onTeardown()`：注册当前 Node 所创建资源的清理函数，支持 attempt 级别或 Document 级，按 LIFO（后进先出）顺序执行。
 * `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
-* `case` 或 `document`：当前执行位置的详细信息。
+* `case` 或 `document`：当前执行位置的详细运行信息。
 
-## 进阶实战：多节点协作与状态共享
+## 多节点协作与状态共享
 
 在实际业务测试中，多个 Node 常常需要共享上下文状态。例如，订单退款用例需要在 `beforeEach` 中创建订单并记录订单 ID，在 `steps` 中访问该 ID 进行退款，最后在 `afterEach` 中进行数据清理。
 
@@ -377,9 +329,7 @@ const cleanupOrder = defineNode<
 export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 ```
 
-## 集成 Midscene Agent 与生成说明文档
-
-### 集成 Midscene Agent
+## 集成 Midscene Agent
 
 `@midscene/test/midscene` 导出了六个系统内置 Node：`aiAct`、`aiAssert`、`recordToReport`、`launch`、`wait` 和 `agent`。
 
@@ -396,11 +346,11 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-### 生成 Node Reference 说明文档
+## 一键生成 Node 说明书
 
-为了让测试用例编写者（包括 AI Agent）清晰直观地理解当前项目注册了哪些 Node 以及它们的参数格式，运行器提供了 `describe-nodes` 命令行工具。它会自动将 Node 上的 `title`、`description` 和 Zod `inputSchema` 转换为 Markdown/JSON Schema 文档。
+为了让测试用例编写者（包括 AI Agent）清晰、直观地检索当前项目注册了哪些 Node 及其参数规范，运行器提供了 `describe-nodes` 描述工具。它会自动将 Node 上的 `title`、`description` 和 Zod `inputSchema` 自动编译生成一份标准的 Markdown 说明书文档。
 
-执行以下命令直接生成团队文档：
+执行以下命令直接生成团队专属说明书：
 
 ```bash
 pnpm exec midscene-test describe-nodes > midscene-nodes.md
@@ -412,7 +362,7 @@ pnpm exec midscene-test describe-nodes > midscene-nodes.md
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-生成的文档包含当前 Test Project 实际注册的全部 Node，其中包括 `createMidsceneNodes()` 返回的六个内置 Node。Node 按名称排序。Zod `inputSchema` 会自动转换为 JSON Schema。
+生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的六个系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
 
 ## 配置和管理 Test Project
 
@@ -454,82 +404,6 @@ export default defineTestProject<ProjectContext>({
    * 单个 Project 内部，所有的工作流文档（Workflow Documents）、用例（Cases）和步骤（Steps）依然**严格串行**执行，以保证测试的确定性。
    * 当你需要同时驱动多台手机设备或多个浏览器实例时，应当创建多个不同的 `projects` 声明并增大并发数。
 3. **生命周期清理**：使用 `defineProjectSetup()` 声明环境准备动作。利用 `onTeardown()` 注册销毁钩子，确保即便测试意外中断或运行中途出错，已获取的长生命周期资源也能按照后进先出的逆序被安全释放。
-
-## 管理测试运行结果与 CI 对接
-
-作为平台维护者，你需要将测试运行器的结果上报给 CI/CD 流水线，或以此构建可视化的内部测试大盘。测试运行器会在每次执行结束后，向本地测试结果根目录下写入结构化的运行数据。
-
-### 测试运行目录结构
-
-每次执行都会在指定的测试结果目录下（默认是运行器在本地自动创建，或通过 `--result-dir` 手动指定）输出以下结构：
-
-```text
-<result-dir>/<YYYYMMDDHHmmss>-<UUID前8位>/
-├── summary.json
-└── project-<零基 index>/
-    ├── documents/<document-id>/
-    │   ├── document.json
-    │   └── cases/<case-id>/<attempt-id>.json
-    └── collection-errors/<error-id>.json
-```
-
-* **run ID**：由本地执行时间（格式为 `YYYYMMDDHHmmss`）与 `randomUUID()` 的前 8 位字符拼接而成，保证全局唯一。
-* **project ID**：格式为 `project-<index>`，对应 `projects` 数组在配置中的下标，确保在跨平台执行时的可寻址性。
-
-### `summary.json` 数据协议规范
-
-`summary.json` 是供 CI 流水线或可视化面板消费的核心 JSON 数据，包含以下关键字段：
-
-```json
-{
-  "schemaVersion": 3,
-  "runId": "20260819120000-abcd1234",
-  "status": "failed",
-  "exitCode": 1,
-  "startTime": 1774000000000,
-  "endTime": 1774000060000,
-  "duration": 60000,
-  "summary": {
-    "passed": 8,
-    "failed": 2,
-    "skipped": 0,
-    "notRun": 0,
-    "filtered": 0,
-    "collectionErrors": 0
-  },
-  "projects": [
-    {
-      "projectId": "project-0",
-      "name": "chromium",
-      "platform": "web",
-      "status": "failed",
-      "cases": [
-        {
-          "caseId": "case-abc",
-          "name": "订单全额退款测试",
-          "status": "failed",
-          "sourcePath": "cases/refund.yaml",
-          "attempts": [
-            {
-              "attemptId": "attempt-1",
-              "status": "failed",
-              "error": {
-                "message": "全额退款申请提交失败",
-                "stack": "..."
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-#### 关键字段释义：
-* **`schemaVersion`**：当前结构协议版本，目前为 `3`。
-* **`exitCode`**：命令行退出码。当发生任何用例失败（failed）、文档解析失败（document-failed）或收集阶段发生静态校验错误（collection-errors）时，其值会输出为 `1`，供 CI/CD 流水线做状态拦截。
-* **`summary`**：详细的运行数据指标（包含成功、失败、跳过、静态校验错误的用例数汇总）。
 
 ## 编程式 API
 

@@ -428,12 +428,12 @@ export default defineConfig(async () => {
             link: '/zh/test-runner-overview',
           },
           {
-            text: '编写和运行测试用例',
-            link: '/zh/use-test-runner',
-          },
-          {
             text: '扩展和维护 Test Runner',
             link: '/zh/extend-test-runner',
+          },
+          {
+            text: '编写和运行测试用例',
+            link: '/zh/use-test-runner',
           },
           {
             sectionHeaderText: '资源',

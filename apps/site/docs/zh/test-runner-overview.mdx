@@ -38,25 +38,28 @@
 
 **导出的 Node 说明书示例**
 
-例如，一个切换浏览器 UA 语言的自定义节点 `browser.setLanguage`，经 `describe-nodes` 工具自动导出的 Markdown 说明书结构如下：
+例如，一个模拟浏览器地理位置的自定义节点 `browser.mockLocation`，经 `describe-nodes` 工具自动导出的 Markdown 说明书结构如下：
 
 ```markdown
-## browser.setLanguage
+## browser.mockLocation
 
-* **标题**：设置 UA 语言
-* **说明**：切换浏览器 UA 语言，并重新打开当前页面。
+* **标题**：模拟地理位置
+* **说明**：伪造浏览器的 GPS 地理位置定位。
 * **参数格式 (JSON Schema)**：
 
 {
   "type": "object",
   "properties": {
-    "language": {
-      "type": "string",
-      "enum": ["en", "zh"],
-      "description": "用于创建 Playwright Context 的 UA 语言。"
+    "latitude": {
+      "type": "number",
+      "description": "模拟位置的纬度。"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "模拟位置的经度。"
     }
   },
-  "required": ["language"]
+  "required": ["latitude", "longitude"]
 }
 ```
 
@@ -101,5 +104,5 @@ afterEach:
 
 ## 接下来
 
-* 阅读 [编写和运行测试用例](./use-test-runner)，了解 Case、Step、生命周期和运行结果。
 * 阅读 [扩展和维护 Test Runner](./extend-test-runner)，了解如何注册 Node、管理运行资源和配置 Test Project。
+* 阅读 [编写和运行测试用例](./use-test-runner)，了解 Case、Step、生命周期和运行结果。
