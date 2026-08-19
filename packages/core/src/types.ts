@@ -621,7 +621,8 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
-    error?: Error;
+    /** The original value thrown by the task executor. */
+    error?: unknown;
     errorMessage?: string;
     errorStack?: string;
     timing?: {

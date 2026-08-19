@@ -11,6 +11,7 @@ import type {
 import Service from '@/service';
 import { TaskExecutionError } from '@/task-runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { processError } from 'vitest/browser';
 import { createFakeContext } from '../../utils';
 
 // Mock AI service caller
@@ -398,12 +399,18 @@ describe(
         'error-serialization-test',
         fakeUIContextBuilder,
       );
-      const originalError = Object.assign(new TypeError('task-failed'), {
-        code: 'E_TASK_FAILED',
+      const rootCause = Object.assign(new TypeError('socket closed'), {
+        code: 'ECONNRESET',
+      });
+      const originalError = {
+        error: {
+          message: 'upstream failed',
+          ignoredObject: { shouldNotBeSerialized: true },
+        },
+        cause: rootCause,
         status: 503,
         requestID: 'request-123',
-        ignoredObject: { shouldNotBeSerialized: true },
-      });
+      };
 
       await runner.append({
         type: 'Action Space',
@@ -422,31 +429,35 @@ describe(
 
       expect(caughtError).toBeInstanceOf(TaskExecutionError);
       expect(caughtError?.name).toBe('TaskExecutionError');
-      expect(caughtError?.message).toBe('task-failed');
+      expect(caughtError?.message).toBe('upstream failed');
       expect(caughtError?.cause).toBe(originalError);
       expect(caughtError?.runner).toBe(runner);
       expect(caughtError?.errorTask).toBe(runner.latestErrorTask());
-      expect(caughtError?.errorTask?.errorStack).toBe(originalError.stack);
+      expect(caughtError?.errorTask?.errorStack).toBeUndefined();
 
-      const serializedError = JSON.parse(JSON.stringify(caughtError));
+      const serializedError = processError(caughtError);
       expect(serializedError).toEqual({
         name: 'TaskExecutionError',
-        message: 'task-failed',
-        stack: expect.stringContaining('TaskExecutionError: task-failed'),
+        message: 'upstream failed',
+        stack: expect.stringContaining('TaskExecutionError: upstream failed'),
         cause: {
-          name: 'TypeError',
-          message: 'task-failed',
-          stack: expect.stringContaining('TypeError: task-failed'),
-          code: 'E_TASK_FAILED',
+          name: 'Error',
+          message: 'upstream failed',
           status: 503,
           requestID: 'request-123',
+          cause: {
+            name: 'TypeError',
+            message: 'socket closed',
+            stack: expect.stringContaining('TypeError: socket closed'),
+            code: 'ECONNRESET',
+          },
         },
         task: {
           taskId: caughtError?.errorTask?.taskId,
           type: 'Action Space',
           subType: 'Tap',
           status: 'failed',
-          errorMessage: 'task-failed',
+          errorMessage: 'upstream failed',
         },
       });
       const serializedText = JSON.stringify(serializedError);
@@ -454,7 +465,7 @@ describe(
       expect(serializedError).not.toHaveProperty('runner');
       expect(serializedError).not.toHaveProperty('errorTask');
       expect(serializedError.task).not.toHaveProperty('executor');
-      expect(serializedError.cause).not.toHaveProperty('ignoredObject');
+      expect(serializedText).not.toContain('ignoredObject');
     });
   },
 );

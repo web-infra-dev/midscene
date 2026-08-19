@@ -1,4 +1,8 @@
-import { getErrorMessage } from '@/agent-tools/error-formatter';
+import {
+  getErrorMessage,
+  getErrorStack,
+  serializeError,
+} from '@/agent-tools/error-formatter';
 import { describe, expect, it } from 'vitest';
 
 describe('getErrorMessage', () => {
@@ -72,5 +76,121 @@ describe('getErrorMessage', () => {
 
   it('handles arrays by JSON-stringifying them', () => {
     expect(getErrorMessage([1, 2, 3])).toBe('[1,2,3]');
+  });
+
+  it('ignores message getters that throw', () => {
+    const error = Object.defineProperty(
+      { code: 'E_BROKEN_GETTER' },
+      'message',
+      {
+        get: () => {
+          throw new Error('getter failed');
+        },
+        enumerable: true,
+      },
+    );
+
+    expect(getErrorMessage(error)).toBe('[object Object]');
+  });
+});
+
+describe('serializeError', () => {
+  it('preserves common diagnostics and nested causes', () => {
+    const rootCause = Object.assign(new TypeError('socket closed'), {
+      code: 'ECONNRESET',
+      errno: -54,
+      syscall: 'read',
+    });
+    const error = Object.assign(
+      new Error('request failed', { cause: rootCause }),
+      {
+        statusCode: '503',
+        requestId: 42,
+      },
+    );
+
+    expect(serializeError(error)).toEqual({
+      name: 'Error',
+      message: 'request failed',
+      stack: expect.stringContaining('Error: request failed'),
+      statusCode: '503',
+      requestId: 42,
+      cause: {
+        name: 'TypeError',
+        message: 'socket closed',
+        stack: expect.stringContaining('TypeError: socket closed'),
+        code: 'ECONNRESET',
+        errno: -54,
+        syscall: 'read',
+      },
+    });
+  });
+
+  it('extracts messages from structured SDK errors', () => {
+    expect(
+      serializeError({
+        error: { message: 'upstream failed', response: { secret: true } },
+        status: 502,
+      }),
+    ).toEqual({
+      name: 'Error',
+      message: 'upstream failed',
+      status: 502,
+    });
+
+    expect(serializeError({ cause: { message: 'root cause' } })).toEqual({
+      name: 'Error',
+      message: 'root cause',
+      cause: {
+        name: 'Error',
+        message: 'root cause',
+      },
+    });
+  });
+
+  it('bounds cause depth and replaces cycles with a diagnostic marker', () => {
+    const circular = new Error('circular');
+    circular.cause = circular;
+    expect(serializeError(circular).cause).toEqual({
+      name: 'CircularError',
+      message: 'Circular error cause',
+    });
+
+    const deepest = new Error('depth-3');
+    const depthTwo = new Error('depth-2', { cause: deepest });
+    const depthOne = new Error('depth-1', { cause: depthTwo });
+    const outer = new Error('outer', { cause: depthOne });
+    expect(serializeError(outer).cause?.cause?.message).toBe('depth-2');
+    expect(serializeError(outer).cause?.cause?.cause).toBeUndefined();
+  });
+
+  it('does not fail when diagnostic getters throw', () => {
+    const error = new Error('safe message');
+    Object.defineProperty(error, 'code', {
+      get: () => {
+        throw new Error('code getter failed');
+      },
+    });
+
+    expect(() => serializeError(error)).not.toThrow();
+    const serialized = serializeError(error);
+    expect(serialized).toMatchObject({
+      name: 'Error',
+      message: 'safe message',
+    });
+    expect(serialized).not.toHaveProperty('code');
+  });
+});
+
+describe('getErrorStack', () => {
+  it('reads string stacks and ignores throwing stack getters', () => {
+    expect(getErrorStack(new Error('boom'))).toContain('Error: boom');
+
+    const error = Object.defineProperty({}, 'stack', {
+      get: () => {
+        throw new Error('stack getter failed');
+      },
+    });
+    expect(getErrorStack(error)).toBeUndefined();
   });
 });
