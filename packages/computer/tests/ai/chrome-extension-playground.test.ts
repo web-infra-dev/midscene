@@ -87,12 +87,12 @@ describe('chrome extension playground advanced tests', () => {
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
 
-    await agent.aiAct(`Click the "Action" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Tap" tab in ${SIDE_PANEL}`);
     await sleep(500);
   });
 
   it('aiQuery: extract page title and verify result', async () => {
-    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
+    await agent.aiAct(`Click the "Query" tab in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the text input area and type: What is the title text shown at the top of the TodoMVC page?`,
