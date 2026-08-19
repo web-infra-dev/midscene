@@ -189,6 +189,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return commonWebActionsForWebPage(this);
   }
 
+  async focusElement(element: ElementInfo): Promise<void> {
+    await this.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
+    });
+  }
+
   public async setActiveTabId(tabId: number) {
     if (this.activeTabId) {
       throw new Error(

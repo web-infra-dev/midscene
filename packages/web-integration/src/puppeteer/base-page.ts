@@ -43,6 +43,7 @@ import {
   sanitizeXpaths,
 } from '../common/cache-helper';
 import {
+  type FocusElementOptions,
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
@@ -76,6 +77,50 @@ type ScreencastFrameEvent = {
     deviceHeight?: number;
   };
 };
+
+type BrowserBoundingBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type ParentFrameLike = {
+  parentFrame(): ParentFrameLike | null;
+};
+
+type FrameElementMetrics = {
+  clientLeft: number;
+  clientTop: number;
+  offsetWidth: number;
+  offsetHeight: number;
+};
+
+type FrameElementHandle = {
+  boundingBox(): Promise<BrowserBoundingBox | null>;
+  evaluate(
+    pageFunction: (element: Element) => FrameElementMetrics,
+  ): Promise<FrameElementMetrics>;
+  dispose(): Promise<void>;
+};
+
+type FocusFrame = ParentFrameLike & {
+  evaluate(
+    pageFunction: (point: [number, number]) => boolean,
+    point: [number, number],
+  ): Promise<boolean>;
+  frameElement(): Promise<FrameElementHandle>;
+};
+
+function frameDepth(frame: ParentFrameLike): number {
+  let depth = 0;
+  let current = frame.parentFrame();
+  while (current) {
+    depth += 1;
+    current = current.parentFrame();
+  }
+  return depth;
+}
 
 type PageCdpSession = {
   send(method: string, params?: Record<string, unknown>): Promise<unknown>;
@@ -1078,6 +1123,128 @@ export class Page<
         return this.underlyingPage.keyboard.up(key);
       },
     };
+  }
+
+  async focusElement(
+    element: ElementInfo,
+    options?: FocusElementOptions,
+  ): Promise<void> {
+    if (options?.preserveSelection) {
+      const focusOwnership = await this.evaluate(([x, y]: [number, number]) => {
+        const target = document.elementFromPoint(x, y);
+        const activeElement = document.activeElement;
+        if (
+          !target ||
+          !activeElement ||
+          activeElement === document.body ||
+          activeElement === document.documentElement
+        ) {
+          return 'none';
+        }
+
+        const targetOwnsFocus =
+          target === activeElement ||
+          target.contains(activeElement) ||
+          activeElement.contains(target);
+        if (!targetOwnsFocus) {
+          return 'none';
+        }
+
+        return target.tagName === 'IFRAME' || target.tagName === 'FRAME'
+          ? 'frame'
+          : 'element';
+      }, element.center);
+      if (focusOwnership === 'element') {
+        return;
+      }
+      if (focusOwnership === 'frame') {
+        if (await this.focusedFrameElementOwnsPoint(element.center)) {
+          return;
+        }
+      }
+    }
+
+    await this.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
+    });
+  }
+
+  private async focusedFrameElementOwnsPoint(
+    browserPoint: [number, number],
+  ): Promise<boolean> {
+    const frames = (this.interfaceType === 'puppeteer'
+      ? (this.underlyingPage as PuppeteerPage).frames()
+      : (
+          this.underlyingPage as PlaywrightPage
+        ).frames()) as unknown as FocusFrame[];
+    frames.sort((a, b) => frameDepth(b) - frameDepth(a));
+
+    for (const frame of frames) {
+      try {
+        const framePoint = await this.browserPointToFramePoint(
+          frame,
+          browserPoint,
+        );
+        if (!framePoint) continue;
+
+        const targetOwnsFocus = await frame.evaluate((point) => {
+          const target = document.elementFromPoint(point[0], point[1]);
+          const activeElement = document.activeElement;
+          return (
+            document.hasFocus() &&
+            !!target &&
+            !!activeElement &&
+            activeElement !== document.body &&
+            activeElement !== document.documentElement &&
+            activeElement.tagName !== 'IFRAME' &&
+            activeElement.tagName !== 'FRAME' &&
+            (target === activeElement ||
+              target.contains(activeElement) ||
+              activeElement.contains(target))
+          );
+        }, framePoint);
+        if (targetOwnsFocus) return true;
+      } catch (error) {
+        if (isTransientNavigationError(error)) continue;
+        throw error;
+      }
+    }
+    return false;
+  }
+
+  private async browserPointToFramePoint(
+    frame: FocusFrame,
+    browserPoint: [number, number],
+  ): Promise<[number, number] | undefined> {
+    if (!frame.parentFrame()) return browserPoint;
+
+    const frameElement = await frame.frameElement();
+    try {
+      const [box, metrics] = await Promise.all([
+        frameElement.boundingBox(),
+        frameElement.evaluate((element) => {
+          const htmlElement = element as HTMLElement;
+          return {
+            clientLeft: htmlElement.clientLeft,
+            clientTop: htmlElement.clientTop,
+            offsetWidth: htmlElement.offsetWidth,
+            offsetHeight: htmlElement.offsetHeight,
+          };
+        }),
+      ]);
+      if (!box || metrics.offsetWidth <= 0 || metrics.offsetHeight <= 0) {
+        return undefined;
+      }
+
+      const scaleX = box.width / metrics.offsetWidth;
+      const scaleY = box.height / metrics.offsetHeight;
+      return [
+        (browserPoint[0] - box.x) / scaleX - metrics.clientLeft,
+        (browserPoint[1] - box.y) / scaleY - metrics.clientTop,
+      ];
+    } finally {
+      await frameElement.dispose();
+    }
   }
 
   private async selectAllByCdp(): Promise<void> {

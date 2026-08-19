@@ -28,12 +28,12 @@ describe('getKeyCommands', () => {
     ]);
   });
 
-  it('should attach "Copy" command when "Control" is present with key "c"', () => {
+  it('should attach copy and cut commands when "Control" is present', () => {
     const result = getKeyCommands(['Control', 'c', 'x']);
     expect(result).toEqual([
       { key: 'Control' },
       { key: 'C', command: 'Copy' },
-      { key: 'X' },
+      { key: 'X', command: 'Cut' },
     ]);
   });
 
@@ -75,6 +75,13 @@ describe('getKeyCommands', () => {
         { key: 'A', command: 'SelectAll' },
       ]);
     }
+  });
+
+  it('should support cmd+x as a cut command', () => {
+    expect(getKeyCommands('Cmd+X')).toEqual([
+      { key: 'Meta' },
+      { key: 'X', command: 'Cut' },
+    ]);
   });
 });
 
