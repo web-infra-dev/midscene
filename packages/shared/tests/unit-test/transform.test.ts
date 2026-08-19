@@ -1,12 +1,16 @@
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  convertPngBase64ToJpeg,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
   preProcessImageUrl,
   scaleImage,
 } from '../../src/img/transform';
+
+const testPngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
 
 describe('preapareImageUrl', () => {
   it('url is not a string will throw an error', async () => {
@@ -93,6 +97,26 @@ describe('normalizeBase64Image', () => {
   it('wraps bare non-png base64 as jpeg for compatibility', () => {
     expect(normalizeBase64Image(' /9j/4AAQ SkZJRg== ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    );
+  });
+});
+
+describe('convertPngBase64ToJpeg', () => {
+  it('converts PNG data URLs to JPEG data URLs', async () => {
+    const result = await convertPngBase64ToJpeg(testPngDataUrl);
+
+    expect(result).toMatch(/^data:image\/jpeg;base64,/);
+    expect(Buffer.from(result.split(',')[1], 'base64').subarray(0, 3)).toEqual(
+      Buffer.from([0xff, 0xd8, 0xff]),
+    );
+  });
+
+  it('does not re-encode existing JPEG data URLs', async () => {
+    const jpegDataUrl =
+      'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2Q==';
+
+    await expect(convertPngBase64ToJpeg(jpegDataUrl)).resolves.toBe(
+      jpegDataUrl,
     );
   });
 });

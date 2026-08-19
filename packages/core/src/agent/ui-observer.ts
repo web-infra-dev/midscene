@@ -8,7 +8,11 @@ import type {
   UIObservationFrame,
   UIObservationRecord,
 } from '@midscene/shared/agent-tools/types';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import {
+  convertPngBase64ToJpeg,
+  imageInfoOfBase64,
+  resizeImgBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../common';
@@ -33,6 +37,7 @@ const FIRST_FRAME_TIMEOUT_MS = 3000;
 const DEFAULT_WATCHDOG_MS = 5 * 60 * 1000;
 const MAX_FRAMES_PER_RECORD = 50;
 const DECODE_BATCH_SIZE = 4;
+const OBSERVATION_JPEG_QUALITY = 90;
 
 /** Options for a UI observation window. */
 export type UIObserverOption = BaseUIObserverOptions;
@@ -362,7 +367,7 @@ export class UIObserverImpl implements UIObserver {
     if (!this.representativeFrame) {
       const representative = this.representative!;
       this.representativeFrame = this.writer.persistFrame(
-        representative.screenshot.base64,
+        await this.prepareFrameForPersistence(representative.screenshot.base64),
         representative.screenshot.capturedAt,
       );
       representative.screenshot = ScreenshotItem.fromFile(
@@ -440,11 +445,16 @@ export class UIObserverImpl implements UIObserver {
         decoded.length === batch.length,
         'frame source decode() must return one image per frame handle',
       );
+      const preparedDataUrls = await Promise.all(
+        decoded.map((dataUrl) => this.prepareFrameForPersistence(dataUrl)),
+      );
       for (let index = 0; index < batch.length; index++) {
-        const dataUrl = await this.shrinkIfNeeded(decoded[index]);
         this.persistedByRef.set(
           batch[index].ref,
-          this.writer.persistFrame(dataUrl, batch[index].capturedAt),
+          this.writer.persistFrame(
+            preparedDataUrls[index],
+            batch[index].capturedAt,
+          ),
         );
       }
     }
@@ -463,7 +473,7 @@ export class UIObserverImpl implements UIObserver {
         const frame = this.source.latest();
         if (!frame) return;
         if (isImageDataUrl(frame.ref)) {
-          const dataUrl = await this.shrinkIfNeeded(frame.ref);
+          const dataUrl = await this.prepareFrameForPersistence(frame.ref);
           const persisted = this.writer.persistFrame(dataUrl, frame.capturedAt);
           this.pushFrame({
             ref: persisted.path,
@@ -475,7 +485,9 @@ export class UIObserverImpl implements UIObserver {
         }
         return;
       }
-      const dataUrl = await this.shrinkIfNeeded(await this.deps.screenshot());
+      const dataUrl = await this.prepareFrameForPersistence(
+        await this.deps.screenshot(),
+      );
       const persisted = this.writer.persistFrame(dataUrl, Date.now());
       this.pushFrame({
         ref: persisted.path,
@@ -487,13 +499,17 @@ export class UIObserverImpl implements UIObserver {
     }
   }
 
-  private async shrinkIfNeeded(dataUrl: string): Promise<string> {
-    if (this.screenshotShrinkFactor <= 1) return dataUrl;
-    const { width, height } = await imageInfoOfBase64(dataUrl);
-    return resizeImgBase64(dataUrl, {
-      width: Math.round(width / this.screenshotShrinkFactor),
-      height: Math.round(height / this.screenshotShrinkFactor),
-    });
+  private async prepareFrameForPersistence(dataUrl: string): Promise<string> {
+    let preparedDataUrl = dataUrl;
+    if (this.screenshotShrinkFactor > 1) {
+      const { width, height } = await imageInfoOfBase64(dataUrl);
+      preparedDataUrl = await resizeImgBase64(dataUrl, {
+        width: Math.round(width / this.screenshotShrinkFactor),
+        height: Math.round(height / this.screenshotShrinkFactor),
+      });
+    }
+
+    return convertPngBase64ToJpeg(preparedDataUrl, OBSERVATION_JPEG_QUALITY);
   }
 
   private async runLoop(): Promise<void> {

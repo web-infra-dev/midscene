@@ -616,6 +616,26 @@ export const parseBase64 = (
 };
 
 /**
+ * Convert a PNG base64 image to JPEG while leaving other image formats unchanged.
+ * @param imageBase64 - Image data URL or raw base64 body.
+ * @param quality - JPEG quality from 1 to 100.
+ * @returns A JPEG data URL for PNG input, otherwise the original input.
+ */
+export async function convertPngBase64ToJpeg(
+  imageBase64: string,
+  quality = 90,
+): Promise<string> {
+  const { mimeType, body } = parseBase64(imageBase64);
+  if (mimeType.toLowerCase() !== 'image/png') return imageBase64;
+
+  const jpegBuffer = await convertImgBufferToJpeg(
+    Buffer.from(body, 'base64'),
+    quality,
+  );
+  return createImgBase64ByFormat('jpeg', jpegBuffer.toString('base64'));
+}
+
+/**
  * Scales an image by a specified factor using Sharp or Photon
  * @param imageBase64 - Base64 encoded image
  * @param scale - Scale factor (e.g., 2 for 2x, 1.5 for 1.5x)

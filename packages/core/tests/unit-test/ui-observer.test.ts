@@ -11,6 +11,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const createdDirectories: string[] = [];
+const testPngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
 
 function recordWriter(): UIObservationRecordWriter {
   const directory = mkdtempSync(join(tmpdir(), 'midscene-observer-'));
@@ -24,10 +26,7 @@ function options(extra: Record<string, unknown> = {}) {
 
 const fakeRepresentative = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(
-      `data:image/png;base64,${Buffer.from('representative').toString('base64')}`,
-      9999,
-    ),
+    screenshot: ScreenshotItem.create(testPngDataUrl, 9999),
     shotSize: { width: 100, height: 100 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
@@ -35,10 +34,7 @@ const fakeRepresentative = (): UIContext =>
 const makeFakeSource = () => {
   let current: DeviceFrameRef | null = null;
   const decode = vi.fn(async (refs: DeviceFrameRef[]) =>
-    refs.map(
-      (frame) =>
-        `data:image/png;base64,${Buffer.from(`decoded:${String(frame.ref)}`).toString('base64')}`,
-    ),
+    refs.map(() => testPngDataUrl),
   );
   const stop = vi.fn();
   const source: DeviceFrameSource = {
@@ -57,10 +53,7 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const screenshot = vi.fn(
-    async () =>
-      `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
-  );
+  const screenshot = vi.fn(async () => testPngDataUrl);
   const onStopped = vi.fn();
   return {
     deps: {
@@ -83,8 +76,8 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
   };
 };
 
-function frameContents(path: string): string {
-  return readFileSync(path).toString('utf8');
+function expectJpegFrame(path: string): void {
+  expect([...readFileSync(path).subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
 }
 
 function fixedRecord(): UIObservationRecord {
@@ -146,8 +139,11 @@ describe('UIObserver', () => {
     expect(onStopped).toHaveBeenCalledOnce();
     expect(fake.stop).toHaveBeenCalledOnce();
     expect(record.frames.length).toBeGreaterThanOrEqual(3);
-    expect(frameContents(record.frames[0].path)).toBe('decoded:f0');
-    expect(frameContents(record.frames.at(-1)!.path)).toBe('decoded:f1');
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    expectJpegFrame(record.frames[0].path);
+    expectJpegFrame(record.frames.at(-1)!.path);
     expect(record.frames[0]).not.toHaveProperty('base64');
   });
 
@@ -364,6 +360,7 @@ describe('UIObserver', () => {
     await observer.start();
     vi.advanceTimersByTime(5000);
     await vi.runAllTimersAsync();
+    await observer.stop();
     expect(first.onStopped).toHaveBeenCalledOnce();
 
     const secondFake = makeFakeSource();
@@ -396,7 +393,7 @@ describe('UIObserver', () => {
     expect(record.frames).toHaveLength(56);
   });
 
-  it('persists fallback screenshots immediately as files', async () => {
+  it('persists fallback screenshots immediately as JPEG files', async () => {
     const { deps, screenshot } = makeDeps(null);
     const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
@@ -405,15 +402,15 @@ describe('UIObserver', () => {
     const record = await observation.exportRecord();
 
     expect(screenshot).toHaveBeenCalled();
-    expect(frameContents(record.frames[0].path)).toBe('fallback');
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    expectJpegFrame(record.frames[0].path);
     expect((observer as any).frames[0].ref).not.toContain('base64');
   });
 
   it('falls back when opening the frame source throws', async () => {
-    const screenshot = vi.fn(
-      async () =>
-        `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
-    );
+    const screenshot = vi.fn(async () => testPngDataUrl);
     const observer = new UIObserverImpl(
       {
         openFrameSource: async () => {

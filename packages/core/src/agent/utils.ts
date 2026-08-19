@@ -23,10 +23,9 @@ import {
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import {
-  convertImgBufferToJpeg,
+  convertPngBase64ToJpeg,
   createImgBase64ByFormat,
   imageInfoOfBase64,
-  parseBase64,
   resizeImgBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -208,18 +207,10 @@ export async function commonContextParser(
     // Compared with conversion on Android, centralizing it here means each platform does not need to handle screenshot formats itself, and allows future output formats such as WebP.
     // Built-in paths that already output JPEG are unaffected, and custom devices that output JPEG will not be compressed again.
     // The Web platform already outputs JPEG, so it does not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
-    let outputScreenshotBase64 = screenshotBase64;
-    const { mimeType, body } = parseBase64(screenshotBase64);
-    if (mimeType.toLowerCase() === 'image/png') {
-      const jpegBuffer = await convertImgBufferToJpeg(
-        Buffer.from(body, 'base64'),
-        90,
-      );
-      outputScreenshotBase64 = createImgBase64ByFormat(
-        'jpeg',
-        jpegBuffer.toString('base64'),
-      );
-    }
+    const outputScreenshotBase64 = await convertPngBase64ToJpeg(
+      screenshotBase64,
+      90,
+    );
 
     return {
       shotSize: {
