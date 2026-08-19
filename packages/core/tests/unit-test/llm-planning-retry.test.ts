@@ -339,7 +339,7 @@ describe('plan XML parse retry', () => {
       },
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(latestSystemPrompt()).toContain('### Custom tools');
