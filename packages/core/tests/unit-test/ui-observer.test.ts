@@ -7,12 +7,17 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const createdDirectories: string[] = [];
 const testPngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
+const largeTestPngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
+const shrunkTestJpegDataUrl =
+  'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJ0AWYyP/9k=';
 
 function recordWriter(): UIObservationRecordWriter {
   const directory = mkdtempSync(join(tmpdir(), 'midscene-observer-'));
@@ -26,7 +31,7 @@ function options(extra: Record<string, unknown> = {}) {
 
 const fakeRepresentative = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(testPngDataUrl, 9999),
+    screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
     shotSize: { width: 100, height: 100 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
@@ -407,6 +412,35 @@ describe('UIObserver', () => {
     ).toBe(true);
     expectJpegFrame(record.frames[0].path);
     expect((observer as any).frames[0].ref).not.toContain('base64');
+  });
+
+  it('does not shrink an already prepared fallback representative again', async () => {
+    const { deps } = makeDeps(null);
+    const observer = new UIObserverImpl(
+      {
+        ...deps,
+        screenshot: async () => largeTestPngDataUrl,
+        captureRepresentative: async () =>
+          ({
+            screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
+            shotSize: { width: 4, height: 3 },
+            shrunkShotToLogicalRatio: 1,
+          }) as UIContext,
+        screenshotShrinkFactor: 2,
+      },
+      options({ intervalMs: 200 }),
+    );
+    await observer.start();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+
+    expect(record.shotSize).toEqual({ width: 4, height: 3 });
+    for (const frame of record.frames) {
+      const base64 = readFileSync(frame.path).toString('base64');
+      await expect(
+        imageInfoOfBase64(`data:${frame.mimeType};base64,${base64}`),
+      ).resolves.toEqual(record.shotSize);
+    }
   });
 
   it('falls back when opening the frame source throws', async () => {

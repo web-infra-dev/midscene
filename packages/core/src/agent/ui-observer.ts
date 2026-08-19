@@ -366,8 +366,10 @@ export class UIObserverImpl implements UIObserver {
 
     if (!this.representativeFrame) {
       const representative = this.representative!;
+      // captureRepresentative returns a UIContext whose screenshot has already
+      // been shrunk and normalized by commonContextParser().
       this.representativeFrame = this.writer.persistFrame(
-        await this.prepareFrameForPersistence(representative.screenshot.base64),
+        representative.screenshot.base64,
         representative.screenshot.capturedAt,
       );
       representative.screenshot = ScreenshotItem.fromFile(
