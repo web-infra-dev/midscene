@@ -55,8 +55,11 @@ async function compressScreenshotAssetForMarkdownReplay(
 
   const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
   const dataUrl = await resizeBase64ImageToJpeg(asset.dataUrl, {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
+    sourceSize: { width, height },
+    targetSize: {
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale)),
+    },
   });
   const { body, mimeType } = parseBase64(dataUrl);
   return {
@@ -76,7 +79,15 @@ async function prepareScreenshotAssetsForMarkdownReplay(
       compressedAssets.push(
         await compressScreenshotAssetForMarkdownReplay(asset),
       );
-    } catch {
+    } catch (error) {
+      debugMarkdownReplay(
+        'failed to compress screenshot asset; keeping original %o',
+        {
+          eventHashId: asset.eventHashId,
+          eventIndex: asset.eventIndex,
+          error,
+        },
+      );
       compressedAssets.push(asset);
     }
   }

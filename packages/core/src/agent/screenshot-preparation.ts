@@ -1,4 +1,5 @@
 import {
+  type JpegBase64DataUrl,
   imageInfoOfBase64,
   resizeBase64ImageToJpeg,
 } from '@midscene/shared/img';
@@ -11,7 +12,7 @@ export interface PrepareRawScreenshotOptions {
 }
 
 export interface PreparedScreenshot {
-  base64: string;
+  base64: JpegBase64DataUrl;
   originalSize: Size;
   shotSize: Size;
 }
@@ -56,11 +57,11 @@ export async function prepareRawScreenshot(
       : { ...originalSize };
   assertValidSize(shotSize, 'prepared screenshot dimensions');
 
-  const base64 = await resizeBase64ImageToJpeg(
-    screenshotBase64,
-    shotSize,
-    SCREENSHOT_JPEG_QUALITY,
-  );
+  const base64 = await resizeBase64ImageToJpeg(screenshotBase64, {
+    sourceSize: originalSize,
+    targetSize: shotSize,
+    jpegQuality: SCREENSHOT_JPEG_QUALITY,
+  });
 
   return {
     base64,

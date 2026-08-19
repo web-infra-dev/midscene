@@ -16,6 +16,8 @@ const testPngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
 const largeTestPngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
+const testJpegDataUrl =
+  'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAdEAACAgMAAwAAAAAAAAAAAAABAgAEAwUGEiEx/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAcEQABAwUAAAAAAAAAAAAAAAAAAQIDBTI0crH/2gAMAwEAAhEDEQA/AL5zGpo5Ob1LvTrs7VMRLNiUknwHv5ERIdqObNs7qiplqH//2Q=';
 const shrunkTestJpegDataUrl =
   'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJ0AWYyP/9k=';
 
@@ -31,8 +33,8 @@ function options(extra: Record<string, unknown> = {}) {
 
 const fakeRepresentative = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
-    shotSize: { width: 100, height: 100 },
+    screenshot: ScreenshotItem.create(testJpegDataUrl, 9999),
+    shotSize: { width: 2, height: 2 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
@@ -184,17 +186,27 @@ describe('UIObserver', () => {
       deps,
       options({ intervalMs: 200, maxFrames: 30 }),
     );
-    for (let index = 0; index < 25; index++) {
+    for (let index = 0; index < 30; index++) {
       (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
     const observation = await observer.stop();
     const record = await observation.exportRecord();
 
-    expect(record.frames).toHaveLength(26);
+    expect(record.frames).toHaveLength(31);
     expect(fake.decode.mock.calls.flatMap(([frames]) => frames)).toHaveLength(
-      25,
+      30,
     );
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    for (const frame of record.frames) {
+      expectJpegFrame(frame.path);
+      const base64 = readFileSync(frame.path).toString('base64');
+      await expect(
+        imageInfoOfBase64(`data:${frame.mimeType};base64,${base64}`),
+      ).resolves.toEqual(record.shotSize);
+    }
   });
 
   it('smart thinning preserves change points and temporal endpoints', () => {

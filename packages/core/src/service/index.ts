@@ -523,7 +523,10 @@ export default class Service {
           return {
             kind: area.kind,
             imageBase64: resizeSize
-              ? await resizeBase64ImageToJpeg(markedCropPayload, resizeSize)
+              ? await resizeBase64ImageToJpeg(markedCropPayload, {
+                  sourceSize: cropSize,
+                  targetSize: resizeSize,
+                })
               : markedCropPayload,
           };
         }),

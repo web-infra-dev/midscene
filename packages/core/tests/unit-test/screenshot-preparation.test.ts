@@ -35,7 +35,7 @@ describe('prepareRawScreenshot', () => {
   it('keeps JPEG dimensions while preserving the JPEG output contract', async () => {
     const prepared = await prepareRawScreenshot(jpegDataUrl);
 
-    expect(prepared.base64).toMatch(/^data:image\/jpeg;base64,/);
+    expect(prepared.base64).toBe(jpegDataUrl);
     expect(prepared.originalSize).toEqual({ width: 4, height: 3 });
     expect(prepared.shotSize).toEqual(prepared.originalSize);
     await expect(imageInfoOfBase64(prepared.base64)).resolves.toEqual(

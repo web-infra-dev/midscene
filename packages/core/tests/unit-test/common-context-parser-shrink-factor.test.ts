@@ -45,11 +45,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(
-      mockScreenshotBase64,
-      { width: 2400, height: 1200 },
-      90,
-    );
+    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+      sourceSize: { width: 2400, height: 1200 },
+      targetSize: { width: 2400, height: 1200 },
+      jpegQuality: 90,
+    });
     expect(result.screenshot.base64).toBe('data:image/jpeg;base64,jpeg-image');
   });
 
@@ -59,11 +59,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(
-      mockScreenshotBase64,
-      { width: 2400, height: 1200 },
-      90,
-    );
+    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+      sourceSize: { width: 2400, height: 1200 },
+      targetSize: { width: 2400, height: 1200 },
+      jpegQuality: 90,
+    });
     expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
   });
 
@@ -75,14 +75,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(
-      mockScreenshotBase64,
-      {
-        width: 1200,
-        height: 600,
-      },
-      90,
-    );
+    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+      sourceSize: { width: 2400, height: 1200 },
+      targetSize: { width: 1200, height: 600 },
+      jpegQuality: 90,
+    });
     expect(result.shotSize).toEqual({ width: 1200, height: 600 });
   });
 
@@ -95,14 +92,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(
-      mockScreenshotBase64,
-      {
-        width: 608,
-        height: 1344,
-      },
-      90,
-    );
+    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+      sourceSize: { width: 1216, height: 2688 },
+      targetSize: { width: 608, height: 1344 },
+      jpegQuality: 90,
+    });
     expect(result.shotSize).toEqual({ width: 608, height: 1344 });
     // dpr=1, shrunkShotToLogicalRatio = 1/2 = 0.5
     // AI coord 304 (middle of 608) -> logical 304/0.5 = 608 (middle of 1216) ✓
@@ -116,11 +110,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(
-      mockScreenshotBase64,
-      { width: 1216, height: 2688 },
-      90,
-    );
+    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+      sourceSize: { width: 1216, height: 2688 },
+      targetSize: { width: 1216, height: 2688 },
+      jpegQuality: 90,
+    });
     expect(result.shotSize).toEqual({ width: 1216, height: 2688 });
     expect(result.shrunkShotToLogicalRatio).toBeCloseTo(1, 5);
   });
