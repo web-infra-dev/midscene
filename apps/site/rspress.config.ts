@@ -391,22 +391,22 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Yaml 测试运行器',
+            sectionHeaderText: 'Test Runner (Beta)',
           },
           {
-            text: '概览',
-            link: '/zh/yaml-test-runner-overview',
+            text: 'Test Runner 概览',
+            link: '/zh/test-runner-overview',
           },
           {
-            text: '编写和运行 YAML 测试用例',
-            link: '/zh/yaml-test-cases',
+            text: '编写和运行测试用例',
+            link: '/zh/use-test-runner',
           },
           {
-            text: '扩展和维护 YAML 测试运行器',
-            link: '/zh/extend-yaml-test-runner',
+            text: '扩展和维护 Test Runner',
+            link: '/zh/extend-test-runner',
           },
           {
-            sectionHeaderText: 'Yaml automation (legacy)',
+            sectionHeaderText: 'YAML 自动化',
           },
           {
             text: 'YAML 脚本运行器',
