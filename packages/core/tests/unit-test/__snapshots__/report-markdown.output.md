@@ -6,6 +6,12 @@
 ## Model Info
 - No model metadata recorded.
 
+## Timing Summary
+| Metric | Duration(ms) | Definition |
+| --- | --- | --- |
+| Wall Time | 100 | Elapsed time from the earliest recorded task timestamp to the latest, including model calls, actions, waits, and gaps. |
+| Model Call Time | 0 | Sum of all recorded model request durations. Overlapping calls are counted separately, so this can exceed Wall Time. |
+
 ## Token Usage Summary
 - No token usage recorded.
 

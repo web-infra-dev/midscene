@@ -304,7 +304,14 @@ describe('report-markdown', () => {
 
     expect(result.markdown).toContain('## Model Info');
     expect(result.markdown).toContain('| planning | gpt-4o | vision planner |');
+    expect(result.markdown).toContain('## Timing Summary');
+    expect(result.markdown).toContain('| Wall Time | 100 |');
+    expect(result.markdown).toContain('| Model Call Time | 579 |');
+    expect(result.markdown).toContain(
+      'Overlapping calls are counted separately, so this can exceed Wall Time.',
+    );
     expect(result.markdown).toContain('## Token Usage Summary');
+    expect(result.markdown).toContain('Model Call Time(ms)');
     expect(result.markdown).toContain(
       '| gpt-4o | 1 | 100 | 20 | 30 | 130 | 456 |',
     );
@@ -326,6 +333,28 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('Submit button is visible.');
     expect(result.markdown).toContain('### Reasoning Content');
     expect(result.markdown).toContain('Clicking submit completes the form.');
+  });
+
+  it('explains the wall-time fallback in markdown', () => {
+    const report: IReportActionDump = {
+      sdkVersion: '1.0.0',
+      groupName: 'fallback-timing-report',
+      modelBriefs: [],
+      executions: [
+        {
+          logTime: 1710000000000,
+          name: 'execution without task timing',
+          tasks: [createTask({ timing: undefined })],
+        },
+      ],
+    };
+
+    const result = reportToMarkdown(report, { wallTimeFallbackMs: 2_500 });
+
+    expect(result.markdown).toContain('| Wall Time | 2500 |');
+    expect(result.markdown).toContain(
+      'Elapsed time reported by the enclosing test runner because task timestamps were unavailable.',
+    );
   });
 
   it('falls back report model info to task usage when model briefs are missing', () => {

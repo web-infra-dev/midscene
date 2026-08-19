@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@rstest/core';
 
 const styles = readFileSync(new URL('./index.less', import.meta.url), 'utf8');
+const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const commonStyles = readFileSync(
   new URL('../common.less', import.meta.url),
   'utf8',
@@ -34,6 +35,17 @@ describe('sidebar layout', () => {
     );
     expect(screenshotStyles).toMatch(
       /\.agent-screenshot-header\s*{[^}]*height: @report-pane-header-height;/s,
+    );
+  });
+
+  it('keeps timing tooltip definitions readable within the viewport', () => {
+    expect(source.match(/rootClassName="total-time-tooltip"/g)).toHaveLength(2);
+    expect(source.match(/placement="topLeft"/g)).toHaveLength(2);
+    expect(styles).toMatch(
+      /\.ant-tooltip\.total-time-tooltip\s*{[^}]*max-width: min\(360px, calc\(100vw - 24px\)\);/s,
+    );
+    expect(styles).toMatch(
+      /\.total-time-tooltip-definition-label,\s*\.total-time-tooltip-description\s*{[^}]*grid-column: 1 \/ -1;/s,
     );
   });
 });

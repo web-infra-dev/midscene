@@ -8,6 +8,24 @@ tasks:
       - sleep: 5000
       - aiAssert: The report page is loaded with a left-side task list table showing multiple named task rows and a time or duration column; the main report panel also shows a "Record" timeline with visible screenshot thumbnails or frame previews.
 
+  # --- Report timing summary ---
+  - name: total row distinguishes wall time from model call time
+    flow:
+      - aiAssert: At the bottom of the left-side task table there is one combined "Total" summary row. Its Time cell visibly contains separate "Wall" and "Model" duration values; there is no separate row labeled "Total Time".
+
+  # --- Markdown timing summary ---
+  - name: markdown view explains both timing metrics
+    flow:
+      - aiTap:
+          locate:
+            prompt: the "Markdown View" button in the Report view switch at the top-left of the sidebar
+      - sleep: 500
+      - aiAssert: The left sidebar is showing report Markdown source with a "Timing Summary" section that clearly lists both "Wall Time" and "Model Call Time".
+      - aiTap:
+          locate:
+            prompt: the "Human View" button in the Report view switch at the top-left of the sidebar
+      - sleep: 500
+
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:

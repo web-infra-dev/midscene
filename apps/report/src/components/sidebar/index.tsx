@@ -5,9 +5,9 @@ import {
   DownloadOutlined,
   FileMarkdownOutlined,
 } from '@ant-design/icons';
-import type { AIUsageInfo, ExecutionTask } from '@midscene/core';
-import { deriveTaskStatus } from '@midscene/core';
+import { type ExecutionTask, deriveTaskStatus } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
+import { collectReportSummary } from '@midscene/core/report-stats';
 import {
   type AnimationScript,
   fullTimeStrWithMilliseconds,
@@ -34,17 +34,12 @@ import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
 import MarkdownSource from './markdown-source';
 
-// Extended task type with searchAreaUsage
-type ExecutionTaskWithSearchAreaUsage = ExecutionTask & {
-  searchAreaUsage?: AIUsageInfo;
-};
-
 // Table row data type
 type TableRowData = {
   key: string;
   isGroupHeader?: boolean;
   groupName?: string;
-  task?: ExecutionTaskWithSearchAreaUsage;
+  task?: ExecutionTask;
 };
 
 interface SidebarProps {
@@ -115,7 +110,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       execution.tasks.forEach((task, taskIndex) => {
         rows.push({
           key: `task-${executionIndex}-${taskIndex}`,
-          task: task as ExecutionTaskWithSearchAreaUsage,
+          task,
         });
       });
     });
@@ -146,16 +141,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return groupedDump.executions.some((execution) =>
       execution.tasks.some((task) => {
         const mainCached = task.usage?.cached_input || 0;
-        const searchAreaCached =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.cached_input || 0;
+        const searchAreaCached = task.searchAreaUsage?.cached_input || 0;
         return mainCached + searchAreaCached > 0;
       }),
     );
   }, [groupedDump]);
 
   // Helper functions for rendering
-  const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getStatusIcon = (task: ExecutionTask) => {
     // Share the same failure semantics as the merged-report status derivation
     // (deriveTaskStatus) so step icons and merged Passed/Failed never diverge.
     const status = deriveTaskStatus(task);
@@ -164,7 +157,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return iconForStatus(status === 'warning' ? 'finishedWithWarning' : status);
   };
 
-  const getTitleIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getTitleIcon = (task: ExecutionTask) => {
     return task.type === 'Planning' && task.subType !== 'LoadYaml' ? (
       <span
         style={{
@@ -178,7 +171,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getCacheTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getCacheTag = (task: ExecutionTask) => {
     return task.hitBy?.from === 'Cache' ? (
       <Tag
         className="cache-tag"
@@ -195,7 +188,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getDomIncludedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getDomIncludedTag = (task: ExecutionTask) => {
     const isDomIncludedInsightTask =
       task.type === 'Insight' &&
       (
@@ -220,7 +213,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getDeepLocateTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getDeepLocateTag = (task: ExecutionTask) => {
     return hasDeepLocateFlag(task) ? (
       <Tag
         className="deeplocate-tag"
@@ -237,7 +230,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getDeepThinkTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getDeepThinkTag = (task: ExecutionTask) => {
     return hasDeepThinkFlag(task) ? (
       <Tag
         className="deepthink-tag"
@@ -254,7 +247,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getObservedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getObservedTag = (task: ExecutionTask) => {
     return hasObserverAssertionFlag(task) ? (
       <Tag
         className="observed-tag"
@@ -271,7 +264,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getXPathTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getXPathTag = (task: ExecutionTask) => {
     if (task.hitBy?.from !== 'User expected path') {
       return null;
     }
@@ -292,17 +285,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     );
   };
 
-  const getStatusText = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getStatusText = (task: ExecutionTask) => {
     if (typeof task.timing?.cost === 'number') {
       return timeCostStrElement(task.timing.cost);
     }
     return task.status;
   };
 
-  const getTokens = (
-    task: ExecutionTaskWithSearchAreaUsage,
-    type: 'prompt' | 'completion',
-  ) => {
+  const getTokens = (task: ExecutionTask, type: 'prompt' | 'completion') => {
     const key = type === 'prompt' ? 'prompt_tokens' : 'completion_tokens';
     const mainUsage = task.usage?.[key] || 0;
     const searchAreaUsage = task.searchAreaUsage?.[key] || 0;
@@ -310,7 +300,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return total > 0 ? total : '-';
   };
 
-  const getCachedTokens = (task: ExecutionTaskWithSearchAreaUsage) => {
+  const getCachedTokens = (task: ExecutionTask) => {
     const mainCached = task.usage?.cached_input || 0;
     const searchAreaCached = task.searchAreaUsage?.cached_input || 0;
     const total = mainCached + searchAreaCached;
@@ -365,18 +355,15 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         // Token numbers length
         const promptTokens = String(
           (task.usage?.prompt_tokens || 0) +
-            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-              ?.prompt_tokens || 0),
+            (task.searchAreaUsage?.prompt_tokens || 0),
         );
         const cachedTokens = String(
           (task.usage?.cached_input || 0) +
-            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-              ?.cached_input || 0),
+            (task.searchAreaUsage?.cached_input || 0),
         );
         const completionTokens = String(
           (task.usage?.completion_tokens || 0) +
-            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-              ?.completion_tokens || 0),
+            (task.searchAreaUsage?.completion_tokens || 0),
         );
 
         maxPromptLength = Math.max(maxPromptLength, promptTokens.length);
@@ -392,7 +379,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     // Use 9px per char to account for padding and ensure no overflow
     const charWidth = 9;
     const minWidths = {
-      time: 60,
+      time: 96,
       intent: 60,
       model: 80,
       prompt: 70,
@@ -433,7 +420,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const columnConfig = useMemo(() => {
     return [
       { key: 'type', label: 'Type', width: typeColumnMinWidth, flex: true },
-      { key: 'time', label: 'Time', width: dynamicWidths.time },
+      {
+        key: 'time',
+        label: 'Time',
+        width: dynamicWidths.time,
+        tooltip:
+          'Per-task elapsed time. The Total row separates Wall time from summed Model call time.',
+      },
       ...(proModeEnabled
         ? [
             { key: 'intent', label: 'Intent', width: dynamicWidths.intent },
@@ -465,119 +458,66 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ];
   }, [hasCachedInput, proModeEnabled, dynamicWidths]);
 
-  // Calculate total tokens by model
-  const tokensByModel = useMemo(() => {
-    const modelStats = new Map<
-      string,
-      { prompt: number; cachedInput: number; completion: number }
-    >();
-
-    groupedDump?.executions
-      .flatMap((e) => e.tasks)
-      .forEach((task) => {
-        // Skip tasks without usage information
-        if (!task.usage) return;
-
-        const modelName = task.usage.model_name || 'Unknown';
-        const mainPrompt = task.usage.prompt_tokens || 0;
-        const mainCompletion = task.usage.completion_tokens || 0;
-        const mainCached = task.usage.cached_input || 0;
-        const searchAreaPrompt =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.prompt_tokens || 0;
-        const searchAreaCompletion =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.completion_tokens || 0;
-        const searchAreaCached =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.cached_input || 0;
-
-        const existing = modelStats.get(modelName) || {
-          prompt: 0,
-          cachedInput: 0,
-          completion: 0,
-        };
-        modelStats.set(modelName, {
-          prompt: existing.prompt + mainPrompt + searchAreaPrompt,
-          cachedInput: existing.cachedInput + mainCached + searchAreaCached,
-          completion:
-            existing.completion + mainCompletion + searchAreaCompletion,
-        });
-      });
-
-    return modelStats;
-  }, [groupedDump]);
-
-  const totalPromptTokens = Array.from(tokensByModel.values()).reduce(
-    (sum, stats) => sum + stats.prompt,
-    0,
-  );
-
-  const totalCachedInputTokens = Array.from(tokensByModel.values()).reduce(
-    (sum, stats) => sum + stats.cachedInput,
-    0,
-  );
-
-  const totalCompletionTokens = Array.from(tokensByModel.values()).reduce(
-    (sum, stats) => sum + stats.completion,
-    0,
-  );
-
-  // Calculate total time cost
-  const timingRange = useMemo(() => {
+  const reportSummary = useMemo(() => {
     if (!groupedDump) return null;
-
-    let earliest: number | null = null;
-    let latest: number | null = null;
-
-    groupedDump.executions.forEach((execution) => {
-      execution.tasks.forEach((task) => {
-        const timestamps = [task.timing?.start, task.timing?.end].filter(
-          (timestamp): timestamp is number => typeof timestamp === 'number',
-        );
-
-        timestamps.forEach((timestamp) => {
-          earliest =
-            earliest === null ? timestamp : Math.min(earliest, timestamp);
-          latest = latest === null ? timestamp : Math.max(latest, timestamp);
-        });
-      });
+    return collectReportSummary(groupedDump, {
+      wallTimeFallbackMs: playwrightAttributes?.playwright_test_duration,
     });
+  }, [groupedDump, playwrightAttributes]);
 
-    if (earliest === null || latest === null) {
-      return null;
-    }
+  const wallTimeTooltip = useMemo(() => {
+    if (!reportSummary) return null;
+    const { timing } = reportSummary;
+    const hasTaskTimestamps = timing.wallTimeSource === 'task-timestamps';
 
-    return {
-      earliest,
-      latest,
-      duration: Math.max(0, latest - earliest),
-    };
-  }, [groupedDump]);
-
-  const totalTimeCost = useMemo(() => {
-    if (timingRange) {
-      return timingRange.duration;
-    }
-
-    return playwrightAttributes?.playwright_test_duration || 0;
-  }, [timingRange, playwrightAttributes]);
-
-  const totalTimeTooltip = useMemo(() => {
-    if (!timingRange) return null;
     return (
       <div className="total-time-tooltip-content">
-        <span className="total-time-tooltip-label">Start</span>
-        <span className="total-time-tooltip-value">
-          {fullTimeStrWithMilliseconds(timingRange.earliest)}
+        <span className="total-time-tooltip-label total-time-tooltip-definition-label">
+          Definition
         </span>
-        <span className="total-time-tooltip-label">End</span>
+        <span className="total-time-tooltip-value total-time-tooltip-description">
+          {hasTaskTimestamps
+            ? 'Elapsed time from the earliest recorded task timestamp to the latest, including model calls, actions, waits, and gaps.'
+            : timing.wallTimeSource === 'fallback'
+              ? 'Elapsed time reported by the enclosing test runner because task timestamps were unavailable.'
+              : 'Unavailable because the report has no recorded task timestamps.'}
+        </span>
+        {hasTaskTimestamps && (
+          <>
+            <span className="total-time-tooltip-label">Start</span>
+            <span className="total-time-tooltip-value">
+              {fullTimeStrWithMilliseconds(timing.wallTimeStart)}
+            </span>
+            <span className="total-time-tooltip-label">End</span>
+            <span className="total-time-tooltip-value">
+              {fullTimeStrWithMilliseconds(timing.wallTimeEnd)}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  }, [reportSummary]);
+
+  const modelCallTimeTooltip = useMemo(() => {
+    if (!reportSummary) return null;
+    const { timing } = reportSummary;
+
+    return (
+      <div className="total-time-tooltip-content">
+        <span className="total-time-tooltip-label total-time-tooltip-definition-label">
+          Definition
+        </span>
+        <span className="total-time-tooltip-value total-time-tooltip-description">
+          Sum of all recorded model request durations. Overlapping calls are
+          counted separately, so this can exceed Wall time.
+        </span>
+        <span className="total-time-tooltip-label">Calls</span>
         <span className="total-time-tooltip-value">
-          {fullTimeStrWithMilliseconds(timingRange.latest)}
+          {timing.modelCallCount}
         </span>
       </div>
     );
-  }, [timingRange]);
+  }, [reportSummary]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -630,10 +570,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     reportViewMode === 'human' || (dumps?.length ?? 0) > 1;
 
   // Render cell content based on column key
-  const renderCellContent = (
-    columnKey: string,
-    task: ExecutionTaskWithSearchAreaUsage,
-  ) => {
+  const renderCellContent = (columnKey: string, task: ExecutionTask) => {
     switch (columnKey) {
       case 'type': {
         const taskName =
@@ -785,8 +722,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           {/* Summary */}
           <div className="table-summary">
             <div className="side-seperator side-seperator-line side-seperator-space-up" />
-            {/* Total time row - always visible */}
-            <div className="summary-row">
+            {/* Grand total: timing is always visible; tokens appear in pro mode. */}
+            <div className="summary-row total-summary-row">
               <div
                 className="summary-cell column-type"
                 style={{
@@ -794,21 +731,40 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                   flex: 1,
                 }}
               >
-                <div className="token-total-label">Total Time</div>
+                <div className="token-total-label">Total</div>
               </div>
               <div
                 className="summary-cell column-time"
                 style={{ width: dynamicWidths.time }}
               >
-                <span className="token-value">
-                  {timingRange ? (
-                    <Tooltip title={totalTimeTooltip}>
-                      {timeCostStrElement(totalTimeCost)}
-                    </Tooltip>
-                  ) : (
-                    timeCostStrElement(totalTimeCost)
-                  )}
-                </span>
+                <div className="summary-time-values">
+                  <Tooltip
+                    title={wallTimeTooltip}
+                    rootClassName="total-time-tooltip"
+                    placement="topLeft"
+                  >
+                    <span className="summary-time-item">
+                      <span className="summary-time-label">Wall</span>
+                      <span className="summary-time-value">
+                        {timeCostStrElement(reportSummary?.timing.wallTimeMs)}
+                      </span>
+                    </span>
+                  </Tooltip>
+                  <Tooltip
+                    title={modelCallTimeTooltip}
+                    rootClassName="total-time-tooltip"
+                    placement="topLeft"
+                  >
+                    <span className="summary-time-item">
+                      <span className="summary-time-label">Model</span>
+                      <span className="summary-time-value">
+                        {timeCostStrElement(
+                          reportSummary?.timing.modelCallTimeMs,
+                        )}
+                      </span>
+                    </span>
+                  </Tooltip>
+                </div>
               </div>
               {proModeEnabled && (
                 <>
@@ -823,110 +779,79 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                   <div
                     className="summary-cell column-prompt"
                     style={{ width: dynamicWidths.prompt }}
-                  />
+                  >
+                    <span className="token-value">
+                      {reportSummary?.tokens.promptTokens ?? 0}
+                    </span>
+                  </div>
                   {hasCachedInput && (
                     <div
                       className="summary-cell column-cached"
                       style={{ width: dynamicWidths.cached }}
-                    />
+                    >
+                      <span className="token-value">
+                        {reportSummary?.tokens.cachedInputTokens ?? 0}
+                      </span>
+                    </div>
                   )}
                   <div
                     className="summary-cell column-completion"
                     style={{ width: dynamicWidths.completion }}
-                  />
+                  >
+                    <span className="token-value">
+                      {reportSummary?.tokens.completionTokens ?? 0}
+                    </span>
+                  </div>
                 </>
               )}
             </div>
 
-            {/* Token usage rows - only in pro mode */}
+            {/* Keep per-model subtotals when the report used multiple models. */}
             {proModeEnabled &&
-              (() => {
-                const modelEntries = Array.from(tokensByModel.entries());
-                const hasMultipleModels = modelEntries.length > 1;
-
-                return hasMultipleModels
-                  ? modelEntries.map(([modelName, stats]) => (
-                      <div key={modelName} className="summary-row">
-                        <div
-                          className="summary-cell column-type"
-                          style={{
-                            minWidth: typeColumnMinWidth,
-                            flex: 1,
-                          }}
-                        >
-                          <div className="token-total-label">
-                            {modelName}
-                            <Tag bordered={false} style={{ marginLeft: '8px' }}>
-                              Total
-                            </Tag>
-                          </div>
-                        </div>
-                        <div
-                          className="summary-cell column-prompt"
-                          style={{ width: dynamicWidths.prompt }}
-                        >
-                          <span className="token-value">{stats.prompt}</span>
-                        </div>
-                        {hasCachedInput && (
-                          <div
-                            className="summary-cell column-cached"
-                            style={{ width: dynamicWidths.cached }}
-                          >
-                            <span className="token-value">
-                              {stats.cachedInput}
-                            </span>
-                          </div>
-                        )}
-                        <div
-                          className="summary-cell column-completion"
-                          style={{ width: dynamicWidths.completion }}
-                        >
-                          <span className="token-value">
-                            {stats.completion}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  : [
-                      <div key="total-tokens" className="summary-row">
-                        <div
-                          className="summary-cell column-type"
-                          style={{
-                            minWidth: typeColumnMinWidth,
-                            flex: 1,
-                          }}
-                        >
-                          <div className="token-total-label">Total</div>
-                        </div>
-                        <div
-                          className="summary-cell column-prompt"
-                          style={{ width: dynamicWidths.prompt }}
-                        >
-                          <span className="token-value">
-                            {totalPromptTokens}
-                          </span>
-                        </div>
-                        {hasCachedInput && (
-                          <div
-                            className="summary-cell column-cached"
-                            style={{ width: dynamicWidths.cached }}
-                          >
-                            <span className="token-value">
-                              {totalCachedInputTokens}
-                            </span>
-                          </div>
-                        )}
-                        <div
-                          className="summary-cell column-completion"
-                          style={{ width: dynamicWidths.completion }}
-                        >
-                          <span className="token-value">
-                            {totalCompletionTokens}
-                          </span>
-                        </div>
-                      </div>,
-                    ];
-              })()}
+              reportSummary &&
+              reportSummary.models.length > 1 &&
+              reportSummary.models.map((model) => (
+                <div key={model.modelName} className="summary-row">
+                  <div
+                    className="summary-cell column-type"
+                    style={{
+                      minWidth: typeColumnMinWidth,
+                      flex: 1,
+                    }}
+                  >
+                    <div className="token-total-label">
+                      {model.modelName}
+                      <Tag bordered={false} style={{ marginLeft: '8px' }}>
+                        Subtotal
+                      </Tag>
+                    </div>
+                  </div>
+                  <div
+                    className="summary-cell column-prompt"
+                    style={{ width: dynamicWidths.prompt }}
+                  >
+                    <span className="token-value">{model.promptTokens}</span>
+                  </div>
+                  {hasCachedInput && (
+                    <div
+                      className="summary-cell column-cached"
+                      style={{ width: dynamicWidths.cached }}
+                    >
+                      <span className="token-value">
+                        {model.cachedInputTokens}
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    className="summary-cell column-completion"
+                    style={{ width: dynamicWidths.completion }}
+                  >
+                    <span className="token-value">
+                      {model.completionTokens}
+                    </span>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
         <div className="executions-tip">

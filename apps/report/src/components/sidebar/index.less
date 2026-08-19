@@ -456,6 +456,24 @@
         height: 44px;
         align-items: center;
 
+        .token-total-label {
+          min-width: 0;
+          overflow: hidden;
+          color: #808080;
+          font-size: 12px;
+          font-weight: 500;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .token-value {
+          color: #595959;
+          font-size: 14px;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1;
+          white-space: nowrap;
+        }
+
         .summary-cell {
           padding: 0 8px;
           display: flex;
@@ -474,6 +492,38 @@
           &.column-completion {
             justify-content: flex-end;
           }
+        }
+
+        .summary-time-values {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          width: 100%;
+        }
+
+        .summary-time-item {
+          display: inline-flex;
+          align-items: baseline;
+          justify-content: flex-end;
+          gap: 5px;
+          width: 100%;
+          cursor: help;
+          line-height: 16px;
+        }
+
+        .summary-time-label {
+          color: #808080;
+          font-family: sans-serif;
+          font-size: 10px;
+          line-height: 1;
+        }
+
+        .summary-time-value {
+          color: #595959;
+          font-size: 12px;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1;
         }
       }
     }
@@ -643,9 +693,14 @@
   background-color: #e6f4ff;
 }
 
+.ant-tooltip.total-time-tooltip {
+  max-width: min(360px, calc(100vw - 24px));
+}
+
 .total-time-tooltip-content {
   display: grid;
-  grid-template-columns: max-content max-content;
+  grid-template-columns: max-content minmax(0, 1fr);
+  width: min(320px, calc(100vw - 56px));
   column-gap: 12px;
   row-gap: 4px;
   align-items: baseline;
@@ -659,7 +714,23 @@
 .total-time-tooltip-value {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
+  min-width: 0;
   white-space: nowrap;
+}
+
+.total-time-tooltip-definition-label,
+.total-time-tooltip-description {
+  grid-column: 1 / -1;
+}
+
+.total-time-tooltip-definition-label {
+  text-align: left;
+}
+
+.total-time-tooltip-description {
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 // Dark mode styles
@@ -808,6 +879,18 @@
       .column-cached,
       .column-completion {
         color: #f8fafd;
+      }
+
+      .table-summary .summary-row {
+        .token-total-label,
+        .summary-time-label {
+          color: rgba(255, 255, 255, 0.45);
+        }
+
+        .token-value,
+        .summary-time-value {
+          color: #f8fafd;
+        }
       }
     }
 

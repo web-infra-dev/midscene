@@ -59,6 +59,11 @@
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
     },
+    "./report-stats": {
+      "types": "./dist/types/report-stats.d.ts",
+      "import": "./dist/es/report-stats.mjs",
+      "require": "./dist/lib/report-stats.js"
+    },
     "./skill": {
       "types": "./dist/types/skill/index.d.ts",
       "import": "./dist/es/skill/index.mjs",
@@ -74,6 +79,7 @@
       "device": ["./dist/types/device.d.ts"],
       "dump": ["./dist/types/dump/index.d.ts"],
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
+      "report-stats": ["./dist/types/report-stats.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "skill": ["./dist/types/skill/index.d.ts"]
