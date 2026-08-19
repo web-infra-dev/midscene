@@ -1,7 +1,7 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
   buildActionDescription,
-  defaultMidscenePlanningProtocol,
+  createDefaultMidscenePlanningProtocol,
 } from '@/ai-model/model-adapter/default-planning-protocol';
 import type {
   PlanningActionOutputProtocol,
@@ -10,6 +10,7 @@ import type {
 import { getModelAdapter } from '@/ai-model/models';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -19,6 +20,10 @@ import {
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockActionSpace } from '../../common';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 // Mock getPreferredLanguage to ensure consistent test output
 vi.mock('@midscene/shared/env', async (importOriginal) => {

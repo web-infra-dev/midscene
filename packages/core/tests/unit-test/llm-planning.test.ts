@@ -1,5 +1,6 @@
-import { defaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
+import { createDefaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
 import { getModelAdapter } from '@/ai-model/models';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { parseStandardPlanningResponse as parseStandardPlanningResponseWithOptions } from '@/ai-model/workflows/planning';
 import {
   parseMarkFinishedIndexes,
@@ -16,6 +17,10 @@ import {
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 const parseStandardPlanningResponse = (
   xmlString: string,

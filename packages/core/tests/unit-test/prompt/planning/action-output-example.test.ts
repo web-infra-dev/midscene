@@ -1,15 +1,20 @@
 import {
   buildPlanningActionOutput,
-  defaultMidscenePlanningProtocol,
+  createDefaultMidscenePlanningProtocol,
 } from '@/ai-model/model-adapter/default-planning-protocol';
 import {
   buildActionOutputExample,
   createSampleTapAction,
 } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { getMidsceneLocationSchema } from '@/common';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 describe('buildPlanningActionOutput', () => {
   it('serializes an action type and structured parameters', () => {

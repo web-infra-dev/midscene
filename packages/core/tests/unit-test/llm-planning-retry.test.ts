@@ -347,6 +347,41 @@ describe('plan XML parse retry', () => {
     expect(result.actions).toEqual([{ type: 'Tap' }]);
   });
 
+  it('uses the JSON parser configured by the adapter for planning actions', async () => {
+    const jsonParser = vi.fn(() => ({ parsedByCustomParser: true }));
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>
+<action-param-json>{custom syntax}</action-param-json>`),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: {
+        config: mockModelConfig(),
+        adapter: new ResolvedModelAdapter(
+          { jsonParser },
+          'test-custom-json-parser',
+        ),
+      },
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(jsonParser).toHaveBeenCalledWith('{custom syntax}', {
+      source: 'planning-action-param',
+      preserveStringValueKeys: undefined,
+    });
+    expect(result.actions).toEqual([
+      {
+        type: 'Tap',
+        param: { parsedByCustomParser: true },
+      },
+    ]);
+  });
+
   it('retries once when planning locate coordinates cannot be normalized', async () => {
     const actionSpace: DeviceAction[] = [
       {

@@ -5,7 +5,7 @@ import {
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import { getZodDefaultValue } from '../shared/action-schema';
-import { parseModelResponseJson } from '../shared/json';
+import type { JsonParser } from '../shared/json';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
@@ -14,7 +14,7 @@ import { extractXMLTag } from '../shared/xml';
 import type {
   PlanningActionDescriptionBuildInput,
   PlanningActionOutputBuildInput,
-  StandardPlanningProtocol,
+  StandardPlanningProtocolFactory,
 } from './planning-protocol';
 
 type ActionParamDescription = {
@@ -174,55 +174,57 @@ ${
 }
 </action-param-json>`;
 
-export const parseMidscenePlanningActionOutput = (content: string) => {
-  const actionType = extractXMLTag(content, 'action-type');
-  const actionParamStr = extractXMLTag(content, 'action-param-json');
+export const createMidscenePlanningActionOutputParser =
+  (jsonParser: JsonParser) => (content: string) => {
+    const actionType = extractXMLTag(content, 'action-type');
+    const actionParamStr = extractXMLTag(content, 'action-param-json');
 
-  if (!actionType || actionType.toLowerCase() === 'null') {
-    return null;
-  }
-
-  // Strip any trailing XML tags that leaked into the action type.
-  const type = actionType.split('<')[0].trim();
-  let param: any = undefined;
-
-  if (actionParamStr) {
-    try {
-      param = parseModelResponseJson(actionParamStr, {
-        source: 'planning-action-param',
-        preserveStringValueKeys:
-          type.toLowerCase() === 'input' ? ['value'] : undefined,
-      });
-    } catch (error) {
-      throw new Error(`Failed to parse action-param-json: ${error}`);
+    if (!actionType || actionType.toLowerCase() === 'null') {
+      return null;
     }
-  }
 
-  return {
-    type,
-    ...(param !== undefined ? { param } : {}),
+    // Strip any trailing XML tags that leaked into the action type.
+    const type = actionType.split('<')[0].trim();
+    let param: any = undefined;
+
+    if (actionParamStr) {
+      try {
+        param = jsonParser(actionParamStr, {
+          source: 'planning-action-param',
+          preserveStringValueKeys:
+            type.toLowerCase() === 'input' ? ['value'] : undefined,
+        });
+      } catch (error) {
+        throw new Error(`Failed to parse action-param-json: ${error}`);
+      }
+    }
+
+    return {
+      type,
+      ...(param !== undefined ? { param } : {}),
+    };
   };
-};
 
-export const defaultMidscenePlanningProtocol: StandardPlanningProtocol = {
-  actionSpaceProtocol: {
-    title: 'Supporting actions list',
-    format: 'yaml',
-    buildLocateFieldDescription,
-    buildActionDescription,
-  },
-  actionOutputProtocol: {
-    actionOutputTagNames: ['action-type', 'action-param-json'],
-    actionOutputRules: [
-      '- Use the <action-type> and <action-param-json> tags to output the action to be executed.',
-      "- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.",
-      '- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.',
-    ].join('\n'),
-    actionOutputPlaceholder: [
-      '<action-type>...</action-type>',
-      '<action-param-json>...</action-param-json>',
-    ].join('\n'),
-    buildActionOutput: buildPlanningActionOutput,
-    parseActionOutput: parseMidscenePlanningActionOutput,
-  },
-};
+export const createDefaultMidscenePlanningProtocol: StandardPlanningProtocolFactory =
+  ({ jsonParser }) => ({
+    actionSpaceProtocol: {
+      title: 'Supporting actions list',
+      format: 'yaml',
+      buildLocateFieldDescription,
+      buildActionDescription,
+    },
+    actionOutputProtocol: {
+      actionOutputTagNames: ['action-type', 'action-param-json'],
+      actionOutputRules: [
+        '- Use the <action-type> and <action-param-json> tags to output the action to be executed.',
+        "- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.",
+        '- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.',
+      ].join('\n'),
+      actionOutputPlaceholder: [
+        '<action-type>...</action-type>',
+        '<action-param-json>...</action-param-json>',
+      ].join('\n'),
+      buildActionOutput: buildPlanningActionOutput,
+      parseActionOutput: createMidscenePlanningActionOutputParser(jsonParser),
+    },
+  });

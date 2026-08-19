@@ -1,11 +1,12 @@
 import {
   buildActionDescription,
-  defaultMidscenePlanningProtocol,
+  createDefaultMidscenePlanningProtocol,
 } from '@/ai-model/model-adapter/default-planning-protocol';
 import {
   buildActionOutputExample,
   serializeActionDescriptions,
 } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
   defineActionInput,
@@ -16,6 +17,10 @@ import { getMidsceneLocationSchema } from '@/index';
 import yaml from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 const mockLocatePromptSpec: LocateResultPromptSpec = {
   resultKey: 'bbox',

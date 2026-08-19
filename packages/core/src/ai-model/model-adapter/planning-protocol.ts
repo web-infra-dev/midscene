@@ -1,4 +1,5 @@
 import type { DeviceAction, PlanningAction } from '@/types';
+import type { JsonParser } from '../shared/json';
 import type { LocateResultPromptSpec } from '../shared/model-locate-result';
 
 export type PlanningActionOutputBuildInput = {
@@ -44,3 +45,19 @@ export type StandardPlanningProtocol = {
   actionSpaceProtocol: PlanningActionSpaceProtocol;
   actionOutputProtocol: PlanningActionOutputProtocol;
 };
+
+export type StandardPlanningProtocolContext = {
+  jsonParser: JsonParser;
+};
+
+/**
+ * Defined as a factory because planning response parsing may depend on the
+ * adapter's resolved JSON parser.
+ */
+export type StandardPlanningProtocolFactory = (
+  context: StandardPlanningProtocolContext,
+) => StandardPlanningProtocol;
+
+export type StandardPlanningProtocolDefinition =
+  | StandardPlanningProtocol
+  | StandardPlanningProtocolFactory;
