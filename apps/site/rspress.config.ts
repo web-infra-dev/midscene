@@ -230,22 +230,7 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Yaml test runner',
-          },
-          {
-            text: 'Overview',
-            link: '/yaml-test-runner-overview',
-          },
-          {
-            text: 'Write and run YAML test cases',
-            link: '/yaml-test-cases',
-          },
-          {
-            text: 'Extend and maintain the YAML test runner',
-            link: '/extend-yaml-test-runner',
-          },
-          {
-            sectionHeaderText: 'Yaml automation (legacy)',
+            sectionHeaderText: 'YAML automation',
           },
           {
             text: 'YAML script runner',
@@ -391,21 +376,6 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Test Runner (Beta)',
-          },
-          {
-            text: 'Test Runner 概览',
-            link: '/zh/test-runner-overview',
-          },
-          {
-            text: '编写和运行测试用例',
-            link: '/zh/use-test-runner',
-          },
-          {
-            text: '扩展和维护 Test Runner',
-            link: '/zh/extend-test-runner',
-          },
-          {
             sectionHeaderText: 'YAML 自动化',
           },
           {
@@ -449,6 +419,21 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
+          },
+          {
+            sectionHeaderText: 'Test Runner (Beta)',
+          },
+          {
+            text: 'Test Runner 概览',
+            link: '/zh/test-runner-overview',
+          },
+          {
+            text: '编写和运行测试用例',
+            link: '/zh/use-test-runner',
+          },
+          {
+            text: '扩展和维护 Test Runner',
+            link: '/zh/extend-test-runner',
           },
           {
             sectionHeaderText: '资源',

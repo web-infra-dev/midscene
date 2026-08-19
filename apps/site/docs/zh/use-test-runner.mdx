@@ -19,8 +19,9 @@ Test Project 配置
 ```
 
 - **Test Project（测试项目）**：由 `midscene.config.ts` 定义的顶层配置，负责注册共享 Node，并配置默认运行目标或 `projects` 数组。
-- **Execution Project**：Test Project 内的一项子配置，描述一个运行目标及其平台、Project setup、文件和标签筛选、变量与 retry 策略；它不是独立于 Test Project 的同级实体。
+- **Execution Project（执行项目）**：Test Project 内的一项子配置，描述一个运行目标及其平台、Project setup、文件和标签筛选、变量与 retry 策略；它不是独立于 Test Project 的同级实体。
 - **Workflow Document（工作流文档）**：被 Execution Project 选中的 YAML 文件，包含生命周期和多个 Case。
+- **Lifecycle Step（生命周期步骤）**：在 Workflow Document 的 `beforeAll`、`beforeEach`、`afterEach` 或 `afterAll` 钩子中声明并执行的步骤，用于进行数据准备、状态重置、资源清理等辅助性操作。
 - **Case（用例）**：由多个 Step 组成的具名测试用例。
 - **Step（步骤）**：在 YAML 中对 Node 的一次调用。
 - **Node（节点）**：平台开发者注册的执行能力，例如 `aiAssert` 或 `order.create`。
@@ -248,7 +249,7 @@ midscene_run/report/
 
 目前版本的测试运行器存在以下局限性，在编写用例时需予以注意：
 
-* **无并行执行**：在单个 Execution Project 内部，所有的 Workflow Document、Case、Attempt 和 Step 均为串行执行，暂不支持用例维度的并发。
+* **无并行执行**：在单个 Execution Project 内部，所有的 Workflow Document、Case、attempt 和 Step 均为串行执行，暂不支持用例维度的并发。
 * **无控制流**：不支持 DAG（有向无环图）、分支（If-Else）或循环（Loop）等控制流，用例按照声明顺序线性执行。
 * **无用例间数据依赖**：不同的 Workflow Document 之间是完全隔离的，无法传递或共享执行中的数据。
 * **仅限本地加载**：暂不支持直接从远程 URL、npm 包或 Git 仓库加载并执行 YAML 文件。

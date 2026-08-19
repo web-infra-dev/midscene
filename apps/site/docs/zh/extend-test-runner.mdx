@@ -459,8 +459,9 @@ export default defineTestProject<ProjectContext>({
 ### 关键配置策略
 
 1. **环境与资源隔离**：每个 Execution Project 有其独立的 `setup` 运行环境（如启动单独的浏览器或绑定特定测试设备）。
-2. **多 Project 并发**：`test.maxConcurrency` 参数控制同时活跃（Active）的 Project 数量。
-   * 单个 Project 内部，所有的用例（Cases）和步骤（Steps）依然**严格串行**执行，以保证测试的确定性。
+2. **多 Project 并发与生命周期槽**：`test.maxConcurrency` 参数控制同时活跃（Active）的 Project 数量（默认值为 `1`）。
+   * 一个并发槽（slot）覆盖从 Project setup 开始到 teardown 完成的完整生命周期。
+   * 单个 Project 内部，所有的工作流文档（Workflow Documents）、用例（Cases）和步骤（Steps）依然**严格串行**执行，以保证测试的确定性。
    * 当你需要同时驱动多台手机设备或多个浏览器实例时，应当创建多个不同的 `projects` 声明并增大并发数。
 3. **生命周期清理**：使用 `defineProjectSetup()` 声明环境准备动作。利用 `onTeardown()` 注册销毁钩子，确保即便测试意外中断或运行中途出错，已获取的长生命周期资源也能按照后进先出的逆序被安全释放。
 

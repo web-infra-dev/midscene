@@ -1,24 +1,24 @@
 # Test Runner 概览：自然语言与扩展节点
 
-:::info 项目状态说明 (Beta)
+:::info 项目状态说明（Beta）
 本文档介绍的 Test Runner 是 Midscene 全新打造的下一代通用测试运行器，采用声明式与可编程解耦的设计范式，用于替代原有的 YAML 自动化方案。
 
-目前该方案正处于 **Beta 体验阶段**，测试协议与 API 正在持续演进。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
+目前该方案正处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
 
-（如果您仍在使用旧版方案，请查阅 [YAML 脚本运行器](./yaml-script-runner)）。
+（如果您仍在使用旧版方案，请查阅 [YAML 脚本运行器](./yaml-script-runner)）
 :::
 
 在 Midscene 的大量实践后，我们认为：**在 AI 时代，自动化测试用例的主体应当是自然语言。**
 
-用自然语言直接描述测试意图，不仅符合人类的表达习惯，也极具业务表达力。为了让这些自然语言流程既便于人类编写与评审，也便于 AI/Agent 理解与维护，我们选择声明式的 YAML 作为结构载体。
+用自然语言直接描述测试意图，不仅符合人类的表达习惯，也极具业务表达力。为了让这些自然语言流程既便于人类编写与评审，也便于 AI / Agent 理解与维护，我们选择声明式的 YAML 作为结构载体。
 
 同时，真实项目中的测试流程往往还需要调用外部工具或脚本（如调用业务接口、准备测试数据、管理浏览器资源）。因此，`@midscene/test` 确立了一套长期演进的测试范式：**以自然语言驱动测试主线，以可编程节点（Node）作为扩展能力辅助**。
 
 ## 核心设计：自然语言为主，编程节点为辅
 
-在该范式下，测试框架的设计被清晰地划分为两条线：
+在此范式下，测试框架的设计清晰地划分为两条线：
 
-* **主线（自然语言 + YAML）**：承载 80% 以上的业务测试意图。通过声明式 YAML 组装用例，用自然语言描述界面操作（如 `aiAct`）与校验（如 `aiAssert`）。
+* **主线（自然语言 + YAML）**：承载 80% 以上的业务测试意图。通过声明式 YAML 组装用例，用自然语言描述界面操作（如 `` `aiAct` ``）与校验（如 `` `aiAssert` ``）。
 * **辅线（TypeScript Node）**：提供 20% 的可编程扩展能力。使用 TypeScript 注册自定义 Node，负责接口调用、数据准备与资源管理。
 
 面向这套设计，`@midscene/test` 在平台开发者与用例作者之间建立了清晰的协作平衡点：
@@ -59,41 +59,19 @@ cases:
 # 3. 编程节点：资源清理
 afterEach:
   - order.cleanup: {}
-
 ```
 
 框架维护者注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup` 等自定义 Node 负责数据与页面管理，Midscene Node 负责界面操作与校验。测试意图与技术实现彼此分离，两类维护工作可以独立演进。
 
-## 运行器架构与执行生命周期
+## 工作原理简介
 
-运行器直接执行一套规范的 YAML 协议。它会在获取 Project 资源前完成全部选中计划的解析、规范化、变量解析和校验，不引入单独的 IR：
+Midscene Test Runner 的执行过程非常直观：
 
-```text
-midscene.config.ts ── Projects / setup / Node Registry
-                            │
-Workflow YAML ── collect and validate ── Normalized Steps
-                                            │
-                        Execution Project 有界调度器
-                                            │
-                      Document / Case / Step 串行生命周期
-                                            │
-                         Node 执行 + 只读 history
-                                            │
-                         summary.json + facts + reports
+1. **静态收集与校验**：在测试运行前，运行器会静态解析并校验所有 YAML 用例，确保没有未注册的节点或语法错误，提前拦截潜在问题。
+2. **声明式顺序执行**：运行器按照用例声明的顺序，依次调度并调用对应的执行节点（Node）。
+3. **生成可视化报告**：运行结束后，自动汇总执行过程中的交互细节与 AI 决策历史，并生成交互式的 HTML 报告。
 
-```
-
-### 项目隔离与并发控制
-
-一份 Test Project 配置可以定义多个作为子配置的 Execution Project。每个 Execution Project 负责文件与 tags 筛选、平台 setup 和整 Case retry。
-
-`test.maxConcurrency` 限制一次 run 中同时处于 active 状态的 Execution Project 数量，默认值为 `1`。一个并发 slot 覆盖从 Project setup 开始到 teardown 完成的完整生命周期。每个 Project 内部的 Workflow Document、Case、retry 和 Step 仍保持串行。
-
-### 多层级生命周期
-
-* **Project setup**：管理浏览器或设备连接等长生命周期资源。
-* **Workflow Document (`beforeAll` / `afterAll`)**：管理一个 Workflow Document 的业务准备与清理。
-* **Node teardown**：管理 attempt 或 Document scope 的内部资源，例如 Agent 报告。
+有关多项目并发控制、详细的执行生命周期，请参阅 [编写和运行测试用例](./use-test-runner) 及 [扩展和维护 Test Runner](./extend-test-runner)。
 
 ## 接下来
 
