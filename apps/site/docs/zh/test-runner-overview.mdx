@@ -26,6 +26,42 @@
 * **测试框架维护（平台开发者）**：使用 TypeScript 接入浏览器、Agent、外部工具和业务接口，统一管理运行资源和执行生命周期。
 * **测试用例维护（用例作者 / Agent）**：人类或 Agent 使用 YAML 组合框架提供的能力，直接用自然语言编写和维护测试用例，无需编写 JavaScript 或关注底层实现。
 
+## 平滑三方协作：一键导出 Node 说明书
+
+在测试体系中，往往存在三种不同视角的协作角色：**编写 TypeScript 节点的框架开发者**、**编写 YAML 用例的人类作者**、以及**自动运维测试的 AI Agent**。
+
+为了平滑这三方的协作关系，`@midscene/test` 提供了 `describe-nodes` 工具，支持一键将所有注册的 Node 定义导出为 Markdown 格式的说明书，让三方协作流畅无阻：
+
+* **框架开发者（高专注）**：只需在 TypeScript Node 中声明 Zod 校验规则与描述，文档即可全自动生成，无需耗费额外成本编写和维护 API 手册。
+* **用例编写者（无缝查阅）**：人类编写者可直接查阅导出的 Markdown，清晰、直观地了解当前项目提供了哪些可用的专属业务节点（如 `order.prepare`）及参数规则，消除沟通与猜测成本。
+* **AI 助理（精准调用）**：这份 Markdown 说明书具有清晰的类型约束与语义释义，天然是 AI Agent 最完美的上下文知识库。在自动编写、执行和维护 YAML 用例时，Agent 能够直接消化这份说明书，实现精准合规的调用编排。
+
+**导出的 Node 说明书示例**
+
+例如，一个切换浏览器 UA 语言的自定义节点 `browser.setLanguage`，经 `describe-nodes` 工具自动导出的 Markdown 说明书结构如下：
+
+```markdown
+## browser.setLanguage
+
+* **标题**：设置 UA 语言
+* **说明**：切换浏览器 UA 语言，并重新打开当前页面。
+* **参数格式 (JSON Schema)**：
+
+{
+  "type": "object",
+  "properties": {
+    "language": {
+      "type": "string",
+      "enum": ["en", "zh"],
+      "description": "用于创建 Playwright Context 的 UA 语言。"
+    }
+  },
+  "required": ["language"]
+}
+```
+
+有了这套自动生成的强类型说明书，平台开发、用例编写和 AI 运维得以无缝对接，使后续的实战场景与执行流程流畅无阻。
+
 ## 实战场景：验证订单退款流程
 
 假设电商团队需要验证已支付订单的退款流程：
@@ -62,16 +98,6 @@ afterEach:
 ```
 
 框架维护者注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup` 等自定义 Node 负责数据与页面管理，Midscene Node 负责界面操作与校验。测试意图与技术实现彼此分离，两类维护工作可以独立演进。
-
-## 工作原理简介
-
-Midscene Test Runner 的执行过程非常直观：
-
-1. **静态收集与校验**：在测试运行前，运行器会静态解析并校验所有 YAML 用例，确保没有未注册的节点或语法错误，提前拦截潜在问题。
-2. **声明式顺序执行**：运行器按照用例声明的顺序，依次调度并调用对应的执行节点（Node）。
-3. **生成可视化报告**：运行结束后，自动汇总执行过程中的交互细节与 AI 决策历史，并生成交互式的 HTML 报告。
-
-有关多项目并发控制、详细的执行生命周期，请参阅 [编写和运行测试用例](./use-test-runner) 及 [扩展和维护 Test Runner](./extend-test-runner)。
 
 ## 接下来
 
