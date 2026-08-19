@@ -32,12 +32,15 @@ describe('prepareRawScreenshot', () => {
     );
   });
 
-  it('keeps an existing JPEG unchanged when shrinking is disabled', async () => {
+  it('keeps JPEG dimensions while preserving the JPEG output contract', async () => {
     const prepared = await prepareRawScreenshot(jpegDataUrl);
 
-    expect(prepared.base64).toBe(jpegDataUrl);
+    expect(prepared.base64).toMatch(/^data:image\/jpeg;base64,/);
     expect(prepared.originalSize).toEqual({ width: 4, height: 3 });
     expect(prepared.shotSize).toEqual(prepared.originalSize);
+    await expect(imageInfoOfBase64(prepared.base64)).resolves.toEqual(
+      prepared.shotSize,
+    );
   });
 
   it.each([0, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(

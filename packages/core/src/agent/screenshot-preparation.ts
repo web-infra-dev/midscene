@@ -1,7 +1,6 @@
 import {
-  convertPngBase64ToJpeg,
   imageInfoOfBase64,
-  resizeImgBase64,
+  resizeBase64ImageToJpeg,
 } from '@midscene/shared/img';
 import type { Size } from '../types';
 
@@ -57,16 +56,9 @@ export async function prepareRawScreenshot(
       : { ...originalSize };
   assertValidSize(shotSize, 'prepared screenshot dimensions');
 
-  const resizedBase64 =
-    shrinkFactor > 1
-      ? await resizeImgBase64(
-          screenshotBase64,
-          shotSize,
-          SCREENSHOT_JPEG_QUALITY,
-        )
-      : screenshotBase64;
-  const base64 = await convertPngBase64ToJpeg(
-    resizedBase64,
+  const base64 = await resizeBase64ImageToJpeg(
+    screenshotBase64,
+    shotSize,
     SCREENSHOT_JPEG_QUALITY,
   );
 

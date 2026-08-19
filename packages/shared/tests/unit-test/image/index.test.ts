@@ -4,12 +4,15 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  type JpegBase64DataUrl,
   compositePointMarkerImg,
   httpImg2Base64,
   imageInfoOfBase64,
+  isValidJPEGImageBuffer,
   isValidPNGImageBuffer,
   localImg2Base64,
   resizeAndConvertImgBuffer,
+  resizeBase64ImageToJpeg,
   resizeImgBase64,
   validateScreenshotBuffer,
 } from '../../../src/img';
@@ -102,27 +105,67 @@ describe('image utils', () => {
     expect(info.height).toMatchSnapshot();
   });
 
-  it('resizeImgBase64', async () => {
+  it('resizeBase64ImageToJpeg always returns a typed JPEG data URL', async () => {
     const image = getFixture('heytea.jpeg');
 
     const base64 = localImg2Base64(image);
-    const resizedBase64 = await resizeImgBase64(base64, {
-      width: 100,
-      height: 100,
-    });
-    expect(resizedBase64).toContain(';base64,');
+    const resizedBase64: JpegBase64DataUrl = await resizeBase64ImageToJpeg(
+      base64,
+      {
+        width: 100,
+        height: 100,
+      },
+    );
+    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
   });
 
-  it('resizeImgBase64 applies the requested JPEG quality', async () => {
+  it('resizeBase64ImageToJpeg converts PNG when dimensions are unchanged', async () => {
+    const base64 = localImg2Base64(getFixture('icon.png'));
+    const resizedBase64 = await resizeBase64ImageToJpeg(base64, {
+      width: 68,
+      height: 56,
+    });
+
+    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
+    const { body } = parseBase64(resizedBase64);
+    expect(isValidJPEGImageBuffer(Buffer.from(body, 'base64'))).toBe(true);
+    await expect(imageInfoOfBase64(resizedBase64)).resolves.toEqual({
+      width: 68,
+      height: 56,
+    });
+  });
+
+  it.each([0, 101, 10.5, Number.NaN])(
+    'resizeBase64ImageToJpeg rejects invalid JPEG quality %s',
+    async (jpegQuality) => {
+      const base64 = localImg2Base64(getFixture('icon.png'));
+
+      await expect(
+        resizeBase64ImageToJpeg(base64, { width: 68, height: 56 }, jpegQuality),
+      ).rejects.toThrow(/jpegQuality/);
+    },
+  );
+
+  it('resizeBase64ImageToJpeg applies the requested JPEG quality', async () => {
     const base64 = localImg2Base64(getFixture('heytea.jpeg'));
     const targetSize = { width: 100, height: 100 };
 
-    const lowQuality = await resizeImgBase64(base64, targetSize, 10);
-    const highQuality = await resizeImgBase64(base64, targetSize, 90);
+    const lowQuality = await resizeBase64ImageToJpeg(base64, targetSize, 10);
+    const highQuality = await resizeBase64ImageToJpeg(base64, targetSize, 90);
 
     expect(lowQuality).toMatch(/^data:image\/jpeg;base64,/);
     expect(highQuality).toMatch(/^data:image\/jpeg;base64,/);
     expect(lowQuality).not.toBe(highQuality);
+  });
+
+  it('keeps resizeImgBase64 as a JPEG-compatible deprecated alias', async () => {
+    const base64 = localImg2Base64(getFixture('icon.png'));
+    const resizedBase64: JpegBase64DataUrl = await resizeImgBase64(base64, {
+      width: 68,
+      height: 56,
+    });
+
+    expect(resizedBase64).toMatch(/^data:image\/jpeg;base64,/);
   });
 
   it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {

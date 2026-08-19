@@ -10,6 +10,7 @@ export {
   resizeAndConvertImgBuffer,
   convertImgBufferToJpeg,
   convertPngBase64ToJpeg,
+  resizeBase64ImageToJpeg,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
@@ -25,6 +26,7 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   type NormalizeScreenshotBase64Options,
+  type JpegBase64DataUrl,
 } from './transform';
 export {
   processImageElementInfo,

@@ -31,28 +31,26 @@ export async function saveBase64Image(options: {
   await writeFile(outputPath, imageBuffer);
 }
 
-/**
- * Resizes an image from Buffer, maybe return a new format
- * - If the image is Resized, the returned format will be jpg.
- * - If the image is not Resized, it will return to its original format.
- * @param jpegQuality - JPEG quality used when resizing changes the format.
- * @returns { buffer: resized buffer, format: the new format}
- */
-export async function resizeAndConvertImgBuffer(
+interface ResizeImageBufferOptions {
+  preserveOriginalWhenUnchanged: boolean;
+  jpegQuality: number;
+}
+
+async function resizeImageBuffer(
   inputFormat: string,
   inputData: Buffer,
   newSize: {
     width: number;
     height: number;
   },
-  jpegQuality = 90,
+  options: ResizeImageBufferOptions,
 ): Promise<{
   buffer: Buffer;
-  // jpg, png, etc.
   format: string;
 }> {
-  if (typeof inputData === 'string')
-    throw Error('inputData is base64, use resizeImgBase64 instead');
+  if (typeof inputData === 'string') {
+    throw Error('inputData must be a Buffer');
+  }
 
   assert(
     newSize && newSize.width > 0 && newSize.height > 0,
@@ -71,7 +69,11 @@ export async function resizeAndConvertImgBuffer(
       throw Error('Undefined width or height from the input image.');
     }
 
-    if (newSize.width === originalWidth && newSize.height === originalHeight) {
+    if (
+      options.preserveOriginalWhenUnchanged &&
+      newSize.width === originalWidth &&
+      newSize.height === originalHeight
+    ) {
       return {
         buffer: inputData,
         format: inputFormat,
@@ -80,7 +82,7 @@ export async function resizeAndConvertImgBuffer(
 
     const resizedBuffer = await Sharp(inputData)
       .resize(newSize.width, newSize.height)
-      .jpeg({ quality: jpegQuality })
+      .jpeg({ quality: options.jpegQuality })
       .toBuffer();
 
     const resizeEndTime = Date.now();
@@ -112,7 +114,11 @@ export async function resizeAndConvertImgBuffer(
     throw Error('Undefined width or height from the input image.');
   }
 
-  if (newSize.width === originalWidth && newSize.height === originalHeight) {
+  if (
+    options.preserveOriginalWhenUnchanged &&
+    newSize.width === originalWidth &&
+    newSize.height === originalHeight
+  ) {
     inputImage.free();
     return {
       buffer: inputData,
@@ -128,7 +134,7 @@ export async function resizeAndConvertImgBuffer(
     SamplingFilter.CatmullRom,
   );
 
-  const outputBytes = outputImage.get_bytes_jpeg(jpegQuality);
+  const outputBytes = outputImage.get_bytes_jpeg(options.jpegQuality);
   const resizedBuffer = Buffer.from(outputBytes);
 
   // Free memory
@@ -146,6 +152,31 @@ export async function resizeAndConvertImgBuffer(
     // by Photon.get_bytes_jpeg()
     format: 'jpeg',
   };
+}
+
+/**
+ * Resizes an image buffer.
+ *
+ * This API preserves the original bytes and format when the requested
+ * dimensions are unchanged. When dimensions change, it returns JPEG. Callers
+ * must inspect the returned `format` instead of assuming an output format.
+ */
+export async function resizeAndConvertImgBuffer(
+  inputFormat: string,
+  inputData: Buffer,
+  newSize: {
+    width: number;
+    height: number;
+  },
+): Promise<{
+  buffer: Buffer;
+  /** The actual encoded format of `buffer`, such as `png` or `jpeg`. */
+  format: string;
+}> {
+  return resizeImageBuffer(inputFormat, inputData, newSize, {
+    preserveOriginalWhenUnchanged: true,
+    jpegQuality: 90,
+  });
 }
 
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
@@ -285,7 +316,57 @@ export const normalizeBase64Image = (base64: string) => {
   );
 };
 
-/** Resize a base64 image and encode changed output as JPEG. */
+export type JpegBase64DataUrl = `data:image/jpeg;base64,${string}`;
+
+function assertValidJpegQuality(jpegQuality: number): void {
+  if (!Number.isInteger(jpegQuality) || jpegQuality < 1 || jpegQuality > 100) {
+    throw new Error(
+      `jpegQuality must be an integer between 1 and 100. Received: ${jpegQuality}`,
+    );
+  }
+}
+
+/**
+ * Resizes a Base64-encoded image and always encodes the result as JPEG.
+ *
+ * The image is re-encoded even when `newSize` matches its current dimensions,
+ * so callers can rely on both the return type and the runtime MIME type.
+ *
+ * @param inputBase64 - An image data URL or raw Base64 image body.
+ * @param newSize - Exact output dimensions in pixels.
+ * @param jpegQuality - JPEG quality from 1 to 100.
+ * @returns A JPEG data URL with the requested dimensions.
+ */
+export async function resizeBase64ImageToJpeg(
+  inputBase64: string,
+  newSize: {
+    width: number;
+    height: number;
+  },
+  jpegQuality = 90,
+): Promise<JpegBase64DataUrl> {
+  assertValidJpegQuality(jpegQuality);
+  const { body, mimeType } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const { buffer } = await resizeImageBuffer(
+    mimeType.split('/')[1],
+    imageBuffer,
+    newSize,
+    {
+      preserveOriginalWhenUnchanged: false,
+      jpegQuality,
+    },
+  );
+  return createImgBase64ByFormat(
+    'jpeg',
+    buffer.toString('base64'),
+  ) as JpegBase64DataUrl;
+}
+
+/**
+ * @deprecated Use `resizeBase64ImageToJpeg` to make the JPEG output contract
+ * explicit. This compatibility alias also always returns JPEG.
+ */
 export async function resizeImgBase64(
   inputBase64: string,
   newSize: {
@@ -293,16 +374,8 @@ export async function resizeImgBase64(
     height: number;
   },
   jpegQuality = 90,
-): Promise<string> {
-  const { body, mimeType } = parseBase64(inputBase64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  const { buffer, format } = await resizeAndConvertImgBuffer(
-    mimeType.split('/')[1],
-    imageBuffer,
-    newSize,
-    jpegQuality,
-  );
-  return createImgBase64ByFormat(format, buffer.toString('base64'));
+): Promise<JpegBase64DataUrl> {
+  return resizeBase64ImageToJpeg(inputBase64, newSize, jpegQuality);
 }
 
 /**

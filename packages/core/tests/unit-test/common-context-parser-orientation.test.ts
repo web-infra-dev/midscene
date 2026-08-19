@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock imageInfoOfBase64 to control screenshot dimensions
 vi.mock('@midscene/shared/img', () => ({
-  convertPngBase64ToJpeg: vi.fn(async (imageBase64: string) => imageBase64),
   createImgBase64ByFormat: vi.fn(),
   imageInfoOfBase64: vi.fn(),
-  resizeImgBase64: vi.fn().mockResolvedValue('mock-resized-base64-data'),
+  resizeBase64ImageToJpeg: vi
+    .fn()
+    .mockResolvedValue('data:image/jpeg;base64,mock-resized-base64-data'),
 }));
 
 import { imageInfoOfBase64 } from '@midscene/shared/img';
