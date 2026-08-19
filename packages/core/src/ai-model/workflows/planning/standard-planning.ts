@@ -9,7 +9,11 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
+import {
+  type PlanningActionOutputProtocol,
+  buildStandardPlanningSystemPrompt,
+  defaultMidsceneActionOutputProtocol,
+} from '../../prompt/planning';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -41,6 +45,7 @@ type CallAndParsePlanningResponseOptions = {
   locateResultContext: LocateResultContext;
   includeThought: boolean;
   includeLog: boolean;
+  actionOutputProtocol: PlanningActionOutputProtocol;
 };
 
 async function callAndParsePlanningResponse(
@@ -61,6 +66,7 @@ async function callAndParsePlanningResponse(
     locateResultContext,
     includeThought,
     includeLog,
+    actionOutputProtocol,
   } = options;
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
@@ -79,6 +85,7 @@ async function callAndParsePlanningResponse(
         modelRuntime.adapter.jsonParser,
         {
           includeThought,
+          actionOutputProtocol,
           ...(includeLog
             ? { logSource: 'model' }
             : { logSource: 'action', actionSpace }),
@@ -152,6 +159,7 @@ export async function standardPlan(
   const includeSubGoals = opts.effort === 'deepThink';
   const includeThought = opts.effort !== 'fast';
   const includeLog = opts.effort !== 'fast';
+  const actionOutputProtocol = defaultMidsceneActionOutputProtocol;
 
   if (opts.includeLocateInPlanning && !locateResultAdapter) {
     throw new Error(
@@ -164,6 +172,7 @@ export async function standardPlan(
     includeThought,
     includeLog,
     includeSubGoals,
+    actionOutputProtocol,
     ...(opts.includeLocateInPlanning && locateResultAdapter
       ? {
           includeLocateInPlanning: true,
@@ -290,6 +299,7 @@ export async function standardPlan(
     },
     includeThought,
     includeLog,
+    actionOutputProtocol,
   });
 
   let shouldContinuePlanning = true;

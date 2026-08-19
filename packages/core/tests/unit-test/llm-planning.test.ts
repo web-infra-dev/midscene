@@ -1,8 +1,6 @@
 import { getModelAdapter } from '@/ai-model/models';
-import {
-  parseStandardPlanningResponse,
-  parseXMLPlanningResponse as parseXMLPlanningResponseWithOptions,
-} from '@/ai-model/workflows/planning';
+import { defaultMidsceneActionOutputProtocol } from '@/ai-model/prompt/planning';
+import { parseStandardPlanningResponse as parseStandardPlanningResponseWithOptions } from '@/ai-model/workflows/planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
@@ -10,6 +8,7 @@ import {
 import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import { actionInputParamSchema, actionTapParamSchema } from '@/device';
+import type { DeviceAction } from '@/types';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
@@ -18,12 +17,23 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-const parseXMLPlanningResponse = (
+const parseStandardPlanningResponse = (
   xmlString: string,
-  jsonParser: Parameters<typeof parseXMLPlanningResponseWithOptions>[1],
+  jsonParser: Parameters<typeof parseStandardPlanningResponseWithOptions>[1],
+  options:
+    | {
+        includeThought: boolean;
+        logSource?: 'model';
+      }
+    | {
+        includeThought: boolean;
+        logSource: 'action';
+        actionSpace: DeviceAction<any>[];
+      } = { includeThought: true },
 ) =>
-  parseXMLPlanningResponseWithOptions(xmlString, jsonParser, {
-    includeThought: true,
+  parseStandardPlanningResponseWithOptions(xmlString, jsonParser, {
+    ...options,
+    actionOutputProtocol: defaultMidsceneActionOutputProtocol,
   });
 
 describe('llm planning - doubao', () => {
@@ -419,7 +429,7 @@ describe('llm planning - build yaml flow', () => {
   });
 });
 
-describe('parseXMLPlanningResponse', () => {
+describe('parseStandardPlanningResponse', () => {
   it('should parse complete XML response with all fields', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
@@ -438,7 +448,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -473,7 +483,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -589,7 +599,7 @@ describe('parseXMLPlanningResponse', () => {
 <action-type>null</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -606,7 +616,7 @@ describe('parseXMLPlanningResponse', () => {
 <log>Just logging</log>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -630,7 +640,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -654,7 +664,7 @@ describe('parseXMLPlanningResponse', () => {
 <action-type>Wait</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -686,7 +696,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -713,7 +723,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -746,7 +756,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -772,7 +782,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -795,7 +805,7 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true">Task completed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -819,7 +829,10 @@ describe('parseXMLPlanningResponse', () => {
     `.trim();
 
     expect(() =>
-      parseXMLPlanningResponse(xml, getModelAdapter(modelFamily).jsonParser),
+      parseStandardPlanningResponse(
+        xml,
+        getModelAdapter(modelFamily).jsonParser,
+      ),
     ).toThrow('Failed to parse action-param-json');
   });
 
@@ -830,7 +843,7 @@ describe('parseXMLPlanningResponse', () => {
 <ACTION-TYPE>Tap</ACTION-TYPE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -852,7 +865,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -884,7 +897,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -901,7 +914,7 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -923,7 +936,7 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="false">Unable to find the required element on the page</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -944,7 +957,7 @@ describe('parseXMLPlanningResponse', () => {
 <complete success="true"></complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -969,7 +982,7 @@ Extracted data:
 </complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -992,7 +1005,7 @@ Extracted data:
 <complete success="true">All 10 items have been processed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1014,7 +1027,7 @@ Extracted data:
 <COMPLETE success="true">Success message</COMPLETE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1040,7 +1053,7 @@ Extracted data:
 </update-plan-content>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1066,7 +1079,7 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1085,7 +1098,7 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1110,7 +1123,7 @@ Extracted data:
 </action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1135,7 +1148,7 @@ Extracted data:
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );
@@ -1163,7 +1176,7 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
+    const result = parseStandardPlanningResponse(
       xml,
       getModelAdapter(modelFamily).jsonParser,
     );

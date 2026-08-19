@@ -1,5 +1,8 @@
+import type { PlanningAction } from '@/types';
+import type { JsonParser } from '../../shared/json';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { formatLocateExampleValue } from '../../shared/model-locate-result';
+import { extractXMLTag } from '../../shared/xml';
 
 export type PlanningActionOutput = {
   type: string;
@@ -19,6 +22,10 @@ export type PlanningActionOutputProtocol = {
     action: PlanningActionOutput,
     options?: BuildPlanningActionOutputOptions,
   ) => string;
+  parseActionOutput: (
+    content: string,
+    jsonParser: JsonParser,
+  ) => PlanningAction | null;
 };
 
 const serializeActionParam = (
@@ -75,6 +82,39 @@ ${
 }
 </action-param-json>`;
 
+export const parseMidscenePlanningActionOutput = (
+  content: string,
+  jsonParser: JsonParser,
+): PlanningAction | null => {
+  const actionType = extractXMLTag(content, 'action-type');
+  const actionParamStr = extractXMLTag(content, 'action-param-json');
+
+  if (!actionType || actionType.toLowerCase() === 'null') {
+    return null;
+  }
+
+  // Strip any trailing XML tags that leaked into the action type.
+  const type = actionType.split('<')[0].trim();
+  let param: any = undefined;
+
+  if (actionParamStr) {
+    try {
+      param = jsonParser(actionParamStr, {
+        source: 'planning-action-param',
+        preserveStringValueKeys:
+          type.toLowerCase() === 'input' ? ['value'] : undefined,
+      });
+    } catch (error) {
+      throw new Error(`Failed to parse action-param-json: ${error}`);
+    }
+  }
+
+  return {
+    type,
+    ...(param !== undefined ? { param } : {}),
+  };
+};
+
 export const defaultMidsceneActionOutputProtocol: PlanningActionOutputProtocol =
   {
     actionOutputTagNames: ['action-type', 'action-param-json'],
@@ -88,4 +128,5 @@ export const defaultMidsceneActionOutputProtocol: PlanningActionOutputProtocol =
       '<action-param-json>...</action-param-json>',
     ].join('\n'),
     buildActionOutput: buildPlanningActionOutput,
+    parseActionOutput: parseMidscenePlanningActionOutput,
   };

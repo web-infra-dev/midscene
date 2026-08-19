@@ -8,6 +8,7 @@ export type { ActionExampleDefinition } from './action-example';
 export {
   buildPlanningActionOutput,
   defaultMidsceneActionOutputProtocol,
+  parseMidscenePlanningActionOutput,
 } from './action-output-protocol';
 export type {
   PlanningActionOutput,

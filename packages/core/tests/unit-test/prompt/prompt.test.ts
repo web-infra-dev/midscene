@@ -108,6 +108,7 @@ describe('system prompts', () => {
       actionOutputRules: 'CUSTOM_ACTION_OUTPUT_RULES',
       actionOutputPlaceholder: '<custom-action>...</custom-action>',
       buildActionOutput: ({ type }) => `<custom-action type="${type}" />`,
+      parseActionOutput: vi.fn(),
     };
 
     const prompt = await buildStandardPlanningSystemPrompt({
