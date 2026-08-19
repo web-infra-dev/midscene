@@ -113,6 +113,18 @@ describe('image utils', () => {
     expect(resizedBase64).toContain(';base64,');
   });
 
+  it('resizeImgBase64 applies the requested JPEG quality', async () => {
+    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
+    const targetSize = { width: 100, height: 100 };
+
+    const lowQuality = await resizeImgBase64(base64, targetSize, 10);
+    const highQuality = await resizeImgBase64(base64, targetSize, 90);
+
+    expect(lowQuality).toMatch(/^data:image\/jpeg;base64,/);
+    expect(highQuality).toMatch(/^data:image\/jpeg;base64,/);
+    expect(lowQuality).not.toBe(highQuality);
+  });
+
   it('compositePointMarkerImg keeps image dimensions and marks a point', async () => {
     const image = getFixture('icon.png');
     const base64 = localImg2Base64(image);

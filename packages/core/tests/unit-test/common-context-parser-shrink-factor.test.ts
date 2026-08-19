@@ -74,10 +74,14 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeImg).toHaveBeenCalledWith(mockScreenshotBase64, {
-      width: 1200,
-      height: 600,
-    });
+    expect(mockedResizeImg).toHaveBeenCalledWith(
+      mockScreenshotBase64,
+      {
+        width: 1200,
+        height: 600,
+      },
+      90,
+    );
     expect(result.shotSize).toEqual({ width: 1200, height: 600 });
   });
 
@@ -90,10 +94,14 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeImg).toHaveBeenCalledWith(mockScreenshotBase64, {
-      width: 608,
-      height: 1344,
-    });
+    expect(mockedResizeImg).toHaveBeenCalledWith(
+      mockScreenshotBase64,
+      {
+        width: 608,
+        height: 1344,
+      },
+      90,
+    );
     expect(result.shotSize).toEqual({ width: 608, height: 1344 });
     // dpr=1, shrunkShotToLogicalRatio = 1/2 = 0.5
     // AI coord 304 (middle of 608) -> logical 304/0.5 = 608 (middle of 1216) ✓

@@ -63,8 +63,8 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
   return {
     deps: {
       openFrameSource: async () => fake?.source ?? undefined,
-      screenshot,
-      captureRepresentative: async () => fakeRepresentative(),
+      captureRawScreenshot: screenshot,
+      capturePreparedRepresentative: async () => fakeRepresentative(),
       createInsight: () => ({
         aiQuery: vi.fn(),
         aiBoolean: vi.fn(),
@@ -419,8 +419,8 @@ describe('UIObserver', () => {
     const observer = new UIObserverImpl(
       {
         ...deps,
-        screenshot: async () => largeTestPngDataUrl,
-        captureRepresentative: async () =>
+        captureRawScreenshot: async () => largeTestPngDataUrl,
+        capturePreparedRepresentative: async () =>
           ({
             screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
             shotSize: { width: 4, height: 3 },
@@ -450,8 +450,8 @@ describe('UIObserver', () => {
         openFrameSource: async () => {
           throw new Error('stream unavailable');
         },
-        screenshot,
-        captureRepresentative: async () => fakeRepresentative(),
+        captureRawScreenshot: screenshot,
+        capturePreparedRepresentative: async () => fakeRepresentative(),
         createInsight: () => ({
           aiQuery: vi.fn(),
           aiBoolean: vi.fn(),
@@ -495,7 +495,7 @@ describe('UIObserver', () => {
       finishRepresentative = resolve;
     });
     const { deps, onStopped } = makeDeps(fake);
-    deps.captureRepresentative = async () => {
+    deps.capturePreparedRepresentative = async () => {
       await representativeReady;
       return fakeRepresentative();
     };

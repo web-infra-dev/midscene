@@ -35,6 +35,7 @@ export async function saveBase64Image(options: {
  * Resizes an image from Buffer, maybe return a new format
  * - If the image is Resized, the returned format will be jpg.
  * - If the image is not Resized, it will return to its original format.
+ * @param jpegQuality - JPEG quality used when resizing changes the format.
  * @returns { buffer: resized buffer, format: the new format}
  */
 export async function resizeAndConvertImgBuffer(
@@ -44,6 +45,7 @@ export async function resizeAndConvertImgBuffer(
     width: number;
     height: number;
   },
+  jpegQuality = 90,
 ): Promise<{
   buffer: Buffer;
   // jpg, png, etc.
@@ -78,7 +80,7 @@ export async function resizeAndConvertImgBuffer(
 
     const resizedBuffer = await Sharp(inputData)
       .resize(newSize.width, newSize.height)
-      .jpeg({ quality: 90 })
+      .jpeg({ quality: jpegQuality })
       .toBuffer();
 
     const resizeEndTime = Date.now();
@@ -126,7 +128,7 @@ export async function resizeAndConvertImgBuffer(
     SamplingFilter.CatmullRom,
   );
 
-  const outputBytes = outputImage.get_bytes_jpeg(90);
+  const outputBytes = outputImage.get_bytes_jpeg(jpegQuality);
   const resizedBuffer = Buffer.from(outputBytes);
 
   // Free memory
@@ -283,12 +285,14 @@ export const normalizeBase64Image = (base64: string) => {
   );
 };
 
+/** Resize a base64 image and encode changed output as JPEG. */
 export async function resizeImgBase64(
   inputBase64: string,
   newSize: {
     width: number;
     height: number;
   },
+  jpegQuality = 90,
 ): Promise<string> {
   const { body, mimeType } = parseBase64(inputBase64);
   const imageBuffer = Buffer.from(body, 'base64');
@@ -296,6 +300,7 @@ export async function resizeImgBase64(
     mimeType.split('/')[1],
     imageBuffer,
     newSize,
+    jpegQuality,
   );
   return createImgBase64ByFormat(format, buffer.toString('base64'));
 }
