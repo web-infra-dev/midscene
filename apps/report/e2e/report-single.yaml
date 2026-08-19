@@ -11,7 +11,10 @@ tasks:
   # --- Report timing summary ---
   - name: total row distinguishes wall time from model call time
     flow:
-      - aiAssert: At the bottom of the left-side task table there is one combined "Total" summary row. Its Time cell visibly contains separate "Wall" and "Model" duration values; there is no separate row labeled "Total Time".
+      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+        scrollType: scrollToBottom
+      - sleep: 500
+      - aiAssert: The left-side Execution task list is visibly scrolled to its bottom. Below the task rows there is one combined summary row labeled "Total" whose Time cell contains separate "Wall" and "Model" duration values; there is no separate row labeled "Total Time".
 
   # --- Markdown timing summary ---
   - name: markdown view explains both timing metrics
