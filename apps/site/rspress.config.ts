@@ -275,6 +275,21 @@ export default defineConfig(async () => {
             link: '/caching',
           },
           {
+            sectionHeaderText: 'Test Runner (Beta)',
+          },
+          {
+            text: 'Test Runner overview',
+            link: '/test-runner-overview',
+          },
+          {
+            text: 'Extend and maintain Test Runner',
+            link: '/extend-test-runner',
+          },
+          {
+            text: 'Write and run test cases',
+            link: '/use-test-runner',
+          },
+          {
             sectionHeaderText: 'Resources',
           },
           {
