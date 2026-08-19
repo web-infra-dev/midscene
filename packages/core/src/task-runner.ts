@@ -15,8 +15,6 @@ import {
 } from '@/types';
 import {
   type SerializedError,
-  getErrorMessage,
-  getErrorStack,
   serializeError,
 } from '@midscene/shared/agent-tools/error-formatter';
 import { getDebug } from '@midscene/shared/logger';
@@ -52,11 +50,7 @@ type SerializedErrorTask = {
   errorMessage?: string;
 };
 
-type SerializedTaskExecutionError = {
-  name: string;
-  message: string;
-  stack?: string;
-  cause?: SerializedError;
+type SerializedTaskExecutionError = SerializedError & {
   task?: SerializedErrorTask;
 };
 
@@ -394,9 +388,10 @@ export class TaskRunner {
         taskIndex++;
       } catch (error) {
         successfullyCompleted = false;
+        const serializedError = serializeError(error);
         task.error = error;
-        task.errorMessage = getErrorMessage(error);
-        task.errorStack = getErrorStack(error);
+        task.errorMessage = serializedError.message;
+        task.errorStack = serializedError.stack;
 
         task.status = 'failed';
         task.timing.end = Date.now();
@@ -539,10 +534,7 @@ export class TaskExecutionError extends Error {
       : undefined;
 
     return {
-      name: this.name,
-      message: this.message,
-      stack: this.stack,
-      cause: this.cause === undefined ? undefined : serializeError(this.cause),
+      ...serializeError(this),
       task,
     };
   }

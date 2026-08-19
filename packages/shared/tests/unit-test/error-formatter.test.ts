@@ -180,6 +180,34 @@ describe('serializeError', () => {
     });
     expect(serialized).not.toHaveProperty('code');
   });
+
+  it('omits arbitrary payloads from message-less thrown objects', () => {
+    const serialized = serializeError({
+      payload: 'x'.repeat(10_000_000),
+    });
+
+    expect(serialized).toEqual({
+      name: 'Error',
+      message: 'Error without a message',
+    });
+    expect(JSON.stringify(serialized).length).toBeLessThan(1_000);
+  });
+
+  it('caps every serialized string field', () => {
+    const longText = 'x'.repeat(10_000);
+    const error = Object.assign(new Error(longText, { cause: longText }), {
+      stack: longText,
+      code: longText,
+    });
+
+    const serialized = serializeError(error);
+    expect(serialized.message).toHaveLength(4_096);
+    expect(serialized.stack).toHaveLength(4_096);
+    expect(serialized.code).toHaveLength(4_096);
+    expect(serialized.cause?.message).toHaveLength(4_096);
+    expect(serialized.message).toMatch(/… \[truncated\]$/);
+    expect(JSON.stringify(serialized).length).toBeLessThan(20_000);
+  });
 });
 
 describe('getErrorStack', () => {

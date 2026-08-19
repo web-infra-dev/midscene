@@ -467,5 +467,60 @@ describe(
       expect(serializedError.task).not.toHaveProperty('executor');
       expect(serializedText).not.toContain('ignoredObject');
     });
+
+    it('bounds message-less thrown payloads at the transport boundary', async () => {
+      const runner = new TaskRunner(
+        'bounded-error-serialization-test',
+        fakeUIContextBuilder,
+      );
+      const originalError = {
+        payload: 'x'.repeat(10_000_000),
+      };
+
+      await runner.append({
+        type: 'Action Space',
+        subType: 'Tap',
+        executor: async () => {
+          throw originalError;
+        },
+      });
+
+      let caughtError: TaskExecutionError | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as TaskExecutionError;
+      }
+
+      expect(caughtError?.message).toBe('Error without a message');
+      expect(caughtError?.cause).toBe(originalError);
+      expect(caughtError?.errorTask?.error).toBe(originalError);
+      expect(caughtError?.errorTask?.errorMessage).toBe(
+        'Error without a message',
+      );
+
+      const serializedError = processError(caughtError);
+      expect(serializedError).toEqual({
+        name: 'TaskExecutionError',
+        message: 'Error without a message',
+        stack: expect.stringContaining(
+          'TaskExecutionError: Error without a message',
+        ),
+        cause: {
+          name: 'Error',
+          message: 'Error without a message',
+        },
+        task: {
+          taskId: caughtError?.errorTask?.taskId,
+          type: 'Action Space',
+          subType: 'Tap',
+          status: 'failed',
+          errorMessage: 'Error without a message',
+        },
+      });
+      const serializedText = JSON.stringify(serializedError);
+      expect(serializedText.length).toBeLessThan(10_000);
+      expect(serializedText).not.toContain('payload');
+    });
   },
 );
