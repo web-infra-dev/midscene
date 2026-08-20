@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   DEFAULT_YAML_TEST_TIMEOUT,
+  RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
   createRstestYamlProject,
   resolveDefaultFrameworkImport,
   resolveTestName,
@@ -122,6 +123,48 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.testTimeout).toBe(180_000);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('generates one ordered module when concurrency is one', () => {
+    const root = createTempDir();
+    const outputDir = join(root, 'runner');
+    const yamlFiles = ['third.yaml', 'first.yaml', 'second.yaml'].map((name) =>
+      join(root, name),
+    );
+    for (const file of yamlFiles) {
+      writeFileSync(file, 'web:\n  url: about:blank\ntasks: []\n');
+    }
+
+    try {
+      const project = createRstestYamlProject({
+        files: yamlFiles,
+        projectDir: root,
+        outputDir,
+        frameworkImport: '@test/framework',
+        rstestCoreImport: '@test/rstest-core',
+        maxConcurrency: 1,
+      });
+
+      expect(project.include).toEqual([RSTEST_YAML_SEQUENTIAL_TEST_MODULE]);
+      expect(project.sequentialTestModule).toBe(
+        RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
+      );
+      expect(project.cases.map((item) => item.yamlFile)).toEqual(yamlFiles);
+
+      const generated = project.virtualModules[project.include[0]];
+      expect(generated).toContain(
+        'defineYamlCaseTest(test.sequential, testOptions)',
+      );
+      const indexes = yamlFiles.map((file) => generated.indexOf(file));
+      expect(indexes.every((index) => index >= 0)).toBe(true);
+      expect(
+        indexes.every((index, position) =>
+          position === 0 ? true : index > indexes[position - 1],
+        ),
+      ).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

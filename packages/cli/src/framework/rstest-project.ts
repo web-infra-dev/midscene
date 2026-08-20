@@ -27,6 +27,8 @@ export const DEFAULT_YAML_TEST_TIMEOUT = 0;
 export const RSTEST_YAML_BATCH_TEST_MODULE =
   'virtual:midscene-yaml/batch.test.ts';
 export const RSTEST_YAML_BATCH_TEST_NAME = 'midscene yaml batch';
+export const RSTEST_YAML_SEQUENTIAL_TEST_MODULE =
+  'virtual:midscene-yaml/sequential.test.ts';
 
 export interface CreateRstestYamlProjectOptions {
   files: string[];
@@ -64,6 +66,7 @@ export interface GeneratedRstestYamlProject {
   virtualModules: Record<string, string>;
   cases: GeneratedYamlTestCase[];
   batchTest?: GeneratedYamlBatchTest;
+  sequentialTestModule?: string;
   maxConcurrency?: number;
   testTimeout: number;
   bail?: number;
@@ -142,6 +145,26 @@ const testOptions = ${JSON.stringify(testOptions, null, 2)};
 defineYamlBatchTest(test, testOptions);
 `;
 };
+
+const createGeneratedSequentialTestContent = (options: {
+  rstestCoreImport: string;
+  frameworkImport: string;
+  testOptions: Array<{
+    testName: string;
+    yamlFile: string;
+    resultFile: string;
+    caseOptions?: RstestYamlCaseOptions;
+    webRuntimeOptions?: WebYamlRuntimeOptions;
+  }>;
+}): string => `import { test } from ${toImportLiteral(options.rstestCoreImport)};
+import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
+
+const testOptionsList = ${JSON.stringify(options.testOptions, null, 2)};
+
+for (const testOptions of testOptionsList) {
+  defineYamlCaseTest(test.sequential, testOptions);
+}
+`;
 
 // Anchor the framework entry on this bundle's own directory rather than
 // `process.argv[1]`. The command-line entry can be a `.bin` symlink, an
@@ -248,6 +271,46 @@ export function createRstestYamlProject(
       maxConcurrency: 1,
       testTimeout,
       bail: options.bail,
+    };
+  }
+
+  // Rstest limits concurrency but does not guarantee that separate test files
+  // start in `include` order. Put serial YAML cases in one virtual module so
+  // Rstest executes their tests in declaration order. This keeps retries and
+  // per-case reporting in Rstest while making `concurrent: 1` actually honor
+  // the order of the config file's `files` array.
+  if (options.maxConcurrency === 1) {
+    return {
+      projectDir,
+      outputDir,
+      resultDir,
+      include: [RSTEST_YAML_SEQUENTIAL_TEST_MODULE],
+      virtualModules: {
+        [RSTEST_YAML_SEQUENTIAL_TEST_MODULE]:
+          createGeneratedSequentialTestContent({
+            rstestCoreImport,
+            frameworkImport,
+            testOptions: cases.map((item) => ({
+              testName: item.testName,
+              yamlFile: item.yamlFile,
+              resultFile: item.resultFile,
+              ...(options.caseOptions?.[item.yamlFile]
+                ? { caseOptions: options.caseOptions[item.yamlFile] }
+                : {}),
+              ...(options.webRuntimeOptions?.[item.yamlFile]
+                ? {
+                    webRuntimeOptions: options.webRuntimeOptions[item.yamlFile],
+                  }
+                : {}),
+            })),
+          }),
+      },
+      cases,
+      sequentialTestModule: RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
+      maxConcurrency: 1,
+      testTimeout,
+      bail: options.bail,
+      retry: options.retry,
     };
   }
 
