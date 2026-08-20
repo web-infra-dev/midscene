@@ -381,7 +381,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(1);
     });
 
-    it('moves the barrier after a completed input action', async () => {
+    it('moves the barrier before an input action starts', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
       currentMockManager.isConnected.mockReturnValue(true);
@@ -390,8 +390,11 @@ describe('ScrcpyDeviceAdapter', () => {
       await adapter.markActionBarrier();
 
       expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
-        'completed input action',
-        10_100_000n,
+        'input action started',
+        {
+          allowOverAgeForNextCapture: true,
+          hostMonotonicUs: 10_100_000n,
+        },
       );
     });
 
@@ -427,8 +430,11 @@ describe('ScrcpyDeviceAdapter', () => {
 
       await adapter.screenshotBase64(defaultDeviceInfo);
       expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
-        'completed input action while scrcpy was unavailable',
-        10_200_000n,
+        'input action started while scrcpy was unavailable',
+        {
+          allowOverAgeForNextCapture: true,
+          hostMonotonicUs: 10_200_000n,
+        },
       );
       expect(
         currentMockManager.setFreshnessBarrier.mock.invocationCallOrder[0],

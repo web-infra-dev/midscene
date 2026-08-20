@@ -122,6 +122,11 @@ interface FrameAgeEstimate {
   upperBoundUs: bigint;
 }
 
+export interface ScrcpyFreshnessBarrierOptions {
+  hostMonotonicUs?: bigint;
+  allowOverAgeForNextCapture?: boolean;
+}
+
 /**
  * Reconstruct SystemClock.uptimeMillis() from TimeUtils.formatUptime(), which
  * PowerManagerService uses for the `mLastWakeTime` line.
@@ -218,6 +223,7 @@ export class ScrcpyScreenshotManager {
   private streamReader: any = null;
   private frameFreshnessBarrierPtsUs: bigint | null = null;
   private frameFreshnessBarrierReason: string | null = null;
+  private frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
   private frameFreshnessBarrierPending = false;
   private frameFreshnessBarrierGeneration = 0;
   private deviceClockCalibration: DeviceClockCalibration | null = null;
@@ -662,16 +668,19 @@ export class ScrcpyScreenshotManager {
    * Invalidate cached frames and require future packets to be captured after
    * the host-monotonic action/planning boundary projected onto the device
    * clock. A caller recovering an unavailable stream can pass the original
-   * action-completion timestamp so connection startup latency does not move the
-   * barrier forward. The projection reuses the single calibration for this
-   * stream epoch and does not issue another ADB clock read.
+   * action-boundary timestamp so connection startup latency does not move the
+   * barrier forward. Action barriers may allow the first proven post-boundary
+   * frame to survive a long wait-after-action delay. The projection reuses the
+   * single calibration for this stream epoch and does not issue another ADB
+   * clock read.
    */
   async setFreshnessBarrier(
     reason: string,
-    hostMonotonicUs = this.monotonicTimeUs(),
+    options: ScrcpyFreshnessBarrierOptions = {},
   ): Promise<bigint> {
     const generation = ++this.frameFreshnessBarrierGeneration;
     this.frameFreshnessBarrierPending = true;
+    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
     this.clearFrameCache();
 
     try {
@@ -682,6 +691,7 @@ export class ScrcpyScreenshotManager {
         );
       }
 
+      const hostMonotonicUs = options.hostMonotonicUs ?? this.monotonicTimeUs();
       const estimatedDeviceNowUs = this.estimateDeviceTimeUs(
         hostMonotonicUs,
         calibration,
@@ -703,6 +713,8 @@ export class ScrcpyScreenshotManager {
           ? barrierPtsUs
           : this.frameFreshnessBarrierPtsUs;
       this.frameFreshnessBarrierReason = reason;
+      this.frameFreshnessBarrierAllowsOverAgeForNextCapture =
+        options.allowOverAgeForNextCapture ?? false;
       this.frameFreshnessBarrierPending = false;
       this.frameFreshnessError = null;
       this.lastFramePtsUs = null;
@@ -737,6 +749,7 @@ export class ScrcpyScreenshotManager {
         this.frameFreshnessBarrierPending = true;
         this.frameFreshnessBarrierPtsUs = null;
         this.frameFreshnessBarrierReason = null;
+        this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
         this.deviceClockCalibration = null;
         this.clearFrameCache();
         this.warnFrameFreshness();
@@ -772,7 +785,7 @@ export class ScrcpyScreenshotManager {
       `Scrcpy frame predates the ${this.frameFreshnessBarrierReason ?? 'active'} freshness barrier by ${Number(behindBarrierUs) / 1_000}ms; refusing to use it`,
     );
     this.clearFrameCache();
-    this.warnFrameFreshness();
+    debugScrcpy(this.frameFreshnessError.message);
     return false;
   }
 
@@ -933,6 +946,7 @@ export class ScrcpyScreenshotManager {
   private resetFrameFreshnessState(): void {
     this.frameFreshnessBarrierPtsUs = null;
     this.frameFreshnessBarrierReason = null;
+    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
     this.frameFreshnessBarrierPending = false;
     this.frameFreshnessBarrierGeneration = 0;
     this.deviceClockCalibration = null;
@@ -978,6 +992,23 @@ export class ScrcpyScreenshotManager {
       estimatedAgeMs: this.lastRawKeyframeEstimatedAgeMs,
       capturedAt: this.lastRawKeyframeAt,
     };
+  }
+
+  private canReuseFrameAcrossActionWait(frame: RawKeyframe): boolean {
+    return (
+      this.frameFreshnessBarrierAllowsOverAgeForNextCapture &&
+      this.frameFreshnessBarrierPtsUs !== null &&
+      frame.ptsUs !== undefined &&
+      frame.ptsUs >= this.frameFreshnessBarrierPtsUs
+    );
+  }
+
+  private consumeActionFreshnessBarrier(frame: RawKeyframe): void {
+    if (!this.canReuseFrameAcrossActionWait(frame)) return;
+    this.frameFreshnessBarrierPtsUs = null;
+    this.frameFreshnessBarrierReason = null;
+    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
+    this.frameFreshnessError = null;
   }
 
   /**
@@ -1032,6 +1063,13 @@ export class ScrcpyScreenshotManager {
           );
         }
 
+        if (this.canReuseFrameAcrossActionWait(candidate)) {
+          debugScrcpy(
+            `Using frame PTS ${candidate.ptsUs}µs that crossed the active input-action barrier; preserving the settled frame across wait-after-action`,
+          );
+          return candidate;
+        }
+
         const age = this.estimateFrameAge(candidate.ptsUs);
         if (age === null) {
           throw new Error(
@@ -1080,10 +1118,11 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Get screenshot as JPEG.
-   * Reuses a frame only when it crossed the active action barrier and its
-   * absolute age is within the accepted limit. An over-age candidate arms a
-   * planning barrier on demand. If no frame crosses the resulting freshness
-   * target in time, close this stream epoch and let the caller use ADB.
+   * Reuses one frame that crossed the active input-action barrier even if a
+   * long wait-after-action made its absolute age exceed the planning limit.
+   * Other over-age candidates arm a planning barrier on demand. If no frame
+   * crosses the resulting freshness target in time, close this stream epoch
+   * and let the caller use ADB.
    */
   async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -1113,6 +1152,7 @@ export class ScrcpyScreenshotManager {
     const t5 = Date.now();
     const result = await this.decodeH264ToJpeg(keyframeBuffer);
     const decodeTime = Date.now() - t5;
+    this.consumeActionFreshnessBarrier(frame);
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(

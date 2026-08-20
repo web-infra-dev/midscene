@@ -322,13 +322,16 @@ export class ScrcpyDeviceAdapter {
   private async applyPendingActionBarrier(
     manager: ScrcpyScreenshotManager,
   ): Promise<void> {
-    const actionCompletedAtHostUs = this.pendingActionBarrierAtHostUs;
-    if (actionCompletedAtHostUs === null) return;
+    const actionStartedAtHostUs = this.pendingActionBarrierAtHostUs;
+    if (actionStartedAtHostUs === null) return;
     await manager.setFreshnessBarrier(
-      'completed input action while scrcpy was unavailable',
-      actionCompletedAtHostUs,
+      'input action started while scrcpy was unavailable',
+      {
+        allowOverAgeForNextCapture: true,
+        hostMonotonicUs: actionStartedAtHostUs,
+      },
     );
-    if (this.pendingActionBarrierAtHostUs === actionCompletedAtHostUs) {
+    if (this.pendingActionBarrierAtHostUs === actionStartedAtHostUs) {
       this.pendingActionBarrierAtHostUs = null;
     }
   }
@@ -337,12 +340,12 @@ export class ScrcpyDeviceAdapter {
     return process.hrtime.bigint() / 1_000n;
   }
 
-  private deferActionBarrier(actionCompletedAtHostUs: bigint): void {
+  private deferActionBarrier(actionStartedAtHostUs: bigint): void {
     if (
       this.pendingActionBarrierAtHostUs === null ||
-      actionCompletedAtHostUs > this.pendingActionBarrierAtHostUs
+      actionStartedAtHostUs > this.pendingActionBarrierAtHostUs
     ) {
-      this.pendingActionBarrierAtHostUs = actionCompletedAtHostUs;
+      this.pendingActionBarrierAtHostUs = actionStartedAtHostUs;
     }
   }
 
@@ -392,32 +395,33 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Move the scrcpy PTS barrier past a completed input action. Barrier failures
-   * must not turn a successfully injected action into an action error; disable
-   * the stream and let subsequent captures use the existing ADB fallback.
+   * Move the scrcpy PTS barrier to immediately before an input action. Frames
+   * produced while the ADB command is returning then remain valid candidates.
+   * Barrier failures must not block the input action; disable the stream and
+   * let subsequent captures use the existing ADB fallback.
    */
   async markActionBarrier(): Promise<void> {
-    const actionCompletedAtHostUs = this.monotonicTimeUs();
+    const actionStartedAtHostUs = this.monotonicTimeUs();
     const manager = this.manager;
     if (!manager?.isConnected()) {
-      this.deferActionBarrier(actionCompletedAtHostUs);
+      this.deferActionBarrier(actionStartedAtHostUs);
       return;
     }
 
     try {
-      await manager.setFreshnessBarrier(
-        'completed input action',
-        actionCompletedAtHostUs,
-      );
+      await manager.setFreshnessBarrier('input action started', {
+        allowOverAgeForNextCapture: true,
+        hostMonotonicUs: actionStartedAtHostUs,
+      });
       if (
         this.pendingActionBarrierAtHostUs !== null &&
-        this.pendingActionBarrierAtHostUs <= actionCompletedAtHostUs
+        this.pendingActionBarrierAtHostUs <= actionStartedAtHostUs
       ) {
         this.pendingActionBarrierAtHostUs = null;
       }
       this.clearFailure();
     } catch (error) {
-      this.deferActionBarrier(actionCompletedAtHostUs);
+      this.deferActionBarrier(actionStartedAtHostUs);
       this.recordFailure(error);
       debugAdapter(
         `Unable to mark scrcpy action barrier; disabling this stream: ${error}`,
