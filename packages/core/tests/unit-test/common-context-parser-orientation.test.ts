@@ -10,9 +10,11 @@ import * as imgActual from '@midscene/shared/img' with {
 rs.mock('@midscene/shared/img', () => ({
   ...imgActual,
   imageInfoOfBase64: rs.fn(),
-  resizeBase64ImageToJpeg: rs
+  resizeBase64ImageToWebp: rs
     .fn()
-    .mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ'),
+    .mockResolvedValue(
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA',
+    ),
 }));
 
 import { imageInfoOfBase64 } from '@midscene/shared/img';

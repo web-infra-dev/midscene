@@ -52,6 +52,7 @@ import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from './model-call-recorder';
+import { prepareModelMessagesImageInput } from './model-image-input';
 import {
   type OpenAIErrorResponseContext,
   formatOpenAIAPIErrorDetails,
@@ -399,6 +400,10 @@ export async function callAI(
         });
       }
     : undefined;
+  const modelMessages = await prepareModelMessagesImageInput(
+    messages,
+    modelConfig.imageInputFormat,
+  );
   const chatCompletionInput = {
     intent: modelConfig.intent,
     userConfig: {
@@ -441,7 +446,7 @@ export async function callAI(
 
     try {
       const codexResult = await callAIWithCodexAppServer(
-        messages,
+        modelMessages,
         modelConfig,
         {
           stream: options?.stream,
@@ -595,10 +600,10 @@ export async function callAI(
   // resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
     if (!imageDetail) {
-      return messages;
+      return modelMessages;
     }
 
-    return messages.map((msg) => {
+    return modelMessages.map((msg) => {
       if (!Array.isArray(msg.content)) {
         return msg;
       }
