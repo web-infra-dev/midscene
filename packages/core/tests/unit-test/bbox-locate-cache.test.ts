@@ -218,7 +218,10 @@ describe('bbox locate cache fix', () => {
       );
       expect(cachedLocate).toBeDefined();
       expect(cachedLocate?.cache).toBeDefined();
-      expect(cachedLocate?.cache?.xpaths).toContain('/html/body/input[1]');
+      expect(cachedLocate?.cache?.targets).toContainEqual({
+        strategy: 'xpath',
+        selector: '/html/body/input[1]',
+      });
     });
 
     it('should not call AI locate when bbox is available', async () => {
@@ -652,7 +655,7 @@ describe('bbox locate cache fix', () => {
       const internal = getTaskCacheInternal(testCache);
       internal.cache.caches.push({
         type: 'locate',
-        prompt: '高一',
+        prompt: 'Grade 10',
         cache: {
           xpaths: ['/html/body/div[1]/label[2]'], // Old invalid xpath
         },
@@ -679,7 +682,7 @@ describe('bbox locate cache fix', () => {
       // 4. Mock cacheFeatureForPoint to return new xpath
       vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
         xpaths: ['/html/body/div[2]/label[1]'],
-        texts: ['高一'],
+        texts: ['Grade 10'],
       });
 
       // 5. Create taskBuilder with pre-populated cache
@@ -695,11 +698,11 @@ describe('bbox locate cache fix', () => {
           type: 'Tap',
           param: {
             locate: {
-              prompt: '高一',
+              prompt: 'Grade 10',
               // No bbox - will try cache hit
             },
           },
-          thought: 'tap 高一',
+          thought: 'tap Grade 10',
         },
       ];
 
@@ -720,7 +723,12 @@ describe('bbox locate cache fix', () => {
       // 6. Verify:
       // - rectMatchesCacheFeature was called (attempted cache hit)
       expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
-        xpaths: ['/html/body/div[1]/label[2]'],
+        targets: [
+          {
+            strategy: 'xpath',
+            selector: '/html/body/div[1]/label[2]',
+          },
+        ],
       });
 
       // - AI locate was called (cache hit failed, fallback to AI)
@@ -730,15 +738,17 @@ describe('bbox locate cache fix', () => {
       expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalled();
 
       // - Cache was updated with new xpath (not the old one)
-      const updatedCache = findLocateCacheByPrompt(testCache, '高一');
+      const updatedCache = findLocateCacheByPrompt(testCache, 'Grade 10');
       expect(updatedCache).toBeDefined();
       expect(updatedCache?.cache).toBeDefined();
-      expect(updatedCache?.cache?.xpaths).toContain(
-        '/html/body/div[2]/label[1]',
-      );
-      expect(updatedCache?.cache?.xpaths).not.toContain(
-        '/html/body/div[1]/label[2]',
-      );
+      expect(updatedCache?.cache?.targets).toContainEqual({
+        strategy: 'xpath',
+        selector: '/html/body/div[2]/label[1]',
+      });
+      expect(updatedCache?.cache?.targets).not.toContainEqual({
+        strategy: 'xpath',
+        selector: '/html/body/div[1]/label[2]',
+      });
     });
 
     it('should update cache when cache validation fails for non-plan-hit scenarios', async () => {
@@ -813,10 +823,14 @@ describe('bbox locate cache fix', () => {
       // Verify cache was updated
       const updatedCache = findLocateCacheByPrompt(testCache, 'submit button');
       expect(updatedCache).toBeDefined();
-      expect(updatedCache?.cache?.xpaths).toContain(
-        '/html/body/form[1]/button[1]',
-      );
-      expect(updatedCache?.cache?.xpaths).not.toContain('/html/body/button[1]');
+      expect(updatedCache?.cache?.targets).toContainEqual({
+        strategy: 'xpath',
+        selector: '/html/body/form[1]/button[1]',
+      });
+      expect(updatedCache?.cache?.targets).not.toContainEqual({
+        strategy: 'xpath',
+        selector: '/html/body/button[1]',
+      });
     });
   });
 });

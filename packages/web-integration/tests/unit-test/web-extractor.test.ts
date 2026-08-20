@@ -13,7 +13,7 @@ import {
 } from '@midscene/shared/img';
 import { getElementInfosScriptContent } from '@midscene/shared/node';
 import { createServer } from 'http-server';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
@@ -354,6 +354,43 @@ describe(
         await reset();
       });
 
+      it('probeLocatorTargets should disclose every existing target without changing page state', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 100,
+            deviceScaleFactor: 1,
+          },
+        });
+        await page.evaluateJavaScript?.(`
+          document.body.insertAdjacentHTML('beforeend', \`
+            <button id="extra-action-visible">Visible</button>
+            <button id="extra-action-hidden" hidden>Hidden</button>
+            <button id="extra-action-disabled" disabled>Disabled</button>
+            <button id="extra-action-offscreen" style="position:absolute;top:5000px">Offscreen</button>
+            <button id="extra-action-zero-size" style="width:0;height:0;padding:0;border:0">Zero size</button>
+          \`);
+        `);
+        const scrollYBefore = await page.evaluateJavaScript?.('window.scrollY');
+        const evaluateSpy = vi.spyOn(page, 'evaluateJavaScript');
+
+        const result = await page.probeLocatorTargets([
+          { strategy: 'xpath', selector: '//*[@id="extra-action-visible"]' },
+          { strategy: 'xpath', selector: '//*[@id="extra-action-hidden"]' },
+          { strategy: 'xpath', selector: '//*[@id="extra-action-disabled"]' },
+          { strategy: 'xpath', selector: '//*[@id="extra-action-offscreen"]' },
+          { strategy: 'xpath', selector: '//*[@id="extra-action-zero-size"]' },
+          { strategy: 'xpath', selector: '//*[@id="extra-action-missing"]' },
+        ]);
+
+        expect(result).toEqual([true, true, true, true, true, false]);
+        expect(evaluateSpy).toHaveBeenCalledOnce();
+        expect(await page.evaluateJavaScript?.('window.scrollY')).toBe(
+          scrollYBefore,
+        );
+        await reset();
+      });
+
       it('getXpathsByPoint should handle elements with special characters', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
           viewport: {
@@ -402,12 +439,16 @@ describe(
         const cacheFeature = await page.cacheFeatureForPoint?.([149, 419]);
 
         expect(cacheFeature).toBeDefined();
-        const xpaths = (cacheFeature as any)?.xpaths as string[] | undefined;
-        expect(xpaths).toBeDefined();
-        expect(xpaths?.length).toBeGreaterThan(0);
+        const targets = (cacheFeature as any)?.targets as
+          | Array<{ strategy: string; selector: string }>
+          | undefined;
+        expect(targets).toBeDefined();
+        expect(targets?.length).toBeGreaterThan(0);
 
-        const xpath = xpaths?.[0];
-        expect(xpath).toMatch(/^\/html/);
+        expect(targets?.[0]).toEqual({
+          strategy: 'xpath',
+          selector: expect.stringMatching(/^\/html/),
+        });
 
         await reset();
       });

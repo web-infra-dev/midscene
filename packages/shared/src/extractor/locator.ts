@@ -427,6 +427,54 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
   return node;
 }
 
+/**
+ * Count matches without scrolling or otherwise changing page state. Composite
+ * iframe XPaths require each intermediate iframe segment to resolve uniquely;
+ * the final segment may match any number of nodes.
+ */
+export function getNodeCountByXpath(xpath: string): number {
+  const parts = xpath
+    .split(SUB_XPATH_SEPARATOR)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return 0;
+
+  let currentDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const xpathResult = currentDocument.evaluate(
+      parts[index],
+      currentDocument,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null,
+    );
+    if (index === parts.length - 1) {
+      return xpathResult.snapshotLength;
+    }
+    if (xpathResult.snapshotLength !== 1) return 0;
+
+    const node = xpathResult.snapshotItem(0);
+    if (
+      !node ||
+      node.nodeType !== Node.ELEMENT_NODE ||
+      (node as Element).tagName.toLowerCase() !== 'iframe'
+    ) {
+      return 0;
+    }
+    try {
+      const contentDocument = (node as HTMLIFrameElement).contentDocument;
+      if (!contentDocument) return 0;
+      currentDocument = contentDocument;
+    } catch {
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
 export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   const node = getNodeInfoByXpath(xpath);
   if (!node) return null;
