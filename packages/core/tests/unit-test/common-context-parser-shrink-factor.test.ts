@@ -2,8 +2,8 @@ import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-rs.mock('@midscene/shared/img', () => ({
-  createImgBase64ByFormat: rs.fn(),
+rs.mock('@midscene/shared/img', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
   imageInfoOfBase64: rs.fn(),
   resizeBase64ImageToJpeg: rs
     .fn()
