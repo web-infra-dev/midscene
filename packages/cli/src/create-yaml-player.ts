@@ -22,6 +22,7 @@ import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import {
+  type PuppeteerPageOwnership,
   buildDownloadBehavior,
   puppeteerAgentForTarget,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -39,10 +40,25 @@ export interface CreateYamlPlayerOptions {
   keepWindow?: boolean;
   browser?: Browser;
   page?: Page;
+  pageOwnership?: PuppeteerPageOwnership;
   testId?: string;
 }
 
 const debug = getDebug('create-yaml-player');
+const cleanupWarning = getDebug('create-yaml-player', { console: true });
+
+async function cleanupFailedPlayerSetup(freeFn: FreeFn[]): Promise<void> {
+  for (const cleanup of [...freeFn].reverse()) {
+    try {
+      await cleanup.fn();
+    } catch (error) {
+      cleanupWarning(
+        `failed to run ${cleanup.name} after YAML player setup failed`,
+        error,
+      );
+    }
+  }
+}
 
 export const launchServer = async (
   dir: string,
@@ -109,6 +125,7 @@ export async function createYamlPlayer(
   const preference = {
     headed: options?.headed,
     keepWindow: options?.keepWindow,
+    pageOwnership: options?.pageOwnership,
     reportFileName: resolveReportFileName(
       clonedYamlScript.agent?.reportFileName,
       options?.testId,
@@ -121,368 +138,393 @@ export async function createYamlPlayer(
     clonedYamlScript,
     async () => {
       const freeFn: FreeFn[] = [];
-      const resolvedWebTarget = resolveWebTarget(clonedYamlScript);
-      const webTarget = resolvedWebTarget?.target as
-        | MidsceneYamlScriptWebEnv
-        | undefined;
+      try {
+        const resolvedWebTarget = resolveWebTarget(clonedYamlScript);
+        const webTarget = resolvedWebTarget?.target as
+          | MidsceneYamlScriptWebEnv
+          | undefined;
 
-      // Validate that only one target type is specified
-      const targetCount = [
-        typeof resolvedWebTarget !== 'undefined',
-        typeof clonedYamlScript.android !== 'undefined',
-        typeof clonedYamlScript.ios !== 'undefined',
-        typeof clonedYamlScript.harmony !== 'undefined',
-        typeof clonedYamlScript.computer !== 'undefined',
-        typeof clonedYamlScript.interface !== 'undefined',
-      ].filter(Boolean).length;
+        // Validate that only one target type is specified
+        const targetCount = [
+          typeof resolvedWebTarget !== 'undefined',
+          typeof clonedYamlScript.android !== 'undefined',
+          typeof clonedYamlScript.ios !== 'undefined',
+          typeof clonedYamlScript.harmony !== 'undefined',
+          typeof clonedYamlScript.computer !== 'undefined',
+          typeof clonedYamlScript.interface !== 'undefined',
+        ].filter(Boolean).length;
 
-      if (targetCount > 1) {
-        const specifiedTargets = [
-          resolvedWebTarget?.source ?? null,
-          typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
-          typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
-          typeof clonedYamlScript.harmony !== 'undefined' ? 'harmony' : null,
-          typeof clonedYamlScript.computer !== 'undefined' ? 'computer' : null,
-          typeof clonedYamlScript.interface !== 'undefined'
-            ? 'interface'
-            : null,
-        ].filter(Boolean);
+        if (targetCount > 1) {
+          const specifiedTargets = [
+            resolvedWebTarget?.source ?? null,
+            typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
+            typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
+            typeof clonedYamlScript.harmony !== 'undefined' ? 'harmony' : null,
+            typeof clonedYamlScript.computer !== 'undefined'
+              ? 'computer'
+              : null,
+            typeof clonedYamlScript.interface !== 'undefined'
+              ? 'interface'
+              : null,
+          ].filter(Boolean);
+
+          throw new Error(
+            `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: page, browser, web, android, ios, harmony, computer, or interface.`,
+          );
+        }
+
+        // handle new web config
+        if (typeof webTarget !== 'undefined') {
+          if (resolvedWebTarget?.source === 'target') {
+            console.warn(
+              'target is deprecated, please use page or browser instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
+            );
+          }
+
+          // launch local server if needed
+          let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
+          let urlToVisit: string | undefined;
+          if (webTarget.serve) {
+            assert(
+              typeof webTarget.url === 'string',
+              'url is required in serve mode',
+            );
+            localServer = await launchServer(webTarget.serve);
+            const serverAddress = localServer.server.address();
+            freeFn.push({
+              name: 'local_server',
+              fn: async () => {
+                if (!localServer) {
+                  return;
+                }
+                await new Promise<void>((resolve, reject) => {
+                  localServer?.server.close((error?: Error) => {
+                    if (error) {
+                      reject(error);
+                    } else {
+                      resolve();
+                    }
+                  });
+                });
+              },
+            });
+            if (webTarget.url.startsWith('/')) {
+              urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${webTarget.url}`;
+            } else {
+              urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${webTarget.url}`;
+            }
+            webTarget.url = urlToVisit;
+          }
+
+          // Validate: cdpEndpoint and bridgeMode are mutually exclusive
+          if (webTarget.cdpEndpoint && webTarget.bridgeMode) {
+            throw new Error(
+              'cdpEndpoint and bridgeMode are mutually exclusive. Please specify only one.',
+            );
+          }
+
+          if (webTarget.mode === 'browser' && webTarget.bridgeMode) {
+            throw new Error(
+              '[midscene] browser mode does not support bridgeMode. Use page: or web.mode: page for bridge mode.',
+            );
+          }
+
+          // CDP mode: connect to an existing browser via Chrome DevTools Protocol
+          if (webTarget.cdpEndpoint) {
+            // Use the shared browser from batch-runner if available (shareBrowserContext),
+            // otherwise connect via CDP endpoint
+            const ownsCdpBrowser = !options?.browser;
+            const cdpBrowser =
+              options?.browser ??
+              (await puppeteer.connect({
+                browserWSEndpoint: webTarget.cdpEndpoint,
+                defaultViewport: null,
+                downloadBehavior: buildDownloadBehavior(webTarget.downloadPath),
+              }));
+            if (ownsCdpBrowser) {
+              freeFn.push({
+                name: 'cdp_browser_disconnect',
+                fn: () => cdpBrowser.disconnect(),
+              });
+            }
+
+            // Warn about options that don't apply to an already-running browser
+            if (webTarget.chromeArgs) {
+              console.warn(
+                'chromeArgs are not supported in CDP mode (browser is already running). They will be ignored.',
+              );
+            }
+
+            // Reuse puppeteerAgentForTarget which handles page setup (userAgent, viewport,
+            // cookie, waitForNetworkIdle, etc.) — pass the CDP browser as the browser param
+            const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+              webTarget,
+              {
+                ...preference,
+                ...buildAgentOptions(
+                  clonedYamlScript.agent,
+                  preference.reportFileName,
+                  fileName,
+                ),
+              },
+              cdpBrowser as Browser,
+              options?.page,
+            );
+
+            // Replace the default browser close with disconnect for CDP
+            const cleanFreeFn = newFreeFn.filter(
+              (f) => f.name !== 'puppeteer_browser',
+            );
+            freeFn.push(...cleanFreeFn);
+
+            return { agent, freeFn };
+          }
+
+          if (!webTarget.bridgeMode) {
+            // use puppeteer
+            const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+              webTarget,
+              {
+                ...preference,
+                ...buildAgentOptions(
+                  clonedYamlScript.agent,
+                  preference.reportFileName,
+                  fileName,
+                ),
+              },
+              options?.browser,
+              options?.page,
+            );
+            freeFn.push(...newFreeFn);
+
+            return { agent, freeFn };
+          }
+          assert(
+            webTarget.bridgeMode === 'newTabWithUrl' ||
+              webTarget.bridgeMode === 'currentTab',
+            `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${webTarget.bridgeMode}`,
+          );
+
+          const bridgeUnsupportedKeys: (keyof MidsceneYamlScriptWebEnv)[] = [
+            'userAgent',
+            'viewportWidth',
+            'viewportHeight',
+            'deviceScaleFactor',
+            'waitForNetworkIdle',
+            'cookie',
+            'extraHTTPHeaders',
+            'downloadPath',
+            'chromeArgs',
+          ];
+          const ignoredKeys = bridgeUnsupportedKeys.filter(
+            (key) => webTarget[key] != null,
+          );
+          if (ignoredKeys.length > 0) {
+            console.warn(
+              `puppeteer options (${ignoredKeys.join(', ')}) are not supported in bridge mode. They will be ignored.`,
+            );
+          }
+
+          const agent = new AgentOverChromeBridge({
+            closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
+            closeConflictServer: true,
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          });
+
+          if (webTarget.bridgeMode === 'newTabWithUrl') {
+            await agent.connectNewTabWithUrl(webTarget.url);
+          } else {
+            if (webTarget.url) {
+              console.warn(
+                'url will be ignored in bridge mode with "currentTab"',
+              );
+            }
+            await agent.connectCurrentTab();
+          }
+          freeFn.push({
+            name: 'destroy_agent_over_chrome_bridge',
+            fn: () => agent.destroy(),
+          });
+          return {
+            agent,
+            freeFn,
+          };
+        }
+
+        // handle android
+        if (typeof clonedYamlScript.android !== 'undefined') {
+          const androidTarget = clonedYamlScript.android;
+          const { agentFromAdbDevice } = await import('@midscene/android');
+          const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
+            ...androidTarget, // Pass all Android config options
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          });
+
+          if (androidTarget?.launch) {
+            await agent.launch(androidTarget.launch);
+          }
+
+          freeFn.push({
+            name: 'destroy_android_agent',
+            fn: () => agent.destroy(),
+          });
+
+          return { agent, freeFn };
+        }
+
+        // handle iOS
+        if (typeof clonedYamlScript.ios !== 'undefined') {
+          const iosTarget = clonedYamlScript.ios;
+          const { agentFromWebDriverAgent } = await import('@midscene/ios');
+          const agent = await agentFromWebDriverAgent({
+            ...iosTarget, // Pass all iOS config options
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          });
+
+          if (iosTarget?.launch) {
+            await agent.launch(iosTarget.launch);
+          }
+
+          freeFn.push({
+            name: 'destroy_ios_agent',
+            fn: () => agent.destroy(),
+          });
+
+          return { agent, freeFn };
+        }
+
+        // handle harmony
+        if (typeof clonedYamlScript.harmony !== 'undefined') {
+          const harmonyTarget = clonedYamlScript.harmony;
+          const { agentFromHdcDevice } = await import('@midscene/harmony');
+          const agent = await agentFromHdcDevice(harmonyTarget?.deviceId, {
+            ...harmonyTarget, // Pass all HarmonyOS config options
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          });
+
+          if (harmonyTarget?.launch) {
+            await agent.launch(harmonyTarget.launch);
+          }
+
+          freeFn.push({
+            name: 'destroy_harmony_agent',
+            fn: () => agent.destroy(),
+          });
+
+          return { agent, freeFn };
+        }
+
+        // handle computer
+        if (typeof clonedYamlScript.computer !== 'undefined') {
+          const computerTarget = clonedYamlScript.computer;
+          const { agentForComputer } = await import('@midscene/computer');
+          const agent = await agentForComputer({
+            ...computerTarget,
+            ...buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          });
+
+          freeFn.push({
+            name: 'destroy_computer_agent',
+            fn: () => agent.destroy(),
+          });
+
+          return { agent, freeFn };
+        }
+
+        // handle general interface
+        if (typeof clonedYamlScript.interface !== 'undefined') {
+          const interfaceTarget = clonedYamlScript.interface;
+
+          const moduleSpecifier = interfaceTarget.module;
+          let finalModuleSpecifier: string;
+          if (
+            moduleSpecifier.startsWith('./') ||
+            moduleSpecifier.startsWith('../') ||
+            path.isAbsolute(moduleSpecifier)
+          ) {
+            const resolvedPath = join(process.cwd(), moduleSpecifier);
+            finalModuleSpecifier = resolvedPath;
+          } else {
+            finalModuleSpecifier = moduleSpecifier;
+          }
+
+          // import the module dynamically
+          debug(
+            'importing module config',
+            interfaceTarget.module,
+            'with export config',
+            interfaceTarget.export,
+            'final module specifier',
+            finalModuleSpecifier,
+          );
+
+          const importedModule = await import(finalModuleSpecifier);
+
+          // get the specific export or use default export
+          const DeviceClass = interfaceTarget.export
+            ? importedModule[interfaceTarget.export]
+            : importedModule.default || importedModule;
+
+          debug(
+            'DeviceClass',
+            DeviceClass,
+            'with param',
+            interfaceTarget.param,
+          );
+
+          // create device instance with parameters
+          const device: AbstractInterface = new DeviceClass(
+            interfaceTarget.param || {},
+          );
+
+          // create agent from device
+          debug('creating agent from device', device);
+          const agent = createAgent(
+            device,
+            buildAgentOptions(
+              clonedYamlScript.agent,
+              preference.reportFileName,
+              fileName,
+            ),
+          );
+
+          freeFn.push({
+            name: 'destroy_general_interface_agent',
+            fn: () => {
+              agent.destroy();
+            },
+          });
+
+          return { agent, freeFn };
+        }
 
         throw new Error(
-          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: page, browser, web, android, ios, harmony, computer, or interface.`,
+          'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", "harmony", "computer", or "interface"',
         );
+      } catch (error) {
+        await cleanupFailedPlayerSetup(freeFn);
+        throw error;
       }
-
-      // handle new web config
-      if (typeof webTarget !== 'undefined') {
-        if (resolvedWebTarget?.source === 'target') {
-          console.warn(
-            'target is deprecated, please use page or browser instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
-          );
-        }
-
-        // launch local server if needed
-        let localServer: Awaited<ReturnType<typeof launchServer>> | undefined;
-        let urlToVisit: string | undefined;
-        if (webTarget.serve) {
-          assert(
-            typeof webTarget.url === 'string',
-            'url is required in serve mode',
-          );
-          localServer = await launchServer(webTarget.serve);
-          const serverAddress = localServer.server.address();
-          freeFn.push({
-            name: 'local_server',
-            fn: () => localServer?.server.close(),
-          });
-          if (webTarget.url.startsWith('/')) {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}${webTarget.url}`;
-          } else {
-            urlToVisit = `http://${serverAddress?.address}:${serverAddress?.port}/${webTarget.url}`;
-          }
-          webTarget.url = urlToVisit;
-        }
-
-        // Validate: cdpEndpoint and bridgeMode are mutually exclusive
-        if (webTarget.cdpEndpoint && webTarget.bridgeMode) {
-          throw new Error(
-            'cdpEndpoint and bridgeMode are mutually exclusive. Please specify only one.',
-          );
-        }
-
-        if (webTarget.mode === 'browser' && webTarget.bridgeMode) {
-          throw new Error(
-            '[midscene] browser mode does not support bridgeMode. Use page: or web.mode: page for bridge mode.',
-          );
-        }
-
-        // CDP mode: connect to an existing browser via Chrome DevTools Protocol
-        if (webTarget.cdpEndpoint) {
-          // Use the shared browser from batch-runner if available (shareBrowserContext),
-          // otherwise connect via CDP endpoint
-          const cdpBrowser =
-            options?.browser ??
-            (await puppeteer.connect({
-              browserWSEndpoint: webTarget.cdpEndpoint,
-              defaultViewport: null,
-              downloadBehavior: buildDownloadBehavior(webTarget.downloadPath),
-            }));
-
-          // Warn about options that don't apply to an already-running browser
-          if (webTarget.chromeArgs) {
-            console.warn(
-              'chromeArgs are not supported in CDP mode (browser is already running). They will be ignored.',
-            );
-          }
-
-          // Reuse puppeteerAgentForTarget which handles page setup (userAgent, viewport,
-          // cookie, waitForNetworkIdle, etc.) — pass the CDP browser as the browser param
-          const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
-            webTarget,
-            {
-              ...preference,
-              ...buildAgentOptions(
-                clonedYamlScript.agent,
-                preference.reportFileName,
-                fileName,
-              ),
-            },
-            cdpBrowser as Browser,
-            options?.page,
-          );
-
-          // Replace the default browser close with disconnect for CDP
-          const cleanFreeFn = newFreeFn.filter(
-            (f) => f.name !== 'puppeteer_browser',
-          );
-          if (!options?.browser) {
-            // Only add disconnect if we created the connection (not shared from batch-runner)
-            cleanFreeFn.push({
-              name: 'cdp_browser_disconnect',
-              fn: () => cdpBrowser.disconnect(),
-            });
-          }
-          freeFn.push(...cleanFreeFn);
-
-          return { agent, freeFn };
-        }
-
-        if (!webTarget.bridgeMode) {
-          // use puppeteer
-          const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
-            webTarget,
-            {
-              ...preference,
-              ...buildAgentOptions(
-                clonedYamlScript.agent,
-                preference.reportFileName,
-                fileName,
-              ),
-            },
-            options?.browser,
-            options?.page,
-          );
-          freeFn.push(...newFreeFn);
-
-          return { agent, freeFn };
-        }
-        assert(
-          webTarget.bridgeMode === 'newTabWithUrl' ||
-            webTarget.bridgeMode === 'currentTab',
-          `bridgeMode config value must be either "newTabWithUrl" or "currentTab", but got ${webTarget.bridgeMode}`,
-        );
-
-        const bridgeUnsupportedKeys: (keyof MidsceneYamlScriptWebEnv)[] = [
-          'userAgent',
-          'viewportWidth',
-          'viewportHeight',
-          'deviceScaleFactor',
-          'waitForNetworkIdle',
-          'cookie',
-          'extraHTTPHeaders',
-          'downloadPath',
-          'chromeArgs',
-        ];
-        const ignoredKeys = bridgeUnsupportedKeys.filter(
-          (key) => webTarget[key] != null,
-        );
-        if (ignoredKeys.length > 0) {
-          console.warn(
-            `puppeteer options (${ignoredKeys.join(', ')}) are not supported in bridge mode. They will be ignored.`,
-          );
-        }
-
-        const agent = new AgentOverChromeBridge({
-          closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
-          closeConflictServer: true,
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
-
-        if (webTarget.bridgeMode === 'newTabWithUrl') {
-          await agent.connectNewTabWithUrl(webTarget.url);
-        } else {
-          if (webTarget.url) {
-            console.warn(
-              'url will be ignored in bridge mode with "currentTab"',
-            );
-          }
-          await agent.connectCurrentTab();
-        }
-        freeFn.push({
-          name: 'destroy_agent_over_chrome_bridge',
-          fn: () => agent.destroy(),
-        });
-        return {
-          agent,
-          freeFn,
-        };
-      }
-
-      // handle android
-      if (typeof clonedYamlScript.android !== 'undefined') {
-        const androidTarget = clonedYamlScript.android;
-        const { agentFromAdbDevice } = await import('@midscene/android');
-        const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
-          ...androidTarget, // Pass all Android config options
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
-
-        if (androidTarget?.launch) {
-          await agent.launch(androidTarget.launch);
-        }
-
-        freeFn.push({
-          name: 'destroy_android_agent',
-          fn: () => agent.destroy(),
-        });
-
-        return { agent, freeFn };
-      }
-
-      // handle iOS
-      if (typeof clonedYamlScript.ios !== 'undefined') {
-        const iosTarget = clonedYamlScript.ios;
-        const { agentFromWebDriverAgent } = await import('@midscene/ios');
-        const agent = await agentFromWebDriverAgent({
-          ...iosTarget, // Pass all iOS config options
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
-
-        if (iosTarget?.launch) {
-          await agent.launch(iosTarget.launch);
-        }
-
-        freeFn.push({
-          name: 'destroy_ios_agent',
-          fn: () => agent.destroy(),
-        });
-
-        return { agent, freeFn };
-      }
-
-      // handle harmony
-      if (typeof clonedYamlScript.harmony !== 'undefined') {
-        const harmonyTarget = clonedYamlScript.harmony;
-        const { agentFromHdcDevice } = await import('@midscene/harmony');
-        const agent = await agentFromHdcDevice(harmonyTarget?.deviceId, {
-          ...harmonyTarget, // Pass all HarmonyOS config options
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
-
-        if (harmonyTarget?.launch) {
-          await agent.launch(harmonyTarget.launch);
-        }
-
-        freeFn.push({
-          name: 'destroy_harmony_agent',
-          fn: () => agent.destroy(),
-        });
-
-        return { agent, freeFn };
-      }
-
-      // handle computer
-      if (typeof clonedYamlScript.computer !== 'undefined') {
-        const computerTarget = clonedYamlScript.computer;
-        const { agentForComputer } = await import('@midscene/computer');
-        const agent = await agentForComputer({
-          ...computerTarget,
-          ...buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        });
-
-        freeFn.push({
-          name: 'destroy_computer_agent',
-          fn: () => agent.destroy(),
-        });
-
-        return { agent, freeFn };
-      }
-
-      // handle general interface
-      if (typeof clonedYamlScript.interface !== 'undefined') {
-        const interfaceTarget = clonedYamlScript.interface;
-
-        const moduleSpecifier = interfaceTarget.module;
-        let finalModuleSpecifier: string;
-        if (
-          moduleSpecifier.startsWith('./') ||
-          moduleSpecifier.startsWith('../') ||
-          path.isAbsolute(moduleSpecifier)
-        ) {
-          const resolvedPath = join(process.cwd(), moduleSpecifier);
-          finalModuleSpecifier = resolvedPath;
-        } else {
-          finalModuleSpecifier = moduleSpecifier;
-        }
-
-        // import the module dynamically
-        debug(
-          'importing module config',
-          interfaceTarget.module,
-          'with export config',
-          interfaceTarget.export,
-          'final module specifier',
-          finalModuleSpecifier,
-        );
-
-        const importedModule = await import(finalModuleSpecifier);
-
-        // get the specific export or use default export
-        const DeviceClass = interfaceTarget.export
-          ? importedModule[interfaceTarget.export]
-          : importedModule.default || importedModule;
-
-        debug('DeviceClass', DeviceClass, 'with param', interfaceTarget.param);
-
-        // create device instance with parameters
-        const device: AbstractInterface = new DeviceClass(
-          interfaceTarget.param || {},
-        );
-
-        // create agent from device
-        debug('creating agent from device', device);
-        const agent = createAgent(
-          device,
-          buildAgentOptions(
-            clonedYamlScript.agent,
-            preference.reportFileName,
-            fileName,
-          ),
-        );
-
-        freeFn.push({
-          name: 'destroy_general_interface_agent',
-          fn: () => {
-            agent.destroy();
-          },
-        });
-
-        return { agent, freeFn };
-      }
-
-      throw new Error(
-        'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", "harmony", "computer", or "interface"',
-      );
     },
     undefined,
     file,

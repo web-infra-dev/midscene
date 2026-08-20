@@ -235,6 +235,43 @@ describe('create-yaml-player', () => {
       );
     });
 
+    test('should close a local server when Puppeteer setup fails', async () => {
+      const navigationError = new Error('navigation failed');
+      const close = vi.fn((callback: (error?: Error) => void) => callback());
+      const mockServer = {
+        listen: vi.fn((_port, _host, callback) => callback()),
+        server: {
+          address: vi.fn().mockReturnValue({
+            address: '127.0.0.1',
+            port: 8080,
+          }),
+          close,
+        },
+      };
+      const mockScript: MidsceneYamlScript = {
+        page: {
+          url: '/test.html',
+          serve: './fixtures',
+        },
+        tasks: [],
+      };
+      let setupFnCallback: (() => Promise<unknown>) | undefined;
+
+      vi.mocked(createServer).mockReturnValue(mockServer);
+      vi.mocked(puppeteerAgentForTarget).mockRejectedValue(navigationError);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<unknown>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      await expect(setupFnCallback?.()).rejects.toBe(navigationError);
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
     test('should reject conflicting web targets during setup', async () => {
       const mockScript: MidsceneYamlScript = {
         page: {

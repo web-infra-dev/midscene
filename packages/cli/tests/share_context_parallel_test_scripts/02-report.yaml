@@ -44,5 +44,24 @@ tasks:
             checkLoginStatus();
             return caseId;
           })()
+      - javascript: |
+          (() => {
+            if (new URLSearchParams(location.search).get('browserMode') === 'true') {
+              window.open(`${location.origin}/share-context-test.html?popupOwner=report`, '_blank');
+            }
+          })()
+      - sleep: 500
+      - javascript: |
+          (() => {
+            const params = new URLSearchParams(location.search);
+            if (params.get('browserMode') === 'true') {
+              throw new Error('Report BrowserAgent did not follow its popup');
+            }
+            const popupOwner = params.get('popupOwner');
+            if (popupOwner !== null && popupOwner !== 'report') {
+              throw new Error(`Report BrowserAgent followed another YAML popup: ${popupOwner}`);
+            }
+            return popupOwner ?? 'non-browser-mode';
+          })()
       - recordToReport: Report tab verification passed
-        content: The report YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, and retained isolated window and sessionStorage state.
+        content: The report YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, retained isolated window and sessionStorage state, and only followed its own popup in browser mode.
