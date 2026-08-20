@@ -130,6 +130,7 @@ export {
   reportToMarkdown,
   type ExecutionMarkdownOptions,
   type ExecutionMarkdownResult,
+  type ReportMarkdownOptions,
   type ReportMarkdownResult,
   type MarkdownAttachment,
 } from './report-markdown';
