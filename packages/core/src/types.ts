@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -24,6 +25,7 @@ export type {
   Size,
   Point,
 } from '@midscene/shared/types';
+export type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
 export * from './yaml';
 
 export { ServiceError } from './errors';
@@ -624,11 +626,11 @@ export type ExecutionTask<
      */
     planningFeedback?: string;
     /**
-     * The original value thrown by the task executor. JavaScript may throw any
-     * value, so consumers should use errorMessage and errorStack for diagnostics
-     * instead of assuming this is an Error instance.
+     * A bounded diagnostic DTO created when the task executor throws. Arbitrary
+     * upstream payloads are intentionally omitted; use this field for structured
+     * diagnostics or errorMessage/errorStack for the common display path.
      */
-    error?: unknown;
+    error?: SerializedError;
     errorMessage?: string;
     errorStack?: string;
     timing?: {

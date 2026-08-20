@@ -45,7 +45,8 @@ function safelyReadProperty(error: object, key: PropertyKey): unknown {
   }
 }
 
-function truncateSerializedString(value: string): string {
+/** Apply the same string bound used by {@link serializeError}. */
+export function truncateSerializedErrorString(value: string): string {
   if (value.length <= maxSerializedStringLength) {
     return value;
   }
@@ -148,7 +149,7 @@ function serializeErrorValue(
   if (!isObject(error)) {
     return {
       name: 'NonError',
-      message: truncateSerializedString(String(error)),
+      message: truncateSerializedErrorString(String(error)),
     };
   }
 
@@ -161,27 +162,29 @@ function serializeErrorValue(
   seen.add(error);
 
   const name = safelyReadProperty(error, 'name');
-  const serializedName = truncateSerializedString(
+  const serializedName = truncateSerializedErrorString(
     typeof name === 'string' && name ? name : 'Error',
   );
   const message = extractStringMessage(error);
   const serialized: SerializedError = {
     name: serializedName,
-    message: truncateSerializedString(
+    message: truncateSerializedErrorString(
       message ?? `${serializedName} without a message`,
     ),
   };
 
   const stack = getErrorStack(error);
   if (stack) {
-    serialized.stack = truncateSerializedString(stack);
+    serialized.stack = truncateSerializedErrorString(stack);
   }
 
   for (const key of stringOrNumberDiagnosticKeys) {
     const value = safelyReadProperty(error, key);
     if (typeof value === 'string' || typeof value === 'number') {
       serialized[key] =
-        typeof value === 'string' ? truncateSerializedString(value) : value;
+        typeof value === 'string'
+          ? truncateSerializedErrorString(value)
+          : value;
     }
   }
 

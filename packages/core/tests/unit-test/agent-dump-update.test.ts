@@ -353,15 +353,17 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const error = new Error('javascript gate failed');
+    const error = Object.assign(new Error('javascript gate failed'), {
+      payload: 'x'.repeat(10_000_000),
+    });
     await agent.recordErrorToReport('YAML task failed - JavaScript gate', {
       error,
-      content: 'Step 0 failed while running YAML task "JavaScript gate".',
     });
 
     expect(reportGeneratorStub.onExecutionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'YAML task failed - JavaScript gate',
+        description: 'javascript gate failed',
         tasks: [
           expect.objectContaining({
             type: 'Log',
@@ -374,6 +376,13 @@ describe('Agent dump update screenshot serialization', () => {
       expect.anything(),
       undefined,
     );
+    const execution = reportGeneratorStub.onExecutionUpdate.mock.calls[0][0];
+    expect(execution.tasks[0].error).not.toBe(error);
+    expect(execution.tasks[0].error).toMatchObject({
+      name: 'Error',
+      message: 'javascript gate failed',
+    });
+    expect(execution.tasks[0].error).not.toHaveProperty('payload');
 
     await agent.destroy();
   });

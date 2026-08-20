@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   getErrorStack,
   serializeError,
+  truncateSerializedErrorString,
 } from '@/agent-tools/error-formatter';
 import { describe, expect, it } from '@rstest/core';
 
@@ -95,6 +96,13 @@ describe('getErrorMessage', () => {
 });
 
 describe('serializeError', () => {
+  it('exposes the shared string bound for task summaries', () => {
+    const serialized = truncateSerializedErrorString('x'.repeat(10_000));
+
+    expect(serialized).toHaveLength(4_096);
+    expect(serialized).toMatch(/… \[truncated\]$/);
+  });
+
   it('preserves common diagnostics and nested causes', () => {
     const rootCause = Object.assign(new TypeError('socket closed'), {
       code: 'ECONNRESET',

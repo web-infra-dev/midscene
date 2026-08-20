@@ -16,6 +16,7 @@ import {
 import {
   type SerializedError,
   serializeError,
+  truncateSerializedErrorString,
 } from '@midscene/shared/agent-tools/error-formatter';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
@@ -42,17 +43,45 @@ export interface TaskRunnerEvent {
   runner: TaskRunner;
 }
 
-type SerializedErrorTask = {
+export interface SerializedErrorTask {
   taskId: string;
   type: ExecutionTask['type'];
   subType?: string;
   status: ExecutionTask['status'];
+  thought?: string;
   errorMessage?: string;
-};
+}
 
-type SerializedTaskExecutionError = SerializedError & {
+export interface SerializedTaskExecutionError extends SerializedError {
+  code: 'TASK_EXECUTION_FAILED';
+  cause: SerializedError;
   task?: SerializedErrorTask;
-};
+}
+
+function serializeErrorTask(
+  task: ExecutionTask | null,
+): SerializedErrorTask | undefined {
+  if (!task) {
+    return undefined;
+  }
+
+  return {
+    taskId: truncateSerializedErrorString(task.taskId),
+    type: task.type,
+    ...(task.subType === undefined
+      ? {}
+      : { subType: truncateSerializedErrorString(task.subType) }),
+    status: task.status,
+    ...(task.thought === undefined
+      ? {}
+      : { thought: truncateSerializedErrorString(task.thought) }),
+    ...(task.errorMessage === undefined
+      ? {}
+      : {
+          errorMessage: truncateSerializedErrorString(task.errorMessage),
+        }),
+  };
+}
 
 export type TaskRunnerEventListener = (
   event: TaskRunnerEvent,
@@ -227,7 +256,7 @@ export class TaskRunner {
     assert(
       options?.allowWhenError,
       errorMessage ||
-        `task runner is in error state, cannot proceed\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
+        `task runner is in error state, cannot proceed\nerror=${this.latestErrorTask()?.errorMessage}\n${this.latestErrorTask()?.errorStack}`,
     );
     // reset runner state so new tasks can run
     this.status = this.tasks.length > 0 ? 'pending' : 'init';
@@ -239,7 +268,7 @@ export class TaskRunner {
   ): Promise<void> {
     this.normalizeStatusFromError(
       options,
-      `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
+      `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.errorMessage}\n${this.latestErrorTask()?.errorStack}`,
     );
     const appended: ExecutionTask[] = [];
     if (Array.isArray(task)) {
@@ -389,7 +418,7 @@ export class TaskRunner {
       } catch (error) {
         successfullyCompleted = false;
         const serializedError = serializeError(error);
-        task.error = error;
+        task.error = serializedError;
         task.errorMessage = serializedError.message;
         task.errorStack = serializedError.stack;
 
@@ -419,12 +448,14 @@ export class TaskRunner {
     if (!successfullyCompleted) {
       this.status = 'error';
       const errorTask = this.latestErrorTask();
-      const messageBase =
-        errorTask?.errorMessage ||
-        (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
-      finalizeError = new TaskExecutionError(messageBase, this, errorTask, {
-        cause: errorTask?.error,
-      });
+      const error = errorTask?.error ?? {
+        name: 'Error',
+        message: 'Task execution failed',
+      };
+      finalizeError = new TaskExecutionError(
+        error,
+        serializeErrorTask(errorTask),
+      );
       await this.emitSnapshotChange(finalizeError);
     } else {
       this.status = 'completed';
@@ -498,46 +529,35 @@ export class TaskRunner {
 }
 
 export class TaskExecutionError extends Error {
-  runner: TaskRunner;
+  readonly code = 'TASK_EXECUTION_FAILED' as const;
 
-  errorTask: ExecutionTask | null;
+  override readonly cause: SerializedError;
 
-  constructor(
-    message: string,
-    runner: TaskRunner,
-    errorTask: ExecutionTask | null,
-    options?: { cause?: unknown },
-  ) {
-    super(message, options);
+  readonly task?: SerializedErrorTask;
+
+  constructor(error: SerializedError, task?: SerializedErrorTask) {
+    super(error.message, { cause: error });
     this.name = 'TaskExecutionError';
-    this.runner = runner;
-    this.errorTask = errorTask;
+    this.cause = error;
+    this.task = task;
+    if (this.stack) {
+      this.stack = truncateSerializedErrorString(this.stack);
+    }
   }
 
   /**
-   * Expose a compact diagnostic summary to serialized error transports.
-   *
-   * Test runners serialize thrown errors across worker boundaries. The cause
-   * and failed-task summary preserve actionable diagnostics there, while keeping
-   * the complete runner graph, task executor, and arbitrary SDK payloads out.
-   * The wrapper's `stack` describes where TaskExecutionError was created. Read
-   * `cause.stack` for the executor's original stack; the original objects also
-   * remain available on the live error instance.
+   * Return the same bounded fields already stored on the live error. The
+   * wrapper stack identifies where TaskExecutionError was created; cause.stack
+   * preserves the executor's original stack.
    */
   toJSON(): SerializedTaskExecutionError {
-    const task = this.errorTask
-      ? {
-          taskId: this.errorTask.taskId,
-          type: this.errorTask.type,
-          subType: this.errorTask.subType,
-          status: this.errorTask.status,
-          errorMessage: this.errorTask.errorMessage,
-        }
-      : undefined;
-
     return {
-      ...serializeError(this),
-      task,
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      ...(this.stack === undefined ? {} : { stack: this.stack }),
+      cause: this.cause,
+      ...(this.task === undefined ? {} : { task: this.task }),
     };
   }
 }

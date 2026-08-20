@@ -16,7 +16,6 @@ import type {
   LocateResultElement,
 } from '@midscene/core';
 import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
-import { getErrorMessage } from '@midscene/shared/agent-tools/error-formatter';
 import {
   fullTimeStrWithMilliseconds,
   highlightColorForType,
@@ -706,8 +705,8 @@ const DetailSide = (): JSX.Element => {
     // prefer errorMessage
     if (task.errorMessage) {
       errorText = task.errorMessage;
-    } else if (task.error !== undefined) {
-      errorText = getErrorMessage(task.error);
+    } else if (task.error) {
+      errorText = task.error.message;
     }
 
     // add stack info (if exists and not duplicate)

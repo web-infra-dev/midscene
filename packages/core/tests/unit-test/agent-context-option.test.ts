@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, vi } from 'vitest';
 
 const planningModel = {
@@ -161,5 +162,41 @@ describe('Agent per-call context option', () => {
         abortSignal: abortController.signal,
       },
     );
+  });
+
+  it('builds a readable assertion failure from the bounded task summary', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    taskExecutor.createTypeQueryExecution.mockRejectedValueOnce(
+      new TaskExecutionError(
+        {
+          name: 'Error',
+          message: 'upstream request failed',
+          status: 503,
+        },
+        {
+          taskId: 'task-1',
+          type: 'Insight',
+          subType: 'Assert',
+          status: 'failed',
+          thought: 'The expected toast was not visible',
+          errorMessage: 'upstream request failed',
+        },
+      ),
+    );
+
+    const result = await agent.aiAssert(
+      'The success toast is visible',
+      undefined,
+      {
+        keepRawResponse: true,
+      },
+    );
+
+    expect(result).toEqual({
+      pass: false,
+      thought: 'The expected toast was not visible',
+      message:
+        'Assertion failed: The success toast is visible\nReason: The expected toast was not visible',
+    });
   });
 });

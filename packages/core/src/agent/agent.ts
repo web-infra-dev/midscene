@@ -59,6 +59,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import {
   type ObservationArtifactAdapter,
   observationArtifactAdapterSymbol,
@@ -1656,6 +1657,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     },
   ) {
     const now = Date.now();
+    const error = serializeError(opt.error);
     const recorder: ExecutionRecorderItem[] = [];
     const base64 =
       opt.screenshotBase64 ?? (await this.interface.screenshotBase64());
@@ -1681,9 +1683,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       param: {
         content: opt.content || '',
       },
-      error: opt.error,
-      errorMessage: opt.error.message,
-      errorStack: opt.error.stack,
+      error,
+      errorMessage: error.message,
+      errorStack: error.stack,
       executor: async () => {},
     };
 
@@ -1691,7 +1693,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       id: uuid(),
       logTime: now,
       name: title,
-      description: opt.content || opt.error.message,
+      description: opt.content || error.message,
       tasks: [task],
     });
 

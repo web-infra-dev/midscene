@@ -365,6 +365,7 @@ describe(
       await expect(runner.flush()).rejects.toThrowError('first-error');
       expect(runner.status).toBe('error');
       expect(runner.tasks[0].status).toBe('failed');
+      await expect(runner.append(secondTask)).rejects.toThrow('first-error');
 
       // Continue with allowWhenError, add second task (success)
       await runner.append(secondTask, { allowWhenError: true });
@@ -394,7 +395,7 @@ describe(
       expect(latestError?.errorMessage).toBe('third-error');
     });
 
-    it('serializes task execution errors without the runtime execution graph', async () => {
+    it('keeps task execution errors bounded without a runtime execution graph', async () => {
       const runner = new TaskRunner(
         'error-serialization-test',
         fakeUIContextBuilder,
@@ -429,15 +430,37 @@ describe(
 
       expect(caughtError).toBeInstanceOf(TaskExecutionError);
       expect(caughtError?.name).toBe('TaskExecutionError');
+      expect(caughtError?.code).toBe('TASK_EXECUTION_FAILED');
       expect(caughtError?.message).toBe('upstream failed');
-      expect(caughtError?.cause).toBe(originalError);
-      expect(caughtError?.runner).toBe(runner);
-      expect(caughtError?.errorTask).toBe(runner.latestErrorTask());
-      expect(caughtError?.errorTask?.errorStack).toBeUndefined();
+      expect(caughtError?.cause).not.toBe(originalError);
+      expect(caughtError?.cause).toEqual({
+        name: 'Error',
+        message: 'upstream failed',
+        status: 503,
+        requestID: 'request-123',
+        cause: {
+          name: 'TypeError',
+          message: 'socket closed',
+          stack: expect.stringContaining('TypeError: socket closed'),
+          code: 'ECONNRESET',
+        },
+      });
+      expect(caughtError).not.toHaveProperty('runner');
+      expect(caughtError).not.toHaveProperty('errorTask');
+      expect(runner.latestErrorTask()?.error).toBe(caughtError?.cause);
+      expect(runner.latestErrorTask()?.error).not.toBe(originalError);
+      expect(caughtError?.task).toEqual({
+        taskId: runner.latestErrorTask()?.taskId,
+        type: 'Action Space',
+        subType: 'Tap',
+        status: 'failed',
+        errorMessage: 'upstream failed',
+      });
 
       const serializedError = processError(caughtError);
-      expect(serializedError).toEqual({
+      expect(serializedError).toMatchObject({
         name: 'TaskExecutionError',
+        code: 'TASK_EXECUTION_FAILED',
         message: 'upstream failed',
         stack: expect.stringContaining('TaskExecutionError: upstream failed'),
         cause: {
@@ -453,7 +476,7 @@ describe(
           },
         },
         task: {
-          taskId: caughtError?.errorTask?.taskId,
+          taskId: caughtError?.task?.taskId,
           type: 'Action Space',
           subType: 'Tap',
           status: 'failed',
@@ -466,6 +489,7 @@ describe(
       expect(serializedError).not.toHaveProperty('errorTask');
       expect(serializedError.task).not.toHaveProperty('executor');
       expect(serializedText).not.toContain('ignoredObject');
+      expect(JSON.stringify({ ...caughtError })).not.toContain('ignoredObject');
     });
 
     it('preserves the executor stack through the serialized cause', async () => {
@@ -492,7 +516,7 @@ describe(
       }
 
       expect(caughtError).toBeInstanceOf(TaskExecutionError);
-      expect((caughtError?.cause as Error).stack).toContain('failInExecutor');
+      expect(caughtError?.cause.stack).toContain('failInExecutor');
 
       const serializedError = processError(caughtError);
       expect(serializedError.stack).toContain('TaskExecutionError');
@@ -503,7 +527,7 @@ describe(
       });
     });
 
-    it('bounds message-less thrown payloads at the transport boundary', async () => {
+    it('discards message-less payloads before creating public task and error objects', async () => {
       const runner = new TaskRunner(
         'bounded-error-serialization-test',
         fakeUIContextBuilder,
@@ -528,15 +552,23 @@ describe(
       }
 
       expect(caughtError?.message).toBe('Error without a message');
-      expect(caughtError?.cause).toBe(originalError);
-      expect(caughtError?.errorTask?.error).toBe(originalError);
-      expect(caughtError?.errorTask?.errorMessage).toBe(
+      expect(caughtError?.cause).toEqual({
+        name: 'Error',
+        message: 'Error without a message',
+      });
+      expect(caughtError?.cause).not.toBe(originalError);
+      expect(caughtError).not.toHaveProperty('runner');
+      expect(caughtError).not.toHaveProperty('errorTask');
+      expect(runner.latestErrorTask()?.error).toBe(caughtError?.cause);
+      expect(runner.latestErrorTask()?.error).not.toBe(originalError);
+      expect(runner.latestErrorTask()?.errorMessage).toBe(
         'Error without a message',
       );
 
       const serializedError = processError(caughtError);
-      expect(serializedError).toEqual({
+      expect(serializedError).toMatchObject({
         name: 'TaskExecutionError',
+        code: 'TASK_EXECUTION_FAILED',
         message: 'Error without a message',
         stack: expect.stringContaining(
           'TaskExecutionError: Error without a message',
@@ -546,16 +578,70 @@ describe(
           message: 'Error without a message',
         },
         task: {
-          taskId: caughtError?.errorTask?.taskId,
+          taskId: caughtError?.task?.taskId,
           type: 'Action Space',
           subType: 'Tap',
           status: 'failed',
           errorMessage: 'Error without a message',
         },
       });
-      const serializedText = JSON.stringify(serializedError);
-      expect(serializedText.length).toBeLessThan(10_000);
-      expect(serializedText).not.toContain('payload');
+      const serializedForms = [
+        JSON.stringify(caughtError),
+        JSON.stringify({ ...caughtError }),
+        JSON.stringify(serializedError),
+      ];
+      for (const serializedText of serializedForms) {
+        expect(serializedText.length).toBeLessThan(10_000);
+        expect(serializedText).not.toContain('payload');
+      }
+
+      const clonedError = structuredClone(caughtError);
+      expect(clonedError.cause).toEqual(caughtError?.cause);
+      expect(clonedError).not.toHaveProperty('runner');
+      expect(clonedError).not.toHaveProperty('errorTask');
+      expect(JSON.stringify(clonedError)).not.toContain('payload');
+    });
+
+    it('bounds every free string in the error and task summary', async () => {
+      const runner = new TaskRunner(
+        'bounded-task-summary-test',
+        fakeUIContextBuilder,
+      );
+      const longText = 'x'.repeat(10_000);
+
+      await runner.append({
+        type: 'Action Space',
+        subType: longText,
+        thought: longText,
+        executor: async () => {
+          throw Object.assign(new Error(longText), { code: longText });
+        },
+      } as ExecutionTaskApply);
+
+      let caughtError: TaskExecutionError | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as TaskExecutionError;
+      }
+
+      expect(caughtError).toBeInstanceOf(TaskExecutionError);
+      const boundedStrings = [
+        caughtError?.message,
+        caughtError?.stack,
+        caughtError?.cause.message,
+        caughtError?.cause.stack,
+        caughtError?.cause.code,
+        caughtError?.task?.subType,
+        caughtError?.task?.thought,
+        caughtError?.task?.errorMessage,
+      ];
+      for (const value of boundedStrings) {
+        expect(typeof value).toBe('string');
+        expect((value as string).length).toBeLessThanOrEqual(4_096);
+      }
+      expect(caughtError?.task?.thought).toMatch(/… \[truncated\]$/);
+      expect(caughtError?.task?.errorMessage).toMatch(/… \[truncated\]$/);
     });
   },
 );
