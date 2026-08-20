@@ -32,6 +32,10 @@ tasks:
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:
+      - aiTap:
+          locate:
+            prompt: the "Replay" option in the center task detail Replay/Screenshots/JSON View switcher
+      - sleep: 1000
       - aiAssert: There is a video player area with a progress bar and playback time display
 
   # --- Settings popup ---
