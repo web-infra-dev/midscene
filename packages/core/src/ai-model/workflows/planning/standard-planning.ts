@@ -62,6 +62,13 @@ async function callAndParsePlanningResponse(
     includeThought,
     includeLog,
   } = options;
+  assert(
+    modelRuntime.adapter.planning.kind === 'standard',
+    'callAndParsePlanningResponse requires a standard planning adapter',
+  );
+  const actionOutputProtocol =
+    modelRuntime.adapter.planning.protocol.actionOutputProtocol;
+
   return callAiAndParseWithRetry({
     callAi: (retryAttempt, previousParseError) =>
       callAI(
@@ -74,16 +81,13 @@ async function callAndParsePlanningResponse(
         },
       ),
     parseResponse: (response) => {
-      const planFromAI = parseStandardPlanningResponse(
-        response.content,
-        modelRuntime.adapter.jsonParser,
-        {
-          includeThought,
-          ...(includeLog
-            ? { logSource: 'model' }
-            : { logSource: 'action', actionSpace }),
-        },
-      );
+      const planFromAI = parseStandardPlanningResponse(response.content, {
+        includeThought,
+        actionOutputProtocol,
+        ...(includeLog
+          ? { logSource: 'model' }
+          : { logSource: 'action', actionSpace }),
+      });
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
@@ -136,6 +140,11 @@ export async function standardPlan(
   const { adapter } = modelRuntime;
   const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
+  assert(
+    adapter.planning.kind === 'standard',
+    'standardPlan requires a standard planning adapter',
+  );
+  const planningProtocol = adapter.planning.protocol;
 
   if (opts.includeLocateInPlanning && !modelRuntime.config.modelFamily) {
     throw new Error(
@@ -164,6 +173,7 @@ export async function standardPlan(
     includeThought,
     includeLog,
     includeSubGoals,
+    planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultAdapter
       ? {
           includeLocateInPlanning: true,

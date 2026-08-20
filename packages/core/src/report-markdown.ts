@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import type { ScreenshotRef } from './dump/screenshot-store';
 import { normalizeScreenshotRef } from './dump/screenshot-store';
+import { collectReportSummary } from './report-stats';
 
 const screenshotDataUrlPattern =
   /^data:image\/(png|jpeg|jpg);base64,([\s\S]*)$/i;
@@ -21,15 +22,6 @@ type ExecutionTaskWithExtraUsage = ExecutionTask & {
   searchAreaUsage?: AIUsageInfo;
   reasoning_content?: string;
 };
-
-interface UsageTotals {
-  calls: number;
-  prompt: number;
-  cachedInput: number;
-  completion: number;
-  total: number;
-  timeCost: number;
-}
 
 export interface MarkdownAttachment {
   id: string;
@@ -54,6 +46,11 @@ export interface MarkdownAttachment {
 
 export interface ExecutionMarkdownOptions {
   screenshotBaseDir?: string;
+}
+
+export interface ReportMarkdownOptions {
+  /** Used only when the report has no recorded task timestamps. */
+  wallTimeFallbackMs?: number;
 }
 
 export interface ExecutionMarkdownResult {
@@ -190,16 +187,6 @@ function usageTotalTokens(usage: AIUsageInfo): number {
   );
 }
 
-function usageModelName(usage: AIUsageInfo): string {
-  return (
-    usage.model_name ||
-    usage.response_model_name ||
-    usage.model_description ||
-    usage.intent ||
-    'Unknown'
-  );
-}
-
 function usageRowsForTask(task: ExecutionTask): unknown[][] {
   const taskWithUsage = task as ExecutionTaskWithExtraUsage;
   const rows: unknown[][] = [];
@@ -222,43 +209,6 @@ function usageRowsForTask(task: ExecutionTask): unknown[][] {
   appendUsage('main', taskWithUsage.usage);
   appendUsage('searchArea', taskWithUsage.searchAreaUsage);
   return rows;
-}
-
-function collectUsageTotals(
-  report: IReportActionDump,
-): Map<string, UsageTotals> {
-  const totalsByModel = new Map<string, UsageTotals>();
-  const addUsage = (usage?: AIUsageInfo) => {
-    if (!hasUsage(usage)) return;
-    const modelName = usageModelName(usage);
-    const current = totalsByModel.get(modelName) ?? {
-      calls: 0,
-      prompt: 0,
-      cachedInput: 0,
-      completion: 0,
-      total: 0,
-      timeCost: 0,
-    };
-
-    totalsByModel.set(modelName, {
-      calls: current.calls + 1,
-      prompt: current.prompt + usageValue(usage, 'prompt_tokens'),
-      cachedInput: current.cachedInput + usageValue(usage, 'cached_input'),
-      completion: current.completion + usageValue(usage, 'completion_tokens'),
-      total: current.total + usageTotalTokens(usage),
-      timeCost: current.timeCost + usageValue(usage, 'time_cost'),
-    });
-  };
-
-  for (const execution of report.executions) {
-    for (const task of execution.tasks) {
-      const taskWithUsage = task as ExecutionTaskWithExtraUsage;
-      addUsage(taskWithUsage.usage);
-      addUsage(taskWithUsage.searchAreaUsage);
-    }
-  }
-
-  return totalsByModel;
 }
 
 function sanitizeJsonForMarkdown(
@@ -720,7 +670,7 @@ function renderExecution(
             'Cached Input',
             'Completion Tokens',
             'Total Tokens',
-            'Time Cost(ms)',
+            'Model Call Time(ms)',
             'Request ID',
           ],
           usageRows,
@@ -765,6 +715,7 @@ export function executionToMarkdown(
 
 export function reportToMarkdown(
   report: ReportActionDump | IReportActionDump,
+  options?: ReportMarkdownOptions,
 ): ReportMarkdownResult {
   const reportDump = toReportDump(report);
 
@@ -777,7 +728,7 @@ export function reportToMarkdown(
   });
 
   const attachments = executionResults.flatMap((item) => item.attachments);
-  const usageTotals = collectUsageTotals(reportDump);
+  const reportSummary = collectReportSummary(reportDump, options);
   const modelRows = reportDump.modelBriefs?.length
     ? modelBriefRows(reportDump.modelBriefs)
     : modelRowsFromUsage(reportDump);
@@ -789,9 +740,34 @@ export function reportToMarkdown(
       : ['- No model metadata recorded.']),
   ];
 
+  const elapsedTimeDescription =
+    reportSummary.timing.wallTimeSource === 'task-timestamps'
+      ? 'Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps.'
+      : reportSummary.timing.wallTimeSource === 'fallback'
+        ? 'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.'
+        : 'The total elapsed span is unavailable because the report has no recorded task timestamps.';
+  const timingSummaryLines = [
+    '\n## Timing Summary',
+    ...markdownTable(
+      ['Metric', 'Duration(ms)', 'Definition'],
+      [
+        [
+          'Elapsed Time',
+          reportSummary.timing.wallTimeMs ?? 'N/A',
+          elapsedTimeDescription,
+        ],
+        [
+          'Model Call Time',
+          reportSummary.timing.modelCallTimeMs,
+          'Total duration of all recorded model calls.',
+        ],
+      ],
+    ),
+  ];
+
   const tokenSummaryLines = [
     '\n## Token Usage Summary',
-    ...(usageTotals.size
+    ...(reportSummary.models.length
       ? markdownTable(
           [
             'Model',
@@ -800,16 +776,16 @@ export function reportToMarkdown(
             'Cached Input',
             'Completion Tokens',
             'Total Tokens',
-            'Time Cost(ms)',
+            'Model Call Time(ms)',
           ],
-          Array.from(usageTotals.entries()).map(([modelName, totals]) => [
-            modelName,
-            totals.calls,
-            totals.prompt,
-            totals.cachedInput,
-            totals.completion,
-            totals.total,
-            totals.timeCost,
+          reportSummary.models.map((model) => [
+            model.modelName,
+            model.callCount,
+            model.promptTokens,
+            model.cachedInputTokens,
+            model.completionTokens,
+            model.totalTokens,
+            model.modelCallTimeMs,
           ]),
         )
       : ['- No token usage recorded.']),
@@ -822,6 +798,7 @@ export function reportToMarkdown(
     reportDump.deviceType ? `- Device Type: ${reportDump.deviceType}` : '',
     `- Execution count: ${reportDump.executions.length}`,
     ...modelInfoLines,
+    ...timingSummaryLines,
     ...tokenSummaryLines,
   ]
     .filter(Boolean)

@@ -1,8 +1,12 @@
 import {
   buildActionDescription,
-  buildActionSpaceDescription,
-  defaultMidsceneActionOutputProtocol,
+  createDefaultMidscenePlanningProtocol,
+} from '@/ai-model/model-adapter/default-planning-protocol';
+import {
+  buildActionOutputExample,
+  serializeActionDescriptions,
 } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
   defineActionInput,
@@ -14,6 +18,10 @@ import yaml from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
+
 const mockLocatePromptSpec: LocateResultPromptSpec = {
   resultKey: 'bbox',
   resultValueSchema: '[number, number, number, number]',
@@ -23,30 +31,36 @@ const mockLocatePromptSpec: LocateResultPromptSpec = {
   exampleValues: [[0, 0, 100, 100]],
 };
 
+const actionOutputProtocol =
+  defaultMidscenePlanningProtocol.actionOutputProtocol;
+
 const buildActionDescriptions = (
-  action: Parameters<typeof buildActionDescription>[0],
-  options: Omit<
-    Parameters<typeof buildActionDescription>[1],
-    'actionOutputProtocol'
-  > = {},
+  action: Parameters<typeof buildActionDescription>[0]['action'],
+  options: { locatePromptSpec?: LocateResultPromptSpec } = {},
 ) => {
-  const optionsWithActionOutputProtocol = {
-    ...options,
-    actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+  const actionOutputExample = buildActionOutputExample(action, {
+    locatePromptSpec: options.locatePromptSpec,
+    buildActionOutput: actionOutputProtocol.buildActionOutput,
+  });
+  const buildOptions = {
+    action,
+    locateFieldDescription:
+      defaultMidscenePlanningProtocol.actionSpaceProtocol.buildLocateFieldDescription(
+        options.locatePromptSpec,
+      ),
+    actionOutputExample,
   };
+  const actionDescription = buildActionDescription(buildOptions);
   return {
-    actionDescription: buildActionDescription(
-      action,
-      optionsWithActionOutputProtocol,
-    ),
-    actionSpaceDescription: buildActionSpaceDescription(
-      [action],
-      optionsWithActionOutputProtocol,
+    actionDescription,
+    actionSpaceDescription: serializeActionDescriptions(
+      [actionDescription],
+      defaultMidscenePlanningProtocol.actionSpaceProtocol.format,
     ),
   };
 };
 
-describe('buildActionDescription and buildActionSpaceDescription', () => {
+describe('buildActionDescription and serializeActionDescriptions', () => {
   it('serializes action descriptions as valid YAML', () => {
     const actionSpace = [
       {
@@ -64,9 +78,21 @@ describe('buildActionDescription and buildActionSpaceDescription', () => {
       },
     ];
 
-    const actionSpaceDescription = buildActionSpaceDescription(actionSpace, {
-      actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+    const actionDescriptions = actionSpace.map((action) => {
+      const actionOutputExample = buildActionOutputExample(action, {
+        buildActionOutput: actionOutputProtocol.buildActionOutput,
+      });
+      return buildActionDescription({
+        action,
+        locateFieldDescription:
+          defaultMidscenePlanningProtocol.actionSpaceProtocol.buildLocateFieldDescription(),
+        actionOutputExample,
+      });
     });
+    const actionSpaceDescription = serializeActionDescriptions(
+      actionDescriptions,
+      defaultMidscenePlanningProtocol.actionSpaceProtocol.format,
+    );
 
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Tap
@@ -85,12 +111,26 @@ describe('buildActionDescription and buildActionSpaceDescription', () => {
           }
           </action-param-json>"
     `);
-    expect(yaml.load(actionSpaceDescription)).toEqual(
-      actionSpace.map((action) =>
-        buildActionDescription(action, {
-          actionOutputProtocol: defaultMidsceneActionOutputProtocol,
-        }),
-      ),
+    expect(yaml.load(actionSpaceDescription)).toEqual(actionDescriptions);
+  });
+
+  it('serializes action descriptions as JSON Lines', () => {
+    const actionDescriptions = [
+      {
+        name: 'Tap',
+        description: 'Tap an element',
+      },
+      {
+        name: 'Input',
+        description: 'Input text',
+      },
+    ];
+
+    expect(serializeActionDescriptions(actionDescriptions, 'jsonl')).toBe(
+      [
+        '{"name":"Tap","description":"Tap an element"}',
+        '{"name":"Input","description":"Input text"}',
+      ].join('\n'),
     );
   });
 
@@ -199,7 +239,6 @@ describe('buildActionDescription and buildActionSpaceDescription', () => {
           call: async () => {},
         },
         {
-          includeLocateInPlanning: true,
           locatePromptSpec: mockLocatePromptSpec,
         },
       );

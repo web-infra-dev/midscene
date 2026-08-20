@@ -1,3 +1,5 @@
+import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
 import { standardPlan } from '@/ai-model/workflows/planning';
@@ -71,6 +73,11 @@ const latestImageDetail = () => {
 };
 
 const latestCallAIOptions = () => vi.mocked(callAI).mock.calls[0]?.[2];
+
+const latestSystemPrompt = () => {
+  const message = vi.mocked(callAI).mock.calls[0]?.[0]?.[0];
+  return message?.role === 'system' ? message.content : undefined;
+};
 
 describe('plan XML parse retry', () => {
   beforeEach(() => {
@@ -288,6 +295,91 @@ describe('plan XML parse retry', () => {
 
     expect(latestImageDetail()).toBe('high');
     expect(latestCallAIOptions()?.requiresOriginalImageDetail).toBe(true);
+  });
+
+  it('uses the standard planning protocol configured by the adapter', async () => {
+    const planningProtocol: StandardPlanningProtocol = {
+      actionSpaceProtocol: {
+        title: 'Custom tools',
+        format: 'jsonl',
+        buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
+        buildActionDescription: () => ({
+          name: 'CUSTOM_TOOL_DEFINITION',
+        }),
+      },
+      actionOutputProtocol: {
+        actionOutputTagNames: ['custom-action'],
+        actionOutputRules: 'Return one custom action.',
+        actionOutputPlaceholder: '<custom-action>...</custom-action>',
+        buildActionOutput: ({ actionName }) =>
+          `<custom-action>${actionName}</custom-action>`,
+        parseActionOutput: (content) => {
+          const type = content.match(
+            /<custom-action>([^<]+)<\/custom-action>/,
+          )?.[1];
+          return type ? { type } : null;
+        },
+      },
+    };
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(
+        '<log>Tap button</log>\n<custom-action>Tap</custom-action>',
+      ),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: {
+        config: mockModelConfig(),
+        adapter: new ResolvedModelAdapter(
+          { planning: { protocol: planningProtocol } },
+          'test-planning-protocol',
+        ),
+      },
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(latestSystemPrompt()).toContain('### Custom tools');
+    expect(latestSystemPrompt()).toContain('CUSTOM_TOOL_DEFINITION');
+    expect(result.actions).toEqual([{ type: 'Tap' }]);
+  });
+
+  it('uses the JSON parser configured by the adapter for planning actions', async () => {
+    const jsonParser = vi.fn(() => ({ parsedByCustomParser: true }));
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>
+<action-param-json>{custom syntax}</action-param-json>`),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: {
+        config: mockModelConfig(),
+        adapter: new ResolvedModelAdapter(
+          { jsonParser },
+          'test-custom-json-parser',
+        ),
+      },
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(jsonParser).toHaveBeenCalledWith('{custom syntax}', {
+      source: 'planning-action-param',
+      preserveStringValueKeys: undefined,
+    });
+    expect(result.actions).toEqual([
+      {
+        type: 'Tap',
+        param: { parsedByCustomParser: true },
+      },
+    ]);
   });
 
   it('retries once when planning locate coordinates cannot be normalized', async () => {

@@ -1,0 +1,417 @@
+# Extend and maintain Test Runner
+
+`@midscene/test` supports registering business Nodes, managing runtime resources, and defining execution lifecycles. Framework maintainers can use these capabilities to integrate browsers, Agents, external tools, and business APIs into a customized testing foundation for their teams.
+
+For an overview of the design, see [Test Runner overview](./test-runner-overview).
+
+## Quick start
+
+The following example shows how to set up a simple test project that switches the browser's user-agent language.
+
+### 1. Install dependencies
+
+Create an empty project and install the Test Runner's core dependencies and driver tools:
+
+```bash
+pnpm add -D @midscene/test @midscene/web playwright
+```
+
+> **Note**: Before using a Midscene Agent, follow [Model configuration](./model-config) to set the required model environment variables, such as your API Key.
+
+### 2. Create the project files
+
+We recommend the following basic directory structure:
+
+```text
+team-test-runner/
+├── cases/
+│   └── midscene.yaml
+└── midscene.config.ts
+```
+
+### 3. Configure the Test Project and register Nodes
+
+Create `midscene.config.ts` in the project root. This file registers reusable Nodes and defines the execution environment (Project):
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+import {
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { chromium, type Browser, type Page } from 'playwright';
+
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+const geoInputSchema = z.strictObject({
+  latitude: z.number().describe('Latitude of the mocked location.'),
+  longitude: z.number().describe('Longitude of the mocked location.'),
+});
+
+// 1. Register a custom Node that mocks a GPS location
+const mockLocation = defineNode<
+  typeof geoInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'browser.mockLocation',
+  title: 'Mock location',
+  description: "Mock the browser's GPS location.",
+  inputSchema: geoInputSchema,
+  async execute({ input, context }) {
+    const browserContext = context.page.context();
+    // Grant geolocation permission and set the coordinates
+    await browserContext.grantPermissions(['geolocation']);
+    await browserContext.setGeolocation({
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+  },
+});
+
+// Integrate Midscene's built-in AI Nodes, such as aiAct and aiAssert
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+
+// 2. Define browser environment setup and cleanup
+const playwrightSetup = defineProjectSetup<ProjectContext>({
+  name: 'playwright',
+  platform: 'web',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch({ headless: true });
+    onTeardown(() => browser.close());
+    const browserContext = await browser.newContext();
+    const page = await browserContext.newPage();
+    return { browser, page };
+  },
+});
+
+// 3. Export the project configuration
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'chromium',
+      platform: 'web',
+      setup: playwrightSetup,
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+    },
+  ],
+  nodes: [mockLocation, ...midsceneNodes],
+});
+```
+
+### 4. Write and run a test case
+
+Create `cases/midscene.yaml`:
+
+```yaml filename=cases/midscene.yaml
+cases:
+  - name: Mock a location and show stores in that area
+    tags: [smoke]
+    steps:
+      - browser.mockLocation:
+          latitude: 35.6762
+          longitude: 139.6503 # Mock a location in Tokyo
+      - launch:
+          uri: https://yoursite.com/stores
+      - aiAssert:
+          prompt: The page successfully loads and displays recommended stores in Tokyo or nearby areas
+          message: The mocked location did not take effect
+```
+
+Run the test from the project root:
+
+```bash
+pnpm exec midscene-test
+```
+
+The runner automatically loads `midscene.config.ts`, finds matching test cases, and runs them.
+
+## Register custom business Nodes
+
+Use `defineNode()` to encapsulate complex API calls, database operations, cleanup tasks, or specialized browser interactions as named Nodes. Test case authors can then call these Nodes directly from their test cases.
+
+### Basic business Node example
+
+The following example wraps an HTTP API that creates a test order:
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+
+const orderInputSchema = z.strictObject({
+  sku: z.string().min(1).describe('SKU of the product to order.'),
+  quantity: z.number().int().positive().describe('Quantity to order.'),
+});
+
+interface ProjectContext {
+  apiBaseUrl: string;
+}
+
+const createOrder = defineNode<
+  typeof orderInputSchema,
+  { id: string },
+  ProjectContext
+>({
+  name: 'order.create',
+  title: 'Create order',
+  description: 'Create a product order through the test API.',
+  inputSchema: orderInputSchema,
+
+  async execute({ input, context, signal }) {
+    const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sku: input.sku,
+        quantity: input.quantity,
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create order: HTTP ${response.status}`);
+    }
+
+    const order = (await response.json()) as { id: string };
+    return {
+      summary: `Created order ${order.id}`,
+      data: order,
+    };
+  },
+});
+```
+
+After adding the Node to the configuration's `nodes` array, test case authors can use it directly:
+
+```yaml
+cases:
+  - name: Order workflow test
+    steps:
+      - order.create:
+          sku: midscene-mug
+          quantity: 1
+```
+
+### Define and strictly validate input with Zod
+
+Although `inputSchema` is optional, we strongly recommend defining it.
+
+1. **Type inference and validation**: the runner validates the input with Zod before entering `execute()`. Invalid input immediately throws a `NodeInputValidationError`, while TypeScript provides compile-time type inference without a separate interface.
+2. **Unknown parameter rejection**: use `z.strictObject()` so the runner rejects unexpected fields in a test case.
+3. **Automatic reference generation**: information from each field's `.describe()` call is included in the generated Node reference for AI Agents and human test case authors.
+
+```ts
+const refundInputSchema = z.strictObject({
+  orderId: z.string().min(1).describe('ID of the order to refund.'),
+  reason: z.string().optional().describe('Reason for the refund.'),
+});
+
+const refundOrder = defineNode({
+  name: 'order.refund',
+  description: 'Request a refund for an existing order.',
+  inputSchema: refundInputSchema,
+  async execute({ input }) {
+    // input is inferred as { orderId: string; reason?: string }
+    await refund(input.orderId, input.reason);
+  },
+});
+```
+
+### Node execution context
+
+The `ctx` passed to `execute(ctx)` contains these commonly used fields:
+
+- `input`: business parameters passed from YAML and validated by Zod.
+- `$`: general Step properties controlled by the runner, such as normalized `timeout` and `continue-on-error` values.
+- `signal`: an `AbortSignal` triggered by a timeout or cancellation. Use it in asynchronous requests or long-running tasks to exit early and cleanly.
+- `context`: Project-level runtime resources returned by `defineProjectSetup()` and shared within the Project.
+- `history`: deeply read-only, JSON-compatible history of executed Nodes. AI Agent Nodes automatically read this field to understand context.
+- `onTeardown()`: registers cleanup functions for resources created by the current Node. Cleanup can use attempt or Document scope and runs in LIFO order.
+- `scope`: identifies the current Node execution boundary as either `case` or `document`.
+- `case` or `document`: detailed runtime information for the current execution position.
+
+## Share state across Nodes
+
+In real-world tests, multiple Nodes often need to share state. For example, an order refund test can create an order and store its ID in `beforeEach`, access the ID from `steps`, and clean up the data in `afterEach`.
+
+Define state properties in a custom `ProjectContext` to enable this coordination:
+
+```ts filename=midscene.config.ts
+import { defineNode, z } from '@midscene/test';
+import type { PlaywrightAgent } from '@midscene/web/playwright';
+import type { Page } from 'playwright';
+
+interface ProjectContext {
+  agent: PlaywrightAgent;
+  appBaseUrl: string;
+  page: Page;
+  orderId?: string; // Share test state across Nodes
+  orderService: {
+    create(input: { status: 'paid' }): Promise<{ id: string }>;
+    remove(orderId: string): Promise<void>;
+  };
+}
+
+const emptyInputSchema = z.strictObject({});
+const prepareOrderInputSchema = z.strictObject({
+  status: z.literal('paid').describe('Status of the order to create.'),
+});
+
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('The test order has not been created.');
+  }
+  return context.orderId;
+};
+
+// 1. Prepare the order environment
+const prepareOrder = defineNode<
+  typeof prepareOrderInputSchema,
+  { orderId: string },
+  ProjectContext
+>({
+  name: 'order.prepare',
+  description: 'Call the order service to create a test order.',
+  inputSchema: prepareOrderInputSchema,
+  async execute({ input, context }) {
+    const order = await context.orderService.create(input);
+    context.orderId = order.id; // Save the ID in the context
+    return {
+      summary: `Created test order ${order.id}`,
+      data: { orderId: order.id },
+    };
+  },
+});
+
+// 2. Access the saved order state
+const openRefundPage = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'browser.openRefundPage',
+  description: "Open the current test order's refund page.",
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.page.goto(`${context.appBaseUrl}/orders/${orderId}/refund`);
+  },
+});
+
+// 3. Clean up the business environment
+const cleanupOrder = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'order.cleanup',
+  description: 'Delete the current test order.',
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.orderService.remove(orderId);
+    delete context.orderId; // Restore a clean context
+  },
+});
+
+export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
+```
+
+## Integrate a Midscene Agent
+
+`@midscene/test/midscene` exports six built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent`.
+
+Call `createMidsceneNodes()` with a `getAgent` callback to integrate them into your Test Runner configuration:
+
+```ts
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+```
+
+## Generate a Node reference
+
+The runner provides the `describe-nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
+
+Run the following command to generate a reference for your team:
+
+```bash
+pnpm exec midscene-test describe-nodes > midscene-nodes.md
+```
+
+You can also specify a test directory or a custom configuration file:
+
+```bash
+pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
+```
+
+The generated reference includes every Node registered in the active Test Project, including the six built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+
+## Configure and manage a Test Project
+
+`defineTestProject()` is the main configuration entry point for the testing foundation and supports one or more Execution Projects:
+
+```ts filename=midscene.config.ts
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'android-smoke',
+      platform: 'android',
+      setup: doraAndroidSetup,
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+      retry: 1,
+      variables: { appUri: 'com.example.app' },
+    },
+  ],
+  test: {
+    maxConcurrency: 1, // Maximum number of active Execution Projects
+    bail: 0, // Stop scheduling new tasks after this many failed cases when > 0
+    testTimeout: 120_000,
+  },
+  output: {
+    reportDir: './midscene_run/report',
+  },
+  nodes: [createOrder, ...midsceneNodes],
+});
+```
+
+### Key configuration strategies
+
+1. **Environment and resource isolation**: each Execution Project has an independent `setup` environment, such as a separate browser or a specific test device.
+2. **Multi-Project concurrency and lifecycle slots**: `test.maxConcurrency` controls the number of active Projects. The default is `1`.
+   - One concurrency slot covers the entire lifecycle from Project setup through teardown.
+   - Within a single Project, all Workflow Documents, Cases, and Steps still run **strictly in sequence** to ensure deterministic tests.
+   - To drive multiple mobile devices or browser instances at the same time, declare multiple entries in `projects` and increase the concurrency value.
+3. **Lifecycle cleanup**: use `defineProjectSetup()` to define environment preparation. Register cleanup hooks with `onTeardown()` so that long-lived resources are safely released in reverse LIFO order even if a test is interrupted or fails partway through.
+
+## Programmatic APIs
+
+Most teams only need the project configuration, YAML files, and CLI. To embed the runner in another tool, such as a local GUI test panel, use these exported programmatic APIs:
+
+- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. The runner does not support synchronous loading.
+- **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project. It is exported from `@midscene/test/config`.
+- **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
+- **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
+
+After configuring the project, continue to [Write and run test cases](./use-test-runner) for test case syntax and parameters.

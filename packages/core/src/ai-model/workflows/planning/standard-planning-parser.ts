@@ -4,7 +4,7 @@ import type {
   SubGoal,
   SubGoalStatus,
 } from '@/types';
-import type { JsonParser } from '../../shared/json';
+import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
 import { extractXMLTag } from '../../shared/xml';
 import { buildPlanningActionLog } from './planning-action-log';
 
@@ -49,12 +49,46 @@ export function parseMarkFinishedIndexes(xmlContent: string): number[] {
   return indexes;
 }
 
-/** Parse an XML model response into a planning response. */
+type XMLPlanningResponse = Omit<RawResponsePlanningAIResponse, 'action'>;
+
+type XMLPlanningResponseParseResult = {
+  parsed: XMLPlanningResponse;
+  rawActionOutput: string;
+};
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const extractRawActionOutput = (
+  content: string,
+  actionOutputTagNames: PlanningActionOutputProtocol['actionOutputTagNames'],
+) => {
+  const startTagName = actionOutputTagNames[0];
+  const endTagName = actionOutputTagNames.at(-1)!;
+  const startTagRegex = new RegExp(`<${escapeRegExp(startTagName)}>`, 'i');
+  const startTag = startTagRegex.exec(content);
+  if (startTag?.index === undefined) {
+    return '';
+  }
+
+  const contentFromStartTag = content.slice(startTag.index);
+  const endTagRegex = new RegExp(`</${escapeRegExp(endTagName)}>`, 'gi');
+  const endTags = [...contentFromStartTag.matchAll(endTagRegex)];
+  const lastEndTag = endTags.at(-1);
+  const end =
+    lastEndTag?.index !== undefined
+      ? lastEndTag.index + lastEndTag[0].length
+      : contentFromStartTag.length;
+
+  return contentFromStartTag.slice(0, end);
+};
+
+/** Parse common XML fields and retain the raw action-protocol XML. */
 export function parseXMLPlanningResponse(
   xmlString: string,
-  jsonParser: JsonParser,
+  actionOutputTagNames: PlanningActionOutputProtocol['actionOutputTagNames'],
   options: { includeThought: boolean },
-): RawResponsePlanningAIResponse {
+): XMLPlanningResponseParseResult {
   // Use <planning> instead of <thought> to avoid colliding with Gemini thought
   // summaries, which may also be emitted as <thought> in OpenAI-compatible
   // response content.
@@ -64,8 +98,6 @@ export function parseXMLPlanningResponse(
   const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
-  const actionType = extractXMLTag(xmlString, 'action-type');
-  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
 
   const completeGoalRegex =
     /<complete\s+success="(true|false)">([\s\S]*?)<\/complete>/i;
@@ -87,45 +119,24 @@ export function parseXMLPlanningResponse(
     ? parseMarkFinishedIndexes(markSubGoalDone)
     : undefined;
 
-  let action: any = null;
-  if (actionType && actionType.toLowerCase() !== 'null') {
-    // Strip any trailing XML tags that leaked into the action type.
-    const type = actionType.split('<')[0].trim();
-    let param: any = undefined;
-
-    if (actionParamStr) {
-      try {
-        param = jsonParser(actionParamStr, {
-          source: 'planning-action-param',
-          preserveStringValueKeys:
-            type.toLowerCase() === 'input' ? ['value'] : undefined,
-        });
-      } catch (error) {
-        throw new Error(`Failed to parse action-param-json: ${error}`);
-      }
-    }
-
-    action = {
-      type,
-      ...(param !== undefined ? { param } : {}),
-    };
-  }
-
   return {
-    ...(thought ? { thought } : {}),
-    ...(memory ? { memory } : {}),
-    log,
-    ...(error ? { error } : {}),
-    action,
-    ...(finalizeMessage !== undefined ? { finalizeMessage } : {}),
-    ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
-    ...(updateSubGoals?.length ? { updateSubGoals } : {}),
-    ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
+    parsed: {
+      ...(thought ? { thought } : {}),
+      ...(memory ? { memory } : {}),
+      log,
+      ...(error ? { error } : {}),
+      ...(finalizeMessage !== undefined ? { finalizeMessage } : {}),
+      ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
+      ...(updateSubGoals?.length ? { updateSubGoals } : {}),
+      ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
+    },
+    rawActionOutput: extractRawActionOutput(xmlString, actionOutputTagNames),
   };
 }
 
 type ParseStandardPlanningResponseOptions = {
   includeThought: boolean;
+  actionOutputProtocol: PlanningActionOutputProtocol;
 } & (
   | {
       logSource?: 'model';
@@ -159,12 +170,17 @@ function buildNonActionPlanningLog(
 
 export function parseStandardPlanningResponse(
   xmlString: string,
-  jsonParser: JsonParser,
   options: ParseStandardPlanningResponseOptions,
 ): RawResponsePlanningAIResponse {
-  const response = parseXMLPlanningResponse(xmlString, jsonParser, {
-    includeThought: options.includeThought,
-  });
+  const { parsed, rawActionOutput } = parseXMLPlanningResponse(
+    xmlString,
+    options.actionOutputProtocol.actionOutputTagNames,
+    { includeThought: options.includeThought },
+  );
+  const response: RawResponsePlanningAIResponse = {
+    ...parsed,
+    action: options.actionOutputProtocol.parseActionOutput(rawActionOutput),
+  };
 
   if (options.logSource !== 'action') {
     return response;

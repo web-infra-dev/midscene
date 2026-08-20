@@ -7,6 +7,8 @@ import type {
   CustomPlanningDefinition,
   ResolvedCustomPlanningDefinition,
 } from './custom-planning-types';
+import { createDefaultMidscenePlanningProtocol } from './default-planning-protocol';
+import type { StandardPlanningProtocolContext } from './planning-protocol';
 import type { ModelAdapterDefinition, PlanningAdapter } from './types';
 
 const defaultReplanningCycleLimit = 20;
@@ -26,7 +28,8 @@ export function resolveCustomPlanningDefinition<TParsed>(
 
 export function resolvePlanning(
   planning: ModelAdapterDefinition['planning'],
-  resolvedCustomPlanner?: ResolvedCustomPlanningDefinition,
+  resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
+  protocolContext: StandardPlanningProtocolContext,
 ): PlanningAdapter {
   if (planning?.kind === 'custom') {
     if (typeof planning.planFn === 'function') {
@@ -56,11 +59,18 @@ export function resolvePlanning(
     };
   }
 
+  const protocolDefinition =
+    planning?.protocol ?? createDefaultMidscenePlanningProtocol;
+
   return {
     kind: 'standard',
     cacheEnabled: planning?.cacheEnabled ?? true,
     defaultReplanningCycleLimit:
       planning?.defaultReplanningCycleLimit ?? defaultReplanningCycleLimit,
     supportsActionDeepLocate: planning?.supportsActionDeepLocate ?? true,
+    protocol:
+      typeof protocolDefinition === 'function'
+        ? protocolDefinition(protocolContext)
+        : protocolDefinition,
   };
 }

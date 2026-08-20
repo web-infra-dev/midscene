@@ -9,6 +9,7 @@ on:
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/report-template-utils.mjs'
+      - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -103,7 +104,7 @@ jobs:
           set -euo pipefail
           pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache 2>&1 |
             tee "$MIDSCENE_MACOS_DIAGNOSTICS_DIR/build.log"
-          node apps/report/scripts/inject-report-template.mjs
+          node scripts/validate-core-report-template.mjs
 
       - name: Validate computer package outputs
         id: package-smoke

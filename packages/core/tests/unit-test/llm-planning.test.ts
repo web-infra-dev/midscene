@@ -1,8 +1,7 @@
+import { createDefaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
 import { getModelAdapter } from '@/ai-model/models';
-import {
-  parseStandardPlanningResponse,
-  parseXMLPlanningResponse as parseXMLPlanningResponseWithOptions,
-} from '@/ai-model/workflows/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
+import { parseStandardPlanningResponse as parseStandardPlanningResponseWithOptions } from '@/ai-model/workflows/planning';
 import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
@@ -10,6 +9,7 @@ import {
 import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import { actionInputParamSchema, actionTapParamSchema } from '@/device';
+import type { DeviceAction } from '@/types';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
@@ -18,12 +18,26 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-const parseXMLPlanningResponse = (
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
+
+const parseStandardPlanningResponse = (
   xmlString: string,
-  jsonParser: Parameters<typeof parseXMLPlanningResponseWithOptions>[1],
+  options:
+    | {
+        includeThought: boolean;
+        logSource?: 'model';
+      }
+    | {
+        includeThought: boolean;
+        logSource: 'action';
+        actionSpace: DeviceAction<any>[];
+      } = { includeThought: true },
 ) =>
-  parseXMLPlanningResponseWithOptions(xmlString, jsonParser, {
-    includeThought: true,
+  parseStandardPlanningResponseWithOptions(xmlString, {
+    ...options,
+    actionOutputProtocol: defaultMidscenePlanningProtocol.actionOutputProtocol,
   });
 
 describe('llm planning - doubao', () => {
@@ -419,9 +433,8 @@ describe('llm planning - build yaml flow', () => {
   });
 });
 
-describe('parseXMLPlanningResponse', () => {
+describe('parseStandardPlanningResponse', () => {
   it('should parse complete XML response with all fields', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>I need to click the login button</planning>
 <memory>User credentials are already filled</memory>
@@ -438,10 +451,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'I need to click the login button',
@@ -460,7 +470,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with only required fields', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Performing action</log>
 <action-type>Tap</action-type>
@@ -473,10 +482,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       log: 'Performing action',
@@ -492,7 +498,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should generate the log from the action in fast mode', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>This should not be exposed in fast mode</planning>
 <log>Tap the button</log>
@@ -500,21 +505,17 @@ describe('parseXMLPlanningResponse', () => {
 <action-param-json>{"locate":{"prompt":"Button"}}</action-param-json>
     `.trim();
 
-    const result = parseStandardPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-      {
-        includeThought: false,
-        logSource: 'action',
-        actionSpace: [
-          {
-            name: 'Tap',
-            paramSchema: actionTapParamSchema,
-            call: vi.fn(),
-          },
-        ],
-      },
-    );
+    const result = parseStandardPlanningResponse(xml, {
+      includeThought: false,
+      logSource: 'action',
+      actionSpace: [
+        {
+          name: 'Tap',
+          paramSchema: actionTapParamSchema,
+          call: vi.fn(),
+        },
+      ],
+    });
 
     expect(result).not.toHaveProperty('thought');
     expect(result.log).toBe('Tap - locate: Button');
@@ -525,27 +526,22 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should omit locate coordinates from a generated fast log', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <action-type>Input</action-type>
 <action-param-json>{"value":"demo-user","locate":{"prompt":"Username input field","bbox":[375,445,625,505]}}</action-param-json>
     `.trim();
 
-    const result = parseStandardPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-      {
-        includeThought: false,
-        logSource: 'action',
-        actionSpace: [
-          {
-            name: 'Input',
-            paramSchema: actionInputParamSchema,
-            call: vi.fn(),
-          },
-        ],
-      },
-    );
+    const result = parseStandardPlanningResponse(xml, {
+      includeThought: false,
+      logSource: 'action',
+      actionSpace: [
+        {
+          name: 'Input',
+          paramSchema: actionInputParamSchema,
+          call: vi.fn(),
+        },
+      ],
+    });
 
     expect(result.log).toBe(
       'Input - value: demo-user, locate: Username input field',
@@ -555,7 +551,6 @@ describe('parseXMLPlanningResponse', () => {
   it('should generate the log from a complete response in fast mode', () => {
     const result = parseStandardPlanningResponse(
       '<log>Model-generated completion log</log><complete success="true">done</complete>',
-      getModelAdapter('doubao-vision').jsonParser,
       {
         includeThought: false,
         logSource: 'action',
@@ -570,7 +565,6 @@ describe('parseXMLPlanningResponse', () => {
   it('should generate the log from an error response in fast mode', () => {
     const result = parseStandardPlanningResponse(
       '<log>Model-generated error log</log><error>Button unavailable</error>',
-      getModelAdapter('doubao-vision').jsonParser,
       {
         includeThought: false,
         logSource: 'action',
@@ -583,16 +577,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with null action', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Task completed</log>
 <action-type>null</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       log: 'Task completed',
@@ -601,15 +591,11 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response without action-type', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Just logging</log>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       log: 'Just logging',
@@ -618,7 +604,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with error field', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Attempting to recover</log>
 <error>Previous action failed</error>
@@ -630,10 +615,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       log: 'Attempting to recover',
@@ -648,16 +630,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse action without param', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Waiting</log>
 <action-type>Wait</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       log: 'Waiting',
@@ -668,7 +646,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should handle multiline content in tags', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>
   This is a complex thought
@@ -686,10 +663,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.thought).toBe(
       'This is a complex thought\n  spanning multiple lines',
@@ -699,7 +673,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should preserve Input value boundary whitespace while trimming other param strings', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Type text with boundary spaces</log>
 <action-type>Input</action-type>
@@ -713,10 +686,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.action).toEqual({
       type: 'Input',
@@ -730,7 +700,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should preserve Input value boundary whitespace from JSON code blocks', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Type text with boundary spaces</log>
 <action-type>Input</action-type>
@@ -746,10 +715,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.action).toEqual({
       type: 'Input',
@@ -763,7 +729,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should preserve Input value boundary whitespace from repaired action params', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Type text with boundary spaces</log>
 <action-type>Input</action-type>
@@ -772,10 +737,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.action).toEqual({
       type: 'Input',
@@ -789,16 +751,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should not throw error when log field is missing and no action', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Some thought</planning>
 <complete success="true">Task completed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
     expect(result).toEqual({
       thought: 'Some thought',
       log: '',
@@ -809,7 +767,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should throw error when action-param-json is invalid JSON', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Action</log>
 <action-type>Tap</action-type>
@@ -818,29 +775,24 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    expect(() =>
-      parseXMLPlanningResponse(xml, getModelAdapter(modelFamily).jsonParser),
-    ).toThrow('Failed to parse action-param-json');
+    expect(() => parseStandardPlanningResponse(xml)).toThrow(
+      'Failed to parse action-param-json',
+    );
   });
 
   it('should handle case-insensitive tag matching', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <LOG>Case insensitive log</LOG>
 <ACTION-TYPE>Tap</ACTION-TYPE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.log).toBe('Case insensitive log');
     expect(result.action?.type).toBe('Tap');
   });
 
   it('should parse half-open action-type tag without closing tag', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>The Priority input field is active now.</planning>
 <log>Type "1000" into the Priority input field</log>
@@ -852,10 +804,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'The Priority input field is active now.',
@@ -870,7 +819,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML with special characters in content', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Click "Submit" button</log>
 <memory>Values: <100 & >50</memory>
@@ -884,10 +832,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.log).toBe('Click "Submit" button');
     expect(result.memory).toBe('Values: <100 & >50');
@@ -895,16 +840,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse complete tag with success=true and message', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Task completed successfully</planning>
 <complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'Task completed successfully',
@@ -917,16 +858,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse complete tag with success=false and error message', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Task failed</planning>
 <complete success="false">Unable to find the required element on the page</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'Task failed',
@@ -938,16 +875,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse complete tag with empty message', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Task completed</planning>
 <complete success="true"></complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'Task completed',
@@ -958,7 +891,6 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse complete tag with multiline message', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Data extraction completed</planning>
 <complete success="true">
@@ -969,10 +901,7 @@ Extracted data:
 </complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'Data extraction completed',
@@ -985,17 +914,13 @@ Extracted data:
   });
 
   it('should parse complete tag along with other optional fields', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>All tasks completed successfully</planning>
 <memory>Total items processed: 10</memory>
 <complete success="true">All 10 items have been processed</complete>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'All tasks completed successfully',
@@ -1008,16 +933,12 @@ Extracted data:
   });
 
   it('should handle complete tag case insensitively', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Task done</planning>
 <COMPLETE success="true">Success message</COMPLETE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result).toEqual({
       thought: 'Task done',
@@ -1029,7 +950,6 @@ Extracted data:
   });
 
   it('should parse update-plan-content with sub-goals', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Breaking down the task</planning>
 <log>Planning the steps</log>
@@ -1040,10 +960,7 @@ Extracted data:
 </update-plan-content>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'pending', description: 'Log in to the system' },
@@ -1057,7 +974,6 @@ Extracted data:
   });
 
   it('should parse mark-sub-goal-done with finished indexes', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>First step completed</planning>
 <log>Moving to next step</log>
@@ -1066,16 +982,12 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.markFinishedIndexes).toEqual([1]);
   });
 
   it('should parse multiple finished indexes in mark-sub-goal-done', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Multiple steps completed</planning>
 <log>Great progress</log>
@@ -1085,16 +997,12 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.markFinishedIndexes).toEqual([1, 2]);
   });
 
   it('should strip trailing XML tags leaked into action-type by LLM', () => {
-    const modelFamily = 'doubao-vision';
     // Simulate LLM response where a stray </action-type> appears after </action-param-json>,
     // causing extractXMLTag to include trailing tags in the action type value.
     // e.g. type becomes "KeyboardPress</action-type>\n<action-param-json>..."
@@ -1110,17 +1018,13 @@ Extracted data:
 </action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.action?.type).toBe('KeyboardPress');
     expect(result.action?.param).toEqual({ keyName: 'Enter' });
   });
 
   it('should parse action params with bare quotes inside prompt strings', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Need to locate the search input</planning>
 <log>Locating search input</log>
@@ -1135,10 +1039,7 @@ Extracted data:
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.action?.type).toBe('Tap');
     expect(result.action?.param).toEqual({
@@ -1150,7 +1051,6 @@ Extracted data:
   });
 
   it('should parse both update-plan-content and mark-sub-goal-done', () => {
-    const modelFamily = 'doubao-vision';
     const xml = `
 <planning>Updating plan after progress</planning>
 <log>Continuing work</log>
@@ -1163,10 +1063,7 @@ Extracted data:
 </mark-sub-goal-done>
     `.trim();
 
-    const result = parseXMLPlanningResponse(
-      xml,
-      getModelAdapter(modelFamily).jsonParser,
-    );
+    const result = parseStandardPlanningResponse(xml);
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'finished', description: 'Log in to the system' },

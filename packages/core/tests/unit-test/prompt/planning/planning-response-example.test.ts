@@ -21,7 +21,7 @@ describe('buildPlanningResponseExample', () => {
         markSubGoalsDone: [1],
         memory: 'The Name field contains John.',
         log: 'Type the email address',
-        actionExample: `<action-type>Input</action-type>
+        actionOutputExample: `<action-type>Input</action-type>
 <action-param-json>
 {
   "value": "john@example.com"
@@ -64,15 +64,15 @@ describe('buildPlanningResponseExample', () => {
 <complete success="true">john@example.com</complete>`);
   });
 
-  it('throws when no action example is provided', () => {
+  it('throws when no action output example is provided', () => {
     expect(() =>
       buildPlanningResponseExample({
         planning: 'Run an action.',
         log: 'Run the action',
-        actionExample: undefined,
+        actionOutputExample: undefined,
       }),
     ).toThrow(
-      'Cannot build planning response example without an action example',
+      'Cannot build planning response example without an action output example',
     );
   });
 });

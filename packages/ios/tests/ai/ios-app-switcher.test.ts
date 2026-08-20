@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import {
   type IOSAgent,
   agentFromWebDriverAgent,
@@ -15,7 +15,7 @@ const RUN_APP_SWITCHER_AI_E2E =
 const REPORT_FILE_NAME = 'ios-app-switcher-ai-e2e';
 const diagnosticsDir = process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR;
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 300_000,
   hookTimeout: 60_000,
 });

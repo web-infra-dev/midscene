@@ -1,23 +1,30 @@
 import { existsSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  rs,
+  test,
+} from '@rstest/core';
 import {
   getSystemChromePath,
   resolveChromePath,
 } from '../../src/agent-tools/chrome-path';
 
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(),
+rs.mock('node:fs', () => ({
+  existsSync: rs.fn(),
 }));
 
-vi.mock('../../src/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('../../src/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
-vi.mock('../../src/env', () => ({
+rs.mock('../../src/env', () => ({
   MIDSCENE_CHROME_PATH: 'MIDSCENE_CHROME_PATH',
   MIDSCENE_MCP_CHROME_PATH: 'MIDSCENE_MCP_CHROME_PATH',
   globalConfigManager: {
-    getEnvConfigValue: vi.fn(),
+    getEnvConfigValue: rs.fn(),
   },
 }));
 
@@ -25,8 +32,8 @@ describe('Chrome Path Resolution', () => {
   const originalPlatform = process.platform;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(existsSync).mockReturnValue(false);
+    rs.clearAllMocks();
+    rs.mocked(existsSync).mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -41,7 +48,7 @@ describe('Chrome Path Resolution', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
       const macPath =
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-      vi.mocked(existsSync).mockImplementation((path) => path === macPath);
+      rs.mocked(existsSync).mockImplementation((path) => path === macPath);
 
       expect(getSystemChromePath()).toBe(macPath);
     });
@@ -50,7 +57,7 @@ describe('Chrome Path Resolution', () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       const optPath = '/opt/google/chrome/chrome';
       const usrPath = '/usr/bin/google-chrome';
-      vi.mocked(existsSync).mockImplementation(
+      rs.mocked(existsSync).mockImplementation(
         (path) => path === optPath || path === usrPath,
       );
 
@@ -60,7 +67,7 @@ describe('Chrome Path Resolution', () => {
     test('should fallback to /usr/bin paths on Linux', () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       const linuxPath = '/usr/bin/google-chrome';
-      vi.mocked(existsSync).mockImplementation((path) => path === linuxPath);
+      rs.mocked(existsSync).mockImplementation((path) => path === linuxPath);
 
       expect(getSystemChromePath()).toBe(linuxPath);
     });
@@ -69,7 +76,7 @@ describe('Chrome Path Resolution', () => {
       Object.defineProperty(process, 'platform', { value: 'win32' });
       const winPath =
         'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-      vi.mocked(existsSync).mockImplementation((path) => path === winPath);
+      rs.mocked(existsSync).mockImplementation((path) => path === winPath);
 
       expect(getSystemChromePath()).toBe(winPath);
     });
@@ -84,28 +91,28 @@ describe('Chrome Path Resolution', () => {
     test('should return env chrome path when valid', async () => {
       const envModule = await import('../../src/env');
       const customPath = '/custom/chrome/path';
-      vi.mocked(
+      rs.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
       ).mockImplementation((key) =>
         key === 'MIDSCENE_CHROME_PATH' ? customPath : undefined,
       );
-      vi.mocked(existsSync).mockReturnValue(true);
+      rs.mocked(existsSync).mockReturnValue(true);
 
       expect(resolveChromePath()).toBe(customPath);
     });
 
     test('should fallback to legacy MCP chrome path when primary env is unset', async () => {
-      const consoleWarnSpy = vi
+      const consoleWarnSpy = rs
         .spyOn(console, 'warn')
         .mockImplementation(() => {});
       const envModule = await import('../../src/env');
       const legacyPath = '/legacy/chrome/path';
-      vi.mocked(
+      rs.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
       ).mockImplementation((key) =>
         key === 'MIDSCENE_MCP_CHROME_PATH' ? legacyPath : undefined,
       );
-      vi.mocked(existsSync).mockReturnValue(true);
+      rs.mocked(existsSync).mockReturnValue(true);
 
       expect(resolveChromePath()).toBe(legacyPath);
       consoleWarnSpy.mockRestore();
@@ -113,7 +120,7 @@ describe('Chrome Path Resolution', () => {
 
     test('should fallback to system path when env is auto', async () => {
       const envModule = await import('../../src/env');
-      vi.mocked(
+      rs.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
       ).mockImplementation((key) =>
         key === 'MIDSCENE_CHROME_PATH' ? 'auto' : undefined,
@@ -124,7 +131,7 @@ describe('Chrome Path Resolution', () => {
 
     test('should throw when no Chrome found', async () => {
       const envModule = await import('../../src/env');
-      vi.mocked(
+      rs.mocked(
         envModule.globalConfigManager.getEnvConfigValue,
       ).mockReturnValue(undefined);
 

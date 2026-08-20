@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/studio/**'
       - '.github/workflows/studio-headless-linux.yml'
+      - 'scripts/report-template-utils.mjs'
+      - 'scripts/validate-core-report-template.mjs'
   workflow_dispatch:
     inputs:
       branch:
@@ -110,8 +112,8 @@ jobs:
     - name: Build Studio
       run: npx nx run-many --target=build --projects=studio,@midscene/report
 
-    - name: Re-inject report template into @midscene/core dist
-      run: node apps/report/scripts/inject-report-template.mjs
+    - name: Validate report template modules in @midscene/core dist
+      run: node scripts/validate-core-report-template.mjs
 
     - name: Run Studio startup smoke test
       run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke

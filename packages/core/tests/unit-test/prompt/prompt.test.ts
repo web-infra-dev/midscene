@@ -1,10 +1,16 @@
 import { systemPromptToLocateElement } from '@/ai-model';
+import {
+  buildActionDescription,
+  createDefaultMidscenePlanningProtocol,
+} from '@/ai-model/model-adapter/default-planning-protocol';
+import type {
+  PlanningActionOutputProtocol,
+  StandardPlanningProtocol,
+} from '@/ai-model/model-adapter/planning-protocol';
 import { getModelAdapter } from '@/ai-model/models';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
-import {
-  type PlanningActionOutputProtocol,
-  buildStandardPlanningSystemPrompt,
-} from '@/ai-model/prompt/planning';
+import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,6 +20,10 @@ import {
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockActionSpace } from '../../common';
+
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
 
 // Mock getPreferredLanguage to ensure consistent test output
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -34,9 +44,14 @@ const locatePromptSpecFor = (
   return locateAdapter.resultAdapter.promptSpec;
 };
 
+const defaultPlanningProtocolOptions = {
+  planningProtocol: defaultMidscenePlanningProtocol,
+};
+
 describe('action space', () => {
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -51,6 +66,7 @@ describe('action space', () => {
 
   it('planning prompt recommends swipe for touch sliders', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -74,6 +90,7 @@ describe('action space', () => {
     };
 
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: [...mockActionSpace, runAdbShellAction],
       includeLocateInPlanning: false,
     });
@@ -85,6 +102,7 @@ describe('action space', () => {
 
   it('does not infer RunAdbShell availability from an action description', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: [
         {
           name: 'Tap',
@@ -102,20 +120,37 @@ describe('action space', () => {
 });
 
 describe('system prompts', () => {
-  it('planning delegates action output content to the configured protocol', async () => {
+  it('planning delegates protocol-specific content to the configured protocol', async () => {
     const actionOutputProtocol: PlanningActionOutputProtocol = {
       actionOutputTagNames: ['custom-action'],
       actionOutputRules: 'CUSTOM_ACTION_OUTPUT_RULES',
       actionOutputPlaceholder: '<custom-action>...</custom-action>',
-      buildActionOutput: ({ type }) => `<custom-action type="${type}" />`,
+      buildActionOutput: ({ actionName }) =>
+        `<custom-action type="${actionName}"></custom-action>`,
+      parseActionOutput: vi.fn(),
     };
+    const planningProtocol = {
+      actionSpaceProtocol: {
+        title: 'Custom action space',
+        format: 'yaml',
+        buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
+        buildActionDescription: (input) => ({
+          marker: 'CUSTOM_ACTION_SPACE_DESCRIPTION',
+          action: buildActionDescription(input),
+        }),
+      },
+      actionOutputProtocol,
+    } satisfies StandardPlanningProtocol;
 
     const prompt = await buildStandardPlanningSystemPrompt({
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      actionOutputProtocol,
+      planningProtocol,
     });
 
+    expect(prompt).toContain('### Custom action space');
+    expect(prompt).toContain('CUSTOM_ACTION_SPACE_DESCRIPTION');
+    expect(prompt).toContain('CUSTOM_LOCATE_DESCRIPTION');
     expect(prompt).toContain('related tags: <log>, <custom-action>, <error>');
     expect(prompt).toContain(
       'If you output <complete>, do NOT output <custom-action>. The task ends here.',
@@ -125,14 +160,31 @@ describe('system prompts', () => {
       "Don't output <custom-action> if there is no action to do.",
     );
     expect(prompt).toContain('<custom-action>...</custom-action>');
-    expect(prompt).toContain('<custom-action type="Tap" />');
-    expect(prompt).toContain('<custom-action type="Input" />');
+    expect(prompt).toContain('<custom-action type="Tap"></custom-action>');
+    expect(prompt).toContain('<custom-action type="Input"></custom-action>');
     expect(prompt).not.toContain('<action-type>');
     expect(prompt).not.toContain('<action-param-json>');
   });
 
+  it('planning renders the default Midscene protocol', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+    });
+
+    expect(defaultMidscenePlanningProtocol.actionSpaceProtocol.title).toBe(
+      'Supporting actions list',
+    );
+    expect(prompt).toContain(
+      `### ${defaultMidscenePlanningProtocol.actionSpaceProtocol.title}`,
+    );
+    expect(prompt).toContain('<action-type>...</action-type>');
+  });
+
   it('planning - cot', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -143,6 +195,7 @@ describe('system prompts', () => {
     await expect(
       // @ts-expect-error Verify the runtime guard for untyped callers.
       buildStandardPlanningSystemPrompt({
+        ...defaultPlanningProtocolOptions,
         actionSpace: mockActionSpace,
         includeLocateInPlanning: true,
       }),
@@ -151,6 +204,7 @@ describe('system prompts', () => {
 
   it('planning - qwen - cot', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
       includeLocateInPlanning: true,
@@ -160,6 +214,7 @@ describe('system prompts', () => {
 
   it('planning - qwen - cot without bbox', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
     });
@@ -169,6 +224,7 @@ describe('system prompts', () => {
 
   it('planning - gemini', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('gemini'),
       includeLocateInPlanning: true,
@@ -178,6 +234,7 @@ describe('system prompts', () => {
 
   it('planning - android', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen2.5-vl'),
       includeLocateInPlanning: true,
@@ -187,6 +244,7 @@ describe('system prompts', () => {
 
   it('planning - includeSubGoals true', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -196,6 +254,7 @@ describe('system prompts', () => {
 
   it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -221,6 +280,7 @@ describe('system prompts', () => {
 
   it('planning - fast output omits planning reasoning', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeThought: false,
@@ -241,6 +301,7 @@ describe('system prompts', () => {
 
   it('planning - includeSubGoals true should contain sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -265,6 +326,7 @@ describe('system prompts', () => {
 
   it('planning - includeSubGoals true should include sub-goal examples', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -279,6 +341,7 @@ describe('system prompts', () => {
 
   it('planning - includeSubGoals false should not include sub-goal examples', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -292,6 +355,7 @@ describe('system prompts', () => {
 
   it('planning should include priority override guidance for input verification', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -313,6 +377,7 @@ describe('system prompts', () => {
 
   it('planning should include dropdown scrolling guidance', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -338,6 +403,7 @@ describe('system prompts', () => {
 
   it('planning should include durable change completion guidance', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -355,6 +421,7 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: true,
@@ -376,6 +443,7 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,
@@ -396,6 +464,7 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeLocateInPlanning true should have bbox in locate', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen3-vl'),
       includeLocateInPlanning: true,
@@ -410,6 +479,7 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeLocateInPlanning false should not have bbox in locate', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
       includeSubGoals: false,

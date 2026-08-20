@@ -1,0 +1,108 @@
+# Test Runner overview: natural language and extensible Nodes
+
+:::info Project status (Beta)
+This document introduces Midscene's new next-generation, general-purpose Test Runner. It separates declarative test cases from programmable extensions and is intended to replace the previous YAML automation solution.
+
+The Test Runner is currently in **Beta**, and its test protocol and APIs continue to evolve. If you have questions or suggestions, we welcome your feedback on GitHub.
+
+(If you are still using the previous solution, see [YAML script runner](./yaml-script-runner).)
+:::
+
+After extensive use of Midscene, we believe that **in the AI era, natural language should be the primary medium for automated test cases**.
+
+Describing test intent directly in natural language matches how people communicate and provides strong business-level expressiveness. We use declarative YAML as the structural format so that these natural-language workflows are easy for people to write and review, as well as for AI and Agents to understand and maintain.
+
+Real-world test workflows also need to call external tools or scripts, such as business APIs, test data setup utilities, and browser resource managers. For this reason, `@midscene/test` establishes a test paradigm designed for long-term evolution: **use natural language to drive the main test flow, with programmable Nodes providing supporting extensions**.
+
+## Core design: natural language first, programmable Nodes second
+
+This approach divides the test framework into two clear tracks:
+
+- **Primary track (natural language + YAML)**: expresses more than 80% of business test intent. Test cases are assembled declaratively in YAML, with natural language describing UI actions such as `aiAct` and assertions such as `aiAssert`.
+- **Supporting track (TypeScript Nodes)**: provides the remaining 20% of programmable extension capabilities. Custom Nodes registered in TypeScript handle API calls, data preparation, and resource management.
+
+With this design, `@midscene/test` creates a clear collaboration boundary between platform developers and test case authors:
+
+- **Test framework maintenance (platform developers)**: use TypeScript to integrate browsers, Agents, external tools, and business APIs, while centrally managing runtime resources and the execution lifecycle.
+- **Test case maintenance (case authors and Agents)**: people or Agents use YAML to compose the capabilities provided by the framework. They can write and maintain test cases directly in natural language without writing JavaScript or dealing with implementation details.
+
+## Smooth three-party collaboration with generated Node references
+
+A testing system often involves three distinct roles: **framework developers who write TypeScript Nodes**, **people who write YAML test cases**, and **AI Agents that automatically operate and maintain tests**.
+
+To make collaboration among these roles straightforward, `@midscene/test` provides the `describe-nodes` tool. It exports all registered Node definitions as a Markdown reference:
+
+- **Framework developers stay focused**: declare Zod validation rules and descriptions in TypeScript Nodes. The documentation is generated automatically, so there is no separate API reference to write and maintain.
+- **Test case authors get a clear reference**: people can read the exported Markdown to see which business-specific Nodes, such as `order.prepare`, are available and which parameters they accept.
+- **AI assistants call Nodes accurately**: the Markdown reference combines explicit type constraints with semantic descriptions, making it effective context for AI Agents. Agents can use it to write, run, and maintain YAML test cases with valid Node calls.
+
+**Example of an exported Node reference**
+
+For example, the `describe-nodes` tool exports a custom Node named `browser.mockLocation` in the following Markdown structure:
+
+```markdown
+## browser.mockLocation
+
+- **Title**: Mock location
+- **Description**: Mock the browser's GPS location.
+- **Parameter schema (JSON Schema)**:
+
+{
+  "type": "object",
+  "properties": {
+    "latitude": {
+      "type": "number",
+      "description": "Latitude of the mocked location."
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude of the mocked location."
+    }
+  },
+  "required": ["latitude", "longitude"]
+}
+```
+
+This generated, strongly typed reference connects platform development, test case authoring, and AI-based test operations, making subsequent workflows easier to implement and run.
+
+## Example scenario: verify an order refund flow
+
+Suppose an e-commerce team needs to verify the refund flow for paid orders:
+
+1. **Programmable Nodes (supporting)**: call an order API or script before each case to create test data, then clean up the test order when the case finishes.
+2. **Natural language (primary)**: use YAML instructions to have the Agent submit a refund request in the UI and verify the result.
+
+```yaml
+# 1. Programmable Nodes: prepare data and the environment
+beforeEach:
+  - order.prepare:
+      status: paid
+  - browser.openRefundPage: {}
+
+# 2. Natural language: express business test intent
+cases:
+  - name: A paid order supports a full refund
+    steps:
+      - aiAct: Click Apply for refund, select Full refund, and submit
+      - aiAssert:
+          prompt: The page shows that the refund request was submitted and the refund amount equals the full order amount
+          message: Failed to submit the full refund request
+
+  - name: A paid order supports a partial refund
+    steps:
+      - aiAct: Click Apply for refund, enter a refund amount of 10, and submit
+      - aiAssert:
+          prompt: The page shows that the refund request was submitted and the refund amount is 10
+          message: Failed to submit the partial refund request
+
+# 3. Programmable Nodes: clean up resources
+afterEach:
+  - order.cleanup: {}
+```
+
+Framework maintainers register custom Nodes such as `order.prepare`, `browser.openRefundPage`, and `order.cleanup` to manage data and pages. Midscene Nodes handle UI actions and assertions. Test intent remains separate from technical implementation, so the two can evolve independently.
+
+## Next steps
+
+- Read [Extend and maintain Test Runner](./extend-test-runner) to learn how to register Nodes, manage runtime resources, and configure a Test Project.
+- Read [Write and run test cases](./use-test-runner) to learn about Cases, Steps, lifecycles, and test results.
