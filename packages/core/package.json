@@ -83,11 +83,30 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
+    "sync-report-template": "node ../../scripts/sync-core-report-template.mjs",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true vitest --run",
     "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
     "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "build",
+          "^build",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/scripts/report-template-utils.mjs",
+          "{workspaceRoot}/scripts/report-template-utils.d.mts"
+        ],
+        "outputs": [
+          "{projectRoot}/dist/**/*.*",
+          "!{projectRoot}/dist/lib/report-html-template.js",
+          "!{projectRoot}/dist/es/report-html-template.mjs"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",

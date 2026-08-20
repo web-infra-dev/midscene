@@ -7,6 +7,10 @@ import { parseArgs } from 'node:util';
 import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
 import {
+  reportTemplateMagicString,
+  validateCoreReportTemplateModules,
+} from '../../../scripts/report-template-utils.mjs';
+import {
   writeAppUpdateYmlIntoResources,
   writeUpdateMetadataForArtifact,
 } from './build-update-metadata.mjs';
@@ -25,12 +29,10 @@ const studioFontLicensePath = path.join(
   'OFL.txt',
 );
 const reportRootDir = path.join(workspaceRootDir, 'apps', 'report');
-const coreRootDir = path.join(workspaceRootDir, 'packages', 'core');
-const coreDistDir = path.join(coreRootDir, 'dist');
+const coreDistDir = path.join(workspaceRootDir, 'packages', 'core', 'dist');
 const reportTemplatePath = path.join(reportRootDir, 'dist', 'index.html');
-const reportTemplatePlaceholder = 'REPLACE_ME_WITH_REPORT_HTML';
 const unresolvedReportTemplatePattern = new RegExp(
-  String.raw`(?:=|return)\s*(['"])${reportTemplatePlaceholder}\1`,
+  String.raw`(?:=|return)\s*(['"])${reportTemplateMagicString}\1`,
 );
 
 // Keep release packaging state outside `apps/studio` so local build outputs do
@@ -878,35 +880,6 @@ const prepareReportBuildOutput = async () => {
   await ensureReportTemplateReady();
 };
 
-const ensureCoreReportTemplateInjected = async () => {
-  let status = await getBuildStatus({
-    packageDir: coreRootDir,
-    sourceTargets: packageBuildSourceTargets,
-    additionalSourceTargets: [reportTemplatePath],
-  });
-
-  if (
-    !status.needsBuild &&
-    (await pathContainsReportTemplatePlaceholder(coreDistDir))
-  ) {
-    status = {
-      needsBuild: true,
-      reason: 'report template placeholder remains in build output',
-    };
-  }
-
-  if (status.needsBuild) {
-    console.log(`Building packages/core (${status.reason}).`);
-    await buildPackageDir(path.relative(workspaceRootDir, coreRootDir));
-  }
-
-  if (await pathContainsReportTemplatePlaceholder(coreDistDir)) {
-    throw new Error(
-      `packages/core build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
-    );
-  }
-};
-
 const prepareStudioWorkspacePackages = async (workspacePackages) => {
   for (const workspacePackage of workspacePackages) {
     const status = await getBuildStatus({
@@ -955,7 +928,7 @@ const prepareStudioBuildOutput = async ({
 
   if (await pathContainsReportTemplatePlaceholder(studioDistDir)) {
     throw new Error(
-      `apps/studio build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+      `apps/studio build still contains ${reportTemplateMagicString}; rebuild apps/report before packaging.`,
     );
   }
 };
@@ -1709,9 +1682,9 @@ const createPackagingWorkspace = async ({
   await prepareStaticWorkspacePackageSources(workspacePackages);
   await prepareStudioWorkspacePackages(workspacePackages);
   await prepareReportBuildOutput();
-  await ensureCoreReportTemplateInjected();
+  validateCoreReportTemplateModules(coreDistDir);
   await prepareStudioBuildOutput({
-    additionalSourceTargets: [reportTemplatePath, coreDistDir],
+    additionalSourceTargets: [coreDistDir],
   });
   await removeIfExists(stageDir);
   await fs.mkdir(path.dirname(stageDir), { recursive: true });

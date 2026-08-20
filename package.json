@@ -20,6 +20,7 @@
     "prepare": "simple-git-hooks && pnpm run build",
     "check-dependency-version": "check-dependency-version-consistency .",
     "check:references": "node scripts/check-tsconfig-references.mjs",
+    "check:report-build-feedback-loop": "node scripts/check-report-build-feedback-loop.mjs",
     "lint": "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",
