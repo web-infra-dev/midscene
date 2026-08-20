@@ -13,7 +13,10 @@ describe('deriveTaskStatus', () => {
 
   it('treats a finished task carrying an error as failed', () => {
     expect(
-      deriveTaskStatus({ status: 'finished', error: new Error('x') }),
+      deriveTaskStatus({
+        status: 'finished',
+        error: { name: 'Error', message: 'x' },
+      }),
     ).toBe('failed');
     expect(deriveTaskStatus({ status: 'finished', errorMessage: 'boom' })).toBe(
       'failed',

@@ -595,8 +595,12 @@ describe(
         expect(serializedText).not.toContain('payload');
       }
 
+      expect(caughtError).toBeDefined();
+      if (!caughtError) {
+        throw new Error('expected TaskRunner.flush() to throw');
+      }
       const clonedError = structuredClone(caughtError);
-      expect(clonedError.cause).toEqual(caughtError?.cause);
+      expect(clonedError.cause).toEqual(caughtError.cause);
       expect(clonedError).not.toHaveProperty('runner');
       expect(clonedError).not.toHaveProperty('errorTask');
       expect(JSON.stringify(clonedError)).not.toContain('payload');
