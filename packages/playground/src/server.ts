@@ -66,7 +66,9 @@ import type {
   PlaygroundCreatedSession,
   PlaygroundExecutionHooks,
   PlaygroundPreviewDescriptor,
+  PlaygroundRecorderBeforeFrame,
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderCapturePolicy,
   PlaygroundRecorderDescribeTrace,
   PlaygroundRecorderEvent,
   PlaygroundRecorderFinalization,
@@ -94,6 +96,10 @@ const defaultPort = PLAYGROUND_SERVER_PORT;
 // it expire by wall-clock age would incorrectly penalize slow interactions.
 const RECORDER_SHARED_FRAME_SETTLE_GRACE_MS = 500;
 const RECORDER_NO_FRAME_SOURCE_SCREENSHOT_TIMEOUT_MS = 1500;
+const RECORDER_CLIENT_FRAME_MAX_BYTES = 8 * 1024 * 1024;
+const RECORDER_CLIENT_FRAME_MAX_LONG_EDGE = 2048;
+const RECORDER_CLIENT_FRAME_MAX_AGE_MS = 2000;
+const RECORDER_CLIENT_FRAME_FUTURE_TOLERANCE_MS = 0;
 const RECORDER_SCREENSHOT_MAX_LONG_EDGE = 3840;
 const RECORDER_CAPTURE_TASK_TIMEOUT_MS = 3000;
 const RECORDER_CAPTURE_WORKER_COUNT = 2;
@@ -1294,6 +1300,176 @@ function summarizeInteractPayload(
   };
 }
 
+function stripRecorderTransportFields(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const { recorderBeforeFrame: _recorderBeforeFrame, ...interactionPayload } =
+    body;
+  return interactionPayload;
+}
+
+function readPngDimensions(
+  image: Buffer,
+): { width: number; height: number } | undefined {
+  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (
+    image.length < 24 ||
+    !pngSignature.every((byte, index) => image[index] === byte)
+  ) {
+    return undefined;
+  }
+  const width = image.readUInt32BE(16);
+  const height = image.readUInt32BE(20);
+  return width > 0 && height > 0 ? { width, height } : undefined;
+}
+
+function isJpegStartOfFrameMarker(marker: number): boolean {
+  return (
+    (marker >= 0xc0 && marker <= 0xc3) ||
+    (marker >= 0xc5 && marker <= 0xc7) ||
+    (marker >= 0xc9 && marker <= 0xcb) ||
+    (marker >= 0xcd && marker <= 0xcf)
+  );
+}
+
+function readJpegDimensions(
+  image: Buffer,
+): { width: number; height: number } | undefined {
+  if (
+    image.length < 4 ||
+    image[0] !== 0xff ||
+    image[1] !== 0xd8 ||
+    image[image.length - 2] !== 0xff ||
+    image[image.length - 1] !== 0xd9
+  ) {
+    return undefined;
+  }
+
+  let offset = 2;
+  while (offset < image.length) {
+    while (offset < image.length && image[offset] === 0xff) {
+      offset += 1;
+    }
+    if (offset >= image.length) {
+      return undefined;
+    }
+    const marker = image[offset];
+    offset += 1;
+    if (marker === 0xd9 || marker === 0xda) {
+      return undefined;
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      continue;
+    }
+    if (offset + 2 > image.length) {
+      return undefined;
+    }
+    const segmentLength = image.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > image.length) {
+      return undefined;
+    }
+    if (isJpegStartOfFrameMarker(marker) && segmentLength >= 7) {
+      const height = image.readUInt16BE(offset + 3);
+      const width = image.readUInt16BE(offset + 5);
+      return width > 0 && height > 0 ? { width, height } : undefined;
+    }
+    offset += segmentLength;
+  }
+  return undefined;
+}
+
+type ValidatedRecorderClientFrame = PlaygroundRecorderBeforeFrame & {
+  bytes: number;
+};
+
+function validateRecorderClientFrame(
+  candidate: unknown,
+  now = Date.now(),
+):
+  | { ok: true; frame: ValidatedRecorderClientFrame }
+  | { ok: false; message: string } {
+  if (!candidate || typeof candidate !== 'object') {
+    return { ok: false, message: 'Recorder before-frame payload is invalid.' };
+  }
+  const frame = candidate as Partial<PlaygroundRecorderBeforeFrame>;
+  if (frame.source !== 'studio-scrcpy-preview') {
+    return {
+      ok: false,
+      message: 'Recorder before-frame source is not supported.',
+    };
+  }
+  if (
+    !Number.isInteger(frame.width) ||
+    !Number.isInteger(frame.height) ||
+    Number(frame.width) <= 0 ||
+    Number(frame.height) <= 0 ||
+    Math.max(Number(frame.width), Number(frame.height)) >
+      RECORDER_CLIENT_FRAME_MAX_LONG_EDGE
+  ) {
+    return {
+      ok: false,
+      message: 'Recorder before-frame dimensions are invalid.',
+    };
+  }
+  if (
+    !Number.isFinite(frame.capturedAt) ||
+    Number(frame.capturedAt) >
+      now + RECORDER_CLIENT_FRAME_FUTURE_TOLERANCE_MS ||
+    now - Number(frame.capturedAt) > RECORDER_CLIENT_FRAME_MAX_AGE_MS
+  ) {
+    return {
+      ok: false,
+      message:
+        'Recorder before-frame timestamp is outside the action boundary.',
+    };
+  }
+  if (typeof frame.dataUrl !== 'string') {
+    return {
+      ok: false,
+      message: 'Recorder before-frame image is missing.',
+    };
+  }
+  const match = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+    frame.dataUrl,
+  );
+  if (!match || match[2].length % 4 !== 0) {
+    return {
+      ok: false,
+      message: 'Recorder before-frame image encoding is invalid.',
+    };
+  }
+  const image = Buffer.from(match[2], 'base64');
+  if (image.length === 0 || image.length > RECORDER_CLIENT_FRAME_MAX_BYTES) {
+    return {
+      ok: false,
+      message: 'Recorder before-frame image exceeds the size limit.',
+    };
+  }
+  const dimensions =
+    match[1] === 'png' ? readPngDimensions(image) : readJpegDimensions(image);
+  if (
+    !dimensions ||
+    dimensions.width !== frame.width ||
+    dimensions.height !== frame.height
+  ) {
+    return {
+      ok: false,
+      message: 'Recorder before-frame metadata does not match the image.',
+    };
+  }
+  return {
+    ok: true,
+    frame: {
+      dataUrl: frame.dataUrl,
+      capturedAt: Number(frame.capturedAt),
+      width: Number(frame.width),
+      height: Number(frame.height),
+      source: frame.source,
+      bytes: image.length,
+    },
+  };
+}
+
 const buildLocateActionParams: InteractParamBuilder = (body, actionType) => {
   const params: Record<string, unknown> = {
     locate: locateFromPoint(body.x, body.y, 'x', 'y', `manual ${actionType}`),
@@ -1606,6 +1782,7 @@ interface PlaygroundActiveConnection {
   sidecars?: PlaygroundSidecar[];
   subscribeNavigationEvents?: PlaygroundSessionNavigationSubscriber;
   unsubscribeNavigationEvents?: () => void;
+  recorderCapturePolicy?: PlaygroundRecorderCapturePolicy;
 }
 
 interface PlaygroundRecorderPageState {
@@ -1746,6 +1923,7 @@ class PlaygroundServer {
   private _basePreparedMetadata?: Record<string, unknown>;
   private _baseExecutionHooks?: PlaygroundExecutionHooks;
   private _baseSidecars?: PlaygroundSidecar[];
+  private _baseRecorderCapturePolicy?: PlaygroundRecorderCapturePolicy;
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
   private _recorderEventQueue: Promise<void> = Promise.resolve();
@@ -1789,6 +1967,7 @@ class PlaygroundServer {
     runtime: undefined,
     executionHooks: undefined,
     sidecars: undefined,
+    recorderCapturePolicy: undefined,
   };
 
   private setActiveAgent(
@@ -1861,6 +2040,7 @@ class PlaygroundServer {
       runtime: this.buildBaseRuntimeState(),
       executionHooks: this._baseExecutionHooks,
       sidecars: this._baseSidecars,
+      recorderCapturePolicy: this._baseRecorderCapturePolicy,
     };
   }
 
@@ -1899,6 +2079,7 @@ class PlaygroundServer {
       runtime: this.buildBaseRuntimeState(),
       executionHooks: this._baseExecutionHooks,
       sidecars: this._baseSidecars,
+      recorderCapturePolicy: this._baseRecorderCapturePolicy,
     };
     this._mjpegHandler.reset();
     this.syncRuntimeState();
@@ -1915,6 +2096,7 @@ class PlaygroundServer {
       | 'sessionManager'
       | 'executionHooks'
       | 'sidecars'
+      | 'recorderCapturePolicy'
     >,
   ): void {
     // Allow overriding the initial session created by agentFactory in launch()
@@ -1935,6 +2117,9 @@ class PlaygroundServer {
     };
     this._baseExecutionHooks = prepared.executionHooks;
     this._baseSidecars = prepared.sidecars;
+    this._baseRecorderCapturePolicy = prepared.recorderCapturePolicy
+      ? { ...prepared.recorderCapturePolicy }
+      : undefined;
     this.resetConnectionToBaseState();
 
     if (
@@ -2648,6 +2833,47 @@ class PlaygroundServer {
     };
   }
 
+  private captureRecorderSnapshotFromClientBeforeFrame(
+    candidate: unknown,
+    pageState: PlaygroundRecorderPageState,
+  ): PlaygroundRecorderSnapshot {
+    const snapshotFrozenAt = Date.now();
+    const validated = validateRecorderClientFrame(candidate, snapshotFrozenAt);
+    if (!validated.ok) {
+      debugInteract(
+        'recorder client before-frame rejected: %s',
+        validated.message,
+      );
+      return {
+        pageState,
+        snapshotFrozenAt,
+        captureError: {
+          code: 'capture_failed',
+          message: validated.message,
+        },
+      };
+    }
+
+    const frameToken = `client-preview-${validated.frame.capturedAt}-${randomUUID()}`;
+    debugInteract('recorder client before-frame accepted %o', {
+      frameToken,
+      capturedAt: validated.frame.capturedAt,
+      width: validated.frame.width,
+      height: validated.frame.height,
+      bytes: validated.frame.bytes,
+    });
+    return this.buildRetainedRecorderSnapshot(
+      {
+        screenshot: validated.frame.dataUrl,
+        capturedAt: validated.frame.capturedAt,
+        frameToken,
+        source: 'shared-frame-stream',
+      },
+      pageState,
+      { snapshotFrozenAt, waitedMs: 0 },
+    );
+  }
+
   private async captureRecorderSnapshotWithoutFrameSourceBeforeInteract(
     pageState: PlaygroundRecorderPageState,
   ): Promise<PlaygroundRecorderSnapshot> {
@@ -2692,15 +2918,25 @@ class PlaygroundServer {
     };
   }
 
-  private async captureRecorderSnapshotBeforeInteract(): Promise<
-    PlaygroundRecorderSnapshot | undefined
-  > {
+  private async captureRecorderSnapshotBeforeInteract(
+    clientBeforeFrame?: unknown,
+  ): Promise<PlaygroundRecorderSnapshot | undefined> {
     if (!this._recorderSessionId) {
       return undefined;
     }
     const pageState = this._studioPreviewRecorderLastPageState || {
       pageInfo: { width: 0, height: 0 },
     };
+    if (
+      clientBeforeFrame !== undefined &&
+      this._activeConnection.recorderCapturePolicy?.acceptClientBeforeFrame ===
+        true
+    ) {
+      return this.captureRecorderSnapshotFromClientBeforeFrame(
+        clientBeforeFrame,
+        pageState,
+      );
+    }
     const readStartedAt = Date.now();
     const frame =
       (await this._recorderFrameLease?.latest()) ||
@@ -2709,9 +2945,23 @@ class PlaygroundServer {
 
     if (!frame) {
       if (!this._recorderFrameLease) {
-        return this.captureRecorderSnapshotWithoutFrameSourceBeforeInteract(
+        if (
+          this._activeConnection.recorderCapturePolicy
+            ?.allowSynchronousScreenshotFallback !== false
+        ) {
+          return this.captureRecorderSnapshotWithoutFrameSourceBeforeInteract(
+            pageState,
+          );
+        }
+        return {
           pageState,
-        );
+          snapshotFrozenAt,
+          captureError: {
+            code: 'capture_failed',
+            message:
+              'Recorder did not receive a reusable before-frame before the action.',
+          },
+        };
       }
       return {
         pageState,
@@ -2769,7 +3019,11 @@ class PlaygroundServer {
       1500,
     );
     const initialScreenshot =
-      initialFrame?.screenshot || (await this.takeRecorderScreenshot());
+      initialFrame?.screenshot ||
+      (this._activeConnection.recorderCapturePolicy
+        ?.allowSynchronousScreenshotFallback !== false
+        ? await this.takeRecorderScreenshot()
+        : undefined);
     const fallbackCapturedAt = Date.now();
     const initialPageState = await this.getActiveRecorderPageState();
     this._studioPreviewRecorderLastPageState = initialPageState;
@@ -3976,6 +4230,9 @@ class PlaygroundServer {
         executionHooks: session.executionHooks || this._baseExecutionHooks,
         sidecars: sessionSidecars,
         subscribeNavigationEvents: session.subscribeNavigationEvents,
+        recorderCapturePolicy: session.recorderCapturePolicy
+          ? { ...session.recorderCapturePolicy }
+          : this._baseRecorderCapturePolicy,
       };
       this._mjpegHandler.reset();
       this.sessionSetupState = 'ready';
@@ -5351,7 +5608,10 @@ class PlaygroundServer {
         });
       }
 
-      const { actionType } = req.body ?? {};
+      const requestPayload = (req.body ?? {}) as Record<string, unknown>;
+      const recorderBeforeFrame = requestPayload.recorderBeforeFrame;
+      const interactionPayload = stripRecorderTransportFields(requestPayload);
+      const { actionType } = interactionPayload;
       if (typeof actionType !== 'string' || !actionType) {
         return res.status(400).json({
           error: 'actionType is required',
@@ -5370,13 +5630,14 @@ class PlaygroundServer {
       try {
         const interactStartedAt = Date.now();
         recorderInteraction = this.reserveStudioPreviewRecorderInteraction(
-          req.body ?? {},
+          interactionPayload,
           interactStartedAt,
         );
         debugInteract('received manual interact %o', {
-          payload: summarizeInteractPayload(req.body ?? {}),
+          payload: summarizeInteractPayload(interactionPayload),
           interfaceType: agent.interface.interfaceType,
           recorderActive: Boolean(this._recorderSessionId),
+          hasClientBeforeFrame: recorderBeforeFrame !== undefined,
           hasInputPrimitives: Boolean(agent.interface.inputPrimitives),
         });
         await this.runStudioPreviewRecorderInteractionBoundary(
@@ -5398,24 +5659,29 @@ class PlaygroundServer {
 
             if (recorderInteraction) {
               recorderSnapshotBefore =
-                await this.captureRecorderSnapshotBeforeInteract();
+                await this.captureRecorderSnapshotBeforeInteract(
+                  recorderBeforeFrame,
+                );
             }
 
             this.beginStudioPreviewRecorderInteraction(recorderInteraction);
             const actionDispatchStartedAt = Date.now();
             if (inputPrimitives) {
-              await dispatchPointer(inputPrimitives, req.body ?? {}, () =>
+              await dispatchPointer(inputPrimitives, interactionPayload, () =>
                 agent.interface.size(),
               );
               debugInteract('primitive manual interact dispatched %o', {
-                payload: summarizeInteractPayload(req.body ?? {}),
+                payload: summarizeInteractPayload(interactionPayload),
                 elapsedMs: Date.now() - interactStartedAt,
               });
             } else {
-              const params = buildInteractParams(actionType, req.body ?? {});
+              const params = buildInteractParams(
+                actionType,
+                interactionPayload,
+              );
               await this.runInteractAction(agent, actionType, params);
               debugInteract('actionSpace manual interact dispatched %o', {
-                payload: summarizeInteractPayload(req.body ?? {}),
+                payload: summarizeInteractPayload(interactionPayload),
                 elapsedMs: Date.now() - interactStartedAt,
               });
             }
@@ -5428,7 +5694,7 @@ class PlaygroundServer {
                 : {}),
             };
             const recorderEvent = this.appendStudioPreviewRecorderEnvelope(
-              req.body ?? {},
+              interactionPayload,
               recorderSnapshotBefore,
               recorderInteraction,
               interactionCompletedAt,
@@ -5439,12 +5705,12 @@ class PlaygroundServer {
             if (recorderEvent) {
               this.queueStudioPreviewRecorderEvent(
                 recorderEvent,
-                req.body ?? {},
+                interactionPayload,
                 recorderSnapshotBefore,
               );
             }
             debugInteract('manual interact completed %o', {
-              payload: summarizeInteractPayload(req.body ?? {}),
+              payload: summarizeInteractPayload(interactionPayload),
               elapsedMs: Date.now() - interactStartedAt,
             });
           },

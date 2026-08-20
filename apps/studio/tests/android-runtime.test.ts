@@ -15,9 +15,13 @@ type RuntimeServiceOptions = NonNullable<
 type PlaygroundCoreLoader = NonNullable<
   RuntimeServiceOptions['loadPlaygroundCore']
 >;
+type AndroidModuleLoader = NonNullable<
+  RuntimeServiceOptions['loadAndroidModule']
+>;
 type HarmonyModuleLoader = NonNullable<
   RuntimeServiceOptions['loadHarmonyModule']
 >;
+type IosModuleLoader = NonNullable<RuntimeServiceOptions['loadIosModule']>;
 
 const buildPlaygroundBrowserUrl = (host: string, port: number) => {
   const normalizedHost =
@@ -263,6 +267,9 @@ describe('playground runtime bootstrap', () => {
     const prepared = await webPlatform?.prepare();
     expect(prepared?.preview?.kind).toBe('mjpeg');
     expect(prepared?.metadata?.interfaceType).toBe('web');
+    expect(prepared?.recorderCapturePolicy).toEqual({
+      allowSynchronousScreenshotFallback: false,
+    });
 
     const setup = await prepared?.sessionManager?.getSetupSchema?.();
     expect(setup?.primaryActionLabel).toBe('Open Page');
@@ -323,6 +330,142 @@ describe('playground runtime bootstrap', () => {
     await prepared?.sessionManager?.destroySession?.();
     expect(destroyAgent).toHaveBeenCalledTimes(1);
     expect(cleanupBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it('opts Studio iOS recording into the WDA frame source', async () => {
+    const iosPrepare = vi.fn(
+      async (_options: {
+        staticDir?: string;
+        getAgentOptions?: () => unknown;
+        getDeviceOptions: () => {
+          wdaMjpegFrameSource: { enabled: boolean };
+        };
+      }) => ({
+        platformId: 'ios',
+        title: 'Midscene iOS Playground',
+        metadata: {},
+      }),
+    );
+    let capturedPlatforms:
+      | import('@midscene/playground').RegisteredPlaygroundPlatform[]
+      | undefined;
+    const runtime = createMultiPlatformRuntimeService({
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: { setPreparedPlatform: () => undefined },
+          }),
+          buildPlaygroundBrowserUrl,
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio Beta',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadIosModule: (async () =>
+        ({
+          iosPlaygroundPlatform: { prepare: iosPrepare },
+        }) as unknown as Awaited<
+          ReturnType<IosModuleLoader>
+        >) as IosModuleLoader,
+      resolvePackageStaticDir: (packageName) => `/virtual/${packageName}`,
+    });
+
+    await runtime.start();
+    const prepared = await capturedPlatforms
+      ?.find((platform) => platform.id === 'ios')
+      ?.prepare();
+
+    expect(iosPrepare).toHaveBeenCalledWith({
+      staticDir: '/virtual/@midscene/ios',
+      getAgentOptions: expect.any(Function),
+      getDeviceOptions: expect.any(Function),
+    });
+    expect(iosPrepare.mock.calls[0]?.[0].getDeviceOptions()).toEqual({
+      wdaMjpegFrameSource: { enabled: true },
+    });
+    expect(prepared?.recorderCapturePolicy).toEqual({
+      allowSynchronousScreenshotFallback: false,
+    });
+  });
+
+  it('accepts decoded preview frames only for Studio Android recording', async () => {
+    const androidPrepare = vi.fn(async (_options: Record<string, unknown>) => ({
+      platformId: 'android',
+      title: 'Midscene Android Playground',
+      metadata: {},
+    }));
+    class FakeScrcpyServer {}
+    let capturedPlatforms:
+      | import('@midscene/playground').RegisteredPlaygroundPlatform[]
+      | undefined;
+    const runtime = createMultiPlatformRuntimeService({
+      loadPlaygroundCore: (async () =>
+        ({
+          launchPreparedPlaygroundPlatform: async () => ({
+            close: async () => undefined,
+            host: '127.0.0.1',
+            port: 5800,
+            server: { setPreparedPlatform: () => undefined },
+          }),
+          buildPlaygroundBrowserUrl,
+          prepareMultiPlatformPlayground: async (
+            platforms: RegisteredPlaygroundPlatform[],
+          ) => {
+            capturedPlatforms = platforms;
+            return {
+              platformId: 'multi-platform',
+              title: 'Midscene Studio Beta',
+              metadata: {},
+              sessionManager: {
+                createSession: async () => {
+                  throw new Error('not needed for bootstrap');
+                },
+              },
+            };
+          },
+        }) as unknown as Awaited<
+          ReturnType<PlaygroundCoreLoader>
+        >) as PlaygroundCoreLoader,
+      loadAndroidModule: (async () =>
+        ({
+          ScrcpyServer: FakeScrcpyServer,
+          androidPlaygroundPlatform: { prepare: androidPrepare },
+        }) as unknown as Awaited<
+          ReturnType<AndroidModuleLoader>
+        >) as AndroidModuleLoader,
+      resolvePackageStaticDir: (packageName) => `/virtual/${packageName}`,
+    });
+
+    await runtime.start();
+    const prepared = await capturedPlatforms
+      ?.find((platform) => platform.id === 'android')
+      ?.prepare();
+
+    expect(androidPrepare).toHaveBeenCalledWith({
+      staticDir: '/virtual/@midscene/android-playground',
+      getAgentOptions: expect.any(Function),
+      scrcpyServer: expect.any(FakeScrcpyServer),
+    });
+    expect(prepared?.recorderCapturePolicy).toEqual({
+      allowSynchronousScreenshotFallback: false,
+      acceptClientBeforeFrame: true,
+    });
   });
 
   it('prepares Harmony in deferred mode so Studio never exits on device selection', async () => {

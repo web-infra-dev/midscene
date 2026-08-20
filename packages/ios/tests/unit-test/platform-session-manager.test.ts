@@ -112,4 +112,31 @@ describe('iosPlaygroundPlatform session manager', () => {
       wdaPort: 8100,
     });
   });
+
+  test('passes opt-in WDA frame-source device options to each Studio Agent', async () => {
+    const deviceOptions = {
+      wdaMjpegPort: 9200,
+      wdaMjpegFrameSource: { enabled: true },
+    };
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({
+      getDeviceOptions: () => deviceOptions,
+    });
+    const created = await prepared.sessionManager?.createSession({
+      host: 'localhost',
+      port: 8100,
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      ...deviceOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      ...deviceOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    });
+  });
 });

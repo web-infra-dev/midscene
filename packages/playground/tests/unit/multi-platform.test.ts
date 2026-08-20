@@ -44,6 +44,10 @@ describe('prepareMultiPlatformPlayground', () => {
             platformId: 'android',
             title: 'Android Playground',
             description: 'Android descriptor',
+            recorderCapturePolicy: {
+              allowSynchronousScreenshotFallback: false,
+              acceptClientBeforeFrame: true,
+            },
             sessionManager: {
               getSetupSchema: childGetSetupSchema,
               createSession: childCreateSession,
@@ -97,6 +101,10 @@ describe('prepareMultiPlatformPlayground', () => {
       platformDescription: 'Android descriptor',
       metadata: {
         deviceId: 'SERIAL123',
+      },
+      recorderCapturePolicy: {
+        allowSynchronousScreenshotFallback: false,
+        acceptClientBeforeFrame: true,
       },
     });
   });

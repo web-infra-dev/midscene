@@ -54,6 +54,8 @@ export type {
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
   PlaygroundRecorderCapabilitiesResult,
+  PlaygroundRecorderBeforeFrame,
+  PlaygroundRecorderCapturePolicy,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
   PlaygroundRecorderEventsResult,

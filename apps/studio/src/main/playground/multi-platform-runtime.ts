@@ -4,6 +4,7 @@ import type { Agent, AgentOpt } from '@midscene/core/agent';
 import type {
   LaunchPlaygroundResult,
   PlaygroundPreviewDescriptor,
+  PlaygroundRecorderCapturePolicy,
   PreparedPlaygroundPlatform,
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
@@ -226,6 +227,25 @@ interface StudioPlatformSpec {
   prepare: (staticDir: string) => Promise<PreparedPlaygroundPlatform>;
 }
 
+const STUDIO_STREAM_RECORDER_CAPTURE_POLICY = {
+  allowSynchronousScreenshotFallback: false,
+} satisfies PlaygroundRecorderCapturePolicy;
+
+const STUDIO_ANDROID_RECORDER_CAPTURE_POLICY = {
+  ...STUDIO_STREAM_RECORDER_CAPTURE_POLICY,
+  acceptClientBeforeFrame: true,
+} satisfies PlaygroundRecorderCapturePolicy;
+
+function withStudioRecorderCapturePolicy(
+  prepared: PreparedPlaygroundPlatform,
+  policy: PlaygroundRecorderCapturePolicy,
+): PreparedPlaygroundPlatform {
+  return {
+    ...prepared,
+    recorderCapturePolicy: policy,
+  };
+}
+
 function toScrcpyDeviceList(devices: DiscoveredDevice[]) {
   return devices
     .filter((device) => device.platformId === 'android')
@@ -361,6 +381,7 @@ async function prepareStudioWebPlatform({
     metadata: {
       interfaceType: 'web',
     },
+    recorderCapturePolicy: STUDIO_STREAM_RECORDER_CAPTURE_POLICY,
     sessionManager: {
       async getSetupSchema() {
         return {
@@ -550,14 +571,17 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/android-playground',
     prepare: async (staticDir) => {
       const androidModule = await loadAndroidModule();
-      return androidModule.androidPlaygroundPlatform.prepare({
-        staticDir,
-        getAgentOptions,
-        scrcpyServer: await createStudioScrcpyController(
-          androidModule.ScrcpyServer,
-          deviceDiscoveryService,
-        ),
-      });
+      return withStudioRecorderCapturePolicy(
+        await androidModule.androidPlaygroundPlatform.prepare({
+          staticDir,
+          getAgentOptions,
+          scrcpyServer: await createStudioScrcpyController(
+            androidModule.ScrcpyServer,
+            deviceDiscoveryService,
+          ),
+        }),
+        STUDIO_ANDROID_RECORDER_CAPTURE_POLICY,
+      );
     },
   },
   {
@@ -567,10 +591,16 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/ios',
     prepare: async (staticDir) => {
       const iosModule = await loadIosModule();
-      return iosModule.iosPlaygroundPlatform.prepare({
-        staticDir,
-        getAgentOptions,
-      });
+      return withStudioRecorderCapturePolicy(
+        await iosModule.iosPlaygroundPlatform.prepare({
+          staticDir,
+          getAgentOptions,
+          getDeviceOptions: () => ({
+            wdaMjpegFrameSource: { enabled: true },
+          }),
+        }),
+        STUDIO_STREAM_RECORDER_CAPTURE_POLICY,
+      );
     },
   },
   {
@@ -720,11 +750,14 @@ export function createMultiPlatformRuntimeService({
                       runtimeModules.ScrcpyServer,
                       deviceDiscoveryService,
                     );
-                    return runtimeModules.androidPlaygroundPlatform.prepare({
-                      staticDir,
-                      scrcpyServer,
-                      getAgentOptions: () => agentOptions,
-                    });
+                    return withStudioRecorderCapturePolicy(
+                      await runtimeModules.androidPlaygroundPlatform.prepare({
+                        staticDir,
+                        scrcpyServer,
+                        getAgentOptions: () => agentOptions,
+                      }),
+                      STUDIO_ANDROID_RECORDER_CAPTURE_POLICY,
+                    );
                   },
                 },
                 {
@@ -732,11 +765,17 @@ export function createMultiPlatformRuntimeService({
                   label: 'iOS',
                   description: 'Connect to an iOS device via WebDriverAgent',
                   staticDirPackage: '@midscene/ios',
-                  prepare: (staticDir) =>
-                    runtimeModules.iosPlaygroundPlatform.prepare({
-                      staticDir,
-                      getAgentOptions: () => agentOptions,
-                    }),
+                  prepare: async (staticDir) =>
+                    withStudioRecorderCapturePolicy(
+                      await runtimeModules.iosPlaygroundPlatform.prepare({
+                        staticDir,
+                        getAgentOptions: () => agentOptions,
+                        getDeviceOptions: () => ({
+                          wdaMjpegFrameSource: { enabled: true },
+                        }),
+                      }),
+                      STUDIO_STREAM_RECORDER_CAPTURE_POLICY,
+                    ),
                 },
                 {
                   id: 'harmony',

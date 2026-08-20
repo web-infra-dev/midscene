@@ -1190,6 +1190,11 @@ export default function MainContent({
                     !recorder?.state.isRecording ||
                     recorder.currentSession?.status === 'recording'
                   }
+                  recorderBeforeFrameEnabled={
+                    previewPlatform === 'android' &&
+                    Boolean(recorder?.state.isRecording) &&
+                    recorder?.currentSession?.status === 'recording'
+                  }
                   screenshotViewerMode="screen-only"
                   scrcpyViewportStyle={{
                     ...(shouldFrameMobilePreview

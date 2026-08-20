@@ -22,6 +22,7 @@ import React, {
 void React;
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import type { ScrcpyFrameCapture } from './recorder-before-frame';
 import {
   SCRCPY_METADATA_TIMEOUT_MS,
   SCRCPY_STABLE_CONNECTION_MS,
@@ -68,6 +69,8 @@ interface ScrcpyPanelProps {
    * drift from the actual stream dimensions by a few pixels.
    */
   onIntrinsicSize?: (size: { width: number; height: number } | null) => void;
+  onFrameAvailable?: (receivedAt: number) => void;
+  onFrameCaptureChange?: (capture: ScrcpyFrameCapture | null) => void;
   onStatusChange?: (status: ScrcpyPreviewStatus, statusText: string) => void;
   renderErrorOverlay?: ScrcpyErrorOverlayRenderer;
   serverUrl?: string;
@@ -90,6 +93,8 @@ interface VideoMetadata {
 export function ScrcpyPanel({
   connectingOverlay,
   deviceId,
+  onFrameAvailable,
+  onFrameCaptureChange,
   onIntrinsicSize,
   onStatusChange,
   renderErrorOverlay,
@@ -108,6 +113,8 @@ export function ScrcpyPanel({
   );
   const ignoreDisconnectRef = useRef(false);
   const connectionAttemptRef = useRef(0);
+  const onFrameAvailableRef = useRef(onFrameAvailable);
+  const onFrameCaptureChangeRef = useRef(onFrameCaptureChange);
   const [status, setStatus] = useState<ScrcpyPreviewStatus>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingStatusMessage, setWaitingStatusMessage] = useState<string>(() =>
@@ -133,6 +140,14 @@ export function ScrcpyPanel({
   }, []);
 
   useEffect(() => {
+    onFrameAvailableRef.current = onFrameAvailable;
+  }, [onFrameAvailable]);
+
+  useEffect(() => {
+    onFrameCaptureChangeRef.current = onFrameCaptureChange;
+  }, [onFrameCaptureChange]);
+
+  useEffect(() => {
     onStatusChange?.(status, statusText);
   }, [onStatusChange, status, statusText]);
 
@@ -150,8 +165,10 @@ export function ScrcpyPanel({
       return;
     }
 
-    decoderRef.current.dispose();
+    const decoder = decoderRef.current;
     decoderRef.current = null;
+    onFrameCaptureChangeRef.current?.(null);
+    decoder.dispose();
   };
 
   const clearMetadataTimeout = () => {
@@ -256,7 +273,10 @@ export function ScrcpyPanel({
       }, delayMs);
     };
 
-    const createDecoder = async (codecId: ScrcpyVideoCodecId) => {
+    const createDecoder = async (
+      codecId: ScrcpyVideoCodecId,
+      onFrameDrawn: () => void,
+    ) => {
       const renderer = WebGLVideoFrameRenderer.isSupported
         ? new WebGLVideoFrameRenderer()
         : new BitmapVideoFrameRenderer();
@@ -270,7 +290,13 @@ export function ScrcpyPanel({
 
       const decoder = new WebCodecsVideoDecoder({
         codec: codecId,
-        renderer,
+        renderer: {
+          setSize: (width, height) => renderer.setSize(width, height),
+          draw: async (frame) => {
+            await renderer.draw(frame);
+            onFrameDrawn();
+          },
+        },
       });
       return decoder;
     };
@@ -373,8 +399,31 @@ export function ScrcpyPanel({
           const codecId = metadata.codec
             ? (metadata.codec as unknown as ScrcpyVideoCodecId)
             : ScrcpyVideoCodecId.H264;
-          const decoder = await createDecoder(codecId);
+          const decoder = await createDecoder(codecId, () => {
+            if (isCurrentAttempt()) {
+              onFrameAvailableRef.current?.(Date.now());
+            }
+          });
+          if (!isCurrentAttempt()) {
+            decoder.dispose();
+            return;
+          }
           decoderRef.current = decoder;
+          // `WebGLVideoFrameRenderer` intentionally disables
+          // preserveDrawingBuffer, so copying its canvas can intermittently
+          // produce an empty image. The decoder already retains the latest
+          // decoded VideoFrame specifically for snapshot(), which lets the
+          // recorder reuse this stream without changing preview rendering.
+          onFrameCaptureChangeRef.current?.(async () => {
+            const capturedAt = Date.now();
+            const width = decoder.width;
+            const height = decoder.height;
+            if (width <= 0 || height <= 0) {
+              return undefined;
+            }
+            const blob = await decoder.snapshot();
+            return blob ? { blob, capturedAt, width, height } : undefined;
+          });
 
           videoStream.pipeTo(decoder.writable).catch((error: Error) => {
             if (!isCurrentAttempt()) {

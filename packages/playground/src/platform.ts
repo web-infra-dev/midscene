@@ -29,6 +29,25 @@ export interface PlaygroundPreviewDescriptor {
   custom?: Record<string, unknown>;
 }
 
+/**
+ * Controls how the Studio preview recorder obtains an action's before-frame.
+ * Defaults preserve the existing Playground behavior: synchronous screenshot
+ * fallback is allowed and client-provided frames are ignored.
+ */
+export interface PlaygroundRecorderCapturePolicy {
+  allowSynchronousScreenshotFallback?: boolean;
+  acceptClientBeforeFrame?: boolean;
+}
+
+/** A frame frozen by a trusted preview client before it sends an interaction. */
+export interface PlaygroundRecorderBeforeFrame {
+  dataUrl: string;
+  capturedAt: number;
+  width: number;
+  height: number;
+  source: 'studio-scrcpy-preview';
+}
+
 export interface PlaygroundSessionTarget {
   id: string;
   label: string;
@@ -302,6 +321,7 @@ export interface PlaygroundCreatedSession {
   executionHooks?: PlaygroundExecutionHooks;
   sidecars?: PlaygroundSidecar[];
   subscribeNavigationEvents?: PlaygroundSessionNavigationSubscriber;
+  recorderCapturePolicy?: PlaygroundRecorderCapturePolicy;
 }
 
 export interface PlaygroundSessionManager {
@@ -327,6 +347,7 @@ export interface PreparedPlaygroundPlatform {
   preview?: PlaygroundPreviewDescriptor;
   metadata?: Record<string, unknown>;
   sidecars?: PlaygroundSidecar[];
+  recorderCapturePolicy?: PlaygroundRecorderCapturePolicy;
 }
 
 export interface PlaygroundPlatformDescriptor<TOptions = void> {

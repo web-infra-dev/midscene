@@ -1414,7 +1414,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
       rejectedInteractionResponse,
     );
     expect(rejectedInteractionResponse.statusCode).toBe(409);
-    expect(inputPrimitives.pointer.tap).toHaveBeenCalledTimes(1);
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledTimes(1);
 
     resolveAfterScreenshot?.(VALID_PNG_BASE64);
     await server.waitForRecorderIdle();
@@ -2074,6 +2074,215 @@ describe('PlaygroundServer manual interaction APIs', () => {
 
     expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
     expect(callOrder).toEqual(['screenshot', 'tap', 'size']);
+  });
+
+  test('Studio no-fallback policy dispatches without taking a device screenshot', async () => {
+    const screenshotBase64 = rs.fn(async () => VALID_PNG_BASE64);
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 720, height: 1600 }),
+      },
+    } as any);
+    server.setPreparedPlatform({
+      platformId: 'android',
+      title: 'Studio Android',
+      recorderCapturePolicy: {
+        allowSynchronousScreenshotFallback: false,
+        acceptClientBeforeFrame: true,
+      },
+    });
+
+    await server.launch(6150);
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )({ body: { sessionId: 'studio-android-no-frame' } }, createMockResponse());
+    await getRouteHandler(
+      server,
+      'post',
+      '/interact',
+    )({ body: { actionType: 'Tap', x: 10, y: 20 } }, createMockResponse());
+    await server.waitForRecorderIdle();
+
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledOnce();
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    const eventsResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )({ query: { afterLogSequence: '0' } }, eventsResponse);
+    const [event] = latestRecorderEventsBody(eventsResponse.body)
+      .events as any[];
+    expect(event).toMatchObject({
+      actionType: 'Tap',
+      captureStatus: 'failed',
+      captureError: { code: 'capture_failed' },
+    });
+    expect(event.frame).toBeUndefined();
+  });
+
+  test('Studio Android uses a validated preview frame without leaking it into the action payload', async () => {
+    const screenshotBase64 = rs.fn(async () => VALID_PNG_BASE64);
+    const tap = rs.fn(async () => {});
+    const inputPrimitives = makeInputPrimitiveStub({
+      pointer: {
+        tap,
+        doubleClick: rs.fn(async () => {}),
+        longPress: rs.fn(async () => {}),
+        dragAndDrop: rs.fn(async () => {}),
+      },
+    });
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 720, height: 1600 }),
+      },
+    } as any);
+    server.setPreparedPlatform({
+      platformId: 'android',
+      title: 'Studio Android',
+      recorderCapturePolicy: {
+        allowSynchronousScreenshotFallback: false,
+        acceptClientBeforeFrame: true,
+      },
+    });
+
+    await server.launch(6151);
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )(
+      { body: { sessionId: 'studio-android-client-frame' } },
+      createMockResponse(),
+    );
+    await getRouteHandler(
+      server,
+      'post',
+      '/interact',
+    )(
+      {
+        body: {
+          actionType: 'Tap',
+          x: 10,
+          y: 20,
+          recorderBeforeFrame: {
+            dataUrl: RECORDER_FRAME_FIXTURES[0],
+            capturedAt: Date.now(),
+            width: 2,
+            height: 2,
+            source: 'studio-scrcpy-preview',
+          },
+        },
+      },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    expect(tap).toHaveBeenCalledWith({ x: 10, y: 20 }, { duration: undefined });
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    const eventsResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )({ query: { afterLogSequence: '0' } }, eventsResponse);
+    const [event] = latestRecorderEventsBody(eventsResponse.body)
+      .events as any[];
+    expect(event).toMatchObject({
+      actionType: 'Tap',
+      captureStatus: 'ready',
+      frame: {
+        token: expect.stringMatching(/^client-preview-/),
+        source: 'shared-frame-stream',
+      },
+      screenshotAsset: {
+        mimeType: 'image/png',
+      },
+    });
+    expect(event.rawPayload.recorderBeforeFrame).toBeUndefined();
+  });
+
+  test('Studio Android degrades an invalid preview frame but still dispatches the action', async () => {
+    const screenshotBase64 = rs.fn(async () => VALID_PNG_BASE64);
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'android',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64,
+        size: async () => ({ width: 720, height: 1600 }),
+      },
+    } as any);
+    server.setPreparedPlatform({
+      platformId: 'android',
+      title: 'Studio Android',
+      recorderCapturePolicy: {
+        allowSynchronousScreenshotFallback: false,
+        acceptClientBeforeFrame: true,
+      },
+    });
+
+    await server.launch(6152);
+    await getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    )(
+      { body: { sessionId: 'studio-android-invalid-client-frame' } },
+      createMockResponse(),
+    );
+    await getRouteHandler(
+      server,
+      'post',
+      '/interact',
+    )(
+      {
+        body: {
+          actionType: 'Tap',
+          x: 10,
+          y: 20,
+          recorderBeforeFrame: {
+            dataUrl: 'data:image/jpeg;base64,bm90LWEtanBlZw==',
+            capturedAt: Date.now(),
+            width: 10,
+            height: 10,
+            source: 'studio-scrcpy-preview',
+          },
+        },
+      },
+      createMockResponse(),
+    );
+    await server.waitForRecorderIdle();
+
+    expect(inputPrimitives.pointer?.tap).toHaveBeenCalledOnce();
+    expect(screenshotBase64).not.toHaveBeenCalled();
+    const eventsResponse = createMockResponse();
+    await getRouteHandler(
+      server,
+      'get',
+      '/recorder/events',
+    )({ query: { afterLogSequence: '0' } }, eventsResponse);
+    const [event] = latestRecorderEventsBody(eventsResponse.body)
+      .events as any[];
+    expect(event).toMatchObject({
+      captureStatus: 'failed',
+      captureError: {
+        code: 'capture_failed',
+        message: expect.stringContaining('metadata'),
+      },
+    });
   });
 
   test('recorder returns input aiDescribe failed when no describe capability is available', async () => {

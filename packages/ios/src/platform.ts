@@ -14,10 +14,12 @@ import {
   type IOSAgentOpt,
   agentFromWebDriverAgent,
 } from './agent';
+import type { IOSDeviceOpt } from './device';
 
 export interface IOSPlatformOptions {
   staticDir?: string;
   getAgentOptions?: () => IOSAgentOpt;
+  getDeviceOptions?: () => IOSDeviceOpt;
 }
 
 // Quick liveness probe so getSetupSchema can flip on autoSubmitWhenReady
@@ -124,6 +126,7 @@ export const iosPlaygroundPlatform = definePlaygroundPlatform<
 
         const connectAgent = async (): Promise<IOSAgent> => {
           return agentFromWebDriverAgent({
+            ...options?.getDeviceOptions?.(),
             ...options?.getAgentOptions?.(),
             wdaHost: host,
             wdaPort: port,

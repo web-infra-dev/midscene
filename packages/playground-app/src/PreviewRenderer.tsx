@@ -1,4 +1,6 @@
 import type {
+  PlaygroundInteractPayload,
+  PlaygroundRecorderBeforeFrame,
   PlaygroundRuntimeInfo,
   PlaygroundSDK,
 } from '@midscene/playground';
@@ -33,6 +35,13 @@ import {
   buildManualDragInteractPayload,
   buildManualScrollInteractPayload,
 } from './manual-interaction';
+import {
+  type ScrcpyFrameCapture,
+  type ScrcpyFrameCaptureResult,
+  type ScrcpyFrameObservation,
+  captureRecorderBeforeFrameFromScrcpy,
+  waitForScrcpyFrameAfter,
+} from './recorder-before-frame';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 import type { ScrcpyPreviewStatus } from './scrcpy-preview';
 
@@ -53,6 +62,12 @@ interface PreviewRendererProps {
   isUserOperating: boolean;
   manualControlCoordinator?: ManualControlCoordinator;
   manualInteractionEnabled?: boolean;
+  recorderBeforeFrameEnabled?: boolean;
+}
+
+interface RecorderPreviewInteractionBoundary {
+  interactionCompletedAt: number;
+  videoSequenceAtDispatch: number;
 }
 
 function isNonLocalhostHttp(): boolean {
@@ -81,6 +96,7 @@ export function PreviewRenderer({
   isUserOperating,
   manualControlCoordinator,
   manualInteractionEnabled = true,
+  recorderBeforeFrameEnabled = false,
 }: PreviewRendererProps) {
   const { message } = AntdApp.useApp();
   const previewConnection = resolvePreviewConnectionInfo(
@@ -113,6 +129,16 @@ export function PreviewRenderer({
   // and the interaction layer so pointer coords always project against the
   // real screen-mirror box, not the outer panel that may include chrome.
   const previewContentRef = useRef<HTMLDivElement>(null);
+  const latestScrcpyFrameRef = useRef<ScrcpyFrameObservation>({
+    sequence: 0,
+    receivedAt: 0,
+  });
+  const scrcpyFrameCaptureRef = useRef<ScrcpyFrameCapture | null>(null);
+  const scrcpyFrameCaptureInFlightRef = useRef<Promise<
+    ScrcpyFrameCaptureResult | undefined
+  > | null>(null);
+  const previousRecorderInteractionRef =
+    useRef<RecorderPreviewInteractionBoundary>();
   // Default to `screen-only` so the playground does not render chrome
   // (header / Refresh / timestamp) inside the same relative-positioned panel
   // that DeviceInteractionLayer overlays — embedding hosts (Studio) can opt
@@ -232,6 +258,95 @@ export function PreviewRenderer({
     previewConnection.type !== 'none' &&
     (!scrcpyAvailable || scrcpyStatus === 'connected');
 
+  // A recording toggle does not change the scrcpy stream. Keep the latest
+  // frame and causal boundary across that toggle so the first action can use
+  // the frame already visible in Preview. Reset only when the stream identity
+  // itself changes.
+  useEffect(() => {
+    latestScrcpyFrameRef.current = { sequence: 0, receivedAt: 0 };
+    previousRecorderInteractionRef.current = undefined;
+  }, [previewConnection.deviceId, previewConnection.type]);
+
+  const handleScrcpyFrameAvailable = useCallback((receivedAt: number) => {
+    latestScrcpyFrameRef.current = {
+      sequence: latestScrcpyFrameRef.current.sequence + 1,
+      receivedAt,
+    };
+  }, []);
+
+  const handleScrcpyFrameCaptureChange = useCallback(
+    (capture: ScrcpyFrameCapture | null) => {
+      scrcpyFrameCaptureRef.current = capture;
+    },
+    [],
+  );
+
+  const interactWithRecorderBeforeFrame = useCallback(
+    async (payload: PlaygroundInteractPayload) => {
+      const shouldCapturePreviewFrame =
+        recorderBeforeFrameEnabled && scrcpyAvailable;
+      let recorderBeforeFrame: PlaygroundRecorderBeforeFrame | undefined;
+
+      if (shouldCapturePreviewFrame) {
+        const previousBoundary = previousRecorderInteractionRef.current;
+        let latestFrame = latestScrcpyFrameRef.current;
+        let frameIsEligible = latestFrame.sequence > 0;
+
+        if (frameIsEligible && previousBoundary) {
+          const observedAfterPreviousAction =
+            latestFrame.sequence > previousBoundary.videoSequenceAtDispatch &&
+            latestFrame.receivedAt >= previousBoundary.interactionCompletedAt;
+          if (!observedAfterPreviousAction) {
+            // A slow Android encoder can exceed any wall-clock grace period.
+            // Require an observed frame instead of guessing that the cached
+            // frame is current; a missing image is safer than a mismatched one.
+            const observedFrame = await waitForScrcpyFrameAfter(
+              () => latestScrcpyFrameRef.current,
+              previousBoundary.videoSequenceAtDispatch,
+              previousBoundary.interactionCompletedAt,
+            );
+            latestFrame = observedFrame ?? latestScrcpyFrameRef.current;
+            frameIsEligible = Boolean(observedFrame);
+          }
+        }
+
+        const captureFrame = scrcpyFrameCaptureRef.current;
+        if (
+          frameIsEligible &&
+          captureFrame &&
+          !scrcpyFrameCaptureInFlightRef.current
+        ) {
+          const capture = captureFrame();
+          scrcpyFrameCaptureInFlightRef.current = capture;
+          const clearCapture = () => {
+            if (scrcpyFrameCaptureInFlightRef.current === capture) {
+              scrcpyFrameCaptureInFlightRef.current = null;
+            }
+          };
+          void capture.then(clearCapture, clearCapture);
+          recorderBeforeFrame =
+            await captureRecorderBeforeFrameFromScrcpy(capture);
+        }
+      }
+
+      const videoSequenceAtDispatch = latestScrcpyFrameRef.current.sequence;
+      const result = await playgroundSDK.interact({
+        ...payload,
+        ...(recorderBeforeFrame ? { recorderBeforeFrame } : {}),
+      });
+      if (shouldCapturePreviewFrame && result.ok) {
+        previousRecorderInteractionRef.current = {
+          interactionCompletedAt: Date.now(),
+          videoSequenceAtDispatch,
+        };
+      } else if (shouldCapturePreviewFrame) {
+        previousRecorderInteractionRef.current = undefined;
+      }
+      return result;
+    },
+    [playgroundSDK, recorderBeforeFrameEnabled, scrcpyAvailable],
+  );
+
   const showManualControlError = useCallback(
     (fallback: string, error?: string) => {
       message.open({
@@ -262,7 +377,7 @@ export function PreviewRenderer({
     pendingTextInputRef.current = '';
     pendingTextInputPointRef.current = null;
     return async () => {
-      const res = await playgroundSDK.interact({
+      const res = await interactWithRecorderBeforeFrame({
         actionType: 'Input',
         value: text,
         mode: 'typeOnly',
@@ -272,7 +387,11 @@ export function PreviewRenderer({
         showManualControlError('Input failed', res.error);
       }
     };
-  }, [clearTextInputTimer, playgroundSDK, showManualControlError]);
+  }, [
+    clearTextInputTimer,
+    interactWithRecorderBeforeFrame,
+    showManualControlError,
+  ]);
 
   const flushPendingTextInput = useCallback((): Promise<void> => {
     const task = takePendingTextInputTask();
@@ -329,14 +448,14 @@ export function PreviewRenderer({
     (point: { x: number; y: number }) => {
       void flushPendingTextInput();
       return runManualControl('Tap failed', () =>
-        playgroundSDK.interact({
+        interactWithRecorderBeforeFrame({
           actionType: 'Tap',
           x: point.x,
           y: point.y,
         }),
       );
     },
-    [flushPendingTextInput, playgroundSDK, runManualControl],
+    [flushPendingTextInput, interactWithRecorderBeforeFrame, runManualControl],
   );
 
   const handleSwipe = useCallback(
@@ -347,7 +466,7 @@ export function PreviewRenderer({
     ) => {
       void flushPendingTextInput();
       return runManualControl(`${manualDragActionType} failed`, () =>
-        playgroundSDK.interact(
+        interactWithRecorderBeforeFrame(
           buildManualDragInteractPayload(
             manualDragActionType,
             start,
@@ -360,7 +479,7 @@ export function PreviewRenderer({
     [
       flushPendingTextInput,
       manualDragActionType,
-      playgroundSDK,
+      interactWithRecorderBeforeFrame,
       runManualControl,
     ],
   );
@@ -428,13 +547,13 @@ export function PreviewRenderer({
       if (!keyName) return;
       void flushPendingTextInput();
       return runManualControl('Keyboard press failed', () =>
-        playgroundSDK.interact({
+        interactWithRecorderBeforeFrame({
           actionType: 'KeyboardPress',
           keyName,
         }),
       );
     },
-    [flushPendingTextInput, playgroundSDK, runManualControl],
+    [flushPendingTextInput, interactWithRecorderBeforeFrame, runManualControl],
   );
 
   const handleWheelScroll = useCallback(
@@ -444,10 +563,12 @@ export function PreviewRenderer({
     ) => {
       void flushPendingTextInput();
       return runManualControl('Scroll failed', () =>
-        playgroundSDK.interact(buildManualScrollInteractPayload(point, delta)),
+        interactWithRecorderBeforeFrame(
+          buildManualScrollInteractPayload(point, delta),
+        ),
       );
     },
-    [flushPendingTextInput, playgroundSDK, runManualControl],
+    [flushPendingTextInput, interactWithRecorderBeforeFrame, runManualControl],
   );
 
   const handleScrcpyStatusChange = useCallback(
@@ -538,6 +659,8 @@ export function PreviewRenderer({
         <ScrcpyPanel
           connectingOverlay={connectingOverlay}
           deviceId={previewConnection.deviceId}
+          onFrameAvailable={handleScrcpyFrameAvailable}
+          onFrameCaptureChange={handleScrcpyFrameCaptureChange}
           onIntrinsicSize={setStreamSize}
           onStatusChange={handleScrcpyStatusChange}
           renderErrorOverlay={renderErrorOverlay}

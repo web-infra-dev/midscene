@@ -123,6 +123,8 @@ function normalizeChildSession(
     preview: created.preview || prepared.preview,
     executionHooks: created.executionHooks || prepared.executionHooks,
     sidecars: created.sidecars || prepared.sidecars,
+    recorderCapturePolicy:
+      created.recorderCapturePolicy || prepared.recorderCapturePolicy,
     metadata: {
       ...(prepared.metadata || {}),
       ...(created.metadata || {}),
@@ -152,6 +154,7 @@ function buildDirectPreparedSession(
     preview: prepared.preview,
     executionHooks: prepared.executionHooks,
     sidecars: prepared.sidecars,
+    recorderCapturePolicy: prepared.recorderCapturePolicy,
   };
 }
 

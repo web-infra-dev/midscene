@@ -32,6 +32,8 @@ export interface PlaygroundPreviewProps {
   isUserOperating: boolean;
   manualControlCoordinator?: ManualControlCoordinator;
   manualInteractionEnabled?: boolean;
+  /** Reuse the decoded scrcpy preview as the recorder's before-frame. */
+  recorderBeforeFrameEnabled?: boolean;
 }
 
 export function PlaygroundPreview(props: PlaygroundPreviewProps) {

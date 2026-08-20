@@ -5,6 +5,7 @@ import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
+  PlaygroundRecorderBeforeFrame,
   PlaygroundRecorderCancelFinalizationResult,
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderDescribeResult,
@@ -31,6 +32,7 @@ import type {
 
 export type PlaygroundInteractPayload = {
   actionType: string;
+  recorderBeforeFrame?: PlaygroundRecorderBeforeFrame;
 } & Record<string, unknown>;
 
 export interface PlaygroundInteractResult {
