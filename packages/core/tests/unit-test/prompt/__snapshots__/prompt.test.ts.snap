@@ -724,6 +724,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+
+
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
@@ -1092,6 +1094,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+
+
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
@@ -1438,6 +1442,8 @@ For example:
 ## Return Format
 
 Return in XML format following this decision flow:
+
+
 
 
 
@@ -1805,6 +1811,8 @@ For example:
 ## Return Format
 
 Return in XML format following this decision flow:
+
+
 
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
@@ -2241,6 +2249,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+
+
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
@@ -2667,6 +2677,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+
+
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>
@@ -3034,6 +3046,8 @@ For example:
 ## Return Format
 
 Return in XML format following this decision flow:
+
+
 
 **Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->

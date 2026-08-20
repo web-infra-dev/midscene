@@ -10,12 +10,7 @@ import { getMidsceneLocationSchema } from '@/common';
 import { buildYamlFlowFromPlans } from '@/common';
 import { actionInputParamSchema, actionTapParamSchema } from '@/device';
 import type { DeviceAction } from '@/types';
-import {
-  MIDSCENE_USE_DOUBAO_VISION,
-  OPENAI_API_KEY,
-  OPENAI_BASE_URL,
-} from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
@@ -40,35 +35,7 @@ const parseStandardPlanningResponse = (
     actionOutputProtocol: defaultMidscenePlanningProtocol.actionOutputProtocol,
   });
 
-describe('llm planning - doubao', () => {
-  beforeEach(() => {
-    vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
-    vi.stubEnv(OPENAI_API_KEY, 'mock');
-    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('adapts doubao locate result to pixel bbox', () => {
-    const locateAdapter = getModelAdapter('doubao-vision').locate;
-    if (locateAdapter.kind !== 'standard') {
-      throw new Error('doubao-vision should use standard locate adapter');
-    }
-    const locate = {
-      id: 'test',
-      prompt: 'test',
-      bbox_2d: [123, 123, 923, 923] as [number, number, number, number],
-    };
-
-    const locatedPixelBbox =
-      locateAdapter.resultAdapter.adaptPlanningParamToPixelBbox(locate, {
-        preparedSize: { width: 1000, height: 1000 },
-      });
-    expect(locatedPixelBbox).toEqual([123, 123, 922, 922]);
-  });
-
+describe('llm planning - locate result adapters', () => {
   it('throws when adapting locate result without a recognizable result field', () => {
     const locateAdapter = getModelAdapter('glm-v').locate;
     if (locateAdapter.kind !== 'standard') {

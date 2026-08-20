@@ -1,4 +1,7 @@
-import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
+import type {
+  ParsedPlanningLocateParameter,
+  StandardPlanningProtocol,
+} from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
@@ -302,6 +305,7 @@ describe('plan XML parse retry', () => {
       actionSpaceProtocol: {
         title: 'Custom tools',
         format: 'jsonl',
+        includeActionOutputExample: true,
         buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
         buildActionDescription: () => ({
           name: 'CUSTOM_TOOL_DEFINITION',
@@ -319,6 +323,8 @@ describe('plan XML parse retry', () => {
           )?.[1];
           return type ? { type } : null;
         },
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
       },
     };
     vi.mocked(callAI).mockResolvedValueOnce(

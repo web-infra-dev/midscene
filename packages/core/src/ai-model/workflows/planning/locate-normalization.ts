@@ -3,6 +3,7 @@ import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
 import type {
   LocateResultAdapter,
   LocateResultContext,
@@ -17,11 +18,13 @@ export function normalizePlanningActionLocateFields(
     includeLocateInPlanning,
     locateResultAdapter,
     locateResultContext,
+    parseRawLocateParameter,
   }: {
     actionSpace: DeviceAction[];
     includeLocateInPlanning: boolean;
     locateResultAdapter?: LocateResultAdapter;
     locateResultContext: LocateResultContext;
+    parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
   },
 ): void {
   actions.forEach((action) => {
@@ -41,16 +44,16 @@ export function normalizePlanningActionLocateFields(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
-      const locateResult = action.param?.[field];
-      if (!locateResult) {
+      const rawLocateParameter = action.param?.[field];
+      if (!rawLocateParameter) {
         return;
       }
 
+      const locateParameter = parseRawLocateParameter(rawLocateParameter);
+
       if (!includeLocateInPlanning) {
-        if (typeof locateResult === 'object') {
-          // In prompt-only planning mode, ignore any accidental coordinates from the model.
-          action.param[field] = { prompt: locateResult.prompt };
-        }
+        // In prompt-only planning mode, ignore any accidental coordinates from the model.
+        action.param[field] = { prompt: locateParameter.prompt };
         return;
       }
 
@@ -59,9 +62,9 @@ export function normalizePlanningActionLocateFields(
         'planning locate normalization requires a locate result adapter',
       );
       action.param[field] = {
-        ...locateResult,
+        ...locateParameter,
         locatedPixelBbox: locateResultAdapter.adaptPlanningParamToPixelBbox(
-          locateResult,
+          locateParameter,
           locateResultContext,
         ),
       };

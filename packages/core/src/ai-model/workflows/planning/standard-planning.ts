@@ -97,15 +97,16 @@ async function callAndParsePlanningResponse(
       }
 
       const actions = planFromAI.action ? [planFromAI.action] : [];
-      // Keep yamlFlow based on the model's original action params. Coordinate
-      // normalization adds runtime-only locatedPixelBbox fields afterwards.
-      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
       normalizePlanningActionLocateFields(actions, {
         actionSpace,
         includeLocateInPlanning,
         locateResultAdapter,
         locateResultContext,
+        parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
       });
+      // dumpActionParam keeps only the locator prompt, so runtime-only
+      // locatedPixelBbox fields added during normalization are not serialized.
+      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
       return { response, planFromAI, actions, yamlFlow };
     },
     toParseError: (parseError, response) => {

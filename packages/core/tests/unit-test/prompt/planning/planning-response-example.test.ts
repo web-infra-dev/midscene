@@ -64,6 +64,18 @@ describe('buildPlanningResponseExample', () => {
 <complete success="true">john@example.com</complete>`);
   });
 
+  it('prepends a response prefix', () => {
+    expect(
+      buildPlanningResponseExample({
+        prefix: '<response-prefix>reasoning</response-prefix>',
+        planning: 'Continue the task.',
+        actionOutputExample: '<custom-action />',
+      }),
+    ).toBe(`<response-prefix>reasoning</response-prefix>
+<planning>Continue the task.</planning>
+<custom-action />`);
+  });
+
   it('throws when no action output example is provided', () => {
     expect(() =>
       buildPlanningResponseExample({

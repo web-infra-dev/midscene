@@ -1,0 +1,1 @@
+export { doubaoAdapters } from './adapter';
