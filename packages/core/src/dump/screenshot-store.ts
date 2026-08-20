@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFile as writeFileAsync } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
+import {
+  type ScreenshotImageMimeType,
+  isScreenshotImageMimeType,
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+} from '@midscene/shared/img';
 import type { ScreenshotItem } from '../screenshot-item';
 import { extractImageByIdSync } from './html-utils';
 
@@ -8,7 +14,7 @@ export interface ScreenshotRef {
   type: 'midscene_screenshot_ref';
   id: string;
   capturedAt: number;
-  mimeType: 'image/png' | 'image/jpeg';
+  mimeType: ScreenshotImageMimeType;
   storage: 'inline' | 'file';
   path?: string;
 }
@@ -22,7 +28,7 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
     typeof record.id === 'string' &&
     typeof record.capturedAt === 'number' &&
     (record.storage === 'inline' || record.storage === 'file') &&
-    (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg')
+    isScreenshotImageMimeType(record.mimeType)
   ) {
     if (record.storage === 'file' && typeof record.path !== 'string') {
       return null;
@@ -48,7 +54,11 @@ type ResolvedScreenshotSource =
     };
 
 function extensionByMimeType(mimeType: ScreenshotRef['mimeType']): string {
-  return mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+  const format = screenshotImageFormatFromMimeType(mimeType);
+  if (!format) {
+    throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+  }
+  return screenshotImageExtension(format);
 }
 
 export function resolveScreenshotSource(

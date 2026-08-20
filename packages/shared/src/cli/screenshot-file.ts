@@ -1,6 +1,11 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  type ScreenshotImageFormat,
+  screenshotImageFormatFromExtension,
+  screenshotImageFormatFromMimeType,
+} from '../img/image-format';
 
 export interface WriteCliScreenshotFileOptions {
   id?: unknown;
@@ -20,14 +25,12 @@ function safeScreenshotFilenamePart(value: unknown): string {
 function extensionFromImageMetadata(
   mimeType: unknown,
   extension: unknown,
-): 'png' | 'jpeg' {
-  if (extension === 'jpeg' || extension === 'jpg') {
-    return 'jpeg';
+): ScreenshotImageFormat {
+  const extensionFormat = screenshotImageFormatFromExtension(extension);
+  if (extensionFormat) {
+    return extensionFormat;
   }
-  if (extension === 'png') {
-    return 'png';
-  }
-  return mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+  return screenshotImageFormatFromMimeType(mimeType) ?? 'png';
 }
 
 export function writeCliScreenshotFile(

@@ -18,12 +18,15 @@ rs.mock('@midscene/core', () => ({
 
 const VALID_PNG_BASE64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAKklEQVR4nO3MIQEAAAzDsPo3/ePhDi4CwpWxUMMXaaFH4QgLPQpHWHg6fOdROhs7ULsmAAAAAElFTkSuQmCC';
+const VALID_WEBP_BASE64 =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 function createMockResponse() {
   return {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
+    contentType: undefined as string | undefined,
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -36,7 +39,8 @@ function createMockResponse() {
       this.body = payload;
       return this;
     },
-    type() {
+    type(contentType: string) {
+      this.contentType = contentType;
       return this;
     },
     setHeader(name: string, value: string) {
@@ -434,7 +438,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
                   type: 'midscene_screenshot_ref',
                   id: 'shot-1',
                   capturedAt: 1,
-                  mimeType: 'image/png',
+                  mimeType: 'image/webp',
                   storage: 'inline',
                 },
               },
@@ -443,7 +447,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         },
       ],
     };
-    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_WEBP_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
     rs.mocked(createReadStream).mockImplementation(
       () =>
         ({
@@ -497,12 +501,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
       const screenshotResponse = createMockResponse();
       await screenshotHandler(
         {
-          params: { reportId: report.id, assetName: 'shot-1.png' },
+          params: { reportId: report.id, assetName: 'shot-1.webp' },
         },
         screenshotResponse,
       );
       expect(Buffer.isBuffer(screenshotResponse.body)).toBe(true);
       expect((screenshotResponse.body as Buffer).length).toBeGreaterThan(0);
+      expect(screenshotResponse.contentType).toBe('image/webp');
     } finally {
       await server.close();
     }
