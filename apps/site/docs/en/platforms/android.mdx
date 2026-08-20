@@ -295,6 +295,40 @@ export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 
 The default is `auto`, which tries `adb.takeScreenshot` first, falls back to shell `screencap`, and uses the yadb tool if `screencap` fails to execute. scrcpy is only tried before these when `scrcpyConfig.enabled` is turned on. `auto` does not analyze screenshot content — even if a method succeeds but returns a black frame, it will not automatically switch to yadb; it only moves to the next method when the previous one fails to execute. For secure pages that produce a valid but black image, set `always-yadb` to bypass the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and use yadb directly. Yadb can only capture the default display (`displayId=0`), so combining `always-yadb` with a non-zero `displayId` throws an error.
 
+### Why does scrcpy fall back to ADB screenshots?
+
+On a bandwidth-constrained remote device connection, the default 100 Mbps scrcpy video stream can build up a transport backlog. If Midscene cannot obtain a frame captured after the latest action, it rejects the stale frame and falls back to an ADB screenshot.
+
+For the Android CLI, start with a 4 Mbps video bitrate and add both options to every command that uses scrcpy:
+
+```bash
+midscene-android tap \
+  --device-id <device-id> \
+  --locate '{"prompt":"the target"}' \
+  --use-scrcpy \
+  --scrcpy-video-bit-rate 4000000
+```
+
+The camel-case alias `--scrcpyVideoBitRate` is also accepted. The bitrate option enables scrcpy by itself, so `--use-scrcpy` may be omitted when it is present. The value is in bits per second. Lower it further if fallback continues; raising it can preserve more image detail when the connection has enough bandwidth.
+
+For the JavaScript SDK or YAML configuration, set the equivalent `scrcpyConfig.videoBitRate` option:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  scrcpyConfig: {
+    enabled: true,
+    videoBitRate: 4_000_000,
+  },
+});
+```
+
+```yaml
+android:
+  scrcpyConfig:
+    enabled: true
+    videoBitRate: 4000000
+```
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:
