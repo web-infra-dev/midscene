@@ -296,6 +296,14 @@ export const parseOpenaiSdkConfig = ({
         `${keys.responseFormat} must be one of: none, auto. Got: ${val}`,
       );
     })(),
+    imageInputFormat: (() => {
+      const val = provider[keys.imageInputFormat]?.trim()?.toLowerCase();
+      if (!val || val === 'webp') return 'webp';
+      if (val === 'jpeg') return 'jpeg';
+      throw new Error(
+        `${keys.imageInputFormat} must be one of: webp, jpeg. Got: ${val}`,
+      );
+    })(),
   };
 };
 

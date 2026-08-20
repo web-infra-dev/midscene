@@ -9,9 +9,6 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import * as serviceCallerActual from '@/ai-model/service-caller' with {
   rstest: 'importActual',
 };
-import * as imgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
 
 const { mockCallAIWithObjectResponse } = rs.hoisted(() => ({
   mockCallAIWithObjectResponse: rs.fn(),
@@ -20,12 +17,12 @@ const {
   mockCompositeElementInfoImg,
   mockCompositePointMarkerImg,
   mockCropByRect,
-  mockResizeBase64ImageToJpeg,
+  mockResizeBase64ImageToWebp,
 } = rs.hoisted(() => ({
   mockCompositeElementInfoImg: rs.fn(),
   mockCompositePointMarkerImg: rs.fn(),
   mockCropByRect: rs.fn(),
-  mockResizeBase64ImageToJpeg: rs.fn(),
+  mockResizeBase64ImageToWebp: rs.fn(),
 }));
 
 rs.mock('@/ai-model/service-caller', () => ({
@@ -34,11 +31,10 @@ rs.mock('@/ai-model/service-caller', () => ({
 }));
 
 rs.mock('@midscene/shared/img', () => ({
-  ...imgActual,
   compositeElementInfoImg: mockCompositeElementInfoImg,
   compositePointMarkerImg: mockCompositePointMarkerImg,
   cropByRect: mockCropByRect,
-  resizeBase64ImageToJpeg: mockResizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp: mockResizeBase64ImageToWebp,
 }));
 
 function createFakeContext(): UIContext {
@@ -78,9 +74,9 @@ describe('service.describe', () => {
       height: rect.height,
       imageBase64: 'data:image/png;base64,cropped',
     }));
-    mockResizeBase64ImageToJpeg.mockReset();
-    mockResizeBase64ImageToJpeg.mockResolvedValue(
-      'data:image/jpeg;base64,resized',
+    mockResizeBase64ImageToWebp.mockReset();
+    mockResizeBase64ImageToWebp.mockResolvedValue(
+      'data:image/webp;base64,resized',
     );
   });
 
@@ -276,12 +272,16 @@ describe('service.describe', () => {
       { deepDescribe: true },
     );
 
-    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
-      left: 1313,
-      top: 325,
-      width: 431,
-      height: 371,
-    });
+    expect(mockCropByRect).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        left: 1313,
+        top: 325,
+        width: 431,
+        height: 371,
+      },
+      'webp',
+    );
     expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
       'data:image/png;base64,boxed',
     );
@@ -329,12 +329,16 @@ describe('service.describe', () => {
       description: 'point target with row context',
     });
 
-    expect(mockCropByRect).toHaveBeenCalledWith(expect.any(String), {
-      left: 1300,
-      top: 300,
-      width: 400,
-      height: 400,
-    });
+    expect(mockCropByRect).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        left: 1300,
+        top: 300,
+        width: 400,
+        height: 400,
+      },
+      'webp',
+    );
     expect(mockCropByRect.mock.calls.map(([image]) => image)).not.toContain(
       'data:image/png;base64,point',
     );

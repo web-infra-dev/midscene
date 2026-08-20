@@ -18,10 +18,7 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import {
-  imageInfoOfBase64,
-  normalizeScreenshotBase64,
-} from '@midscene/shared/img';
+import { normalizeScreenshotBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
@@ -162,9 +159,10 @@ export async function createScreenshotBoundUIContext(
 ): Promise<UIContext> {
   const normalizedScreenshotBase64 =
     normalizeScreenshotBase64(screenshotBase64);
-  const actualScreenshotSize = await imageInfoOfBase64(
+  const preparedScreenshot = await prepareRawScreenshot(
     normalizedScreenshotBase64,
   );
+  const actualScreenshotSize = preparedScreenshot.originalSize;
   if (
     opt.screenshotSize &&
     (opt.screenshotSize.width !== actualScreenshotSize.width ||
@@ -180,8 +178,8 @@ export async function createScreenshotBoundUIContext(
   }
 
   return {
-    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
-    shotSize: actualScreenshotSize,
+    screenshot: ScreenshotItem.create(preparedScreenshot.base64, Date.now()),
+    shotSize: preparedScreenshot.shotSize,
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };

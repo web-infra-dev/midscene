@@ -37,10 +37,15 @@ export async function prepareModelImage(options: {
   let modelWidth = width;
   let modelHeight = height;
 
-  if (policy.padBlockSize !== undefined) {
+  const padBlockSize = policy.padBlockSize;
+  const requiresPadding =
+    padBlockSize !== undefined &&
+    (width % padBlockSize !== 0 || height % padBlockSize !== 0);
+  if (requiresPadding) {
     const paddedResult = await paddingToMatchBlockByBase64(
       imageBase64,
-      policy.padBlockSize,
+      padBlockSize,
+      'webp',
     );
     preparedImageBase64 = paddedResult.imageBase64;
     modelWidth = paddedResult.width;

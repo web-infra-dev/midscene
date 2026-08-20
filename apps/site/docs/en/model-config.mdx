@@ -28,6 +28,7 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_RESPONSE_FORMAT` | Structured response strategy: `auto` (default) lets Midscene automatically use `response_format` in appropriate scenarios to specify a structured output format (usually JSON), making the model response as suitable for structured parsing as possible; `none` does not set `response_format`, for models that do not support structured output. |
+| `MIDSCENE_MODEL_IMAGE_INPUT_FORMAT` | Encoding for inline images sent to the model: `webp` (default) or `jpeg`. Use `jpeg` as a compatibility fallback when an OpenAI-compatible provider rejects WebP. This only changes the request payload; persisted screenshots and reports remain WebP. |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
@@ -54,6 +55,7 @@ Set the following if the Insight intent needs a different model:
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 | `MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Insight scenarios |
+| `MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT` | Optional; same effect as `MIDSCENE_MODEL_IMAGE_INPUT_FORMAT` for the dedicated Insight model |
 
 ### Configure a dedicated Planning model
 
@@ -74,6 +76,7 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 | `MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON` | Optional; same effect as `MIDSCENE_MODEL_EXTRA_BODY_JSON` |
 | `MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT` | Optional; controls the structured response strategy in appropriate Planning scenarios |
+| `MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT` | Optional; same effect as `MIDSCENE_MODEL_IMAGE_INPUT_FORMAT` for the dedicated Planning model |
 
 ### Model-native thinking {#model-native-reasoning}
 
