@@ -355,6 +355,7 @@ describe('ScrcpyScreenshotManager', () => {
     it('drops frames captured before the device-clock barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const listener = rs.fn();
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
       manager.subscribeKeyframes(listener);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
@@ -364,9 +365,7 @@ describe('ScrcpyScreenshotManager', () => {
       };
       rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_000_000n);
 
-      const barrier = await manager.setFreshnessBarrier(
-        'completed input action',
-      );
+      const barrier = await manager.setFreshnessBarrier('input action started');
       expect(barrier).toBe(1_006_000n);
 
       (manager as any).processFrame(spsPacket());
@@ -374,7 +373,11 @@ describe('ScrcpyScreenshotManager', () => {
       expect(manager.getLatestRawKeyframe()).toBeNull();
       expect(listener).not.toHaveBeenCalled();
       expect((manager as any).frameFreshnessError?.message).toContain(
-        'completed input action',
+        'input action started',
+      );
+      expect(warn).not.toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining('predates the input action started'),
       );
 
       (manager as any).processFrame(dataPacket(0x02, 1_006_000n));
@@ -408,7 +411,7 @@ describe('ScrcpyScreenshotManager', () => {
       expect(readClock).toHaveBeenCalledTimes(1);
     });
 
-    it('projects a deferred action barrier from when the action completed', async () => {
+    it('projects a deferred action barrier from when the action started', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
@@ -419,8 +422,8 @@ describe('ScrcpyScreenshotManager', () => {
       rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_500_000n);
 
       const barrier = await manager.setFreshnessBarrier(
-        'completed input action while scrcpy was unavailable',
-        10_100_000n,
+        'input action started while scrcpy was unavailable',
+        { hostMonotonicUs: 10_100_000n },
       );
 
       expect(barrier).toBe(1_106_000n);
@@ -428,6 +431,42 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).processFrame(spsPacket());
       (manager as any).processFrame(dataPacket(0x01, 1_200_000n));
       expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x01);
+    });
+
+    it('reuses an over-age frame once when it crossed the input-action barrier', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).spsHeader = Buffer.from('header');
+      (manager as any).lastRawKeyframe = Buffer.from('post-action-frame');
+      (manager as any).lastRawKeyframePtsUs = 1_100_000n;
+      (manager as any).lastRawKeyframeAt = 2_000;
+      (manager as any).frameFreshnessBarrierPtsUs = 1_006_000n;
+      (manager as any).frameFreshnessBarrierReason = 'input action started';
+      (manager as any).frameFreshnessBarrierAllowsOverAgeForNextCapture = true;
+      (manager as any).deviceClockCalibration = {
+        deviceUptimeUs: 1_000_000n,
+        hostMonotonicUs: 10_000_000n,
+        hostWallTimeMs: 2_000,
+        roundTripUs: 10_000n,
+      };
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(11_100_000n);
+      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+      rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
+      const waitForNextKeyframe = rs.spyOn(
+        manager as any,
+        'waitForNextKeyframe',
+      );
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        Buffer.from('jpeg'),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
+        Buffer.from('jpeg'),
+      );
+      expect(waitForNextKeyframe).not.toHaveBeenCalled();
+      expect((manager as any).frameFreshnessBarrierPtsUs).toBeNull();
+      expect(
+        (manager as any).frameFreshnessBarrierAllowsOverAgeForNextCapture,
+      ).toBe(false);
     });
 
     it('deduplicates concurrent clock calibration for one stream epoch', async () => {
