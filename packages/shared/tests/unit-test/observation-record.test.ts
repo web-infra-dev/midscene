@@ -25,6 +25,8 @@ function tempDirectory(): string {
 
 const dataUrl = (text: string) =>
   `data:image/png;base64,${Buffer.from(text).toString('base64')}`;
+const webpDataUrl =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 describe('UIObservationRecordWriter', () => {
   afterEach(() => {
@@ -104,7 +106,39 @@ describe('UIObservationRecordWriter', () => {
       join(tempDirectory(), 'record.json'),
     );
     expect(() => writer.persistFrame('not-an-image', 100)).toThrow(
-      /PNG or JPEG data URL/,
+      /PNG, JPEG, or WebP data URL/,
+    );
+  });
+
+  it('persists and exports WebP frames with WebP metadata', () => {
+    const directory = tempDirectory();
+    const writer = new UIObservationRecordWriter(
+      join(directory, 'record.json'),
+    );
+    const frame = writer.persistFrame(webpDataUrl, 100);
+
+    expect(frame.mimeType).toBe('image/webp');
+    expect(frame.path).toMatch(/\.webp$/);
+    expect(existsSync(writer.resolveFramePath(frame))).toBe(true);
+
+    const record = writer.finalize([frame], {
+      startedAt: 50,
+      endedAt: 150,
+      shotSize: { width: 2, height: 3 },
+      shrunkShotToLogicalRatio: 1,
+    });
+    const outputPath = join(directory, 'exported-record.json');
+    writeUIObservationRecord(record, outputPath);
+
+    const serialized = JSON.parse(readFileSync(outputPath, 'utf8'));
+    expect(serialized.frames[0]).toEqual({
+      path: 'exported-record.frames/0000.webp',
+      mimeType: 'image/webp',
+      capturedAt: 100,
+    });
+    const resolved = readUIObservationRecord(outputPath);
+    expect(readFileSync(resolved.frames[0].path)).toEqual(
+      Buffer.from(webpDataUrl.split(',')[1], 'base64'),
     );
   });
 

@@ -58,12 +58,16 @@ import {
   parseDumpAttributes,
 } from './utils/report-dump';
 import { parseTestRunReportDump } from './utils/test-run-report';
+import {
+  type ReportScreenshotSourceRef,
+  resolveScreenshotFallbackPath,
+} from './utils/screenshot-source';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
 function resolveImageFromDom(
-  refOrId: string | { id: string; storage?: 'inline' | 'file'; path?: string },
+  refOrId: string | ReportScreenshotSourceRef,
 ): string {
   const id = typeof refOrId === 'string' ? refOrId : refOrId.id;
   const cached = imageCache.get(id);
@@ -78,12 +82,7 @@ function resolveImageFromDom(
     return data;
   }
 
-  if (typeof refOrId === 'object' && refOrId?.storage === 'file') {
-    return refOrId.path || `./screenshots/${id}.png`;
-  }
-
-  // Fallback to directory path
-  return `./screenshots/${id}.png`;
+  return resolveScreenshotFallbackPath(refOrId);
 }
 
 let globalRenderCount = 1;

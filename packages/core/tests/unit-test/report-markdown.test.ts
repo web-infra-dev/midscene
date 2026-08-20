@@ -28,6 +28,53 @@ function createTask(overrides: Record<string, unknown> = {}) {
 }
 
 describe('report-markdown', () => {
+  it('exports WebP screenshots with matching MIME types and file extensions', () => {
+    const webpDataUrl =
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+    const execution: IExecutionDump = {
+      logTime: 1710000000000,
+      name: 'webp execution',
+      tasks: [
+        createTask({
+          uiContext: {
+            screenshot: ScreenshotItem.create(webpDataUrl, 1710000000000),
+          },
+          recorder: [
+            {
+              type: 'screenshot',
+              ts: 1710000000050,
+              screenshot: {
+                type: 'midscene_screenshot_ref',
+                id: 'webp-recorder',
+                capturedAt: 1710000000050,
+                mimeType: 'image/webp',
+                storage: 'file',
+                path: './screenshots/webp-recorder.webp',
+              },
+            },
+          ],
+        }),
+      ],
+    };
+
+    const result = executionToMarkdown(execution);
+
+    expect(result.attachments).toHaveLength(2);
+    expect(result.attachments[0]).toMatchObject({
+      mimeType: 'image/webp',
+      base64Data: webpDataUrl,
+    });
+    expect(result.attachments[1]).toMatchObject({
+      mimeType: 'image/webp',
+      sourceRef: { path: './screenshots/webp-recorder.webp' },
+    });
+    expect(
+      result.attachments.every(({ suggestedFileName }) =>
+        suggestedFileName.endsWith('.webp'),
+      ),
+    ).toBe(true);
+  });
+
   it('handles single execution markdown with screenshot file links', () => {
     const screenshot = ScreenshotItem.create(
       'data:image/png;base64,Zm9v',

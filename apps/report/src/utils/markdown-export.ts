@@ -1,7 +1,7 @@
 import type { MarkdownAttachment } from '@midscene/core';
 
 const defaultScreenshotBaseDir = './screenshots';
-const dataUrlBase64Pattern = /^data:image\/(?:png|jpeg|jpg);base64,/i;
+const dataUrlBase64Pattern = /^data:image\/(?:png|jpeg|jpg|webp);base64,/i;
 const rawBase64Pattern = /^[a-zA-Z0-9+/=\s]+$/;
 
 type MarkdownExport = {
