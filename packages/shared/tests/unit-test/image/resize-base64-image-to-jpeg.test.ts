@@ -1,17 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const imageBackendMocks = vi.hoisted(() => {
-  const metadata = vi.fn();
-  const toBuffer = vi.fn();
-  const jpeg = vi.fn(() => ({ toBuffer }));
-  const resize = vi.fn(() => ({ jpeg }));
-  const sharp = vi.fn(() => ({ jpeg, metadata, resize }));
-  const getSharp = vi.fn(async () => sharp);
+const imageBackendMocks = rs.hoisted(() => {
+  const metadata = rs.fn();
+  const toBuffer = rs.fn();
+  const jpeg = rs.fn(() => ({ toBuffer }));
+  const resize = rs.fn(() => ({ jpeg }));
+  const sharp = rs.fn(() => ({ jpeg, metadata, resize }));
+  const getSharp = rs.fn(async () => sharp);
 
   return { getSharp, jpeg, metadata, resize, sharp, toBuffer };
 });
 
-vi.mock('@/img/get-sharp', () => ({
+rs.mock('@/img/get-sharp', () => ({
   default: imageBackendMocks.getSharp,
 }));
 
@@ -24,7 +24,7 @@ const jpegDataUrl =
 
 describe('resizeBase64ImageToJpeg image backend usage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     imageBackendMocks.metadata.mockResolvedValue({ width: 8, height: 6 });
     imageBackendMocks.toBuffer.mockResolvedValue(
       Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
@@ -91,7 +91,7 @@ describe('resizeBase64ImageToJpeg image backend usage', () => {
 
 describe('convertBase64ImageToJpeg image backend usage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     imageBackendMocks.toBuffer.mockResolvedValue(
       Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
     );
