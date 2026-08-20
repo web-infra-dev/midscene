@@ -96,6 +96,32 @@ describe('ExecutionDump', () => {
       expect(serialized).toContain('[Page object]');
       expect(serialized).toContain('[Browser object]');
     });
+
+    it('should bound arbitrary task error payloads without mutating live tasks', () => {
+      const originalError = {
+        code: 'E_LARGE_PAYLOAD',
+        payload: 'x'.repeat(10_000_000),
+      };
+      const data = createMockExecutionDumpData();
+      data.tasks[0].status = 'failed';
+      data.tasks[0].error = originalError;
+      data.tasks[0].errorMessage = 'Error without a message';
+
+      const dump = new ExecutionDump(data);
+      const json = dump.toJSON();
+      const serialized = dump.serialize();
+      const parsed = JSON.parse(serialized);
+
+      expect(dump.tasks[0].error).toBe(originalError);
+      expect(json.tasks[0].error).toEqual({
+        name: 'Error',
+        message: 'Error without a message',
+        code: 'E_LARGE_PAYLOAD',
+      });
+      expect(parsed.tasks[0].error).toEqual(json.tasks[0].error);
+      expect(serialized.length).toBeLessThan(10_000);
+      expect(serialized).not.toContain('payload');
+    });
   });
 
   describe('toJSON', () => {
@@ -312,6 +338,40 @@ describe('ReportActionDump', () => {
         'data:image/png;base64,test-inline-screenshot',
       );
       expect(screenshotData.capturedAt).toBe(capturedAt);
+    });
+
+    it('should bound task errors in inline screenshot serialization', () => {
+      const dump = new ReportActionDump({
+        sdkVersion: '1.0.0',
+        groupName: 'Bounded Error Test',
+        modelBriefs: [],
+        executions: [
+          {
+            logTime: 123,
+            name: 'Execution',
+            tasks: [
+              {
+                taskId: 'task-1',
+                type: 'Action',
+                status: 'failed',
+                error: { payload: 'x'.repeat(10_000_000) },
+                errorMessage: 'Error without a message',
+                executor: async () => {},
+              } as any,
+            ],
+          },
+        ],
+      });
+
+      const serialized = dump.serializeWithInlineScreenshots();
+      const error = JSON.parse(serialized).executions[0].tasks[0].error;
+
+      expect(error).toEqual({
+        name: 'Error',
+        message: 'Error without a message',
+      });
+      expect(serialized.length).toBeLessThan(10_000);
+      expect(serialized).not.toContain('payload');
     });
   });
 

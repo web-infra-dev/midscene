@@ -468,6 +468,41 @@ describe(
       expect(serializedText).not.toContain('ignoredObject');
     });
 
+    it('preserves the executor stack through the serialized cause', async () => {
+      const runner = new TaskRunner(
+        'error-stack-serialization-test',
+        fakeUIContextBuilder,
+      );
+
+      async function failInExecutor() {
+        throw new Error('executor failed');
+      }
+
+      await runner.append({
+        type: 'Action Space',
+        subType: 'Tap',
+        executor: failInExecutor,
+      });
+
+      let caughtError: TaskExecutionError | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as TaskExecutionError;
+      }
+
+      expect(caughtError).toBeInstanceOf(TaskExecutionError);
+      expect((caughtError?.cause as Error).stack).toContain('failInExecutor');
+
+      const serializedError = processError(caughtError);
+      expect(serializedError.stack).toContain('TaskExecutionError');
+      expect(serializedError.cause).toMatchObject({
+        name: 'Error',
+        message: 'executor failed',
+        stack: expect.stringContaining('failInExecutor'),
+      });
+    });
+
     it('bounds message-less thrown payloads at the transport boundary', async () => {
       const runner = new TaskRunner(
         'bounded-error-serialization-test',

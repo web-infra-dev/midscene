@@ -520,7 +520,9 @@ export class TaskExecutionError extends Error {
    * Test runners serialize thrown errors across worker boundaries. The cause
    * and failed-task summary preserve actionable diagnostics there, while keeping
    * the complete runner graph, task executor, and arbitrary SDK payloads out.
-   * The original objects remain available on the live error instance.
+   * The wrapper's `stack` describes where TaskExecutionError was created. Read
+   * `cause.stack` for the executor's original stack; the original objects also
+   * remain available on the live error instance.
    */
   toJSON(): SerializedTaskExecutionError {
     const task = this.errorTask

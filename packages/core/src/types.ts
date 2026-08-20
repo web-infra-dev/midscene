@@ -623,7 +623,11 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
-    /** The original value thrown by the task executor. */
+    /**
+     * The original value thrown by the task executor. JavaScript may throw any
+     * value, so consumers should use errorMessage and errorStack for diagnostics
+     * instead of assuming this is an Error instance.
+     */
     error?: unknown;
     errorMessage?: string;
     errorStack?: string;

@@ -6,6 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import { ScreenshotItem } from '../screenshot-item';
 import type {
   ExecutionTask,
@@ -36,6 +37,17 @@ function replacerForDumpSerialization(_key: string, value: any): any {
     return value.toSerializable();
   }
   return value;
+}
+
+/** Keep raw thrown values live, but emit only bounded diagnostics in dumps. */
+function serializeExecutionTaskForDump(task: ExecutionTask): ExecutionTask {
+  const { error, ...taskWithoutError } = task;
+
+  return {
+    ...taskWithoutError,
+    ...(error === undefined ? {} : { error: serializeError(error) }),
+    recorder: task.recorder || [],
+  };
 }
 
 /**
@@ -95,10 +107,7 @@ export class ExecutionDump implements IExecutionDump {
       logTime: this.logTime,
       name: this.name,
       description: this.description,
-      tasks: this.tasks.map((task) => ({
-        ...task,
-        recorder: task.recorder || [],
-      })),
+      tasks: this.tasks.map(serializeExecutionTaskForDump),
       aiActContext: this.aiActContext,
     };
   }
