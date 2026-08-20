@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { ScreenshotImageMimeType } from '../img/image-format';
 import type { ToolDefaults } from './tool-defaults';
 
 // Avoid circular dependency: don't import from @midscene/core
@@ -102,7 +103,7 @@ export type UserPromptLike =
 
 export interface RecordToReportScreenshot {
   /**
-   * PNG/JPEG data URI, or raw PNG base64 body.
+   * PNG/JPEG/WebP data URI, or raw PNG/JPEG/WebP base64 body.
    */
   base64: string;
   description?: string;
@@ -130,7 +131,7 @@ export interface UIObservationFrame {
   /** Path to the captured image. Serialized manifests use relative paths. */
   path: string;
   /** MIME type of the captured image file. */
-  mimeType: 'image/png' | 'image/jpeg';
+  mimeType: ScreenshotImageMimeType;
   /** Capture timestamp in milliseconds. */
   capturedAt: number;
 }

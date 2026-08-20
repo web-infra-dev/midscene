@@ -18,6 +18,9 @@ function fakeBase64(sizeBytes: number): string {
   return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
 }
 
+const webpBase64 =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+
 function createExecution(
   id: string,
   screenshot: ScreenshotItem | ScreenshotRef,
@@ -127,6 +130,48 @@ describe('splitReportHtmlByExecution', () => {
     for (const screenshotFile of result.screenshotFiles) {
       expect(existsSync(screenshotFile)).toBe(true);
     }
+  });
+
+  it('externalizes inline WebP screenshots as .webp files', () => {
+    const reportPath = join(tmpDir, 'webp-report', 'index.html');
+    mkdirSync(join(tmpDir, 'webp-report'), { recursive: true });
+    const screenshot = ScreenshotItem.create(webpBase64, Date.now());
+    const dump = new ReportActionDump({
+      groupName: 'webp-split-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [createExecution('webp-exec', screenshot)],
+    });
+    writeFileSync(
+      reportPath,
+      [
+        generateImageScriptTag(screenshot.id, screenshot.base64),
+        generateDumpScriptTag(dump.serialize(), {
+          'data-group-id': 'webp-group',
+        }),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir: join(tmpDir, 'webp-output'),
+    });
+    const outputDump = JSON.parse(
+      readFileSync(result.executionJsonFiles[0], 'utf-8'),
+    );
+    const outputRef = outputDump.executions[0].tasks[0].uiContext.screenshot;
+
+    expect(outputRef).toMatchObject({
+      mimeType: 'image/webp',
+      path: `./screenshots/${screenshot.id}.webp`,
+    });
+    expect(result.screenshotFiles).toEqual([
+      join(tmpDir, 'webp-output', 'screenshots', `${screenshot.id}.webp`),
+    ]);
+    expect(readFileSync(result.screenshotFiles[0]).toString('base64')).toBe(
+      webpBase64.split(',')[1],
+    );
   });
 
   it('should process large report incrementally without accumulating all dump scripts', () => {

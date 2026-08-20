@@ -6,6 +6,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import {
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
+} from '@midscene/shared/img';
 import { ScreenshotItem } from '../screenshot-item';
 import type {
   ExecutionTask,
@@ -13,7 +17,7 @@ import type {
   IReportActionDump,
 } from '../types';
 import { restoreImageReferences } from './screenshot-restoration';
-import { ScreenshotStore } from './screenshot-store';
+import { type ScreenshotRef, ScreenshotStore } from './screenshot-store';
 
 /**
  * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
@@ -253,10 +257,10 @@ export class ReportActionDump implements IReportActionDump {
   }
 
   /**
-   * Serialize the dump to files with screenshots as separate PNG files.
+   * Serialize the dump to files with screenshots as separate image files.
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
-   * - {basePath}.screenshots/ - PNG files
+   * - {basePath}.screenshots/ - screenshot image files
    *
    * @param basePath - Base path for the dump file
    */
@@ -296,14 +300,21 @@ export class ReportActionDump implements IReportActionDump {
     const dumpString = readFileSync(basePath, 'utf-8');
     const screenshotsDir = `${basePath}.screenshots`;
 
-    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
-      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const loadFromExecutionScreenshotDir = (
+      id: string,
+      mimeType: ScreenshotRef['mimeType'],
+    ) => {
+      const format = screenshotImageFormatFromMimeType(mimeType);
+      if (!format) {
+        throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
+      }
+      const ext = screenshotImageExtension(format);
       const filePath = join(screenshotsDir, `${id}.${ext}`);
       if (!existsSync(filePath)) {
         return '';
       }
       const data = readFileSync(filePath);
-      return `data:image/${ext};base64,${data.toString('base64')}`;
+      return `data:${mimeType};base64,${data.toString('base64')}`;
     };
 
     // Restore image references
