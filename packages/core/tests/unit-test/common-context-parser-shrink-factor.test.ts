@@ -5,19 +5,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/shared/img', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@midscene/shared/img')>()),
   imageInfoOfBase64: vi.fn(),
-  resizeBase64ImageToJpeg: vi
+  resizeBase64ImageToWebp: vi
     .fn()
-    .mockResolvedValue('data:image/jpeg;base64,mock-resized-base64-data'),
+    .mockResolvedValue('data:image/webp;base64,mock-resized-base64-data'),
 }));
 
 import {
   imageInfoOfBase64,
-  resizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp,
 } from '@midscene/shared/img';
 
 const mockScreenshotBase64 = 'data:image/png;base64,mock-base64-data';
 const mockedImageInfo = vi.mocked(imageInfoOfBase64);
-const mockedResizeToJpeg = vi.mocked(resizeBase64ImageToJpeg);
+const mockedResizeToWebp = vi.mocked(resizeBase64ImageToWebp);
 
 function createMockInterface(
   logicalWidth: number,
@@ -38,19 +38,20 @@ describe('commonContextParser screenshotShrinkFactor', () => {
     vi.clearAllMocks();
   });
 
-  it('converts PNG screenshots to JPEG quality 90 when not shrinking', async () => {
+  it('converts PNG screenshots to WebP quality 90 when not shrinking', async () => {
     const mockInterface = createMockInterface(800, 400);
     mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
-    mockedResizeToJpeg.mockResolvedValue('data:image/jpeg;base64,jpeg-image');
+    mockedResizeToWebp.mockResolvedValue('data:image/webp;base64,webp-image');
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+    expect(mockedResizeToWebp).toHaveBeenCalledWith(mockScreenshotBase64, {
       sourceSize: { width: 2400, height: 1200 },
       targetSize: { width: 2400, height: 1200 },
-      jpegQuality: 90,
+      webpQuality: 90,
+      webpEffort: 1,
     });
-    expect(result.screenshot.base64).toBe('data:image/jpeg;base64,jpeg-image');
+    expect(result.screenshot.base64).toBe('data:image/webp;base64,webp-image');
   });
 
   it('does not shrink when screenshotShrinkFactor is not provided', async () => {
@@ -59,10 +60,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+    expect(mockedResizeToWebp).toHaveBeenCalledWith(mockScreenshotBase64, {
       sourceSize: { width: 2400, height: 1200 },
       targetSize: { width: 2400, height: 1200 },
-      jpegQuality: 90,
+      webpQuality: 90,
+      webpEffort: 1,
     });
     expect(result.shotSize).toEqual({ width: 2400, height: 1200 });
   });
@@ -75,10 +77,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+    expect(mockedResizeToWebp).toHaveBeenCalledWith(mockScreenshotBase64, {
       sourceSize: { width: 2400, height: 1200 },
       targetSize: { width: 1200, height: 600 },
-      jpegQuality: 90,
+      webpQuality: 90,
+      webpEffort: 1,
     });
     expect(result.shotSize).toEqual({ width: 1200, height: 600 });
   });
@@ -92,10 +95,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       screenshotShrinkFactor: 2,
     });
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+    expect(mockedResizeToWebp).toHaveBeenCalledWith(mockScreenshotBase64, {
       sourceSize: { width: 1216, height: 2688 },
       targetSize: { width: 608, height: 1344 },
-      jpegQuality: 90,
+      webpQuality: 90,
+      webpEffort: 1,
     });
     expect(result.shotSize).toEqual({ width: 608, height: 1344 });
     // dpr=1, shrunkShotToLogicalRatio = 1/2 = 0.5
@@ -110,10 +114,11 @@ describe('commonContextParser screenshotShrinkFactor', () => {
 
     const result = await commonContextParser(mockInterface, {});
 
-    expect(mockedResizeToJpeg).toHaveBeenCalledWith(mockScreenshotBase64, {
+    expect(mockedResizeToWebp).toHaveBeenCalledWith(mockScreenshotBase64, {
       sourceSize: { width: 1216, height: 2688 },
       targetSize: { width: 1216, height: 2688 },
-      jpegQuality: 90,
+      webpQuality: 90,
+      webpEffort: 1,
     });
     expect(result.shotSize).toEqual({ width: 1216, height: 2688 });
     expect(result.shrunkShotToLogicalRatio).toBeCloseTo(1, 5);

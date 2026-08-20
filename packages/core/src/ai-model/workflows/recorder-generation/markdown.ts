@@ -2,7 +2,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import {
   imageInfoOfBase64,
   parseBase64,
-  resizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
@@ -54,7 +54,7 @@ async function compressScreenshotAssetForMarkdownReplay(
   }
 
   const scale = MARKDOWN_REPLAY_SCREENSHOT_MAX_EDGE / longestEdge;
-  const dataUrl = await resizeBase64ImageToJpeg(asset.dataUrl, {
+  const dataUrl = await resizeBase64ImageToWebp(asset.dataUrl, {
     sourceSize: { width, height },
     targetSize: {
       width: Math.max(1, Math.round(width * scale)),

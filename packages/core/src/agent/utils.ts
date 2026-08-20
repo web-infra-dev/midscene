@@ -22,10 +22,7 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
-import {
-  createImgBase64ByFormat,
-  imageInfoOfBase64,
-} from '@midscene/shared/img';
+import { normalizeScreenshotBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
@@ -35,29 +32,6 @@ import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
 const agentDebug = getDebug('agent');
-const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
-
-const inferBase64ImageFormat = (base64Body: string) => {
-  if (base64Body.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  return 'jpeg';
-};
-
-const normalizeScreenshotBase64 = (screenshotBase64: string) => {
-  const trimmedBase64 = screenshotBase64.trim();
-  if (screenshotDataUrlPattern.test(trimmedBase64)) {
-    return trimmedBase64;
-  }
-
-  const base64Body = trimmedBase64.replace(/\s/g, '');
-  assert(base64Body, 'screenshotBase64 must include image data');
-  return createImgBase64ByFormat(
-    inferBase64ImageFormat(base64Body),
-    base64Body,
-  );
-};
-
 const legacyScrollTypeMap = {
   once: 'singleAction',
   untilBottom: 'scrollToBottom',
@@ -188,9 +162,10 @@ export async function createScreenshotBoundUIContext(
 ): Promise<UIContext> {
   const normalizedScreenshotBase64 =
     normalizeScreenshotBase64(screenshotBase64);
-  const actualScreenshotSize = await imageInfoOfBase64(
+  const preparedScreenshot = await prepareRawScreenshot(
     normalizedScreenshotBase64,
   );
+  const actualScreenshotSize = preparedScreenshot.originalSize;
   if (
     opt.screenshotSize &&
     (opt.screenshotSize.width !== actualScreenshotSize.width ||
@@ -206,8 +181,8 @@ export async function createScreenshotBoundUIContext(
   }
 
   return {
-    screenshot: ScreenshotItem.create(normalizedScreenshotBase64, Date.now()),
-    shotSize: actualScreenshotSize,
+    screenshot: ScreenshotItem.create(preparedScreenshot.base64, Date.now()),
+    shotSize: preparedScreenshot.shotSize,
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };

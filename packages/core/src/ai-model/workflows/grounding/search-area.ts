@@ -78,9 +78,14 @@ export async function buildSearchAreaConfig(options: {
   const croppedResult = await cropByRect(
     context.screenshot.base64,
     sectionRect,
+    'webp',
   );
 
-  const scaledResult = await scaleImage(croppedResult.imageBase64, scaleRatio);
+  const scaledResult = await scaleImage(
+    croppedResult.imageBase64,
+    scaleRatio,
+    'webp',
+  );
   return {
     sourceRect: sectionRect,
     image: {
