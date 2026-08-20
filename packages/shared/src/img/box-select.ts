@@ -6,6 +6,7 @@ import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
 import {
+  type ScreenshotImageOutputFormat,
   createImgBase64ByFormat,
   parseBase64,
   photonFromBase64,
@@ -753,14 +754,17 @@ async function encodeRgbaWithSharp(
   pixels: Uint8Array,
   width: number,
   height: number,
+  outputFormat: ScreenshotImageOutputFormat,
 ) {
   const Sharp = await getSharp();
-  const output = await Sharp(Buffer.from(pixels), {
+  const image = Sharp(Buffer.from(pixels), {
     raw: { width, height, channels: 4 },
-  })
-    .jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
-    .toBuffer();
-  return createImgBase64ByFormat('jpeg', output.toString('base64'));
+  });
+  const output = await (outputFormat === 'webp'
+    ? image.webp({ lossless: true, effort: 1 })
+    : image.jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
+  ).toBuffer();
+  return createImgBase64ByFormat(outputFormat, output.toString('base64'));
 }
 
 export const compositeElementInfoImg = async (options: {
@@ -771,6 +775,7 @@ export const compositeElementInfoImg = async (options: {
   borderThickness?: number;
   centerPoint?: boolean;
   prompt?: string;
+  outputFormat?: ScreenshotImageOutputFormat;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   if (ifInNode) {
@@ -791,6 +796,7 @@ export const compositeElementInfoImg = async (options: {
       blendPixels(pixels, overlayPixels, width, height),
       width,
       height,
+      options.outputFormat ?? 'jpeg',
     );
   }
 
@@ -852,7 +858,11 @@ export const compositeElementInfoImg = async (options: {
 
     // Create result image
     const resultImage = new PhotonImage(blendedPixels, width, height);
-    const base64 = await photonToBase64(resultImage, 90);
+    const base64 = await photonToBase64(
+      resultImage,
+      90,
+      options.outputFormat ?? 'jpeg',
+    );
 
     resultImage.free();
     return base64;
@@ -867,6 +877,7 @@ export const compositePointMarkerImg = async (options: {
   size?: { width: number; height: number };
   radius?: number;
   indexId?: number;
+  outputFormat?: ScreenshotImageOutputFormat;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
   if (ifInNode) {
@@ -887,6 +898,7 @@ export const compositePointMarkerImg = async (options: {
       blendPixels(pixels, overlayPixels, width, height),
       width,
       height,
+      options.outputFormat ?? 'jpeg',
     );
   }
 
@@ -938,7 +950,11 @@ export const compositePointMarkerImg = async (options: {
     );
     const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
     const resultImage = new PhotonImage(blendedPixels, width, height);
-    const base64 = await photonToBase64(resultImage, 90);
+    const base64 = await photonToBase64(
+      resultImage,
+      90,
+      options.outputFormat ?? 'jpeg',
+    );
     resultImage.free();
     return base64;
   } finally {

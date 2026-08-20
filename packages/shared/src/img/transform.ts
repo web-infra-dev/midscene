@@ -7,11 +7,63 @@ import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { getDebug } from '../logger';
 import type { Rect, Size } from '../types';
 import { ifInBrowser, ifInNode, ifInWorker } from '../utils';
+import { encodeRgbaToWebp } from './browser-webp-encoder';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
-import { encodedImageInfoOfBuffer } from './info';
+import {
+  type ScreenshotImageFormat,
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  screenshotImageMimeType,
+} from './image-format';
+import { encodedImageInfoOfBuffer, isValidWebPImageBuffer } from './info';
 
 const imgDebug = getDebug('img');
+
+export const DEFAULT_WEBP_SCREENSHOT_QUALITY = 90;
+export const DEFAULT_WEBP_SCREENSHOT_EFFORT = 1;
+
+export interface WebpScreenshotEncodeOptions {
+  /** WebP quality from 1 to 100. Defaults to 90. */
+  webpQuality?: number;
+  /** Sharp encoder CPU effort from 0 to 6. Defaults to 1. */
+  webpEffort?: number;
+}
+
+/** Explicit output choices for pixel-changing screenshot transforms. */
+export type ScreenshotImageOutputFormat = 'jpeg' | 'webp';
+
+type ImageEncodeOptions =
+  | { format: 'jpeg'; quality: number }
+  | { format: 'webp'; quality: number; effort: number };
+
+function assertWebpBuffer(buffer: Uint8Array, label: string): void {
+  if (!isValidWebPImageBuffer(Buffer.from(buffer))) {
+    throw new Error(`${label} did not produce a valid WebP image`);
+  }
+}
+
+interface BrowserImagePixels {
+  get_raw_pixels(): Uint8Array;
+  get_width(): number;
+  get_height(): number;
+}
+
+async function encodeBrowserImageToWebp(
+  image: BrowserImagePixels,
+  quality: number,
+): Promise<Buffer> {
+  const output = Buffer.from(
+    await encodeRgbaToWebp({
+      pixels: image.get_raw_pixels(),
+      width: image.get_width(),
+      height: image.get_height(),
+      quality,
+    }),
+  );
+  assertWebpBuffer(output, 'Browser image encoder');
+  return output;
+}
 
 /**
  * Saves a Base64-encoded image to a file
@@ -35,7 +87,7 @@ export async function saveBase64Image(options: {
 interface ResizeImageBufferOptions {
   sourceSize?: Size;
   preserveOriginalWhenUnchanged: boolean;
-  jpegQuality: number;
+  encode: ImageEncodeOptions;
 }
 
 async function resizeImageBuffer(
@@ -86,12 +138,19 @@ async function resizeImageBuffer(
     }
 
     const image = Sharp(inputData);
-    const resizedBuffer = await (dimensionsUnchanged
+    const imageToEncode = dimensionsUnchanged
       ? image
-      : image.resize(targetSize.width, targetSize.height)
-    )
-      .jpeg({ quality: options.jpegQuality })
-      .toBuffer();
+      : image.resize(targetSize.width, targetSize.height);
+    const resizedBuffer = await (options.encode.format === 'jpeg'
+      ? imageToEncode.jpeg({ quality: options.encode.quality })
+      : imageToEncode.webp({
+          quality: options.encode.quality,
+          effort: options.encode.effort,
+        })
+    ).toBuffer();
+    if (options.encode.format === 'webp') {
+      assertWebpBuffer(resizedBuffer, 'Sharp resize');
+    }
 
     const resizeEndTime = Date.now();
     imgDebug(
@@ -100,8 +159,7 @@ async function resizeImageBuffer(
 
     return {
       buffer: resizedBuffer,
-      // by Sharp.jpeg()
-      format: 'jpeg',
+      format: options.encode.format,
     };
   }
 
@@ -138,9 +196,11 @@ async function resizeImageBuffer(
           targetSize.height,
           SamplingFilter.CatmullRom,
         );
-    resizedBuffer = Buffer.from(
-      (outputImage ?? inputImage).get_bytes_jpeg(options.jpegQuality),
-    );
+    const imageToEncode = outputImage ?? inputImage;
+    resizedBuffer =
+      options.encode.format === 'jpeg'
+        ? Buffer.from(imageToEncode.get_bytes_jpeg(options.encode.quality))
+        : await encodeBrowserImageToWebp(imageToEncode, options.encode.quality);
   } finally {
     inputImage.free();
     outputImage?.free();
@@ -154,8 +214,7 @@ async function resizeImageBuffer(
 
   return {
     buffer: resizedBuffer,
-    // by Photon.get_bytes_jpeg()
-    format: 'jpeg',
+    format: options.encode.format,
   };
 }
 
@@ -177,7 +236,7 @@ export async function resizeAndConvertImgBuffer(
 }> {
   return resizeImageBuffer(inputFormat, inputData, newSize, {
     preserveOriginalWhenUnchanged: true,
-    jpegQuality: 90,
+    encode: { format: 'jpeg', quality: 90 },
   });
 }
 
@@ -214,49 +273,55 @@ export async function convertImgBufferToJpeg(
   }
 }
 
+/** Convert an image buffer to a validated WebP image without resizing it. */
+export async function convertImgBufferToWebp(
+  inputData: Buffer,
+  options: WebpScreenshotEncodeOptions = {},
+): Promise<Buffer> {
+  const webpQuality = options.webpQuality ?? DEFAULT_WEBP_SCREENSHOT_QUALITY;
+  const webpEffort = options.webpEffort ?? DEFAULT_WEBP_SCREENSHOT_EFFORT;
+  assertValidWebpOptions(webpQuality, webpEffort);
+
+  if (ifInNode) {
+    const Sharp = await getSharp();
+    const output = await Sharp(inputData)
+      .webp({ quality: webpQuality, effort: webpEffort })
+      .toBuffer();
+    assertWebpBuffer(output, 'Sharp');
+    return output;
+  }
+
+  const mimeType = detectImageMimeTypeFromBuffer(inputData);
+  if (!mimeType) {
+    throw new Error('Cannot encode WebP from an unsupported image buffer');
+  }
+  const photonImage = await photonFromBase64(
+    `data:${mimeType};base64,${inputData.toString('base64')}`,
+  );
+  try {
+    return await encodeBrowserImageToWebp(photonImage, webpQuality);
+  } finally {
+    photonImage.free();
+  }
+}
+
 const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const supportedScreenshotDataUriPattern =
-  /^data:image\/(png|jpe?g);base64,([\s\S]*)$/i;
+  /^data:image\/(png|jpe?g|webp);base64,([\s\S]*)$/i;
 const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
 
-export const inferBase64ImageFormat = (base64Body: string) => {
-  if (base64Body.startsWith('iVBORw0KGgo')) {
-    return 'png';
-  }
-  return 'jpeg';
-};
+export const inferBase64ImageFormat = (
+  base64Body: string,
+): ScreenshotImageFormat =>
+  inferScreenshotImageFormatFromBase64(base64Body) ?? 'jpeg';
 
 function detectImageMimeTypeFromBuffer(buffer: Buffer): string | undefined {
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47 &&
-    buffer[4] === 0x0d &&
-    buffer[5] === 0x0a &&
-    buffer[6] === 0x1a &&
-    buffer[7] === 0x0a
-  ) {
-    return 'image/png';
-  }
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
-    return 'image/jpeg';
+  const screenshotFormat = detectScreenshotImageFormatFromBuffer(buffer);
+  if (screenshotFormat) {
+    return screenshotImageMimeType(screenshotFormat);
   }
   if (buffer.length >= 6 && buffer.subarray(0, 3).toString('ascii') === 'GIF') {
     return 'image/gif';
-  }
-  if (
-    buffer.length >= 12 &&
-    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
-    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
-  ) {
-    return 'image/webp';
   }
   if (buffer.length >= 2 && buffer[0] === 0x42 && buffer[1] === 0x4d) {
     return 'image/bmp';
@@ -284,10 +349,10 @@ export const normalizeScreenshotBase64 = (
 
   const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
   if (dataUriMatch) {
-    const imageFormat =
+    const imageFormat: ScreenshotImageFormat =
       dataUriMatch[1].toLowerCase() === 'jpg'
         ? 'jpeg'
-        : dataUriMatch[1].toLowerCase();
+        : (dataUriMatch[1].toLowerCase() as ScreenshotImageFormat);
     const body = dataUriMatch[2];
     if (!normalizeBase64Body(body)) {
       throw new Error(`${label} cannot be empty`);
@@ -297,17 +362,19 @@ export const normalizeScreenshotBase64 = (
 
   if (trimmedBase64.startsWith('data:')) {
     throw new Error(
-      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
     );
   }
 
   if (!rawBase64BodyPattern.test(trimmedBase64)) {
     throw new Error(
-      `${label} must be a PNG/JPEG data URI or raw PNG base64 string`,
+      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
     );
   }
 
-  return createImgBase64ByFormat('png', trimmedBase64);
+  const base64Body = normalizeBase64Body(trimmedBase64);
+  const inferredFormat = inferScreenshotImageFormatFromBase64(base64Body);
+  return createImgBase64ByFormat(inferredFormat ?? 'png', base64Body);
 };
 
 export const normalizeBase64Image = (base64: string) => {
@@ -325,6 +392,7 @@ export const normalizeBase64Image = (base64: string) => {
 };
 
 export type JpegBase64DataUrl = `data:image/jpeg;base64,${string}`;
+export type WebpBase64DataUrl = `data:image/webp;base64,${string}`;
 
 export interface ResizeBase64ImageToJpegOptions {
   /**
@@ -345,10 +413,34 @@ export interface ConstrainBase64ImageToMaxSizeOptions {
   jpegQuality?: number;
 }
 
+export interface ResizeBase64ImageToWebpOptions
+  extends WebpScreenshotEncodeOptions {
+  /**
+   * Expected input dimensions in positive integer pixels. When provided, they
+   * are checked against the encoded image header before processing.
+   */
+  sourceSize?: Size;
+  /** Exact output dimensions in positive integer pixels. */
+  targetSize: Size;
+}
+
 function assertValidJpegQuality(jpegQuality: number): void {
   if (!Number.isInteger(jpegQuality) || jpegQuality < 1 || jpegQuality > 100) {
     throw new Error(
       `jpegQuality must be an integer between 1 and 100. Received: ${jpegQuality}`,
+    );
+  }
+}
+
+function assertValidWebpOptions(webpQuality: number, webpEffort: number): void {
+  if (!Number.isInteger(webpQuality) || webpQuality < 1 || webpQuality > 100) {
+    throw new Error(
+      `webpQuality must be an integer between 1 and 100. Received: ${webpQuality}`,
+    );
+  }
+  if (!Number.isInteger(webpEffort) || webpEffort < 0 || webpEffort > 6) {
+    throw new Error(
+      `webpEffort must be an integer between 0 and 6. Received: ${webpEffort}`,
     );
   }
 }
@@ -366,13 +458,34 @@ function assertValidImageSize(size: Size, label: string): void {
   }
 }
 
+function validatedEncodedSourceSize(
+  imageBuffer: Buffer,
+  sourceSize?: Size,
+): Size {
+  const encodedSourceSize = encodedImageInfoOfBuffer(imageBuffer);
+  if (!sourceSize) {
+    return encodedSourceSize;
+  }
+
+  assertValidImageSize(sourceSize, 'sourceSize');
+  if (
+    sourceSize.width !== encodedSourceSize.width ||
+    sourceSize.height !== encodedSourceSize.height
+  ) {
+    throw new Error(
+      `sourceSize ${sourceSize.width}x${sourceSize.height} does not match encoded image dimensions ${encodedSourceSize.width}x${encodedSourceSize.height}`,
+    );
+  }
+  return encodedSourceSize;
+}
+
 /**
- * Ensures that a PNG/JPEG Base64 image is represented as JPEG without resizing.
- * Existing JPEG bytes are reused; PNG input is encoded with `jpegQuality`.
+ * Ensures that a PNG/JPEG/WebP Base64 image is represented as JPEG without resizing.
+ * Existing JPEG bytes are reused; PNG/WebP input is encoded with `jpegQuality`.
  * This function does not read image dimensions.
  *
- * @param inputBase64 - A PNG/JPEG data URL or raw Base64 image body.
- * @param jpegQuality - JPEG quality from 1 to 100 when encoding PNG. Defaults to 90.
+ * @param inputBase64 - A PNG/JPEG/WebP data URL or raw Base64 image body.
+ * @param jpegQuality - JPEG quality from 1 to 100 when encoding. Defaults to 90.
  * @returns A JPEG data URL with unchanged dimensions.
  */
 export async function convertBase64ImageToJpeg(
@@ -386,9 +499,9 @@ export async function convertBase64ImageToJpeg(
   if (detectedMimeType === 'image/jpeg') {
     return createImgBase64ByFormat('jpeg', body) as JpegBase64DataUrl;
   }
-  if (detectedMimeType !== 'image/png') {
+  if (detectedMimeType !== 'image/png' && detectedMimeType !== 'image/webp') {
     throw new Error(
-      `inputBase64 must contain a PNG or JPEG image. Detected: ${detectedMimeType ?? 'unsupported format'}`,
+      `inputBase64 must contain a PNG, JPEG, or WebP image. Detected: ${detectedMimeType ?? 'unsupported format'}`,
     );
   }
 
@@ -400,13 +513,48 @@ export async function convertBase64ImageToJpeg(
 }
 
 /**
- * Resizes a PNG/JPEG Base64 image and ensures that the result is JPEG.
+ * Ensures that a PNG/JPEG/WebP Base64 image is represented as WebP without resizing.
+ * Existing WebP bytes are reused; PNG/JPEG input is encoded once.
+ */
+export async function convertBase64ImageToWebp(
+  inputBase64: string,
+  options: WebpScreenshotEncodeOptions = {},
+): Promise<WebpBase64DataUrl> {
+  const webpQuality = options.webpQuality ?? DEFAULT_WEBP_SCREENSHOT_QUALITY;
+  const webpEffort = options.webpEffort ?? DEFAULT_WEBP_SCREENSHOT_EFFORT;
+  assertValidWebpOptions(webpQuality, webpEffort);
+
+  const { body } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
+  if (inputFormat === 'webp') {
+    assertWebpBuffer(imageBuffer, 'inputBase64');
+    return createImgBase64ByFormat('webp', body) as WebpBase64DataUrl;
+  }
+  if (!inputFormat) {
+    throw new Error(
+      'inputBase64 must contain a PNG, JPEG, or WebP image. Detected: unsupported format',
+    );
+  }
+
+  const webpBuffer = await convertImgBufferToWebp(imageBuffer, {
+    webpQuality,
+    webpEffort,
+  });
+  return createImgBase64ByFormat(
+    'webp',
+    webpBuffer.toString('base64'),
+  ) as WebpBase64DataUrl;
+}
+
+/**
+ * Resizes a PNG/JPEG/WebP Base64 image and ensures that the result is JPEG.
  *
  * An unchanged JPEG is returned without re-encoding. An unchanged PNG is
  * converted to JPEG, while a size change performs resize and JPEG encoding.
  * `jpegQuality` applies only when encoding is required.
  *
- * @param inputBase64 - A PNG/JPEG data URL or raw Base64 image body.
+ * @param inputBase64 - A PNG/JPEG/WebP data URL or raw Base64 image body.
  * @param options - Source dimensions, target dimensions, and JPEG quality.
  * @returns A JPEG data URL with the requested dimensions.
  */
@@ -418,37 +566,31 @@ export async function resizeBase64ImageToJpeg(
   assertValidJpegQuality(jpegQuality);
   assertValidImageSize(options.targetSize, 'targetSize');
 
-  const { body, mimeType } = parseBase64(inputBase64);
+  const { body } = parseBase64(inputBase64);
   const imageBuffer = Buffer.from(body, 'base64');
-  const encodedSourceSize = encodedImageInfoOfBuffer(imageBuffer);
-  if (options.sourceSize) {
-    assertValidImageSize(options.sourceSize, 'sourceSize');
-    if (
-      options.sourceSize.width !== encodedSourceSize.width ||
-      options.sourceSize.height !== encodedSourceSize.height
-    ) {
-      throw new Error(
-        `sourceSize ${options.sourceSize.width}x${options.sourceSize.height} does not match encoded image dimensions ${encodedSourceSize.width}x${encodedSourceSize.height}`,
-      );
-    }
-  }
-  const sourceSize = encodedSourceSize;
+  const sourceSize = validatedEncodedSourceSize(
+    imageBuffer,
+    options.sourceSize,
+  );
   const dimensionsUnchanged =
     sourceSize.width === options.targetSize.width &&
     sourceSize.height === options.targetSize.height;
-  const detectedMimeType = detectImageMimeTypeFromBuffer(imageBuffer);
-  if (dimensionsUnchanged && detectedMimeType?.toLowerCase() === 'image/jpeg') {
+  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
+  if (!inputFormat) {
+    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
+  }
+  if (dimensionsUnchanged && inputFormat === 'jpeg') {
     return createImgBase64ByFormat('jpeg', body) as JpegBase64DataUrl;
   }
 
   const { buffer } = await resizeImageBuffer(
-    detectedMimeType?.split('/')[1] ?? mimeType.split('/')[1],
+    inputFormat,
     imageBuffer,
     options.targetSize,
     {
       sourceSize,
       preserveOriginalWhenUnchanged: false,
-      jpegQuality,
+      encode: { format: 'jpeg', quality: jpegQuality },
     },
   );
   return createImgBase64ByFormat(
@@ -482,7 +624,7 @@ export async function constrainBase64ImageToMaxSize(
   const jpegQuality = options.jpegQuality ?? 90;
   assertValidJpegQuality(jpegQuality);
 
-  const { body, mimeType } = parseBase64(inputBase64);
+  const { body } = parseBase64(inputBase64);
   const imageBuffer = Buffer.from(body, 'base64');
   const sourceSize = encodedImageInfoOfBuffer(imageBuffer);
   const largestDimension = Math.max(sourceSize.width, sourceSize.height);
@@ -493,15 +635,18 @@ export async function constrainBase64ImageToMaxSize(
     width: Math.max(1, Math.round(sourceSize.width * scale)),
     height: Math.max(1, Math.round(sourceSize.height * scale)),
   };
-  const detectedMimeType = detectImageMimeTypeFromBuffer(imageBuffer);
+  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
+  if (!inputFormat) {
+    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
+  }
   const { buffer } = await resizeImageBuffer(
-    detectedMimeType?.split('/')[1] ?? mimeType.split('/')[1],
+    inputFormat,
     imageBuffer,
     targetSize,
     {
       sourceSize,
       preserveOriginalWhenUnchanged: false,
-      jpegQuality,
+      encode: { format: 'jpeg', quality: jpegQuality },
     },
   );
 
@@ -509,6 +654,58 @@ export async function constrainBase64ImageToMaxSize(
     'jpeg',
     buffer.toString('base64'),
   ) as JpegBase64DataUrl;
+}
+
+/**
+ * Resizes a PNG/JPEG/WebP Base64 image and ensures that the result is WebP.
+ * An unchanged WebP is returned byte-for-byte. Any required resize and WebP
+ * conversion are performed by one encoder operation.
+ */
+export async function resizeBase64ImageToWebp(
+  inputBase64: string,
+  options: ResizeBase64ImageToWebpOptions,
+): Promise<WebpBase64DataUrl> {
+  const webpQuality = options.webpQuality ?? DEFAULT_WEBP_SCREENSHOT_QUALITY;
+  const webpEffort = options.webpEffort ?? DEFAULT_WEBP_SCREENSHOT_EFFORT;
+  assertValidWebpOptions(webpQuality, webpEffort);
+  assertValidImageSize(options.targetSize, 'targetSize');
+
+  const { body } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const sourceSize = validatedEncodedSourceSize(
+    imageBuffer,
+    options.sourceSize,
+  );
+  const inputFormat = detectScreenshotImageFormatFromBuffer(imageBuffer);
+  if (!inputFormat) {
+    throw new Error('inputBase64 must contain a PNG, JPEG, or WebP image');
+  }
+
+  const dimensionsUnchanged =
+    sourceSize.width === options.targetSize.width &&
+    sourceSize.height === options.targetSize.height;
+  if (dimensionsUnchanged && inputFormat === 'webp') {
+    return createImgBase64ByFormat('webp', body) as WebpBase64DataUrl;
+  }
+
+  const { buffer } = await resizeImageBuffer(
+    inputFormat,
+    imageBuffer,
+    options.targetSize,
+    {
+      sourceSize,
+      preserveOriginalWhenUnchanged: false,
+      encode: {
+        format: 'webp',
+        quality: webpQuality,
+        effort: webpEffort,
+      },
+    },
+  );
+  return createImgBase64ByFormat(
+    'webp',
+    buffer.toString('base64'),
+  ) as WebpBase64DataUrl;
 }
 
 /**
@@ -628,6 +825,7 @@ export async function paddingToMatchBlock(
 export async function paddingToMatchBlockByBase64(
   imageBase64: string,
   blockSize = 28,
+  outputFormat: ScreenshotImageOutputFormat = 'jpeg',
 ): Promise<{
   width: number;
   height: number;
@@ -650,18 +848,28 @@ export async function paddingToMatchBlockByBase64(
       return { width, height, imageBase64 };
     }
 
-    const output = await Sharp(inputBuffer)
-      .extend({
-        right: targetWidth - width,
-        bottom: targetHeight - height,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      })
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    const image = Sharp(inputBuffer).extend({
+      right: targetWidth - width,
+      bottom: targetHeight - height,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    });
+    const output = await (outputFormat === 'webp'
+      ? image.webp({
+          quality: DEFAULT_WEBP_SCREENSHOT_QUALITY,
+          effort: DEFAULT_WEBP_SCREENSHOT_EFFORT,
+        })
+      : image.jpeg({ quality: 90 })
+    ).toBuffer();
+    if (outputFormat === 'webp') {
+      assertWebpBuffer(output, 'Sharp padding');
+    }
     return {
       width: targetWidth,
       height: targetHeight,
-      imageBase64: createImgBase64ByFormat('jpeg', output.toString('base64')),
+      imageBase64: createImgBase64ByFormat(
+        outputFormat,
+        output.toString('base64'),
+      ),
     };
   }
 
@@ -671,7 +879,7 @@ export async function paddingToMatchBlockByBase64(
     const result = {
       width: paddedResult.width,
       height: paddedResult.height,
-      imageBase64: await photonToBase64(paddedResult.image),
+      imageBase64: await photonToBase64(paddedResult.image, 90, outputFormat),
     };
     if (paddedResult.image !== photonImage) {
       paddedResult.image.free();
@@ -685,6 +893,7 @@ export async function paddingToMatchBlockByBase64(
 export async function cropByRect(
   imageBase64: string,
   rect: Rect,
+  outputFormat: ScreenshotImageOutputFormat = 'jpeg',
 ): Promise<{
   width: number;
   height: number;
@@ -697,19 +906,29 @@ export async function cropByRect(
     const top = Math.trunc(rect.top);
     const width = Math.trunc(rect.left + rect.width) - left;
     const height = Math.trunc(rect.top + rect.height) - top;
-    const output = await Sharp(Buffer.from(body, 'base64'))
-      .extract({
-        left,
-        top,
-        width,
-        height,
-      })
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    const image = Sharp(Buffer.from(body, 'base64')).extract({
+      left,
+      top,
+      width,
+      height,
+    });
+    const output = await (outputFormat === 'webp'
+      ? image.webp({
+          quality: DEFAULT_WEBP_SCREENSHOT_QUALITY,
+          effort: DEFAULT_WEBP_SCREENSHOT_EFFORT,
+        })
+      : image.jpeg({ quality: 90 })
+    ).toBuffer();
+    if (outputFormat === 'webp') {
+      assertWebpBuffer(output, 'Sharp crop');
+    }
     return {
       width,
       height,
-      imageBase64: createImgBase64ByFormat('jpeg', output.toString('base64')),
+      imageBase64: createImgBase64ByFormat(
+        outputFormat,
+        output.toString('base64'),
+      ),
     };
   }
 
@@ -725,7 +944,7 @@ export async function cropByRect(
     return {
       width: cropped.get_width(),
       height: cropped.get_height(),
-      imageBase64: await photonToBase64(cropped),
+      imageBase64: await photonToBase64(cropped, 90, outputFormat),
     };
   } finally {
     cropped.free();
@@ -735,10 +954,14 @@ export async function cropByRect(
 export async function photonToBase64(
   image: PhotonImageType,
   quality = 90,
+  outputFormat: ScreenshotImageOutputFormat = 'jpeg',
 ): Promise<string> {
-  const bytes = image.get_bytes_jpeg(quality);
+  const bytes =
+    outputFormat === 'webp'
+      ? await encodeBrowserImageToWebp(image, quality)
+      : Buffer.from(image.get_bytes_jpeg(quality));
   const base64Body = Buffer.from(bytes).toString('base64');
-  return `data:image/jpeg;base64,${base64Body}`;
+  return createImgBase64ByFormat(outputFormat, base64Body);
 }
 
 export const httpImg2Base64 = async (url: string): Promise<string> => {
@@ -761,7 +984,8 @@ export const httpImg2Base64 = async (url: string): Promise<string> => {
 /**
  * Convert image file to base64 string
  * Because this method is synchronous, the npm package `sharp` cannot be used to detect the file type.
- * TODO: convert to webp to reduce base64 size.
+ * Keep the source encoding here; Core's screenshot preparation pipeline owns
+ * final WebP conversion so callers do not encode the same pixels twice.
  */
 export const localImg2Base64 = (
   imgPath: string,
@@ -855,6 +1079,7 @@ export const parseBase64 = (
 export async function scaleImage(
   imageBase64: string,
   scale: number,
+  outputFormat: ScreenshotImageOutputFormat = 'jpeg',
 ): Promise<{
   width: number;
   height: number;
@@ -883,22 +1108,30 @@ export async function scaleImage(
     const newWidth = Math.round(originalWidth * scale);
     const newHeight = Math.round(originalHeight * scale);
 
-    const resizedBuffer = await Sharp(buffer)
-      .resize(newWidth, newHeight, {
-        kernel: 'lanczos3',
-        fit: 'fill',
-      })
-      .jpeg({
-        quality: 90,
-      })
-      .toBuffer();
+    const image = Sharp(buffer).resize(newWidth, newHeight, {
+      kernel: 'lanczos3',
+      fit: 'fill',
+    });
+    const resizedBuffer = await (outputFormat === 'webp'
+      ? image.webp({
+          quality: DEFAULT_WEBP_SCREENSHOT_QUALITY,
+          effort: DEFAULT_WEBP_SCREENSHOT_EFFORT,
+        })
+      : image.jpeg({ quality: 90 })
+    ).toBuffer();
+    if (outputFormat === 'webp') {
+      assertWebpBuffer(resizedBuffer, 'Sharp scale');
+    }
 
     const scaleEndTime = Date.now();
     imgDebug(
       `scaleImage done (Sharp): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
     );
 
-    const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+    const base64 = createImgBase64ByFormat(
+      outputFormat,
+      resizedBuffer.toString('base64'),
+    );
 
     return {
       width: newWidth,
@@ -929,8 +1162,13 @@ export async function scaleImage(
     SamplingFilter.CatmullRom,
   );
 
-  const outputBytes = outputImage.get_bytes_jpeg(90);
-  const resizedBuffer = Buffer.from(outputBytes);
+  const resizedBuffer =
+    outputFormat === 'webp'
+      ? await encodeBrowserImageToWebp(
+          outputImage,
+          DEFAULT_WEBP_SCREENSHOT_QUALITY,
+        )
+      : Buffer.from(outputImage.get_bytes_jpeg(90));
 
   // Free memory
   inputImage.free();
@@ -941,7 +1179,10 @@ export async function scaleImage(
     `scaleImage done (Photon): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
   );
 
-  const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+  const base64 = createImgBase64ByFormat(
+    outputFormat,
+    resizedBuffer.toString('base64'),
+  );
 
   return {
     width: newWidth,
