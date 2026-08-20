@@ -35,7 +35,7 @@ const TRANSPORT_BACKLOG_WARN_INTERVAL_MS = 5_000;
 const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
 
 export const SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT =
-  'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, consider setting scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) as a starting point, and lower it further if backlog persists.';
+  'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, pass --scrcpy-video-bit-rate 4000000 in the Android CLI, or set scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) in SDK/YAML configuration. Lower it further if backlog persists.';
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate

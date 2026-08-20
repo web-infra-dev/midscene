@@ -1153,7 +1153,7 @@ Stdout:
       expect(warn).toHaveBeenCalledWith(
         '[Midscene]',
         expect.stringContaining(
-          'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
+          '--scrcpy-video-bit-rate 4000000 in the Android CLI',
         ),
       );
     });
