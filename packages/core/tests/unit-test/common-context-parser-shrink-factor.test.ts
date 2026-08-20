@@ -2,8 +2,8 @@ import { commonContextParser } from '@/agent/utils';
 import type { AbstractInterface } from '@/device';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@midscene/shared/img', () => ({
-  createImgBase64ByFormat: vi.fn(),
+vi.mock('@midscene/shared/img', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@midscene/shared/img')>()),
   imageInfoOfBase64: vi.fn(),
   resizeBase64ImageToJpeg: vi
     .fn()
