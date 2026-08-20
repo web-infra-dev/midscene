@@ -66,7 +66,7 @@ export class ScrcpyDeviceAdapter {
   private freshnessRecoveryPending = false;
   private recoveryPromise: Promise<void> | null = null;
   private lifecycleGeneration = 0;
-  private pendingActionBarrier = false;
+  private pendingActionBarrierAtHostUs: bigint | null = null;
   private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private keyframeUnsubscribers = new Map<
     (frame: RawKeyframe) => void,
@@ -322,11 +322,28 @@ export class ScrcpyDeviceAdapter {
   private async applyPendingActionBarrier(
     manager: ScrcpyScreenshotManager,
   ): Promise<void> {
-    if (!this.pendingActionBarrier) return;
+    const actionCompletedAtHostUs = this.pendingActionBarrierAtHostUs;
+    if (actionCompletedAtHostUs === null) return;
     await manager.setFreshnessBarrier(
       'completed input action while scrcpy was unavailable',
+      actionCompletedAtHostUs,
     );
-    this.pendingActionBarrier = false;
+    if (this.pendingActionBarrierAtHostUs === actionCompletedAtHostUs) {
+      this.pendingActionBarrierAtHostUs = null;
+    }
+  }
+
+  private monotonicTimeUs(): bigint {
+    return process.hrtime.bigint() / 1_000n;
+  }
+
+  private deferActionBarrier(actionCompletedAtHostUs: bigint): void {
+    if (
+      this.pendingActionBarrierAtHostUs === null ||
+      actionCompletedAtHostUs > this.pendingActionBarrierAtHostUs
+    ) {
+      this.pendingActionBarrierAtHostUs = actionCompletedAtHostUs;
+    }
   }
 
   /**
@@ -380,18 +397,27 @@ export class ScrcpyDeviceAdapter {
    * the stream and let subsequent captures use the existing ADB fallback.
    */
   async markActionBarrier(): Promise<void> {
+    const actionCompletedAtHostUs = this.monotonicTimeUs();
     const manager = this.manager;
     if (!manager?.isConnected()) {
-      this.pendingActionBarrier = true;
+      this.deferActionBarrier(actionCompletedAtHostUs);
       return;
     }
 
     try {
-      await manager.setFreshnessBarrier('completed input action');
-      this.pendingActionBarrier = false;
+      await manager.setFreshnessBarrier(
+        'completed input action',
+        actionCompletedAtHostUs,
+      );
+      if (
+        this.pendingActionBarrierAtHostUs !== null &&
+        this.pendingActionBarrierAtHostUs <= actionCompletedAtHostUs
+      ) {
+        this.pendingActionBarrierAtHostUs = null;
+      }
       this.clearFailure();
     } catch (error) {
-      this.pendingActionBarrier = true;
+      this.deferActionBarrier(actionCompletedAtHostUs);
       this.recordFailure(error);
       debugAdapter(
         `Unable to mark scrcpy action barrier; disabling this stream: ${error}`,
@@ -460,7 +486,7 @@ export class ScrcpyDeviceAdapter {
   async disconnect(): Promise<void> {
     this.lifecycleGeneration += 1;
     this.freshnessRecoveryPending = false;
-    this.pendingActionBarrier = false;
+    this.pendingActionBarrierAtHostUs = null;
     for (const unsubscribe of this.keyframeUnsubscribers.values()) {
       unsubscribe();
     }

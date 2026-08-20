@@ -50,10 +50,7 @@ import {
   ScrcpyDeviceAdapter,
   type ScrcpyStatus,
 } from './scrcpy-device-adapter';
-import {
-  type RawKeyframe,
-  SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT,
-} from './scrcpy-manager';
+import type { RawKeyframe } from './scrcpy-manager';
 import { captureAndroidUITree } from './ui-tree-capture';
 import { createVisualActionRegistry } from './visual-action-registry';
 
@@ -1389,7 +1386,7 @@ ${Object.keys(size)
         return result;
       } catch (error) {
         warnDevice(
-          `Scrcpy screenshot failed, falling back to standard ADB method. This may be caused by transport backlog. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT}\nError: ${error}`,
+          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
         );
         // Continue to standard ADB path
       }
