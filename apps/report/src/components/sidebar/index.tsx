@@ -425,7 +425,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         label: 'Time',
         width: dynamicWidths.time,
         tooltip:
-          'Per-task elapsed time. The Total row separates Wall time from summed Model call time.',
+          'Per-task elapsed time. The Total row separates the overall elapsed span from total model call duration.',
       },
       ...(proModeEnabled
         ? [
@@ -465,22 +465,20 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     });
   }, [groupedDump, playwrightAttributes]);
 
-  const wallTimeTooltip = useMemo(() => {
+  const timingSummaryTooltip = useMemo(() => {
     if (!reportSummary) return null;
     const { timing } = reportSummary;
     const hasTaskTimestamps = timing.wallTimeSource === 'task-timestamps';
 
     return (
       <div className="total-time-tooltip-content">
-        <span className="total-time-tooltip-label total-time-tooltip-definition-label">
-          Definition
-        </span>
-        <span className="total-time-tooltip-value total-time-tooltip-description">
+        <span className="total-time-tooltip-metric">Elapsed</span>
+        <span className="total-time-tooltip-description">
           {hasTaskTimestamps
-            ? 'Elapsed time from the earliest recorded task timestamp to the latest, including model calls, actions, waits, and gaps.'
+            ? 'Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps.'
             : timing.wallTimeSource === 'fallback'
-              ? 'Elapsed time reported by the enclosing test runner because task timestamps were unavailable.'
-              : 'Unavailable because the report has no recorded task timestamps.'}
+              ? 'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.'
+              : 'The total elapsed span is unavailable because the report has no recorded task timestamps.'}
         </span>
         {hasTaskTimestamps && (
           <>
@@ -494,22 +492,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             </span>
           </>
         )}
-      </div>
-    );
-  }, [reportSummary]);
-
-  const modelCallTimeTooltip = useMemo(() => {
-    if (!reportSummary) return null;
-    const { timing } = reportSummary;
-
-    return (
-      <div className="total-time-tooltip-content">
-        <span className="total-time-tooltip-label total-time-tooltip-definition-label">
-          Definition
-        </span>
-        <span className="total-time-tooltip-value total-time-tooltip-description">
-          Sum of all recorded model request durations. Overlapping calls are
-          counted separately, so this can exceed Wall time.
+        <span className="total-time-tooltip-metric">Model</span>
+        <span className="total-time-tooltip-description">
+          Total duration of all recorded model calls.
         </span>
         <span className="total-time-tooltip-label">Calls</span>
         <span className="total-time-tooltip-value">
@@ -737,24 +722,18 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                 className="summary-cell column-time"
                 style={{ width: dynamicWidths.time }}
               >
-                <div className="summary-time-values">
-                  <Tooltip
-                    title={wallTimeTooltip}
-                    rootClassName="total-time-tooltip"
-                    placement="topLeft"
-                  >
+                <Tooltip
+                  title={timingSummaryTooltip}
+                  rootClassName="total-time-tooltip"
+                  placement="topLeft"
+                >
+                  <div className="summary-time-values">
                     <span className="summary-time-item">
-                      <span className="summary-time-label">Wall</span>
+                      <span className="summary-time-label">Elapsed</span>
                       <span className="summary-time-value">
                         {timeCostStrElement(reportSummary?.timing.wallTimeMs)}
                       </span>
                     </span>
-                  </Tooltip>
-                  <Tooltip
-                    title={modelCallTimeTooltip}
-                    rootClassName="total-time-tooltip"
-                    placement="topLeft"
-                  >
                     <span className="summary-time-item">
                       <span className="summary-time-label">Model</span>
                       <span className="summary-time-value">
@@ -763,8 +742,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                         )}
                       </span>
                     </span>
-                  </Tooltip>
-                </div>
+                  </div>
+                </Tooltip>
               </div>
               {proModeEnabled && (
                 <>

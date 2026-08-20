@@ -48,7 +48,7 @@ function createReport(
 }
 
 describe('collectReportSummary', () => {
-  it('aggregates wall time, model call time, and tokens with search-area calls attributed to their own models', () => {
+  it('aggregates elapsed time, model call time, and tokens with search-area calls attributed to their own models', () => {
     const report = createReport([
       createTask({
         taskId: 'task-1',
@@ -137,7 +137,7 @@ describe('collectReportSummary', () => {
     });
   });
 
-  it('uses the wall-time fallback only when task timestamps are unavailable', () => {
+  it('uses the elapsed-time fallback only when task timestamps are unavailable', () => {
     const noTiming = collectReportSummary(createReport([createTask()]), {
       wallTimeFallbackMs: 1_234,
     });
@@ -158,7 +158,7 @@ describe('collectReportSummary', () => {
     });
   });
 
-  it('reports unavailable wall time and zero model time when no data exists', () => {
+  it('reports unavailable elapsed time and zero model time when no data exists', () => {
     expect(collectReportSummary(createReport([]))).toEqual({
       timing: {
         wallTimeMs: undefined,

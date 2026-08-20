@@ -305,10 +305,10 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('## Model Info');
     expect(result.markdown).toContain('| planning | gpt-4o | vision planner |');
     expect(result.markdown).toContain('## Timing Summary');
-    expect(result.markdown).toContain('| Wall Time | 100 |');
+    expect(result.markdown).toContain('| Elapsed Time | 100 |');
     expect(result.markdown).toContain('| Model Call Time | 579 |');
     expect(result.markdown).toContain(
-      'Overlapping calls are counted separately, so this can exceed Wall Time.',
+      'Total duration of all recorded model calls.',
     );
     expect(result.markdown).toContain('## Token Usage Summary');
     expect(result.markdown).toContain('Model Call Time(ms)');
@@ -335,7 +335,7 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('Clicking submit completes the form.');
   });
 
-  it('explains the wall-time fallback in markdown', () => {
+  it('explains the elapsed-time fallback in markdown', () => {
     const report: IReportActionDump = {
       sdkVersion: '1.0.0',
       groupName: 'fallback-timing-report',
@@ -351,9 +351,9 @@ describe('report-markdown', () => {
 
     const result = reportToMarkdown(report, { wallTimeFallbackMs: 2_500 });
 
-    expect(result.markdown).toContain('| Wall Time | 2500 |');
+    expect(result.markdown).toContain('| Elapsed Time | 2500 |');
     expect(result.markdown).toContain(
-      'Elapsed time reported by the enclosing test runner because task timestamps were unavailable.',
+      'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.',
     );
   });
 

@@ -740,26 +740,26 @@ export function reportToMarkdown(
       : ['- No model metadata recorded.']),
   ];
 
-  const wallTimeDescription =
+  const elapsedTimeDescription =
     reportSummary.timing.wallTimeSource === 'task-timestamps'
-      ? 'Elapsed time from the earliest recorded task timestamp to the latest, including model calls, actions, waits, and gaps.'
+      ? 'Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps.'
       : reportSummary.timing.wallTimeSource === 'fallback'
-        ? 'Elapsed time reported by the enclosing test runner because task timestamps were unavailable.'
-        : 'Unavailable because the report has no recorded task timestamps.';
+        ? 'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.'
+        : 'The total elapsed span is unavailable because the report has no recorded task timestamps.';
   const timingSummaryLines = [
     '\n## Timing Summary',
     ...markdownTable(
       ['Metric', 'Duration(ms)', 'Definition'],
       [
         [
-          'Wall Time',
+          'Elapsed Time',
           reportSummary.timing.wallTimeMs ?? 'N/A',
-          wallTimeDescription,
+          elapsedTimeDescription,
         ],
         [
           'Model Call Time',
           reportSummary.timing.modelCallTimeMs,
-          'Sum of all recorded model request durations. Overlapping calls are counted separately, so this can exceed Wall Time.',
+          'Total duration of all recorded model calls.',
         ],
       ],
     ),

@@ -9,8 +9,8 @@
 ## Timing Summary
 | Metric | Duration(ms) | Definition |
 | --- | --- | --- |
-| Wall Time | 100 | Elapsed time from the earliest recorded task timestamp to the latest, including model calls, actions, waits, and gaps. |
-| Model Call Time | 0 | Sum of all recorded model request durations. Overlapping calls are counted separately, so this can exceed Wall Time. |
+| Elapsed Time | 100 | Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps. |
+| Model Call Time | 0 | Total duration of all recorded model calls. |
 
 ## Token Usage Summary
 - No token usage recorded.

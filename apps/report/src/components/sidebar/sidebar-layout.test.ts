@@ -39,13 +39,13 @@ describe('sidebar layout', () => {
   });
 
   it('keeps timing tooltip definitions readable within the viewport', () => {
-    expect(source.match(/rootClassName="total-time-tooltip"/g)).toHaveLength(2);
-    expect(source.match(/placement="topLeft"/g)).toHaveLength(2);
+    expect(source.match(/rootClassName="total-time-tooltip"/g)).toHaveLength(1);
+    expect(source.match(/placement="topLeft"/g)).toHaveLength(1);
     expect(styles).toMatch(
       /\.ant-tooltip\.total-time-tooltip\s*{[^}]*max-width: min\(360px, calc\(100vw - 24px\)\);/s,
     );
     expect(styles).toMatch(
-      /\.total-time-tooltip-definition-label,\s*\.total-time-tooltip-description\s*{[^}]*grid-column: 1 \/ -1;/s,
+      /\.total-time-tooltip-metric,\s*\.total-time-tooltip-description\s*{[^}]*grid-column: 1 \/ -1;/s,
     );
   });
 });

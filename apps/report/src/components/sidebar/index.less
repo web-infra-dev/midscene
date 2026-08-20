@@ -718,13 +718,19 @@
   white-space: nowrap;
 }
 
-.total-time-tooltip-definition-label,
+.total-time-tooltip-metric,
 .total-time-tooltip-description {
   grid-column: 1 / -1;
 }
 
-.total-time-tooltip-definition-label {
+.total-time-tooltip-metric {
+  color: #fff;
+  font-weight: 600;
   text-align: left;
+
+  &:not(:first-child) {
+    margin-top: 4px;
+  }
 }
 
 .total-time-tooltip-description {
