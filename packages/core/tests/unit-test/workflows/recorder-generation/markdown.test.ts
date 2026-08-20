@@ -1,4 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
+import sharp from 'sharp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
 import type { ChromeRecordedEvent } from '../../../../src/ai-model/workflows/recorder-generation/common';
@@ -6,6 +8,19 @@ import {
   createRecorderMarkdownReplayPrompt,
   generateRecorderMarkdownReplay,
 } from '../../../../src/ai-model/workflows/recorder-generation/markdown';
+
+const { mockDebugMarkdownReplay } = vi.hoisted(() => ({
+  mockDebugMarkdownReplay: vi.fn(),
+}));
+
+vi.mock('@midscene/shared/logger', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@midscene/shared/logger')>();
+  return {
+    ...actual,
+    getDebug: vi.fn(() => mockDebugMarkdownReplay),
+  };
+});
 
 vi.mock('../../../../src/ai-model/service-caller', () => ({
   callAIWithStringResponse: vi.fn(),
@@ -50,6 +65,90 @@ const mockEvents: ChromeRecordedEvent[] = [
 describe('markdown-generator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('compresses oversized screenshots to JPEG before model generation', async () => {
+    const largePng = await sharp({
+      create: {
+        width: 1024,
+        height: 512,
+        channels: 3,
+        background: { r: 20, g: 80, b: 160 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const largeScreenshot = `data:image/png;base64,${largePng.toString('base64')}`;
+    mockCallAIWithStringResponse.mockResolvedValue({
+      content: '# Replay workflow',
+      usage: undefined,
+    });
+
+    await generateRecorderMarkdownReplay(
+      {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: [
+          {
+            type: 'navigation',
+            timestamp: 1000,
+            url: 'https://example.com',
+            title: 'Example Page',
+            screenshotAfter: largeScreenshot,
+            pageInfo: { width: 1024, height: 512 },
+            hashId: 'large-navigation',
+          },
+        ],
+        testName: 'Replay workflow',
+      },
+      mockedModelConfig,
+    );
+
+    const prompt = mockCallAIWithStringResponse.mock.calls[0][0];
+    const userContent = Array.isArray(prompt[1].content)
+      ? prompt[1].content
+      : [];
+    const imagePart = userContent.find((part) => part.type === 'image_url');
+    expect(imagePart?.type).toBe('image_url');
+    if (imagePart?.type !== 'image_url') {
+      throw new Error('Expected a compressed screenshot in the prompt');
+    }
+    expect(imagePart.image_url.url).toMatch(/^data:image\/jpeg;base64,/);
+    await expect(imageInfoOfBase64(imagePart.image_url.url)).resolves.toEqual({
+      width: 768,
+      height: 384,
+    });
+  });
+
+  it('logs image compression failures before retaining the original asset', async () => {
+    mockCallAIWithStringResponse.mockResolvedValue({
+      content: '# Replay workflow',
+      usage: undefined,
+    });
+
+    await generateRecorderMarkdownReplay(
+      {
+        target: {
+          platformId: 'web',
+          label: 'Web',
+          values: { url: 'https://example.com' },
+        },
+        events: mockEvents,
+        testName: 'Replay workflow',
+      },
+      mockedModelConfig,
+    );
+
+    expect(mockDebugMarkdownReplay).toHaveBeenCalledWith(
+      'failed to compress screenshot asset; keeping original %o',
+      expect.objectContaining({
+        eventHashId: 'nav-1',
+        error: expect.anything(),
+      }),
+    );
   });
 
   it('creates a compact aiAct-focused prompt with recorder data', () => {

@@ -21,8 +21,8 @@ function trackRecordFiles(record: UIObservationRecord): void {
   }
 }
 
-const dataUrl = (text: string) =>
-  `data:image/png;base64,${Buffer.from(text).toString('base64')}`;
+const dataUrl = (_tag: string) =>
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
 
 const fakeContext = (tag: string): UIContext =>
   ({
@@ -92,8 +92,9 @@ describe('Agent.startObserving', () => {
     expect(sequence.length).toBeGreaterThanOrEqual(2);
     expect(sequence[0].hasBase64()).toBe(false);
     expect(sequence[0].toSerializable()).not.toHaveProperty('path');
-    expect(Buffer.from(sequence[0].rawBase64, 'base64').toString()).toMatch(
-      /^decoded:/,
+    expect(sequence[0].format).toBe('jpeg');
+    expect(Buffer.from(sequence[0].rawBase64, 'base64').subarray(0, 3)).toEqual(
+      Buffer.from([0xff, 0xd8, 0xff]),
     );
   });
 

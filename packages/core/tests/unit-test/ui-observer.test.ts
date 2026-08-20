@@ -7,10 +7,19 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { UIObservationRecordWriter } from '@midscene/shared/agent-tools/observation-record';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const createdDirectories: string[] = [];
+const testPngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR42mP4HKzauIeNgXXZh/+7OAApSwYLCdgqFgAAAABJRU5ErkJggg==';
+const largeTestPngDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
+const testJpegDataUrl =
+  'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAdEAACAgMAAwAAAAAAAAAAAAABAgAEAwUGEiEx/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAcEQABAwUAAAAAAAAAAAAAAAAAAQIDBTI0crH/2gAMAwEAAhEDEQA/AL5zGpo5Ob1LvTrs7VMRLNiUknwHv5ERIdqObNs7qiplqH//2Q=';
+const shrunkTestJpegDataUrl =
+  'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJ0AWYyP/9k=';
 
 function recordWriter(): UIObservationRecordWriter {
   const directory = mkdtempSync(join(tmpdir(), 'midscene-observer-'));
@@ -24,21 +33,15 @@ function options(extra: Record<string, unknown> = {}) {
 
 const fakeRepresentative = (): UIContext =>
   ({
-    screenshot: ScreenshotItem.create(
-      `data:image/png;base64,${Buffer.from('representative').toString('base64')}`,
-      9999,
-    ),
-    shotSize: { width: 100, height: 100 },
+    screenshot: ScreenshotItem.create(testJpegDataUrl, 9999),
+    shotSize: { width: 2, height: 2 },
     shrunkShotToLogicalRatio: 1,
   }) as UIContext;
 
 const makeFakeSource = () => {
   let current: DeviceFrameRef | null = null;
   const decode = vi.fn(async (refs: DeviceFrameRef[]) =>
-    refs.map(
-      (frame) =>
-        `data:image/png;base64,${Buffer.from(`decoded:${String(frame.ref)}`).toString('base64')}`,
-    ),
+    refs.map(() => testPngDataUrl),
   );
   const stop = vi.fn();
   const source: DeviceFrameSource = {
@@ -57,16 +60,13 @@ const makeFakeSource = () => {
 };
 
 const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
-  const screenshot = vi.fn(
-    async () =>
-      `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
-  );
+  const screenshot = vi.fn(async () => testPngDataUrl);
   const onStopped = vi.fn();
   return {
     deps: {
       openFrameSource: async () => fake?.source ?? undefined,
-      screenshot,
-      captureRepresentative: async () => fakeRepresentative(),
+      captureRawScreenshot: screenshot,
+      capturePreparedRepresentative: async () => fakeRepresentative(),
       createInsight: () => ({
         aiQuery: vi.fn(),
         aiBoolean: vi.fn(),
@@ -83,8 +83,8 @@ const makeDeps = (fake: ReturnType<typeof makeFakeSource> | null) => {
   };
 };
 
-function frameContents(path: string): string {
-  return readFileSync(path).toString('utf8');
+function expectJpegFrame(path: string): void {
+  expect([...readFileSync(path).subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
 }
 
 function fixedRecord(): UIObservationRecord {
@@ -146,8 +146,11 @@ describe('UIObserver', () => {
     expect(onStopped).toHaveBeenCalledOnce();
     expect(fake.stop).toHaveBeenCalledOnce();
     expect(record.frames.length).toBeGreaterThanOrEqual(3);
-    expect(frameContents(record.frames[0].path)).toBe('decoded:f0');
-    expect(frameContents(record.frames.at(-1)!.path)).toBe('decoded:f1');
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    expectJpegFrame(record.frames[0].path);
+    expectJpegFrame(record.frames.at(-1)!.path);
     expect(record.frames[0]).not.toHaveProperty('base64');
   });
 
@@ -183,17 +186,27 @@ describe('UIObserver', () => {
       deps,
       options({ intervalMs: 200, maxFrames: 30 }),
     );
-    for (let index = 0; index < 25; index++) {
+    for (let index = 0; index < 30; index++) {
       (observer as any).pushFrame({ ref: `f${index}`, capturedAt: index });
     }
     (observer as any).source = fake.source;
     const observation = await observer.stop();
     const record = await observation.exportRecord();
 
-    expect(record.frames).toHaveLength(26);
+    expect(record.frames).toHaveLength(31);
     expect(fake.decode.mock.calls.flatMap(([frames]) => frames)).toHaveLength(
-      25,
+      30,
     );
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    for (const frame of record.frames) {
+      expectJpegFrame(frame.path);
+      const base64 = readFileSync(frame.path).toString('base64');
+      await expect(
+        imageInfoOfBase64(`data:${frame.mimeType};base64,${base64}`),
+      ).resolves.toEqual(record.shotSize);
+    }
   });
 
   it('smart thinning preserves change points and temporal endpoints', () => {
@@ -364,6 +377,7 @@ describe('UIObserver', () => {
     await observer.start();
     vi.advanceTimersByTime(5000);
     await vi.runAllTimersAsync();
+    await observer.stop();
     expect(first.onStopped).toHaveBeenCalledOnce();
 
     const secondFake = makeFakeSource();
@@ -396,7 +410,7 @@ describe('UIObserver', () => {
     expect(record.frames).toHaveLength(56);
   });
 
-  it('persists fallback screenshots immediately as files', async () => {
+  it('persists fallback screenshots immediately as JPEG files', async () => {
     const { deps, screenshot } = makeDeps(null);
     const observer = new UIObserverImpl(deps, options({ intervalMs: 200 }));
     await observer.start();
@@ -405,22 +419,51 @@ describe('UIObserver', () => {
     const record = await observation.exportRecord();
 
     expect(screenshot).toHaveBeenCalled();
-    expect(frameContents(record.frames[0].path)).toBe('fallback');
+    expect(
+      record.frames.every((frame) => frame.mimeType === 'image/jpeg'),
+    ).toBe(true);
+    expectJpegFrame(record.frames[0].path);
     expect((observer as any).frames[0].ref).not.toContain('base64');
   });
 
-  it('falls back when opening the frame source throws', async () => {
-    const screenshot = vi.fn(
-      async () =>
-        `data:image/png;base64,${Buffer.from('fallback').toString('base64')}`,
+  it('does not shrink an already prepared fallback representative again', async () => {
+    const { deps } = makeDeps(null);
+    const observer = new UIObserverImpl(
+      {
+        ...deps,
+        captureRawScreenshot: async () => largeTestPngDataUrl,
+        capturePreparedRepresentative: async () =>
+          ({
+            screenshot: ScreenshotItem.create(shrunkTestJpegDataUrl, 9999),
+            shotSize: { width: 4, height: 3 },
+            shrunkShotToLogicalRatio: 1,
+          }) as UIContext,
+        screenshotShrinkFactor: 2,
+      },
+      options({ intervalMs: 200 }),
     );
+    await observer.start();
+    const observation = await observer.stop();
+    const record = await observation.exportRecord();
+
+    expect(record.shotSize).toEqual({ width: 4, height: 3 });
+    for (const frame of record.frames) {
+      const base64 = readFileSync(frame.path).toString('base64');
+      await expect(
+        imageInfoOfBase64(`data:${frame.mimeType};base64,${base64}`),
+      ).resolves.toEqual(record.shotSize);
+    }
+  });
+
+  it('falls back when opening the frame source throws', async () => {
+    const screenshot = vi.fn(async () => testPngDataUrl);
     const observer = new UIObserverImpl(
       {
         openFrameSource: async () => {
           throw new Error('stream unavailable');
         },
-        screenshot,
-        captureRepresentative: async () => fakeRepresentative(),
+        captureRawScreenshot: screenshot,
+        capturePreparedRepresentative: async () => fakeRepresentative(),
         createInsight: () => ({
           aiQuery: vi.fn(),
           aiBoolean: vi.fn(),
@@ -464,7 +507,7 @@ describe('UIObserver', () => {
       finishRepresentative = resolve;
     });
     const { deps, onStopped } = makeDeps(fake);
-    deps.captureRepresentative = async () => {
+    deps.capturePreparedRepresentative = async () => {
       await representativeReady;
       return fakeRepresentative();
     };

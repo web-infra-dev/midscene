@@ -556,8 +556,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           (await this.interface.openFrameSource?.()) ?? undefined,
         // Fallback single-frame capture. Deliberately bypasses getUIContext so
         // the observation loop never pollutes the TaskRunner context cache.
-        screenshot: () => this.interface.screenshotBase64(),
-        captureRepresentative: () => this.getUIContext('assert'),
+        captureRawScreenshot: () => this.interface.screenshotBase64(),
+        capturePreparedRepresentative: () => this.getUIContext('assert'),
         createInsight: (record) =>
           this.createInsight(() => uiContextFromObservationRecord(record)),
         onStopped: () => {
