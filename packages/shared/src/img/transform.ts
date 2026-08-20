@@ -9,7 +9,7 @@ import type { Rect, Size } from '../types';
 import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
-import { imageInfoOfBase64 } from './info';
+import { encodedImageInfoOfBuffer } from './info';
 
 const imgDebug = getDebug('img');
 
@@ -327,8 +327,8 @@ export type JpegBase64DataUrl = `data:image/jpeg;base64,${string}`;
 
 export interface ResizeBase64ImageToJpegOptions {
   /**
-   * Trusted input dimensions in positive integer pixels. They must match the
-   * encoded image; providing them avoids reading metadata again.
+   * Expected input dimensions in positive integer pixels. When provided, they
+   * are checked against the encoded image header before processing.
    */
   sourceSize?: Size;
   /** Exact output dimensions in positive integer pixels. */
@@ -359,6 +359,39 @@ function assertValidImageSize(size: Size, label: string): void {
 }
 
 /**
+ * Ensures that a PNG/JPEG Base64 image is represented as JPEG without resizing.
+ * Existing JPEG bytes are reused; PNG input is encoded with `jpegQuality`.
+ * This function does not read image dimensions.
+ *
+ * @param inputBase64 - A PNG/JPEG data URL or raw Base64 image body.
+ * @param jpegQuality - JPEG quality from 1 to 100 when encoding PNG. Defaults to 90.
+ * @returns A JPEG data URL with unchanged dimensions.
+ */
+export async function convertBase64ImageToJpeg(
+  inputBase64: string,
+  jpegQuality = 90,
+): Promise<JpegBase64DataUrl> {
+  assertValidJpegQuality(jpegQuality);
+  const { body } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const detectedMimeType = detectImageMimeTypeFromBuffer(imageBuffer);
+  if (detectedMimeType === 'image/jpeg') {
+    return createImgBase64ByFormat('jpeg', body) as JpegBase64DataUrl;
+  }
+  if (detectedMimeType !== 'image/png') {
+    throw new Error(
+      `inputBase64 must contain a PNG or JPEG image. Detected: ${detectedMimeType ?? 'unsupported format'}`,
+    );
+  }
+
+  const jpegBuffer = await convertImgBufferToJpeg(imageBuffer, jpegQuality);
+  return createImgBase64ByFormat(
+    'jpeg',
+    jpegBuffer.toString('base64'),
+  ) as JpegBase64DataUrl;
+}
+
+/**
  * Resizes a PNG/JPEG Base64 image and ensures that the result is JPEG.
  *
  * An unchanged JPEG is returned without re-encoding. An unchanged PNG is
@@ -378,11 +411,20 @@ export async function resizeBase64ImageToJpeg(
   assertValidImageSize(options.targetSize, 'targetSize');
 
   const { body, mimeType } = parseBase64(inputBase64);
-  const sourceSize =
-    options.sourceSize ?? (await imageInfoOfBase64(inputBase64));
-  assertValidImageSize(sourceSize, 'sourceSize');
-
   const imageBuffer = Buffer.from(body, 'base64');
+  const encodedSourceSize = encodedImageInfoOfBuffer(imageBuffer);
+  if (options.sourceSize) {
+    assertValidImageSize(options.sourceSize, 'sourceSize');
+    if (
+      options.sourceSize.width !== encodedSourceSize.width ||
+      options.sourceSize.height !== encodedSourceSize.height
+    ) {
+      throw new Error(
+        `sourceSize ${options.sourceSize.width}x${options.sourceSize.height} does not match encoded image dimensions ${encodedSourceSize.width}x${encodedSourceSize.height}`,
+      );
+    }
+  }
+  const sourceSize = encodedSourceSize;
   const dimensionsUnchanged =
     sourceSize.width === options.targetSize.width &&
     sourceSize.height === options.targetSize.height;

@@ -9,6 +9,7 @@ export {
 export {
   resizeAndConvertImgBuffer,
   convertImgBufferToJpeg,
+  convertBase64ImageToJpeg,
   resizeBase64ImageToJpeg,
   resizeImgBase64,
   zoomForGPT4o,

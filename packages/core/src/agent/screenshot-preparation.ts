@@ -1,5 +1,6 @@
 import {
   type JpegBase64DataUrl,
+  convertBase64ImageToJpeg,
   imageInfoOfBase64,
   resizeBase64ImageToJpeg,
 } from '@midscene/shared/img';
@@ -68,4 +69,19 @@ export async function prepareRawScreenshot(
     originalSize,
     shotSize,
   };
+}
+
+/**
+ * Prepare a screenshot for persistence when only JPEG output is required.
+ * Unscaled frames avoid dimension reads; scaled frames use the full pipeline.
+ */
+export async function prepareScreenshotForPersistence(
+  screenshotBase64: string,
+  options?: PrepareRawScreenshotOptions,
+): Promise<JpegBase64DataUrl> {
+  const shrinkFactor = options?.shrinkFactor ?? 1;
+  if (shrinkFactor === 1) {
+    return convertBase64ImageToJpeg(screenshotBase64, SCREENSHOT_JPEG_QUALITY);
+  }
+  return (await prepareRawScreenshot(screenshotBase64, options)).base64;
 }

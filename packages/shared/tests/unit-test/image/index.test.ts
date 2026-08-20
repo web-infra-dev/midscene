@@ -171,6 +171,19 @@ describe('image utils', () => {
     expect(resizedBase64).toBe(base64);
   });
 
+  it('resizeBase64ImageToJpeg rejects source dimensions that do not match the encoded image', async () => {
+    const base64 = localImg2Base64(getFixture('heytea.jpeg'));
+
+    await expect(
+      resizeBase64ImageToJpeg(base64, {
+        sourceSize: { width: 1, height: 1 },
+        targetSize: { width: 1, height: 1 },
+      }),
+    ).rejects.toThrow(
+      'sourceSize 1x1 does not match encoded image dimensions 400x905',
+    );
+  });
+
   it.each([0, 101, 10.5, Number.NaN])(
     'resizeBase64ImageToJpeg rejects invalid JPEG quality %s',
     async (jpegQuality) => {

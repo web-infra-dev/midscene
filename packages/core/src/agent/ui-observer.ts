@@ -21,7 +21,7 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '../types';
-import { prepareRawScreenshot } from './screenshot-preparation';
+import { prepareScreenshotForPersistence } from './screenshot-preparation';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
@@ -442,9 +442,9 @@ export class UIObserverImpl implements UIObserver {
         decoded.length === batch.length,
         'frame source decode() must return one image per frame handle',
       );
-      const preparedScreenshots = await Promise.all(
+      const preparedDataUrls = await Promise.all(
         decoded.map((dataUrl) =>
-          prepareRawScreenshot(dataUrl, {
+          prepareScreenshotForPersistence(dataUrl, {
             shrinkFactor: this.screenshotShrinkFactor,
           }),
         ),
@@ -453,7 +453,7 @@ export class UIObserverImpl implements UIObserver {
         this.persistedByRef.set(
           batch[index].ref,
           this.writer.persistFrame(
-            preparedScreenshots[index].base64,
+            preparedDataUrls[index],
             batch[index].capturedAt,
           ),
         );
@@ -474,11 +474,12 @@ export class UIObserverImpl implements UIObserver {
         const frame = this.source.latest();
         if (!frame) return;
         if (isImageDataUrl(frame.ref)) {
-          const preparedScreenshot = await prepareRawScreenshot(frame.ref, {
-            shrinkFactor: this.screenshotShrinkFactor,
-          });
+          const preparedDataUrl = await prepareScreenshotForPersistence(
+            frame.ref,
+            { shrinkFactor: this.screenshotShrinkFactor },
+          );
           const persisted = this.writer.persistFrame(
-            preparedScreenshot.base64,
+            preparedDataUrl,
             frame.capturedAt,
           );
           this.pushFrame({
@@ -491,14 +492,11 @@ export class UIObserverImpl implements UIObserver {
         }
         return;
       }
-      const preparedScreenshot = await prepareRawScreenshot(
+      const preparedDataUrl = await prepareScreenshotForPersistence(
         await this.deps.captureRawScreenshot(),
         { shrinkFactor: this.screenshotShrinkFactor },
       );
-      const persisted = this.writer.persistFrame(
-        preparedScreenshot.base64,
-        Date.now(),
-      );
+      const persisted = this.writer.persistFrame(preparedDataUrl, Date.now());
       this.pushFrame({
         ref: persisted.path,
         capturedAt: persisted.capturedAt,
