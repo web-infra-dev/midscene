@@ -532,6 +532,42 @@ describe('BatchRunner', () => {
       ).toBe(true);
     });
 
+    test('records all outcomes before surfacing an unexpected error when continueOnError is true', async () => {
+      const executionError = new Error('execution exploded');
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const player = createMockPlayer(true);
+        if (file === 'file1.yml') {
+          player.run = vi.fn().mockRejectedValue(executionError);
+        }
+        return player;
+      });
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        continueOnError: true,
+      });
+
+      await expect(runner.run()).rejects.toBe(executionError);
+      expect(runner.getResults()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            file: 'file1.yml',
+            executed: true,
+            resultType: 'failed',
+            error: executionError.message,
+          }),
+          expect.objectContaining({
+            file: 'file2.yml',
+            resultType: 'success',
+          }),
+          expect.objectContaining({
+            file: 'file3.yml',
+            resultType: 'success',
+          }),
+        ]),
+      );
+    });
+
     test('does not start queued YAML files after a partial failure', async () => {
       let firstPlayer: ScriptPlayer<MidsceneYamlScriptEnv> | undefined;
       let releaseSecondFile: (() => void) | undefined;
@@ -615,6 +651,24 @@ describe('BatchRunner', () => {
       expect(
         vi.mocked(createYamlPlayer).mock.calls.map(([file]) => file),
       ).toEqual(['file1.yml']);
+      expect(runner.getResults()).toEqual([
+        expect.objectContaining({
+          file: 'file1.yml',
+          executed: true,
+          resultType: 'failed',
+          error: executionError.message,
+        }),
+        expect.objectContaining({
+          file: 'file2.yml',
+          executed: false,
+          resultType: 'notExecuted',
+        }),
+        expect.objectContaining({
+          file: 'file3.yml',
+          executed: false,
+          resultType: 'notExecuted',
+        }),
+      ]);
     });
 
     test('preserves an execution error when closing its page also fails', async () => {
@@ -669,6 +723,25 @@ describe('BatchRunner', () => {
       );
       expect(page.close).toHaveBeenCalledTimes(1);
       expect(browser.close).toHaveBeenCalledTimes(1);
+      expect(runner.getResults()).toEqual([
+        expect.objectContaining({
+          file: 'web1.yml',
+          executed: true,
+          resultType: 'failed',
+          error: 'Failed to close a YAML execution page',
+        }),
+      ]);
+
+      const summaryCall = vi
+        .mocked(writeFileSync)
+        .mock.calls.find(([path]) => path === '/test/output/test-summary.json');
+      expect(summaryCall).toBeDefined();
+      const summary = JSON.parse(summaryCall?.[1] as string);
+      expect(summary.summary).toMatchObject({
+        total: 1,
+        successful: 0,
+        failed: 1,
+      });
     });
   });
 

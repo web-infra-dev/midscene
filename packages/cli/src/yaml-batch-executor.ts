@@ -15,6 +15,7 @@ import {
 } from '@midscene/core/yaml';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  PuppeteerPageOwnership,
   buildChromeArgs,
   buildDownloadBehavior,
   defaultViewportHeight,
@@ -29,8 +30,10 @@ import {
   createYamlPlayer,
 } from './create-yaml-player';
 import {
+  attachResultsToYamlBatchError,
   createExecutedYamlResult,
   createNotExecutedYamlResult,
+  createUnexpectedYamlResult,
   isYamlPlayerSuccessful,
   printExecutionFinished,
   printExecutionPlan,
@@ -47,6 +50,11 @@ import {
 import { TTYWindowRenderer } from './tty-renderer';
 
 const batchWarning = getDebug('yaml-batch-executor', { console: true });
+
+const normalizeExecutionError = (error: unknown): Error =>
+  error instanceof Error
+    ? error
+    : new Error('Unexpected YAML execution failure', { cause: error });
 
 export interface BatchRunnerConfig {
   files: string[];
@@ -97,6 +105,23 @@ interface BatchExecutionRecord {
   player?: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
+interface OwnedPageExecution {
+  page: Page;
+  ownership?: PuppeteerPageOwnership;
+}
+
+interface UnexpectedExecutionResult {
+  error: Error;
+  result: MidsceneYamlConfigResult;
+}
+
+type FileExecutionOutcome =
+  | {
+      kind: 'executed';
+      context: MidsceneYamlFileContext & { duration: number };
+    }
+  | ({ kind: 'unexpected' } & UnexpectedExecutionResult);
+
 export interface RunYamlBatchOptions {
   generateSummary?: boolean;
   printExecutionPlan?: boolean;
@@ -137,6 +162,7 @@ class YamlBatchExecutor {
     let setupContext: BatchFileContext | undefined;
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
+    let executionError: unknown;
 
     try {
       // Create the setup context (prerequisite) before the main files so the
@@ -231,30 +257,51 @@ class YamlBatchExecutor {
       }
 
       // Execute files
-      const { executedResults, notExecutedContexts } = await this.executeFiles(
-        setupContext,
-        fileContextList,
-      );
+      const {
+        executedResults,
+        unexpectedResults,
+        notExecutedContexts,
+        unexpectedError,
+      } = await this.executeFiles(setupContext, fileContextList);
 
       // Process results
       this.results = await this.processResults(
         executedResults,
+        unexpectedResults,
         notExecutedContexts,
       );
+      executionError = unexpectedError;
+    } catch (error) {
+      executionError = error;
     } finally {
       if (browser && !this.config.keepWindow) {
-        // For CDP mode, disconnect instead of closing the externally managed browser
-        const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})?.target
-          .cdpEndpoint;
-        if (isCdp) {
-          browser.disconnect();
-        } else {
-          await browser.close();
+        try {
+          // For CDP mode, disconnect instead of closing the externally managed browser
+          const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})
+            ?.target.cdpEndpoint;
+          if (isCdp) {
+            browser.disconnect();
+          } else {
+            await browser.close();
+          }
+        } catch (error) {
+          if (executionError) {
+            batchWarning(
+              'failed to clean up the shared browser after execution had already failed; preserving the original error',
+              error,
+            );
+          } else {
+            executionError = error;
+          }
         }
       }
       if (generateSummary) {
         await this.generateOutputIndex();
       }
+    }
+
+    if (executionError) {
+      throw attachResultsToYamlBatchError(executionError, this.results);
     }
 
     return this.results;
@@ -286,14 +333,17 @@ class YamlBatchExecutor {
     fileContextList: BatchFileContext[],
   ): Promise<{
     executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
+    unexpectedResults: MidsceneYamlConfigResult[];
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>;
+    unexpectedError?: Error;
   }> {
     const executedResults: Array<
       MidsceneYamlFileContext & { duration: number }
     > = [];
+    const unexpectedResults: MidsceneYamlConfigResult[] = [];
     const notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -351,24 +401,38 @@ class YamlBatchExecutor {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
-      ): Promise<MidsceneYamlFileContext & { duration: number }> => {
+      ): Promise<FileExecutionOutcome> => {
+        const startTime = Date.now();
         const executionRecord = executionRecordByContext.get(context);
         if (!executionRecord) {
-          throw new Error(
+          const error = new Error(
             `Execution record not found for file: ${context.file}`,
           );
+          return {
+            kind: 'unexpected',
+            error,
+            result: createUnexpectedYamlResult({
+              file: context.file,
+              error,
+              duration: Date.now() - startTime,
+            }),
+          };
         }
 
-        let ownedPage: Page | undefined;
-        let executionFailed = false;
+        let ownedPageExecution: OwnedPageExecution | undefined;
+        let unexpectedError: Error | undefined;
+        let executedContext:
+          | (MidsceneYamlFileContext & { duration: number })
+          | undefined;
         try {
-          ownedPage = await this.createPageForContext(context);
+          ownedPageExecution = await this.createPageForContext(context);
           const player = await createYamlPlayer(
             context.file,
             context.executionConfig,
             {
               ...context.options,
-              page: ownedPage,
+              page: ownedPageExecution?.page,
+              pageOwnership: ownedPageExecution?.ownership,
             },
           );
           executionRecord.player = player;
@@ -387,9 +451,6 @@ class YamlBatchExecutor {
             player.output = context.outputPath;
           }
 
-          // Record start time
-          const startTime = Date.now();
-
           // Run the player
           await player.run();
 
@@ -397,9 +458,7 @@ class YamlBatchExecutor {
           const endTime = Date.now();
           const duration = endTime - startTime;
 
-          const executedContext: MidsceneYamlFileContext & {
-            duration: number;
-          } = {
+          executedContext = {
             file: context.file,
             player,
             duration,
@@ -410,16 +469,67 @@ class YamlBatchExecutor {
               contextTaskListSummary(player.taskStatusList, executedContext),
             );
           }
-
-          return executedContext;
         } catch (error) {
-          executionFailed = true;
-          throw error;
-        } finally {
-          if (ownedPage && !this.config.keepWindow) {
-            await this.closePage(ownedPage, executionFailed);
+          unexpectedError = normalizeExecutionError(error);
+        }
+
+        if (ownedPageExecution) {
+          try {
+            if (this.config.keepWindow) {
+              ownedPageExecution.ownership?.release();
+            } else if (ownedPageExecution.ownership) {
+              await ownedPageExecution.ownership.close();
+            } else {
+              await this.closePage(
+                ownedPageExecution.page,
+                Boolean(unexpectedError),
+              );
+            }
+          } catch (error) {
+            if (unexpectedError) {
+              batchWarning(
+                'failed to close YAML execution pages after execution had already failed; preserving the original error',
+                error,
+              );
+            } else {
+              unexpectedError = new Error(
+                'Failed to close a YAML execution page',
+                { cause: error },
+              );
+            }
           }
         }
+
+        if (unexpectedError) {
+          return {
+            kind: 'unexpected',
+            error: unexpectedError,
+            result: createUnexpectedYamlResult({
+              file: context.file,
+              error: unexpectedError,
+              duration: Date.now() - startTime,
+              player: executionRecord.player,
+            }),
+          };
+        }
+
+        if (!executedContext) {
+          const error = new Error(
+            `YAML execution completed without a result: ${context.file}`,
+          );
+          return {
+            kind: 'unexpected',
+            error,
+            result: createUnexpectedYamlResult({
+              file: context.file,
+              error,
+              duration: Date.now() - startTime,
+              player: executionRecord.player,
+            }),
+          };
+        }
+
+        return { kind: 'executed', context: executedContext };
       };
 
       // Run the setup file first, if any. A setup failure aborts the batch:
@@ -427,10 +537,17 @@ class YamlBatchExecutor {
       // `continueOnError`, since the main files rely on the prerequisite state
       // the setup file establishes.
       let setupFailed = false;
+      let unexpectedError: Error | undefined;
       if (setupContext) {
-        const executedContext = await executeFile(setupContext);
-        executedResults.push(executedContext);
-        setupFailed = !isYamlPlayerSuccessful(executedContext.player);
+        const outcome = await executeFile(setupContext);
+        if (outcome.kind === 'unexpected') {
+          unexpectedResults.push(outcome.result);
+          unexpectedError = outcome.error;
+          setupFailed = true;
+        } else {
+          executedResults.push(outcome.context);
+          setupFailed = !isYamlPlayerSuccessful(outcome.context.player);
+        }
       }
 
       if (setupFailed) {
@@ -439,10 +556,11 @@ class YamlBatchExecutor {
         }
       } else {
         // Execute based on concurrency and error handling settings
-        await this.executeConcurrently(
+        unexpectedError = await this.executeConcurrently(
           fileContextList,
           executeFile,
           executedResults,
+          unexpectedResults,
           notExecutedContexts,
         );
       }
@@ -456,13 +574,17 @@ class YamlBatchExecutor {
           );
         }
       }
+      return {
+        executedResults,
+        unexpectedResults,
+        notExecutedContexts,
+        unexpectedError,
+      };
     } finally {
       if (ttyRenderer) {
         ttyRenderer.stop();
       }
     }
-
-    return { executedResults, notExecutedContexts };
   }
 
   /**
@@ -473,13 +595,20 @@ class YamlBatchExecutor {
    */
   private async createPageForContext(
     context: BatchFileContext,
-  ): Promise<Page | undefined> {
+  ): Promise<OwnedPageExecution | undefined> {
     const webTarget = resolveWebTarget(context.executionConfig)?.target;
     if (!context.options.browser || !webTarget || webTarget.bridgeMode) {
       return undefined;
     }
 
-    return context.options.browser.newPage();
+    const page = await context.options.browser.newPage();
+    return {
+      page,
+      ownership:
+        webTarget.mode === 'browser'
+          ? new PuppeteerPageOwnership(page)
+          : undefined,
+    };
   }
 
   private async closePage(
@@ -504,45 +633,36 @@ class YamlBatchExecutor {
     }
   }
 
-  private throwUnexpectedExecutionError(
-    settledResults: PromiseSettledResult<void>[],
-  ): void {
-    const rejected = settledResults.find(
-      (result): result is PromiseRejectedResult => result.status === 'rejected',
-    );
-    if (rejected) {
-      if (rejected.reason instanceof Error) {
-        throw rejected.reason;
-      }
-      throw new Error('Unexpected YAML execution failure', {
-        cause: rejected.reason,
-      });
-    }
-  }
-
   private async executeConcurrently(
     fileContextList: BatchFileContext[],
-    executeFile: (
-      context: BatchFileContext,
-    ) => Promise<MidsceneYamlFileContext & { duration: number }>,
+    executeFile: (context: BatchFileContext) => Promise<FileExecutionOutcome>,
     executedResults: Array<MidsceneYamlFileContext & { duration: number }>,
+    unexpectedResults: MidsceneYamlConfigResult[],
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>,
-  ): Promise<void> {
+  ): Promise<Error | undefined> {
     const limit = pLimit(this.config.concurrent);
+    let unexpectedError: Error | undefined;
+
+    const recordOutcome = (outcome: FileExecutionOutcome) => {
+      if (outcome.kind === 'unexpected') {
+        unexpectedResults.push(outcome.result);
+        unexpectedError ??= outcome.error;
+      } else {
+        executedResults.push(outcome.context);
+      }
+    };
 
     if (this.config.continueOnError) {
       // Execute all tasks with concurrency
       const tasks = fileContextList.map((context) =>
         limit(async () => {
-          const executedContext = await executeFile(context);
-          executedResults.push(executedContext);
+          recordOutcome(await executeFile(context));
         }),
       );
-      const settledResults = await Promise.allSettled(tasks);
-      this.throwUnexpectedExecutionError(settledResults);
+      await Promise.all(tasks);
     } else {
       // Execute with concurrency but stop new tasks when failure occurs
       let shouldStop = false;
@@ -558,33 +678,27 @@ class YamlBatchExecutor {
             return;
           }
 
-          try {
-            const executedContext = await executeFile(context);
-            executedResults.push(executedContext);
+          const outcome = await executeFile(context);
+          recordOutcome(outcome);
 
-            if (!isYamlPlayerSuccessful(executedContext.player)) {
-              stopLock.value = true;
-              shouldStop = true;
-            }
-          } catch (error) {
-            // Unexpected execution errors still abort the batch, but setting
-            // the lock here prevents already-queued YAML files from starting
-            // while Promise.allSettled drains the limiter.
+          if (
+            outcome.kind === 'unexpected' ||
+            !isYamlPlayerSuccessful(outcome.context.player)
+          ) {
             stopLock.value = true;
             shouldStop = true;
-            throw error;
           }
         }),
       );
 
-      const settledResults = await Promise.allSettled(tasks);
-      this.throwUnexpectedExecutionError(settledResults);
+      await Promise.all(tasks);
 
       // Handle not executed contexts
       if (shouldStop) {
         for (const context of fileContextList) {
           if (
             !executedResults.some((r) => r.file === context.file) &&
+            !unexpectedResults.some((r) => r.file === context.file) &&
             !notExecutedContexts.some((ctx) => ctx.file === context.file)
           ) {
             notExecutedContexts.push({ file: context.file, player: null });
@@ -592,10 +706,13 @@ class YamlBatchExecutor {
         }
       }
     }
+
+    return unexpectedError;
   }
 
   private async processResults(
     executedContexts: Array<MidsceneYamlFileContext & { duration: number }>,
+    unexpectedResults: MidsceneYamlConfigResult[],
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -607,6 +724,8 @@ class YamlBatchExecutor {
       const { file, player, duration } = context;
       results.push(createExecutedYamlResult({ file, player, duration }));
     }
+
+    results.push(...unexpectedResults);
 
     for (const context of notExecutedContexts) {
       results.push(createNotExecutedYamlResult(context.file));

@@ -10,6 +10,7 @@ import {
   resolveWebViewportSize,
 } from '@/common/viewport';
 import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer/index';
+import type { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, {
@@ -19,6 +20,7 @@ import puppeteer, {
 } from 'puppeteer';
 
 export { defaultViewportWidth, defaultViewportHeight } from '@/common/viewport';
+export { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
@@ -107,11 +109,24 @@ function validateChromeArgs(args: string[], baseArgs: string[]): void {
 
 interface FreeFn {
   name: string;
-  fn: () => void;
+  fn: () => void | Promise<void>;
 }
 
 const launcherDebug = getDebug('puppeteer:launcher');
 const launcherWarning = getDebug('puppeteer:launcher', { console: true });
+
+async function cleanupFailedLaunch(freeFn: FreeFn[]): Promise<void> {
+  for (const cleanup of [...freeFn].reverse()) {
+    try {
+      await cleanup.fn();
+    } catch (error) {
+      launcherWarning(
+        `failed to run ${cleanup.name} after Puppeteer page initialization failed`,
+        error,
+      );
+    }
+  }
+}
 
 export function buildDownloadBehavior(
   downloadPath: string | undefined,
@@ -259,97 +274,113 @@ export async function launchPuppeteerPage(
   // create a new page in the supplied browser (or a newly launched browser).
   let page: Page;
   let browserInstance = browser;
+  let ownsBrowser = false;
 
-  if (existingPage) {
-    page = existingPage;
-    launcherDebug('using caller-provided page');
+  try {
+    if (existingPage) {
+      page = existingPage;
+      launcherDebug('using caller-provided page');
 
-    // Get the browser instance from the existing page
-    if (!browserInstance) {
-      browserInstance = page.browser();
-    }
-  } else {
-    // Create a new browser and page
-    if (!browserInstance) {
-      browserInstance = await puppeteer.launch({
-        headless: !preference?.headed,
-        defaultViewport: defaultViewportConfig,
-        downloadBehavior,
-        args,
-        acceptInsecureCerts: target.acceptInsecureCerts,
-        ignoreDefaultArgs: preference?.ignoreDefaultArgs,
-      });
-      freeFn.push({
-        name: 'puppeteer_browser',
-        fn: () => {
-          if (!preference?.keepWindow) {
-            if (process.platform === 'win32') {
-              setTimeout(() => {
-                browserInstance?.close();
-              }, 800);
-            } else {
-              browserInstance?.close();
+      // Get the browser instance from the existing page
+      if (!browserInstance) {
+        browserInstance = page.browser();
+      }
+    } else {
+      // Create a new browser and page
+      if (!browserInstance) {
+        browserInstance = await puppeteer.launch({
+          headless: !preference?.headed,
+          defaultViewport: defaultViewportConfig,
+          downloadBehavior,
+          args,
+          acceptInsecureCerts: target.acceptInsecureCerts,
+          ignoreDefaultArgs: preference?.ignoreDefaultArgs,
+        });
+        ownsBrowser = true;
+        freeFn.push({
+          name: 'puppeteer_browser',
+          fn: async () => {
+            if (preference?.keepWindow) {
+              return;
             }
-          }
-        },
-      });
-    }
-    page = await browserInstance.newPage();
-  }
-
-  if (target.cookie) {
-    const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-    await browserInstance.setCookie(...JSON.parse(cookieFileContent));
-  }
-
-  if (ua) {
-    await page.setUserAgent(ua);
-  }
-
-  if (target.extraHTTPHeaders) {
-    // YAML may parse unquoted values into booleans/numbers (e.g. `yes` -> true),
-    // but Puppeteer requires string header values, so normalize them here.
-    const normalizedHeaders = Object.fromEntries(
-      Object.entries(target.extraHTTPHeaders).map(([key, value]) => [
-        key,
-        String(value),
-      ]),
-    );
-    await page.setExtraHTTPHeaders(normalizedHeaders);
-  }
-
-  if (viewportConfig) {
-    await page.setViewport(viewportConfig);
-  }
-
-  const waitForNetworkIdleTimeout =
-    typeof target.waitForNetworkIdle?.timeout === 'number'
-      ? target.waitForNetworkIdle.timeout
-      : defaultWaitForNetworkIdleTimeout;
-
-  launcherDebug('goto', target.url);
-  await page.goto(target.url);
-
-  if (waitForNetworkIdleTimeout > 0) {
-    launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
-    try {
-      await page.waitForNetworkIdle({
-        timeout: waitForNetworkIdleTimeout,
-      });
-    } catch (error) {
-      if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
-        throw new Error(`failed to wait for network idle: ${error}`, {
-          cause: error,
+            if (process.platform === 'win32') {
+              await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+            await browserInstance?.close();
+          },
         });
       }
-      launcherWarning(
-        `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
-        error,
-      );
+      page = await browserInstance.newPage();
+      if (!ownsBrowser) {
+        const createdPage = page;
+        freeFn.push({
+          name: 'puppeteer_page',
+          fn: async () => {
+            if (!preference?.keepWindow && !createdPage.isClosed()) {
+              await createdPage.close();
+            }
+          },
+        });
+      }
     }
-  }
 
-  return { page, freeFn };
+    if (target.cookie) {
+      const cookieFileContent = readFileSync(target.cookie, 'utf-8');
+      await browserInstance.setCookie(...JSON.parse(cookieFileContent));
+    }
+
+    if (ua) {
+      await page.setUserAgent(ua);
+    }
+
+    if (target.extraHTTPHeaders) {
+      // YAML may parse unquoted values into booleans/numbers (e.g. `yes` -> true),
+      // but Puppeteer requires string header values, so normalize them here.
+      const normalizedHeaders = Object.fromEntries(
+        Object.entries(target.extraHTTPHeaders).map(([key, value]) => [
+          key,
+          String(value),
+        ]),
+      );
+      await page.setExtraHTTPHeaders(normalizedHeaders);
+    }
+
+    if (viewportConfig) {
+      await page.setViewport(viewportConfig);
+    }
+
+    const waitForNetworkIdleTimeout =
+      typeof target.waitForNetworkIdle?.timeout === 'number'
+        ? target.waitForNetworkIdle.timeout
+        : defaultWaitForNetworkIdleTimeout;
+
+    launcherDebug('goto', target.url);
+    await page.goto(target.url);
+
+    if (waitForNetworkIdleTimeout > 0) {
+      launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
+      try {
+        await page.waitForNetworkIdle({
+          timeout: waitForNetworkIdleTimeout,
+        });
+      } catch (error) {
+        if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
+          throw new Error(`failed to wait for network idle: ${error}`, {
+            cause: error,
+          });
+        }
+        launcherWarning(
+          `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
+          error,
+        );
+      }
+    }
+
+    return { page, freeFn };
+  } catch (error) {
+    await cleanupFailedLaunch(freeFn);
+    throw error;
+  }
 }
 
 export async function puppeteerAgentForTarget(
@@ -357,6 +388,7 @@ export async function puppeteerAgentForTarget(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
+    pageOwnership?: PuppeteerPageOwnership;
   } & Partial<
     Pick<
       AgentOpt,
@@ -374,16 +406,6 @@ export async function puppeteerAgentForTarget(
   browser?: Browser,
   existingPage?: Page,
 ) {
-  const { page, freeFn } = await launchPuppeteerPage(
-    target,
-    preference,
-    browser,
-    existingPage,
-  );
-  const aiActContext = resolveAiActionContext(target, preference);
-
-  const { aiActionContext, ...preferenceToUse } = preference ?? {};
-
   const mode = target.mode ?? 'page';
 
   if (mode !== 'page' && mode !== 'browser') {
@@ -399,6 +421,17 @@ export async function puppeteerAgentForTarget(
     autoFollowNewPage: target.autoFollowNewPage,
   });
 
+  const { page, freeFn } = await launchPuppeteerPage(
+    target,
+    preference,
+    browser,
+    existingPage,
+  );
+  const aiActContext = resolveAiActionContext(target, preference);
+
+  const { aiActionContext, pageOwnership, ...preferenceToUse } =
+    preference ?? {};
+
   const commonAgentOpts = {
     ...preferenceToUse,
     aiActContext,
@@ -409,17 +442,27 @@ export async function puppeteerAgentForTarget(
   };
 
   // prepare Midscene agent
-  const agent =
-    mode === 'browser'
-      ? await PuppeteerBrowserAgent.create(page.browser(), {
-          ...commonAgentOpts,
-          initialPage: page,
-          autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-        })
-      : new PuppeteerAgent(page, {
-          ...commonAgentOpts,
-          forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
-        });
+  let agent: PuppeteerAgent | PuppeteerBrowserAgent;
+  try {
+    agent =
+      mode === 'browser'
+        ? await PuppeteerBrowserAgent.create(
+            page.browser(),
+            {
+              ...commonAgentOpts,
+              initialPage: page,
+              autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+            },
+            pageOwnership,
+          )
+        : new PuppeteerAgent(page, {
+            ...commonAgentOpts,
+            forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+          });
+  } catch (error) {
+    await cleanupFailedLaunch(freeFn);
+    throw error;
+  }
 
   freeFn.push({
     name: 'midscene_puppeteer_agent',

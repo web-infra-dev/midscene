@@ -4,9 +4,10 @@ shareBrowserContext: true
 
 browser:
   # The integration test injects its dynamically allocated server origin.
-  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html?browserMode=true
   viewportWidth: 800
   viewportHeight: 600
+  autoFollowNewPage: true
 
 setup: 00-setup.yaml
 

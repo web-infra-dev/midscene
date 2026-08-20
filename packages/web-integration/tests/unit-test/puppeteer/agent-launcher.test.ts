@@ -30,6 +30,7 @@ const createPageMock = () => ({
   removeScriptToEvaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
+  close: vi.fn().mockResolvedValue(undefined),
   browser: vi.fn(() => browserMock),
   bringToFront: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
@@ -248,6 +249,33 @@ describe('launchPuppeteerPage', () => {
     expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
   });
 
+  it('closes an internally launched browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage({ url: 'https://example.invalid' }),
+    ).rejects.toBe(navigationError);
+
+    expect(browserMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a page created in a caller-provided browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+    expect(browserMock.close).not.toHaveBeenCalled();
+  });
+
   it('only applies continueOnNetworkIdleError to network-idle failures', async () => {
     pageMock.waitForNetworkIdle.mockRejectedValueOnce(
       new Error('network remained busy'),
@@ -304,6 +332,8 @@ describe('launchPuppeteerPage', () => {
         autoFollowNewPage: true,
       }),
     ).rejects.toThrow('autoFollowNewPage requires browser mode');
+
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('creates browser agent in browser mode', async () => {

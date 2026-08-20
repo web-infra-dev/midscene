@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
+import { getResultsFromYamlBatchError } from '../execution-summary';
 import { type BatchRunnerConfig, runYamlBatch } from '../yaml-batch-executor';
 
 export interface RunYamlBatchInRstestOptions {
@@ -26,10 +27,21 @@ const batchFailureMessage = (results: MidsceneYamlConfigResult[]): string => {
 export async function runYamlBatchInRstest(
   options: RunYamlBatchInRstestOptions,
 ): Promise<MidsceneYamlConfigResult[]> {
-  const results = await runYamlBatch(options.config, {
-    generateSummary: false,
-    printExecutionPlan: false,
-  });
+  let executionError: unknown;
+  let results: MidsceneYamlConfigResult[];
+  try {
+    results = await runYamlBatch(options.config, {
+      generateSummary: false,
+      printExecutionPlan: false,
+    });
+  } catch (error) {
+    const partialResults = getResultsFromYamlBatchError(error);
+    if (!partialResults) {
+      throw error;
+    }
+    executionError = error;
+    results = partialResults;
+  }
 
   for (const result of results) {
     const resultFile =
@@ -38,6 +50,10 @@ export async function runYamlBatchInRstest(
     if (resultFile) {
       writeResultFile(resultFile, result);
     }
+  }
+
+  if (executionError) {
+    throw executionError;
   }
 
   if (results.some((result) => !result.success)) {
