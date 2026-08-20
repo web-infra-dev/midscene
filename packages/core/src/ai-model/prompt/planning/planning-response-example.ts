@@ -6,9 +6,9 @@ type PlanningSubGoalExample = {
   description: string;
 };
 
-type PlanningResponseActionExample = {
+type PlanningResponseActionOutputExample = {
   log?: string;
-  actionExample: string | undefined;
+  actionOutputExample: string | undefined;
   complete?: never;
 };
 
@@ -18,7 +18,7 @@ type PlanningResponseCompleteExample = {
     message: string;
   };
   log?: never;
-  actionExample?: never;
+  actionOutputExample?: never;
 };
 
 type BuildPlanningResponseExampleInput = {
@@ -26,7 +26,7 @@ type BuildPlanningResponseExampleInput = {
   updateSubGoals?: PlanningSubGoalExample[];
   markSubGoalsDone?: number[];
   memory?: string;
-} & (PlanningResponseActionExample | PlanningResponseCompleteExample);
+} & (PlanningResponseActionOutputExample | PlanningResponseCompleteExample);
 
 export const buildPlanningResponseExample = (
   input: BuildPlanningResponseExampleInput,
@@ -61,15 +61,15 @@ export const buildPlanningResponseExample = (
       `<complete success="${input.complete.success}">${input.complete.message}</complete>`,
     );
   } else {
-    if (!input.actionExample) {
+    if (!input.actionOutputExample) {
       throw new Error(
-        'Cannot build planning response example without an action example',
+        'Cannot build planning response example without an action output example',
       );
     }
     if (input.log) {
       sections.push(`<log>${input.log}</log>`);
     }
-    sections.push(input.actionExample);
+    sections.push(input.actionOutputExample);
   }
 
   return sections.join('\n');

@@ -54,12 +54,8 @@ export function isMidsceneLocatorField(field: unknown): boolean {
 /**
  * Get type name string from a Zod schema field
  * @param field - Zod schema field
- * @param locatorTypeDescription - Optional description for MidsceneLocation fields (used by core)
  */
-export function getZodTypeName(
-  field: unknown,
-  locatorTypeDescription?: string,
-): string {
+export function getZodTypeName(field: unknown): string {
   const actualField = unwrapZodField(field) as {
     _def?: { typeName?: string; values?: unknown[]; options?: unknown[] };
   };
@@ -69,13 +65,7 @@ export function getZodTypeName(
   if (fieldTypeName === 'ZodNumber') return 'number';
   if (fieldTypeName === 'ZodBoolean') return 'boolean';
   if (fieldTypeName === 'ZodArray') return 'array';
-  if (fieldTypeName === 'ZodObject') {
-    // Check if this is a Midscene locator field
-    if (isMidsceneLocatorField(actualField)) {
-      return locatorTypeDescription || 'object';
-    }
-    return 'object';
-  }
+  if (fieldTypeName === 'ZodObject') return 'object';
   if (fieldTypeName === 'ZodEnum') {
     const values =
       (actualField._def?.values as unknown[] | undefined)
@@ -87,9 +77,7 @@ export function getZodTypeName(
   if (fieldTypeName === 'ZodUnion') {
     const options = actualField._def?.options as unknown[] | undefined;
     if (options && options.length > 0) {
-      const types = options.map((opt: unknown) =>
-        getZodTypeName(opt, locatorTypeDescription),
-      );
+      const types = options.map((opt: unknown) => getZodTypeName(opt));
       return types.join(' | ');
     }
     return 'union';

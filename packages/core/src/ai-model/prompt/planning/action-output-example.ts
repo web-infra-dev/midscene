@@ -2,10 +2,10 @@ import { findAllMidsceneLocatorField } from '@/common';
 import { actionInputParamSchema, actionTapParamSchema } from '@/device';
 import type { DeviceAction } from '@/types';
 import type { z } from 'zod';
+import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
-import type { PlanningActionOutputProtocol } from './action-output-protocol';
 
-export type ActionExampleDefinition = Pick<
+export type ActionOutputExampleDefinition = Pick<
   DeviceAction<any>,
   'name' | 'paramSchema' | 'sample'
 >;
@@ -39,12 +39,12 @@ const injectLocateResultIntoSample = (
   return result;
 };
 
-export const buildActionExample = (
-  action: ActionExampleDefinition,
+export const buildActionOutputExample = (
+  action: ActionOutputExampleDefinition,
   {
     locatePromptSpec,
     locateResultExampleIndex = 0,
-    actionOutputProtocol,
+    buildActionOutput,
   }: {
     locatePromptSpec?: LocateResultPromptSpec;
     /**
@@ -54,7 +54,7 @@ export const buildActionExample = (
      * reusing identical locate coordinates.
      */
     locateResultExampleIndex?: number;
-    actionOutputProtocol: PlanningActionOutputProtocol;
+    buildActionOutput: PlanningActionOutputProtocol['buildActionOutput'];
   },
 ) => {
   if (!action.sample || typeof action.sample !== 'object') {
@@ -71,21 +71,17 @@ export const buildActionExample = (
       )
     : action.sample;
 
-  return actionOutputProtocol.buildActionOutput(
-    {
-      type: action.name,
-      param: sampleWithLocateResult,
-    },
-    {
-      locateFields,
-      locatePromptSpec,
-    },
-  );
+  return buildActionOutput({
+    actionName: action.name,
+    param: sampleWithLocateResult,
+    locateFields,
+    locateResultKey: locatePromptSpec?.resultKey,
+  });
 };
 
 export const createSampleTapAction = (
   prompt: string,
-): ActionExampleDefinition => {
+): ActionOutputExampleDefinition => {
   const sample: z.input<typeof actionTapParamSchema> = {
     locate: { prompt },
   };
@@ -98,7 +94,7 @@ export const createSampleTapAction = (
 
 export const createSampleInputAction = (
   value: string,
-): ActionExampleDefinition => {
+): ActionOutputExampleDefinition => {
   const sample: z.input<typeof actionInputParamSchema> = { value };
   return {
     name: 'Input',

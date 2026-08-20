@@ -4,8 +4,7 @@ import type {
   SubGoal,
   SubGoalStatus,
 } from '@/types';
-import type { PlanningActionOutputProtocol } from '../../prompt/planning/action-output-protocol';
-import type { JsonParser } from '../../shared/json';
+import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
 import { extractXMLTag } from '../../shared/xml';
 import { buildPlanningActionLog } from './planning-action-log';
 
@@ -171,7 +170,6 @@ function buildNonActionPlanningLog(
 
 export function parseStandardPlanningResponse(
   xmlString: string,
-  jsonParser: JsonParser,
   options: ParseStandardPlanningResponseOptions,
 ): RawResponsePlanningAIResponse {
   const { parsed, rawActionOutput } = parseXMLPlanningResponse(
@@ -181,10 +179,7 @@ export function parseStandardPlanningResponse(
   );
   const response: RawResponsePlanningAIResponse = {
     ...parsed,
-    action: options.actionOutputProtocol.parseActionOutput(
-      rawActionOutput,
-      jsonParser,
-    ),
+    action: options.actionOutputProtocol.parseActionOutput(rawActionOutput),
   };
 
   if (options.logSource !== 'action') {

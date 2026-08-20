@@ -1,14 +1,14 @@
 import type { DeviceAction } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
+import type { StandardPlanningProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import { locateGroundingRules } from '../locate-grounding-rules';
-import { buildActionSpaceDescription } from './action-description';
-import { buildActionExample, createSampleTapAction } from './action-example';
 import {
-  type PlanningActionOutputProtocol,
-  defaultMidsceneActionOutputProtocol,
-} from './action-output-protocol';
+  buildActionOutputExample,
+  createSampleTapAction,
+} from './action-output-example';
+import { buildPlanningActionSpaceDescription } from './action-space-description';
 import { buildPlanningMultiTurnExample } from './multi-turn-example';
 
 type BuildStandardPlanningSystemPromptInput = {
@@ -16,7 +16,7 @@ type BuildStandardPlanningSystemPromptInput = {
   includeSubGoals?: boolean;
   includeThought?: boolean;
   includeLog?: boolean;
-  actionOutputProtocol?: PlanningActionOutputProtocol;
+  planningProtocol: StandardPlanningProtocol;
 } & (
   | {
       includeLocateInPlanning: true;
@@ -38,18 +38,19 @@ export async function buildStandardPlanningSystemPrompt(
     includeSubGoals,
     includeThought = true,
     includeLog = true,
-    actionOutputProtocol = defaultMidsceneActionOutputProtocol,
+    planningProtocol,
   } = input;
+  const actionOutputProtocol = planningProtocol.actionOutputProtocol;
   const preferredLanguage = getPreferredLanguage();
 
   if (includeLocateInPlanning && !locatePromptSpec) {
     throw new Error(planningModelFamilyRequiredForLocateMessage());
   }
 
-  const actionList = buildActionSpaceDescription(actionSpace, {
-    includeLocateInPlanning,
+  const actionSpaceDescription = buildPlanningActionSpaceDescription({
+    actionSpace,
     locatePromptSpec,
-    actionOutputProtocol,
+    planningProtocol,
   });
   const hasRunAdbShell = actionSpace.some(
     (action) => action.name === 'RunAdbShell',
@@ -271,9 +272,9 @@ ${
 
 ${includeLocateInPlanning ? locateGroundingRules() : ''}
 
-### Supporting actions list
+### ${planningProtocol.actionSpaceProtocol.title}
 
-${actionList}
+${actionSpaceDescription}
 
 ${renderLogContent(`### Log to give user feedback (preamble message)
 
@@ -295,12 +296,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ${actionOutputProtocol.actionOutputRules}
 
 For example:
-${buildActionExample(
+${buildActionOutputExample(
   createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
   {
     locatePromptSpec,
     locateResultExampleIndex: 1,
-    actionOutputProtocol,
+    buildActionOutput: actionOutputProtocol.buildActionOutput,
   },
 )}
 

@@ -1,19 +1,26 @@
 import {
-  buildActionExample,
   buildPlanningActionOutput,
+  createDefaultMidscenePlanningProtocol,
+} from '@/ai-model/model-adapter/default-planning-protocol';
+import {
+  buildActionOutputExample,
   createSampleTapAction,
-  defaultMidsceneActionOutputProtocol,
 } from '@/ai-model/prompt/planning';
+import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { getMidsceneLocationSchema } from '@/common';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
+  jsonParser: parseModelResponseJson,
+});
+
 describe('buildPlanningActionOutput', () => {
   it('serializes an action type and structured parameters', () => {
     expect(
       buildPlanningActionOutput({
-        type: 'Input',
+        actionName: 'Input',
         param: { value: 'john@example.com' },
       }),
     ).toBe(`<action-type>Input</action-type>
@@ -27,7 +34,7 @@ describe('buildPlanningActionOutput', () => {
   it('serializes nested locator parameters', () => {
     expect(
       buildPlanningActionOutput({
-        type: 'Tap',
+        actionName: 'Tap',
         param: {
           locate: {
             prompt: 'the Submit button',
@@ -52,17 +59,21 @@ describe('buildPlanningActionOutput', () => {
   });
 });
 
-describe('buildActionExample', () => {
+describe('buildActionOutputExample', () => {
+  const actionOutputProtocol =
+    defaultMidscenePlanningProtocol.actionOutputProtocol;
+  const buildActionOutput = actionOutputProtocol.buildActionOutput;
+
   it('builds an action output protocol example', () => {
-    const actionExample = buildActionExample(
+    const actionOutputExample = buildActionOutputExample(
       {
         name: 'Tap',
         sample: { locate: { prompt: 'the Submit button' } },
       },
-      { actionOutputProtocol: defaultMidsceneActionOutputProtocol },
+      { buildActionOutput },
     );
 
-    expect(actionExample).toBe(`<action-type>Tap</action-type>
+    expect(actionOutputExample).toBe(`<action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
@@ -86,20 +97,20 @@ describe('buildActionExample', () => {
       ],
     };
 
-    const actionExample = buildActionExample(
+    const actionOutputExample = buildActionOutputExample(
       createSampleTapAction('Name input field'),
       {
         locatePromptSpec,
         locateResultExampleIndex: 2,
-        actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+        buildActionOutput,
       },
     );
 
-    expect(actionExample).toContain('"bbox": [120, 180, 380, 210]');
+    expect(actionOutputExample).toContain('"bbox": [120, 180, 380, 210]');
   });
 
   it('keeps non-locate arrays in standard pretty JSON format', () => {
-    const actionExample = buildActionExample(
+    const actionOutputExample = buildActionOutputExample(
       {
         name: 'TapWithOffsets',
         paramSchema: z.object({
@@ -112,7 +123,7 @@ describe('buildActionExample', () => {
         },
       },
       {
-        actionOutputProtocol: defaultMidsceneActionOutputProtocol,
+        buildActionOutput,
         locatePromptSpec: {
           resultKey: 'bbox',
           resultValueSchema: '[number, number, number, number]',
@@ -124,8 +135,8 @@ describe('buildActionExample', () => {
       },
     );
 
-    expect(actionExample).toContain('"bbox": [100, 100, 200, 200]');
-    expect(actionExample).toContain(`"offsets": [
+    expect(actionOutputExample).toContain('"bbox": [100, 100, 200, 200]');
+    expect(actionOutputExample).toContain(`"offsets": [
     10,
     20
   ]`);
