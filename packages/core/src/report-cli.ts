@@ -79,7 +79,7 @@ function writeAttachmentFromReport(
   const resolved = resolveScreenshotSource(attachment.sourceRef ?? null, {
     reportPath: opts.htmlPath,
     fallbackId: id,
-    fallbackMimeType: (mimeType || 'image/png') as 'image/png' | 'image/jpeg',
+    fallbackMimeType: mimeType || 'image/png',
   });
 
   if (resolved.type === 'data-uri') {
