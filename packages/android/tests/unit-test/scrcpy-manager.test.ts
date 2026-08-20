@@ -408,6 +408,28 @@ describe('ScrcpyScreenshotManager', () => {
       expect(readClock).toHaveBeenCalledTimes(1);
     });
 
+    it('projects a deferred action barrier from when the action completed', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).deviceClockCalibration = {
+        deviceUptimeUs: 1_000_000n,
+        hostMonotonicUs: 10_000_000n,
+        hostWallTimeMs: 2_000,
+        roundTripUs: 10_000n,
+      };
+      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(10_500_000n);
+
+      const barrier = await manager.setFreshnessBarrier(
+        'completed input action while scrcpy was unavailable',
+        10_100_000n,
+      );
+
+      expect(barrier).toBe(1_106_000n);
+
+      (manager as any).processFrame(spsPacket());
+      (manager as any).processFrame(dataPacket(0x01, 1_200_000n));
+      expect(manager.getLatestRawKeyframe()?.data[5]).toBe(0x01);
+    });
+
     it('deduplicates concurrent clock calibration for one stream epoch', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       let resolveClock:
@@ -786,6 +808,26 @@ describe('ScrcpyScreenshotManager', () => {
         expect.stringContaining(
           'Current videoBitRate: 100000000 bps (100 Mbps)',
         ),
+      );
+    });
+
+    it('does not recommend lowering an already-low bitrate for a local USB link', () => {
+      const manager = new ScrcpyScreenshotManager({} as any, {
+        videoBitRate: 4_000_000,
+      });
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+      (manager as any).warnTransportBacklog(new Error('no post-action frame'));
+
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'Lowering it further is unlikely to help on a local USB connection',
+        ),
+      );
+      expect(warn).not.toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining('Lower it further if backlog persists'),
       );
     });
 

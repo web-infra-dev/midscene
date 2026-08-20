@@ -38,6 +38,17 @@ const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
 export const SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT =
   'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, pass --scrcpy-video-bit-rate 4000000 in the Android CLI, or set scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) in SDK/YAML configuration. Lower it further if backlog persists.';
 
+const CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE = 4_000_000;
+
+export function getScrcpyVideoBitRateNetworkHint(
+  currentVideoBitRate: number,
+): string {
+  if (currentVideoBitRate <= CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE) {
+    return 'The current scrcpy video bitrate is already at or below 4 Mbps. Lowering it further is unlikely to help on a local USB connection; check whether the screen was static or the device encoder emitted no new frame.';
+  }
+  return SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT;
+}
+
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
 const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-loop
@@ -653,10 +664,15 @@ export class ScrcpyScreenshotManager {
   /**
    * Invalidate cached frames and require future packets to be captured after
    * the host-monotonic action/planning boundary projected onto the device
-   * clock. The projection reuses the single calibration for this stream epoch
-   * and does not issue another ADB clock read.
+   * clock. A caller recovering an unavailable stream can pass the original
+   * action-completion timestamp so connection startup latency does not move the
+   * barrier forward. The projection reuses the single calibration for this
+   * stream epoch and does not issue another ADB clock read.
    */
-  async setFreshnessBarrier(reason: string): Promise<bigint> {
+  async setFreshnessBarrier(
+    reason: string,
+    hostMonotonicUs = this.monotonicTimeUs(),
+  ): Promise<bigint> {
     const generation = ++this.frameFreshnessBarrierGeneration;
     this.frameFreshnessBarrierPending = true;
     this.clearFrameCache();
@@ -669,7 +685,6 @@ export class ScrcpyScreenshotManager {
         );
       }
 
-      const hostMonotonicUs = this.monotonicTimeUs();
       const estimatedDeviceNowUs = this.estimateDeviceTimeUs(
         hostMonotonicUs,
         calibration,
@@ -875,8 +890,11 @@ export class ScrcpyScreenshotManager {
     const cause = this.frameFreshnessError ?? error;
     const causeMessage = cause instanceof Error ? cause.message : String(cause);
     const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
+    const networkHint = getScrcpyVideoBitRateNetworkHint(
+      this.options.videoBitRate,
+    );
     warnScrcpy(
-      `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
+      `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${networkHint} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
     );
     this.lastTransportBacklogWarningAt = now;
   }
