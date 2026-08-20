@@ -6,9 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/shared/img', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@midscene/shared/img')>()),
   imageInfoOfBase64: vi.fn(),
-  resizeBase64ImageToJpeg: vi
+  resizeBase64ImageToWebp: vi
     .fn()
-    .mockResolvedValue('data:image/jpeg;base64,mock-resized-base64-data'),
+    .mockResolvedValue('data:image/webp;base64,mock-resized-base64-data'),
 }));
 
 import { imageInfoOfBase64 } from '@midscene/shared/img';

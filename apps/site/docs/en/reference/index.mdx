@@ -1348,7 +1348,7 @@ interface RecordToReportOptions {
   screenshotBase64?: string;
   screenshots?: {
     /**
-     * PNG/JPEG data URI, or raw PNG base64 body.
+     * PNG/JPEG/WebP data URI, or raw PNG/JPEG/WebP base64 body.
      */
     base64: string;
     description?: string;
@@ -1366,7 +1366,7 @@ function recordToReport(
   - `title?: string` — Optional title for the report entry. Default: `'untitled'`.
   - `options?: RecordToReportOptions` — Optional configuration:
     - `content?: string` — Description of the screenshot.
-    - `screenshots?: Array<{ base64: string; description?: string }>` — One or more screenshots to record under the same report entry. When this option is set, Midscene does not capture another screenshot automatically. `base64` accepts a PNG/JPEG data URI such as `data:image/png;base64,...` or a raw base64 body, which Midscene treats as PNG.
+    - `screenshots?: Array<{ base64: string; description?: string }>` — One or more screenshots to record under the same report entry. When this option is set, Midscene does not capture another screenshot automatically. `base64` accepts a PNG/JPEG/WebP data URI such as `data:image/webp;base64,...` or a raw PNG/JPEG/WebP base64 body. Midscene infers known raw image signatures and treats an unrecognized raw body as PNG for compatibility.
 
 - Compatibility:
 

@@ -67,7 +67,7 @@ describe('markdown-generator', () => {
     vi.clearAllMocks();
   });
 
-  it('compresses oversized screenshots to JPEG before model generation', async () => {
+  it('compresses oversized screenshots to WebP before model generation', async () => {
     const largePng = await sharp({
       create: {
         width: 1024,
@@ -116,7 +116,7 @@ describe('markdown-generator', () => {
     if (imagePart?.type !== 'image_url') {
       throw new Error('Expected a compressed screenshot in the prompt');
     }
-    expect(imagePart.image_url.url).toMatch(/^data:image\/jpeg;base64,/);
+    expect(imagePart.image_url.url).toMatch(/^data:image\/webp;base64,/);
     await expect(imageInfoOfBase64(imagePart.image_url.url)).resolves.toEqual({
       width: 768,
       height: 384,
