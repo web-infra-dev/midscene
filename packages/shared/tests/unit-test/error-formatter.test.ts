@@ -124,7 +124,7 @@ describe('serializeError', () => {
     expect(serialized).toMatch(/… \[truncated\]$/);
   });
 
-  it('preserves common diagnostics and nested causes', () => {
+  it('preserves only the small normalized diagnostic whitelist', () => {
     const rootCause = Object.assign(new TypeError('socket closed'), {
       code: 'ECONNRESET',
       errno: -54,
@@ -133,8 +133,14 @@ describe('serializeError', () => {
     const error = Object.assign(
       new Error('request failed', { cause: rootCause }),
       {
+        code: 'UPSTREAM_UNAVAILABLE',
         statusCode: '503',
-        requestId: 42,
+        requestID: 42,
+        type: 'network',
+        errno: -1,
+        syscall: 'connect',
+        hostname: 'private.example',
+        payload: 'ignored',
       },
     );
 
@@ -142,16 +148,9 @@ describe('serializeError', () => {
       name: 'Error',
       message: 'request failed',
       stack: expect.stringContaining('Error: request failed'),
-      statusCode: '503',
+      code: 'UPSTREAM_UNAVAILABLE',
+      status: '503',
       requestId: 42,
-      cause: {
-        name: 'TypeError',
-        message: 'socket closed',
-        stack: expect.stringContaining('TypeError: socket closed'),
-        code: 'ECONNRESET',
-        errno: -54,
-        syscall: 'read',
-      },
     });
   });
 
@@ -170,27 +169,24 @@ describe('serializeError', () => {
     expect(serializeError({ cause: { message: 'root cause' } })).toEqual({
       name: 'Error',
       message: 'root cause',
-      cause: {
-        name: 'Error',
-        message: 'root cause',
-      },
     });
   });
 
-  it('bounds cause depth and replaces cycles with a diagnostic marker', () => {
+  it('does not traverse cause chains or circular payloads', () => {
     const circular = new Error('circular');
     circular.cause = circular;
-    expect(serializeError(circular).cause).toEqual({
-      name: 'CircularError',
-      message: 'Circular error cause',
+    expect(serializeError(circular)).toEqual({
+      name: 'Error',
+      message: 'circular',
+      stack: expect.stringContaining('Error: circular'),
     });
 
-    const deepest = new Error('depth-3');
-    const depthTwo = new Error('depth-2', { cause: deepest });
-    const depthOne = new Error('depth-1', { cause: depthTwo });
-    const outer = new Error('outer', { cause: depthOne });
-    expect(serializeError(outer).cause?.cause?.message).toBe('depth-2');
-    expect(serializeError(outer).cause?.cause?.cause).toBeUndefined();
+    const payload: Record<string, unknown> = { data: 'ignored' };
+    payload.self = payload;
+    expect(serializeError(payload)).toEqual({
+      name: 'Error',
+      message: 'Error without a message',
+    });
   });
 
   it('does not fail when diagnostic getters throw', () => {
@@ -241,9 +237,8 @@ describe('serializeError', () => {
     expect(serialized.message).toHaveLength(4_096);
     expect(serialized.stack).toHaveLength(4_096);
     expect(serialized.code).toHaveLength(4_096);
-    expect(serialized.cause?.message).toHaveLength(4_096);
     expect(serialized.message).toMatch(/… \[truncated\]$/);
-    expect(JSON.stringify(serialized).length).toBeLessThan(20_000);
+    expect(JSON.stringify(serialized).length).toBeLessThan(15_000);
   });
 });
 

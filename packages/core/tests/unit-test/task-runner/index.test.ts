@@ -437,13 +437,7 @@ describe(
         name: 'Error',
         message: 'upstream failed',
         status: 503,
-        requestID: 'request-123',
-        cause: {
-          name: 'TypeError',
-          message: 'socket closed',
-          stack: expect.stringContaining('TypeError: socket closed'),
-          code: 'ECONNRESET',
-        },
+        requestId: 'request-123',
       });
       expect(caughtError).not.toHaveProperty('runner');
       expect(caughtError).not.toHaveProperty('errorTask');
@@ -467,13 +461,7 @@ describe(
           name: 'Error',
           message: 'upstream failed',
           status: 503,
-          requestID: 'request-123',
-          cause: {
-            name: 'TypeError',
-            message: 'socket closed',
-            stack: expect.stringContaining('TypeError: socket closed'),
-            code: 'ECONNRESET',
-          },
+          requestId: 'request-123',
         },
         task: {
           taskId: caughtError?.task?.taskId,

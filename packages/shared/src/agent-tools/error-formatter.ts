@@ -3,31 +3,11 @@ export interface SerializedError {
   name: string;
   message: string;
   stack?: string;
-  cause?: SerializedError;
   code?: string | number;
   status?: string | number;
-  statusCode?: string | number;
   requestId?: string | number;
-  requestID?: string | number;
-  type?: string | number;
-  errno?: string | number;
-  syscall?: string | number;
-  hostname?: string | number;
 }
 
-const stringOrNumberDiagnosticKeys = [
-  'code',
-  'status',
-  'statusCode',
-  'requestId',
-  'requestID',
-  'type',
-  'errno',
-  'syscall',
-  'hostname',
-] as const satisfies ReadonlyArray<keyof SerializedError>;
-
-const maxSerializedCauseDepth = 2;
 const maxSerializedStringLength = 4_096;
 const truncatedStringSuffix = '… [truncated]';
 
@@ -48,6 +28,22 @@ function safelyReadProperty(error: object, key: PropertyKey): unknown {
   } catch {
     return undefined;
   }
+}
+
+function readBoundedDiagnostic(
+  error: object,
+  keys: readonly PropertyKey[],
+): string | number | undefined {
+  for (const key of keys) {
+    const value = safelyReadProperty(error, key);
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return truncateSerializedErrorString(value);
+    }
+  }
+  return undefined;
 }
 
 /** Apply the same string bound used by {@link serializeError}. */
@@ -98,7 +94,7 @@ function extractStringMessage(error: object): string | undefined {
  * diagnostic whitelist instead of serializing arbitrary payload fields.
  */
 export function getErrorMessage(error: unknown): string {
-  const result = serializeErrorValue(error, 0, new WeakSet());
+  const result = serializeErrorValue(error);
   const serialized = result.error;
   if (!isObject(error) || result.hasMessage) {
     return serialized.message;
@@ -108,7 +104,7 @@ export function getErrorMessage(error: unknown): string {
     name: serialized.name,
     message: serialized.message,
   };
-  for (const key of stringOrNumberDiagnosticKeys) {
+  for (const key of ['code', 'status', 'requestId'] as const) {
     const value = serialized[key];
     if (value !== undefined) {
       summary[key] = value;
@@ -128,11 +124,7 @@ export function getErrorStack(error: unknown): string | undefined {
   return typeof stack === 'string' ? stack : undefined;
 }
 
-function serializeErrorValue(
-  error: unknown,
-  depth: number,
-  seen: WeakSet<object>,
-): SerializedErrorResult {
+function serializeErrorValue(error: unknown): SerializedErrorResult {
   if (!isObject(error)) {
     const message = truncateSerializedErrorString(String(error));
     return {
@@ -143,17 +135,6 @@ function serializeErrorValue(
       hasMessage: Boolean(message.trim()),
     };
   }
-
-  if (seen.has(error)) {
-    return {
-      error: {
-        name: 'CircularError',
-        message: 'Circular error cause',
-      },
-      hasMessage: true,
-    };
-  }
-  seen.add(error);
 
   const name = safelyReadProperty(error, 'name');
   const serializedName = truncateSerializedErrorString(
@@ -172,20 +153,12 @@ function serializeErrorValue(
     serialized.stack = truncateSerializedErrorString(stack);
   }
 
-  for (const key of stringOrNumberDiagnosticKeys) {
-    const value = safelyReadProperty(error, key);
-    if (typeof value === 'string' || typeof value === 'number') {
-      serialized[key] =
-        typeof value === 'string'
-          ? truncateSerializedErrorString(value)
-          : value;
-    }
-  }
-
-  const cause = safelyReadProperty(error, 'cause');
-  if (cause !== undefined && depth < maxSerializedCauseDepth) {
-    serialized.cause = serializeErrorValue(cause, depth + 1, seen).error;
-  }
+  const code = readBoundedDiagnostic(error, ['code']);
+  const status = readBoundedDiagnostic(error, ['status', 'statusCode']);
+  const requestId = readBoundedDiagnostic(error, ['requestId', 'requestID']);
+  if (code !== undefined) serialized.code = code;
+  if (status !== undefined) serialized.status = status;
+  if (requestId !== undefined) serialized.requestId = requestId;
 
   return {
     error: serialized,
@@ -194,11 +167,11 @@ function serializeErrorValue(
 }
 
 /**
- * Convert an unknown thrown value to a bounded diagnostic object suitable for
- * JSON and test-runner transports. Arbitrary payload fields are omitted, cause
- * chains are limited to two links, string fields are capped, and circular or
- * throwing properties cannot make serialization fail.
+ * Extract a small, bounded diagnostic object suitable for JSON and test-runner
+ * transports. Only message, stack, and a few common diagnostic fields are
+ * retained. Arbitrary payloads are never visited, and nested errors are only
+ * inspected one level deep when the outer value has no message of its own.
  */
 export function serializeError(error: unknown): SerializedError {
-  return serializeErrorValue(error, 0, new WeakSet()).error;
+  return serializeErrorValue(error).error;
 }

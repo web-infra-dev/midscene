@@ -1,12 +1,5 @@
 # Changelog
 
-## Unreleased - Transport-Safe Task Errors
-
-- Task failures now retain only a bounded `SerializedError`. Arbitrary upstream payloads, the complete runner graph, executor functions, and raw error identity are omitted before errors reach test runners, report dumps, or structured loggers.
-- `TaskExecutionError` keeps an actionable wrapper stack, the original executor stack in `cause.stack`, whitelisted diagnostics, and a bounded task summary. Every free-form diagnostic string is limited to 4,096 characters.
-- `ExecutionTask.error` is now a `SerializedError` instead of the original `Error`. Consumers should use `task.error.message`, `task.error.stack`, `task.error.code`, `task.errorMessage`, or `task.errorStack`; raw-error identity and `instanceof Error` checks are no longer supported on this field.
-- `Agent.recordErrorToReport()` accepts any thrown value and normalizes it at the report-capture boundary. General user-facing error formatting is also bounded and no longer serializes arbitrary message-less payloads.
-
 ## v1.10 - BDD-Style Scripts, Doubao-Seed-2.1, and MCP Retirement
 
 v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao model to Doubao-Seed-2.1, and formally retires MCP server packages. Going forward, use Skills and the platform CLIs when AI agents need to drive Midscene.
