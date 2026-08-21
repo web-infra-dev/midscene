@@ -1,5 +1,12 @@
 # 更新日志
 
+## 待发布 - 可安全传输的任务错误
+
+- 任务失败现在只保留有界的 `SerializedError`。任意上游 payload、完整 runner 对象图、executor function 和原始错误对象引用会在进入测试运行器、报告 dump 或结构化日志之前被移除。
+- `TaskExecutionError` 会保留可操作的 wrapper stack、`cause.stack` 中的原始 executor stack、白名单诊断字段和有界的任务摘要。每个自由文本诊断字段最多保留 4,096 个字符。
+- `ExecutionTask.error` 现在是 `SerializedError`，不再是原始 `Error`。调用方应读取 `task.error.message`、`task.error.stack`、`task.error.code`、`task.errorMessage` 或 `task.errorStack`；该字段不再支持原始错误对象引用或 `instanceof Error` 检查。
+- `Agent.recordErrorToReport()` 现在接受任意 thrown value，并在报告捕获边界完成归一化。通用的用户可见错误格式化也已增加长度限制，不再序列化无 message 对象中的任意 payload。
+
 ## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
 
 v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。

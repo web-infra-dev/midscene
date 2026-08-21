@@ -1651,7 +1651,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async recordErrorToReport(
     title: string,
     opt: {
-      error: Error;
+      /** Any thrown value; normalized before it is stored in the report. */
+      error: unknown;
       content?: string;
       screenshotBase64?: string;
     },

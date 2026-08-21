@@ -353,9 +353,11 @@ describe('Agent dump update screenshot serialization', () => {
 
     (agent as any).reportGenerator = reportGeneratorStub;
 
-    const error = Object.assign(new Error('javascript gate failed'), {
+    const error = {
+      message: 'javascript gate failed',
+      code: 'E_JAVASCRIPT_GATE',
       payload: 'x'.repeat(10_000_000),
-    });
+    };
     await agent.recordErrorToReport('YAML task failed - JavaScript gate', {
       error,
     });
@@ -381,6 +383,7 @@ describe('Agent dump update screenshot serialization', () => {
     expect(execution.tasks[0].error).toMatchObject({
       name: 'Error',
       message: 'javascript gate failed',
+      code: 'E_JAVASCRIPT_GATE',
     });
     expect(execution.tasks[0].error).not.toHaveProperty('payload');
 

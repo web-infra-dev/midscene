@@ -31,6 +31,11 @@ const maxSerializedCauseDepth = 2;
 const maxSerializedStringLength = 4_096;
 const truncatedStringSuffix = '… [truncated]';
 
+interface SerializedErrorResult {
+  error: SerializedError;
+  hasMessage: boolean;
+}
+
 function isObject(error: unknown): error is object {
   return (
     (typeof error === 'object' && error !== null) || typeof error === 'function'
@@ -55,31 +60,6 @@ export function truncateSerializedErrorString(value: string): string {
     0,
     maxSerializedStringLength - truncatedStringSuffix.length,
   )}${truncatedStringSuffix}`;
-}
-
-function safelyStringifyObject(error: object): string {
-  try {
-    const serialized = JSON.stringify(error);
-    if (serialized !== undefined) {
-      return serialized;
-    }
-  } catch {
-    // Fall through to the object's type tag.
-  }
-
-  try {
-    return Object.prototype.toString.call(error);
-  } catch {
-    return 'Unknown thrown value';
-  }
-}
-
-function isErrorInstance(error: object): error is Error {
-  try {
-    return error instanceof Error;
-  } catch {
-    return false;
-  }
 }
 
 function readNonEmptyMessage(error: object): string | undefined {
@@ -113,22 +93,29 @@ function extractStringMessage(error: object): string | undefined {
  *
  * Many SDK/transport layers reject with structured objects (e.g.
  * `{ code, message }`, `{ error: { message } }`, `{ cause: { message } }`)
- * rather than `Error` instances. This helper reads those common shapes without
- * trusting property getters, then falls back to a printable object summary.
+ * rather than `Error` instances. This helper returns the bounded message from
+ * {@link serializeError}; message-less objects are summarized from the same
+ * diagnostic whitelist instead of serializing arbitrary payload fields.
  */
 export function getErrorMessage(error: unknown): string {
-  if (!isObject(error)) {
-    return String(error);
+  const result = serializeErrorValue(error, 0, new WeakSet());
+  const serialized = result.error;
+  if (!isObject(error) || result.hasMessage) {
+    return serialized.message;
   }
 
-  if (isErrorInstance(error)) {
-    const message = safelyReadProperty(error, 'message');
-    if (typeof message === 'string') {
-      return message;
+  const summary: SerializedError = {
+    name: serialized.name,
+    message: serialized.message,
+  };
+  for (const key of stringOrNumberDiagnosticKeys) {
+    const value = serialized[key];
+    if (value !== undefined) {
+      summary[key] = value;
     }
   }
 
-  return extractStringMessage(error) ?? safelyStringifyObject(error);
+  return truncateSerializedErrorString(JSON.stringify(summary));
 }
 
 /** Safely read a stack trace from an unknown thrown value when one exists. */
@@ -145,18 +132,25 @@ function serializeErrorValue(
   error: unknown,
   depth: number,
   seen: WeakSet<object>,
-): SerializedError {
+): SerializedErrorResult {
   if (!isObject(error)) {
+    const message = truncateSerializedErrorString(String(error));
     return {
-      name: 'NonError',
-      message: truncateSerializedErrorString(String(error)),
+      error: {
+        name: 'NonError',
+        message: message.trim() ? message : 'Empty string thrown',
+      },
+      hasMessage: Boolean(message.trim()),
     };
   }
 
   if (seen.has(error)) {
     return {
-      name: 'CircularError',
-      message: 'Circular error cause',
+      error: {
+        name: 'CircularError',
+        message: 'Circular error cause',
+      },
+      hasMessage: true,
     };
   }
   seen.add(error);
@@ -190,10 +184,13 @@ function serializeErrorValue(
 
   const cause = safelyReadProperty(error, 'cause');
   if (cause !== undefined && depth < maxSerializedCauseDepth) {
-    serialized.cause = serializeErrorValue(cause, depth + 1, seen);
+    serialized.cause = serializeErrorValue(cause, depth + 1, seen).error;
   }
 
-  return serialized;
+  return {
+    error: serialized,
+    hasMessage: message !== undefined,
+  };
 }
 
 /**
@@ -203,5 +200,5 @@ function serializeErrorValue(
  * throwing properties cannot make serialization fail.
  */
 export function serializeError(error: unknown): SerializedError {
-  return serializeErrorValue(error, 0, new WeakSet());
+  return serializeErrorValue(error, 0, new WeakSet()).error;
 }

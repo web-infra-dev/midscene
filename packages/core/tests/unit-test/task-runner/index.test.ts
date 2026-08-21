@@ -10,8 +10,8 @@ import type {
 } from '@/index';
 import Service from '@/service';
 import { TaskExecutionError } from '@/task-runner';
+import { processError } from '@vitest/runner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { processError } from 'vitest/browser';
 import { createFakeContext } from '../../utils';
 
 // Mock AI service caller
@@ -604,6 +604,29 @@ describe(
       expect(clonedError).not.toHaveProperty('runner');
       expect(clonedError).not.toHaveProperty('errorTask');
       expect(JSON.stringify(clonedError)).not.toContain('payload');
+    });
+
+    it('uses a readable fallback when an executor throws an empty string', async () => {
+      const runner = new TaskRunner(
+        'empty-error-message-test',
+        fakeUIContextBuilder,
+      );
+      await runner.append({
+        type: 'Action Space',
+        subType: 'Tap',
+        executor: async () => {
+          throw '';
+        },
+      });
+
+      await expect(runner.flush()).rejects.toThrow('Empty string thrown');
+      expect(runner.latestErrorTask()?.error).toEqual({
+        name: 'NonError',
+        message: 'Empty string thrown',
+      });
+      expect(runner.latestErrorTask()?.errorMessage).toBe(
+        'Empty string thrown',
+      );
     });
 
     it('bounds every free string in the error and task summary', async () => {

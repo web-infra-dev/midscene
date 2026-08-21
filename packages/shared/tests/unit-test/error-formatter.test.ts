@@ -10,6 +10,9 @@ describe('getErrorMessage', () => {
   it('returns the Error.message for Error instances', () => {
     expect(getErrorMessage(new Error('boom'))).toBe('boom');
     expect(getErrorMessage(new TypeError('bad type'))).toBe('bad type');
+    expect(getErrorMessage(new Error('Error without a message'))).toBe(
+      'Error without a message',
+    );
   });
 
   it('stringifies null and undefined', () => {
@@ -51,32 +54,34 @@ describe('getErrorMessage', () => {
     ).toBe('outer');
   });
 
-  it('skips empty string messages and falls through to JSON', () => {
+  it('summarizes message-less objects from bounded diagnostic fields', () => {
     expect(getErrorMessage({ message: '', code: 'EIO' })).toBe(
-      '{"message":"","code":"EIO"}',
+      '{"name":"Error","message":"Error without a message","code":"EIO"}',
     );
-  });
-
-  it('serializes plain objects without a known message field', () => {
     expect(getErrorMessage({ status: 500, details: 'x' })).toBe(
-      '{"status":500,"details":"x"}',
+      '{"name":"Error","message":"Error without a message","status":500}',
     );
   });
 
-  it('falls back to Object.prototype.toString for unserializable objects', () => {
+  it('does not traverse circular objects while formatting a message', () => {
     const circular: Record<string, unknown> = { foo: 'bar' };
     circular.self = circular;
-    expect(getErrorMessage(circular)).toBe('[object Object]');
+    expect(getErrorMessage(circular)).toBe(
+      '{"name":"Error","message":"Error without a message"}',
+    );
   });
 
-  it('never returns the literal "[object Object]" for plain objects with data', () => {
+  it('keeps whitelisted diagnostics without arbitrary object data', () => {
     const result = getErrorMessage({ code: 'E_TEST', detail: 'something' });
     expect(result).not.toBe('[object Object]');
     expect(result).toContain('E_TEST');
+    expect(result).not.toContain('something');
   });
 
-  it('handles arrays by JSON-stringifying them', () => {
-    expect(getErrorMessage([1, 2, 3])).toBe('[1,2,3]');
+  it('does not serialize arbitrary array entries', () => {
+    expect(getErrorMessage([1, 2, 3])).toBe(
+      '{"name":"Error","message":"Error without a message"}',
+    );
   });
 
   it('ignores message getters that throw', () => {
@@ -91,7 +96,23 @@ describe('getErrorMessage', () => {
       },
     );
 
-    expect(getErrorMessage(error)).toBe('[object Object]');
+    expect(getErrorMessage(error)).toBe(
+      '{"name":"Error","message":"Error without a message","code":"E_BROKEN_GETTER"}',
+    );
+  });
+
+  it('bounds long messages without serializing arbitrary payloads', () => {
+    expect(getErrorMessage(new Error('x'.repeat(10_000)))).toHaveLength(4_096);
+
+    const result = getErrorMessage({
+      code: 'E_LARGE_PAYLOAD',
+      payload: 'x'.repeat(10_000_000),
+    });
+    expect(result).toBe(
+      '{"name":"Error","message":"Error without a message","code":"E_LARGE_PAYLOAD"}',
+    );
+    expect(result.length).toBeLessThan(1_000);
+    expect(result).not.toContain('payload');
   });
 });
 
@@ -199,6 +220,14 @@ describe('serializeError', () => {
       message: 'Error without a message',
     });
     expect(JSON.stringify(serialized).length).toBeLessThan(1_000);
+  });
+
+  it('provides a readable fallback for empty primitive strings', () => {
+    expect(serializeError('')).toEqual({
+      name: 'NonError',
+      message: 'Empty string thrown',
+    });
+    expect(getErrorMessage('')).toBe('Empty string thrown');
   });
 
   it('caps every serialized string field', () => {
