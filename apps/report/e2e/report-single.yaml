@@ -34,7 +34,7 @@ tasks:
     flow:
       - aiTap:
           locate:
-            prompt: the "Replay" option in the center task detail Replay/Screenshots/JSON View switcher
+            prompt: the black triangular report-wide replay button at the far right of the top-left sidebar toolbar, immediately to the right of "Switch: Command ..."; not a task row, timeline thumbnail, or video player control
       - sleep: 1000
       - aiAssert: There is a video player area with a progress bar and playback time display
 
