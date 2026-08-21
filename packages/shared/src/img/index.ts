@@ -1,16 +1,34 @@
 export {
+  encodedImageInfoOfBuffer,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
+  isValidWebPImageBuffer,
   isValidImageBuffer,
   validateScreenshotBuffer,
   type ValidateScreenshotBufferOptions,
 } from './info';
 export {
+  detectScreenshotImageFormatFromBuffer,
+  inferScreenshotImageFormatFromBase64,
+  isScreenshotImageMimeType,
+  screenshotImageExtension,
+  screenshotImageFormatFromExtension,
+  screenshotImageFormatFromMimeType,
+  screenshotImageMimeType,
+  type ScreenshotImageFormat,
+  type ScreenshotImageMimeType,
+} from './image-format';
+export {
   resizeAndConvertImgBuffer,
   convertImgBufferToJpeg,
+  convertImgBufferToWebp,
   convertBase64ImageToJpeg,
+  convertBase64ImageToWebp,
+  DEFAULT_WEBP_SCREENSHOT_EFFORT,
+  DEFAULT_WEBP_SCREENSHOT_QUALITY,
   resizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
@@ -27,7 +45,11 @@ export {
   normalizeScreenshotBase64,
   type NormalizeScreenshotBase64Options,
   type JpegBase64DataUrl,
+  type WebpBase64DataUrl,
   type ResizeBase64ImageToJpegOptions,
+  type ResizeBase64ImageToWebpOptions,
+  type ScreenshotImageOutputFormat,
+  type WebpScreenshotEncodeOptions,
 } from './transform';
 export {
   processImageElementInfo,
@@ -35,3 +57,7 @@ export {
   compositePointMarkerImg,
   annotateRects,
 } from './box-select';
+export {
+  encodeRgbaToWebp,
+  type BrowserWebpEncodeInput,
+} from './browser-webp-encoder';

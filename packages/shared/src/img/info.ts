@@ -4,6 +4,7 @@ import type { Size } from '../types';
 import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
+import { detectScreenshotImageFormatFromBuffer } from './image-format';
 
 export interface ImageInfo extends Size {}
 
@@ -54,8 +55,102 @@ function jpegInfoFromBuffer(imageBuffer: Buffer): ImageInfo {
   throw new Error('Invalid image: cannot get JPEG width or height');
 }
 
+function readUInt24LE(buffer: Buffer, offset: number): number {
+  return (
+    buffer[offset] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16)
+  );
+}
+
+function webpInfoFromBuffer(imageBuffer: Buffer): ImageInfo {
+  if (
+    detectScreenshotImageFormatFromBuffer(imageBuffer) !== 'webp' ||
+    imageBuffer.length < 20
+  ) {
+    throw new Error('Invalid image: malformed WebP container');
+  }
+
+  const declaredFileSize = imageBuffer.readUInt32LE(4) + 8;
+  if (declaredFileSize !== imageBuffer.length) {
+    throw new Error('Invalid image: WebP RIFF size does not match buffer');
+  }
+
+  let offset = 12;
+  let canvasSize: ImageInfo | undefined;
+  let imageSize: ImageInfo | undefined;
+
+  while (offset < declaredFileSize) {
+    if (offset + 8 > declaredFileSize) {
+      throw new Error('Invalid image: truncated WebP chunk header');
+    }
+
+    const chunkType = imageBuffer
+      .subarray(offset, offset + 4)
+      .toString('ascii');
+    const chunkSize = imageBuffer.readUInt32LE(offset + 4);
+    const dataOffset = offset + 8;
+    const dataEnd = dataOffset + chunkSize;
+    const paddedDataEnd = dataEnd + (chunkSize % 2);
+    if (dataEnd > declaredFileSize || paddedDataEnd > declaredFileSize) {
+      throw new Error('Invalid image: truncated WebP chunk data');
+    }
+
+    if (chunkType === 'VP8X') {
+      if (chunkSize !== 10) {
+        throw new Error('Invalid image: malformed WebP VP8X chunk');
+      }
+      const width = readUInt24LE(imageBuffer, dataOffset + 4) + 1;
+      const height = readUInt24LE(imageBuffer, dataOffset + 7) + 1;
+      assert(width && height, 'Invalid image: cannot get width or height');
+      canvasSize = { width, height };
+    }
+
+    if (chunkType === 'VP8 ') {
+      if (
+        chunkSize < 10 ||
+        imageBuffer[dataOffset + 3] !== 0x9d ||
+        imageBuffer[dataOffset + 4] !== 0x01 ||
+        imageBuffer[dataOffset + 5] !== 0x2a
+      ) {
+        throw new Error('Invalid image: malformed WebP VP8 chunk');
+      }
+      const width = imageBuffer.readUInt16LE(dataOffset + 6) & 0x3fff;
+      const height = imageBuffer.readUInt16LE(dataOffset + 8) & 0x3fff;
+      assert(width && height, 'Invalid image: cannot get width or height');
+      imageSize = { width, height };
+    }
+
+    if (chunkType === 'VP8L') {
+      if (
+        chunkSize < 5 ||
+        imageBuffer[dataOffset] !== 0x2f ||
+        (imageBuffer[dataOffset + 4] & 0xe0) !== 0
+      ) {
+        throw new Error('Invalid image: malformed WebP VP8L chunk');
+      }
+      const width =
+        1 +
+        imageBuffer[dataOffset + 1] +
+        ((imageBuffer[dataOffset + 2] & 0x3f) << 8);
+      const height =
+        1 +
+        (imageBuffer[dataOffset + 2] >> 6) +
+        (imageBuffer[dataOffset + 3] << 2) +
+        ((imageBuffer[dataOffset + 4] & 0x0f) << 10);
+      assert(width && height, 'Invalid image: cannot get width or height');
+      imageSize = { width, height };
+    }
+
+    offset = paddedDataEnd;
+  }
+
+  if (!imageSize) {
+    throw new Error('Invalid image: WebP has no complete image data chunk');
+  }
+  return canvasSize ?? imageSize;
+}
+
 /**
- * Reads PNG/JPEG dimensions from the encoded header without decoding pixels.
+ * Reads PNG/JPEG/WebP dimensions from the encoded header without decoding pixels.
  * This is intended for validating already-decoded dimension hints before an
  * image transform; full image validation remains the decoder's responsibility.
  */
@@ -68,6 +163,9 @@ export function encodedImageInfoOfBuffer(imageBuffer: Buffer): ImageInfo {
   }
   if (isValidJPEGImageBuffer(imageBuffer)) {
     return jpegInfoFromBuffer(imageBuffer);
+  }
+  if (detectScreenshotImageFormatFromBuffer(imageBuffer) === 'webp') {
+    return webpInfoFromBuffer(imageBuffer);
   }
   throw new Error('Invalid image: unsupported format');
 }
@@ -182,13 +280,30 @@ export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
   return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
 }
 
+/** Check whether a Buffer contains a complete still WebP screenshot. */
+export function isValidWebPImageBuffer(buffer: Buffer): boolean {
+  if (!buffer) {
+    return false;
+  }
+  try {
+    webpInfoFromBuffer(buffer);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Check if the Buffer is a valid image (PNG or JPEG)
+ * Check if the Buffer is a supported screenshot image (PNG, JPEG, or WebP)
  * @param buffer The Buffer to check
- * @returns true if the Buffer is a valid PNG or JPEG image, otherwise false
+ * @returns true if the Buffer is a valid PNG, JPEG, or WebP image, otherwise false
  */
 export function isValidImageBuffer(buffer: Buffer): boolean {
-  return isValidPNGImageBuffer(buffer) || isValidJPEGImageBuffer(buffer);
+  return (
+    isValidPNGImageBuffer(buffer) ||
+    isValidJPEGImageBuffer(buffer) ||
+    isValidWebPImageBuffer(buffer)
+  );
 }
 
 export interface ValidateScreenshotBufferOptions {
