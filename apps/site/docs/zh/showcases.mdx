@@ -77,19 +77,19 @@ import ShowcaseComputer from './showcases-computer.mdx';
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html)
 
 :::info Doubao 计价口径
-输入单价按 `$0.423 / M Tokens`、缓存读取单价按 `$0.08452 / M Tokens`、输出单价按 `$2.113 / M Tokens` 计算，人民币费用按 `$1 ≈ ¥6.8` 估算。5 个用例平均消耗约 182,253 Token，平均费用约 ¥0.298。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
+价格数据截至 2026 年 8 月 17 日，取自 [AIHubMix](https://aihubmix.com/model/doubao-seed-2-1-turbo)。输入单价按 `$0.423 / M Tokens`、缓存读取单价按 `$0.08452 / M Tokens`、输出单价按 `$2.113 / M Tokens` 计算，人民币费用按 `$1 ≈ ¥6.8` 估算。5 个用例平均消耗约 182,253 Token，平均费用约 ¥0.298。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
 :::
 
 ### Reddit App：Qwen 3.7 Plus
 
-以下 2 个用例使用 [`qwen/qwen3.7-plus`](https://openrouter.ai/qwen/qwen3.7-plus)，测试 Android 端 Reddit App 的社区搜索、加入和帖子点赞功能。测试设备分辨率为 720 × 1600。
+以下 2 个用例使用 [`qwen3.7-plus`](https://help.aliyun.com/zh/model-studio/model-pricing)，测试 Android 端 Reddit App 的社区搜索、加入和帖子点赞功能。测试设备分辨率为 720 × 1600。
 
 #### 用例 1：搜索并加入 Midscene 社区
 
 - **测试内容：** 搜索 Midscene，打开准确的 `r/midscene` 社区，按需加入并验证账号已处于加入状态
 - **步骤数：** 7 / 17（脚本 / 模型调用）
 - **Token 量：** 输入 147,127（缓存 34,816）/ 输出 3,418
-- **费用：** ¥0.289
+- **费用：** ¥0.213
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/reddit/01-search-and-join-midscene-community.html)
 
 #### 用例 2：点赞 Midscene 社区首篇帖子
@@ -97,11 +97,11 @@ import ShowcaseComputer from './showcases-computer.mdx';
 - **测试内容：** 打开准确的 `r/midscene` 社区，按需点赞帖子列表中的首篇帖子，并验证其已处于点赞状态
 - **步骤数：** 6 / 12（脚本 / 模型调用）
 - **Token 量：** 输入 103,231（缓存 8,704）/ 输出 3,142
-- **费用：** ¥0.237
+- **费用：** ¥0.174
 - **测试报告：** [查看报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/reddit/02-upvote-first-post-in-midscene-community.html)
 
 :::info Qwen 计价口径
-输入单价按 `$0.32 / M Tokens`、缓存读取单价按 `$0.064 / M Tokens`、输出单价按 `$1.28 / M Tokens` 计算，人民币费用按 `$1 ≈ ¥6.8` 估算。2 个用例平均消耗约 128,459 Token，平均费用约 ¥0.263。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
+价格数据截至 2026 年 8 月 21 日，取自[阿里云百炼模型价格](https://help.aliyun.com/zh/model-studio/model-pricing)。输入单价按 `¥1.6 / M Tokens`、缓存读取单价按 `¥0.32 / M Tokens`、输出单价按 `¥6.4 / M Tokens` 计算。2 个用例平均消耗约 128,459 Token，平均费用约 ¥0.193。以上数据仅代表本次测试，实际费用会随任务复杂度、缓存命中率和模型价格变化。
 :::
 
 
