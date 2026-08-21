@@ -22,6 +22,7 @@ import {
   type ReportMeta,
   type UIContext,
 } from '@/types';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   countGroupedDumpScripts,
@@ -34,6 +35,29 @@ import {
  */
 function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
   return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
+}
+
+async function nonBlackPngDataUri(): Promise<string> {
+  const png = await sharp({
+    create: {
+      width: 4,
+      height: 4,
+      channels: 3,
+      background: { r: 12, g: 140, b: 220 },
+    },
+  })
+    .png()
+    .toBuffer();
+  return `data:image/png;base64,${png.toString('base64')}`;
+}
+
+async function expectNonBlackImage(image: Buffer): Promise<void> {
+  const { data } = await sharp(image)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  expect(data.some((channel) => channel > 0)).toBe(true);
+  expect(new Set(data).size).toBeGreaterThan(1);
 }
 
 const defaultReportMeta: ReportMeta = {
@@ -143,6 +167,29 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('inline mode — append-only strategy', () => {
+    it('should preserve non-black screenshot pixels in the HTML report', async () => {
+      const reportPath = join(tmpDir, 'pixel-integrity.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      const screenshot = ScreenshotItem.create(
+        await nonBlackPngDataUri(),
+        Date.now(),
+      );
+
+      generator.onExecutionUpdate(
+        createExecution([screenshot]),
+        defaultReportMeta,
+      );
+      await generator.finalize();
+
+      const imageMap = parseImageScripts(readFileSync(reportPath, 'utf-8'));
+      const imageData = imageMap[screenshot.id].split(',', 2)[1];
+      await expectNonBlackImage(Buffer.from(imageData, 'base64'));
+    });
+
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
@@ -792,6 +839,34 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('directory mode — incremental PNG writes', () => {
+    it('should preserve non-black screenshot pixels in external assets', async () => {
+      const reportDir = join(tmpDir, 'pixel-integrity-dir');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+      const screenshot = ScreenshotItem.create(
+        await nonBlackPngDataUri(),
+        Date.now(),
+      );
+
+      generator.onExecutionUpdate(
+        createExecution([screenshot]),
+        defaultReportMeta,
+      );
+      await generator.finalize();
+
+      const screenshotPath = join(
+        reportDir,
+        'screenshots',
+        `${screenshot.id}.png`,
+      );
+      expect(existsSync(screenshotPath)).toBe(true);
+      await expectNonBlackImage(readFileSync(screenshotPath));
+    });
+
     it('should write each screenshot as a PNG file exactly once', async () => {
       const reportDir = join(tmpDir, 'dir-test');
       const reportPath = join(reportDir, 'index.html');
