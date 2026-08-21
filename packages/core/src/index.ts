@@ -123,7 +123,13 @@ export {
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
-export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+export {
+  type ImageUrlRef,
+  ReportImageStore,
+  ScreenshotStore,
+  type ScreenshotRef,
+  type StoredImageRef,
+} from './dump/screenshot-store';
 
 export {
   executionToMarkdown,

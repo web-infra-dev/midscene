@@ -9,7 +9,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
-import type { ScreenshotRef } from '../../src/dump/screenshot-store';
+import type {
+  ImageUrlRef,
+  ScreenshotRef,
+} from '../../src/dump/screenshot-store';
 import { splitReportHtmlByExecution } from '../../src/report';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { ExecutionDump, ReportActionDump } from '../../src/types';
@@ -127,6 +130,81 @@ describe('splitReportHtmlByExecution', () => {
     for (const screenshotFile of result.screenshotFiles) {
       expect(existsSync(screenshotFile)).toBe(true);
     }
+  });
+
+  it('should externalize a serialized planning reference image', () => {
+    const reportPath = join(tmpDir, 'reference-image-report.html');
+    const referenceImage = 'data:image/webp;base64,QUJDRA==';
+    const imageRef: ImageUrlRef = {
+      type: 'midscene_image_url_ref',
+      id: 'reference-webp',
+      mimeType: 'image/webp',
+      storage: 'inline',
+    };
+    const execution = new ExecutionDump({
+      id: 'reference-execution',
+      logTime: 100,
+      name: 'reference-execution',
+      tasks: [
+        {
+          taskId: 'planning-reference',
+          type: 'Planning',
+          subType: 'Plan',
+          param: {
+            userInstruction: {
+              prompt: 'Compare with the reference image',
+              images: [{ name: 'reference', url: referenceImage }],
+            },
+          },
+          executor: async () => undefined,
+          recorder: [],
+          status: 'finished',
+        },
+      ],
+    });
+    const dump = new ReportActionDump({
+      groupName: 'reference-image-split-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      [
+        generateImageScriptTag(imageRef.id, referenceImage),
+        generateDumpScriptTag(
+          dump.serializeWithReferenceImages(
+            new Map([[referenceImage, imageRef]]),
+          ),
+          { 'data-group-id': 'group-1' },
+        ),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'reference-image-output');
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir,
+    });
+
+    expect(result.executionJsonFiles).toHaveLength(1);
+    expect(result.screenshotFiles).toEqual([
+      join(outputDir, 'screenshots', `${imageRef.id}.webp`),
+    ]);
+    expect(readFileSync(result.screenshotFiles[0])).toEqual(
+      Buffer.from('ABCD'),
+    );
+    const outputDump = JSON.parse(
+      readFileSync(result.executionJsonFiles[0], 'utf-8'),
+    );
+    expect(
+      outputDump.executions[0].tasks[0].param.userInstruction.images[0].url,
+    ).toMatchObject({
+      type: 'midscene_image_url_ref',
+      storage: 'file',
+      path: `./screenshots/${imageRef.id}.webp`,
+    });
   });
 
   it('should process large report incrementally without accumulating all dump scripts', () => {
