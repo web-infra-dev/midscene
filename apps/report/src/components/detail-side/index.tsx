@@ -706,14 +706,7 @@ const DetailSide = (): JSX.Element => {
     if (task.errorMessage) {
       errorText = task.errorMessage;
     } else if (task.error) {
-      // if no errorMessage, try to show error object
-      if (typeof task.error === 'string') {
-        errorText = task.error;
-      } else if (typeof task.error === 'object' && task.error.message) {
-        errorText = task.error.message;
-      } else {
-        errorText = JSON.stringify(task.error, null, 2) || 'Unknown error';
-      }
+      errorText = task.error.message;
     }
 
     // add stack info (if exists and not duplicate)

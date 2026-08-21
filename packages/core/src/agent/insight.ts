@@ -150,23 +150,16 @@ export class Insight implements InsightAPI {
       }
     } catch (error) {
       if (error instanceof TaskExecutionError) {
-        const errorTask = error.errorTask;
-        const thought = errorTask?.thought;
-        const rawError = errorTask?.error;
-        const rawMessage =
-          errorTask?.errorMessage ||
-          (rawError instanceof Error
-            ? rawError.message
-            : rawError
-              ? String(rawError)
-              : undefined);
-        const reason = thought || rawMessage || '(no_reason)';
+        const thought = error.task?.thought;
+        const diagnosticMessage =
+          error.task?.errorMessage || error.cause.message;
+        const reason = thought || diagnosticMessage || '(no_reason)';
         const failureMessage = `Assertion failed: ${message || assertionText}\nReason: ${reason}`;
 
         if (options?.keepRawResponse) {
           return { pass: false, thought, message: failureMessage };
         }
-        throw new Error(failureMessage, { cause: rawError ?? error });
+        throw new Error(failureMessage, { cause: error.cause });
       }
       throw error;
     }
