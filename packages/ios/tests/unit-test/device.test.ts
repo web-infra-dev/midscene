@@ -48,6 +48,7 @@ describe('IOSDevice', () => {
       terminateApp: rs.fn().mockResolvedValue(undefined),
       openUrl: rs.fn().mockResolvedValue(undefined),
       dismissKeyboard: rs.fn().mockResolvedValue(true),
+      isKeyboardVisible: rs.fn().mockResolvedValue(false),
       makeRequest: rs.fn().mockResolvedValue(null),
       sessionInfo: {
         sessionId: 'test-session-id',
@@ -252,6 +253,58 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
     });
+
+    it('should restore an auto-dismissed input target before a following key press', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(30, 40);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should discard a pending focus restore after another pointer tap', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.pointer.tap({ x: 100, y: 200 });
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(100, 200);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should not restore focus when auto-dismiss is disabled', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+        autoDismissKeyboard: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should focus an explicit keyboard press target', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('Enter', {
+        target: { center: [50, 60] },
+      } as any);
+
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(50, 60);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
   });
 
   describe('Device Operations', () => {
@@ -377,6 +430,8 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.launchApp).toHaveBeenCalledWith(
         'com.apple.mobilesafari',
       );
+      expect(mockWdaClient.dismissKeyboard).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Return');
     });
 
     it('should perform tap operation', async () => {
@@ -549,34 +604,30 @@ describe('IOSDevice', () => {
     });
 
     it('should handle keyboard dismissal with default strategy', async () => {
-      // Mock dismissKeyboard to fail so it falls back to swipe gesture
-      mockWdaClient.dismissKeyboard = rs
-        .fn()
-        .mockRejectedValue(new Error('dismissKeyboard not available'));
-      mockWdaClient.getWindowSize = rs
-        .fn()
-        .mockResolvedValue({ width: 375, height: 812 });
-      mockWdaClient.swipe = rs.fn().mockResolvedValue(undefined);
-
       const result = await device.hideKeyboard();
       expect(result).toBe(true);
-      expect(mockWdaClient.swipe).toHaveBeenCalled();
+      expect(mockWdaClient.dismissKeyboard).toHaveBeenCalledWith(undefined);
+      expect(mockWdaClient.swipe).not.toHaveBeenCalled();
     });
 
     it('should handle keyboard dismissal failure', async () => {
-      // Mock both dismissKeyboard and swipe to fail to simulate total failure
-      mockWdaClient.dismissKeyboard = rs
-        .fn()
-        .mockRejectedValue(new Error('dismissKeyboard failed'));
-      mockWdaClient.getWindowSize = rs
-        .fn()
-        .mockResolvedValue({ width: 375, height: 812 });
-      mockWdaClient.swipe = rs
-        .fn()
-        .mockRejectedValue(new Error('Swipe failed'));
+      mockWdaClient.isKeyboardVisible = rs.fn().mockResolvedValue(true);
+      mockWdaClient.dismissKeyboard = rs.fn().mockResolvedValue(false);
 
       const result = await device.hideKeyboard();
-      expect(result).toBe(false); // Method returns false on failure, doesn't throw
+      expect(result).toBe(false);
+      expect(mockWdaClient.dismissKeyboard).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should verify a custom dismiss button actually hid the keyboard', async () => {
+      mockWdaClient.dismissKeyboard = rs.fn().mockResolvedValue(true);
+
+      const result = await device.hideKeyboard(['Close Keyboard']);
+
+      expect(result).toBe(true);
+      expect(mockWdaClient.dismissKeyboard).toHaveBeenCalledWith([
+        'Close Keyboard',
+      ]);
     });
 
     it('should auto-dismiss keyboard after text input when enabled', async () => {
@@ -585,9 +636,7 @@ describe('IOSDevice', () => {
         ...mockWdaClient,
         createSession: rs.fn().mockResolvedValue({ sessionId: 'test-session' }),
         typeText: rs.fn().mockResolvedValue(undefined),
-        dismissKeyboard: rs
-          .fn()
-          .mockRejectedValue(new Error('dismissKeyboard not available')),
+        dismissKeyboard: rs.fn().mockResolvedValue(true),
         getWindowSize: rs.fn().mockResolvedValue({ width: 375, height: 812 }),
         getScreenScale: rs.fn().mockResolvedValue(2),
         swipe: rs.fn().mockResolvedValue(undefined),
@@ -602,9 +651,29 @@ describe('IOSDevice', () => {
       await deviceWithAutoDismiss.connect();
       await getInternalTextInput(deviceWithAutoDismiss).typeText('test text');
 
-      // Should call typeText and swipe (for keyboard dismiss)
+      // Should type and synchronously dismiss through a visible keyboard button.
       expect(mockBackend.typeText).toHaveBeenCalledWith('test text');
-      expect(mockBackend.swipe).toHaveBeenCalled();
+      expect(mockBackend.dismissKeyboard).toHaveBeenCalled();
+      expect(mockBackend.swipe).not.toHaveBeenCalled();
+    });
+
+    it('should reject input when auto-dismiss cannot hide the keyboard', async () => {
+      mockWdaClient.isKeyboardVisible = rs.fn().mockResolvedValue(true);
+      mockWdaClient.dismissKeyboard = rs.fn().mockResolvedValue(false);
+
+      await expect(
+        getInternalTextInput(device).typeText('test text'),
+      ).rejects.toThrow('Failed to auto-dismiss the iOS keyboard');
+    });
+
+    it('should preserve WDA dismissal errors', async () => {
+      mockWdaClient.dismissKeyboard = rs
+        .fn()
+        .mockRejectedValue(new Error('WDA transport failed'));
+
+      await expect(device.hideKeyboard()).rejects.toThrow(
+        'Failed to hide the iOS keyboard through WDA: Error: WDA transport failed',
+      );
     });
   });
 
