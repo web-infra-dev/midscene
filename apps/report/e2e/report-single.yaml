@@ -32,6 +32,10 @@ tasks:
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:
+      # Returning from Markdown View resets the center panel to the Record
+      # overview. Select a concrete task before looking for task-detail tabs.
+      - aiTap: the first visible task row in the left sidebar that has type "Planning" or "Insight" or "Locate", not the Total summary row
+      - sleep: 2000
       - aiTap:
           locate:
             prompt: the "Replay" option in the center task detail Replay/Screenshots/JSON View switcher
