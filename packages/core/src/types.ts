@@ -31,6 +31,7 @@ export {
   ExecutionDump,
   ReportActionDump,
   GroupedActionDump,
+  type ReferenceImageRefs,
 } from './dump/report-action-dump';
 
 export type AIUsageInfo = Record<string, any> & {

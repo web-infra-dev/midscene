@@ -14,10 +14,12 @@ import {
   unescapeContent,
 } from '@/dump/html-utils';
 import * as reportDumpCompactor from '@/dump/report-dump-compactor';
+import { restoreImageReferences } from '@/dump/screenshot-restoration';
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
+  type ExecutionTaskPlanningParam,
   ReportActionDump,
   type ReportMeta,
   type UIContext,
@@ -32,7 +34,10 @@ import {
  * Create a fake base64 string of a specified size (in bytes).
  * Uses repeating 'A' characters (valid base64).
  */
-function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
+function fakeBase64(
+  sizeBytes: number,
+  format: 'png' | 'jpeg' | 'webp' = 'png',
+): string {
   return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
 }
 
@@ -74,6 +79,72 @@ function createExecution(
     name,
     tasks,
   });
+}
+
+function createPlanningExecutionWithReferenceImage(options: {
+  referenceImage: string;
+  taskCount: number;
+  id: string;
+}): ExecutionDump {
+  return new ExecutionDump({
+    id: options.id,
+    logTime: Date.now(),
+    name: 'reference-image-dedup',
+    tasks: Array.from({ length: options.taskCount }, (_, index) => ({
+      taskId: `planning-${index}`,
+      type: 'Planning' as const,
+      subType: 'Plan',
+      param: {
+        userInstruction: {
+          prompt: 'Compare the current screen with the reference image',
+          images: [{ name: 'reference', url: options.referenceImage }],
+        },
+      },
+      executor: async () => undefined,
+      recorder: [],
+      status: 'finished' as const,
+    })),
+  });
+}
+
+type SerializedReferenceImageRef = {
+  type: string;
+  id: string;
+  storage: string;
+  path?: string;
+};
+
+type ReferenceImageDump<TImageUrl> = {
+  executions: Array<{
+    tasks: Array<{
+      param: {
+        userInstruction: {
+          images: Array<{ url: TImageUrl }>;
+        };
+      };
+    }>;
+  }>;
+};
+
+type SerializedReferenceImageDump =
+  ReferenceImageDump<SerializedReferenceImageRef>;
+type RestoredReferenceImageDump = ReferenceImageDump<string>;
+
+function referenceImageRefsFromDump(
+  dump: SerializedReferenceImageDump,
+): SerializedReferenceImageRef[] {
+  return dump.executions[0].tasks.map(
+    (task) => task.param.userInstruction.images[0].url,
+  );
+}
+
+function firstPlanningReferenceImageUrl(execution: ExecutionDump): string {
+  const param = execution.tasks[0].param as ExecutionTaskPlanningParam;
+  const prompt = param.userInstruction;
+  if (typeof prompt === 'string' || !prompt.images?.[0]) {
+    throw new Error('Expected a planning reference image');
+  }
+  return prompt.images[0].url;
 }
 
 /**
@@ -143,6 +214,142 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('inline mode — append-only strategy', () => {
+    it('should store repeated planning reference images once', async () => {
+      const reportPath = join(tmpDir, 'reference-image-dedup.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        persistExecutionDump: true,
+        autoPrint: false,
+      });
+      const referenceImage = fakeBase64(80_000, 'webp');
+      const execution = createPlanningExecutionWithReferenceImage({
+        referenceImage,
+        taskCount: 20,
+        id: 'reference-image-execution',
+      });
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.finalize();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      const imageMap = parseImageScripts(html);
+      expect(Object.values(imageMap)).toContain(referenceImage);
+      expect(html.split(referenceImage)).toHaveLength(2);
+
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(1);
+      const dump = JSON.parse(
+        unescapeContent(dumpScripts[0].content),
+      ) as SerializedReferenceImageDump;
+      const imageRefs = referenceImageRefsFromDump(dump);
+      expect(imageRefs).toHaveLength(20);
+      expect(
+        imageRefs.every(
+          (ref) =>
+            ref.type === 'midscene_image_url_ref' && ref.id === imageRefs[0].id,
+        ),
+      ).toBe(true);
+
+      const restored = restoreImageReferences(
+        dump,
+        (ref) => imageMap[ref.id],
+      ) as unknown as RestoredReferenceImageDump;
+      expect(
+        restored.executions[0].tasks.every(
+          (task) => task.param.userInstruction.images[0].url === referenceImage,
+        ),
+      ).toBe(true);
+      expect(firstPlanningReferenceImageUrl(execution)).toBe(referenceImage);
+
+      const persistedDump = readFileSync(
+        join(tmpDir, '1.execution.json'),
+        'utf-8',
+      );
+      expect(persistedDump).not.toContain(referenceImage);
+      expect(persistedDump).toContain('midscene_image_url_ref');
+    });
+
+    it('should keep report growth bounded across repeated reference-image tasks and updates', async () => {
+      const referenceImage = fakeBase64(128 * 1024, 'webp');
+      const finalTaskCount = 20;
+
+      const writeReport = async (
+        name: string,
+        taskCounts: number[],
+      ): Promise<{
+        html: string;
+        htmlSize: number;
+        executionDump: string;
+        executionDumpSize: number;
+      }> => {
+        const reportDir = join(tmpDir, name);
+        const reportPath = join(reportDir, 'index.html');
+        const generator = new ReportGenerator({
+          reportPath,
+          screenshotMode: 'inline',
+          persistExecutionDump: true,
+          autoPrint: false,
+        });
+
+        for (const taskCount of taskCounts) {
+          generator.onExecutionUpdate(
+            createPlanningExecutionWithReferenceImage({
+              referenceImage,
+              taskCount,
+              id: 'bounded-reference-image-execution',
+            }),
+            defaultReportMeta,
+          );
+          await generator.flush();
+        }
+        await generator.finalize();
+
+        const html = readFileSync(reportPath, 'utf-8');
+        const executionDumpPath = join(reportDir, '1.execution.json');
+        return {
+          html,
+          htmlSize: statSync(reportPath).size,
+          executionDump: readFileSync(executionDumpPath, 'utf-8'),
+          executionDumpSize: statSync(executionDumpPath).size,
+        };
+      };
+
+      const singleTask = await writeReport('single-task', [1]);
+      const finalStateOnly = await writeReport('final-state-only', [
+        finalTaskCount,
+      ]);
+      const incremental = await writeReport(
+        'incremental-updates',
+        Array.from({ length: finalTaskCount }, (_, index) => index + 1),
+      );
+
+      for (const report of [singleTask, finalStateOnly, incremental]) {
+        expect(report.html.split(referenceImage)).toHaveLength(2);
+        expect(countGroupedDumpScripts(report.html)).toBe(1);
+        expect(report.executionDump).not.toContain(referenceImage);
+      }
+
+      const referenceImageBytes = Buffer.byteLength(referenceImage);
+      // Adding tasks may grow the JSON refs, but must not add even one more
+      // copy of the large image payload.
+      expect(finalStateOnly.htmlSize - singleTask.htmlSize).toBeLessThan(
+        referenceImageBytes,
+      );
+      expect(
+        finalStateOnly.executionDumpSize - singleTask.executionDumpSize,
+      ).toBeLessThan(referenceImageBytes);
+
+      // Finalization must compact intermediate snapshots. Allow a small amount
+      // of whitespace/metadata variance, while rejecting retained dump history.
+      expect(incremental.htmlSize - finalStateOnly.htmlSize).toBeLessThan(4096);
+      expect(
+        Math.abs(
+          incremental.executionDumpSize - finalStateOnly.executionDumpSize,
+        ),
+      ).toBeLessThan(1024);
+    });
+
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
@@ -1028,6 +1235,49 @@ describe('ReportGenerator — append-only model', () => {
       });
       expect(screenshotRef.path).toContain('screenshots');
       expect(screenshotRef.path).toContain(screenshotId);
+    });
+
+    it('should externalize repeated planning reference images once in directory mode', async () => {
+      const reportDir = join(tmpDir, 'dir-reference-image-dedup');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+      const referenceImage = fakeBase64(128 * 1024, 'jpeg');
+      const execution = createPlanningExecutionWithReferenceImage({
+        referenceImage,
+        taskCount: 50,
+        id: 'directory-reference-image-execution',
+      });
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.finalize();
+
+      const screenshotFiles = readdirSync(join(reportDir, 'screenshots'));
+      expect(screenshotFiles).toHaveLength(1);
+      expect(screenshotFiles[0]).toMatch(/\.jpeg$/);
+
+      const serializedDump = parseDumpScript(
+        readFileSync(reportPath, 'utf-8'),
+      )!;
+      expect(serializedDump).not.toContain(referenceImage);
+      expect(Buffer.byteLength(serializedDump)).toBeLessThan(
+        Buffer.byteLength(referenceImage),
+      );
+
+      const dump = JSON.parse(serializedDump) as SerializedReferenceImageDump;
+      const imageRefs = referenceImageRefsFromDump(dump);
+      expect(imageRefs).toHaveLength(50);
+      expect(
+        imageRefs.every(
+          (ref) =>
+            ref.type === 'midscene_image_url_ref' &&
+            ref.storage === 'file' &&
+            ref.path === imageRefs[0].path,
+        ),
+      ).toBe(true);
     });
 
     it('should release memory after writing and recover via lazy loading (directory mode)', async () => {

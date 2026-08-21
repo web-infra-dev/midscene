@@ -8,7 +8,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ScreenshotStore } from '../../src/dump/screenshot-store';
+import {
+  ScreenshotStore,
+  normalizeImageUrlRef,
+} from '../../src/dump/screenshot-store';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotStore', () => {
@@ -62,6 +65,71 @@ describe('ScreenshotStore', () => {
     expect(readFileSync(join(screenshotsDir, `${item.id}.png`), 'utf-8')).toBe(
       'marker',
     );
+  });
+
+  it('deduplicates inline reference images by content', async () => {
+    const reportPath = join(tmpRoot, 'reference-inline.html');
+    const appendInline = vi.fn();
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath,
+      writeInlineImage: appendInline,
+    });
+    const referenceImage = 'data:image/webp;base64,QUJDRA==';
+
+    const first = await store.persistReferenceImage(referenceImage);
+    const second = await store.persistReferenceImage(
+      'data:image/webp;name=reference;base64,QUJD RA==',
+    );
+
+    expect(first).toMatchObject({
+      type: 'midscene_image_url_ref',
+      mimeType: 'image/webp',
+      storage: 'inline',
+    });
+    expect(second.id).toBe(first.id);
+    expect(appendInline).toHaveBeenCalledOnce();
+    expect(appendInline).toHaveBeenCalledWith(first.id, referenceImage);
+  });
+
+  it('persists non-PNG reference images with their own extension', async () => {
+    const reportPath = join(tmpRoot, 'index.html');
+    const screenshotsDir = join(tmpRoot, 'screenshots');
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath,
+      screenshotsDir,
+    });
+
+    const ref = await store.persistReferenceImage(
+      'data:image/svg+xml;base64,PHN2Zy8+',
+    );
+
+    expect(ref.path).toBe(`./screenshots/${ref.id}.svg`);
+    expect(existsSync(join(screenshotsDir, `${ref.id}.svg`))).toBe(true);
+  });
+
+  it('rejects malformed reference image data URLs', async () => {
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath: join(tmpRoot, 'invalid-reference.html'),
+      writeInlineImage: () => {},
+    });
+
+    await expect(
+      store.persistReferenceImage('data:image/png,not-base64'),
+    ).rejects.toThrow('reference image must be a valid base64 image data URL');
+  });
+
+  it('rejects unsafe serialized reference-image file names', () => {
+    expect(
+      normalizeImageUrlRef({
+        type: 'midscene_image_url_ref',
+        id: '../outside',
+        mimeType: 'image/webp',
+        storage: 'inline',
+      }),
+    ).toBeNull();
   });
 
   it('supports inline mode persistence + lazy restore', async () => {
