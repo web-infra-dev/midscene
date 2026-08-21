@@ -3,6 +3,7 @@ import {
   type ExecutionSummary,
   getExecutionSummary,
   getResultFilesByType,
+  getResultsFromYamlBatchError,
   getSummaryAbsolutePath,
   printExecutionSummary,
 } from './execution-summary';
@@ -20,8 +21,16 @@ class BatchRunner {
   async run(
     options: RunYamlBatchOptions = {},
   ): Promise<MidsceneYamlConfigResult[]> {
-    this.results = await runYamlBatch(this.config, options);
-    return this.results;
+    try {
+      this.results = await runYamlBatch(this.config, options);
+      return this.results;
+    } catch (error) {
+      const partialResults = getResultsFromYamlBatchError(error);
+      if (partialResults) {
+        this.results = partialResults;
+      }
+      throw error;
+    }
   }
 
   getExecutionSummary(): ExecutionSummary {

@@ -1,69 +1,75 @@
-import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
-import { runFrameworkTestConfig } from '@/framework/command';
-import { createServer } from 'http-server';
-import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
+import { resolveWebTarget } from '@midscene/core/yaml';
+import { describe, expect, test } from 'vitest';
 
-vi.setConfig({
-  testTimeout: 60 * 1000,
-});
+describe('shareBrowserContext YAML configuration', () => {
+  const parallelScriptDir = join(
+    __dirname,
+    '../share_context_parallel_test_scripts',
+  );
+  const expectedScripts = [
+    '00-setup.yaml',
+    '01-search.yaml',
+    '02-report.yaml',
+    '03-settings.yaml',
+  ];
 
-// Fixed port for testing - YAML files will use this URL
-const TEST_PORT = 18527;
-
-describe('shareBrowserContext - Storage Sharing', () => {
-  let server: ReturnType<typeof createServer>;
-
-  beforeAll(async () => {
-    // Start a shared server for all tests
-    server = createServer({
-      root: join(__dirname, '../server_root'),
-    });
-    await new Promise<void>((resolve) => {
-      server.listen(TEST_PORT, '127.0.0.1', () => {
-        resolve();
-      });
-    });
-  });
-
-  afterAll(() => {
-    server?.server.close();
-  });
-
-  test('should run setup before the main file and report both results', async () => {
-    const scriptDir = join(__dirname, '../share_context_test_scripts');
-    const indexYamlPath = join(scriptDir, 'index.yaml');
-    const frameworkImport = join(
-      __dirname,
-      '../../src/framework/rstest-entry.ts',
-    );
+  const createFixtureConfig = async (scriptDir: string, indexFile: string) => {
     const previousCwd = process.cwd();
-
+    const previousOrigin = process.env.SHARED_BROWSER_TEST_ORIGIN;
     process.chdir(scriptDir);
+    process.env.SHARED_BROWSER_TEST_ORIGIN = 'http://127.0.0.1';
     try {
-      const config = await createConfig(indexYamlPath);
-      const exitCode = await runFrameworkTestConfig(config, {
-        projectDir: scriptDir,
-        frameworkImport,
-        stdio: 'pipe',
-      });
-
-      expect(exitCode).toBe(0);
-      const summary = JSON.parse(
-        readFileSync(
-          join(scriptDir, 'midscene_run', 'output', config.summary),
-          'utf8',
-        ),
-      );
-      expect(summary.summary).toMatchObject({ total: 2, successful: 2 });
-      expect(
-        summary.results.map((result: { script: string }) =>
-          basename(result.script),
-        ),
-      ).toEqual(['01-login.yaml', '02-check-login.yaml']);
+      return await createConfig(join(scriptDir, indexFile));
     } finally {
       process.chdir(previousCwd);
+      if (previousOrigin === undefined) {
+        Reflect.deleteProperty(process.env, 'SHARED_BROWSER_TEST_ORIGIN');
+      } else {
+        process.env.SHARED_BROWSER_TEST_ORIGIN = previousOrigin;
+      }
     }
+  };
+
+  test.each([
+    { targetSource: 'page' as const, indexFile: 'index.yaml' },
+    { targetSource: 'browser' as const, indexFile: 'index-browser.yaml' },
+    { targetSource: 'web' as const, indexFile: 'index-web.yaml' },
+  ])(
+    'should resolve setup and parallel files from the $targetSource YAML target',
+    async ({ targetSource, indexFile }) => {
+      const config = await createFixtureConfig(parallelScriptDir, indexFile);
+
+      expect(resolveWebTarget(config.globalConfig ?? {})?.source).toBe(
+        targetSource,
+      );
+      expect(config).toMatchObject({
+        concurrent: 3,
+        shareBrowserContext: true,
+      });
+      expect(basename(config.setup ?? '')).toBe(expectedScripts[0]);
+      expect(config.files.map((file) => basename(file))).toEqual(
+        expectedScripts.slice(1),
+      );
+    },
+  );
+
+  test('should resolve a sequential shared-browser YAML batch without an index target', async () => {
+    const config = await createFixtureConfig(
+      join(__dirname, '../share_context_test_scripts'),
+      'index.yaml',
+    );
+
+    expect(resolveWebTarget(config.globalConfig ?? {})).toBeUndefined();
+    expect(config).toMatchObject({
+      concurrent: 1,
+      shareBrowserContext: true,
+    });
+    expect(basename(config.setup ?? '')).toBe('01-login.yaml');
+    expect(config.files.map((file) => basename(file))).toEqual([
+      '02-check-login.yaml',
+      '03-check-session-continuity.yaml',
+    ]);
   });
 });

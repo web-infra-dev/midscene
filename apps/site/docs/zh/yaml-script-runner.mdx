@@ -225,11 +225,11 @@ page:
 命令行工具提供了多项参数，用于控制脚本的执行行为：
 
 - `--files <file1> <file2> ...`：指定脚本文件列表。默认按顺序执行（`--concurrent` 为 `1`），可通过 `--concurrent` 设置并发数量。支持 [glob](https://www.npmjs.com/package/glob) 通配符语法；当 glob 或目录匹配到多个文件时，匹配结果会按文件路径的字典序排序后加入执行列表。
-- `--setup <file>`：在主 `--files` 之前执行的前置脚本。它与主脚本共享同一个浏览器上下文，因此在这里建立的前置状态（如登录态）对每个主脚本都可见。前置脚本失败会中止整个批次，主脚本将被标记为未执行。需要配合 `--share-browser-context` 使用。
+- `--setup <file>`：在主 `--files` 之前执行的前置脚本。它与主脚本共享同一个浏览器上下文，因此 Cookies、同源 `localStorage` 等上下文级前置状态对每个主脚本都可见。包括 setup 和串行脚本在内，每个 YAML 都在独立标签页中运行；`sessionStorage` 等页面级状态不会在脚本之间传递。前置脚本失败会中止整个批次，主脚本将被标记为未执行。需要配合 `--share-browser-context` 使用。
 - `--concurrent <number>`：设置并发执行的数量，默认 `1`。
 - `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
 - `--retry <number>`：失败脚本的重试次数。每一轮只会重新执行上一轮失败的脚本，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。（与 `--share-browser-context` 同时使用时不生效，该模式下所有脚本共享同一次执行。）
-- `--share-browser-context`：在多个脚本之间共享浏览器上下文（Cookies、`localStorage` 等），适合需要连续登录态的场景。默认关闭。
+- `--share-browser-context`：多个脚本共享一个浏览器上下文（Cookies、同源 `localStorage` 等），同时每个 YAML 使用独立标签页。即使 `--concurrent 1`，`sessionStorage`、DOM、URL、`window.name` 等页面级状态也不会共享。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
 - `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
@@ -279,9 +279,13 @@ retry: 2
 midscene --config ./config.yaml
 ```
 
-#### 在并行脚本之前执行前置任务
+#### 在脚本之前执行前置任务
 
-当多个互不依赖的脚本都依赖同一个前置条件（例如登录）时,可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行;成功后,主脚本再按配置的并发数运行。前置脚本与主脚本共享同一个浏览器上下文,因此登录态会被带过去。`setup` 需要配合 `shareBrowserContext: true` 使用。
+当多个脚本都依赖同一个前置条件（例如登录）时，可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行；成功后，主脚本再按配置的并发数运行。前置脚本与主脚本共享同一个浏览器上下文，因此 Cookies 和同源 `localStorage` 会被带过去。包括 `concurrent: 1` 在内，每个 YAML 都使用独立标签页；setup 标签页的 `sessionStorage`、DOM、URL、`window.name` 和其他页面级状态不会复制到主标签页。`setup` 需要配合 `shareBrowserContext: true` 使用。
+
+:::warning 页面级状态不会共享
+`shareBrowserContext` 遵循浏览器原生的存储边界，不会在标签页之间复制或同步 `sessionStorage`。如果 setup 只把登录态写入 `sessionStorage`，主脚本将无法继承该登录态。需要让多个脚本看到前置状态时，请优先使用 Cookies、同源 `localStorage` 或服务端状态。脚本并发运行时，共享状态的写入可能发生竞争，需要显式协调。
+:::
 
 ```yaml
 setup: ./scripts/login.yaml

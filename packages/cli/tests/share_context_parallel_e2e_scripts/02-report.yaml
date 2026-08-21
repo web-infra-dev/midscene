@@ -1,0 +1,65 @@
+tasks:
+  - name: Verify report tab isolation and setup state
+    flow:
+      - javascript: |
+          (async function() {
+            const caseId = 'report';
+            const caseIds = ['search', 'report', 'settings'];
+            window.name = caseId;
+            sessionStorage.setItem('owner', caseId);
+            localStorage.setItem(`parallel-ready:${caseId}`, 'true');
+            document.cookie = `parallel-${caseId}=${caseId}; path=/`;
+
+            const deadline = Date.now() + 10000;
+            while (
+              caseIds.some((id) => localStorage.getItem(`parallel-ready:${id}`) !== 'true') ||
+              caseIds.some((id) => readCookies()[`parallel-${id}`] !== id)
+            ) {
+              if (Date.now() > deadline) {
+                throw new Error(`Timed out waiting for all parallel YAML pages: ${document.cookie}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const cookies = readCookies();
+            if (cookies.authToken !== 'parallel-token') {
+              throw new Error(`Setup cookie was not shared: ${document.cookie}`);
+            }
+            for (const id of caseIds) {
+              if (cookies[`parallel-${id}`] !== id) {
+                throw new Error(`Parallel cookie from ${id} was not shared: ${document.cookie}`);
+              }
+            }
+            if (localStorage.getItem('userId') !== 'parallel-user') {
+              throw new Error('Setup localStorage was not shared');
+            }
+            if (sessionStorage.getItem('sessionId') !== null) {
+              throw new Error('Setup sessionStorage leaked into the report page');
+            }
+            if (window.name !== caseId || sessionStorage.getItem('owner') !== caseId) {
+              throw new Error(`Page state leaked into report: window=${window.name}, owner=${sessionStorage.getItem('owner')}`);
+            }
+            document.querySelector('h1').textContent = 'Parallel YAML: report';
+            checkLoginStatus();
+            return caseId;
+          })()
+      - javascript: |
+          (() => {
+            if (new URLSearchParams(location.search).get('browserMode') === 'true') {
+              window.open(`${location.origin}/share-context-test.html?popupOwner=report`, '_blank');
+            }
+          })()
+      - sleep: 500
+      - javascript: |
+          (() => {
+            const params = new URLSearchParams(location.search);
+            if (params.get('browserMode') === 'true') {
+              throw new Error('Report BrowserAgent did not follow its popup');
+            }
+            const popupOwner = params.get('popupOwner');
+            if (popupOwner !== null && popupOwner !== 'report') {
+              throw new Error(`Report BrowserAgent followed another YAML popup: ${popupOwner}`);
+            }
+            return popupOwner ?? 'non-browser-mode';
+          })()

@@ -5,6 +5,7 @@ import {
   launchPuppeteerPage,
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
+import type { Browser, Page } from 'puppeteer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockLaunch } = vi.hoisted(() => ({
@@ -25,8 +26,11 @@ const createPageMock = () => ({
   setUserAgent: vi.fn().mockResolvedValue(undefined),
   setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
   setViewport: vi.fn().mockResolvedValue(undefined),
+  evaluateOnNewDocument: vi.fn().mockResolvedValue({ identifier: 'preload' }),
+  removeScriptToEvaluateOnNewDocument: vi.fn().mockResolvedValue(undefined),
   goto: vi.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: vi.fn().mockResolvedValue(undefined),
+  close: vi.fn().mockResolvedValue(undefined),
   browser: vi.fn(() => browserMock),
   bringToFront: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
@@ -44,7 +48,7 @@ describe('launchPuppeteerPage', () => {
     vi.clearAllMocks();
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
-    mockNewPage.mockResolvedValue(pageMock as any);
+    mockNewPage.mockResolvedValue(pageMock as unknown as Page);
   });
 
   it('uses default viewport window size for headed runs', async () => {
@@ -127,7 +131,10 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({
       url: 'https://example.com',
       // YAML may yield booleans/numbers for unquoted values
-      extraHTTPHeaders: { 'X-Flag': true, 'X-Num': 123 } as any,
+      extraHTTPHeaders: {
+        'X-Flag': true,
+        'X-Num': 123,
+      } as unknown as Record<string, string>,
     });
 
     expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith({
@@ -194,7 +201,7 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
+      browserMock as unknown as Browser,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
@@ -207,11 +214,99 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
-      pageMock as any,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('does not install a sessionStorage preload when reusing a browser context', async () => {
+    await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
+    );
+
+    expect(pageMock.evaluateOnNewDocument).not.toHaveBeenCalled();
+    expect(pageMock.removeScriptToEvaluateOnNewDocument).not.toHaveBeenCalled();
+  });
+
+  it('propagates navigation errors instead of treating them as network-idle failures', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
+  });
+
+  it('closes an internally launched browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage({ url: 'https://example.invalid' }),
+    ).rejects.toBe(navigationError);
+
+    expect(browserMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a page created in a caller-provided browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+    expect(browserMock.close).not.toHaveBeenCalled();
+  });
+
+  it('only applies continueOnNetworkIdleError to network-idle failures', async () => {
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: true },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).resolves.toMatchObject({ page: pageMock });
+
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: false },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).rejects.toThrow('failed to wait for network idle');
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
@@ -224,7 +319,10 @@ describe('launchPuppeteerPage', () => {
       },
     });
 
-    expect((agent.page as any).waitForNetworkIdleTimeout).toBe(4321);
+    expect(
+      (agent.page as unknown as { waitForNetworkIdleTimeout: number })
+        .waitForNetworkIdleTimeout,
+    ).toBe(4321);
   });
 
   it('requires browser mode for autoFollowNewPage', async () => {
@@ -234,6 +332,8 @@ describe('launchPuppeteerPage', () => {
         autoFollowNewPage: true,
       }),
     ).rejects.toThrow('autoFollowNewPage requires browser mode');
+
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('creates browser agent in browser mode', async () => {

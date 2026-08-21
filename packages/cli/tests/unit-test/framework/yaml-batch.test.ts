@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { attachResultsToYamlBatchError } from '@/execution-summary';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
 import { runYamlBatch } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
@@ -141,6 +142,60 @@ describe('runYamlBatchInRstest', () => {
         file: yamlB,
         success: false,
         resultType: 'partialFailed',
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('writes partial results before rethrowing an unexpected execution error', async () => {
+    const root = createTempDir();
+    const yamlA = join(root, 'completed.yaml');
+    const yamlB = join(root, 'crashed.yaml');
+    const resultA = join(root, 'results', 'completed.json');
+    const resultB = join(root, 'results', 'crashed.json');
+    const config = createConfig([yamlA, yamlB]);
+    const executionError = new Error('page cleanup failed');
+    const partialResults = [
+      {
+        file: yamlA,
+        success: true,
+        executed: true,
+        duration: 10,
+        resultType: 'success',
+      },
+      {
+        file: yamlB,
+        success: false,
+        executed: true,
+        duration: 20,
+        resultType: 'failed',
+        error: executionError.message,
+      },
+    ] satisfies MidsceneYamlConfigResult[];
+    mocks.runYamlBatch.mockRejectedValue(
+      attachResultsToYamlBatchError(executionError, partialResults),
+    );
+
+    try {
+      await expect(
+        runYamlBatchInRstest({
+          config,
+          resultFiles: {
+            [yamlA]: resultA,
+            [yamlB]: resultB,
+          },
+        }),
+      ).rejects.toBe(executionError);
+
+      expect(JSON.parse(readFileSync(resultA, 'utf8'))).toMatchObject({
+        file: yamlA,
+        resultType: 'success',
+      });
+      expect(JSON.parse(readFileSync(resultB, 'utf8'))).toMatchObject({
+        file: yamlB,
+        resultType: 'failed',
+        error: executionError.message,
       });
     } finally {
       rmSync(root, { recursive: true, force: true });

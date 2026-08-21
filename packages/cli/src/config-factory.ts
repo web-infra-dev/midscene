@@ -93,8 +93,9 @@ async function expandFilePatterns(
 /**
  * A setup file only makes sense when the batch shares one browser context: the
  * prerequisite state it establishes (typically a login) is carried to the main
- * files through the shared page. Without sharing, that state cannot reach the
- * main files, so reject the combination loudly instead of silently dropping it.
+ * files through the shared browser context. Without sharing, that state cannot
+ * reach the main files, so reject the combination loudly instead of silently
+ * dropping it.
  */
 function assertSetupUsage(
   setup: string | undefined,
