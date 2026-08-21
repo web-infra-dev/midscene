@@ -45,6 +45,7 @@ import {
   buildRunAdbShellPlanningFeedback,
   runAdbShellStdoutOrThrow,
 } from './adb-shell';
+import { resolveExternalResourcePath } from './resource-path';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -1970,14 +1971,19 @@ ${Object.keys(size)
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
-      // Use a more reliable path resolution method
-      const androidPkgJson = createRequire(import.meta.url).resolve(
-        '@midscene/android/package.json',
-      );
-      const yadbBin = path.join(path.dirname(androidPkgJson), 'bin', 'yadb');
+      const yadbBin = this.resolveYadbBinPath();
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
     }
+  }
+
+  private resolveYadbBinPath(): string {
+    const androidPkgJson = createRequire(import.meta.url).resolve(
+      '@midscene/android/package.json',
+    );
+    return resolveExternalResourcePath(
+      path.join(path.dirname(androidPkgJson), 'bin', 'yadb'),
+    );
   }
 
   /**

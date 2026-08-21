@@ -213,6 +213,22 @@ describe('AndroidDevice', () => {
     });
   });
 
+  it('pushes yadb from unpacked Electron resources', async () => {
+    const unpackedYadbPath = String.raw`C:\Program Files\Midscene Studio\resources\app.asar.unpacked\node_modules\@midscene\android\bin\yadb`;
+    rs.spyOn(device as any, 'resolveYadbBinPath').mockReturnValue(
+      unpackedYadbPath,
+    );
+
+    await device.ensureYadb();
+    await device.ensureYadb();
+
+    expect(mockAdb.push).toHaveBeenCalledTimes(1);
+    expect(mockAdb.push).toHaveBeenCalledWith(
+      unpackedYadbPath,
+      '/data/local/tmp',
+    );
+  });
+
   describe('UI tree', () => {
     const hierarchy = (children: string) => `<?xml version="1.0"?>
 <hierarchy rotation="0">
