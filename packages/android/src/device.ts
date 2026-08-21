@@ -1971,16 +1971,19 @@ ${Object.keys(size)
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
-      // Use a more reliable path resolution method
-      const androidPkgJson = createRequire(import.meta.url).resolve(
-        '@midscene/android/package.json',
-      );
-      const yadbBin = resolveExternalResourcePath(
-        path.join(path.dirname(androidPkgJson), 'bin', 'yadb'),
-      );
+      const yadbBin = this.resolveYadbBinPath();
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
     }
+  }
+
+  private resolveYadbBinPath(): string {
+    const androidPkgJson = createRequire(import.meta.url).resolve(
+      '@midscene/android/package.json',
+    );
+    return resolveExternalResourcePath(
+      path.join(path.dirname(androidPkgJson), 'bin', 'yadb'),
+    );
   }
 
   /**
@@ -2101,6 +2104,12 @@ ${Object.keys(size)
   }
 
   private async pressKey(key: string): Promise<void> {
+    if (key.trim() !== '+' && key.includes('+')) {
+      throw new Error(
+        `Android keyboardPress does not support key combinations: ${JSON.stringify(key)}`,
+      );
+    }
+
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,
