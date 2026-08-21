@@ -1,5 +1,9 @@
 import type { Size } from '@midscene/core';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+  resizeBase64ImageToJpeg,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import {
@@ -150,11 +154,16 @@ export class ScrcpyDeviceAdapter {
    * receives the highest quality image for AI processing.
    * videoBitRate uses the shared default unless explicitly configured.
    */
-  resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
+  resolveConfig(): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
     const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
+    if (!Number.isInteger(maxSize) || maxSize < 0) {
+      throw new Error(
+        `Invalid scrcpyConfig.maxSize: expected a non-negative integer, received ${maxSize}`,
+      );
+    }
 
     const videoBitRate =
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
@@ -168,6 +177,35 @@ export class ScrcpyDeviceAdapter {
     };
 
     return this.resolvedConfig;
+  }
+
+  /**
+   * Apply the configured scrcpy video bound to an independently captured
+   * fallback screenshot. This prevents planning and report images from returning
+   * to full device resolution while the scrcpy stream is temporarily unavailable.
+   */
+  async prepareFallbackScreenshot(screenshotBase64: string): Promise<string> {
+    if (!this.isConfigured()) return screenshotBase64;
+
+    const { maxSize } = this.resolveConfig();
+    if (maxSize === 0) return screenshotBase64;
+
+    const sourceSize = await imageInfoOfBase64(screenshotBase64);
+    const largestDimension = Math.max(sourceSize.width, sourceSize.height);
+    if (largestDimension <= maxSize) return screenshotBase64;
+
+    const scale = maxSize / largestDimension;
+    const targetSize = {
+      width: Math.max(1, Math.round(sourceSize.width * scale)),
+      height: Math.max(1, Math.round(sourceSize.height * scale)),
+    };
+    debugAdapter(
+      `Applying scrcpy maxSize to fallback screenshot: ${sourceSize.width}x${sourceSize.height} -> ${targetSize.width}x${targetSize.height}`,
+    );
+    return resizeBase64ImageToJpeg(screenshotBase64, {
+      sourceSize,
+      targetSize,
+    });
   }
 
   /**
@@ -198,7 +236,7 @@ export class ScrcpyDeviceAdapter {
         await adbClient.createTransport({ serial: this.deviceId }),
       );
 
-      const config = this.resolveConfig(deviceInfo);
+      const config = this.resolveConfig();
       const manager = new ScrcpyManager(adb, {
         maxSize: config.maxSize,
         videoBitRate: config.videoBitRate,
