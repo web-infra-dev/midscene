@@ -1,58 +1,44 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { resolveExternalResourcePath } from '../../src/resource-path';
-
-const temporaryDirectories: string[] = [];
-
-afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
 
 describe('resolveExternalResourcePath', () => {
   it('uses the unpacked sibling when it exists', () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'midscene-resource-path-'));
-    temporaryDirectories.push(root);
-    const archivePath = path.join(root, 'app.asar');
-    const unpackedResourcePath = path.join(
-      root,
-      'app.asar.unpacked',
-      'node_modules',
-      '@midscene',
-      'android',
-      'bin',
-      'yadb',
-    );
-    mkdirSync(path.dirname(unpackedResourcePath), { recursive: true });
-    writeFileSync(unpackedResourcePath, 'yadb');
+    const resourcePath =
+      '/Applications/Midscene Studio.app/Contents/Resources/app.asar/node_modules/@midscene/android/bin/yadb';
+    const unpackedPath = resourcePath.replace('.asar/', '.asar.unpacked/');
 
     expect(
       resolveExternalResourcePath(
-        `${archivePath}/node_modules/@midscene/android/bin/yadb`,
+        resourcePath,
+        (path) => path === unpackedPath,
       ),
-    ).toBe(unpackedResourcePath);
+    ).toBe(unpackedPath);
+  });
+
+  it('uses the unpacked Windows sibling when it exists', () => {
+    const resourcePath = String.raw`C:\Program Files\Midscene Studio\resources\app.asar\node_modules\@midscene\android\bin\yadb`;
+    const unpackedPath = String.raw`C:\Program Files\Midscene Studio\resources\app.asar.unpacked\node_modules\@midscene\android\bin\yadb`;
+
+    expect(
+      resolveExternalResourcePath(
+        resourcePath,
+        (path) => path === unpackedPath,
+      ),
+    ).toBe(unpackedPath);
   });
 
   it('keeps the original path when no unpacked sibling exists', () => {
-    const archivePath = path.join(
-      mkdtempSync(path.join(os.tmpdir(), 'midscene-resource-path-')),
-      'app.asar',
-    );
-    temporaryDirectories.push(path.dirname(archivePath));
+    const resourcePath =
+      '/tmp/app.asar/node_modules/@midscene/android/bin/yadb';
 
-    expect(resolveExternalResourcePath(`${archivePath}/bin/yadb`)).toBe(
-      `${archivePath}/bin/yadb`,
+    expect(resolveExternalResourcePath(resourcePath, () => false)).toBe(
+      resourcePath,
     );
   });
 
   it('keeps ordinary Node paths unchanged', () => {
-    expect(
-      resolveExternalResourcePath(
-        '/workspace/node_modules/@midscene/android/bin/yadb',
-      ),
-    ).toBe('/workspace/node_modules/@midscene/android/bin/yadb');
+    const resourcePath = '/workspace/node_modules/@midscene/android/bin/yadb';
+
+    expect(resolveExternalResourcePath(resourcePath)).toBe(resourcePath);
   });
 });
