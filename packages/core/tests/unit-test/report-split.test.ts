@@ -207,6 +207,88 @@ describe('splitReportHtmlByExecution', () => {
     });
   });
 
+  it('should keep split execution JSON bounded when many tasks share a reference image', () => {
+    const reportPath = join(tmpDir, 'large-reference-image-report.html');
+    const referenceImage = fakeBase64(128 * 1024);
+    const imageRef: ImageUrlRef = {
+      type: 'midscene_image_url_ref',
+      id: 'large-shared-reference',
+      mimeType: 'image/png',
+      storage: 'inline',
+    };
+    const taskCount = 50;
+    const execution = new ExecutionDump({
+      id: 'large-reference-execution',
+      logTime: 100,
+      name: 'large-reference-execution',
+      tasks: Array.from({ length: taskCount }, (_, index) => ({
+        taskId: `planning-reference-${index}`,
+        type: 'Planning' as const,
+        subType: 'Plan',
+        param: {
+          userInstruction: {
+            prompt: 'Compare with the shared reference image',
+            images: [{ name: 'reference', url: referenceImage }],
+          },
+        },
+        executor: async () => undefined,
+        recorder: [],
+        status: 'finished' as const,
+      })),
+    });
+    const dump = new ReportActionDump({
+      groupName: 'large-reference-image-split-test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: [],
+      executions: [execution],
+    });
+    writeFileSync(
+      reportPath,
+      [
+        generateImageScriptTag(imageRef.id, referenceImage),
+        generateDumpScriptTag(
+          dump.serializeWithReferenceImages(
+            new Map([[referenceImage, imageRef]]),
+          ),
+          { 'data-group-id': 'group-1' },
+        ),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const outputDir = join(tmpDir, 'large-reference-image-output');
+    const result = splitReportHtmlByExecution({
+      htmlPath: reportPath,
+      outputDir,
+    });
+
+    expect(result.executionJsonFiles).toHaveLength(1);
+    expect(result.screenshotFiles).toHaveLength(1);
+    const executionJson = readFileSync(result.executionJsonFiles[0], 'utf-8');
+    expect(executionJson).not.toContain(referenceImage);
+    expect(Buffer.byteLength(executionJson)).toBeLessThan(
+      Buffer.byteLength(referenceImage),
+    );
+
+    const outputDump = JSON.parse(executionJson);
+    const tasks = outputDump.executions[0].tasks;
+    expect(tasks).toHaveLength(taskCount);
+    expect(
+      tasks.every(
+        (task: {
+          param: { userInstruction: { images: Array<{ url: ImageUrlRef }> } };
+        }) => {
+          const ref = task.param.userInstruction.images[0].url;
+          return (
+            ref.type === 'midscene_image_url_ref' &&
+            ref.storage === 'file' &&
+            ref.path === `./screenshots/${imageRef.id}.png`
+          );
+        },
+      ),
+    ).toBe(true);
+  });
+
   it('should process large report incrementally without accumulating all dump scripts', () => {
     const reportPath = join(tmpDir, 'large-report', 'index.html');
     mkdirSync(join(tmpDir, 'large-report'), { recursive: true });

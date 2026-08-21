@@ -270,6 +270,86 @@ describe('ReportGenerator — append-only model', () => {
       expect(persistedDump).toContain('midscene_image_url_ref');
     });
 
+    it('should keep report growth bounded across repeated reference-image tasks and updates', async () => {
+      const referenceImage = fakeBase64(128 * 1024, 'webp');
+      const finalTaskCount = 20;
+
+      const writeReport = async (
+        name: string,
+        taskCounts: number[],
+      ): Promise<{
+        html: string;
+        htmlSize: number;
+        executionDump: string;
+        executionDumpSize: number;
+      }> => {
+        const reportDir = join(tmpDir, name);
+        const reportPath = join(reportDir, 'index.html');
+        const generator = new ReportGenerator({
+          reportPath,
+          screenshotMode: 'inline',
+          persistExecutionDump: true,
+          autoPrint: false,
+        });
+
+        for (const taskCount of taskCounts) {
+          generator.onExecutionUpdate(
+            createPlanningExecutionWithReferenceImage({
+              referenceImage,
+              taskCount,
+              id: 'bounded-reference-image-execution',
+            }),
+            defaultReportMeta,
+          );
+          await generator.flush();
+        }
+        await generator.finalize();
+
+        const html = readFileSync(reportPath, 'utf-8');
+        const executionDumpPath = join(reportDir, '1.execution.json');
+        return {
+          html,
+          htmlSize: statSync(reportPath).size,
+          executionDump: readFileSync(executionDumpPath, 'utf-8'),
+          executionDumpSize: statSync(executionDumpPath).size,
+        };
+      };
+
+      const singleTask = await writeReport('single-task', [1]);
+      const finalStateOnly = await writeReport('final-state-only', [
+        finalTaskCount,
+      ]);
+      const incremental = await writeReport(
+        'incremental-updates',
+        Array.from({ length: finalTaskCount }, (_, index) => index + 1),
+      );
+
+      for (const report of [singleTask, finalStateOnly, incremental]) {
+        expect(report.html.split(referenceImage)).toHaveLength(2);
+        expect(countGroupedDumpScripts(report.html)).toBe(1);
+        expect(report.executionDump).not.toContain(referenceImage);
+      }
+
+      const referenceImageBytes = Buffer.byteLength(referenceImage);
+      // Adding tasks may grow the JSON refs, but must not add even one more
+      // copy of the large image payload.
+      expect(finalStateOnly.htmlSize - singleTask.htmlSize).toBeLessThan(
+        referenceImageBytes,
+      );
+      expect(
+        finalStateOnly.executionDumpSize - singleTask.executionDumpSize,
+      ).toBeLessThan(referenceImageBytes);
+
+      // Finalization must compact intermediate snapshots. Allow a small amount
+      // of whitespace/metadata variance, while rejecting retained dump history.
+      expect(incremental.htmlSize - finalStateOnly.htmlSize).toBeLessThan(4096);
+      expect(
+        Math.abs(
+          incremental.executionDumpSize - finalStateOnly.executionDumpSize,
+        ),
+      ).toBeLessThan(1024);
+    });
+
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
@@ -1165,10 +1245,10 @@ describe('ReportGenerator — append-only model', () => {
         screenshotMode: 'directory',
         autoPrint: false,
       });
-      const referenceImage = fakeBase64(8_000, 'jpeg');
+      const referenceImage = fakeBase64(128 * 1024, 'jpeg');
       const execution = createPlanningExecutionWithReferenceImage({
         referenceImage,
-        taskCount: 3,
+        taskCount: 50,
         id: 'directory-reference-image-execution',
       });
 
@@ -1179,10 +1259,17 @@ describe('ReportGenerator — append-only model', () => {
       expect(screenshotFiles).toHaveLength(1);
       expect(screenshotFiles[0]).toMatch(/\.jpeg$/);
 
-      const dump = JSON.parse(
-        parseDumpScript(readFileSync(reportPath, 'utf-8'))!,
-      ) as SerializedReferenceImageDump;
+      const serializedDump = parseDumpScript(
+        readFileSync(reportPath, 'utf-8'),
+      )!;
+      expect(serializedDump).not.toContain(referenceImage);
+      expect(Buffer.byteLength(serializedDump)).toBeLessThan(
+        Buffer.byteLength(referenceImage),
+      );
+
+      const dump = JSON.parse(serializedDump) as SerializedReferenceImageDump;
       const imageRefs = referenceImageRefsFromDump(dump);
+      expect(imageRefs).toHaveLength(50);
       expect(
         imageRefs.every(
           (ref) =>
