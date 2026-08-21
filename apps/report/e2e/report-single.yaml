@@ -32,6 +32,11 @@ tasks:
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:
+      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+        scrollType: scrollToTop
+      - sleep: 500
+      - aiTap: the first visible Planning task row in the left sidebar
+      - sleep: 1000
       - aiTap:
           locate:
             prompt: the "Replay" option in the center task detail Replay/Screenshots/JSON View switcher

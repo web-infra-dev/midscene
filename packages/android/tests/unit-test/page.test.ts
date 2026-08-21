@@ -1174,6 +1174,33 @@ Stdout:
       );
     });
 
+    it('should prepare an ADB fallback for scrcpy while replanning', async () => {
+      const fallbackDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: true, maxSize: 1000 },
+      });
+      rs.spyOn(fallbackDevice, 'getAdb').mockResolvedValue(mockAdb);
+      const adapter = (fallbackDevice as any).getScrcpyAdapter();
+      rs.spyOn(adapter, 'isEnabled').mockReturnValue(false);
+      const prepareFallbackScreenshot = rs
+        .spyOn(adapter, 'prepareFallbackScreenshot')
+        .mockResolvedValue('data:image/jpeg;base64,resized');
+
+      const mockBuffer = createValidPngBuffer();
+      const originalScreenshot = `data:image/png;base64,${mockBuffer.toString('base64')}`;
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        originalScreenshot,
+      );
+
+      await expect(fallbackDevice.screenshotBase64()).resolves.toBe(
+        'data:image/jpeg;base64,resized',
+      );
+      expect(prepareFallbackScreenshot).toHaveBeenCalledWith(
+        originalScreenshot,
+      );
+    });
+
     it('starts scrcpy recovery only after the ADB fallback screenshot completes', async () => {
       const adapter = (device as any).getScrcpyAdapter();
       rs.spyOn(adapter, 'isEnabled').mockReturnValue(true);
