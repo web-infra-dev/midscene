@@ -89,12 +89,21 @@ export interface RawKeyframe {
 export const SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE =
   'ERR_SCRCPY_FRESH_FRAME_UNAVAILABLE';
 
+interface ScrcpyFreshFrameUnavailableErrorOptions extends ErrorOptions {
+  diagnosticMessage?: string;
+}
+
 export class ScrcpyFreshFrameUnavailableError extends Error {
   readonly code = SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE;
+  readonly diagnosticMessage?: string;
 
-  constructor(message: string, options?: ErrorOptions) {
+  constructor(
+    message: string,
+    options?: ScrcpyFreshFrameUnavailableErrorOptions,
+  ) {
     super(message, options);
     this.name = 'ScrcpyFreshFrameUnavailableError';
+    this.diagnosticMessage = options?.diagnosticMessage;
   }
 }
 
@@ -896,6 +905,22 @@ export class ScrcpyScreenshotManager {
     }
   }
 
+  private transportBacklogMessage(error: unknown): string {
+    const cause = this.frameFreshnessError ?? error;
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    if (
+      this.streamBaselineFramePending &&
+      this.frameFreshnessBarrierPtsUs === null
+    ) {
+      return `The new scrcpy stream did not produce a usable baseline frame within its ${MAX_KEYFRAME_WAIT_MS}ms startup window; closing the stream epoch and falling back to ADB screenshot. This is a stream startup or encoder-readiness failure, not evidence that the configured video bitrate is too high.\nError: ${causeMessage}`;
+    }
+    const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
+    const networkHint = getScrcpyVideoBitRateNetworkHint(
+      this.options.videoBitRate,
+    );
+    return `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${networkHint} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`;
+  }
+
   private warnTransportBacklog(error: unknown): void {
     const now = Date.now();
     if (
@@ -905,25 +930,7 @@ export class ScrcpyScreenshotManager {
       return;
     }
 
-    const cause = this.frameFreshnessError ?? error;
-    const causeMessage = cause instanceof Error ? cause.message : String(cause);
-    if (
-      this.streamBaselineFramePending &&
-      this.frameFreshnessBarrierPtsUs === null
-    ) {
-      warnScrcpy(
-        `The new scrcpy stream did not produce a usable baseline frame within its ${MAX_KEYFRAME_WAIT_MS}ms startup window; closing the stream epoch and falling back to ADB screenshot. This is a stream startup or encoder-readiness failure, not evidence that the configured video bitrate is too high.\nError: ${causeMessage}`,
-      );
-      this.lastTransportBacklogWarningAt = now;
-      return;
-    }
-    const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
-    const networkHint = getScrcpyVideoBitRateNetworkHint(
-      this.options.videoBitRate,
-    );
-    warnScrcpy(
-      `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${networkHint} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`,
-    );
+    warnScrcpy(this.transportBacklogMessage(error));
     this.lastTransportBacklogWarningAt = now;
   }
 
@@ -1142,12 +1149,12 @@ export class ScrcpyScreenshotManager {
   private async closeStaleStreamAndCreateFallbackError(
     error: unknown,
   ): Promise<ScrcpyFreshFrameUnavailableError> {
-    this.warnTransportBacklog(error);
+    const diagnosticMessage = this.transportBacklogMessage(error);
     const causeMessage = error instanceof Error ? error.message : String(error);
     await this.disconnect();
     return new ScrcpyFreshFrameUnavailableError(
-      `Unable to obtain a fresh scrcpy frame; the stale stream epoch was closed so the caller can use ADB screenshot fallback. ${causeMessage}`,
-      { cause: error },
+      `Unable to obtain a fresh scrcpy frame; the stale stream epoch was closed so the caller can restart it or use ADB screenshot fallback. ${causeMessage}`,
+      { cause: error, diagnosticMessage },
     );
   }
 
