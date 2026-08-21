@@ -253,6 +253,58 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
     });
+
+    it('should restore an auto-dismissed input target before a following key press', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(30, 40);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should discard a pending focus restore after another pointer tap', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.pointer.tap({ x: 100, y: 200 });
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(100, 200);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should not restore focus when auto-dismiss is disabled', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+        autoDismissKeyboard: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(mockWdaClient.tap).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
+    it('should focus an explicit keyboard press target', async () => {
+      await device.inputPrimitives.keyboard.keyboardPress('Enter', {
+        target: { center: [50, 60] },
+      } as any);
+
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(50, 60);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
   });
 
   describe('Device Operations', () => {
@@ -378,6 +430,8 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.launchApp).toHaveBeenCalledWith(
         'com.apple.mobilesafari',
       );
+      expect(mockWdaClient.dismissKeyboard).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Return');
     });
 
     it('should perform tap operation', async () => {
