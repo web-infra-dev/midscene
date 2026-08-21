@@ -114,17 +114,21 @@ type SerializedReferenceImageRef = {
   path?: string;
 };
 
-type SerializedReferenceImageDump = {
+type ReferenceImageDump<TImageUrl> = {
   executions: Array<{
     tasks: Array<{
       param: {
         userInstruction: {
-          images: Array<{ url: SerializedReferenceImageRef }>;
+          images: Array<{ url: TImageUrl }>;
         };
       };
     }>;
   }>;
 };
+
+type SerializedReferenceImageDump =
+  ReferenceImageDump<SerializedReferenceImageRef>;
+type RestoredReferenceImageDump = ReferenceImageDump<string>;
 
 function referenceImageRefsFromDump(
   dump: SerializedReferenceImageDump,
@@ -247,7 +251,10 @@ describe('ReportGenerator — append-only model', () => {
         ),
       ).toBe(true);
 
-      const restored = restoreImageReferences(dump, (ref) => imageMap[ref.id]);
+      const restored = restoreImageReferences(
+        dump,
+        (ref) => imageMap[ref.id],
+      ) as unknown as RestoredReferenceImageDump;
       expect(
         restored.executions[0].tasks.every(
           (task) => task.param.userInstruction.images[0].url === referenceImage,
