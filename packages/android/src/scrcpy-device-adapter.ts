@@ -9,6 +9,7 @@ import {
 } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
+const warnAdapter = getDebug('android:scrcpy-adapter', { console: true });
 const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
 
 interface ScrcpyConfig {
@@ -235,7 +236,9 @@ export class ScrcpyDeviceAdapter {
 
   /**
    * Take a screenshot via scrcpy, returns base64 string.
-   * Throws on failure (caller should fallback to ADB).
+   * A stale established stream is restarted once so a static screen can use
+   * the new epoch's baseline frame. Throws only when that retry also fails, so
+   * the caller can fall back to ADB.
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     this.ensureRetryReady();
@@ -248,18 +251,57 @@ export class ScrcpyDeviceAdapter {
       const screenshotBuffer = await manager.getScreenshotJpeg();
       this.clearFailure();
 
-      return createImgBase64ByFormat(
-        'jpeg',
-        screenshotBuffer.toString('base64'),
-      );
+      return this.jpegBufferToBase64(screenshotBuffer);
     } catch (error) {
-      if (isScrcpyFreshFrameUnavailableError(error)) {
-        this.markFreshnessRecoveryPending(manager, error);
+      if (!isScrcpyFreshFrameUnavailableError(error)) {
+        this.recordFailure(error);
         throw error;
       }
-      this.recordFailure(error);
-      throw error;
+
+      this.markFreshnessRecoveryPending(manager, error);
+      debugAdapter(
+        `Scrcpy freshness target was unavailable; restarting the stream once before ADB fallback: ${error}`,
+      );
+
+      try {
+        manager = await this.ensureManager(deviceInfo);
+        await manager.ensureConnected();
+        await this.applyPendingActionBarrier(manager);
+        const screenshotBuffer = await manager.getScreenshotJpeg();
+        this.attachKeyframeListeners(manager);
+        this.clearFailure();
+        debugAdapter('Scrcpy screenshot recovered on a new stream epoch');
+        return this.jpegBufferToBase64(screenshotBuffer);
+      } catch (retryError) {
+        if (isScrcpyFreshFrameUnavailableError(retryError)) {
+          this.markFreshnessRecoveryPending(manager, retryError);
+        } else {
+          this.recordFailure(retryError);
+        }
+        this.warnFreshnessFallback(error, retryError);
+        throw retryError;
+      }
     }
+  }
+
+  private jpegBufferToBase64(screenshotBuffer: Buffer): string {
+    return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
+  }
+
+  private warnFreshnessFallback(
+    firstError: ScrcpyFreshFrameUnavailableError,
+    retryError: unknown,
+  ): void {
+    const retryDiagnostic = isScrcpyFreshFrameUnavailableError(retryError)
+      ? retryError.diagnosticMessage
+      : undefined;
+    warnAdapter(
+      retryDiagnostic ??
+        (firstError.diagnosticMessage
+          ? `${firstError.diagnosticMessage}\nScrcpy stream restart error: ${retryError}`
+          : undefined) ??
+        `Scrcpy stream restart failed; falling back to ADB screenshot. Error: ${retryError}`,
+    );
   }
 
   /**

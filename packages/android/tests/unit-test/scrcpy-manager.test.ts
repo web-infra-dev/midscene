@@ -874,7 +874,7 @@ describe('ScrcpyScreenshotManager', () => {
       expect(barrier).toHaveBeenCalledWith('stale planning frame');
     });
 
-    it('falls back when a static screen cannot cross the Planning barrier', async () => {
+    it('returns a quiet diagnostic when a static screen cannot cross the Planning barrier', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('old-header');
       (manager as any).lastRawKeyframe = Buffer.from('stale-static-frame');
@@ -897,29 +897,17 @@ describe('ScrcpyScreenshotManager', () => {
       );
       const decode = rs.spyOn(manager as any, 'decodeH264ToJpeg');
 
-      await expect(manager.getScreenshotJpeg()).rejects.toBeInstanceOf(
-        ScrcpyFreshFrameUnavailableError,
-      );
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        diagnosticMessage: expect.stringContaining(
+          'falling back to ADB screenshot',
+        ),
+      });
       expect(ensureConnected).toHaveBeenCalledTimes(1);
       expect(disconnect).toHaveBeenCalledTimes(1);
       expect(barrier).toHaveBeenCalledWith('stale planning frame');
       expect(decode).not.toHaveBeenCalled();
-      expect(warn).toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining('falling back to ADB screenshot'),
-      );
-      expect(warn).toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining(
-          '--scrcpy-video-bit-rate 4000000 in the Android CLI',
-        ),
-      );
-      expect(warn).toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining(
-          'Current videoBitRate: 100000000 bps (100 Mbps)',
-        ),
-      );
+      expect(warn).not.toHaveBeenCalled();
     });
 
     it('does not recommend lowering an already-low bitrate for a local USB link', () => {

@@ -498,18 +498,50 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('freshness recovery', () => {
-    it('keeps the current screenshot on ADB and warms a new stream afterward', async () => {
+    it('restarts a stale stream once and returns the new epoch baseline', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
       currentMockManager.getScreenshotJpeg.mockRejectedValueOnce(
-        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+        new ScrcpyFreshFrameUnavailableError('stale stream closed', {
+          diagnosticMessage: 'first stream diagnostic',
+        }),
       );
 
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).resolves.toBe(
+        'data:image/png;base64,test',
+      );
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(2);
+      expect(adapter.isEnabled()).toBe(true);
+      expect(adapter.getStatus().lastError).toBeNull();
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('keeps the current screenshot on ADB when the restarted stream also fails', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      currentMockManager.getScreenshotJpeg
+        .mockRejectedValueOnce(
+          new ScrcpyFreshFrameUnavailableError('first stale stream closed', {
+            diagnosticMessage: 'first stream diagnostic',
+          }),
+        )
+        .mockRejectedValueOnce(
+          new ScrcpyFreshFrameUnavailableError('retry stream closed', {
+            diagnosticMessage: 'retry stream diagnostic',
+          }),
+        );
+
       await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
-        'stale stream closed',
+        'retry stream closed',
       );
       expect(adapter.isEnabled()).toBe(false);
       expect((adapter as any).manager).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        'retry stream diagnostic',
+      );
 
       adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
       await rs.waitFor(() => {
@@ -519,7 +551,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(adapter.isEnabled()).toBe(true);
     });
 
-    it('recognizes freshness fallback across duplicated module instances', async () => {
+    it('recognizes and retries freshness errors across duplicated module instances', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
       const crossModuleError = Object.assign(new Error('stale stream closed'), {
@@ -529,19 +561,15 @@ describe('ScrcpyDeviceAdapter', () => {
         crossModuleError,
       );
 
-      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toBe(
-        crossModuleError,
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).resolves.toBe(
+        'data:image/png;base64,test',
       );
-      expect(adapter.isEnabled()).toBe(false);
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(2);
+      expect(adapter.isEnabled()).toBe(true);
       expect(adapter.getStatus().retryAfter).toBeNull();
-
-      adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
-      await rs.waitFor(() => {
-        expect(currentMockManager.prepareFreshFrame).toHaveBeenCalledTimes(1);
-      });
     });
 
-    it('reattaches active frame listeners after background recovery', async () => {
+    it('reattaches active frame listeners after in-band stream recovery', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
       const listener = rs.fn();
@@ -553,14 +581,10 @@ describe('ScrcpyDeviceAdapter', () => {
         new ScrcpyFreshFrameUnavailableError('stale stream closed'),
       );
 
-      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
-        'stale stream closed',
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).resolves.toBe(
+        'data:image/png;base64,test',
       );
-      adapter.recoverAfterAdbScreenshot(defaultDeviceInfo);
-
-      await rs.waitFor(() => {
-        expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(2);
-      });
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(2);
       unsubscribe();
       expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledWith(
         listener,
