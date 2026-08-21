@@ -8,7 +8,6 @@ import type {
   UIObservationFrame,
   UIObservationRecord,
 } from '@midscene/shared/agent-tools/types';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../common';
@@ -22,6 +21,7 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '../types';
+import { prepareScreenshotForPersistence } from './screenshot-preparation';
 
 const debug = getDebug('ui-observer');
 const warnObserver = getDebug('ui-observer', { console: true });
@@ -39,8 +39,8 @@ export type UIObserverOption = BaseUIObserverOptions;
 
 interface UIObserverDeps {
   openFrameSource: () => Promise<DeviceFrameSource | undefined>;
-  screenshot: () => Promise<string>;
-  captureRepresentative: () => Promise<UIContext>;
+  captureRawScreenshot: () => Promise<string>;
+  capturePreparedRepresentative: () => Promise<UIContext>;
   createInsight: (record: UIObservationRecord) => InsightAPI;
   onStopped?: () => void;
   onDisposed?: () => void;
@@ -299,7 +299,7 @@ export class UIObserverImpl implements UIObserver {
           debug(`frame persistence failed, will retry during export: ${error}`);
         });
       }
-      const representativePromise = this.deps.captureRepresentative();
+      const representativePromise = this.deps.capturePreparedRepresentative();
       const [, representative] = await Promise.all([
         this.persistPromise,
         representativePromise,
@@ -361,6 +361,8 @@ export class UIObserverImpl implements UIObserver {
 
     if (!this.representativeFrame) {
       const representative = this.representative!;
+      // The representative UIContext has already been prepared by
+      // commonContextParser().
       this.representativeFrame = this.writer.persistFrame(
         representative.screenshot.base64,
         representative.screenshot.capturedAt,
@@ -440,11 +442,20 @@ export class UIObserverImpl implements UIObserver {
         decoded.length === batch.length,
         'frame source decode() must return one image per frame handle',
       );
+      const preparedDataUrls = await Promise.all(
+        decoded.map((dataUrl) =>
+          prepareScreenshotForPersistence(dataUrl, {
+            shrinkFactor: this.screenshotShrinkFactor,
+          }),
+        ),
+      );
       for (let index = 0; index < batch.length; index++) {
-        const dataUrl = await this.shrinkIfNeeded(decoded[index]);
         this.persistedByRef.set(
           batch[index].ref,
-          this.writer.persistFrame(dataUrl, batch[index].capturedAt),
+          this.writer.persistFrame(
+            preparedDataUrls[index],
+            batch[index].capturedAt,
+          ),
         );
       }
     }
@@ -463,8 +474,14 @@ export class UIObserverImpl implements UIObserver {
         const frame = this.source.latest();
         if (!frame) return;
         if (isImageDataUrl(frame.ref)) {
-          const dataUrl = await this.shrinkIfNeeded(frame.ref);
-          const persisted = this.writer.persistFrame(dataUrl, frame.capturedAt);
+          const preparedDataUrl = await prepareScreenshotForPersistence(
+            frame.ref,
+            { shrinkFactor: this.screenshotShrinkFactor },
+          );
+          const persisted = this.writer.persistFrame(
+            preparedDataUrl,
+            frame.capturedAt,
+          );
           this.pushFrame({
             ref: persisted.path,
             capturedAt: frame.capturedAt,
@@ -475,8 +492,11 @@ export class UIObserverImpl implements UIObserver {
         }
         return;
       }
-      const dataUrl = await this.shrinkIfNeeded(await this.deps.screenshot());
-      const persisted = this.writer.persistFrame(dataUrl, Date.now());
+      const preparedDataUrl = await prepareScreenshotForPersistence(
+        await this.deps.captureRawScreenshot(),
+        { shrinkFactor: this.screenshotShrinkFactor },
+      );
+      const persisted = this.writer.persistFrame(preparedDataUrl, Date.now());
       this.pushFrame({
         ref: persisted.path,
         capturedAt: persisted.capturedAt,
@@ -485,15 +505,6 @@ export class UIObserverImpl implements UIObserver {
     } catch (error) {
       debug(`frame capture failed, skipping tick: ${error}`);
     }
-  }
-
-  private async shrinkIfNeeded(dataUrl: string): Promise<string> {
-    if (this.screenshotShrinkFactor <= 1) return dataUrl;
-    const { width, height } = await imageInfoOfBase64(dataUrl);
-    return resizeImgBase64(dataUrl, {
-      width: Math.round(width / this.screenshotShrinkFactor),
-      height: Math.round(height / this.screenshotShrinkFactor),
-    });
   }
 
   private async runLoop(): Promise<void> {

@@ -1,7 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "1.10.11",
+  "version": "1.11.0",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
@@ -20,6 +20,7 @@
     "prepare": "simple-git-hooks && pnpm run build",
     "check-dependency-version": "check-dependency-version-consistency .",
     "check:references": "node scripts/check-tsconfig-references.mjs",
+    "check:report-build-feedback-loop": "node scripts/check-report-build-feedback-loop.mjs",
     "lint": "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix",
     "format:ci": "pretty-quick --since HEAD~1",
     "format": "pretty-quick --staged",

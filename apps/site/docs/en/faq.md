@@ -6,7 +6,7 @@ The following platform-specific FAQs are maintained in their respective document
 
 - [Web Browser - Playwright](./integrate-with-playwright#faq)
 - [Web Browser - Puppeteer](./integrate-with-puppeteer#faq)
-- [Web Browser - Chrome Extension](./quick-experience#faq)
+- [Web Browser - Chrome Extension](./quick-start#chrome-extension-faq)
 - [Web Browser - Bridge Mode](./bridge-mode#faq)
 - [Android](./platforms/android#faq)
 - [iOS](./platforms/ios#faq)
@@ -190,7 +190,7 @@ await agent.aiTap('Login button', {
 });
 ```
 
-For more information about `deepLocate`, please refer to the [API documentation](/reference/#common).
+For more information about `deepLocate`, please refer to the [API documentation](/reference/#deep-locate-deeplocate).
 
 ### 6. Increase the browser DPR to 2 on web
 

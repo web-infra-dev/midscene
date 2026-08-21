@@ -197,6 +197,8 @@ export interface LocateResult {
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
 
+export type AiActEffort = 'fast' | 'balance' | 'deepThink';
+
 export type DeepThinkOption = 'unset' | true | false;
 
 export interface ServiceTaskInfo {
@@ -356,12 +358,14 @@ export type PlanningLocateParamWithLocatedPixelBbox = PlanningLocateParam & {
   locatedPixelBbox: PixelBbox;
 };
 
-export interface PlanningAction<ParamType = any> {
+type PlanningActionBase = {
   thought?: string;
   log?: string; // a brief preamble to the user explaining what you’re about to do
   type: string;
-  param: ParamType;
-}
+};
+
+export type PlanningAction<ParamType = undefined> = PlanningActionBase &
+  ([ParamType] extends [undefined] ? { param?: any } : { param: ParamType });
 
 export type SubGoalStatus = 'pending' | 'running' | 'finished';
 
@@ -373,7 +377,7 @@ export interface SubGoal {
 }
 
 export interface RawResponsePlanningAIResponse {
-  action: PlanningAction;
+  action: PlanningAction | null;
   thought?: string;
   log: string;
   memory?: string;
@@ -756,7 +760,7 @@ export interface ExecutionTaskPlanningParam {
   replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
-  deepThink?: DeepThinkOption;
+  effort?: AiActEffort;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }

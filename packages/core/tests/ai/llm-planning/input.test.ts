@@ -1,4 +1,4 @@
-import { ConversationHistory, plan } from '@/ai-model';
+import { ConversationHistory, standardPlan } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,12 +21,13 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -42,12 +43,13 @@ describe('automation - planning input', () => {
     ];
 
     for (const instruction of instructions) {
-      const { actions } = await plan(instruction, {
+      const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
         modelRuntime: defaultModelRuntime,
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
+        effort: 'balance',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);

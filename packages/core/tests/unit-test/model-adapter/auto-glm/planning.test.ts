@@ -1,9 +1,9 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
 import { resolveCustomPlanningDefinition } from '@/ai-model/model-adapter/planning';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
@@ -77,6 +77,7 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     ...overrides,
+    effort: overrides.effort ?? 'balance',
   };
 }
 

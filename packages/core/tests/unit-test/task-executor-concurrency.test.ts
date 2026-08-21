@@ -5,13 +5,13 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
     await importOriginal<typeof import('@/ai-model/workflows/planning')>();
   return {
     ...actual,
-    genericXmlPlan: vi.fn(),
+    standardPlan: vi.fn(),
   };
 });
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, ExecutorContext } from '@/types';
@@ -93,13 +93,83 @@ describe('TaskExecutor concurrency isolation', () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    {
+      effort: 'balance' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: true,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'balance' as const,
+      useDefaultAsPlanning: false,
+      expectedIncludeLocateInPlanning: false,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'fast' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: true,
+      expectedImagesIncludeCount: 1,
+    },
+    {
+      effort: 'deepThink' as const,
+      useDefaultAsPlanning: true,
+      expectedIncludeLocateInPlanning: false,
+      expectedImagesIncludeCount: 2,
+    },
+  ])(
+    'derives planning options for $effort effort',
+    async ({
+      effort,
+      useDefaultAsPlanning,
+      expectedIncludeLocateInPlanning,
+      expectedImagesIncludeCount,
+    }) => {
+      vi.mocked(standardPlan).mockResolvedValue({
+        actions: [],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      });
+
+      const resolvedPlanningModel = useDefaultAsPlanning
+        ? defaultModel()
+        : planningModel();
+      const result = await taskExecutor.action(
+        'prompt',
+        resolvedPlanningModel,
+        defaultModel(),
+        undefined,
+        undefined,
+        undefined,
+        effort,
+      );
+
+      expect(standardPlan).toHaveBeenCalledWith(
+        'prompt',
+        expect.objectContaining({
+          effort,
+          includeLocateInPlanning: expectedIncludeLocateInPlanning,
+          imagesIncludeCount: expectedImagesIncludeCount,
+        }),
+      );
+      expect(result.runner.tasks[0].param).toEqual(
+        expect.objectContaining({ effort }),
+      );
+    },
+  );
+
   it('should isolate conversation history between concurrent action calls', async () => {
     const waitForBothCalls = createDeferred();
     const releasePlans = createDeferred();
 
     const seenHistories: any[] = [];
 
-    vi.mocked(genericXmlPlan).mockImplementation(
+    vi.mocked(standardPlan).mockImplementation(
       async (_instruction, opts: any) => {
         seenHistories.push(opts.conversationHistory);
         if (seenHistories.length === 2) {
@@ -126,13 +196,11 @@ describe('TaskExecutor concurrency isolation', () => {
       'first prompt',
       planningModel(),
       defaultModel(),
-      true,
     );
     const actionPromiseB = taskExecutor.action(
       'second prompt',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     await waitForBothCalls.promise;
@@ -172,7 +240,7 @@ describe('TaskExecutor concurrency isolation', () => {
       },
     });
 
-    vi.mocked(genericXmlPlan).mockImplementation(async (instruction: any) => {
+    vi.mocked(standardPlan).mockImplementation(async (instruction: any) => {
       // Gate B's plan until A is executing inside its action batch, so the
       // two batches are guaranteed to overlap.
       if (instruction === 'B') {
@@ -227,7 +295,6 @@ describe('TaskExecutor concurrency isolation', () => {
       'A',
       planningModel(),
       defaultModel(),
-      true,
       undefined,
       undefined,
       5,
@@ -236,7 +303,6 @@ describe('TaskExecutor concurrency isolation', () => {
       'B',
       planningModel(),
       defaultModel(),
-      true,
       undefined,
       undefined,
       9,
@@ -302,7 +368,7 @@ describe('TaskExecutor concurrency isolation', () => {
       },
     });
 
-    vi.mocked(genericXmlPlan).mockResolvedValue({
+    vi.mocked(standardPlan).mockResolvedValue({
       actions: [
         {
           type: 'Noop',
@@ -327,12 +393,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    await taskExecutor.action(
-      'run noop',
-      planningModel(),
-      defaultModel(),
-      true,
-    );
+    await taskExecutor.action('run noop', planningModel(), defaultModel());
 
     expect(progressEvents).toEqual([
       'start|3|run noop',
@@ -362,7 +423,7 @@ describe('TaskExecutor concurrency isolation', () => {
       yamlFlow: [],
     } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -392,7 +453,7 @@ describe('TaskExecutor concurrency isolation', () => {
         };
       });
 
-    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
+    await taskExecutor.action('prompt', planningModel(), defaultModel());
 
     expect(mockInterface.getDeviceLocalTimeString).toHaveBeenCalledWith(
       undefined,
@@ -432,7 +493,7 @@ Stdout:
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -472,7 +533,6 @@ Stdout:
       'check brightness with adb shell',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[0]).toBe('');
@@ -505,7 +565,7 @@ Stdout:
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -545,7 +605,6 @@ Stdout:
       'read big file with adb shell',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[1]).toContain('x'.repeat(500));
@@ -624,7 +683,7 @@ mCurrentFocus=Window{abc}`;
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -679,7 +738,6 @@ mCurrentFocus=Window{abc}`;
       'check brightness',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(
@@ -720,7 +778,7 @@ ${thirdPlanningFeedback}`);
         yamlFlow: [],
       } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -760,7 +818,6 @@ ${thirdPlanningFeedback}`);
       'copy clipboard',
       planningModel(),
       defaultModel(),
-      true,
     );
 
     expect(seenPendingFeedback[1]).not.toContain('WriteState');
@@ -781,7 +838,7 @@ ${thirdPlanningFeedback}`);
       yamlFlow: [],
     } as any);
 
-    vi.mocked(genericXmlPlan)
+    vi.mocked(standardPlan)
       .mockImplementationOnce(async (_instruction, opts: any) => {
         seenPendingFeedback.push(
           opts.conversationHistory.pendingFeedbackMessage,
@@ -811,7 +868,7 @@ ${thirdPlanningFeedback}`);
         };
       });
 
-    await taskExecutor.action('prompt', planningModel(), defaultModel(), true);
+    await taskExecutor.action('prompt', planningModel(), defaultModel());
 
     expect(seenPendingFeedback).toEqual([
       '',

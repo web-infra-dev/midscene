@@ -1,18 +1,18 @@
-import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/errors';
-import {
-  AiExtractElementInfo,
-  AiLocateElement,
-  AiLocateSection,
-  buildSearchAreaConfig,
-} from '@/ai-model/inspect';
 import type { ModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import {
   AIResponseParseError,
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
-import type { AIArgs } from '@/ai-model/types';
-import type { SearchAreaConfig } from '@/ai-model/workflows/inspect/types';
+import type { AIArgs } from '@/ai-model/service-caller/types';
+import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
+import {
+  AiLocateElement,
+  AiLocateSection,
+  buildSearchAreaConfig,
+} from '@/ai-model/workflows/grounding';
+import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
+import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -33,7 +33,7 @@ import {
   compositeElementInfoImg,
   compositePointMarkerImg,
   cropByRect,
-  resizeImgBase64,
+  resizeBase64ImageToJpeg,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -523,7 +523,10 @@ export default class Service {
           return {
             kind: area.kind,
             imageBase64: resizeSize
-              ? await resizeImgBase64(markedCropPayload, resizeSize)
+              ? await resizeBase64ImageToJpeg(markedCropPayload, {
+                  sourceSize: cropSize,
+                  targetSize: resizeSize,
+                })
               : markedCropPayload,
           };
         }),

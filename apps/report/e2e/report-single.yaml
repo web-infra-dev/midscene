@@ -8,9 +8,34 @@ tasks:
       - sleep: 5000
       - aiAssert: The report page is loaded with a left-side task list table showing multiple named task rows and a time or duration column; the main report panel also shows a "Record" timeline with visible screenshot thumbnails or frame previews.
 
+  # --- Report timing summary ---
+  - name: total row distinguishes elapsed time from model call time
+    flow:
+      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+        scrollType: scrollToBottom
+      - sleep: 500
+      - aiAssert: The left-side Execution task list is visibly scrolled to its bottom. Below the task rows there is one combined summary row labeled "Total" whose Time cell contains separate "Elapsed" and "Model" duration values; there is no separate row labeled "Total Time".
+
+  # --- Markdown timing summary ---
+  - name: markdown view explains both timing metrics
+    flow:
+      - aiTap:
+          locate:
+            prompt: the "Markdown View" button in the Report view switch at the top-left of the sidebar
+      - sleep: 500
+      - aiAssert: The left sidebar is showing report Markdown source with a "Timing Summary" section that clearly lists both "Elapsed Time" and "Model Call Time".
+      - aiTap:
+          locate:
+            prompt: the "Human View" button in the Report view switch at the top-left of the sidebar
+      - sleep: 500
+
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:
+      - aiTap:
+          locate:
+            prompt: the "Replay" option in the center task detail Replay/Screenshots/JSON View switcher
+      - sleep: 1000
       - aiAssert: There is a video player area with a progress bar and playback time display
 
   # --- Settings popup ---

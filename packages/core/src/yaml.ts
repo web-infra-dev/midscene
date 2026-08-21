@@ -256,10 +256,12 @@ export interface MidsceneYamlScriptHarmonyEnv
   // The HarmonyOS device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
-  // The app package to launch, optional, will use the current screen if not specified
+  // The bundle name, bundle/Ability target, or mapped app name to launch, optional,
+  // will use the current screen if not specified
   launch?: string;
 
-  // Custom mapping of app names to bundle names, user-provided mappings take precedence over defaults
+  // Custom mapping of app names to bundle names or explicit bundle/Ability targets;
+  // user-provided mappings take precedence over defaults
   appNameMapping?: Record<string, string>;
 }
 

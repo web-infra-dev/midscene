@@ -7,6 +7,71 @@ import getSharp from './get-sharp';
 
 export interface ImageInfo extends Size {}
 
+const isJpegStartOfFrameMarker = (marker: number): boolean =>
+  marker >= 0xc0 &&
+  marker <= 0xcf &&
+  marker !== 0xc4 &&
+  marker !== 0xc8 &&
+  marker !== 0xcc;
+
+function jpegInfoFromBuffer(imageBuffer: Buffer): ImageInfo {
+  let offset = 2;
+  while (offset < imageBuffer.length) {
+    if (imageBuffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    while (offset < imageBuffer.length && imageBuffer[offset] === 0xff) {
+      offset += 1;
+    }
+    if (offset >= imageBuffer.length) break;
+
+    const marker = imageBuffer[offset];
+    offset += 1;
+    if (marker === 0xd9 || marker === 0xda) break;
+    if (
+      marker === 0x01 ||
+      marker === 0xd8 ||
+      (marker >= 0xd0 && marker <= 0xd7)
+    ) {
+      continue;
+    }
+    if (offset + 2 > imageBuffer.length) break;
+
+    const segmentLength = imageBuffer.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > imageBuffer.length) break;
+    if (isJpegStartOfFrameMarker(marker)) {
+      if (segmentLength < 7) break;
+      const height = imageBuffer.readUInt16BE(offset + 3);
+      const width = imageBuffer.readUInt16BE(offset + 5);
+      assert(width && height, 'Invalid image: cannot get width or height');
+      return { width, height };
+    }
+    offset += segmentLength;
+  }
+
+  throw new Error('Invalid image: cannot get JPEG width or height');
+}
+
+/**
+ * Reads PNG/JPEG dimensions from the encoded header without decoding pixels.
+ * This is intended for validating already-decoded dimension hints before an
+ * image transform; full image validation remains the decoder's responsibility.
+ */
+export function encodedImageInfoOfBuffer(imageBuffer: Buffer): ImageInfo {
+  if (isValidPNGImageBuffer(imageBuffer)) {
+    const width = imageBuffer.readUInt32BE(16);
+    const height = imageBuffer.readUInt32BE(20);
+    assert(width && height, 'Invalid image: cannot get width or height');
+    return { width, height };
+  }
+  if (isValidJPEGImageBuffer(imageBuffer)) {
+    return jpegInfoFromBuffer(imageBuffer);
+  }
+  throw new Error('Invalid image: unsupported format');
+}
+
 /**
  * Retrieves the dimensions of an image from a base64-encoded string
  *

@@ -4,7 +4,7 @@ import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {
-  plan,
+  standardPlan,
   AiLocateElement,
   runConnectivityTest,
   getMidsceneLocationSchema,
@@ -130,6 +130,7 @@ export {
   reportToMarkdown,
   type ExecutionMarkdownOptions,
   type ExecutionMarkdownResult,
+  type ReportMarkdownOptions,
   type ReportMarkdownResult,
   type MarkdownAttachment,
 } from './report-markdown';

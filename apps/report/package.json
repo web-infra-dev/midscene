@@ -11,7 +11,25 @@
     "test": "rstest",
     "test:watch": "rstest --watch",
     "generate-demo": "node scripts/generate-demo-report.mjs",
-    "e2e": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node scripts/inject-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/ --concurrent 2"
+    "e2e": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node ../../scripts/validate-core-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/ --concurrent 2"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "build",
+          "^build",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/scripts/report-template-utils.mjs",
+          "{workspaceRoot}/scripts/report-template-utils.d.mts"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{workspaceRoot}/packages/core/dist/lib/report-html-template.js",
+          "{workspaceRoot}/packages/core/dist/es/report-html-template.mjs"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",

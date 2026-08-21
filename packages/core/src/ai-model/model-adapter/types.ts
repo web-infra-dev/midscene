@@ -11,16 +11,20 @@ import type {
   JsonParser,
   JsonParserContext,
   JsonParserSource,
-} from '../service-caller/json';
+} from '../shared/json';
 import type {
   LocateResultAdapter,
   LocateResultAdapterDefinition,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
-import type { ImagePreprocessPolicy } from '../workflows/image-preprocess';
-import type { LocateFn } from '../workflows/inspect/types';
+import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
+import type { ImagePreprocessPolicy } from './image-preprocess';
+import type {
+  StandardPlanningProtocol,
+  StandardPlanningProtocolDefinition,
+} from './planning-protocol';
 
 export type {
   ImagePreprocessPolicy,
@@ -165,6 +169,7 @@ interface PlanningPolicy {
 export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'standard';
+      protocol: StandardPlanningProtocol;
     })
   | (PlanningPolicy & {
       kind: 'custom';
@@ -175,6 +180,7 @@ export type PlanningAdapter =
 export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
+      protocol?: StandardPlanningProtocolDefinition;
     })
   | (Partial<PlanningPolicy> &
       (

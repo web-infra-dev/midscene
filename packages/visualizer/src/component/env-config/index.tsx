@@ -44,7 +44,11 @@ export function EnvConfig({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const midsceneModelName = config.MIDSCENE_MODEL_NAME;
   const componentRef = useRef<HTMLDivElement>(null);
-  const verifyModel = onVerify ?? playgroundSDK?.runConnectivityTest;
+  const verifyModel =
+    onVerify ??
+    (playgroundSDK?.runConnectivityTest
+      ? playgroundSDK.runConnectivityTest.bind(playgroundSDK)
+      : undefined);
 
   const showModal = (event: React.MouseEvent) => {
     syncFromStorage();

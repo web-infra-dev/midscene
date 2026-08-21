@@ -1,6 +1,6 @@
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { AIUsageInfo, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -11,7 +11,7 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
     await importOriginal<typeof import('@/ai-model/workflows/planning')>();
   return {
     ...actual,
-    genericXmlPlan: vi.fn(),
+    standardPlan: vi.fn(),
   };
 });
 
@@ -357,7 +357,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should preserve planning intent while recording resolved config slot', async () => {
-      const planSpy = vi.mocked(genericXmlPlan).mockResolvedValue({
+      const planSpy = vi.mocked(standardPlan).mockResolvedValue({
         actions: [],
         usage: {
           prompt_tokens: 20,
@@ -403,7 +403,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         'complete the task',
         getModelRuntime(planningModelConfig),
         getModelRuntime(defaultModelConfig),
-        false,
       );
 
       const planningTask = result.runner.tasks[0];

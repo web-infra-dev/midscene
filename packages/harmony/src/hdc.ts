@@ -55,6 +55,121 @@ export interface HdcOptions {
   timeout?: number;
 }
 
+interface HarmonyAbilityTarget {
+  readonly abilityName: string;
+  readonly moduleName: string;
+}
+
+interface BundleAbilityInfo {
+  name?: string;
+  skills?: Array<{
+    actions?: string[];
+    entities?: string[];
+  }>;
+}
+
+interface BundleModuleInfo {
+  abilityInfos?: BundleAbilityInfo[];
+  extensionInfos?: Array<{ name?: string }>;
+  mainAbility?: string;
+  mainElementName?: string;
+  moduleName?: string;
+  moduleType?: number | string;
+  name?: string;
+}
+
+interface BundleInfo {
+  entryModuleName?: string;
+  hapModuleInfos?: BundleModuleInfo[];
+  mainEntry?: string;
+}
+
+function parseBundleInfo(output: string, bundleName: string): BundleInfo {
+  const jsonStart = output.indexOf('{');
+  if (jsonStart < 0) {
+    throw new Error(`Cannot parse bundle information for ${bundleName}`);
+  }
+
+  try {
+    return JSON.parse(output.slice(jsonStart)) as BundleInfo;
+  } catch (error) {
+    throw new Error(`Cannot parse bundle information for ${bundleName}`, {
+      cause: error,
+    });
+  }
+}
+
+function isLauncherAbility(ability: BundleAbilityInfo): boolean {
+  return Boolean(
+    ability.skills?.some(
+      (skill) =>
+        skill.entities?.includes('entity.system.home') &&
+        skill.actions?.some(
+          (action) =>
+            action === 'action.system.home' ||
+            action === 'ohos.want.action.home',
+        ),
+    ),
+  );
+}
+
+function resolveModuleName(module: BundleModuleInfo): string | undefined {
+  return [module.moduleName, module.name].find((name): name is string =>
+    Boolean(name),
+  );
+}
+
+function componentNamesMatch(left: string, right: string): boolean {
+  return (
+    left === right || left.endsWith(`.${right}`) || right.endsWith(`.${left}`)
+  );
+}
+
+function declaredTargetFromModule(
+  module: BundleModuleInfo,
+): HarmonyAbilityTarget | undefined {
+  const moduleName = resolveModuleName(module);
+  if (!moduleName) return undefined;
+
+  const abilities = module.abilityInfos ?? [];
+  const declaredAbilityName = [module.mainElementName, module.mainAbility].find(
+    (name): name is string => Boolean(name),
+  );
+
+  if (declaredAbilityName) {
+    const matchedAbility = abilities.find(
+      (ability) =>
+        ability.name && componentNamesMatch(ability.name, declaredAbilityName),
+    );
+    const isDeclaredExtension = module.extensionInfos?.some(
+      (extension) =>
+        extension.name &&
+        componentNamesMatch(extension.name, declaredAbilityName),
+    );
+    if (!matchedAbility && (abilities.length > 0 || isDeclaredExtension)) {
+      return undefined;
+    }
+    return {
+      abilityName: matchedAbility?.name ?? declaredAbilityName,
+      moduleName,
+    };
+  }
+
+  return undefined;
+}
+
+function launcherTargetFromModule(
+  module: BundleModuleInfo,
+): HarmonyAbilityTarget | undefined {
+  const moduleName = resolveModuleName(module);
+  if (!moduleName) return undefined;
+
+  const launcherAbility = module.abilityInfos?.find(isLauncherAbility);
+  return launcherAbility?.name
+    ? { abilityName: launcherAbility.name, moduleName }
+    : undefined;
+}
+
 function resolveHdcPath(hdcPath?: string): string {
   if (hdcPath) return hdcPath;
 
@@ -85,6 +200,7 @@ export class HdcClient {
   private deviceId: string;
   private timeout: number;
   private execMutex: Promise<void> = Promise.resolve();
+  private launchAbilityCache = new Map<string, HarmonyAbilityTarget>();
 
   constructor(options: HdcOptions) {
     this.hdcPath = resolveHdcPath(options.hdcPath);
@@ -203,27 +319,6 @@ export class HdcClient {
     return await this.shell(`snapshot_display -f ${remotePath}`);
   }
 
-  /**
-   * Capture the current UI layout via `uitest dumpLayout` and return the JSON
-   * string. The dump is written to a fixed device path then `cat`'d back in
-   * the same shell round-trip to avoid a separate `hdc file recv` call.
-   */
-  async dumpLayout(): Promise<string> {
-    const remotePath = '/data/local/tmp/midscene_layout.json';
-    const output = await this.shell(
-      `uitest dumpLayout -p ${remotePath} && cat ${remotePath}`,
-    );
-    // `uitest dumpLayout` prints a "DumpLayout saved to:..." preamble before
-    // `cat`'s JSON body. Find the first JSON object brace and return the rest.
-    const jsonStart = output.indexOf('{');
-    if (jsonStart < 0) {
-      throw new Error(
-        `dumpLayout: no JSON body in output: ${output.slice(0, 200)}`,
-      );
-    }
-    return output.slice(jsonStart);
-  }
-
   async click(x: number, y: number): Promise<void> {
     await this.runUiInput(
       'click',
@@ -317,39 +412,22 @@ export class HdcClient {
     await this.runUiInput('keyEvent', joinedKeys, joinedKeys);
   }
 
-  /**
-   * Clear the focused text field by sending repeated Backspace(2055) key
-   * events. `uitest uiInput keyEvent` only accepts up to 3 keyCodes per call
-   * (any more triggers "Too many parameters." with zero presses injected),
-   * so we pack codes into 3-key batches and chain the calls with shell `;`
-   * to keep a single hdc round-trip — mirroring Android adb's
-   * "one shell, many keys" design despite the per-call cap.
-   */
-  async clearTextField(length = 100): Promise<void> {
-    if (!Number.isSafeInteger(length) || length < 0) {
-      throw new Error(
-        'HDC clearTextField length must be a non-negative safe integer',
-      );
-    }
-    if (length === 0) return;
-
-    const maxKeysPerCall = 3;
-    const backspaceKeyCode = '2055';
-    const cmds: string[] = [];
-    let remaining = length;
-    while (remaining > 0) {
-      const n = Math.min(maxKeysPerCall, remaining);
-      const codes = Array(n).fill(backspaceKeyCode).join(' ');
-      cmds.push(`uitest uiInput keyEvent ${codes}`);
-      remaining -= n;
-    }
-    const output = await this.shell(cmds.join(';'));
+  /** Select all text in the focused field with Ctrl+A, then delete it. */
+  async clearTextField(): Promise<void> {
+    const output = await this.shell(
+      'uitest uiInput keyEvent 2072 2017;uitest uiInput keyEvent 2055',
+    );
     this.assertUiInputSucceeded('clearTextField', output);
   }
 
-  async startAbility(bundleName: string, abilityName: string): Promise<void> {
+  async startAbility(
+    bundleName: string,
+    abilityName: string,
+    moduleName?: string,
+  ): Promise<void> {
+    const moduleArg = moduleName ? ` -m ${moduleName}` : '';
     const output = await this.shell(
-      `aa start -a ${abilityName} -b ${bundleName}`,
+      `aa start -a ${abilityName} -b ${bundleName}${moduleArg}`,
     );
     if (output.includes('error:')) {
       throw new Error(
@@ -358,30 +436,94 @@ export class HdcClient {
     }
   }
 
-  async queryMainAbility(bundleName: string): Promise<string | undefined> {
+  private async queryLaunchAbility(
+    bundleName: string,
+  ): Promise<HarmonyAbilityTarget> {
     const output = await this.shell(`bm dump -n ${bundleName}`);
-    const names: string[] = [];
-    for (const match of output.matchAll(/"name"\s*:\s*"([^"]+)"/g)) {
-      names.push(match[1]);
-    }
-    // Prefer: EntryAbility > MainAbility > {bundleName}.MainAbility > first *Ability
-    for (const candidate of [
-      'EntryAbility',
-      'MainAbility',
-      `${bundleName}.MainAbility`,
-    ]) {
-      if (names.includes(candidate)) return candidate;
-    }
-    // Fallback: find first ability-like name that isn't the bundle itself
-    return names.find(
-      (n) =>
-        n !== bundleName &&
-        n.endsWith('Ability') &&
-        !n.includes('Extension') &&
-        !n.includes('Service') &&
-        !n.includes('Form') &&
-        !n.includes('Dialog'),
+    const bundleInfo = parseBundleInfo(output, bundleName);
+    const modules = bundleInfo.hapModuleInfos ?? [];
+    const entryModuleNames = new Set(
+      [bundleInfo.entryModuleName, bundleInfo.mainEntry].filter(
+        (name): name is string => Boolean(name),
+      ),
     );
+    const preferredModules = modules.filter(
+      (module) =>
+        entryModuleNames.has(module.moduleName ?? '') ||
+        entryModuleNames.has(module.name ?? ''),
+    );
+    const entryModules = modules.filter(
+      (module) =>
+        !preferredModules.includes(module) &&
+        (module.moduleType === 1 || module.moduleType === 'entry'),
+    );
+    const remainingModules = modules.filter(
+      (module) =>
+        !preferredModules.includes(module) && !entryModules.includes(module),
+    );
+
+    const entryModulesByPriority = [...preferredModules, ...entryModules];
+    for (const module of entryModulesByPriority) {
+      const target = declaredTargetFromModule(module);
+      if (target) return target;
+    }
+
+    for (const module of entryModulesByPriority) {
+      const target = launcherTargetFromModule(module);
+      if (target) return target;
+    }
+
+    for (const module of remainingModules) {
+      const target = launcherTargetFromModule(module);
+      if (target) return target;
+    }
+
+    for (const module of remainingModules) {
+      const target = declaredTargetFromModule(module);
+      if (target) return target;
+    }
+
+    throw new Error(`Cannot find a launchable ability for ${bundleName}`);
+  }
+
+  /**
+   * Launch an app by bundle name using its system-declared entry ability.
+   * Successful resolutions are cached for this HDC connection. If a cached
+   * target becomes stale, it is queried again and retried only when it changed.
+   */
+  async launchBundle(bundleName: string): Promise<void> {
+    const cachedTarget = this.launchAbilityCache.get(bundleName);
+    const target = cachedTarget ?? (await this.queryLaunchAbility(bundleName));
+
+    try {
+      await this.startAbility(
+        bundleName,
+        target.abilityName,
+        target.moduleName,
+      );
+      this.launchAbilityCache.set(bundleName, target);
+    } catch (error) {
+      this.launchAbilityCache.delete(bundleName);
+      if (!cachedTarget) throw error;
+
+      const refreshedTarget = await this.queryLaunchAbility(bundleName);
+      if (
+        refreshedTarget.abilityName === cachedTarget.abilityName &&
+        refreshedTarget.moduleName === cachedTarget.moduleName
+      ) {
+        throw error;
+      }
+
+      debugHdc(
+        `Cached launch ability changed from ${cachedTarget.moduleName}/${cachedTarget.abilityName} to ${refreshedTarget.moduleName}/${refreshedTarget.abilityName}`,
+      );
+      await this.startAbility(
+        bundleName,
+        refreshedTarget.abilityName,
+        refreshedTarget.moduleName,
+      );
+      this.launchAbilityCache.set(bundleName, refreshedTarget);
+    }
   }
 
   async forceStop(bundleName: string): Promise<void> {

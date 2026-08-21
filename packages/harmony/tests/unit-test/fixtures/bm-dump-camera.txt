@@ -1,0 +1,90 @@
+com.huawei.hmos.camera:
+{
+  "entryModuleName": "phone",
+  "mainEntry": "phone",
+  "hapModuleInfos": [
+    {
+      "moduleName": "phone",
+      "name": "phone",
+      "moduleType": 1,
+      "mainElementName": "com.huawei.hmos.camera.MainAbility",
+      "mainAbility": "com.huawei.hmos.camera.MainAbility",
+      "abilityInfos": [
+        {
+          "name": "com.huawei.hmos.camera.CollaborationAbility",
+          "moduleName": "phone",
+          "isLauncherAbility": false,
+          "skills": []
+        },
+        {
+          "name": "com.huawei.hmos.camera.MainAbility",
+          "moduleName": "phone",
+          "isLauncherAbility": false,
+          "skills": [
+            {
+              "actions": [
+                "action.system.home",
+                "ohos.want.action.home"
+              ],
+              "entities": [
+                "entity.system.home"
+              ]
+            }
+          ]
+        }
+      ],
+      "extensionInfos": [
+        {
+          "name": "AccessAbility",
+          "moduleName": "phone",
+          "extensionTypeName": "sys/commonUI"
+        },
+        {
+          "name": "BackupExtensionAbility",
+          "moduleName": "phone",
+          "extensionTypeName": "backup"
+        },
+        {
+          "name": "FormAbility",
+          "moduleName": "phone",
+          "extensionTypeName": "form"
+        },
+        {
+          "name": "com.huawei.hmos.camera.ServiceExtAbility",
+          "moduleName": "phone",
+          "extensionTypeName": "service"
+        }
+      ]
+    },
+    {
+      "moduleName": "picker",
+      "name": "picker",
+      "moduleType": 2,
+      "mainElementName": "",
+      "mainAbility": "",
+      "abilityInfos": [
+        {
+          "name": "PickerAbility",
+          "moduleName": "picker",
+          "isLauncherAbility": false,
+          "skills": [
+            {
+              "actions": [
+                "ohos.want.action.imageCapture",
+                "ohos.want.action.videoCapture"
+              ],
+              "entities": []
+            }
+          ]
+        }
+      ],
+      "extensionInfos": [
+        {
+          "name": "com.huawei.hmos.camera.ExtensionPickerAbility",
+          "moduleName": "picker",
+          "extensionTypeName": "sys/commonUI"
+        }
+      ]
+    }
+  ]
+}

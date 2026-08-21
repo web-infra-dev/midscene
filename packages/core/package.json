@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "1.10.11",
+  "version": "1.11.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -59,6 +59,11 @@
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
     },
+    "./report-stats": {
+      "types": "./dist/types/report-stats.d.ts",
+      "import": "./dist/es/report-stats.mjs",
+      "require": "./dist/lib/report-stats.js"
+    },
     "./skill": {
       "types": "./dist/types/skill/index.d.ts",
       "import": "./dist/es/skill/index.mjs",
@@ -74,6 +79,7 @@
       "device": ["./dist/types/device.d.ts"],
       "dump": ["./dist/types/dump/index.d.ts"],
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
+      "report-stats": ["./dist/types/report-stats.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "skill": ["./dist/types/skill/index.d.ts"]
@@ -83,11 +89,30 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
+    "sync-report-template": "node ../../scripts/sync-core-report-template.mjs",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true vitest --run",
     "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
     "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "inputs": [
+          "build",
+          "^build",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/scripts/report-template-utils.mjs",
+          "{workspaceRoot}/scripts/report-template-utils.d.mts"
+        ],
+        "outputs": [
+          "{projectRoot}/dist/**/*.*",
+          "!{projectRoot}/dist/lib/report-html-template.js",
+          "!{projectRoot}/dist/es/report-html-template.mjs"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@midscene/shared": "workspace:*",

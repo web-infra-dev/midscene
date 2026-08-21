@@ -8,7 +8,7 @@ import type {
   BaseDevice,
   ToolDefinition,
 } from '@/agent-tools/types';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const screenshotBase64 = 'data:image/png;base64,Zm9v';
@@ -29,8 +29,8 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
   }
   public readonly createdReportFileNames: Array<string | undefined> = [];
   public readonly createdReportGroupIds: Array<string | undefined> = [];
-  public readonly aiAction = vi.fn().mockResolvedValue(undefined);
-  public readonly aiAssert = vi.fn().mockResolvedValue(undefined);
+  public readonly aiAction = rs.fn().mockResolvedValue(undefined);
+  public readonly aiAssert = rs.fn().mockResolvedValue(undefined);
 
   protected createTemporaryDevice(): BaseDevice {
     return new FakeDevice();
@@ -46,11 +46,11 @@ class FakeCliTools extends BaseMidsceneTools<BaseAgent> {
       throw new Error('connect failed');
     }
     return {
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       aiAction: this.aiAction,
       aiAssert: this.aiAssert,
       page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
       },
     };
   }

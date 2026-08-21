@@ -1,0 +1,72 @@
+com.huawei.hmsapp.himovie:
+{
+  "entryModuleName": "entry",
+  "mainEntry": "entry",
+  "hapModuleInfos": [
+    {
+      "moduleName": "entry",
+      "name": "entry",
+      "moduleType": 1,
+      "mainElementName": "MainAbility",
+      "mainAbility": "MainAbility",
+      "abilityInfos": [
+        {
+          "name": "MainAbility",
+          "moduleName": "entry",
+          "isLauncherAbility": false,
+          "skills": [
+            {
+              "actions": [
+                "action.system.home"
+              ],
+              "entities": [
+                "entity.system.home"
+              ]
+            },
+            {
+              "actions": [
+                "action.system.home",
+                "ohos.want.action.viewData"
+              ],
+              "entities": [
+                "entity.system.home",
+                "entity.system.browsable"
+              ]
+            },
+            {
+              "actions": [
+                "action.system.home",
+                "ohos.want.action.viewData"
+              ],
+              "entities": [
+                "entity.system.home",
+                "entity.system.browsable"
+              ]
+            },
+            {
+              "actions": [
+                "action.system.home",
+                "wxentity.action.open"
+              ],
+              "entities": [
+                "entity.system.home"
+              ]
+            }
+          ]
+        }
+      ],
+      "extensionInfos": [
+        {
+          "name": "EntryFormAbility",
+          "moduleName": "entry",
+          "extensionTypeName": "form"
+        },
+        {
+          "name": "PrivacyStatementExtAbility",
+          "moduleName": "entry",
+          "extensionTypeName": "sys/commonUI"
+        }
+      ]
+    }
+  ]
+}

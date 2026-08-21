@@ -6,7 +6,7 @@
 
 - [Web 浏览器 - Playwright](./integrate-with-playwright#faq)
 - [Web 浏览器 - Puppeteer](./integrate-with-puppeteer#faq)
-- [Web 浏览器 - Chrome 插件](./quick-experience#faq)
+- [Web 浏览器 - Chrome 插件](./quick-start#chrome-extension-faq)
 - [Web 浏览器 - 桥接模式](./bridge-mode#faq)
 - [Android](./platforms/android#常见问题)
 - [iOS](./platforms/ios#常见问题)
@@ -190,7 +190,7 @@ await agent.aiTap('登录按钮', {
 });
 ```
 
-更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#common)。
+更多关于 `deepLocate` 的说明，请参阅 [API 文档](/zh/reference/#深度定位deeplocate)。
 
 ### 6. 在 web 浏览器中将 dpr 提高到 2
 

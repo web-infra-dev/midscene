@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   IOSSimulatorInputValueError,
   inputUntilObserved,
@@ -41,9 +41,9 @@ describe('readIOSSimulatorInputValue', () => {
 
 describe('iOS Simulator input retry', () => {
   it('returns the first observed value without retrying', async () => {
-    const performInput = vi.fn(async () => undefined);
-    const readValue = vi.fn(async () => EXPECTED_VALUE);
-    const onRetry = vi.fn();
+    const performInput = rs.fn(async () => undefined);
+    const readValue = rs.fn(async () => EXPECTED_VALUE);
+    const onRetry = rs.fn();
 
     await expect(
       inputUntilObserved({
@@ -64,9 +64,9 @@ describe('iOS Simulator input retry', () => {
 
   it('retries only after observing an unexpected input value', async () => {
     const observedValues = [undefined, EXPECTED_VALUE];
-    const performInput = vi.fn(async () => undefined);
-    const readValue = vi.fn(async () => observedValues.shift());
-    const onRetry = vi.fn();
+    const performInput = rs.fn(async () => undefined);
+    const readValue = rs.fn(async () => observedValues.shift());
+    const onRetry = rs.fn();
 
     await expect(
       inputUntilObserved({
@@ -107,9 +107,9 @@ describe('iOS Simulator input retry', () => {
       message: 'source failed',
     },
   ])('fails immediately on an unknown $name', async (testCase) => {
-    const performInput = vi.fn(testCase.performInput);
-    const readValue = vi.fn(testCase.readValue);
-    const onRetry = vi.fn();
+    const performInput = rs.fn(testCase.performInput);
+    const readValue = rs.fn(testCase.readValue);
+    const onRetry = rs.fn();
 
     await expect(
       inputUntilObserved({
@@ -128,9 +128,9 @@ describe('iOS Simulator input retry', () => {
   });
 
   it('throws the last observed value after exhausting attempts', async () => {
-    const performInput = vi.fn(async () => undefined);
-    const readValue = vi.fn(async () => 'partial input');
-    const onRetry = vi.fn();
+    const performInput = rs.fn(async () => undefined);
+    const readValue = rs.fn(async () => 'partial input');
+    const onRetry = rs.fn();
 
     await expect(
       inputUntilObserved({
@@ -150,8 +150,8 @@ describe('iOS Simulator input retry', () => {
   });
 
   it('rejects an invalid attempt count before performing input', async () => {
-    const performInput = vi.fn(async () => undefined);
-    const readValue = vi.fn(async () => EXPECTED_VALUE);
+    const performInput = rs.fn(async () => undefined);
+    const readValue = rs.fn(async () => EXPECTED_VALUE);
 
     await expect(
       inputUntilObserved({

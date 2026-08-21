@@ -133,6 +133,8 @@ export type AndroidDeviceOpt = {
     /**
      * Video bit rate for H.264 encoding in bits per second.
      * Higher values improve quality but increase bandwidth usage.
+     * For bandwidth-constrained remote links, explicitly set a lower value
+     * such as 4000000 (4 Mbps) and tune it for the actual transport.
      * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;

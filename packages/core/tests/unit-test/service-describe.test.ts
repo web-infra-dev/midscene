@@ -13,12 +13,12 @@ const {
   mockCompositeElementInfoImg,
   mockCompositePointMarkerImg,
   mockCropByRect,
-  mockResizeImgBase64,
+  mockResizeBase64ImageToJpeg,
 } = vi.hoisted(() => ({
   mockCompositeElementInfoImg: vi.fn(),
   mockCompositePointMarkerImg: vi.fn(),
   mockCropByRect: vi.fn(),
-  mockResizeImgBase64: vi.fn(),
+  mockResizeBase64ImageToJpeg: vi.fn(),
 }));
 
 vi.mock('@/ai-model/service-caller', async (importOriginal) => {
@@ -37,7 +37,7 @@ vi.mock('@midscene/shared/img', async (importOriginal) => {
     compositeElementInfoImg: mockCompositeElementInfoImg,
     compositePointMarkerImg: mockCompositePointMarkerImg,
     cropByRect: mockCropByRect,
-    resizeImgBase64: mockResizeImgBase64,
+    resizeBase64ImageToJpeg: mockResizeBase64ImageToJpeg,
   };
 });
 
@@ -67,8 +67,10 @@ describe('service.describe', () => {
       height: rect.height,
       imageBase64: 'data:image/png;base64,cropped',
     }));
-    mockResizeImgBase64.mockReset();
-    mockResizeImgBase64.mockResolvedValue('data:image/png;base64,resized');
+    mockResizeBase64ImageToJpeg.mockReset();
+    mockResizeBase64ImageToJpeg.mockResolvedValue(
+      'data:image/jpeg;base64,resized',
+    );
   });
 
   it('instructs icon-only controls to include owning stable context', () => {

@@ -6,9 +6,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   changelogLink: '了解更多',
 
   // Banner - Title
-  heroTitle: 'Midscene.js',
-  heroSubtitle:
-    '开源、视觉驱动的 UI 测试——用自然语言编写测试用例，自动化任意平台。',
+  heroTitle: 'Midscene.js — 面向 E2E 测试的 GUI Agent',
+  heroSubtitle: 'AI 视觉驱动。全平台覆盖。开箱即用。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -42,12 +41,10 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
-  modelsHeading: `视觉模型
- 多模型组合
- 适配开源模型`,
-  modelsDesc1: '视觉定位元素精准，无需维护选择器',
-  modelsDesc2: '多模型协同提升完成率',
-  modelsDesc3: '自带模型，含表现强劲的开源选项',
+  modelsHeading: '以纯视觉为核心',
+  modelsDesc1: '直接分析截图，无需维护 Selector 或额外标注',
+  modelsDesc2: '默认使用单模型，复杂场景按需增加专用模型',
+  modelsDesc3: '支持多种适配模型，包括可自托管选项',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
@@ -60,12 +57,16 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: '开发体验',
-  debuggingHeading: `丰富的 API
-和工具`,
+  debuggingTitle: '测试工具箱',
+  debuggingHeading: '开箱即用的 UI 测试套件',
   debuggingDesc1: '丰富的 API，用于编写测试与控制自动化流程',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
   debuggingDesc3: '大幅降低 UI 测试的维护成本',
+
+  // Feature Sections - BENCHMARKS
+  benchmarksTitle: '评测',
+  benchmarksHeading: 'Benchmark 成绩',
+  benchmarksDesc: '查看 Midscene 在 AndroidWorld 和 MobileWorld 上的成绩。',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',
@@ -80,13 +81,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
     '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
-  featureBenchmarkDesc:
-    '查看 AndroidWorld benchmark 分数、运行配置、报告文件和验收备注。',
-  featureMobileWorldBenchmarkDesc:
-    '查看 MobileWorld benchmark 分数、运行配置、报告文件和验收备注。',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-experience',
+  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
@@ -113,8 +110,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
-  platformWebLink: '/quick-experience.html',
-  platformPCLink: '/quick-experience.html',
+  platformWebLink: '/quick-start#chrome-extension',
+  platformPCLink: '/quick-start#chrome-extension',
   platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };

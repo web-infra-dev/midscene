@@ -1,7 +1,9 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
-import { plan } from '@/ai-model/llm-planning';
+import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
+import { standardPlan } from '@/ai-model/workflows/planning';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildYamlFlowFromPlans, getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -72,10 +74,39 @@ const latestImageDetail = () => {
 
 const latestCallAIOptions = () => vi.mocked(callAI).mock.calls[0]?.[2];
 
+const latestSystemPrompt = () => {
+  const message = vi.mocked(callAI).mock.calls[0]?.[0]?.[0];
+  return message?.role === 'system' ? message.content : undefined;
+};
+
 describe('plan XML parse retry', () => {
   beforeEach(() => {
     vi.mocked(callAI).mockReset();
     vi.mocked(buildYamlFlowFromPlans).mockClear();
+  });
+
+  it('uses the action-only XML protocol for fast effort', async () => {
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{}</action-param-json>`),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'fast',
+    });
+
+    const systemPrompt = vi.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
+    expect(systemPrompt).not.toEqual(expect.stringContaining('<planning>'));
+    expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
+    expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
+    expect(result.thought).toBeUndefined();
+    expect(result.log).toBe('{"type":"Tap","param":{}}');
+    expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
   });
 
   it('uses model retry settings when XML response parsing fails', async () => {
@@ -95,7 +126,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
       );
 
-    const result = await plan('tap the button', {
+    const result = await standardPlan('tap the button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
@@ -105,7 +136,7 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(3);
@@ -143,11 +174,11 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
       conversationHistory,
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     } as const;
 
-    await plan('tap the button', options);
-    await plan('tap the button', options);
+    await standardPlan('tap the button', options);
+    await standardPlan('tap the button', options);
 
     const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
     expect(secondRequestMessages).toContainEqual(rawAssistantMessage);
@@ -177,11 +208,11 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory,
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     } as const;
 
-    await plan('tap the button', options);
-    await plan('tap the button', options);
+    await standardPlan('tap the button', options);
+    await standardPlan('tap the button', options);
 
     const secondRequestMessages = vi.mocked(callAI).mock.calls[1]?.[0];
     expect(secondRequestMessages).not.toContainEqual(rawAssistantMessage);
@@ -201,13 +232,13 @@ describe('plan XML parse retry', () => {
       .mockRejectedValueOnce(requestError);
 
     await expect(
-      plan('tap the button', {
+      standardPlan('tap the button', {
         context: mockContext(),
         actionSpace: mockActionSpace(),
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: false,
-        deepThink: false,
+        effort: 'balance',
       }),
     ).rejects.toBe(requestError);
 
@@ -220,13 +251,13 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
     );
 
-    await plan('terminate the app, launch it, then tap the AI button', {
+    await standardPlan('terminate the app, launch it, then tap the AI button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      deepThink: false,
+      effort: 'balance',
     });
 
     const messages = vi.mocked(callAI).mock.calls[0]?.[0];
@@ -250,7 +281,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`),
     );
 
-    await plan('tap the button', {
+    await standardPlan('tap the button', {
       context: mockContext(),
       actionSpace: mockActionSpace(),
       modelRuntime: getModelRuntime({
@@ -259,11 +290,96 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(latestImageDetail()).toBe('high');
     expect(latestCallAIOptions()?.requiresOriginalImageDetail).toBe(true);
+  });
+
+  it('uses the standard planning protocol configured by the adapter', async () => {
+    const planningProtocol: StandardPlanningProtocol = {
+      actionSpaceProtocol: {
+        title: 'Custom tools',
+        format: 'jsonl',
+        buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
+        buildActionDescription: () => ({
+          name: 'CUSTOM_TOOL_DEFINITION',
+        }),
+      },
+      actionOutputProtocol: {
+        actionOutputTagNames: ['custom-action'],
+        actionOutputRules: 'Return one custom action.',
+        actionOutputPlaceholder: '<custom-action>...</custom-action>',
+        buildActionOutput: ({ actionName }) =>
+          `<custom-action>${actionName}</custom-action>`,
+        parseActionOutput: (content) => {
+          const type = content.match(
+            /<custom-action>([^<]+)<\/custom-action>/,
+          )?.[1];
+          return type ? { type } : null;
+        },
+      },
+    };
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(
+        '<log>Tap button</log>\n<custom-action>Tap</custom-action>',
+      ),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: {
+        config: mockModelConfig(),
+        adapter: new ResolvedModelAdapter(
+          { planning: { protocol: planningProtocol } },
+          'test-planning-protocol',
+        ),
+      },
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(latestSystemPrompt()).toContain('### Custom tools');
+    expect(latestSystemPrompt()).toContain('CUSTOM_TOOL_DEFINITION');
+    expect(result.actions).toEqual([{ type: 'Tap' }]);
+  });
+
+  it('uses the JSON parser configured by the adapter for planning actions', async () => {
+    const jsonParser = vi.fn(() => ({ parsedByCustomParser: true }));
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>
+<action-param-json>{custom syntax}</action-param-json>`),
+    );
+
+    const result = await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: {
+        config: mockModelConfig(),
+        adapter: new ResolvedModelAdapter(
+          { jsonParser },
+          'test-custom-json-parser',
+        ),
+      },
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(jsonParser).toHaveBeenCalledWith('{custom syntax}', {
+      source: 'planning-action-param',
+      preserveStringValueKeys: undefined,
+    });
+    expect(result.actions).toEqual([
+      {
+        type: 'Tap',
+        param: { parsedByCustomParser: true },
+      },
+    ]);
   });
 
   it('retries once when planning locate coordinates cannot be normalized', async () => {
@@ -298,7 +414,7 @@ describe('plan XML parse retry', () => {
       .mockImplementationOnce(captureYamlFlowInput)
       .mockImplementationOnce(captureYamlFlowInput);
 
-    const result = await plan('tap submit', {
+    const result = await standardPlan('tap submit', {
       context: mockContext(),
       actionSpace,
       modelRuntime: getModelRuntime({
@@ -307,7 +423,7 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      deepThink: false,
+      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);

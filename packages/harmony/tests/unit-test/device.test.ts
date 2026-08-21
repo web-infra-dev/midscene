@@ -21,7 +21,7 @@ const mockHdc = {
     ),
   fileRecv: rs.fn().mockResolvedValue(undefined),
   startAbility: rs.fn().mockResolvedValue(undefined),
-  queryMainAbility: rs.fn().mockResolvedValue(undefined),
+  launchBundle: rs.fn().mockResolvedValue(undefined),
   forceStop: rs.fn().mockResolvedValue(undefined),
   clearTextField: rs.fn().mockResolvedValue(undefined),
 };
@@ -52,7 +52,7 @@ rs.mock('@midscene/shared/img', () => ({
     .mockReturnValue('data:image/jpeg;base64,fake'),
 }));
 
-// @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
+// Top-level dynamic import so the mocks above are registered first.
 const { HarmonyDevice } = await import('../../src/device');
 
 describe('HarmonyDevice', () => {
@@ -261,8 +261,8 @@ describe('HarmonyDevice', () => {
 
       // 1. click to focus
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      // 2. clearTextField to batch-delete existing content
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      // 2. clearTextField to select and delete existing content
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
       // 3. actual inputText
       expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'new text');
     });
@@ -366,10 +366,10 @@ describe('HarmonyDevice', () => {
   });
 
   describe('clearInput', () => {
-    it('should call clearTextField to batch-delete text', async () => {
+    it('should call clearTextField to select and delete text', async () => {
       await device.connect();
       await device.clearInput();
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
     });
 
     it('should click element before clearing when element is provided', async () => {
@@ -377,7 +377,7 @@ describe('HarmonyDevice', () => {
       const element = { center: [100, 200] as [number, number] } as any;
       await device.clearInput(element);
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
     });
   });
 
@@ -489,6 +489,15 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
     });
 
+    it('should not replace a direct URI with an app name mapping', async () => {
+      device.setAppNameMapping({
+        'myapp://page': 'com.example.app/MainAbility',
+      });
+      await device.launch('myapp://page');
+      expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
+      expect(mockHdc.startAbility).not.toHaveBeenCalled();
+    });
+
     it('should use startAbility for bundleName/abilityName format', async () => {
       await device.launch('com.example.app/MainAbility');
       expect(mockHdc.startAbility).toHaveBeenCalledWith(
@@ -497,12 +506,10 @@ describe('HarmonyDevice', () => {
       );
     });
 
-    it('should use startAbility with EntryAbility for plain bundle name', async () => {
+    it('should launch a plain bundle name through HDC bundle resolution', async () => {
       await device.launch('com.example.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.example.app',
-        'EntryAbility',
-      );
+
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.example.app');
     });
 
     it('should throw with descriptive error on launch failure', async () => {
@@ -539,6 +546,22 @@ describe('HarmonyDevice', () => {
       });
       await device.terminate('Music');
       expect(mockHdc.forceStop).toHaveBeenCalledWith('com.huawei.hmsapp.music');
+    });
+
+    it('should use only the bundle part of a mapped bundle/ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('Video');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
+    });
+
+    it('should resolve the mapped bundle part of an explicit ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('video/MainAbility');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
     });
 
     it('should throw on terminate failure', async () => {
@@ -769,20 +792,29 @@ describe('HarmonyDevice', () => {
         browser: 'com.huawei.hmos.browser',
       });
       await device.launch('Browser');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith(
         'com.huawei.hmos.browser',
-        'EntryAbility',
       );
+    });
+
+    it('should start an explicit ability from app name mapping', async () => {
+      await device.connect();
+      device.setAppNameMapping({
+        'Video App': 'com.example.video/PhoneAbility',
+      });
+      await device.launch('video-app');
+      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+        'com.example.video',
+        'PhoneAbility',
+      );
+      expect(mockHdc.launchBundle).not.toHaveBeenCalled();
     });
 
     it('should fall back to original name if not in mapping', async () => {
       await device.connect();
       device.setAppNameMapping({});
       await device.launch('com.unknown.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.unknown.app',
-        'EntryAbility',
-      );
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.unknown.app');
     });
   });
 

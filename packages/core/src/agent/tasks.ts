@@ -1,12 +1,12 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { multimodalPromptToChatMessages } from '@/ai-model/shared/multimodal-prompt';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
   getReadableTimeString,
-  multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
@@ -15,6 +15,7 @@ import type Service from '@/service';
 import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  AiActEffort,
   AiActProgressData,
   AiActProgressPhase,
   DeviceAction,
@@ -362,12 +363,10 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    imagesIncludeCount?: number,
-    deepThink?: boolean,
+    effort: AiActEffort = 'balance',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -386,12 +385,10 @@ export class TaskExecutor {
         userPrompt,
         planningModel,
         defaultModel,
-        includeLocateInPlanning,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
-        imagesIncludeCount,
-        deepThink,
+        effort,
         deepLocate,
         abortSignal,
         reportOptions,
@@ -437,12 +434,10 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    imagesIncludeCount?: number,
-    deepThink?: boolean,
+    effort: AiActEffort = 'balance',
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
@@ -478,6 +473,16 @@ export class TaskExecutor {
     const runner = session.getRunner();
     planningModel = { ...planningModel, executionId: runner.id };
     defaultModel = { ...defaultModel, executionId: runner.id };
+
+    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const includeLocateInPlanning =
+      effort !== 'deepThink' && noIndividualLocateModel;
+    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+
+    debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
+      effort,
+      noIndividualLocateModel,
+    });
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -554,13 +559,14 @@ export class TaskExecutor {
             replanningCycleLimit,
             aiActContext,
             imagesIncludeCount,
-            deepThink,
+            effort,
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
+            assert(param.effort, 'effort is required for Planning Plan task');
             const planningUiContext = uiContext as UIContext;
             const timing = executorContext.task.timing;
             await this.emitAiActProgress('plan_thinking', {
@@ -584,7 +590,7 @@ export class TaskExecutor {
             const planImpl =
               planningModel.adapter.planning.kind === 'custom'
                 ? planningModel.adapter.planning.planFn
-                : genericXmlPlan;
+                : standardPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
@@ -596,8 +602,8 @@ export class TaskExecutor {
                 modelRuntime: planningModel,
                 conversationHistory,
                 includeLocateInPlanning,
-                imagesIncludeCount,
-                deepThink,
+                imagesIncludeCount: param.imagesIncludeCount,
+                effort: param.effort,
                 referenceImageMessages,
                 abortSignal,
               });

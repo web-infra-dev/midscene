@@ -3,6 +3,12 @@
 </p>
 
 <h1 align="center">Midscene.js</h1>
+
+<p align="center">
+  <strong>GUI Agent for E2E Testing</strong><br />
+  AI-powered vision. Cross-platform. Batteries included.
+</p>
+
 <div align="center">
 
 English | [简体中文](./README.zh.md)
@@ -14,14 +20,10 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Open-source, vision-driven UI testing — write tests in natural language, automate any platform.
-</p>
-
-<p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
-  <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
+  <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
   <a href="https://deepwiki.com/web-infra-dev/midscene">
@@ -31,7 +33,7 @@ English | [简体中文](./README.zh.md)
 
 ## 📣 Midscene Skills is here!
 
-Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to control any platform with [OpenClaw](https://github.com/OpenClaw/OpenClaw) 
+Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) with [OpenClaw](https://github.com/OpenClaw/OpenClaw) to test and automate web, mobile, and desktop interfaces.
 
 ## Showcases
 
@@ -59,8 +61,8 @@ Midscene works anywhere you can take a screenshot — web browsers, Android, iOS
 
 ## 🚀 Get started
 
-- **Write your first script** in a few minutes — [Quick start](https://midscenejs.com/quick-start).
-- **No code?** Try Midscene on any web page with the [Chrome extension](https://midscenejs.com/quick-experience).
+- **Try Midscene in Chrome** — use the [Quick start](https://midscenejs.com/quick-start) to configure a model, install the Chrome extension, and run your first natural-language instruction.
+- **Write your first script** — create an Agent and run a complete browser script with [Playwright](https://midscenejs.com/integrate-with-playwright) or [Puppeteer](https://midscenejs.com/integrate-with-puppeteer).
 - **Other platforms** — getting-started guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), and [desktop](https://midscenejs.com/platforms/desktop).
 
 ## ✨ Driven by Multimodal Models
@@ -81,7 +83,7 @@ Read more about [Model Strategy](https://midscenejs.com/model-strategy).
 
 * [Discord](https://discord.gg/2JyBHxszE4)
 * [Follow us on X](https://x.com/midscene_ai)
-* [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
+* [Lark Group (飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
 
 ## 🌟 Awesome Midscene
 
@@ -99,16 +101,16 @@ Community projects that extend Midscene.js capabilities:
 
 We would like to thank the following projects:
 
-- [Rsbuild](https://github.com/web-infra-dev/rsbuild) and [Rslib](https://github.com/web-infra-dev/rslib) for the build tool.
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) and [Rslib](https://github.com/web-infra-dev/rslib) for the build tools.
 - [UI-TARS](https://github.com/bytedance/ui-tars) for the open-source agent model UI-TARS.
 - [Qwen-VL](https://github.com/QwenLM/Qwen-VL) for the open-source multimodal model Qwen-VL.
-- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
-- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
-- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。
-- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
-- [libnut-core](https://github.com/nut-tree/libnut-core) for the cross-platform native keyboard and mouse control.
+- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) for browser-based Android device control.
+- [appium-adb](https://github.com/appium/appium-adb) for its JavaScript bridge to ADB.
+- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for controlling XCTest from JavaScript.
+- [YADB](https://github.com/ysbing/YADB) for improving text input performance.
+- [libnut-core](https://github.com/nut-tree/libnut-core) for cross-platform native keyboard and mouse control.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
-- [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.
+- [Playwright](https://github.com/microsoft/playwright) for browser automation, control, and testing.
 
 ## 📖 Citation
 
@@ -117,7 +119,7 @@ If you use Midscene.js in your research or project, please cite:
 ```bibtex
 @software{Midscene.js,
   author = {Xiao Zhou, Tao Yu, YiBing Lin},
-  title = {Midscene.js: Your AI Operator for Web, Android, iOS, Automation & Testing.},
+  title = {Midscene.js: GUI Agent for E2E Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

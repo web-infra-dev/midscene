@@ -1,4 +1,4 @@
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
@@ -50,7 +50,9 @@ export class ResolvedModelAdapter implements ModelAdapter {
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner);
+    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner, {
+      jsonParser: this.jsonParser,
+    });
     this.locate = resolveLocate(config.locate, resolvedCustomPlanner);
   }
 }

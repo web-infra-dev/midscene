@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 // A 1x1 PNG, base64-encoded, as PowerShell's CopyFromScreen path would print
 // to stdout.
@@ -8,16 +8,16 @@ const FAKE_PNG_BASE64 =
 
 // Typed params so `mock.calls[i]` is a `[file, args, options]` tuple the type
 // checker can index into.
-const execFileSync = vi.fn(
+const execFileSync = rs.fn(
   (_file: string, _args: string[], _options?: unknown): string =>
     FAKE_PNG_BASE64,
 );
 
-vi.mock('node:child_process', () => ({
+rs.mock('node:child_process', () => ({
   execFileSync: (file: string, args: string[], options?: unknown) =>
     execFileSync(file, args, options),
-  execSync: vi.fn(),
-  spawnSync: vi.fn(),
+  execSync: rs.fn(),
+  spawnSync: rs.fn(),
 }));
 
 /** Decode the -EncodedCommand argument back to the PowerShell script. */
@@ -33,7 +33,7 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
   afterEach(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
     execFileSync.mockClear();
-    vi.resetModules();
+    rs.resetModules();
   });
 
   it('captures through powershell.exe and returns a PNG data URI', async () => {

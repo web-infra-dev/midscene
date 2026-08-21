@@ -194,8 +194,12 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     if (reportViewMode !== 'markdown') {
       return null;
     }
-    return getReportMarkdownView(dump, reportToMarkdown);
-  }, [dump, reportViewMode]);
+    return getReportMarkdownView(dump, (report) =>
+      reportToMarkdown(report, {
+        wallTimeFallbackMs: playwrightAttributes?.playwright_test_duration,
+      }),
+    );
+  }, [dump, playwrightAttributes, reportViewMode]);
   const readyReportMarkdown =
     reportMarkdownView?.status === 'ready' ? reportMarkdownView : null;
   const reportArchiveBaseName = useMemo(

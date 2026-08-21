@@ -1,4 +1,4 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import { describe, expect, it } from 'vitest';
@@ -28,6 +28,7 @@ function createPlanOptions(
     } as any,
     conversationHistory,
     includeLocateInPlanning: true,
+    effort: 'balance',
   };
 }
 

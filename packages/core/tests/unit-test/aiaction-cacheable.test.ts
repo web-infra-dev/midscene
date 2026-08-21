@@ -14,7 +14,7 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
     await importOriginal<typeof import('@/ai-model/workflows/planning')>();
   return {
     ...actual,
-    genericXmlPlan: vi.fn().mockResolvedValue({
+    standardPlan: vi.fn().mockResolvedValue({
       actions: [
         {
           type: 'Click',
@@ -224,7 +224,6 @@ describe('aiAction cacheable option propagation', () => {
         modelDescription: 'test model',
         intent: 'default',
       } as any),
-      true, // includeLocateInPlanning: true
       undefined,
       false, // cacheable: false
     );

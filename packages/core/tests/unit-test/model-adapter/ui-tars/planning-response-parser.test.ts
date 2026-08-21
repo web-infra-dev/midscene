@@ -1,10 +1,10 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
 import { getModelRuntime } from '@/ai-model/models';
 import { transformUiTarsActions } from '@/ai-model/models/ui-tars/actions';
 import {
   type UiTarsParsedPlanningResponse,
   parseUiTarsPlanningResponse,
 } from '@/ai-model/models/ui-tars/parser';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
@@ -41,6 +41,7 @@ function createPlanOptions(): PlanOptions {
     modelRuntime,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
+    effort: 'balance',
   };
 }
 
