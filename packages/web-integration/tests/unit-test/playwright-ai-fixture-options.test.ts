@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => ({
+const mockState = rs.hoisted(() => ({
   ctorOpts: [] as any[],
   instances: [] as any[],
 }));
 
-vi.mock('@/playwright/index', () => {
+rs.mock('@/playwright/index', () => {
   class MockPlaywrightAgent {
     reportFile?: string;
 
@@ -33,7 +33,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
 
   const createPage = () =>
     ({
-      on: vi.fn(),
+      on: rs.fn(),
     }) as any;
 
   const createTestInfo = () =>

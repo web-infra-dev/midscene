@@ -6,9 +6,9 @@ import {
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
+import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import { type Browser as PlaywrightBrowser, chromium } from 'playwright';
 import puppeteer, { type Browser as PuppeteerBrowser } from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 const TEST_TIMEOUT_MS = 120_000;
 const MODEL_CONFIG = {
