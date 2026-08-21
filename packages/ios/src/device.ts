@@ -563,7 +563,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
 
     if (shouldAutoDismissKeyboard) {
-      await this.hideKeyboard();
+      const dismissed = await this.hideKeyboard();
+      if (!dismissed) {
+        throw new Error(
+          'Failed to auto-dismiss the iOS keyboard: no supported dismissal control was found or the keyboard remained visible',
+        );
+      }
     }
   }
 
@@ -864,48 +869,33 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.wdaBackend.appSwitcher();
   }
 
+  /**
+   * Hides the iOS software keyboard using a structurally located accessory
+   * control, or configured key names when provided.
+   *
+   * @returns `true` when the keyboard is hidden, or `false` when the current
+   * application exposes no supported dismissal control.
+   * @throws When communication with WebDriverAgent fails.
+   */
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
     try {
-      // Always try WDA's dismissKeyboard API first (most reliable)
-      // Use common keyboard button names if not specified
-      const dismissKeys =
+      debugDevice(
         keyNames && keyNames.length > 0
-          ? keyNames
-          : ['return', 'done', 'go', 'search', 'next', 'send'];
-
-      debugDevice(
-        `Attempting to dismiss keyboard using WDA API with keys: ${dismissKeys.join(', ')}`,
+          ? `Attempting to dismiss keyboard using configured buttons: ${keyNames.join(', ')}`
+          : 'Attempting to dismiss keyboard using its accessory toolbar',
       );
-
-      try {
-        await this.wdaBackend.dismissKeyboard(dismissKeys);
-        debugDevice('Successfully dismissed keyboard using WDA API');
-        await sleep(500); // Wait longer to ensure UI is stable
-        return true;
-      } catch (wdaError) {
-        debugDevice(
-          `WDA dismissKeyboard failed, falling back to swipe gesture: ${wdaError}`,
-        );
-      }
-
-      // Fallback: Use swipe gesture if WDA API fails
-      // Use safer coordinates: swipe up from bottom of screen
-      const windowSize = await this.wdaBackend.getWindowSize();
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.round(windowSize.height * 0.9); // Start near bottom
-      const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
-
-      // Perform swipe up gesture to dismiss keyboard
-      await this.swipeCoordinates(centerX, startY, centerX, endY, 300);
+      const dismissed = await this.wdaBackend.dismissKeyboard(keyNames);
       debugDevice(
-        'Dismissed keyboard with swipe up gesture from bottom of screen',
+        dismissed
+          ? 'Successfully dismissed keyboard'
+          : 'No supported keyboard dismiss control was found',
       );
-
-      await sleep(500); // Wait longer to ensure UI is stable
-      return true;
+      return dismissed;
     } catch (error) {
       debugDevice(`Failed to hide keyboard: ${error}`);
-      return false;
+      throw new Error(`Failed to hide the iOS keyboard through WDA: ${error}`, {
+        cause: error,
+      });
     }
   }
 
