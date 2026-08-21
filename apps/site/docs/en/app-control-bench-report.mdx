@@ -1,0 +1,45 @@
+# Midscene AppControlBench Benchmark Report
+
+import { AppControlBenchReport } from '@theme';
+
+This report presents Midscene results on the AppControlBench benchmark. The evaluation covers 60 iOS tasks and achieved a **Pass@1 score of 96.67%.** The recorded model cost for the complete run is **$0.6382 / ¥4.3399**.
+
+:::info About AppControlBench
+
+[AppControlBench](https://github.com/software-mansion/app-control-bench) evaluates how well an Agent can operate real iOS apps in isolated Simulator runs. The final screenshot is graded against a task-specific solved-screen description. This run covers 30 Bluesky tasks and 30 Element iOS tasks.
+
+:::
+
+## Run configuration
+
+| Field | Value |
+| --- | --- |
+| Test date | 2026-08-24 |
+| Model Name | Doubao Seed 2.1 pro |
+| Midscene version | `1.12.0` |
+| DeepThink | off |
+| Device | iOS Simulator |
+| Number of tasks | 60 |
+| AppControlBench project | The Midscene adapter delegated Agent execution to `@midscene/ios` while AppControlBench retained task reset, Simulator lifecycle, final screenshot capture, and grading. |
+| Evaluation rules | The original target states and judge rules were retained; the action intent for 2 cases was calibrated, and the automated verdict for 1 case was manually reviewed. |
+
+## Case Intent Calibration
+
+For this evaluation, the action-route descriptions of 2 cases were calibrated against the actual UI of the pinned Element iOS version. The calibration only removes stale or unavailable UI-entry descriptions; it does not change the final target state or judge rules of either case.
+
+| Case | Before | After | Reason for change |
+| --- | --- | --- | --- |
+| `element-06` | Open the create-room menu (the + button) in the messenger. | Open the create/compose menu in the messenger. | The pinned Element iOS version no longer provides the old “+ button”; only the action route was calibrated, while the target state and judge rules remain unchanged. |
+| `element-07` | Open the "Project Phoenix" room and open its room-options menu (the '...' in the header). | Open the "Project Phoenix" room info/options screen. | The pinned Element iOS version does not provide a header `...`; only the action route was calibrated, while the target state and judge rules remain unchanged. |
+
+## Judge Calibration
+
+The following automated verdict was manually reviewed. Judge calibration only corrects the misclassification; it does not change the case target or judge rules.
+
+| Calibration | Affected case |
+| --- | --- |
+| The reply was successfully sent. Because the keyboard remained open in the final screenshot, the automated evaluation misclassified the result as `Partial`. After manual review, the result was calibrated to `Pass`. | `element-24` |
+
+## Report files
+
+<AppControlBenchReport locale="en" />

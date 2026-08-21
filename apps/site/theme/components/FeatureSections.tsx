@@ -396,6 +396,12 @@ export function FeatureSections() {
             title="MobileWorld Benchmark"
             details={`${t('benchmark')} 78.6% · 92/117`}
           />
+          <BenchmarkLinkCard
+            href={tUrl(t('featureAppControlBenchLink'))}
+            score="96.7%"
+            title="AppControlBench Benchmark"
+            details="Pass@1 96.7% · 58 PASS"
+          />
         </div>
       </FeatureSection>
 
