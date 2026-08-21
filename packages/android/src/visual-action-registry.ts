@@ -6,14 +6,16 @@ type VisualActionDefinitions<TActions> = {
 
 /**
  * Register visual actions at one boundary so every caller observes the same
- * post-action frame freshness behavior. Composite actions belong in a single
- * registered callback and therefore settle the boundary only once.
+ * frame freshness behavior. The boundary is armed before dispatch so frames
+ * produced while an ADB input command is still returning count as post-action
+ * candidates. Composite actions belong in a single registered callback and
+ * therefore arm the boundary only once.
  */
 export function createVisualActionRegistry<
   TActions extends VisualActionDefinitions<TActions>,
 >(
   definitions: TActions,
-  onActionSettled: (actionName: keyof TActions & string) => Promise<void>,
+  onActionStarting: (actionName: keyof TActions & string) => Promise<void>,
 ): TActions {
   const registeredActions = {} as TActions;
 
@@ -22,11 +24,8 @@ export function createVisualActionRegistry<
   >) {
     const dispatch = definitions[actionName];
     registeredActions[actionName] = (async (...args: unknown[]) => {
-      try {
-        return await dispatch(...args);
-      } finally {
-        await onActionSettled(actionName);
-      }
+      await onActionStarting(actionName);
+      return await dispatch(...args);
     }) as TActions[typeof actionName];
   }
 

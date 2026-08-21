@@ -298,6 +298,40 @@ export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 
 默认值为 `auto`，即先使用 `adb.takeScreenshot`，失败后回退到 shell `screencap`；如果 `screencap` 执行失败，则改用 yadb 工具。scrcpy 仅当 `scrcpyConfig.enabled` 开启时才会在这些方法之前优先尝试。`auto` 不会分析截图内容：即使某个截图方法执行成功但返回全黑图片，也不会自动切换到 yadb；只有当前一种截图方法执行失败时，才会尝试下一种方法。安全页面生成有效但全黑的图片时，请设置 `always-yadb`，绕过默认的 `auto` 截图流程（`adb.takeScreenshot`、`screencap`，以及开启时的 scrcpy），直接使用 yadb 截图。yadb 只能截取默认显示器（`displayId=0`）；如果同时设置 `always-yadb` 和非零 `displayId`，Midscene 会抛出错误。
 
+### 为什么 scrcpy 会回退到 ADB 截图？
+
+通过带宽受限的远程链路连接设备时，scrcpy 默认的 100 Mbps 视频流可能产生传输积压。如果 Midscene 无法取得晚于最近一次操作的画面，就会拒绝使用旧帧并回退到 ADB 截图。
+
+使用 Android CLI 时，可以先从 4 Mbps 开始尝试，并在每条启用 scrcpy 的命令中同时添加以下两个参数：
+
+```bash
+midscene-android tap \
+  --device-id <device-id> \
+  --locate '{"prompt":"目标元素"}' \
+  --use-scrcpy \
+  --scrcpy-video-bit-rate 4000000
+```
+
+CLI 也接受驼峰形式 `--scrcpyVideoBitRate`。设置码率参数本身就会启用 scrcpy，因此使用该参数时可以省略 `--use-scrcpy`。该参数的单位是 bit/s。如果仍然发生回退，可以继续降低；链路带宽充足时，提高码率可以保留更多画面细节。
+
+使用 JavaScript SDK 或 YAML 配置时，请设置等价的 `scrcpyConfig.videoBitRate`：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  scrcpyConfig: {
+    enabled: true,
+    videoBitRate: 4_000_000,
+  },
+});
+```
+
+```yaml
+android:
+  scrcpyConfig:
+    enabled: true
+    videoBitRate: 4000000
+```
+
 ### 如何使用自定义的 adb 路径或远程 adb 服务器？
 
 通过环境变量设置：

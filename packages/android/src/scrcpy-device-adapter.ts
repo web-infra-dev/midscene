@@ -9,6 +9,7 @@ import {
 } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
+const warnAdapter = getDebug('android:scrcpy-adapter', { console: true });
 const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
 
 interface ScrcpyConfig {
@@ -66,7 +67,7 @@ export class ScrcpyDeviceAdapter {
   private freshnessRecoveryPending = false;
   private recoveryPromise: Promise<void> | null = null;
   private lifecycleGeneration = 0;
-  private pendingActionBarrier = false;
+  private pendingActionBarrierAtHostUs: bigint | null = null;
   private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private keyframeUnsubscribers = new Map<
     (frame: RawKeyframe) => void,
@@ -224,7 +225,9 @@ export class ScrcpyDeviceAdapter {
 
   /**
    * Take a screenshot via scrcpy, returns base64 string.
-   * Throws on failure (caller should fallback to ADB).
+   * A stale established stream is restarted once so a static screen can use
+   * the new epoch's baseline frame. Throws only when that retry also fails, so
+   * the caller can fall back to ADB.
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     this.ensureRetryReady();
@@ -237,18 +240,57 @@ export class ScrcpyDeviceAdapter {
       const screenshotBuffer = await manager.getScreenshotJpeg();
       this.clearFailure();
 
-      return createImgBase64ByFormat(
-        'jpeg',
-        screenshotBuffer.toString('base64'),
-      );
+      return this.jpegBufferToBase64(screenshotBuffer);
     } catch (error) {
-      if (isScrcpyFreshFrameUnavailableError(error)) {
-        this.markFreshnessRecoveryPending(manager, error);
+      if (!isScrcpyFreshFrameUnavailableError(error)) {
+        this.recordFailure(error);
         throw error;
       }
-      this.recordFailure(error);
-      throw error;
+
+      this.markFreshnessRecoveryPending(manager, error);
+      debugAdapter(
+        `Scrcpy freshness target was unavailable; restarting the stream once before ADB fallback: ${error}`,
+      );
+
+      try {
+        manager = await this.ensureManager(deviceInfo);
+        await manager.ensureConnected();
+        await this.applyPendingActionBarrier(manager);
+        const screenshotBuffer = await manager.getScreenshotJpeg();
+        this.attachKeyframeListeners(manager);
+        this.clearFailure();
+        debugAdapter('Scrcpy screenshot recovered on a new stream epoch');
+        return this.jpegBufferToBase64(screenshotBuffer);
+      } catch (retryError) {
+        if (isScrcpyFreshFrameUnavailableError(retryError)) {
+          this.markFreshnessRecoveryPending(manager, retryError);
+        } else {
+          this.recordFailure(retryError);
+        }
+        this.warnFreshnessFallback(error, retryError);
+        throw retryError;
+      }
     }
+  }
+
+  private jpegBufferToBase64(screenshotBuffer: Buffer): string {
+    return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
+  }
+
+  private warnFreshnessFallback(
+    firstError: ScrcpyFreshFrameUnavailableError,
+    retryError: unknown,
+  ): void {
+    const retryDiagnostic = isScrcpyFreshFrameUnavailableError(retryError)
+      ? retryError.diagnosticMessage
+      : undefined;
+    warnAdapter(
+      retryDiagnostic ??
+        (firstError.diagnosticMessage
+          ? `${firstError.diagnosticMessage}\nScrcpy stream restart error: ${retryError}`
+          : undefined) ??
+        `Scrcpy stream restart failed; falling back to ADB screenshot. Error: ${retryError}`,
+    );
   }
 
   /**
@@ -322,11 +364,31 @@ export class ScrcpyDeviceAdapter {
   private async applyPendingActionBarrier(
     manager: ScrcpyScreenshotManager,
   ): Promise<void> {
-    if (!this.pendingActionBarrier) return;
+    const actionStartedAtHostUs = this.pendingActionBarrierAtHostUs;
+    if (actionStartedAtHostUs === null) return;
     await manager.setFreshnessBarrier(
-      'completed input action while scrcpy was unavailable',
+      'input action started while scrcpy was unavailable',
+      {
+        allowOverAgeForNextCapture: true,
+        hostMonotonicUs: actionStartedAtHostUs,
+      },
     );
-    this.pendingActionBarrier = false;
+    if (this.pendingActionBarrierAtHostUs === actionStartedAtHostUs) {
+      this.pendingActionBarrierAtHostUs = null;
+    }
+  }
+
+  private monotonicTimeUs(): bigint {
+    return process.hrtime.bigint() / 1_000n;
+  }
+
+  private deferActionBarrier(actionStartedAtHostUs: bigint): void {
+    if (
+      this.pendingActionBarrierAtHostUs === null ||
+      actionStartedAtHostUs > this.pendingActionBarrierAtHostUs
+    ) {
+      this.pendingActionBarrierAtHostUs = actionStartedAtHostUs;
+    }
   }
 
   /**
@@ -375,23 +437,33 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Move the scrcpy PTS barrier past a completed input action. Barrier failures
-   * must not turn a successfully injected action into an action error; disable
-   * the stream and let subsequent captures use the existing ADB fallback.
+   * Move the scrcpy PTS barrier to immediately before an input action. Frames
+   * produced while the ADB command is returning then remain valid candidates.
+   * Barrier failures must not block the input action; disable the stream and
+   * let subsequent captures use the existing ADB fallback.
    */
   async markActionBarrier(): Promise<void> {
+    const actionStartedAtHostUs = this.monotonicTimeUs();
     const manager = this.manager;
     if (!manager?.isConnected()) {
-      this.pendingActionBarrier = true;
+      this.deferActionBarrier(actionStartedAtHostUs);
       return;
     }
 
     try {
-      await manager.setFreshnessBarrier('completed input action');
-      this.pendingActionBarrier = false;
+      await manager.setFreshnessBarrier('input action started', {
+        allowOverAgeForNextCapture: true,
+        hostMonotonicUs: actionStartedAtHostUs,
+      });
+      if (
+        this.pendingActionBarrierAtHostUs !== null &&
+        this.pendingActionBarrierAtHostUs <= actionStartedAtHostUs
+      ) {
+        this.pendingActionBarrierAtHostUs = null;
+      }
       this.clearFailure();
     } catch (error) {
-      this.pendingActionBarrier = true;
+      this.deferActionBarrier(actionStartedAtHostUs);
       this.recordFailure(error);
       debugAdapter(
         `Unable to mark scrcpy action barrier; disabling this stream: ${error}`,
@@ -460,7 +532,7 @@ export class ScrcpyDeviceAdapter {
   async disconnect(): Promise<void> {
     this.lifecycleGeneration += 1;
     this.freshnessRecoveryPending = false;
-    this.pendingActionBarrier = false;
+    this.pendingActionBarrierAtHostUs = null;
     for (const unsubscribe of this.keyframeUnsubscribers.values()) {
       unsubscribe();
     }
