@@ -818,6 +818,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     });
   }
 
+  async aiMiddleClick(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<void> {
+    assert(locatePrompt, 'missing locate prompt for middle click');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    await this.callActionInActionSpace('MiddleClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiDoubleClick(
     locatePrompt: TUserPrompt,
     opt?: LocateOption,
