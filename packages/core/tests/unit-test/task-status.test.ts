@@ -52,6 +52,11 @@ describe('deriveTaskStatus', () => {
     expect(deriveTaskStatus({ status: 'running' })).toBe('running');
     expect(deriveTaskStatus({ status: 'cancelled' })).toBe('cancelled');
   });
+
+  it('returns unknown when the raw status is missing or unsupported', () => {
+    expect(deriveTaskStatus({})).toBe('unknown');
+    expect(deriveTaskStatus({ status: 'mystery' as never })).toBe('unknown');
+  });
 });
 
 describe('deriveCaseStatus', () => {

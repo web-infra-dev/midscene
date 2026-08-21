@@ -120,6 +120,43 @@ export {
   type MergeReportFilesOptions,
   type MergeReportFilesResult,
 } from './report-cli';
+export {
+  REPORT_ANALYSIS_CATEGORY_LABELS,
+  REPORT_ANALYSIS_CONFIDENCE_LEVELS,
+  REPORT_EVIDENCE_SOURCES,
+  REPORT_FAILED_RESULT_ASSESSMENTS,
+  REPORT_PASSED_RESULT_ASSESSMENTS,
+  REPORT_RESULT_ASSESSMENTS,
+  getReportAnalysisJsonSchema,
+  parseReportAnalysisResultJson,
+  renderReportAnalysisResult,
+  renderReportAnalysisResultFile,
+  renderReportAnalysisResultMarkdownFile,
+  validateReportAnalysisResult,
+  type MidsceneReportAnalysisResult,
+  type ReportAnalysisCategory,
+  type ReportAnalysisCauseCategory,
+  type ReportAnalysisConfidence,
+  type ReportAnalysisEvidence,
+  type ReportAnalysisJsonSchema,
+  type ReportIncompleteExecutionAnalysisResult,
+  type ReportEvidenceSource,
+  type ReportFailedResultAnalysisResult,
+  type ReportFailedResultAssessment,
+  type ReportPassedResultAnalysisResult,
+  type ReportPassedResultAssessment,
+  type ReportResultAssessment,
+} from './report-analysis-result';
+export {
+  REPORT_STATUSES,
+  inspectReport,
+  inspectReportFile,
+  type InspectReportOptions,
+  type InspectReportFileOptions,
+  type PublicReportInspectionResult,
+  type ReportInspectionResult,
+  type ReportStatus,
+} from './report-inspection';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
