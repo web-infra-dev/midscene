@@ -1,0 +1,46 @@
+# Midscene AppControlBench Benchmark 测试报告
+
+import { AppControlBenchReport } from '@theme';
+
+本报告展示 Midscene 在 AppControlBench 上的测试结果。本次评测包含 60 个 iOS 任务，**Pass@1 为 96.67%（58/60）**，**完成率为 96.67%**（58 个 success、0 个 partial、2 个 fail）。完整运行记录的模型总成本为 **$0.6077 / ¥4.1326**。
+
+:::info 关于 AppControlBench
+
+[AppControlBench](https://github.com/software-mansion/app-control-bench) 用于评估 Agent 操作真实 iOS 应用的能力。每个任务都在隔离的 Simulator 中运行，并从全新的设备状态和服务端状态开始；任务结束后，根据任务专属的目标界面描述对最终截图进行评分。本次运行包含 30 个 Bluesky 任务和 30 个 Element iOS 任务。
+
+:::
+
+## 运行配置
+
+| 字段 | 值 |
+| --- | --- |
+| 测试日期 | 2026-08-21 |
+| Model Name | Doubao Seed 2.1 pro |
+| Midscene 版本 | `1.10.10-beta-20260806092028.0` |
+| DeepThink | 关闭 |
+| 设备 | iOS Simulator |
+| 任务数 | 60 |
+| Pass@k | 1 |
+| AppControlBench 工程 | Midscene 适配层把 Agent 执行委托给 `@midscene/ios`；AppControlBench 继续负责任务重置、Simulator 生命周期、最终截图采集和评分。 |
+| 验收规则 | 沿用原有目标状态和 judge 规则，仅对 2 个 case 的操作意图进行校准。 |
+
+## Case 意图校准
+
+本次评测针对固定版本 Element iOS 的实际界面，对 2 个 case 的操作路径描述进行了校准。校准只消除旧版或不存在的 UI 入口描述，不改变 case 的最终目标状态和 judge 规则。
+
+| Case | 意图校准 | 验收目标 |
+| --- | --- | --- |
+| `element-06` | 将旧版界面的 “+ button” 路径校准为通过当前 create/compose 入口打开创建房间菜单。 | “All chats” 页面显示相同的 create/compose 菜单弹层。 |
+| `element-07` | 将不存在的 header `...` 路径校准为通过房间标题、头像或 header 打开 Room Info/options。 | 打开相同的 Project Phoenix Room Info/options 页面。 |
+
+## 模型成本计算
+
+每个任务的价格来自对应 Midscene 执行报告中记录的 `usage` 和 `searchAreaUsage`。`doubao-seed-2-1-turbo-260628` 使用标准推理费率：非缓存输入 ¥3/百万 token、缓存输入 ¥0.6/百万 token、输出 ¥15/百万 token；美元金额按 ¥6.8 = $1 折算。
+
+下方金额只统计 Midscene 执行过程中的模型调用，不包含 AppControlBench judge 调用和缓存存储费用。每个任务的计算结果保存六位小数，页面展示四位小数。
+
+## 报告文件
+
+可查看[汇总报告原始文件](https://lf0-fast-deliver-inner.bytedance.net/obj/eden-internal/ruhymeh7nulmln/run-for-leaderboard/midscene-bench/20260821-152424-465m7a3/bench-report.html)和下方 60 份详细执行报告。点击“报告”可在新页面打开对应执行轨迹。
+
+<AppControlBenchReport locale="zh" />

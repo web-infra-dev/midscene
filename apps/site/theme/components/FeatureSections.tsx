@@ -884,7 +884,7 @@ export function FeatureSections() {
             </div>
           </div>
 
-          <div className="w-full flex flex-col md:flex-row gap-6">
+          <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
             <BenchmarkLinkCard
               href={tUrl(t('featureBenchmarkLink'))}
               score="93.1%"
@@ -897,6 +897,13 @@ export function FeatureSections() {
               score="78.6%"
               title="MobileWorld Benchmark"
               details={`${t('benchmark')} 78.6% · 92/117`}
+            />
+
+            <BenchmarkLinkCard
+              href={tUrl(t('featureAppControlBenchLink'))}
+              score="96.7%"
+              title="AppControlBench Benchmark"
+              details={`${t('completion')} 96.7% · 58 PASS`}
             />
           </div>
         </FeatureSectionColumns>

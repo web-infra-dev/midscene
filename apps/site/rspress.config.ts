@@ -305,6 +305,10 @@ export default defineConfig(async () => {
             link: '/mobile-world-benchmark-report',
           },
           {
+            text: 'AppControlBench Benchmark Report',
+            link: '/app-control-bench-report',
+          },
+          {
             text: 'Changelog',
             link: '/changelog',
           },
@@ -464,6 +468,10 @@ export default defineConfig(async () => {
           {
             text: 'MobileWorld Benchmark 测试报告',
             link: '/zh/mobile-world-benchmark-report',
+          },
+          {
+            text: 'AppControlBench Benchmark 测试报告',
+            link: '/zh/app-control-bench-report',
           },
           {
             text: '更新日志',

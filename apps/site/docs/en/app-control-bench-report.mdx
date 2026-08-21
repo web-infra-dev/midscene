@@ -1,0 +1,46 @@
+# Midscene AppControlBench Benchmark Report
+
+import { AppControlBenchReport } from '@theme';
+
+This report presents Midscene results on the AppControlBench benchmark. The evaluation covers 60 iOS tasks, with a **Pass@1 score of 96.67% (58/60)** and a **completion score of 96.67%** (58 success, 0 partial, and 2 fail). The recorded model cost for the complete run is **$0.6077 / ¥4.1326**.
+
+:::info About AppControlBench
+
+[AppControlBench](https://github.com/software-mansion/app-control-bench) evaluates how well an Agent can operate real iOS apps in isolated Simulator runs. Each task starts from fresh device and server state, and the final screenshot is graded against a task-specific solved-screen description. This run covers 30 Bluesky tasks and 30 Element iOS tasks.
+
+:::
+
+## Run configuration
+
+| Field | Value |
+| --- | --- |
+| Test date | 2026-08-21 |
+| Model Name | Doubao Seed 2.1 pro |
+| Midscene version | `1.10.10-beta-20260806092028.0` |
+| DeepThink | off |
+| Device | iOS Simulator |
+| Number of tasks | 60 |
+| Pass@k | 1 |
+| AppControlBench project | The Midscene adapter delegated Agent execution to `@midscene/ios` while AppControlBench retained task reset, Simulator lifecycle, final screenshot capture, and grading. |
+| Evaluation rules | The original target states and judge rules were retained; only the action intent for 2 cases was calibrated. |
+
+## Case Intent Calibration
+
+For this evaluation, the action-route descriptions of 2 cases were calibrated against the actual UI of the pinned Element iOS version. The calibration only removes stale or unavailable UI-entry descriptions; it does not change the final target state or judge rules of either case.
+
+| Case | Intent calibration | Evaluation target |
+| --- | --- | --- |
+| `element-06` | Replaced the old-version “+ button” route with the current create/compose entry used to open the create-room menu. | The same create/compose menu popover is open on “All chats”. |
+| `element-07` | Replaced the unavailable header `...` route with opening Room Info/options through the room title, avatar, or header. | The same Project Phoenix Room Info/options screen is open. |
+
+## Model cost calculation
+
+Each task price comes from the `usage` and `searchAreaUsage` recorded in its Midscene execution report. For `doubao-seed-2-1-turbo-260628`, the report uses the standard inference rates of ¥3 per million non-cached input tokens, ¥0.6 per million cached input tokens, and ¥15 per million output tokens. USD values use an exchange rate of ¥6.8 per $1.
+
+The values below cover Midscene execution model calls only; AppControlBench judge calls and cache-storage charges are excluded. Per-task calculations are stored to six decimal places and displayed to four decimal places.
+
+## Report files
+
+The [source summary report](https://lf0-fast-deliver-inner.bytedance.net/obj/eden-internal/ruhymeh7nulmln/run-for-leaderboard/midscene-bench/20260821-152424-465m7a3/bench-report.html) and all 60 detailed execution reports are available below. Select “report” to open the corresponding trace in a new page.
+
+<AppControlBenchReport locale="en" />
