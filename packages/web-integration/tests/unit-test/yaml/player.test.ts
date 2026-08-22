@@ -900,6 +900,33 @@ tasks:
 });
 
 describe('YAML Player - aiInput with number values', () => {
+  test('should preserve leading zeros in an unquoted value', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_input_leading_zeros
+    flow:
+      - aiInput: 'input field'
+        value: 00005
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls[0][1].value,
+    ).toBe('00005');
+  });
+
   test('should accept integer value', async () => {
     const yamlString = `
 target:
@@ -1146,7 +1173,7 @@ tasks:
               "prompt": "salary field",
               "xpath": undefined,
             },
-            "value": "50000.5",
+            "value": "50000.50",
           },
         ],
         [
