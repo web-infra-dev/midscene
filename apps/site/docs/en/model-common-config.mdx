@@ -122,6 +122,59 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # If you use another Qwen version, replace
   </ModelConfigTab>
 </ModelConfigTabs>
 
+### DeepSeek Series {#deepseek}
+
+- Common model provider: [DeepSeek](https://platform.deepseek.com/)
+
+<div className="model-series-table">
+
+| Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
+| --- | --- | --- | --- |
+| DeepSeek V4 series | `deepseek-v4-flash-vision-exp` | `deepseek` | |
+
+</div>
+
+:::caution
+
+Currently, only `deepseek-v4-flash-vision-exp` supports the multimodal visual input required by Midscene. Other DeepSeek V4 models, including `deepseek-v4-pro` and `deepseek-v4-flash`, are not suitable for use with Midscene.
+
+:::
+
+Environment variable configuration example, using `deepseek-v4-flash-vision-exp`:
+
+<ModelConfigTabs>
+  <ModelConfigTab type="default">
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="planning">
+
+```bash
+MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
+MIDSCENE_PLANNING_MODEL_API_KEY="......"
+MIDSCENE_PLANNING_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="insight">
+
+```bash
+MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
+MIDSCENE_INSIGHT_MODEL_API_KEY="......"
+MIDSCENE_INSIGHT_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+</ModelConfigTabs>
+
 ### Google Gemini Series {#gemini}
 
 - Common model provider: [Google Gemini](https://gemini.google.com/)
