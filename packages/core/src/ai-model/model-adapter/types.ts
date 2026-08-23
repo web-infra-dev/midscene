@@ -256,6 +256,7 @@ export type LocateDefinition =
 export interface ModelAdapter {
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
   planning: PlanningAdapter;
   locate: LocateAdapter;
@@ -281,6 +282,12 @@ export interface ModelRuntime {
 export interface ModelAdapterDefinition {
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  /**
+   * Temporary compatibility for models that may occasionally return
+   * `bbox_2d` instead of `bbox`. Currently enabled only by Qwen adapters and
+   * should be removed once this model behavior no longer needs accommodation.
+   */
+  acceptBbox2dAlias?: boolean;
   imagePreprocess?: ImagePreprocessDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;

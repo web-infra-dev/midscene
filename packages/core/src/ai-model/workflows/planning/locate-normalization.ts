@@ -17,11 +17,13 @@ export function normalizePlanningActionLocateFields(
     includeLocateInPlanning,
     locateResultCodec,
     locateResultContext,
+    acceptBbox2dAlias = false,
   }: {
     actionSpace: DeviceAction[];
     includeLocateInPlanning: boolean;
     locateResultCodec?: LocateResultCodec;
     locateResultContext: LocateResultContext;
+    acceptBbox2dAlias?: boolean;
   },
 ): void {
   actions.forEach((action) => {
@@ -58,12 +60,21 @@ export function normalizePlanningActionLocateFields(
         locateResultCodec,
         'planning locate normalization requires a locate result codec',
       );
-      const rawLocateValue =
-        typeof locateResult === 'object' && locateResult !== null
-          ? (locateResult as Record<string, unknown>)[
-              locateResultCodec.promptSpec.resultKey
-            ]
-          : locateResult;
+      const rawLocateValue = (() => {
+        if (typeof locateResult !== 'object' || locateResult === null) {
+          return locateResult;
+        }
+
+        const locateResultRecord = locateResult as Record<string, unknown>;
+        const resultKey = locateResultCodec.promptSpec.resultKey;
+        if (locateResultRecord[resultKey] !== undefined) {
+          return locateResultRecord[resultKey];
+        }
+
+        return acceptBbox2dAlias && resultKey === 'bbox'
+          ? locateResultRecord.bbox_2d
+          : undefined;
+      })();
       action.param[field] = {
         ...locateResult,
         locatedPixelBbox: locateResultCodec.toPixelBbox(

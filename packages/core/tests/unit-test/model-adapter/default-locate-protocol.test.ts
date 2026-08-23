@@ -85,6 +85,47 @@ describe('default locate protocol', () => {
     });
   });
 
+  it('does not accept bbox_2d aliases by default', () => {
+    const elementProtocol = createDefaultElementProtocol({
+      jsonParser: parseModelResponseJson,
+    });
+    const searchAreaProtocol = createDefaultSearchAreaProtocol({
+      jsonParser: parseModelResponseJson,
+    });
+    const locatePromptSpec = createLocateResultPromptSpec({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: 1000,
+    });
+
+    expect(
+      elementProtocol.parseRawResponse(
+        '{"bbox_2d":[100,200,300,400]}',
+        locatePromptSpec,
+      ),
+    ).toEqual({
+      kind: 'not-found',
+    });
+    expect(
+      elementProtocol.parseRawResponse(
+        '{"bbox":[100,200,300,400],"bbox_2d":[500,600,700,800]}',
+        locatePromptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+    expect(
+      searchAreaProtocol.parseRawResponse(
+        '{"bbox":[100,200,300,400],"references_bbox_2d":[[500,600,700,800]]}',
+        locatePromptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+  });
+
   it('uses the adapter JSON parser', () => {
     const jsonParser = vi.fn(() => ({ bbox: [100, 200, 300, 400] }));
     const elementProtocol = createDefaultElementProtocol({ jsonParser });

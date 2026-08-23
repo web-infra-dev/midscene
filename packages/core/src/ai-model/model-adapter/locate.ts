@@ -28,6 +28,7 @@ export function resolveLocate(
   locate: ModelAdapterDefinition['locate'],
   resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
   protocolContext: StandardLocateProtocolContext,
+  acceptBbox2dAlias = false,
 ): LocateAdapter {
   if (locate?.kind === 'custom') {
     let locateFn = locate.locateFn;
@@ -59,7 +60,9 @@ export function resolveLocate(
   }
 
   const elementProtocol = resolveLocateProtocolDefinition(
-    locate?.element?.protocol ?? createDefaultElementProtocol,
+    locate?.element?.protocol ??
+      ((context) =>
+        createDefaultElementProtocol(context, { acceptBbox2dAlias })),
     protocolContext,
   );
   const elementResultFormat =
@@ -69,7 +72,11 @@ export function resolveLocate(
     locate?.searchArea === false
       ? undefined
       : resolveLocateProtocolDefinition(
-          locate?.searchArea?.protocol ?? createDefaultSearchAreaProtocol,
+          locate?.searchArea?.protocol ??
+            ((context) =>
+              createDefaultSearchAreaProtocol(context, {
+                acceptBbox2dAlias,
+              })),
           protocolContext,
         );
   const searchAreaResultFormat =

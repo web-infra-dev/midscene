@@ -80,6 +80,38 @@ describe('normalizePlanningActionLocateFields', () => {
     expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
   });
 
+  it('accepts bbox_2d when the model adapter enables the alias', () => {
+    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const actions: PlanningAction[] = [
+      {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'submit',
+            bbox_2d: [50, 60, 70, 80],
+          },
+        },
+      },
+    ];
+
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning: true,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'bbox' },
+        toPixelBbox,
+      } as any,
+      locateResultContext,
+      acceptBbox2dAlias: true,
+    });
+
+    expect(toPixelBbox).toHaveBeenCalledWith(
+      [50, 60, 70, 80],
+      locateResultContext,
+    );
+    expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
+  });
+
   it('keeps only the prompt in prompt-only planning mode', () => {
     const toPixelBbox = vi.fn();
     const actions: PlanningAction[] = [

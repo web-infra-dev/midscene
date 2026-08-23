@@ -133,6 +133,7 @@ const buildQwen25ChatCompletionParams = (
 };
 
 const qwen3Adapter: ModelAdapterDefinition = {
+  acceptBbox2dAlias: true,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwenChatCompletionParams,
@@ -157,6 +158,7 @@ const qwen3Adapter: ModelAdapterDefinition = {
 
 export const qwenAdapters = {
   'qwen2.5-vl': {
+    acceptBbox2dAlias: true,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',

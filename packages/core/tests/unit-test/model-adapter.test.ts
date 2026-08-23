@@ -77,7 +77,6 @@ describe('model adapter registry', () => {
       'qwen3.5',
       'qwen3.6',
       'glm-v',
-      'deepseek',
       'kimi',
       'kimi3',
       'xiaomi-mimo',
@@ -96,11 +95,11 @@ describe('model adapter registry', () => {
     );
   });
 
-  it('replays raw assistant messages only for families that require opaque reasoning state', () => {
+  it('replays raw assistant messages only for kimi3', () => {
     for (const modelFamily of MODEL_FAMILY_VALUES) {
       expect(
         getModelAdapter(modelFamily).chatCompletion.replayRawAssistantMessage,
-      ).toBe(modelFamily === 'kimi3' || modelFamily === 'deepseek');
+      ).toBe(modelFamily === 'kimi3');
     }
   });
 

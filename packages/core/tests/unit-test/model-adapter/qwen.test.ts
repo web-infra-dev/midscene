@@ -21,6 +21,43 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  it.each([
+    ['qwen2.5-vl', qwen25Adapter],
+    ['qwen3-vl', qwen3VlAdapter],
+  ])('accepts bbox_2d as a target alias for %s', (_modelFamily, adapter) => {
+    const locateAdapter = adapter.locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen should use a standard locate protocol');
+    }
+
+    expect(
+      locateAdapter.element.protocol.parseRawResponse(
+        '{"bbox_2d":[100,200,300,400]}',
+        locateAdapter.element.resultCodec.promptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+  });
+
+  it('does not treat references_bbox_2d as a references alias', () => {
+    const locateAdapter = qwen3VlAdapter.locate;
+    if (locateAdapter.kind !== 'standard' || !locateAdapter.searchArea) {
+      throw new Error('qwen3-vl should use a standard search area protocol');
+    }
+
+    expect(
+      locateAdapter.searchArea.protocol.parseRawResponse(
+        '{"bbox_2d":[100,200,300,400],"references_bbox_2d":[[500,600,700,800]]}',
+        locateAdapter.searchArea.resultCodec.promptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+  });
+
   it('keeps qwen3, qwen3.5 and qwen3.6 chat completion behavior aligned', () => {
     expect(
       qwen36Adapter.chatCompletion.buildChatCompletionParams({

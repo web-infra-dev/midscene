@@ -6,7 +6,8 @@ import {
 } from '../shared/model-locate-result';
 import type {
   ParsedLocateResponse,
-  StandardLocateProtocolFactory,
+  StandardLocateProtocol,
+  StandardLocateProtocolContext,
 } from './locate-protocol';
 
 const markdownCodeFence = '```';
@@ -106,11 +107,16 @@ ${markdownCodeFence}
 const buildSearchAreaUserPrompt = (sectionDescription: string) =>
   `Find section containing: ${sectionDescription}`;
 
+type ParseRawResponseOptions = {
+  includeReferences: boolean;
+  acceptBbox2dAlias?: boolean;
+};
+
 const createParseRawResponse =
   (
     jsonParser: JsonParser,
     source: JsonParserSource,
-    includeReferences: boolean,
+    options: ParseRawResponseOptions,
   ) =>
   (
     content: string,
@@ -123,7 +129,12 @@ const createParseRawResponse =
       throw new Error(`Failed to parse JSON locate response: ${content}`);
     }
     const record = parsedResponse as Record<string, unknown>;
-    const target = record[promptSpec.resultKey];
+    const target =
+      record[promptSpec.resultKey] !== undefined
+        ? record[promptSpec.resultKey]
+        : options.acceptBbox2dAlias && promptSpec.resultKey === 'bbox'
+          ? record.bbox_2d
+          : undefined;
     const error = typeof record.error === 'string' ? record.error : undefined;
     const hasTarget = Array.isArray(target)
       ? target.length > 0
@@ -132,7 +143,7 @@ const createParseRawResponse =
       return { kind: 'not-found', ...(error ? { error } : {}) };
     }
 
-    if (!includeReferences) {
+    if (!options.includeReferences) {
       return { kind: 'located', target, ...(error ? { error } : {}) };
     }
 
@@ -151,22 +162,34 @@ const createParseRawResponse =
     };
   };
 
-export const createDefaultElementProtocol: StandardLocateProtocolFactory = ({
-  jsonParser,
-}) => ({
+type DefaultLocateProtocolOptions = {
+  acceptBbox2dAlias?: boolean;
+};
+
+export const createDefaultElementProtocol = (
+  { jsonParser }: StandardLocateProtocolContext,
+  options: DefaultLocateProtocolOptions = {},
+): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultLocateSystemPromptIntroduction,
   buildResponseInstructions,
   buildUserPrompt,
   expectedJsonObjectResponse: true,
-  parseRawResponse: createParseRawResponse(jsonParser, 'locate', false),
+  parseRawResponse: createParseRawResponse(jsonParser, 'locate', {
+    includeReferences: false,
+    acceptBbox2dAlias: options.acceptBbox2dAlias,
+  }),
 });
 
-export const createDefaultSearchAreaProtocol: StandardLocateProtocolFactory = ({
-  jsonParser,
-}) => ({
+export const createDefaultSearchAreaProtocol = (
+  { jsonParser }: StandardLocateProtocolContext,
+  options: DefaultLocateProtocolOptions = {},
+): StandardLocateProtocol => ({
   systemPromptIntroduction: defaultSearchAreaSystemPromptIntroduction,
   buildResponseInstructions: buildSearchAreaResponseInstructions,
   buildUserPrompt: buildSearchAreaUserPrompt,
   expectedJsonObjectResponse: true,
-  parseRawResponse: createParseRawResponse(jsonParser, 'section-locator', true),
+  parseRawResponse: createParseRawResponse(jsonParser, 'section-locator', {
+    includeReferences: true,
+    acceptBbox2dAlias: options.acceptBbox2dAlias,
+  }),
 });
