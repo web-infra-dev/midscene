@@ -88,7 +88,7 @@ describe('grounding locate not-found parsing', () => {
     });
   });
 
-  it('retries once when result adapter cannot map coordinates', async () => {
+  it('retries once when result codec cannot map coordinates', async () => {
     vi.mocked(callAI)
       .mockResolvedValueOnce({
         content:
@@ -163,7 +163,7 @@ describe('grounding locate not-found parsing', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
   });
 
-  it('retries once when section result adapter cannot map coordinates', async () => {
+  it('retries once when search-area result codec cannot map coordinates', async () => {
     vi.mocked(callAI)
       .mockResolvedValueOnce({
         content: '{"bbox":[100,null,300,400]}',

@@ -151,9 +151,11 @@ const doubaoVisionAdapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: doubaoBboxCoordinatesMeta,
-      parseRawLocateValue: parseDoubaoRawLocateValue,
+    element: {
+      resultFormat: {
+        coordinates: doubaoBboxCoordinatesMeta,
+        parseRawLocateValue: parseDoubaoRawLocateValue,
+      },
     },
   },
 };

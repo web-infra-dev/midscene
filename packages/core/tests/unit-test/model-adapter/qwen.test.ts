@@ -305,11 +305,10 @@ describe('qwen model adapter', () => {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100.3, 200.4, 301, 401],
-        { preparedSize: { width: 1000, height: 1000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [100.3, 200.4, 301, 401],
+      { preparedSize: { width: 1000, height: 1000 } },
+    );
     expect(result).toEqual([100, 200, 301, 401]);
   });
 
@@ -320,11 +319,9 @@ describe('qwen model adapter', () => {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 100],
-        { preparedSize: { width: 1000, height: 1000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox([100, 100], {
+      preparedSize: { width: 1000, height: 1000 },
+    });
     expect(result).toMatchInlineSnapshot(`
       [
         100,
@@ -343,7 +340,7 @@ describe('qwen model adapter', () => {
     }
 
     expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox([100], {
+      locateAdapter.element.resultCodec.toPixelBbox([100], {
         preparedSize: { width: 0, height: 0 },
       }),
     ).toThrow();
@@ -357,10 +354,9 @@ describe('qwen model adapter', () => {
     }
 
     expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 1000, 2000],
-        { preparedSize: { width: 1000, height: 1000 } },
-      ),
+      locateAdapter.element.resultCodec.toPixelBbox([100, 200, 1000, 2000], {
+        preparedSize: { width: 1000, height: 1000 },
+      }),
     ).toThrow(/outside the image size/);
   });
 });

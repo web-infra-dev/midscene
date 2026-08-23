@@ -188,7 +188,7 @@ describe('service.locate deepLocate routing', () => {
         ...modelRuntime,
         adapter: new ResolvedModelAdapter(
           {
-            locate: { searchAreaProtocol: false },
+            locate: { searchArea: false },
           },
           'test-search-area-disabled',
         ),

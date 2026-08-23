@@ -1,5 +1,5 @@
-import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
-import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
+import { createLocateResultCodec } from '../shared/model-locate-result/factory';
+import type { LocateResultFormatDefinition } from '../shared/model-locate-result/types';
 import { resolvePlanningTapLocator } from '../workflows/grounding/planning-action-locate';
 import type { ResolvedCustomPlanningDefinition } from './custom-planning-types';
 import {
@@ -12,7 +12,7 @@ import type {
 } from './locate-protocol';
 import type { LocateAdapter, ModelAdapterDefinition } from './types';
 
-const defaultLocateResultAdapterDefinition: LocateResultAdapterDefinition = {
+const defaultLocateResultFormatDefinition: LocateResultFormatDefinition = {
   coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
 };
 
@@ -59,23 +59,40 @@ export function resolveLocate(
   }
 
   const elementProtocol = resolveLocateProtocolDefinition(
-    locate?.elementProtocol ?? createDefaultElementProtocol,
+    locate?.element?.protocol ?? createDefaultElementProtocol,
     protocolContext,
   );
+  const elementResultFormat =
+    locate?.element?.resultFormat ?? defaultLocateResultFormatDefinition;
+  const elementResultCodec = createLocateResultCodec(elementResultFormat);
   const searchAreaProtocol =
-    locate?.searchAreaProtocol === false
+    locate?.searchArea === false
       ? undefined
       : resolveLocateProtocolDefinition(
-          locate?.searchAreaProtocol ?? createDefaultSearchAreaProtocol,
+          locate?.searchArea?.protocol ?? createDefaultSearchAreaProtocol,
           protocolContext,
         );
+  const searchAreaResultFormat =
+    locate?.searchArea === false
+      ? undefined
+      : (locate?.searchArea?.resultFormat ?? elementResultFormat);
+  const searchAreaResultCodec = searchAreaResultFormat
+    ? createLocateResultCodec(searchAreaResultFormat)
+    : undefined;
 
   return {
     kind: 'standard',
-    elementProtocol,
-    searchAreaProtocol,
-    resultAdapter: createLocateResultAdapter(
-      locate?.resultAdapter ?? defaultLocateResultAdapterDefinition,
-    ),
+    element: {
+      protocol: elementProtocol,
+      resultCodec: elementResultCodec,
+    },
+    ...(searchAreaProtocol && searchAreaResultCodec
+      ? {
+          searchArea: {
+            protocol: searchAreaProtocol,
+            resultCodec: searchAreaResultCodec,
+          },
+        }
+      : {}),
   };
 }

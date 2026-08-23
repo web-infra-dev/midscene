@@ -18,11 +18,7 @@ import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { mergePixelBboxesToRect } from './locate-result-rect';
 import { buildSearchAreaConfig, expandSearchArea } from './search-area';
 import type { SearchAreaConfig } from './types';
-import {
-  type GroundingAIArgs,
-  formatLocateModelContext,
-  hasLocateResult,
-} from './utils';
+import { type GroundingAIArgs, formatLocateModelContext } from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
@@ -47,9 +43,9 @@ export async function AiLocateSection(options: {
     adapter.locate.kind === 'standard',
     'section locate requires a standard locate adapter',
   );
-  const resultAdapter = adapter.locate.resultAdapter;
-  const searchAreaProtocol = adapter.locate.searchAreaProtocol;
-  assert(searchAreaProtocol, 'section locate requires a search area protocol');
+  const searchArea = adapter.locate.searchArea;
+  assert(searchArea, 'section locate requires a search area operation');
+  const { protocol: searchAreaProtocol, resultCodec } = searchArea;
   const screenshotBase64 = context.screenshot.base64;
   const preparedImage = await prepareModelImage({
     imageBase64: screenshotBase64,
@@ -60,7 +56,7 @@ export async function AiLocateSection(options: {
 
   const systemPrompt = systemPromptToLocateSection({
     responseInstructions: searchAreaProtocol.buildResponseInstructions(
-      resultAdapter.promptSpec,
+      resultCodec.promptSpec,
     ),
   });
   const sectionLocatorInstructionText = searchAreaProtocol.buildUserPrompt(
@@ -119,28 +115,30 @@ export async function AiLocateSection(options: {
           },
         ),
       parseResponse: (response) => {
-        const rawLocateResult = searchAreaProtocol.parseRawResponse(
+        const parsedLocateResult = searchAreaProtocol.parseRawResponse(
           response.content,
+          resultCodec.promptSpec,
         );
-        const sectionError = rawLocateResult.error;
-        if (
-          !hasLocateResult(rawLocateResult, resultAdapter.promptSpec.resultKey)
-        ) {
+        const sectionError = parsedLocateResult.error;
+        if (parsedLocateResult.kind === 'not-found') {
           return { result: response, sectionError };
         }
 
         try {
-          const adaptedResult =
-            resultAdapter.adaptSectionLocateResultToPixelBboxGroup(
-              rawLocateResult,
-              {
-                preparedSize: preparedImage.preparedSize,
-                contentSize: preparedImage.contentSize,
-              },
-            );
+          const locateResultContext = {
+            preparedSize: preparedImage.preparedSize,
+            contentSize: preparedImage.contentSize,
+          };
+          const target = resultCodec.toPixelBbox(
+            parsedLocateResult.target,
+            locateResultContext,
+          );
+          const references = parsedLocateResult.references?.map((reference) =>
+            resultCodec.toPixelBbox(reference, locateResultContext),
+          );
           const mergedRect = mergePixelBboxesToRect([
-            adaptedResult.target,
-            ...(adaptedResult.references ?? []),
+            target,
+            ...(references ?? []),
           ]);
           debugSection('mergedRect %j', mergedRect);
           return {

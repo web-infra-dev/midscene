@@ -41,7 +41,7 @@ const locatePromptSpecFor = (
   if (locateAdapter.kind !== 'standard') {
     throw new Error(`${modelFamily} should use standard locate adapter`);
   }
-  return locateAdapter.resultAdapter.promptSpec;
+  return locateAdapter.element.resultCodec.promptSpec;
 };
 
 const defaultPlanningProtocolOptions = {

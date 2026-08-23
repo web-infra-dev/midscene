@@ -13,8 +13,8 @@ import type {
   JsonParserSource,
 } from '../shared/json';
 import type {
-  LocateResultAdapter,
-  LocateResultAdapterDefinition,
+  LocateResultCodec,
+  LocateResultFormatDefinition,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { LocateFn } from '../workflows/grounding/types';
@@ -174,6 +174,7 @@ export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'standard';
       protocol: StandardPlanningProtocol;
+      locateResultCodec?: LocateResultCodec;
     })
   | (PlanningPolicy & {
       kind: 'custom';
@@ -185,6 +186,7 @@ export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
       protocol?: StandardPlanningProtocolDefinition;
+      locateResultFormat?: LocateResultFormatDefinition | false;
     })
   | (Partial<PlanningPolicy> &
       (
@@ -202,10 +204,14 @@ export type PlanningDefinition =
 
 type StandardLocateAdapter = {
   kind: 'standard';
-  elementProtocol: StandardLocateProtocol;
-  searchAreaProtocol?: StandardLocateProtocol;
-  resultAdapter: LocateResultAdapter;
+  element: LocateOperation;
+  searchArea?: LocateOperation;
 };
+
+interface LocateOperation {
+  protocol: StandardLocateProtocol;
+  resultCodec: LocateResultCodec;
+}
 
 type CustomLocateAdapter = {
   kind: 'custom';
@@ -216,10 +222,14 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
-  elementProtocol?: StandardLocateProtocolDefinition;
-  searchAreaProtocol?: StandardLocateProtocolDefinition | false;
-  resultAdapter?: LocateResultAdapterDefinition;
+  element?: LocateOperationDefinition;
+  searchArea?: LocateOperationDefinition | false;
 };
+
+interface LocateOperationDefinition {
+  protocol?: StandardLocateProtocolDefinition;
+  resultFormat?: LocateResultFormatDefinition;
+}
 
 export interface PlanningTapLocatorDefinition {
   buildSystemPrompt(): string;

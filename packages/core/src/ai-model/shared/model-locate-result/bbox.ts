@@ -1,9 +1,4 @@
-import type {
-  LocateResultBbox,
-  LocateResultContext,
-  PixelBbox,
-  SectionLocatePixelBboxGroup,
-} from './types';
+import type { LocateResultBbox, LocateResultContext, PixelBbox } from './types';
 
 export function maxPixelIndex(size: number) {
   return Math.max(size - 1, 0);
@@ -123,21 +118,4 @@ export function finalizePixelBbox(
     clamp(right, 0, rightLimit),
     clamp(bottom, 0, bottomLimit),
   ];
-}
-
-export function finalizeSectionLocatePixelBboxGroup(
-  result: SectionLocatePixelBboxGroup,
-  rawResult: unknown,
-  ctx: LocateResultContext,
-): SectionLocatePixelBboxGroup {
-  return {
-    target: finalizePixelBbox(result.target, rawResult, ctx),
-    ...(result.references
-      ? {
-          references: result.references.map((reference) =>
-            finalizePixelBbox(reference, rawResult, ctx),
-          ),
-        }
-      : {}),
-  };
 }

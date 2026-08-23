@@ -261,10 +261,7 @@ export default class Service {
       };
     }
 
-    if (
-      adapter.locate.kind === 'standard' &&
-      adapter.locate.searchAreaProtocol
-    ) {
+    if (adapter.locate.kind === 'standard' && adapter.locate.searchArea) {
       const searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: queryPrompt,

@@ -56,16 +56,12 @@ describe('model adapter registry', () => {
         }
       }
       if (adapter.locate.kind === 'standard') {
-        expect(adapter.locate.resultAdapter.promptSpec).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptElementLocateResultToPixelBbox,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptSectionLocateResultToPixelBboxGroup,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptPlanningParamToPixelBbox,
-        ).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelBbox).toBeTruthy();
+        expect(adapter.locate.element.protocol).toBeTruthy();
+        if (adapter.locate.searchArea?.protocol) {
+          expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
+        }
       } else {
         expect(adapter.locate.locateFn).toBeTruthy();
       }
@@ -81,6 +77,7 @@ describe('model adapter registry', () => {
       'qwen3.5',
       'qwen3.6',
       'glm-v',
+      'deepseek',
       'kimi',
       'kimi3',
       'xiaomi-mimo',
@@ -99,11 +96,11 @@ describe('model adapter registry', () => {
     );
   });
 
-  it('replays raw assistant messages only for kimi3', () => {
+  it('replays raw assistant messages only for families that require opaque reasoning state', () => {
     for (const modelFamily of MODEL_FAMILY_VALUES) {
       expect(
         getModelAdapter(modelFamily).chatCompletion.replayRawAssistantMessage,
-      ).toBe(modelFamily === 'kimi3');
+      ).toBe(modelFamily === 'kimi3' || modelFamily === 'deepseek');
     }
   });
 
@@ -171,10 +168,11 @@ describe('ResolvedModelAdapter', () => {
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
     }
-    expect(adapter.locate.elementProtocol).toBeDefined();
-    expect(adapter.locate.searchAreaProtocol).toBeDefined();
+    expect(adapter.locate.element.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.resultCodec).toBeDefined();
     expect(
-      adapter.locate.resultAdapter.promptSpec.resultValueDescription,
+      adapter.locate.element.resultCodec.promptSpec.resultValueDescription,
     ).toContain('normalized to 0-1000');
   });
 
@@ -216,7 +214,7 @@ describe('ResolvedModelAdapter', () => {
     const adapterWithExplicitElementProtocol = new ResolvedModelAdapter(
       {
         locate: {
-          elementProtocol: createDefaultElementProtocol,
+          element: { protocol: createDefaultElementProtocol },
         },
       },
       'test-default-search-area',
@@ -224,7 +222,7 @@ describe('ResolvedModelAdapter', () => {
     const adapterWithoutSearchArea = new ResolvedModelAdapter(
       {
         locate: {
-          searchAreaProtocol: false,
+          searchArea: false,
         },
       },
       'test-disabled-search-area',
@@ -239,9 +237,11 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('test adapters should use standard locate');
     }
     expect(
-      adapterWithExplicitElementProtocol.locate.searchAreaProtocol,
+      adapterWithExplicitElementProtocol.locate.searchArea?.protocol,
     ).toBeDefined();
-    expect(adapterWithoutSearchArea.locate.searchAreaProtocol).toBeUndefined();
+    expect(
+      adapterWithoutSearchArea.locate.searchArea?.protocol,
+    ).toBeUndefined();
   });
 
   it('resolves custom planning tap locator definitions with the custom planner', () => {

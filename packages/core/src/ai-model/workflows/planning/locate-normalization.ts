@@ -4,7 +4,7 @@ import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type {
-  LocateResultAdapter,
+  LocateResultCodec,
   LocateResultContext,
 } from '../../shared/model-locate-result/types';
 
@@ -15,12 +15,12 @@ export function normalizePlanningActionLocateFields(
   {
     actionSpace,
     includeLocateInPlanning,
-    locateResultAdapter,
+    locateResultCodec,
     locateResultContext,
   }: {
     actionSpace: DeviceAction[];
     includeLocateInPlanning: boolean;
-    locateResultAdapter?: LocateResultAdapter;
+    locateResultCodec?: LocateResultCodec;
     locateResultContext: LocateResultContext;
   },
 ): void {
@@ -55,13 +55,19 @@ export function normalizePlanningActionLocateFields(
       }
 
       assert(
-        locateResultAdapter,
-        'planning locate normalization requires a locate result adapter',
+        locateResultCodec,
+        'planning locate normalization requires a locate result codec',
       );
+      const rawLocateValue =
+        typeof locateResult === 'object' && locateResult !== null
+          ? (locateResult as Record<string, unknown>)[
+              locateResultCodec.promptSpec.resultKey
+            ]
+          : locateResult;
       action.param[field] = {
         ...locateResult,
-        locatedPixelBbox: locateResultAdapter.adaptPlanningParamToPixelBbox(
-          locateResult,
+        locatedPixelBbox: locateResultCodec.toPixelBbox(
+          rawLocateValue,
           locateResultContext,
         ),
       };

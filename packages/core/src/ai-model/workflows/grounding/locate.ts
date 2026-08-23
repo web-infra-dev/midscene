@@ -22,11 +22,7 @@ import type {
   LocateRequestContext,
   LocateResult,
 } from './types';
-import {
-  type GroundingAIArgs,
-  formatLocateModelContext,
-  hasLocateResult,
-} from './utils';
+import { type GroundingAIArgs, formatLocateModelContext } from './utils';
 
 const debugGrounding = getDebug('ai:grounding');
 
@@ -142,15 +138,14 @@ export async function genericLocate(
     adapter.locate.kind === 'standard',
     'generic locate requires a standard locate adapter',
   );
-  const protocol = adapter.locate.elementProtocol;
-  const resultAdapter = adapter.locate.resultAdapter;
+  const { protocol, resultCodec } = adapter.locate.element;
   const userInstructionPrompt = protocol.buildUserPrompt(
     locateRequest.elementDescriptionText,
   );
   const systemPrompt = systemPromptToLocateElement({
     systemPromptIntroduction: protocol.systemPromptIntroduction,
     responseInstructions: protocol.buildResponseInstructions(
-      resultAdapter.promptSpec,
+      resultCodec.promptSpec,
     ),
   });
 
@@ -200,12 +195,13 @@ export async function genericLocate(
           },
         ),
       parseResponse: (response): LocateModelResponse => {
-        const rawLocateResult = protocol.parseRawResponse(response.content);
+        const parsedLocateResult = protocol.parseRawResponse(
+          response.content,
+          resultCodec.promptSpec,
+        );
         const rawResponse = response.content;
-        const locateError = rawLocateResult.error;
-        if (
-          !hasLocateResult(rawLocateResult, resultAdapter.promptSpec.resultKey)
-        ) {
+        const locateError = parsedLocateResult.error;
+        if (parsedLocateResult.kind === 'not-found') {
           return {
             rawResponse,
             rawChoiceMessage: response.rawChoiceMessage,
@@ -216,11 +212,13 @@ export async function genericLocate(
         }
 
         try {
-          const locatedPixelBbox =
-            resultAdapter.adaptElementLocateResultToPixelBbox(rawLocateResult, {
+          const locatedPixelBbox = resultCodec.toPixelBbox(
+            parsedLocateResult.target,
+            {
               preparedSize: preparedImage.preparedSize,
               contentSize: preparedImage.contentSize,
-            });
+            },
+          );
           return {
             locatedPixelBbox,
             rawResponse,

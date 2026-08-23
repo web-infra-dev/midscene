@@ -147,8 +147,10 @@ const qwen3Adapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: qwen3BboxCoordinatesMeta,
+    element: {
+      resultFormat: {
+        coordinates: qwen3BboxCoordinatesMeta,
+      },
     },
   },
 };
@@ -167,10 +169,12 @@ export const qwenAdapters = {
       padBlockSize: 28,
     },
     locate: {
-      resultAdapter: {
-        coordinates: qwen25BboxCoordinatesMeta,
-        parseRawLocateValue: parseQwen25RawLocateValue,
-        mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
+      element: {
+        resultFormat: {
+          coordinates: qwen25BboxCoordinatesMeta,
+          parseRawLocateValue: parseQwen25RawLocateValue,
+          mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
+        },
       },
     },
   },

@@ -50,11 +50,16 @@ export class ResolvedModelAdapter implements ModelAdapter {
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner, {
-      jsonParser: this.jsonParser,
-    });
     this.locate = resolveLocate(config.locate, resolvedCustomPlanner, {
       jsonParser: this.jsonParser,
     });
+    this.planning = resolvePlanning(
+      config.planning,
+      resolvedCustomPlanner,
+      { jsonParser: this.jsonParser },
+      this.locate.kind === 'standard'
+        ? this.locate.element.resultCodec
+        : undefined,
+    );
   }
 }

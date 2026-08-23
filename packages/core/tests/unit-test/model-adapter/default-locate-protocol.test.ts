@@ -55,23 +55,33 @@ describe('default locate protocol', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
+    const locatePromptSpec = createLocateResultPromptSpec({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: 1000,
+    });
 
     expect(
-      elementProtocol.parseRawResponse('{"bbox":[100,200,300,400]}'),
+      elementProtocol.parseRawResponse(
+        '{"bbox":[100,200,300,400]}',
+        locatePromptSpec,
+      ),
     ).toEqual({
-      bbox: [100, 200, 300, 400],
+      kind: 'located',
+      target: [100, 200, 300, 400],
     });
-    expect(() => elementProtocol.parseRawResponse('null')).toThrow(
-      'failed to parse LLM response into JSON',
-    );
+    expect(() =>
+      elementProtocol.parseRawResponse('null', locatePromptSpec),
+    ).toThrow('failed to parse LLM response into JSON');
 
     expect(
       searchAreaProtocol.parseRawResponse(
         '{"bbox":[100,200,300,400],"references_bbox":[]}',
+        locatePromptSpec,
       ),
     ).toEqual({
-      bbox: [100, 200, 300, 400],
-      references_bbox: [],
+      kind: 'located',
+      target: [100, 200, 300, 400],
     });
   });
 
@@ -79,15 +89,26 @@ describe('default locate protocol', () => {
     const jsonParser = vi.fn(() => ({ bbox: [100, 200, 300, 400] }));
     const elementProtocol = createDefaultElementProtocol({ jsonParser });
     const searchAreaProtocol = createDefaultSearchAreaProtocol({ jsonParser });
+    const locatePromptSpec = createLocateResultPromptSpec({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: 1000,
+    });
 
-    expect(elementProtocol.parseRawResponse('model-specific response')).toEqual(
-      { bbox: [100, 200, 300, 400] },
-    );
+    expect(
+      elementProtocol.parseRawResponse(
+        'model-specific response',
+        locatePromptSpec,
+      ),
+    ).toEqual({ kind: 'located', target: [100, 200, 300, 400] });
     expect(jsonParser).toHaveBeenCalledWith('model-specific response', {
       source: 'locate',
     });
 
-    searchAreaProtocol.parseRawResponse('model-specific response');
+    searchAreaProtocol.parseRawResponse(
+      'model-specific response',
+      locatePromptSpec,
+    );
     expect(jsonParser).toHaveBeenLastCalledWith('model-specific response', {
       source: 'section-locator',
     });

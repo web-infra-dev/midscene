@@ -4,7 +4,10 @@ import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
 } from '../shared/model-locate-result';
-import type { StandardLocateProtocolFactory } from './locate-protocol';
+import type {
+  ParsedLocateResponse,
+  StandardLocateProtocolFactory,
+} from './locate-protocol';
 
 const markdownCodeFence = '```';
 
@@ -104,14 +107,48 @@ const buildSearchAreaUserPrompt = (sectionDescription: string) =>
   `Find section containing: ${sectionDescription}`;
 
 const createParseRawResponse =
-  (jsonParser: JsonParser, source: JsonParserSource) => (content: string) => {
+  (
+    jsonParser: JsonParser,
+    source: JsonParserSource,
+    includeReferences: boolean,
+  ) =>
+  (
+    content: string,
+    promptSpec: LocateResultPromptSpec,
+  ): ParsedLocateResponse => {
     const parsedResponse = jsonParser(content, {
       source,
     });
     if (!parsedResponse || typeof parsedResponse !== 'object') {
       throw new Error(`Failed to parse JSON locate response: ${content}`);
     }
-    return parsedResponse as Record<string, unknown>;
+    const record = parsedResponse as Record<string, unknown>;
+    const target = record[promptSpec.resultKey];
+    const error = typeof record.error === 'string' ? record.error : undefined;
+    const hasTarget = Array.isArray(target)
+      ? target.length > 0
+      : target !== undefined;
+    if (!hasTarget) {
+      return { kind: 'not-found', ...(error ? { error } : {}) };
+    }
+
+    if (!includeReferences) {
+      return { kind: 'located', target, ...(error ? { error } : {}) };
+    }
+
+    const rawReferences = record[`references_${promptSpec.resultKey}`];
+    const references =
+      rawReferences === undefined || rawReferences === null
+        ? undefined
+        : Array.isArray(rawReferences)
+          ? rawReferences
+          : [rawReferences];
+    return {
+      kind: 'located',
+      target,
+      ...(references?.length ? { references } : {}),
+      ...(error ? { error } : {}),
+    };
   };
 
 export const createDefaultElementProtocol: StandardLocateProtocolFactory = ({
@@ -121,7 +158,7 @@ export const createDefaultElementProtocol: StandardLocateProtocolFactory = ({
   buildResponseInstructions,
   buildUserPrompt,
   expectedJsonObjectResponse: true,
-  parseRawResponse: createParseRawResponse(jsonParser, 'locate'),
+  parseRawResponse: createParseRawResponse(jsonParser, 'locate', false),
 });
 
 export const createDefaultSearchAreaProtocol: StandardLocateProtocolFactory = ({
@@ -131,5 +168,5 @@ export const createDefaultSearchAreaProtocol: StandardLocateProtocolFactory = ({
   buildResponseInstructions: buildSearchAreaResponseInstructions,
   buildUserPrompt: buildSearchAreaUserPrompt,
   expectedJsonObjectResponse: true,
-  parseRawResponse: createParseRawResponse(jsonParser, 'section-locator'),
+  parseRawResponse: createParseRawResponse(jsonParser, 'section-locator', true),
 });

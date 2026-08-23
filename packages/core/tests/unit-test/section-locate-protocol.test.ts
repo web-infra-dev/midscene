@@ -41,17 +41,28 @@ describe('section locate protocol', () => {
       (description: string) => `Custom search-area task: ${description}`,
     );
     const parseRawResponse = vi.fn(() => ({
-      bbox: [100, 200, 300, 400],
+      kind: 'located' as const,
+      target: [100, 200, 300, 400],
     }));
     const adapter = new ResolvedModelAdapter(
       {
         locate: {
-          searchAreaProtocol: {
-            systemPromptIntroduction: 'Custom search-area introduction',
-            buildResponseInstructions,
-            buildUserPrompt,
-            expectedJsonObjectResponse: false,
-            parseRawResponse,
+          element: {
+            resultFormat: {
+              coordinates: { shape: 'point', normalizedBy: 1000 },
+            },
+          },
+          searchArea: {
+            resultFormat: {
+              coordinates: { shape: 'bbox', normalizedBy: 1000 },
+            },
+            protocol: {
+              systemPromptIntroduction: 'Custom search-area introduction',
+              buildResponseInstructions,
+              buildUserPrompt,
+              expectedJsonObjectResponse: false,
+              parseRawResponse,
+            },
           },
         },
       },
@@ -71,10 +82,13 @@ describe('section locate protocol', () => {
     });
 
     expect(buildResponseInstructions).toHaveBeenCalledWith(
-      adapter.locate.resultAdapter.promptSpec,
+      adapter.locate.searchArea?.resultCodec?.promptSpec,
     );
     expect(buildUserPrompt).toHaveBeenCalledWith('the row containing Peter');
-    expect(parseRawResponse).toHaveBeenCalledWith('custom section response');
+    expect(parseRawResponse).toHaveBeenCalledWith(
+      'custom section response',
+      adapter.locate.searchArea?.resultCodec.promptSpec,
+    );
     expect(vi.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
       content: expect.stringContaining(
         'You are an AI assistant that helps identify UI elements.',
