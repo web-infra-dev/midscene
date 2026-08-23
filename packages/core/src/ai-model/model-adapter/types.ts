@@ -22,6 +22,10 @@ import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
 import type {
+  StandardLocateProtocol,
+  StandardLocateProtocolDefinition,
+} from './locate-protocol';
+import type {
   StandardPlanningProtocol,
   StandardPlanningProtocolDefinition,
 } from './planning-protocol';
@@ -196,33 +200,24 @@ export type PlanningDefinition =
           }
       ));
 
-interface LocatePolicy {
-  /**
-   * Whether the locate adapter supports finding a coarse search area before the
-   * final element locate step.
-   *
-   * Some custom model families provide their own planning flow but do not
-   * support standalone locate/section-locate. They cannot behave like standard
-   * deepLocate, where a reference element is first located to build the search
-   * area for the final locate call.
-   */
-  supportsSearchArea: boolean;
-}
-
-type StandardLocateAdapter = LocatePolicy & {
+type StandardLocateAdapter = {
   kind: 'standard';
+  elementProtocol: StandardLocateProtocol;
+  searchAreaProtocol?: StandardLocateProtocol;
   resultAdapter: LocateResultAdapter;
 };
 
-type CustomLocateAdapter = LocatePolicy & {
+type CustomLocateAdapter = {
   kind: 'custom';
   locateFn: LocateFn;
 };
 
 export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
-type StandardLocateDefinition = Partial<LocatePolicy> & {
+type StandardLocateDefinition = {
   kind?: 'standard';
+  elementProtocol?: StandardLocateProtocolDefinition;
+  searchAreaProtocol?: StandardLocateProtocolDefinition | false;
   resultAdapter?: LocateResultAdapterDefinition;
 };
 
@@ -231,18 +226,18 @@ export interface PlanningTapLocatorDefinition {
   getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
 }
 
-type CustomLocateDefinition = Partial<LocatePolicy> & {
+type CustomLocateDefinition = {
   kind: 'custom';
 } & (
-    | {
-        locateFn: LocateFn;
-        planningTapLocator?: never;
-      }
-    | {
-        planningTapLocator: PlanningTapLocatorDefinition;
-        locateFn?: never;
-      }
-  );
+  | {
+      locateFn: LocateFn;
+      planningTapLocator?: never;
+    }
+  | {
+      planningTapLocator: PlanningTapLocatorDefinition;
+      locateFn?: never;
+    }
+);
 
 export type LocateDefinition =
   | StandardLocateDefinition

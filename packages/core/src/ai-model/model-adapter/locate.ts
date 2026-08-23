@@ -2,15 +2,32 @@ import { createLocateResultAdapter } from '../shared/model-locate-result/factory
 import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
 import { resolvePlanningTapLocator } from '../workflows/grounding/planning-action-locate';
 import type { ResolvedCustomPlanningDefinition } from './custom-planning-types';
+import {
+  createDefaultElementProtocol,
+  createDefaultSearchAreaProtocol,
+} from './default-locate-protocol';
+import type {
+  StandardLocateProtocolContext,
+  StandardLocateProtocolDefinition,
+} from './locate-protocol';
 import type { LocateAdapter, ModelAdapterDefinition } from './types';
 
 const defaultLocateResultAdapterDefinition: LocateResultAdapterDefinition = {
   coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
 };
 
+const resolveLocateProtocolDefinition = (
+  protocolDefinition: StandardLocateProtocolDefinition,
+  protocolContext: StandardLocateProtocolContext,
+) =>
+  typeof protocolDefinition === 'function'
+    ? protocolDefinition(protocolContext)
+    : protocolDefinition;
+
 export function resolveLocate(
   locate: ModelAdapterDefinition['locate'],
   resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
+  protocolContext: StandardLocateProtocolContext,
 ): LocateAdapter {
   if (locate?.kind === 'custom') {
     let locateFn = locate.locateFn;
@@ -37,14 +54,26 @@ export function resolveLocate(
 
     return {
       kind: 'custom',
-      supportsSearchArea: locate.supportsSearchArea ?? false,
       locateFn,
     };
   }
 
+  const elementProtocol = resolveLocateProtocolDefinition(
+    locate?.elementProtocol ?? createDefaultElementProtocol,
+    protocolContext,
+  );
+  const searchAreaProtocol =
+    locate?.searchAreaProtocol === false
+      ? undefined
+      : resolveLocateProtocolDefinition(
+          locate?.searchAreaProtocol ?? createDefaultSearchAreaProtocol,
+          protocolContext,
+        );
+
   return {
     kind: 'standard',
-    supportsSearchArea: locate?.supportsSearchArea ?? true,
+    elementProtocol,
+    searchAreaProtocol,
     resultAdapter: createLocateResultAdapter(
       locate?.resultAdapter ?? defaultLocateResultAdapterDefinition,
     ),

@@ -1,3 +1,4 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
 import { type AIUsageInfo, ServiceError } from '@/types';
@@ -173,16 +174,33 @@ describe('service.locate deepLocate routing', () => {
     expect(AiLocateElement).not.toHaveBeenCalled();
   });
 
-  it('uses first-pass locate when the model does not support search-area locate', async () => {
+  it.each([
+    {
+      description: 'a custom locate adapter',
+      modelRuntime: getModelRuntime({
+        ...modelConfig,
+        modelFamily: 'auto-glm',
+      }),
+    },
+    {
+      description: 'a standard adapter with search-area locate disabled',
+      modelRuntime: {
+        ...modelRuntime,
+        adapter: new ResolvedModelAdapter(
+          {
+            locate: { searchAreaProtocol: false },
+          },
+          'test-search-area-disabled',
+        ),
+      },
+    },
+  ])('uses first-pass locate for $description', async ({ modelRuntime }) => {
     const service = new Service(createFakeContext());
 
     await service.locate(
       { prompt: 'target', deepLocate: true },
       {},
-      getModelRuntime({
-        ...modelConfig,
-        modelFamily: 'auto-glm',
-      }),
+      modelRuntime,
     );
 
     expect(AiLocateSection).not.toHaveBeenCalled();

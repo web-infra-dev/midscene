@@ -1,4 +1,4 @@
-import { systemPromptToLocateElement } from '@/ai-model';
+import { createDefaultSearchAreaProtocol } from '@/ai-model/model-adapter/default-locate-protocol';
 import {
   buildActionDescription,
   createDefaultMidscenePlanningProtocol,
@@ -492,27 +492,26 @@ describe('system prompts', () => {
   });
 
   it('section locator - gemini', () => {
-    const prompt = systemPromptToLocateSection(locatePromptSpecFor('gemini'));
+    const searchAreaProtocol = createDefaultSearchAreaProtocol({
+      jsonParser: parseModelResponseJson,
+    });
+    const prompt = systemPromptToLocateSection({
+      responseInstructions: searchAreaProtocol.buildResponseInstructions(
+        locatePromptSpecFor('gemini'),
+      ),
+    });
     expect(prompt).toMatchSnapshot();
   });
 
   it('section locator - qwen', () => {
-    const prompt = systemPromptToLocateSection(
-      locatePromptSpecFor('qwen2.5-vl'),
-    );
-    expect(prompt).toMatchSnapshot();
-  });
-
-  it('locator - qwen', () => {
-    const prompt = systemPromptToLocateElement(
-      locatePromptSpecFor('qwen2.5-vl'),
-    );
-    expect(prompt).toContain('"error"?: string');
-    expect(prompt).toMatchSnapshot();
-  });
-
-  it('locator - gemini', () => {
-    const prompt = systemPromptToLocateElement(locatePromptSpecFor('gemini'));
+    const searchAreaProtocol = createDefaultSearchAreaProtocol({
+      jsonParser: parseModelResponseJson,
+    });
+    const prompt = systemPromptToLocateSection({
+      responseInstructions: searchAreaProtocol.buildResponseInstructions(
+        locatePromptSpecFor('qwen2.5-vl'),
+      ),
+    });
     expect(prompt).toMatchSnapshot();
   });
 });

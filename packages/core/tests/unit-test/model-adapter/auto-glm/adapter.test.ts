@@ -35,7 +35,6 @@ describe('auto-glm model adapter', () => {
     expect(autoGlmAdapter.planning.cacheEnabled).toBe(false);
     expect(autoGlmAdapter.planning.defaultReplanningCycleLimit).toBe(100);
     expect(autoGlmAdapter.planning.supportsActionDeepLocate).toBe(false);
-    expect(autoGlmAdapter.locate.supportsSearchArea).toBe(false);
   });
 
   it('keeps Auto-GLM request penalties without reasoning params', () => {

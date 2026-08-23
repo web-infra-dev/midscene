@@ -53,6 +53,8 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.planning = resolvePlanning(config.planning, resolvedCustomPlanner, {
       jsonParser: this.jsonParser,
     });
-    this.locate = resolveLocate(config.locate, resolvedCustomPlanner);
+    this.locate = resolveLocate(config.locate, resolvedCustomPlanner, {
+      jsonParser: this.jsonParser,
+    });
   }
 }
