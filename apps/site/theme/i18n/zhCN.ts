@@ -2,11 +2,11 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - New Badge
-  newBadge: '使用 Midscene Skills 控制任意平台',
+  newBadge: '全新支持 deepseek v4 视觉模型',
   changelogLink: '了解更多',
 
   // Banner - Title
-  heroTitle: 'Midscene.js 是面向 E2E 测试的 GUI Agent',
+  heroTitle: 'Midscene.js - 端到端测试\n的 GUI Agent',
   heroSubtitle: 'AI 视觉驱动。全平台覆盖。开箱即用。',
 
   // Banner - Stats
@@ -107,6 +107,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   userBilibiliLogoWidth: '120',
   userDoubao: '豆包',
   userDongchedi: '懂车帝',
+
+  // Bottom CTA and Footer
+  bottomCtaTitle: '面向 E2E 测试的 GUI Agent',
+  licenseNotice: 'Midscene 是基于 MIT 许可证发布的免费开源软件。',
+  copyrightNotice: '© 2024–至今 ByteDance Inc. 及其关联公司。',
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',

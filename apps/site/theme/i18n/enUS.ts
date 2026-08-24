@@ -1,10 +1,10 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Control Any Platform with Midscene Skills',
+  newBadge: 'Now supports the DeepSeek V4 vision model',
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'Midscene.js is the GUI Agent for E2E Testing',
+  heroTitle: 'Midscene.js\nthe GUI Agent\nfor E2E Testing',
   heroSubtitle: 'AI-powered vision. Cross-platform. Batteries included.',
 
   // Banner - Stats
@@ -115,6 +115,12 @@ UI testing toolkit`,
   userBilibiliLogoWidth: '90',
   userDoubao: 'Doubao',
   userDongchedi: 'Dongchedi',
+
+  // Bottom CTA and Footer
+  bottomCtaTitle: 'The GUI Agent for E2E Testing',
+  licenseNotice:
+    'Midscene is free and open source software released under the MIT license.',
+  copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',

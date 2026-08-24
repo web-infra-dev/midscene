@@ -74,13 +74,19 @@ export function Banner() {
             <span className="home-hero__eyebrow-divider" aria-hidden="true">
               |
             </span>
-            <Link href="https://github.com/web-infra-dev/midscene-skills">
+            <Link href="./model-common-config#deepseek">
               {t('changelogLink')}
             </Link>
           </div>
 
           <div className="home-hero__message">
-            <h1 id="home-hero-title">{t('heroTitle')}</h1>
+            <h1 id="home-hero-title">
+              {t('heroTitle')
+                .split('\n')
+                .map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+            </h1>
             <p>{t('heroSubtitle')}</p>
           </div>
 
