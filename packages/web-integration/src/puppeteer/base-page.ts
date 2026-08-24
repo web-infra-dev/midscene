@@ -42,6 +42,11 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import type {
+  VirtualWebSurface,
+  VirtualWebSurfaceAction,
+} from '../common/virtual-web-surface';
+import { WebSurfaceRouter } from '../common/web-surface-router';
 import {
   type KeyInput,
   type MouseButton,
@@ -223,6 +228,7 @@ export class Page<
   private visualUpdateFlushQueued = false;
   private visualUpdateForceQueued = false;
   private visualUpdateFollowupTimer?: ReturnType<typeof setTimeout>;
+  readonly surfaceRouter = new WebSurfaceRouter<VirtualWebSurface>();
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -232,6 +238,10 @@ export class Page<
     );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
+  }
+
+  protected getLastKnownViewportSize(): Size | undefined {
+    return this.viewportSize ? { ...this.viewportSize } : undefined;
   }
 
   private async evaluate<R>(
@@ -275,7 +285,37 @@ export class Page<
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      throw new Error(
+        '[midscene] evaluateJavaScript is unavailable while a virtual web surface is active.',
+      );
+    }
     return this.evaluate(script);
+  }
+
+  private async routeObservation<Result>(handlers: {
+    real: () => Promise<Result>;
+    virtual: (surface: VirtualWebSurface) => Promise<Result>;
+  }): Promise<Result> {
+    return this.surfaceRouter.routeObservation({
+      real: handlers.real,
+      virtual: handlers.virtual,
+    });
+  }
+
+  private async routeAction(
+    action: VirtualWebSurfaceAction,
+    realOperation: () => Promise<void>,
+  ): Promise<void> {
+    return this.surfaceRouter.routeAction({
+      real: async (lease) => {
+        await this.surfaceRouter.runInterruptibleRealOperation(
+          realOperation,
+          lease,
+        );
+      },
+      virtual: (surface) => surface.dispatchAction(action),
+    });
   }
 
   async waitForNavigation(
@@ -286,6 +326,9 @@ export class Page<
       | 'afterInvokeAction',
     actionName?: string,
   ) {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      return;
+    }
     if (this.waitForNavigationTimeout === 0) {
       debugPage('waitForNavigation timeout is 0, skip waiting');
       return;
@@ -317,6 +360,9 @@ export class Page<
     moment: 'afterInvokeAction',
     actionName?: string,
   ): Promise<void> {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      return;
+    }
     if (this.interfaceType === 'puppeteer') {
       if (this.waitForNetworkIdleTimeout === 0) {
         debugPage('waitForNetworkIdle timeout is 0, skip waiting');
@@ -381,6 +427,16 @@ export class Page<
     center: [number, number],
     options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
+    return this.routeObservation({
+      real: () => this.cacheFeatureForPointOnRealPage(center, options),
+      virtual: (surface) => surface.cacheFeatureForPoint(center),
+    });
+  }
+
+  private async cacheFeatureForPointOnRealPage(
+    center: [number, number],
+    options?: CacheFeatureOptions,
+  ): Promise<ElementCacheFeature> {
     const point: Point = { left: center[0], top: center[1] };
 
     try {
@@ -398,6 +454,15 @@ export class Page<
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    return this.routeObservation({
+      real: () => this.rectMatchesCacheFeatureOnRealPage(feature),
+      virtual: (surface) => surface.rectMatchesCacheFeature(feature),
+    });
+  }
+
+  private async rectMatchesCacheFeatureOnRealPage(
+    feature: ElementCacheFeature,
+  ): Promise<Rect> {
     const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
     debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
 
@@ -430,7 +495,16 @@ export class Page<
     );
   }
 
-  async getElementsNodeTree() {
+  async getElementsNodeTree(): Promise<ElementTreeNode<ElementInfo>> {
+    return this.routeObservation({
+      real: () => this.getElementsNodeTreeOnRealPage(),
+      virtual: (surface) => surface.getElementsNodeTree(),
+    });
+  }
+
+  private async getElementsNodeTreeOnRealPage(): Promise<
+    ElementTreeNode<ElementInfo>
+  > {
     // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
     // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
     // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
@@ -445,6 +519,13 @@ export class Page<
   }
 
   async size(): Promise<Size> {
+    return this.routeObservation({
+      real: () => this.sizeOnRealPage(),
+      virtual: (surface) => surface.size(),
+    });
+  }
+
+  private async sizeOnRealPage(): Promise<Size> {
     if (this.viewportSize) return this.viewportSize;
     const sizeInfo: Size = await this.evaluate(() => {
       return {
@@ -457,6 +538,13 @@ export class Page<
   }
 
   async screenshotBase64(): Promise<string> {
+    return this.routeObservation({
+      real: () => this.screenshotBase64OnRealPage(),
+      virtual: (surface) => surface.screenshotBase64(),
+    });
+  }
+
+  private async screenshotBase64OnRealPage(): Promise<string> {
     const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
@@ -585,6 +673,9 @@ export class Page<
     timeoutMs?: number;
     target?: ElementInfo;
   }): Promise<void> {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      return;
+    }
     const quietMs = opts?.quietMs ?? 100;
     const timeoutMs = opts?.timeoutMs ?? 500;
     const targetCenter = opts?.target?.center;
@@ -625,6 +716,9 @@ export class Page<
   }
 
   async flushPendingVisualUpdate(force = false): Promise<void> {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      return;
+    }
     const activeStream = this.activeMjpegStream;
     // A direct screenshot is normally only the fallback for an idle page that
     // has not emitted its first CDP screencast frame. Navigation actions force
@@ -975,84 +1069,112 @@ export class Page<
         y: number,
         options?: { button?: MouseButton; count?: number },
       ) => {
-        await this.mouse.move(x, y);
+        this.everMoved = true;
         const { button = 'left', count = 1 } = options || {};
-        debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
-
-        if (count === 2 && this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
-            button,
-          });
-        } else if (this.interfaceType === 'puppeteer') {
-          const page = this.underlyingPage as PuppeteerPage;
-          if (button === 'left' && count === 1) {
-            await page.mouse.click(x, y);
-          } else {
-            await page.mouse.click(x, y, { button, count });
-          }
-        } else if (this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
-            button,
-            clickCount: count,
-          });
-        }
+        return this.routeAction(
+          { type: 'mouse.click', x, y, button, count },
+          () => this.clickOnRealPage(x, y, button, count),
+        );
       },
       wheel: async (deltaX: number, deltaY: number) => {
-        debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
-        if (this.interfaceType === 'puppeteer') {
-          await (this.underlyingPage as PuppeteerPage).mouse.wheel({
-            deltaX,
-            deltaY,
-          });
-        } else if (this.interfaceType === 'playwright') {
-          await (this.underlyingPage as PlaywrightPage).mouse.wheel(
-            deltaX,
-            deltaY,
-          );
-        }
+        return this.routeAction({ type: 'mouse.wheel', deltaX, deltaY }, () =>
+          this.wheelOnRealPage(deltaX, deltaY),
+        );
       },
       move: async (x: number, y: number) => {
         this.everMoved = true;
-        debugPage(`mouse move to ${x}, ${y}`);
-        return this.underlyingPage.mouse.move(x, y);
+        return this.routeAction({ type: 'mouse.move', x, y }, () =>
+          this.moveOnRealPage(x, y),
+        );
       },
       drag: async (
         from: { x: number; y: number },
         to: { x: number; y: number },
       ) => {
-        debugPage(
-          `begin mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
-        );
-        await (this.underlyingPage as PlaywrightPage).mouse.move(
-          from.x,
-          from.y,
-        );
-        await sleep(200);
-        await (this.underlyingPage as PlaywrightPage).mouse.down();
-        await sleep(300);
-        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
-          steps: 20,
-        });
-        await sleep(500);
-        await (this.underlyingPage as PlaywrightPage).mouse.up();
-        await sleep(200);
-        debugPage(
-          `end mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
+        return this.routeAction({ type: 'mouse.drag', from, to }, () =>
+          this.dragOnRealPage(from, to),
         );
       },
     };
+  }
+
+  private async clickOnRealPage(
+    x: number,
+    y: number,
+    button: MouseButton,
+    count: number,
+  ): Promise<void> {
+    await this.moveOnRealPage(x, y);
+    debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
+    if (count === 2 && this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
+        button,
+      });
+    } else if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      if (button === 'left' && count === 1) {
+        await page.mouse.click(x, y);
+      } else {
+        await page.mouse.click(x, y, { button, count });
+      }
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+        button,
+        clickCount: count,
+      });
+    }
+  }
+
+  private async wheelOnRealPage(deltaX: number, deltaY: number): Promise<void> {
+    debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).mouse.wheel({
+        deltaX,
+        deltaY,
+      });
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).mouse.wheel(deltaX, deltaY);
+    }
+  }
+
+  private async moveOnRealPage(x: number, y: number): Promise<void> {
+    debugPage(`mouse move to ${x}, ${y}`);
+    await this.underlyingPage.mouse.move(x, y);
+  }
+
+  private async dragOnRealPage(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ): Promise<void> {
+    debugPage(`begin mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`);
+    await (this.underlyingPage as PlaywrightPage).mouse.move(from.x, from.y);
+    await sleep(200);
+    await (this.underlyingPage as PlaywrightPage).mouse.down();
+    await sleep(300);
+    await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
+      steps: 20,
+    });
+    await sleep(500);
+    await (this.underlyingPage as PlaywrightPage).mouse.up();
+    await sleep(200);
+    debugPage(`end mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`);
   }
 
   get keyboard() {
     return {
       type: async (text: string, options?: { delay?: number }) => {
         const effectiveDelay = options?.delay ?? this.keyboardTypeDelay;
-        debugPage(
-          `keyboard type ${text}${effectiveDelay !== undefined ? ` (delay: ${effectiveDelay}ms)` : ''}`,
+        return this.routeAction(
+          { type: 'keyboard.type', text, delay: effectiveDelay },
+          async () => {
+            debugPage(
+              `keyboard type ${text}${effectiveDelay !== undefined ? ` (delay: ${effectiveDelay}ms)` : ''}`,
+            );
+            await this.underlyingPage.keyboard.type(text, {
+              delay: effectiveDelay,
+            });
+          },
         );
-        return this.underlyingPage.keyboard.type(text, {
-          delay: effectiveDelay,
-        });
       },
       press: async (
         action:
@@ -1060,22 +1182,28 @@ export class Page<
           | { key: KeyInput; command?: string }[],
       ) => {
         const keys = Array.isArray(action) ? action : [action];
-        debugPage('keyboard press', keys);
-        for (const k of keys) {
-          const commands = k.command ? [k.command] : [];
-          await this.underlyingPage.keyboard.down(k.key, { commands });
-        }
-        for (const k of [...keys].reverse()) {
-          await this.underlyingPage.keyboard.up(k.key);
-        }
+        return this.routeAction({ type: 'keyboard.press', keys }, async () => {
+          debugPage('keyboard press', keys);
+          for (const k of keys) {
+            const commands = k.command ? [k.command] : [];
+            await this.underlyingPage.keyboard.down(k.key, { commands });
+          }
+          for (const k of [...keys].reverse()) {
+            await this.underlyingPage.keyboard.up(k.key);
+          }
+        });
       },
       down: async (key: KeyInput) => {
-        debugPage(`keyboard down ${key}`);
-        return this.underlyingPage.keyboard.down(key);
+        return this.routeAction({ type: 'keyboard.down', key }, async () => {
+          debugPage(`keyboard down ${key}`);
+          await this.underlyingPage.keyboard.down(key);
+        });
       },
       up: async (key: KeyInput) => {
-        debugPage(`keyboard up ${key}`);
-        return this.underlyingPage.keyboard.up(key);
+        return this.routeAction({ type: 'keyboard.up', key }, async () => {
+          debugPage(`keyboard up ${key}`);
+          await this.underlyingPage.keyboard.up(key);
+        });
       },
     };
   }
@@ -1103,14 +1231,27 @@ export class Page<
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {
+    return this.routeAction({ type: 'input.clear', element }, () =>
+      this.clearInputOnRealPage(element),
+    );
+  }
+
+  private async clearInputOnRealPage(element?: ElementInfo): Promise<void> {
     const backspace = async () => {
       await sleep(100);
-      await this.keyboard.press([{ key: 'Backspace' }]);
+      await this.underlyingPage.keyboard.down('Backspace', { commands: [] });
+      await this.underlyingPage.keyboard.up('Backspace');
     };
 
     debugPage('clearInput begin');
 
-    element && (await this.mouse.click(element.center[0], element.center[1]));
+    element &&
+      (await this.clickOnRealPage(
+        element.center[0],
+        element.center[1],
+        'left',
+        1,
+      ));
     try {
       await this.selectAllByCdp();
       await backspace();
@@ -1156,34 +1297,40 @@ export class Page<
   }
 
   async scrollUp(distance?: number, startingPoint?: Point): Promise<void> {
-    const innerHeight = await this.evaluate(() => window.innerHeight);
-    const scrollDistance = distance || innerHeight * 0.7;
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, -scrollDistance);
   }
 
   async scrollDown(distance?: number, startingPoint?: Point): Promise<void> {
-    const innerHeight = await this.evaluate(() => window.innerHeight);
-    const scrollDistance = distance || innerHeight * 0.7;
+    const { height } = await this.size();
+    const scrollDistance = distance || height * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(0, scrollDistance);
   }
 
   async scrollLeft(distance?: number, startingPoint?: Point): Promise<void> {
-    const innerWidth = await this.evaluate(() => window.innerWidth);
-    const scrollDistance = distance || innerWidth * 0.7;
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(-scrollDistance, 0);
   }
 
   async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
-    const innerWidth = await this.evaluate(() => window.innerWidth);
-    const scrollDistance = distance || innerWidth * 0.7;
+    const { width } = await this.size();
+    const scrollDistance = distance || width * 0.7;
     await this.moveToPointBeforeScroll(startingPoint);
     return this.mouse.wheel(scrollDistance, 0);
   }
 
   async navigate(url: string): Promise<void> {
+    return this.routeAction({ type: 'navigation.navigate', url }, () =>
+      this.navigateOnRealPage(url),
+    );
+  }
+
+  private async navigateOnRealPage(url: string): Promise<void> {
     debugPage(`navigate to ${url}`);
     if (this.interfaceType === 'puppeteer') {
       await (this.underlyingPage as PuppeteerPage).goto(url);
@@ -1195,6 +1342,12 @@ export class Page<
   }
 
   async reload(): Promise<void> {
+    return this.routeAction({ type: 'navigation.reload' }, () =>
+      this.reloadRealPage(),
+    );
+  }
+
+  private async reloadRealPage(): Promise<void> {
     debugPage('reload page');
     if (this.interfaceType === 'puppeteer') {
       await (this.underlyingPage as PuppeteerPage).reload();
@@ -1206,6 +1359,12 @@ export class Page<
   }
 
   async goBack(): Promise<void> {
+    return this.routeAction({ type: 'navigation.goBack' }, () =>
+      this.goBackOnRealPage(),
+    );
+  }
+
+  private async goBackOnRealPage(): Promise<void> {
     debugPage('go back');
     if (this.interfaceType === 'puppeteer') {
       await (this.underlyingPage as PuppeteerPage).goBack();
@@ -1217,6 +1376,12 @@ export class Page<
   }
 
   async goForward(): Promise<void> {
+    return this.routeAction({ type: 'navigation.goForward' }, () =>
+      this.goForwardOnRealPage(),
+    );
+  }
+
+  private async goForwardOnRealPage(): Promise<void> {
     debugPage('go forward');
     if (this.interfaceType === 'puppeteer') {
       await (this.underlyingPage as PuppeteerPage).goForward();
@@ -1246,6 +1411,9 @@ export class Page<
   }
 
   async navigationState(): Promise<{ isLoading: boolean }> {
+    if (this.surfaceRouter.isVirtualOrResuming()) {
+      return { isLoading: false };
+    }
     try {
       const readyState = await this.evaluate(() => document.readyState);
       return { isLoading: readyState !== 'complete' };
@@ -1262,10 +1430,12 @@ export class Page<
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
-    await Promise.all([
-      this.waitForNavigation('afterInvokeAction', name),
-      this.waitForNetworkIdle('afterInvokeAction', name),
-    ]);
+    if (!this.surfaceRouter.isVirtualOrResuming()) {
+      await Promise.all([
+        this.waitForNavigation('afterInvokeAction', name),
+        this.waitForNetworkIdle('afterInvokeAction', name),
+      ]);
+    }
 
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
@@ -1292,6 +1462,16 @@ export class Page<
       `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
     );
 
+    return this.routeAction({ type: 'gesture.swipe', from, to, duration }, () =>
+      this.swipeOnRealPage(from, to, duration),
+    );
+  }
+
+  private async swipeOnRealPage(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration: number,
+  ): Promise<void> {
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
       await page.mouse.move(from.x, from.y);
@@ -1334,6 +1514,16 @@ export class Page<
       duration = MIN_LONG_PRESS_DURATION;
     }
     debugPage(`mouse longPress at ${x}, ${y} for ${duration}ms`);
+    return this.routeAction({ type: 'gesture.longPress', x, y, duration }, () =>
+      this.longPressOnRealPage(x, y, duration),
+    );
+  }
+
+  private async longPressOnRealPage(
+    x: number,
+    y: number,
+    duration: number,
+  ): Promise<void> {
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
       await page.mouse.move(x, y);
@@ -1355,6 +1545,33 @@ export class Page<
     startDistance: number,
     endDistance: number,
     duration = 500,
+  ): Promise<void> {
+    return this.routeAction(
+      {
+        type: 'gesture.pinch',
+        centerX,
+        centerY,
+        startDistance,
+        endDistance,
+        duration,
+      },
+      () =>
+        this.pinchOnRealPage(
+          centerX,
+          centerY,
+          startDistance,
+          endDistance,
+          duration,
+        ),
+    );
+  }
+
+  private async pinchOnRealPage(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration: number,
   ): Promise<void> {
     const steps = 30;
     const delay = duration / steps;
