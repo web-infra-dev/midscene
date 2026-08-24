@@ -64,6 +64,7 @@ describe('createMidsceneNodes', () => {
       'aiAssert',
       'recordToReport',
       'launch',
+      'terminate',
       'wait',
       'agent',
     ]);
@@ -285,14 +286,15 @@ describe('createMidsceneNodes', () => {
     expect(releaseAgent.mock.calls).toEqual([['attempt-1'], ['attempt-2']]);
   });
 
-  it('delegates launch and agent nodes and provides history to the executor', async () => {
+  it('delegates device and agent nodes and provides history to the executor', async () => {
     const launch = vi.fn(async () => undefined);
+    const terminate = vi.fn(async () => undefined);
     const agentExecutor = {
       execute: vi.fn(async () => ({ summary: 'agent completed' })),
     };
     const registry = new NodeRegistry(
       createMidsceneNodes({
-        getAgent: () => ({ launch }) as unknown as MidsceneUIAgent,
+        getAgent: () => ({ launch, terminate }) as unknown as MidsceneUIAgent,
         agentExecutor,
       }),
     );
@@ -302,6 +304,11 @@ describe('createMidsceneNodes', () => {
         {
           node: 'launch',
           input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'terminate',
+          input: { prompt: 'com.example.app' },
           meta: { continueOnError: false },
         },
         {
@@ -324,6 +331,7 @@ describe('createMidsceneNodes', () => {
 
     expect(result.status).toBe('success');
     expect(launch).toHaveBeenCalledWith('com.example.app');
+    expect(terminate).toHaveBeenCalledWith('com.example.app');
     expect(agentExecutor.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         prompt: 'Inspect the current page with the allowed tools.',
@@ -331,6 +339,7 @@ describe('createMidsceneNodes', () => {
         execution: { scope: 'case', runId: 'agent-attempt' },
         history: [
           expect.objectContaining({ node: 'launch', status: 'passed' }),
+          expect.objectContaining({ node: 'terminate', status: 'passed' }),
           expect.objectContaining({ node: 'wait', status: 'passed' }),
         ],
       }),
@@ -416,12 +425,42 @@ describe('createMidsceneNodes', () => {
     await runtime.finish();
   });
 
-  it('can omit launch when a project registers a platform-specific replacement', () => {
+  it('can omit device lifecycle nodes for a Web project', () => {
     const nodes = createMidsceneNodes({
       getAgent: () => ({}) as MidsceneUIAgent,
       includeLaunch: false,
     });
 
     expect(nodes.map((node) => node.name)).not.toContain('launch');
+    expect(nodes.map((node) => node.name)).not.toContain('terminate');
+  });
+
+  it('can configure terminate independently from launch', () => {
+    const nodes = createMidsceneNodes({
+      getAgent: () => ({}) as MidsceneUIAgent,
+      includeLaunch: false,
+      includeTerminate: true,
+    });
+
+    expect(nodes.map((node) => node.name)).not.toContain('launch');
+    expect(nodes.map((node) => node.name)).toContain('terminate');
+  });
+
+  it('reports a missing terminate capability clearly', async () => {
+    const registry = new NodeRegistry(
+      createMidsceneNodes({ getAgent: () => ({}) as MidsceneUIAgent }),
+    );
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'terminate',
+          input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0].error?.message).toContain('Agent with terminate()');
   });
 });

@@ -614,11 +614,16 @@ const assertTypeScriptConfig = (absolutePath: string): void => {
   }
 };
 
-const canRetryWithCjsLoader = (error: unknown): error is SyntaxError =>
-  error instanceof SyntaxError &&
-  (/^Unexpected (?:identifier|reserved word|token)/.test(error.message) ||
-    (error as SyntaxError & { code?: string }).code ===
-      'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX');
+const canRetryWithCjsLoader = (error: unknown): error is Error => {
+  if (!(error instanceof Error)) return false;
+  const errorCode = (error as Error & { code?: string }).code;
+  return (
+    (error instanceof SyntaxError &&
+      /^Unexpected (?:identifier|reserved word|token)/.test(error.message)) ||
+    errorCode === 'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX' ||
+    errorCode === 'ERR_UNKNOWN_FILE_EXTENSION'
+  );
+};
 
 export async function loadTestProject<TContext = undefined>(
   configPath?: string,

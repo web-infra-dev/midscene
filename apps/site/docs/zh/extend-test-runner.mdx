@@ -331,7 +331,7 @@ export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 
 ## 集成 Midscene Agent
 
-`@midscene/test/midscene` 导出了六个系统内置 Node：`aiAct`、`aiAssert`、`recordToReport`、`launch`、`wait` 和 `agent`。
+`@midscene/test/midscene` 导出了七个系统内置 Node：`aiAct`、`aiAssert`、`recordToReport`、`launch`、`terminate`、`wait` 和 `agent`。
 
 你可以通过调用 `createMidsceneNodes()` 并传入 `getAgent` 回调，将其方便地集成到你的测试运行器配置中：
 
@@ -343,8 +343,101 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  // Web 使用 gotoUrl，不注册设备生命周期 Node。
+  includeLaunch: false,
 });
 ```
+
+`includeLaunch: false` 默认也会关闭 `terminate`。只有需要分别控制这两个能力时，
+才显式设置 `includeTerminate`。
+
+## 注册平台预置 Node
+
+Test Runner 通过独立入口发布各平台的预置 Node factory。Factory 使用 getter 获取
+运行时资源，不要求 Project Context 使用固定字段名。
+
+Playwright factory 注册 `gotoUrl`、`setCookies`、`clearCookies` 和
+`setViewportSize`。`playwright` 是 `@midscene/test` 的 optional peer
+dependency，使用该预置能力的项目需要安装它：
+
+```bash
+pnpm add -D playwright
+```
+
+然后创建预置 Node：
+
+```ts
+import { createPlaywrightNodes } from '@midscene/test/playwright';
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: ({ context }) => context.baseUrl,
+  getEnv: () => process.env,
+});
+```
+
+`setCookies` 有意不接受 inline Cookie value。请在 `cookiesEnv`、`profile` 和
+`storageStatePath` 中选择且只选择一个。环境变量可以包含 Cookie header、Cookie JSON
+数组或 Playwright storage-state JSON。Cookie value 由 Node 内部解析，不会进入 Node
+结果或 workflow history。相对的 storage-state 路径默认从当前工作目录解析；如果项目
+需要使用其他根目录，请配置 `resolveStorageStatePath`。
+
+```yaml
+beforeEach:
+  - clearCookies: {}
+  - setCookies:
+      cookiesEnv: E2E_COOKIES
+      url: https://example.com
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - gotoUrl:
+      url: /chat
+      waitUntil: domcontentloaded
+```
+
+Android 项目将 `createMidsceneNodes()` 的设备生命周期 Node 与 `runAdbShell` 组合：
+
+```ts
+import { createAndroidNodes } from '@midscene/test/android';
+
+const androidNodes = createAndroidNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+beforeEach:
+  - runAdbShell:
+      command: pm clear com.example.app
+  - launch:
+      uri: com.example.app
+```
+
+iOS 项目注册 `runWdaRequest`；`launch` 和 `terminate` 继续使用 Agent 生命周期方法：
+
+```ts
+import { createIOSNodes } from '@midscene/test/ios';
+
+const iosNodes = createIOSNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - launch:
+      uri: com.example.app
+  - runWdaRequest:
+      method: GET
+      endpoint: /status
+  - terminate:
+      uri: com.example.app
+```
+
+`launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
+`gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和
+HTTP response 语义。
 
 ## 一键生成 Node 说明书
 
@@ -362,7 +455,7 @@ pnpm exec midscene-test describe-nodes > midscene-nodes.md
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的六个系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
+生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的七个系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
 
 ## 配置和管理 Test Project
 

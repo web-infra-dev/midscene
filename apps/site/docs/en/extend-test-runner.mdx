@@ -331,7 +331,7 @@ export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 
 ## Integrate a Midscene Agent
 
-`@midscene/test/midscene` exports six built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent`.
+`@midscene/test/midscene` exports seven built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `terminate`, `wait`, and `agent`.
 
 Call `createMidsceneNodes()` with a `getAgent` callback to integrate them into your Test Runner configuration:
 
@@ -343,8 +343,108 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  // Web uses gotoUrl instead of the device lifecycle Nodes.
+  includeLaunch: false,
 });
 ```
+
+`includeLaunch: false` also disables `terminate` by default. Set
+`includeTerminate` explicitly only when the two capabilities need to be
+configured independently.
+
+## Register platform preset Nodes
+
+The Test Runner publishes platform preset factories as separate entry points.
+Each factory receives getters instead of assuming property names in your
+Project Context.
+
+For Playwright, register `gotoUrl`, `setCookies`, `clearCookies`, and
+`setViewportSize`. The `playwright` package is an optional peer dependency of
+`@midscene/test`; install it in projects that use this preset:
+
+```bash
+pnpm add -D playwright
+```
+
+Then create the preset Nodes:
+
+```ts
+import { createPlaywrightNodes } from '@midscene/test/playwright';
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: ({ context }) => context.baseUrl,
+  getEnv: () => process.env,
+});
+```
+
+`setCookies` deliberately does not accept inline cookie values. Use exactly
+one of `cookiesEnv`, `profile`, or `storageStatePath`. An environment variable
+may contain a Cookie header, a JSON cookie array, or Playwright storage-state
+JSON. Cookie values are resolved inside the Node and are not included in the
+Node result or workflow history. Relative storage-state paths resolve from the
+current working directory by default; use `resolveStorageStatePath` when a
+project needs a different root.
+
+```yaml
+beforeEach:
+  - clearCookies: {}
+  - setCookies:
+      cookiesEnv: E2E_COOKIES
+      url: https://example.com
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - gotoUrl:
+      url: /chat
+      waitUntil: domcontentloaded
+```
+
+For Android, combine the device lifecycle Nodes from `createMidsceneNodes()`
+with `runAdbShell`:
+
+```ts
+import { createAndroidNodes } from '@midscene/test/android';
+
+const androidNodes = createAndroidNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+beforeEach:
+  - runAdbShell:
+      command: pm clear com.example.app
+  - launch:
+      uri: com.example.app
+```
+
+For iOS, register `runWdaRequest`; `launch` and `terminate` continue to use the
+Agent lifecycle methods:
+
+```ts
+import { createIOSNodes } from '@midscene/test/ios';
+
+const iosNodes = createIOSNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - launch:
+      uri: com.example.app
+  - runWdaRequest:
+      method: GET
+      endpoint: /status
+  - terminate:
+      uri: com.example.app
+```
+
+`launch` and `gotoUrl` are intentionally not aliases. `launch` manages an app,
+URL, or URI through a device Agent. `gotoUrl` navigates the current Playwright
+Page and supports Web-specific `baseUrl`, lifecycle, and HTTP response
+semantics.
 
 ## Generate a Node reference
 
@@ -362,7 +462,7 @@ You can also specify a test directory or a custom configuration file:
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the six built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes every Node registered in the active Test Project, including the seven built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
 
 ## Configure and manage a Test Project
 

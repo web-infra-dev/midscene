@@ -65,6 +65,8 @@ export interface MidsceneUIAgent {
   ): Promise<unknown>;
   /** Available on device Agents that support launching an app, URL, or URI. */
   launch?(uri: string): Promise<void>;
+  /** Available on device Agents that support terminating an application. */
+  terminate?(uri: string): Promise<void>;
 }
 
 export interface AgentProvider<TContext> {
@@ -215,15 +217,40 @@ export const launchInputSchema = z
   .strictObject({
     prompt: z
       .string()
-      .min(1)
+      .regex(/\S/, 'prompt must contain a non-whitespace character')
       .optional()
       .describe('String shorthand for the app, URL, or URI to launch.'),
     uri: z
       .string()
-      .min(1)
+      .regex(/\S/, 'uri must contain a non-whitespace character')
       .optional()
       .describe(
         'The app, URL, URI, package name, or bundle identifier to launch.',
+      ),
+  })
+  .superRefine((input, ctx) => {
+    if ((input.prompt === undefined) === (input.uri === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'exactly one of prompt and uri is required',
+      });
+    }
+  });
+
+/** Input schema for the device terminate Node. */
+export const terminateInputSchema = z
+  .strictObject({
+    prompt: z
+      .string()
+      .regex(/\S/, 'prompt must contain a non-whitespace character')
+      .optional()
+      .describe('String shorthand for the app to terminate.'),
+    uri: z
+      .string()
+      .regex(/\S/, 'uri must contain a non-whitespace character')
+      .optional()
+      .describe(
+        'The package name, bundle identifier, or app name to terminate.',
       ),
   })
   .superRefine((input, ctx) => {
@@ -253,6 +280,8 @@ export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type LaunchNodeInput = z.infer<typeof launchInputSchema>;
+/** Validated input accepted by the device terminate Node. */
+export type TerminateNodeInput = z.infer<typeof terminateInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 export type AgentNodeInput = z.infer<typeof agentInputSchema>;
 
@@ -263,6 +292,11 @@ export interface CreateMidsceneNodesOptions<TContext> {
   agentProvider?: AgentProvider<TContext>;
   /** Disable when a project registers its own platform-specific launch Node. */
   includeLaunch?: boolean;
+  /**
+   * Disable when the current Agent cannot terminate applications. Defaults to
+   * the value of includeLaunch so Web projects can disable both device Nodes.
+   */
+  includeTerminate?: boolean;
   agentExecutor?: AgentExecutor<TContext>;
 }
 
@@ -357,6 +391,8 @@ export function createMidsceneNodes<TContext>(
   }
 
   const registeredAgentScopes = new Set<string>();
+  const includeTerminate =
+    options.includeTerminate ?? options.includeLaunch !== false;
   const getExecutionId = (ctx: NodeExecutionContext<unknown, TContext>) =>
     ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
   const getAgent = async (
@@ -464,6 +500,27 @@ export function createMidsceneNodes<TContext>(
             },
           }),
         ]),
+    ...(includeTerminate
+      ? [
+          defineNode<typeof terminateInputSchema, unknown, TContext>({
+            name: 'terminate',
+            description:
+              'Terminate an application through the current Midscene Agent. This Node does not uninstall the application or clear its data.',
+            inputSchema: terminateInputSchema,
+            async execute(ctx) {
+              const uri = ctx.input.uri ?? ctx.input.prompt!;
+              const agent = await getAgent(ctx);
+              const terminate = requireAgentMethod(
+                agent,
+                'terminate',
+                'terminate',
+              );
+              await terminate.call(agent, uri);
+              return { summary: `Terminated ${uri}` };
+            },
+          }),
+        ]
+      : []),
     defineNode<typeof waitInputSchema, unknown, TContext>({
       name: 'wait',
       description: 'Wait for a fixed duration while honoring cancellation.',

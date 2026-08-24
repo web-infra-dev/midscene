@@ -1,10 +1,23 @@
 import { defineNode, z } from '@midscene/test';
 import {
+  createAndroidNodes,
+  runAdbShellInputSchema,
+} from '@midscene/test/android';
+import {
   type TestProjectDefinition,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
+import { createIOSNodes, runWdaRequestInputSchema } from '@midscene/test/ios';
+import {
+  clearCookiesInputSchema,
+  createPlaywrightNodes,
+  gotoUrlInputSchema,
+  setCookiesInputSchema,
+  setViewportSizeInputSchema,
+} from '@midscene/test/playwright';
+import type { Page } from 'playwright';
 
 interface ProjectContext {
   baseURL: string;
@@ -136,3 +149,42 @@ import { loadTestProjectSync } from '@midscene/test/config';
 
 void defineWorkflowProject;
 void loadTestProjectSync;
+
+interface PlatformContext {
+  page: Page;
+  baseUrl: string;
+  android: {
+    runAdbShell(
+      command: string,
+      options?: { timeout?: number },
+    ): Promise<string>;
+  };
+  ios: {
+    runWdaRequest(input: {
+      method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+      endpoint: string;
+      data?: Record<string, unknown>;
+    }): Promise<unknown>;
+  };
+}
+
+createPlaywrightNodes<PlatformContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: ({ context }) => context.baseUrl,
+  getCookieProfile: ({ context }) => context.page.context().cookies(),
+});
+
+createAndroidNodes<PlatformContext>({
+  getAgent: ({ context }) => context.android,
+});
+
+createIOSNodes<PlatformContext>({
+  getAgent: ({ context }) => context.ios,
+});
+
+void gotoUrlInputSchema;
+void setCookiesInputSchema;
+void clearCookiesInputSchema;
+void setViewportSizeInputSchema;
+void runAdbShellInputSchema;
+void runWdaRequestInputSchema;
