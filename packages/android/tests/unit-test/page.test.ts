@@ -1144,7 +1144,7 @@ Stdout:
       expect(forceScreenshotSpy).not.toHaveBeenCalled();
     });
 
-    it('should recommend a network-aware videoBitRate when scrcpy falls back to ADB', async () => {
+    it('should report the scrcpy failure cause without assuming network backlog', async () => {
       const adapter = (device as any).getScrcpyAdapter();
       rs.spyOn(adapter, 'isEnabled').mockReturnValue(true);
       rs.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
@@ -1168,9 +1168,11 @@ Stdout:
       );
       expect(warn).toHaveBeenCalledWith(
         '[Midscene]',
-        expect.stringContaining(
-          'scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps)',
-        ),
+        expect.stringContaining('stream recovery failed'),
+      );
+      expect(warn).not.toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining('--scrcpy-video-bit-rate'),
       );
     });
 

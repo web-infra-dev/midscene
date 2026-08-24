@@ -84,11 +84,14 @@ function calledVisualAction(call: ts.CallExpression): string | undefined {
 }
 
 describe('createVisualActionRegistry', () => {
-  it('runs the completion hook once with the registered action name', async () => {
+  it('runs the completion hook after dispatch with the registered action name', async () => {
+    const dispatch = rs
+      .fn()
+      .mockImplementation(async (uri: string) => `launched:${uri}`);
     const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
-        launch: async (uri: string) => `launched:${uri}`,
+        launch: dispatch,
       },
       onActionSettled,
     );
@@ -98,6 +101,9 @@ describe('createVisualActionRegistry', () => {
     );
     expect(onActionSettled).toHaveBeenCalledOnce();
     expect(onActionSettled).toHaveBeenCalledWith('launch');
+    expect(dispatch.mock.invocationCallOrder[0]).toBeLessThan(
+      onActionSettled.mock.invocationCallOrder[0],
+    );
   });
 
   it('settles a composite action only once', async () => {
@@ -121,7 +127,7 @@ describe('createVisualActionRegistry', () => {
     expect(onActionSettled).toHaveBeenCalledWith('swipe');
   });
 
-  it('settles an action that fails after dispatch begins', async () => {
+  it('settles an action after a dispatch that fails', async () => {
     const actionError = new Error('second gesture failed');
     const dispatchStep = rs
       .fn()
@@ -141,6 +147,9 @@ describe('createVisualActionRegistry', () => {
     await expect(actions.swipe()).rejects.toBe(actionError);
     expect(onActionSettled).toHaveBeenCalledOnce();
     expect(onActionSettled).toHaveBeenCalledWith('swipe');
+    expect(dispatchStep.mock.invocationCallOrder[1]).toBeLessThan(
+      onActionSettled.mock.invocationCallOrder[0],
+    );
   });
 });
 
