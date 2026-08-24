@@ -1057,6 +1057,9 @@ importers:
       '@types/semver':
         specifier: 7.7.0
         version: 7.7.0
+      '@vitest/runner':
+        specifier: 3.0.5
+        version: 3.0.5
       langsmith:
         specifier: ^0.3.74
         version: 0.3.74(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.210.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.4.0(@opentelemetry/api@1.9.0))(openai@6.3.0(ws@8.20.0)(zod@3.25.76))
