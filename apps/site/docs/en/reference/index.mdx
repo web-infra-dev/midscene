@@ -2189,7 +2189,7 @@ const device = new AndroidDevice(deviceId, {
 
 - `scrcpyConfig?: object` — High-performance scrcpy screenshot configuration:
   - `enabled?: boolean` — Whether to enable scrcpy screenshots. Default: `false`.
-  - `maxSize?: number` — Maximum video dimension in pixels. `0` disables scaling. Default: `0`.
+  - `maxSize?: number` — Maximum screenshot width or height in pixels. The same limit applies to ADB/yadb fallback screenshots while scrcpy is temporarily unavailable, preventing planning and report images from returning to full device resolution. Use a non-negative integer; `0` disables scaling. Default: `0`.
   - `videoBitRate?: number` — scrcpy H.264 encoding bitrate in bits per second. Default: `100000000`. For a bandwidth-constrained remote link, explicitly set a lower value such as `4000000` and tune it for the actual transport.
   - `idleTimeoutMs?: number` — Idle time before disconnecting the scrcpy stream. `0` disables automatic disconnection. Default: `30000`.
 

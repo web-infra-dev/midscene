@@ -1359,6 +1359,8 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
+    const adapter = this.getScrcpyAdapter();
+
     // Determine screenshot strategy. 'always-yadb' bypasses scrcpy /
     // adb.takeScreenshot / screencap and captures directly via the yadb tool.
     // Use it when screencap yields black frames for secure (FLAG_SECURE)
@@ -1372,11 +1374,12 @@ ${Object.keys(size)
       SCREENSHOT_STRATEGY_AUTO;
 
     if (screenshotStrategy === SCREENSHOT_STRATEGY_ALWAYS_YADB) {
-      return this.screenshotBase64ViaYadb();
+      return adapter.prepareFallbackScreenshot(
+        await this.screenshotBase64ViaYadb(),
+      );
     }
 
     // Try scrcpy mode first (if enabled and initialized)
-    const adapter = this.getScrcpyAdapter();
     let scrcpyDeviceInfo: DevicePhysicalInfo | null = null;
     if (adapter.isEnabled()) {
       try {
@@ -1473,7 +1476,7 @@ ${Object.keys(size)
         // capture does not compete with scrcpy startup on the same transport.
         adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
       }
-      return result;
+      return adapter.prepareFallbackScreenshot(result);
     }
 
     if (!screenshotBuffer) {
@@ -1491,7 +1494,7 @@ ${Object.keys(size)
       // does not compete with scrcpy startup on the same remote transport.
       adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
     }
-    return result;
+    return adapter.prepareFallbackScreenshot(result);
   }
 
   private async captureScreenshotBase64FromDeviceFile(

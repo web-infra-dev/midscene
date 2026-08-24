@@ -13,6 +13,8 @@ import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
 const mocks = rs.hoisted(() => ({
   AdbServerNodeTcpConnector: rs.fn(),
   createTransport: rs.fn().mockResolvedValue({}),
+  imageInfoOfBase64: rs.fn(),
+  resizeBase64ImageToJpeg: rs.fn(),
 }));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
@@ -55,6 +57,8 @@ rs.mock('@midscene/shared/img', () => ({
   createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/png;base64,test'),
+  imageInfoOfBase64: mocks.imageInfoOfBase64,
+  resizeBase64ImageToJpeg: mocks.resizeBase64ImageToJpeg,
 }));
 
 const defaultDeviceInfo: DevicePhysicalInfo = {
@@ -67,6 +71,13 @@ const defaultDeviceInfo: DevicePhysicalInfo = {
 describe('ScrcpyDeviceAdapter', () => {
   beforeEach(() => {
     currentMockManager = createMockManager();
+    mocks.imageInfoOfBase64.mockResolvedValue({
+      width: 1080,
+      height: 2400,
+    });
+    mocks.resizeBase64ImageToJpeg.mockResolvedValue(
+      'data:image/jpeg;base64,resized',
+    );
   });
 
   afterEach(() => {
@@ -117,32 +128,36 @@ describe('ScrcpyDeviceAdapter', () => {
   describe('resolveConfig', () => {
     it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo);
-      expect(config.maxSize).toBe(0);
-    });
-
-    it('should default maxSize to 0 when no scrcpy config provided', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       expect(config.maxSize).toBe(0);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
       const adapter = new ScrcpyDeviceAdapter('device', { maxSize: 1024 });
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       expect(config.maxSize).toBe(1024);
     });
 
     it('should treat maxSize=0 as explicit (no auto-calculation)', () => {
       const adapter = new ScrcpyDeviceAdapter('device', { maxSize: 0 });
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       // maxSize=0 means "no scaling" in scrcpy, should not auto-calculate
       expect(config.maxSize).toBe(0);
     });
 
+    it.each([-1, 1.5, Number.POSITIVE_INFINITY, Number.NaN])(
+      'should reject invalid maxSize %s',
+      (maxSize) => {
+        const adapter = new ScrcpyDeviceAdapter('device', { maxSize });
+        expect(() => adapter.resolveConfig()).toThrow(
+          'Invalid scrcpyConfig.maxSize: expected a non-negative integer',
+        );
+      },
+    );
+
     it('should use the default videoBitRate when not explicitly configured', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
@@ -151,7 +166,7 @@ describe('ScrcpyDeviceAdapter', () => {
       'should not infer videoBitRate from the device endpoint %s',
       (deviceId) => {
         const adapter = new ScrcpyDeviceAdapter(deviceId, undefined);
-        const config = adapter.resolveConfig(defaultDeviceInfo);
+        const config = adapter.resolveConfig();
         expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
       },
     );
@@ -160,7 +175,7 @@ describe('ScrcpyDeviceAdapter', () => {
       const adapter = new ScrcpyDeviceAdapter('10.84.162.47:36967', {
         videoBitRate: 8_000_000,
       });
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       expect(config.videoBitRate).toBe(8_000_000);
     });
 
@@ -169,54 +184,86 @@ describe('ScrcpyDeviceAdapter', () => {
         idleTimeoutMs: 60000,
         videoBitRate: 4000000,
       });
-      const config = adapter.resolveConfig(defaultDeviceInfo);
+      const config = adapter.resolveConfig();
       expect(config.idleTimeoutMs).toBe(60000);
       expect(config.videoBitRate).toBe(4000000);
     });
 
     it('should cache config (same reference on second call)', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const config1 = adapter.resolveConfig(defaultDeviceInfo);
-      const config2 = adapter.resolveConfig(defaultDeviceInfo);
+      const config1 = adapter.resolveConfig();
+      const config2 = adapter.resolveConfig();
       expect(config1).toBe(config2);
     });
 
-    it('should use default videoBitRate for high-resolution devices (no auto-scale)', () => {
+    it('should accept legacy device info without inferring config values', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const highRes: DevicePhysicalInfo = {
-        physicalWidth: 1440,
-        physicalHeight: 3120,
-        dpr: 3.2,
-        orientation: 0,
-      };
-      const config = adapter.resolveConfig(highRes);
+      const config = adapter.resolveConfig(defaultDeviceInfo);
+
+      expect(config.maxSize).toBe(DEFAULT_SCRCPY_CONFIG.maxSize);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
+  });
 
-    it('should use explicit videoBitRate for high-resolution devices', () => {
+  describe('prepareFallbackScreenshot', () => {
+    const originalScreenshot = 'data:image/png;base64,original';
+
+    it('should preserve fallback screenshots when scrcpy is disabled', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', {
-        videoBitRate: 4_000_000,
+        enabled: false,
+        maxSize: 1000,
       });
-      const highRes: DevicePhysicalInfo = {
-        physicalWidth: 1440,
-        physicalHeight: 3120,
-        dpr: 3.2,
-        orientation: 0,
-      };
-      const config = adapter.resolveConfig(highRes);
-      expect(config.videoBitRate).toBe(4_000_000);
+
+      await expect(
+        adapter.prepareFallbackScreenshot(originalScreenshot),
+      ).resolves.toBe(originalScreenshot);
+      expect(mocks.imageInfoOfBase64).not.toHaveBeenCalled();
     });
 
-    it('should default maxSize to 0 for landscape device', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined);
-      const landscape: DevicePhysicalInfo = {
-        physicalWidth: 1920,
-        physicalHeight: 1080,
-        dpr: 2,
-        orientation: 1,
-      };
-      const config = adapter.resolveConfig(landscape);
-      expect(config.maxSize).toBe(0);
+    it('should preserve fallback screenshots when maxSize is zero', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        enabled: true,
+        maxSize: 0,
+      });
+
+      await expect(
+        adapter.prepareFallbackScreenshot(originalScreenshot),
+      ).resolves.toBe(originalScreenshot);
+      expect(mocks.imageInfoOfBase64).not.toHaveBeenCalled();
+    });
+
+    it('should constrain fallback screenshots to maxSize', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        enabled: true,
+        maxSize: 1000,
+      });
+
+      await expect(
+        adapter.prepareFallbackScreenshot(originalScreenshot),
+      ).resolves.toBe('data:image/jpeg;base64,resized');
+      expect(mocks.resizeBase64ImageToJpeg).toHaveBeenCalledWith(
+        originalScreenshot,
+        {
+          sourceSize: { width: 1080, height: 2400 },
+          targetSize: { width: 450, height: 1000 },
+        },
+      );
+    });
+
+    it('should not upscale fallback screenshots already within maxSize', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        enabled: true,
+        maxSize: 1000,
+      });
+      mocks.imageInfoOfBase64.mockResolvedValue({
+        width: 450,
+        height: 1000,
+      });
+
+      await expect(
+        adapter.prepareFallbackScreenshot(originalScreenshot),
+      ).resolves.toBe(originalScreenshot);
+      expect(mocks.resizeBase64ImageToJpeg).not.toHaveBeenCalled();
     });
   });
 
@@ -671,7 +718,7 @@ describe('ScrcpyDeviceAdapter', () => {
     it('should clear manager and resolvedConfig', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
-      adapter.resolveConfig(defaultDeviceInfo); // populate cache
+      adapter.resolveConfig(); // populate cache
 
       await adapter.disconnect();
 

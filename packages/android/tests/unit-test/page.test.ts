@@ -1012,11 +1012,18 @@ Stdout:
       const forceScreenshotSpy = rs
         .spyOn(alwaysYadbDevice, 'forceScreenshot')
         .mockResolvedValue();
+      const prepareFallbackScreenshot = rs
+        .spyOn(
+          (alwaysYadbDevice as any).getScrcpyAdapter(),
+          'prepareFallbackScreenshot',
+        )
+        .mockResolvedValue('data:image/jpeg;base64,resized');
       const mockBuffer = createValidPngBuffer();
+      const originalScreenshot = `data:image/png;base64,${mockBuffer.toString('base64')}`;
       rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/yadb.png');
       (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
       rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
-        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+        originalScreenshot,
       );
 
       const result = await alwaysYadbDevice.screenshotBase64();
@@ -1032,7 +1039,10 @@ Stdout:
         expect.stringMatching(/^\/data\/local\/tmp\/ms_[a-z0-9]+\.png$/),
         '/tmp/yadb.png',
       );
-      expect(result).toContain(mockBuffer.toString('base64'));
+      expect(result).toBe('data:image/jpeg;base64,resized');
+      expect(prepareFallbackScreenshot).toHaveBeenCalledWith(
+        originalScreenshot,
+      );
     });
 
     it('should reject always-yadb screenshots on a non-default display', async () => {
@@ -1176,6 +1186,33 @@ Stdout:
       );
     });
 
+    it('should prepare an ADB fallback for scrcpy while replanning', async () => {
+      const fallbackDevice = new AndroidDevice('test-device', {
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: true, maxSize: 1000 },
+      });
+      rs.spyOn(fallbackDevice, 'getAdb').mockResolvedValue(mockAdb);
+      const adapter = (fallbackDevice as any).getScrcpyAdapter();
+      rs.spyOn(adapter, 'isEnabled').mockReturnValue(false);
+      const prepareFallbackScreenshot = rs
+        .spyOn(adapter, 'prepareFallbackScreenshot')
+        .mockResolvedValue('data:image/jpeg;base64,resized');
+
+      const mockBuffer = createValidPngBuffer();
+      const originalScreenshot = `data:image/png;base64,${mockBuffer.toString('base64')}`;
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        originalScreenshot,
+      );
+
+      await expect(fallbackDevice.screenshotBase64()).resolves.toBe(
+        'data:image/jpeg;base64,resized',
+      );
+      expect(prepareFallbackScreenshot).toHaveBeenCalledWith(
+        originalScreenshot,
+      );
+    });
+
     it('starts scrcpy recovery only after the ADB fallback screenshot completes', async () => {
       const adapter = (device as any).getScrcpyAdapter();
       rs.spyOn(adapter, 'isEnabled').mockReturnValue(true);
@@ -1212,13 +1249,17 @@ Stdout:
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {
       mockAdb.takeScreenshot.mockRejectedValue(new Error('fail'));
+      const prepareFallbackScreenshot = rs
+        .spyOn((device as any).getScrcpyAdapter(), 'prepareFallbackScreenshot')
+        .mockResolvedValue('data:image/jpeg;base64,resized');
       const mockBuffer = createValidPngBuffer();
+      const originalScreenshot = `data:image/png;base64,${mockBuffer.toString('base64')}`;
       rs.spyOn(CoreUtils, 'getTmpFile').mockReturnValue('/tmp/test.png');
       (fs.promises.readFile as Mock).mockResolvedValue(mockBuffer);
 
       // Mock createImgBase64ByFormat
       rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
-        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+        originalScreenshot,
       );
 
       const result = await device.screenshotBase64();
@@ -1228,7 +1269,10 @@ Stdout:
       );
       expect(mockAdb.pull).toHaveBeenCalled();
       expect(fs.promises.readFile).toHaveBeenCalled();
-      expect(result).toContain(mockBuffer.toString('base64'));
+      expect(result).toBe('data:image/jpeg;base64,resized');
+      expect(prepareFallbackScreenshot).toHaveBeenCalledWith(
+        originalScreenshot,
+      );
       // rm is now executed via execFile (fire-and-forget), not adb.shell
     });
 

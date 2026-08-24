@@ -2146,7 +2146,7 @@ const device = new AndroidDevice(deviceId, {
 
 - `scrcpyConfig?: object` —— scrcpy 截图配置，默认关闭。
   - `enabled?: boolean` —— 是否启用 scrcpy 截图，默认 `false`。
-  - `maxSize?: number` —— 视频流最大宽度或高度，默认 `0`，表示不缩放。
+  - `maxSize?: number` —— 截图的最大宽度或高度。scrcpy 暂时不可用时，ADB/yadb 回退截图也会应用相同限制，避免规划和报告中的图片恢复为设备原始分辨率。必须使用非负整数；默认 `0`，表示不缩放。
   - `videoBitRate?: number` —— scrcpy H.264 编码码率，单位为 bps，默认 `100000000`。带宽受限的远程链路可以显式设置较低值（如 `4000000`），并根据实际网络调优。
   - `idleTimeoutMs?: number` —— 空闲连接的断开时间，单位为毫秒，默认 `30000`；设为 `0` 时禁用。
 
