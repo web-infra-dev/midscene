@@ -78,6 +78,7 @@ describe('ScreenshotStore', () => {
     const referenceImage = 'data:image/webp;base64,QUJDRA==';
 
     const first = await store.persistReferenceImage(referenceImage);
+    const repeated = await store.persistReferenceImage(referenceImage);
     const second = await store.persistReferenceImage(
       'data:image/webp;name=reference;base64,QUJD RA==',
     );
@@ -87,6 +88,7 @@ describe('ScreenshotStore', () => {
       mimeType: 'image/webp',
       storage: 'inline',
     });
+    expect(repeated).toBe(first);
     expect(second.id).toBe(first.id);
     expect(appendInline).toHaveBeenCalledOnce();
     expect(appendInline).toHaveBeenCalledWith(first.id, referenceImage);

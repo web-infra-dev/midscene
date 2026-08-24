@@ -329,6 +329,42 @@ ${imageTag2}
       unlinkSync(destPath);
     });
 
+    it('should deduplicate image IDs across streamed reports', () => {
+      const firstSrcPath = getTmpFile('html');
+      const secondSrcPath = getTmpFile('html');
+      const destPath = getTmpFile('html');
+      if (!firstSrcPath || !secondSrcPath || !destPath) {
+        throw new Error('Failed to create temp files');
+      }
+
+      const sharedImage = generateImageScriptTag(
+        'shared-image',
+        'data:image/png;base64,AAA',
+      );
+      const uniqueImage = generateImageScriptTag(
+        'unique-image',
+        'data:image/png;base64,BBB',
+      );
+      writeFileSync(firstSrcPath, sharedImage, 'utf8');
+      writeFileSync(secondSrcPath, `${sharedImage}\n${uniqueImage}`, 'utf8');
+      writeFileSync(destPath, '', 'utf8');
+
+      const writtenImageIds = new Set<string>();
+      streamImageScriptsToFile(firstSrcPath, destPath, writtenImageIds);
+      streamImageScriptsToFile(secondSrcPath, destPath, writtenImageIds);
+
+      const destContent = readFileSync(destPath, 'utf8');
+      expect(destContent.split('data-id="shared-image"')).toHaveLength(2);
+      expect(destContent.split('data-id="unique-image"')).toHaveLength(2);
+      expect(writtenImageIds).toEqual(
+        new Set(['shared-image', 'unique-image']),
+      );
+
+      unlinkSync(firstSrcPath);
+      unlinkSync(secondSrcPath);
+      unlinkSync(destPath);
+    });
+
     it('should handle file with no image scripts', () => {
       const srcPath = getTmpFile('html');
       const destPath = getTmpFile('html');

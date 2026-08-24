@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFile as writeFileAsync } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
-import { extractImageByIdSync } from './html-utils';
+import { collectImageScriptIdsSync, extractImageByIdSync } from './html-utils';
 
 /** Serialized reference to a captured screenshot stored by a report. */
 export interface ScreenshotRef {
@@ -253,6 +253,7 @@ export class ReportImageStore {
   private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
+  private readonly referenceImageRefsByUrl = new Map<string, ImageUrlRef>();
 
   constructor(options: {
     mode: 'inline' | 'directory';
@@ -262,6 +263,8 @@ export class ReportImageStore {
     alsoWriteFileCopy?: boolean;
     /** @deprecated Use alsoWriteFileCopy instead. */
     ensureFileCopy?: boolean;
+    /** Reuse inline image assets already present in reportPath. */
+    reuseExistingReport?: boolean;
   }) {
     this.mode = options.mode;
     this.reportPath = options.reportPath;
@@ -269,6 +272,15 @@ export class ReportImageStore {
     this.writeInlineImage = options.writeInlineImage;
     this.alsoWriteFileCopy =
       options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
+    if (
+      options.reuseExistingReport &&
+      this.mode === 'inline' &&
+      existsSync(this.reportPath)
+    ) {
+      for (const imageId of collectImageScriptIdsSync(this.reportPath)) {
+        this.writtenInlineIds.add(imageId);
+      }
+    }
   }
 
   async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
@@ -303,6 +315,9 @@ export class ReportImageStore {
 
   /** Persist a base64 multimodal prompt image and return its content-addressed ref. */
   async persistReferenceImage(imageUrl: string): Promise<ImageUrlRef> {
+    const cachedRef = this.referenceImageRefsByUrl.get(imageUrl);
+    if (cachedRef) return cachedRef;
+
     const { mimeType, extension, rawBase64 } =
       parseBase64ImageDataUrl(imageUrl);
     const id = `reference-${createHash('sha256')
@@ -316,6 +331,7 @@ export class ReportImageStore {
       ? await this.writeImageFileIfNeeded({ id, extension, rawBase64 })
       : null;
 
+    let ref: ImageUrlRef;
     if (this.mode === 'inline') {
       if (!this.writeInlineImage) {
         throw new Error(
@@ -326,26 +342,28 @@ export class ReportImageStore {
         await this.writeInlineImage(id, imageUrl);
         this.writtenInlineIds.add(id);
       }
-      return {
+      ref = {
         type: 'midscene_image_url_ref',
         id,
         mimeType,
         storage: 'inline',
       };
+    } else {
+      if (!fileLocation) {
+        throw new Error(
+          'ReportImageStore: file persistence is required in directory mode',
+        );
+      }
+      ref = {
+        type: 'midscene_image_url_ref',
+        id,
+        mimeType,
+        storage: 'file',
+        path: fileLocation.relativePath,
+      };
     }
-
-    if (!fileLocation) {
-      throw new Error(
-        'ReportImageStore: file persistence is required in directory mode',
-      );
-    }
-    return {
-      type: 'midscene_image_url_ref',
-      id,
-      mimeType,
-      storage: 'file',
-      path: fileLocation.relativePath,
-    };
+    this.referenceImageRefsByUrl.set(imageUrl, ref);
+    return ref;
   }
 
   private async persistToSharedFileIfNeeded(
@@ -423,6 +441,7 @@ export class ReportImageStore {
     }
     this.writtenInlineIds.clear();
     this.writtenFileIds.clear();
+    this.referenceImageRefsByUrl.clear();
   }
 }
 

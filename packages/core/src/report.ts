@@ -349,6 +349,7 @@ export class ReportMergingTool {
       }
 
       const agentReports: ReportActionDump[] = [];
+      const writtenInlineImageIds = new Set<string>();
 
       // Process all reports one by one
       for (let i = 0; i < this.reportInfos.length; i++) {
@@ -383,7 +384,11 @@ export class ReportMergingTool {
             }
           } else {
             // Inline mode: stream image scripts to output file
-            streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
+            streamImageScriptsToFile(
+              reportInfo.reportFilePath,
+              outputFilePath,
+              writtenInlineImageIds,
+            );
           }
 
           // Extract all dump scripts from the source report.

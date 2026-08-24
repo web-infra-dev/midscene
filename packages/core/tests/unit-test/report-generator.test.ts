@@ -679,6 +679,37 @@ describe('ReportGenerator — append-only model', () => {
       expect(jsonFiles).toEqual(['1.execution.json', '2.execution.json']);
     });
 
+    it('should not append a duplicate reference image when reusing an inline report', async () => {
+      const reportPath = join(tmpDir, 'reuse-reference-image.html');
+      const referenceImage = fakeBase64(64 * 1024, 'webp');
+
+      for (const executionId of ['first-execution', 'second-execution']) {
+        const generator = new ReportGenerator({
+          reportPath,
+          screenshotMode: 'inline',
+          autoPrint: false,
+          reuseExistingReport: true,
+        });
+        generator.onExecutionUpdate(
+          createPlanningExecutionWithReferenceImage({
+            referenceImage,
+            taskCount: 1,
+            id: executionId,
+          }),
+          defaultReportMeta,
+        );
+        await generator.finalize();
+      }
+
+      const html = readFileSync(reportPath, 'utf-8');
+      expect(html.split(referenceImage)).toHaveLength(2);
+      expect(
+        Object.values(parseImageScripts(html)).filter(
+          (imageUrl) => imageUrl === referenceImage,
+        ),
+      ).toHaveLength(1);
+    });
+
     it('should persist execution dump files with pretty-printed JSON', async () => {
       const reportPath = join(tmpDir, 'pretty-execution-json.html');
       const generator = new ReportGenerator({

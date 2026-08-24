@@ -144,6 +144,7 @@ export class ReportGenerator implements IReportGenerator {
         );
       },
       alsoWriteFileCopy: this.shouldPersistExecutionDump,
+      reuseExistingReport: options.reuseExistingReport,
     });
     if (options.reuseExistingReport) {
       this.hydrateStateFromExistingReport();
