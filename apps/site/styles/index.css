@@ -105,6 +105,10 @@
 }
 
 .home-hero__stage {
+  --hero-copy-left: 24px;
+  --hero-title-width: 460px;
+  --hero-column-gap: 100px;
+
   position: relative;
   z-index: 1;
   width: 1200px;
@@ -117,7 +121,7 @@
   position: absolute;
   z-index: 3;
   top: 128px;
-  left: 24px;
+  left: var(--hero-copy-left);
   display: flex;
   width: 699px;
   flex-direction: column;
@@ -164,15 +168,16 @@
 }
 
 .home-hero__message h1 {
-  width: 565px;
+  width: min(100%, var(--hero-title-width));
   min-height: 128px;
   margin: 0;
   color: rgb(16 24 40 / 90%);
   font-family: "TASA Orbiter", var(--rp-font-family-base, sans-serif);
   font-size: 48px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.96px;
   line-height: 64px;
+  text-wrap: balance;
 }
 
 .dark .home-hero__message h1 {
@@ -197,6 +202,9 @@
 
 .home-hero__actions {
   display: flex;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
@@ -206,15 +214,17 @@
   height: 40px;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 0 24px;
+  gap: 16px;
+  min-width: max-content;
+  padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 8px;
   box-sizing: border-box;
   font-family: "Chivo Mono", var(--rp-font-family-mono, monospace);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 20px;
+  letter-spacing: -0.28px;
+  line-height: 26px;
   text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms
     ease, transform 160ms ease;
@@ -226,7 +236,6 @@
 }
 
 .home-hero__button--primary {
-  width: 170px;
   background: #111113;
   color: #fff;
 }
@@ -237,7 +246,6 @@
 }
 
 .home-hero__button--secondary {
-  width: 138px;
   border-color: rgb(17 17 19 / 14%);
   background: rgb(255 255 255 / 72%);
   color: #111113;
@@ -313,7 +321,11 @@
   position: absolute;
   z-index: 2;
   top: 106px;
-  left: 584px;
+  left: calc(
+    var(--hero-copy-left) +
+    var(--hero-title-width) +
+    var(--hero-column-gap)
+  );
   width: 640px;
   height: 431.61px;
 }
@@ -524,12 +536,6 @@
 
   .home-hero__actions {
     width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .home-hero__button {
-    flex: 1 1 150px;
-    padding-inline: 18px;
   }
 
   .home-hero__stats {

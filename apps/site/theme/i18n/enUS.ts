@@ -4,7 +4,7 @@ export const EN_US = {
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'Midscene.js — GUI Agent for E2E Testing',
+  heroTitle: 'Midscene.js is the GUI Agent for E2E Testing',
   heroSubtitle: 'AI-powered vision. Cross-platform. Batteries included.',
 
   // Banner - Stats

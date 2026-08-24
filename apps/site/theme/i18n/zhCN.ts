@@ -6,7 +6,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   changelogLink: '了解更多',
 
   // Banner - Title
-  heroTitle: 'Midscene.js — 面向 E2E 测试的 GUI Agent',
+  heroTitle: 'Midscene.js 是面向 E2E 测试的 GUI Agent',
   heroSubtitle: 'AI 视觉驱动。全平台覆盖。开箱即用。',
 
   // Banner - Stats
