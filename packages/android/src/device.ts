@@ -33,6 +33,7 @@ import {
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
+  constrainBase64ImageToMaxSize,
   createImgBase64ByFormat,
   validateScreenshotBuffer,
 } from '@midscene/shared/img';
@@ -1377,7 +1378,7 @@ ${Object.keys(size)
       SCREENSHOT_STRATEGY_AUTO;
 
     if (screenshotStrategy === SCREENSHOT_STRATEGY_ALWAYS_YADB) {
-      return adapter.prepareFallbackScreenshot(
+      return this.prepareFallbackScreenshot(
         await this.screenshotBase64ViaYadb(),
       );
     }
@@ -1479,7 +1480,7 @@ ${Object.keys(size)
         // capture does not compete with scrcpy startup on the same transport.
         adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
       }
-      return adapter.prepareFallbackScreenshot(result);
+      return this.prepareFallbackScreenshot(result);
     }
 
     if (!screenshotBuffer) {
@@ -1497,7 +1498,24 @@ ${Object.keys(size)
       // does not compete with scrcpy startup on the same remote transport.
       adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
     }
-    return adapter.prepareFallbackScreenshot(result);
+    return this.prepareFallbackScreenshot(result);
+  }
+
+  /**
+   * Keep independently captured fallback images within the same maximum
+   * dimension as scrcpy frames. Disabled scrcpy and maxSize=0 preserve the
+   * original ADB/yadb image without parsing it.
+   */
+  private async prepareFallbackScreenshot(
+    screenshotBase64: string,
+  ): Promise<string> {
+    const adapter = this.getScrcpyAdapter();
+    if (!adapter.getStatus().enabled) return screenshotBase64;
+
+    const { maxSize } = adapter.resolveConfig();
+    if (maxSize === 0) return screenshotBase64;
+
+    return constrainBase64ImageToMaxSize(screenshotBase64, { maxSize });
   }
 
   private async captureScreenshotBase64FromDeviceFile(

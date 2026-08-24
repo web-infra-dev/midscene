@@ -1,9 +1,5 @@
 import type { Size } from '@midscene/core';
-import {
-  createImgBase64ByFormat,
-  imageInfoOfBase64,
-  resizeBase64ImageToJpeg,
-} from '@midscene/shared/img';
+import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import {
@@ -154,6 +150,12 @@ export class ScrcpyDeviceAdapter {
    * receives the highest quality image for AI processing.
    * videoBitRate uses the shared default unless explicitly configured.
    */
+  resolveConfig(): ResolvedScrcpyConfig;
+  /**
+   * @deprecated Device geometry no longer affects scrcpy configuration. Call
+   * `resolveConfig()` without arguments.
+   */
+  resolveConfig(_deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig;
   resolveConfig(_deviceInfo?: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
@@ -177,37 +179,6 @@ export class ScrcpyDeviceAdapter {
     };
 
     return this.resolvedConfig;
-  }
-
-  /**
-   * Apply the configured scrcpy video bound to an independently captured
-   * fallback screenshot. This prevents planning and report images from returning
-   * to full device resolution while the scrcpy stream is temporarily unavailable.
-   * The bound only applies when scrcpy is configured as enabled; disabling
-   * scrcpy preserves the existing ADB/yadb screenshot behavior.
-   */
-  async prepareFallbackScreenshot(screenshotBase64: string): Promise<string> {
-    if (!this.isConfigured()) return screenshotBase64;
-
-    const { maxSize } = this.resolveConfig();
-    if (maxSize === 0) return screenshotBase64;
-
-    const sourceSize = await imageInfoOfBase64(screenshotBase64);
-    const largestDimension = Math.max(sourceSize.width, sourceSize.height);
-    if (largestDimension <= maxSize) return screenshotBase64;
-
-    const scale = maxSize / largestDimension;
-    const targetSize = {
-      width: Math.max(1, Math.round(sourceSize.width * scale)),
-      height: Math.max(1, Math.round(sourceSize.height * scale)),
-    };
-    debugAdapter(
-      `Applying scrcpy maxSize to fallback screenshot: ${sourceSize.width}x${sourceSize.height} -> ${targetSize.width}x${targetSize.height}`,
-    );
-    return resizeBase64ImageToJpeg(screenshotBase64, {
-      sourceSize,
-      targetSize,
-    });
   }
 
   /**

@@ -337,6 +337,13 @@ export interface ResizeBase64ImageToJpegOptions {
   jpegQuality?: number;
 }
 
+export interface ConstrainBase64ImageToMaxSizeOptions {
+  /** Maximum allowed width or height in positive integer pixels. */
+  maxSize: number;
+  /** JPEG quality used when resizing is required. Defaults to 90. */
+  jpegQuality?: number;
+}
+
 function assertValidJpegQuality(jpegQuality: number): void {
   if (!Number.isInteger(jpegQuality) || jpegQuality < 1 || jpegQuality > 100) {
     throw new Error(
@@ -443,6 +450,60 @@ export async function resizeBase64ImageToJpeg(
       jpegQuality,
     },
   );
+  return createImgBase64ByFormat(
+    'jpeg',
+    buffer.toString('base64'),
+  ) as JpegBase64DataUrl;
+}
+
+/**
+ * Constrains a PNG/JPEG Base64 image to a maximum width or height while
+ * preserving its aspect ratio.
+ *
+ * Images already within the bound are returned unchanged, including their
+ * original format. Oversized images are parsed once, resized, and encoded as
+ * JPEG.
+ *
+ * @param inputBase64 - A PNG/JPEG data URL or raw Base64 image body.
+ * @param options - Maximum dimension and optional JPEG quality.
+ * @returns The original image when already bounded, otherwise a JPEG data URL.
+ */
+export async function constrainBase64ImageToMaxSize(
+  inputBase64: string,
+  options: ConstrainBase64ImageToMaxSizeOptions,
+): Promise<string> {
+  if (!Number.isInteger(options.maxSize) || options.maxSize <= 0) {
+    throw new Error(
+      `maxSize must be a positive integer. Received: ${options.maxSize}`,
+    );
+  }
+
+  const jpegQuality = options.jpegQuality ?? 90;
+  assertValidJpegQuality(jpegQuality);
+
+  const { body, mimeType } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const sourceSize = encodedImageInfoOfBuffer(imageBuffer);
+  const largestDimension = Math.max(sourceSize.width, sourceSize.height);
+  if (largestDimension <= options.maxSize) return inputBase64;
+
+  const scale = options.maxSize / largestDimension;
+  const targetSize = {
+    width: Math.max(1, Math.round(sourceSize.width * scale)),
+    height: Math.max(1, Math.round(sourceSize.height * scale)),
+  };
+  const detectedMimeType = detectImageMimeTypeFromBuffer(imageBuffer);
+  const { buffer } = await resizeImageBuffer(
+    detectedMimeType?.split('/')[1] ?? mimeType.split('/')[1],
+    imageBuffer,
+    targetSize,
+    {
+      sourceSize,
+      preserveOriginalWhenUnchanged: false,
+      jpegQuality,
+    },
+  );
+
   return createImgBase64ByFormat(
     'jpeg',
     buffer.toString('base64'),

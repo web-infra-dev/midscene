@@ -13,8 +13,6 @@ import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
 const mocks = rs.hoisted(() => ({
   AdbServerNodeTcpConnector: rs.fn(),
   createTransport: rs.fn().mockResolvedValue({}),
-  imageInfoOfBase64: rs.fn(),
-  resizeBase64ImageToJpeg: rs.fn(),
 }));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
@@ -56,8 +54,6 @@ rs.mock('@midscene/shared/img', () => ({
   createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/png;base64,test'),
-  imageInfoOfBase64: mocks.imageInfoOfBase64,
-  resizeBase64ImageToJpeg: mocks.resizeBase64ImageToJpeg,
 }));
 
 const defaultDeviceInfo: DevicePhysicalInfo = {
@@ -70,13 +66,6 @@ const defaultDeviceInfo: DevicePhysicalInfo = {
 describe('ScrcpyDeviceAdapter', () => {
   beforeEach(() => {
     currentMockManager = createMockManager();
-    mocks.imageInfoOfBase64.mockResolvedValue({
-      width: 1080,
-      height: 2400,
-    });
-    mocks.resizeBase64ImageToJpeg.mockResolvedValue(
-      'data:image/jpeg;base64,resized',
-    );
   });
 
   afterEach(() => {
@@ -201,68 +190,6 @@ describe('ScrcpyDeviceAdapter', () => {
 
       expect(config.maxSize).toBe(DEFAULT_SCRCPY_CONFIG.maxSize);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
-    });
-  });
-
-  describe('prepareFallbackScreenshot', () => {
-    const originalScreenshot = 'data:image/png;base64,original';
-
-    it('should preserve fallback screenshots when scrcpy is disabled', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', {
-        enabled: false,
-        maxSize: 1000,
-      });
-
-      await expect(
-        adapter.prepareFallbackScreenshot(originalScreenshot),
-      ).resolves.toBe(originalScreenshot);
-      expect(mocks.imageInfoOfBase64).not.toHaveBeenCalled();
-    });
-
-    it('should preserve fallback screenshots when maxSize is zero', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', {
-        enabled: true,
-        maxSize: 0,
-      });
-
-      await expect(
-        adapter.prepareFallbackScreenshot(originalScreenshot),
-      ).resolves.toBe(originalScreenshot);
-      expect(mocks.imageInfoOfBase64).not.toHaveBeenCalled();
-    });
-
-    it('should constrain fallback screenshots to maxSize', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', {
-        enabled: true,
-        maxSize: 1000,
-      });
-
-      await expect(
-        adapter.prepareFallbackScreenshot(originalScreenshot),
-      ).resolves.toBe('data:image/jpeg;base64,resized');
-      expect(mocks.resizeBase64ImageToJpeg).toHaveBeenCalledWith(
-        originalScreenshot,
-        {
-          sourceSize: { width: 1080, height: 2400 },
-          targetSize: { width: 450, height: 1000 },
-        },
-      );
-    });
-
-    it('should not upscale fallback screenshots already within maxSize', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', {
-        enabled: true,
-        maxSize: 1000,
-      });
-      mocks.imageInfoOfBase64.mockResolvedValue({
-        width: 450,
-        height: 1000,
-      });
-
-      await expect(
-        adapter.prepareFallbackScreenshot(originalScreenshot),
-      ).resolves.toBe(originalScreenshot);
-      expect(mocks.resizeBase64ImageToJpeg).not.toHaveBeenCalled();
     });
   });
 
