@@ -227,6 +227,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
           using: 'predicate string',
           value: 'type == "XCUIElementTypeKeyboard" AND visible == true',
         },
+        { timeout: expect.any(Number) },
       );
       expect(makeRequestSpy).toHaveBeenNthCalledWith(
         5,
@@ -237,14 +238,47 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
           value:
             'type == "XCUIElementTypeButton" AND enabled == true AND visible == true',
         },
+        { timeout: expect.any(Number) },
       );
       expect(makeRequestSpy).toHaveBeenNthCalledWith(
         8,
         'POST',
         '/session/test-session-id/element/dismiss-id/click',
+        undefined,
+        { timeout: expect.any(Number) },
       );
+      for (const call of makeRequestSpy.mock.calls) {
+        const timeout = call[3]?.timeout;
+        expect(timeout).toBeGreaterThan(0);
+        expect(timeout).toBeLessThanOrEqual(5000);
+      }
       expect(JSON.stringify(makeRequestSpy.mock.calls)).not.toContain('Done');
       expect(JSON.stringify(makeRequestSpy.mock.calls)).not.toContain('完成');
+    });
+
+    it('should not click a custom accessory toolbar without left navigation controls', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'toolbar-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 508, width: 402, height: 48 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'submit-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 341, y: 513, width: 40, height: 38 },
+        });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(false);
+      expect(makeRequestSpy).toHaveBeenCalledTimes(6);
+      expect(
+        makeRequestSpy.mock.calls.some(([method, endpoint]) =>
+          method === 'POST' ? endpoint.endsWith('/click') : false,
+        ),
+      ).toBe(false);
     });
 
     it('should return false when no accessory toolbar is next to the keyboard', async () => {
@@ -306,11 +340,14 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
           value:
             'type IN {"XCUIElementTypeButton", "XCUIElementTypeKey"} AND enabled == true AND visible == true AND (name IN {"Done", "完成"} OR label IN {"Done", "完成"})',
         },
+        { timeout: expect.any(Number) },
       );
       expect(makeRequestSpy).toHaveBeenNthCalledWith(
         5,
         'POST',
         '/session/test-session-id/element/done-button-id/click',
+        undefined,
+        { timeout: expect.any(Number) },
       );
     });
 
@@ -378,7 +415,10 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
           value: { x: 0, y: 508, width: 402, height: 48 },
         })
         .mockResolvedValueOnce({
-          value: [{ ELEMENT: 'dismiss-id' }],
+          value: [{ ELEMENT: 'previous-id' }, { ELEMENT: 'dismiss-id' }],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 21, y: 513, width: 41, height: 38 },
         })
         .mockResolvedValueOnce({
           value: { x: 341, y: 513, width: 40, height: 38 },
@@ -388,7 +428,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
       try {
         const dismissalPromise = client.dismissKeyboard();
-        await rs.advanceTimersByTimeAsync(2100);
+        await rs.advanceTimersByTimeAsync(5100);
 
         await expect(dismissalPromise).resolves.toBe(false);
         expect(makeRequestSpy.mock.calls.length).toBeGreaterThan(8);

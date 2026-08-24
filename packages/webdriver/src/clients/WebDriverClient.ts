@@ -1,7 +1,13 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { makeWebDriverRequest } from '../utils/request';
-import type { DeviceInfo, Size, WDASession, WebDriverOptions } from './types';
+import type {
+  DeviceInfo,
+  Size,
+  WDASession,
+  WebDriverOptions,
+  WebDriverRequestOptions,
+} from './types';
 
 const debugClient = getDebug('webdriver:client');
 
@@ -173,13 +179,14 @@ export class WebDriverClient {
     method: string,
     endpoint: string,
     data?: any,
+    options?: WebDriverRequestOptions,
   ): Promise<any> {
     return makeWebDriverRequest(
       this.baseUrl,
       method,
       endpoint,
       data,
-      this.timeout,
+      options?.timeout ?? this.timeout,
     );
   }
 

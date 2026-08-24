@@ -283,6 +283,73 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
     });
 
+    it('should not restore an auto-dismissed target for a non-submit key', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Backspace');
+
+      expect(mockWdaClient.tap).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Backspace');
+    });
+
+    it('should discard an expired keyboard follow-up target', async () => {
+      const nowSpy = rs.spyOn(Date, 'now').mockReturnValue(1_000);
+      try {
+        await device.inputPrimitives.keyboard.typeText('draft task', {
+          target: { center: [30, 40] },
+          replace: false,
+        } as any);
+        mockWdaClient.tap.mockClear();
+        nowSpy.mockReturnValue(31_001);
+
+        await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+        expect(mockWdaClient.tap).not.toHaveBeenCalled();
+        expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+      } finally {
+        nowSpy.mockRestore();
+      }
+    });
+
+    it('should restore focus for a following Tab navigation key', async () => {
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device.inputPrimitives.keyboard.keyboardPress('Tab');
+
+      expect(mockWdaClient.tap).toHaveBeenCalledWith(30, 40);
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Tab');
+    });
+
+    it('should discard a pending target before a custom action', async () => {
+      const customCall = rs.fn().mockResolvedValue(undefined);
+      (device as any).customActions = [
+        { name: 'CustomMutation', call: customCall },
+      ];
+      await device.inputPrimitives.keyboard.typeText('draft task', {
+        target: { center: [30, 40] },
+        replace: false,
+      } as any);
+      mockWdaClient.tap.mockClear();
+
+      await device
+        .actionSpace()
+        .find(({ name }) => name === 'CustomMutation')
+        ?.call(undefined, mockExecutorContext);
+      await device.inputPrimitives.keyboard.keyboardPress('Enter');
+
+      expect(customCall).toHaveBeenCalledOnce();
+      expect(mockWdaClient.tap).not.toHaveBeenCalled();
+      expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+    });
+
     it('should not restore focus when auto-dismiss is disabled', async () => {
       await device.inputPrimitives.keyboard.typeText('draft task', {
         target: { center: [30, 40] },

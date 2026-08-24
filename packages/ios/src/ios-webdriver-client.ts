@@ -1,5 +1,13 @@
 import { getDebug } from '@midscene/shared/logger';
 import { WebDriverClient } from '@midscene/webdriver';
+import {
+  type KeyboardAccessoryButton,
+  type WebDriverElementRect,
+  isKeyboardAccessoryToolbar,
+  isNamedDismissButtonNearKeyboard,
+  keyboardAccessoryToolbarGap,
+  selectKeyboardAccessoryDismissButton,
+} from './keyboard-dismiss';
 
 const debugIOS = getDebug('webdriver:ios');
 
@@ -8,22 +16,12 @@ const WDA_MJPEG_SCREENSHOT_QUALITY = 50;
 const WDA_MJPEG_FRAMERATE = 30;
 const WDA_MJPEG_SCALING_FACTOR = 50;
 const w3cElementId = 'element-6066-11e4-a52e-4f735466cecf';
-const keyboardDismissTimeoutMs = 2000;
+const keyboardDismissDeadlineMs = 5000;
 const keyboardDismissPollIntervalMs = 100;
-const keyboardAccessoryToolbarGeometry = {
-  minHeight: 24,
-  maxHeight: 80,
-  minHorizontalOverlap: 0.8,
-  minRightButtonCenterRatio: 0.65,
-  maxGap: 48,
-} as const;
-const keyboardNamedButtonMaxDistance = 100;
 
-type WebDriverElementRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+type FindElementIdsOptions = {
+  rootElementId?: string;
+  deadline?: number;
 };
 
 export class IOSWebDriverClient extends WebDriverClient {
@@ -354,27 +352,56 @@ export class IOSWebDriverClient extends WebDriverClient {
     });
   }
 
+  private remainingKeyboardDismissTimeout(deadline: number): number {
+    const remainingTimeout = deadline - Date.now();
+    if (remainingTimeout <= 0) {
+      throw new Error(
+        `iOS keyboard dismissal exceeded its ${keyboardDismissDeadlineMs}ms deadline`,
+      );
+    }
+    return Math.max(1, Math.ceil(remainingTimeout));
+  }
+
+  private async makeKeyboardDismissRequest(
+    method: 'GET' | 'POST',
+    endpoint: string,
+    data: unknown,
+    deadline?: number,
+  ): Promise<unknown> {
+    if (deadline === undefined) {
+      return await this.makeRequest(method, endpoint, data);
+    }
+    return await this.makeRequest(method, endpoint, data, {
+      timeout: this.remainingKeyboardDismissTimeout(deadline),
+    });
+  }
+
   private async findElementIds(
     using: string,
     value: string,
-    rootElementId?: string,
+    options: FindElementIdsOptions = {},
   ): Promise<string[]> {
-    const endpoint = rootElementId
-      ? `/session/${this.sessionId}/element/${rootElementId}/elements`
+    const endpoint = options.rootElementId
+      ? `/session/${this.sessionId}/element/${options.rootElementId}/elements`
       : `/session/${this.sessionId}/elements`;
-    const response = await this.makeRequest('POST', endpoint, {
-      using,
-      value,
-    });
+    const response = await this.makeKeyboardDismissRequest(
+      'POST',
+      endpoint,
+      { using, value },
+      options.deadline,
+    );
     return this.getElementIds(response);
   }
 
   private async getElementRect(
     elementId: string,
+    deadline?: number,
   ): Promise<WebDriverElementRect> {
-    const response = await this.makeRequest(
+    const response = await this.makeKeyboardDismissRequest(
       'GET',
       `/session/${this.sessionId}/element/${elementId}/rect`,
+      undefined,
+      deadline,
     );
     const rect = this.getResponseValue(response);
     if (
@@ -397,29 +424,37 @@ export class IOSWebDriverClient extends WebDriverClient {
     };
   }
 
-  private async clickElement(elementId: string): Promise<void> {
-    await this.makeRequest(
+  private async clickElement(
+    elementId: string,
+    deadline?: number,
+  ): Promise<void> {
+    await this.makeKeyboardDismissRequest(
       'POST',
       `/session/${this.sessionId}/element/${elementId}/click`,
+      undefined,
+      deadline,
     );
   }
 
-  private async findVisibleKeyboardIds(): Promise<string[]> {
+  private async findVisibleKeyboardIds(deadline?: number): Promise<string[]> {
     return await this.findElementIds(
       'predicate string',
       'type == "XCUIElementTypeKeyboard" AND visible == true',
+      { deadline },
     );
   }
 
-  private async getVisibleKeyboardRect(): Promise<WebDriverElementRect | null> {
-    const keyboardIds = await this.findVisibleKeyboardIds();
+  private async getVisibleKeyboardRect(
+    deadline?: number,
+  ): Promise<WebDriverElementRect | null> {
+    const keyboardIds = await this.findVisibleKeyboardIds(deadline);
     if (keyboardIds.length === 0) {
       return null;
     }
 
     const keyboardRects: WebDriverElementRect[] = [];
     for (const keyboardId of keyboardIds) {
-      const rect = await this.getElementRect(keyboardId);
+      const rect = await this.getElementRect(keyboardId, deadline);
       if (rect.width > 0 && rect.height > 0) {
         keyboardRects.push(rect);
       }
@@ -437,6 +472,7 @@ export class IOSWebDriverClient extends WebDriverClient {
   private async dismissKeyboardByName(
     keyNames: string[],
     keyboardRect: WebDriverElementRect,
+    deadline: number,
   ): Promise<boolean> {
     const predicateNames = keyNames
       .map(
@@ -446,26 +482,20 @@ export class IOSWebDriverClient extends WebDriverClient {
     const buttonIds = await this.findElementIds(
       'predicate string',
       `type IN {"XCUIElementTypeButton", "XCUIElementTypeKey"} AND enabled == true AND visible == true AND (name IN {${predicateNames}} OR label IN {${predicateNames}})`,
+      { deadline },
     );
     const nearbyButtons: Array<{
       id: string;
       distanceFromKeyboard: number;
     }> = [];
     for (const buttonId of buttonIds) {
-      const rect = await this.getElementRect(buttonId);
-      const centerX = rect.x + rect.width / 2;
-      const centerY = rect.y + rect.height / 2;
-      const isNearKeyboard =
-        rect.width > 0 &&
-        rect.height > 0 &&
-        centerX >= keyboardRect.x &&
-        centerX <= keyboardRect.x + keyboardRect.width &&
-        centerY >= keyboardRect.y - keyboardNamedButtonMaxDistance &&
-        centerY <= keyboardRect.y + keyboardRect.height;
-      if (isNearKeyboard) {
+      const rect = await this.getElementRect(buttonId, deadline);
+      if (isNamedDismissButtonNearKeyboard(rect, keyboardRect)) {
         nearbyButtons.push({
           id: buttonId,
-          distanceFromKeyboard: Math.abs(centerY - keyboardRect.y),
+          distanceFromKeyboard: Math.abs(
+            rect.y + rect.height / 2 - keyboardRect.y,
+          ),
         });
       }
     }
@@ -477,7 +507,7 @@ export class IOSWebDriverClient extends WebDriverClient {
       return false;
     }
 
-    await this.clickElement(dismissButton.id);
+    await this.clickElement(dismissButton.id, deadline);
     debugIOS(
       `Dismissed keyboard using configured button: ${keyNames.join(', ')}`,
     );
@@ -486,10 +516,12 @@ export class IOSWebDriverClient extends WebDriverClient {
 
   private async dismissKeyboardUsingAccessoryToolbar(
     keyboardRect: WebDriverElementRect,
+    deadline: number,
   ): Promise<boolean> {
     const toolbarIds = await this.findElementIds(
       'class name',
       'XCUIElementTypeToolbar',
+      { deadline },
     );
     const toolbarCandidates: Array<{
       id: string;
@@ -498,32 +530,16 @@ export class IOSWebDriverClient extends WebDriverClient {
     }> = [];
 
     for (const toolbarId of toolbarIds) {
-      const rect = await this.getElementRect(toolbarId);
-      const overlapWidth = Math.max(
-        0,
-        Math.min(rect.x + rect.width, keyboardRect.x + keyboardRect.width) -
-          Math.max(rect.x, keyboardRect.x),
-      );
-      const horizontalOverlap = overlapWidth / keyboardRect.width;
-      const gap = keyboardRect.y - (rect.y + rect.height);
-      const maxGap = Math.max(
-        keyboardAccessoryToolbarGeometry.maxGap,
-        rect.height,
-      );
-      const isKeyboardAccessory =
-        rect.width > 0 &&
-        rect.height >= keyboardAccessoryToolbarGeometry.minHeight &&
-        rect.height <= keyboardAccessoryToolbarGeometry.maxHeight &&
-        horizontalOverlap >=
-          keyboardAccessoryToolbarGeometry.minHorizontalOverlap &&
-        rect.y <= keyboardRect.y &&
-        gap >= -rect.height &&
-        gap <= maxGap;
-
-      if (isKeyboardAccessory) {
+      const rect = await this.getElementRect(toolbarId, deadline);
+      if (isKeyboardAccessoryToolbar(rect, keyboardRect)) {
+        const gap = keyboardAccessoryToolbarGap(rect, keyboardRect);
         toolbarCandidates.push({ id: toolbarId, rect, gap });
       }
     }
+
+    debugIOS(
+      `Found ${toolbarCandidates.length} standard keyboard accessory toolbar candidate(s) from ${toolbarIds.length} toolbar(s)`,
+    );
 
     toolbarCandidates.sort(
       (left, right) => Math.abs(left.gap) - Math.abs(right.gap),
@@ -533,43 +549,29 @@ export class IOSWebDriverClient extends WebDriverClient {
       const buttonIds = await this.findElementIds(
         'predicate string',
         'type == "XCUIElementTypeButton" AND enabled == true AND visible == true',
-        toolbar.id,
+        { rootElementId: toolbar.id, deadline },
       );
-      const rightSideButtons: Array<{
-        id: string;
-        rect: WebDriverElementRect;
-      }> = [];
+      const buttons: KeyboardAccessoryButton[] = [];
 
       for (const buttonId of buttonIds) {
-        const rect = await this.getElementRect(buttonId);
-        const centerX = rect.x + rect.width / 2;
-        const centerY = rect.y + rect.height / 2;
-        const isVisibleInsideToolbar =
-          rect.width > 0 &&
-          rect.height > 0 &&
-          centerX >=
-            toolbar.rect.x +
-              toolbar.rect.width *
-                keyboardAccessoryToolbarGeometry.minRightButtonCenterRatio &&
-          centerX <= toolbar.rect.x + toolbar.rect.width &&
-          centerY >= toolbar.rect.y &&
-          centerY <= toolbar.rect.y + toolbar.rect.height;
-
-        if (isVisibleInsideToolbar) {
-          rightSideButtons.push({ id: buttonId, rect });
-        }
+        buttons.push({
+          id: buttonId,
+          rect: await this.getElementRect(buttonId, deadline),
+        });
       }
 
-      rightSideButtons.sort(
-        (left, right) =>
-          right.rect.x + right.rect.width - (left.rect.x + left.rect.width),
+      const dismissButton = selectKeyboardAccessoryDismissButton(
+        toolbar.rect,
+        buttons,
       );
-      const dismissButton = rightSideButtons[0];
       if (!dismissButton) {
+        debugIOS(
+          `Rejected keyboard accessory toolbar ${toolbar.id}: expected left navigation controls and exactly one right-edge dismiss control`,
+        );
         continue;
       }
 
-      await this.clickElement(dismissButton.id);
+      await this.clickElement(dismissButton.id, deadline);
       debugIOS('Dismissed keyboard using the accessory toolbar button');
       return true;
     }
@@ -577,14 +579,20 @@ export class IOSWebDriverClient extends WebDriverClient {
     return false;
   }
 
-  private async waitForKeyboardToHide(): Promise<boolean> {
-    const deadline = Date.now() + keyboardDismissTimeoutMs;
+  private async waitForKeyboardToHide(deadline: number): Promise<boolean> {
     while (Date.now() < deadline) {
-      if (!(await this.isKeyboardVisible())) {
+      if ((await this.findVisibleKeyboardIds(deadline)).length === 0) {
         return true;
       }
+      const remainingTimeout = deadline - Date.now();
+      if (remainingTimeout <= 0) {
+        return false;
+      }
       await new Promise((resolve) =>
-        setTimeout(resolve, keyboardDismissPollIntervalMs),
+        setTimeout(
+          resolve,
+          Math.min(keyboardDismissPollIntervalMs, remainingTimeout),
+        ),
       );
     }
     return false;
@@ -593,9 +601,10 @@ export class IOSWebDriverClient extends WebDriverClient {
   /**
    * Hides the visible software keyboard and waits until WDA confirms it is gone.
    *
-   * By default this locates a full-width accessory toolbar next to the keyboard
-   * and clicks its rightmost enabled button without depending on localized text.
-   * Explicit key names are only matched within the keyboard's nearby region.
+   * By default this locates a standard accessory toolbar next to the keyboard.
+   * It requires left-side navigation controls and exactly one right-edge control
+   * before clicking, without depending on localized text. Explicit key names are
+   * only matched within the keyboard's nearby region.
    *
    * @returns `true` when the keyboard is hidden, or `false` when no supported
    * dismissal control exists or the keyboard remains visible after the timeout.
@@ -603,17 +612,30 @@ export class IOSWebDriverClient extends WebDriverClient {
    */
   async dismissKeyboard(keyNames?: string[]): Promise<boolean> {
     this.ensureSession();
+    const startedAt = Date.now();
+    const deadline = startedAt + keyboardDismissDeadlineMs;
 
-    const keyboardRect = await this.getVisibleKeyboardRect();
+    const keyboardRect = await this.getVisibleKeyboardRect(deadline);
     if (!keyboardRect) {
       return true;
     }
 
     const dismissalStarted =
       keyNames && keyNames.length > 0
-        ? await this.dismissKeyboardByName(keyNames, keyboardRect)
-        : await this.dismissKeyboardUsingAccessoryToolbar(keyboardRect);
-    return dismissalStarted ? await this.waitForKeyboardToHide() : false;
+        ? await this.dismissKeyboardByName(keyNames, keyboardRect, deadline)
+        : await this.dismissKeyboardUsingAccessoryToolbar(
+            keyboardRect,
+            deadline,
+          );
+    if (!dismissalStarted) {
+      return false;
+    }
+
+    const hidden = await this.waitForKeyboardToHide(deadline);
+    debugIOS(
+      `Keyboard dismissal ${hidden ? 'completed' : 'did not complete'} in ${Date.now() - startedAt}ms`,
+    );
+    return hidden;
   }
 
   /** Returns whether WDA currently exposes a visible software keyboard. */
