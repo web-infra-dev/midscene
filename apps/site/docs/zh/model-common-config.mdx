@@ -122,6 +122,61 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen�
   </ModelConfigTab>
 </ModelConfigTabs>
 
+### DeepSeek 系列 {#deepseek}
+
+Midscene 从 v1.12.0 开始支持 DeepSeek。
+
+- 常用模型供应商：[DeepSeek - 图像理解](https://api-docs.deepseek.com/zh-cn/guides/vision/)
+
+<div className="model-series-table">
+
+| 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
+| --- | --- | --- | --- |
+| DeepSeek V4 系列 | `deepseek-v4-flash-vision-exp` | `deepseek` | |
+
+</div>
+
+:::caution
+
+目前只有 `deepseek-v4-flash-vision-exp` 支持 Midscene 所需的多模态视觉输入。包括 `deepseek-v4-pro` 和普通 `deepseek-v4-flash` 在内的其他 DeepSeek V4 模型均不适用于 Midscene。
+
+:::
+
+环境变量配置示例，以 `deepseek-v4-flash-vision-exp` 为例：
+
+<ModelConfigTabs>
+  <ModelConfigTab type="default">
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="planning">
+
+```bash
+MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
+MIDSCENE_PLANNING_MODEL_API_KEY="......"
+MIDSCENE_PLANNING_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="insight">
+
+```bash
+MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
+MIDSCENE_INSIGHT_MODEL_API_KEY="......"
+MIDSCENE_INSIGHT_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
+```
+
+  </ModelConfigTab>
+</ModelConfigTabs>
+
 ### Google Gemini 系列 {#gemini}
 
 - 常用模型供应商：[Google Gemini](https://gemini.google.com/)

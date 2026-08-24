@@ -80,6 +80,7 @@ describe('model adapter registry', () => {
       'kimi',
       'kimi3',
       'xiaomi-mimo',
+      'deepseek',
     ];
     const enabledSet = new Set<TModelFamily>(enabledFamilies);
 
