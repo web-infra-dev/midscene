@@ -6,6 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
+import { getGitHubStars } from './scripts/github-stars';
 
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
@@ -39,7 +40,11 @@ const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
   ],
 });
 
-export default defineConfig(() => {
+export default defineConfig(async () => {
+  const githubStars = await getGitHubStars({
+    strict: process.env.MIDSCENE_SITE_BUILD === 'true',
+    token: process.env.GITHUB_TOKEN,
+  });
   return {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',
@@ -498,6 +503,9 @@ export default defineConfig(() => {
       },
       source: {
         preEntry: ['./theme/tailwind.css'],
+        define: {
+          __MIDSCENE_GITHUB_STARS__: JSON.stringify(githubStars),
+        },
       },
       html: {
         tags: [

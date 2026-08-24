@@ -94,7 +94,7 @@ export function Banner() {
 
           <div className="home-hero__stats">
             <div className="home-hero__stat">
-              <strong>14k+</strong>
+              <strong>{__MIDSCENE_GITHUB_STARS__}</strong>
               <span>{t('githubStars')}</span>
             </div>
             <div className="home-hero__stat">
