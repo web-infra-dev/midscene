@@ -40,6 +40,7 @@ const createMockManager = () => ({
   getScreenshotJpeg: rs.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: rs.fn().mockReturnValue(null),
   disconnect: rs.fn().mockResolvedValue(undefined),
+  dispose: rs.fn().mockResolvedValue(undefined),
 });
 
 let currentMockManager: ReturnType<typeof createMockManager>;
@@ -381,7 +382,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(1);
     });
 
-    it('moves the barrier before an input action starts', async () => {
+    it('moves the barrier after an input action completes', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
       currentMockManager.isConnected.mockReturnValue(true);
@@ -390,7 +391,7 @@ describe('ScrcpyDeviceAdapter', () => {
       await adapter.markActionBarrier();
 
       expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
-        'input action started',
+        'completed input action',
         {
           allowOverAgeForNextCapture: true,
           hostMonotonicUs: 10_100_000n,
@@ -408,7 +409,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
       await expect(adapter.markActionBarrier()).resolves.toBeUndefined();
 
-      expect(currentMockManager.disconnect).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.dispose).toHaveBeenCalledTimes(1);
       expect((adapter as any).manager).toBeNull();
       expect(adapter.getStatus()).toMatchObject({
         lastError: 'dumpsys unavailable',
@@ -430,7 +431,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
       await adapter.screenshotBase64(defaultDeviceInfo);
       expect(currentMockManager.setFreshnessBarrier).toHaveBeenCalledWith(
-        'input action started while scrcpy was unavailable',
+        'completed input action while scrcpy was unavailable',
         {
           allowOverAgeForNextCapture: true,
           hostMonotonicUs: 10_200_000n,
@@ -455,6 +456,19 @@ describe('ScrcpyDeviceAdapter', () => {
       expect((adapter as any).manager).toBe(currentMockManager);
     });
 
+    it('deduplicates concurrent manager initialization', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      const [first, second] = await Promise.all([
+        adapter.ensureManager(defaultDeviceInfo),
+        adapter.ensureManager(defaultDeviceInfo),
+      ]);
+
+      expect(first).toBe(currentMockManager);
+      expect(second).toBe(currentMockManager);
+      expect(currentMockManager.validateEnvironment).toHaveBeenCalledTimes(1);
+    });
+
     it('should record ensureManager failures without permanently disabling scrcpy', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       currentMockManager.validateEnvironment.mockRejectedValue(
@@ -468,6 +482,7 @@ describe('ScrcpyDeviceAdapter', () => {
         lastError: expect.stringContaining('ffmpeg not found'),
         retryAfter: expect.any(Number),
       });
+      expect(currentMockManager.dispose).toHaveBeenCalledTimes(1);
     });
 
     it('should recover after a transient ensureConnected failure', async () => {
@@ -536,6 +551,8 @@ describe('ScrcpyDeviceAdapter', () => {
         'data:image/png;base64,test',
       );
       expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(2);
+      expect(currentMockManager.validateEnvironment).not.toHaveBeenCalled();
+      expect(currentMockManager.dispose).not.toHaveBeenCalled();
       expect(adapter.isEnabled()).toBe(true);
       expect(adapter.getStatus().lastError).toBeNull();
       expect(warn).not.toHaveBeenCalled();
@@ -561,7 +578,8 @@ describe('ScrcpyDeviceAdapter', () => {
         'retry stream closed',
       );
       expect(adapter.isEnabled()).toBe(false);
-      expect((adapter as any).manager).toBeNull();
+      expect((adapter as any).manager).toBe(currentMockManager);
+      expect(currentMockManager.dispose).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalledWith(
         '[Midscene]',
         'retry stream diagnostic',
@@ -573,6 +591,37 @@ describe('ScrcpyDeviceAdapter', () => {
         expect(adapter.getStatus().lastError).toBeNull();
       });
       expect(adapter.isEnabled()).toBe(true);
+    });
+
+    it('shares one in-band restart across concurrent stale screenshots', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      let resolveRestart: ((value: Buffer) => void) | undefined;
+      const restartFrame = new Promise<Buffer>((resolve) => {
+        resolveRestart = resolve;
+      });
+      currentMockManager.getScreenshotJpeg
+        .mockRejectedValueOnce(
+          new ScrcpyFreshFrameUnavailableError('first stale call'),
+        )
+        .mockRejectedValueOnce(
+          new ScrcpyFreshFrameUnavailableError('second stale call'),
+        )
+        .mockReturnValueOnce(restartFrame);
+
+      const first = adapter.screenshotBase64(defaultDeviceInfo);
+      const second = adapter.screenshotBase64(defaultDeviceInfo);
+      await rs.waitFor(() => {
+        expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(3);
+      });
+      resolveRestart?.(Buffer.from('recovered-frame'));
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        'data:image/png;base64,test',
+        'data:image/png;base64,test',
+      ]);
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(3);
+      expect(currentMockManager.ensureConnected).toHaveBeenCalledTimes(3);
     });
 
     it('recognizes and retries freshness errors across duplicated module instances', async () => {
@@ -626,7 +675,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
       expect((adapter as any).manager).toBeNull();
       expect((adapter as any).resolvedConfig).toBeNull();
-      expect(currentMockManager.disconnect).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.dispose).toHaveBeenCalledTimes(1);
       expect(adapter.getStatus().lastError).toBeNull();
       expect(adapter.getStatus().retryAfter).toBeNull();
     });
@@ -634,7 +683,7 @@ describe('ScrcpyDeviceAdapter', () => {
     it('should handle disconnect errors gracefully (no throw)', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
-      currentMockManager.disconnect.mockRejectedValue(
+      currentMockManager.dispose.mockRejectedValue(
         new Error('disconnect failed'),
       );
 

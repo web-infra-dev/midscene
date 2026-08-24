@@ -297,9 +297,14 @@ The default is `auto`, which tries `adb.takeScreenshot` first, falls back to she
 
 ### Why does scrcpy fall back to ADB screenshots?
 
-On a bandwidth-constrained remote device connection, the default 100 Mbps scrcpy video stream can build up a transport backlog. If Midscene cannot obtain a frame captured after the latest action, it rejects the stale frame and falls back to an ADB screenshot.
+Midscene rejects scrcpy frames that cannot be proven to have been captured after the latest completed action. A fresh frame can be unavailable for two different reasons:
 
-For the Android CLI, start with a 4 Mbps video bitrate and add both options to every command that uses scrcpy:
+- A bandwidth-constrained remote connection can build up a transport backlog, especially with the default 100 Mbps video bitrate.
+- Some Android encoders stop emitting frames while the screen is static. This can also happen over a healthy local USB connection and is not evidence that the bitrate is too high.
+
+When an established stream does not produce a fresh frame, Midscene restarts scrcpy once and uses the new stream epoch's first frame. It falls back to an ADB screenshot only if that restart also fails.
+
+For a constrained remote connection, start with a 4 Mbps video bitrate. Android CLI commands are independent processes, so pass the option to every command that should use this bitrate:
 
 ```bash
 midscene-android tap \
@@ -309,7 +314,7 @@ midscene-android tap \
   --scrcpy-video-bit-rate 4000000
 ```
 
-The camel-case alias `--scrcpyVideoBitRate` is also accepted. The bitrate option enables scrcpy by itself, so `--use-scrcpy` may be omitted when it is present. The value is in bits per second. Lower it further if fallback continues; raising it can preserve more image detail when the connection has enough bandwidth.
+The camel-case alias `--scrcpyVideoBitRate` is also accepted. The bitrate option enables scrcpy by itself, so `--use-scrcpy` may be omitted when it is present. The value is in bits per second. Lowering it further may help only when the remote transport is actually congested. If a local USB device still reports no fresh frames at 4 Mbps or less, keep the bitrate and investigate static-screen encoder behavior or stream startup instead. Raising the bitrate can preserve more image detail when the connection has enough bandwidth.
 
 For the JavaScript SDK or YAML configuration, set the equivalent `scrcpyConfig.videoBitRate` option:
 

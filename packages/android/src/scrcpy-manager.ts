@@ -26,7 +26,6 @@ const MAX_KEYFRAME_WAIT_MS = 5_000;
 const FRESH_FRAME_TIMEOUT_MS = 300;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
-const CONNECTION_WAIT_MS = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
 const MAX_FRAME_AGE_US = 500_000n;
@@ -218,7 +217,8 @@ export class ScrcpyScreenshotManager {
   private videoStream: any = null;
   private spsHeader: Buffer | null = null;
   private idleTimer: NodeJS.Timeout | null = null;
-  private isConnecting = false;
+  private connectionPromise: Promise<void> | null = null;
+  private disposed = false;
   private isInitialized = false;
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
@@ -280,6 +280,10 @@ export class ScrcpyScreenshotManager {
    * Ensure scrcpy connection is active
    */
   async ensureConnected(): Promise<void> {
+    if (this.disposed) {
+      throw new Error('Scrcpy manager has been disposed');
+    }
+
     if (this.scrcpyClient && this.videoStream) {
       debugScrcpy('Scrcpy already connected');
       await this.ensureFrameClockCalibration();
@@ -287,25 +291,30 @@ export class ScrcpyScreenshotManager {
       return;
     }
 
-    if (this.isConnecting) {
-      debugScrcpy('Connection already in progress, waiting...');
-      await new Promise((resolve) => setTimeout(resolve, CONNECTION_WAIT_MS));
-      // After waiting, check if the other connection attempt succeeded
-      if (this.scrcpyClient && this.videoStream) {
-        await this.ensureFrameClockCalibration();
-        this.resetIdleTimer();
-        return;
-      }
-      throw new Error(
-        'Scrcpy connection failed: another connection attempt did not complete in time',
+    if (this.connectionPromise) {
+      debugScrcpy(
+        'Connection already in progress, sharing the same attempt...',
       );
+      await this.connectionPromise;
+      return;
     }
 
+    const connectionPromise = this.connectScrcpy();
+    this.connectionPromise = connectionPromise;
+    try {
+      await connectionPromise;
+    } finally {
+      if (this.connectionPromise === connectionPromise) {
+        this.connectionPromise = null;
+      }
+    }
+  }
+
+  private async connectScrcpy(): Promise<void> {
     const serverOutput: string[] = [];
     let serverOutputTask: Promise<void> | null = null;
 
     try {
-      this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
       const { AdbScrcpyClient } = await import('@yume-chan/adb-scrcpy');
@@ -365,8 +374,6 @@ export class ScrcpyScreenshotManager {
         ]);
       }
       throw this.createConnectionError(error, serverOutput);
-    } finally {
-      this.isConnecting = false;
     }
   }
 
@@ -695,6 +702,7 @@ export class ScrcpyScreenshotManager {
     reason: string,
     options: ScrcpyFreshnessBarrierOptions = {},
   ): Promise<bigint> {
+    const cachedFrame = this.getCachedKeyframeCandidate();
     const generation = ++this.frameFreshnessBarrierGeneration;
     this.frameFreshnessBarrierPending = true;
     this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
@@ -735,7 +743,17 @@ export class ScrcpyScreenshotManager {
       this.frameFreshnessBarrierPending = false;
       this.frameFreshnessError = null;
       this.lastFramePtsUs = null;
-      this.clearFrameCache();
+      if (
+        cachedFrame?.ptsUs !== undefined &&
+        cachedFrame.ptsUs >= this.frameFreshnessBarrierPtsUs
+      ) {
+        this.restoreFrameCache(cachedFrame);
+        debugScrcpy(
+          `Preserved cached frame PTS ${cachedFrame.ptsUs}µs because it crosses the newly armed ${reason} barrier`,
+        );
+      } else {
+        this.clearFrameCache();
+      }
 
       debugScrcpy(
         `Armed frame freshness barrier at PTS ${this.frameFreshnessBarrierPtsUs}µs (${reason}, projected from stream-epoch clock anchor, uncertainty<=${Number(this.getCalibrationUncertaintyUs(calibration)) / 1_000}ms)`,
@@ -962,6 +980,13 @@ export class ScrcpyScreenshotManager {
     this.lastRawKeyframeAt = 0;
     this.lastRawKeyframePtsUs = undefined;
     this.lastRawKeyframeEstimatedAgeMs = undefined;
+  }
+
+  private restoreFrameCache(frame: RawKeyframe): void {
+    this.lastRawKeyframe = frame.data;
+    this.lastRawKeyframeAt = frame.capturedAt;
+    this.lastRawKeyframePtsUs = frame.ptsUs;
+    this.lastRawKeyframeEstimatedAgeMs = frame.estimatedAgeMs;
   }
 
   private monotonicTimeUs(): bigint {
@@ -1450,6 +1475,20 @@ export class ScrcpyScreenshotManager {
     }
 
     debugScrcpy('Scrcpy disconnected');
+  }
+
+  /**
+   * Permanently release the scrcpy stream and the owned yume ADB transport.
+   * Unlike disconnect(), a disposed manager cannot be reconnected.
+   */
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    this.disposed = true;
+    if (this.connectionPromise) {
+      await this.connectionPromise.catch(() => {});
+    }
+    await this.disconnect();
+    await this.adb.close();
   }
 
   /**
