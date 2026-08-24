@@ -87,7 +87,9 @@ describe('chrome extension playground advanced tests', () => {
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
 
-    await agent.aiAct(`Click the "Action" button in ${SIDE_PANEL}`);
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, horizontally scroll the action mode selector all the way left if needed, then click the "Action" button immediately to the left of "Tap". Do not click "Tap".`,
+    );
     await sleep(500);
   });
 
