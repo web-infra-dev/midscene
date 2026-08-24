@@ -833,6 +833,38 @@
   border-bottom-color: rgb(255 255 255 / 8%);
 }
 
+.home-feature-card__visual--deepseek::after {
+  /* DeepSeek 导出的 SVG 缺少设计稿中的右下角浅蓝渐变，这里用 CSS 补齐。 */
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: radial-gradient(
+      ellipse 44% 94% at 100% 116%,
+      rgb(5 101 255 / 6%) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 60% 126% at 58% 124%,
+      rgb(122 224 255 / 9%) 0%,
+      transparent 100%
+    );
+  content: "";
+  pointer-events: none;
+}
+
+.dark .home-feature-card__visual--deepseek::after {
+  background: radial-gradient(
+      ellipse 44% 94% at 100% 116%,
+      rgb(122 224 255 / 4%) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 60% 126% at 58% 124%,
+      rgb(122 224 255 / 5%) 0%,
+      transparent 100%
+    );
+}
+
 .home-feature-card__theme {
   position: absolute;
   inset: 0;
@@ -875,11 +907,6 @@
 
 .home-feature-card__asset--model {
   width: 92px;
-  height: auto;
-}
-
-.home-feature-card__asset--model-dark {
-  width: 112px;
   height: auto;
 }
 

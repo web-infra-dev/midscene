@@ -135,7 +135,7 @@ export function WhoIsUsing() {
         <header className="home-users__header">
           <span className="home-users__eyebrow">
             <span aria-hidden="true">{'//'}</span>
-            <span>{t('benchmarksTitle')}</span>
+            <span>{t('whoIsUsingEyebrow')}</span>
           </span>
           <h2>{t('whoIsUsingTitle')}</h2>
         </header>

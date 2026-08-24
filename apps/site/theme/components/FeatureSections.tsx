@@ -71,6 +71,7 @@ interface FeatureCardProps {
   description: string;
   lightBackground: string;
   darkBackground: string;
+  visualClassName?: string;
   lightContent?: ReactNode;
   darkContent?: ReactNode;
 }
@@ -81,12 +82,16 @@ function FeatureCard({
   description,
   lightBackground,
   darkBackground,
+  visualClassName,
   lightContent,
   darkContent,
 }: FeatureCardProps) {
   return (
     <TiltCard href={href} className="home-feature-card">
-      <div className="home-feature-card__visual" aria-hidden="true">
+      <div
+        className={`home-feature-card__visual${visualClassName ? ` ${visualClassName}` : ''}`}
+        aria-hidden="true"
+      >
         <div
           className="home-feature-card__theme home-feature-card__theme--light"
           style={{ backgroundImage: `url(${lightBackground})` }}
@@ -262,11 +267,12 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/qwen-dark.svg"
           />
           <FeatureCard
-            href={tUrl('/model-common-config#gemini')}
-            title={t('modelGeminiName')}
-            description={t('modelGeminiDesc')}
-            lightBackground="/images/backgrounds/gemini.svg"
-            darkBackground="/images/backgrounds/gemini-dark.svg"
+            href={tUrl('/model-common-config#deepseek')}
+            title={t('modelDeepSeekName')}
+            description={t('modelDeepSeekDesc')}
+            lightBackground="/images/models/deepseek-light.svg"
+            darkBackground="/images/models/deepseek-dark.svg"
+            visualClassName="home-feature-card__visual--deepseek"
           />
           <FeatureCard
             href={tUrl(t('multiModelStrategyLink'))}
@@ -276,16 +282,16 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/grid-dark.svg"
             lightContent={
               <img
-                src="/icon/multi-model.png"
+                src="/images/models/multi-model-combo-light.png"
                 alt=""
                 className="home-feature-card__asset home-feature-card__asset--model"
               />
             }
             darkContent={
               <img
-                src="/icon/multi-model-dark.png"
+                src="/images/models/multi-model-combo-dark.png"
                 alt=""
-                className="home-feature-card__asset home-feature-card__asset--model-dark"
+                className="home-feature-card__asset home-feature-card__asset--model"
               />
             }
           />
@@ -318,7 +324,7 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/grid-dark.svg"
             lightContent={
               <img
-                src="/icon/ai-action.svg"
+                src="/images/toolkit/rich-apis.svg"
                 alt=""
                 className="home-feature-card__asset home-feature-card__asset--tool"
               />
@@ -332,7 +338,7 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/grid-dark.svg"
             lightContent={
               <img
-                src="/icon/ai-tap.svg"
+                src="/images/toolkit/skills.svg"
                 alt=""
                 className="home-feature-card__asset home-feature-card__asset--tool"
               />
@@ -346,7 +352,7 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/grid-dark.svg"
             lightContent={
               <img
-                src="/icon/playback-report.svg"
+                src="/images/toolkit/reports-playground.svg"
                 alt=""
                 className="home-feature-card__asset home-feature-card__asset--tool"
               />
@@ -360,7 +366,7 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/grid-dark.svg"
             lightContent={
               <img
-                src="/icon/ai-query.svg"
+                src="/images/toolkit/flexible-integration.svg"
                 alt=""
                 className="home-feature-card__asset home-feature-card__asset--tool"
               />

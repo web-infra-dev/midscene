@@ -55,9 +55,9 @@ and more`,
   modelQwenName: 'qwen3.7-plus',
   modelQwenDesc:
     'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
-  modelGeminiName: 'gemini-3.5-flash',
-  modelGeminiDesc:
-    'Powerful multimodal understanding with excellent element localization.',
+  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
+  modelDeepSeekDesc:
+    'Integrated visual understanding and reasoning for complex UI tasks.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
     'Pair a planning model with a vision model to raise task completion rates.',
@@ -101,6 +101,7 @@ UI testing toolkit`,
     'Explore the complete API documentation for more automation capabilities.',
 
   // Who is Using
+  whoIsUsingEyebrow: 'USERS',
   whoIsUsingTitle: 'Who is using Midscene',
   userVolcengine: 'Volcengine',
   userDouyin: 'Douyin',
