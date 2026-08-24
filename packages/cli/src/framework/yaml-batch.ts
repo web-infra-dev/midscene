@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { type BatchRunnerConfig, runYamlBatch } from '../yaml-batch-executor';
+import { emitYamlProgress } from './progress-reporter';
 
 export interface RunYamlBatchInRstestOptions {
   config: BatchRunnerConfig;
@@ -29,6 +30,7 @@ export async function runYamlBatchInRstest(
   const results = await runYamlBatch(options.config, {
     generateSummary: false,
     printExecutionPlan: false,
+    onProgress: emitYamlProgress,
   });
 
   for (const result of results) {

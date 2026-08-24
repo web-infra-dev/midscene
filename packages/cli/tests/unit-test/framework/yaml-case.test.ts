@@ -2,7 +2,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createYamlPlayer } from '@/create-yaml-player';
-import { runYamlCase, runYamlCaseResult } from '@/framework/yaml-case';
+import {
+  runYamlCase,
+  runYamlCaseResult,
+  runYamlCaseResultWithSnapshots,
+} from '@/framework/yaml-case';
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 rs.mock('@/create-yaml-player', () => ({
@@ -47,6 +51,42 @@ describe('runYamlCase', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  test('reports task names before and after the YAML player runs', async () => {
+    const player = createPlayer({
+      status: 'init',
+      taskStatusList: [{ name: 'login', status: 'init' }],
+    });
+    player.run.mockImplementation(async () => {
+      player.status = 'done';
+      player.taskStatusList[0].status = 'done';
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+    const snapshots: Array<{ player: string; task: string }> = [];
+    const onPlayerSnapshot = rs.fn(
+      ({ player: currentPlayer }: { player: typeof player }) => {
+        snapshots.push({
+          player: currentPlayer.status,
+          task: currentPlayer.taskStatusList[0].status,
+        });
+      },
+    );
+
+    await runYamlCaseResultWithSnapshots(
+      { file: 'relative.yaml' },
+      onPlayerSnapshot,
+    );
+
+    expect(onPlayerSnapshot).toHaveBeenCalledTimes(2);
+    expect(onPlayerSnapshot.mock.calls[0][0]).toMatchObject({
+      file: expect.stringMatching(/relative\.yaml$/),
+    });
+    expect(onPlayerSnapshot.mock.calls[0][0].player).toBe(player);
+    expect(snapshots).toEqual([
+      { player: 'init', task: 'init' },
+      { player: 'done', task: 'done' },
+    ]);
   });
 
   test('passes merged execution config to the YAML player', async () => {

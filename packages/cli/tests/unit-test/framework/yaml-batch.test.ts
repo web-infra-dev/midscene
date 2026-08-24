@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { emitYamlProgress } from '@/framework/progress-reporter';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
 import { runYamlBatch } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
@@ -77,6 +78,7 @@ describe('runYamlBatchInRstest', () => {
       expect(runYamlBatch).toHaveBeenCalledWith(config, {
         generateSummary: false,
         printExecutionPlan: false,
+        onProgress: emitYamlProgress,
       });
       expect(JSON.parse(readFileSync(resultA, 'utf8'))).toMatchObject({
         file: yamlA,

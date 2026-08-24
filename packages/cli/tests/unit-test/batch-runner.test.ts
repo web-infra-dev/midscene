@@ -142,6 +142,24 @@ describe('BatchRunner', () => {
     rs.mocked(getMidsceneRunSubDir).mockReturnValue('/test/output');
   });
 
+  test('delivers progress snapshots to the caller', async () => {
+    const onProgress = vi.fn();
+    const runner = new BatchRunner({
+      ...mockBatchConfig,
+      files: ['login.yml'],
+    });
+
+    await runner.run({
+      generateSummary: false,
+      printExecutionPlan: false,
+      onProgress,
+    });
+
+    expect(onProgress).toHaveBeenCalledTimes(2);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 'test summary');
+    expect(onProgress).toHaveBeenNthCalledWith(2, 'test summary');
+  });
+
   describe('shareBrowserContext logic', () => {
     test('should create one browser instance when shareBrowserContext is true', async () => {
       const config = {

@@ -6,11 +6,14 @@ import type {
 } from '@midscene/core';
 import type { test as rstestTest } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
+import { contextTaskListSummary } from '../printer';
+import { emitYamlProgress } from './progress-reporter';
 import { runYamlBatchInRstest } from './yaml-batch';
 import {
   type RunYamlCaseOptions,
+  type YamlPlayerSnapshotHandler,
   createYamlCaseFailure,
-  runYamlCaseResult,
+  runYamlCaseResultWithSnapshots,
 } from './yaml-case';
 
 export type RstestTest = typeof rstestTest;
@@ -102,6 +105,15 @@ const createRuntimeFailureResult = (
   error: errorMessageOf(error),
 });
 
+const reportYamlPlayerProgress: YamlPlayerSnapshotHandler = ({
+  file,
+  player,
+}) => {
+  emitYamlProgress(
+    contextTaskListSummary(player.taskStatusList, { file, player }),
+  );
+};
+
 export const defineYamlCaseTest = (
   test: RstestTest,
   options: DefineYamlCaseTestOptions,
@@ -112,11 +124,14 @@ export const defineYamlCaseTest = (
     let result: MidsceneYamlConfigResult | undefined;
 
     try {
-      result = await runYamlCaseResult({
-        ...options.caseOptions,
-        ...options.webRuntimeOptions,
-        file,
-      });
+      result = await runYamlCaseResultWithSnapshots(
+        {
+          ...options.caseOptions,
+          ...options.webRuntimeOptions,
+          file,
+        },
+        reportYamlPlayerProgress,
+      );
       result = appendAttemptHistory(options.resultFile, result);
       writeResultFile(options.resultFile, result);
 

@@ -89,6 +89,11 @@ interface BatchFileContext {
 export interface RunYamlBatchOptions {
   generateSummary?: boolean;
   printExecutionPlan?: boolean;
+  /**
+   * Receives complete, line-oriented progress snapshots. When provided, the
+   * caller owns progress delivery and direct terminal rendering is disabled.
+   */
+  onProgress?: (message: string) => void;
 }
 
 class YamlBatchExecutor {
@@ -226,6 +231,7 @@ class YamlBatchExecutor {
       const { executedResults, notExecutedContexts } = await this.executeFiles(
         setupContext,
         fileContextList,
+        options.onProgress,
       );
 
       // Process results
@@ -276,6 +282,7 @@ class YamlBatchExecutor {
   private async executeFiles(
     setupContext: BatchFileContext | undefined,
     fileContextList: BatchFileContext[],
+    onProgress?: (message: string) => void,
   ): Promise<{
     executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
     notExecutedContexts: Array<{
@@ -312,7 +319,7 @@ class YamlBatchExecutor {
 
     // Setup TTY renderer
     let ttyRenderer: TTYWindowRenderer | undefined;
-    if (isTTY) {
+    if (isTTY && !onProgress) {
       const summaryContents = () => {
         const summary: string[] = [''];
         for (const context of allFileContexts) {
@@ -332,6 +339,12 @@ class YamlBatchExecutor {
       ttyRenderer.start();
     }
 
+    const reportProgressSnapshot = (context: MidsceneYamlFileContext) => {
+      onProgress?.(
+        contextTaskListSummary(context.player.taskStatusList, context),
+      );
+    };
+
     try {
       // Helper function to execute a single file
       const executeFile = async (
@@ -345,7 +358,9 @@ class YamlBatchExecutor {
           throw new Error(`Player not found for file: ${context.file}`);
         }
 
-        if (!isTTY) {
+        if (onProgress) {
+          reportProgressSnapshot(allFileContext);
+        } else if (!isTTY) {
           const { mergedText } = contextInfo(allFileContext);
           console.log(mergedText);
         }
@@ -372,7 +387,9 @@ class YamlBatchExecutor {
             duration,
           };
 
-        if (!isTTY) {
+        if (onProgress) {
+          reportProgressSnapshot(executedContext);
+        } else if (!isTTY) {
           console.log(
             contextTaskListSummary(
               allFileContext.player.taskStatusList,
@@ -410,7 +427,7 @@ class YamlBatchExecutor {
       }
 
       // Print final summary for non-TTY mode
-      if (!isTTY) {
+      if (!isTTY && !onProgress) {
         console.log('\n📋 Execution Results:');
         for (const context of executedResults) {
           console.log(

@@ -11,8 +11,9 @@ import { type RstestTest, defineYamlCaseTest } from '@/framework/rstest-entry';
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 const mocks = rs.hoisted(() => ({
+  emitYamlProgress: rs.fn(),
   rstestTest: rs.fn(),
-  runYamlCaseResult: rs.fn(),
+  runYamlCaseResultWithSnapshots: rs.fn(),
 }));
 
 rs.mock('@rstest/core', () => ({
@@ -20,9 +21,13 @@ rs.mock('@rstest/core', () => ({
 }));
 
 rs.mock('@/framework/yaml-case', () => ({
-  runYamlCaseResult: mocks.runYamlCaseResult,
+  runYamlCaseResultWithSnapshots: mocks.runYamlCaseResultWithSnapshots,
   createYamlCaseFailure: (result: { error?: string }) =>
     new Error(result.error || 'YAML case failed'),
+}));
+
+rs.mock('@/framework/progress-reporter', () => ({
+  emitYamlProgress: mocks.emitYamlProgress,
 }));
 
 const createTempDir = () =>
@@ -41,7 +46,7 @@ describe('defineYamlCaseTest', () => {
     const resultFile = join(root, 'results', 'case.json');
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
 
-    mocks.runYamlCaseResult
+    mocks.runYamlCaseResultWithSnapshots
       .mockResolvedValueOnce({
         file: yaml,
         success: false,
@@ -98,7 +103,7 @@ describe('defineYamlCaseTest', () => {
     const resultFile = join(root, 'results', 'case.json');
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
 
-    mocks.runYamlCaseResult.mockResolvedValueOnce({
+    mocks.runYamlCaseResultWithSnapshots.mockResolvedValueOnce({
       file: yaml,
       success: false,
       executed: true,
@@ -133,6 +138,52 @@ describe('defineYamlCaseTest', () => {
           resultType: 'partialFailed',
         },
       ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('forwards named player snapshots to the Rstest progress channel', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const resultFile = join(root, 'results', 'case.json');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+
+    mocks.runYamlCaseResultWithSnapshots.mockImplementationOnce(
+      async (_options, onPlayerSnapshot) => {
+        onPlayerSnapshot({
+          file: yaml,
+          player: {
+            status: 'init',
+            taskStatusList: [
+              { name: 'enter recruitment credentials', status: 'init' },
+            ],
+            result: {},
+          },
+        });
+        return {
+          file: yaml,
+          success: true,
+          executed: true,
+          duration: 1,
+          resultType: 'success',
+        };
+      },
+    );
+
+    try {
+      defineYamlCaseTest(injectedRstestTest(), {
+        testName: 'case',
+        yamlFile: yaml,
+        resultFile,
+      });
+
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      await runCase();
+
+      expect(mocks.emitYamlProgress).toHaveBeenCalledWith(
+        expect.stringContaining('enter recruitment credentials'),
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
