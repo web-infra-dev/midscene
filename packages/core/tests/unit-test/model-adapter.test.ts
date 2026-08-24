@@ -1,4 +1,5 @@
 import type { CustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
+import { createDefaultElementProtocol } from '@/ai-model/model-adapter/default-locate-protocol';
 import { createDefaultMidscenePlanningProtocol } from '@/ai-model/model-adapter/default-planning-protocol';
 import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
@@ -55,16 +56,12 @@ describe('model adapter registry', () => {
         }
       }
       if (adapter.locate.kind === 'standard') {
-        expect(adapter.locate.resultAdapter.promptSpec).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptElementLocateResultToPixelBbox,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptSectionLocateResultToPixelBboxGroup,
-        ).toBeTruthy();
-        expect(
-          adapter.locate.resultAdapter.adaptPlanningParamToPixelBbox,
-        ).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelBbox).toBeTruthy();
+        expect(adapter.locate.element.protocol).toBeTruthy();
+        if (adapter.locate.searchArea?.protocol) {
+          expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
+        }
       } else {
         expect(adapter.locate.locateFn).toBeTruthy();
       }
@@ -170,9 +167,11 @@ describe('ResolvedModelAdapter', () => {
     if (adapter.locate.kind !== 'standard') {
       throw new Error('default adapter should use standard locate');
     }
-    expect(adapter.locate.supportsSearchArea).toBe(true);
+    expect(adapter.locate.element.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.protocol).toBeDefined();
+    expect(adapter.locate.searchArea?.resultCodec).toBeDefined();
     expect(
-      adapter.locate.resultAdapter.promptSpec.resultValueDescription,
+      adapter.locate.element.resultCodec.promptSpec.resultValueDescription,
     ).toContain('normalized to 0-1000');
   });
 
@@ -198,10 +197,7 @@ describe('ResolvedModelAdapter', () => {
       defaultReplanningCycleLimit: 20,
       supportsActionDeepLocate: false,
     });
-    expect(adapter.locate).toMatchObject({
-      kind: 'custom',
-      supportsSearchArea: false,
-    });
+    expect(adapter.locate).toMatchObject({ kind: 'custom' });
     if (
       adapter.planning.kind !== 'custom' ||
       adapter.locate.kind !== 'custom'
@@ -211,6 +207,40 @@ describe('ResolvedModelAdapter', () => {
     expect(adapter.planning.planFn).toBeTruthy();
     expect(adapter.planning.coordinateSystem).toBeTruthy();
     expect(adapter.locate.locateFn).toBe(locateFn);
+  });
+
+  it('uses the default search-area protocol unless it is explicitly disabled', () => {
+    const adapterWithExplicitElementProtocol = new ResolvedModelAdapter(
+      {
+        locate: {
+          element: { protocol: createDefaultElementProtocol },
+        },
+      },
+      'test-default-search-area',
+    );
+    const adapterWithoutSearchArea = new ResolvedModelAdapter(
+      {
+        locate: {
+          searchArea: false,
+        },
+      },
+      'test-disabled-search-area',
+    );
+
+    expect(adapterWithExplicitElementProtocol.locate.kind).toBe('standard');
+    expect(adapterWithoutSearchArea.locate.kind).toBe('standard');
+    if (
+      adapterWithExplicitElementProtocol.locate.kind !== 'standard' ||
+      adapterWithoutSearchArea.locate.kind !== 'standard'
+    ) {
+      throw new Error('test adapters should use standard locate');
+    }
+    expect(
+      adapterWithExplicitElementProtocol.locate.searchArea?.protocol,
+    ).toBeDefined();
+    expect(
+      adapterWithoutSearchArea.locate.searchArea?.protocol,
+    ).toBeUndefined();
   });
 
   it('resolves custom planning tap locator definitions with the custom planner', () => {
@@ -231,10 +261,7 @@ describe('ResolvedModelAdapter', () => {
       'test-custom-locator',
     );
 
-    expect(adapter.locate).toMatchObject({
-      kind: 'custom',
-      supportsSearchArea: false,
-    });
+    expect(adapter.locate).toMatchObject({ kind: 'custom' });
     if (
       adapter.planning.kind !== 'custom' ||
       adapter.locate.kind !== 'custom'
@@ -285,9 +312,6 @@ describe('ResolvedModelAdapter', () => {
           supportsActionDeepLocate: false,
           protocol: planningProtocol,
         },
-        locate: {
-          supportsSearchArea: false,
-        },
       },
       'test-standard-overrides',
     );
@@ -299,7 +323,6 @@ describe('ResolvedModelAdapter', () => {
       supportsActionDeepLocate: false,
       protocol: planningProtocol,
     });
-    expect(adapter.locate.supportsSearchArea).toBe(false);
   });
 
   it('throws for unknown json parser presets', () => {
@@ -351,21 +374,5 @@ describe('ResolvedModelAdapter', () => {
       throw new Error('adapter should keep custom planning function');
     }
     expect(adapter.planning.planFn).toBe(planFn);
-  });
-
-  it('allows adapters to opt custom locate into search area', () => {
-    const locateFn = vi.fn();
-    const adapter = new ResolvedModelAdapter(
-      {
-        locate: {
-          kind: 'custom',
-          locateFn,
-          supportsSearchArea: true,
-        },
-      },
-      'test-custom-locate',
-    );
-
-    expect(adapter.locate.supportsSearchArea).toBe(true);
   });
 });

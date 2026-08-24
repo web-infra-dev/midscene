@@ -15,7 +15,7 @@ describe('gemini model adapter', () => {
       throw new Error('gemini should use standard locate adapter');
     }
     expect(
-      locateAdapter.resultAdapter.promptSpec.resultValueDescription,
+      locateAdapter.element.resultCodec.promptSpec.resultValueDescription,
     ).toContain('[ymin, xmin, ymax, xmax]');
   });
 
@@ -316,11 +316,10 @@ describe('gemini model adapter', () => {
       throw new Error('gemini should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 150, 200, 250],
-        { preparedSize: { width: 2000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [100, 150, 200, 250],
+      { preparedSize: { width: 2000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         300,

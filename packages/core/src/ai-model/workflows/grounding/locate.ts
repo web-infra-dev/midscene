@@ -1,4 +1,3 @@
-import type { AIElementLocateResponse } from '@/types';
 import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -8,16 +7,8 @@ import {
   userPromptToString,
 } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import type { ModelRuntime } from '../../models';
-import {
-  findElementPrompt,
-  systemPromptToLocateElement,
-} from '../../prompt/llm-locator';
-import {
-  AIResponseParseError,
-  callAI,
-  parseAIObjectResponse,
-} from '../../service-caller/index';
+import { systemPromptToLocateElement } from '../../prompt/llm-locator';
+import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -31,11 +22,7 @@ import type {
   LocateRequestContext,
   LocateResult,
 } from './types';
-import {
-  type GroundingAIArgs,
-  formatLocateModelContext,
-  hasLocateResult,
-} from './utils';
+import { type GroundingAIArgs, formatLocateModelContext } from './utils';
 
 const debugGrounding = getDebug('ai:grounding');
 
@@ -151,13 +138,16 @@ export async function genericLocate(
     adapter.locate.kind === 'standard',
     'generic locate requires a standard locate adapter',
   );
-  const resultAdapter = adapter.locate.resultAdapter;
-  const userInstructionPrompt = findElementPrompt(
+  const { protocol, resultCodec } = adapter.locate.element;
+  const userInstructionPrompt = protocol.buildUserPrompt(
     locateRequest.elementDescriptionText,
   );
-  const systemPrompt = systemPromptToLocateElement(
-    adapter.locate.resultAdapter.promptSpec,
-  );
+  const systemPrompt = systemPromptToLocateElement({
+    systemPromptIntroduction: protocol.systemPromptIntroduction,
+    responseInstructions: protocol.buildResponseInstructions(
+      resultCodec.promptSpec,
+    ),
+  });
 
   const preparedImage = await prepareModelImage({
     imageBase64: locateRequest.locateImage.imageBase64,
@@ -200,42 +190,41 @@ export async function genericLocate(
           modelRuntime,
           {
             abortSignal: options.abortSignal,
-            expectedJsonObjectResponse: true,
+            expectedJsonObjectResponse: protocol.expectedJsonObjectResponse,
             semanticRetryAttempt: retryAttempt,
           },
         ),
       parseResponse: (response): LocateModelResponse => {
-        const result = parseAIObjectResponse<AIElementLocateResponse>(
-          response,
-          modelRuntime,
-          'locate',
+        const parsedLocateResult = protocol.parseRawResponse(
+          response.content,
+          resultCodec.promptSpec,
         );
-        const rawResponse = result.contentString;
-        const locateError = result.content.error;
-        if (
-          !hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)
-        ) {
+        const rawResponse = response.content;
+        const locateError = parsedLocateResult.error;
+        if (parsedLocateResult.kind === 'not-found') {
           return {
             rawResponse,
-            rawChoiceMessage: result.rawChoiceMessage,
-            usage: result.usage,
-            reasoningContent: result.reasoning_content,
+            rawChoiceMessage: response.rawChoiceMessage,
+            usage: response.usage,
+            reasoningContent: response.reasoning_content,
             errors: locateError ? [locateError] : [],
           };
         }
 
         try {
-          const locatedPixelBbox =
-            resultAdapter.adaptElementLocateResultToPixelBbox(result.content, {
+          const locatedPixelBbox = resultCodec.toPixelBbox(
+            parsedLocateResult.target,
+            {
               preparedSize: preparedImage.preparedSize,
               contentSize: preparedImage.contentSize,
-            });
+            },
+          );
           return {
             locatedPixelBbox,
             rawResponse,
-            rawChoiceMessage: result.rawChoiceMessage,
-            usage: result.usage,
-            reasoningContent: result.reasoning_content,
+            rawChoiceMessage: response.rawChoiceMessage,
+            usage: response.usage,
+            reasoningContent: response.reasoning_content,
             errors: [],
           };
         } catch (error) {

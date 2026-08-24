@@ -54,8 +54,10 @@ export const gptAdapters = {
       resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
-      resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy' },
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'xy' },
+        },
       },
     },
   },

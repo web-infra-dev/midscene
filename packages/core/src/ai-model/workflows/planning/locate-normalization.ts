@@ -4,7 +4,7 @@ import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type {
-  LocateResultAdapter,
+  LocateResultCodec,
   LocateResultContext,
 } from '../../shared/model-locate-result/types';
 
@@ -15,13 +15,15 @@ export function normalizePlanningActionLocateFields(
   {
     actionSpace,
     includeLocateInPlanning,
-    locateResultAdapter,
+    locateResultCodec,
     locateResultContext,
+    acceptBbox2dAlias = false,
   }: {
     actionSpace: DeviceAction[];
     includeLocateInPlanning: boolean;
-    locateResultAdapter?: LocateResultAdapter;
+    locateResultCodec?: LocateResultCodec;
     locateResultContext: LocateResultContext;
+    acceptBbox2dAlias?: boolean;
   },
 ): void {
   actions.forEach((action) => {
@@ -55,13 +57,28 @@ export function normalizePlanningActionLocateFields(
       }
 
       assert(
-        locateResultAdapter,
-        'planning locate normalization requires a locate result adapter',
+        locateResultCodec,
+        'planning locate normalization requires a locate result codec',
       );
+      const rawLocateValue = (() => {
+        if (typeof locateResult !== 'object' || locateResult === null) {
+          return locateResult;
+        }
+
+        const locateResultRecord = locateResult as Record<string, unknown>;
+        const resultKey = locateResultCodec.promptSpec.resultKey;
+        if (locateResultRecord[resultKey] !== undefined) {
+          return locateResultRecord[resultKey];
+        }
+
+        return acceptBbox2dAlias && resultKey === 'bbox'
+          ? locateResultRecord.bbox_2d
+          : undefined;
+      })();
       action.param[field] = {
         ...locateResult,
-        locatedPixelBbox: locateResultAdapter.adaptPlanningParamToPixelBbox(
-          locateResult,
+        locatedPixelBbox: locateResultCodec.toPixelBbox(
+          rawLocateValue,
           locateResultContext,
         ),
       };

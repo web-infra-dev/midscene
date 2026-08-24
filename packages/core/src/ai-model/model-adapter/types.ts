@@ -13,14 +13,18 @@ import type {
   JsonParserSource,
 } from '../shared/json';
 import type {
-  LocateResultAdapter,
-  LocateResultAdapterDefinition,
+  LocateResultCodec,
+  LocateResultFormatDefinition,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
+import type {
+  StandardLocateProtocol,
+  StandardLocateProtocolDefinition,
+} from './locate-protocol';
 import type {
   StandardPlanningProtocol,
   StandardPlanningProtocolDefinition,
@@ -170,6 +174,7 @@ export type PlanningAdapter =
   | (PlanningPolicy & {
       kind: 'standard';
       protocol: StandardPlanningProtocol;
+      locateResultCodec?: LocateResultCodec;
     })
   | (PlanningPolicy & {
       kind: 'custom';
@@ -181,6 +186,7 @@ export type PlanningDefinition =
   | (Partial<PlanningPolicy> & {
       kind?: 'standard';
       protocol?: StandardPlanningProtocolDefinition;
+      locateResultFormat?: LocateResultFormatDefinition | false;
     })
   | (Partial<PlanningPolicy> &
       (
@@ -196,53 +202,52 @@ export type PlanningDefinition =
           }
       ));
 
-interface LocatePolicy {
-  /**
-   * Whether the locate adapter supports finding a coarse search area before the
-   * final element locate step.
-   *
-   * Some custom model families provide their own planning flow but do not
-   * support standalone locate/section-locate. They cannot behave like standard
-   * deepLocate, where a reference element is first located to build the search
-   * area for the final locate call.
-   */
-  supportsSearchArea: boolean;
-}
-
-type StandardLocateAdapter = LocatePolicy & {
+type StandardLocateAdapter = {
   kind: 'standard';
-  resultAdapter: LocateResultAdapter;
+  element: LocateOperation;
+  searchArea?: LocateOperation;
 };
 
-type CustomLocateAdapter = LocatePolicy & {
+interface LocateOperation {
+  protocol: StandardLocateProtocol;
+  resultCodec: LocateResultCodec;
+}
+
+type CustomLocateAdapter = {
   kind: 'custom';
   locateFn: LocateFn;
 };
 
 export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
-type StandardLocateDefinition = Partial<LocatePolicy> & {
+type StandardLocateDefinition = {
   kind?: 'standard';
-  resultAdapter?: LocateResultAdapterDefinition;
+  element?: LocateOperationDefinition;
+  searchArea?: LocateOperationDefinition | false;
 };
+
+interface LocateOperationDefinition {
+  protocol?: StandardLocateProtocolDefinition;
+  resultFormat?: LocateResultFormatDefinition;
+}
 
 export interface PlanningTapLocatorDefinition {
   buildSystemPrompt(): string;
   getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
 }
 
-type CustomLocateDefinition = Partial<LocatePolicy> & {
+type CustomLocateDefinition = {
   kind: 'custom';
 } & (
-    | {
-        locateFn: LocateFn;
-        planningTapLocator?: never;
-      }
-    | {
-        planningTapLocator: PlanningTapLocatorDefinition;
-        locateFn?: never;
-      }
-  );
+  | {
+      locateFn: LocateFn;
+      planningTapLocator?: never;
+    }
+  | {
+      planningTapLocator: PlanningTapLocatorDefinition;
+      locateFn?: never;
+    }
+);
 
 export type LocateDefinition =
   | StandardLocateDefinition
@@ -251,6 +256,7 @@ export type LocateDefinition =
 export interface ModelAdapter {
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
   planning: PlanningAdapter;
   locate: LocateAdapter;
@@ -276,6 +282,12 @@ export interface ModelRuntime {
 export interface ModelAdapterDefinition {
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  /**
+   * Temporary compatibility for models that may occasionally return
+   * `bbox_2d` instead of `bbox`. Currently enabled only by Qwen adapters and
+   * should be removed once this model behavior no longer needs accommodation.
+   */
+  acceptBbox2dAlias?: boolean;
   imagePreprocess?: ImagePreprocessDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;

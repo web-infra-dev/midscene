@@ -50,8 +50,10 @@ export const glmAdapters = {
       useReasoningAsContentFallback: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        },
       },
     },
   },

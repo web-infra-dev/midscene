@@ -240,11 +240,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 300, 400],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [100, 200, 300, 400],
+      { preparedSize: { width: 1000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         100,
@@ -263,16 +262,14 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        '100 200 300 400',
-        { preparedSize: { width: 1000, height: 2000 } },
-      ),
+      locateAdapter.element.resultCodec.toPixelBbox('100 200 300 400', {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
     ).toEqual([100, 400, 300, 800]);
     expect(
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        '[336, 163, 717, 200]',
-        { preparedSize: { width: 1000, height: 2000 } },
-      ),
+      locateAdapter.element.resultCodec.toPixelBbox('[336, 163, 717, 200]', {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
     ).toEqual([336, 326, 716, 400]);
   });
 
@@ -461,10 +458,9 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 300, 400, 999],
-        { preparedSize: { width: 1000, height: 2000 } },
-      ),
+      locateAdapter.element.resultCodec.toPixelBbox([100, 200, 300, 400, 999], {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
     ).toEqual([100, 400, 300, 800]);
   });
 
@@ -476,10 +472,9 @@ describe('doubao model adapter', () => {
     }
 
     expect(
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 300],
-        { preparedSize: { width: 1000, height: 2000 } },
-      ),
+      locateAdapter.element.resultCodec.toPixelBbox([100, 200, 300], {
+        preparedSize: { width: 1000, height: 2000 },
+      }),
     ).toEqual([90, 380, 110, 420]);
   });
 
@@ -490,11 +485,9 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox([100, 200], {
+      preparedSize: { width: 1000, height: 2000 },
+    });
     expect(result).toMatchInlineSnapshot(`
       [
         90,
@@ -512,11 +505,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        ['123 100', '789 222'],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      ['123 100', '789 222'],
+      { preparedSize: { width: 1000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         123,
@@ -534,11 +526,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        ['123,100', '789, 222'],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      ['123,100', '789, 222'],
+      { preparedSize: { width: 1000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         123,
@@ -556,11 +547,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [[100, 200, 300, 400]],
-        { preparedSize: { width: 400, height: 900 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [[100, 200, 300, 400]],
+      { preparedSize: { width: 400, height: 900 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         40,
@@ -578,14 +568,13 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [
-          [100, 200, 300, 400],
-          [100, 200, 300, 400],
-        ],
-        { preparedSize: { width: 400, height: 900 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [
+        [100, 200, 300, 400],
+        [100, 200, 300, 400],
+      ],
+      { preparedSize: { width: 400, height: 900 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         40,
@@ -603,11 +592,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 300, 400, 100, 200],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [100, 200, 300, 400, 100, 200],
+      { preparedSize: { width: 1000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         90,
@@ -625,11 +613,10 @@ describe('doubao model adapter', () => {
       throw new Error('doubao-vision should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 300, 200, 300, 400, 100, 400],
-        { preparedSize: { width: 1000, height: 2000 } },
-      );
+    const result = locateAdapter.element.resultCodec.toPixelBbox(
+      [100, 200, 300, 200, 300, 400, 100, 400],
+      { preparedSize: { width: 1000, height: 2000 } },
+    );
     expect(result).toMatchInlineSnapshot(`
       [
         100,
@@ -648,7 +635,7 @@ describe('doubao model adapter', () => {
     }
 
     expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox([100], {
+      locateAdapter.element.resultCodec.toPixelBbox([100], {
         preparedSize: { width: 1000, height: 2000 },
       }),
     ).toThrow();

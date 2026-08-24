@@ -136,11 +136,12 @@ export async function runCustomPlanning<TParsed>(
     normalizePlanningActionLocateFields(actions, {
       actionSpace: preparedOptions.actionSpace,
       includeLocateInPlanning: preparedOptions.includeLocateInPlanning,
-      locateResultAdapter: config.coordinateNormalizer,
+      locateResultCodec: config.coordinateNormalizer,
       locateResultContext: {
         preparedSize: preparedImage.preparedSize,
         contentSize: preparedImage.contentSize,
       },
+      acceptBbox2dAlias: preparedOptions.modelRuntime.adapter.acceptBbox2dAlias,
     });
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {

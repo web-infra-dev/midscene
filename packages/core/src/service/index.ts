@@ -240,6 +240,9 @@ export default class Service {
       return { trace: {} };
     }
 
+    // TODO: Make the plan, section-locate, and element-locate fallback paths
+    // resolve only the source rect, then build the search-area config once in
+    // this orchestration layer instead of building it inside AiLocateSection.
     if (hasPlanLocatedElement) {
       const config = await buildSearchAreaConfig({
         context,
@@ -258,7 +261,7 @@ export default class Service {
       };
     }
 
-    if (adapter.locate.supportsSearchArea) {
+    if (adapter.locate.kind === 'standard' && adapter.locate.searchArea) {
       const searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: queryPrompt,

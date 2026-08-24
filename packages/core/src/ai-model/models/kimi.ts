@@ -107,9 +107,11 @@ export const kimiAdapters = {
       useReasoningAsContentFallback: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: kimiNormalizedPointCoordinatesMeta,
-        parseRawLocateValue: parseKimiRawLocateValue,
+      element: {
+        resultFormat: {
+          coordinates: kimiNormalizedPointCoordinatesMeta,
+          parseRawLocateValue: parseKimiRawLocateValue,
+        },
       },
     },
   },
@@ -124,9 +126,11 @@ export const kimiAdapters = {
       replayRawAssistantMessage: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: kimiNormalizedPointCoordinatesMeta,
-        parseRawLocateValue: parseKimiRawLocateValue,
+      element: {
+        resultFormat: {
+          coordinates: kimiNormalizedPointCoordinatesMeta,
+          parseRawLocateValue: parseKimiRawLocateValue,
+        },
       },
     },
   },

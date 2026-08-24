@@ -37,6 +37,7 @@ function resolveImagePreprocess(
 export class ResolvedModelAdapter implements ModelAdapter {
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
@@ -44,15 +45,28 @@ export class ResolvedModelAdapter implements ModelAdapter {
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
     const customPlanner =
       config.planning?.kind === 'custom' ? config.planning.planner : undefined;
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner, {
-      jsonParser: this.jsonParser,
-    });
-    this.locate = resolveLocate(config.locate, resolvedCustomPlanner);
+    this.locate = resolveLocate(
+      config.locate,
+      resolvedCustomPlanner,
+      {
+        jsonParser: this.jsonParser,
+      },
+      this.acceptBbox2dAlias,
+    );
+    this.planning = resolvePlanning(
+      config.planning,
+      resolvedCustomPlanner,
+      { jsonParser: this.jsonParser },
+      this.locate.kind === 'standard'
+        ? this.locate.element.resultCodec
+        : undefined,
+    );
   }
 }

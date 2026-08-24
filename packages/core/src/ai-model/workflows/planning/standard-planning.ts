@@ -16,7 +16,7 @@ import {
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
 import type {
-  LocateResultAdapter,
+  LocateResultCodec,
   LocateResultContext,
 } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
@@ -37,7 +37,7 @@ type CallAndParsePlanningResponseOptions = {
   abortSignal?: AbortSignal;
   includeLocateInPlanning: boolean;
   actionSpace: PlanOptions['actionSpace'];
-  locateResultAdapter?: LocateResultAdapter;
+  locateResultCodec?: LocateResultCodec;
   locateResultContext: LocateResultContext;
   includeThought: boolean;
   includeLog: boolean;
@@ -57,7 +57,7 @@ async function callAndParsePlanningResponse(
     abortSignal,
     includeLocateInPlanning,
     actionSpace,
-    locateResultAdapter,
+    locateResultCodec,
     locateResultContext,
     includeThought,
     includeLog,
@@ -103,8 +103,9 @@ async function callAndParsePlanningResponse(
       normalizePlanningActionLocateFields(actions, {
         actionSpace,
         includeLocateInPlanning,
-        locateResultAdapter,
+        locateResultCodec,
         locateResultContext,
+        acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
       });
       return { response, planFromAI, actions, yamlFlow };
     },
@@ -152,17 +153,16 @@ export async function standardPlan(
     );
   }
 
-  const locateResultAdapter =
-    modelRuntime.config.modelFamily && adapter.locate.kind === 'standard'
-      ? adapter.locate.resultAdapter
-      : undefined;
+  const locateResultCodec = modelRuntime.config.modelFamily
+    ? adapter.planning.locateResultCodec
+    : undefined;
 
   // Only enable sub-goals when aiAct is in deep-thinking planning mode.
   const includeSubGoals = opts.effort === 'deepThink';
   const includeThought = opts.effort !== 'fast';
   const includeLog = opts.effort !== 'fast';
 
-  if (opts.includeLocateInPlanning && !locateResultAdapter) {
+  if (opts.includeLocateInPlanning && !locateResultCodec) {
     throw new Error(
       planningModelFamilyRequiredForLocateMessage(modelRuntime.config.slot),
     );
@@ -174,10 +174,10 @@ export async function standardPlan(
     includeLog,
     includeSubGoals,
     planningProtocol,
-    ...(opts.includeLocateInPlanning && locateResultAdapter
+    ...(opts.includeLocateInPlanning && locateResultCodec
       ? {
           includeLocateInPlanning: true,
-          locatePromptSpec: locateResultAdapter.promptSpec,
+          locatePromptSpec: locateResultCodec.promptSpec,
         }
       : { includeLocateInPlanning: false }),
   });
@@ -293,7 +293,7 @@ export async function standardPlan(
     abortSignal: opts.abortSignal,
     includeLocateInPlanning: opts.includeLocateInPlanning,
     actionSpace: opts.actionSpace,
-    locateResultAdapter,
+    locateResultCodec,
     locateResultContext: {
       preparedSize: preparedImage.preparedSize,
       contentSize: preparedImage.contentSize,

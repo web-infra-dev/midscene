@@ -1,9 +1,9 @@
-import { createLocateResultAdapter } from '@/ai-model/shared/model-locate-result';
+import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
 import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
 import { mapSearchAreaPixelBboxToOriginalPixelBbox } from '@/ai-model/workflows/grounding/search-area-mapping';
 import { describe, expect, it } from 'vitest';
 
-const actualPixelBboxAdapter = createLocateResultAdapter({
+const actualPixelBboxAdapter = createLocateResultCodec({
   coordinates: { shape: 'bbox', order: 'xy' },
 });
 
@@ -14,57 +14,48 @@ function adaptElementLocateResultToRect(
     contentSize?: { width: number; height: number };
   },
 ) {
-  return pixelBboxToRect(
-    actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(input, context),
-  );
+  return pixelBboxToRect(actualPixelBboxAdapter.toPixelBbox(input, context));
 }
 
-describe('adaptElementLocateResultToPixelBbox - boundary overflow cases', () => {
+describe('toPixelBbox - boundary overflow cases', () => {
   it('throws on x1 overflow (negative left)', () => {
     expect(() =>
-      actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(
-        [-100, 200, 300, 400],
-        { preparedSize: { width: 2000, height: 3000 } },
-      ),
+      actualPixelBboxAdapter.toPixelBbox([-100, 200, 300, 400], {
+        preparedSize: { width: 2000, height: 3000 },
+      }),
     ).toThrow(/exceed image size/);
   });
 
   it('throws on y1 overflow (negative top)', () => {
     expect(() =>
-      actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(
-        [200, -100, 400, 300],
-        { preparedSize: { width: 2000, height: 3000 } },
-      ),
+      actualPixelBboxAdapter.toPixelBbox([200, -100, 400, 300], {
+        preparedSize: { width: 2000, height: 3000 },
+      }),
     ).toThrow(/exceed image size/);
   });
 
   it('throws on x2 overflow (right exceeds width)', () => {
     expect(() =>
-      actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(
-        [1600, 200, 2200, 400],
-        { preparedSize: { width: 2000, height: 3000 } },
-      ),
+      actualPixelBboxAdapter.toPixelBbox([1600, 200, 2200, 400], {
+        preparedSize: { width: 2000, height: 3000 },
+      }),
     ).toThrow(/exceed image size/);
   });
 
   it('throws on y2 overflow (bottom exceeds height)', () => {
     expect(() =>
-      actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(
-        [200, 2600, 400, 3200],
-        { preparedSize: { width: 2000, height: 3000 } },
-      ),
+      actualPixelBboxAdapter.toPixelBbox([200, 2600, 400, 3200], {
+        preparedSize: { width: 2000, height: 3000 },
+      }),
     ).toThrow(/exceed image size/);
   });
 
   it('throws before clamping to content size when bbox exceeds image size', () => {
     expect(() =>
-      actualPixelBboxAdapter.adaptElementLocateResultToPixelBbox(
-        [25, 154, 153, 186],
-        {
-          preparedSize: { width: 301, height: 164 },
-          contentSize: { width: 140, height: 160 },
-        },
-      ),
+      actualPixelBboxAdapter.toPixelBbox([25, 154, 153, 186], {
+        preparedSize: { width: 301, height: 164 },
+        contentSize: { width: 140, height: 160 },
+      }),
     ).toThrow(/exceed image size/);
   });
 
