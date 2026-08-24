@@ -159,9 +159,65 @@ describe('createPlaywrightNodes', () => {
       source: 'env',
       sourceName: 'E2E_COOKIES',
       count: 1,
-      names: ['session'],
-      scopes: ['https://example.com/'],
     });
+    expect(JSON.stringify(result)).not.toContain('top-secret-value');
+  });
+
+  it('does not persist cookie names or URL scopes from secret sources', async () => {
+    const { browserContext, page } = createPage();
+    const registry = new NodeRegistry(
+      createPlaywrightNodes({
+        getPage: () => page,
+        getCookieProfile: () => [
+          {
+            name: 'sensitive-cookie-name',
+            value: 'sensitive-cookie-value',
+            url: 'https://user:password@example.com/path?token=query-secret',
+          },
+        ],
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([step('setCookies', { profile: 'member' })]),
+      { resolveNode: registry.require.bind(registry), context: undefined },
+    );
+
+    expect(result.steps[0].output?.data).toEqual({
+      source: 'profile',
+      sourceName: 'member',
+      count: 1,
+    });
+    expect(browserContext.addCookies).toHaveBeenCalledOnce();
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain('sensitive-cookie-name');
+    expect(serialized).not.toContain('sensitive-cookie-value');
+    expect(serialized).not.toContain('query-secret');
+    expect(serialized).not.toContain('user:password');
+  });
+
+  it('redacts cookie environment resolver failures', async () => {
+    const { page } = createPage();
+    const registry = new NodeRegistry(
+      createPlaywrightNodes({
+        getPage: () => page,
+        getEnv: () => {
+          throw new Error('environment contains top-secret-value');
+        },
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([step('setCookies', { cookiesEnv: 'E2E_COOKIES' })]),
+      { resolveNode: registry.require.bind(registry), context: undefined },
+    );
+
+    expect(result.steps[0].error?.message).toContain(
+      'Failed to resolve cookie environment E2E_COOKIES',
+    );
+    expect((result.steps[0].error?.cause as Error | undefined)?.cause).toBe(
+      undefined,
+    );
     expect(JSON.stringify(result)).not.toContain('top-secret-value');
   });
 

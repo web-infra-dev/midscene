@@ -176,10 +176,6 @@ export interface SetCookiesNodeResult {
   sourceName: string;
   /** Number of cookies passed to the BrowserContext. */
   count: number;
-  /** Sorted unique cookie names, excluding values. */
-  names: string[];
-  /** Sorted unique URL or domain/path scopes, excluding values. */
-  scopes: string[];
 }
 
 const throwIfAborted = (signal: AbortSignal, operation: string) => {
@@ -299,7 +295,7 @@ const normalizeCookie = (
   if (!hasUrl && !hasDomain) {
     if (defaultUrl === undefined) {
       throw new TypeError(
-        `setCookies cookie "${cookie.name}" requires url or domain, or setCookies.url must be provided.`,
+        `setCookies cookie at index ${index} requires url or domain, or setCookies.url must be provided.`,
       );
     }
     normalized.url = defaultUrl;
@@ -333,17 +329,6 @@ const normalizeCookies = (
     normalizeCookie(cookie, defaultUrl, index),
   );
 };
-
-const cookieScopes = (cookies: readonly PlaywrightCookie[]): string[] =>
-  Array.from(
-    new Set(
-      cookies.map((cookie) =>
-        'url' in cookie && cookie.url
-          ? cookie.url
-          : `${cookie.domain ?? ''}${cookie.path ?? '/'}`,
-      ),
-    ),
-  ).sort();
 
 /**
  * Create the P0 Playwright preset Nodes without assuming Project Context field
@@ -412,7 +397,14 @@ export function createPlaywrightNodes<TContext>(
       if (ctx.input.cookiesEnv !== undefined) {
         source = 'env';
         sourceName = ctx.input.cookiesEnv;
-        const env = (await options.getEnv?.(ctx)) ?? process.env;
+        let env: Readonly<Record<string, string | undefined>>;
+        try {
+          env = (await options.getEnv?.(ctx)) ?? process.env;
+        } catch {
+          throw new Error(
+            `Failed to resolve cookie environment ${ctx.input.cookiesEnv}; the original error was redacted because it may contain cookie values.`,
+          );
+        }
         const raw = env[ctx.input.cookiesEnv];
         if (!raw?.trim()) {
           throw new Error(
@@ -466,8 +458,6 @@ export function createPlaywrightNodes<TContext>(
         source,
         sourceName,
         count: cookies.length,
-        names: Array.from(new Set(cookies.map((cookie) => cookie.name))).sort(),
-        scopes: cookieScopes(cookies),
       };
       return {
         summary: `Set ${result.count} browser cookie(s) from ${source} source ${sourceName}`,

@@ -621,7 +621,8 @@ const canRetryWithCjsLoader = (error: unknown): error is Error => {
     (error instanceof SyntaxError &&
       /^Unexpected (?:identifier|reserved word|token)/.test(error.message)) ||
     errorCode === 'ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX' ||
-    errorCode === 'ERR_UNKNOWN_FILE_EXTENSION'
+    (errorCode === 'ERR_UNKNOWN_FILE_EXTENSION' &&
+      /^Unknown file extension\b/.test(error.message))
   );
 };
 

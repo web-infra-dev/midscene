@@ -40,6 +40,7 @@ import {
   defineTestProject,
 } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
+import { createPlaywrightNodes } from '@midscene/test/playwright';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { chromium, type Browser, type Page } from 'playwright';
 
@@ -81,6 +82,11 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  includeLaunch: false,
+});
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
 });
 
 // 2. Define browser environment setup and cleanup
@@ -106,7 +112,7 @@ export default defineTestProject<ProjectContext>({
       files: { include: ['cases/**/*.{yaml,yml}'] },
     },
   ],
-  nodes: [mockLocation, ...midsceneNodes],
+  nodes: [mockLocation, ...midsceneNodes, ...playwrightNodes],
 });
 ```
 
