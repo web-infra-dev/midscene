@@ -1,5 +1,5 @@
 export {
-  createLocateResultAdapter,
+  createLocateResultCodec,
   resolveLocateResultCoordinates,
 } from './factory';
 export { formatLocateExampleValue } from './prompt-spec';
@@ -18,10 +18,8 @@ export type {
   LocateResultBbox,
   PixelBbox,
   RawLocateValue,
-  SectionLocatePixelBboxGroup,
-  CustomLocateResultAdapterDefinition,
-  LocateResultAdapter,
-  LocateResultAdapterDefinition,
+  LocateResultCodec,
+  LocateResultFormatDefinition,
   LocateResultCoordinates,
   LocateResultContext,
   LocateResultShape,
@@ -29,5 +27,4 @@ export type {
   LocateResultValue,
   NonEmptyArray,
   ResolvedLocateResultCoordinates,
-  StandardLocateResultAdapterDefinition,
 } from './types';

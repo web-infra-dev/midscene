@@ -1,7 +1,8 @@
 import {
-  createLocateResultAdapter,
+  createLocateResultCodec,
   resolveLocateResultCoordinates,
 } from '../shared/model-locate-result';
+import type { LocateResultCodec } from '../shared/model-locate-result';
 import { runCustomPlanning } from '../workflows/planning/custom-planning';
 import type {
   CustomPlanningDefinition,
@@ -18,7 +19,7 @@ export function resolveCustomPlanningDefinition<TParsed>(
 ): ResolvedCustomPlanningDefinition<TParsed> {
   const { coordinates, ...rest } = config;
   const coordinateSystem = resolveLocateResultCoordinates(coordinates);
-  const coordinateNormalizer = createLocateResultAdapter({ coordinates });
+  const coordinateNormalizer = createLocateResultCodec({ coordinates });
   return {
     ...rest,
     coordinateSystem,
@@ -30,6 +31,7 @@ export function resolvePlanning(
   planning: ModelAdapterDefinition['planning'],
   resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
   protocolContext: StandardPlanningProtocolContext,
+  defaultLocateResultCodec?: LocateResultCodec,
 ): PlanningAdapter {
   if (planning?.kind === 'custom') {
     if (typeof planning.planFn === 'function') {
@@ -61,6 +63,12 @@ export function resolvePlanning(
 
   const protocolDefinition =
     planning?.protocol ?? createDefaultMidscenePlanningProtocol;
+  const locateResultCodec =
+    planning?.locateResultFormat === false
+      ? undefined
+      : planning?.locateResultFormat
+        ? createLocateResultCodec(planning.locateResultFormat)
+        : defaultLocateResultCodec;
 
   return {
     kind: 'standard',
@@ -72,5 +80,6 @@ export function resolvePlanning(
       typeof protocolDefinition === 'function'
         ? protocolDefinition(protocolContext)
         : protocolDefinition,
+    locateResultCodec,
   };
 }

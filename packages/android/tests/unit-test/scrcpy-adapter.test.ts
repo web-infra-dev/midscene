@@ -12,6 +12,7 @@ import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
 
 const mocks = rs.hoisted(() => ({
   AdbServerNodeTcpConnector: rs.fn(),
+  createTransport: rs.fn().mockResolvedValue({}),
   imageInfoOfBase64: rs.fn(),
   resizeBase64ImageToJpeg: rs.fn(),
 }));
@@ -20,7 +21,7 @@ const mocks = rs.hoisted(() => ({
 rs.mock('@yume-chan/adb', () => ({
   Adb: rs.fn().mockImplementation(() => ({})),
   AdbServerClient: rs.fn().mockImplementation(() => ({
-    createTransport: rs.fn().mockResolvedValue({}),
+    createTransport: mocks.createTransport,
   })),
 }));
 
@@ -330,6 +331,7 @@ describe('ScrcpyDeviceAdapter', () => {
         host: '127.0.0.1',
         port: 5037,
       });
+      expect(mocks.createTransport).toHaveBeenCalledWith({ serial: 'device' });
     });
 
     it('should connect to the resolved ADB server endpoint', async () => {

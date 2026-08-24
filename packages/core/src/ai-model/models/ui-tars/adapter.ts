@@ -127,9 +127,11 @@ function createUiTarsAdapter(
       planner: createUiTarsPlanner(uiTarsModelVersion),
     },
     locate: {
-      resultAdapter: {
-        coordinates: uiTarsBboxCoordinatesMeta,
-        parseRawLocateValue: parseUiTarsRawLocateValue,
+      element: {
+        resultFormat: {
+          coordinates: uiTarsBboxCoordinatesMeta,
+          parseRawLocateValue: parseUiTarsRawLocateValue,
+        },
       },
     },
   };

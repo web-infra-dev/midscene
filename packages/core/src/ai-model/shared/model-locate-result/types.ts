@@ -67,35 +67,9 @@ export interface LocateResultPromptSpec {
   exampleValues: NonEmptyArray<unknown>;
 }
 
-export interface SectionLocatePixelBboxGroup {
-  target: PixelBbox;
-  references?: PixelBbox[];
-}
-
-export interface LocateResultAdapter {
+export interface LocateResultCodec {
   promptSpec: LocateResultPromptSpec;
-  /**
-   * Converts a locate payload to a pixel bbox. This adapter intentionally does
-   * not interpret model-level `error` / `errors` fields; callers decide whether
-   * those fields should stop the locate flow before invoking the adapter.
-   */
-  adaptElementLocateResultToPixelBbox(
-    input: unknown,
-    ctx: LocateResultContext,
-  ): PixelBbox;
-  /**
-   * Converts a section locate payload to target/reference pixel bboxes. This
-   * adapter intentionally does not interpret model-level `error` / `errors`
-   * fields; callers own that policy before invoking the adapter.
-   */
-  adaptSectionLocateResultToPixelBboxGroup(
-    input: unknown,
-    ctx: LocateResultContext,
-  ): SectionLocatePixelBboxGroup;
-  adaptPlanningParamToPixelBbox(
-    planningParam: unknown,
-    ctx: LocateResultContext,
-  ): PixelBbox;
+  toPixelBbox(input: RawLocateValue, ctx: LocateResultContext): PixelBbox;
 }
 
 export interface LocateResultCoordinates {
@@ -138,18 +112,14 @@ export type LocateResultPixelBboxMapper = (
  *    the coordinate system and order; provide it only for model-specific
  *    conversion rules.
  *
- * Standard adapters intentionally use fixed result fields (`bbox` / `bbox_2d` /
- * `point` and `references_*`). A previous design considered `pickRawLocateValue`
- * for custom keys, but normal locate, search-area references, and future
- * locateAll responses may return different shapes (single arrays, nested
- * arrays, or object arrays), so a generic picker contract was unclear. A
- * declarative `resultKeys` option is one possible future direction, but without
- * a concrete need we avoid that over-design for now.
+ * This format only describes one raw coordinate value. The operation protocol
+ * owns the response envelope and identifies target/reference values before the
+ * runtime codec converts each value independently.
  *
  * Example 1: a GLM-like model that directly matches the standard coordinates.
  *
  * ```ts
- * resultAdapter: {
+ * resultFormat: {
  *   coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
  * }
  * ```
@@ -159,7 +129,7 @@ export type LocateResultPixelBboxMapper = (
  * bypassed only if custom fallback sizing is required.
  *
  * ```ts
- * resultAdapter: {
+ * resultFormat: {
  *   coordinates: { shape: 'bbox', order: 'xy' },
  *   parseRawLocateValue: parseQwen25RawLocateValue,
  *   mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
@@ -170,7 +140,7 @@ export type LocateResultPixelBboxMapper = (
  * workflow while replacing parsing and mapping.
  *
  * ```ts
- * resultAdapter: {
+ * resultFormat: {
  *   coordinates: { shape: 'bbox', order: 'xy' },
  *   parseRawLocateValue: (raw) => ({
  *     coordinates: [
@@ -185,8 +155,7 @@ export type LocateResultPixelBboxMapper = (
  * }
  * ```
  */
-export type StandardLocateResultAdapterDefinition = {
-  kind?: 'standard';
+export type LocateResultFormatDefinition = {
   /**
    * Common locate result coordinates shorthand. This is the preferred config surface
    * for normal models because it keeps result type, coordinate system, and
@@ -194,7 +163,7 @@ export type StandardLocateResultAdapterDefinition = {
    */
   coordinates: LocateResultCoordinates;
   /**
-   * Parses the picked raw value into a `LocateResultValue`. This function
+   * Parses one raw coordinate value into a `LocateResultValue`. This function
    * should handle response repair, bbox-vs-point fallback, and the coordinate
    * metadata that describes the parsed coordinates.
    */
@@ -206,24 +175,3 @@ export type StandardLocateResultAdapterDefinition = {
    */
   mapLocateResultToPixelBbox?: LocateResultPixelBboxMapper;
 };
-
-export type CustomLocateResultAdapterDefinition = {
-  kind: 'custom';
-  promptSpec: LocateResultPromptSpec;
-  adaptElementLocateResultToPixelBbox(
-    input: unknown,
-    ctx: LocateResultContext,
-  ): PixelBbox;
-  adaptSectionLocateResultToPixelBboxGroup(
-    input: unknown,
-    ctx: LocateResultContext,
-  ): SectionLocatePixelBboxGroup;
-  adaptPlanningParamToPixelBbox(
-    planningParam: unknown,
-    ctx: LocateResultContext,
-  ): PixelBbox;
-};
-
-export type LocateResultAdapterDefinition =
-  | StandardLocateResultAdapterDefinition
-  | CustomLocateResultAdapterDefinition;

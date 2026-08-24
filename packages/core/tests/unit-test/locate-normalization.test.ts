@@ -25,7 +25,7 @@ const locateResultContext = {
 
 describe('normalizePlanningActionLocateFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn();
+    const toPixelBbox = vi.fn();
     const actions: PlanningAction[] = [
       {
         type: 'UnknownAction',
@@ -36,13 +36,14 @@ describe('normalizePlanningActionLocateFields', () => {
     normalizePlanningActionLocateFields(actions, {
       actionSpace,
       includeLocateInPlanning: true,
-      locateResultAdapter: {
-        adaptPlanningParamToPixelBbox,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'point' },
+        toPixelBbox,
       } as any,
       locateResultContext,
     });
 
-    expect(adaptPlanningParamToPixelBbox).not.toHaveBeenCalled();
+    expect(toPixelBbox).not.toHaveBeenCalled();
     expect(actions).toEqual([
       {
         type: 'UnknownAction',
@@ -51,8 +52,8 @@ describe('normalizePlanningActionLocateFields', () => {
     ]);
   });
 
-  it('normalizes locate params with the configured locate adapter', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+  it('normalizes locate params with the configured locate codec', () => {
+    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -68,24 +69,51 @@ describe('normalizePlanningActionLocateFields', () => {
     normalizePlanningActionLocateFields(actions, {
       actionSpace,
       includeLocateInPlanning: true,
-      locateResultAdapter: {
-        adaptPlanningParamToPixelBbox,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'point' },
+        toPixelBbox,
       } as any,
       locateResultContext,
     });
 
-    expect(adaptPlanningParamToPixelBbox).toHaveBeenCalledWith(
+    expect(toPixelBbox).toHaveBeenCalledWith([50, 60], locateResultContext);
+    expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
+  });
+
+  it('accepts bbox_2d when the model adapter enables the alias', () => {
+    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const actions: PlanningAction[] = [
       {
-        prompt: 'submit',
-        point: [50, 60],
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'submit',
+            bbox_2d: [50, 60, 70, 80],
+          },
+        },
       },
+    ];
+
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning: true,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'bbox' },
+        toPixelBbox,
+      } as any,
+      locateResultContext,
+      acceptBbox2dAlias: true,
+    });
+
+    expect(toPixelBbox).toHaveBeenCalledWith(
+      [50, 60, 70, 80],
       locateResultContext,
     );
     expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
   });
 
   it('keeps only the prompt in prompt-only planning mode', () => {
-    const adaptPlanningParamToPixelBbox = vi.fn();
+    const toPixelBbox = vi.fn();
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -101,13 +129,14 @@ describe('normalizePlanningActionLocateFields', () => {
     normalizePlanningActionLocateFields(actions, {
       actionSpace,
       includeLocateInPlanning: false,
-      locateResultAdapter: {
-        adaptPlanningParamToPixelBbox,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'point' },
+        toPixelBbox,
       } as any,
       locateResultContext,
     });
 
-    expect(adaptPlanningParamToPixelBbox).not.toHaveBeenCalled();
+    expect(toPixelBbox).not.toHaveBeenCalled();
     expect(actions[0].param.locate).toEqual({ prompt: 'submit' });
   });
 });

@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callAI, parseAIObjectResponse } from '@/ai-model/service-caller/index';
+import { callAI } from '@/ai-model/service-caller/index';
 import {
   AiLocateElement,
   AiLocateSection,
@@ -17,7 +17,6 @@ vi.mock('@/ai-model/service-caller/index', async () => {
   return {
     ...actual,
     callAI: vi.fn(),
-    parseAIObjectResponse: vi.fn(),
   };
 });
 
@@ -38,10 +37,9 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('keeps locate errors without parsing coordinates when result key is missing', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: { error: 'target element is not found' },
-      usage: undefined,
-      contentString: '{"error":"target element is not found"}',
+    vi.mocked(callAI).mockResolvedValue({
+      content: '{"error":"target element is not found"}',
+      isStreamed: false,
     });
 
     const result = await AiLocateElement({
@@ -58,12 +56,6 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is missing even without errors', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: {},
-      usage: undefined,
-      contentString: '{}',
-    });
-
     const result = await AiLocateElement({
       context: createFakeContext(),
       targetElementDescription: 'missing button',
@@ -78,10 +70,9 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: { bbox: [], error: 'target element is not found' },
-      usage: undefined,
-      contentString: '{"bbox":[],"error":"target element is not found"}',
+    vi.mocked(callAI).mockResolvedValue({
+      content: '{"bbox":[],"error":"target element is not found"}',
+      isStreamed: false,
     });
 
     const result = await AiLocateElement({
@@ -97,21 +88,16 @@ describe('grounding locate not-found parsing', () => {
     });
   });
 
-  it('retries once when result adapter cannot map coordinates', async () => {
-    vi.mocked(parseAIObjectResponse)
-      .mockReturnValueOnce({
-        content: {
-          bbox: [100, Number.NaN, 300, 400],
-          error: 'model returned invalid coordinates',
-        },
-        usage: undefined,
-        contentString:
+  it('retries once when result codec cannot map coordinates', async () => {
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        content:
           '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
+        isStreamed: false,
       })
-      .mockReturnValueOnce({
-        content: { bbox: [100, 200, 300, 400] },
-        usage: undefined,
-        contentString: '{"bbox":[100,200,300,400]}',
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,200,300,400]}',
+        isStreamed: false,
       });
 
     const result = await AiLocateElement({
@@ -135,14 +121,10 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('includes model errors when coordinate parsing ultimately fails', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: {
-        bbox: [100, Number.NaN, 300, 400],
-        error: 'model returned invalid coordinates',
-      },
-      usage: undefined,
-      contentString:
+    vi.mocked(callAI).mockResolvedValue({
+      content:
         '{"bbox":[100,null,300,400],"error":"model returned invalid coordinates"}',
+      isStreamed: false,
     });
 
     const result = await AiLocateElement({
@@ -161,14 +143,14 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('retries JSON parsing through the same locate retry loop', async () => {
-    vi.mocked(parseAIObjectResponse)
-      .mockImplementationOnce(() => {
-        throw new Error('invalid JSON response');
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        content: '```',
+        isStreamed: false,
       })
-      .mockReturnValueOnce({
-        content: { bbox: [100, 200, 300, 400] },
-        usage: undefined,
-        contentString: '{"bbox":[100,200,300,400]}',
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,200,300,400]}',
+        isStreamed: false,
       });
 
     const result = await AiLocateElement({
@@ -181,17 +163,15 @@ describe('grounding locate not-found parsing', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
   });
 
-  it('retries once when section result adapter cannot map coordinates', async () => {
-    vi.mocked(parseAIObjectResponse)
-      .mockReturnValueOnce({
-        content: { bbox: [100, Number.NaN, 300, 400] },
-        usage: undefined,
-        contentString: '{"bbox":[100,null,300,400]}',
+  it('retries once when search-area result codec cannot map coordinates', async () => {
+    vi.mocked(callAI)
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,null,300,400]}',
+        isStreamed: false,
       })
-      .mockReturnValueOnce({
-        content: { bbox: [100, 200, 300, 400] },
-        usage: undefined,
-        contentString: '{"bbox":[100,200,300,400]}',
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,200,300,400]}',
+        isStreamed: false,
       });
 
     const result = await AiLocateSection({
@@ -221,7 +201,6 @@ describe('grounding locate not-found parsing', () => {
         locate: {
           kind: 'custom',
           locateFn,
-          supportsSearchArea: true,
         },
       },
       'test-custom-locate',
@@ -286,10 +265,9 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is missing', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: { error: 'target section is not found' },
-      usage: undefined,
-      contentString: '{"error":"target section is not found"}',
+    vi.mocked(callAI).mockResolvedValue({
+      content: '{"error":"target section is not found"}',
+      isStreamed: false,
     });
 
     const result = await AiLocateSection({
@@ -303,10 +281,9 @@ describe('grounding locate not-found parsing', () => {
   });
 
   it('keeps section locate error without parsing coordinates when result key is an empty array', async () => {
-    vi.mocked(parseAIObjectResponse).mockReturnValue({
-      content: { bbox: [], error: 'target section is not found' },
-      usage: undefined,
-      contentString: '{"bbox":[],"error":"target section is not found"}',
+    vi.mocked(callAI).mockResolvedValue({
+      content: '{"bbox":[],"error":"target section is not found"}',
+      isStreamed: false,
     });
 
     const result = await AiLocateSection({

@@ -660,8 +660,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@yume-chan/adb':
-        specifier: 2.5.1
-        version: 2.5.1
+        specifier: 2.6.3
+        version: 2.6.3
       '@yume-chan/adb-scrcpy':
         specifier: 2.3.2
         version: 2.3.2
@@ -672,8 +672,8 @@ importers:
         specifier: 2.3.0
         version: 2.3.0
       '@yume-chan/stream-extra':
-        specifier: 2.1.0
-        version: 2.1.0
+        specifier: 2.6.1
+        version: 2.6.1
       appium-adb:
         specifier: 12.12.1
         version: 12.12.1
@@ -731,8 +731,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@yume-chan/adb':
-        specifier: 2.5.1
-        version: 2.5.1
+        specifier: 2.6.3
+        version: 2.6.3
       '@yume-chan/adb-scrcpy':
         specifier: 2.3.2
         version: 2.3.2
@@ -743,8 +743,8 @@ importers:
         specifier: 2.3.0
         version: 2.3.0
       '@yume-chan/stream-extra':
-        specifier: 2.1.0
-        version: 2.1.0
+        specifier: 2.6.1
+        version: 2.6.1
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -4676,8 +4676,8 @@ packages:
   '@yume-chan/adb-server-node-tcp@2.5.2':
     resolution: {integrity: sha512-ga9icFBRUk1n6lO+ymlj83qE+90kMLV8sQA3w9mZAisfdxxEEIq1cvXitFQJvDgL0NuFQruVI4JoZA/wrgpKOw==}
 
-  '@yume-chan/adb@2.5.1':
-    resolution: {integrity: sha512-Nm9ZA0cOxfINE+BlZ7whgqjtoLpaZg1xcV8e0C7YbpG/KOHnQGseGTwbfqJFR6xdqbRvvrNL4jIGGpxvn31ykw==}
+  '@yume-chan/adb@2.6.3':
+    resolution: {integrity: sha512-bs9UNWEj+ufmezyQcxNzVyPyG/D78ID0f6V9CbalqdOKY2PjWXYrevojJKPfDB9LNeDjshmqBZILSoid5IiYsg==}
 
   '@yume-chan/async@4.1.3':
     resolution: {integrity: sha512-0vzhNJMkWUPyjKzUK4rqHEeCU6YQtF78RsB1kFRB6Y2BLupmEQNxcSb0mjKabPL9jZpCCiLa5KL8oTOJClUVaw==}
@@ -4697,8 +4697,8 @@ packages:
   '@yume-chan/scrcpy@2.3.0':
     resolution: {integrity: sha512-rpsNvy7H8mf6gVsWYRSkIXmk0wVsP3XOdw3kASokwZkSWtygB2Z1wjoPaEAvaayVCjsz+y/YfG35TOcykEihGw==}
 
-  '@yume-chan/stream-extra@2.1.0':
-    resolution: {integrity: sha512-Sq1mDCLTIOu+TbI3VmFhcKL5hi+qZkDA3S+JezZb/AJm4ESC3hB7+LgQIQs3QEK/ZeRwMg37w4IOYHSh30R7BQ==}
+  '@yume-chan/stream-extra@2.6.1':
+    resolution: {integrity: sha512-GQ+Q0SQf9p6Fl7ZK0UO5vHVGBJgkTJm/WXKurUMpjHQV4VUpjZ2hrQ744aCfT7WwSol7Bz/uEiXWmk240Hr/hg==}
 
   '@yume-chan/struct@2.3.2':
     resolution: {integrity: sha512-afoCnSKV+5HRK7e4innVd9YTYDyNWdjA1CVQa1j8rWYnmr7HGZfdkHMQr+AESLk6GxWFMzOIPQIG6nYOTGMFIw==}
@@ -15575,26 +15575,26 @@ snapshots:
 
   '@yume-chan/adb-scrcpy@2.3.2':
     dependencies:
-      '@yume-chan/adb': 2.5.1
+      '@yume-chan/adb': 2.6.3
       '@yume-chan/async': 4.1.3
       '@yume-chan/event': 2.0.0
       '@yume-chan/scrcpy': 2.3.0
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
       '@yume-chan/struct': 2.3.2
 
   '@yume-chan/adb-server-node-tcp@2.5.2':
     dependencies:
-      '@yume-chan/adb': 2.5.1
+      '@yume-chan/adb': 2.6.3
       '@yume-chan/async': 4.1.3
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
       '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/adb@2.5.1':
+  '@yume-chan/adb@2.6.3':
     dependencies:
       '@yume-chan/async': 4.1.3
       '@yume-chan/event': 2.0.0
       '@yume-chan/no-data-view': 2.0.0
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
       '@yume-chan/struct': 2.3.2
 
   '@yume-chan/async@4.1.3': {}
@@ -15610,7 +15610,7 @@ snapshots:
       '@yume-chan/async': 4.1.3
       '@yume-chan/event': 2.0.0
       '@yume-chan/scrcpy': 2.3.0
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
       tinyh264: 0.0.7
       yuv-buffer: 1.0.1
       yuv-canvas: 1.3.0
@@ -15622,16 +15622,16 @@ snapshots:
       '@yume-chan/no-data-view': 2.0.0
       '@yume-chan/scrcpy': 2.3.0
       '@yume-chan/scrcpy-decoder-tinyh264': 2.1.0
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
 
   '@yume-chan/scrcpy@2.3.0':
     dependencies:
       '@yume-chan/async': 4.1.3
       '@yume-chan/no-data-view': 2.0.0
-      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/stream-extra': 2.6.1
       '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/stream-extra@2.1.0':
+  '@yume-chan/stream-extra@2.6.1':
     dependencies:
       '@yume-chan/async': 4.1.3
       '@yume-chan/struct': 2.3.2

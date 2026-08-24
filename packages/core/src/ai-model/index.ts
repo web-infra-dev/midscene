@@ -10,7 +10,6 @@ export {
   type ConnectivityTestConfig,
   type ConnectivityTestResult,
 } from './connectivity/index';
-export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
   convertRecordLogIntoMarkdown,
   createRecorderMarkdownReplayPrompt,

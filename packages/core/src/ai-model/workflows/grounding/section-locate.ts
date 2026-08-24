@@ -1,9 +1,4 @@
-import type {
-  AISectionLocatorResponse,
-  AIUsageInfo,
-  Rect,
-  UIContext,
-} from '@/types';
+import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
@@ -13,16 +8,8 @@ import {
 } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import type { ModelRuntime } from '../../models';
-import {
-  sectionLocatorInstruction,
-  systemPromptToLocateSection,
-} from '../../prompt/llm-section-locator';
-import {
-  AIResponseParseError,
-  callAI,
-  type callAIWithObjectResponse,
-  parseAIObjectResponse,
-} from '../../service-caller/index';
+import { systemPromptToLocateSection } from '../../prompt/llm-section-locator';
+import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
@@ -31,17 +18,11 @@ import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { mergePixelBboxesToRect } from './locate-result-rect';
 import { buildSearchAreaConfig, expandSearchArea } from './search-area';
 import type { SearchAreaConfig } from './types';
-import {
-  type GroundingAIArgs,
-  formatLocateModelContext,
-  hasLocateResult,
-} from './utils';
+import { type GroundingAIArgs, formatLocateModelContext } from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
-type SectionLocateObjectResponse = Awaited<
-  ReturnType<typeof callAIWithObjectResponse<AISectionLocatorResponse>>
->;
+type SectionLocateRawResponse = Awaited<ReturnType<typeof callAI>>;
 
 export async function AiLocateSection(options: {
   context: UIContext;
@@ -62,7 +43,9 @@ export async function AiLocateSection(options: {
     adapter.locate.kind === 'standard',
     'section locate requires a standard locate adapter',
   );
-  const resultAdapter = adapter.locate.resultAdapter;
+  const searchArea = adapter.locate.searchArea;
+  assert(searchArea, 'section locate requires a search area operation');
+  const { protocol: searchAreaProtocol, resultCodec } = searchArea;
   const screenshotBase64 = context.screenshot.base64;
   const preparedImage = await prepareModelImage({
     imageBase64: screenshotBase64,
@@ -71,10 +54,12 @@ export async function AiLocateSection(options: {
     policy: adapter.imagePreprocess,
   });
 
-  const systemPrompt = systemPromptToLocateSection(
-    adapter.locate.resultAdapter.promptSpec,
-  );
-  const sectionLocatorInstructionText = sectionLocatorInstruction(
+  const systemPrompt = systemPromptToLocateSection({
+    responseInstructions: searchAreaProtocol.buildResponseInstructions(
+      resultCodec.promptSpec,
+    ),
+  });
+  const sectionLocatorInstructionText = searchAreaProtocol.buildUserPrompt(
     userPromptToString(sectionDescription),
   );
   const msgs: GroundingAIArgs = [
@@ -106,12 +91,12 @@ export async function AiLocateSection(options: {
 
   let parsedResult:
     | {
-        result: SectionLocateObjectResponse;
+        result: SectionLocateRawResponse;
         sectionError?: string;
         mergedRect?: undefined;
       }
     | {
-        result: SectionLocateObjectResponse;
+        result: SectionLocateRawResponse;
         sectionError?: string;
         mergedRect: Rect;
       };
@@ -124,38 +109,43 @@ export async function AiLocateSection(options: {
           modelRuntime,
           {
             abortSignal: options.abortSignal,
-            expectedJsonObjectResponse: true,
+            expectedJsonObjectResponse:
+              searchAreaProtocol.expectedJsonObjectResponse,
             semanticRetryAttempt: retryAttempt,
           },
         ),
       parseResponse: (response) => {
-        const result = parseAIObjectResponse<AISectionLocatorResponse>(
-          response,
-          modelRuntime,
-          'section-locator',
+        const parsedLocateResult = searchAreaProtocol.parseRawResponse(
+          response.content,
+          resultCodec.promptSpec,
         );
-        const sectionError = result.content.error;
-        if (
-          !hasLocateResult(result.content, resultAdapter.promptSpec.resultKey)
-        ) {
-          return { result, sectionError };
+        const sectionError = parsedLocateResult.error;
+        if (parsedLocateResult.kind === 'not-found') {
+          return { result: response, sectionError };
         }
 
         try {
-          const adaptedResult =
-            resultAdapter.adaptSectionLocateResultToPixelBboxGroup(
-              result.content,
-              {
-                preparedSize: preparedImage.preparedSize,
-                contentSize: preparedImage.contentSize,
-              },
-            );
+          const locateResultContext = {
+            preparedSize: preparedImage.preparedSize,
+            contentSize: preparedImage.contentSize,
+          };
+          const target = resultCodec.toPixelBbox(
+            parsedLocateResult.target,
+            locateResultContext,
+          );
+          const references = parsedLocateResult.references?.map((reference) =>
+            resultCodec.toPixelBbox(reference, locateResultContext),
+          );
           const mergedRect = mergePixelBboxesToRect([
-            adaptedResult.target,
-            ...(adaptedResult.references ?? []),
+            target,
+            ...(references ?? []),
           ]);
           debugSection('mergedRect %j', mergedRect);
-          return { result, sectionError, mergedRect };
+          return {
+            result: response,
+            sectionError,
+            mergedRect,
+          };
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
@@ -217,7 +207,7 @@ export async function AiLocateSection(options: {
     return {
       searchAreaConfig: undefined,
       error: sectionError,
-      rawResponse: result.contentString,
+      rawResponse: result.content,
       rawChoiceMessage: result.rawChoiceMessage,
       usage: result.usage,
     };
@@ -245,7 +235,7 @@ export async function AiLocateSection(options: {
     return {
       searchAreaConfig,
       error: sectionError,
-      rawResponse: result.contentString,
+      rawResponse: result.content,
       rawChoiceMessage: result.rawChoiceMessage,
       usage: result.usage,
     };
@@ -260,7 +250,7 @@ export async function AiLocateSection(options: {
     return {
       searchAreaConfig: undefined,
       error: errorMessage,
-      rawResponse: result.contentString,
+      rawResponse: result.content,
       rawChoiceMessage: result.rawChoiceMessage,
       usage: result.usage,
     };

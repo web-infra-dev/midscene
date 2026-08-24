@@ -1,16 +1,34 @@
-import { createLocateResultAdapter } from '../shared/model-locate-result/factory';
-import type { LocateResultAdapterDefinition } from '../shared/model-locate-result/types';
+import { createLocateResultCodec } from '../shared/model-locate-result/factory';
+import type { LocateResultFormatDefinition } from '../shared/model-locate-result/types';
 import { resolvePlanningTapLocator } from '../workflows/grounding/planning-action-locate';
 import type { ResolvedCustomPlanningDefinition } from './custom-planning-types';
+import {
+  createDefaultElementProtocol,
+  createDefaultSearchAreaProtocol,
+} from './default-locate-protocol';
+import type {
+  StandardLocateProtocolContext,
+  StandardLocateProtocolDefinition,
+} from './locate-protocol';
 import type { LocateAdapter, ModelAdapterDefinition } from './types';
 
-const defaultLocateResultAdapterDefinition: LocateResultAdapterDefinition = {
+const defaultLocateResultFormatDefinition: LocateResultFormatDefinition = {
   coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
 };
+
+const resolveLocateProtocolDefinition = (
+  protocolDefinition: StandardLocateProtocolDefinition,
+  protocolContext: StandardLocateProtocolContext,
+) =>
+  typeof protocolDefinition === 'function'
+    ? protocolDefinition(protocolContext)
+    : protocolDefinition;
 
 export function resolveLocate(
   locate: ModelAdapterDefinition['locate'],
   resolvedCustomPlanner: ResolvedCustomPlanningDefinition | undefined,
+  protocolContext: StandardLocateProtocolContext,
+  acceptBbox2dAlias = false,
 ): LocateAdapter {
   if (locate?.kind === 'custom') {
     let locateFn = locate.locateFn;
@@ -37,16 +55,51 @@ export function resolveLocate(
 
     return {
       kind: 'custom',
-      supportsSearchArea: locate.supportsSearchArea ?? false,
       locateFn,
     };
   }
 
+  const elementProtocol = resolveLocateProtocolDefinition(
+    locate?.element?.protocol ??
+      ((context) =>
+        createDefaultElementProtocol(context, { acceptBbox2dAlias })),
+    protocolContext,
+  );
+  const elementResultFormat =
+    locate?.element?.resultFormat ?? defaultLocateResultFormatDefinition;
+  const elementResultCodec = createLocateResultCodec(elementResultFormat);
+  const searchAreaProtocol =
+    locate?.searchArea === false
+      ? undefined
+      : resolveLocateProtocolDefinition(
+          locate?.searchArea?.protocol ??
+            ((context) =>
+              createDefaultSearchAreaProtocol(context, {
+                acceptBbox2dAlias,
+              })),
+          protocolContext,
+        );
+  const searchAreaResultFormat =
+    locate?.searchArea === false
+      ? undefined
+      : (locate?.searchArea?.resultFormat ?? elementResultFormat);
+  const searchAreaResultCodec = searchAreaResultFormat
+    ? createLocateResultCodec(searchAreaResultFormat)
+    : undefined;
+
   return {
     kind: 'standard',
-    supportsSearchArea: locate?.supportsSearchArea ?? true,
-    resultAdapter: createLocateResultAdapter(
-      locate?.resultAdapter ?? defaultLocateResultAdapterDefinition,
-    ),
+    element: {
+      protocol: elementProtocol,
+      resultCodec: elementResultCodec,
+    },
+    ...(searchAreaProtocol && searchAreaResultCodec
+      ? {
+          searchArea: {
+            protocol: searchAreaProtocol,
+            resultCodec: searchAreaResultCodec,
+          },
+        }
+      : {}),
   };
 }

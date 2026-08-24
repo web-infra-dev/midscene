@@ -1,7 +1,7 @@
 import type { TUserPrompt } from '@/common';
 import type { PlanningAction } from '@/types';
 import type {
-  LocateResultAdapter,
+  LocateResultCodec,
   LocateResultCoordinates,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
@@ -36,7 +36,7 @@ export interface CustomPlanningDefinition<TParsed = unknown>
 export interface ResolvedCustomPlanningDefinition<TParsed = unknown>
   extends CustomPlanningLifecycle<TParsed> {
   coordinateSystem: ResolvedLocateResultCoordinates;
-  coordinateNormalizer: LocateResultAdapter;
+  coordinateNormalizer: LocateResultCodec;
 }
 
 export interface CustomPlanningMessageConfig<TParsed = unknown> {

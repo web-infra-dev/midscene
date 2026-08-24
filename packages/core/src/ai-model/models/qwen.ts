@@ -133,6 +133,7 @@ const buildQwen25ChatCompletionParams = (
 };
 
 const qwen3Adapter: ModelAdapterDefinition = {
+  acceptBbox2dAlias: true,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwenChatCompletionParams,
@@ -147,14 +148,17 @@ const qwen3Adapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: qwen3BboxCoordinatesMeta,
+    element: {
+      resultFormat: {
+        coordinates: qwen3BboxCoordinatesMeta,
+      },
     },
   },
 };
 
 export const qwenAdapters = {
   'qwen2.5-vl': {
+    acceptBbox2dAlias: true,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',
@@ -167,10 +171,12 @@ export const qwenAdapters = {
       padBlockSize: 28,
     },
     locate: {
-      resultAdapter: {
-        coordinates: qwen25BboxCoordinatesMeta,
-        parseRawLocateValue: parseQwen25RawLocateValue,
-        mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
+      element: {
+        resultFormat: {
+          coordinates: qwen25BboxCoordinatesMeta,
+          parseRawLocateValue: parseQwen25RawLocateValue,
+          mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
+        },
       },
     },
   },
