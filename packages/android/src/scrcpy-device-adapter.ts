@@ -154,7 +154,7 @@ export class ScrcpyDeviceAdapter {
    * receives the highest quality image for AI processing.
    * videoBitRate uses the shared default unless explicitly configured.
    */
-  resolveConfig(): ResolvedScrcpyConfig {
+  resolveConfig(_deviceInfo?: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
@@ -183,6 +183,8 @@ export class ScrcpyDeviceAdapter {
    * Apply the configured scrcpy video bound to an independently captured
    * fallback screenshot. This prevents planning and report images from returning
    * to full device resolution while the scrcpy stream is temporarily unavailable.
+   * The bound only applies when scrcpy is configured as enabled; disabling
+   * scrcpy preserves the existing ADB/yadb screenshot behavior.
    */
   async prepareFallbackScreenshot(screenshotBase64: string): Promise<string> {
     if (!this.isConfigured()) return screenshotBase64;

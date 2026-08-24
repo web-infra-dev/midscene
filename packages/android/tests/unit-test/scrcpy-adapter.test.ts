@@ -194,6 +194,14 @@ describe('ScrcpyDeviceAdapter', () => {
       const config2 = adapter.resolveConfig();
       expect(config1).toBe(config2);
     });
+
+    it('should accept legacy device info without inferring config values', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      const config = adapter.resolveConfig(defaultDeviceInfo);
+
+      expect(config.maxSize).toBe(DEFAULT_SCRCPY_CONFIG.maxSize);
+      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
+    });
   });
 
   describe('prepareFallbackScreenshot', () => {
