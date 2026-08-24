@@ -148,7 +148,7 @@ export function WhoIsUsing() {
   return (
     <section
       id="who-is-using"
-      className="w-full bg-white dark:bg-[#121212] py-16 md:py-20"
+      className="w-full bg-white dark:bg-[#0a0a0a] py-16 md:py-20"
     >
       <div className="max-w-[1200px] mx-auto px-5 md:px-10 flex flex-col items-center gap-y-10 md:gap-y-14">
         <h2 className="font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-center text-black dark:text-white">

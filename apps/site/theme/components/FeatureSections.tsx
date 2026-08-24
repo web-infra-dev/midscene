@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useI18n, useI18nUrl } from '../i18n';
+import { SectionDivider } from './SectionDivider';
 import { TiltCard } from './TiltCard';
 
 const GradientIcon = () => (
@@ -90,7 +91,7 @@ export function FeatureSections() {
   const tUrl = useI18nUrl();
 
   return (
-    <div className="flex flex-col w-full bg-white dark:bg-[#121212] px-5 md:px-10 lg:px-0">
+    <div className="flex flex-col w-full bg-white dark:bg-[#0a0a0a] px-5 md:px-10 lg:px-0">
       {/* Section 1: CLIENTS */}
       <div className="w-full flex items-center justify-center py-20">
         <FeatureSectionColumns>
@@ -332,12 +333,7 @@ export function FeatureSections() {
       </div>
 
       {/* Divider */}
-      <div className="w-full flex justify-center">
-        <div
-          className="h-px bg-black/[0.08] dark:bg-white/[0.08]"
-          style={{ width: '1360px' }}
-        />
-      </div>
+      <SectionDivider className="home-feature__divider" />
 
       {/* Section 2: MODELS */}
       <div className="w-full flex items-center justify-center py-20">
@@ -531,12 +527,7 @@ export function FeatureSections() {
       </div>
 
       {/* Divider */}
-      <div className="w-full flex justify-center">
-        <div
-          className="h-px bg-black/[0.08] dark:bg-white/[0.08]"
-          style={{ width: '1360px' }}
-        />
-      </div>
+      <SectionDivider className="home-feature__divider" />
 
       {/* Section 3: DEBUGGING */}
       <div className="w-full flex items-center justify-center py-20">
@@ -857,12 +848,7 @@ export function FeatureSections() {
       </div>
 
       {/* Divider */}
-      <div className="w-full flex justify-center">
-        <div
-          className="h-px bg-black/[0.08] dark:bg-white/[0.08]"
-          style={{ width: '1360px' }}
-        />
-      </div>
+      <SectionDivider className="home-feature__divider" />
 
       {/* Section 4: BENCHMARKS */}
       <div className="w-full flex items-center justify-center py-20">

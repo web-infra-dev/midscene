@@ -1,4 +1,3 @@
-import { HomeBackground } from '@rspress/core/theme-original';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
@@ -22,25 +21,7 @@ const CopyRight = () => {
 
 export function HomeLayout() {
   return (
-    <>
-      {/* For transparent nav at top */}
-      <HomeBackground
-        className="block dark:hidden"
-        style={{
-          backgroundImage: 'url(/midscene-light-bg.png)',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover',
-        }}
-      />
-      <HomeBackground
-        className="hidden dark:block"
-        style={{
-          backgroundImage: 'url(/midscene-dark-bg.png)',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover',
-        }}
-      />
-
+    <div className="home-page">
       {/* Banner Section */}
       <Banner />
 
@@ -51,7 +32,7 @@ export function HomeLayout() {
       <WhoIsUsing />
 
       {/* Bottom CTA Section */}
-      <div className="w-full bg-white dark:bg-[#121212] py-12 md:py-20">
+      <div className="w-full bg-white dark:bg-[#0a0a0a] py-12 md:py-20">
         <div className="max-w-[1200px] mx-auto px-5 md:px-10 flex justify-center">
           <CTAButtons />
         </div>
@@ -59,6 +40,6 @@ export function HomeLayout() {
 
       {/* Copyright */}
       <CopyRight />
-    </>
+    </div>
   );
 }
