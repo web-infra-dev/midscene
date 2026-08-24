@@ -51,8 +51,12 @@ import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
   type ScrcpyStatus,
+  formatScrcpyFreshFrameFailure,
 } from './scrcpy-device-adapter';
-import type { RawKeyframe } from './scrcpy-manager';
+import {
+  type RawKeyframe,
+  isScrcpyFreshFrameUnavailableError,
+} from './scrcpy-manager';
 import { captureAndroidUITree } from './ui-tree-capture';
 import { createVisualActionRegistry } from './visual-action-registry';
 
@@ -1381,17 +1385,19 @@ ${Object.keys(size)
     }
 
     // Try scrcpy mode first (if enabled and initialized)
-    let scrcpyDeviceInfo: DevicePhysicalInfo | null = null;
     if (adapter.isEnabled()) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
-        scrcpyDeviceInfo = await this.getDevicePhysicalInfo();
+        const scrcpyDeviceInfo = await this.getDevicePhysicalInfo();
         const result = await adapter.screenshotBase64(scrcpyDeviceInfo);
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
+        const diagnostic = isScrcpyFreshFrameUnavailableError(error)
+          ? `\n${formatScrcpyFreshFrameFailure(error)}`
+          : '';
         warnDevice(
-          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
+          `Scrcpy screenshot failed, falling back to standard ADB method.${diagnostic}\nError: ${error}`,
         );
         // Continue to standard ADB path
       }
@@ -1472,11 +1478,6 @@ ${Object.keys(size)
         },
       );
       debugDevice('screenshotBase64 end (fallback)');
-      if (scrcpyDeviceInfo) {
-        // Start a new stream only after ADB has finished, so the fallback
-        // capture does not compete with scrcpy startup on the same transport.
-        adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
-      }
       return this.prepareFallbackScreenshot(result);
     }
 
@@ -1490,11 +1491,6 @@ ${Object.keys(size)
       screenshotBuffer.toString('base64'),
     );
     debugDevice('screenshotBase64 end');
-    if (scrcpyDeviceInfo) {
-      // Start a new stream only after ADB has finished, so the fallback capture
-      // does not compete with scrcpy startup on the same remote transport.
-      adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
-    }
     return this.prepareFallbackScreenshot(result);
   }
 

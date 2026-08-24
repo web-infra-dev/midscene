@@ -1193,11 +1193,12 @@ Stdout:
       rs.spyOn(fallbackDevice, 'getAdb').mockResolvedValue(mockAdb);
       const adapter = (fallbackDevice as any).getScrcpyAdapter();
       rs.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
-        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+        new ScrcpyFreshFrameUnavailableError('stale stream closed', {
+          failureKind: 'freshness-target',
+          timeoutMs: 300,
+          videoBitRate: 100_000_000,
+        }),
       );
-      const recover = rs
-        .spyOn(adapter, 'recoverAfterAdbScreenshot')
-        .mockImplementation(() => {});
       const deviceInfo = {
         physicalWidth: 8,
         physicalHeight: 6,
@@ -1220,18 +1221,18 @@ Stdout:
         width: 4,
         height: 3,
       });
-      expect(recover).toHaveBeenCalledWith(deviceInfo);
     });
 
-    it('starts scrcpy recovery only after the ADB fallback screenshot completes', async () => {
+    it('reports structured scrcpy freshness diagnostics before using ADB fallback', async () => {
       const adapter = (device as any).getScrcpyAdapter();
       rs.spyOn(adapter, 'isEnabled').mockReturnValue(true);
       rs.spyOn(adapter, 'screenshotBase64').mockRejectedValue(
-        new ScrcpyFreshFrameUnavailableError('stale stream closed'),
+        new ScrcpyFreshFrameUnavailableError('stale stream closed', {
+          failureKind: 'freshness-target',
+          timeoutMs: 300,
+          videoBitRate: 4_000_000,
+        }),
       );
-      const recover = rs
-        .spyOn(adapter, 'recoverAfterAdbScreenshot')
-        .mockImplementation(() => {});
       const deviceInfo = {
         physicalWidth: 1080,
         physicalHeight: 1920,
@@ -1242,19 +1243,22 @@ Stdout:
         deviceInfo,
       );
       const mockBuffer = createValidPngBuffer();
-      mockAdb.takeScreenshot.mockImplementation(async () => {
-        expect(recover).not.toHaveBeenCalled();
-        return mockBuffer;
-      });
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
       rs.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
         `data:image/png;base64,${mockBuffer.toString('base64')}`,
       );
-      rs.spyOn(console, 'warn').mockImplementation(() => {});
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
       await expect(device.screenshotBase64()).resolves.toContain(
         mockBuffer.toString('base64'),
       );
-      expect(recover).toHaveBeenCalledWith(deviceInfo);
+      expect(warn).toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining(
+          'Lowering it further is unlikely to help on a local USB connection',
+        ),
+      );
+      expect(warn).toHaveBeenCalledTimes(1);
     });
 
     it('should fall back to screencap and pull if takeScreenshot fails', async () => {

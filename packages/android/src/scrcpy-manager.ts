@@ -31,22 +31,7 @@ const MAX_SERVER_OUTPUT_LINES = 100;
 const SERVER_OUTPUT_DRAIN_TIMEOUT_MS = 500;
 const MAX_FRAME_AGE_US = 500_000n;
 const FRAME_FRESHNESS_WARN_INTERVAL_MS = 5_000;
-const TRANSPORT_BACKLOG_WARN_INTERVAL_MS = 5_000;
 const DEVICE_UPTIME_COMMAND = ['dumpsys', 'power'] as const;
-
-export const SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT =
-  'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, pass --scrcpy-video-bit-rate 4000000 in the Android CLI, or set scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) in SDK/YAML configuration. Lower it further if backlog persists.';
-
-const CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE = 4_000_000;
-
-export function getScrcpyVideoBitRateNetworkHint(
-  currentVideoBitRate: number,
-): string {
-  if (currentVideoBitRate <= CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE) {
-    return 'The current scrcpy video bitrate is already at or below 4 Mbps. Lowering it further is unlikely to help on a local USB connection; check whether the screen was static or the device encoder emitted no new frame.';
-  }
-  return SCRCPY_VIDEO_BIT_RATE_NETWORK_HINT;
-}
 
 // Busy-loop detection thresholds
 const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
@@ -89,21 +74,29 @@ export interface RawKeyframe {
 export const SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE =
   'ERR_SCRCPY_FRESH_FRAME_UNAVAILABLE';
 
+export type ScrcpyFreshFrameFailureKind = 'stream-startup' | 'freshness-target';
+
 interface ScrcpyFreshFrameUnavailableErrorOptions extends ErrorOptions {
-  diagnosticMessage?: string;
+  failureKind: ScrcpyFreshFrameFailureKind;
+  timeoutMs: number;
+  videoBitRate: number;
 }
 
 export class ScrcpyFreshFrameUnavailableError extends Error {
   readonly code = SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE;
-  readonly diagnosticMessage?: string;
+  readonly failureKind: ScrcpyFreshFrameFailureKind;
+  readonly timeoutMs: number;
+  readonly videoBitRate: number;
 
   constructor(
     message: string,
-    options?: ScrcpyFreshFrameUnavailableErrorOptions,
+    options: ScrcpyFreshFrameUnavailableErrorOptions,
   ) {
     super(message, options);
     this.name = 'ScrcpyFreshFrameUnavailableError';
-    this.diagnosticMessage = options?.diagnosticMessage;
+    this.failureKind = options.failureKind;
+    this.timeoutMs = options.timeoutMs;
+    this.videoBitRate = options.videoBitRate;
   }
 }
 
@@ -133,7 +126,6 @@ interface FrameAgeEstimate {
 
 export interface ScrcpyFreshnessBarrierOptions {
   hostMonotonicUs?: bigint;
-  allowOverAgeForNextCapture?: boolean;
 }
 
 /**
@@ -233,13 +225,11 @@ export class ScrcpyScreenshotManager {
   private streamReader: any = null;
   private frameFreshnessBarrierPtsUs: bigint | null = null;
   private frameFreshnessBarrierReason: string | null = null;
-  private frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
   // A newly created stream may emit its only frame before clock calibration
   // finishes. On a static screen no replacement frame follows, so the first
   // screenshot may use that epoch-local baseline once when no action barrier
   // is active. Later planning screenshots remain subject to the age limit.
-  private streamBaselineFramePending = false;
-  private streamBaselineFrameDeadlineAt = 0;
+  private streamBaselineWindow: { deadlineAt: number } | null = null;
   private frameFreshnessBarrierPending = false;
   private frameFreshnessBarrierGeneration = 0;
   private deviceClockCalibration: DeviceClockCalibration | null = null;
@@ -248,9 +238,7 @@ export class ScrcpyScreenshotManager {
   private lastFramePtsUs: bigint | null = null;
   private frameFreshnessError: Error | null = null;
   private lastFrameFreshnessWarningAt = 0;
-  // Keep this across stream epoch rebuilds so repeated recovery attempts do
-  // not emit the same network-tuning hint for every screenshot.
-  private lastTransportBacklogWarningAt = 0;
+  private disposePromise: Promise<void> | null = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -356,8 +344,9 @@ export class ScrcpyScreenshotManager {
       // stream epoch. Frame age and all later barriers are projected from this
       // anchor without another ADB clock read.
       await this.ensureFrameClockCalibration();
-      this.streamBaselineFramePending = true;
-      this.streamBaselineFrameDeadlineAt = Date.now() + MAX_KEYFRAME_WAIT_MS;
+      this.streamBaselineWindow = {
+        deadlineAt: Date.now() + MAX_KEYFRAME_WAIT_MS,
+      };
       this.startFrameConsumer();
       this.resetIdleTimer();
       this.isInitialized = true;
@@ -696,10 +685,8 @@ export class ScrcpyScreenshotManager {
    * the host-monotonic action/planning boundary projected onto the device
    * clock. A caller recovering an unavailable stream can pass the original
    * action-boundary timestamp so connection startup latency does not move the
-   * barrier forward. Action barriers may allow the first proven post-boundary
-   * frame to survive a long wait-after-action delay. The projection reuses the
-   * single calibration for this stream epoch and does not issue another ADB
-   * clock read.
+   * barrier forward. The projection reuses the single calibration for this
+   * stream epoch and does not issue another ADB clock read.
    */
   async setFreshnessBarrier(
     reason: string,
@@ -708,7 +695,6 @@ export class ScrcpyScreenshotManager {
     const cachedFrame = this.getCachedKeyframeCandidate();
     const generation = ++this.frameFreshnessBarrierGeneration;
     this.frameFreshnessBarrierPending = true;
-    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
     this.clearFrameCache();
 
     try {
@@ -741,8 +727,6 @@ export class ScrcpyScreenshotManager {
           ? barrierPtsUs
           : this.frameFreshnessBarrierPtsUs;
       this.frameFreshnessBarrierReason = reason;
-      this.frameFreshnessBarrierAllowsOverAgeForNextCapture =
-        options.allowOverAgeForNextCapture ?? false;
       this.frameFreshnessBarrierPending = false;
       this.frameFreshnessError = null;
       this.lastFramePtsUs = null;
@@ -787,7 +771,6 @@ export class ScrcpyScreenshotManager {
         this.frameFreshnessBarrierPending = true;
         this.frameFreshnessBarrierPtsUs = null;
         this.frameFreshnessBarrierReason = null;
-        this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
         this.deviceClockCalibration = null;
         this.clearFrameCache();
         this.warnFrameFreshness();
@@ -926,35 +909,6 @@ export class ScrcpyScreenshotManager {
     }
   }
 
-  private transportBacklogMessage(error: unknown): string {
-    const cause = this.frameFreshnessError ?? error;
-    const causeMessage = cause instanceof Error ? cause.message : String(cause);
-    if (
-      this.streamBaselineFramePending &&
-      this.frameFreshnessBarrierPtsUs === null
-    ) {
-      return `The new scrcpy stream did not produce a usable baseline frame within its ${MAX_KEYFRAME_WAIT_MS}ms startup window; closing the stream epoch and falling back to ADB screenshot. This is a stream startup or encoder-readiness failure, not evidence that the configured video bitrate is too high.\nError: ${causeMessage}`;
-    }
-    const currentBitRateMbps = this.options.videoBitRate / 1_000_000;
-    const networkHint = getScrcpyVideoBitRateNetworkHint(
-      this.options.videoBitRate,
-    );
-    return `No usable scrcpy frame crossed the active freshness target within ${FRESH_FRAME_TIMEOUT_MS}ms; closing the stale stream epoch and falling back to ADB screenshot. This may indicate transport backlog or a static screen that emitted no new frame. ${networkHint} Current videoBitRate: ${this.options.videoBitRate} bps (${currentBitRateMbps} Mbps).\nError: ${causeMessage}`;
-  }
-
-  private warnTransportBacklog(error: unknown): void {
-    const now = Date.now();
-    if (
-      now - this.lastTransportBacklogWarningAt <
-      TRANSPORT_BACKLOG_WARN_INTERVAL_MS
-    ) {
-      return;
-    }
-
-    warnScrcpy(this.transportBacklogMessage(error));
-    this.lastTransportBacklogWarningAt = now;
-  }
-
   private estimateFrameTiming(
     packetPtsUs: bigint | undefined,
     receivedAtUs: bigint,
@@ -999,9 +953,7 @@ export class ScrcpyScreenshotManager {
   private resetFrameFreshnessState(): void {
     this.frameFreshnessBarrierPtsUs = null;
     this.frameFreshnessBarrierReason = null;
-    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
-    this.streamBaselineFramePending = false;
-    this.streamBaselineFrameDeadlineAt = 0;
+    this.streamBaselineWindow = null;
     this.frameFreshnessBarrierPending = false;
     this.frameFreshnessBarrierGeneration = 0;
     this.deviceClockCalibration = null;
@@ -1049,31 +1001,14 @@ export class ScrcpyScreenshotManager {
     };
   }
 
-  private canReuseFrameAcrossActionWait(frame: RawKeyframe): boolean {
-    return (
-      this.frameFreshnessBarrierAllowsOverAgeForNextCapture &&
-      this.frameFreshnessBarrierPtsUs !== null &&
-      frame.ptsUs !== undefined &&
-      frame.ptsUs >= this.frameFreshnessBarrierPtsUs
-    );
-  }
-
   private canUseStreamBaseline(frame: RawKeyframe): boolean {
     return (
-      this.streamBaselineFramePending &&
+      this.streamBaselineWindow !== null &&
       !this.frameFreshnessBarrierPending &&
       this.frameFreshnessBarrierPtsUs === null &&
-      Date.now() <= this.streamBaselineFrameDeadlineAt &&
+      Date.now() <= this.streamBaselineWindow.deadlineAt &&
       frame.ptsUs !== undefined
     );
-  }
-
-  private consumeActionFreshnessBarrier(frame: RawKeyframe): void {
-    if (!this.canReuseFrameAcrossActionWait(frame)) return;
-    this.frameFreshnessBarrierPtsUs = null;
-    this.frameFreshnessBarrierReason = null;
-    this.frameFreshnessBarrierAllowsOverAgeForNextCapture = false;
-    this.frameFreshnessError = null;
   }
 
   /**
@@ -1086,30 +1021,17 @@ export class ScrcpyScreenshotManager {
     return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
   }
 
-  /**
-   * Ensure a newly connected stream has a calibrated, usable epoch baseline
-   * or a frame that crossed its active action barrier before exposing it again
-   * after ADB fallback.
-   */
-  async prepareFreshFrame(): Promise<void> {
-    await this.ensureConnected();
-    await this.ensureFrameClockCalibration();
-    await this.waitForKeyframe();
-    await this.waitForPlanningFrame();
-  }
-
   private async waitForPlanningFrame(): Promise<RawKeyframe> {
     let planningBarrierArmed = false;
     // A new encoder/stream gets the normal startup allowance for its first
     // data frame. Established epochs still fail fast when they cannot cross a
     // newly armed freshness barrier.
     const planningStartedAt = Date.now();
-    const startupWindowRemainingMs = this.streamBaselineFramePending
-      ? this.streamBaselineFrameDeadlineAt - planningStartedAt
+    const startupWindowRemainingMs = this.streamBaselineWindow
+      ? this.streamBaselineWindow.deadlineAt - planningStartedAt
       : 0;
-    if (this.streamBaselineFramePending && startupWindowRemainingMs <= 0) {
-      this.streamBaselineFramePending = false;
-      this.streamBaselineFrameDeadlineAt = 0;
+    if (this.streamBaselineWindow && startupWindowRemainingMs <= 0) {
+      this.streamBaselineWindow = null;
     }
     let deadline =
       planningStartedAt +
@@ -1124,13 +1046,6 @@ export class ScrcpyScreenshotManager {
           throw new Error(
             'Scrcpy frame has no PTS metadata; cannot prove planning freshness',
           );
-        }
-
-        if (this.canReuseFrameAcrossActionWait(candidate)) {
-          debugScrcpy(
-            `Using frame PTS ${candidate.ptsUs}µs that crossed the active input-action barrier; preserving the settled frame across wait-after-action`,
-          );
-          return candidate;
         }
 
         if (this.canUseStreamBaseline(candidate)) {
@@ -1177,12 +1092,24 @@ export class ScrcpyScreenshotManager {
   private async closeStaleStreamAndCreateFallbackError(
     error: unknown,
   ): Promise<ScrcpyFreshFrameUnavailableError> {
-    const diagnosticMessage = this.transportBacklogMessage(error);
+    const failureKind: ScrcpyFreshFrameFailureKind =
+      this.streamBaselineWindow && this.frameFreshnessBarrierPtsUs === null
+        ? 'stream-startup'
+        : 'freshness-target';
+    const timeoutMs =
+      failureKind === 'stream-startup'
+        ? MAX_KEYFRAME_WAIT_MS
+        : FRESH_FRAME_TIMEOUT_MS;
     const causeMessage = error instanceof Error ? error.message : String(error);
     await this.disconnect();
     return new ScrcpyFreshFrameUnavailableError(
       `Unable to obtain a fresh scrcpy frame; the stale stream epoch was closed so the caller can restart it or use ADB screenshot fallback. ${causeMessage}`,
-      { cause: error, diagnosticMessage },
+      {
+        cause: error,
+        failureKind,
+        timeoutMs,
+        videoBitRate: this.options.videoBitRate,
+      },
     );
   }
 
@@ -1191,11 +1118,10 @@ export class ScrcpyScreenshotManager {
    * A newly connected stream may use its first epoch-local frame once during
    * the bounded startup window, because a static screen will not emit another
    * frame after clock calibration completes.
-   * Reuses one frame that crossed the active input-action barrier even if a
-   * long wait-after-action made its absolute age exceed the planning limit.
-   * Other over-age candidates arm a planning barrier on demand. If no frame
-   * crosses the resulting freshness target in time, close this stream epoch
-   * and let the caller use ADB.
+   * Frames that crossed an input-action barrier must still satisfy the absolute
+   * age limit at capture time. Over-age candidates arm a planning barrier on
+   * demand. If no frame crosses the resulting freshness target in time, close
+   * this stream epoch and let the caller restart it or use ADB.
    */
   async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -1225,9 +1151,7 @@ export class ScrcpyScreenshotManager {
     const t5 = Date.now();
     const result = await this.decodeH264ToJpeg(keyframeBuffer);
     const decodeTime = Date.now() - t5;
-    this.consumeActionFreshnessBarrier(frame);
-    this.streamBaselineFramePending = false;
-    this.streamBaselineFrameDeadlineAt = 0;
+    this.streamBaselineWindow = null;
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
@@ -1485,13 +1409,18 @@ export class ScrcpyScreenshotManager {
    * Unlike disconnect(), a disposed manager cannot be reconnected.
    */
   async dispose(): Promise<void> {
-    if (this.disposed) return;
+    if (this.disposePromise) return this.disposePromise;
+
     this.disposed = true;
-    if (this.connectionPromise) {
-      await this.connectionPromise.catch(() => {});
-    }
-    await this.disconnect();
-    await this.adb.close();
+    const disposePromise = (async () => {
+      if (this.connectionPromise) {
+        await this.connectionPromise.catch(() => {});
+      }
+      await this.disconnect();
+      await this.adb.close();
+    })();
+    this.disposePromise = disposePromise;
+    return disposePromise;
   }
 
   /**

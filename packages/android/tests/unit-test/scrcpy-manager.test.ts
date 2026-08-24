@@ -455,7 +455,6 @@ describe('ScrcpyScreenshotManager', () => {
       };
 
       await manager.setFreshnessBarrier('completed input action', {
-        allowOverAgeForNextCapture: true,
         hostMonotonicUs: 10_100_000n,
       });
 
@@ -465,49 +464,14 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).lastRawKeyframePtsUs).toBe(1_200_000n);
     });
 
-    it('reuses an over-age frame once when it crossed the input-action barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
-      (manager as any).spsHeader = Buffer.from('header');
-      (manager as any).lastRawKeyframe = Buffer.from('post-action-frame');
-      (manager as any).lastRawKeyframePtsUs = 1_100_000n;
-      (manager as any).lastRawKeyframeAt = 2_000;
-      (manager as any).frameFreshnessBarrierPtsUs = 1_006_000n;
-      (manager as any).frameFreshnessBarrierReason = 'completed input action';
-      (manager as any).frameFreshnessBarrierAllowsOverAgeForNextCapture = true;
-      (manager as any).deviceClockCalibration = {
-        deviceUptimeUs: 1_000_000n,
-        hostMonotonicUs: 10_000_000n,
-        hostWallTimeMs: 2_000,
-        roundTripUs: 10_000n,
-      };
-      rs.spyOn(manager as any, 'monotonicTimeUs').mockReturnValue(11_100_000n);
-      rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
-      rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
-      const waitForNextKeyframe = rs.spyOn(
-        manager as any,
-        'waitForNextKeyframe',
-      );
-      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
-        Buffer.from('jpeg'),
-      );
-
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
-      expect(waitForNextKeyframe).not.toHaveBeenCalled();
-      expect((manager as any).frameFreshnessBarrierPtsUs).toBeNull();
-      expect(
-        (manager as any).frameFreshnessBarrierAllowsOverAgeForNextCapture,
-      ).toBe(false);
-    });
-
     it('uses the first frame of a new stream as its planning baseline even when startup made it over-age', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('initial-static-frame');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
-      (manager as any).streamBaselineFramePending = true;
-      (manager as any).streamBaselineFrameDeadlineAt = Date.now() + 5_000;
+      (manager as any).streamBaselineWindow = {
+        deadlineAt: Date.now() + 5_000,
+      };
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 2_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -530,14 +494,15 @@ describe('ScrcpyScreenshotManager', () => {
       );
       expect(waitForNextKeyframe).not.toHaveBeenCalled();
       expect(setBarrier).not.toHaveBeenCalled();
-      expect((manager as any).streamBaselineFramePending).toBe(false);
+      expect((manager as any).streamBaselineWindow).toBeNull();
     });
 
     it('uses the startup timeout while waiting for the first data frame of a new stream', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
-      (manager as any).streamBaselineFramePending = true;
-      (manager as any).streamBaselineFrameDeadlineAt = Date.now() + 5_000;
+      (manager as any).streamBaselineWindow = {
+        deadlineAt: Date.now() + 5_000,
+      };
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 2_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -566,7 +531,7 @@ describe('ScrcpyScreenshotManager', () => {
       const startupWaitMs = waitForNextKeyframe.mock.calls[0][0];
       expect(startupWaitMs).toBeGreaterThan(4_000);
       expect(startupWaitMs).toBeLessThanOrEqual(5_000);
-      expect((manager as any).streamBaselineFramePending).toBe(false);
+      expect((manager as any).streamBaselineWindow).toBeNull();
     });
 
     it('deduplicates concurrent clock calibration for one stream epoch', async () => {
@@ -839,8 +804,9 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).lastRawKeyframe = Buffer.from('post-action-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_100_000n;
       (manager as any).frameFreshnessBarrierPtsUs = 1_000_000n;
-      (manager as any).streamBaselineFramePending = true;
-      (manager as any).streamBaselineFrameDeadlineAt = Date.now() + 5_000;
+      (manager as any).streamBaselineWindow = {
+        deadlineAt: Date.now() + 5_000,
+      };
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 2_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -877,8 +843,9 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('first-planning-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
-      (manager as any).streamBaselineFramePending = true;
-      (manager as any).streamBaselineFrameDeadlineAt = Date.now() - 1;
+      (manager as any).streamBaselineWindow = {
+        deadlineAt: Date.now() - 1,
+      };
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 2_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -931,54 +898,15 @@ describe('ScrcpyScreenshotManager', () => {
 
       await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
         name: 'ScrcpyFreshFrameUnavailableError',
-        diagnosticMessage: expect.stringContaining(
-          'falling back to ADB screenshot',
-        ),
+        failureKind: 'freshness-target',
+        timeoutMs: 300,
+        videoBitRate: 100_000_000,
       });
       expect(ensureConnected).toHaveBeenCalledTimes(1);
       expect(disconnect).toHaveBeenCalledTimes(1);
       expect(barrier).toHaveBeenCalledWith('stale planning frame');
       expect(decode).not.toHaveBeenCalled();
       expect(warn).not.toHaveBeenCalled();
-    });
-
-    it('does not recommend lowering an already-low bitrate for a local USB link', () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
-        videoBitRate: 4_000_000,
-      });
-      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
-
-      (manager as any).warnTransportBacklog(new Error('no post-action frame'));
-
-      expect(warn).toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining(
-          'Lowering it further is unlikely to help on a local USB connection',
-        ),
-      );
-      expect(warn).not.toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining('Lower it further if backlog persists'),
-      );
-    });
-
-    it('reports a missing first frame as stream startup failure instead of bitrate backlog', () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
-        videoBitRate: 4_000_000,
-      });
-      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
-      (manager as any).streamBaselineFramePending = true;
-
-      (manager as any).warnTransportBacklog(new Error('no initial data frame'));
-
-      expect(warn).toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining('stream startup or encoder-readiness failure'),
-      );
-      expect(warn).not.toHaveBeenCalledWith(
-        '[Midscene]',
-        expect.stringContaining('Lowering it further'),
-      );
     });
 
     it('rejects frames without PTS instead of treating arrival time as freshness', async () => {
@@ -1013,8 +941,9 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).deviceClockCalibration = {};
       (manager as any).lastFramePtsUs = 456n;
       (manager as any).frameFreshnessError = new Error('stale');
-      (manager as any).streamBaselineFramePending = true;
-      (manager as any).streamBaselineFrameDeadlineAt = Date.now() + 5_000;
+      (manager as any).streamBaselineWindow = {
+        deadlineAt: Date.now() + 5_000,
+      };
 
       await manager.disconnect();
 
@@ -1029,8 +958,7 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).deviceClockCalibration).toBeNull();
       expect((manager as any).lastFramePtsUs).toBeNull();
       expect((manager as any).frameFreshnessError).toBeNull();
-      expect((manager as any).streamBaselineFramePending).toBe(false);
-      expect((manager as any).streamBaselineFrameDeadlineAt).toBe(0);
+      expect((manager as any).streamBaselineWindow).toBeNull();
     });
 
     it('should clear idle timer', async () => {
@@ -1068,6 +996,33 @@ describe('ScrcpyScreenshotManager', () => {
       await expect(manager.ensureConnected()).rejects.toThrow(
         'Scrcpy manager has been disposed',
       );
+    });
+
+    it('shares one complete disposal across concurrent callers', async () => {
+      let finishClose: (() => void) | undefined;
+      const close = rs.fn().mockReturnValue(
+        new Promise<void>((resolve) => {
+          finishClose = resolve;
+        }),
+      );
+      const manager = new ScrcpyScreenshotManager({ close } as any);
+
+      const firstDispose = manager.dispose();
+      const secondDispose = manager.dispose();
+      let secondFinished = false;
+      void secondDispose.then(() => {
+        secondFinished = true;
+      });
+
+      await Promise.resolve();
+      expect(secondFinished).toBe(false);
+      expect(close).toHaveBeenCalledTimes(1);
+
+      finishClose?.();
+      await expect(Promise.all([firstDispose, secondDispose])).resolves.toEqual(
+        [undefined, undefined],
+      );
+      expect(close).toHaveBeenCalledTimes(1);
     });
 
     it('waits for an in-flight connection before disposing its ADB transport', async () => {
