@@ -300,9 +300,14 @@ export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 
 ### 为什么 scrcpy 会回退到 ADB 截图？
 
-通过带宽受限的远程链路连接设备时，scrcpy 默认的 100 Mbps 视频流可能产生传输积压。如果 Midscene 无法取得晚于最近一次操作的画面，就会拒绝使用旧帧并回退到 ADB 截图。
+Midscene 只会使用能够证明拍摄时间晚于最近一次已完成操作的 scrcpy 帧。无法取得新帧通常有两类原因：
 
-使用 Android CLI 时，可以先从 4 Mbps 开始尝试，并在每条启用 scrcpy 的命令中同时添加以下两个参数：
+- 带宽受限的远程连接可能产生传输积压，使用默认 100 Mbps 视频码率时更容易出现。
+- 部分 Android 编码器会在画面静止时停止输出帧。即使本地 USB 链路正常也可能出现这种情况，并不代表码率过高。
+
+当已有视频流无法提供新帧时，Midscene 会自动重启一次 scrcpy，并使用新视频流的首帧；只有重启后仍然失败时才会回退到 ADB 截图。
+
+对于带宽受限的远程连接，可以先从 4 Mbps 开始。每条 Android CLI 命令都是独立进程，因此需要在每条希望使用该码率的命令中传入参数：
 
 ```bash
 midscene-android tap \
@@ -312,7 +317,7 @@ midscene-android tap \
   --scrcpy-video-bit-rate 4000000
 ```
 
-CLI 也接受驼峰形式 `--scrcpyVideoBitRate`。设置码率参数本身就会启用 scrcpy，因此使用该参数时可以省略 `--use-scrcpy`。该参数的单位是 bit/s。如果仍然发生回退，可以继续降低；链路带宽充足时，提高码率可以保留更多画面细节。
+CLI 也接受驼峰形式 `--scrcpyVideoBitRate`。设置码率参数本身就会启用 scrcpy，因此使用该参数时可以省略 `--use-scrcpy`。该参数的单位是 bit/s。只有远程传输确实拥塞时，继续降低码率才可能有效。如果本地 USB 设备在 4 Mbps 或更低码率下仍提示没有新帧，请保持当前码率，并检查静态画面的编码器行为或视频流启动情况。链路带宽充足时，提高码率可以保留更多画面细节。
 
 使用 JavaScript SDK 或 YAML 配置时，请设置等价的 `scrcpyConfig.videoBitRate`：
 

@@ -84,31 +84,31 @@ function calledVisualAction(call: ts.CallExpression): string | undefined {
 }
 
 describe('createVisualActionRegistry', () => {
-  it('runs the freshness hook before dispatch with the registered action name', async () => {
+  it('runs the completion hook after dispatch with the registered action name', async () => {
     const dispatch = rs
       .fn()
       .mockImplementation(async (uri: string) => `launched:${uri}`);
-    const onActionStarting = rs.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         launch: dispatch,
       },
-      onActionStarting,
+      onActionSettled,
     );
 
     await expect(actions.launch('com.example.app')).resolves.toBe(
       'launched:com.example.app',
     );
-    expect(onActionStarting).toHaveBeenCalledOnce();
-    expect(onActionStarting).toHaveBeenCalledWith('launch');
-    expect(onActionStarting.mock.invocationCallOrder[0]).toBeLessThan(
-      dispatch.mock.invocationCallOrder[0],
+    expect(onActionSettled).toHaveBeenCalledOnce();
+    expect(onActionSettled).toHaveBeenCalledWith('launch');
+    expect(dispatch.mock.invocationCallOrder[0]).toBeLessThan(
+      onActionSettled.mock.invocationCallOrder[0],
     );
   });
 
-  it('marks a composite action only once', async () => {
+  it('settles a composite action only once', async () => {
     const dispatchStep = rs.fn().mockResolvedValue(undefined);
-    const onActionStarting = rs.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         swipe: async (repeat: number) => {
@@ -117,23 +117,23 @@ describe('createVisualActionRegistry', () => {
           }
         },
       },
-      onActionStarting,
+      onActionSettled,
     );
 
     await actions.swipe(3);
 
     expect(dispatchStep).toHaveBeenCalledTimes(3);
-    expect(onActionStarting).toHaveBeenCalledOnce();
-    expect(onActionStarting).toHaveBeenCalledWith('swipe');
+    expect(onActionSettled).toHaveBeenCalledOnce();
+    expect(onActionSettled).toHaveBeenCalledWith('swipe');
   });
 
-  it('marks an action before a dispatch that later fails', async () => {
+  it('settles an action after a dispatch that fails', async () => {
     const actionError = new Error('second gesture failed');
     const dispatchStep = rs
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(actionError);
-    const onActionStarting = rs.fn().mockResolvedValue(undefined);
+    const onActionSettled = rs.fn().mockResolvedValue(undefined);
     const actions = createVisualActionRegistry(
       {
         swipe: async () => {
@@ -141,14 +141,14 @@ describe('createVisualActionRegistry', () => {
           await dispatchStep();
         },
       },
-      onActionStarting,
+      onActionSettled,
     );
 
     await expect(actions.swipe()).rejects.toBe(actionError);
-    expect(onActionStarting).toHaveBeenCalledOnce();
-    expect(onActionStarting).toHaveBeenCalledWith('swipe');
-    expect(onActionStarting.mock.invocationCallOrder[0]).toBeLessThan(
-      dispatchStep.mock.invocationCallOrder[0],
+    expect(onActionSettled).toHaveBeenCalledOnce();
+    expect(onActionSettled).toHaveBeenCalledWith('swipe');
+    expect(dispatchStep.mock.invocationCallOrder[1]).toBeLessThan(
+      onActionSettled.mock.invocationCallOrder[0],
     );
   });
 });
