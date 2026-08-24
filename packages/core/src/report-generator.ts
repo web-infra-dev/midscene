@@ -28,7 +28,7 @@ import {
   getBaseUrlFixScript,
 } from './dump/html-utils';
 import { compactReportDumps } from './dump/report-dump-compactor';
-import { ScreenshotStore } from './dump/screenshot-store';
+import { type ImageUrlRef, ReportImageStore } from './dump/screenshot-store';
 import {
   type ExecutionDump,
   ReportActionDump,
@@ -105,7 +105,7 @@ export class ReportGenerator implements IReportGenerator {
   private readonly reportStreamId: string;
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
-  private screenshotStore: ScreenshotStore;
+  private screenshotStore: ReportImageStore;
   private initialized = false;
 
   // Tracks the last execution + groupMeta for re-writing on finalize
@@ -133,7 +133,7 @@ export class ReportGenerator implements IReportGenerator {
     this.shouldPersistExecutionDump = options.persistExecutionDump ?? false;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
-    this.screenshotStore = new ScreenshotStore({
+    this.screenshotStore = new ReportImageStore({
       mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
       reportPath: this.reportPath,
       screenshotsDir: join(dirname(this.reportPath), 'screenshots'),
@@ -144,6 +144,7 @@ export class ReportGenerator implements IReportGenerator {
         );
       },
       alsoWriteFileCopy: this.shouldPersistExecutionDump,
+      reuseExistingReport: options.reuseExistingReport,
     });
     if (options.reuseExistingReport) {
       this.hydrateStateFromExistingReport();
@@ -252,14 +253,17 @@ export class ReportGenerator implements IReportGenerator {
   ): Promise<void> {
     const singleDump = this.wrapAsReportDump(execution, reportMeta);
 
-    if (this.screenshotMode === 'inline') {
-      await this.writeInlineExecution(execution, singleDump);
-    } else {
-      await this.writeDirectoryExecution(execution, singleDump);
-    }
+    const referenceImageRefs =
+      this.screenshotMode === 'inline'
+        ? await this.writeInlineExecution(execution, singleDump)
+        : await this.writeDirectoryExecution(execution, singleDump);
 
     if (this.shouldPersistExecutionDump) {
-      await this.persistExecutionDumpToFile(execution, singleDump);
+      await this.persistExecutionDumpToFile(
+        execution,
+        singleDump,
+        referenceImageRefs,
+      );
     }
 
     if (!this.firstWriteDone) {
@@ -345,7 +349,7 @@ export class ReportGenerator implements IReportGenerator {
   private async writeInlineExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): Promise<void> {
+  ): Promise<Map<string, ImageUrlRef>> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -361,19 +365,22 @@ export class ReportGenerator implements IReportGenerator {
     for (const screenshot of execution.collectScreenshots()) {
       await this.screenshotStore.persist(screenshot);
     }
+    const referenceImageRefs = await this.persistReferenceImages(execution);
 
     // Append dump tag (always — frontend keeps only last per execution id)
-    const serialized = singleDump.serialize();
+    const serialized =
+      singleDump.serializeWithReferenceImages(referenceImageRefs);
     await appendFileAsync(
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
+    return referenceImageRefs;
   }
 
   private async writeDirectoryExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): Promise<void> {
+  ): Promise<Map<string, ImageUrlRef>> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -382,9 +389,11 @@ export class ReportGenerator implements IReportGenerator {
     for (const screenshot of execution.collectScreenshots()) {
       await this.screenshotStore.persist(screenshot);
     }
+    const referenceImageRefs = await this.persistReferenceImages(execution);
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
-    const serialized = singleDump.serialize();
+    const serialized =
+      singleDump.serializeWithReferenceImages(referenceImageRefs);
 
     if (!this.initialized) {
       await writeFileAsync(
@@ -398,6 +407,18 @@ export class ReportGenerator implements IReportGenerator {
       this.reportPath,
       `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
     );
+    return referenceImageRefs;
+  }
+
+  private async persistReferenceImages(
+    execution: ExecutionDump,
+  ): Promise<Map<string, ImageUrlRef>> {
+    const refs = new Map<string, ImageUrlRef>();
+    for (const imageUrl of execution.collectReferenceImageUrls()) {
+      const ref = await this.screenshotStore.persistReferenceImage(imageUrl);
+      refs.set(imageUrl, ref);
+    }
+    return refs;
   }
 
   private async appendAgentReportComment(): Promise<void> {
@@ -451,6 +472,7 @@ export class ReportGenerator implements IReportGenerator {
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
+    referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
   ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -468,7 +490,11 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.execution.json`;
     const filePath = join(dirname(this.reportPath), fileName);
-    await writeFileAsync(filePath, singleDump.serialize(2), 'utf-8');
+    await writeFileAsync(
+      filePath,
+      singleDump.serializeWithReferenceImages(referenceImageRefs, 2),
+      'utf-8',
+    );
   }
 }
 

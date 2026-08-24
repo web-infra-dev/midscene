@@ -11,14 +11,21 @@ import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   extractAllDumpScriptsSync,
+  generateDumpScriptTag,
   generateImageScriptTag,
+  parseImageScripts,
 } from '../../src/dump/html-utils';
 import { ReportMergingTool, isDirectoryModeReport } from '../../src/report';
 import {
   ReportActionDump,
   type ReportFileWithAttributes,
 } from '../../src/types';
-import { getReportTpl, getTmpFile, writeDumpReport } from '../../src/utils';
+import {
+  getReportTpl,
+  getTmpFile,
+  getVersion,
+  writeDumpReport,
+} from '../../src/utils';
 
 function generateNReports(
   n: number,
@@ -704,4 +711,56 @@ ${imageScripts}
       }
     },
   );
+
+  it('should store a shared inline reference image once when merging reports', () => {
+    const tmpDir = join(tmpdir(), `midscene-merge-image-dedup-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+
+    try {
+      const tool = new ReportMergingTool();
+      const referenceImage = `data:image/webp;base64,${'A'.repeat(64 * 1024)}`;
+      const imageId = 'reference-shared-image';
+
+      for (let index = 0; index < 2; index++) {
+        const reportPath = join(tmpDir, `source-${index}.html`);
+        const dump = new ReportActionDump({
+          sdkVersion: getVersion(),
+          groupName: `source-${index}`,
+          modelBriefs: [],
+          executions: [],
+        });
+        writeFileSync(
+          reportPath,
+          [
+            getReportTpl(),
+            generateImageScriptTag(imageId, referenceImage),
+            generateDumpScriptTag(dump.serialize(), {
+              'data-group-id': `group-${index}`,
+            }),
+          ].join('\n'),
+        );
+        tool.append({
+          reportFilePath: reportPath,
+          reportAttributes: {
+            testDescription: `Source ${index}`,
+            testDuration: 1,
+            testId: `source-${index}`,
+            testStatus: 'passed',
+            testTitle: `Source ${index}`,
+          },
+        });
+      }
+
+      const mergedReportPath = tool.mergeReports('merged-image-dedup', {
+        outputDir: tmpDir,
+        overwrite: true,
+      });
+      const mergedReport = readFileSync(mergedReportPath!, 'utf-8');
+
+      expect(mergedReport.split(referenceImage)).toHaveLength(2);
+      expect(parseImageScripts(mergedReport)[imageId]).toBe(referenceImage);
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

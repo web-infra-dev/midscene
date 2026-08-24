@@ -1,14 +1,19 @@
-import { type ScreenshotRef, normalizeScreenshotRef } from './screenshot-store';
+import {
+  type ScreenshotRef,
+  type StoredImageRef,
+  normalizeImageUrlRef,
+  normalizeScreenshotRef,
+} from './screenshot-store';
 
 /**
  * Recursively restore image references in parsed data.
- * Replaces ScreenshotRef with lazy
- * { get base64() {...}, capturedAt, sourceRef } objects.
- * The resolver is only called when .base64 is first accessed.
+ * Replaces screenshot refs with lazy
+ * { get base64() {...}, capturedAt, sourceRef } objects, and reference-image
+ * URL refs with their URL strings. Screenshot refs are resolved on first use.
  */
 export function restoreImageReferences<T>(
   data: T,
-  resolveImage: (ref: ScreenshotRef) => string,
+  resolveImage: (ref: StoredImageRef) => string,
 ): T {
   if (typeof data === 'string') {
     return data;
@@ -19,6 +24,11 @@ export function restoreImageReferences<T>(
   }
 
   if (typeof data === 'object' && data !== null) {
+    const imageUrlRef = normalizeImageUrlRef(data);
+    if (imageUrlRef) {
+      return resolveImage(imageUrlRef) as T;
+    }
+
     const refLike = normalizeScreenshotRef(data);
     if (refLike) {
       let resolved: string | null = null;

@@ -217,20 +217,46 @@ export function extractImageByIdSync(
  *
  * @param srcFilePath - Source HTML file path
  * @param destFilePath - Destination file path to append to
+ * @param writtenImageIds - IDs already written to the destination
  */
 export function streamImageScriptsToFile(
   srcFilePath: string,
   destFilePath: string,
+  writtenImageIds: Set<string> = new Set(),
 ): void {
   const { appendFileSync } = require('node:fs');
   const openTag = '<script type="midscene-image"';
   const closeTag = htmlScriptCloseTag();
 
   streamScanTags(srcFilePath, openTag, closeTag, (content) => {
+    const imageId = parseImageScriptId(content);
+    if (!imageId || writtenImageIds.has(imageId)) {
+      return false;
+    }
     // Write complete tag immediately to destination, don't accumulate
     appendFileSync(destFilePath, `${openTag}${content}${closeTag}\n`);
+    writtenImageIds.add(imageId);
     return false; // Continue scanning for more tags
   });
+}
+
+function parseImageScriptId(contentAfterType: string): string | null {
+  const match = /^ data-id="([a-z0-9_-]{1,128})">/i.exec(contentAfterType);
+  return match?.[1] ?? null;
+}
+
+/** Collect IDs of real inline image script tags without loading the report. */
+export function collectImageScriptIdsSync(filePath: string): Set<string> {
+  const imageIds = new Set<string>();
+  const openTag = '<script type="midscene-image"';
+  const closeTag = htmlScriptCloseTag();
+
+  streamScanTags(filePath, openTag, closeTag, (content) => {
+    const imageId = parseImageScriptId(content);
+    if (imageId) imageIds.add(imageId);
+    return false;
+  });
+  return imageIds;
 }
 
 /**

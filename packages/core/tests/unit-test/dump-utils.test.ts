@@ -119,6 +119,22 @@ describe('dump/screenshot-restoration', () => {
       expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
     });
 
+    it('should restore reference-image URL refs directly to strings', () => {
+      const data = {
+        image: {
+          url: {
+            type: 'midscene_image_url_ref',
+            id: 'img1',
+            mimeType: 'image/png',
+            storage: 'inline',
+          },
+        },
+      };
+
+      const result = restoreForTest(data);
+      expect(result.image.url).toBe('data:image/png;base64,abc123');
+    });
+
     it('should handle nested objects', () => {
       const data = {
         level1: {
