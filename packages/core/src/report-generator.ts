@@ -31,9 +31,11 @@ import { compactReportDumps } from './dump/report-dump-compactor';
 import { type ImageUrlRef, ReportImageStore } from './dump/screenshot-store';
 import {
   type ExecutionDump,
+  type ReferenceImageRefs,
   ReportActionDump,
   type ReportAttributes,
   type ReportMeta,
+  type ReportReferenceImageDescriptor,
   type ScreenshotMode,
 } from './types';
 import { getReportTpl } from './utils';
@@ -349,7 +351,7 @@ export class ReportGenerator implements IReportGenerator {
   private async writeInlineExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): Promise<Map<string, ImageUrlRef>> {
+  ): Promise<ReferenceImageRefs> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -380,7 +382,7 @@ export class ReportGenerator implements IReportGenerator {
   private async writeDirectoryExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): Promise<Map<string, ImageUrlRef>> {
+  ): Promise<ReferenceImageRefs> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -412,11 +414,11 @@ export class ReportGenerator implements IReportGenerator {
 
   private async persistReferenceImages(
     execution: ExecutionDump,
-  ): Promise<Map<string, ImageUrlRef>> {
-    const refs = new Map<string, ImageUrlRef>();
-    for (const imageUrl of execution.collectReferenceImageUrls()) {
-      const ref = await this.screenshotStore.persistReferenceImage(imageUrl);
-      refs.set(imageUrl, ref);
+  ): Promise<Map<ReportReferenceImageDescriptor, ImageUrlRef>> {
+    const refs = new Map<ReportReferenceImageDescriptor, ImageUrlRef>();
+    for (const image of execution.collectReferenceImages()) {
+      const ref = await this.screenshotStore.persistReferenceImage(image.url);
+      refs.set(image, ref);
     }
     return refs;
   }
@@ -472,7 +474,7 @@ export class ReportGenerator implements IReportGenerator {
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-    referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
+    referenceImageRefs: ReferenceImageRefs,
   ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {

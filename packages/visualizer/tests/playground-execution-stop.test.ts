@@ -110,6 +110,23 @@ function replayDump() {
         tasks: [
           {
             type: 'Planning',
+            param: {
+              userInstruction: {
+                prompt: 'Compare with the reference image',
+                images: [
+                  {
+                    name: 'reference',
+                    url: {
+                      type: 'midscene_image_url_ref',
+                      id: 'reference-1',
+                      mimeType: 'image/webp',
+                      storage: 'file',
+                      path: './screenshots/reference-1.webp',
+                    },
+                  },
+                ],
+              },
+            },
             uiContext: {
               screenshot: {
                 type: 'midscene_screenshot_ref',
@@ -129,6 +146,7 @@ function replayDump() {
 function reportWithReplay() {
   return `
     <script type="midscene-image" data-id="shot-1">data:image/png;base64,abc</script>
+    <script type="midscene-image" data-id="reference-1">data:image/webp;base64,def</script>
     <script type="midscene_web_dump">${JSON.stringify(replayDump())}</script>
   `;
 }
@@ -307,6 +325,11 @@ describe('usePlaygroundExecution stop handling', () => {
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
     ).toBe('http://localhost/reports/stopped-report/screenshots/shot-1.png');
+    expect(
+      restoredDump.executions[0].tasks[0].param.userInstruction.images[0].url,
+    ).toBe(
+      'http://localhost/reports/stopped-report/screenshots/reference-1.webp',
+    );
 
     await act(async () => root.unmount());
   });
@@ -378,6 +401,9 @@ describe('usePlaygroundExecution stop handling', () => {
     expect(
       restoredDump.executions[0].tasks[0].uiContext.screenshot.base64,
     ).toBe('http://localhost/reports/report-1/screenshots/shot-1.png');
+    expect(
+      restoredDump.executions[0].tasks[0].param.userInstruction.images[0].url,
+    ).toBe('http://localhost/reports/report-1/screenshots/reference-1.webp');
 
     await act(async () => root.unmount());
   });

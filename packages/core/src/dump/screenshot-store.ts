@@ -3,93 +3,32 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { writeFile as writeFileAsync } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
-import { collectImageScriptIdsSync, extractImageByIdSync } from './html-utils';
+import { collectImageScriptIds, extractImageByIdSync } from './html-utils';
+import {
+  type ImageUrlRef,
+  type ScreenshotRef,
+  type StoredImageRef,
+  imageFileExtensionForMimeType,
+  imageRefFileExtension,
+  normalizeImageUrlRef,
+  normalizeScreenshotRef,
+  normalizeStoredImageRef,
+} from './image-reference';
 
-/** Serialized reference to a captured screenshot stored by a report. */
-export interface ScreenshotRef {
-  type: 'midscene_screenshot_ref';
-  id: string;
-  capturedAt: number;
-  mimeType: 'image/png' | 'image/jpeg';
-  storage: 'inline' | 'file';
-  path?: string;
-}
-
-/** Serialized reference to a multimodal prompt image URL stored by a report. */
-export interface ImageUrlRef {
-  type: 'midscene_image_url_ref';
-  id: string;
-  mimeType: `image/${string}`;
-  storage: 'inline' | 'file';
-  path?: string;
-}
-
-/** Any image asset reference supported by report serialization. */
-export type StoredImageRef = ScreenshotRef | ImageUrlRef;
+export type {
+  ImageUrlRef,
+  ScreenshotRef,
+  StoredImageRef,
+} from './image-reference';
+export {
+  imageRefFileExtension,
+  normalizeImageUrlRef,
+  normalizeScreenshotRef,
+  normalizeStoredImageRef,
+} from './image-reference';
 
 const base64ImageDataUrlPattern =
   /^data:(image\/[a-z0-9.+-]+)(?:;[^,]*)?;base64,([a-z0-9+/=\s]+)$/i;
-const knownImageExtensions: Readonly<Record<string, string>> = {
-  'image/jpeg': 'jpeg',
-  'image/jpg': 'jpeg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg',
-  'image/avif': 'avif',
-  'image/bmp': 'bmp',
-};
-
-function hasValidStorage(record: Record<string, unknown>): boolean {
-  if (record.storage !== 'inline' && record.storage !== 'file') return false;
-  return record.storage !== 'file' || typeof record.path === 'string';
-}
-
-function hasValidImageId(record: Record<string, unknown>): boolean {
-  return (
-    typeof record.id === 'string' && /^[a-z0-9_-]{1,128}$/i.test(record.id)
-  );
-}
-
-export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
-  if (typeof value !== 'object' || value === null) return null;
-  const record = value as Record<string, unknown>;
-
-  if (
-    record.type === 'midscene_screenshot_ref' &&
-    hasValidImageId(record) &&
-    typeof record.capturedAt === 'number' &&
-    (record.storage === 'inline' || record.storage === 'file') &&
-    (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
-    hasValidStorage(record)
-  ) {
-    return record as unknown as ScreenshotRef;
-  }
-
-  return null;
-}
-
-export function normalizeImageUrlRef(value: unknown): ImageUrlRef | null {
-  if (typeof value !== 'object' || value === null) return null;
-  const record = value as Record<string, unknown>;
-
-  if (
-    record.type === 'midscene_image_url_ref' &&
-    hasValidImageId(record) &&
-    typeof record.mimeType === 'string' &&
-    record.mimeType.startsWith('image/') &&
-    hasValidStorage(record)
-  ) {
-    return record as unknown as ImageUrlRef;
-  }
-
-  return null;
-}
-
-export function normalizeStoredImageRef(value: unknown): StoredImageRef | null {
-  return normalizeScreenshotRef(value) ?? normalizeImageUrlRef(value);
-}
-
 type ResolvedImageSource =
   | {
       type: 'data-uri';
@@ -103,34 +42,6 @@ type ResolvedImageSource =
       mimeType: StoredImageRef['mimeType'];
       filePath: string;
     };
-
-function extensionByMimeType(mimeType: ScreenshotRef['mimeType']): string {
-  return mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-}
-
-function extensionForImageMimeType(mimeType: string): string {
-  const knownExtension = knownImageExtensions[mimeType.toLowerCase()];
-  if (knownExtension) return knownExtension;
-
-  const subtype = mimeType.slice('image/'.length).split('+', 1)[0];
-  const sanitized = subtype
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 32);
-  if (!sanitized) {
-    throw new Error(
-      `ReportImageStore: cannot derive a file extension for reference image MIME type "${mimeType}"`,
-    );
-  }
-  return sanitized;
-}
-
-export function imageRefFileExtension(ref: StoredImageRef): string {
-  return ref.type === 'midscene_image_url_ref'
-    ? extensionForImageMimeType(ref.mimeType)
-    : extensionByMimeType(ref.mimeType);
-}
 
 /** Parse and normalize a base64 image data URL for report persistence. */
 export function parseBase64ImageDataUrl(imageUrl: string): {
@@ -147,7 +58,7 @@ export function parseBase64ImageDataUrl(imageUrl: string): {
   const mimeType = match[1].toLowerCase() as `image/${string}`;
   return {
     mimeType,
-    extension: extensionForImageMimeType(mimeType),
+    extension: imageFileExtensionForMimeType(mimeType),
     rawBase64: match[2].replace(/\s/g, ''),
   };
 }
@@ -160,6 +71,7 @@ export function resolveImageSource(
   refInput: unknown,
   options: {
     reportPath: string;
+    imageDirectory?: string;
     fallbackId?: string;
     fallbackMimeType?: ScreenshotRef['mimeType'];
   },
@@ -209,7 +121,21 @@ export function resolveImageSource(
 
   const extension = ref
     ? imageRefFileExtension(ref)
-    : extensionByMimeType(options.fallbackMimeType!);
+    : imageFileExtensionForMimeType(options.fallbackMimeType!);
+  if (options.imageDirectory) {
+    const companionImagePath = join(
+      options.imageDirectory,
+      `${id}.${extension}`,
+    );
+    if (existsSync(companionImagePath)) {
+      return {
+        type: 'file',
+        id,
+        mimeType,
+        filePath: companionImagePath,
+      };
+    }
+  }
   const siblingImagePath = join(
     dirname(options.reportPath),
     'screenshots',
@@ -233,6 +159,7 @@ export function resolveScreenshotSource(
   refInput: unknown,
   options: {
     reportPath: string;
+    imageDirectory?: string;
     fallbackId?: string;
     fallbackMimeType?: ScreenshotRef['mimeType'];
   },
@@ -254,6 +181,8 @@ export class ReportImageStore {
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
   private readonly referenceImageRefsByUrl = new Map<string, ImageUrlRef>();
+  private readonly shouldReuseExistingInlineReport: boolean;
+  private existingInlineImageIdsPromise?: Promise<void>;
 
   constructor(options: {
     mode: 'inline' | 'directory';
@@ -272,18 +201,13 @@ export class ReportImageStore {
     this.writeInlineImage = options.writeInlineImage;
     this.alsoWriteFileCopy =
       options.alsoWriteFileCopy ?? options.ensureFileCopy ?? false;
-    if (
-      options.reuseExistingReport &&
-      this.mode === 'inline' &&
-      existsSync(this.reportPath)
-    ) {
-      for (const imageId of collectImageScriptIdsSync(this.reportPath)) {
-        this.writtenInlineIds.add(imageId);
-      }
-    }
+    this.shouldReuseExistingInlineReport = Boolean(
+      options.reuseExistingReport && this.mode === 'inline',
+    );
   }
 
   async persist(screenshot: ScreenshotItem): Promise<ScreenshotRef> {
+    await this.ensureExistingInlineImageIdsLoaded();
     const shouldWriteFileCopy =
       this.mode === 'directory' || this.alsoWriteFileCopy;
     const fileRef = shouldWriteFileCopy
@@ -315,6 +239,7 @@ export class ReportImageStore {
 
   /** Persist a base64 multimodal prompt image and return its content-addressed ref. */
   async persistReferenceImage(imageUrl: string): Promise<ImageUrlRef> {
+    await this.ensureExistingInlineImageIdsLoaded();
     const cachedRef = this.referenceImageRefsByUrl.get(imageUrl);
     if (cachedRef) return cachedRef;
 
@@ -366,6 +291,32 @@ export class ReportImageStore {
     return ref;
   }
 
+  private async ensureExistingInlineImageIdsLoaded(): Promise<void> {
+    if (!this.shouldReuseExistingInlineReport) return;
+    if (!this.existingInlineImageIdsPromise) {
+      this.existingInlineImageIdsPromise = (async () => {
+        try {
+          const imageIds = await collectImageScriptIds(this.reportPath);
+          for (const imageId of imageIds) this.writtenInlineIds.add(imageId);
+        } catch (error) {
+          if (
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            error.code === 'ENOENT'
+          ) {
+            return;
+          }
+          throw new Error(
+            `ReportImageStore: failed to index existing inline images from ${this.reportPath}`,
+            { cause: error },
+          );
+        }
+      })();
+    }
+    await this.existingInlineImageIdsPromise;
+  }
+
   private async persistToSharedFileIfNeeded(
     screenshot: ScreenshotItem,
     options: {
@@ -413,14 +364,16 @@ export class ReportImageStore {
     return { relativePath, absolutePath };
   }
 
-  loadBase64(refInput: unknown): string {
-    const ref = normalizeScreenshotRef(refInput);
+  /** Resolve any stored report image reference to a data URI. */
+  loadDataUri(refInput: unknown): string {
+    const ref = normalizeStoredImageRef(refInput);
     if (!ref) {
-      throw new Error('ReportImageStore: invalid screenshot reference');
+      throw new Error('ReportImageStore: invalid image reference');
     }
 
-    const resolved = resolveScreenshotSource(ref, {
+    const resolved = resolveImageSource(ref, {
       reportPath: this.reportPath,
+      imageDirectory: this.screenshotsDir,
     });
 
     if (resolved.type === 'data-uri') {
@@ -429,6 +382,15 @@ export class ReportImageStore {
 
     const data = readFileSync(resolved.filePath);
     return `data:${resolved.mimeType};base64,${data.toString('base64')}`;
+  }
+
+  /** @deprecated Use loadDataUri. */
+  loadBase64(refInput: unknown): string {
+    const screenshotRef = normalizeScreenshotRef(refInput);
+    if (!screenshotRef) {
+      throw new Error('ReportImageStore: invalid screenshot reference');
+    }
+    return this.loadDataUri(screenshotRef);
   }
 
   cleanup(): void {
@@ -442,6 +404,7 @@ export class ReportImageStore {
     this.writtenInlineIds.clear();
     this.writtenFileIds.clear();
     this.referenceImageRefsByUrl.clear();
+    this.existingInlineImageIdsPromise = undefined;
   }
 }
 

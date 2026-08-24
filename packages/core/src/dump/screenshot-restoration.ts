@@ -1,9 +1,14 @@
 import {
+  type ImageUrlRef,
   type ScreenshotRef,
   type StoredImageRef,
   normalizeImageUrlRef,
   normalizeScreenshotRef,
-} from './screenshot-store';
+  reportImageAssetPath,
+} from './image-reference';
+
+export type ScreenshotReferenceResolver = (ref: ScreenshotRef) => string;
+export type ImageUrlReferenceResolver = (ref: ImageUrlRef) => string;
 
 /**
  * Recursively restore image references in parsed data.
@@ -13,20 +18,28 @@ import {
  */
 export function restoreImageReferences<T>(
   data: T,
-  resolveImage: (ref: StoredImageRef) => string,
+  resolveScreenshot: ScreenshotReferenceResolver,
+  resolveImageUrl?: ImageUrlReferenceResolver,
 ): T {
   if (typeof data === 'string') {
     return data;
   }
 
   if (Array.isArray(data)) {
-    return data.map((item) => restoreImageReferences(item, resolveImage)) as T;
+    return data.map((item) =>
+      restoreImageReferences(item, resolveScreenshot, resolveImageUrl),
+    ) as T;
   }
 
   if (typeof data === 'object' && data !== null) {
     const imageUrlRef = normalizeImageUrlRef(data);
     if (imageUrlRef) {
-      return resolveImage(imageUrlRef) as T;
+      if (!resolveImageUrl) {
+        throw new Error(
+          `A reference-image resolver is required for report image "${imageUrlRef.id}"`,
+        );
+      }
+      return resolveImageUrl(imageUrlRef) as T;
     }
 
     const refLike = normalizeScreenshotRef(data);
@@ -46,7 +59,7 @@ export function restoreImageReferences<T>(
           base64: {
             get() {
               if (resolved === null) {
-                resolved = resolveImage(refLike);
+                resolved = resolveScreenshot(refLike);
               }
               return resolved;
             },
@@ -61,10 +74,26 @@ export function restoreImageReferences<T>(
 
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      result[key] = restoreImageReferences(value, resolveImage);
+      result[key] = restoreImageReferences(
+        value,
+        resolveScreenshot,
+        resolveImageUrl,
+      );
     }
     return result as T;
   }
 
   return data;
+}
+
+/**
+ * Restore file-backed report image references to browser-resolvable URLs.
+ * Serialized paths are authoritative; legacy inline refs use the standard
+ * screenshots directory and the MIME-derived extension.
+ */
+export function restoreReportImageReferences<T>(data: T, reportUrl: string): T {
+  const resolveReportImage = (ref: StoredImageRef): string => {
+    return new URL(reportImageAssetPath(ref), reportUrl).toString();
+  };
+  return restoreImageReferences(data, resolveReportImage, resolveReportImage);
 }

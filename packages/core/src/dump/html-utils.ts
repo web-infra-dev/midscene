@@ -1,4 +1,5 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
+import { open as openAsync } from 'node:fs/promises';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import type { AIUsageInfo, IReportActionDump, ModelBrief } from '../types';
 
@@ -109,6 +110,60 @@ export const STREAMING_CHUNK_SIZE = 64 * 1024;
  */
 type TagMatchCallback = (content: string) => boolean;
 
+class StreamingTagMatcher {
+  private leftover = '';
+  private capturing = false;
+  private currentContent = '';
+
+  constructor(
+    private readonly openTag: string,
+    private readonly closeTag: string,
+    private readonly onMatch: TagMatchCallback,
+  ) {}
+
+  push(nextChunk: string): boolean {
+    const chunk = this.leftover + nextChunk;
+    this.leftover = '';
+    let searchStart = 0;
+
+    while (searchStart < chunk.length) {
+      if (!this.capturing) {
+        const startIndex = chunk.indexOf(this.openTag, searchStart);
+        if (startIndex === -1) {
+          const retainedSuffixLength = Math.max(0, this.openTag.length - 1);
+          this.leftover = retainedSuffixLength
+            ? chunk.slice(-retainedSuffixLength)
+            : '';
+          return false;
+        }
+        this.capturing = true;
+        searchStart = startIndex + this.openTag.length;
+      }
+
+      const endIndex = chunk.indexOf(this.closeTag, searchStart);
+      if (endIndex !== -1) {
+        this.currentContent += chunk.slice(searchStart, endIndex);
+        if (this.onMatch(this.currentContent)) return true;
+        this.capturing = false;
+        this.currentContent = '';
+        searchStart = endIndex + this.closeTag.length;
+        continue;
+      }
+
+      const retainedSuffixLength = Math.max(0, this.closeTag.length - 1);
+      const contentEnd = Math.max(
+        searchStart,
+        chunk.length - retainedSuffixLength,
+      );
+      this.currentContent += chunk.slice(searchStart, contentEnd);
+      this.leftover = chunk.slice(contentEnd);
+      return false;
+    }
+
+    return false;
+  }
+}
+
 /**
  * Stream through a file and find tags matching the pattern.
  * Memory usage: O(chunk_size + tag_size), not O(file_size).
@@ -127,62 +182,46 @@ export function streamScanTags(
   const fd = openSync(filePath, 'r');
   const fileSize = statSync(filePath).size;
   const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
-
+  const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
   let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let currentContent = '';
 
   try {
     while (position < fileSize) {
       const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
       position += bytesRead;
-
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTag, searchStart);
-          if (startIdx !== -1) {
-            capturing = true;
-            currentContent = chunk.slice(startIdx + openTag.length);
-            const endIdx = currentContent.indexOf(closeTag);
-            if (endIdx !== -1) {
-              const shouldStop = onMatch(currentContent.slice(0, endIdx));
-              if (shouldStop) return;
-              capturing = false;
-              currentContent = '';
-              searchStart =
-                startIdx + openTag.length + endIdx + closeTag.length;
-            } else {
-              leftover = currentContent.slice(-closeTag.length);
-              currentContent = currentContent.slice(0, -closeTag.length);
-              break;
-            }
-          } else {
-            leftover = chunk.slice(-openTag.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            const shouldStop = onMatch(currentContent);
-            if (shouldStop) return;
-            capturing = false;
-            currentContent = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
-          }
-        }
-      }
+      if (matcher.push(buffer.toString('utf-8', 0, bytesRead))) return;
     }
   } finally {
     closeSync(fd);
+  }
+}
+
+/** Asynchronously stream tags without blocking the Node.js event loop. */
+export async function streamScanTagsAsync(
+  filePath: string,
+  openTag: string,
+  closeTag: string,
+  onMatch: TagMatchCallback,
+): Promise<void> {
+  const handle = await openAsync(filePath, 'r');
+  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+  let position = 0;
+  const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
+
+  try {
+    while (true) {
+      const { bytesRead } = await handle.read(
+        buffer,
+        0,
+        STREAMING_CHUNK_SIZE,
+        position,
+      );
+      if (bytesRead === 0) return;
+      position += bytesRead;
+      if (matcher.push(buffer.toString('utf-8', 0, bytesRead))) return;
+    }
+  } finally {
+    await handle.close();
   }
 }
 
@@ -245,13 +284,15 @@ function parseImageScriptId(contentAfterType: string): string | null {
   return match?.[1] ?? null;
 }
 
-/** Collect IDs of real inline image script tags without loading the report. */
-export function collectImageScriptIdsSync(filePath: string): Set<string> {
+/** Collect IDs of real inline image script tags without blocking on a large report. */
+export async function collectImageScriptIds(
+  filePath: string,
+): Promise<Set<string>> {
   const imageIds = new Set<string>();
   const openTag = '<script type="midscene-image"';
   const closeTag = htmlScriptCloseTag();
 
-  streamScanTags(filePath, openTag, closeTag, (content) => {
+  await streamScanTagsAsync(filePath, openTag, closeTag, (content) => {
     const imageId = parseImageScriptId(content);
     if (imageId) imageIds.add(imageId);
     return false;

@@ -10,7 +10,10 @@ import type {
   ReportActionDump,
 } from '@/types';
 import type { ScreenshotRef } from './dump/screenshot-store';
-import { normalizeScreenshotRef } from './dump/screenshot-store';
+import {
+  imageRefFileExtension,
+  normalizeScreenshotRef,
+} from './dump/screenshot-store';
 import { collectReportSummary } from './report-stats';
 
 const screenshotDataUrlPattern =
@@ -467,7 +470,7 @@ function screenshotAttachment(
 
   const ref = normalizeScreenshotRef(screenshot);
   if (ref) {
-    const ext = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const ext = imageRefFileExtension(ref);
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${ref.id}.${ext}`;
     return {
       markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,
@@ -485,7 +488,7 @@ function screenshotAttachment(
 
   const sourceRef = restoredSourceRef(screenshot);
   if (sourceRef) {
-    const ext = sourceRef.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
+    const ext = imageRefFileExtension(sourceRef);
     const suggestedFileName = `execution-${executionIndex + 1}-task-${taskIndex + 1}-${sourceRef.id}.${ext}`;
     return {
       markdown: `\n![${markdownLabel}](${screenshotBaseDir}/${suggestedFileName})`,

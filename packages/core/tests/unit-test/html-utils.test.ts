@@ -2,6 +2,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  collectImageScriptIds,
   extractImageByIdSync,
   extractLastDumpScriptSync,
   generateAgentReportComment,
@@ -283,6 +284,26 @@ test
       unlinkSync(htmlPath);
       expect(result).toBe('');
     });
+  });
+
+  it('collects inline image IDs asynchronously across streaming chunks', async () => {
+    const htmlPath = getTmpFile('html');
+    if (!htmlPath) throw new Error('Failed to create temp html file');
+    const chunkBoundaryPadding = 'x'.repeat(64 * 1024 - 20);
+    writeFileSync(
+      htmlPath,
+      [
+        chunkBoundaryPadding,
+        generateImageScriptTag('first-image', 'data:image/png;base64,AAA'),
+        generateImageScriptTag('second-image', 'data:image/png;base64,BBB'),
+      ].join('\n'),
+      'utf8',
+    );
+
+    await expect(collectImageScriptIds(htmlPath)).resolves.toEqual(
+      new Set(['first-image', 'second-image']),
+    );
+    unlinkSync(htmlPath);
   });
 
   describe('streamImageScriptsToFile', () => {

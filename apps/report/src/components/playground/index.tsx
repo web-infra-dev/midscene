@@ -11,6 +11,7 @@ import {
   parseDumpScript,
   parseImageScripts,
   restoreImageReferences,
+  restoreReportImageReferences,
 } from '@midscene/core/dump';
 import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
@@ -54,20 +55,16 @@ async function loadReferencedReplay(result: PlaygroundResult) {
     throw new Error(`Report replay request failed (${response.status})`);
   }
   const dump = (await response.json()) as IReportActionDump;
-  result.dump = restoreImageReferences(dump, (ref) => {
-    const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-    return new URL(
-      `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
-      result.report!.url,
-    ).toString();
-  });
+  result.dump = restoreReportImageReferences(dump, result.report.url);
 }
 
 function dumpFromReportHTML(reportHTML: string): IReportActionDump {
   const images = parseImageScripts(reportHTML);
+  const resolveInlineImage = (ref: { id: string }) => images[ref.id] || '';
   return restoreImageReferences(
     JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
-    (ref) => images[ref.id] || '',
+    resolveInlineImage,
+    resolveInlineImage,
   );
 }
 

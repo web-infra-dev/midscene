@@ -15,15 +15,25 @@ import type {
 import { restoreImageReferences } from './screenshot-restoration';
 import {
   type ImageUrlRef,
-  imageRefFileExtension,
+  ReportImageStore,
   isBase64ImageDataUrl,
-  resolveImageSource,
 } from './screenshot-store';
 
-/** Maps original prompt image data URLs to their persisted report assets. */
-export type ReferenceImageRefs = ReadonlyMap<string, ImageUrlRef>;
+/** A multimodal prompt image descriptor retained by an execution dump. */
+export interface ReportReferenceImageDescriptor {
+  name: string;
+  url: string;
+}
 
-function isReferenceImageDescriptor(value: unknown): boolean {
+/** Maps exact prompt image descriptor objects to their persisted assets. */
+export type ReferenceImageRefs = ReadonlyMap<
+  ReportReferenceImageDescriptor,
+  ImageUrlRef
+>;
+
+function isReferenceImageDescriptor(
+  value: unknown,
+): value is ReportReferenceImageDescriptor {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
   return typeof record.name === 'string' && typeof record.url === 'string';
@@ -47,9 +57,10 @@ function replacerForDumpSerialization(
   if (
     key === 'url' &&
     typeof value === 'string' &&
-    isReferenceImageDescriptor(holder)
+    isReferenceImageDescriptor(holder) &&
+    referenceImageRefs
   ) {
-    const referenceImageRef = referenceImageRefs?.get(value);
+    const referenceImageRef = referenceImageRefs.get(holder);
     if (referenceImageRef) {
       return referenceImageRef;
     }
@@ -193,13 +204,13 @@ export class ExecutionDump implements IExecutionDump {
   }
 
   /**
-   * Collect unique base64 image URLs from multimodal prompt descriptors.
+   * Collect unique multimodal prompt image descriptors with base64 URLs.
    * Traversal is cycle-safe because task params may contain consumer objects.
    *
-   * @returns The unique image data URLs in first-seen order.
+   * @returns The unique descriptor objects in first-seen order.
    */
-  collectReferenceImageUrls(): string[] {
-    const imageUrls = new Set<string>();
+  collectReferenceImages(): ReportReferenceImageDescriptor[] {
+    const referenceImages = new Set<ReportReferenceImageDescriptor>();
     const visited = new WeakSet<object>();
 
     const visit = (value: unknown): void => {
@@ -216,8 +227,7 @@ export class ExecutionDump implements IExecutionDump {
       if (Array.isArray(record.images)) {
         for (const image of record.images) {
           if (!isReferenceImageDescriptor(image)) continue;
-          const imageUrl = (image as { url: string }).url;
-          if (isBase64ImageDataUrl(imageUrl)) imageUrls.add(imageUrl);
+          if (isBase64ImageDataUrl(image.url)) referenceImages.add(image);
         }
       }
 
@@ -225,7 +235,7 @@ export class ExecutionDump implements IExecutionDump {
     };
 
     for (const task of this.tasks) visit(task.param);
-    return Array.from(imageUrls);
+    return Array.from(referenceImages);
   }
 }
 
@@ -253,7 +263,7 @@ export class ReportActionDump implements IReportActionDump {
 
   /**
    * Serialize the ReportActionDump to a JSON string
-   * Uses compact { $screenshot: id } format
+   * Uses typed report references for persisted screenshots.
    */
   serialize(indents?: number): string {
     return stringifyDump(this.toJSON(), indents);
@@ -263,7 +273,7 @@ export class ReportActionDump implements IReportActionDump {
    * Serialize a report dump while replacing persisted multimodal prompt image
    * URLs with their compact report asset references.
    *
-   * @param referenceImageRefs Maps each original data URL to its stored asset.
+   * @param referenceImageRefs Maps exact prompt descriptors to stored assets.
    * @param indents Optional JSON indentation.
    * @returns The serialized report dump.
    */
@@ -390,39 +400,20 @@ export class ReportActionDump implements IReportActionDump {
     const dumpString = readFileSync(basePath, 'utf-8');
     const screenshotsDir = `${basePath}.screenshots`;
 
-    const loadFromExecutionScreenshotDir = (
-      id: string,
-      mimeType: string,
-      extension: string,
-    ) => {
-      const filePath = join(screenshotsDir, `${id}.${extension}`);
-      if (!existsSync(filePath)) {
-        return '';
-      }
-      const data = readFileSync(filePath);
-      return `data:${mimeType};base64,${data.toString('base64')}`;
-    };
-
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(dumpData, (ref) => {
-      const executionFileImage = loadFromExecutionScreenshotDir(
-        ref.id,
-        ref.mimeType,
-        imageRefFileExtension(ref),
-      );
-      if (executionFileImage) {
-        return executionFileImage;
-      }
-
-      if (ref.storage === 'inline') {
-        return '';
-      }
-      const resolved = resolveImageSource(ref, { reportPath: basePath });
-      if (resolved.type === 'data-uri') return resolved.dataUri;
-      const data = readFileSync(resolved.filePath);
-      return `data:${resolved.mimeType};base64,${data.toString('base64')}`;
+    const imageStore = new ReportImageStore({
+      mode: 'directory',
+      reportPath: basePath,
+      screenshotsDir,
     });
+    const resolveImage = (ref: Parameters<typeof imageStore.loadDataUri>[0]) =>
+      imageStore.loadDataUri(ref);
+    const processedData = restoreImageReferences(
+      dumpData,
+      resolveImage,
+      resolveImage,
+    );
     return JSON.stringify(processedData);
   }
 

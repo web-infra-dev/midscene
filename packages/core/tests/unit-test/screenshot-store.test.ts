@@ -13,6 +13,7 @@ import {
   normalizeImageUrlRef,
 } from '../../src/dump/screenshot-store';
 import { ScreenshotItem } from '../../src/screenshot-item';
+import { ExecutionDump, ReportActionDump } from '../../src/types';
 
 describe('ScreenshotStore', () => {
   const pngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
@@ -45,6 +46,47 @@ describe('ScreenshotStore', () => {
     expect(ref.storage).toBe('file');
     expect(existsSync(join(screenshotsDir, `${item.id}.png`))).toBe(true);
     expect(store.loadBase64(ref)).toContain('data:image/png;base64,');
+  });
+
+  it('round-trips screenshots through dump companion files', () => {
+    const dumpPath = join(tmpRoot, 'execution.json');
+    const screenshot = ScreenshotItem.create(pngBase64, 100);
+    const execution = new ExecutionDump({
+      id: 'execution-with-file-screenshot',
+      logTime: 100,
+      name: 'execution-with-file-screenshot',
+      tasks: [
+        {
+          taskId: 'task-with-file-screenshot',
+          type: 'Insight',
+          subType: 'Locate',
+          param: {},
+          uiContext: {
+            screenshot,
+            shotSize: { width: 5, height: 5 },
+            shrunkShotToLogicalRatio: 1,
+          },
+          executor: async () => undefined,
+          recorder: [],
+          status: 'finished',
+        },
+      ],
+    });
+    const dump = new ReportActionDump({
+      sdkVersion: '1.0.0-test',
+      groupName: 'companion-file-round-trip',
+      modelBriefs: [],
+      executions: [execution],
+    });
+
+    dump.serializeToFiles(dumpPath);
+    const restored = JSON.parse(
+      ReportActionDump.fromFilesAsInlineJson(dumpPath),
+    );
+
+    expect(restored.executions[0].tasks[0].uiContext.screenshot.base64).toBe(
+      pngBase64,
+    );
   });
 
   it('deduplicates same screenshot persistence by id', async () => {
@@ -109,6 +151,7 @@ describe('ScreenshotStore', () => {
 
     expect(ref.path).toBe(`./screenshots/${ref.id}.svg`);
     expect(existsSync(join(screenshotsDir, `${ref.id}.svg`))).toBe(true);
+    expect(store.loadDataUri(ref)).toBe('data:image/svg+xml;base64,PHN2Zy8+');
   });
 
   it('rejects malformed reference image data URLs', async () => {

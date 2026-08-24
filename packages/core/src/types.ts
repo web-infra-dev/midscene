@@ -31,6 +31,7 @@ export {
   ExecutionDump,
   ReportActionDump,
   GroupedActionDump,
+  type ReportReferenceImageDescriptor,
   type ReferenceImageRefs,
 } from './dump/report-action-dump';
 

@@ -24,6 +24,8 @@ import {
 import {
   imageRefFileExtension,
   normalizeStoredImageRef,
+} from './dump/image-reference';
+import {
   parseBase64ImageDataUrl,
   resolveImageSource,
 } from './dump/screenshot-store';

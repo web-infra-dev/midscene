@@ -135,6 +135,10 @@ describe('splitReportHtmlByExecution', () => {
   it('should externalize a serialized planning reference image', () => {
     const reportPath = join(tmpDir, 'reference-image-report.html');
     const referenceImage = 'data:image/webp;base64,QUJDRA==';
+    const referenceImageDescriptor = {
+      name: 'reference',
+      url: referenceImage,
+    };
     const imageRef: ImageUrlRef = {
       type: 'midscene_image_url_ref',
       id: 'reference-webp',
@@ -153,7 +157,7 @@ describe('splitReportHtmlByExecution', () => {
           param: {
             userInstruction: {
               prompt: 'Compare with the reference image',
-              images: [{ name: 'reference', url: referenceImage }],
+              images: [referenceImageDescriptor],
             },
           },
           executor: async () => undefined,
@@ -174,7 +178,7 @@ describe('splitReportHtmlByExecution', () => {
         generateImageScriptTag(imageRef.id, referenceImage),
         generateDumpScriptTag(
           dump.serializeWithReferenceImages(
-            new Map([[referenceImage, imageRef]]),
+            new Map([[referenceImageDescriptor, imageRef]]),
           ),
           { 'data-group-id': 'group-1' },
         ),
@@ -217,6 +221,10 @@ describe('splitReportHtmlByExecution', () => {
       storage: 'inline',
     };
     const taskCount = 50;
+    const referenceImageDescriptors = Array.from({ length: taskCount }, () => ({
+      name: 'reference',
+      url: referenceImage,
+    }));
     const execution = new ExecutionDump({
       id: 'large-reference-execution',
       logTime: 100,
@@ -228,7 +236,7 @@ describe('splitReportHtmlByExecution', () => {
         param: {
           userInstruction: {
             prompt: 'Compare with the shared reference image',
-            images: [{ name: 'reference', url: referenceImage }],
+            images: [referenceImageDescriptors[index]],
           },
         },
         executor: async () => undefined,
@@ -248,7 +256,11 @@ describe('splitReportHtmlByExecution', () => {
         generateImageScriptTag(imageRef.id, referenceImage),
         generateDumpScriptTag(
           dump.serializeWithReferenceImages(
-            new Map([[referenceImage, imageRef]]),
+            new Map(
+              referenceImageDescriptors.map(
+                (descriptor) => [descriptor, imageRef] as const,
+              ),
+            ),
           ),
           { 'data-group-id': 'group-1' },
         ),

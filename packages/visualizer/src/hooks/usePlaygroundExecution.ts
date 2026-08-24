@@ -9,6 +9,7 @@ import {
   parseDumpScript,
   parseImageScripts,
   restoreImageReferences,
+  restoreReportImageReferences,
 } from '@midscene/core/dump';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
@@ -114,9 +115,11 @@ function replayInfoFromDump(
 function replayInfoFromReportHTML(reportHTML: string, deviceType?: string) {
   try {
     const imageMap = parseImageScripts(reportHTML);
+    const resolveInlineImage = (ref: { id: string }) => imageMap[ref.id] || '';
     const dump = restoreImageReferences(
       JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
-      (ref) => imageMap[ref.id] || '',
+      resolveInlineImage,
+      resolveInlineImage,
     );
     return replayInfoFromDump(dump, deviceType);
   } catch (error) {
@@ -153,13 +156,7 @@ async function loadReportReplay(
       throw new Error(`Report replay request failed (${response.status})`);
     }
     const dump = (await response.json()) as IReportActionDump;
-    result.dump = restoreImageReferences(dump, (ref) => {
-      const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-      return new URL(
-        `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
-        result.report!.url,
-      ).toString();
-    });
+    result.dump = restoreReportImageReferences(dump, result.report.url);
   } catch (error) {
     console.error('Failed to load playground report replay:', error);
   }

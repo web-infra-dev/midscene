@@ -4,7 +4,7 @@ import { extractImageByIdSync } from './dump/html-utils';
 import {
   type ScreenshotRef,
   normalizeScreenshotRef,
-} from './dump/screenshot-store';
+} from './dump/image-reference';
 
 /**
  * Serialization format for ScreenshotItem

@@ -82,6 +82,7 @@ export {
 // Dump utilities
 export {
   restoreImageReferences,
+  restoreReportImageReferences,
   escapeContent,
   unescapeContent,
   parseImageScripts,
@@ -123,12 +124,14 @@ export {
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
+export type {
+  ImageUrlRef,
+  ScreenshotRef,
+  StoredImageRef,
+} from './dump/image-reference';
 export {
-  type ImageUrlRef,
   ReportImageStore,
   ScreenshotStore,
-  type ScreenshotRef,
-  type StoredImageRef,
 } from './dump/screenshot-store';
 
 export {

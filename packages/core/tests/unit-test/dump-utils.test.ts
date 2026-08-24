@@ -7,6 +7,7 @@ import {
   parseDumpScriptAttributes,
   parseImageScripts,
   restoreImageReferences,
+  restoreReportImageReferences,
   unescapeContent,
 } from '../../src/dump';
 
@@ -101,7 +102,12 @@ describe('dump/screenshot-restoration', () => {
   const restoreForTest = (
     data: unknown,
     resolveImage: (ref: { id: string }) => string = resolver,
-  ) => restoreImageReferences(data, resolveImage as any) as any;
+  ) =>
+    restoreImageReferences(
+      data,
+      resolveImage as any,
+      resolveImage as any,
+    ) as any;
 
   describe('restoreImageReferences', () => {
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
@@ -133,6 +139,53 @@ describe('dump/screenshot-restoration', () => {
 
       const result = restoreForTest(data);
       expect(result.image.url).toBe('data:image/png;base64,abc123');
+    });
+
+    it('should require an explicit resolver for reference-image URL refs', () => {
+      const data = {
+        image: {
+          url: {
+            type: 'midscene_image_url_ref',
+            id: 'img1',
+            mimeType: 'image/png',
+            storage: 'inline',
+          },
+        },
+      };
+
+      expect(() => restoreImageReferences(data, resolver as any)).toThrow(
+        'A reference-image resolver is required',
+      );
+    });
+
+    it('should restore report image URLs from serialized paths and MIME types', () => {
+      const data = {
+        screenshot: {
+          type: 'midscene_screenshot_ref',
+          id: 'shot-1',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'file',
+          path: './custom/shot-1.png',
+        },
+        referenceImage: {
+          type: 'midscene_image_url_ref',
+          id: 'reference-webp',
+          mimeType: 'image/webp',
+          storage: 'inline',
+        },
+      };
+
+      const restored = restoreReportImageReferences(
+        data,
+        'https://example.com/reports/run/',
+      ) as any;
+      expect(restored.screenshot.base64).toBe(
+        'https://example.com/reports/run/custom/shot-1.png',
+      );
+      expect(restored.referenceImage).toBe(
+        'https://example.com/reports/run/screenshots/reference-webp.webp',
+      );
     });
 
     it('should handle nested objects', () => {

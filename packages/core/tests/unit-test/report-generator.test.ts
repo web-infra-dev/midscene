@@ -254,6 +254,7 @@ describe('ReportGenerator — append-only model', () => {
       const restored = restoreImageReferences(
         dump,
         (ref) => imageMap[ref.id],
+        (ref) => imageMap[ref.id],
       ) as unknown as RestoredReferenceImageDump;
       expect(
         restored.executions[0].tasks.every(
@@ -268,6 +269,48 @@ describe('ReportGenerator — append-only model', () => {
       );
       expect(persistedDump).not.toContain(referenceImage);
       expect(persistedDump).toContain('midscene_image_url_ref');
+    });
+
+    it('should replace only registered prompt image descriptors', async () => {
+      const reportPath = join(tmpDir, 'reference-image-descriptor-scope.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      const referenceImage = fakeBase64(1024, 'webp');
+      const promptImage = { name: 'reference', url: referenceImage };
+      const unrelatedLink = { name: 'source', url: referenceImage };
+      const execution = new ExecutionDump({
+        id: 'descriptor-scope',
+        logTime: Date.now(),
+        name: 'descriptor-scope',
+        tasks: [
+          {
+            taskId: 'action-with-images',
+            type: 'Action Space',
+            param: {
+              images: [promptImage],
+              unrelatedLink,
+            },
+            executor: async () => undefined,
+            recorder: [],
+            status: 'finished',
+          },
+        ],
+      });
+
+      generator.onExecutionUpdate(execution, defaultReportMeta);
+      await generator.finalize();
+
+      const serializedDump = parseDumpScript(
+        readFileSync(reportPath, 'utf-8'),
+      )!;
+      const taskParam = JSON.parse(serializedDump).executions[0].tasks[0].param;
+      expect(taskParam.images[0].url).toMatchObject({
+        type: 'midscene_image_url_ref',
+      });
+      expect(taskParam.unrelatedLink.url).toBe(referenceImage);
     });
 
     it('should keep report growth bounded across repeated reference-image tasks and updates', async () => {

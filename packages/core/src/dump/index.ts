@@ -3,12 +3,15 @@
  */
 
 // Utilities
-export { restoreImageReferences } from './screenshot-restoration';
+export {
+  restoreImageReferences,
+  restoreReportImageReferences,
+} from './screenshot-restoration';
 export type {
   ImageUrlRef,
   ScreenshotRef,
   StoredImageRef,
-} from './screenshot-store';
+} from './image-reference';
 export { ReportImageStore, ScreenshotStore } from './screenshot-store';
 export {
   escapeContent,
