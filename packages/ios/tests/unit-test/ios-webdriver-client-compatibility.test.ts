@@ -247,8 +247,15 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
         undefined,
         { timeout: expect.any(Number) },
       );
-      for (const call of makeRequestSpy.mock.calls) {
+      const requestCalls = makeRequestSpy.mock.calls as unknown as Array<
+        [string, string, unknown, { timeout?: number }?]
+      >;
+      for (const call of requestCalls) {
         const timeout = call[3]?.timeout;
+        expect(typeof timeout).toBe('number');
+        if (typeof timeout !== 'number') {
+          throw new Error('Expected keyboard dismissal request timeout');
+        }
         expect(timeout).toBeGreaterThan(0);
         expect(timeout).toBeLessThanOrEqual(5000);
       }
@@ -274,8 +281,11 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
 
       await expect(client.dismissKeyboard()).resolves.toBe(false);
       expect(makeRequestSpy).toHaveBeenCalledTimes(6);
+      const requestCalls = makeRequestSpy.mock.calls as unknown as Array<
+        [string, string, ...unknown[]]
+      >;
       expect(
-        makeRequestSpy.mock.calls.some(([method, endpoint]) =>
+        requestCalls.some(([method, endpoint]) =>
           method === 'POST' ? endpoint.endsWith('/click') : false,
         ),
       ).toBe(false);

@@ -1,11 +1,11 @@
+import { describe, expect, it } from '@rstest/core';
 import {
   type KeyboardAccessoryButton,
   type WebDriverElementRect,
   isKeyboardAccessoryToolbar,
   isNamedDismissButtonNearKeyboard,
   selectKeyboardAccessoryDismissButton,
-} from '@/keyboard-dismiss';
-import { describe, expect, it } from '@rstest/core';
+} from '../../src/keyboard-dismiss';
 
 const keyboardRect: WebDriverElementRect = {
   x: 0,
