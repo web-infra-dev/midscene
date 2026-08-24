@@ -38,7 +38,11 @@ const createPage = () => {
   let viewport = { width: 800, height: 600 };
   const page = {
     context: () => browserContext,
-    goto: vi.fn(async () => ({ status: () => 200 })),
+    goto: vi.fn(
+      async (): Promise<{ status(): number }> => ({
+        status: () => 200,
+      }),
+    ),
     url: vi.fn(() => 'https://example.com/final'),
     title: vi.fn(async () => 'Example'),
     setViewportSize: vi.fn(async (size: typeof viewport) => {
