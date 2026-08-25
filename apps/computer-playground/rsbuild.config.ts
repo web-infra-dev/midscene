@@ -56,6 +56,10 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      // Proxy support is guarded by ifInBrowser in @midscene/core. Stub its
+      // Node-only dependencies so browser bundlers do not walk their internals.
+      undici: false,
+      'fetch-socks': false,
     },
   },
   output: {

@@ -114,6 +114,10 @@ export default defineConfig({
       // Stub the node-only image dependency so rspack does not walk
       // native/optional modules from shared image helpers.
       sharp: false,
+      // Proxy support is guarded by ifInBrowser in @midscene/core. Stub its
+      // Node-only dependencies so browser bundlers do not walk their internals.
+      undici: false,
+      'fetch-socks': false,
     },
   },
   plugins: [

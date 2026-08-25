@@ -92,6 +92,10 @@ export default defineConfig({
         __dirname,
         '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
+      // Proxy support is guarded by ifInBrowser in @midscene/core. Stub its
+      // Node-only dependencies so browser bundlers do not walk their internals.
+      undici: false,
+      'fetch-socks': false,
     },
   },
   dev: {

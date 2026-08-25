@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { getModelRuntime } from '@/ai-model/models';
 import type { IModelConfig } from '@midscene/shared/env';
 /**
@@ -8,28 +7,19 @@ import type { IModelConfig } from '@midscene/shared/env';
  * applied when creating OpenAI clients. Uses mocking to verify that the correct
  * proxy implementations are instantiated with proper parameters.
  */
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  rs,
-} from '@rstest/core';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock undici and fetch-socks before importing service-caller
 const mockProxyAgent = rs.fn();
 const mockSocksDispatcher = rs.fn();
-const require = createRequire(import.meta.url);
-const undici = require('undici') as typeof import('undici');
-const fetchSocks = require('fetch-socks') as typeof import('fetch-socks');
-const originalProxyAgent = undici.ProxyAgent;
-const originalSocksDispatcher = fetchSocks.socksDispatcher;
-Object.defineProperty(undici, 'ProxyAgent', { value: mockProxyAgent });
-Object.defineProperty(fetchSocks, 'socksDispatcher', {
-  value: mockSocksDispatcher,
-});
+
+rs.mock('undici', () => ({
+  ProxyAgent: mockProxyAgent,
+}));
+
+rs.mock('fetch-socks', () => ({
+  socksDispatcher: mockSocksDispatcher,
+}));
 
 // Mock OpenAI to avoid actual API calls
 rs.mock('openai', () => {
@@ -52,13 +42,6 @@ rs.mock('openai', () => {
 });
 
 describe('Proxy Configuration', () => {
-  afterAll(() => {
-    Object.defineProperty(undici, 'ProxyAgent', { value: originalProxyAgent });
-    Object.defineProperty(fetchSocks, 'socksDispatcher', {
-      value: originalSocksDispatcher,
-    });
-  });
-
   beforeEach(() => {
     rs.clearAllMocks();
   });
