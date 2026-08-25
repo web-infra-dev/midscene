@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type {
+  MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
@@ -27,14 +28,17 @@ import { createYamlPlayer } from './create-yaml-player';
 import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
+  createYamlAttempt,
   printExecutionFinished,
   printExecutionPlan,
+  resolveYamlMaxAttempts,
   writeExecutionSummaryFile,
 } from './execution-summary';
 import {
   type MidsceneYamlFileContext,
   contextInfo,
   contextTaskListSummary,
+  formatYamlProgressSnapshot,
   isTTY,
   spinnerInterval,
 } from './printer';
@@ -53,9 +57,9 @@ export interface BatchRunnerConfig {
   concurrent: number;
   continueOnError: boolean;
   /**
-   * Number of extra attempts for a failed yaml file. Mapped to Rstest's
-   * `retry` option, so only the cases that failed in the previous attempt
-   * are re-executed. Defaults to 0 (no retry).
+   * Number of extra attempts for a failed yaml file. The batch executor owns
+   * retries so shared-browser runs can re-execute only failed files while
+   * preserving the browser context. Defaults to 0 (no retry).
    */
   retry?: number;
   summary: string;
@@ -84,6 +88,11 @@ interface BatchFileContext {
     browser?: Browser;
     page?: Page;
   };
+}
+
+interface ExecutedBatchFileContext extends MidsceneYamlFileContext {
+  duration: number;
+  yamlResult: MidsceneYamlConfigResult;
 }
 
 export interface RunYamlBatchOptions {
@@ -284,15 +293,13 @@ class YamlBatchExecutor {
     fileContextList: BatchFileContext[],
     onProgress?: (message: string) => void,
   ): Promise<{
-    executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
+    executedResults: ExecutedBatchFileContext[];
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>;
   }> {
-    const executedResults: Array<
-      MidsceneYamlFileContext & { duration: number }
-    > = [];
+    const executedResults: ExecutedBatchFileContext[] = [];
     const notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -339,17 +346,23 @@ class YamlBatchExecutor {
       ttyRenderer.start();
     }
 
-    const reportProgressSnapshot = (context: MidsceneYamlFileContext) => {
-      onProgress?.(
-        contextTaskListSummary(context.player.taskStatusList, context),
+    const reportProgressSnapshot = (
+      context: MidsceneYamlFileContext,
+      attempt: number,
+      totalAttempts: number,
+    ) => {
+      const summary = contextTaskListSummary(
+        context.player.taskStatusList,
+        context,
       );
+      onProgress?.(formatYamlProgressSnapshot(summary, attempt, totalAttempts));
     };
 
     try {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
-      ): Promise<MidsceneYamlFileContext & { duration: number }> => {
+      ): Promise<ExecutedBatchFileContext> => {
         // Find the corresponding player in allFileContexts
         const allFileContext = allFileContexts.find(
           (c) => c.file === context.file,
@@ -358,46 +371,68 @@ class YamlBatchExecutor {
           throw new Error(`Player not found for file: ${context.file}`);
         }
 
-        if (onProgress) {
-          reportProgressSnapshot(allFileContext);
-        } else if (!isTTY) {
-          const { mergedText } = contextInfo(allFileContext);
-          console.log(mergedText);
-        }
+        const totalAttempts = resolveYamlMaxAttempts(this.config.retry);
+        const attempts: MidsceneYamlConfigAttempt[] = [];
+        let executedContext: ExecutedBatchFileContext | undefined;
 
-        // Set output path if specified
-        if (context.outputPath) {
-          allFileContext.player.output = context.outputPath;
-        }
+        for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+          if (attempt > 1) {
+            allFileContext.player = await createYamlPlayer(
+              context.file,
+              context.executionConfig,
+              context.options,
+            );
+          }
 
-        // Record start time
-        const startTime = Date.now();
+          if (onProgress) {
+            reportProgressSnapshot(allFileContext, attempt, totalAttempts);
+          } else if (!isTTY) {
+            const { mergedText } = contextInfo(allFileContext);
+            console.log(mergedText);
+          }
 
-        // Run the player
-        await allFileContext.player.run();
+          if (context.outputPath) {
+            allFileContext.player.output = context.outputPath;
+          }
 
-        // Calculate duration
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-
-        const executedContext: MidsceneYamlFileContext & { duration: number } =
-          {
+          const startTime = Date.now();
+          await allFileContext.player.run();
+          const duration = Date.now() - startTime;
+          const attemptResult = createExecutedYamlResult({
             file: context.file,
             player: allFileContext.player,
             duration,
+          });
+          attempts.push(createYamlAttempt(attemptResult, attempt));
+
+          const yamlResult: MidsceneYamlConfigResult = {
+            ...attemptResult,
+            attempts: [...attempts],
+          };
+          executedContext = {
+            file: context.file,
+            player: allFileContext.player,
+            duration,
+            yamlResult,
           };
 
-        if (onProgress) {
-          reportProgressSnapshot(executedContext);
-        } else if (!isTTY) {
-          console.log(
-            contextTaskListSummary(
-              allFileContext.player.taskStatusList,
-              executedContext,
-            ),
-          );
+          if (onProgress) {
+            reportProgressSnapshot(executedContext, attempt, totalAttempts);
+          } else if (!isTTY) {
+            console.log(
+              contextTaskListSummary(
+                allFileContext.player.taskStatusList,
+                executedContext,
+              ),
+            );
+          }
+
+          if (yamlResult.success) break;
         }
 
+        if (!executedContext) {
+          throw new Error(`No attempts executed for file: ${context.file}`);
+        }
         return executedContext;
       };
 
@@ -409,7 +444,7 @@ class YamlBatchExecutor {
       if (setupContext) {
         const executedContext = await executeFile(setupContext);
         executedResults.push(executedContext);
-        setupFailed = executedContext.player.status === 'error';
+        setupFailed = !executedContext.yamlResult.success;
       }
 
       if (setupFailed) {
@@ -448,8 +483,8 @@ class YamlBatchExecutor {
     fileContextList: BatchFileContext[],
     executeFile: (
       context: BatchFileContext,
-    ) => Promise<MidsceneYamlFileContext & { duration: number }>,
-    executedResults: Array<MidsceneYamlFileContext & { duration: number }>,
+    ) => Promise<ExecutedBatchFileContext>,
+    executedResults: ExecutedBatchFileContext[],
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -484,7 +519,7 @@ class YamlBatchExecutor {
           const executedContext = await executeFile(context);
           executedResults.push(executedContext);
 
-          if (executedContext.player.status === 'error' && !stopLock.value) {
+          if (!executedContext.yamlResult.success && !stopLock.value) {
             stopLock.value = true;
             shouldStop = true;
           }
@@ -508,7 +543,7 @@ class YamlBatchExecutor {
   }
 
   private async processResults(
-    executedContexts: Array<MidsceneYamlFileContext & { duration: number }>,
+    executedContexts: ExecutedBatchFileContext[],
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -517,8 +552,7 @@ class YamlBatchExecutor {
     const results: MidsceneYamlConfigResult[] = [];
 
     for (const context of executedContexts) {
-      const { file, player, duration } = context;
-      results.push(createExecutedYamlResult({ file, player, duration }));
+      results.push(context.yamlResult);
     }
 
     for (const context of notExecutedContexts) {

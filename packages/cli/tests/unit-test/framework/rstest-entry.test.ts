@@ -188,4 +188,63 @@ describe('defineYamlCaseTest', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('labels player snapshots with the current retry attempt', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const resultFile = join(root, 'results', 'case.json');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    let runCount = 0;
+
+    mocks.runYamlCaseResultWithSnapshots.mockImplementation(
+      async (_options, onPlayerSnapshot) => {
+        runCount++;
+        onPlayerSnapshot({
+          file: yaml,
+          player: {
+            status: runCount === 1 ? 'error' : 'done',
+            taskStatusList: [
+              {
+                name: 'enter recruitment credentials',
+                status: runCount === 1 ? 'error' : 'done',
+              },
+            ],
+            result: {},
+          },
+        });
+        return {
+          file: yaml,
+          success: runCount > 1,
+          executed: true,
+          duration: runCount,
+          resultType: runCount === 1 ? 'failed' : 'success',
+          error: runCount === 1 ? 'first attempt failed' : undefined,
+        };
+      },
+    );
+
+    try {
+      defineYamlCaseTest(injectedRstestTest(), {
+        testName: 'case',
+        yamlFile: yaml,
+        resultFile,
+        retry: 1,
+      });
+
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      await expect(runCase()).rejects.toThrow('first attempt failed');
+      await expect(runCase()).resolves.toBeUndefined();
+
+      const progressMessages = mocks.emitYamlProgress.mock.calls.map(
+        ([message]) => message,
+      );
+      expect(progressMessages).toHaveLength(2);
+      expect(progressMessages[0]).toContain('Attempt 1/2');
+      expect(progressMessages[0]).toContain('enter recruitment credentials');
+      expect(progressMessages[1]).toContain('Attempt 2/2');
+      expect(progressMessages[1]).toContain('enter recruitment credentials');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

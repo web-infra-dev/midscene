@@ -66,4 +66,62 @@ describe('shareBrowserContext - Storage Sharing', () => {
       process.chdir(previousCwd);
     }
   });
+
+  test('should retry a failed YAML file in the same shared browser context', async () => {
+    const scriptDir = join(__dirname, '../share_context_test_scripts');
+    const indexYamlPath = join(scriptDir, 'retry-index.yaml');
+    const frameworkImport = join(
+      __dirname,
+      '../../src/framework/rstest-entry.ts',
+    );
+    const previousCwd = process.cwd();
+    const progressLogs: string[] = [];
+    const consoleLog = rs
+      .spyOn(console, 'log')
+      .mockImplementation((...args) => {
+        progressLogs.push(args.join(' '));
+      });
+
+    process.chdir(scriptDir);
+    try {
+      const config = await createConfig(indexYamlPath);
+      const exitCode = await runFrameworkTestConfig(config, {
+        projectDir: scriptDir,
+        frameworkImport,
+      });
+
+      expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(
+          join(scriptDir, 'midscene_run', 'output', config.summary),
+          'utf8',
+        ),
+      );
+      expect(summary.results).toMatchObject([
+        {
+          script: expect.stringContaining('03-retry-once.yaml'),
+          success: true,
+          resultType: 'success',
+          attempts: [
+            { attempt: 1, success: false, resultType: 'failed' },
+            { attempt: 2, success: true, resultType: 'success' },
+          ],
+        },
+      ]);
+      expect(progressLogs.some((log) => log.includes('Attempt 1/2'))).toBe(
+        true,
+      );
+      expect(progressLogs.some((log) => log.includes('Attempt 2/2'))).toBe(
+        true,
+      );
+      expect(
+        progressLogs.some((log) =>
+          log.includes('Pass on the second shared-context attempt'),
+        ),
+      ).toBe(true);
+    } finally {
+      consoleLog.mockRestore();
+      process.chdir(previousCwd);
+    }
+  });
 });

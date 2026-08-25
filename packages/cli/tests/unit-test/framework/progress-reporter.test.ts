@@ -3,15 +3,15 @@ import {
   emitYamlProgress,
   yamlProgressLogPrefix,
 } from '@/framework/progress-reporter';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
 
 describe('YAML progress reporter', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   test('emits progress with an internal marker', () => {
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     emitYamlProgress('  ◌ login');
 
@@ -21,7 +21,7 @@ describe('YAML progress reporter', () => {
   });
 
   test('prints only marked worker progress without the internal marker', () => {
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
     const reporter = createYamlProgressReporter();
 
     reporter.onUserConsoleLog?.({

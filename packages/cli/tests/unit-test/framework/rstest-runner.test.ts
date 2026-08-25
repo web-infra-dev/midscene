@@ -56,6 +56,45 @@ test('progress', () => {
     }
   });
 
+  test('does not leak worker console output when stdio is piped', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-pipe-'));
+    const rstestImport = resolveRstestCoreImportPath();
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          include: ['virtual:pipe.test.ts'],
+          virtualModules: {
+            'virtual:pipe.test.ts': `import { test } from ${JSON.stringify(
+              rstestImport,
+            )};
+
+test('pipe', () => {
+  console.log(${JSON.stringify(`${yamlProgressLogPrefix}marked progress`)});
+  console.log('plain worker output');
+});
+`,
+          },
+          cases: [],
+          maxConcurrency: 1,
+          testTimeout: 0,
+        },
+      });
+
+      expect(exitCode).toBe(0);
+      expect(consoleLog).not.toHaveBeenCalled();
+    } finally {
+      consoleLog.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   describe('dependency resolution anchor', () => {
     const originalEntry = process.argv[1];
     let isolatedRoot: string | undefined;

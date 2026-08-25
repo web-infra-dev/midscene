@@ -6,7 +6,11 @@ import type {
 } from '@midscene/core';
 import type { test as rstestTest } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
-import { contextTaskListSummary } from '../printer';
+import {
+  createYamlAttempt,
+  resolveYamlMaxAttempts,
+} from '../execution-summary';
+import { contextTaskListSummary, formatYamlProgressSnapshot } from '../printer';
 import { emitYamlProgress } from './progress-reporter';
 import { runYamlBatchInRstest } from './yaml-batch';
 import {
@@ -22,6 +26,7 @@ export interface DefineYamlCaseTestOptions {
   testName: string;
   yamlFile: string;
   resultFile: string;
+  retry?: number;
   caseOptions?: Omit<RunYamlCaseOptions, 'file' | 'headed' | 'keepWindow'>;
   webRuntimeOptions?: Pick<RunYamlCaseOptions, 'headed' | 'keepWindow'>;
 }
@@ -57,19 +62,6 @@ const readAttemptHistory = (
   ) as MidsceneYamlConfigAttempt[];
 };
 
-const toAttemptResult = (
-  result: MidsceneYamlConfigResult,
-  attempt: number,
-): MidsceneYamlConfigAttempt => ({
-  attempt,
-  success: result.success,
-  output: result.output,
-  report: result.report,
-  error: result.error,
-  duration: result.duration,
-  resultType: result.resultType,
-});
-
 const appendAttemptHistory = (
   resultFile: string,
   result: MidsceneYamlConfigResult,
@@ -77,7 +69,7 @@ const appendAttemptHistory = (
   const attempts = readAttemptHistory(resultFile);
   const nextAttempts = [
     ...attempts,
-    toAttemptResult(result, attempts.length + 1),
+    createYamlAttempt(result, attempts.length + 1),
   ];
 
   mkdirSync(dirname(resultFile), { recursive: true });
@@ -105,14 +97,17 @@ const createRuntimeFailureResult = (
   error: errorMessageOf(error),
 });
 
-const reportYamlPlayerProgress: YamlPlayerSnapshotHandler = ({
-  file,
-  player,
-}) => {
-  emitYamlProgress(
-    contextTaskListSummary(player.taskStatusList, { file, player }),
-  );
-};
+const createYamlPlayerProgressReporter =
+  (attempt: number, totalAttempts: number): YamlPlayerSnapshotHandler =>
+  ({ file, player }) => {
+    const summary = contextTaskListSummary(player.taskStatusList, {
+      file,
+      player,
+    });
+    emitYamlProgress(
+      formatYamlProgressSnapshot(summary, attempt, totalAttempts),
+    );
+  };
 
 export const defineYamlCaseTest = (
   test: RstestTest,
@@ -121,6 +116,8 @@ export const defineYamlCaseTest = (
   test(options.testName, async () => {
     const file = resolve(options.yamlFile);
     const startTime = Date.now();
+    const attempt = readAttemptHistory(options.resultFile).length + 1;
+    const totalAttempts = resolveYamlMaxAttempts(options.retry);
     let result: MidsceneYamlConfigResult | undefined;
 
     try {
@@ -130,7 +127,7 @@ export const defineYamlCaseTest = (
           ...options.webRuntimeOptions,
           file,
         },
-        reportYamlPlayerProgress,
+        createYamlPlayerProgressReporter(attempt, totalAttempts),
       );
       result = appendAttemptHistory(options.resultFile, result);
       writeResultFile(options.resultFile, result);

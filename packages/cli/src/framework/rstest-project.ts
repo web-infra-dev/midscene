@@ -99,6 +99,7 @@ const createGeneratedTestContent = (options: {
   yamlFile: string;
   resultFile: string;
   testName: string;
+  retry?: number;
   caseOptions?: RstestYamlCaseOptions;
   webRuntimeOptions?: WebYamlRuntimeOptions;
 }): string => {
@@ -106,6 +107,7 @@ const createGeneratedTestContent = (options: {
     testName: options.testName,
     yamlFile: options.yamlFile,
     resultFile: options.resultFile,
+    ...(options.retry && options.retry > 0 ? { retry: options.retry } : {}),
     ...(options.caseOptions ? { caseOptions: options.caseOptions } : {}),
     ...(options.webRuntimeOptions
       ? { webRuntimeOptions: options.webRuntimeOptions }
@@ -215,6 +217,7 @@ export function createRstestYamlProject(
       yamlFile,
       resultFile,
       testName,
+      retry: options.retry,
       caseOptions: options.caseOptions?.[yamlFile],
       webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
     });

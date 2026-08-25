@@ -111,6 +111,26 @@ export function createExecutedYamlResult(options: {
   };
 }
 
+export function resolveYamlMaxAttempts(retry?: number): number {
+  if (!Number.isFinite(retry) || !retry || retry < 1) return 1;
+  return Math.floor(retry) + 1;
+}
+
+export function createYamlAttempt(
+  result: MidsceneYamlConfigResult,
+  attempt: number,
+): MidsceneYamlConfigAttempt {
+  return {
+    attempt,
+    success: result.success,
+    output: result.output,
+    report: result.report,
+    error: result.error,
+    duration: result.duration,
+    resultType: result.resultType,
+  };
+}
+
 export function getExecutionSummary(
   results: MidsceneYamlConfigResult[],
 ): ExecutionSummary {

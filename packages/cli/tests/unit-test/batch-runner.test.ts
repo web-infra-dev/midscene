@@ -57,6 +57,12 @@ rs.mock('@/printer', () => ({
   isTTY: false,
   contextInfo: rs.fn().mockReturnValue({ mergedText: 'test info' }),
   contextTaskListSummary: rs.fn().mockReturnValue('test summary'),
+  formatYamlProgressSnapshot: rs.fn(
+    (message: string, attempt: number, totalAttempts: number) =>
+      totalAttempts > 1
+        ? `Attempt ${attempt}/${totalAttempts}\n${message}`
+        : message,
+  ),
   spinnerInterval: 80,
 }));
 rs.mock('@/tty-renderer');
@@ -143,7 +149,7 @@ describe('BatchRunner', () => {
   });
 
   test('delivers progress snapshots to the caller', async () => {
-    const onProgress = vi.fn();
+    const onProgress = rs.fn();
     const runner = new BatchRunner({
       ...mockBatchConfig,
       files: ['login.yml'],
@@ -184,6 +190,49 @@ describe('BatchRunner', () => {
         expect.any(Object),
         expect.objectContaining({ browser: browserInstance }),
       );
+    });
+
+    test('retries only a failed file while reusing the shared browser and page', async () => {
+      let playerCreationCount = 0;
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
+        playerCreationCount++;
+        return createMockPlayer(playerCreationCount > 1);
+      });
+      const onProgress = rs.fn();
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['retry.yml'],
+        retry: 1,
+      });
+
+      const results = await runner.run({
+        generateSummary: false,
+        printExecutionPlan: false,
+        onProgress,
+      });
+
+      expect(createYamlPlayer).toHaveBeenCalledTimes(2);
+      const firstOptions = rs.mocked(createYamlPlayer).mock.calls[0][2];
+      const secondOptions = rs.mocked(createYamlPlayer).mock.calls[1][2];
+      expect(firstOptions?.browser).toBe(secondOptions?.browser);
+      expect(firstOptions?.page).toBe(secondOptions?.page);
+      expect(results).toMatchObject([
+        {
+          file: 'retry.yml',
+          success: true,
+          attempts: [
+            { attempt: 1, success: false, resultType: 'failed' },
+            { attempt: 2, success: true, resultType: 'success' },
+          ],
+        },
+      ]);
+      expect(onProgress.mock.calls.map(([message]) => message)).toEqual([
+        'Attempt 1/2\ntest summary',
+        'Attempt 1/2\ntest summary',
+        'Attempt 2/2\ntest summary',
+        'Attempt 2/2\ntest summary',
+      ]);
     });
 
     test('should pass chromeArgs from global config to puppeteer.launch when shareBrowserContext is true', async () => {
@@ -562,6 +611,43 @@ describe('BatchRunner', () => {
         'report.yml',
         'search.yml',
       ]);
+    });
+
+    test('retries a failed setup before running dependent files', async () => {
+      const runOrder: string[] = [];
+      const creationCountByFile = new Map<string, number>();
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const fileName = file as string;
+        const creationCount = (creationCountByFile.get(fileName) ?? 0) + 1;
+        creationCountByFile.set(fileName, creationCount);
+        const shouldSucceed = fileName !== 'login.yml' || creationCount > 1;
+        const player = createMockPlayer(shouldSucceed);
+        const originalRun = player.run;
+        (player as unknown as { run: () => Promise<void> }).run = rs.fn(
+          async () => {
+            runOrder.push(fileName);
+            return originalRun();
+          },
+        );
+        return player;
+      });
+
+      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+      const results = await runner.run();
+
+      expect(runOrder[0]).toBe('login.yml');
+      expect(runOrder[1]).toBe('login.yml');
+      expect(runOrder.slice(2).sort()).toEqual(['report.yml', 'search.yml']);
+      expect(
+        results.find((result) => result.file === 'login.yml'),
+      ).toMatchObject({
+        success: true,
+        attempts: [
+          { attempt: 1, success: false },
+          { attempt: 2, success: true },
+        ],
+      });
+      expect(runner.getNotExecutedFiles()).toEqual([]);
     });
 
     test('throws when setup is set without shareBrowserContext', async () => {
