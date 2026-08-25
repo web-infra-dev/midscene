@@ -138,6 +138,58 @@ describe('ExecutionDump', () => {
     });
   });
 
+  describe('reference image registration', () => {
+    it('uses explicit sidecar metadata without inspecting task parameters', () => {
+      const referenceImage = {
+        name: 'reference',
+        url: 'data:image/webp;base64,dGVzdA==',
+      };
+      const unregisteredImage = {
+        name: 'unregistered',
+        url: 'data:image/png;base64,dW5yZWdpc3RlcmVk',
+      };
+      const page = { constructor: { name: 'Page' } } as Record<string, unknown>;
+      Object.defineProperty(page, 'internalState', {
+        enumerable: true,
+        get: () => {
+          throw new Error('Page internals must remain opaque');
+        },
+      });
+
+      const dump = new ExecutionDump(
+        {
+          logTime: 1234567890,
+          name: 'Opaque runtime object',
+          tasks: [
+            {
+              type: 'Action',
+              status: 'finished',
+              param: {
+                images: [referenceImage],
+                nested: { images: [unregisteredImage] },
+                page,
+              },
+              executor: async () => {},
+            } as any,
+          ],
+        },
+        {
+          referenceImageUrls: [
+            referenceImage.url,
+            referenceImage.url,
+            'https://example.com/reference.webp',
+          ],
+        },
+      );
+
+      expect(dump.getReferenceImageUrls()).toEqual([referenceImage.url]);
+      expect(dump.getReferenceImageUrls()).not.toContain(unregisteredImage.url);
+      const serialized = dump.serialize();
+      expect(serialized).not.toContain('referenceImageUrls');
+      expect(() => JSON.parse(serialized)).not.toThrow();
+    });
+  });
+
   describe('toJSON', () => {
     it('should return a plain object with recorder fields normalized', () => {
       const data = createMockExecutionDumpData();

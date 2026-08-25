@@ -87,8 +87,14 @@ export type TaskRunnerEventListener = (
   event: TaskRunnerEvent,
 ) => Promise<void> | void;
 
+/** Minimal prompt-image shape retained as report asset metadata. */
+export interface ExecutionReferenceImage {
+  readonly url: string;
+}
+
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  referenceImages?: readonly ExecutionReferenceImage[];
   /**
    * Coarse "the execution snapshot changed" signal. Fires on any state change
    * (append, status flips, completion) with the whole runner, so consumers can
@@ -127,6 +133,8 @@ export class TaskRunner {
 
   private readonly executionLogTime: number;
 
+  private readonly referenceImageUrls = new Set<string>();
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -144,6 +152,9 @@ export class TaskRunner {
     this.onSnapshotChange = options?.onSnapshotChange;
     this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
+    for (const image of options?.referenceImages ?? []) {
+      this.referenceImageUrls.add(image.url);
+    }
   }
 
   private async emitSnapshotChange(error?: TaskExecutionError): Promise<void> {
@@ -496,12 +507,15 @@ export class TaskRunner {
   }
 
   dump(): ExecutionDump {
-    return new ExecutionDump({
-      id: this.id,
-      logTime: this.executionLogTime,
-      name: this.name,
-      tasks: this.tasks,
-    });
+    return new ExecutionDump(
+      {
+        id: this.id,
+        logTime: this.executionLogTime,
+        name: this.name,
+        tasks: this.tasks,
+      },
+      { referenceImageUrls: [...this.referenceImageUrls] },
+    );
   }
 
   async appendErrorPlan(errorMsg: string): Promise<{

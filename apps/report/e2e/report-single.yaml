@@ -16,22 +16,18 @@ tasks:
       - sleep: 500
       - aiAssert: The left-side Execution task list is visibly scrolled to its bottom. Below the task rows there is one combined summary row labeled "Total" whose Time cell contains separate "Elapsed" and "Model" duration values; there is no separate row labeled "Total Time".
 
-  # --- Markdown timing summary ---
-  - name: markdown view explains both timing metrics
-    flow:
-      - aiTap:
-          locate:
-            prompt: the "Markdown View" button in the Report view switch at the top-left of the sidebar
-      - sleep: 500
-      - aiAssert: The left sidebar is showing report Markdown source with a "Timing Summary" section that clearly lists both "Elapsed Time" and "Model Call Time".
-      - aiTap:
-          locate:
-            prompt: the "Human View" button in the Report view switch at the top-left of the sidebar
-      - sleep: 500
-
   # --- Player area visible with controls ---
   - name: player area is visible with playback controls
     flow:
+      # The timing-summary check leaves the task list at the bottom. Replay is
+      # only available for Planning tasks with animation scripts. The sidebar
+      # renders that internal type as "Plan", so return to the top and select
+      # the matching visible row.
+      - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
+        scrollType: scrollToTop
+      - sleep: 500
+      - aiTap: a task row in the left sidebar whose Type cell is exactly "Plan", not an Insight or Locate row and not the Total summary row
+      - sleep: 2000
       - aiTap:
           locate:
             prompt: >-
@@ -56,3 +52,14 @@ tasks:
           deepLocate: true
       - sleep: 1000
       - aiAssert: The player settings popup is open above the bottom-right control bar, showing options such as "Focus on cursor", "Subtitle", "Playback speed", and speed choices like "0.5x", "1x", "1.5x", or "2x".
+
+  # --- Markdown timing summary ---
+  # Keep this last: Markdown View replaces the task list, and no later scenario
+  # should depend on an AI-located switch back to Human View.
+  - name: markdown view explains both timing metrics
+    flow:
+      - aiTap:
+          locate:
+            prompt: the "Markdown View" button in the two-button Report view switch at the far upper-left of the sidebar; it is the document-shaped icon next to the speech-bubble Human View icon, not the copy or download buttons farther right
+      - sleep: 500
+      - aiAssert: The left sidebar is showing report Markdown source with a "Timing Summary" section that clearly lists both "Elapsed Time" and "Model Call Time".

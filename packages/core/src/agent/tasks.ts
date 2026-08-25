@@ -12,7 +12,11 @@ import {
 } from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
-import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
+import type {
+  ExecutionReferenceImage,
+  TaskRunner,
+  TaskRunnerEvent,
+} from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
   AiActEffort,
@@ -159,6 +163,7 @@ export class TaskExecutor {
     options?: {
       tasks?: ExecutionTaskApply[];
       uiContext?: UIContext;
+      referenceImages?: readonly ExecutionReferenceImage[];
       onSnapshotChange?: (
         runner: TaskRunner,
         error?: TaskExecutionError,
@@ -175,6 +180,7 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
+        referenceImages: options?.referenceImages,
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
           await options?.onSnapshotChange?.(runner, error);
@@ -294,6 +300,9 @@ export class TaskExecutor {
         reportOptions?.type || 'Act',
         reportOptions?.prompt || userPromptToString(userInstruction),
       ),
+      {
+        referenceImages: userPromptToMultimodalPrompt(userInstruction)?.images,
+      },
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -465,6 +474,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
+        referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
         },
@@ -1008,9 +1018,12 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
-      executionOptions?.uiContext
-        ? { uiContext: executionOptions.uiContext }
-        : undefined,
+      {
+        ...(executionOptions?.uiContext
+          ? { uiContext: executionOptions.uiContext }
+          : {}),
+        referenceImages: multimodalPrompt?.images,
+      },
     );
 
     const runner = session.getRunner();
@@ -1051,6 +1064,7 @@ export class TaskExecutor {
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
+      { referenceImages: multimodalPrompt?.images },
     );
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };

@@ -81,7 +81,9 @@ export {
 
 // Dump utilities
 export {
+  createInlineImageResolver,
   restoreImageReferences,
+  restoreReportImageReferences,
   escapeContent,
   unescapeContent,
   parseImageScripts,
@@ -92,7 +94,12 @@ export {
   deriveTaskStatus,
   deriveCaseStatus,
 } from './dump';
-export type { TaskStatusFields, DerivedTaskStatus } from './dump';
+export type {
+  TaskStatusFields,
+  DerivedTaskStatus,
+  RestoredScreenshotReference,
+  StoredImageReferenceResolver,
+} from './dump';
 export {
   getTaskSearchArea,
   getTaskServiceDump,
@@ -123,7 +130,15 @@ export {
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
-export { ScreenshotStore, type ScreenshotRef } from './dump/screenshot-store';
+export type {
+  ImageUrlRef,
+  ScreenshotRef,
+  StoredImageRef,
+} from './dump/image-reference';
+export {
+  ReportImageStore,
+  ScreenshotStore,
+} from './dump/screenshot-store';
 
 export {
   executionToMarkdown,

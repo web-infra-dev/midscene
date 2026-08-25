@@ -8,6 +8,8 @@
  * must be shrinkable for the timeline to own the remaining scrollable space.
  */
 .chrome-extension-playground {
+  --midscene-timeline-connector: rgba(31, 35, 41, 0.2);
+
   height: 100%;
   min-height: 0;
   flex: 1 1 auto;
@@ -212,10 +214,11 @@
     .clear-button-container {
       position: absolute;
       top: 16px;
-      right: 8px;
+      right: 12px;
       z-index: 20;
 
       .clear-button {
+        box-sizing: border-box;
         width: 32px;
         height: 32px;
         border: 1px solid var(--midscene-border-strong, rgba(0, 0, 0, 0.08));
@@ -232,37 +235,20 @@
     }
 
     // The clear control occupies the timeline's right edge. Reserve its
-    // 32px hit area plus an 8px gap so a right-aligned user bubble never
-    // sits underneath it.
+    // 32px hit area plus the 12px edge inset and an 8px content gap so a
+    // right-aligned user bubble never sits underneath it.
     .user-message-container {
       box-sizing: border-box;
-      padding-right: 40px;
-    }
-
-    .middle-dialog-area .info-list-container {
-      .list-item:has(.progress-row) > div:has(> .progress-row) {
-        position: relative;
-      }
-
-      .list-item:has(.progress-row) > div:has(> .progress-row)::after {
-        position: absolute;
-        top: 30px;
-        bottom: 0;
-        left: 8px;
-        width: 1px;
-        background: var(--extension-timeline-connector, #d9d9d9);
-        content: '';
-      }
-
-      .list-item:has(.progress-row-last) > div:has(> .progress-row)::after {
-        display: none;
-      }
+      padding-right: 52px;
     }
   }
 }
 
 [data-theme='dark'] .chrome-extension-playground {
-  --extension-timeline-connector: #8c8c8c;
+  // The shared conversation skin owns connector geometry. The extension only
+  // supplies its dark-theme color so a second pseudo-element cannot obscure
+  // the high-contrast line.
+  --midscene-timeline-connector: #d9d9d9;
 
   // Ant Design assigns `rgba(0, 0, 0, 0.88)` directly to list items. That
   // bypasses the playground root's dark foreground token and makes any
@@ -274,14 +260,6 @@
     .ant-list
     .ant-list-item {
     color: var(--midscene-text-primary);
-  }
-
-  // Keep the execution connector high contrast even if a shared playground
-  // skin supplies a darker background declaration later in the cascade.
-  .chrome-extension-execution-timeline-skin
-    .list-item:has(.progress-row)
-    > div:has(> .progress-row)::after {
-    background-color: #8c8c8c !important;
   }
 
   .system-message-header .system-message-title {

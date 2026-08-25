@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type StoredImageRef,
+  createInlineImageResolver,
   escapeContent,
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -7,6 +9,7 @@ import {
   parseDumpScriptAttributes,
   parseImageScripts,
   restoreImageReferences,
+  restoreReportImageReferences,
   unescapeContent,
 } from '../../src/dump';
 
@@ -97,11 +100,11 @@ describe('dump/screenshot-restoration', () => {
     img1: 'data:image/png;base64,abc123',
     img2: 'data:image/png;base64,def456',
   };
-  const resolver = (ref: { id: string }) => imageMap[ref.id] ?? '';
+  const resolver = createInlineImageResolver(imageMap);
   const restoreForTest = (
     data: unknown,
-    resolveImage: (ref: { id: string }) => string = resolver,
-  ) => restoreImageReferences(data, resolveImage as any) as any;
+    resolveImage: (ref: StoredImageRef) => string = resolver,
+  ) => restoreImageReferences(data, resolveImage) as any;
 
   describe('restoreImageReferences', () => {
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
@@ -117,6 +120,94 @@ describe('dump/screenshot-restoration', () => {
       const result = restoreForTest(data);
       // Lazy getter: accessing .base64 triggers resolution
       expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
+    });
+
+    it('should restore reference-image URL refs directly to strings', () => {
+      const data = {
+        image: {
+          url: {
+            type: 'midscene_image_url_ref',
+            id: 'img1',
+            mimeType: 'image/png',
+            storage: 'inline',
+          },
+        },
+      };
+
+      const result = restoreForTest(data);
+      expect(result.image.url).toBe('data:image/png;base64,abc123');
+    });
+
+    it('should use the same resolver for both stored image reference types', () => {
+      const resolvedTypes: StoredImageRef['type'][] = [];
+      const data = {
+        screenshot: {
+          type: 'midscene_screenshot_ref',
+          id: 'img1',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
+        },
+        imageUrl: {
+          type: 'midscene_image_url_ref',
+          id: 'img2',
+          mimeType: 'image/png',
+          storage: 'inline',
+        },
+      };
+
+      const result = restoreForTest(data, (ref) => {
+        resolvedTypes.push(ref.type);
+        return imageMap[ref.id];
+      });
+      expect(result.imageUrl).toBe('data:image/png;base64,def456');
+      expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
+      expect(resolvedTypes).toEqual([
+        'midscene_image_url_ref',
+        'midscene_screenshot_ref',
+      ]);
+    });
+
+    it('should throw when an inline report image is missing', () => {
+      const missingImageResolver = createInlineImageResolver({});
+      expect(() =>
+        missingImageResolver({
+          type: 'midscene_image_url_ref',
+          id: 'missing-image',
+          mimeType: 'image/webp',
+          storage: 'inline',
+        }),
+      ).toThrow('Missing inline report image "missing-image"');
+    });
+
+    it('should restore report image URLs from serialized paths and MIME types', () => {
+      const data = {
+        screenshot: {
+          type: 'midscene_screenshot_ref',
+          id: 'shot-1',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'file',
+          path: './custom/shot-1.png',
+        },
+        referenceImage: {
+          type: 'midscene_image_url_ref',
+          id: 'reference-webp',
+          mimeType: 'image/webp',
+          storage: 'inline',
+        },
+      };
+
+      const restored = restoreReportImageReferences(
+        data,
+        'https://example.com/reports/run/',
+      ) as any;
+      expect(restored.screenshot.base64).toBe(
+        'https://example.com/reports/run/custom/shot-1.png',
+      );
+      expect(restored.referenceImage).toBe(
+        'https://example.com/reports/run/screenshots/reference-webp.webp',
+      );
     });
 
     it('should handle nested objects', () => {
@@ -161,7 +252,7 @@ describe('dump/screenshot-restoration', () => {
       expect(result[1].base64).toBe('data:image/png;base64,def456');
     });
 
-    it('should use resolver return value for unknown IDs', () => {
+    it('should throw lazily for unknown screenshot IDs', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
@@ -172,8 +263,9 @@ describe('dump/screenshot-restoration', () => {
         },
       };
       const result = restoreForTest(data);
-      // Default resolver returns '' for IDs not in imageMap
-      expect(result.screenshot.base64).toBe('');
+      expect(() => result.screenshot.base64).toThrow(
+        'Missing inline report image "uuid-not-in-map"',
+      );
     });
 
     it('should support directory-path fallback via resolver', () => {
