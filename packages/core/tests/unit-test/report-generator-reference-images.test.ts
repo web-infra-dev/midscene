@@ -30,25 +30,28 @@ function createPlanningExecutionWithReferenceImage(options: {
   taskCount: number;
   id: string;
 }): ExecutionDump {
-  return new ExecutionDump({
-    id: options.id,
-    logTime: Date.now(),
-    name: 'reference-image-dedup',
-    tasks: Array.from({ length: options.taskCount }, (_, index) => ({
-      taskId: `planning-${index}`,
-      type: 'Planning' as const,
-      subType: 'Plan',
-      param: {
-        userInstruction: {
-          prompt: 'Compare the current screen with the reference image',
-          images: [{ name: 'reference', url: options.referenceImage }],
+  return new ExecutionDump(
+    {
+      id: options.id,
+      logTime: Date.now(),
+      name: 'reference-image-dedup',
+      tasks: Array.from({ length: options.taskCount }, (_, index) => ({
+        taskId: `planning-${index}`,
+        type: 'Planning' as const,
+        subType: 'Plan',
+        param: {
+          userInstruction: {
+            prompt: 'Compare the current screen with the reference image',
+            images: [{ name: 'reference', url: options.referenceImage }],
+          },
         },
-      },
-      executor: async () => undefined,
-      recorder: [],
-      status: 'finished' as const,
-    })),
-  });
+        executor: async () => undefined,
+        recorder: [],
+        status: 'finished' as const,
+      })),
+    },
+    { referenceImageUrls: [options.referenceImage] },
+  );
 }
 
 type SerializedReferenceImageRef = {
@@ -144,7 +147,6 @@ describe('ReportGenerator reference images', () => {
     const restored = restoreImageReferences(
       dump,
       (ref) => imageMap[ref.id],
-      (ref) => imageMap[ref.id],
     ) as RestoredReferenceImageDump;
     expect(
       restored.executions[0].tasks.every(
@@ -180,25 +182,28 @@ describe('ReportGenerator reference images', () => {
         throw new Error('Page internals must remain opaque');
       },
     });
-    const execution = new ExecutionDump({
-      id: 'descriptor-scope',
-      logTime: Date.now(),
-      name: 'descriptor-scope',
-      tasks: [
-        {
-          taskId: 'action-with-images',
-          type: 'Action Space',
-          param: {
-            images: [sharedDescriptor],
-            unrelatedLink: sharedDescriptor,
-            page,
+    const execution = new ExecutionDump(
+      {
+        id: 'descriptor-scope',
+        logTime: Date.now(),
+        name: 'descriptor-scope',
+        tasks: [
+          {
+            taskId: 'action-with-images',
+            type: 'Action Space',
+            param: {
+              images: [sharedDescriptor],
+              unrelatedLink: sharedDescriptor,
+              page,
+            },
+            executor: async () => undefined,
+            recorder: [],
+            status: 'finished',
           },
-          executor: async () => undefined,
-          recorder: [],
-          status: 'finished',
-        },
-      ],
-    });
+        ],
+      },
+      { referenceImageUrls: [referenceImage] },
+    );
 
     generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.finalize();

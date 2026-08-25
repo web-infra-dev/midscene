@@ -380,7 +380,7 @@ export class ReportGenerator implements IReportGenerator {
     execution: ExecutionDump,
   ): Promise<Map<string, ImageUrlRef>> {
     const refs = new Map<string, ImageUrlRef>();
-    for (const imageUrl of execution.collectReferenceImageUrls()) {
+    for (const imageUrl of execution.getReferenceImageUrls()) {
       const ref = await this.screenshotStore.persistReferenceImage(imageUrl);
       refs.set(imageUrl, ref);
     }

@@ -104,7 +104,7 @@ describe('dump/screenshot-restoration', () => {
   const restoreForTest = (
     data: unknown,
     resolveImage: (ref: StoredImageRef) => string = resolver,
-  ) => restoreImageReferences(data, resolveImage, resolveImage) as any;
+  ) => restoreImageReferences(data, resolveImage) as any;
 
   describe('restoreImageReferences', () => {
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
@@ -138,21 +138,34 @@ describe('dump/screenshot-restoration', () => {
       expect(result.image.url).toBe('data:image/png;base64,abc123');
     });
 
-    it('should require an explicit resolver for reference-image URL refs', () => {
+    it('should use the same resolver for both stored image reference types', () => {
+      const resolvedTypes: StoredImageRef['type'][] = [];
       const data = {
-        image: {
-          url: {
-            type: 'midscene_image_url_ref',
-            id: 'img1',
-            mimeType: 'image/png',
-            storage: 'inline',
-          },
+        screenshot: {
+          type: 'midscene_screenshot_ref',
+          id: 'img1',
+          capturedAt: 1,
+          mimeType: 'image/png',
+          storage: 'inline',
+        },
+        imageUrl: {
+          type: 'midscene_image_url_ref',
+          id: 'img2',
+          mimeType: 'image/png',
+          storage: 'inline',
         },
       };
 
-      expect(() => restoreImageReferences(data, resolver)).toThrow(
-        'A reference-image resolver is required',
-      );
+      const result = restoreForTest(data, (ref) => {
+        resolvedTypes.push(ref.type);
+        return imageMap[ref.id];
+      });
+      expect(result.imageUrl).toBe('data:image/png;base64,def456');
+      expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
+      expect(resolvedTypes).toEqual([
+        'midscene_image_url_ref',
+        'midscene_screenshot_ref',
+      ]);
     });
 
     it('should throw when an inline report image is missing', () => {

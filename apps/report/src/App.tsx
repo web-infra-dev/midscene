@@ -588,7 +588,6 @@ export function App() {
               const restored = restoreImageReferences(
                 parsed,
                 resolveImageFromDom,
-                resolveImageFromDom,
               ) as IReportActionDump;
               const dump = GroupedActionDump.fromJSON(restored);
               if (!baseDump) {

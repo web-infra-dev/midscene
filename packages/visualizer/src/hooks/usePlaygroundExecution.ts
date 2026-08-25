@@ -120,7 +120,6 @@ function replayInfoFromReportHTML(reportHTML: string, deviceType?: string) {
     const dump = restoreImageReferences(
       JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
       resolveInlineImage,
-      resolveInlineImage,
     ) as IReportActionDump;
     return replayInfoFromDump(dump, deviceType);
   } catch (error) {

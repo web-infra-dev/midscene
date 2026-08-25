@@ -98,6 +98,7 @@ export type {
   TaskStatusFields,
   DerivedTaskStatus,
   RestoredScreenshotReference,
+  StoredImageReferenceResolver,
 } from './dump';
 export {
   getTaskSearchArea,

@@ -203,6 +203,21 @@ describe(
       expect(initRunner.latestErrorTask()).toBeFalsy();
     });
 
+    it('carries explicitly registered reference images into dump sidecar metadata', () => {
+      const referenceImage = 'data:image/webp;base64,dGVzdA==';
+      const runner = new TaskRunner('reference-images', fakeUIContextBuilder, {
+        referenceImages: [
+          { url: referenceImage },
+          { url: referenceImage },
+          { url: 'https://example.com/reference.webp' },
+        ],
+      });
+
+      const dump = runner.dump();
+      expect(dump.getReferenceImageUrls()).toEqual([referenceImage]);
+      expect(dump.serialize()).not.toContain('referenceImageUrls');
+    });
+
     it('insight - run with error', async () => {
       const runner = new TaskRunner('test', fakeUIContextBuilder, {
         tasks: [insightFindTask(true), insightFindTask()],

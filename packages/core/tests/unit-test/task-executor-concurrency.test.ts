@@ -163,6 +163,31 @@ describe('TaskExecutor concurrency isolation', () => {
     },
   );
 
+  it('registers aiAct reference images when the execution is created', async () => {
+    vi.mocked(standardPlan).mockResolvedValue({
+      actions: [],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: '',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'done',
+    });
+
+    const result = await taskExecutor.action(
+      {
+        prompt: 'compare with the reference image',
+        images: [{ name: 'reference', url: validBase64Image }],
+      },
+      planningModel(),
+      defaultModel(),
+    );
+
+    expect(result.runner.dump().getReferenceImageUrls()).toEqual([
+      validBase64Image,
+    ]);
+  });
+
   it('should isolate conversation history between concurrent action calls', async () => {
     const waitForBothCalls = createDeferred();
     const releasePlans = createDeferred();

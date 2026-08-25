@@ -8,7 +8,10 @@ export {
   restoreImageReferences,
   restoreReportImageReferences,
 } from './screenshot-restoration';
-export type { RestoredScreenshotReference } from './screenshot-restoration';
+export type {
+  RestoredScreenshotReference,
+  StoredImageReferenceResolver,
+} from './screenshot-restoration';
 export type {
   ImageUrlRef,
   ScreenshotRef,

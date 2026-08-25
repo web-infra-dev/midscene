@@ -176,14 +176,21 @@ export class ExecutionDump implements IExecutionDump {
   description?: string;
   tasks: ExecutionTask[];
   aiActContext?: string;
+  private readonly referenceImageUrls: readonly string[];
 
-  constructor(data: IExecutionDump) {
+  constructor(
+    data: IExecutionDump,
+    options?: { referenceImageUrls?: readonly string[] },
+  ) {
     this.id = data.id;
     this.logTime = data.logTime;
     this.name = data.name;
     this.description = data.description;
     this.tasks = data.tasks;
     this.aiActContext = data.aiActContext;
+    this.referenceImageUrls = Array.from(
+      new Set((options?.referenceImageUrls ?? []).filter(isBase64ImageDataUrl)),
+    );
   }
 
   /**
@@ -257,47 +264,11 @@ export class ExecutionDump implements IExecutionDump {
   }
 
   /**
-   * Collect unique multimodal prompt image data URLs.
-   * Traversal is cycle-safe and does not inspect opaque runtime objects.
-   *
-   * @returns Unique image URLs in first-seen order.
+   * Return persistable base64 reference-image URLs explicitly registered while
+   * building this execution. This sidecar is excluded from serialized dumps.
    */
-  collectReferenceImageUrls(): string[] {
-    const referenceImageUrls = new Set<string>();
-    const visited = new WeakSet<object>();
-
-    const visit = (value: unknown): void => {
-      if (Array.isArray(value)) {
-        for (const item of value) visit(item);
-        return;
-      }
-      if (typeof value !== 'object' || value === null || visited.has(value)) {
-        return;
-      }
-      visited.add(value);
-
-      if (
-        getPageOrBrowserObjectName(value) ||
-        isCustomSerializableObject(value) ||
-        !isPlainRecord(value)
-      ) {
-        return;
-      }
-
-      if (Array.isArray(value.images)) {
-        for (const image of value.images) {
-          if (!isReferenceImageDescriptor(image)) continue;
-          if (isBase64ImageDataUrl(image.url)) {
-            referenceImageUrls.add(image.url);
-          }
-        }
-      }
-
-      for (const nestedValue of Object.values(value)) visit(nestedValue);
-    };
-
-    for (const task of this.tasks) visit(task.param);
-    return Array.from(referenceImageUrls);
+  getReferenceImageUrls(): readonly string[] {
+    return [...this.referenceImageUrls];
   }
 }
 
@@ -335,7 +306,7 @@ export class ReportActionDump implements IReportActionDump {
    * Serialize a report dump while replacing persisted multimodal prompt image
    * URLs with their compact report asset references.
    *
-   * @param referenceImageRefs Maps exact prompt descriptors to stored assets.
+   * @param referenceImageRefsByUrl Maps registered prompt image URLs to assets.
    * @param indents Optional JSON indentation.
    * @returns The serialized report dump.
    */
@@ -474,11 +445,7 @@ export class ReportActionDump implements IReportActionDump {
     });
     const resolveImage = (ref: Parameters<typeof imageStore.loadDataUri>[0]) =>
       imageStore.loadDataUri(ref);
-    const processedData = restoreImageReferences(
-      dumpData,
-      resolveImage,
-      resolveImage,
-    );
+    const processedData = restoreImageReferences(dumpData, resolveImage);
     return JSON.stringify(processedData);
   }
 

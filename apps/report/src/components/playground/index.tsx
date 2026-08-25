@@ -68,7 +68,6 @@ function dumpFromReportHTML(reportHTML: string): IReportActionDump {
   return restoreImageReferences(
     JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
     resolveInlineImage,
-    resolveInlineImage,
   ) as IReportActionDump;
 }
 

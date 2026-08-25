@@ -1,5 +1,4 @@
 import {
-  type ImageUrlRef,
   type ScreenshotRef,
   type StoredImageRef,
   normalizeImageUrlRef,
@@ -7,8 +6,7 @@ import {
   reportImageAssetPath,
 } from './image-reference';
 
-export type ScreenshotReferenceResolver = (ref: ScreenshotRef) => string;
-export type ImageUrlReferenceResolver = (ref: ImageUrlRef) => string;
+export type StoredImageReferenceResolver = (ref: StoredImageRef) => string;
 
 export interface RestoredScreenshotReference {
   readonly base64: string;
@@ -19,7 +17,7 @@ export interface RestoredScreenshotReference {
 /** Create a resolver that fails loudly when an inline report asset is absent. */
 export function createInlineImageResolver(
   images: Readonly<Record<string, string>>,
-): (ref: StoredImageRef) => string {
+): StoredImageReferenceResolver {
   return (ref) => {
     const image = images[ref.id];
     if (!image) {
@@ -37,28 +35,20 @@ export function createInlineImageResolver(
  */
 export function restoreImageReferences(
   data: unknown,
-  resolveScreenshot: ScreenshotReferenceResolver,
-  resolveImageUrl?: ImageUrlReferenceResolver,
+  resolveImage: StoredImageReferenceResolver,
 ): unknown {
   if (typeof data === 'string') {
     return data;
   }
 
   if (Array.isArray(data)) {
-    return data.map((item) =>
-      restoreImageReferences(item, resolveScreenshot, resolveImageUrl),
-    );
+    return data.map((item) => restoreImageReferences(item, resolveImage));
   }
 
   if (typeof data === 'object' && data !== null) {
     const imageUrlRef = normalizeImageUrlRef(data);
     if (imageUrlRef) {
-      if (!resolveImageUrl) {
-        throw new Error(
-          `A reference-image resolver is required for report image "${imageUrlRef.id}"`,
-        );
-      }
-      return resolveImageUrl(imageUrlRef);
+      return resolveImage(imageUrlRef);
     }
 
     const refLike = normalizeScreenshotRef(data);
@@ -70,7 +60,7 @@ export function restoreImageReferences(
           base64: {
             get() {
               if (resolved === null) {
-                resolved = resolveScreenshot(refLike);
+                resolved = resolveImage(refLike);
               }
               return resolved;
             },
@@ -85,11 +75,7 @@ export function restoreImageReferences(
 
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      result[key] = restoreImageReferences(
-        value,
-        resolveScreenshot,
-        resolveImageUrl,
-      );
+      result[key] = restoreImageReferences(value, resolveImage);
     }
     return result;
   }
@@ -109,5 +95,5 @@ export function restoreReportImageReferences(
   const resolveReportImage = (ref: StoredImageRef): string => {
     return new URL(reportImageAssetPath(ref), reportUrl).toString();
   };
-  return restoreImageReferences(data, resolveReportImage, resolveReportImage);
+  return restoreImageReferences(data, resolveReportImage);
 }

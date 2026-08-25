@@ -98,11 +98,15 @@ describe('ExecutionDump', () => {
     });
   });
 
-  describe('collectReferenceImageUrls', () => {
-    it('should not inspect opaque runtime objects with enumerable getters', () => {
+  describe('reference image registration', () => {
+    it('uses explicit sidecar metadata without inspecting task parameters', () => {
       const referenceImage = {
         name: 'reference',
         url: 'data:image/webp;base64,dGVzdA==',
+      };
+      const unregisteredImage = {
+        name: 'unregistered',
+        url: 'data:image/png;base64,dW5yZWdpc3RlcmVk',
       };
       const page = { constructor: { name: 'Page' } } as Record<string, unknown>;
       Object.defineProperty(page, 'internalState', {
@@ -112,24 +116,37 @@ describe('ExecutionDump', () => {
         },
       });
 
-      const dump = new ExecutionDump({
-        logTime: 1234567890,
-        name: 'Opaque runtime object',
-        tasks: [
-          {
-            type: 'Action',
-            status: 'finished',
-            param: {
-              images: [referenceImage],
-              page,
-            },
-            executor: async () => {},
-          } as any,
-        ],
-      });
+      const dump = new ExecutionDump(
+        {
+          logTime: 1234567890,
+          name: 'Opaque runtime object',
+          tasks: [
+            {
+              type: 'Action',
+              status: 'finished',
+              param: {
+                images: [referenceImage],
+                nested: { images: [unregisteredImage] },
+                page,
+              },
+              executor: async () => {},
+            } as any,
+          ],
+        },
+        {
+          referenceImageUrls: [
+            referenceImage.url,
+            referenceImage.url,
+            'https://example.com/reference.webp',
+          ],
+        },
+      );
 
-      expect(dump.collectReferenceImageUrls()).toEqual([referenceImage.url]);
-      expect(() => dump.serialize()).not.toThrow();
+      expect(dump.getReferenceImageUrls()).toEqual([referenceImage.url]);
+      expect(dump.getReferenceImageUrls()).not.toContain(unregisteredImage.url);
+      const serialized = dump.serialize();
+      expect(serialized).not.toContain('referenceImageUrls');
+      expect(() => JSON.parse(serialized)).not.toThrow();
     });
   });
 
