@@ -520,6 +520,27 @@
       flex: 0 0 16px;
     }
 
+    // Join every non-final progress icon to the next row. The connector lives
+    // on the list item so its height follows multi-line descriptions instead
+    // of collapsing to the 16px icon box.
+    .list-item:has(.progress-row:not(.progress-row-last))::after {
+      position: absolute;
+      z-index: 0;
+      top: 23px;
+      bottom: -15px;
+      left: 7px;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--midscene-timeline-connector, rgba(31, 35, 41, 0.2));
+      content: '';
+      pointer-events: none;
+    }
+
+    .progress-status-icon {
+      position: relative;
+      z-index: 1;
+    }
+
     // Description wrapper: the visualiser renders descriptions inside an
     // unclassed `<div>` right after the action span. Switch it to inline
     // so the description text joins the action text on the same line and
@@ -598,6 +619,10 @@
 
     .progress-description {
       color: var(--midscene-text-primary);
+    }
+
+    .list-item:has(.progress-row:not(.progress-row-last))::after {
+      background: var(--midscene-timeline-connector, rgba(255, 255, 255, 0.42));
     }
   }
 

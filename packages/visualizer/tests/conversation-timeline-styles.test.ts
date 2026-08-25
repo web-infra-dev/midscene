@@ -87,6 +87,15 @@ describe('conversation timeline styles', () => {
     );
   });
 
+  it('draws a high-contrast connector between non-final progress rows', () => {
+    expect(styles).toMatch(
+      /\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?top:\s*23px;[\s\S]*?bottom:\s*-15px;[\s\S]*?width:\s*2px;/,
+    );
+    expect(styles).toMatch(
+      /\[data-theme='dark'\] \.playground-container\.playground-conversation-skin[\s\S]*?\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?rgba\(255, 255, 255, 0\.42\)/,
+    );
+  });
+
   it('keeps the prompt composer and timeline as separate layout regions', () => {
     expect(universalPlayground).toContain(
       '<div className="playground-timeline-region">',
