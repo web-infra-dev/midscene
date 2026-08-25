@@ -25,6 +25,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      // Tests must not require a prior package build: route the conditional
+      // '#proxy-deps' subpath import to the Node source implementation.
+      '#proxy-deps': path.resolve(
+        __dirname,
+        'src/ai-model/service-caller/proxy-deps.node.ts',
+      ),
     },
   },
   source: {
