@@ -89,8 +89,8 @@ export function WhoIsUsing() {
       kind: 'logo',
       name: 'AVATR',
       url: 'https://www.avatr.com',
-      logo: '/avatr.png',
-      logoWidth: 140,
+      logo: '/images/users/avatr-wordmark.svg',
+      logoWidth: 76,
     },
     {
       kind: 'iconText',
