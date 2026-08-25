@@ -57,7 +57,7 @@ and more`,
     'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
   modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
   modelDeepSeekDesc:
-    'Integrated visual understanding and reasoning for complex UI tasks.',
+    'Extremely fast visual grounding, but less reliable on complex interfaces.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
     'Pair a planning model with a vision model to raise task completion rates.',
