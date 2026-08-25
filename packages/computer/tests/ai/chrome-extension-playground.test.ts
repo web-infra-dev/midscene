@@ -15,6 +15,7 @@ import {
   findPageTargetByUrlPrefix,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
@@ -56,12 +57,7 @@ describe('chrome extension playground advanced tests', () => {
   }
 
   it('open side panel and configure', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
+    await openExtensionSidePanel(agent);
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
     );

@@ -20,6 +20,7 @@ import {
   injectBridgePermission,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
@@ -162,13 +163,7 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     'open side panel and switch to Bridge Mode',
     { timeout: 20 * 60 * 1000, retry: 0 },
     async () => {
-      await agent.aiAct(
-        'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-      );
-      await sleep(1000);
-
-      await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-      await sleep(3000);
+      await openExtensionSidePanel(agent);
 
       await agent.aiAssert(
         'The browser shows a side panel on the right side containing Midscene or Playground UI',

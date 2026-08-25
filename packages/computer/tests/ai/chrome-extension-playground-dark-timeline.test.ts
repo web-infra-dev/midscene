@@ -14,6 +14,7 @@ import {
   findPageTargetByUrlPrefix,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
@@ -53,16 +54,10 @@ describe('chrome extension dark Playground timeline', () => {
     await sleep(1500);
   }
 
-  // Opening Chrome's extension menu is model-driven and can take several
-  // minutes on a cold CI runner. Keep setup separate so the Bing execution
-  // and visual assertion receive their own test timeout budget.
+  // Keep setup separate so the Bing execution and visual assertion receive
+  // their own test timeout budget.
   it('opens the dark side panel and configures the extension', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
+    await openExtensionSidePanel(agent);
     await agent.aiAssert(
       'The browser shows a dark side panel on the right side containing Midscene Playground UI, and the Bing page is still visible on the left',
     );
