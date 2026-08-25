@@ -2,9 +2,9 @@ import {
   AgentOverChromeBridge,
   getBridgePageInCliSide,
 } from '@/bridge-mode/agent-cli-side';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -12,8 +12,8 @@ import {
   saveBase64Image,
 } from '@midscene/shared/img';
 import { getElementInfosScriptContent } from '@midscene/shared/node';
+import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
 import { createServer } from 'http-server';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');

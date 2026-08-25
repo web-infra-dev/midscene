@@ -3,11 +3,11 @@ import { PuppeteerAgent } from '@/puppeteer';
 import { TaskCache } from '@midscene/core/agent';
 import { sleep } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import yaml from 'js-yaml';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 3 * 60 * 1000,
 });
 
@@ -368,8 +368,8 @@ describe('Cache Operation Tests', () => {
     agent1 = new PuppeteerAgent(originPage, {
       cache: { id: cacheId },
     });
-    const firstActionSpy = vi.spyOn((agent1 as any).taskExecutor, 'action');
-    const firstLoadPlanningSpy = vi.spyOn(
+    const firstActionSpy = rs.spyOn((agent1 as any).taskExecutor, 'action');
+    const firstLoadPlanningSpy = rs.spyOn(
       (agent1 as any).taskExecutor,
       'loadYamlFlowAsPlanning',
     );
@@ -408,8 +408,8 @@ describe('Cache Operation Tests', () => {
     agent2 = new PuppeteerAgent(originPage, {
       cache: { id: cacheId },
     });
-    const secondActionSpy = vi.spyOn((agent2 as any).taskExecutor, 'action');
-    const secondLoadPlanningSpy = vi.spyOn(
+    const secondActionSpy = rs.spyOn((agent2 as any).taskExecutor, 'action');
+    const secondLoadPlanningSpy = rs.spyOn(
       (agent2 as any).taskExecutor,
       'loadYamlFlowAsPlanning',
     );

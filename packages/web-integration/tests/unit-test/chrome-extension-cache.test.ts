@@ -1,24 +1,24 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock chrome API
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   tabs: {
-    update: vi.fn(),
+    update: rs.fn(),
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
-    sendCommand: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
+    sendCommand: rs.fn(),
   },
 });
 
 // Mock dependencies
-vi.mock('@midscene/core/ai-model', () => ({
-  AiJudgeOrderSensitive: vi.fn(),
+rs.mock('@midscene/core/ai-model', () => ({
+  AiJudgeOrderSensitive: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
 import { AiJudgeOrderSensitive } from '@midscene/core/ai-model';
@@ -28,18 +28,18 @@ describe('ChromeExtensionProxyPage cache methods', () => {
   let page: ChromeExtensionProxyPage;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     page = new ChromeExtensionProxyPage(false);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('cacheFeatureForPoint', () => {
     it('should return xpaths for a valid point', async () => {
       const mockXpaths = ['/html/body/div[1]', '/html/body/div[1]/button[1]'];
-      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
+      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
 
       const result = await page.cacheFeatureForPoint([100, 200]);
 
@@ -59,7 +59,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
         123,
         '/another/valid',
       ];
-      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths as any);
+      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths as any);
 
       const result = await page.cacheFeatureForPoint([50, 50]);
 
@@ -67,7 +67,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should return empty xpaths when getXpathsByPoint fails', async () => {
-      vi.spyOn(page, 'getXpathsByPoint').mockRejectedValue(
+      rs.spyOn(page, 'getXpathsByPoint').mockRejectedValue(
         new Error('CDP error'),
       );
 
@@ -78,8 +78,8 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
     it('should call AiJudgeOrderSensitive when targetDescription and modelRuntime are provided', async () => {
       const mockXpaths = ['/html/body/div[1]'];
-      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
-      vi.mocked(AiJudgeOrderSensitive).mockResolvedValue({
+      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
+      rs.mocked(AiJudgeOrderSensitive).mockResolvedValue({
         isOrderSensitive: true,
       });
 
@@ -104,8 +104,8 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
     it('should fall back to isOrderSensitive=false when AiJudgeOrderSensitive fails', async () => {
       const mockXpaths = ['/html/body/div[1]'];
-      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
-      vi.mocked(AiJudgeOrderSensitive).mockRejectedValue(new Error('AI error'));
+      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(mockXpaths);
+      rs.mocked(AiJudgeOrderSensitive).mockRejectedValue(new Error('AI error'));
 
       await page.cacheFeatureForPoint([100, 200], {
         targetDescription: 'Click the submit button',
@@ -122,7 +122,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should handle non-array response from getXpathsByPoint', async () => {
-      vi.spyOn(page, 'getXpathsByPoint').mockResolvedValue(null as any);
+      rs.spyOn(page, 'getXpathsByPoint').mockResolvedValue(null as any);
 
       const result = await page.cacheFeatureForPoint([100, 200]);
 
@@ -135,7 +135,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       const mockElementInfo = {
         rect: { left: 10, top: 20, width: 100, height: 50 },
       };
-      vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue(
+      rs.spyOn(page, 'getElementInfoByXpath').mockResolvedValue(
         mockElementInfo as any,
       );
 
@@ -152,7 +152,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should try multiple xpaths and return first match', async () => {
-      vi.spyOn(page, 'getElementInfoByXpath')
+      rs.spyOn(page, 'getElementInfoByXpath')
         .mockResolvedValueOnce(null as any) // First xpath fails
         .mockResolvedValueOnce({
           rect: { left: 5, top: 10, width: 50, height: 25 },
@@ -172,7 +172,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should throw error when no xpath matches', async () => {
-      vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue(null as any);
+      rs.spyOn(page, 'getElementInfoByXpath').mockResolvedValue(null as any);
 
       await expect(
         page.rectMatchesCacheFeature({
@@ -184,7 +184,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should handle xpath lookup errors gracefully', async () => {
-      vi.spyOn(page, 'getElementInfoByXpath')
+      rs.spyOn(page, 'getElementInfoByXpath')
         .mockRejectedValueOnce(new Error('Lookup error'))
         .mockResolvedValueOnce({
           rect: { left: 1, top: 2, width: 3, height: 4 },
@@ -203,7 +203,7 @@ describe('ChromeExtensionProxyPage cache methods', () => {
     });
 
     it('should filter out invalid xpaths before processing', async () => {
-      vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
+      rs.spyOn(page, 'getElementInfoByXpath').mockResolvedValue({
         rect: { left: 0, top: 0, width: 10, height: 10 },
       } as any);
 

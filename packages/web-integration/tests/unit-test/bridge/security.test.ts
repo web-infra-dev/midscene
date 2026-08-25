@@ -20,8 +20,8 @@ import {
   DefaultBridgeServerHost,
 } from '@/bridge-mode/common';
 import { BridgeServer, killRunningServer } from '@/bridge-mode/io-server';
+import { describe, expect, it } from '@rstest/core';
 import { io as ClientIO } from 'socket.io-client';
-import { describe, expect, it } from 'vitest';
 
 const DEFAULT_HOST = DefaultBridgeServerHost;
 let portCounter = 3456;

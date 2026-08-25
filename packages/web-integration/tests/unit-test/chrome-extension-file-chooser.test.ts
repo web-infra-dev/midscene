@@ -1,21 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockAddListener = vi.fn();
-const mockRemoveListener = vi.fn();
-const mockSendCommand = vi.fn();
+const mockAddListener = rs.fn();
+const mockRemoveListener = rs.fn();
+const mockSendCommand = rs.fn();
 
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   runtime: {
-    getURL: vi.fn((path: string) => path),
+    getURL: rs.fn((path: string) => path),
   },
   tabs: {
-    get: vi.fn(),
-    query: vi.fn(),
-    update: vi.fn(),
+    get: rs.fn(),
+    query: rs.fn(),
+    update: rs.fn(),
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
     sendCommand: mockSendCommand,
     onEvent: {
       addListener: mockAddListener,
@@ -24,14 +24,14 @@ vi.stubGlobal('chrome', {
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
-vi.mock('../../src/chrome-extension/dynamic-scripts', () => ({
-  getHtmlElementScript: vi.fn(async () => ''),
-  injectStopWaterFlowAnimation: vi.fn(async () => ''),
-  injectWaterFlowAnimation: vi.fn(async () => ''),
+rs.mock('../../src/chrome-extension/dynamic-scripts', () => ({
+  getHtmlElementScript: rs.fn(async () => ''),
+  injectStopWaterFlowAnimation: rs.fn(async () => ''),
+  injectWaterFlowAnimation: rs.fn(async () => ''),
 }));
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
@@ -58,12 +58,12 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
     );
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     nodeAttributes = [];
     page = new ChromeExtensionProxyPage(false);
     (page as any).activeTabId = 7;
 
-    vi.mocked(chrome.tabs.get).mockResolvedValue({
+    rs.mocked(chrome.tabs.get).mockResolvedValue({
       id: 7,
       url: 'https://example.com',
       status: 'complete',
@@ -87,7 +87,7 @@ describe('ChromeExtensionProxyPage file chooser support', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('sets accepted files when a file chooser opens', async () => {

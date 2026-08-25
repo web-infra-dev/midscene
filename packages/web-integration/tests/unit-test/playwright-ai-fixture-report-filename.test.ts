@@ -24,14 +24,14 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockState = vi.hoisted(() => ({
+const mockState = rs.hoisted(() => ({
   ctorOpts: [] as any[],
   reportFile: undefined as string | undefined,
 }));
 
-vi.mock('@/playwright/index', () => {
+rs.mock('@/playwright/index', () => {
   class MockPlaywrightAgent {
     reportFile = mockState.reportFile;
 
@@ -50,7 +50,7 @@ import { MAX_PLAYWRIGHT_REPORT_TAG_BYTES } from '@/playwright/report-filename';
 
 const createPage = () =>
   ({
-    on: vi.fn(),
+    on: rs.fn(),
   }) as any;
 
 const runAi = async (testInfo: any) => {

@@ -858,9 +858,6 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
       yargs:
         specifier: 17.7.2
         version: 17.7.2
@@ -1551,6 +1548,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
+      '@rstest/core':
+        specifier: 0.11.5
+        version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
@@ -1590,9 +1590,6 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
-      vitest:
-        specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@29.0.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
 
   packages/webdriver:
     dependencies:

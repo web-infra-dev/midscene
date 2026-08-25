@@ -1,6 +1,6 @@
 import { PuppeteerWebPage } from '@/puppeteer/page';
+import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import puppeteer, { type Browser } from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 /**
  * Regression test for dropped characters when typing in `replace` mode.

@@ -2,7 +2,7 @@ import {
   MAX_PLAYWRIGHT_REPORT_TAG_BYTES,
   buildPlaywrightReportTag,
 } from '@/playwright/report-filename';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('buildPlaywrightReportTag', () => {
   it('truncates Chinese titles by UTF-8 bytes while keeping the tag valid', () => {
