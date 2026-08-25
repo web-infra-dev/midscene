@@ -28,7 +28,22 @@ describe('Chrome Recorder timeline layout', () => {
     );
 
     expect(styles).toMatch(
-      /\.chrome-extension-execution-timeline-skin\s*\{[\s\S]*?\.clear-button-container\s*\{[\s\S]*?right:\s*8px;/,
+      /\.chrome-extension-execution-timeline-skin\s*\{[\s\S]*?\.clear-button-container\s*\{[\s\S]*?right:\s*12px;[\s\S]*?\.clear-button\s*\{[\s\S]*?box-sizing:\s*border-box;/,
     );
+  });
+
+  it('uses the shared timeline connector with a visible dark color', async () => {
+    const styles = await readFile(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        '../src/components/playground/index.less',
+      ),
+      'utf8',
+    );
+
+    expect(styles).toMatch(
+      /\[data-theme='dark'\] \.chrome-extension-playground\s*\{[\s\S]*?--midscene-timeline-connector:\s*#d9d9d9;/,
+    );
+    expect(styles).not.toContain('> div:has(> .progress-row)::after');
   });
 });

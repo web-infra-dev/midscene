@@ -92,7 +92,7 @@ describe('conversation timeline styles', () => {
       /\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?top:\s*23px;[\s\S]*?bottom:\s*-15px;[\s\S]*?width:\s*2px;/,
     );
     expect(styles).toMatch(
-      /\[data-theme='dark'\] \.playground-container\.playground-conversation-skin[\s\S]*?\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?rgba\(255, 255, 255, 0\.42\)/,
+      /\[data-theme='dark'\] \.playground-container\.playground-conversation-skin[\s\S]*?\.list-item:has\(\.progress-row:not\(\.progress-row-last\)\)::after\s*\{[\s\S]*?rgba\(255, 255, 255, 0\.64\)/,
     );
   });
 
