@@ -11,7 +11,6 @@ import {
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
 const SCRCPY_RETRY_COOLDOWN_MS = 5_000;
-const CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE = 4_000_000;
 
 export function formatScrcpyFreshFrameFailure(
   error: ScrcpyFreshFrameUnavailableError,
@@ -29,12 +28,7 @@ export function formatScrcpyFreshFrameFailure(
   const bitRateDescription = Number.isFinite(videoBitRate)
     ? ` Current videoBitRate: ${videoBitRate} bps (${videoBitRate / 1_000_000} Mbps).`
     : '';
-  const networkHint =
-    Number.isFinite(videoBitRate) &&
-    videoBitRate <= CONSTRAINED_LINK_STARTING_VIDEO_BIT_RATE
-      ? 'The current scrcpy video bitrate is already at or below 4 Mbps. Lowering it further is unlikely to help on a local USB connection; check whether the screen was static or the device encoder emitted no new frame.'
-      : 'The appropriate scrcpy video bitrate depends on network conditions. For constrained remote links, pass --scrcpy-video-bit-rate 4000000 in the Android CLI, or set scrcpyConfig.videoBitRate to 4_000_000 (4 Mbps) in SDK/YAML configuration. Lower it further if backlog persists.';
-  return `No usable scrcpy frame crossed the active freshness target within ${timeoutMs}ms. This may indicate transport backlog or a static screen that emitted no new frame. ${networkHint}${bitRateDescription}`;
+  return `No usable scrcpy frame crossed the active freshness target within ${timeoutMs}ms. This can happen when a static screen emits no new encoded frame, or when the video stream or transport is interrupted. This timeout does not by itself identify bandwidth or the configured video bitrate as the cause.${bitRateDescription}`;
 }
 
 interface ScrcpyConfig {
@@ -96,7 +90,10 @@ export class ScrcpyDeviceAdapter {
   private keyframeListeners = new Set<(frame: RawKeyframe) => void>();
   private keyframeUnsubscribers = new Map<
     (frame: RawKeyframe) => void,
-    () => void
+    {
+      manager: ScrcpyScreenshotManager;
+      unsubscribe: () => void;
+    }
   >();
 
   constructor(
@@ -129,8 +126,7 @@ export class ScrcpyDeviceAdapter {
    */
   async initialize(deviceInfo: DevicePhysicalInfo): Promise<void> {
     try {
-      const manager = await this.ensureManager(deviceInfo);
-      await manager.ensureConnected();
+      const manager = await this.ensureConnectedManager(deviceInfo);
       await this.applyPendingActionBarrier(manager);
       this.clearFailure();
     } catch (error) {
@@ -281,18 +277,31 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
+   * Connect the current manager and restore adapter-owned frame subscriptions
+   * whenever this call establishes a new stream epoch. Existing connections
+   * keep their current subscriptions without churn.
+   */
+  private async ensureConnectedManager(
+    deviceInfo: DevicePhysicalInfo,
+  ): Promise<ScrcpyScreenshotManager> {
+    const manager = await this.ensureManager(deviceInfo);
+    const wasConnected = manager.isConnected();
+    await manager.ensureConnected();
+    this.attachKeyframeListeners(manager, !wasConnected);
+    return manager;
+  }
+
+  /**
    * Take a screenshot via scrcpy, returns base64 string.
-   * A stale established stream is restarted once so a static screen can use
-   * the new epoch's baseline frame. Throws only when that retry also fails, so
+   * A stale established stream is restarted once so a static screen can use a
+   * fresh frame from the new epoch. Throws only when that retry also fails, so
    * the caller can fall back to ADB.
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     this.ensureRetryReady();
 
-    let manager: ScrcpyScreenshotManager | null = null;
     try {
-      manager = await this.ensureManager(deviceInfo);
-      await manager.ensureConnected();
+      const manager = await this.ensureConnectedManager(deviceInfo);
       await this.applyPendingActionBarrier(manager);
       const screenshotBuffer = await manager.getScreenshotJpeg();
       this.clearFailure();
@@ -310,13 +319,6 @@ export class ScrcpyDeviceAdapter {
 
       try {
         const screenshotBuffer = await this.restartAndCaptureOnce(deviceInfo);
-        manager = this.manager;
-        if (!manager) {
-          throw new Error(
-            'Scrcpy manager disappeared after freshness recovery',
-          );
-        }
-        this.attachKeyframeListeners(manager);
         this.clearFailure();
         debugAdapter('Scrcpy screenshot recovered on a new stream epoch');
         return this.jpegBufferToBase64(screenshotBuffer);
@@ -337,8 +339,7 @@ export class ScrcpyDeviceAdapter {
 
     const generation = this.lifecycleGeneration;
     const restartPromise = (async () => {
-      const manager = await this.ensureManager(deviceInfo);
-      await manager.ensureConnected();
+      const manager = await this.ensureConnectedManager(deviceInfo);
       await this.applyPendingActionBarrier(manager);
       if (generation !== this.lifecycleGeneration) {
         throw new Error('Scrcpy freshness restart was cancelled by cleanup');
@@ -374,19 +375,19 @@ export class ScrcpyDeviceAdapter {
     this.keyframeListeners.add(listener);
 
     try {
-      const manager = await this.ensureManager(deviceInfo);
-      await manager.ensureConnected();
+      const manager = await this.ensureConnectedManager(deviceInfo);
       await this.applyPendingActionBarrier(manager);
       await manager.ensureFrameClockCalibration();
       this.clearFailure();
-      this.attachKeyframeListener(manager, listener);
       return () => {
         this.keyframeListeners.delete(listener);
-        this.keyframeUnsubscribers.get(listener)?.();
+        this.keyframeUnsubscribers.get(listener)?.unsubscribe();
         this.keyframeUnsubscribers.delete(listener);
       };
     } catch (error) {
       this.keyframeListeners.delete(listener);
+      this.keyframeUnsubscribers.get(listener)?.unsubscribe();
+      this.keyframeUnsubscribers.delete(listener);
       this.recordFailure(error);
       throw error;
     }
@@ -400,18 +401,23 @@ export class ScrcpyDeviceAdapter {
   private attachKeyframeListener(
     manager: ScrcpyScreenshotManager,
     listener: (frame: RawKeyframe) => void,
+    force: boolean,
   ): void {
-    this.keyframeUnsubscribers.get(listener)?.();
-    this.keyframeUnsubscribers.set(
-      listener,
-      manager.subscribeKeyframes(listener),
-    );
+    const existing = this.keyframeUnsubscribers.get(listener);
+    if (!force && existing?.manager === manager) return;
+    existing?.unsubscribe();
+    this.keyframeUnsubscribers.set(listener, {
+      manager,
+      unsubscribe: manager.subscribeKeyframes(listener),
+    });
   }
 
-  private attachKeyframeListeners(manager: ScrcpyScreenshotManager): void {
-    this.keyframeUnsubscribers.clear();
+  private attachKeyframeListeners(
+    manager: ScrcpyScreenshotManager,
+    force: boolean,
+  ): void {
     for (const listener of this.keyframeListeners) {
-      this.attachKeyframeListener(manager, listener);
+      this.attachKeyframeListener(manager, listener, force);
     }
   }
 
@@ -538,7 +544,7 @@ export class ScrcpyDeviceAdapter {
   async disconnect(): Promise<void> {
     this.lifecycleGeneration += 1;
     this.pendingActionBarrierAtHostUs = null;
-    for (const unsubscribe of this.keyframeUnsubscribers.values()) {
+    for (const { unsubscribe } of this.keyframeUnsubscribers.values()) {
       unsubscribe();
     }
     this.keyframeUnsubscribers.clear();

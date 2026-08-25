@@ -82,7 +82,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         .positive()
         .optional()
         .describe(
-          'scrcpy H.264 video bitrate in bits per second; providing this option also enables scrcpy. Default with --use-scrcpy: 100000000 (100 Mbps). For constrained remote links, start with 4000000 (4 Mbps).',
+          'scrcpy H.264 video bitrate in bits per second; providing this option also enables scrcpy. Default with --use-scrcpy: 100000000 (100 Mbps). Changing it trades encoded bandwidth against screenshot detail; tune it only from independent transport measurements, not from a freshness-timeout warning alone.',
         ),
       ...agentBehaviorInitArgShape,
     },

@@ -297,42 +297,22 @@ The default is `auto`, which tries `adb.takeScreenshot` first, falls back to she
 
 ### Why does scrcpy fall back to ADB screenshots?
 
-Midscene rejects scrcpy frames that cannot be proven to have been captured after the latest completed action. A fresh frame can be unavailable for two different reasons:
+Midscene rejects scrcpy frames that cannot be proven to have been captured after the latest completed action and that do not satisfy the absolute frame-age limit. If an established stream cannot provide a valid frame, Midscene restarts scrcpy once. It falls back to an ADB screenshot only if the new stream also fails.
 
-- A bandwidth-constrained remote connection can build up a transport backlog, especially with the default 100 Mbps video bitrate.
-- Some Android encoders stop emitting frames while the screen is static. This can also happen over a healthy local USB connection and is not evidence that the bitrate is too high.
+This can happen when an Android encoder stops emitting frames on a static screen, or when stream startup or transport is interrupted. The freshness warning alone does not diagnose link bandwidth or an excessive video bitrate. Do not change the bitrate solely because this warning appears.
 
-When an established stream does not produce a fresh frame, Midscene restarts scrcpy once and uses the new stream epoch's first frame. It falls back to an ADB screenshot only if that restart also fails.
+### How do I configure the scrcpy video bitrate?
 
-For a constrained remote connection, start with a 4 Mbps video bitrate. Android CLI commands are independent processes, so pass the option to every command that should use this bitrate:
+Use `--scrcpy-video-bit-rate <bits-per-second>` (or `--scrcpyVideoBitRate`) on an Android CLI command. Providing this option enables scrcpy, so `--use-scrcpy` is optional when the bitrate option is present:
 
 ```bash
 midscene-android tap \
   --device-id <device-id> \
   --locate '{"prompt":"the target"}' \
-  --use-scrcpy \
-  --scrcpy-video-bit-rate 4000000
+  --scrcpy-video-bit-rate <bits-per-second>
 ```
 
-The camel-case alias `--scrcpyVideoBitRate` is also accepted. The bitrate option enables scrcpy by itself, so `--use-scrcpy` may be omitted when it is present. The value is in bits per second. Lowering it further may help only when the remote transport is actually congested. If a local USB device still reports no fresh frames at 4 Mbps or less, keep the bitrate and investigate static-screen encoder behavior or stream startup instead. Raising the bitrate can preserve more image detail when the connection has enough bandwidth.
-
-For the JavaScript SDK or YAML configuration, set the equivalent `scrcpyConfig.videoBitRate` option:
-
-```typescript
-const device = new AndroidDevice('device-id', {
-  scrcpyConfig: {
-    enabled: true,
-    videoBitRate: 4_000_000,
-  },
-});
-```
-
-```yaml
-android:
-  scrcpyConfig:
-    enabled: true
-    videoBitRate: 4000000
-```
+Each CLI command is a separate process, so pass the option to every command that should override the default. For the JavaScript SDK or YAML, set `scrcpyConfig.videoBitRate` once on that device configuration. Changing the bitrate trades encoded bandwidth against screenshot detail. Tune it only when independent transport measurements show a need, then validate screenshot and recognition quality. See the [`AndroidDevice` scrcpy reference](../reference/index.mdx#scrcpy) for the default and related options.
 
 ### How do I use a custom adb path or remote adb server?
 

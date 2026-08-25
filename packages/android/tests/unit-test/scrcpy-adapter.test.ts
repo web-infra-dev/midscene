@@ -527,16 +527,21 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('freshness diagnostics', () => {
-    it('does not recommend lowering an already-low bitrate for a local USB link', () => {
-      const message = formatScrcpyFreshFrameFailure(
-        createFreshnessError('no post-action frame'),
-      );
+    it.each([4_000_000, 100_000_000])(
+      'does not prescribe bitrate changes for a freshness timeout at %i bps',
+      (videoBitRate) => {
+        const message = formatScrcpyFreshFrameFailure(
+          createFreshnessError('no post-action frame', { videoBitRate }),
+        );
 
-      expect(message).toContain(
-        'Lowering it further is unlikely to help on a local USB connection',
-      );
-      expect(message).not.toContain('Lower it further if backlog persists');
-    });
+        expect(message).toContain(
+          'does not by itself identify bandwidth or the configured video bitrate as the cause',
+        );
+        expect(message.toLowerCase()).not.toContain('lower');
+        expect(message).not.toContain('--scrcpy-video-bit-rate');
+        expect(message.toLowerCase()).not.toContain('start with');
+      },
+    );
 
     it('classifies a missing new-epoch frame as a startup failure', () => {
       const message = formatScrcpyFreshFrameFailure(
@@ -547,7 +552,7 @@ describe('ScrcpyDeviceAdapter', () => {
       );
 
       expect(message).toContain('stream startup or encoder-readiness failure');
-      expect(message).not.toContain('Lowering it further');
+      expect(message.toLowerCase()).not.toContain('lower');
     });
   });
 
@@ -644,6 +649,10 @@ describe('ScrcpyDeviceAdapter', () => {
     it('reattaches active frame listeners after in-band stream recovery', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
       const listener = rs.fn();
       const unsubscribe = await adapter.subscribeKeyframes(
         defaultDeviceInfo,
@@ -661,6 +670,41 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledWith(
         listener,
       );
+    });
+
+    it('reattaches active frame listeners after a double freshness failure and cooldown reconnect', async () => {
+      rs.useFakeTimers();
+      rs.setSystemTime(new Date('2026-08-25T00:00:00Z'));
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+      (adapter as any).manager = currentMockManager;
+      currentMockManager.isConnected
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(false);
+      currentMockManager.getScreenshotJpeg
+        .mockRejectedValueOnce(createFreshnessError('stale stream closed'))
+        .mockRejectedValueOnce(createFreshnessError('retry stream closed'));
+      const listener = rs.fn();
+      const unsubscribe = await adapter.subscribeKeyframes(
+        defaultDeviceInfo,
+        listener,
+      );
+
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).rejects.toThrow(
+        'retry stream closed',
+      );
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(2);
+
+      rs.advanceTimersByTime(5_000);
+      await expect(adapter.screenshotBase64(defaultDeviceInfo)).resolves.toBe(
+        'data:image/png;base64,test',
+      );
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenCalledTimes(3);
+      expect(currentMockManager.subscribeKeyframes).toHaveBeenLastCalledWith(
+        listener,
+      );
+      unsubscribe();
     });
   });
 

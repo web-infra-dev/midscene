@@ -276,8 +276,9 @@ describe('Android CLI integration', () => {
     expect(output.join('\n')).toContain('--scrcpy-video-bit-rate');
     expect(output.join('\n')).toContain('--scrcpyVideoBitRate');
     expect(output.join('\n')).toContain(
-      'For constrained remote links, start with 4000000 (4 Mbps)',
+      'tune it only from independent transport measurements',
     );
+    expect(output.join('\n')).not.toContain('start with 4000000 (4 Mbps)');
     expect(output.join('\n')).toContain(
       'high values may reduce recognition quality, especially on mobile',
     );

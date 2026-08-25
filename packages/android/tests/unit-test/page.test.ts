@@ -1255,8 +1255,12 @@ Stdout:
       expect(warn).toHaveBeenCalledWith(
         '[Midscene]',
         expect.stringContaining(
-          'Lowering it further is unlikely to help on a local USB connection',
+          'does not by itself identify bandwidth or the configured video bitrate as the cause',
         ),
+      );
+      expect(warn).not.toHaveBeenCalledWith(
+        '[Midscene]',
+        expect.stringContaining('--scrcpy-video-bit-rate'),
       );
       expect(warn).toHaveBeenCalledTimes(1);
     });

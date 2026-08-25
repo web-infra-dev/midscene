@@ -464,16 +464,16 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).lastRawKeyframePtsUs).toBe(1_200_000n);
     });
 
-    it('uses the first frame of a new stream as its planning baseline even when startup made it over-age', async () => {
+    it('rejects a delayed first frame even while the new-stream startup window is active', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
-      (manager as any).lastRawKeyframe = Buffer.from('initial-static-frame');
+      (manager as any).lastRawKeyframe = Buffer.from('delayed-in-transport');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
-      (manager as any).streamBaselineWindow = {
+      (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
       };
       (manager as any).deviceClockCalibration = {
-        deviceUptimeUs: 2_000_000n,
+        deviceUptimeUs: 5_000_000n,
         hostMonotonicUs: 10_000_000n,
         hostWallTimeMs: 2_000,
         roundTripUs: 10_000n,
@@ -483,24 +483,26 @@ describe('ScrcpyScreenshotManager', () => {
       rs.spyOn(manager as any, 'resetIdleTimer').mockImplementation(() => {});
       const waitForNextKeyframe = rs
         .spyOn(manager as any, 'waitForNextKeyframe')
-        .mockRejectedValue(new Error('static screen emitted no new frame'));
+        .mockRejectedValue(new Error('no fresh frame after delayed baseline'));
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
       const setBarrier = rs.spyOn(manager, 'setFreshnessBarrier');
-      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
-        Buffer.from('jpeg'),
-      );
+      const decode = rs.spyOn(manager as any, 'decodeH264ToJpeg');
 
-      await expect(manager.getScreenshotJpeg()).resolves.toEqual(
-        Buffer.from('jpeg'),
-      );
-      expect(waitForNextKeyframe).not.toHaveBeenCalled();
-      expect(setBarrier).not.toHaveBeenCalled();
-      expect((manager as any).streamBaselineWindow).toBeNull();
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        failureKind: 'freshness-target',
+        timeoutMs: 300,
+      });
+      expect(waitForNextKeyframe).toHaveBeenCalledOnce();
+      expect(setBarrier).toHaveBeenCalledWith('stale planning frame');
+      expect(disconnect).toHaveBeenCalledOnce();
+      expect(decode).not.toHaveBeenCalled();
     });
 
     it('uses the startup timeout while waiting for the first data frame of a new stream', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
-      (manager as any).streamBaselineWindow = {
+      (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
       };
       (manager as any).deviceClockCalibration = {
@@ -531,7 +533,7 @@ describe('ScrcpyScreenshotManager', () => {
       const startupWaitMs = waitForNextKeyframe.mock.calls[0][0];
       expect(startupWaitMs).toBeGreaterThan(4_000);
       expect(startupWaitMs).toBeLessThanOrEqual(5_000);
-      expect((manager as any).streamBaselineWindow).toBeNull();
+      expect((manager as any).streamStartupWindow).toBeNull();
     });
 
     it('deduplicates concurrent clock calibration for one stream epoch', async () => {
@@ -804,7 +806,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).lastRawKeyframe = Buffer.from('post-action-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_100_000n;
       (manager as any).frameFreshnessBarrierPtsUs = 1_000_000n;
-      (manager as any).streamBaselineWindow = {
+      (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
       };
       (manager as any).deviceClockCalibration = {
@@ -838,12 +840,12 @@ describe('ScrcpyScreenshotManager', () => {
       );
     });
 
-    it('adds a planning barrier after the new-stream baseline window expires', async () => {
+    it('adds a planning barrier after the new-stream startup window expires', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('first-planning-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
-      (manager as any).streamBaselineWindow = {
+      (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() - 1,
       };
       (manager as any).deviceClockCalibration = {
@@ -941,7 +943,7 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).deviceClockCalibration = {};
       (manager as any).lastFramePtsUs = 456n;
       (manager as any).frameFreshnessError = new Error('stale');
-      (manager as any).streamBaselineWindow = {
+      (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
       };
 
@@ -958,7 +960,7 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).deviceClockCalibration).toBeNull();
       expect((manager as any).lastFramePtsUs).toBeNull();
       expect((manager as any).frameFreshnessError).toBeNull();
-      expect((manager as any).streamBaselineWindow).toBeNull();
+      expect((manager as any).streamStartupWindow).toBeNull();
     });
 
     it('should clear idle timer', async () => {
