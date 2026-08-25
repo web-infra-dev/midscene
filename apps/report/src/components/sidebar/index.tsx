@@ -904,14 +904,16 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       </div>
     ) : (
       <div className="page-nav-toolbar">
-        <div
+        <button
+          type="button"
           className="icon-button"
+          aria-label="Replay all tasks"
           onClick={() => {
             setReplayAllMode?.(true);
           }}
         >
           <PlayIcon />
-        </div>
+        </button>
       </div>
     );
 
