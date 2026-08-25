@@ -14,7 +14,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { parseImageScripts } from '../../../packages/core/src/dump/html-utils';
+import { parseImageScripts } from '@midscene/core/dump';
 import { collectStoredReportImages } from './extract-test-data-utils';
 
 // --- arg parsing ---

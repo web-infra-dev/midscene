@@ -12,7 +12,12 @@ export type {
   ScreenshotRef,
   StoredImageRef,
 } from './image-reference';
-export { ReportImageStore, ScreenshotStore } from './screenshot-store';
+export {
+  ReportImageStore,
+  ScreenshotStore,
+  normalizeStoredImageRef,
+  resolveImageSource,
+} from './screenshot-store';
 export {
   escapeContent,
   unescapeContent,

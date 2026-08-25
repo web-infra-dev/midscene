@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import {
   normalizeStoredImageRef,
   resolveImageSource,
-} from '../../../packages/core/src/dump/screenshot-store';
+} from '@midscene/core/dump';
 
 /** Collect every image asset referenced by a serialized report fixture. */
 export function collectStoredReportImages(
