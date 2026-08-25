@@ -178,7 +178,7 @@ describe('splitReportHtmlByExecution', () => {
         generateImageScriptTag(imageRef.id, referenceImage),
         generateDumpScriptTag(
           dump.serializeWithReferenceImages(
-            new Map([[referenceImageDescriptor, imageRef]]),
+            new Map([[referenceImageDescriptor.url, imageRef]]),
           ),
           { 'data-group-id': 'group-1' },
         ),
@@ -258,7 +258,7 @@ describe('splitReportHtmlByExecution', () => {
           dump.serializeWithReferenceImages(
             new Map(
               referenceImageDescriptors.map(
-                (descriptor) => [descriptor, imageRef] as const,
+                (descriptor) => [descriptor.url, imageRef] as const,
               ),
             ),
           ),

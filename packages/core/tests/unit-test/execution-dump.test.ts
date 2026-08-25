@@ -98,7 +98,7 @@ describe('ExecutionDump', () => {
     });
   });
 
-  describe('collectReferenceImages', () => {
+  describe('collectReferenceImageUrls', () => {
     it('should not inspect opaque runtime objects with enumerable getters', () => {
       const referenceImage = {
         name: 'reference',
@@ -128,7 +128,7 @@ describe('ExecutionDump', () => {
         ],
       });
 
-      expect(dump.collectReferenceImages()).toEqual([referenceImage]);
+      expect(dump.collectReferenceImageUrls()).toEqual([referenceImage.url]);
       expect(() => dump.serialize()).not.toThrow();
     });
   });

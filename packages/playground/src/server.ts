@@ -28,6 +28,10 @@ import {
 } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getModelRuntime } from '@midscene/core/ai-model';
+import {
+  imageMimeTypeForFileExtension,
+  parseBase64ImageDataUrl,
+} from '@midscene/core/dump';
 import { getTmpDir, sleep } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -3095,14 +3099,17 @@ class PlaygroundServer {
           return res.status(404).json({ error: 'Report not found or expired' });
         }
 
-        const match = /^([A-Za-z0-9_-]+)\.(png|jpe?g)$/.exec(
+        const match = /^([A-Za-z0-9_-]+)\.([A-Za-z0-9]+)$/.exec(
           req.params.assetName,
         );
-        if (!match) {
-          return res.status(400).json({ error: 'Invalid screenshot asset' });
+        const requestedMimeType = match
+          ? imageMimeTypeForFileExtension(match[2])
+          : null;
+        if (!match || !requestedMimeType) {
+          return res.status(400).json({ error: 'Invalid report image asset' });
         }
 
-        const [, imageId, extension] = match;
+        const [, imageId] = match;
         const externalAssetPath = join(
           dirname(report.path),
           'screenshots',
@@ -3112,26 +3119,30 @@ class PlaygroundServer {
           .then((entry) => entry.isFile())
           .catch(() => false);
         res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
         if (externalAssetExists) {
+          res.type(requestedMimeType);
           return res.sendFile(externalAssetPath);
         }
 
         try {
           const dataUri = await extractInlineReportImage(report.path, imageId);
           if (!dataUri) {
-            return res.status(404).json({ error: 'Screenshot not found' });
+            return res.status(404).json({ error: 'Report image not found' });
           }
-          const commaIndex = dataUri.indexOf(',');
-          if (commaIndex === -1) {
-            throw new Error('Invalid screenshot data URI');
+          const parsedImage = parseBase64ImageDataUrl(dataUri);
+          if (parsedImage.mimeType !== requestedMimeType) {
+            throw new Error(
+              `Report image extension does not match its MIME type: ${req.params.assetName}`,
+            );
           }
-          const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
           return res
-            .type(mimeType)
-            .send(Buffer.from(dataUri.slice(commaIndex + 1), 'base64'));
+            .type(parsedImage.mimeType)
+            .send(Buffer.from(parsedImage.rawBase64, 'base64'));
         } catch (error) {
-          debugReport('failed to stream report screenshot: %s', error);
-          return res.status(500).json({ error: 'Failed to load screenshot' });
+          debugReport('failed to stream report image: %s', error);
+          return res.status(500).json({ error: 'Failed to load report image' });
         }
       },
     );

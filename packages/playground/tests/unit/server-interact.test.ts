@@ -36,7 +36,8 @@ function createMockResponse() {
       this.body = payload;
       return this;
     },
-    type() {
+    type(value: string) {
+      this.headers['content-type'] = value;
       return this;
     },
     setHeader(name: string, value: string) {
@@ -417,6 +418,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
   });
 
   test('report replay and screenshot routes stream compact persisted data', async () => {
+    const webpReferenceImage = 'data:image/webp;base64,V0VCUA==';
     const dump = {
       sdkVersion: 'test',
       groupName: 'Playground run',
@@ -429,6 +431,19 @@ describe('PlaygroundServer manual interaction APIs', () => {
           tasks: [
             {
               type: 'Planning',
+              param: {
+                images: [
+                  {
+                    name: 'reference',
+                    url: {
+                      type: 'midscene_image_url_ref',
+                      id: 'reference-1',
+                      mimeType: 'image/webp',
+                      storage: 'inline',
+                    },
+                  },
+                ],
+              },
               uiContext: {
                 screenshot: {
                   type: 'midscene_screenshot_ref',
@@ -443,7 +458,7 @@ describe('PlaygroundServer manual interaction APIs', () => {
         },
       ],
     };
-    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
+    const reportHTML = `<html></html>\n<script type="midscene-image" data-id="shot-1">${VALID_PNG_BASE64}</script>\n<script type="midscene-image" data-id="reference-1">${webpReferenceImage}</script>\n<script type="midscene_web_dump">${JSON.stringify(dump)}</script>`;
     rs.mocked(createReadStream).mockImplementation(
       () =>
         ({
@@ -503,6 +518,21 @@ describe('PlaygroundServer manual interaction APIs', () => {
       );
       expect(Buffer.isBuffer(screenshotResponse.body)).toBe(true);
       expect((screenshotResponse.body as Buffer).length).toBeGreaterThan(0);
+
+      const referenceImageResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'reference-1.webp' },
+        },
+        referenceImageResponse,
+      );
+      expect(referenceImageResponse.body).toEqual(Buffer.from('WEBP'));
+      expect(referenceImageResponse.headers['content-type']).toContain(
+        'image/webp',
+      );
+      expect(referenceImageResponse.headers['Content-Security-Policy']).toBe(
+        "default-src 'none'; sandbox",
+      );
     } finally {
       await server.close();
     }
@@ -513,10 +543,12 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const screenshotsDir = join(tempDir, 'screenshots');
     const reportPath = join(tempDir, 'index.html');
     const screenshotPath = join(screenshotsDir, 'shot-1.png');
+    const referenceImagePath = join(screenshotsDir, 'reference-1.webp');
     await mkdir(screenshotsDir);
     await Promise.all([
       writeFile(reportPath, '<html></html>'),
       writeFile(screenshotPath, Buffer.from('png')),
+      writeFile(referenceImagePath, Buffer.from('webp')),
     ]);
     const agent = {
       interface: {
@@ -558,6 +590,20 @@ describe('PlaygroundServer manual interaction APIs', () => {
         screenshotResponse,
       );
       expect(screenshotResponse.body).toEqual({ filePath: screenshotPath });
+
+      const referenceImageResponse = createMockResponse();
+      await screenshotHandler(
+        {
+          params: { reportId: report.id, assetName: 'reference-1.webp' },
+        },
+        referenceImageResponse,
+      );
+      expect(referenceImageResponse.body).toEqual({
+        filePath: referenceImagePath,
+      });
+      expect(referenceImageResponse.headers['content-type']).toContain(
+        'image/webp',
+      );
     } finally {
       await server.close();
       await rm(tempDir, { force: true, recursive: true });

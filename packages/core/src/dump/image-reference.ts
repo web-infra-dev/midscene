@@ -31,6 +31,19 @@ const knownImageExtensions: Readonly<Record<string, string>> = {
   'image/bmp': 'bmp',
 };
 
+const knownImageMimeTypesByExtension: Readonly<
+  Record<string, `image/${string}`>
+> = {
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+};
+
 function hasValidStorage(record: Record<string, unknown>): boolean {
   if (record.storage !== 'inline' && record.storage !== 'file') return false;
   return record.storage !== 'file' || typeof record.path === 'string';
@@ -100,6 +113,13 @@ export function imageFileExtensionForMimeType(mimeType: string): string {
     );
   }
   return sanitized;
+}
+
+/** Resolve a supported report image MIME type from its file extension. */
+export function imageMimeTypeForFileExtension(
+  extension: string,
+): `image/${string}` | null {
+  return knownImageMimeTypesByExtension[extension.toLowerCase()] ?? null;
 }
 
 /** Resolve the file extension used by a serialized report image reference. */

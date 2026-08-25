@@ -13,6 +13,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   GroupedActionDump,
+  type IReportActionDump,
   dedupeExecutionsKeepLatest,
   reportToMarkdown,
   restoreImageReferences,
@@ -588,7 +589,7 @@ export function App() {
                 parsed,
                 resolveImageFromDom,
                 resolveImageFromDom,
-              );
+              ) as IReportActionDump;
               const dump = GroupedActionDump.fromJSON(restored);
               if (!baseDump) {
                 baseDump = dump;

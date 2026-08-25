@@ -20,16 +20,10 @@ import {
 } from './screenshot-store';
 
 /** A multimodal prompt image descriptor retained by an execution dump. */
-export interface ReportReferenceImageDescriptor {
+interface ReportReferenceImageDescriptor {
   name: string;
   url: string;
 }
-
-/** Maps exact prompt image descriptor objects to their persisted assets. */
-export type ReferenceImageRefs = ReadonlyMap<
-  ReportReferenceImageDescriptor,
-  ImageUrlRef
->;
 
 function isReferenceImageDescriptor(
   value: unknown,
@@ -65,28 +59,12 @@ function isPlainRecord(value: object): value is Record<string, unknown> {
 /**
  * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
  */
-function replacerForDumpSerialization(
-  holder: unknown,
-  key: string,
-  value: any,
-  referenceImageRefs?: ReferenceImageRefs,
-): any {
+function replacerForDumpSerialization(key: string, value: any): any {
   // screenshotSequence is a transient model input (multi-frame capture). Its
   // frames are not persisted by collectScreenshots, so serializing them would
   // emit dangling screenshot refs. The representative `screenshot` is kept.
   if (key === 'screenshotSequence') {
     return undefined;
-  }
-  if (
-    key === 'url' &&
-    typeof value === 'string' &&
-    isReferenceImageDescriptor(holder) &&
-    referenceImageRefs
-  ) {
-    const referenceImageRef = referenceImageRefs.get(holder);
-    if (referenceImageRef) {
-      return referenceImageRef;
-    }
   }
   const opaqueObjectName = getPageOrBrowserObjectName(value);
   if (opaqueObjectName) {
@@ -98,18 +76,73 @@ function replacerForDumpSerialization(
   return value;
 }
 
-function stringifyDump(
-  data: IExecutionDump | IReportActionDump,
-  indents?: number,
-  referenceImageRefs?: ReferenceImageRefs,
-): string {
-  return JSON.stringify(
-    data,
-    function (key, value) {
-      return replacerForDumpSerialization(this, key, value, referenceImageRefs);
-    },
-    indents,
-  );
+function stringifyDump(data: unknown, indents?: number): string {
+  return JSON.stringify(data, replacerForDumpSerialization, indents);
+}
+
+/**
+ * Clone serializable plain data while replacing image descriptors only when
+ * they occur inside an `images` array. Cloning per occurrence deliberately
+ * avoids object-identity coupling when callers reuse the same descriptor in
+ * another, unrelated field.
+ */
+function replaceReferenceImageUrls(
+  value: unknown,
+  referenceImageRefsByUrl: ReadonlyMap<string, ImageUrlRef>,
+  ancestors: WeakSet<object> = new WeakSet(),
+): unknown {
+  if (typeof value !== 'object' || value === null) return value;
+  if (
+    getPageOrBrowserObjectName(value) ||
+    isCustomSerializableObject(value) ||
+    (!Array.isArray(value) && !isPlainRecord(value))
+  ) {
+    return value;
+  }
+  if (ancestors.has(value)) return value;
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        replaceReferenceImageUrls(item, referenceImageRefsByUrl, ancestors),
+      );
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      if (key === 'images' && Array.isArray(nestedValue)) {
+        result[key] = nestedValue.map((image) => {
+          const transformedImage = replaceReferenceImageUrls(
+            image,
+            referenceImageRefsByUrl,
+            ancestors,
+          );
+          if (!isReferenceImageDescriptor(image)) return transformedImage;
+
+          const referenceImageRef = referenceImageRefsByUrl.get(image.url);
+          if (
+            !referenceImageRef ||
+            typeof transformedImage !== 'object' ||
+            transformedImage === null ||
+            !isPlainRecord(transformedImage)
+          ) {
+            return transformedImage;
+          }
+          return { ...transformedImage, url: referenceImageRef };
+        });
+        continue;
+      }
+      result[key] = replaceReferenceImageUrls(
+        nestedValue,
+        referenceImageRefsByUrl,
+        ancestors,
+      );
+    }
+    return result;
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /**
@@ -224,13 +257,13 @@ export class ExecutionDump implements IExecutionDump {
   }
 
   /**
-   * Collect unique multimodal prompt image descriptors with base64 URLs.
+   * Collect unique multimodal prompt image data URLs.
    * Traversal is cycle-safe and does not inspect opaque runtime objects.
    *
-   * @returns The unique descriptor objects in first-seen order.
+   * @returns Unique image URLs in first-seen order.
    */
-  collectReferenceImages(): ReportReferenceImageDescriptor[] {
-    const referenceImages = new Set<ReportReferenceImageDescriptor>();
+  collectReferenceImageUrls(): string[] {
+    const referenceImageUrls = new Set<string>();
     const visited = new WeakSet<object>();
 
     const visit = (value: unknown): void => {
@@ -254,7 +287,9 @@ export class ExecutionDump implements IExecutionDump {
       if (Array.isArray(value.images)) {
         for (const image of value.images) {
           if (!isReferenceImageDescriptor(image)) continue;
-          if (isBase64ImageDataUrl(image.url)) referenceImages.add(image);
+          if (isBase64ImageDataUrl(image.url)) {
+            referenceImageUrls.add(image.url);
+          }
         }
       }
 
@@ -262,7 +297,7 @@ export class ExecutionDump implements IExecutionDump {
     };
 
     for (const task of this.tasks) visit(task.param);
-    return Array.from(referenceImages);
+    return Array.from(referenceImageUrls);
   }
 }
 
@@ -305,10 +340,13 @@ export class ReportActionDump implements IReportActionDump {
    * @returns The serialized report dump.
    */
   serializeWithReferenceImages(
-    referenceImageRefs: ReferenceImageRefs,
+    referenceImageRefsByUrl: ReadonlyMap<string, ImageUrlRef>,
     indents?: number,
   ): string {
-    return stringifyDump(this.toJSON(), indents, referenceImageRefs);
+    return stringifyDump(
+      replaceReferenceImageUrls(this.toJSON(), referenceImageRefsByUrl),
+      indents,
+    );
   }
 
   /**

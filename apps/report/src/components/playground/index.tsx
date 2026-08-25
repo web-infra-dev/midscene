@@ -8,6 +8,7 @@ import type {
 import { GroupedActionDump } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import {
+  createInlineImageResolver,
   parseDumpScript,
   parseImageScripts,
   restoreImageReferences,
@@ -55,17 +56,20 @@ async function loadReferencedReplay(result: PlaygroundResult) {
     throw new Error(`Report replay request failed (${response.status})`);
   }
   const dump = (await response.json()) as IReportActionDump;
-  result.dump = restoreReportImageReferences(dump, result.report.url);
+  result.dump = restoreReportImageReferences(
+    dump,
+    result.report.url,
+  ) as IReportActionDump;
 }
 
 function dumpFromReportHTML(reportHTML: string): IReportActionDump {
   const images = parseImageScripts(reportHTML);
-  const resolveInlineImage = (ref: { id: string }) => images[ref.id] || '';
+  const resolveInlineImage = createInlineImageResolver(images);
   return restoreImageReferences(
     JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
     resolveInlineImage,
     resolveInlineImage,
-  );
+  ) as IReportActionDump;
 }
 
 // Utility function to determine if the run button should be enabled

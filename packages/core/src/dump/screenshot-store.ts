@@ -180,7 +180,6 @@ export class ReportImageStore {
   private readonly alsoWriteFileCopy: boolean;
   private readonly writtenInlineIds = new Set<string>();
   private readonly writtenFileIds = new Set<string>();
-  private readonly referenceImageRefsByUrl = new Map<string, ImageUrlRef>();
   private readonly shouldReuseExistingInlineReport: boolean;
   private existingInlineImageIdsPromise?: Promise<void>;
 
@@ -240,9 +239,6 @@ export class ReportImageStore {
   /** Persist a base64 multimodal prompt image and return its content-addressed ref. */
   async persistReferenceImage(imageUrl: string): Promise<ImageUrlRef> {
     await this.ensureExistingInlineImageIdsLoaded();
-    const cachedRef = this.referenceImageRefsByUrl.get(imageUrl);
-    if (cachedRef) return cachedRef;
-
     const { mimeType, extension, rawBase64 } =
       parseBase64ImageDataUrl(imageUrl);
     const id = `reference-${createHash('sha256')
@@ -287,7 +283,6 @@ export class ReportImageStore {
         path: fileLocation.relativePath,
       };
     }
-    this.referenceImageRefsByUrl.set(imageUrl, ref);
     return ref;
   }
 
@@ -403,7 +398,6 @@ export class ReportImageStore {
     }
     this.writtenInlineIds.clear();
     this.writtenFileIds.clear();
-    this.referenceImageRefsByUrl.clear();
     this.existingInlineImageIdsPromise = undefined;
   }
 }

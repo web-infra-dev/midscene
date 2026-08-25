@@ -130,10 +130,38 @@ describe('ScreenshotStore', () => {
       mimeType: 'image/webp',
       storage: 'inline',
     });
-    expect(repeated).toBe(first);
+    expect(repeated).toEqual(first);
     expect(second.id).toBe(first.id);
     expect(appendInline).toHaveBeenCalledOnce();
     expect(appendInline).toHaveBeenCalledWith(first.id, referenceImage);
+  });
+
+  it('does not retain full reference-image data URLs in tracking collections', async () => {
+    const store = new ScreenshotStore({
+      mode: 'inline',
+      reportPath: join(tmpRoot, 'bounded-reference-tracking.html'),
+      writeInlineImage: () => {},
+    });
+
+    for (const marker of ['QUJDRA==', 'RUZHSA==', 'SUpLTA==']) {
+      await store.persistReferenceImage(`data:image/webp;base64,${marker}`);
+    }
+
+    const trackingCollections = Object.values(
+      store as unknown as Record<string, unknown>,
+    ).filter(
+      (value): value is Map<unknown, unknown> | Set<unknown> =>
+        value instanceof Map || value instanceof Set,
+    );
+    const trackedValues = trackingCollections.flatMap((collection) => [
+      ...collection.keys(),
+      ...collection.values(),
+    ]);
+    expect(
+      trackedValues.some(
+        (value) => typeof value === 'string' && value.startsWith('data:image/'),
+      ),
+    ).toBe(false);
   });
 
   it('persists non-PNG reference images with their own extension', async () => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type StoredImageRef,
+  createInlineImageResolver,
   escapeContent,
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -98,16 +100,11 @@ describe('dump/screenshot-restoration', () => {
     img1: 'data:image/png;base64,abc123',
     img2: 'data:image/png;base64,def456',
   };
-  const resolver = (ref: { id: string }) => imageMap[ref.id] ?? '';
+  const resolver = createInlineImageResolver(imageMap);
   const restoreForTest = (
     data: unknown,
-    resolveImage: (ref: { id: string }) => string = resolver,
-  ) =>
-    restoreImageReferences(
-      data,
-      resolveImage as any,
-      resolveImage as any,
-    ) as any;
+    resolveImage: (ref: StoredImageRef) => string = resolver,
+  ) => restoreImageReferences(data, resolveImage, resolveImage) as any;
 
   describe('restoreImageReferences', () => {
     it('should restore screenshot references to { base64 } format via lazy getter', () => {
@@ -153,9 +150,21 @@ describe('dump/screenshot-restoration', () => {
         },
       };
 
-      expect(() => restoreImageReferences(data, resolver as any)).toThrow(
+      expect(() => restoreImageReferences(data, resolver)).toThrow(
         'A reference-image resolver is required',
       );
+    });
+
+    it('should throw when an inline report image is missing', () => {
+      const missingImageResolver = createInlineImageResolver({});
+      expect(() =>
+        missingImageResolver({
+          type: 'midscene_image_url_ref',
+          id: 'missing-image',
+          mimeType: 'image/webp',
+          storage: 'inline',
+        }),
+      ).toThrow('Missing inline report image "missing-image"');
     });
 
     it('should restore report image URLs from serialized paths and MIME types', () => {
@@ -230,7 +239,7 @@ describe('dump/screenshot-restoration', () => {
       expect(result[1].base64).toBe('data:image/png;base64,def456');
     });
 
-    it('should use resolver return value for unknown IDs', () => {
+    it('should throw lazily for unknown screenshot IDs', () => {
       const data = {
         screenshot: {
           type: 'midscene_screenshot_ref',
@@ -241,8 +250,9 @@ describe('dump/screenshot-restoration', () => {
         },
       };
       const result = restoreForTest(data);
-      // Default resolver returns '' for IDs not in imageMap
-      expect(result.screenshot.base64).toBe('');
+      expect(() => result.screenshot.base64).toThrow(
+        'Missing inline report image "uuid-not-in-map"',
+      );
     });
 
     it('should support directory-path fallback via resolver', () => {

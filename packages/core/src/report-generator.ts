@@ -31,11 +31,9 @@ import { compactReportDumps } from './dump/report-dump-compactor';
 import { type ImageUrlRef, ReportImageStore } from './dump/screenshot-store';
 import {
   type ExecutionDump,
-  type ReferenceImageRefs,
   ReportActionDump,
   type ReportAttributes,
   type ReportMeta,
-  type ReportReferenceImageDescriptor,
   type ScreenshotMode,
 } from './types';
 import { getReportTpl } from './utils';
@@ -255,10 +253,7 @@ export class ReportGenerator implements IReportGenerator {
   ): Promise<void> {
     const singleDump = this.wrapAsReportDump(execution, reportMeta);
 
-    const referenceImageRefs =
-      this.screenshotMode === 'inline'
-        ? await this.writeInlineExecution(execution, singleDump)
-        : await this.writeDirectoryExecution(execution, singleDump);
+    const referenceImageRefs = await this.writeExecution(execution, singleDump);
 
     if (this.shouldPersistExecutionDump) {
       await this.persistExecutionDumpToFile(
@@ -339,7 +334,7 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   /**
-   * Append-only inline mode: write new screenshots and a dump tag on every call.
+   * Append assets and a dump tag without duplicating mode-specific workflows.
    * The frontend deduplicates executions with the same id/name (keeps last).
    * Duplicate dump JSON is acceptable; only screenshots are deduplicated.
    *
@@ -348,10 +343,10 @@ export class ReportGenerator implements IReportGenerator {
    * appended multi-MB dumps (screenshots + serialized tasks) per progress
    * tick on the main thread, starving IPC and UI for >10s per stall.
    */
-  private async writeInlineExecution(
+  private async writeExecution(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-  ): Promise<ReferenceImageRefs> {
+  ): Promise<Map<string, ImageUrlRef>> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -359,7 +354,9 @@ export class ReportGenerator implements IReportGenerator {
 
     // Initialize: write HTML template once
     if (!this.initialized) {
-      await writeFileAsync(this.reportPath, getReportTpl());
+      const baseUrlFix =
+        this.screenshotMode === 'directory' ? getBaseUrlFixScript() : '';
+      await writeFileAsync(this.reportPath, `${getReportTpl()}${baseUrlFix}`);
       this.initialized = true;
     }
 
@@ -379,46 +376,13 @@ export class ReportGenerator implements IReportGenerator {
     return referenceImageRefs;
   }
 
-  private async writeDirectoryExecution(
-    execution: ExecutionDump,
-    singleDump: ReportActionDump,
-  ): Promise<ReferenceImageRefs> {
-    const dir = dirname(this.reportPath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-
-    for (const screenshot of execution.collectScreenshots()) {
-      await this.screenshotStore.persist(screenshot);
-    }
-    const referenceImageRefs = await this.persistReferenceImages(execution);
-
-    // 2. Append dump tag (always — frontend keeps only last per execution id)
-    const serialized =
-      singleDump.serializeWithReferenceImages(referenceImageRefs);
-
-    if (!this.initialized) {
-      await writeFileAsync(
-        this.reportPath,
-        `${getReportTpl()}${getBaseUrlFixScript()}`,
-      );
-      this.initialized = true;
-    }
-
-    await appendFileAsync(
-      this.reportPath,
-      `\n${generateDumpScriptTag(serialized, this.getDumpScriptAttributes())}`,
-    );
-    return referenceImageRefs;
-  }
-
   private async persistReferenceImages(
     execution: ExecutionDump,
-  ): Promise<Map<ReportReferenceImageDescriptor, ImageUrlRef>> {
-    const refs = new Map<ReportReferenceImageDescriptor, ImageUrlRef>();
-    for (const image of execution.collectReferenceImages()) {
-      const ref = await this.screenshotStore.persistReferenceImage(image.url);
-      refs.set(image, ref);
+  ): Promise<Map<string, ImageUrlRef>> {
+    const refs = new Map<string, ImageUrlRef>();
+    for (const imageUrl of execution.collectReferenceImageUrls()) {
+      const ref = await this.screenshotStore.persistReferenceImage(imageUrl);
+      refs.set(imageUrl, ref);
     }
     return refs;
   }
@@ -474,7 +438,7 @@ export class ReportGenerator implements IReportGenerator {
   private async persistExecutionDumpToFile(
     execution: ExecutionDump,
     singleDump: ReportActionDump,
-    referenceImageRefs: ReferenceImageRefs,
+    referenceImageRefs: ReadonlyMap<string, ImageUrlRef>,
   ): Promise<void> {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {

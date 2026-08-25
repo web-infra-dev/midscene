@@ -10,17 +10,36 @@ import {
 export type ScreenshotReferenceResolver = (ref: ScreenshotRef) => string;
 export type ImageUrlReferenceResolver = (ref: ImageUrlRef) => string;
 
+export interface RestoredScreenshotReference {
+  readonly base64: string;
+  readonly capturedAt?: number;
+  readonly sourceRef: ScreenshotRef;
+}
+
+/** Create a resolver that fails loudly when an inline report asset is absent. */
+export function createInlineImageResolver(
+  images: Readonly<Record<string, string>>,
+): (ref: StoredImageRef) => string {
+  return (ref) => {
+    const image = images[ref.id];
+    if (!image) {
+      throw new Error(`Missing inline report image "${ref.id}"`);
+    }
+    return image;
+  };
+}
+
 /**
  * Recursively restore image references in parsed data.
  * Replaces screenshot refs with lazy
  * { get base64() {...}, capturedAt, sourceRef } objects, and reference-image
  * URL refs with their URL strings. Screenshot refs are resolved on first use.
  */
-export function restoreImageReferences<T>(
-  data: T,
+export function restoreImageReferences(
+  data: unknown,
   resolveScreenshot: ScreenshotReferenceResolver,
   resolveImageUrl?: ImageUrlReferenceResolver,
-): T {
+): unknown {
   if (typeof data === 'string') {
     return data;
   }
@@ -28,7 +47,7 @@ export function restoreImageReferences<T>(
   if (Array.isArray(data)) {
     return data.map((item) =>
       restoreImageReferences(item, resolveScreenshot, resolveImageUrl),
-    ) as T;
+    );
   }
 
   if (typeof data === 'object' && data !== null) {
@@ -39,22 +58,14 @@ export function restoreImageReferences<T>(
           `A reference-image resolver is required for report image "${imageUrlRef.id}"`,
         );
       }
-      return resolveImageUrl(imageUrlRef) as T;
+      return resolveImageUrl(imageUrlRef);
     }
 
     const refLike = normalizeScreenshotRef(data);
     if (refLike) {
       let resolved: string | null = null;
-      const lazy: {
-        base64: string;
-        capturedAt?: number;
-        sourceRef: ScreenshotRef;
-      } = Object.defineProperties(
-        {} as {
-          base64: string;
-          capturedAt?: number;
-          sourceRef: ScreenshotRef;
-        },
+      const lazy: RestoredScreenshotReference = Object.defineProperties(
+        {} as RestoredScreenshotReference,
         {
           base64: {
             get() {
@@ -69,7 +80,7 @@ export function restoreImageReferences<T>(
           sourceRef: { value: { ...refLike }, enumerable: true },
         },
       );
-      return lazy as T;
+      return lazy;
     }
 
     const result: Record<string, unknown> = {};
@@ -80,7 +91,7 @@ export function restoreImageReferences<T>(
         resolveImageUrl,
       );
     }
-    return result as T;
+    return result;
   }
 
   return data;
@@ -91,7 +102,10 @@ export function restoreImageReferences<T>(
  * Serialized paths are authoritative; legacy inline refs use the standard
  * screenshots directory and the MIME-derived extension.
  */
-export function restoreReportImageReferences<T>(data: T, reportUrl: string): T {
+export function restoreReportImageReferences(
+  data: unknown,
+  reportUrl: string,
+): unknown {
   const resolveReportImage = (ref: StoredImageRef): string => {
     return new URL(reportImageAssetPath(ref), reportUrl).toString();
   };

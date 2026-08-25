@@ -81,6 +81,7 @@ export {
 
 // Dump utilities
 export {
+  createInlineImageResolver,
   restoreImageReferences,
   restoreReportImageReferences,
   escapeContent,
@@ -93,7 +94,11 @@ export {
   deriveTaskStatus,
   deriveCaseStatus,
 } from './dump';
-export type { TaskStatusFields, DerivedTaskStatus } from './dump';
+export type {
+  TaskStatusFields,
+  DerivedTaskStatus,
+  RestoredScreenshotReference,
+} from './dump';
 export {
   getTaskSearchArea,
   getTaskServiceDump,

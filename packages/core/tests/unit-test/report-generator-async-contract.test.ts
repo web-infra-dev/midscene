@@ -38,14 +38,7 @@ describe('ReportGenerator — async fs contract (perf guard)', () => {
       unknown
     >;
     assertAsync(proto.doWriteExecution, 'ReportGenerator.doWriteExecution');
-    assertAsync(
-      proto.writeInlineExecution,
-      'ReportGenerator.writeInlineExecution',
-    );
-    assertAsync(
-      proto.writeDirectoryExecution,
-      'ReportGenerator.writeDirectoryExecution',
-    );
+    assertAsync(proto.writeExecution, 'ReportGenerator.writeExecution');
     assertAsync(
       proto.persistExecutionDumpToFile,
       'ReportGenerator.persistExecutionDumpToFile',
