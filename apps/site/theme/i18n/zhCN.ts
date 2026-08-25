@@ -52,7 +52,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelQwenName: 'qwen3.7-plus',
   modelQwenDesc: '高质量视觉定位，性价比高，并提供可自托管的开源版本。',
   modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
-  modelDeepSeekDesc: '视觉理解与推理能力一体化，适合复杂 UI 任务。',
+  modelDeepSeekDesc: '视觉定位速度极快，但在复杂界面下稳定性相对有限。',
   modelMultiModelName: '多模型组合',
   modelMultiModelDesc: '让规划模型与视觉模型协同，提升任务完成率。',
 
