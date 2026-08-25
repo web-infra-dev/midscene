@@ -83,8 +83,8 @@ const createMockDump = (
 describe('TaskExecutor - Null Data Handling', () => {
   it('registers insight reference images when the execution is created', async () => {
     const mockInsight = {
-      contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-      extract: vi.fn(async () => ({
+      contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+      extract: rs.fn(async () => ({
         data: { answer: 'matched' },
         thought: 'matched the reference',
         dump: createMockDump({ answer: 'matched' }),

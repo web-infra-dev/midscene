@@ -173,7 +173,7 @@ describe('TaskExecutor concurrency isolation', () => {
   );
 
   it('registers aiAct reference images when the execution is created', async () => {
-    vi.mocked(standardPlan).mockResolvedValue({
+    rs.mocked(standardPlan).mockResolvedValue({
       actions: [],
       yamlFlow: [],
       shouldContinuePlanning: false,

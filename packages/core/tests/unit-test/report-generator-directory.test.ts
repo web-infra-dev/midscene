@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { parseDumpScript } from '@/dump/html-utils';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import {
   createExecution,
   createPatternedPngFixture,
