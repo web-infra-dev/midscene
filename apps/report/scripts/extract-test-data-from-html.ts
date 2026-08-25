@@ -15,10 +15,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseImageScripts } from '../../../packages/core/src/dump/html-utils';
-import {
-  normalizeScreenshotRef,
-  resolveScreenshotSource,
-} from '../../../packages/core/src/dump/screenshot-store';
+import { collectStoredReportImages } from './extract-test-data-utils';
 
 // --- arg parsing ---
 function getArg(name: string): string | undefined {
@@ -229,41 +226,10 @@ for (const [executionIndex, execution] of dump.executions.entries()) {
   }
 }
 
-const images: Record<string, string> = {};
-
-function collectImages(value: unknown): void {
-  const ref = normalizeScreenshotRef(value);
-  if (ref) {
-    if (images[ref.id]) return;
-
-    const inlineImage = imageMap[ref.id];
-    if (inlineImage) {
-      images[ref.id] = inlineImage;
-      return;
-    }
-
-    const source = resolveScreenshotSource(ref, { reportPath: htmlPath });
-    if (source.type === 'data-uri') {
-      images[ref.id] = source.dataUri;
-      return;
-    }
-
-    const base64 = readFileSync(source.filePath).toString('base64');
-    images[ref.id] = `data:${source.mimeType};base64,${base64}`;
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) collectImages(item);
-    return;
-  }
-
-  if (typeof value === 'object' && value !== null) {
-    for (const item of Object.values(value)) collectImages(item);
-  }
-}
-
-collectImages(dump);
+const images = collectStoredReportImages(dump, {
+  reportPath: htmlPath,
+  inlineImages: imageMap,
+});
 
 const output = { dump, images };
 const json = JSON.stringify(output);

@@ -98,6 +98,41 @@ describe('ExecutionDump', () => {
     });
   });
 
+  describe('collectReferenceImages', () => {
+    it('should not inspect opaque runtime objects with enumerable getters', () => {
+      const referenceImage = {
+        name: 'reference',
+        url: 'data:image/webp;base64,dGVzdA==',
+      };
+      const page = { constructor: { name: 'Page' } } as Record<string, unknown>;
+      Object.defineProperty(page, 'internalState', {
+        enumerable: true,
+        get: () => {
+          throw new Error('Page internals must remain opaque');
+        },
+      });
+
+      const dump = new ExecutionDump({
+        logTime: 1234567890,
+        name: 'Opaque runtime object',
+        tasks: [
+          {
+            type: 'Action',
+            status: 'finished',
+            param: {
+              images: [referenceImage],
+              page,
+            },
+            executor: async () => {},
+          } as any,
+        ],
+      });
+
+      expect(dump.collectReferenceImages()).toEqual([referenceImage]);
+      expect(() => dump.serialize()).not.toThrow();
+    });
+  });
+
   describe('toJSON', () => {
     it('should return a plain object with recorder fields normalized', () => {
       const data = createMockExecutionDumpData();

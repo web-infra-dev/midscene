@@ -39,6 +39,29 @@ function isReferenceImageDescriptor(
   return typeof record.name === 'string' && typeof record.url === 'string';
 }
 
+function getPageOrBrowserObjectName(value: unknown): 'Page' | 'Browser' | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const constructorName = value.constructor?.name;
+  return constructorName === 'Page' || constructorName === 'Browser'
+    ? constructorName
+    : null;
+}
+
+function isCustomSerializableObject(
+  value: unknown,
+): value is { toSerializable(): unknown } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { toSerializable?: unknown }).toSerializable === 'function'
+  );
+}
+
+function isPlainRecord(value: object): value is Record<string, unknown> {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 /**
  * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
  */
@@ -65,14 +88,11 @@ function replacerForDumpSerialization(
       return referenceImageRef;
     }
   }
-  if (value && value.constructor?.name === 'Page') {
-    return '[Page object]';
+  const opaqueObjectName = getPageOrBrowserObjectName(value);
+  if (opaqueObjectName) {
+    return `[${opaqueObjectName} object]`;
   }
-  if (value && value.constructor?.name === 'Browser') {
-    return '[Browser object]';
-  }
-  // Handle ScreenshotItem serialization
-  if (value && typeof value.toSerializable === 'function') {
+  if (isCustomSerializableObject(value)) {
     return value.toSerializable();
   }
   return value;
@@ -205,7 +225,7 @@ export class ExecutionDump implements IExecutionDump {
 
   /**
    * Collect unique multimodal prompt image descriptors with base64 URLs.
-   * Traversal is cycle-safe because task params may contain consumer objects.
+   * Traversal is cycle-safe and does not inspect opaque runtime objects.
    *
    * @returns The unique descriptor objects in first-seen order.
    */
@@ -223,15 +243,22 @@ export class ExecutionDump implements IExecutionDump {
       }
       visited.add(value);
 
-      const record = value as Record<string, unknown>;
-      if (Array.isArray(record.images)) {
-        for (const image of record.images) {
+      if (
+        getPageOrBrowserObjectName(value) ||
+        isCustomSerializableObject(value) ||
+        !isPlainRecord(value)
+      ) {
+        return;
+      }
+
+      if (Array.isArray(value.images)) {
+        for (const image of value.images) {
           if (!isReferenceImageDescriptor(image)) continue;
           if (isBase64ImageDataUrl(image.url)) referenceImages.add(image);
         }
       }
 
-      for (const nestedValue of Object.values(record)) visit(nestedValue);
+      for (const nestedValue of Object.values(value)) visit(nestedValue);
     };
 
     for (const task of this.tasks) visit(task.param);

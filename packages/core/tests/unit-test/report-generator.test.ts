@@ -271,7 +271,7 @@ describe('ReportGenerator — append-only model', () => {
       expect(persistedDump).toContain('midscene_image_url_ref');
     });
 
-    it('should replace only registered prompt image descriptors', async () => {
+    it('should replace only registered descriptors without inspecting opaque objects', async () => {
       const reportPath = join(tmpDir, 'reference-image-descriptor-scope.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -281,6 +281,13 @@ describe('ReportGenerator — append-only model', () => {
       const referenceImage = fakeBase64(1024, 'webp');
       const promptImage = { name: 'reference', url: referenceImage };
       const unrelatedLink = { name: 'source', url: referenceImage };
+      const page = { constructor: { name: 'Page' } } as Record<string, unknown>;
+      Object.defineProperty(page, 'internalState', {
+        enumerable: true,
+        get: () => {
+          throw new Error('Page internals must remain opaque');
+        },
+      });
       const execution = new ExecutionDump({
         id: 'descriptor-scope',
         logTime: Date.now(),
@@ -292,6 +299,7 @@ describe('ReportGenerator — append-only model', () => {
             param: {
               images: [promptImage],
               unrelatedLink,
+              page,
             },
             executor: async () => undefined,
             recorder: [],
