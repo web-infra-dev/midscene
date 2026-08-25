@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
-import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
+import type {
+  FreeFn,
+  MidsceneYamlScript,
+  MidsceneYamlScriptEnv,
+} from '@midscene/core';
 import * as agentActual from '@midscene/core/agent' with {
   rstest: 'importActual',
 };
@@ -1524,7 +1528,7 @@ describe('create-yaml-player', () => {
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
       );
-      expect(setupResult?.freeFn.map(({ name }) => name)).toEqual([
+      expect(setupResult?.freeFn.map(({ name }: FreeFn) => name)).toEqual([
         'midscene_puppeteer_agent',
         'puppeteer_page',
         'cdp_browser_disconnect',
