@@ -7,9 +7,17 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "browser": {
-    "undici": false,
-    "fetch-socks": false
+  "imports": {
+    "#proxy-deps": {
+      "node": {
+        "import": "./dist/es/ai-model/service-caller/proxy-deps.node.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy-deps.node.js"
+      },
+      "default": {
+        "import": "./dist/es/ai-model/service-caller/proxy-deps.stub.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy-deps.stub.js"
+      }
+    }
   },
   "files": ["dist", "README.md"],
   "exports": {
