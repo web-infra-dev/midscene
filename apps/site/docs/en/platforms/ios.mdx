@@ -131,6 +131,25 @@ npx tsx demo.ts
 
 After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
+## Keyboard dismissal
+
+`autoDismissKeyboard` defaults to `true`. After entering text, Midscene locates the standard iOS keyboard accessory toolbar, activates its dismissal control, and waits until WebDriverAgent confirms that the keyboard is hidden. If the toolbar cannot be identified safely or the keyboard does not disappear before the operation deadline, the input action fails instead of continuing with an uncertain keyboard state.
+
+When an `Enter`, `Return`, or `Tab` action immediately follows an auto-dismissed input, Midscene can restore that input's focus once before sending the key. A different pointer, touch, system, custom, or text-input action invalidates the pending focus target.
+
+:::warning
+An app-defined input accessory can contain business actions such as Save or Submit. Midscene deliberately rejects accessory toolbars that do not match the standard iOS navigation-and-dismiss structure. For a custom toolbar, disable automatic dismissal and call `hideKeyboard()` with the control's stable accessibility name.
+:::
+
+```typescript
+const device = new IOSDevice({
+  autoDismissKeyboard: false,
+});
+
+// After entering text, dismiss a custom keyboard control explicitly.
+await device.hideKeyboard(['Close Keyboard']);
+```
+
 ## Custom actions
 
 Use `defineAction()` to define custom actions. When constructing the Agent with `agentFromWebDriverAgent()`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.

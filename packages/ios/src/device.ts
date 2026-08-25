@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import {
   type ActionScrollParam,
   type DeviceAction,
+  type ExecutorContext,
   type InterfaceType,
   type Point,
   type Size,
@@ -39,6 +40,17 @@ export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 const DEFAULT_WDA_MJPEG_PORT = 9100;
+const keyboardFollowUpMaxAgeMs = 30_000;
+const keyboardFollowUpKeys: ReadonlySet<string> = new Set([
+  'enter',
+  'return',
+  'tab',
+]);
+
+type PendingKeyboardFollowUp = {
+  target: PointerPoint;
+  createdAt: number;
+};
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
@@ -60,6 +72,8 @@ export class IOSDevice implements AbstractInterface {
    */
   openFrameSource?: AbstractInterface['openFrameSource'];
   private appNameMapping: Record<string, string> = {};
+  /** Auto-dismissed input eligible for one immediate submit/navigation key. */
+  private pendingKeyboardFollowUp: PendingKeyboardFollowUp | undefined;
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: IOSDeviceOpt;
@@ -72,9 +86,13 @@ export class IOSDevice implements AbstractInterface {
       dragAndDrop: (from, to) => this.swipePoint(from, to, 1000),
     },
     keyboard: {
-      keyboardPress: (keyName) => this.pressKey(keyName),
+      keyboardPress: (keyName, opts) =>
+        this.pressKey(keyName, opts?.target as ElementInfo | undefined),
       typeText: async (value, opts) => {
         const target = opts?.target as ElementInfo | undefined;
+        const focusRestorePoint = target
+          ? { x: target.center[0], y: target.center[1] }
+          : undefined;
         if (target && opts?.replace !== false) {
           await this.clearInput(target);
         } else if (target) {
@@ -85,7 +103,7 @@ export class IOSDevice implements AbstractInterface {
           return;
         }
 
-        await this.typeText(value, opts);
+        await this.typeText(value, opts, focusRestorePoint);
       },
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
@@ -105,6 +123,7 @@ export class IOSDevice implements AbstractInterface {
         }
       },
       pinch: async (center, opts) => {
+        this.invalidatePendingKeyboardFollowUp('pinch');
         await this.wdaBackend.pinch(
           Math.round(center.x),
           Math.round(center.y),
@@ -119,12 +138,63 @@ export class IOSDevice implements AbstractInterface {
     },
   };
 
+  private invalidatePendingKeyboardFollowUp(reason: string): void {
+    if (!this.pendingKeyboardFollowUp) {
+      return;
+    }
+    debugDevice(`Discarding pending keyboard follow-up: ${reason}`);
+    this.pendingKeyboardFollowUp = undefined;
+  }
+
+  private registerPendingKeyboardFollowUp(target?: PointerPoint): void {
+    if (!target) {
+      return;
+    }
+    this.pendingKeyboardFollowUp = {
+      target,
+      createdAt: Date.now(),
+    };
+    debugDevice(
+      `Registered one keyboard follow-up for (${target.x}, ${target.y})`,
+    );
+  }
+
+  private consumePendingKeyboardFollowUp(
+    key: string,
+  ): PointerPoint | undefined {
+    const pendingFollowUp = this.pendingKeyboardFollowUp;
+    this.pendingKeyboardFollowUp = undefined;
+    if (!pendingFollowUp) {
+      return undefined;
+    }
+
+    const normalizedKey = key.trim().toLowerCase();
+    if (!keyboardFollowUpKeys.has(normalizedKey)) {
+      debugDevice(
+        `Discarding pending keyboard follow-up: ${JSON.stringify(key)} is not a submit/navigation key`,
+      );
+      return undefined;
+    }
+
+    const ageMs = Date.now() - pendingFollowUp.createdAt;
+    if (ageMs > keyboardFollowUpMaxAgeMs) {
+      debugDevice(
+        `Discarding pending keyboard follow-up: expired after ${ageMs}ms`,
+      );
+      return undefined;
+    }
+
+    return pendingFollowUp.target;
+  }
+
   private async tapPoint(point: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('tap');
     debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
     await this.wdaBackend.tap(Math.round(point.x), Math.round(point.y));
   }
 
   private async doubleTapPoint(point: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('double tap');
     await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
   }
 
@@ -132,6 +202,7 @@ export class IOSDevice implements AbstractInterface {
     point: PointerPoint,
     duration = 1000,
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('long press');
     await this.wdaBackend.longPress(
       Math.round(point.x),
       Math.round(point.y),
@@ -144,6 +215,7 @@ export class IOSDevice implements AbstractInterface {
     end: PointerPoint,
     duration = 500,
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('swipe');
     await this.wdaBackend.swipe(
       Math.round(start.x),
       Math.round(start.y),
@@ -154,6 +226,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   private async clearInputAt(point?: PointerPoint): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('clear input');
     if (point) {
       await this.tapPoint(point);
       await sleep(100);
@@ -175,6 +248,7 @@ export class IOSDevice implements AbstractInterface {
       input: this.inputPrimitives,
       size: () => this.size(),
       sleep: async (timeMs: number) => {
+        this.invalidatePendingKeyboardFollowUp('sleep action');
         await sleep(timeMs);
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
@@ -183,7 +257,13 @@ export class IOSDevice implements AbstractInterface {
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
-    const customActions = this.customActions || [];
+    const customActions = (this.customActions || []).map((action) => ({
+      ...action,
+      call: async (param: any, context?: ExecutorContext) => {
+        this.invalidatePendingKeyboardFollowUp(`custom action ${action.name}`);
+        return await action.call(param, context);
+      },
+    }));
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
@@ -269,6 +349,7 @@ export class IOSDevice implements AbstractInterface {
       `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
     );
 
+    this.invalidatePendingKeyboardFollowUp('connect');
     debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
     try {
@@ -331,6 +412,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   public async launch(uri: string): Promise<IOSDevice> {
+    this.invalidatePendingKeyboardFollowUp('launch');
     this.uri = uri;
 
     try {
@@ -362,6 +444,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * Supports app name resolution via setAppNameMapping when provided.
    */
   public async terminate(bundleId: string): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('terminate');
     const resolved = this.resolveBundleId(bundleId) ?? bundleId;
     try {
       debugDevice(`Terminating app: ${resolved}`);
@@ -530,7 +613,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   private async typeText(
     text: string,
     options?: IOSDeviceInputOpt,
+    focusRestorePoint?: PointerPoint,
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
@@ -563,11 +648,36 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
 
     if (shouldAutoDismissKeyboard) {
-      await this.hideKeyboard();
+      const dismissed = await this.hideKeyboard();
+      if (!dismissed) {
+        throw new Error(
+          'Failed to auto-dismiss the iOS keyboard: no supported dismissal control was found or the keyboard remained visible',
+        );
+      }
+      this.registerPendingKeyboardFollowUp(focusRestorePoint);
     }
   }
 
-  private async pressKey(key: string): Promise<void> {
+  private async pressKey(key: string, target?: ElementInfo): Promise<void> {
+    const explicitTargetPoint = target
+      ? { x: target.center[0], y: target.center[1] }
+      : undefined;
+    let focusRestorePoint: PointerPoint | undefined;
+    if (explicitTargetPoint) {
+      this.invalidatePendingKeyboardFollowUp(
+        'keyboard press has an explicit target',
+      );
+      focusRestorePoint = explicitTargetPoint;
+    } else {
+      focusRestorePoint = this.consumePendingKeyboardFollowUp(key);
+    }
+
+    if (focusRestorePoint) {
+      debugDevice(
+        `Restoring text input focus at (${focusRestorePoint.x}, ${focusRestorePoint.y}) before pressing ${key}`,
+      );
+      await this.tapPoint(focusRestorePoint);
+    }
     await this.wdaBackend.pressKey(key);
   }
 
@@ -857,55 +967,43 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // iOS specific methods
   async home(): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('home');
     await this.wdaBackend.pressHomeButton();
   }
 
   async appSwitcher(): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('app switcher');
     await this.wdaBackend.appSwitcher();
   }
 
+  /**
+   * Hides the iOS software keyboard using a structurally located accessory
+   * control, or configured key names when provided.
+   *
+   * @returns `true` when the keyboard is hidden, or `false` when the current
+   * application exposes no supported dismissal control.
+   * @throws When communication with WebDriverAgent fails.
+   */
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
+    this.invalidatePendingKeyboardFollowUp('hide keyboard');
     try {
-      // Always try WDA's dismissKeyboard API first (most reliable)
-      // Use common keyboard button names if not specified
-      const dismissKeys =
+      debugDevice(
         keyNames && keyNames.length > 0
-          ? keyNames
-          : ['return', 'done', 'go', 'search', 'next', 'send'];
-
-      debugDevice(
-        `Attempting to dismiss keyboard using WDA API with keys: ${dismissKeys.join(', ')}`,
+          ? `Attempting to dismiss keyboard using configured buttons: ${keyNames.join(', ')}`
+          : 'Attempting to dismiss keyboard using its accessory toolbar',
       );
-
-      try {
-        await this.wdaBackend.dismissKeyboard(dismissKeys);
-        debugDevice('Successfully dismissed keyboard using WDA API');
-        await sleep(500); // Wait longer to ensure UI is stable
-        return true;
-      } catch (wdaError) {
-        debugDevice(
-          `WDA dismissKeyboard failed, falling back to swipe gesture: ${wdaError}`,
-        );
-      }
-
-      // Fallback: Use swipe gesture if WDA API fails
-      // Use safer coordinates: swipe up from bottom of screen
-      const windowSize = await this.wdaBackend.getWindowSize();
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.round(windowSize.height * 0.9); // Start near bottom
-      const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
-
-      // Perform swipe up gesture to dismiss keyboard
-      await this.swipeCoordinates(centerX, startY, centerX, endY, 300);
+      const dismissed = await this.wdaBackend.dismissKeyboard(keyNames);
       debugDevice(
-        'Dismissed keyboard with swipe up gesture from bottom of screen',
+        dismissed
+          ? 'Successfully dismissed keyboard'
+          : 'No supported keyboard dismiss control was found',
       );
-
-      await sleep(500); // Wait longer to ensure UI is stable
-      return true;
+      return dismissed;
     } catch (error) {
       debugDevice(`Failed to hide keyboard: ${error}`);
-      return false;
+      throw new Error(`Failed to hide the iOS keyboard through WDA: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -921,6 +1019,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       waitTime?: number;
     },
   ): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('open URL');
     const opts = {
       useSafariAsBackup: true,
       waitTime: 2000,
@@ -952,6 +1051,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * @param url The URL to open
    */
   async openUrlViaSafari(url: string): Promise<void> {
+    this.invalidatePendingKeyboardFollowUp('open URL via Safari');
     try {
       debugDevice(`Opening URL via Safari: ${url}`);
 
@@ -965,7 +1065,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       // to handle different Safari UI states (new tab, existing tab, etc.)
 
       // Type the URL in the address bar
-      await this.typeText(url);
+      await this.typeText(url, { autoDismissKeyboard: false });
       await sleep(500);
 
       // Press Return to navigate
@@ -1003,6 +1103,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     endpoint: string,
     data?: any,
   ): Promise<TResult> {
+    this.invalidatePendingKeyboardFollowUp('raw WDA request');
     return await this.wdaBackend.executeRequest<TResult>(
       method,
       endpoint,
@@ -1015,6 +1116,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       return;
     }
 
+    this.invalidatePendingKeyboardFollowUp('destroy');
     try {
       // Stop the MJPEG frame source if it was started.
       this.mjpegFrameSource?.stop();

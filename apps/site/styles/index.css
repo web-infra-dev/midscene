@@ -1,11 +1,14 @@
 .rp-nav.rp-nav {
   height: 64px;
-  padding-left: max(24px, calc((100% - 1200px) / 2));
-  padding-right: max(24px, calc((100% - 1200px) / 2));
   border-bottom: 1px solid rgb(16 24 40 / 6%);
   background: rgb(255 255 255 / 1%);
   backdrop-filter: blur(66.667px);
   box-sizing: border-box;
+}
+
+:root:has(.home-page) .rp-nav.rp-nav {
+  padding-left: max(24px, calc((100% - 1200px) / 2));
+  padding-right: max(24px, calc((100% - 1200px) / 2));
 }
 
 .dark .rp-nav {
@@ -452,7 +455,7 @@
 }
 
 @media (max-width: 1247px) {
-  .rp-nav.rp-nav {
+  :root:has(.home-page) .rp-nav.rp-nav {
     padding-inline: 24px;
   }
 
@@ -516,7 +519,7 @@
 }
 
 @media (max-width: 767px) {
-  .rp-nav.rp-nav {
+  :root:has(.home-page) .rp-nav.rp-nav {
     padding-inline: 20px;
   }
 

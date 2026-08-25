@@ -15,7 +15,11 @@ rs.mock('@/img/get-sharp', () => ({
   default: imageBackendMocks.getSharp,
 }));
 
-import { convertBase64ImageToJpeg, resizeBase64ImageToJpeg } from '@/img';
+import {
+  constrainBase64ImageToMaxSize,
+  convertBase64ImageToJpeg,
+  resizeBase64ImageToJpeg,
+} from '@/img';
 
 const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
@@ -87,6 +91,46 @@ describe('resizeBase64ImageToJpeg image backend usage', () => {
     expect(imageBackendMocks.getSharp).toHaveBeenCalledTimes(1);
     expect(imageBackendMocks.resize).not.toHaveBeenCalled();
   });
+});
+
+describe('constrainBase64ImageToMaxSize image backend usage', () => {
+  beforeEach(() => {
+    rs.clearAllMocks();
+    imageBackendMocks.toBuffer.mockResolvedValue(
+      Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    );
+  });
+
+  it('returns an already bounded image without loading an image backend', async () => {
+    await expect(
+      constrainBase64ImageToMaxSize(pngDataUrl, { maxSize: 8 }),
+    ).resolves.toBe(pngDataUrl);
+
+    expect(imageBackendMocks.getSharp).not.toHaveBeenCalled();
+    expect(imageBackendMocks.metadata).not.toHaveBeenCalled();
+  });
+
+  it('parses once and resizes the longest edge while preserving aspect ratio', async () => {
+    await expect(
+      constrainBase64ImageToMaxSize(pngDataUrl, {
+        maxSize: 4,
+        jpegQuality: 82,
+      }),
+    ).resolves.toMatch(/^data:image\/jpeg;base64,/);
+
+    expect(imageBackendMocks.metadata).not.toHaveBeenCalled();
+    expect(imageBackendMocks.resize).toHaveBeenCalledWith(4, 3);
+    expect(imageBackendMocks.jpeg).toHaveBeenCalledWith({ quality: 82 });
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])(
+    'rejects invalid maxSize %s',
+    async (maxSize) => {
+      await expect(
+        constrainBase64ImageToMaxSize(pngDataUrl, { maxSize }),
+      ).rejects.toThrow('maxSize must be a positive integer');
+    },
+  );
 });
 
 describe('convertBase64ImageToJpeg image backend usage', () => {

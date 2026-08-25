@@ -12,6 +12,7 @@ export type {
   WDAElement,
   WDAElementInfo,
   WebDriverOptions,
+  WebDriverRequestOptions,
   Point,
   Size,
   DeviceInfo,

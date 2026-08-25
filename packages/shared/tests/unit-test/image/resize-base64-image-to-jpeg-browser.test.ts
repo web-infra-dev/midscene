@@ -50,7 +50,11 @@ const photonMocks = rs.hoisted(() => {
 rs.mock('@/utils', () => ({ ifInNode: false }));
 rs.mock('@/img/get-photon', () => ({ default: photonMocks.getPhoton }));
 
-import { convertBase64ImageToJpeg, resizeBase64ImageToJpeg } from '@/img';
+import {
+  constrainBase64ImageToMaxSize,
+  convertBase64ImageToJpeg,
+  resizeBase64ImageToJpeg,
+} from '@/img';
 
 const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
@@ -103,6 +107,26 @@ describe('JPEG conversion in browser environments', () => {
       photonMocks.samplingFilter.CatmullRom,
     );
     expect(photonMocks.outputGetBytesJpeg).toHaveBeenCalledWith(81);
+    expect(photonMocks.inputFree).toHaveBeenCalledOnce();
+    expect(photonMocks.outputFree).toHaveBeenCalledOnce();
+  });
+
+  it('constrains the longest edge with Photon from one parsed buffer', async () => {
+    await expect(
+      constrainBase64ImageToMaxSize(pngDataUrl, {
+        maxSize: 4,
+        jpegQuality: 83,
+      }),
+    ).resolves.toMatch(/^data:image\/jpeg;base64,/);
+
+    expect(photonMocks.newFromByteslice).toHaveBeenCalledOnce();
+    expect(photonMocks.resize).toHaveBeenCalledWith(
+      expect.any(Object),
+      4,
+      3,
+      photonMocks.samplingFilter.CatmullRom,
+    );
+    expect(photonMocks.outputGetBytesJpeg).toHaveBeenCalledWith(83);
     expect(photonMocks.inputFree).toHaveBeenCalledOnce();
     expect(photonMocks.outputFree).toHaveBeenCalledOnce();
   });

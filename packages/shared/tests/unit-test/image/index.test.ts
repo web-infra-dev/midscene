@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import {
   type JpegBase64DataUrl,
   compositePointMarkerImg,
+  constrainBase64ImageToMaxSize,
   httpImg2Base64,
   imageInfoOfBase64,
   isValidJPEGImageBuffer,
@@ -147,6 +148,27 @@ describe('image utils', () => {
       width: 34,
       height: 28,
     });
+  });
+
+  it('constrainBase64ImageToMaxSize bounds the longest edge with real image bytes', async () => {
+    const base64 = localImg2Base64(getFixture('icon.png'));
+    const constrainedBase64 = await constrainBase64ImageToMaxSize(base64, {
+      maxSize: 34,
+    });
+
+    expect(constrainedBase64).toMatch(/^data:image\/jpeg;base64,/);
+    await expect(imageInfoOfBase64(constrainedBase64)).resolves.toEqual({
+      width: 34,
+      height: 28,
+    });
+  });
+
+  it('constrainBase64ImageToMaxSize preserves an image already within the bound', async () => {
+    const base64 = localImg2Base64(getFixture('icon.png'));
+
+    await expect(
+      constrainBase64ImageToMaxSize(base64, { maxSize: 68 }),
+    ).resolves.toBe(base64);
   });
 
   it('uses image bytes instead of a misleading MIME header', async () => {

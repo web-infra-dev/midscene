@@ -33,6 +33,7 @@ import {
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
+  constrainBase64ImageToMaxSize,
   createImgBase64ByFormat,
   validateScreenshotBuffer,
 } from '@midscene/shared/img';
@@ -1362,6 +1363,8 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
+    const adapter = this.getScrcpyAdapter();
+
     // Determine screenshot strategy. 'always-yadb' bypasses scrcpy /
     // adb.takeScreenshot / screencap and captures directly via the yadb tool.
     // Use it when screencap yields black frames for secure (FLAG_SECURE)
@@ -1375,11 +1378,12 @@ ${Object.keys(size)
       SCREENSHOT_STRATEGY_AUTO;
 
     if (screenshotStrategy === SCREENSHOT_STRATEGY_ALWAYS_YADB) {
-      return this.screenshotBase64ViaYadb();
+      return this.prepareFallbackScreenshot(
+        await this.screenshotBase64ViaYadb(),
+      );
     }
 
     // Try scrcpy mode first (if enabled and initialized)
-    const adapter = this.getScrcpyAdapter();
     let scrcpyDeviceInfo: DevicePhysicalInfo | null = null;
     if (adapter.isEnabled()) {
       try {
@@ -1476,7 +1480,7 @@ ${Object.keys(size)
         // capture does not compete with scrcpy startup on the same transport.
         adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
       }
-      return result;
+      return this.prepareFallbackScreenshot(result);
     }
 
     if (!screenshotBuffer) {
@@ -1494,7 +1498,24 @@ ${Object.keys(size)
       // does not compete with scrcpy startup on the same remote transport.
       adapter.recoverAfterAdbScreenshot(scrcpyDeviceInfo);
     }
-    return result;
+    return this.prepareFallbackScreenshot(result);
+  }
+
+  /**
+   * Keep independently captured fallback images within the same maximum
+   * dimension as scrcpy frames. Disabled scrcpy and maxSize=0 preserve the
+   * original ADB/yadb image without parsing it.
+   */
+  private async prepareFallbackScreenshot(
+    screenshotBase64: string,
+  ): Promise<string> {
+    const adapter = this.getScrcpyAdapter();
+    if (!adapter.getStatus().enabled) return screenshotBase64;
+
+    const { maxSize } = adapter.resolveConfig();
+    if (maxSize === 0) return screenshotBase64;
+
+    return constrainBase64ImageToMaxSize(screenshotBase64, { maxSize });
   }
 
   private async captureScreenshotBase64FromDeviceFile(

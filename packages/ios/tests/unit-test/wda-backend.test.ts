@@ -45,6 +45,8 @@ describe('IOSWebDriverClient - Simple Tests', () => {
         'pressHomeButton',
         'activateApp',
         'terminateApp',
+        'dismissKeyboard',
+        'isKeyboardVisible',
       ] as const satisfies readonly (keyof IOSWebDriverClientType)[];
 
       for (const method of expectedMethods) {

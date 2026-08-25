@@ -10,6 +10,10 @@ class TestableWebDriverClient extends WebDriverClient {
   public testBuildSessionEndpoint(endpoint: string): string {
     return this.buildSessionEndpoint(endpoint);
   }
+
+  public testMakeRequest(timeout: number): Promise<unknown> {
+    return this.makeRequest('GET', '/status', undefined, { timeout });
+  }
 }
 
 describe('WebDriverClient.buildSessionEndpoint', () => {
@@ -62,5 +66,38 @@ describe('WebDriverClient external session cleanup', () => {
 
     expect(makeRequestSpy).not.toHaveBeenCalled();
     expect(client.sessionInfo).toBeNull();
+  });
+});
+
+describe('WebDriverClient per-request timeout', () => {
+  it('overrides the client-wide timeout for one request', async () => {
+    const originalFetch = globalThis.fetch;
+    rs.useFakeTimers();
+    globalThis.fetch = ((_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          'abort',
+          () => {
+            const abortError = new Error('aborted');
+            abortError.name = 'AbortError';
+            reject(abortError);
+          },
+          { once: true },
+        );
+      })) as typeof fetch;
+
+    try {
+      const client = new TestableWebDriverClient({ timeout: 30_000 });
+      const request = client.testMakeRequest(25);
+      const assertion = expect(request).rejects.toThrow(
+        'Request timeout after 25ms',
+      );
+
+      await rs.advanceTimersByTimeAsync(25);
+      await assertion;
+    } finally {
+      globalThis.fetch = originalFetch;
+      rs.useRealTimers();
+    }
   });
 });
