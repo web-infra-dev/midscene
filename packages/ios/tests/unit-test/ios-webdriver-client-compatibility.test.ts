@@ -142,6 +142,312 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
   });
 
+  describe('isKeyboardVisible()', () => {
+    it('should query WDA for keyboard elements', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValue({ value: [{ ELEMENT: 'keyboard-id' }] });
+
+      await expect(client.isKeyboardVisible()).resolves.toBe(true);
+      expect(makeRequestSpy).toHaveBeenCalledWith(
+        'POST',
+        '/session/test-session-id/elements',
+        {
+          using: 'predicate string',
+          value: 'type == "XCUIElementTypeKeyboard" AND visible == true',
+        },
+      );
+    });
+
+    it('should return false when WDA finds no keyboard elements', async () => {
+      rs.spyOn(client as any, 'makeRequest').mockResolvedValue({ value: [] });
+
+      await expect(client.isKeyboardVisible()).resolves.toBe(false);
+    });
+
+    it('should reject malformed WDA responses', async () => {
+      rs.spyOn(client as any, 'makeRequest').mockResolvedValue({
+        value: { unexpected: true },
+      });
+
+      await expect(client.isKeyboardVisible()).rejects.toThrow(
+        'Unexpected WDA elements response',
+      );
+    });
+
+    it('should reject element entries without an ID', async () => {
+      rs.spyOn(client as any, 'makeRequest').mockResolvedValue({
+        value: [{ unexpected: true }],
+      });
+
+      await expect(client.isKeyboardVisible()).rejects.toThrow(
+        'WDA element at index 0 has no element ID',
+      );
+    });
+  });
+
+  describe('dismissKeyboard()', () => {
+    it('should locate the accessory toolbar structurally and click its rightmost button', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({
+          value: [{ ELEMENT: 'keyboard-id' }],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({
+          value: [
+            {
+              'element-6066-11e4-a52e-4f735466cecf': 'toolbar-id',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 508, width: 402, height: 48 },
+        })
+        .mockResolvedValueOnce({
+          value: [{ ELEMENT: 'previous-id' }, { ELEMENT: 'dismiss-id' }],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 21, y: 513, width: 41, height: 38 },
+        })
+        .mockResolvedValueOnce({
+          value: { x: 341, y: 513, width: 40, height: 38 },
+        })
+        .mockResolvedValueOnce({ value: null })
+        .mockResolvedValueOnce({ value: [] });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(true);
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        1,
+        'POST',
+        '/session/test-session-id/elements',
+        {
+          using: 'predicate string',
+          value: 'type == "XCUIElementTypeKeyboard" AND visible == true',
+        },
+        { timeout: expect.any(Number) },
+      );
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        5,
+        'POST',
+        '/session/test-session-id/element/toolbar-id/elements',
+        {
+          using: 'predicate string',
+          value:
+            'type == "XCUIElementTypeButton" AND enabled == true AND visible == true',
+        },
+        { timeout: expect.any(Number) },
+      );
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        8,
+        'POST',
+        '/session/test-session-id/element/dismiss-id/click',
+        undefined,
+        { timeout: expect.any(Number) },
+      );
+      const requestCalls = makeRequestSpy.mock.calls as unknown as Array<
+        [string, string, unknown, { timeout?: number }?]
+      >;
+      for (const call of requestCalls) {
+        const timeout = call[3]?.timeout;
+        expect(typeof timeout).toBe('number');
+        if (typeof timeout !== 'number') {
+          throw new Error('Expected keyboard dismissal request timeout');
+        }
+        expect(timeout).toBeGreaterThan(0);
+        expect(timeout).toBeLessThanOrEqual(5000);
+      }
+      expect(JSON.stringify(makeRequestSpy.mock.calls)).not.toContain('Done');
+      expect(JSON.stringify(makeRequestSpy.mock.calls)).not.toContain('完成');
+    });
+
+    it('should not click a custom accessory toolbar without left navigation controls', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'toolbar-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 508, width: 402, height: 48 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'submit-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 341, y: 513, width: 40, height: 38 },
+        });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(false);
+      expect(makeRequestSpy).toHaveBeenCalledTimes(6);
+      const requestCalls = makeRequestSpy.mock.calls as unknown as Array<
+        [string, string, ...unknown[]]
+      >;
+      expect(
+        requestCalls.some(([method, endpoint]) =>
+          method === 'POST' ? endpoint.endsWith('/click') : false,
+        ),
+      ).toBe(false);
+    });
+
+    it('should return false when no accessory toolbar is next to the keyboard', async () => {
+      rs.spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [] });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(false);
+    });
+
+    it('should ignore a full-width toolbar that is not next to the keyboard', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'toolbar-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 100, width: 402, height: 48 },
+        });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(false);
+      expect(makeRequestSpy).toHaveBeenCalledTimes(4);
+    });
+
+    it('should return true when the keyboard is already hidden', async () => {
+      rs.spyOn(client as any, 'makeRequest').mockResolvedValue({ value: [] });
+
+      await expect(client.dismissKeyboard()).resolves.toBe(true);
+    });
+
+    it('should use names only when the caller explicitly configures them', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'done-button-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 341, y: 513, width: 40, height: 38 },
+        })
+        .mockResolvedValueOnce({ value: null })
+        .mockResolvedValueOnce({ value: [] });
+
+      await expect(client.dismissKeyboard(['Done', '完成'])).resolves.toBe(
+        true,
+      );
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        3,
+        'POST',
+        '/session/test-session-id/elements',
+        {
+          using: 'predicate string',
+          value:
+            'type IN {"XCUIElementTypeButton", "XCUIElementTypeKey"} AND enabled == true AND visible == true AND (name IN {"Done", "完成"} OR label IN {"Done", "完成"})',
+        },
+        { timeout: expect.any(Number) },
+      );
+      expect(makeRequestSpy).toHaveBeenNthCalledWith(
+        5,
+        'POST',
+        '/session/test-session-id/element/done-button-id/click',
+        undefined,
+        { timeout: expect.any(Number) },
+      );
+    });
+
+    it('should not click a configured app button far from the keyboard', async () => {
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'app-done-button-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 320, y: 200, width: 60, height: 40 },
+        });
+
+      await expect(client.dismissKeyboard(['Done'])).resolves.toBe(false);
+      expect(makeRequestSpy).toHaveBeenCalledTimes(4);
+    });
+
+    it('should return false when no dismiss button is found', async () => {
+      rs.spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({ value: [] });
+
+      await expect(client.dismissKeyboard(['Done'])).resolves.toBe(false);
+    });
+
+    it('should propagate WDA request errors', async () => {
+      rs.spyOn(client as any, 'makeRequest').mockRejectedValue(
+        new Error('WDA transport failed'),
+      );
+
+      await expect(client.dismissKeyboard()).rejects.toThrow(
+        'WDA transport failed',
+      );
+    });
+
+    it('should reject a visible keyboard without a usable rect', async () => {
+      rs.spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 0, width: 0, height: 0 },
+        });
+
+      await expect(client.dismissKeyboard()).rejects.toThrow(
+        'WDA reported a visible keyboard without a valid rect',
+      );
+    });
+
+    it('should return false when the keyboard remains visible after dismissal', async () => {
+      rs.useFakeTimers();
+      const makeRequestSpy = rs
+        .spyOn(client as any, 'makeRequest')
+        .mockResolvedValueOnce({ value: [{ ELEMENT: 'keyboard-id' }] })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 583, width: 402, height: 233 },
+        })
+        .mockResolvedValueOnce({
+          value: [{ ELEMENT: 'toolbar-id' }],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 0, y: 508, width: 402, height: 48 },
+        })
+        .mockResolvedValueOnce({
+          value: [{ ELEMENT: 'previous-id' }, { ELEMENT: 'dismiss-id' }],
+        })
+        .mockResolvedValueOnce({
+          value: { x: 21, y: 513, width: 41, height: 38 },
+        })
+        .mockResolvedValueOnce({
+          value: { x: 341, y: 513, width: 40, height: 38 },
+        })
+        .mockResolvedValueOnce({ value: null })
+        .mockResolvedValue({ value: [{ ELEMENT: 'keyboard-id' }] });
+
+      try {
+        const dismissalPromise = client.dismissKeyboard();
+        await rs.advanceTimersByTimeAsync(5100);
+
+        await expect(dismissalPromise).resolves.toBe(false);
+        expect(makeRequestSpy.mock.calls.length).toBeGreaterThan(8);
+      } finally {
+        rs.useRealTimers();
+      }
+    });
+  });
+
   describe('getScreenScale() fallback logic', () => {
     it('should return scale when endpoint succeeds with scale value', async () => {
       const makeRequestSpy = rs.spyOn(client as any, 'makeRequest');
