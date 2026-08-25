@@ -241,7 +241,9 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       this.waterFlowAnimationEnabled = options.enableWaterFlowAnimation;
     }
 
-    const tab = await chrome.tabs.create({ url });
+    // 默认保持历史行为：创建新 Tab 后将其激活；调用方可显式创建后台 Tab。
+    const activate = options.activateTab ?? true;
+    const tab = await chrome.tabs.create({ url, active: activate });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');
 
@@ -261,7 +263,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     // stable target.
     await waitForTabNavigationComplete(tabId, url);
 
-    await this.setActiveTabId(tabId);
+    await this.setActiveTabId(tabId, { activate });
   }
 
   public async connectCurrentTab(
