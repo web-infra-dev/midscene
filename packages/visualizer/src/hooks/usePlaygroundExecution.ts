@@ -6,9 +6,11 @@ import type {
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import {
+  createInlineImageResolver,
   parseDumpScript,
   parseImageScripts,
   restoreImageReferences,
+  restoreReportImageReferences,
 } from '@midscene/core/dump';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
@@ -114,10 +116,11 @@ function replayInfoFromDump(
 function replayInfoFromReportHTML(reportHTML: string, deviceType?: string) {
   try {
     const imageMap = parseImageScripts(reportHTML);
+    const resolveInlineImage = createInlineImageResolver(imageMap);
     const dump = restoreImageReferences(
       JSON.parse(parseDumpScript(reportHTML)) as IReportActionDump,
-      (ref) => imageMap[ref.id] || '',
-    );
+      resolveInlineImage,
+    ) as IReportActionDump;
     return replayInfoFromDump(dump, deviceType);
   } catch (error) {
     console.error('Failed to restore replay from playground report:', error);
@@ -153,13 +156,10 @@ async function loadReportReplay(
       throw new Error(`Report replay request failed (${response.status})`);
     }
     const dump = (await response.json()) as IReportActionDump;
-    result.dump = restoreImageReferences(dump, (ref) => {
-      const extension = ref.mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-      return new URL(
-        `screenshots/${encodeURIComponent(ref.id)}.${extension}`,
-        result.report!.url,
-      ).toString();
-    });
+    result.dump = restoreReportImageReferences(
+      dump,
+      result.report.url,
+    ) as IReportActionDump;
   } catch (error) {
     console.error('Failed to load playground report replay:', error);
   }

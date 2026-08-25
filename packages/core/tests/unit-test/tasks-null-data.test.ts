@@ -55,6 +55,8 @@ const createMockUsage = (totalTokens: number): AIUsageInfo => ({
   request_id: undefined,
 });
 
+const referenceImageDataUrl = 'data:image/webp;base64,dGVzdA==';
+
 // Helper function to create mock ServiceDump
 const createMockDump = (
   data: any,
@@ -79,6 +81,40 @@ const createMockDump = (
  * This covers the bug fix for: TypeError: Cannot read properties of null (reading 'StatementIsTruthy')
  */
 describe('TaskExecutor - Null Data Handling', () => {
+  it('registers insight reference images when the execution is created', async () => {
+    const mockInsight = {
+      contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+      extract: vi.fn(async () => ({
+        data: { answer: 'matched' },
+        thought: 'matched the reference',
+        dump: createMockDump({ answer: 'matched' }),
+      })),
+    } as any;
+    const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+      actionSpace: [],
+    });
+    const modelRuntime = getModelRuntime({
+      modelName: 'mock-model',
+      modelDescription: 'mock-model-description',
+      intent: 'default',
+      slot: 'default',
+    });
+
+    const result = await taskExecutor.createTypeQueryExecution(
+      'Query',
+      'compare with the reference',
+      modelRuntime,
+      {},
+      {
+        images: [{ name: 'reference', url: referenceImageDataUrl }],
+      },
+    );
+
+    expect(result.runner.dump().getReferenceImageUrls()).toEqual([
+      referenceImageDataUrl,
+    ]);
+  });
+
   describe('createTypeQueryTask', () => {
     it('should handle null data for WaitFor operation', async () => {
       // Mock service that returns null

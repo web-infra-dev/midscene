@@ -22,8 +22,12 @@ import {
   streamImageScriptsToFile,
 } from './dump/html-utils';
 import {
-  normalizeScreenshotRef,
-  resolveScreenshotSource,
+  imageRefFileExtension,
+  normalizeStoredImageRef,
+} from './dump/image-reference';
+import {
+  parseBase64ImageDataUrl,
+  resolveImageSource,
 } from './dump/screenshot-store';
 import {
   type ExecutionDump,
@@ -347,6 +351,7 @@ export class ReportMergingTool {
       }
 
       const agentReports: ReportActionDump[] = [];
+      const writtenInlineImageIds = new Set<string>();
 
       // Process all reports one by one
       for (let i = 0; i < this.reportInfos.length; i++) {
@@ -381,7 +386,11 @@ export class ReportMergingTool {
             }
           } else {
             // Inline mode: stream image scripts to output file
-            streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
+            streamImageScriptsToFile(
+              reportInfo.reportFilePath,
+              outputFilePath,
+              writtenInlineImageIds,
+            );
           }
 
           // Extract all dump scripts from the source report.
@@ -554,13 +563,7 @@ export function collectDedupedExecutions(
   };
 }
 
-function extensionByMimeType(mimeType: string): 'png' | 'jpeg' {
-  if (mimeType === 'image/png') return 'png';
-  if (mimeType === 'image/jpeg') return 'jpeg';
-  throw new Error(`Unsupported screenshot mime type: ${mimeType}`);
-}
-
-function externalizeScreenshotsInExecution(
+function externalizeImagesInExecution(
   execution: IExecutionDump,
   opts: {
     htmlPath: string;
@@ -578,22 +581,19 @@ function externalizeScreenshotsInExecution(
 
     if (typeof node !== 'object' || node === null) return;
 
-    const ref = normalizeScreenshotRef(node);
+    const ref = normalizeStoredImageRef(node);
     if (ref) {
-      const ext = extensionByMimeType(ref.mimeType);
+      const ext = imageRefFileExtension(ref);
       const fileName = `${ref.id}.${ext}`;
       const relativePath = `./screenshots/${fileName}`;
       const absolutePath = path.join(opts.screenshotsDir, fileName);
 
       if (!opts.writtenFiles.has(fileName)) {
-        const resolved = resolveScreenshotSource(ref, {
+        const resolved = resolveImageSource(ref, {
           reportPath: opts.htmlPath,
         });
         if (resolved.type === 'data-uri') {
-          const rawBase64 = resolved.dataUri.replace(
-            /^data:image\/[a-zA-Z+]+;base64,/,
-            '',
-          );
+          const { rawBase64 } = parseBase64ImageDataUrl(resolved.dataUri);
           writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
         } else {
           copyFileSync(resolved.filePath, absolutePath);
@@ -634,7 +634,7 @@ export function splitReportHtmlByExecution(
   let fileIndex = 0;
   for (const execution of executions) {
     fileIndex += 1;
-    externalizeScreenshotsInExecution(execution, {
+    externalizeImagesInExecution(execution, {
       htmlPath,
       screenshotsDir,
       writtenFiles: writtenScreenshotFiles,
