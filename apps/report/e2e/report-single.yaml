@@ -47,7 +47,11 @@ tasks:
               thumbnail
             deepLocate: true
       - sleep: 300
-      - aiAssert: The report is in replay-all mode. The main report area shows the interactive replay player, and its visible bottom overlay control bar contains a play or pause control, current and total playback time, a horizontal seek/progress bar, settings, and fullscreen controls.
+      - aiAssert: >-
+          The report is in replay-all mode. The main report area shows the
+          interactive replay player, and its visible bottom overlay control bar
+          contains a play or pause control, current and total playback time, a
+          horizontal seek/progress bar, settings, and fullscreen controls.
 
   # --- Settings popup ---
   - name: settings popup opens and shows options
