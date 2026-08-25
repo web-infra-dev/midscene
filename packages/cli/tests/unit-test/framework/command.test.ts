@@ -191,6 +191,83 @@ export function defineYamlCaseTest(test: any, options: any) {
     }
   });
 
+  test('uses one batch virtual entry for setup without browser sharing', async () => {
+    const root = createTempDir();
+    const runDir = join(root, 'midscene-run');
+    const outputDir = join(root, 'generated-runner');
+    const setupYaml = join(root, 'setup-android.yaml');
+    const mainYaml = join(root, 'main-android.yaml');
+    const previousRunDir = process.env.MIDSCENE_RUN_DIR;
+    process.env.MIDSCENE_RUN_DIR = runDir;
+    writeFileSync(setupYaml, 'android: {}\ntasks: []\n');
+    writeFileSync(mainYaml, 'android: {}\ntasks: []\n');
+
+    try {
+      const exitCode = await runFrameworkTestConfig(
+        {
+          setup: setupYaml,
+          files: [mainYaml],
+          concurrent: 1,
+          continueOnError: false,
+          retry: 1,
+          summary: 'summary.json',
+          shareBrowserContext: false,
+          globalConfig: {},
+          headed: false,
+          keepWindow: false,
+          dotenvOverride: false,
+          dotenvDebug: false,
+        },
+        {
+          outputDir,
+          frameworkImport: '@test/framework',
+          stdio: 'pipe',
+          rstestRunner: async ({ project }) => {
+            expect(project.include).toEqual([
+              'virtual:midscene-yaml/batch.test.ts',
+            ]);
+            expect(project.maxConcurrency).toBe(1);
+            const batchModule = project.virtualModules[project.include[0]];
+            expect(batchModule).toContain('defineYamlBatchTest');
+            expect(batchModule).toContain('"shareBrowserContext": false');
+            expect(batchModule).toContain('"retry": 1');
+            expect(project.cases.map((item) => item.yamlFile)).toEqual([
+              setupYaml,
+              mainYaml,
+            ]);
+            for (const item of project.cases) {
+              mkdirSync(dirname(item.resultFile), { recursive: true });
+              writeFileSync(
+                item.resultFile,
+                JSON.stringify({
+                  file: item.yamlFile,
+                  success: true,
+                  executed: true,
+                  duration: 1,
+                  resultType: 'success',
+                }),
+              );
+            }
+            return 0;
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      const summary = JSON.parse(
+        readFileSync(join(runDir, 'output', 'summary.json'), 'utf8'),
+      );
+      expect(summary.summary).toMatchObject({ total: 2, successful: 2 });
+    } finally {
+      if (previousRunDir === undefined) {
+        Reflect.deleteProperty(process.env, 'MIDSCENE_RUN_DIR');
+      } else {
+        process.env.MIDSCENE_RUN_DIR = previousRunDir;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('lets Rstest schedule virtual entries by concurrency and stops after failure', async () => {
     const root = createTempDir();
     const runDir = join(root, 'midscene-run');

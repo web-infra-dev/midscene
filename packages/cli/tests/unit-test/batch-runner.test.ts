@@ -353,10 +353,10 @@ describe('BatchRunner', () => {
       );
     });
 
-    test('should not create any browser instance if no web tasks', async () => {
+    test('should not create any browser instance for non-Web tasks', async () => {
       const config = {
         ...mockBatchConfig,
-        shareBrowserContext: true, // even if true
+        shareBrowserContext: false,
         files: ['android1.yml', 'android2.yml'],
         globalConfig: {},
       };
@@ -759,7 +759,7 @@ describe('BatchRunner', () => {
       expect(browser.close).toHaveBeenCalledTimes(1);
     });
 
-    test('throws when setup is set without shareBrowserContext', async () => {
+    test('requires shareBrowserContext for Puppeteer Web setup', async () => {
       const config = {
         ...mockBatchConfig,
         shareBrowserContext: false,
@@ -768,8 +768,133 @@ describe('BatchRunner', () => {
       };
       const runner = new BatchRunner(config);
       await expect(runner.run()).rejects.toThrow(
-        'setup requires shareBrowserContext: true',
+        'Puppeteer Web setup "login.yml" requires shareBrowserContext: true',
       );
+    });
+
+    const nonPuppeteerTargets: Array<
+      [string, Omit<MidsceneYamlScript, 'tasks'>]
+    > = [
+      [
+        'Web bridge mode',
+        { page: { url: 'about:blank', bridgeMode: 'currentTab' } },
+      ],
+      ['Android', { android: {} }],
+      ['iOS', { ios: {} }],
+      ['HarmonyOS', { harmony: {} }],
+      ['Computer', { computer: {} }],
+      ['Interface', { interface: { module: './test-interface', param: {} } }],
+    ];
+
+    for (const [targetName, targetConfig] of nonPuppeteerTargets) {
+      test(`allows ${targetName} setup without shareBrowserContext`, async () => {
+        rs.mocked(parseYamlScript).mockReturnValue({
+          ...targetConfig,
+          tasks: mockYamlScript.tasks,
+        });
+        const config = {
+          ...mockBatchConfig,
+          globalConfig: {},
+          shareBrowserContext: false,
+          setup: 'prepare.yml',
+          files: ['main.yml'],
+        };
+
+        const runner = new BatchRunner(config);
+        const results = await runner.run({ generateSummary: false });
+
+        expect(results.map((result) => result.file)).toEqual([
+          'prepare.yml',
+          'main.yml',
+        ]);
+        expect(puppeteer.launch).not.toHaveBeenCalled();
+      });
+    }
+
+    test('retries non-Puppeteer setup with a new player before running main files', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        android: {},
+        tasks: mockYamlScript.tasks,
+      });
+      const runOrder: string[] = [];
+      let setupCreationCount = 0;
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const fileName = file as string;
+        if (fileName === 'prepare.yml') setupCreationCount++;
+        const player = createMockPlayer(
+          fileName !== 'prepare.yml' || setupCreationCount > 1,
+        );
+        const originalRun = player.run;
+        (player as unknown as { run: () => Promise<void> }).run = rs.fn(
+          async () => {
+            runOrder.push(fileName);
+            return originalRun();
+          },
+        );
+        return player;
+      });
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: false,
+        setup: 'prepare.yml',
+        files: ['main.yml'],
+        retry: 1,
+      });
+      const results = await runner.run({ generateSummary: false });
+
+      expect(runOrder).toEqual(['prepare.yml', 'prepare.yml', 'main.yml']);
+      expect(setupCreationCount).toBe(2);
+      expect(
+        results.find((result) => result.file === 'prepare.yml'),
+      ).toMatchObject({
+        success: true,
+        attempts: [
+          { attempt: 1, success: false },
+          { attempt: 2, success: true },
+        ],
+      });
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('rejects shareBrowserContext for non-Puppeteer targets', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        android: {},
+        tasks: mockYamlScript.tasks,
+      });
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: true,
+        files: ['android.yml'],
+      });
+
+      await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+        'shareBrowserContext only supports Puppeteer Web targets, but "android.yml" uses Android',
+      );
+      expect(createYamlPlayer).not.toHaveBeenCalled();
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('rejects shareBrowserContext for Web bridge mode', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        page: { url: 'about:blank', bridgeMode: 'currentTab' },
+        tasks: mockYamlScript.tasks,
+      });
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: true,
+        setup: 'prepare.yml',
+        files: ['main.yml'],
+      });
+
+      await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+        'shareBrowserContext only supports Puppeteer Web targets, but "prepare.yml" uses Web bridge mode',
+      );
+      expect(createYamlPlayer).not.toHaveBeenCalled();
+      expect(puppeteer.launch).not.toHaveBeenCalled();
     });
 
     test('throws when a yaml file is both the setup and a main file', async () => {

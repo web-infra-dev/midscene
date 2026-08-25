@@ -52,23 +52,26 @@ import { TTYWindowRenderer } from './tty-renderer';
 export interface BatchRunnerConfig {
   files: string[];
   /**
-   * A setup yaml file executed before the main `files`. Each failed setup
-   * attempt is discarded with its isolated browser context. The successful
-   * attempt's context is shared with every main file. A setup failure aborts
-   * the batch and leaves the main files not executed. Only honored when
-   * `shareBrowserContext` is true; the config layer rejects other combinations.
+   * A setup yaml file executed before the main `files`. A setup failure aborts
+   * the batch and leaves the main files not executed. Puppeteer Web setup uses
+   * `shareBrowserContext` to pass its successful browser state to the main
+   * files. Other targets run setup in their own target environment without
+   * browser-context sharing.
    */
   setup?: string;
   concurrent: number;
   continueOnError: boolean;
   /**
    * Number of extra attempts for a failed yaml file. The batch executor owns
-   * retries so shared-browser runs can re-execute only failed files. Setup
-   * retries receive a clean browser context; main-file retries preserve the
-   * successful setup context. Defaults to 0 (no retry).
+   * retries so it can re-execute only failed files. Puppeteer Web setup retries
+   * receive a clean browser context; other targets receive a new player/Agent
+   * while their underlying device or external session may retain state.
+   * Main-file retries preserve the successful setup environment. Defaults to 0
+   * (no retry).
    */
   retry?: number;
   summary: string;
+  /** Share one BrowserContext and Page across Puppeteer Web yaml files. */
   shareBrowserContext: boolean;
   globalConfig?: {
     page?: Partial<MidsceneYamlScriptWebEnv>;
@@ -95,6 +98,79 @@ interface BatchFileContext {
     page?: Page;
   };
 }
+
+type BatchRuntimeTarget =
+  | 'puppeteer-web'
+  | 'bridge-web'
+  | 'android'
+  | 'ios'
+  | 'harmony'
+  | 'computer'
+  | 'interface';
+
+const batchRuntimeTargetLabel: Record<BatchRuntimeTarget, string> = {
+  'puppeteer-web': 'Puppeteer Web',
+  'bridge-web': 'Web bridge mode',
+  android: 'Android',
+  ios: 'iOS',
+  harmony: 'HarmonyOS',
+  computer: 'Computer',
+  interface: 'Interface',
+};
+
+/**
+ * Resolve a target only when the script has one unambiguous target family.
+ * Structural target errors remain owned by createYamlPlayer, which provides
+ * the canonical validation messages for missing or conflicting targets.
+ */
+const resolveBatchRuntimeTarget = (
+  config: MidsceneYamlScript,
+): BatchRuntimeTarget | undefined => {
+  const webTarget = resolveWebTarget(config);
+  const targets: BatchRuntimeTarget[] = [];
+  if (webTarget) {
+    targets.push(webTarget.target.bridgeMode ? 'bridge-web' : 'puppeteer-web');
+  }
+  if (typeof config.android !== 'undefined') targets.push('android');
+  if (typeof config.ios !== 'undefined') targets.push('ios');
+  if (typeof config.harmony !== 'undefined') targets.push('harmony');
+  if (typeof config.computer !== 'undefined') targets.push('computer');
+  if (typeof config.interface !== 'undefined') targets.push('interface');
+
+  return targets.length === 1 ? targets[0] : undefined;
+};
+
+const assertBrowserContextUsage = (
+  setupContext: BatchFileContext | undefined,
+  allContexts: BatchFileContext[],
+  shareBrowserContext: boolean,
+): void => {
+  const resolvedTargets = allContexts.map((context) => ({
+    context,
+    target: resolveBatchRuntimeTarget(context.executionConfig),
+  }));
+
+  if (shareBrowserContext) {
+    const unsupported = resolvedTargets.find(
+      ({ target }) => target && target !== 'puppeteer-web',
+    );
+    if (unsupported?.target) {
+      throw new Error(
+        `shareBrowserContext only supports Puppeteer Web targets, but "${unsupported.context.file}" uses ${batchRuntimeTargetLabel[unsupported.target]}. Remove shareBrowserContext or use a Puppeteer Web target.`,
+      );
+    }
+  }
+
+  if (
+    setupContext &&
+    !shareBrowserContext &&
+    resolveBatchRuntimeTarget(setupContext.executionConfig) === 'puppeteer-web'
+  ) {
+    throw new Error(
+      `Puppeteer Web setup "${setupContext.file}" requires shareBrowserContext: true so its browser state can be shared with the main files.`,
+    );
+  }
+};
 
 interface ExecutedBatchFileContext extends MidsceneYamlFileContext {
   duration: number;
@@ -155,15 +231,6 @@ class YamlBatchExecutor {
     const { keepWindow, headed } = this.config;
     const setup = this.config.setup;
 
-    // The setup file relies on the shared page to hand prerequisite state to
-    // the main files. Enforce that invariant here too, so the executor stays
-    // correct even if it is constructed directly, bypassing the config layer.
-    if (setup && !this.config.shareBrowserContext) {
-      throw new Error(
-        'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
-      );
-    }
-
     // Print execution plan
     if (shouldPrintExecutionPlan) {
       printExecutionPlan(this.config);
@@ -214,6 +281,12 @@ class YamlBatchExecutor {
       const allContexts = setupContext
         ? [setupContext, ...fileContextList]
         : fileContextList;
+
+      assertBrowserContextUsage(
+        setupContext,
+        allContexts,
+        this.config.shareBrowserContext,
+      );
 
       // Now, check if any of the tasks require a web browser
       const needsBrowser = allContexts.some(

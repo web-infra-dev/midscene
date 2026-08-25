@@ -213,11 +213,11 @@ Call the Agent's [`runYaml`](./reference/#runyaml) method to execute YAML from J
 The CLI provides parameters to control how scripts run:
 
 - `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns; when a glob pattern or directory matches multiple files, matched files are added to the execution list in lexicographic path order.
-- `--setup <file>`: A setup script that runs before the main `--files`. The successful setup attempt's browser context is shared with every main script, so prerequisite state such as a login remains visible. When retry is enabled, each setup attempt starts with a clean BrowserContext and Page. If all setup attempts fail, the batch is aborted and the main scripts are reported as not executed. Requires `--share-browser-context`.
+- `--setup <file>`: A setup script that runs before the main `--files` for any supported target. If all setup attempts fail, the batch is aborted and the main scripts are reported as not executed. Puppeteer Web setup requires `--share-browser-context`; each retry then starts with a clean BrowserContext and Page, and the successful context is shared with the main scripts. Bridge mode and non-Web targets must omit `--share-browser-context`; their retries create a new player and Agent but do not reset the underlying browser, device, desktop, or external interface state.
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
-- `--retry <number>`: Number of extra attempts for a failed script. Only failed scripts are retried, which helps with unstable networks or unstable model output. Default `0`. With `--share-browser-context`, this applies to both setup and main scripts: setup retries use a clean BrowserContext and Page, while main-script retries preserve the successful setup context.
-- `--share-browser-context`: Share browser context (cookies, `localStorage`, etc.) across scripts. Default off.
+- `--retry <number>`: Number of extra attempts for a failed script. Only failed scripts are retried, which helps with unstable networks or unstable model output. Default `0`. Puppeteer Web setup retries use a clean BrowserContext and Page, while main-script retries preserve the successful setup context. Other targets create a new player and Agent for each retry without resetting their underlying environment.
+- `--share-browser-context`: Share one Puppeteer BrowserContext and Page (cookies, `localStorage`, etc.) across scripts. Every setup and main script in the batch must use a Puppeteer Web target. Bridge mode and non-Web targets are not supported. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
 - `--headed`: Run in a headed browser instead of headless.
 - `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
@@ -269,7 +269,7 @@ midscene --config ./config.yaml
 
 #### Run a setup before parallel scripts
 
-When several independent scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. The successful setup attempt's browser context is shared with the main scripts, so the login state is carried over. `setup` requires `shareBrowserContext: true`.
+When several independent Puppeteer Web scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Set `shareBrowserContext: true` so the successful setup attempt's browser context, including the login state, is carried over. Every script in this shared batch must use a Puppeteer Web target; bridge mode is not supported.
 
 ```yaml
 setup: ./scripts/login.yaml
@@ -285,6 +285,8 @@ retry: 2
 ```
 
 `retry` is the number of extra attempts, so `retry: 2` allows up to three attempts. Every setup retry gets a new BrowserContext and Page, preventing cookies, local storage, navigation state, and other browser-side effects from a failed attempt from leaking into the next one. After setup succeeds, its context is shared with the main scripts. A failed main script is retried in that same context so the successful setup state is preserved. If all setup attempts fail, the batch is aborted and the main scripts are reported as not executed.
+
+`setup` also works with bridge mode, Android, iOS, HarmonyOS, Computer, and custom Interface targets. Omit `shareBrowserContext` for those targets. A retry creates a new script player and Agent, but the underlying browser profile, device, desktop session, or custom interface is not automatically reset. If a clean retry environment is required, make the setup script restore that environment explicitly.
 
 ## FAQ
 

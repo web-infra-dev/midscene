@@ -429,7 +429,7 @@ shareBrowserContext: true
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setup without shareBrowserContext', async () => {
+    test('should keep setup without deciding target-specific sharing', async () => {
       const mockYamlContent = `
 setup: login.yml
 files:
@@ -445,9 +445,11 @@ files:
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
-      await expect(createConfig('/test/index.yml')).rejects.toThrow(
-        'setup requires shareBrowserContext: true',
-      );
+      const result = await createConfig('/test/index.yml');
+
+      expect(result.setup).toBe('login.yml');
+      expect(result.files).toEqual(['search.yml']);
+      expect(result.shareBrowserContext).toBe(false);
     });
 
     test('should override config files with command-line files parameter', async () => {
@@ -583,15 +585,19 @@ concurrent: 2
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setup without shareBrowserContext', async () => {
+    test('should resolve setup without deciding target-specific sharing', async () => {
       const patterns = ['search.yml'];
       rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
-      await expect(
-        createFilesConfig(patterns, { setup: 'login.yml' }),
-      ).rejects.toThrow('setup requires shareBrowserContext: true');
+      const result = await createFilesConfig(patterns, {
+        setup: 'login.yml',
+      });
+
+      expect(result.setup).toBe('login.yml');
+      expect(result.files).toEqual(['search.yml']);
+      expect(result.shareBrowserContext).toBe(false);
     });
 
     test('should forward the retry option through createFilesConfig', async () => {
