@@ -1,10 +1,10 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Control Any Platform with Midscene Skills',
+  newBadge: 'Now supports the DeepSeek V4 vision model',
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'Midscene.js — GUI Agent for E2E Testing',
+  heroTitle: 'Midscene.js\nthe GUI Agent\nfor E2E Testing',
   heroSubtitle: 'AI-powered vision. Cross-platform. Batteries included.',
 
   // Banner - Stats
@@ -55,9 +55,9 @@ and more`,
   modelQwenName: 'qwen3.7-plus',
   modelQwenDesc:
     'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
-  modelGeminiName: 'gemini-3.5-flash',
-  modelGeminiDesc:
-    'Powerful multimodal understanding with excellent element localization.',
+  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
+  modelDeepSeekDesc:
+    'Integrated visual understanding and reasoning for complex UI tasks.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
     'Pair a planning model with a vision model to raise task completion rates.',
@@ -101,6 +101,7 @@ UI testing toolkit`,
     'Explore the complete API documentation for more automation capabilities.',
 
   // Who is Using
+  whoIsUsingEyebrow: 'USERS',
   whoIsUsingTitle: 'Who is using Midscene',
   userVolcengine: 'Volcengine',
   userDouyin: 'Douyin',
@@ -115,6 +116,12 @@ UI testing toolkit`,
   userBilibiliLogoWidth: '90',
   userDoubao: 'Doubao',
   userDongchedi: 'Dongchedi',
+
+  // Bottom CTA and Footer
+  bottomCtaTitle: 'The GUI Agent for E2E Testing',
+  licenseNotice:
+    'Midscene is free and open source software released under the MIT license.',
+  copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
