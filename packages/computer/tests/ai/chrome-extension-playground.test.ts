@@ -85,14 +85,18 @@ describe('chrome extension playground advanced tests', () => {
 
     // Selecting Assert scrolls the narrow mode selector to the right, which can
     // move Action outside the viewport. Select the visible Tap radio first,
-    // then use its native keyboard navigation to return to Action reliably.
+    // then focus it explicitly before using native keyboard navigation. The
+    // composer textarea has autoFocus and otherwise receives the ArrowLeft.
     await agent.aiTap(`the "Tap" action type button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "tap"`,
     );
 
-    await agent.aiKeyboardPress(undefined, { keyName: 'ArrowLeft' });
+    await agent.aiKeyboardPress(
+      `the selected "Tap" action type button in ${SIDE_PANEL}`,
+      { keyName: 'ArrowLeft' },
+    );
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text "What do you want to do?"`,
