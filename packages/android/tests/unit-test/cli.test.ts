@@ -179,6 +179,61 @@ describe('Android CLI integration', () => {
     });
   });
 
+  it('sets the scrcpy video bitrate from the CLI', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: [
+        'take_screenshot',
+        '--device-id',
+        'remote-scrcpy-device',
+        '--use-scrcpy',
+        '--scrcpy-video-bit-rate',
+        '4000000',
+      ],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith('remote-scrcpy-device', {
+      autoDismissKeyboard: false,
+      scrcpyConfig: { enabled: true, videoBitRate: 4_000_000 },
+    });
+  });
+
+  it('rejects a non-positive scrcpy video bitrate', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await expect(
+      runToolsCLI(tools, 'midscene-android', {
+        stripPrefix: 'android_',
+        argv: [
+          'take_screenshot',
+          '--use-scrcpy',
+          '--scrcpy-video-bit-rate',
+          '0',
+        ],
+      }),
+    ).rejects.toThrow(
+      'Invalid value for "--scrcpy-video-bit-rate" in midscene-android take_screenshot',
+    );
+
+    expect(agentFromAdbDevice).not.toHaveBeenCalled();
+  });
+
+  it('enables scrcpy when a video bitrate is provided by itself', async () => {
+    const tools = new AndroidMidsceneTools();
+
+    await runToolsCLI(tools, 'midscene-android', {
+      stripPrefix: 'android_',
+      argv: ['take_screenshot', '--scrcpy-video-bit-rate', '4000000'],
+    });
+
+    expect(agentFromAdbDevice).toHaveBeenCalledWith(undefined, {
+      autoDismissKeyboard: false,
+      scrcpyConfig: { enabled: true, videoBitRate: 4_000_000 },
+    });
+  });
+
   it('strips init args from the payload passed to the action', async () => {
     const mockAgent = createMockAgent();
     rs.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
@@ -218,6 +273,12 @@ describe('Android CLI integration', () => {
     expect(output.join('\n')).not.toContain('--ai-action-context');
     expect(output.join('\n')).not.toContain('--aiActionContext');
     expect(output.join('\n')).toContain('--screenshot-shrink-factor');
+    expect(output.join('\n')).toContain('--scrcpy-video-bit-rate');
+    expect(output.join('\n')).toContain('--scrcpyVideoBitRate');
+    expect(output.join('\n')).toContain(
+      'tune it only from independent transport measurements',
+    );
+    expect(output.join('\n')).not.toContain('start with 4000000 (4 Mbps)');
     expect(output.join('\n')).toContain(
       'high values may reduce recognition quality, especially on mobile',
     );

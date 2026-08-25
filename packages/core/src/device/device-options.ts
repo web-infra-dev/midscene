@@ -136,9 +136,9 @@ export type AndroidDeviceOpt = {
     idleTimeoutMs?: number;
     /**
      * Video bit rate for H.264 encoding in bits per second.
-     * Higher values improve quality but increase bandwidth usage.
-     * For bandwidth-constrained remote links, explicitly set a lower value
-     * such as 4000000 (4 Mbps) and tune it for the actual transport.
+     * Changing it trades encoded bandwidth against screenshot detail. Tune it
+     * only from independent transport measurements, then validate recognition
+     * quality. A freshness-timeout warning alone is not a reason to change it.
      * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;

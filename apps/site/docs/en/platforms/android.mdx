@@ -295,6 +295,25 @@ export MIDSCENE_ANDROID_SCREENSHOT_STRATEGY=always-yadb
 
 The default is `auto`, which tries `adb.takeScreenshot` first, falls back to shell `screencap`, and uses the yadb tool if `screencap` fails to execute. scrcpy is only tried before these when `scrcpyConfig.enabled` is turned on. `auto` does not analyze screenshot content — even if a method succeeds but returns a black frame, it will not automatically switch to yadb; it only moves to the next method when the previous one fails to execute. For secure pages that produce a valid but black image, set `always-yadb` to bypass the default `auto` flow (`adb.takeScreenshot`, `screencap`, and scrcpy when enabled) and use yadb directly. Yadb can only capture the default display (`displayId=0`), so combining `always-yadb` with a non-zero `displayId` throws an error.
 
+### Why does scrcpy fall back to ADB screenshots?
+
+Midscene rejects scrcpy frames that cannot be proven to have been captured after the latest completed action and that do not satisfy the absolute frame-age limit. If an established stream cannot provide a valid frame, Midscene restarts scrcpy once. It falls back to an ADB screenshot only if the new stream also fails.
+
+This can happen when an Android encoder stops emitting frames on a static screen, or when stream startup or transport is interrupted. The freshness warning alone does not diagnose link bandwidth or an excessive video bitrate. Do not change the bitrate solely because this warning appears.
+
+### How do I configure the scrcpy video bitrate?
+
+Use `--scrcpy-video-bit-rate <bits-per-second>` (or `--scrcpyVideoBitRate`) on an Android CLI command. Providing this option enables scrcpy, so `--use-scrcpy` is optional when the bitrate option is present:
+
+```bash
+midscene-android tap \
+  --device-id <device-id> \
+  --locate '{"prompt":"the target"}' \
+  --scrcpy-video-bit-rate <bits-per-second>
+```
+
+Each CLI command is a separate process, so pass the option to every command that should override the default. For the JavaScript SDK or YAML, set `scrcpyConfig.videoBitRate` once on that device configuration. Changing the bitrate trades encoded bandwidth against screenshot detail. Tune it only when independent transport measurements show a need, then validate screenshot and recognition quality. See the [`AndroidDevice` scrcpy reference](../reference/index.mdx#scrcpy) for the default and related options.
+
 ### How do I use a custom adb path or remote adb server?
 
 Set the environment variables first:

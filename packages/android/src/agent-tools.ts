@@ -19,6 +19,7 @@ const debug = getDebug('agent-tools:android');
 
 type AndroidInitArgs = AgentBehaviorInitArgs & {
   deviceId?: string;
+  scrcpyVideoBitRate?: number;
   useScrcpy?: boolean;
 };
 
@@ -29,13 +30,21 @@ function adaptAndroidInitArgs(
     return undefined;
   }
 
+  const scrcpyVideoBitRate =
+    typeof extracted.scrcpyVideoBitRate === 'number'
+      ? extracted.scrcpyVideoBitRate
+      : undefined;
+  const requestedUseScrcpy =
+    typeof extracted.useScrcpy === 'boolean' ? extracted.useScrcpy : undefined;
+  const useScrcpy =
+    scrcpyVideoBitRate !== undefined ? true : requestedUseScrcpy;
+
   const initArgs: AndroidInitArgs = {
     ...(typeof extracted.deviceId === 'string'
       ? { deviceId: extracted.deviceId }
       : {}),
-    ...(typeof extracted.useScrcpy === 'boolean'
-      ? { useScrcpy: extracted.useScrcpy }
-      : {}),
+    ...(useScrcpy !== undefined ? { useScrcpy } : {}),
+    ...(scrcpyVideoBitRate !== undefined ? { scrcpyVideoBitRate } : {}),
     ...(extractAgentBehaviorInitArgs(extracted as AgentBehaviorInitArgs) ?? {}),
   };
 
@@ -67,6 +76,14 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
         .boolean()
         .optional()
         .describe('Enable scrcpy accelerated screenshots'),
+      scrcpyVideoBitRate: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe(
+          'scrcpy H.264 video bitrate in bits per second; providing this option also enables scrcpy. Default with --use-scrcpy: 100000000 (100 Mbps). Changing it trades encoded bandwidth against screenshot detail; tune it only from independent transport measurements, not from a freshness-timeout warning alone.',
+        ),
       ...agentBehaviorInitArgShape,
     },
     cli: {
@@ -108,7 +125,16 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
       ...(extractAgentBehaviorInitArgs(initArgs) ?? {}),
-      ...(initArgs?.useScrcpy ? { scrcpyConfig: { enabled: true } } : {}),
+      ...(initArgs?.useScrcpy
+        ? {
+            scrcpyConfig: {
+              enabled: true,
+              ...(initArgs.scrcpyVideoBitRate !== undefined
+                ? { videoBitRate: initArgs.scrcpyVideoBitRate }
+                : {}),
+            },
+          }
+        : {}),
       ...(reportOptions ?? {}),
     });
     this.agent = agent;
