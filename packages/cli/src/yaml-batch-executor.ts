@@ -23,7 +23,12 @@ import {
 
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
-import puppeteer, { type Browser, type Page } from 'puppeteer';
+import puppeteer, {
+  type Browser,
+  type BrowserContext,
+  type BrowserContextOptions,
+  type Page,
+} from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
 import {
   createExecutedYamlResult,
@@ -47,19 +52,20 @@ import { TTYWindowRenderer } from './tty-renderer';
 export interface BatchRunnerConfig {
   files: string[];
   /**
-   * A setup yaml file executed before the main `files`. It reuses the shared
-   * browser context, so any prerequisite state (e.g. a login) is visible to
-   * every main file. A setup failure aborts the batch and leaves the main files
-   * not executed. Only honored when `shareBrowserContext` is true; the config
-   * layer rejects other combinations.
+   * A setup yaml file executed before the main `files`. Each failed setup
+   * attempt is discarded with its isolated browser context. The successful
+   * attempt's context is shared with every main file. A setup failure aborts
+   * the batch and leaves the main files not executed. Only honored when
+   * `shareBrowserContext` is true; the config layer rejects other combinations.
    */
   setup?: string;
   concurrent: number;
   continueOnError: boolean;
   /**
    * Number of extra attempts for a failed yaml file. The batch executor owns
-   * retries so shared-browser runs can re-execute only failed files while
-   * preserving the browser context. Defaults to 0 (no retry).
+   * retries so shared-browser runs can re-execute only failed files. Setup
+   * retries receive a clean browser context; main-file retries preserve the
+   * successful setup context. Defaults to 0 (no retry).
    */
   retry?: number;
   summary: string;
@@ -94,6 +100,34 @@ interface ExecutedBatchFileContext extends MidsceneYamlFileContext {
   duration: number;
   yamlResult: MidsceneYamlConfigResult;
 }
+
+interface SharedBrowserRuntime {
+  browserContext: BrowserContext;
+  page: Page;
+}
+
+const createSharedBrowserRuntime = async (
+  browser: Browser,
+  browserContextOptions?: BrowserContextOptions,
+): Promise<SharedBrowserRuntime> => {
+  const browserContext = await browser.createBrowserContext(
+    browserContextOptions,
+  );
+  try {
+    const page = await browserContext.newPage();
+    return { browserContext, page };
+  } catch (error) {
+    try {
+      await browserContext.close();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        'Failed to create and clean up a shared browser runtime',
+      );
+    }
+    throw error;
+  }
+};
 
 export interface RunYamlBatchOptions {
   generateSummary?: boolean;
@@ -139,11 +173,11 @@ class YamlBatchExecutor {
     let setupContext: BatchFileContext | undefined;
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
-    let sharedPage: Page | null = null;
+    const sharedRuntime = { current: null as SharedBrowserRuntime | null };
 
     try {
       // Create the setup context (prerequisite) before the main files so the
-      // TTY plan lists it first and it reuses the same browser context.
+      // TTY plan lists it first and its successful state can be handed off.
       if (setup) {
         const fileConfig = await this.loadFileConfig(setup);
         setupContext = await this.createFileContext(setup, fileConfig, {
@@ -185,20 +219,25 @@ class YamlBatchExecutor {
       const needsBrowser = allContexts.some(
         (ctx) => typeof resolveWebTarget(ctx.executionConfig) !== 'undefined',
       );
+      let resetSetupRuntime: (() => Promise<void>) | undefined;
 
       if (needsBrowser && this.config.shareBrowserContext) {
         const globalWebConfig = resolveWebTarget(
           this.config.globalConfig ?? {},
         )?.target;
+        const downloadBehavior = buildDownloadBehavior(
+          globalWebConfig?.downloadPath,
+        );
+        const browserContextOptions = downloadBehavior
+          ? { downloadBehavior }
+          : undefined;
 
         if (globalWebConfig?.cdpEndpoint) {
           // CDP mode: connect to an existing browser
           browser = await puppeteer.connect({
             browserWSEndpoint: globalWebConfig.cdpEndpoint,
             defaultViewport: null,
-            downloadBehavior: buildDownloadBehavior(
-              globalWebConfig.downloadPath,
-            ),
+            downloadBehavior,
           });
         } else {
           // Extract viewport dimensions from global config or use defaults
@@ -217,46 +256,67 @@ class YamlBatchExecutor {
           browser = await puppeteer.launch({
             headless: !headed,
             defaultViewport: headed ? null : { width, height },
-            downloadBehavior: buildDownloadBehavior(
-              globalWebConfig?.downloadPath,
-            ),
+            downloadBehavior,
             args,
             acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
           });
         }
 
-        // Create a shared page instance that will be reused across all YAML files
-        // This ensures localStorage and sessionStorage are preserved between files
-        sharedPage = await browser.newPage();
+        resetSetupRuntime = async () => {
+          if (!browser) {
+            throw new Error('Cannot create a shared runtime without a browser');
+          }
 
-        // Assign the browser instance and shared page to all contexts
-        for (const context of allContexts) {
-          context.options.browser = browser;
-          context.options.page = sharedPage;
-        }
+          if (sharedRuntime.current) {
+            const staleRuntime = sharedRuntime.current;
+            sharedRuntime.current = null;
+            await staleRuntime.browserContext.close();
+          }
+
+          sharedRuntime.current = await createSharedBrowserRuntime(
+            browser,
+            browserContextOptions,
+          );
+          for (const context of allContexts) {
+            context.options.browser = browser;
+            context.options.page = sharedRuntime.current.page;
+          }
+        };
+
+        await resetSetupRuntime();
       }
 
-      // Execute files
+      // A failed setup attempt replaces the shared runtime; main-file retries
+      // keep using the successful setup runtime.
       const { executedResults, notExecutedContexts } = await this.executeFiles(
         setupContext,
         fileContextList,
-        options.onProgress,
+        {
+          onProgress: options.onProgress,
+          resetSetupRuntime,
+        },
       );
 
-      // Process results
       this.results = await this.processResults(
         executedResults,
         notExecutedContexts,
       );
     } finally {
       if (browser && !this.config.keepWindow) {
-        // For CDP mode, disconnect instead of closing the externally managed browser
-        const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})?.target
-          .cdpEndpoint;
-        if (isCdp) {
-          browser.disconnect();
-        } else {
-          await browser.close();
+        try {
+          if (sharedRuntime.current) {
+            await sharedRuntime.current.browserContext.close();
+            sharedRuntime.current = null;
+          }
+        } finally {
+          // For CDP mode, disconnect instead of closing the externally managed browser.
+          const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})
+            ?.target.cdpEndpoint;
+          if (isCdp) {
+            browser.disconnect();
+          } else {
+            await browser.close();
+          }
         }
       }
       if (generateSummary) {
@@ -291,7 +351,10 @@ class YamlBatchExecutor {
   private async executeFiles(
     setupContext: BatchFileContext | undefined,
     fileContextList: BatchFileContext[],
-    onProgress?: (message: string) => void,
+    options: {
+      onProgress?: (message: string) => void;
+      resetSetupRuntime?: () => Promise<void>;
+    },
   ): Promise<{
     executedResults: ExecutedBatchFileContext[];
     notExecutedContexts: Array<{
@@ -299,29 +362,29 @@ class YamlBatchExecutor {
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>;
   }> {
+    const { onProgress, resetSetupRuntime } = options;
     const executedResults: ExecutedBatchFileContext[] = [];
     const notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }> = [];
 
-    // Pre-create all player contexts for displaying task lists. The setup file
-    // comes first so the rendered plan reflects the setup-then-parallel order.
+    // Create the setup player first. Main-file players are deferred until the
+    // setup succeeds so they never retain a page from a discarded setup attempt.
     const allFileContexts: MidsceneYamlFileContext[] = [];
-    const orderedContexts = setupContext
-      ? [setupContext, ...fileContextList]
-      : fileContextList;
-    for (const context of orderedContexts) {
-      // Create a ScriptPlayer that will be used for actual execution
-      const player = await createYamlPlayer(
+    const createFilePlayerContext = async (
+      context: BatchFileContext,
+    ): Promise<MidsceneYamlFileContext> => ({
+      file: context.file,
+      player: await createYamlPlayer(
         context.file,
         context.executionConfig,
         context.options,
-      );
-      allFileContexts.push({
-        file: context.file,
-        player,
-      });
+      ),
+    });
+    const initialContexts = setupContext ? [setupContext] : fileContextList;
+    for (const context of initialContexts) {
+      allFileContexts.push(await createFilePlayerContext(context));
     }
 
     // Setup TTY renderer
@@ -362,6 +425,7 @@ class YamlBatchExecutor {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
+        beforeRetry?: () => Promise<void>,
       ): Promise<ExecutedBatchFileContext> => {
         // Find the corresponding player in allFileContexts
         const allFileContext = allFileContexts.find(
@@ -377,6 +441,7 @@ class YamlBatchExecutor {
 
         for (let attempt = 1; attempt <= totalAttempts; attempt++) {
           if (attempt > 1) {
+            await beforeRetry?.();
             allFileContext.player = await createYamlPlayer(
               context.file,
               context.executionConfig,
@@ -442,7 +507,10 @@ class YamlBatchExecutor {
       // the setup file establishes.
       let setupFailed = false;
       if (setupContext) {
-        const executedContext = await executeFile(setupContext);
+        const executedContext = await executeFile(
+          setupContext,
+          resetSetupRuntime,
+        );
         executedResults.push(executedContext);
         setupFailed = !executedContext.yamlResult.success;
       }
@@ -452,6 +520,11 @@ class YamlBatchExecutor {
           notExecutedContexts.push({ file: context.file, player: null });
         }
       } else {
+        if (setupContext) {
+          for (const context of fileContextList) {
+            allFileContexts.push(await createFilePlayerContext(context));
+          }
+        }
         // Execute based on concurrency and error handling settings
         await this.executeConcurrently(
           fileContextList,

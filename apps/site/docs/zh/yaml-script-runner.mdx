@@ -225,10 +225,10 @@ page:
 命令行工具提供了多项参数，用于控制脚本的执行行为：
 
 - `--files <file1> <file2> ...`：指定脚本文件列表。默认按顺序执行（`--concurrent` 为 `1`），可通过 `--concurrent` 设置并发数量。支持 [glob](https://www.npmjs.com/package/glob) 通配符语法；当 glob 或目录匹配到多个文件时，匹配结果会按文件路径的字典序排序后加入执行列表。
-- `--setup <file>`：在主 `--files` 之前执行的前置脚本。它与主脚本共享同一个浏览器上下文，因此在这里建立的前置状态（如登录态）对每个主脚本都可见。前置脚本失败会中止整个批次，主脚本将被标记为未执行。需要配合 `--share-browser-context` 使用。
+- `--setup <file>`：在主 `--files` 之前执行的前置脚本。成功的 setup attempt 会将浏览器上下文共享给每个主脚本，因此在这里建立的前置状态（如登录态）仍然可见。启用 retry 后，每次 setup attempt 都会使用全新的 BrowserContext 和 Page。如果所有 setup attempt 都失败，整个批次会被中止，主脚本将被标记为未执行。需要配合 `--share-browser-context` 使用。
 - `--concurrent <number>`：设置并发执行的数量，默认 `1`。
 - `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
-- `--retry <number>`：失败脚本的重试次数。每一轮只会重新执行上一轮失败的脚本，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。（与 `--share-browser-context` 同时使用时不生效，该模式下所有脚本共享同一次执行。）
+- `--retry <number>`：失败脚本的额外尝试次数。只有失败的脚本会被重试，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。与 `--share-browser-context` 同时使用时，setup 和主脚本都会应用 retry：setup retry 使用全新的 BrowserContext 和 Page，主脚本 retry 则保留成功的 setup 上下文。
 - `--share-browser-context`：在多个脚本之间共享浏览器上下文（Cookies、`localStorage` 等），适合需要连续登录态的场景。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
@@ -281,7 +281,7 @@ midscene --config ./config.yaml
 
 #### 在并行脚本之前执行前置任务
 
-当多个互不依赖的脚本都依赖同一个前置条件（例如登录）时,可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行;成功后,主脚本再按配置的并发数运行。前置脚本与主脚本共享同一个浏览器上下文,因此登录态会被带过去。`setup` 需要配合 `shareBrowserContext: true` 使用。
+当多个互不依赖的脚本都依赖同一个前置条件（例如登录）时，可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行；成功后，主脚本再按配置的并发数运行。成功的 setup attempt 会将浏览器上下文共享给主脚本，因此登录态会被带过去。`setup` 需要配合 `shareBrowserContext: true` 使用。
 
 ```yaml
 setup: ./scripts/login.yaml
@@ -293,9 +293,10 @@ files:
 
 shareBrowserContext: true
 concurrent: 3
+retry: 2
 ```
 
-如果前置脚本失败,整个批次会被中止,主脚本将被标记为未执行。
+`retry` 表示额外尝试次数，因此 `retry: 2` 最多会执行三次。每次 setup retry 都会创建新的 BrowserContext 和 Page，避免失败 attempt 留下的 Cookies、`localStorage`、页面导航状态及其他浏览器副作用污染下一次尝试。setup 成功后，其上下文会与主脚本共享；主脚本失败时会在同一上下文中重试，从而保留成功 setup 建立的状态。如果所有 setup attempt 都失败，整个批次会被中止，主脚本将被标记为未执行。
 
 ## 常见问题
 

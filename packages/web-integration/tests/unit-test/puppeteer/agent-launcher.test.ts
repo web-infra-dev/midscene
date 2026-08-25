@@ -1,3 +1,5 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   defaultViewportHeight,
@@ -12,12 +14,14 @@ const { mockLaunch } = rs.hoisted(() => ({
 }));
 
 const mockNewPage = rs.fn();
+const browserContextMock = {
+  setCookie: rs.fn().mockResolvedValue(undefined),
+};
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
   on: rs.fn(),
   off: rs.fn(),
-  setCookie: rs.fn(),
   close: rs.fn(),
 };
 
@@ -28,6 +32,7 @@ const createPageMock = () => ({
   goto: rs.fn().mockResolvedValue(undefined),
   waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
   browser: rs.fn(() => browserMock),
+  browserContext: rs.fn(() => browserContextMock),
   bringToFront: rs.fn().mockResolvedValue(undefined),
   on: rs.fn(),
   isClosed: rs.fn().mockReturnValue(false),
@@ -140,6 +145,33 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
     expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('sets cookie files on the active page browser context', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'midscene-cookie-context-'));
+    const cookieFile = path.join(root, 'cookies.json');
+    const cookies = [
+      {
+        name: 'session',
+        value: 'isolated-context',
+        domain: 'example.com',
+      },
+    ];
+    writeFileSync(cookieFile, JSON.stringify(cookies));
+
+    try {
+      await launchPuppeteerPage(
+        { url: 'https://example.com', cookie: cookieFile },
+        undefined,
+        browserMock as any,
+        pageMock as any,
+      );
+
+      expect(pageMock.browserContext).toHaveBeenCalledTimes(1);
+      expect(browserContextMock.setCookie).toHaveBeenCalledWith(...cookies);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('configures Chrome download behavior when downloadPath is provided', async () => {
