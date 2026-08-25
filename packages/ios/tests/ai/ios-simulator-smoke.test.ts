@@ -25,6 +25,11 @@ const REPORT_FILE_NAME = 'ios-simulator-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
 const INPUT_ACCESSIBILITY_ID = 'Midscene Smoke Input';
 const SUBMITTED_TEXT = 'Midscene iOS input 2026';
+const FIRST_DISMISS_INPUT_ACCESSIBILITY_ID = 'First keyboard dismissal input';
+const SECOND_DISMISS_INPUT_ACCESSIBILITY_ID = 'Second keyboard dismissal input';
+const FIRST_DISMISS_INPUT_TEXT = 'first field complete';
+const SECOND_DISMISS_INPUT_TEXT = 'second field remains active';
+const DELAYED_DISMISS_OBSERVATION_MS = 5_000;
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 60_000;
 const W3C_ELEMENT_KEY = 'element-6066-11e4-a52e-4f735466cecf';
@@ -200,6 +205,51 @@ async function startFixtureServer(): Promise<{
   };
 }
 
+async function startKeyboardDismissFixtureServer(): Promise<{
+  server: Server;
+  url: string;
+}> {
+  const server = createServer((_request, response) => {
+    response.writeHead(200, {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    response.end(`<!doctype html>
+<html lang="en">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Midscene iOS Keyboard Dismissal</title>
+  <style>
+    body { margin: 0; font: 20px -apple-system, sans-serif; background: #f4f7f5; color: #163020; }
+    main { padding: 64px 24px; }
+    label { display: block; margin: 24px 0 12px; font-weight: 700; }
+    input { box-sizing: border-box; width: 100%; padding: 16px; border: 3px solid #16813d; border-radius: 10px; font-size: 20px; }
+  </style>
+  <main>
+    <label for="first-input">First field</label>
+    <input id="first-input" aria-label="${FIRST_DISMISS_INPUT_ACCESSIBILITY_ID}" autocomplete="off">
+    <label for="second-input">Second field</label>
+    <input id="second-input" aria-label="${SECOND_DISMISS_INPUT_ACCESSIBILITY_ID}" autocomplete="off">
+  </main>
+</html>`);
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error(
+      'Unable to determine iOS keyboard dismissal fixture server port',
+    );
+  }
+
+  return {
+    server,
+    url: `http://127.0.0.1:${address.port}/`,
+  };
+}
+
 async function closeServer(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
@@ -275,7 +325,185 @@ async function waitForSubmittedValue(
   return submittedValue();
 }
 
+async function isSoftwareKeyboardVisible(agent: IOSAgent): Promise<boolean> {
+  const response = (await agent.runWdaRequest({
+    method: 'POST',
+    endpoint: '/elements',
+    data: {
+      using: 'predicate string',
+      value: 'type == "XCUIElementTypeKeyboard" AND visible == true',
+    },
+  })) as WdaValueResponse<WdaElementValue[]>;
+  return response.value.length > 0;
+}
+
 describe.skipIf(!RUN_LIVE_SMOKE)('iOS Simulator live smoke', () => {
+  it('awaits auto-dismiss before a second input starts', async () => {
+    const diagnosticsEnv = process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR;
+    if (!diagnosticsEnv) {
+      throw new Error(
+        'MIDSCENE_IOS_DIAGNOSTICS_DIR is required for the iOS Simulator smoke',
+      );
+    }
+
+    const diagnosticsDir = path.resolve(diagnosticsEnv);
+    const evidenceFile = path.join(
+      diagnosticsDir,
+      'keyboard-dismiss-evidence.json',
+    );
+    const firstDismissedScreenshotFile = path.join(
+      diagnosticsDir,
+      'keyboard-after-first-dismiss.png',
+    );
+    const secondVisibleScreenshotFile = path.join(
+      diagnosticsDir,
+      'keyboard-second-input-visible.png',
+    );
+    const finalScreenshotFile = path.join(
+      diagnosticsDir,
+      'keyboard-final-hidden.png',
+    );
+    const sourceFile = path.join(diagnosticsDir, 'keyboard-dismiss-source.xml');
+    const evidence: Record<string, unknown> = {
+      observationWindowMs: DELAYED_DISMISS_OBSERVATION_MS,
+    };
+
+    let agent: IOSAgent | undefined;
+    let fixture:
+      | Awaited<ReturnType<typeof startKeyboardDismissFixtureServer>>
+      | undefined;
+    await mkdir(diagnosticsDir, { recursive: true });
+
+    try {
+      fixture = await startKeyboardDismissFixtureServer();
+      evidence.fixtureUrl = fixture.url;
+      agent = await agentFromWebDriverAgent({
+        wdaHost: '127.0.0.1',
+        modelConfig: {
+          [MIDSCENE_MODEL_NAME]: 'ios-ci-model-must-not-run',
+          [MIDSCENE_MODEL_API_KEY]: 'ios-ci-unused-key',
+          [MIDSCENE_MODEL_BASE_URL]: 'http://127.0.0.1:1/v1',
+          [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
+          [MIDSCENE_MODEL_TIMEOUT]: '1000',
+          [MIDSCENE_MODEL_RETRY_COUNT]: '0',
+        },
+        autoPrintReportMsg: false,
+        generateReport: false,
+        waitAfterAction: 200,
+      });
+
+      await agent.launch(fixture.url);
+      const firstTarget = await waitForElementRect(
+        agent,
+        sourceFile,
+        FIRST_DISMISS_INPUT_ACCESSIBILITY_ID,
+        'XCUIElementTypeTextField',
+      );
+      const secondTarget = await waitForElementRect(
+        agent,
+        sourceFile,
+        SECOND_DISMISS_INPUT_ACCESSIBILITY_ID,
+        'XCUIElementTypeTextField',
+      );
+      const screenSize = await agent.interface.getScreenSize();
+      const firstLocate = locate(
+        firstTarget.rect,
+        screenSize.scale,
+        FIRST_DISMISS_INPUT_ACCESSIBILITY_ID,
+      );
+      const secondLocate = locate(
+        secondTarget.rect,
+        screenSize.scale,
+        SECOND_DISMISS_INPUT_ACCESSIBILITY_ID,
+      );
+
+      await agent.callActionInActionSpace('Tap', { locate: firstLocate });
+      const firstDismissStartedAt = Date.now();
+      await agent.callActionInActionSpace('Input', {
+        value: FIRST_DISMISS_INPUT_TEXT,
+        mode: 'replace',
+        autoDismissKeyboard: true,
+        locate: firstLocate,
+      });
+      evidence.firstDismissElapsedMs = Date.now() - firstDismissStartedAt;
+      expect(await isSoftwareKeyboardVisible(agent)).toBe(false);
+      await agent.interface
+        .screenshotBase64()
+        .then((base64) =>
+          writeFile(firstDismissedScreenshotFile, screenshotBuffer(base64)),
+        );
+
+      await agent.callActionInActionSpace('Tap', { locate: secondLocate });
+      await agent.callActionInActionSpace('Input', {
+        value: SECOND_DISMISS_INPUT_TEXT,
+        mode: 'replace',
+        autoDismissKeyboard: false,
+        locate: secondLocate,
+      });
+      await sleep(DELAYED_DISMISS_OBSERVATION_MS);
+      expect(await isSoftwareKeyboardVisible(agent)).toBe(true);
+      await agent.interface
+        .screenshotBase64()
+        .then((base64) =>
+          writeFile(secondVisibleScreenshotFile, screenshotBuffer(base64)),
+        );
+
+      const sourceResponse = (await agent.runWdaRequest({
+        method: 'GET',
+        endpoint: '/source',
+      })) as WdaValueResponse<string>;
+      await writeFile(sourceFile, sourceResponse.value, 'utf8');
+      const firstValue = readIOSSimulatorInputValue(
+        sourceResponse.value,
+        FIRST_DISMISS_INPUT_ACCESSIBILITY_ID,
+      );
+      const secondValue = readIOSSimulatorInputValue(
+        sourceResponse.value,
+        SECOND_DISMISS_INPUT_ACCESSIBILITY_ID,
+      );
+      evidence.values = { firstValue, secondValue };
+      expect(firstValue).toBe(FIRST_DISMISS_INPUT_TEXT);
+      expect(secondValue).toBe(SECOND_DISMISS_INPUT_TEXT);
+
+      expect(await agent.interface.hideKeyboard()).toBe(true);
+      expect(await isSoftwareKeyboardVisible(agent)).toBe(false);
+      await agent.interface
+        .screenshotBase64()
+        .then((base64) =>
+          writeFile(finalScreenshotFile, screenshotBuffer(base64)),
+        );
+      evidence.screenshots = {
+        firstDismissedScreenshotFile,
+        secondVisibleScreenshotFile,
+        finalScreenshotFile,
+      };
+      evidence.modelCalls = agent.metrics.calls;
+      expect(agent.metrics.calls).toBe(0);
+    } catch (error) {
+      evidence.error =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : String(error);
+      throw error;
+    } finally {
+      if (agent) {
+        await agent.destroy().catch((error) => {
+          evidence.agentDestroyError = String(error);
+        });
+      }
+      if (fixture) {
+        await closeServer(fixture.server).catch((error) => {
+          evidence.fixtureServerCloseError = String(error);
+        });
+      }
+      await writeFile(
+        evidenceFile,
+        `${JSON.stringify(evidence, null, 2)}\n`,
+        'utf8',
+      );
+    }
+  });
+
   it('drives Safari through WDA without calling a model and emits evidence', async () => {
     const diagnosticsEnv = process.env.MIDSCENE_IOS_DIAGNOSTICS_DIR;
     if (!diagnosticsEnv) {
