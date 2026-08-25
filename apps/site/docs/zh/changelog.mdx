@@ -1,5 +1,58 @@
 # 更新日志
 
+## v1.12 - 新版 Test Runner、DeepSeek V4 与报告耗时汇总
+
+v1.12 推出新版 Test Runner（Beta）。本次更新还支持 DeepSeek V4 视觉模型，并为报告增加耗时汇总。
+
+### 新版 Test Runner（Beta）
+
+- 新增 `@midscene/test`。开发者可以使用声明式 YAML 编写自然语言测试用例，也可以使用 TypeScript Node 扩展能力。Node 适合处理接口调用、数据准备和资源管理等任务。
+- 支持自定义 Node、生命周期、变量、标签筛选和失败重试。生命周期包括 `beforeAll`、`beforeEach`、`afterEach` 和 `afterAll`。
+- 支持多个 Execution Project，以及带图片提示的 `aiAct` 和 `aiAssert`。
+- 新增 `midscene-test` CLI，可以运行整个项目或指定文件。`describe-nodes` 命令可以把 Node 定义导出为 Markdown，供开发者和 AI Agent 查阅。
+- Test Runner 将逐步替代旧版 YAML 自动化方案。目前，测试协议和 API 仍处于 Beta 阶段。详见：[Test Runner 概览](./test-runner-overview)、[编写和运行测试用例](./use-test-runner)和[扩展和维护 Test Runner](./extend-test-runner)。
+
+### DeepSeek V4 视觉模型支持
+
+- 新增 DeepSeek 模型适配。`deepseek-v4-flash-vision-exp` 可以用于任务规划和元素定位，也支持模型原生思考配置。
+- 目前，DeepSeek V4 系列只有 `deepseek-v4-flash-vision-exp` 支持 Midscene 所需的多模态视觉输入。配置方法参见[常用模型配置](./model-common-config#deepseek)。更多背景和使用示例参见：[Midscene 1.12 支持 DeepSeek V4 Flash Vision Exp](https://mp.weixin.qq.com/s/FDAPd1WrNP6Sb8SRJUen6w)。
+
+### 报告与运行数据
+
+- Report 侧边栏新增总耗时和模型调用耗时。两项数据可以帮助开发者区分实际执行时间和累计模型请求时间。
+- Markdown 报告也会汇总耗时和 Token 用量。Core 可以按照模型统计这些数据。
+- 截图处理流程会把观察帧统一保存为 JPEG，减少运行产物占用的空间。
+
+### Android 与构建稳定性
+
+- 修复 Electron ASAR 包中的资源路径解析问题。受影响的资源包括 yadb 和 scrcpy 外部二进制文件。
+- 调整 Core 内嵌 Report 模板的生成和缓存方式。这项改动减少了本地增量构建中的模板缺失和占位符残留问题。
+- 重构 Planning、Locate 协议和响应解析逻辑。不同模型可以使用独立的输出格式和兼容规则。
+
+## v1.11 - 规划协议优化与多平台稳定性改进
+
+v1.11 优化规划动作协议，并提高多个平台的稳定性。本次更新还完善了基础概念文档和产品定位。
+
+### 规划与调试体验
+
+- 重新组织 Planning prompt、动作定义和示例。规划动作输出协议不再与核心流程耦合，便于单独适配不同模型。
+- 修复模型验证回调丢失 Playground SDK 方法上下文的问题。模型连通性测试现在可以正常调用 SDK 方法。
+
+### Android 与 HarmonyOS
+
+- 修复 HarmonyOS 无法正确解析应用启动目标的问题。该问题会影响已声明的 ability 和经过映射的目标。
+- Android 和 HarmonyOS 现在会先全选文本，再清空输入框。这种方式可以兼容更多输入法和控件。
+
+### Web 与报告
+
+- Playwright 报告文件名现在有长度上限，并且可以避免重名。较长的测试标题不会再触发 `ENAMETOOLONG` 错误。
+
+### 文档与站点
+
+- 新增[基础概念指南](./basics)，介绍 `aiAct`、`aiQuery`、`aiAssert`、`deepThink` 和 `deepLocate` 等核心能力。
+- 更新首页与 README，将 Midscene 更清晰地定位为面向端到端测试的 GUI Agent。
+- 补充 Doubao Seed Android showcase 的执行成本数据，并调整模型和平台文档入口。
+
 ## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
 
 v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。
