@@ -7,6 +7,10 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
+  "browser": {
+    "undici": false,
+    "fetch-socks": false
+  },
   "files": ["dist", "README.md"],
   "exports": {
     ".": {
