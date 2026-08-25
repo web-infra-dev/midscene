@@ -330,7 +330,7 @@ export type MidsceneYamlFlowItem =
 
 export interface FreeFn {
   name: string;
-  fn: () => void;
+  fn: () => void | Promise<void>;
 }
 
 export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {

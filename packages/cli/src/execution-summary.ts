@@ -44,10 +44,6 @@ export interface ExecutionSummary {
 }
 
 type ResultType = MidsceneYamlConfigResult['resultType'];
-const yamlBatchResultsByError = new WeakMap<
-  Error,
-  MidsceneYamlConfigResult[]
->();
 
 export const notExecutedError = 'Not executed (previous task failed)';
 
@@ -85,28 +81,6 @@ export function createUnexpectedYamlResult(options: {
     resultType: 'failed',
     error: error.message,
   };
-}
-
-export function attachResultsToYamlBatchError(
-  error: unknown,
-  results: MidsceneYamlConfigResult[],
-): Error {
-  const normalizedError =
-    error instanceof Error
-      ? error
-      : new Error('Unexpected YAML execution failure', { cause: error });
-  yamlBatchResultsByError.set(normalizedError, [...results]);
-  return normalizedError;
-}
-
-export function getResultsFromYamlBatchError(
-  error: unknown,
-): MidsceneYamlConfigResult[] | undefined {
-  if (!(error instanceof Error)) {
-    return undefined;
-  }
-  const results = yamlBatchResultsByError.get(error);
-  return results ? [...results] : undefined;
 }
 
 export function isYamlPlayerSuccessful(

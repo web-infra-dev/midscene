@@ -1,5 +1,3 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   defaultViewportHeight,
@@ -15,32 +13,41 @@ const { mockLaunch } = rs.hoisted(() => ({
 }));
 
 const mockNewPage = rs.fn();
-const browserContextMock = {
-  setCookie: rs.fn().mockResolvedValue(undefined),
-};
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
+  pages: rs.fn(),
   on: rs.fn(),
   off: rs.fn(),
+  setCookie: rs.fn(),
   close: rs.fn(),
 };
 
-const createPageMock = () => ({
-  setUserAgent: rs.fn().mockResolvedValue(undefined),
-  setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
-  setViewport: rs.fn().mockResolvedValue(undefined),
-  evaluateOnNewDocument: rs.fn().mockResolvedValue({ identifier: 'preload' }),
-  removeScriptToEvaluateOnNewDocument: rs.fn().mockResolvedValue(undefined),
-  goto: rs.fn().mockResolvedValue(undefined),
-  waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
-  close: rs.fn().mockResolvedValue(undefined),
-  browser: rs.fn(() => browserMock),
-  browserContext: rs.fn(() => browserContextMock),
-  bringToFront: rs.fn().mockResolvedValue(undefined),
-  on: rs.fn(),
-  isClosed: rs.fn().mockReturnValue(false),
-});
+const createPageMock = () => {
+  const page = {
+    setUserAgent: rs.fn().mockResolvedValue(undefined),
+    setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
+    setViewport: rs.fn().mockResolvedValue(undefined),
+    evaluateOnNewDocument: rs.fn().mockResolvedValue({ identifier: 'preload' }),
+    removeScriptToEvaluateOnNewDocument: rs.fn().mockResolvedValue(undefined),
+    goto: rs.fn().mockResolvedValue(undefined),
+    waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
+    close: rs.fn().mockResolvedValue(undefined),
+    browser: rs.fn(() => browserMock),
+    bringToFront: rs.fn().mockResolvedValue(undefined),
+    evaluate: rs.fn().mockResolvedValue(undefined),
+    on: rs.fn(),
+    isClosed: rs.fn().mockReturnValue(false),
+    target: rs.fn(),
+  };
+  const target = {
+    type: () => 'page',
+    opener: () => undefined,
+    page: async () => page,
+  };
+  page.target.mockReturnValue(target);
+  return page;
+};
 
 rs.mock('puppeteer', () => ({
   __esModule: true,
@@ -152,33 +159,6 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
     expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
-  });
-
-  it('sets cookie files on the active page browser context', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'midscene-cookie-context-'));
-    const cookieFile = path.join(root, 'cookies.json');
-    const cookies = [
-      {
-        name: 'session',
-        value: 'isolated-context',
-        domain: 'example.com',
-      },
-    ];
-    writeFileSync(cookieFile, JSON.stringify(cookies));
-
-    try {
-      await launchPuppeteerPage(
-        { url: 'https://example.com', cookie: cookieFile },
-        undefined,
-        browserMock as any,
-        pageMock as any,
-      );
-
-      expect(pageMock.browserContext).toHaveBeenCalledTimes(1);
-      expect(browserContextMock.setCookie).toHaveBeenCalledWith(...cookies);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 
   it('configures Chrome download behavior when downloadPath is provided', async () => {
@@ -380,6 +360,38 @@ describe('launchPuppeteerPage', () => {
       'targetcreated',
       expect.any(Function),
     );
+  });
+
+  it('owns only the page tree created for browser mode in a shared browser', async () => {
+    const { agent, freeFn } = await puppeteerAgentForTarget(
+      {
+        mode: 'browser',
+        url: 'https://example.com',
+      },
+      undefined,
+      browserMock as unknown as Browser,
+    );
+    const foreignPage = createPageMock();
+
+    await expect(
+      (agent as { pages: () => Promise<Page[]> }).pages(),
+    ).resolves.toEqual([pageMock]);
+    await expect(
+      (
+        agent as {
+          setActivePage: (page: Page) => Promise<void>;
+        }
+      ).setActivePage(foreignPage as unknown as Page),
+    ).rejects.toThrow('out-of-scope page');
+    expect(freeFn.map(({ name }) => name)).toEqual([
+      'midscene_puppeteer_agent',
+      'puppeteer_page_scope',
+    ]);
+
+    for (const cleanup of freeFn) {
+      await cleanup.fn();
+    }
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
   });
 
   it('rejects forceSameTabNavigation in browser mode', async () => {

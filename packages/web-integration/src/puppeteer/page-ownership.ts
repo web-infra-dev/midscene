@@ -27,6 +27,19 @@ export class PuppeteerPageOwnership {
     this.ownedTargets.add(page.target());
   }
 
+  ownsPage(page: Page): boolean {
+    return this.ownedTargets.has(page.target());
+  }
+
+  async pages(): Promise<Page[]> {
+    const pages = await Promise.all(
+      [...this.ownedTargets].map((target) => target.page()),
+    );
+    return pages.filter((page): page is Page =>
+      Boolean(page && !page.isClosed()),
+    );
+  }
+
   /**
    * Capture a page target when it belongs to the owned opener tree.
    * Returns whether the target may be followed by the owning BrowserAgent.

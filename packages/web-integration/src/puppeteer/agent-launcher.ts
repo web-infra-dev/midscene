@@ -10,7 +10,8 @@ import {
   resolveWebViewportSize,
 } from '@/common/viewport';
 import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer/index';
-import type { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
+import { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
+import { createScopedPuppeteerBrowserAgent } from '@/puppeteer/scoped-browser-agent';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, {
@@ -20,7 +21,6 @@ import puppeteer, {
 } from 'puppeteer';
 
 export { defaultViewportWidth, defaultViewportHeight } from '@/common/viewport';
-export { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
@@ -317,7 +317,13 @@ export async function launchPuppeteerPage(
           name: 'puppeteer_page',
           fn: async () => {
             if (!preference?.keepWindow && !createdPage.isClosed()) {
-              await createdPage.close();
+              try {
+                await createdPage.close();
+              } catch (error) {
+                throw new Error('Failed to close a YAML execution page', {
+                  cause: error,
+                });
+              }
             }
           },
         });
@@ -388,7 +394,6 @@ export async function puppeteerAgentForTarget(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
-    pageOwnership?: PuppeteerPageOwnership;
   } & Partial<
     Pick<
       AgentOpt,
@@ -429,8 +434,7 @@ export async function puppeteerAgentForTarget(
   );
   const aiActContext = resolveAiActionContext(target, preference);
 
-  const { aiActionContext, pageOwnership, ...preferenceToUse } =
-    preference ?? {};
+  const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
   const commonAgentOpts = {
     ...preferenceToUse,
@@ -443,31 +447,62 @@ export async function puppeteerAgentForTarget(
 
   // prepare Midscene agent
   let agent: PuppeteerAgent | PuppeteerBrowserAgent;
+  const pageOwnership =
+    mode === 'browser' && browser && !existingPage
+      ? new PuppeteerPageOwnership(page)
+      : undefined;
   try {
-    agent =
-      mode === 'browser'
-        ? await PuppeteerBrowserAgent.create(
+    if (mode === 'browser') {
+      const browserAgentOptions = {
+        ...commonAgentOpts,
+        autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+      };
+      agent = pageOwnership
+        ? createScopedPuppeteerBrowserAgent(
             page.browser(),
-            {
-              ...commonAgentOpts,
-              initialPage: page,
-              autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-            },
+            page,
+            browserAgentOptions,
             pageOwnership,
           )
-        : new PuppeteerAgent(page, {
-            ...commonAgentOpts,
-            forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+        : await PuppeteerBrowserAgent.create(page.browser(), {
+            ...browserAgentOptions,
+            initialPage: page,
           });
+    } else {
+      agent = new PuppeteerAgent(page, {
+        ...commonAgentOpts,
+        forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      });
+    }
   } catch (error) {
+    pageOwnership?.release();
     await cleanupFailedLaunch(freeFn);
     throw error;
   }
 
-  freeFn.push({
+  const agentCleanup: FreeFn = {
     name: 'midscene_puppeteer_agent',
     fn: () => agent.destroy(),
-  });
+  };
+  const pageOwnershipCleanup: FreeFn | undefined = pageOwnership
+    ? {
+        name: 'puppeteer_page_scope',
+        fn: () =>
+          preference?.keepWindow
+            ? pageOwnership.release()
+            : pageOwnership.close(),
+      }
+    : undefined;
+  const launcherCleanup = pageOwnership
+    ? freeFn.filter((cleanup) => cleanup.name !== 'puppeteer_page')
+    : freeFn;
 
-  return { agent, freeFn };
+  return {
+    agent,
+    freeFn: [
+      agentCleanup,
+      ...(pageOwnershipCleanup ? [pageOwnershipCleanup] : []),
+      ...launcherCleanup,
+    ],
+  };
 }

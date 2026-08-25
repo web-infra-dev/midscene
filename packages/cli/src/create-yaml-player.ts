@@ -22,7 +22,6 @@ import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import {
-  type PuppeteerPageOwnership,
   buildDownloadBehavior,
   puppeteerAgentForTarget,
 } from '@midscene/web/puppeteer-agent-launcher';
@@ -40,7 +39,6 @@ export interface CreateYamlPlayerOptions {
   keepWindow?: boolean;
   browser?: Browser;
   page?: Page;
-  pageOwnership?: PuppeteerPageOwnership;
   testId?: string;
 }
 
@@ -125,7 +123,6 @@ export async function createYamlPlayer(
   const preference = {
     headed: options?.headed,
     keepWindow: options?.keepWindow,
-    pageOwnership: options?.pageOwnership,
     reportFileName: resolveReportFileName(
       clonedYamlScript.agent?.reportFileName,
       options?.testId,
@@ -241,13 +238,6 @@ export async function createYamlPlayer(
                 defaultViewport: null,
                 downloadBehavior: buildDownloadBehavior(webTarget.downloadPath),
               }));
-            if (ownsCdpBrowser) {
-              freeFn.push({
-                name: 'cdp_browser_disconnect',
-                fn: () => cdpBrowser.disconnect(),
-              });
-            }
-
             // Warn about options that don't apply to an already-running browser
             if (webTarget.chromeArgs) {
               console.warn(
@@ -257,25 +247,49 @@ export async function createYamlPlayer(
 
             // Reuse puppeteerAgentForTarget which handles page setup (userAgent, viewport,
             // cookie, waitForNetworkIdle, etc.) — pass the CDP browser as the browser param
-            const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
-              webTarget,
-              {
-                ...preference,
-                ...buildAgentOptions(
-                  clonedYamlScript.agent,
-                  preference.reportFileName,
-                  fileName,
-                ),
-              },
-              cdpBrowser as Browser,
-              options?.page,
-            );
+            let launchedAgent: Awaited<
+              ReturnType<typeof puppeteerAgentForTarget>
+            >;
+            try {
+              launchedAgent = await puppeteerAgentForTarget(
+                webTarget,
+                {
+                  ...preference,
+                  ...buildAgentOptions(
+                    clonedYamlScript.agent,
+                    preference.reportFileName,
+                    fileName,
+                  ),
+                },
+                cdpBrowser as Browser,
+                options?.page,
+              );
+            } catch (error) {
+              if (ownsCdpBrowser) {
+                try {
+                  cdpBrowser.disconnect();
+                } catch (cleanupError) {
+                  cleanupWarning(
+                    'failed to disconnect the CDP browser after agent setup failed',
+                    cleanupError,
+                  );
+                }
+              }
+              throw error;
+            }
+            const { agent, freeFn: newFreeFn } = launchedAgent;
 
             // Replace the default browser close with disconnect for CDP
             const cleanFreeFn = newFreeFn.filter(
               (f) => f.name !== 'puppeteer_browser',
             );
             freeFn.push(...cleanFreeFn);
+            if (ownsCdpBrowser) {
+              freeFn.push({
+                name: 'cdp_browser_disconnect',
+                fn: () => cdpBrowser.disconnect(),
+              });
+            }
 
             return { agent, freeFn };
           }

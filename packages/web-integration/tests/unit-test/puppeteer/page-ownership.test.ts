@@ -1,16 +1,26 @@
 import { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
+import { createScopedPuppeteerBrowserAgent } from '@/puppeteer/scoped-browser-agent';
 import { describe, expect, it, rs } from '@rstest/core';
 import type { Browser, Page, Target } from 'puppeteer';
 
 const createBrowserHarness = () => {
   const targetCreatedHandlers = new Set<(target: Target) => void>();
   const closeOrder: string[] = [];
+  let nextNewPage: Page | undefined;
   const browser = {
     on: rs.fn((_event: string, handler: (target: Target) => void) => {
       targetCreatedHandlers.add(handler);
     }),
     off: rs.fn((_event: string, handler: (target: Target) => void) => {
       targetCreatedHandlers.delete(handler);
+    }),
+    newPage: rs.fn(async () => {
+      if (!nextNewPage) {
+        throw new Error('No page queued for browser.newPage()');
+      }
+      const page = nextNewPage;
+      nextNewPage = undefined;
+      return page;
     }),
   } as unknown as Browser;
 
@@ -30,6 +40,8 @@ const createBrowserHarness = () => {
         closed = true;
         closeOrder.push(name);
       }),
+      bringToFront: rs.fn().mockResolvedValue(undefined),
+      evaluate: rs.fn().mockResolvedValue(undefined),
     });
     return { page, target };
   };
@@ -42,6 +54,9 @@ const createBrowserHarness = () => {
       for (const handler of targetCreatedHandlers) {
         handler(target);
       }
+    },
+    queueNewPage: (page: Page) => {
+      nextNewPage = page;
     },
     targetCreatedHandlers,
   };
@@ -82,5 +97,35 @@ describe('PuppeteerPageOwnership', () => {
 
     expect(harness.closeOrder).toEqual(['child', 'root']);
     expect(harness.targetCreatedHandlers.size).toBe(0);
+  });
+
+  it('keeps BrowserAgent page enumeration and activation inside its scope', async () => {
+    const harness = createBrowserHarness();
+    const firstRoot = harness.createPageTarget('first-root');
+    const secondRoot = harness.createPageTarget('second-root');
+    const ownership = new PuppeteerPageOwnership(firstRoot.page);
+    const ownedNewPage = harness.createPageTarget('owned-new-page');
+    const agent = createScopedPuppeteerBrowserAgent(
+      harness.browser,
+      firstRoot.page,
+      { forceChromeSelectRendering: false },
+      ownership,
+    );
+
+    await expect(agent.pages()).resolves.toEqual([firstRoot.page]);
+    await expect(agent.setActivePage(secondRoot.page)).rejects.toThrow(
+      'out-of-scope page',
+    );
+    expect(ownership.ownsPage(secondRoot.page)).toBe(false);
+
+    harness.queueNewPage(ownedNewPage.page);
+    await expect(agent.newPage()).resolves.toBe(ownedNewPage.page);
+    await expect(agent.pages()).resolves.toEqual([
+      firstRoot.page,
+      ownedNewPage.page,
+    ]);
+    expect(agent.activePage).toBe(ownedNewPage.page);
+
+    ownership.release();
   });
 });

@@ -1,6 +1,5 @@
 import {
-  type BrowserAgentAdapter,
-  BrowserPageManager,
+  type BrowserPageManager,
   WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
@@ -12,29 +11,10 @@ import type {
   Page as PuppeteerPage,
   Target as PuppeteerTarget,
 } from 'puppeteer';
+import { createPuppeteerBrowserPageManager } from './browser-page-manager';
 import { PuppeteerWebPage } from './page';
-import type { PuppeteerPageOwnership } from './page-ownership';
 
 const debug = getDebug('puppeteer:browser-agent');
-
-const createPuppeteerBrowserAdapter = (
-  browser: PuppeteerBrowser,
-  pageOwnership?: PuppeteerPageOwnership,
-): BrowserAgentAdapter<PuppeteerPage, PuppeteerTarget> => ({
-  pages: () => browser.pages(),
-  newPage: async () => {
-    const page = await browser.newPage();
-    pageOwnership?.trackPage(page);
-    return page;
-  },
-  isPageClosed: (page) => page.isClosed(),
-  bringToFront: (page) => page.bringToFront(),
-  onNewPage: (handler) => browser.on('targetcreated', handler),
-  offNewPage: (handler) => browser.off('targetcreated', handler),
-  isNewPageEvent: (target) =>
-    target.type() === 'page' && (pageOwnership?.captureTarget(target) ?? true),
-  resolveNewPage: (target) => target.page(),
-});
 
 export type PuppeteerBrowserAgentOpt = Omit<
   WebPageAgentOpt,
@@ -49,16 +29,12 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
-  private readonly pageManager: BrowserPageManager<
-    PuppeteerPage,
-    PuppeteerTarget
-  >;
+  protected pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
 
   constructor(
     browser: PuppeteerBrowser,
     initialPage: PuppeteerPage,
     opts?: PuppeteerBrowserAgentOpt,
-    private readonly pageOwnership?: PuppeteerPageOwnership,
   ) {
     if (!browser) {
       throw new Error(
@@ -85,15 +61,10 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    const pageManager = new BrowserPageManager({
-      agentName: 'PuppeteerBrowserAgent',
-      adapter: createPuppeteerBrowserAdapter(browser, pageOwnership),
-      getActivePage: () => webPage.underlyingPage as PuppeteerPage,
-      setActivePageValue: (page) => {
-        webPage.underlyingPage = page;
-      },
-      autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-      newPageTimeout: runtimeOptions.newPageTimeout,
+    const pageManager = createPuppeteerBrowserPageManager({
+      browser,
+      webPage,
+      runtimeOptions,
       debug,
     });
     super(webPage, agentOpts);
@@ -109,13 +80,12 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
   static async create(
     browser: PuppeteerBrowser,
     opts?: PuppeteerBrowserAgentCreateOpt,
-    pageOwnership?: PuppeteerPageOwnership,
   ) {
     const { initialPage, ...agentOpts } = opts ?? {};
     const page =
       initialPage ?? (await browser.pages())[0] ?? (await browser.newPage());
 
-    return new PuppeteerBrowserAgent(browser, page, agentOpts, pageOwnership);
+    return new PuppeteerBrowserAgent(browser, page, agentOpts);
   }
 
   get activePage() {
@@ -131,7 +101,6 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
   }
 
   async setActivePage(page: PuppeteerPage) {
-    this.pageOwnership?.trackPage(page);
     await this.pageManager.setActivePage(page);
   }
 

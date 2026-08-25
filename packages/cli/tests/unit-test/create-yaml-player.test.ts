@@ -647,9 +647,7 @@ describe('create-yaml-player', () => {
       await createYamlPlayer(mockFilePath, mockScript);
 
       // Call the setup function that was passed to ScriptPlayer
-      if (setupFnCallback) {
-        await setupFnCallback();
-      }
+      await setupFnCallback?.();
 
       // Verify agentFromAdbDevice was called with deviceId and all options
       expect(agentFromAdbDevice).toHaveBeenCalledWith(
@@ -1197,9 +1195,7 @@ describe('create-yaml-player', () => {
       await createYamlPlayer(mockFilePath, mockScript);
 
       // Call the setup function
-      if (setupFnCallback) {
-        await setupFnCallback();
-      }
+      await setupFnCallback?.();
 
       // Verify all agent options were passed
       // Explicit YAML reportFileName should be passed through unchanged.
@@ -1497,7 +1493,10 @@ describe('create-yaml-player', () => {
 
       rs.mocked(puppeteerAgentForTarget).mockResolvedValue({
         agent: mockAgent as any,
-        freeFn: [],
+        freeFn: [
+          { name: 'midscene_puppeteer_agent', fn: rs.fn() },
+          { name: 'puppeteer_page', fn: rs.fn() },
+        ],
       });
 
       rs.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
@@ -1509,9 +1508,7 @@ describe('create-yaml-player', () => {
 
       await createYamlPlayer(mockFilePath, mockScript);
 
-      if (setupFnCallback) {
-        await setupFnCallback();
-      }
+      const setupResult = await setupFnCallback?.();
 
       // Should connect via CDP
       expect(puppeteer.connect).toHaveBeenCalledWith({
@@ -1527,6 +1524,39 @@ describe('create-yaml-player', () => {
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
       );
+      expect(setupResult?.freeFn.map(({ name }) => name)).toEqual([
+        'midscene_puppeteer_agent',
+        'puppeteer_page',
+        'cdp_browser_disconnect',
+      ]);
+    });
+
+    test('should disconnect an owned CDP browser when agent setup fails', async () => {
+      const setupError = new Error('agent setup failed');
+      const mockBrowser = {
+        disconnect: rs.fn(),
+      };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        },
+        tasks: [],
+      };
+
+      const puppeteer = (await import('puppeteer')).default;
+      rs.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+      rs.mocked(puppeteerAgentForTarget).mockRejectedValue(setupError);
+      rs.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {} as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      await expect(setupFnCallback?.()).rejects.toBe(setupError);
+      expect(mockBrowser.disconnect).toHaveBeenCalledTimes(1);
     });
 
     test('should configure download behavior via Puppeteer connect options in CDP mode', async () => {
