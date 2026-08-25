@@ -7,7 +7,7 @@ import { getModelAdapter } from '@/ai-model/models';
 import { MODEL_ADAPTER_CONFIGS } from '@/ai-model/models/registry';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { MODEL_FAMILY_VALUES, type TModelFamily } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
   jsonParser: parseModelResponseJson,
@@ -178,7 +178,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planner and locate definitions while applying policy defaults', () => {
-    const locateFn = vi.fn();
+    const locateFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {
@@ -281,7 +281,7 @@ describe('ResolvedModelAdapter', () => {
           {
             planning: {
               kind: 'custom',
-              planFn: vi.fn(),
+              planFn: rs.fn(),
             },
             locate: {
               kind: 'custom',
@@ -355,7 +355,7 @@ describe('ResolvedModelAdapter', () => {
   });
 
   it('keeps custom planning functions as a fallback escape hatch', () => {
-    const planFn = vi.fn();
+    const planFn = rs.fn();
     const adapter = new ResolvedModelAdapter(
       {
         planning: {

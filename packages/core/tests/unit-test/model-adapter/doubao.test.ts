@@ -3,7 +3,7 @@ import {
   doubaoAdapters,
   parseDoubaoRawLocateValue,
 } from '@/ai-model/models/doubao';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const doubaoVisionAdapter = new ResolvedModelAdapter(
   doubaoAdapters['doubao-vision'],

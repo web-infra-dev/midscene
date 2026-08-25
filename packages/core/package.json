@@ -90,11 +90,10 @@
     "build": "rslib build",
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch --no-clean",
     "sync-report-template": "node ../../scripts/sync-core-report-template.mjs",
-    "test": "vitest --run",
-    "test:u": "vitest --run -u",
-    "test:ai": "AITEST=true vitest --run",
-    "computer": "TEST_COMPUTER=true AITEST=true vitest --run tests/ai/evaluate/computer.test.ts",
-    "test:parse-action": "vitest --run tests/unit-test/parse-action.test.ts"
+    "test": "rstest",
+    "test:u": "rstest -u",
+    "test:ai": "AITEST=true rstest",
+    "test:parse-action": "rstest tests/unit-test/parse-action.test.ts"
   },
   "nx": {
     "targets": {
@@ -131,15 +130,14 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.5",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "@types/semver": "7.7.0",
-    "@vitest/runner": "3.0.5",
     "langsmith": "^0.3.74",
     "sharp": "^0.34.3",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=18.19.0"

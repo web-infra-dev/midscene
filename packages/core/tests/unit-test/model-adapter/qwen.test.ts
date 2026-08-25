@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { qwenAdapters } from '@/ai-model/models/qwen';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const qwen25Adapter = new ResolvedModelAdapter(
   qwenAdapters['qwen2.5-vl'],

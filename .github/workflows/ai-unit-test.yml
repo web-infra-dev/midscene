@@ -73,9 +73,9 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/core,@midscene/web,@midscene/cli"
     
     - name: Run tests with coverage
-      # Worker caps live in each package's own test config so the flags stay
-      # runner-agnostic: rstest rejects bare --minWorkers/--maxWorkers, so they
-      # must not be passed here.
+      # Worker caps live in the core/web-integration/cli rstest.config.ts files:
+      # rstest rejects bare --minWorkers/--maxWorkers, so they must not be
+      # passed here.
       run: MIDSCENE_COVERAGE_DIR=coverage-ai pnpm exec nx run-many --target=test:ai --projects=@midscene/core,@midscene/web,@midscene/cli --verbose -- --coverage
       id: test-ai
       continue-on-error: true

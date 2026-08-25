@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { collectReportSummary } from '../../src/report-stats';
 import type {
   AIUsageInfo,

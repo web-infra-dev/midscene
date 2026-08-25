@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { glmAdapters } from '@/ai-model/models/glm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const glmAdapter = new ResolvedModelAdapter(glmAdapters['glm-v'], 'glm-v');
 

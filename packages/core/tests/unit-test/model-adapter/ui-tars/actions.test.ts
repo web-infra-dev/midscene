@@ -1,7 +1,7 @@
 import { transformUiTarsActions } from '@/ai-model/models/ui-tars/actions';
 import type { UiTarsParsedPlanningResponse } from '@/ai-model/models/ui-tars/parser';
 import type { PlanningAction } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 type UiTarsActionParam = {
   locate?: Record<string, unknown>;

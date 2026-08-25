@@ -1,5 +1,5 @@
 import { TaskRunner } from '@/task-runner';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import {
   ExecutionDump,

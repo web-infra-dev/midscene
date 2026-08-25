@@ -15,7 +15,7 @@ import * as reportDumpCompactor from '@/dump/report-dump-compactor';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, ReportActionDump, type UIContext } from '@/types';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   buildIncrementalExecution,
   createExecution,
@@ -246,7 +246,7 @@ describe('ReportGenerator — append-only model', () => {
       );
 
       const compactionError = new Error('ENOSPC: no space left on device');
-      const compactSpy = vi
+      const compactSpy = rs
         .spyOn(reportDumpCompactor, 'compactReportDumps')
         .mockRejectedValueOnce(compactionError);
 

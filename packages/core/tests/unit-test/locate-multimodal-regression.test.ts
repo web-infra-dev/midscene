@@ -1,6 +1,6 @@
 import { Agent } from '@/agent';
 import { ScriptPlayer } from '@/yaml/player';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const referenceImages = [
   {
@@ -22,7 +22,7 @@ const expectedLocateParam = {
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).callActionInActionSpace = vi.fn(async () => undefined);
+  (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };
 
@@ -30,7 +30,7 @@ describe('multimodal locate prompt regression', () => {
   it('should preserve multimodal locate options when Agent.aiTap receives a string prompt', async () => {
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await agent.aiTap('Click the icon', {
@@ -63,7 +63,7 @@ describe('multimodal locate prompt regression', () => {
     );
     const agent = createAgentStub();
     const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
 
     await player.playTask(

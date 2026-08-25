@@ -10,7 +10,7 @@ import {
   defineActionRegisterFileChooserAccept,
 } from '@/device';
 import type { DeviceAction, PlanningAction } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const fixtureFile = join(__dirname, 'ai-act-file-upload-tap.test.ts');
 type TestFileChooserHandler = (chooser: {
@@ -19,7 +19,7 @@ type TestFileChooserHandler = (chooser: {
 
 describe('aiAct file chooser registration', () => {
   it('should serialize file chooser registration separately from Tap', () => {
-    const register = vi.fn(async () => {});
+    const register = rs.fn(async () => {});
     const plans: PlanningAction[] = [
       {
         type: 'RegisterFileChooserAccept',
@@ -43,7 +43,7 @@ describe('aiAct file chooser registration', () => {
         description: 'Tap the element',
         interfaceAlias: 'aiTap',
         paramSchema: actionTapParamSchema,
-        call: vi.fn(),
+        call: rs.fn(),
       },
     ] as DeviceAction[];
 
@@ -62,14 +62,14 @@ describe('aiAct file chooser registration', () => {
   it('should replace registered files and clear the active registration', async () => {
     const registrations: Array<{
       handler: TestFileChooserHandler;
-      dispose: ReturnType<typeof vi.fn>;
+      dispose: ReturnType<typeof rs.fn>;
     }> = [];
     const acceptedFiles: string[][] = [];
     const mockInterface = {
       interfaceType: 'playwright',
-      registerFileChooserListener: vi.fn(
+      registerFileChooserListener: rs.fn(
         async (handler: TestFileChooserHandler) => {
-          const dispose = vi.fn();
+          const dispose = rs.fn();
           registrations.push({ handler, dispose });
           return { dispose, getError: () => undefined };
         },
@@ -95,10 +95,10 @@ describe('aiAct file chooser registration', () => {
   });
 
   it('clears the active registration instead of accepting an empty file list', async () => {
-    const dispose = vi.fn();
+    const dispose = rs.fn();
     const mockInterface = {
       interfaceType: 'playwright',
-      registerFileChooserListener: vi.fn(async () => ({
+      registerFileChooserListener: rs.fn(async () => ({
         dispose,
         getError: () => undefined,
       })),
@@ -114,10 +114,10 @@ describe('aiAct file chooser registration', () => {
 
   it('should return a file chooser handling error while disposing the registration', async () => {
     const uploadError = new Error('file upload failed');
-    const dispose = vi.fn();
+    const dispose = rs.fn();
     const mockInterface = {
       interfaceType: 'playwright',
-      registerFileChooserListener: vi.fn(async () => ({
+      registerFileChooserListener: rs.fn(async () => ({
         dispose,
         getError: () => uploadError,
       })),
@@ -150,9 +150,9 @@ describe('aiAct file chooser registration', () => {
     const acceptedFiles: string[][] = [];
     const mockInterface = {
       interfaceType: 'playwright',
-      registerFileChooserListener: vi.fn(
+      registerFileChooserListener: rs.fn(
         async (handler: TestFileChooserHandler) => ({
-          dispose: vi.fn(),
+          dispose: rs.fn(),
           getError: () => undefined,
           handler,
         }),
@@ -173,8 +173,8 @@ describe('aiAct file chooser registration', () => {
   });
 
   it('requires fileChooserAllowedDir for model-driven uploads', async () => {
-    const registerFileChooserListener = vi.fn(async () => ({
-      dispose: vi.fn(),
+    const registerFileChooserListener = rs.fn(async () => ({
+      dispose: rs.fn(),
       getError: () => undefined,
     }));
     const agent = new Agent(
@@ -205,15 +205,15 @@ describe('aiAct file chooser registration', () => {
         },
       },
     };
-    (agent as any).resolveModelRuntime = vi.fn(() => modelRuntime);
-    (agent as any).resolveReplanningCycleLimit = vi.fn(() => 3);
+    (agent as any).resolveModelRuntime = rs.fn(() => modelRuntime);
+    (agent as any).resolveReplanningCycleLimit = rs.fn(() => 3);
 
-    vi.spyOn(agent.taskExecutor, 'action').mockImplementation(async () => {
+    rs.spyOn(agent.taskExecutor, 'action').mockImplementation(async () => {
       await registerAction?.call({ files: basename(fixtureFile) });
       return { output: { output: 'uploaded', yamlFlow: [] } } as any;
     });
 
-    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(__dirname);
+    const cwdSpy = rs.spyOn(process, 'cwd').mockReturnValue(__dirname);
     try {
       await expect(agent.aiAct('Upload a file')).rejects.toThrow(
         /requires aiAct option fileChooserAllowedDir/,

@@ -4,13 +4,13 @@ import { dirname, join } from 'node:path';
 import { Agent } from '@/agent';
 import { markdownToAiActPrompt } from '@/agent/run-markdown';
 import { paramStr } from '@/agent/ui-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 let tempDir: string | undefined;
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).aiAct = vi.fn(async () => 'done');
+  (agent as any).aiAct = rs.fn(async () => 'done');
   return agent;
 };
 
@@ -27,7 +27,7 @@ describe('runMarkdown prompt transform', () => {
       await rm(tempDir, { recursive: true, force: true });
       tempDir = undefined;
     }
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('replaces Markdown images with numbered reference image names', async () => {

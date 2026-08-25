@@ -6,7 +6,7 @@ import {
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const modelConfig = {
   [MIDSCENE_MODEL_NAME]: 'qwen2.5-vl-max',
@@ -59,7 +59,7 @@ function createAgentWithPlanCache(
 
 describe('aiAct plan cache fallback', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('disables the stale plan cache instead of caching fallback flow when cached YAML fails', async () => {
@@ -76,8 +76,8 @@ describe('aiAct plan cache fallback', () => {
       prompt,
     );
     const taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi.fn().mockResolvedValue({
+      loadYamlFlowAsPlanning: rs.fn().mockResolvedValue(undefined),
+      action: rs.fn().mockResolvedValue({
         output: {
           output: 'completed after fallback',
           yamlFlow: [{ aiTap: 'final confirmation button' }],
@@ -86,7 +86,7 @@ describe('aiAct plan cache fallback', () => {
     };
     agent.taskExecutor = taskExecutor as any;
 
-    vi.spyOn(agent, 'runYaml').mockRejectedValue(
+    rs.spyOn(agent, 'runYaml').mockRejectedValue(
       new Error('optional popup close button not found after opening summary'),
     );
 
@@ -108,8 +108,8 @@ describe('aiAct plan cache fallback', () => {
   it('disables the stale plan cache when fallback succeeds without a new flow', async () => {
     const { agent, internal } = createAgentWithPlanCache();
     agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi.fn().mockResolvedValue({
+      loadYamlFlowAsPlanning: rs.fn().mockResolvedValue(undefined),
+      action: rs.fn().mockResolvedValue({
         output: {
           output: 'nothing to do',
           yamlFlow: [],
@@ -117,7 +117,7 @@ describe('aiAct plan cache fallback', () => {
       }),
     } as any;
 
-    vi.spyOn(agent, 'runYaml').mockRejectedValue(
+    rs.spyOn(agent, 'runYaml').mockRejectedValue(
       new Error('optional popup close button not found'),
     );
 
@@ -132,8 +132,8 @@ describe('aiAct plan cache fallback', () => {
   it('keeps using the cached YAML when it succeeds', async () => {
     const { agent } = createAgentWithPlanCache();
     const taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi.fn().mockResolvedValue({
+      loadYamlFlowAsPlanning: rs.fn().mockResolvedValue(undefined),
+      action: rs.fn().mockResolvedValue({
         output: {
           output: 'replanned',
           yamlFlow: [{ aiTap: 'stable submit button' }],
@@ -141,7 +141,7 @@ describe('aiAct plan cache fallback', () => {
       }),
     };
     agent.taskExecutor = taskExecutor as any;
-    const runYaml = vi.spyOn(agent, 'runYaml').mockResolvedValue({
+    const runYaml = rs.spyOn(agent, 'runYaml').mockResolvedValue({
       result: {},
     });
 

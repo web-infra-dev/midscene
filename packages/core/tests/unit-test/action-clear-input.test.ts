@@ -1,11 +1,11 @@
 import { Agent } from '@/agent';
 import { parseActionParam } from '@/ai-model';
 import { actionClearInputParamSchema, defineActionClearInput } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  (agent as any).callActionInActionSpace = vi.fn(async () => undefined);
+  (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };
 
@@ -42,7 +42,7 @@ describe('ClearInput Action', () => {
     it('dispatches the ClearInput action with locate prompt', async () => {
       const agent = createAgentStub();
       const callActionSpy = (agent as any)
-        .callActionInActionSpace as ReturnType<typeof vi.fn>;
+        .callActionInActionSpace as ReturnType<typeof rs.fn>;
 
       await agent.aiClearInput('the search input field');
 
@@ -60,7 +60,7 @@ describe('ClearInput Action', () => {
     it('forwards locate options such as deepLocate and xpath', async () => {
       const agent = createAgentStub();
       const callActionSpy = (agent as any)
-        .callActionInActionSpace as ReturnType<typeof vi.fn>;
+        .callActionInActionSpace as ReturnType<typeof rs.fn>;
 
       await agent.aiClearInput('the search input field', {
         deepLocate: true,

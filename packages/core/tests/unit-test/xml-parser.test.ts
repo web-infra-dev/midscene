@@ -1,5 +1,5 @@
 import { extractXMLTag } from '@/ai-model/shared/xml';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('extractXMLTag', () => {
   it('should extract simple tag content', () => {

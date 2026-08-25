@@ -7,16 +7,16 @@ import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../common';
 import { getContextFromFixture } from '../../evaluation';
-vi.setConfig({
+rs.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
 });
 
-const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
-const defaultModelRuntime = getModelRuntime(defaultModelConfig);
+const defaultModelRuntime = () =>
+  getModelRuntime(globalModelConfigManager.getModelConfig('default'));
 
 const standardPlan = async (
   userInstruction: TUserPrompt,
@@ -35,7 +35,7 @@ describe('automation - planning input', () => {
       const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime: defaultModelRuntime,
+        modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',
@@ -57,7 +57,7 @@ describe('automation - planning input', () => {
       const { actions } = await standardPlan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        modelRuntime: defaultModelRuntime,
+        modelRuntime: defaultModelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
         effort: 'balance',

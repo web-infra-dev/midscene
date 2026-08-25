@@ -1,10 +1,10 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,
@@ -27,7 +27,7 @@ const baseConfig = (overrides: Partial<IModelConfig> = {}): IModelConfig =>
 
 describe('service-caller request timeout', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('resolves default, custom and disabled timeout values', async () => {
@@ -188,7 +188,7 @@ describe('service-caller request timeout', () => {
       callAI(
         [{ role: 'user', content: 'hello' }],
         getModelRuntime(baseConfig({ timeout: 30 })),
-        { stream: true, onChunk: vi.fn() },
+        { stream: true, onChunk: rs.fn() },
       ),
     ).rejects.toThrow(/AI call hard timeout after 30ms/);
   });
@@ -214,7 +214,7 @@ describe('service-caller request timeout', () => {
     );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
     expect(lastCallOptions?.timeout).toBe(180_000);
@@ -250,7 +250,7 @@ describe('service-caller request timeout', () => {
     await callAI([{ role: 'user', content: 'hello' }], modelRuntime);
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const defaultHeaders = OpenAI.mock.calls.at(-1)?.[0]?.defaultHeaders as
       | Record<string, string>
@@ -389,7 +389,7 @@ describe('service-caller request timeout', () => {
     );
 
     const OpenAI = (await import('openai')).default as unknown as ReturnType<
-      typeof vi.fn
+      typeof rs.fn
     >;
     const lastCallOptions = OpenAI.mock.calls.at(-1)?.[0];
     // When timeout is disabled we should NOT forward a timeout to the SDK.

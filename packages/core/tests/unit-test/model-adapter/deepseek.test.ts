@@ -6,7 +6,7 @@ import {
 } from '@/ai-model/models/deepseek/locate-protocol';
 import { buildElementLocateSystemPrompt } from '@/ai-model/prompt/locate';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const deepSeekAdapter = new ResolvedModelAdapter(
   deepSeekAdapters.deepseek,

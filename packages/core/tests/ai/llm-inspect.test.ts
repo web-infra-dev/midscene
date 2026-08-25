@@ -1,15 +1,15 @@
 import { AiLocateElement, AiLocateSection } from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { expect, test, vi } from 'vitest';
+import { expect, rs, test } from '@rstest/core';
 import { getContextFromFixture } from '../evaluation';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
-const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
-const defaultModelRuntime = getModelRuntime(defaultModelConfig);
+const defaultModelRuntime = () =>
+  getModelRuntime(globalModelConfigManager.getModelConfig('default'));
 
 test(
   'basic inspect',
@@ -22,7 +22,7 @@ test(
     const { parseResult } = await AiLocateElement({
       context,
       targetElementDescription: 'input 输入框',
-      modelRuntime: defaultModelRuntime,
+      modelRuntime: defaultModelRuntime(),
     });
     expect(parseResult.element).toBeDefined();
   },
@@ -33,7 +33,7 @@ test('locate section', { timeout: 120 * 1000 }, async () => {
   const { searchAreaConfig } = await AiLocateSection({
     context,
     sectionDescription: '搜索框',
-    modelRuntime: defaultModelRuntime,
+    modelRuntime: defaultModelRuntime(),
   });
   expect(searchAreaConfig?.sourceRect).toBeDefined();
 });
