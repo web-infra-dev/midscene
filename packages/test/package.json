@@ -61,6 +61,8 @@
     "zod": "^3.25.1"
   },
   "devDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",

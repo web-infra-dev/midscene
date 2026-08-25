@@ -128,8 +128,8 @@ cases:
       - browser.mockLocation:
           latitude: 35.6762
           longitude: 139.6503 # Mock a location in Tokyo
-      - launch:
-          uri: https://yoursite.com/stores
+      - gotoUrl:
+          url: https://yoursite.com/stores
       - aiAssert:
           prompt: The page successfully loads and displays recommended stores in Tokyo or nearby areas
           message: The mocked location did not take effect
@@ -337,7 +337,7 @@ export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 
 ## Integrate a Midscene Agent
 
-`@midscene/test/midscene` exports seven built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `terminate`, `wait`, and `agent`.
+`@midscene/test/midscene` exports six built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent`.
 
 Call `createMidsceneNodes()` with a `getAgent` callback to integrate them into your Test Runner configuration:
 
@@ -349,14 +349,15 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-  // Web uses gotoUrl instead of the device lifecycle Nodes.
+  // Web uses gotoUrl instead of the legacy launch Node.
   includeLaunch: false,
 });
 ```
 
-`includeLaunch: false` also disables `terminate` by default. Set
-`includeTerminate` explicitly only when the two capabilities need to be
-configured independently.
+`createMidsceneNodes()` keeps `launch` for compatibility with existing Agent
+integrations. Android and iOS projects should use the lifecycle Nodes owned by
+their platform preset and set `includeLaunch: false` here to avoid registering
+`launch` twice.
 
 ## Register platform preset Nodes
 
@@ -384,13 +385,22 @@ const playwrightNodes = createPlaywrightNodes<ProjectContext>({
 });
 ```
 
-`setCookies` deliberately does not accept inline cookie values. Use exactly
-one of `cookiesEnv`, `profile`, or `storageStatePath`. An environment variable
-may contain a Cookie header, a JSON cookie array, or Playwright storage-state
-JSON. Cookie values are resolved inside the Node and are not included in the
-Node result or workflow history. Relative storage-state paths resolve from the
+`setCookies` does not accept cookie values in YAML. Test Runner persists every
+Node input in the run result and workflow history. An inline cookie would be
+copied into those records.
+
+Use exactly one of `cookiesEnv`, `profile`, or `storageStatePath` as a cookie
+reference. The Node resolves the actual cookies only at execution time and
+passes them directly to the Playwright BrowserContext. Its result contains only
+the reference name and cookie count. Cookie names, values, and scopes are not
+written to the run result or workflow history.
+
+An environment variable may contain a Cookie header, a JSON cookie array, or
+Playwright storage-state JSON. Relative storage-state paths resolve from the
 current working directory by default; use `resolveStorageStatePath` when a
-project needs a different root.
+project needs a different root. References prevent Test Runner from persisting
+the cookies, but the environment variable, profile, or storage-state file must
+still be protected. Do not commit storage-state files containing real cookies.
 
 ```yaml
 beforeEach:
@@ -406,8 +416,8 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
-For Android, combine the device lifecycle Nodes from `createMidsceneNodes()`
-with `runAdbShell`:
+For Android, the platform preset registers `launch`, `terminate`, and
+`runAdbShell`. Its Agent contract requires all three capabilities:
 
 ```ts
 import { createAndroidNodes } from '@midscene/test/android';
@@ -425,8 +435,8 @@ beforeEach:
       uri: com.example.app
 ```
 
-For iOS, register `runWdaRequest`; `launch` and `terminate` continue to use the
-Agent lifecycle methods:
+For iOS, the platform preset registers `launch`, `terminate`, and
+`runWdaRequest`. Its Agent contract requires all three capabilities:
 
 ```ts
 import { createIOSNodes } from '@midscene/test/ios';
@@ -468,7 +478,7 @@ You can also specify a test directory or a custom configuration file:
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the seven built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes every Node registered in the active Test Project, including the six built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
 
 ## Configure and manage a Test Project
 

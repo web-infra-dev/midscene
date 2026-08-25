@@ -128,8 +128,8 @@ cases:
       - browser.mockLocation:
           latitude: 35.6762
           longitude: 139.6503   # 模拟在东京 (Tokyo)
-      - launch:
-          uri: https://yoursite.com/stores
+      - gotoUrl:
+          url: https://yoursite.com/stores
       - aiAssert:
           prompt: 页面上成功加载并展示了“东京”或其临近区域的门店推荐列表
           message: 地理位置 Mock 未能正确生效
@@ -337,7 +337,7 @@ export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 
 ## 集成 Midscene Agent
 
-`@midscene/test/midscene` 导出了七个系统内置 Node：`aiAct`、`aiAssert`、`recordToReport`、`launch`、`terminate`、`wait` 和 `agent`。
+`@midscene/test/midscene` 导出了六个系统内置 Node：`aiAct`、`aiAssert`、`recordToReport`、`launch`、`wait` 和 `agent`。
 
 你可以通过调用 `createMidsceneNodes()` 并传入 `getAgent` 回调，将其方便地集成到你的测试运行器配置中：
 
@@ -349,13 +349,14 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-  // Web 使用 gotoUrl，不注册设备生命周期 Node。
+  // Web 使用 gotoUrl，不注册兼容旧 Agent 的 launch Node。
   includeLaunch: false,
 });
 ```
 
-`includeLaunch: false` 默认也会关闭 `terminate`。只有需要分别控制这两个能力时，
-才显式设置 `includeTerminate`。
+`createMidsceneNodes()` 保留 `launch`，用于兼容已有的 Agent 集成。Android 和 iOS
+项目应使用各自平台预置提供的生命周期 Node，并在这里设置 `includeLaunch: false`，
+避免重复注册 `launch`。
 
 ## 注册平台预置 Node
 
@@ -382,11 +383,19 @@ const playwrightNodes = createPlaywrightNodes<ProjectContext>({
 });
 ```
 
-`setCookies` 有意不接受 inline Cookie value。请在 `cookiesEnv`、`profile` 和
-`storageStatePath` 中选择且只选择一个。环境变量可以包含 Cookie header、Cookie JSON
-数组或 Playwright storage-state JSON。Cookie value 由 Node 内部解析，不会进入 Node
-结果或 workflow history。相对的 storage-state 路径默认从当前工作目录解析；如果项目
-需要使用其他根目录，请配置 `resolveStorageStatePath`。
+`setCookies` 不允许在 YAML 中直接填写 Cookie value。Test Runner 会把 Node 输入保存到
+运行结果和 workflow history。如果直接填写 Cookie，这些敏感信息也会被保存。
+
+请使用 `cookiesEnv`、`profile` 或 `storageStatePath` 引用 Cookie，三者必须选择一个。
+Node 只在执行时读取实际的 Cookie，并将它直接传给 Playwright BrowserContext。Node
+结果只记录引用名称和 Cookie 数量，不会记录 Cookie 的名称、value 和作用域。因此，
+Cookie 不会进入 Test Runner 的运行结果和 workflow history。
+
+环境变量可以包含 Cookie header、Cookie JSON 数组或 Playwright storage-state JSON。
+相对的 storage-state 路径默认从当前工作目录解析。如果项目需要使用其他根目录，请配置
+`resolveStorageStatePath`。引用方式只能避免 Cookie 进入 Test Runner 的持久化数据；
+环境变量、profile 和 storage-state 文件本身仍需妥善保管。请勿将包含真实 Cookie 的
+storage-state 文件提交到代码仓库。
 
 ```yaml
 beforeEach:
@@ -402,7 +411,8 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
-Android 项目将 `createMidsceneNodes()` 的设备生命周期 Node 与 `runAdbShell` 组合：
+Android 平台预置会注册 `launch`、`terminate` 和 `runAdbShell`，并要求 Agent
+同时提供这三个能力：
 
 ```ts
 import { createAndroidNodes } from '@midscene/test/android';
@@ -420,7 +430,8 @@ beforeEach:
       uri: com.example.app
 ```
 
-iOS 项目注册 `runWdaRequest`；`launch` 和 `terminate` 继续使用 Agent 生命周期方法：
+iOS 平台预置会注册 `launch`、`terminate` 和 `runWdaRequest`，并要求 Agent
+同时提供这三个能力：
 
 ```ts
 import { createIOSNodes } from '@midscene/test/ios';
@@ -461,7 +472,7 @@ pnpm exec midscene-test describe-nodes > midscene-nodes.md
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的七个系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
+生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的六个系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
 
 ## 配置和管理 Test Project
 

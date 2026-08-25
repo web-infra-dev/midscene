@@ -1,4 +1,13 @@
 import { z } from 'zod/v4';
+import {
+  type DeviceLifecycleAgent,
+  createDeviceLifecycleNodes,
+} from '../device/lifecycle';
+export type {
+  LaunchNodeInput,
+  TerminateNodeInput,
+} from '../device/lifecycle';
+export { launchInputSchema, terminateInputSchema } from '../device/lifecycle';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
@@ -11,9 +20,9 @@ export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 type NodeContext<TContext> = NodeExecutionContext<unknown, TContext>;
 
 /** Minimal iOS Agent capability required by the preset Node. */
-export interface IOSRunnerAgent {
+export interface IOSRunnerAgent extends DeviceLifecycleAgent {
   /** Execute one WebDriverAgent request through the iOS Agent action API. */
-  runWdaRequest?(input: RunWdaRequestNodeInput): Promise<unknown>;
+  runWdaRequest(input: RunWdaRequestNodeInput): Promise<unknown>;
 }
 
 /** Dependencies used by the iOS preset Nodes. */
@@ -52,6 +61,7 @@ export function createIOSNodes<TContext>(
   }
 
   return [
+    ...createDeviceLifecycleNodes(options.getAgent, 'an iOS Agent'),
     defineNode<typeof runWdaRequestInputSchema, unknown, TContext>({
       name: 'runWdaRequest',
       title: 'Run a WebDriverAgent request',

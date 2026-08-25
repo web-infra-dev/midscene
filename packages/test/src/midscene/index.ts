@@ -1,4 +1,7 @@
 import { z } from 'zod/v4';
+import { createLaunchNode } from '../device/lifecycle';
+export type { LaunchNodeInput } from '../device/lifecycle';
+export { launchInputSchema } from '../device/lifecycle';
 import type { Awaitable, NodeHistoryEntry } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
@@ -65,8 +68,6 @@ export interface MidsceneUIAgent {
   ): Promise<unknown>;
   /** Available on device Agents that support launching an app, URL, or URI. */
   launch?(uri: string): Promise<void>;
-  /** Available on device Agents that support terminating an application. */
-  terminate?(uri: string): Promise<void>;
 }
 
 export interface AgentProvider<TContext> {
@@ -213,55 +214,6 @@ export const recordToReportInputSchema = z
     }
   });
 
-export const launchInputSchema = z
-  .strictObject({
-    prompt: z
-      .string()
-      .regex(/\S/, 'prompt must contain a non-whitespace character')
-      .optional()
-      .describe('String shorthand for the app, URL, or URI to launch.'),
-    uri: z
-      .string()
-      .regex(/\S/, 'uri must contain a non-whitespace character')
-      .optional()
-      .describe(
-        'The app, URL, URI, package name, or bundle identifier to launch.',
-      ),
-  })
-  .superRefine((input, ctx) => {
-    if ((input.prompt === undefined) === (input.uri === undefined)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'exactly one of prompt and uri is required',
-      });
-    }
-  });
-
-/** Input schema for the device terminate Node. */
-export const terminateInputSchema = z
-  .strictObject({
-    prompt: z
-      .string()
-      .regex(/\S/, 'prompt must contain a non-whitespace character')
-      .optional()
-      .describe('String shorthand for the app to terminate.'),
-    uri: z
-      .string()
-      .regex(/\S/, 'uri must contain a non-whitespace character')
-      .optional()
-      .describe(
-        'The package name, bundle identifier, or app name to terminate.',
-      ),
-  })
-  .superRefine((input, ctx) => {
-    if ((input.prompt === undefined) === (input.uri === undefined)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'exactly one of prompt and uri is required',
-      });
-    }
-  });
-
 export const waitInputSchema = z.strictObject({
   duration: z.number().positive().describe('How long to wait.'),
   unit: z
@@ -279,9 +231,6 @@ export const agentInputSchema = z.strictObject({
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
-export type LaunchNodeInput = z.infer<typeof launchInputSchema>;
-/** Validated input accepted by the device terminate Node. */
-export type TerminateNodeInput = z.infer<typeof terminateInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 export type AgentNodeInput = z.infer<typeof agentInputSchema>;
 
@@ -292,11 +241,6 @@ export interface CreateMidsceneNodesOptions<TContext> {
   agentProvider?: AgentProvider<TContext>;
   /** Disable when a project registers its own platform-specific launch Node. */
   includeLaunch?: boolean;
-  /**
-   * Disable when the current Agent cannot terminate applications. Defaults to
-   * the value of includeLaunch so Web projects can disable both device Nodes.
-   */
-  includeTerminate?: boolean;
   agentExecutor?: AgentExecutor<TContext>;
 }
 
@@ -391,8 +335,6 @@ export function createMidsceneNodes<TContext>(
   }
 
   const registeredAgentScopes = new Set<string>();
-  const includeTerminate =
-    options.includeTerminate ?? options.includeLaunch !== false;
   const getExecutionId = (ctx: NodeExecutionContext<unknown, TContext>) =>
     ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
   const getAgent = async (
@@ -483,44 +425,7 @@ export function createMidsceneNodes<TContext>(
         return { summary: `Recorded to report: ${title ?? 'untitled'}` };
       },
     }),
-    ...(options.includeLaunch === false
-      ? []
-      : [
-          defineNode<typeof launchInputSchema, unknown, TContext>({
-            name: 'launch',
-            description:
-              'Launch an app, URL, or URI through the current Midscene Agent. This Node does not install or manage applications.',
-            inputSchema: launchInputSchema,
-            async execute(ctx) {
-              const uri = ctx.input.uri ?? ctx.input.prompt!;
-              const agent = await getAgent(ctx);
-              const launch = requireAgentMethod(agent, 'launch', 'launch');
-              await launch.call(agent, uri);
-              return { summary: `Launched ${uri}` };
-            },
-          }),
-        ]),
-    ...(includeTerminate
-      ? [
-          defineNode<typeof terminateInputSchema, unknown, TContext>({
-            name: 'terminate',
-            description:
-              'Terminate an application through the current Midscene Agent. This Node does not uninstall the application or clear its data.',
-            inputSchema: terminateInputSchema,
-            async execute(ctx) {
-              const uri = ctx.input.uri ?? ctx.input.prompt!;
-              const agent = await getAgent(ctx);
-              const terminate = requireAgentMethod(
-                agent,
-                'terminate',
-                'terminate',
-              );
-              await terminate.call(agent, uri);
-              return { summary: `Terminated ${uri}` };
-            },
-          }),
-        ]
-      : []),
+    ...(options.includeLaunch === false ? [] : [createLaunchNode(getAgent)]),
     defineNode<typeof waitInputSchema, unknown, TContext>({
       name: 'wait',
       description: 'Wait for a fixed duration while honoring cancellation.',

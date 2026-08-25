@@ -18,8 +18,15 @@ describe('createIOSNodes', () => {
   it('runs WDA requests and returns their structured response', async () => {
     const runWdaRequest = vi.fn(async () => ({ value: { scale: 3 } }));
     const registry = new NodeRegistry(
-      createIOSNodes({ getAgent: () => ({ runWdaRequest }) }),
+      createIOSNodes({
+        getAgent: () => ({
+          launch: vi.fn(async () => undefined),
+          terminate: vi.fn(async () => undefined),
+          runWdaRequest,
+        }),
+      }),
     );
+    expect(registry.names()).toEqual(['launch', 'terminate', 'runWdaRequest']);
     const result = await runCollectedCase(
       collected([
         {
@@ -44,8 +51,43 @@ describe('createIOSNodes', () => {
     expect(result.steps[0].output?.data).toEqual({ value: { scale: 3 } });
   });
 
+  it('owns and delegates iOS lifecycle nodes', async () => {
+    const launch = vi.fn(async () => undefined);
+    const terminate = vi.fn(async () => undefined);
+    const registry = new NodeRegistry(
+      createIOSNodes({
+        getAgent: () => ({
+          launch,
+          terminate,
+          runWdaRequest: vi.fn(async () => undefined),
+        }),
+      }),
+    );
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'launch',
+          input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'terminate',
+          input: { prompt: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry), context: undefined },
+    );
+
+    expect(result.status).toBe('success');
+    expect(launch).toHaveBeenCalledWith('com.example.app');
+    expect(terminate).toHaveBeenCalledWith('com.example.app');
+  });
+
   it('rejects unsupported methods and missing Agent capability', async () => {
-    const registry = new NodeRegistry(createIOSNodes({ getAgent: () => ({}) }));
+    const registry = new NodeRegistry(
+      createIOSNodes({ getAgent: () => ({}) as never }),
+    );
     const invalidMethod = await runCollectedCase(
       collected([
         {
@@ -72,6 +114,20 @@ describe('createIOSNodes', () => {
     );
     expect(missingMethod.steps[0].error?.message).toContain(
       'iOS Agent with runWdaRequest()',
+    );
+
+    const lifecycleResult = await runCollectedCase(
+      collected([
+        {
+          node: 'terminate',
+          input: { uri: 'com.example.app' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry), context: undefined },
+    );
+    expect(lifecycleResult.steps[0].error?.message).toContain(
+      'iOS Agent with terminate()',
     );
   });
 

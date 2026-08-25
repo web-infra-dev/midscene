@@ -1,4 +1,13 @@
 import { z } from 'zod/v4';
+import {
+  type DeviceLifecycleAgent,
+  createDeviceLifecycleNodes,
+} from '../device/lifecycle';
+export type {
+  LaunchNodeInput,
+  TerminateNodeInput,
+} from '../device/lifecycle';
+export { launchInputSchema, terminateInputSchema } from '../device/lifecycle';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
@@ -7,12 +16,9 @@ import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 type NodeContext<TContext> = NodeExecutionContext<unknown, TContext>;
 
 /** Minimal Android Agent capability required by the preset Node. */
-export interface AndroidRunnerAgent {
+export interface AndroidRunnerAgent extends DeviceLifecycleAgent {
   /** Execute a command in the connected Android device shell. */
-  runAdbShell?(
-    command: string,
-    options?: { timeout?: number },
-  ): Promise<string>;
+  runAdbShell(command: string, options?: { timeout?: number }): Promise<string>;
 }
 
 /** Dependencies used by the Android preset Nodes. */
@@ -67,6 +73,7 @@ export function createAndroidNodes<TContext>(
   }
 
   return [
+    ...createDeviceLifecycleNodes(options.getAgent, 'an Android Agent'),
     defineNode<typeof runAdbShellInputSchema, { stdout: string }, TContext>({
       name: 'runAdbShell',
       title: 'Run an ADB shell command',
