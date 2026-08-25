@@ -297,18 +297,6 @@ export default defineConfig(async () => {
             link: '/faq',
           },
           {
-            text: 'AndroidWorld Benchmark',
-            link: '/android-world-benchmark-report',
-          },
-          {
-            text: 'MobileWorld Benchmark',
-            link: '/mobile-world-benchmark-report',
-          },
-          {
-            text: 'AppControlBench Benchmark',
-            link: '/app-control-bench-report',
-          },
-          {
             text: 'Changelog',
             link: '/changelog',
           },
@@ -319,6 +307,21 @@ export default defineConfig(async () => {
           {
             text: 'Data privacy',
             link: '/data-privacy',
+          },
+          {
+            sectionHeaderText: 'Benchmark',
+          },
+          {
+            text: 'AndroidWorld Benchmark',
+            link: '/android-world-benchmark-report',
+          },
+          {
+            text: 'MobileWorld Benchmark',
+            link: '/mobile-world-benchmark-report',
+          },
+          {
+            text: 'AppControlBench Benchmark',
+            link: '/app-control-bench-report',
           },
         ],
         '/zh': [
@@ -462,18 +465,6 @@ export default defineConfig(async () => {
             link: '/zh/faq',
           },
           {
-            text: 'AndroidWorld Benchmark',
-            link: '/zh/android-world-benchmark-report',
-          },
-          {
-            text: 'MobileWorld Benchmark',
-            link: '/zh/mobile-world-benchmark-report',
-          },
-          {
-            text: 'AppControlBench Benchmark',
-            link: '/zh/app-control-bench-report',
-          },
-          {
             text: '更新日志',
             link: '/zh/changelog',
           },
@@ -484,6 +475,21 @@ export default defineConfig(async () => {
           {
             text: '数据隐私',
             link: '/zh/data-privacy',
+          },
+          {
+            sectionHeaderText: 'Benchmark',
+          },
+          {
+            text: 'AndroidWorld Benchmark',
+            link: '/zh/android-world-benchmark-report',
+          },
+          {
+            text: 'MobileWorld Benchmark',
+            link: '/zh/mobile-world-benchmark-report',
+          },
+          {
+            text: 'AppControlBench Benchmark',
+            link: '/zh/app-control-bench-report',
           },
         ],
       },
