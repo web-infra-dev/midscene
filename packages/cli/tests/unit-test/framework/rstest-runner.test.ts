@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { yamlProgressLogPrefix } from '@/framework/progress-reporter';
+import { RSTEST_YAML_CASE_IDS_META_KEY } from '@/framework/rstest-contract';
 import { createRstestYamlProject } from '@/framework/rstest-project';
 import {
   resolveRstestCoreImportPath,
@@ -154,11 +155,11 @@ test(${JSON.stringify(name)}, async () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:a.test.ts', 'virtual:b.test.ts'],
-          virtualModules: {
-            'virtual:a.test.ts': createModule('a'),
-            'virtual:b.test.ts': createModule('b'),
-          },
+          modules: ['a', 'b'].map((name) => ({
+            id: `virtual:${name}.test.ts`,
+            source: createModule(name),
+            caseIds: [],
+          })),
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,
@@ -224,11 +225,11 @@ test(${JSON.stringify(name)}, async () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:a.test.ts', 'virtual:b.test.ts'],
-          virtualModules: {
-            'virtual:a.test.ts': createModule('a'),
-            'virtual:b.test.ts': createModule('b'),
-          },
+          modules: ['a', 'b'].map((name) => ({
+            id: `virtual:${name}.test.ts`,
+            source: createModule(name),
+            caseIds: [],
+          })),
           cases: [],
           maxConcurrency: 2,
           testTimeout: 0,
@@ -321,6 +322,53 @@ export function defineYamlCaseTest(test, options) {
     }
   });
 
+  test('attributes failures to duplicate YAML occurrences by case ID', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-duplicate-'));
+    const framework = join(root, 'framework.mjs');
+    const yaml = join(root, 'duplicate.yaml');
+    writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
+    writeFileSync(
+      framework,
+      `export function defineYamlCaseTest(test, options) {
+  test(options.testName, {
+    meta: {
+      ${JSON.stringify(RSTEST_YAML_CASE_IDS_META_KEY)}: [options.caseId],
+    },
+  }, async () => {
+    throw new Error('failed ' + options.caseId);
+  });
+}
+`,
+    );
+
+    try {
+      const project = createRstestYamlProject({
+        files: [yaml, yaml],
+        projectDir: root,
+        outputDir: join(root, 'output'),
+        frameworkImport: framework,
+        maxConcurrency: 1,
+        bail: 0,
+      });
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project,
+      });
+
+      expect(exitCode).toBe(1);
+      expect(project.cases[0].caseId).not.toBe(project.cases[1].caseId);
+      const results = project.cases.map((item) =>
+        JSON.parse(readFileSync(item.resultFile, 'utf8')),
+      );
+      expect(results.map((item) => item.error)).toEqual(
+        project.cases.map((item) => `failed ${item.caseId}`),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('retries a serial YAML case before bailing without starting the next case', async () => {
     const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-ordered-bail-'));
     const marker = join(root, 'ordered-bail-events.jsonl');
@@ -386,19 +434,17 @@ export function defineYamlCaseTest(test, options) {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: [
-            'virtual:a.test.ts',
-            'virtual:b.test.ts',
-            'virtual:c.test.ts',
-          ],
           // Every file fails, so the assertion below holds whatever order
           // Rstest schedules them in: at concurrency 1, the first file to run
           // trips `bail`, and the other two must never start. Rstest 0.11.2
           // does not promise to run `include` in array order (it reorders by
           // previous-run history and file size), so an order-sensitive
           // assertion would test the scheduler, not the bail.
-          virtualModules: {
-            'virtual:a.test.ts': `import { appendFileSync } from 'node:fs';
+          modules: [
+            {
+              id: 'virtual:a.test.ts',
+              caseIds: [],
+              source: `import { appendFileSync } from 'node:fs';
 import { test } from ${JSON.stringify(rstestImport)};
 
 test('a', async () => {
@@ -406,7 +452,11 @@ test('a', async () => {
   throw new Error('a failed');
 });
 `,
-            'virtual:b.test.ts': `import { appendFileSync } from 'node:fs';
+            },
+            {
+              id: 'virtual:b.test.ts',
+              caseIds: [],
+              source: `import { appendFileSync } from 'node:fs';
 import { test } from ${JSON.stringify(rstestImport)};
 
 test('b', async () => {
@@ -414,7 +464,11 @@ test('b', async () => {
   throw new Error('b failed');
 });
 `,
-            'virtual:c.test.ts': `import { appendFileSync } from 'node:fs';
+            },
+            {
+              id: 'virtual:c.test.ts',
+              caseIds: [],
+              source: `import { appendFileSync } from 'node:fs';
 import { test } from ${JSON.stringify(rstestImport)};
 
 test('c', async () => {
@@ -422,7 +476,8 @@ test('c', async () => {
   throw new Error('c failed');
 });
 `,
-          },
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,

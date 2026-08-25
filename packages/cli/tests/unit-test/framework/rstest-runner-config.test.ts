@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runRstestYamlProject } from '@/framework/rstest-runner';
@@ -24,10 +24,13 @@ describe('rstest runner config', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:a.test.ts'],
-          virtualModules: {
-            'virtual:a.test.ts': 'export {};',
-          },
+          modules: [
+            {
+              id: 'virtual:a.test.ts',
+              source: 'export {};',
+              caseIds: [],
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,
@@ -86,10 +89,13 @@ describe('rstest runner config', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:a.test.ts'],
-          virtualModules: {
-            'virtual:a.test.ts': 'export {};',
-          },
+          modules: [
+            {
+              id: 'virtual:a.test.ts',
+              source: 'export {};',
+              caseIds: [],
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,
@@ -120,10 +126,13 @@ describe('rstest runner config', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:a.test.ts'],
-          virtualModules: {
-            'virtual:a.test.ts': 'export {};',
-          },
+          modules: [
+            {
+              id: 'virtual:a.test.ts',
+              source: 'export {};',
+              caseIds: [],
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,
@@ -133,6 +142,67 @@ describe('rstest runner config', () => {
 
       const inlineConfig = mocks.runRstest.mock.calls.at(-1)?.[0].inlineConfig;
       expect(inlineConfig).not.toHaveProperty('retry');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('records an unhandled failure for every case in a single generated module', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-config-'));
+    const caseA = {
+      caseId: '001-a',
+      testName: 'a.yaml',
+      yamlFile: join(root, 'a.yaml'),
+      resultFile: join(root, 'results', '001-a.json'),
+    };
+    const caseB = {
+      caseId: '002-b',
+      testName: 'b.yaml',
+      yamlFile: join(root, 'b.yaml'),
+      resultFile: join(root, 'results', '002-b.json'),
+    };
+    mocks.runRstest.mockResolvedValue({
+      ok: false,
+      files: [],
+      unhandledErrors: [
+        {
+          name: 'Error',
+          message: 'worker crashed before collecting tests',
+        },
+      ],
+    });
+
+    try {
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          modules: [
+            {
+              id: 'virtual:ordered.test.ts',
+              source: 'export {};',
+              caseIds: [caseA.caseId, caseB.caseId],
+            },
+          ],
+          cases: [caseA, caseB],
+          maxConcurrency: 1,
+          testTimeout: 0,
+        },
+      });
+
+      expect(exitCode).toBe(1);
+      for (const item of [caseA, caseB]) {
+        expect(JSON.parse(readFileSync(item.resultFile, 'utf8'))).toMatchObject(
+          {
+            file: item.yamlFile,
+            resultType: 'failed',
+            error: 'worker crashed before collecting tests',
+          },
+        );
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

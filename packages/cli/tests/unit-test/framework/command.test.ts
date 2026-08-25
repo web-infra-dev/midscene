@@ -142,11 +142,11 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            expect(project.include).toEqual([
+            expect(project.modules.map((item) => item.id)).toEqual([
               'virtual:midscene-yaml/batch.test.ts',
             ]);
             expect(project.maxConcurrency).toBe(1);
-            const batchModule = project.virtualModules[project.include[0]];
+            const batchModule = project.modules[0].source;
             expect(batchModule).toContain('defineYamlBatchTest');
             expect(batchModule).toContain('"concurrent": 3');
             expect(batchModule).toContain('"shareBrowserContext": true');
@@ -303,7 +303,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const shouldSkip = item.yamlFile === yamlC;
               if (shouldSkip) {
@@ -384,7 +384,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const isPartial = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -460,7 +460,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               const shouldFail = item.yamlFile === yamlA;
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -532,7 +532,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             expect(project.maxConcurrency).toBe(2);
             for (const item of project.cases) {
               mkdirSync(dirname(item.resultFile), { recursive: true });
@@ -602,7 +602,7 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            includes.push(project.include);
+            includes.push(project.modules.map((item) => item.id));
             for (const item of project.cases) {
               if (item.yamlFile === yamlC || item.yamlFile === yamlD) {
                 continue;

@@ -6,7 +6,10 @@ import { emitYamlProgress } from './progress-reporter';
 
 export interface RunYamlBatchInRstestOptions {
   config: BatchRunnerConfig;
-  resultFiles: Record<string, string>;
+  resultTargets: Array<{
+    yamlFile: string;
+    resultFile: string;
+  }>;
 }
 
 const writeResultFile = (
@@ -33,13 +36,31 @@ export async function runYamlBatchInRstest(
     onProgress: emitYamlProgress,
   });
 
+  const resultFileQueues = new Map<string, string[]>();
+  for (const target of options.resultTargets) {
+    const yamlFile = resolve(target.yamlFile);
+    const queue = resultFileQueues.get(yamlFile) ?? [];
+    queue.push(target.resultFile);
+    resultFileQueues.set(yamlFile, queue);
+  }
+
+  const unmappedResults: string[] = [];
   for (const result of results) {
-    const resultFile =
-      options.resultFiles[result.file] ||
-      options.resultFiles[resolve(result.file)];
-    if (resultFile) {
-      writeResultFile(resultFile, result);
+    const resultFile = resultFileQueues.get(resolve(result.file))?.shift();
+    if (!resultFile) {
+      unmappedResults.push(result.file);
+      continue;
     }
+    writeResultFile(resultFile, result);
+  }
+
+  const unwrittenTargets = Array.from(resultFileQueues.entries()).flatMap(
+    ([yamlFile, queue]) => queue.map(() => yamlFile),
+  );
+  if (unmappedResults.length || unwrittenTargets.length) {
+    throw new Error(
+      `Batch result mapping mismatch: ${unmappedResults.length} result(s) had no target and ${unwrittenTargets.length} target(s) had no result`,
+    );
   }
 
   if (results.some((result) => !result.success)) {

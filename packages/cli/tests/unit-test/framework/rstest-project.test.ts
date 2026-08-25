@@ -40,7 +40,7 @@ describe('rstest yaml project generation', () => {
 
       expect(project.projectDir).toBe(root);
       expect(project.outputDir).toBe(outputDir);
-      expect(project.include).toEqual([
+      expect(project.modules.map((item) => item.id)).toEqual([
         'virtual:midscene-yaml/001-checkout.test.ts',
         'virtual:midscene-yaml/002-case.test.ts',
       ]);
@@ -53,7 +53,7 @@ describe('rstest yaml project generation', () => {
       expect(project.maxConcurrency).toBe(2);
       expect(project.testTimeout).toBe(DEFAULT_YAML_TEST_TIMEOUT);
 
-      const generated = project.virtualModules[project.cases[1].testModule];
+      const generated = project.modules[1].source;
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlCaseTest } from "@test/framework"',
@@ -98,7 +98,7 @@ describe('rstest yaml project generation', () => {
         },
       });
 
-      const generated = project.virtualModules[project.cases[0].testModule];
+      const generated = project.modules[0].source;
       expect(generated).toContain('"caseOptions"');
       expect(generated).toContain('"webRuntimeOptions"');
       expect(generated).toContain('"viewportWidth": 1280');
@@ -148,13 +148,15 @@ describe('rstest yaml project generation', () => {
         maxConcurrency: 1,
       });
 
-      expect(project.include).toEqual([RSTEST_YAML_SEQUENTIAL_TEST_MODULE]);
-      expect(project.sequentialTestModule).toBe(
+      expect(project.modules.map((item) => item.id)).toEqual([
         RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
+      ]);
+      expect(project.modules[0].caseIds).toEqual(
+        project.cases.map((item) => item.caseId),
       );
       expect(project.cases.map((item) => item.yamlFile)).toEqual(yamlFiles);
 
-      const generated = project.virtualModules[project.include[0]];
+      const generated = project.modules[0].source;
       expect(generated).toContain(
         'defineYamlCaseTest(test.sequential, testOptions)',
       );
@@ -287,11 +289,9 @@ describe('rstest yaml project generation', () => {
         },
       });
 
-      expect(project.include).toEqual(['virtual:midscene-yaml/batch.test.ts']);
-      expect(project.batchTest).toEqual({
-        testModule: 'virtual:midscene-yaml/batch.test.ts',
-        testName: 'midscene yaml batch',
-      });
+      expect(project.modules.map((item) => item.id)).toEqual([
+        'virtual:midscene-yaml/batch.test.ts',
+      ]);
       expect(project.cases.map((item) => item.yamlFile)).toEqual([
         setupYaml,
         yamlA,
@@ -299,7 +299,10 @@ describe('rstest yaml project generation', () => {
       ]);
       expect(project.maxConcurrency).toBe(1);
       expect(project.retry).toBeUndefined();
-      const generated = project.virtualModules[project.include[0]];
+      expect(project.modules[0].caseIds).toEqual(
+        project.cases.map((item) => item.caseId),
+      );
+      const generated = project.modules[0].source;
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
         'import { defineYamlBatchTest } from "@test/framework"',
