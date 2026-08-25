@@ -34,11 +34,12 @@ tasks:
     flow:
       # Returning from Markdown View resets the center panel to the Record
       # overview. Replay is only available for Planning tasks with animation
-      # scripts, so return to the top and select that exact task type.
+      # scripts. The sidebar renders that internal type as "Plan", so return to
+      # the top and select the matching visible row.
       - aiScroll: the scrollable left-side Execution task list below the Type and Time headers, not the main Record timeline
         scrollType: scrollToTop
       - sleep: 500
-      - aiTap: a task row in the left sidebar whose Type cell is exactly "Planning", not an Insight or Locate row and not the Total summary row
+      - aiTap: a task row in the left sidebar whose Type cell is exactly "Plan", not an Insight or Locate row and not the Total summary row
       - sleep: 2000
       - aiTap:
           locate:
