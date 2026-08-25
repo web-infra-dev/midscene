@@ -75,22 +75,32 @@ describe('chrome extension playground advanced tests', () => {
   });
 
   it('action type switching changes the composer placeholder', async () => {
-    await agent.aiAct(`Click the "Query" button in ${SIDE_PANEL}`);
+    await agent.aiTap(`the "Query" action type button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
     );
 
-    await agent.aiAct(`Click the "Assert" button in ${SIDE_PANEL}`);
+    await agent.aiTap(`the "Assert" action type button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
 
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, horizontally scroll the action mode selector all the way left if needed, then click the "Action" button immediately to the left of "Tap". Do not click "Tap".`,
-    );
+    // Selecting Assert scrolls the narrow mode selector to the right, which can
+    // move Action outside the viewport. Select the visible Tap radio first,
+    // then use its native keyboard navigation to return to Action reliably.
+    await agent.aiTap(`the "Tap" action type button in ${SIDE_PANEL}`);
     await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "tap"`,
+    );
+
+    await agent.aiKeyboardPress(undefined, { keyName: 'ArrowLeft' });
+    await sleep(500);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text "What do you want to do?"`,
+    );
   });
 
   it('aiQuery: extract page title and verify result', async () => {
