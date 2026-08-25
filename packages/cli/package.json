@@ -16,7 +16,7 @@
     "build:watch": "rslib build --watch --no-clean",
     "test": "rstest",
     "test:ai": "AITEST=true rstest",
-    "test:ai:temp": "AITEST=true BRIDGE_MODE=true rstest tests/bridge.test.ts"
+    "test:ai:temp": "AITEST=true BRIDGE_MODE=true rstest tests/ai/bridge.test.ts"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
