@@ -60,6 +60,8 @@ export interface TestProjectRunResult {
   resultDir: string;
   summaryPath: string;
   reportDir: string;
+  /** Absolute path to the unified Test Runner HTML report. */
+  reportPath?: string;
   summary: TestProjectRunSummary;
   projects: readonly TestExecutionProjectRunResult[];
   cases: readonly TestProjectCaseRunResult[];

@@ -1,0 +1,508 @@
+target:
+  serve: ./dist
+  url: demo-test-runner.html
+tasks:
+  - name: batch health is visible before debug details
+    flow:
+      - sleep: 3000
+      - aiAssert: The Test Runner overview says Passed with retries and clearly shows a 100% final pass rate, a 50% first-pass rate, one case passed after retry, two total passed cases, and an 8 second Total runner time.
+      - aiAssert: The overview does not show a "Where the time went" timeline. Instead, its Breakdown is a Project-to-Case tree. The Web regression root shows Project-level health at a glance, its Case children are visible below it, and a separate Project overview action is available. The header has Overview and Cases but no Projects tab. The compact prioritized Case row keeps less text than the full Cases page and places all captured frames on one time-scaled visual timeline on the right; nearby frames may overlap instead of being sampled or horizontally scrolled.
+
+  - name: project breakdown expands cases and opens the project overview
+    flow:
+      - javascript: |
+          (function () {
+            const tree = document.querySelector(
+              '[aria-label="Project and case breakdown"]',
+            );
+            const collapseButton = document.querySelector(
+              'button[aria-label="Collapse project Web regression"]',
+            );
+            if (!(tree instanceof HTMLElement)) {
+              throw new Error('Project breakdown tree was not found.');
+            }
+            if (!(collapseButton instanceof HTMLButtonElement)) {
+              throw new Error('Expanded Web regression Project was not found.');
+            }
+            const cases = tree.querySelectorAll(
+              '.runner-project-tree-case',
+            );
+            if (cases.length !== 2) {
+              throw new Error(
+                'Expected two visible Project Case children, got ' +
+                  cases.length,
+              );
+            }
+            collapseButton.click();
+            return { visibleCases: cases.length };
+          })()
+        name: collapseOverviewProject
+      - sleep: 300
+      - javascript: |
+          (function () {
+            if (document.querySelector('.runner-project-tree-children')) {
+              throw new Error('Project Case children remained visible.');
+            }
+            const expandButton = document.querySelector(
+              'button[aria-label="Expand project Web regression"]',
+            );
+            if (!(expandButton instanceof HTMLButtonElement)) {
+              throw new Error('Collapsed Web regression Project was not found.');
+            }
+            expandButton.click();
+            return { label: expandButton.getAttribute('aria-label') };
+          })()
+        name: expandOverviewProject
+      - sleep: 300
+      - aiAssert: The Web regression Project tree node is expanded. Checkout with retry and Verify cart summary appear as connected child nodes with their own statuses, durations, attempt counts, and source files.
+      - javascript: |
+          (function () {
+            const items = Array.from(
+              document.querySelectorAll('.runner-project-tree-case-item'),
+            );
+            const lastItem = items.at(-1);
+            if (!(lastItem instanceof HTMLLIElement)) {
+              throw new Error('The last Project Case tree item was not found.');
+            }
+            const connector = getComputedStyle(lastItem, '::before');
+            const connectorBottom = Number.parseFloat(connector.bottom);
+            const expectedBottom = lastItem.getBoundingClientRect().height / 2;
+            if (Math.abs(connectorBottom - expectedBottom) > 1) {
+              throw new Error(
+                'The final tree connector extends past the last Case node.',
+              );
+            }
+            const clippedHeading = items
+              .map((item) => item.querySelector('h3'))
+              .find(
+                (heading) =>
+                  heading instanceof HTMLElement &&
+                  (heading.scrollWidth > heading.clientWidth + 1 ||
+                    heading.scrollHeight > heading.clientHeight + 1),
+              );
+            if (clippedHeading) {
+              throw new Error('A Project Case title is visually clipped.');
+            }
+            return {
+              connectorBottom,
+              expectedBottom,
+              visibleTitles: items.map((item) =>
+                item.querySelector('h3')?.textContent?.trim(),
+              ),
+            };
+          })()
+        name: assertProjectTreeConnectorsAndTitles
+      - javascript: |
+          (function () {
+            const frame = document.querySelector(
+              '.runner-attention-panel .runner-visual-frame',
+            );
+            if (!(frame instanceof HTMLElement)) {
+              throw new Error('Overview visual timeline frame was not found.');
+            }
+            const rect = frame.getBoundingClientRect();
+            const eventOptions = {
+              bubbles: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              view: window,
+            };
+            frame.dispatchEvent(new MouseEvent('mouseover', eventOptions));
+            frame.dispatchEvent(new MouseEvent('mouseenter', eventOptions));
+            frame.dispatchEvent(new MouseEvent('mousemove', eventOptions));
+            return { frame: frame.textContent.trim() };
+          })()
+        name: hoverOverviewTimelineFrame
+      - sleep: 500
+      - javascript: |
+          (function () {
+            const preview = document.querySelector(
+              '.runner-frame-preview-tooltip .runner-frame-preview img',
+            );
+            if (!(preview instanceof HTMLImageElement)) {
+              throw new Error('Enlarged timeline preview was not shown.');
+            }
+            return { alt: preview.alt };
+          })()
+        name: assertOverviewTimelinePreview
+      - javascript: |
+          (function () {
+            const frame = document.querySelector(
+              '.runner-attention-panel .runner-visual-frame',
+            );
+            if (!(frame instanceof HTMLElement)) return { dismissed: false };
+            frame.dispatchEvent(
+              new MouseEvent('mouseout', { bubbles: true, view: window }),
+            );
+            frame.dispatchEvent(
+              new MouseEvent('mouseleave', { bubbles: true, view: window }),
+            );
+            return { dismissed: true };
+          })()
+        name: dismissOverviewTimelinePreview
+      - javascript: |
+          (function () {
+            const overviewButton = document.querySelector(
+              'button[aria-label="Open project overview Web regression"]',
+            );
+            if (!(overviewButton instanceof HTMLButtonElement)) {
+              throw new Error('Project overview action was not found.');
+            }
+            overviewButton.click();
+            return { label: overviewButton.textContent.trim() };
+          })()
+        name: openProjectOverviewFromTree
+      - sleep: 500
+      - aiAssert: A dedicated Web regression Project workspace is open. It has Project health metrics and contains both Checkout with retry and Verify cart summary as this Project's cases.
+      - javascript: |
+          (function () {
+            const params = new URLSearchParams(window.location.hash.slice(1));
+            if (params.get('runner-page') !== 'project') {
+              throw new Error('Project route was not written to the URL.');
+            }
+            if (
+              Array.from(
+                document.querySelectorAll(
+                  'nav[aria-label="Report sections"] button',
+                ),
+              ).some((button) => button.textContent.includes('Projects'))
+            ) {
+              throw new Error('The removed Projects tab is still visible.');
+            }
+            window.history.back();
+            return { hash: window.location.hash };
+          })()
+        name: browserBackFromProject
+      - sleep: 500
+      - javascript: |
+          (function () {
+            if (!document.querySelector('.runner-overview')) {
+              throw new Error('Browser Back did not restore the Overview.');
+            }
+            window.history.forward();
+            return { hash: window.location.hash };
+          })()
+        name: browserForwardToProject
+      - sleep: 500
+      - aiAssert: Browser Forward restored the dedicated Web regression Project workspace, proving that report page navigation participates in browser history.
+
+  - name: case list summarizes the run visually
+    flow:
+      - javascript: |
+          (function () {
+            const casesButton = Array.from(
+              document.querySelectorAll('nav[aria-label="Report sections"] button'),
+            ).find((button) => button.textContent.includes('Cases'));
+            if (!(casesButton instanceof HTMLButtonElement)) {
+              throw new Error('Cases navigation button was not found.');
+            }
+            casesButton.click();
+            return { label: casesButton.textContent.trim() };
+          })()
+        name: openCasesNavigation
+      - sleep: 500
+      - aiAssert: The main page heading is "What happened in this run". The Cases page lists Checkout with retry before Verify cart summary. The retry case is marked Passed after retry, includes a short Step story, and places all captured frames on one numbered time-scaled timeline on the right. Frames are positioned by time and can overlap like the Detail page timeline.
+      - javascript: |
+          (function () {
+            const timeline = document.querySelector(
+              '.runner-case-list .runner-visual-timeline',
+            );
+            if (!(timeline instanceof HTMLElement)) {
+              throw new Error('Cases visual timeline was not found.');
+            }
+            const frames = timeline.querySelectorAll(
+              '.runner-visual-timeline-frame',
+            );
+            if (frames.length < 2) {
+              throw new Error(
+                'Expected at least two timeline frames, got ' + frames.length,
+              );
+            }
+            const overflowX = getComputedStyle(timeline).overflowX;
+            if (overflowX === 'auto' || overflowX === 'scroll') {
+              throw new Error('Cases visual timeline still has a scrollbar.');
+            }
+            if (overflowX !== 'hidden') {
+              throw new Error('Dense timeline frames are not clipped as one track.');
+            }
+            if (
+              !timeline
+                .getAttribute('aria-label')
+                ?.includes(frames.length + ' frames')
+            ) {
+              throw new Error('Timeline does not expose its complete frame count.');
+            }
+            const frameNodes = Array.from(
+              timeline.querySelectorAll('.runner-visual-timeline-track > li'),
+            );
+            if (
+              frameNodes.some(
+                (frame) => getComputedStyle(frame).position !== 'absolute',
+              )
+            ) {
+              throw new Error('Timeline frames are not time-positioned.');
+            }
+            return {
+              frames: frames.length,
+              clientWidth: timeline.clientWidth,
+              scrollWidth: timeline.scrollWidth,
+            };
+          })()
+        name: assertCasesTimelineFits
+      - javascript: |
+          (function () {
+            const frames = document.querySelectorAll(
+              '.runner-case-list .runner-visual-frame',
+            );
+            const frame = frames[1];
+            if (!(frame instanceof HTMLElement)) {
+              throw new Error('Second Cases timeline frame was not found.');
+            }
+            const rect = frame.getBoundingClientRect();
+            const eventOptions = {
+              bubbles: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              view: window,
+            };
+            frame.dispatchEvent(new MouseEvent('mouseover', eventOptions));
+            frame.dispatchEvent(new MouseEvent('mouseenter', eventOptions));
+            frame.dispatchEvent(new MouseEvent('mousemove', eventOptions));
+            return { frame: frame.textContent.trim() };
+          })()
+        name: hoverCasesTimelineFrame
+      - sleep: 500
+      - javascript: |
+          (function () {
+            const preview = document.querySelector(
+              '.runner-frame-preview-tooltip .runner-frame-preview img',
+            );
+            if (!(preview instanceof HTMLImageElement)) {
+              throw new Error('Cases enlarged timeline preview was not shown.');
+            }
+            if (!preview.alt.includes('enlarged frame 2')) {
+              throw new Error('Unexpected enlarged frame: ' + preview.alt);
+            }
+            return { alt: preview.alt };
+          })()
+        name: assertCasesTimelinePreview
+      - javascript: |
+          (function () {
+            const frames = document.querySelectorAll(
+              '.runner-case-list .runner-visual-frame',
+            );
+            const frame = frames[1];
+            if (!(frame instanceof HTMLElement)) return { dismissed: false };
+            frame.dispatchEvent(
+              new MouseEvent('mouseout', { bubbles: true, view: window }),
+            );
+            frame.dispatchEvent(
+              new MouseEvent('mouseleave', { bubbles: true, view: window }),
+            );
+            return { dismissed: true };
+          })()
+        name: dismissCasesTimelinePreview
+
+  - name: failed Attempt and custom Node remain debuggable
+    flow:
+      - javascript: |
+          (function () {
+            const caseRow = document.querySelector(
+              'button[aria-label="Open Checkout with retry"]',
+            );
+            if (!(caseRow instanceof HTMLButtonElement)) {
+              throw new Error('Checkout with retry Case row was not found.');
+            }
+            caseRow.click();
+            return { label: caseRow.getAttribute('aria-label') };
+          })()
+        name: openRetryCase
+      - sleep: 500
+      - aiAssert: The Case workspace opens on successful Attempt 2 and shows a Visual story before the collapsed Debug details section.
+      - aiAssert: In the Visual story, the full checkout Step description is placed directly with its corresponding representative screenshot rather than in a disconnected text row.
+      - javascript: |
+          (function () {
+            const label = document.querySelector(
+              '.runner-attempt-story-label strong',
+            );
+            if (!(label instanceof HTMLElement)) {
+              throw new Error('Visual Story Step label was not found.');
+            }
+            const rect = label.getBoundingClientRect();
+            const eventOptions = {
+              bubbles: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              view: window,
+            };
+            label.dispatchEvent(new MouseEvent('mouseover', eventOptions));
+            label.dispatchEvent(new MouseEvent('mouseenter', eventOptions));
+            label.dispatchEvent(new MouseEvent('mousemove', eventOptions));
+            return { text: label.textContent.trim() };
+          })()
+        name: hoverVisualStoryLabel
+      - sleep: 500
+      - javascript: |
+          (function () {
+            const expected =
+              'Complete the checkout flow by selecting the saved address and submitting the demo order';
+            const tooltip = document.querySelector('[role="tooltip"]');
+            const actual = tooltip?.textContent?.trim();
+            if (actual !== expected) {
+              throw new Error(
+                'Unexpected Visual Story tooltip: ' + String(actual),
+              );
+            }
+            return { tooltip: actual };
+          })()
+        name: assertVisualStoryTooltip
+      - javascript: |
+          (function () {
+            const label = document.querySelector(
+              '.runner-attempt-story-label strong',
+            );
+            if (!(label instanceof HTMLElement)) return { dismissed: false };
+            label.dispatchEvent(
+              new MouseEvent('mouseout', { bubbles: true, view: window }),
+            );
+            label.dispatchEvent(
+              new MouseEvent('mouseleave', { bubbles: true, view: window }),
+            );
+            return { dismissed: true };
+          })()
+        name: dismissVisualStoryTooltip
+      - sleep: 300
+      - javascript: |
+          (function () {
+            const attemptButton = Array.from(
+              document.querySelectorAll('.runner-attempt-switcher > button'),
+            ).find((button) => button.textContent.includes('Attempt 1'));
+            if (!(attemptButton instanceof HTMLButtonElement)) {
+              throw new Error('Attempt 1 button was not found.');
+            }
+            attemptButton.click();
+            return { label: attemptButton.textContent.trim() };
+          })()
+        name: selectFailedAttempt
+      - sleep: 300
+      - aiAssert: The page highlights that order.create failed because inventory was not ready.
+      - javascript: |
+          (function () {
+            const inspectButton = Array.from(
+              document.querySelectorAll('.runner-failure-alert button'),
+            ).find((button) => button.textContent.includes('Inspect Step'));
+            if (!(inspectButton instanceof HTMLButtonElement)) {
+              throw new Error('Inspect Step button was not found.');
+            }
+            inspectButton.click();
+            return { label: inspectButton.textContent.trim() };
+          })()
+        name: inspectFailedStep
+      - sleep: 300
+      - aiAssert: The order.create Step inspector shows its failure, the Inventory was not ready error, and redacted input data.
+
+  - name: AI trace is progressively disclosed
+    flow:
+      - javascript: |
+          (function () {
+            const attemptButton = Array.from(
+              document.querySelectorAll('.runner-attempt-switcher > button'),
+            ).find((button) => button.textContent.includes('Attempt 2'));
+            if (!(attemptButton instanceof HTMLButtonElement)) {
+              throw new Error('Attempt 2 button was not found.');
+            }
+            attemptButton.click();
+            return { label: attemptButton.textContent.trim() };
+          })()
+        name: selectSuccessfulAttempt
+      - sleep: 300
+      - javascript: |
+          (function () {
+            const aiActButton = Array.from(
+              document.querySelectorAll('.runner-debug-step-group button'),
+            ).find(
+              (button) =>
+                button.querySelector('strong')?.textContent?.trim() === 'aiAct',
+            );
+            if (!(aiActButton instanceof HTMLButtonElement)) {
+              throw new Error('aiAct Step button was not found.');
+            }
+            aiActButton.click();
+            return { label: aiActButton.textContent.trim() };
+          })()
+        name: inspectAiActStep
+      - sleep: 300
+      - aiAssert: The aiAct Step inspector is visible inside the expanded Debug details drawer. A nested Full AI trace drawer is collapsed, and the full Agent debugging report is still hidden.
+      - javascript: |
+          (function () {
+            const debugDrawer = document.querySelector('.runner-debug-details');
+            const summary = debugDrawer?.querySelector(':scope > summary');
+            if (
+              !(debugDrawer instanceof HTMLDetailsElement) ||
+              !(summary instanceof HTMLElement)
+            ) {
+              throw new Error('Debug details drawer was not found.');
+            }
+            summary.click();
+            return { open: debugDrawer.open };
+          })()
+        name: collapseDebugDetails
+      - sleep: 300
+      - javascript: |
+          (function () {
+            const debugDrawer = document.querySelector('.runner-debug-details');
+            if (!(debugDrawer instanceof HTMLDetailsElement)) {
+              throw new Error('Debug details drawer was not found.');
+            }
+            if (debugDrawer.open) {
+              throw new Error('Debug details drawer remained open.');
+            }
+            if (document.querySelector('.runner-step-inspector')) {
+              throw new Error(
+                'The Step inspector remained visible after Debug details closed.',
+              );
+            }
+            const summary = debugDrawer.querySelector(':scope > summary');
+            if (!(summary instanceof HTMLElement)) {
+              throw new Error('Debug details summary was not found.');
+            }
+            summary.click();
+            return { open: debugDrawer.open };
+          })()
+        name: assertDebugDetailsCollapsesInspectorAndReopen
+      - sleep: 300
+      - javascript: |
+          (function () {
+            if (!document.querySelector('.runner-step-inspector')) {
+              throw new Error('The selected Step inspector was not restored.');
+            }
+            const traceDrawer = document.querySelector('.runner-trace-details');
+            const summary = traceDrawer?.querySelector(':scope > summary');
+            if (
+              !(traceDrawer instanceof HTMLDetailsElement) ||
+              !(summary instanceof HTMLElement)
+            ) {
+              throw new Error('Full AI trace drawer was not found.');
+            }
+            if (traceDrawer.open) {
+              throw new Error('Full AI trace should be collapsed initially.');
+            }
+            summary.click();
+            return { label: summary.textContent.trim() };
+          })()
+        name: openFullAiTrace
+      - sleep: 1500
+      - aiAssert: An embedded Agent report is now visible with its task list and replay or timeline area.
+
+  - name: Step deep link is namespaced
+    flow:
+      - javascript: |
+          (function () {
+            const params = new URLSearchParams(window.location.hash.slice(1));
+            const stepId = params.get('runner-step');
+            if (stepId !== 'attempt-2:steps:0') {
+              throw new Error('Unexpected runner-step hash: ' + stepId);
+            }
+            return { hash: window.location.hash };
+          })()
+        name: assertRunnerStepHash

@@ -62,6 +62,7 @@
   "dependencies": {
     "@inquirer/prompts": "^7.8.6",
     "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "execa": "9.3.0",
     "js-yaml": "4.1.0",
     "tinyglobby": "0.2.15",

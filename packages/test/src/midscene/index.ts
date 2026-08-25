@@ -17,13 +17,18 @@ import {
   structuredUserPromptInputSchema,
   userPromptInputSchema,
 } from '@midscene/core/agent/test-runner';
+import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError } from '../errors';
 import { defineNode } from '../node/define-node';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
-export type MidsceneUIAgent = CommonAgentTestRunnerApi;
+export type MidsceneUIAgent = CommonAgentTestRunnerApi & {
+  addDumpUpdateListener?(
+    listener: (dump: string, execution?: MidsceneExecutionRef) => void,
+  ): () => void;
+};
 
 export {
   aiActInputSchema,
@@ -41,6 +46,10 @@ export {
   structuredUserPromptInputSchema,
   userPromptInputSchema,
 };
+
+export interface MidsceneExecutionRef {
+  id?: string;
+}
 
 export interface AgentProvider<TContext> {
   getAgent(
@@ -104,8 +113,76 @@ export const createAgentTestRunnerNodes = <TContext>(
   getAgent: (
     ctx: NodeExecutionContext<unknown, TContext>,
   ) => Awaitable<unknown>,
-): readonly NodeDefinition<any, any, TContext>[] =>
-  definitions.map((definition) =>
+): readonly NodeDefinition<any, any, TContext>[] => {
+  const activeAgentCalls = new WeakMap<
+    MidsceneUIAgent,
+    { scopeId: string; node: string }
+  >();
+  const runAgentCall = async <T>(
+    node: string,
+    ctx: NodeExecutionContext<unknown, TContext>,
+    agent: MidsceneUIAgent,
+    call: () => Promise<T>,
+    captureExecutions = true,
+  ): Promise<T> => {
+    const scopeId =
+      ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+    const activeCall = activeAgentCalls.get(agent);
+    if (activeCall) {
+      throw new NodeExecutionError(
+        node,
+        new Error(
+          `The same Agent instance cannot execute overlapping Test Runner Steps. Active scope: ${activeCall.scopeId} (${activeCall.node}); requested scope: ${scopeId} (${node}).`,
+        ),
+      );
+    }
+
+    activeAgentCalls.set(agent, { scopeId, node });
+    let removeListener: (() => void) | undefined;
+    let sawExecutionWithoutId = false;
+    const stopListening = () => {
+      const remove = removeListener;
+      removeListener = undefined;
+      remove?.();
+    };
+    const stopListeningOnAbort = () => stopListening();
+    try {
+      if (captureExecutions && agent.addDumpUpdateListener) {
+        removeListener = agent.addDumpUpdateListener((_dump, execution) => {
+          if (!execution) return;
+          if (!execution.id) {
+            sawExecutionWithoutId = true;
+            return;
+          }
+          ctx.report.addTrace({
+            type: 'midscene-execution',
+            executionId: execution.id,
+          });
+        });
+        if (ctx.signal.aborted) stopListening();
+        else {
+          ctx.signal.addEventListener('abort', stopListeningOnAbort, {
+            once: true,
+          });
+        }
+      }
+      return await call();
+    } finally {
+      ctx.signal.removeEventListener('abort', stopListeningOnAbort);
+      try {
+        stopListening();
+      } finally {
+        activeAgentCalls.delete(agent);
+      }
+      if (sawExecutionWithoutId) {
+        warnReportTrace(
+          `Skipped a report trace without a stable execution id for ${node} in scope ${scopeId}.`,
+        );
+      }
+    }
+  };
+
+  return definitions.map((definition) =>
     defineNode({
       name: definition.name,
       ...(definition.title === undefined ? {} : { title: definition.title }),
@@ -118,12 +195,23 @@ export const createAgentTestRunnerNodes = <TContext>(
       inputSchema: definition.inputSchema,
       async execute(ctx) {
         const agent = await getAgent(ctx);
-        return definition.execute(agent, ctx.input, {
-          signal: ctx.signal,
-        });
+        const call = async () =>
+          definition.execute(agent, ctx.input, { signal: ctx.signal });
+        if (typeof agent !== 'object' || agent === null) return call();
+        return runAgentCall(
+          definition.name,
+          ctx,
+          agent as MidsceneUIAgent,
+          call,
+        );
       },
     }),
   );
+};
+
+const warnReportTrace = getDebug('test-runner:report-trace', {
+  console: true,
+});
 
 export function createMidsceneNodes<TContext>(
   options: CreateMidsceneNodesOptions<TContext>,

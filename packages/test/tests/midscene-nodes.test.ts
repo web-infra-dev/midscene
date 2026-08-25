@@ -624,4 +624,229 @@ describe('createMidsceneNodes', () => {
     expect(nodes.map((node) => node.name)).not.toContain('launch');
     expect(nodes.map((node) => node.name)).not.toContain('terminate');
   });
+  it('captures stable Agent execution ids without parsing dump strings', async () => {
+    type DumpListener = Parameters<
+      NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
+    >[0];
+    const listeners = new Set<DumpListener>();
+    const emit = (id?: string) => {
+      for (const listener of listeners) {
+        listener('this is intentionally not JSON', { id });
+      }
+    };
+    const agent = commonAgent({
+      async aiAct() {
+        emit('execution-act');
+        emit('execution-act');
+        return 'acted';
+      },
+      async aiAssert() {
+        emit('execution-assert');
+      },
+      async recordToReport() {
+        emit('execution-record');
+      },
+      addDumpUpdateListener(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    });
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'Act' },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'aiAssert',
+          input: { prompt: 'Assert' },
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'recordToReport',
+          input: { title: 'Record' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps.map((step) => step.report?.traces)).toEqual([
+      [
+        {
+          type: 'midscene-execution',
+          executionId: 'execution-act',
+        },
+      ],
+      [
+        {
+          type: 'midscene-execution',
+          executionId: 'execution-assert',
+        },
+      ],
+      [
+        {
+          type: 'midscene-execution',
+          executionId: 'execution-record',
+        },
+      ],
+    ]);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('keeps a failed Agent execution trace and always removes its listener', async () => {
+    type DumpListener = Parameters<
+      NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
+    >[0];
+    const listeners = new Set<DumpListener>();
+    const agent = {
+      async aiAct() {
+        for (const listener of listeners) {
+          listener('ignored', { id: 'execution-failed' });
+        }
+        throw new Error('Agent failed');
+      },
+      addDumpUpdateListener(listener: DumpListener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    } as MidsceneUIAgent;
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'Fail' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'failed',
+      report: {
+        traces: [
+          {
+            type: 'midscene-execution',
+            executionId: 'execution-failed',
+          },
+        ],
+      },
+    });
+    expect(listeners.size).toBe(0);
+  });
+
+  it('removes the Agent dump listener as soon as a timed out Step aborts', async () => {
+    type DumpListener = Parameters<
+      NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
+    >[0];
+    const listeners = new Set<DumpListener>();
+    let signal: AbortSignal | undefined;
+    const agent = {
+      aiAct(
+        _prompt: unknown,
+        options?: { abortSignal?: AbortSignal },
+      ): Promise<string> {
+        signal = options?.abortSignal;
+        return new Promise(() => {});
+      },
+      addDumpUpdateListener(listener: DumpListener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    } as MidsceneUIAgent;
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: { prompt: 'Time out' },
+          meta: { continueOnError: false, timeoutMs: 10 },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'failed',
+      error: { code: 'STEP_TIMEOUT' },
+    });
+    expect(signal?.aborted).toBe(true);
+    expect(listeners.size).toBe(0);
+  });
+
+  it('rejects overlapping Test Runner scopes that share one Agent instance', async () => {
+    let resolveEntered!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      resolveEntered = resolve;
+    });
+    let releaseFirst!: () => void;
+    const release = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const agent = {
+      async aiAct() {
+        resolveEntered();
+        await release;
+        return 'done';
+      },
+    } as MidsceneUIAgent;
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => agent,
+        agentClass: testAgentClass,
+      }),
+    );
+    const run = (runId: string) =>
+      runCollectedCase(
+        collected([
+          {
+            node: 'aiAct',
+            input: { prompt: runId },
+            meta: { continueOnError: false },
+          },
+        ]),
+        {
+          resolveNode: registry.require.bind(registry),
+          createRunId: () => runId,
+        },
+      );
+
+    const firstRun = run('scope-first');
+    await entered;
+    const secondResult = await run('scope-second');
+    releaseFirst();
+    const firstResult = await firstRun;
+
+    expect(firstResult.status).toBe('success');
+    expect(secondResult.steps[0]).toMatchObject({
+      status: 'failed',
+      error: {
+        message: expect.stringContaining(
+          'same Agent instance cannot execute overlapping',
+        ),
+      },
+    });
+  });
 });

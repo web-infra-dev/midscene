@@ -243,21 +243,36 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 
 ## 查看测试结果
 
-每次测试运行结束后，你可以在控制台直接看到用例的执行状态和简要汇总。同时，Midscene Test 会在本地生成可视化的测试报告。
+每次测试运行结束后，你可以在控制台直接看到 Case 的执行状态、简要汇总，以及一份统一可视化报告的路径。
 
 ### Midscene 可视化报告
 
-Midscene Test 会自动将详细的测试步骤、界面截图和 AI 决策过程记录到交互式 HTML 报告中。
+运行器会把完整的 Test Runner 结果和 Midscene Agent 详情合并到一份交互式 HTML 报告中。报告采用渐进式结构，不会在打开时直接展开完整执行树：
+
+1. **Overview** 展示最终通过率、首次通过率、重试后通过、最终失败、Total runner time、可展开的 Project → Case 树和精简后的关注项列表。展开 Project 节点可以原地查看其中的 Case，也可以通过 **Project overview** 进入该 Project 的完整 workspace。该总览暂不展示运行阶段时间线。
+2. **Project workspace** 从 Overview 的 Project 树进入，展示单个 Execution Project 的通过率、重试、失败、耗时、文档和 Case。报告不再提供单独的 Projects 目录 tab。
+3. **Cases** 保留为跨 Project 的排障入口，默认把失败和重试后通过的 Case 排在前面，并支持搜索和筛选。每个 Case 行都会把全部已捕获帧放到同一条无滚动条的紧凑时间轴上，按照真实捕获时间定位；时间接近的帧可以像 Detail page 时间线一样叠放，悬停可见的帧边缘可以查看大图。Overview 的精简关注项复用同一套时间线，但减少文字信息。
+4. **Case workspace** 用于切换 retry attempt、固定展示失败摘要和视觉故事。每个语义 Step 会与对应的代表截图放在一起；鼠标悬停在截断的 Step 文本上可以查看全文。只有需要查看 lifecycle 或 Node 级信息时，才展开 **Debug details**。选中 Step 后出现的 inspector 位于该抽屉内部，会随抽屉一起收起。
+
+Overview、Project、Cases 和 Case 的选择会写入报告 URL hash。常规切页会产生浏览器历史记录，因此即使报告是独立的静态 HTML，浏览器的后退和前进也能恢复对应页面。
+
+- 在 **Debug details** 中选择自定义 Node Step，可以查看状态、耗时、summary、错误，以及经过体积限制和脱敏的输入输出。
+- 选择 `aiAct`、`aiAssert` 或 `recordToReport` 后，再展开内层 **Full AI trace** 抽屉，可以查看与该 Step 精确关联的 Agent execution，包括 Planning、Locate、Action、截图、模型调用、token 和耗时。
+- retry attempt、`not-run` 原因、collection error，以及 setup 或 teardown 失败都会保留，不会被压平为 Agent trace。虽然 Overview 当前不展示阶段时间线，但 Total runner time 和 Project time 仍会包含 setup 和安装耗时。
 
 默认情况下，报告保存在：
 
 ```text
-midscene_run/report/
+midscene_run/report/test-run-<runId>.html
 ```
 
-你只需在浏览器中打开该目录下的 HTML 文件，即可直观地看到每一个 `aiAct` 和 `aiAssert` 的执行轨迹、元素定位结果以及完整的历史截图。
+如果任一来源 Agent 报告使用外置截图，逻辑上的同一份报告会写为 `midscene_run/report/test-run-<runId>/index.html`，并带有同级的 `screenshots/` 目录。复制或上传时需要保留整个目录。
 
-> **提示**：如果想修改可视化报告的默认保存目录，可以通过修改 `midscene.config.ts` 中的 `output.reportDir` 配置来实现。
+CLI 会在 `Report:` 后打印准确路径。底层 Agent HTML 会继续保留作为诊断备份，但打开或上传统一报告时不依赖这些原始文件。
+
+:::info
+如果想修改可视化报告的默认保存目录，可以修改 `midscene.config.ts` 中的 `output.reportDir`。
+:::
 
 ## 当前限制
 

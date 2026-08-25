@@ -14,6 +14,17 @@ export interface NodeResult<TData = unknown> {
   data?: TData;
 }
 
+/** A stable reference from one Runner Step to report detail data. */
+export interface NodeReportTrace {
+  type: 'midscene-execution';
+  executionId: string;
+}
+
+/** Collects report references produced while the current Step is executing. */
+export interface NodeReportCollector {
+  addTrace(trace: NodeReportTrace): void;
+}
+
 interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
   /** The validated node input without `$`. */
   input: TInput;
@@ -29,6 +40,9 @@ interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
 
   /** Register resource cleanup for the current case attempt or document. */
   onTeardown(teardown: NodeScopeTeardown): void;
+
+  /** Attach report detail references to the current Step result. */
+  report: NodeReportCollector;
 }
 
 export type NodeExecutionContext<

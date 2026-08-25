@@ -154,6 +154,7 @@ export async function runTestCli(
     );
     io.log(`Results: ${result.resultDir}`);
     io.log(`Summary: ${result.summaryPath}`);
+    if (result.reportPath) io.log(`Report: ${result.reportPath}`);
     return result.exitCode;
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));

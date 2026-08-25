@@ -241,21 +241,36 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 
 ## View test results
 
-After each test run, the console displays Case statuses and a brief summary. Midscene Test also generates a visual test report locally.
+After each test run, the console displays Case statuses, a brief summary, and the path to one unified visual report.
 
 ### Midscene visual report
 
-Midscene Test records detailed test Steps, UI screenshots, and the AI decision process in an interactive HTML report.
+The runner combines the complete Test Runner result and Midscene Agent details in one interactive HTML report. It reveals information progressively instead of opening on the full execution tree:
+
+1. **Overview** shows the final pass rate, first-pass rate, retry-passed Cases, final failures, Total runner time, an expandable Project → Case breakdown tree, and a compact prioritized list. Expand a Project node to inspect its Cases in place, or open **Project overview** for that Project's full workspace. The run timeline is not shown in this summary view.
+2. **Project workspace** opens from the Overview tree and shows one Execution Project's pass rates, retries, failures, duration, documents, and Cases. There is no separate Projects directory tab.
+3. **Cases** remains a cross-Project troubleshooting view. It lists failures and retry-passed Cases first and supports search and filters. Each Case row places every captured frame on one compact, non-scrolling time axis. Frames use their actual capture offsets and may overlap when events are close together, matching the Detail page timeline; hover a visible frame edge to inspect the larger image. The prioritized rows in Overview reuse the same timeline while showing less text.
+4. **Case workspace** switches between retry Attempts, pins the failure summary, and presents a visual story. Each semantic Step is placed directly with its representative screenshot; hover the truncated Step text to read it in full. Expand **Debug details** only when you need lifecycle or Node-level data. The selected Step inspector lives inside this drawer and closes with it.
+
+Overview, Project, Cases, and Case selections are stored in the report URL hash. Normal navigation adds browser history entries, so Back and Forward restore the corresponding report page even though the report is a standalone static HTML file.
+
+- Select a custom Node Step under **Debug details** to inspect its status, duration, summary, error, and bounded, redacted input/output data.
+- Select `aiAct`, `aiAssert`, or `recordToReport`, then expand the nested **Full AI trace** drawer to inspect the precisely associated Agent execution, including Planning, Locate, Action, screenshots, model calls, tokens, and timing.
+- Retry Attempts, `not-run` reasons, collection errors, and setup or teardown failures remain visible instead of being flattened into Agent traces. Total runner and Project time still include setup and installation even though the Overview currently omits the phase timeline.
 
 By default, reports are saved to:
 
 ```text
-midscene_run/report/
+midscene_run/report/test-run-<runId>.html
 ```
 
-Open an HTML file in this directory in a browser to inspect each `aiAct` and `aiAssert` execution trace, element location result, and complete screenshot history.
+If any source Agent report uses external screenshot storage, the same logical report is written as `midscene_run/report/test-run-<runId>/index.html` with a sibling `screenshots/` directory. Copy or upload the whole directory in that case.
 
-> **Note**: To change the default report directory, set `output.reportDir` in `midscene.config.ts`.
+The CLI prints the exact path after `Report:`. The lower-level Agent HTML files are retained as diagnostic backups, but the unified report does not depend on them when opened or uploaded.
+
+:::info
+To change the default report directory, set `output.reportDir` in `midscene.config.ts`.
+:::
 
 ## Current limitations
 
