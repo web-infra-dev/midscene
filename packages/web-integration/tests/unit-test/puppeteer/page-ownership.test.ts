@@ -1,15 +1,15 @@
 import { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
+import { describe, expect, it, rs } from '@rstest/core';
 import type { Browser, Page, Target } from 'puppeteer';
-import { describe, expect, it, vi } from 'vitest';
 
 const createBrowserHarness = () => {
   const targetCreatedHandlers = new Set<(target: Target) => void>();
   const closeOrder: string[] = [];
   const browser = {
-    on: vi.fn((_event: string, handler: (target: Target) => void) => {
+    on: rs.fn((_event: string, handler: (target: Target) => void) => {
       targetCreatedHandlers.add(handler);
     }),
-    off: vi.fn((_event: string, handler: (target: Target) => void) => {
+    off: rs.fn((_event: string, handler: (target: Target) => void) => {
       targetCreatedHandlers.delete(handler);
     }),
   } as unknown as Browser;
@@ -26,7 +26,7 @@ const createBrowserHarness = () => {
       browser: () => browser,
       target: () => target,
       isClosed: () => closed,
-      close: vi.fn(async () => {
+      close: rs.fn(async () => {
         closed = true;
         closeOrder.push(name);
       }),
