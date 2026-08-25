@@ -116,11 +116,15 @@ export type AndroidDeviceOpt = {
     /**
      * Maximum video dimension (width or height).
      * Video stream will be scaled down if device resolution exceeds this value.
+     * ADB/yadb fallback screenshots use the same limit so they do not return to
+     * full device resolution while scrcpy is temporarily unavailable.
      * Lower values reduce bandwidth but may affect image quality.
      *
      * @default 0 (no scaling, use original resolution)
      * @example
      * { maxSize: 1024 } // Always scale to 1024
+     * Values must be non-negative integers; invalid values throw when the
+     * scrcpy configuration is used.
      */
     maxSize?: number;
     /**

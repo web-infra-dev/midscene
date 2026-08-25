@@ -150,11 +150,22 @@ export class ScrcpyDeviceAdapter {
    * receives the highest quality image for AI processing.
    * videoBitRate uses the shared default unless explicitly configured.
    */
-  resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
+  resolveConfig(): ResolvedScrcpyConfig;
+  /**
+   * @deprecated Device geometry no longer affects scrcpy configuration. Call
+   * `resolveConfig()` without arguments.
+   */
+  resolveConfig(_deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig;
+  resolveConfig(_deviceInfo?: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
     const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
+    if (!Number.isInteger(maxSize) || maxSize < 0) {
+      throw new Error(
+        `Invalid scrcpyConfig.maxSize: expected a non-negative integer, received ${maxSize}`,
+      );
+    }
 
     const videoBitRate =
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
@@ -198,7 +209,7 @@ export class ScrcpyDeviceAdapter {
         await adbClient.createTransport({ serial: this.deviceId }),
       );
 
-      const config = this.resolveConfig(deviceInfo);
+      const config = this.resolveConfig();
       const manager = new ScrcpyManager(adb, {
         maxSize: config.maxSize,
         videoBitRate: config.videoBitRate,
