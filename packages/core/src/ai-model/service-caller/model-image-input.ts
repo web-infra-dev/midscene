@@ -15,14 +15,24 @@ type MessageContentPart = Exclude<
 async function convertModelImageUrl(
   url: string,
   imageInputFormat: TModelImageInputFormat,
+  conversionCache: Map<string, Promise<string>>,
 ): Promise<string> {
   if (!supportedBase64ImageUrlPattern.test(url)) {
     return url;
   }
 
-  return imageInputFormat === 'jpeg'
-    ? convertBase64ImageToJpeg(url)
-    : convertBase64ImageToWebp(url);
+  const cacheKey = `${imageInputFormat}\0${url}`;
+  const cachedConversion = conversionCache.get(cacheKey);
+  if (cachedConversion) {
+    return cachedConversion;
+  }
+
+  const conversion =
+    imageInputFormat === 'jpeg'
+      ? convertBase64ImageToJpeg(url)
+      : convertBase64ImageToWebp(url);
+  conversionCache.set(cacheKey, conversion);
+  return conversion;
 }
 
 /**
@@ -35,6 +45,7 @@ export async function prepareModelMessagesImageInput(
 ): Promise<ChatCompletionMessageParam[]> {
   let messagesChanged = false;
   const preparedMessages: ChatCompletionMessageParam[] = [];
+  const conversionCache = new Map<string, Promise<string>>();
 
   // Process sequentially to bound memory when one request contains many
   // full-resolution observation frames.
@@ -55,6 +66,7 @@ export async function prepareModelMessagesImageInput(
       const preparedUrl = await convertModelImageUrl(
         part.image_url.url,
         imageInputFormat,
+        conversionCache,
       );
       if (preparedUrl === part.image_url.url) {
         preparedContent.push(part);
