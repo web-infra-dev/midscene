@@ -1,8 +1,6 @@
-import type { DeviceAction } from '@midscene/core';
 import { Agent as CoreAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import type { DebugFunction } from '@midscene/shared/logger';
-import { z } from 'zod';
 import { isRetryableBrowserNavigationError } from './browser-agent-utils';
 
 export type BrowserAgentPageScope = 'page' | 'browser';
@@ -99,36 +97,26 @@ export type BrowserAgentPageSummary = {
   url: string;
 };
 
-const buildBrowserPagePlanningFeedback = (
-  summaries: BrowserAgentPageSummary[],
-) =>
-  `ListBrowserPages returned the following open pages. Use a 0-based index with SetActivePage when selecting a page:\n${JSON.stringify(summaries, null, 2)}`;
-
-const setActivePageParamSchema = z.object({
-  index: z
-    .number()
-    .int()
-    .min(0)
-    .optional()
-    .describe('0-based page/tab index returned by ListBrowserPages.'),
-  title: z
-    .string()
-    .optional()
-    .describe('Case-insensitive page title substring to match.'),
-  url: z
-    .string()
-    .optional()
-    .describe('Case-insensitive page URL substring to match.'),
-});
-
-export type SetActivePageParam = z.infer<typeof setActivePageParamSchema>;
+export type BrowserAgentPageSelector = {
+  index?: number;
+  title?: string;
+  url?: string;
+};
 
 const normalizeOptionalText = (value: string | undefined) => {
   const trimmed = value?.trim();
   return trimmed ? trimmed.toLowerCase() : undefined;
 };
 
-const describeSelector = (selector: SetActivePageParam) => {
+const pageSummaryMatches = (
+  summary: BrowserAgentPageSummary,
+  title: string | undefined,
+  url: string | undefined,
+) =>
+  (!title || summary.title.toLowerCase().includes(title)) &&
+  (!url || summary.url.toLowerCase().includes(url));
+
+const describeSelector = (selector: BrowserAgentPageSelector) => {
   const parts: string[] = [];
   if (selector.index !== undefined) {
     parts.push(`index ${selector.index}`);
@@ -213,13 +201,13 @@ export class BrowserPageManager<Page, NewPageEvent> {
   }
 
   async setActivePageBySelector(
-    selector: SetActivePageParam,
+    selector: BrowserAgentPageSelector,
   ): Promise<BrowserAgentPageSummary> {
-    const hasIndex = selector.index !== undefined;
+    const selectorIndex = selector.index;
     const title = normalizeOptionalText(selector.title);
     const url = normalizeOptionalText(selector.url);
 
-    if (!hasIndex && !title && !url) {
+    if (selectorIndex === undefined && !title && !url) {
       throw new Error(
         `[midscene] SetActivePage requires index, title, or url for ${this.agentName}.`,
       );
@@ -227,18 +215,29 @@ export class BrowserPageManager<Page, NewPageEvent> {
 
     const pages = await this.adapter.pages();
 
-    if (hasIndex) {
-      const page = pages[selector.index as number];
+    if (selectorIndex !== undefined) {
+      const page = pages[selectorIndex];
       if (!page || this.adapter.isPageClosed(page)) {
         throw new Error(
-          `[midscene] Cannot find ${this.agentName} page with index ${selector.index}. Available page indexes: ${pages
+          `[midscene] Cannot find ${this.agentName} page with index ${selectorIndex}. Available page indexes: ${pages
             .map((_, index) => index)
             .join(', ')}`,
         );
       }
 
+      const summary = await this.pageSummary(page, selectorIndex, true);
+      if (!pageSummaryMatches(summary, title, url)) {
+        const textSelector = describeSelector({
+          title: selector.title,
+          url: selector.url,
+        });
+        throw new Error(
+          `[midscene] ${this.agentName} page at index ${selectorIndex} does not match ${textSelector}. Run ListBrowserPages again before selecting a page.`,
+        );
+      }
+
       await this.setActivePage(page);
-      return this.pageSummary(page, selector.index as number, true);
+      return summary;
     }
 
     const matchedPages: Array<{ page: Page; index: number }> = [];
@@ -249,10 +248,7 @@ export class BrowserPageManager<Page, NewPageEvent> {
       }
 
       const summary = await this.pageSummary(page, index, false);
-      const matchedTitle =
-        !title || summary.title.toLowerCase().includes(title);
-      const matchedUrl = !url || summary.url.toLowerCase().includes(url);
-      if (matchedTitle && matchedUrl) {
+      if (pageSummaryMatches(summary, title, url)) {
         matchedPages.push({ page, index });
       }
     }
@@ -298,26 +294,11 @@ export class BrowserPageManager<Page, NewPageEvent> {
     index: number,
     active: boolean,
   ): Promise<BrowserAgentPageSummary> {
-    let title = '';
-    let url = '';
-
-    try {
-      title = await this.adapter.pageTitle(page);
-    } catch (error) {
-      this.debug(`failed to read page title: ${error}`);
-    }
-
-    try {
-      url = this.adapter.pageUrl(page);
-    } catch (error) {
-      this.debug(`failed to read page url: ${error}`);
-    }
-
     return {
       index,
       active,
-      title,
-      url,
+      title: await this.adapter.pageTitle(page),
+      url: this.adapter.pageUrl(page),
     };
   }
 
@@ -392,48 +373,3 @@ export class BrowserPageManager<Page, NewPageEvent> {
     return { promise, dispose };
   }
 }
-
-export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
-  agentName: string;
-  getPageManager: () => BrowserPageManager<Page, NewPageEvent>;
-}): DeviceAction<any>[] => [
-  {
-    name: 'ListBrowserPages',
-    description:
-      'List all open browser pages/tabs and show which one is currently active. Use this before switching pages when a task refers to another tab or window.',
-    call: async (_param, context) => {
-      const summaries = await options.getPageManager().pageSummaries();
-      if (context?.task) {
-        context.task.planningFeedback =
-          buildBrowserPagePlanningFeedback(summaries);
-      }
-      return summaries;
-    },
-  },
-  {
-    name: 'SetActivePage',
-    description:
-      'Set the active browser page/tab by 0-based index, title substring, or URL substring. Use index from ListBrowserPages when more than one page could match.',
-    paramSchema: setActivePageParamSchema,
-    sample: {
-      index: 1,
-    },
-    call: async (param) =>
-      options.getPageManager().setActivePageBySelector(param),
-  },
-];
-
-export const appendBrowserAgentPageActions = (
-  customActions: DeviceAction<any>[] | undefined,
-  browserActions: DeviceAction<any>[],
-) => {
-  if (!customActions?.length) {
-    return browserActions;
-  }
-
-  const customActionNames = new Set(customActions.map((action) => action.name));
-  return [
-    ...customActions,
-    ...browserActions.filter((action) => !customActionNames.has(action.name)),
-  ];
-};
