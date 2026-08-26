@@ -1,19 +1,11 @@
-/* eslint-disable max-lines */
 'use client';
 import './index.less';
 
-import {
-  DownOutlined,
-  FileImageOutlined,
-  RadiusSettingOutlined,
-  RightOutlined,
-} from '@ant-design/icons';
 import type {
   ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
-  LocateResultElement,
 } from '@midscene/core';
 import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
 import {
@@ -21,236 +13,20 @@ import {
   highlightColorForType,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Tag, Tooltip } from 'antd';
-import { useState } from 'react';
+import { Tag } from 'antd';
 import { isElementField, useExecutionDump } from '../store';
+import { ErrorCard, getTaskErrorDisplay } from './error-output';
+import {
+  Card,
+  CollapsibleCard,
+  MetaKV,
+  extractTaskImages,
+  renderElementDetailBox,
+} from './ui';
 
 function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-const Card = (props: {
-  liteMode?: boolean;
-  highlightWithColor?: string;
-  title?: string;
-  subtitle?: string;
-  characteristic?: string;
-  content: any;
-}) => {
-  const { highlightWithColor, title, subtitle, content, characteristic } =
-    props;
-  const titleTag = props.characteristic ? (
-    <div className="item-extra">
-      <div className="title-tag">
-        <Tooltip
-          placement="bottomRight"
-          title={characteristic}
-          mouseEnterDelay={0}
-        >
-          <span>
-            <RadiusSettingOutlined />
-          </span>
-        </Tooltip>
-      </div>
-    </div>
-  ) : null;
-
-  const titleRightPaddingClass = props.characteristic
-    ? 'title-right-padding'
-    : '';
-  const modeClass = props.liteMode ? 'item-lite' : '';
-  const highlightStyle = highlightWithColor
-    ? { backgroundColor: highlightWithColor }
-    : {};
-  return (
-    <div
-      className={`item ${modeClass} ${highlightWithColor ? 'item-highlight' : ''}`}
-      style={{ ...highlightStyle }}
-    >
-      {/* {extraSection} */}
-
-      <div
-        className={`title ${titleRightPaddingClass}`}
-        style={{ display: title ? 'block' : 'none' }}
-      >
-        {title}
-        {titleTag}
-      </div>
-      <div
-        className={`subtitle ${titleRightPaddingClass}`}
-        style={{ display: subtitle ? 'block' : 'none' }}
-      >
-        {subtitle}
-      </div>
-      <div
-        className="description"
-        style={{ display: content ? 'block' : 'none' }}
-      >
-        {content}
-      </div>
-    </div>
-  );
-};
-
-// Collapsible card component for reasoning content (collapsed by default)
-const CollapsibleCard = (props: {
-  title: string;
-  content: any;
-  defaultCollapsed?: boolean;
-}) => {
-  const { title, content, defaultCollapsed = true } = props;
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-
-  return (
-    <div className="item item-lite item-collapsible">
-      <div
-        className="title title-collapsible"
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        {title}
-        <span className="collapse-icon">
-          {collapsed ? <RightOutlined /> : <DownOutlined />}
-        </span>
-      </div>
-      {!collapsed && (
-        <div className="description">
-          <pre className="description-content">{content}</pre>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Shared helper function to render element detail box
-const renderElementDetailBox = (_value: LocateResultElement) => {
-  const hasCenter = _value.center && Array.isArray(_value.center);
-  const hasRect = _value.rect;
-
-  // If it has center and rect, show detailed info
-  if (hasCenter && hasRect) {
-    const { center, rect } = _value;
-    const { left, top, width, height } = rect;
-
-    return (
-      <div className="element-detail-box">
-        <div className="element-detail-line">
-          {_value.description} (center=[{center[0]}, {center[1]}])
-        </div>
-        <div className="element-detail-line element-detail-coords">
-          left={Math.round(left)}, top={Math.round(top)}, width=
-          {Math.round(width)}, height={Math.round(height)}
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback to simple tag
-  return (
-    <span>
-      <Tag bordered={false} color="orange" className="element-button">
-        Element
-      </Tag>
-    </span>
-  );
-};
-
-// Helper function to render content with element detection
-const renderMetaContent = (
-  content: string | JSX.Element,
-): string | JSX.Element => {
-  // If content is already JSX, return it
-  if (typeof content !== 'string') {
-    return content;
-  }
-
-  // Try to parse JSON string
-  try {
-    const parsed = JSON.parse(content);
-
-    // Check if it's a locate object with element inside
-    if (parsed.locate && isElementField(parsed.locate)) {
-      return (
-        <div>
-          <div style={{ marginBottom: '8px' }}>locate:</div>
-          {renderElementDetailBox(parsed.locate)}
-        </div>
-      );
-    }
-
-    // Check if it's directly an element
-    if (isElementField(parsed)) {
-      return renderElementDetailBox(parsed);
-    }
-  } catch (e) {
-    // Not JSON, return as is
-  }
-
-  return content;
-};
-
-// Helper function to extract images from task params
-const extractTaskImages = (
-  param: any,
-): Array<{ name: string; url: string }> | undefined => {
-  // For aiAct planning tasks
-  if (
-    param?.userInstruction?.images &&
-    Array.isArray(param.userInstruction.images)
-  ) {
-    return param.userInstruction.images;
-  }
-
-  // For locate params (Planning and Action Space tasks)
-  if (param?.prompt?.images && Array.isArray(param.prompt.images)) {
-    return param.prompt.images;
-  }
-
-  // For nested locate params (Action Space tasks)
-  if (
-    param?.locate?.prompt?.images &&
-    Array.isArray(param.locate.prompt.images)
-  ) {
-    return param.locate.prompt.images;
-  }
-
-  return undefined;
-};
-
-const MetaKV = (props: {
-  data: {
-    key: string;
-    content: string | JSX.Element;
-    images?: { name: string; url: string }[];
-  }[];
-}) => {
-  return (
-    <div className="meta-kv">
-      {props.data.map((item, index) => {
-        return (
-          <div className="meta" key={index}>
-            <div className="meta-key">{item.key}</div>
-            <div className="meta-value">{renderMetaContent(item.content)}</div>
-            {item.images && item.images.length > 0 && (
-              <div className="meta-images">
-                {item.images.map((image, imgIndex) => (
-                  <div key={imgIndex} className="meta-image-item">
-                    <FileImageOutlined style={{ marginRight: '6px' }} />
-                    <a
-                      href={image.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {image.name}
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
 const objectWithoutKeys = (
   obj: Record<string, unknown>,
@@ -697,35 +473,9 @@ const DetailSide = (): JSX.Element => {
   let outputDataContent = null;
   const actions = (task as ExecutionTaskPlanning)?.output?.actions;
 
-  // Prepare error content separately (can coexist with elements)
-  let errorContent: JSX.Element | null = null;
-  if (task?.error || task?.errorMessage) {
-    let errorText = '';
-
-    // prefer errorMessage
-    if (task.errorMessage) {
-      errorText = task.errorMessage;
-    } else if (task.error) {
-      errorText = task.error.message;
-    }
-
-    // add stack info (if exists and not duplicate)
-    if (task.errorStack && !errorText.includes(task.errorStack)) {
-      errorText += `\n\nStack:\n${task.errorStack}`;
-    }
-
-    errorContent = (
-      <Card
-        liteMode={true}
-        title="error"
-        content={
-          <pre className="description-content" style={{ color: '#F00' }}>
-            {errorText}
-          </pre>
-        }
-      />
-    );
-  }
+  // Error details can coexist with located elements.
+  const error = getTaskErrorDisplay(task);
+  const errorContent = error ? <ErrorCard error={error} /> : null;
 
   if (elements?.length) {
     const elementsContent = elements.map((element, idx) => {
