@@ -77,7 +77,7 @@ describe('report-markdown', () => {
 
   it('handles single execution markdown with screenshot file links', () => {
     const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,Zm9v',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
       1710000000000,
     );
     const execution: IExecutionDump = {
@@ -221,7 +221,7 @@ describe('report-markdown', () => {
 
   it('uses timing fallback fields and custom screenshot directory', () => {
     const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,Zm9v',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
       1710000000000,
     );
 
@@ -448,7 +448,7 @@ describe('report-markdown', () => {
           taskId: 'task-recorder-string',
           uiContext: {
             screenshot: {
-              base64: 'data:image/png;base64,bWFpbg==',
+              base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
               capturedAt: 1710000000000,
             },
             shotSize: { width: 800, height: 600 },
@@ -458,7 +458,7 @@ describe('report-markdown', () => {
               type: 'screenshot',
               ts: 1710000000050,
               timing: 'after action',
-              screenshot: 'data:image/png;base64,cmVjb3JkZXI=',
+              screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYA',
             },
           ],
         }),
@@ -472,10 +472,10 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('timing=after action');
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].base64Data).toBe(
-      'data:image/png;base64,bWFpbg==',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
     );
     expect(result.attachments[1].base64Data).toBe(
-      'data:image/png;base64,cmVjb3JkZXI=',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYA',
     );
     expect(result.attachments[1].suggestedFileName).toContain('recorder-1');
     expect(result.attachments[1].suggestedFileName).not.toBe(

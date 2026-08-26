@@ -8,7 +8,7 @@ rs.mock('@midscene/shared/img', async (importOriginal) => ({
   imageInfoOfBase64: rs.fn(),
   resizeBase64ImageToJpeg: rs
     .fn()
-    .mockResolvedValue('data:image/jpeg;base64,mock-resized-base64-data'),
+    .mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ'),
 }));
 
 import { imageInfoOfBase64 } from '@midscene/shared/img';
@@ -22,7 +22,7 @@ function createMockInterface(
   return {
     screenshotBase64: rs
       .fn()
-      .mockResolvedValue('data:image/jpeg;base64,mock-base64-data'),
+      .mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ'),
     size: rs
       .fn()
       .mockResolvedValue({ width: logicalWidth, height: logicalHeight }),

@@ -34,6 +34,12 @@ describe('ScreenshotItem', () => {
         mimeType: 'image/webp',
       });
     });
+
+    it('rejects a declared MIME type that disagrees with encoded bytes', () => {
+      expect(() =>
+        ScreenshotItem.create(webpBase64.replace('image/webp', 'image/png'), 1),
+      ).toThrow('declares image/png but encoded bytes are image/webp');
+    });
   });
 
   describe('base64 getter', () => {

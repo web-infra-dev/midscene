@@ -1,8 +1,5 @@
 import type { ExecutionTask } from '@midscene/core';
-import {
-  inferScreenshotImageFormatFromBase64,
-  screenshotImageMimeType,
-} from '@midscene/shared/img';
+import { parseScreenshotBase64 } from '@midscene/shared/img';
 
 export interface TimelineScreenshot {
   id: string;
@@ -27,16 +24,17 @@ const rawBase64BodyPattern = /^[a-zA-Z0-9+/=\s]+$/;
 const imageSrcFromString = (value: string): string => {
   const trimmed = value.trim();
   if (trimmed.startsWith('data:')) {
-    return trimmed;
+    return parseScreenshotBase64(trimmed, {
+      label: 'Report timeline screenshot',
+    }).dataUrl;
   }
   if (trimmed.length < 32 || !rawBase64BodyPattern.test(trimmed)) {
     return value;
   }
 
-  const body = trimmed.replace(/\s/g, '');
-  const format = inferScreenshotImageFormatFromBase64(body) ?? 'png';
-  const mimeType = screenshotImageMimeType(format);
-  return `data:${mimeType};base64,${body}`;
+  return parseScreenshotBase64(trimmed, {
+    label: 'Report timeline screenshot',
+  }).dataUrl;
 };
 
 const screenshotBase64 = (screenshot: unknown): string | undefined => {

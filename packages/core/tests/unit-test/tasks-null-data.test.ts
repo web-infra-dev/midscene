@@ -16,7 +16,9 @@ rs.mock('@/ai-model/workflows/planning', () => ({
 }));
 
 // Helper function to create mock UIContext with ScreenshotItem
-const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
+const createMockUIContext = async (
+  screenshotData = 'data:image/png;base64,iVBORw0KGgoAAAAA',
+) => {
   const screenshot = ScreenshotItem.create(screenshotData, Date.now());
   return {
     screenshot,
@@ -26,7 +28,10 @@ const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
 };
 
 const createEmptyUIContext = async () => {
-  const screenshot = ScreenshotItem.create('', Date.now());
+  const screenshot = ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAAA',
+    Date.now(),
+  );
   return {
     screenshot,
     shotSize: { width: 0, height: 0 },

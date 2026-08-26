@@ -1701,6 +1701,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('exports inline verbose dump screenshots to readable file paths', async () => {
+    const exportedScreenshotPath = join(
+      '/tmp',
+      'screenshots',
+      'inline-shot-1.png',
+    );
+    rmSync(exportedScreenshotPath, { force: true });
     let dumpListener:
       | ((dump: string, executionDump?: unknown) => void)
       | undefined;
@@ -1708,9 +1714,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
       | ((event: Record<string, unknown>) => void)
       | undefined;
     const unsubscribe = rs.fn();
+    const inlineScreenshotBytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from('foo'),
+    ]);
     const inlineScreenshot = {
       extension: 'png',
-      rawBase64: 'Zm9v',
+      rawBase64: inlineScreenshotBytes.toString('base64'),
       toSerializable: () => ({
         type: 'midscene_screenshot_ref',
         id: 'inline-shot-1',
@@ -1800,10 +1810,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
     );
     expect(screenshotPath).toBeDefined();
     expect(existsSync(screenshotPath!)).toBe(true);
-    expect(readFileSync(screenshotPath!, 'utf8')).toBe('foo');
+    expect(readFileSync(screenshotPath!)).toEqual(inlineScreenshotBytes);
     expect(addProgressListener).toHaveBeenCalledOnce();
     expect(addDumpUpdateListener).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledOnce();
+    rmSync(exportedScreenshotPath, { force: true });
     consoleSpy.mockRestore();
   });
 

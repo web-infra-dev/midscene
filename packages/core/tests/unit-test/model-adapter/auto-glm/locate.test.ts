@@ -48,7 +48,7 @@ const autoGlmAdapter = new ResolvedModelAdapter(
 
 const context: UIContext = {
   screenshot: {
-    base64: 'data:image/png;base64,AA==',
+    base64: 'data:image/png;base64,iVBORw0KGgoAAAAA',
   } as any,
   shotSize: {
     width: 1000,
@@ -177,7 +177,7 @@ describe('Auto-GLM custom locate', () => {
           height: 200,
         },
         image: {
-          imageBase64: 'data:image/png;base64,CROP==',
+          imageBase64: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
           width: 300,
           height: 200,
         },
@@ -200,7 +200,7 @@ describe('Auto-GLM custom locate', () => {
             expect.objectContaining({
               type: 'image_url',
               image_url: expect.objectContaining({
-                url: 'data:image/png;base64,CROP==',
+                url: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
               }),
             }),
           ]),
