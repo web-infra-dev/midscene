@@ -63,8 +63,10 @@ const buildDeepSeekChatCompletionParams = (
   const isThinkingMode =
     reasoningEnabled === true || reasoningEnabled === 'default';
 
-  // DeepSeek thinking mode does not support temperature. `default` also uses
-  // thinking mode because DeepSeek enables it by default.
+  // DeepSeek thinking mode does not support temperature. For compatibility,
+  // DeepSeek ignores this parameter instead of rejecting the request, so omit
+  // the ineffective setting. `default` also uses thinking mode because
+  // DeepSeek enables it by default.
   // https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
   if (isThinkingMode) {
     commonOverrideConfig.temperature = undefined;
