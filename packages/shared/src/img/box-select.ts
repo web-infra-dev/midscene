@@ -3,15 +3,14 @@ import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { NodeType } from '../constants';
 import type { BaseElement, Rect } from '../types';
 import { ifInNode } from '../utils';
+import { createImgBase64ByFormat, parseBase64 } from './base64';
+import { photonFromBase64, photonToBase64 } from './geometry';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
 import {
   type ScreenshotImageOutputFormat,
-  createImgBase64ByFormat,
-  parseBase64,
-  photonFromBase64,
-  photonToBase64,
-} from './transform';
+  encodeRgbaWithSharp,
+} from './screenshot-encoding';
 
 // Simple 5x7 bitmap font for digits 0-9
 const DIGIT_FONT: Record<string, number[][]> = {
@@ -750,23 +749,6 @@ async function decodeImageWithSharp(
   };
 }
 
-async function encodeRgbaWithSharp(
-  pixels: Uint8Array,
-  width: number,
-  height: number,
-  outputFormat: ScreenshotImageOutputFormat,
-) {
-  const Sharp = await getSharp();
-  const image = Sharp(Buffer.from(pixels), {
-    raw: { width, height, channels: 4 },
-  });
-  const output = await (outputFormat === 'webp'
-    ? image.webp({ lossless: true, effort: 1 })
-    : image.jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
-  ).toBuffer();
-  return createImgBase64ByFormat(outputFormat, output.toString('base64'));
-}
-
 export const compositeElementInfoImg = async (options: {
   inputImgBase64: string;
   elementsPositionInfo: Array<ElementForOverlay>;
@@ -792,12 +774,14 @@ export const compositeElementInfoImg = async (options: {
       options.prompt,
       options.centerPoint,
     );
-    return encodeRgbaWithSharp(
+    const outputFormat = options.outputFormat ?? 'jpeg';
+    const encoded = await encodeRgbaWithSharp(
       blendPixels(pixels, overlayPixels, width, height),
       width,
       height,
-      options.outputFormat ?? 'jpeg',
+      outputFormat,
     );
+    return createImgBase64ByFormat(outputFormat, encoded.toString('base64'));
   }
 
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
@@ -894,12 +878,14 @@ export const compositePointMarkerImg = async (options: {
       options.radius ?? 14,
       options.indexId ?? 1,
     );
-    return encodeRgbaWithSharp(
+    const outputFormat = options.outputFormat ?? 'jpeg';
+    const encoded = await encodeRgbaWithSharp(
       blendPixels(pixels, overlayPixels, width, height),
       width,
       height,
-      options.outputFormat ?? 'jpeg',
+      outputFormat,
     );
+    return createImgBase64ByFormat(outputFormat, encoded.toString('base64'));
   }
 
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
