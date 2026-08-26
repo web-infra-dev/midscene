@@ -21,10 +21,10 @@ import {
 } from 'node:path';
 import { z } from 'zod';
 import { getMidsceneRunSubDir } from '../common';
+import { parseScreenshotBase64 } from '../img/base64';
 import {
   screenshotImageExtension,
   screenshotImageFormatFromMimeType,
-  screenshotImageMimeType,
 } from '../img/image-format';
 import type { UIObservationFrame, UIObservationRecord } from './types';
 
@@ -177,26 +177,10 @@ export class UIObservationRecordWriter {
     if (this.finalized) {
       throw new Error('UI observation record has already been finalized');
     }
-    const match = /^data:image\/(png|jpe?g|webp);base64,([\s\S]+)$/i.exec(
-      dataUrl,
-    );
-    if (!match) {
-      throw new Error(
-        'UI observation frame must be a PNG, JPEG, or WebP data URL',
-      );
-    }
-    const matchedMimeType = `image/${match[1].toLowerCase()}`;
-    const format = screenshotImageFormatFromMimeType(matchedMimeType);
-    if (!format) {
-      throw new Error(
-        `UI observation frame has unsupported MIME type: ${matchedMimeType}`,
-      );
-    }
-    const mimeType = screenshotImageMimeType(format);
-    const bytes = Buffer.from(match[2], 'base64');
-    if (bytes.length === 0) {
-      throw new Error('UI observation frame contains no image data');
-    }
+    const parsed = parseScreenshotBase64(dataUrl, {
+      label: 'UI observation frame',
+    });
+    const { bytes, format, mimeType } = parsed;
     const digest = createHash('sha256').update(bytes).digest('hex');
     const fileName = `${digest}.${screenshotImageExtension(format)}`;
     mkdirSync(this.temporaryFramesDirectory, { recursive: true });

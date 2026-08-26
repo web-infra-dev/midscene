@@ -2,21 +2,33 @@ import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import {
   type ScreenshotImageFormat,
+  type ScreenshotImageMimeType,
   detectScreenshotImageFormatFromBuffer,
   inferScreenshotImageFormatFromBase64,
+  screenshotImageExtension,
+  screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
 } from './image-format';
 
 const base64ImageDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
 const supportedScreenshotDataUriPattern =
   /^data:image\/(png|jpe?g|webp);base64,([\s\S]*)$/i;
-const rawBase64BodyPattern = /^[A-Za-z0-9+/=\s]+$/;
 
 export type JpegBase64DataUrl = `data:image/jpeg;base64,${string}`;
 export type WebpBase64DataUrl = `data:image/webp;base64,${string}`;
 
 export interface NormalizeScreenshotBase64Options {
   label?: string;
+}
+
+export interface ParsedScreenshotBase64 {
+  /** Canonical data URL whose MIME type matches the encoded bytes. */
+  dataUrl: string;
+  body: string;
+  bytes: Buffer;
+  format: ScreenshotImageFormat;
+  mimeType: ScreenshotImageMimeType;
+  extension: ScreenshotImageFormat;
 }
 
 export const normalizeBase64Body = (body: string) => body.replace(/\s/g, '');
@@ -46,45 +58,63 @@ export const createImgBase64ByFormat = (format: string, body: string) => {
   return `data:image/${format};base64,${normalizeBase64Body(body)}`;
 };
 
-export const normalizeScreenshotBase64 = (
+/**
+ * Parse a screenshot from a data URL or raw Base64 body.
+ *
+ * The encoded bytes are authoritative. A declared MIME type must describe the
+ * same format; unsupported, empty, malformed, or mismatched inputs throw.
+ */
+export function parseScreenshotBase64(
   base64: string,
   options?: NormalizeScreenshotBase64Options,
-) => {
+): ParsedScreenshotBase64 {
   const label = options?.label ?? 'screenshot base64';
-  const trimmedBase64 = base64.trim();
-  if (!trimmedBase64) {
+  if (typeof base64 !== 'string' || !base64.trim()) {
     throw new Error(`${label} cannot be empty`);
   }
 
+  const trimmedBase64 = base64.trim();
   const dataUriMatch = trimmedBase64.match(supportedScreenshotDataUriPattern);
-  if (dataUriMatch) {
-    const imageFormat: ScreenshotImageFormat =
-      dataUriMatch[1].toLowerCase() === 'jpg'
-        ? 'jpeg'
-        : (dataUriMatch[1].toLowerCase() as ScreenshotImageFormat);
-    const body = dataUriMatch[2];
-    if (!normalizeBase64Body(body)) {
-      throw new Error(`${label} cannot be empty`);
-    }
-    return createImgBase64ByFormat(imageFormat, body);
-  }
-
-  if (trimmedBase64.startsWith('data:')) {
+  if (!dataUriMatch && trimmedBase64.startsWith('data:')) {
     throw new Error(
       `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
     );
   }
 
-  if (!rawBase64BodyPattern.test(trimmedBase64)) {
+  const declaredFormat = dataUriMatch
+    ? screenshotImageFormatFromMimeType(`image/${dataUriMatch[1]}`)
+    : undefined;
+  const body = normalizeBase64Body(dataUriMatch?.[2] ?? trimmedBase64);
+  if (!body || !/^[A-Za-z0-9+/]*={0,2}$/.test(body) || body.length % 4 === 1) {
+    throw new Error(`${label} contains invalid base64 image data`);
+  }
+
+  const bytes = Buffer.from(body, 'base64');
+  const format = detectScreenshotImageFormatFromBuffer(bytes);
+  if (!format) {
+    throw new Error(`${label} does not contain a PNG, JPEG, or WebP image`);
+  }
+  if (declaredFormat && declaredFormat !== format) {
     throw new Error(
-      `${label} must be a PNG/JPEG/WebP data URI or raw PNG/JPEG/WebP base64 string`,
+      `${label} declares ${screenshotImageMimeType(declaredFormat)} but encoded bytes are ${screenshotImageMimeType(format)}`,
     );
   }
 
-  const base64Body = normalizeBase64Body(trimmedBase64);
-  const inferredFormat = inferScreenshotImageFormatFromBase64(base64Body);
-  return createImgBase64ByFormat(inferredFormat ?? 'png', base64Body);
-};
+  const mimeType = screenshotImageMimeType(format);
+  return {
+    dataUrl: createImgBase64ByFormat(format, body),
+    body,
+    bytes,
+    format,
+    mimeType,
+    extension: screenshotImageExtension(format),
+  };
+}
+
+export const normalizeScreenshotBase64 = (
+  base64: string,
+  options?: NormalizeScreenshotBase64Options,
+) => parseScreenshotBase64(base64, options).dataUrl;
 
 export const normalizeBase64Image = (base64: string) => {
   const trimmedBase64 = base64.trim();

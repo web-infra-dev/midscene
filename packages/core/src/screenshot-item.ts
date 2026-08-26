@@ -2,9 +2,8 @@ import { readFileSync } from 'node:fs';
 import {
   type ScreenshotImageFormat,
   type ScreenshotImageMimeType,
-  inferScreenshotImageFormatFromBase64,
+  parseScreenshotBase64,
   screenshotImageExtension,
-  screenshotImageFormatFromMimeType,
   screenshotImageMimeType,
 } from '@midscene/shared/img';
 import { uuid } from '@midscene/shared/utils';
@@ -20,31 +19,6 @@ import {
  * - { base64: "path" } - directory mode, references external file path
  */
 export type ScreenshotSerializeFormat = ScreenshotRef;
-
-/**
- * Detect image format from base64 data URI prefix.
- */
-const BASE64_SEPARATOR = ';base64,';
-
-function detectFormat(base64: string): ScreenshotImageFormat {
-  const separatorIndex = base64.indexOf(BASE64_SEPARATOR);
-  const mimeType =
-    separatorIndex === -1 ? undefined : base64.slice(5, separatorIndex);
-  const detectedFormat =
-    separatorIndex === -1
-      ? inferScreenshotImageFormatFromBase64(base64)
-      : screenshotImageFormatFromMimeType(mimeType);
-  return detectedFormat ?? 'png';
-}
-
-function rawBase64Body(base64: string): string {
-  const separatorIndex = base64.indexOf(BASE64_SEPARATOR);
-  const body =
-    separatorIndex === -1
-      ? base64
-      : base64.slice(separatorIndex + BASE64_SEPARATOR.length);
-  return body.replace(/\s/g, '');
-}
 
 /**
  * ScreenshotItem encapsulates screenshot data.
@@ -79,7 +53,15 @@ export class ScreenshotItem {
 
   /** Create a new ScreenshotItem from base64 data */
   static create(base64: string, capturedAt: number): ScreenshotItem {
-    return new ScreenshotItem(uuid(), base64, capturedAt, detectFormat(base64));
+    const parsed = parseScreenshotBase64(base64, {
+      label: 'ScreenshotItem base64',
+    });
+    return new ScreenshotItem(
+      uuid(),
+      parsed.dataUrl,
+      capturedAt,
+      parsed.format,
+    );
   }
 
   /** Create a lazily loaded ScreenshotItem backed by an image file. */
@@ -88,12 +70,12 @@ export class ScreenshotItem {
     mimeType: ScreenshotImageMimeType,
     capturedAt: number,
   ): ScreenshotItem {
-    const item = new ScreenshotItem(
-      uuid(),
-      null,
-      capturedAt,
-      screenshotImageFormatFromMimeType(mimeType)!,
+    const fileBytes = readFileSync(filePath);
+    const parsed = parseScreenshotBase64(
+      `data:${mimeType};base64,${fileBytes.toString('base64')}`,
+      { label: `Screenshot file ${filePath}` },
     );
+    const item = new ScreenshotItem(uuid(), null, capturedAt, parsed.format);
     item._persistedPath = filePath;
     return item;
   }
@@ -133,7 +115,10 @@ export class ScreenshotItem {
         throw new Error(`Screenshot ${this._id}: file recovery path missing`);
       }
       const buffer = readFileSync(this._persistedPath);
-      return `data:${this.mimeType};base64,${buffer.toString('base64')}`;
+      return parseScreenshotBase64(
+        `data:${this.mimeType};base64,${buffer.toString('base64')}`,
+        { label: `Screenshot ${this._id} persisted file` },
+      ).dataUrl;
     };
 
     const loadFromInline = (): string => {
@@ -142,7 +127,9 @@ export class ScreenshotItem {
       }
       const data = extractImageByIdSync(this._persistedHtmlPath, this._id);
       if (data) {
-        return data;
+        return parseScreenshotBase64(data, {
+          label: `Screenshot ${this._id} persisted HTML image`,
+        }).dataUrl;
       }
       throw new Error(
         `Screenshot ${this._id}: cannot recover from HTML (id not found in ${this._persistedHtmlPath})`,
@@ -263,6 +250,8 @@ export class ScreenshotItem {
    * Useful for writing raw binary data to files.
    */
   get rawBase64(): string {
-    return rawBase64Body(this.base64);
+    return parseScreenshotBase64(this.base64, {
+      label: `Screenshot ${this._id}`,
+    }).body;
   }
 }

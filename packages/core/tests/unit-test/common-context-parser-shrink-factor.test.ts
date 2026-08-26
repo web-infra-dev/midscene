@@ -7,7 +7,7 @@ rs.mock('@midscene/shared/img', async (importOriginal) => ({
   imageInfoOfBase64: rs.fn(),
   resizeBase64ImageToJpeg: rs
     .fn()
-    .mockResolvedValue('data:image/jpeg;base64,mock-resized-base64-data'),
+    .mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ'),
 }));
 
 import {
@@ -15,7 +15,8 @@ import {
   resizeBase64ImageToJpeg,
 } from '@midscene/shared/img';
 
-const mockScreenshotBase64 = 'data:image/png;base64,mock-base64-data';
+const mockScreenshotBase64 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
 const mockedImageInfo = rs.mocked(imageInfoOfBase64);
 const mockedResizeToJpeg = rs.mocked(resizeBase64ImageToJpeg);
 
@@ -41,7 +42,7 @@ describe('commonContextParser screenshotShrinkFactor', () => {
   it('converts PNG screenshots to JPEG quality 90 when not shrinking', async () => {
     const mockInterface = createMockInterface(800, 400);
     mockedImageInfo.mockResolvedValue({ width: 2400, height: 1200 });
-    mockedResizeToJpeg.mockResolvedValue('data:image/jpeg;base64,jpeg-image');
+    mockedResizeToJpeg.mockResolvedValue('data:image/jpeg;base64,/9j/4AAQ');
 
     const result = await commonContextParser(mockInterface, {});
 
@@ -50,7 +51,7 @@ describe('commonContextParser screenshotShrinkFactor', () => {
       targetSize: { width: 2400, height: 1200 },
       jpegQuality: 90,
     });
-    expect(result.screenshot.base64).toBe('data:image/jpeg;base64,jpeg-image');
+    expect(result.screenshot.base64).toBe('data:image/jpeg;base64,/9j/4AAQ');
   });
 
   it('does not shrink when screenshotShrinkFactor is not provided', async () => {

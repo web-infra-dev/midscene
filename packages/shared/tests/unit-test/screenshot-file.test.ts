@@ -35,6 +35,20 @@ describe('CLI WebP screenshot files', () => {
     expect(readFileSync(filePath).toString('base64')).toBe(webpBase64);
   });
 
+  it('rejects metadata that disagrees with screenshot bytes', () => {
+    const directoryPath = makeTemporaryDirectory();
+
+    expect(() =>
+      writeCliScreenshotFile(webpBase64, {
+        id: 'mislabeled-shot',
+        mimeType: 'image/png',
+        extension: 'png',
+        directoryPath,
+      }),
+    ).toThrow('encoded bytes are webp');
+    expect(existsSync(join(directoryPath, 'mislabeled-shot.png'))).toBe(false);
+  });
+
   it('exports inline WebP screenshots for verbose output', () => {
     const directoryPath = makeTemporaryDirectory();
     const screenshot = {

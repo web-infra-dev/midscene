@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseScreenshotBase64 } from '../img/base64';
 import {
-  type ScreenshotImageFormat,
   screenshotImageFormatFromExtension,
   screenshotImageFormatFromMimeType,
 } from '../img/image-format';
@@ -22,25 +22,36 @@ function safeScreenshotFilenamePart(value: unknown): string {
   return text.replace(/[^a-zA-Z0-9._-]/g, '_') || 'shot';
 }
 
-function extensionFromImageMetadata(
-  mimeType: unknown,
-  extension: unknown,
-): ScreenshotImageFormat {
-  const extensionFormat = screenshotImageFormatFromExtension(extension);
-  if (extensionFormat) {
-    return extensionFormat;
-  }
-  return screenshotImageFormatFromMimeType(mimeType) ?? 'png';
-}
-
 export function writeCliScreenshotFile(
   rawBase64: string,
   options: WriteCliScreenshotFileOptions = {},
 ): string {
-  const extension = extensionFromImageMetadata(
+  const parsed = parseScreenshotBase64(rawBase64, {
+    label: 'CLI screenshot',
+  });
+  const declaredMimeFormat = screenshotImageFormatFromMimeType(
     options.mimeType,
+  );
+  const declaredExtensionFormat = screenshotImageFormatFromExtension(
     options.extension,
   );
+  if (options.mimeType !== undefined && !declaredMimeFormat) {
+    throw new Error(`Unsupported screenshot MIME type: ${options.mimeType}`);
+  }
+  if (options.extension !== undefined && !declaredExtensionFormat) {
+    throw new Error(`Unsupported screenshot extension: ${options.extension}`);
+  }
+  for (const [label, declaredFormat] of [
+    ['MIME type', declaredMimeFormat],
+    ['extension', declaredExtensionFormat],
+  ] as const) {
+    if (declaredFormat && declaredFormat !== parsed.format) {
+      throw new Error(
+        `CLI screenshot ${label} describes ${declaredFormat}, but encoded bytes are ${parsed.format}`,
+      );
+    }
+  }
+  const extension = parsed.extension;
   const directory = options.directoryPath
     ? options.directoryPath
     : options.directoryName
@@ -57,7 +68,7 @@ export function writeCliScreenshotFile(
   const filePath = join(directory, filename);
 
   if (options.overwrite !== false || !existsSync(filePath)) {
-    writeFileSync(filePath, Buffer.from(rawBase64, 'base64'));
+    writeFileSync(filePath, parsed.bytes);
   }
 
   return filePath;

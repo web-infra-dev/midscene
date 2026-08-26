@@ -23,8 +23,14 @@ function tempDirectory(): string {
   return directory;
 }
 
+const pngSignature = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
 const dataUrl = (text: string) =>
-  `data:image/png;base64,${Buffer.from(text).toString('base64')}`;
+  `data:image/png;base64,${Buffer.concat([
+    pngSignature,
+    Buffer.from(text),
+  ]).toString('base64')}`;
 const webpDataUrl =
   'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
@@ -68,7 +74,9 @@ describe('UIObservationRecordWriter', () => {
     const resolved = readUIObservationRecord(outputPath);
     expect(isAbsolute(resolved.frames[0].path)).toBe(true);
     expect(existsSync(resolved.frames[0].path)).toBe(true);
-    expect(readFileSync(resolved.frames[0].path, 'utf8')).toBe('same-frame');
+    expect(readFileSync(resolved.frames[0].path)).toEqual(
+      Buffer.from(dataUrl('same-frame').split(',')[1], 'base64'),
+    );
   });
 
   it('rejects missing, absolute, and escaping image paths', () => {
@@ -106,7 +114,18 @@ describe('UIObservationRecordWriter', () => {
       join(tempDirectory(), 'record.json'),
     );
     expect(() => writer.persistFrame('not-an-image', 100)).toThrow(
-      /PNG, JPEG, or WebP data URL/,
+      /UI observation frame/,
+    );
+  });
+
+  it('rejects frame MIME metadata that disagrees with encoded bytes', () => {
+    const writer = new UIObservationRecordWriter(
+      join(tempDirectory(), 'record.json'),
+    );
+    const mismatched = webpDataUrl.replace('image/webp', 'image/png');
+
+    expect(() => writer.persistFrame(mismatched, 100)).toThrow(
+      'declares image/png but encoded bytes are image/webp',
     );
   });
 

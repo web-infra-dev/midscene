@@ -27,7 +27,8 @@ import {
 } from '../../src/types';
 
 function fakeBase64(sizeBytes: number): string {
-  return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
+  const signature = 'iVBORw0KGgoAAAAA';
+  return `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, sizeBytes - signature.length))}`;
 }
 
 type TaskShape = {
