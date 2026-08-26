@@ -1,5 +1,35 @@
 # 更新日志
 
+## v1.12 - DeepSeek V4、新版 Test Runner 与报告耗时汇总
+
+v1.12 支持 DeepSeek V4 视觉模型，推出新版 Test Runner（Beta），并为报告增加耗时汇总。
+
+### DeepSeek V4 视觉模型支持
+
+- 支持 `deepseek-v4-flash-vision-exp`。配置方法参见[常用模型配置](./model-common-config#deepseek)，更多信息参见[Midscene 1.12 支持 DeepSeek V4 Flash Vision Exp](https://mp.weixin.qq.com/s/FDAPd1WrNP6Sb8SRJUen6w)。
+
+### 新版 Test Runner（Beta）
+
+- 新增 `@midscene/test`，支持使用 YAML 编写自然语言测试，也可通过 TypeScript Node 扩展。Test Runner 将逐步替代旧版 YAML 自动化方案，协议和 API 目前仍处于 Beta 阶段。详见 [Test Runner 概览](./test-runner-overview)。
+
+### 报告与稳定性
+
+- Report 侧边栏新增总耗时和模型调用耗时，Markdown 报告也会按模型汇总耗时和 Token 用量。
+- 截图处理流程会把观察帧统一保存为 JPEG，减少运行产物占用的空间。
+- 修复 Electron ASAR 包中的资源路径解析问题。受影响的资源包括 yadb 和 scrcpy 外部二进制文件。
+
+## v1.11 - 多平台稳定性改进
+
+v1.11 提高了模型验证、移动端输入和报告生成的稳定性。
+
+### 稳定性与文档
+
+- 修复模型验证回调丢失 Playground SDK 方法上下文的问题。
+- 修复 HarmonyOS 无法正确解析应用启动目标的问题。该问题会影响已声明的 ability 和经过映射的目标。
+- Android 和 HarmonyOS 清空输入框前会先全选文本，以兼容更多输入法和控件。
+- Playwright 报告文件名增加长度限制和重名规避，避免长标题触发 `ENAMETOOLONG` 错误。
+- 补充 Doubao Seed Android showcase 的执行成本数据。
+
 ## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
 
 v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。

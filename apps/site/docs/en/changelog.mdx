@@ -1,5 +1,35 @@
 # Changelog
 
+## v1.12 - DeepSeek V4, New Test Runner, and Report Timing Summaries
+
+v1.12 adds DeepSeek V4 vision model support, introduces the new Test Runner (Beta), and adds timing summaries to reports.
+
+### DeepSeek V4 Vision Model Support
+
+- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-common-config#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
+
+### New Test Runner (Beta)
+
+- Added `@midscene/test` for natural-language tests in YAML with TypeScript Node extensions. The Test Runner will gradually replace the legacy YAML automation solution; its protocol and APIs remain in Beta. See the [Test Runner overview](./test-runner-overview).
+
+### Reports and Reliability
+
+- The Report sidebar now shows total elapsed time and model-call time. Markdown reports also summarize time and token usage by model.
+- The screenshot pipeline now saves observation frames as JPEG, reducing the storage footprint of run artifacts.
+- Fixed resource resolution for external yadb and scrcpy binaries in Electron ASAR packages.
+
+## v1.11 - Cross-Platform Reliability Improvements
+
+v1.11 improves model verification, mobile input, and report generation reliability.
+
+### Reliability and Documentation
+
+- Fixed the model verification callback losing its Playground SDK method context.
+- Fixed HarmonyOS explicit app launches failing to resolve declared abilities or mapped launch targets.
+- Android and HarmonyOS now select all text before clearing an input, improving compatibility across input methods and controls.
+- Playwright report filenames are now bounded and collision-resistant, preventing `ENAMETOOLONG` failures from long titles.
+- Added execution cost data to the Doubao Seed Android showcase.
+
 ## v1.10 - BDD-Style Scripts, Doubao-Seed-2.1, and MCP Retirement
 
 v1.10 adds BDD-style Gherkin script execution, upgrades the recommended Doubao model to Doubao-Seed-2.1, and formally retires MCP server packages. Going forward, use Skills and the platform CLIs when AI agents need to drive Midscene.
