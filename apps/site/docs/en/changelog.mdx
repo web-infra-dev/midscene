@@ -1,57 +1,34 @@
 # Changelog
 
-## v1.12 - New Test Runner, DeepSeek V4, and Report Timing Summaries
+## v1.12 - DeepSeek V4, New Test Runner, and Report Timing Summaries
 
-v1.12 introduces the new Test Runner (Beta). It also adds DeepSeek V4 vision model support and timing summaries to reports.
-
-### New Test Runner (Beta)
-
-- Added `@midscene/test`. Test authors can describe natural-language cases in declarative YAML. Framework developers can use TypeScript Nodes for API calls, data setup, resource management, and other extensions.
-- Supports custom Nodes, variables, tag filtering, and retries. Lifecycle hooks include `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`.
-- Supports multiple Execution Projects and image prompts for `aiAct` and `aiAssert`.
-- Added the `midscene-test` CLI for running a whole project or selected files. The `describe-nodes` command exports Node definitions as Markdown for developers and AI agents.
-- The Test Runner will gradually replace the legacy YAML automation solution. Its protocol and APIs are still in Beta. See: [Test Runner overview](./test-runner-overview), [Write and run test cases](./use-test-runner), and [Extend and maintain Test Runner](./extend-test-runner).
+v1.12 adds DeepSeek V4 vision model support, introduces the new Test Runner (Beta), and adds timing summaries to reports.
 
 ### DeepSeek V4 Vision Model Support
 
-- Added a DeepSeek adapter. `deepseek-v4-flash-vision-exp` supports planning, element location, and model-native reasoning configuration.
-- `deepseek-v4-flash-vision-exp` is currently the only DeepSeek V4 model with the multimodal visual input required by Midscene. See [Common Model Configuration](./model-common-config#deepseek) for setup instructions. For more background and examples, read [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial).
+- Added support for `deepseek-v4-flash-vision-exp`. See [Common Model Configuration](./model-common-config#deepseek) for setup and [Midscene 1.12: Support for DeepSeek V4 Flash Vision Exp Multimodal Model](https://medium.com/@midscene/midscene-1-12-support-for-deepseek-v4-flash-vision-exp-multimodal-model-f87395075114?postPublishedType=initial) for details.
 
-### Reports and Runtime Data
+### New Test Runner (Beta)
 
-- The Report sidebar now shows total elapsed time and model-call time. These values distinguish actual execution time from cumulative model request time.
-- Markdown reports also summarize time and token usage. Core can aggregate these values by model.
+- Added `@midscene/test` for natural-language tests in YAML with TypeScript Node extensions. The Test Runner will gradually replace the legacy YAML automation solution; its protocol and APIs remain in Beta. See the [Test Runner overview](./test-runner-overview).
+
+### Reports and Reliability
+
+- The Report sidebar now shows total elapsed time and model-call time. Markdown reports also summarize time and token usage by model.
 - The screenshot pipeline now saves observation frames as JPEG, reducing the storage footprint of run artifacts.
-
-### Android and Build Reliability
-
 - Fixed resource resolution for external yadb and scrcpy binaries in Electron ASAR packages.
-- Reworked the generation and caching of Core's embedded Report templates. This reduces missing-template and unresolved-placeholder failures during local incremental builds.
-- Refactored Planning and Locate protocols and response parsing. Model-specific formats and compatibility rules can now evolve independently.
 
-## v1.11 - Planning Protocol and Cross-Platform Reliability Improvements
+## v1.11 - Cross-Platform Reliability Improvements
 
-v1.11 improves the planning action protocol and cross-platform reliability. It also refreshes the core concepts documentation and product positioning.
+v1.11 improves model verification, mobile input, and report generation reliability.
 
-### Planning and Debugging
+### Reliability and Documentation
 
-- Reorganized Planning prompts, action definitions, and examples. The planning action output protocol is now decoupled from the core flow, allowing model protocols to evolve independently.
-- Fixed the model verification callback losing its Playground SDK method context. Model connectivity tests can now call the SDK method correctly.
-
-### Android and HarmonyOS
-
+- Fixed the model verification callback losing its Playground SDK method context.
 - Fixed HarmonyOS explicit app launches failing to resolve declared abilities or mapped launch targets.
-- Android and HarmonyOS now select all text before clearing an input. This improves compatibility across input methods and controls.
-
-### Web and Reports
-
-- Playwright report filenames are now bounded and collision-resistant. Long test titles no longer cause `ENAMETOOLONG` failures.
-
-### Documentation and Site
-
-- Added a [Basic concepts](./basics) guide covering core capabilities such as `aiAct`, `aiQuery`, `aiAssert`, `deepThink`, and `deepLocate`.
-- Updated the homepage and README to position Midscene more clearly as a GUI Agent for end-to-end testing.
-- Added execution cost data to the Doubao Seed Android showcase and improved model and platform documentation entry points.
+- Android and HarmonyOS now select all text before clearing an input, improving compatibility across input methods and controls.
+- Playwright report filenames are now bounded and collision-resistant, preventing `ENAMETOOLONG` failures from long titles.
+- Added execution cost data to the Doubao Seed Android showcase.
 
 ## v1.10 - BDD-Style Scripts, Doubao-Seed-2.1, and MCP Retirement
 
