@@ -11,9 +11,13 @@ import yaml from 'js-yaml';
 import { buildLocatePromptWithContext } from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
+const warnUtils = getDebug('yaml:utils', { console: true });
 
 const topLevelTasksPattern = /^tasks\s*:/;
 const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
+const androidBlockStartPattern = /^android\s*:\s*(?:#.*)?$/;
+const numericDeviceIdPattern =
+  /^(\s*deviceId\s*:\s*)(\d+)((?:[^\S\r\n]+#.*|[^\S\r\n]*))$/;
 
 export type WebTargetSource = 'page' | 'browser' | 'web' | 'target';
 
@@ -232,26 +236,71 @@ function interpolateYamlScriptEnvVars(content: string): string {
     .join('\n');
 }
 
+function quoteNumericAndroidDeviceIds(content: string): {
+  content: string;
+  exampleDeviceId?: string;
+} {
+  let inAndroidBlock = false;
+  let propertyIndent: number | undefined;
+  let exampleDeviceId: string | undefined;
+
+  const normalizedLines = content.split(/(?<=\n)/).map((line) => {
+    const lineEnding = line.endsWith('\r\n')
+      ? '\r\n'
+      : line.endsWith('\n')
+        ? '\n'
+        : '';
+    const lineContent = line.slice(0, line.length - lineEnding.length);
+    const trimmedLine = lineContent.trimStart();
+
+    if (!trimmedLine || trimmedLine.startsWith('#')) {
+      return line;
+    }
+
+    const indent = lineContent.length - trimmedLine.length;
+    if (indent === 0) {
+      inAndroidBlock = androidBlockStartPattern.test(lineContent);
+      propertyIndent = undefined;
+      return line;
+    }
+
+    if (!inAndroidBlock) {
+      return line;
+    }
+
+    propertyIndent ??= indent;
+    if (indent !== propertyIndent) {
+      return line;
+    }
+
+    const match = numericDeviceIdPattern.exec(lineContent);
+    if (!match) {
+      return line;
+    }
+
+    const [, prefix, deviceId, suffix] = match;
+    exampleDeviceId ??= deviceId;
+    return `${prefix}'${deviceId}'${suffix}${lineEnding}`;
+  });
+
+  return {
+    content: normalizedLines.join(''),
+    exampleDeviceId,
+  };
+}
+
 export function parseYamlScript(
   content: string,
   filePath?: string,
 ): MidsceneYamlScript {
-  let processedContent = content;
-  if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
-    let matchedDeviceId;
-    processedContent = content.replace(
-      /deviceId:\s*(\d+)/g,
-      (match, deviceId) => {
-        matchedDeviceId = deviceId;
-        return `deviceId: '${deviceId}'`;
-      },
-    );
-    console.warn(
-      `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
+  const interpolatedContent = interpolateYamlScriptEnvVars(content);
+  const normalizedDeviceIds = quoteNumericAndroidDeviceIds(interpolatedContent);
+  if (normalizedDeviceIds.exampleDeviceId) {
+    warnUtils(
+      `Numeric Android deviceId values are treated as strings. Quote deviceId in YAML, for example: deviceId: "${normalizedDeviceIds.exampleDeviceId}".`,
     );
   }
-  const interpolatedContent = interpolateYamlScriptEnvVars(processedContent);
-  const obj = yaml.load(interpolatedContent, {
+  const obj = yaml.load(normalizedDeviceIds.content, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
 
