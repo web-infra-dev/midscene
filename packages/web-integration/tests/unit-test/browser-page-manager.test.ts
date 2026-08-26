@@ -1,9 +1,12 @@
 import {
   BrowserPageManager,
-  appendBrowserAgentPageActions,
-  createBrowserAgentPageActions,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
+import {
+  BrowserPageManagerSlot,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
+} from '@/common/browser-page-actions';
 import { describe, expect, it, rs } from '@rstest/core';
 
 type PageMock = {
@@ -37,6 +40,8 @@ function createManager(options?: {
   newPage?: PageMock;
   pages?: PageMock[];
   activePage?: PageMock;
+  pageTitle?: (page: PageMock) => string;
+  pageUrl?: (page: PageMock) => string;
 }) {
   let activePage =
     options?.activePage ?? options?.pages?.[0] ?? createPage('initial');
@@ -62,8 +67,8 @@ function createManager(options?: {
       },
       isPageClosed: (page) => Boolean(page.closed),
       bringToFront: (page) => page.bringToFront(),
-      pageTitle: (page) => page.title,
-      pageUrl: (page) => page.url,
+      pageTitle: options?.pageTitle ?? ((page) => page.title),
+      pageUrl: options?.pageUrl ?? ((page) => page.url),
       onNewPage: (handler) => {
         handlers.add(handler);
       },
@@ -132,6 +137,18 @@ describe('BrowserPageManager', () => {
     ]);
   });
 
+  it('reports page metadata failures instead of returning blank values', async () => {
+    const ctx = createManager({
+      pageTitle: () => {
+        throw new Error('title unavailable');
+      },
+    });
+
+    await expect(ctx.manager.pageSummaries()).rejects.toThrow(
+      'title unavailable',
+    );
+  });
+
   it('sets the active page by selector', async () => {
     const initial = createPage('initial', {
       title: 'Home',
@@ -155,6 +172,34 @@ describe('BrowserPageManager', () => {
       url: 'https://example.com/docs',
     });
     expect(docs.bringToFront).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates title and url when they accompany an index selector', async () => {
+    const initial = createPage('initial', {
+      title: 'Home',
+      url: 'https://example.com/home',
+    });
+    const docs = createPage('docs', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const ctx = createManager({ pages: [initial, docs] });
+
+    await expect(
+      ctx.manager.setActivePageBySelector({
+        index: 1,
+        title: 'docs',
+        url: '/docs',
+      }),
+    ).resolves.toMatchObject({ index: 1, title: 'Docs' });
+
+    await expect(
+      ctx.manager.setActivePageBySelector({ index: 0, title: 'Docs' }),
+    ).rejects.toThrow(
+      '[midscene] TestBrowserAgent page at index 0 does not match title "Docs". Run ListBrowserPages again before selecting a page.',
+    );
+    expect(ctx.activePage).toBe(docs);
+    expect(initial.bringToFront).not.toHaveBeenCalled();
   });
 
   it('rejects ambiguous title or url selectors', async () => {
@@ -211,11 +256,60 @@ describe('BrowserPageManager', () => {
       },
     ]);
     expect(taskContext.task.planningFeedback).toBe(
-      `ListBrowserPages returned the following open pages. Use a 0-based index with SetActivePage when selecting a page:\n${JSON.stringify(summaries, null, 2)}`,
+      'ListBrowserPages indexes 0-1; active 0 (0-based). Use SetActivePage:\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
     );
 
     await actions[1].call({ index: 1 }, {} as any);
     expect(ctx.activePage).toBe(docs);
+  });
+
+  it('fits every page index within the core planning feedback limit', async () => {
+    const pages = Array.from({ length: 6 }, (_, index) =>
+      createPage(`page-${index}`, {
+        title: `Page ${index} ${'title '.repeat(12)}`,
+        url: `https://example.com/${index}/${'long-path/'.repeat(12)}`,
+      }),
+    );
+    const ctx = createManager({ pages, activePage: pages[2] });
+    const actions = createBrowserAgentPageActions({
+      agentName: 'TestBrowserAgent',
+      getPageManager: () => ctx.manager,
+    });
+    const taskContext = { task: {} } as any;
+
+    await actions[0].call(undefined, taskContext);
+
+    const feedback = taskContext.task.planningFeedback as string;
+    expect(feedback.length).toBeLessThanOrEqual(500);
+    for (const [index] of pages.entries()) {
+      const marker = index === 2 ? '*' : ' ';
+      expect(feedback).toContain(`${marker}${index}|`);
+    }
+  });
+
+  it('uses the current page manager after the manager is replaced', async () => {
+    const firstPage = createPage('first');
+    const secondPage = createPage('second');
+    const first = createManager({
+      pages: [firstPage],
+      autoFollowNewPage: true,
+    });
+    const second = createManager({ pages: [secondPage] });
+    const pageManagerSlot = new BrowserPageManagerSlot<PageMock, NewPageEvent>(
+      'TestBrowserAgent',
+    );
+    pageManagerSlot.initialize(first.manager);
+    const actions = createBrowserAgentPageActions({
+      agentName: 'TestBrowserAgent',
+      getPageManager: () => pageManagerSlot.requireCurrent(),
+    });
+
+    pageManagerSlot.replace(second.manager);
+    await actions[1].call({ index: 0 }, {} as any);
+
+    expect(first.handlers.size).toBe(0);
+    expect(secondPage.bringToFront).toHaveBeenCalledTimes(1);
+    expect(firstPage.bringToFront).not.toHaveBeenCalled();
   });
 
   it('keeps custom actions ahead of browser page actions', () => {

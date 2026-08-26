@@ -1909,7 +1909,7 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Puppeteer 页面。
 - `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
-- AI 页面选择 action —— Browser Agent 会在 actionSpace 中暴露 `ListBrowserPages` 和 `SetActivePage`，AI 计划可以先查看已打开的标签页，再按 index、title 或 URL 切换 active page。这些 action 不会出现在 Page Agent 上。
+- AI 页面选择 action —— Browser Agent 的 `actionSpace` 包含 `ListBrowserPages` 和 `SetActivePage`。AI 可以先查看已打开的标签页，再按 index、title 或 URL 切换 active page。index 可以与 title 或 URL 一起使用。此时，所有 selector 必须匹配同一个页面。匹配失败后，Agent 需要重新获取页面列表。Page Agent 不包含这些 action。
 
 <a id="web-快速上手"></a>
 <a id="web-连接远程-puppeteer-浏览器"></a>
@@ -1978,7 +1978,7 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Playwright 页面。
 - `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
-- AI 页面选择 action —— Browser Agent 会在 actionSpace 中暴露 `ListBrowserPages` 和 `SetActivePage`，AI 计划可以先查看已打开的标签页，再按 index、title 或 URL 切换 active page。这些 action 不会出现在 Page Agent 上。
+- AI 页面选择 action —— Browser Agent 的 `actionSpace` 包含 `ListBrowserPages` 和 `SetActivePage`。AI 可以先查看已打开的标签页，再按 index、title 或 URL 切换 active page。index 可以与 title 或 URL 一起使用。此时，所有 selector 必须匹配同一个页面。匹配失败后，Agent 需要重新获取页面列表。Page Agent 不包含这些 action。
 
 <a id="web-playwright-快速上手"></a>
 <a id="web-使用-midscene-fixture-扩展-playwright-测试"></a>
