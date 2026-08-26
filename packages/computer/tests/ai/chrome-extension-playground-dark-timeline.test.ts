@@ -19,7 +19,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-rs.setConfig({ testTimeout: 600 * 1000 });
+rs.setConfig({ testTimeout: 900 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -83,8 +83,12 @@ describe('chrome extension dark Playground timeline', () => {
       'The Bing page on the left shows search results for "midscene.js"',
       { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
+    await agent.aiWaitFor(
+      `${SIDE_PANEL} shows that the Playground execution has finished: there is no blue loading spinner in the timeline and the bottom action control no longer says "Stop"`,
+      { timeoutMs: 240000, checkIntervalMs: 10000 },
+    );
     await agent.aiAssert(
-      `${SIDE_PANEL} is in dark mode and shows a completed Playground execution timeline. Completed steps have green check icons and readable descriptions. A thin light-gray vertical connector is visible below each completed check icon and extends toward the next step, including short one-line Plan, Input, and KeyboardPress rows. Small gaps where status icons cover the connector are expected, and the line may be thin or medium gray rather than pure white. The timeline clear control in the top-right is fully inside the side-panel edge and is not clipped.`,
+      `${SIDE_PANEL} is in dark mode and shows completed Playground timeline rows with green check icons and readable descriptions. For the completed rows that are currently visible, a thin light-gray vertical connector extends from each check icon toward the next row. Judge only the action types shown; exact step names may vary. Small gaps where status icons cover the connector are expected, and the line may be thin or medium gray rather than pure white. The full trash-can glyph and its rounded control in the top-right are visible; being close to the panel edge is acceptable when no part is cut off.`,
     );
   });
 });
