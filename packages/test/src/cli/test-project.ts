@@ -633,7 +633,7 @@ export async function loadTestProject<TContext = undefined>(
   assertTypeScriptConfig(absolutePath);
   let loaded: unknown;
   try {
-    loaded = await tsImport(absolutePath, {
+    loaded = await tsImport(pathToFileURL(absolutePath).href, {
       parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
       tsconfig: false,
     });
