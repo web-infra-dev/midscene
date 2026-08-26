@@ -103,7 +103,7 @@ tasks:
       expect(result.android?.deviceId).toBe('001234567890');
     });
 
-    test('illegal android deviceId', () => {
+    test('rejects non-decimal numeric Android deviceId', () => {
       const yamlContent = `
 android:
   deviceId: 0x222
@@ -111,7 +111,9 @@ tasks:
 - sleep: 1000
 `;
 
-      expect(() => parseYamlScript(yamlContent)).toThrow();
+      expect(() => parseYamlScript(yamlContent)).toThrow(
+        'property "android.deviceId" must be a string',
+      );
     });
 
     test('legal android deviceId', () => {

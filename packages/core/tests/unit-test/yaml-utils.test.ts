@@ -56,6 +56,14 @@ ${tasks}`);
     },
   );
 
+  it('rejects non-decimal YAML numbers as Android device IDs', () => {
+    expect(() =>
+      parseYamlScript(`android:
+  deviceId: 0x222
+${tasks}`),
+    ).toThrow('property "android.deviceId" must be a string');
+  });
+
   it('does not rewrite numeric deviceId fields outside the Android target', () => {
     const script = parseYamlScript(`android:
   deviceId: 123

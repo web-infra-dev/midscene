@@ -305,6 +305,11 @@ export function parseYamlScript(
   }) as MidsceneYamlScript;
 
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
+  assert(
+    obj.android?.deviceId === undefined ||
+      typeof obj.android.deviceId === 'string',
+    `property "android.deviceId" must be a string in yaml script${pathTip}`,
+  );
   resolveWebTarget(obj);
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
   assert(
