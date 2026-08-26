@@ -22,12 +22,14 @@ function camelToKebab(str: string): string {
     .replace(/^-/, ''); // Remove leading dash if present
 }
 
-export const parseProcessArgs = async (): Promise<{
+export const parseProcessArgs = async (
+  processArgs: string[] = process.argv,
+): Promise<{
   path?: string;
   files?: string[];
   options: Record<string, any>;
 }> => {
-  const args = yargs(hideBin(process.argv))
+  const args = yargs(hideBin(processArgs))
     .parserConfiguration({
       'dot-notation': true, // Enable dot notation to parse --web.userAgent as nested object
     })
@@ -92,6 +94,11 @@ Usage:
       'dotenv-debug': {
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
+      },
+      json: {
+        type: 'boolean',
+        description:
+          'Write one machine-readable JSON result to stdout without progress logs',
       },
     })
     .version('version', 'Show version number', __VERSION__)

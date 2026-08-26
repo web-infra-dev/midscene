@@ -4,7 +4,9 @@ import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { BatchRunner, type BatchRunnerConfig } from '../batch-runner';
 import {
   createNotExecutedYamlResult,
+  getExecutionSummary,
   getSummaryAbsolutePath,
+  isExecutionSummarySuccessful,
   printExecutionFinished,
   printExecutionPlan,
   printExecutionSummary,
@@ -22,6 +24,9 @@ interface WebRuntimeOptions {
   headed?: boolean;
   keepWindow?: boolean;
 }
+
+export const JSON_KEEP_WINDOW_ERROR =
+  'JSON output mode cannot be used when keepWindow is enabled because the command does not terminate.';
 
 export interface FrameworkTestCommandOptions extends WebRuntimeOptions {
   projectDir?: string;
@@ -41,6 +46,16 @@ export interface FrameworkTestCommandOptions extends WebRuntimeOptions {
   ) => Promise<MidsceneYamlConfigResult[]>;
 }
 
+type FrameworkTestCommandDetailedOptions = FrameworkTestCommandOptions & {
+  outputMode?: 'human' | 'json';
+};
+
+export interface FrameworkTestCommandResult {
+  exitCode: number;
+  results: MidsceneYamlConfigResult[];
+  summaryPath: string;
+}
+
 const defaultInProcessRunner = (
   config: BatchRunnerConfig,
 ): Promise<MidsceneYamlConfigResult[]> => new BatchRunner(config).run();
@@ -54,15 +69,17 @@ const defaultInProcessRunner = (
 // pass --keep-window in the first place.
 async function runConfigInMainProcess(
   config: BatchRunnerConfig,
-  commandOptions: FrameworkTestCommandOptions,
-): Promise<number> {
+  commandOptions: FrameworkTestCommandDetailedOptions,
+): Promise<FrameworkTestCommandResult> {
   const runner = commandOptions.inProcessRunner ?? defaultInProcessRunner;
   const results = await runner(config);
-  const success = printExecutionSummary(
+  const summaryPath = getSummaryAbsolutePath(config.summary);
+  const success = printExecutionSummary(results, summaryPath);
+  return {
+    exitCode: success ? 0 : 1,
     results,
-    getSummaryAbsolutePath(config.summary),
-  );
-  return success ? 0 : 1;
+    summaryPath,
+  };
 }
 
 const createCaseOptions = (
@@ -104,15 +121,22 @@ const readProjectResults = (
     return createNotExecutedYamlResult(item.yamlFile);
   });
 
-export async function runFrameworkTestConfig(
+export async function runFrameworkTestConfigDetailed(
   config: BatchRunnerConfig,
-  commandOptions: FrameworkTestCommandOptions = {},
-): Promise<number> {
+  commandOptions: FrameworkTestCommandDetailedOptions = {},
+): Promise<FrameworkTestCommandResult> {
+  if (config.keepWindow && commandOptions.outputMode === 'json') {
+    throw new Error(JSON_KEEP_WINDOW_ERROR);
+  }
+
   if (config.keepWindow) {
     return runConfigInMainProcess(config, commandOptions);
   }
 
-  printExecutionPlan(config);
+  const shouldPrintHumanOutput = commandOptions.outputMode !== 'json';
+  if (shouldPrintHumanOutput) {
+    printExecutionPlan(config);
+  }
 
   const projectDir = resolve(commandOptions.projectDir || process.cwd());
   const project = createRstestYamlProject({
@@ -135,13 +159,30 @@ export async function runFrameworkTestConfig(
   const exitCode = await runner({
     project,
     cwd: projectDir,
-    stdio: commandOptions.stdio,
+    stdio: commandOptions.outputMode === 'json' ? 'pipe' : commandOptions.stdio,
   });
 
   const results = readProjectResults(project);
   const summaryPath = writeExecutionSummaryFile(config.summary, results);
-  printExecutionFinished();
-  const success = printExecutionSummary(results, summaryPath);
+  let success: boolean;
+  if (shouldPrintHumanOutput) {
+    printExecutionFinished();
+    success = printExecutionSummary(results, summaryPath);
+  } else {
+    success = isExecutionSummarySuccessful(getExecutionSummary(results));
+  }
 
-  return success ? exitCode : 1;
+  return {
+    exitCode: success ? exitCode : 1,
+    results,
+    summaryPath,
+  };
+}
+
+export async function runFrameworkTestConfig(
+  config: BatchRunnerConfig,
+  commandOptions: FrameworkTestCommandOptions = {},
+): Promise<number> {
+  const result = await runFrameworkTestConfigDetailed(config, commandOptions);
+  return result.exitCode;
 }

@@ -156,6 +156,50 @@ After execution, the output directory contains:
 - Individual execution results for each YAML file (JSON).
 - Visual reports for each script (HTML).
 
+### Consume the result as JSON
+
+Use `--json` when another program or Agent needs to consume the final result:
+
+```bash
+midscene ./bing-search.yaml --json | jq .
+```
+
+The command writes exactly one versioned JSON object to stdout and suppresses normal progress output. It preserves the usual process exit code: `0` when every script succeeds and a non-zero value otherwise. A completed run, including one with failed scripts, has this shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "exitCode": 0,
+  "summary": {
+    "path": "/path/to/midscene_run/output/summary.json",
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "partialFailed": 0,
+    "notExecuted": 0,
+    "totalDuration": 85490
+  },
+  "results": [
+    {
+      "file": "/path/to/bing-search.yaml",
+      "success": true,
+      "executed": true,
+      "resultType": "success",
+      "duration": 85490,
+      "error": null,
+      "report": "/path/to/midscene_run/report/bing-search.html",
+      "outputPath": "/path/to/midscene_run/output/bing-search.json",
+      "output": { "answer": "done" }
+    }
+  ]
+}
+```
+
+If the CLI cannot create or serialize a run result, stdout still contains a structured error object with `ok: false`, `exitCode`, and `error.name` / `error.message`. A declared YAML output file must exist and contain valid JSON; otherwise serialization fails explicitly instead of returning a silent `null` value.
+
+`--json` cannot be combined with `--keep-window`, because that command intentionally does not terminate, or with `--dotenv-debug`, because dotenv debug messages are not machine-readable. Diagnostic warnings from dependencies may still use stderr; stdout remains the JSON contract.
+
 ### Run in headed mode
 
 > Web page scenarios only
@@ -219,6 +263,7 @@ The CLI provides parameters to control how scripts run:
 - `--retry <number>`: Number of extra attempts for a failed script. Only failed scripts are retried, which helps with unstable networks or unstable model output. Default `0`. Puppeteer Web setup retries use a clean BrowserContext and Page, while main-script retries preserve the successful setup context. Other targets create a new player and Agent for each retry without resetting their underlying environment.
 - `--share-browser-context`: Share one Puppeteer BrowserContext (cookies, same-origin `localStorage`, etc.) across scripts while giving every YAML script an independent Page. Page-scoped state such as `sessionStorage`, the DOM, URL, and `window.name` is not shared, even with `--concurrent 1`. Every setup and main script in the batch must use a Puppeteer Web target. Bridge mode and non-Web targets are not supported. Because the browser is created or connected only once, put browser-level options (`cdpEndpoint`, `chromeArgs`, `acceptInsecureCerts`, and `downloadPath`) in the batch config's global Web target, not in an individual setup or main script. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
+- `--json`: Write one versioned, machine-readable result to stdout. Normal progress output is suppressed. Cannot be combined with `--keep-window` or `--dotenv-debug`.
 - `--headed`: Run in a headed browser instead of headless.
 - `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
 - `--config <filename>`: Config file whose values become defaults for CLI arguments.

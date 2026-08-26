@@ -167,6 +167,49 @@ midscene './scripts/**/*.yaml'
 - 每个 YAML 文件对应的独立执行结果（JSON 格式）。
 - 每个脚本生成的可视化报告（HTML 格式）。
 
+### 以 JSON 格式消费执行结果
+
+当其他程序或 Agent 需要直接消费最终结果时，可以使用 `--json`：
+
+```bash
+midscene ./bing-search.yaml --json | jq .
+```
+
+命令会向 stdout 只写入一个带版本号的 JSON 对象，并关闭常规进度输出。进程退出码保持不变：所有脚本成功时为 `0`，否则为非零值。一次已完成的运行（包括脚本执行失败的情况）具有以下结构：
+
+```json
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "exitCode": 0,
+  "summary": {
+    "path": "/path/to/midscene_run/output/summary.json",
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "partialFailed": 0,
+    "notExecuted": 0,
+    "totalDuration": 85490
+  },
+  "results": [
+    {
+      "file": "/path/to/bing-search.yaml",
+      "success": true,
+      "executed": true,
+      "resultType": "success",
+      "duration": 85490,
+      "error": null,
+      "report": "/path/to/midscene_run/report/bing-search.html",
+      "outputPath": "/path/to/midscene_run/output/bing-search.json",
+      "output": { "answer": "done" }
+    }
+  ]
+}
+```
+
+如果 CLI 无法创建或序列化运行结果，stdout 仍会输出结构化错误对象，其中包含 `ok: false`、`exitCode` 以及 `error.name` / `error.message`。YAML 声明的输出文件必须存在并包含合法 JSON；否则序列化会明确失败，而不是静默返回 `null`。
+
+`--json` 不能与 `--keep-window` 一起使用，因为后者会让命令保持运行；也不能与 `--dotenv-debug` 一起使用，因为 dotenv 调试信息不是机器可读数据。依赖产生的诊断警告仍可能写入 stderr，但 stdout 会保持 JSON 契约。
 
 ### 运行在可视化（Headed）模式
 
@@ -231,6 +274,7 @@ page:
 - `--retry <number>`：失败脚本的额外尝试次数。只有失败的脚本会被重试，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。Puppeteer Web setup retry 使用全新的 BrowserContext 和 Page，主脚本 retry 则保留成功的 setup 上下文。其他 target 每次 retry 会创建新的 player 和 Agent，但不会重置底层运行环境。
 - `--share-browser-context`：在多个 Puppeteer Web 脚本之间共享同一个 BrowserContext（Cookies、同源 `localStorage` 等），同时每个 YAML 使用独立 Page。即使 `--concurrent 1`，`sessionStorage`、DOM、URL、`window.name` 等页面级状态也不会共享。同一批次中的 setup 和主脚本必须全部使用 Puppeteer Web target；不支持桥接模式和非 Web target。由于 Browser 只会创建或连接一次，浏览器级选项（`cdpEndpoint`、`chromeArgs`、`acceptInsecureCerts` 和 `downloadPath`）必须放在批次配置的全局 Web target 中，不能放在单个 setup 或主脚本中。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
+- `--json`：向 stdout 写入一个带版本号、机器可读的结果对象，并关闭常规进度输出。不能与 `--keep-window` 或 `--dotenv-debug` 同时使用。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
 - `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
 - `--config <filename>`：指定配置文件，文件中的参数会作为命令行参数的默认值。

@@ -93,6 +93,7 @@ describe('parseProcessArgs', () => {
       '--keep-window',
       '--continue-on-error',
       '--share-browser-context',
+      '--json',
       '--dotenv-override',
       '--dotenv-debug',
       '--concurrent',
@@ -107,6 +108,7 @@ describe('parseProcessArgs', () => {
     expect(options['keep-window']).toBe(true);
     expect(options['continue-on-error']).toBe(true);
     expect(options['share-browser-context']).toBe(true);
+    expect(options.json).toBe(true);
     expect(options['dotenv-override']).toBe(true);
     expect(options['dotenv-debug']).toBe(true);
     expect(options.concurrent).toBe(3);
@@ -197,6 +199,7 @@ describe('parseProcessArgs', () => {
     expect(options['keep-window']).toBeUndefined();
     expect(options['continue-on-error']).toBeUndefined();
     expect(options['share-browser-context']).toBeUndefined();
+    expect(options.json).toBeUndefined();
     expect(options['dotenv-override']).toBeUndefined();
     expect(options['dotenv-debug']).toBeUndefined();
     expect(options.concurrent).toBeUndefined();

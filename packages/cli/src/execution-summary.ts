@@ -233,6 +233,16 @@ export function getExecutionSummary(
   };
 }
 
+export function isExecutionSummarySuccessful(
+  summary: ExecutionSummary,
+): boolean {
+  return (
+    summary.failed === 0 &&
+    summary.partialFailed === 0 &&
+    summary.notExecuted === 0
+  );
+}
+
 export function getResultsByType(
   results: MidsceneYamlConfigResult[],
   resultType: ResultType,
@@ -437,10 +447,7 @@ export function printExecutionSummary(
   const failedFiles = getResultsByType(results, 'failed');
   const partialFailedFiles = getResultsByType(results, 'partialFailed');
   const notExecutedFiles = getResultsByType(results, 'notExecuted');
-  const success =
-    summary.failed === 0 &&
-    summary.partialFailed === 0 &&
-    summary.notExecuted === 0;
+  const success = isExecutionSummarySuccessful(summary);
 
   console.log('\n📊 Execution Summary:');
   console.log(`   Total files: ${summary.total}`);
