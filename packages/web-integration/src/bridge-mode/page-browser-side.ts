@@ -241,7 +241,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       this.waterFlowAnimationEnabled = options.enableWaterFlowAnimation;
     }
 
-    // 默认保持历史行为：创建新 Tab 后将其激活；调用方可显式创建后台 Tab。
+    // Preserve the historical default: activate the new tab unless the caller opts into background mode.
     const activate = options.activateTab ?? true;
     const tab = await chrome.tabs.create({ url, active: activate });
     const tabId = tab.id;

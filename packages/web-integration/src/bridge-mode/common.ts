@@ -46,8 +46,7 @@ export interface BridgeConnectTabOptions {
    */
   forceSameTabNavigation?: boolean;
   /**
-   * 是否将新创建的 Tab 激活为 Chrome 当前 Tab。
-   * Whether a newly created tab should become Chrome's active tab.
+   * Whether the newly created tab should become Chrome's active tab.
    * @default true
    */
   activateTab?: boolean;

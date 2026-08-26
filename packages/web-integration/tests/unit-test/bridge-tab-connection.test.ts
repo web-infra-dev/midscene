@@ -60,7 +60,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   /**
-   * 验证后台 Tab 可以被控制，但不会改变 Chrome 当前激活的 Tab。
+   * Verify that a background tab can be controlled without changing Chrome's active tab.
    */
   it('creates and controls a background tab without activating it', async () => {
     const page = new ExtensionBridgePageBrowserSide();
@@ -78,7 +78,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   /**
-   * 验证未提供新选项时仍保持旧的激活 Tab 行为。
+   * Verify that omitting the new option preserves the legacy tab activation behavior.
    */
   it('preserves legacy activation when activateTab is omitted', async () => {
     const page = new ExtensionBridgePageBrowserSide();
@@ -94,7 +94,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   /**
-   * 验证旧的设置接口仍会激活受控 Tab。
+   * Verify that the legacy setter still activates the controlled tab.
    */
   it('keeps the legacy setter activating the controlled tab', async () => {
     const page = new ChromeExtensionProxyPage(true);
@@ -106,7 +106,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   /**
-   * 验证销毁页面时会清理后台受控 Tab 的调试器连接。
+   * Verify that destroying the page cleans up the debugger connection for a controlled background tab.
    */
   it('uses the controlled background tab during cleanup', async () => {
     const page = new ChromeExtensionProxyPage(true);
@@ -122,7 +122,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   /**
-   * 验证连接当前 Tab 时不会额外改变用户的 Tab 选择。
+   * Verify that connecting to the current tab does not change the user's tab selection.
    */
   it('connects the current active tab without changing tab selection', async () => {
     const page = new ExtensionBridgePageBrowserSide();

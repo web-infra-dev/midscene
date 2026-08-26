@@ -190,7 +190,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   /**
-   * 设置 Midscene 当前使用的 Tab，并按需将其切换为 Chrome 当前激活 Tab。
+   * Set the tab currently used by Midscene and optionally activate it in Chrome.
    */
   public async setActiveTabId(
     tabId: number,
@@ -236,7 +236,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
-      // 已建立控制关系时始终复用该 Tab，避免误切换到用户后来激活的 Tab。
+      // Always reuse the controlled tab to avoid switching to a tab activated later by the user.
       return this.activeTabId;
     }
     const tabId = await chrome.tabs

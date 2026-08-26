@@ -18,7 +18,7 @@ type BrowserTabSummary = Awaited<
 const trackedAgents: AgentOverChromeBridge[] = [];
 
 /**
- * 判断当前运行环境是否已经配置好 Bridge 和模型参数。
+ * Check whether the Bridge and model parameters are configured for this environment.
  */
 function isBridgeAiTestReady(): boolean {
   const hasBridgeMode = Boolean(process.env.BRIDGE_MODE);
@@ -32,7 +32,7 @@ function isBridgeAiTestReady(): boolean {
 const describeIfReady = isBridgeAiTestReady() ? describe : describe.skip;
 
 /**
- * 记录当前用例创建的 agent，方便在 afterEach 中统一回收。
+ * Track the agent created by the current test for cleanup in afterEach.
  */
 function trackAgent(agent: AgentOverChromeBridge): AgentOverChromeBridge {
   trackedAgents.push(agent);
@@ -40,14 +40,14 @@ function trackAgent(agent: AgentOverChromeBridge): AgentOverChromeBridge {
 }
 
 /**
- * 回收本用例创建的所有 Bridge agent，避免连接残留影响后续测试。
+ * Destroy all Bridge agents created by this test to avoid leftover connections.
  */
 async function destroyTrackedAgents(): Promise<void> {
   while (trackedAgents.length > 0) {
     const agent = trackedAgents.pop();
     if (!agent) continue;
     try {
-      // 强制关闭本用例创建的标签页，避免后台连接测试在 Chrome 中留下残留 Tab。
+      // Force-close tabs created by this test to avoid leftover tabs in Chrome.
       await agent.destroy(true);
     } catch (error) {
       console.warn('[bridge-test] failed to destroy agent:', error);
@@ -56,7 +56,7 @@ async function destroyTrackedAgents(): Promise<void> {
 }
 
 /**
- * 生成带唯一 token 的 Example Domain URL，便于在标签列表中准确定位目标页。
+ * Create an Example Domain URL with a unique token for precise tab lookup.
  */
 function createExampleTarget(label: string): { token: string; url: string } {
   const token = `midscene-bridge-${label}-${Date.now()}-${Math.random()
@@ -69,7 +69,7 @@ function createExampleTarget(label: string): { token: string; url: string } {
 }
 
 /**
- * 获取当前窗口中处于激活状态的标签页。
+ * Get the active tab in the current window.
  */
 async function getCurrentActiveTab(
   agent: AgentOverChromeBridge,
@@ -82,7 +82,7 @@ async function getCurrentActiveTab(
 }
 
 /**
- * 根据唯一 token 查找本用例创建的标签页。
+ * Find the tab created by this test using its unique token.
  */
 async function findTabByToken(
   agent: AgentOverChromeBridge,
@@ -99,7 +99,7 @@ async function findTabByToken(
 }
 
 /**
- * 使用 AI 断言当前受控页已经稳定连接到 Example Domain。
+ * Use an AI assertion to verify that the controlled page is connected to Example Domain.
  */
 async function expectExampleDomain(
   agent: AgentOverChromeBridge,
