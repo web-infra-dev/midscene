@@ -147,4 +147,19 @@ describe('WebP image primitives', () => {
     expect(scaled.imageBase64).toMatch(/^data:image\/webp;base64,/);
     expect(padded.imageBase64).toMatch(/^data:image\/webp;base64,/);
   });
+
+  it('honors explicit WebP output when block padding is a no-op', async () => {
+    const png = localImg2Base64(getFixture('icon.png'));
+    const sourceSize = await imageInfoOfBase64(png);
+
+    const padded = await paddingToMatchBlockByBase64(png, 1, 'webp');
+
+    expect(padded).toMatchObject(sourceSize);
+    expect(padded.imageBase64).toMatch(/^data:image\/webp;base64,/);
+    expect(
+      detectScreenshotImageFormatFromBuffer(
+        Buffer.from(parseBase64(padded.imageBase64).body, 'base64'),
+      ),
+    ).toBe('webp');
+  });
 });
