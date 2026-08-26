@@ -217,7 +217,7 @@ The CLI provides parameters to control how scripts run:
 - `--concurrent <number>`: Number of concurrent executions. Default `1`.
 - `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
 - `--retry <number>`: Number of extra attempts for a failed script. Only failed scripts are retried, which helps with unstable networks or unstable model output. Default `0`. Puppeteer Web setup retries use a clean BrowserContext and Page, while main-script retries preserve the successful setup context. Other targets create a new player and Agent for each retry without resetting their underlying environment.
-- `--share-browser-context`: Share one Puppeteer BrowserContext and Page (cookies, `localStorage`, etc.) across scripts. Every setup and main script in the batch must use a Puppeteer Web target. Bridge mode and non-Web targets are not supported. Default off.
+- `--share-browser-context`: Share one Puppeteer BrowserContext and Page (cookies, `localStorage`, etc.) across scripts. Every setup and main script in the batch must use a Puppeteer Web target. Bridge mode and non-Web targets are not supported. Because the browser is created or connected only once, put browser-level options (`cdpEndpoint`, `chromeArgs`, `acceptInsecureCerts`, and `downloadPath`) in the batch config's global Web target, not in an individual setup or main script. Default off.
 - `--summary <filename>`: Path for the JSON summary report.
 - `--headed`: Run in a headed browser instead of headless.
 - `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
@@ -270,6 +270,8 @@ midscene --config ./config.yaml
 #### Run a setup before parallel scripts
 
 When several independent Puppeteer Web scripts all depend on the same prerequisite (for example a login), put the prerequisite under `setup`. The setup script runs before the main `files`; once it succeeds, the main scripts run with the configured concurrency. Set `shareBrowserContext: true` so the successful setup attempt's browser context, including the login state, is carried over. Every script in this shared batch must use a Puppeteer Web target; bridge mode is not supported.
+
+The shared Browser is launched or connected from the batch config once. Configure `cdpEndpoint`, `chromeArgs`, `acceptInsecureCerts`, and `downloadPath` in the batch config's global Web target. Defining any of these browser-level options in an individual setup or main script is rejected because it cannot be applied to the already-created shared Browser.
 
 ```yaml
 setup: ./scripts/login.yaml

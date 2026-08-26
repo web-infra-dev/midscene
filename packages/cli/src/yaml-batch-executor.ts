@@ -34,6 +34,8 @@ import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
   createYamlAttempt,
+  getYamlAttemptsDuration,
+  preserveYamlAttemptReport,
   printExecutionFinished,
   printExecutionPlan,
   resolveYamlMaxAttempts,
@@ -89,6 +91,7 @@ export interface BatchRunnerConfig {
 
 interface BatchFileContext {
   file: string;
+  sourceConfig: MidsceneYamlScript;
   executionConfig: MidsceneYamlScript;
   outputPath?: string;
   options: {
@@ -158,6 +161,25 @@ const assertBrowserContextUsage = (
       throw new Error(
         `shareBrowserContext only supports Puppeteer Web targets, but "${unsupported.context.file}" uses ${batchRuntimeTargetLabel[unsupported.target]}. Remove shareBrowserContext or use a Puppeteer Web target.`,
       );
+    }
+
+    const browserCreationOptions = [
+      'cdpEndpoint',
+      'chromeArgs',
+      'acceptInsecureCerts',
+      'downloadPath',
+    ] as const;
+    for (const { context, target } of resolvedTargets) {
+      if (target !== 'puppeteer-web') continue;
+      const fileWebConfig = resolveWebTarget(context.sourceConfig)?.target;
+      const misplacedOptions = browserCreationOptions.filter(
+        (option) => typeof fileWebConfig?.[option] !== 'undefined',
+      );
+      if (misplacedOptions.length > 0) {
+        throw new Error(
+          `shareBrowserContext creates one browser from the batch global config, so browser-level option(s) ${misplacedOptions.map((option) => `"${option}"`).join(', ')} in "${context.file}" would be ignored. Move them to the batch config's global Web target.`,
+        );
+      }
     }
   }
 
@@ -416,6 +438,7 @@ class YamlBatchExecutor {
 
     return {
       file,
+      sourceConfig: fileConfig,
       executionConfig,
       options,
     };
@@ -514,6 +537,11 @@ class YamlBatchExecutor {
 
         for (let attempt = 1; attempt <= totalAttempts; attempt++) {
           if (attempt > 1) {
+            if (context.executionConfig.agent?.reportFileName) {
+              attempts[attempts.length - 1] = preserveYamlAttemptReport(
+                attempts[attempts.length - 1],
+              );
+            }
             await beforeRetry?.();
             allFileContext.player = await createYamlPlayer(
               context.file,
@@ -542,15 +570,17 @@ class YamlBatchExecutor {
             duration,
           });
           attempts.push(createYamlAttempt(attemptResult, attempt));
+          const totalDuration = getYamlAttemptsDuration(attempts);
 
           const yamlResult: MidsceneYamlConfigResult = {
             ...attemptResult,
+            duration: totalDuration,
             attempts: [...attempts],
           };
           executedContext = {
             file: context.file,
             player: allFileContext.player,
-            duration,
+            duration: totalDuration,
             yamlResult,
           };
 

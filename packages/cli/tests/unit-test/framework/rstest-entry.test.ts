@@ -1,5 +1,6 @@
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -78,6 +79,7 @@ describe('defineYamlCaseTest', () => {
 
       const result = JSON.parse(readFileSync(resultFile, 'utf8'));
       expect(result.success).toBe(true);
+      expect(result.duration).toBe(23);
       expect(result.attempts).toMatchObject([
         {
           attempt: 1,
@@ -92,6 +94,65 @@ describe('defineYamlCaseTest', () => {
         },
       ]);
       expect(existsSync(`${resultFile}.attempts.json`)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('preserves reports that reuse an explicit reportFileName across retries', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const resultFile = join(root, 'results', 'case.json');
+    const reportFile = join(root, 'report', 'custom-report.html');
+    writeFileSync(
+      yaml,
+      'web:\n  url: about:blank\nagent:\n  reportFileName: custom-report\ntasks: []\n',
+    );
+    let runCount = 0;
+    mocks.runYamlCaseResultWithSnapshots.mockImplementation(async () => {
+      runCount++;
+      mkdirSync(join(root, 'report'), { recursive: true });
+      writeFileSync(reportFile, `attempt ${runCount}`);
+      return {
+        file: yaml,
+        success: runCount > 1,
+        executed: true,
+        report: reportFile,
+        error: runCount === 1 ? 'first attempt failed' : undefined,
+        duration: runCount === 1 ? 11 : 12,
+        resultType: runCount === 1 ? 'failed' : 'success',
+      };
+    });
+
+    try {
+      defineYamlCaseTest(injectedRstestTest(), {
+        testName: 'case',
+        yamlFile: yaml,
+        resultFile,
+        retry: 1,
+      });
+
+      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      await expect(runCase()).rejects.toThrow('first attempt failed');
+      await expect(runCase()).resolves.toBeUndefined();
+
+      const result = JSON.parse(readFileSync(resultFile, 'utf8'));
+      const archivedReport = join(
+        root,
+        'report',
+        'custom-report-attempt-1.html',
+      );
+      expect(result).toMatchObject({
+        success: true,
+        report: reportFile,
+        duration: 23,
+        attempts: [
+          { attempt: 1, report: archivedReport, duration: 11 },
+          { attempt: 2, report: reportFile, duration: 12 },
+        ],
+      });
+      expect(readFileSync(archivedReport, 'utf8')).toBe('attempt 1');
+      expect(readFileSync(reportFile, 'utf8')).toBe('attempt 2');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

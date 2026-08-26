@@ -1,9 +1,11 @@
 import {
   type Stats,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -199,50 +201,109 @@ describe('BatchRunner', () => {
     });
 
     test('retries only a failed file while reusing the shared browser and page', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        ...mockYamlScript,
+        agent: { reportFileName: 'custom-report' },
+      } as MidsceneYamlScript);
       let playerCreationCount = 0;
       rs.mocked(createYamlPlayer).mockImplementation(async () => {
         playerCreationCount++;
         return createMockPlayer(playerCreationCount > 1);
       });
       const onProgress = rs.fn();
-      const runner = new BatchRunner({
-        ...mockBatchConfig,
-        shareBrowserContext: true,
-        files: ['retry.yml'],
-        retry: 1,
-      });
+      const dateNow = rs
+        .spyOn(Date, 'now')
+        .mockReturnValueOnce(100)
+        .mockReturnValueOnce(110)
+        .mockReturnValueOnce(200)
+        .mockReturnValueOnce(220);
+      try {
+        const runner = new BatchRunner({
+          ...mockBatchConfig,
+          shareBrowserContext: true,
+          files: ['retry.yml'],
+          retry: 1,
+        });
 
-      const results = await runner.run({
-        generateSummary: false,
-        printExecutionPlan: false,
-        onProgress,
-      });
+        const results = await runner.run({
+          generateSummary: false,
+          printExecutionPlan: false,
+          onProgress,
+        });
 
-      expect(createYamlPlayer).toHaveBeenCalledTimes(2);
-      const firstOptions = rs.mocked(createYamlPlayer).mock.calls[0][2];
-      const secondOptions = rs.mocked(createYamlPlayer).mock.calls[1][2];
-      expect(firstOptions?.browser).toBe(secondOptions?.browser);
-      expect(firstOptions?.page).toBe(secondOptions?.page);
-      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
-        .value) as any;
-      expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
-      expect(results).toMatchObject([
-        {
-          file: 'retry.yml',
-          success: true,
-          attempts: [
-            { attempt: 1, success: false, resultType: 'failed' },
-            { attempt: 2, success: true, resultType: 'success' },
-          ],
-        },
-      ]);
-      expect(onProgress.mock.calls.map(([message]) => message)).toEqual([
-        'Attempt 1/2\ntest summary',
-        'Attempt 1/2\ntest summary',
-        'Attempt 2/2\ntest summary',
-        'Attempt 2/2\ntest summary',
-      ]);
+        expect(createYamlPlayer).toHaveBeenCalledTimes(2);
+        const firstOptions = rs.mocked(createYamlPlayer).mock.calls[0][2];
+        const secondOptions = rs.mocked(createYamlPlayer).mock.calls[1][2];
+        expect(firstOptions?.browser).toBe(secondOptions?.browser);
+        expect(firstOptions?.page).toBe(secondOptions?.page);
+        const browserInstance = (await rs.mocked(puppeteer.launch).mock
+          .results[0].value) as any;
+        expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
+        expect(results).toMatchObject([
+          {
+            file: 'retry.yml',
+            success: true,
+            duration: 30,
+            attempts: [
+              {
+                attempt: 1,
+                success: false,
+                resultType: 'failed',
+                duration: 10,
+                report: '/test/report-attempt-1.html',
+              },
+              {
+                attempt: 2,
+                success: true,
+                resultType: 'success',
+                duration: 20,
+                report: '/test/report.html',
+              },
+            ],
+          },
+        ]);
+        expect(copyFileSync).toHaveBeenCalledWith(
+          '/test/report.html',
+          '/test/report-attempt-1.html',
+        );
+        expect(unlinkSync).toHaveBeenCalledWith('/test/report.html');
+        expect(onProgress.mock.calls.map(([message]) => message)).toEqual([
+          'Attempt 1/2\ntest summary',
+          'Attempt 1/2\ntest summary',
+          'Attempt 2/2\ntest summary',
+          'Attempt 2/2\ntest summary',
+        ]);
+      } finally {
+        dateNow.mockRestore();
+      }
     });
+
+    test.each([
+      ['cdpEndpoint', 'ws://localhost:9222/devtools/browser/test'],
+      ['chromeArgs', ['--no-sandbox']],
+      ['acceptInsecureCerts', true],
+      ['downloadPath', './downloads'],
+    ] as const)(
+      'rejects file-level %s instead of silently ignoring it in a shared browser',
+      async (option, value) => {
+        rs.mocked(parseYamlScript).mockReturnValue({
+          tasks: mockYamlScript.tasks,
+          web: { url: 'http://test.com', [option]: value },
+        } as MidsceneYamlScript);
+        const runner = new BatchRunner({
+          ...mockBatchConfig,
+          shareBrowserContext: true,
+          files: ['web1.yml'],
+        });
+
+        await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+          `browser-level option(s) "${option}" in "web1.yml" would be ignored`,
+        );
+        expect(createYamlPlayer).not.toHaveBeenCalled();
+        expect(puppeteer.launch).not.toHaveBeenCalled();
+        expect(puppeteer.connect).not.toHaveBeenCalled();
+      },
+    );
 
     test('should pass chromeArgs from global config to puppeteer.launch when shareBrowserContext is true', async () => {
       const config = {

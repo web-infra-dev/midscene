@@ -4,10 +4,13 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
 } from '@midscene/core';
+import { parseYamlScript } from '@midscene/core/yaml';
 import type { test as rstestTest } from '@rstest/core';
 import type { BatchRunnerConfig } from '../batch-runner';
 import {
   createYamlAttempt,
+  getYamlAttemptsDuration,
+  preserveYamlAttemptReport,
   resolveYamlMaxAttempts,
 } from '../execution-summary';
 import { contextTaskListSummary, formatYamlProgressSnapshot } from '../printer';
@@ -65,8 +68,8 @@ const readAttemptHistory = (
 const appendAttemptHistory = (
   resultFile: string,
   result: MidsceneYamlConfigResult,
+  attempts: MidsceneYamlConfigAttempt[],
 ): MidsceneYamlConfigResult => {
-  const attempts = readAttemptHistory(resultFile);
   const nextAttempts = [
     ...attempts,
     createYamlAttempt(result, attempts.length + 1),
@@ -80,8 +83,39 @@ const appendAttemptHistory = (
 
   return {
     ...result,
+    duration: getYamlAttemptsDuration(nextAttempts),
     attempts: nextAttempts,
   };
+};
+
+const hasExplicitReportFileName = (
+  file: string,
+  caseOptions: DefineYamlCaseTestOptions['caseOptions'],
+): boolean => {
+  if (caseOptions?.executionConfig) {
+    return Boolean(caseOptions.executionConfig.agent?.reportFileName);
+  }
+
+  const script = parseYamlScript(readFileSync(file, 'utf8'), file);
+  return Boolean(script.agent?.reportFileName);
+};
+
+const prepareAttemptHistory = (
+  resultFile: string,
+  attempts: MidsceneYamlConfigAttempt[],
+  preserveReport: boolean,
+): MidsceneYamlConfigAttempt[] => {
+  if (!preserveReport || attempts.length === 0) return attempts;
+
+  const nextAttempts = [...attempts];
+  nextAttempts[nextAttempts.length - 1] = preserveYamlAttemptReport(
+    nextAttempts[nextAttempts.length - 1],
+  );
+  writeFileSync(
+    attemptHistoryFileFor(resultFile),
+    JSON.stringify(nextAttempts, null, 2),
+  );
+  return nextAttempts;
 };
 
 const createRuntimeFailureResult = (
@@ -116,11 +150,19 @@ export const defineYamlCaseTest = (
   test(options.testName, async () => {
     const file = resolve(options.yamlFile);
     const startTime = Date.now();
-    const attempt = readAttemptHistory(options.resultFile).length + 1;
+    let attempts = readAttemptHistory(options.resultFile);
+    const attempt = attempts.length + 1;
     const totalAttempts = resolveYamlMaxAttempts(options.retry);
     let result: MidsceneYamlConfigResult | undefined;
 
     try {
+      if (attempt > 1) {
+        attempts = prepareAttemptHistory(
+          options.resultFile,
+          attempts,
+          hasExplicitReportFileName(file, options.caseOptions),
+        );
+      }
       result = await runYamlCaseResultWithSnapshots(
         {
           ...options.caseOptions,
@@ -129,7 +171,7 @@ export const defineYamlCaseTest = (
         },
         createYamlPlayerProgressReporter(attempt, totalAttempts),
       );
-      result = appendAttemptHistory(options.resultFile, result);
+      result = appendAttemptHistory(options.resultFile, result, attempts);
       writeResultFile(options.resultFile, result);
 
       if (!result.success) {
@@ -140,6 +182,7 @@ export const defineYamlCaseTest = (
         const failureResult = appendAttemptHistory(
           options.resultFile,
           createRuntimeFailureResult(file, startTime, error),
+          attempts,
         );
         writeResultFile(options.resultFile, failureResult);
       }

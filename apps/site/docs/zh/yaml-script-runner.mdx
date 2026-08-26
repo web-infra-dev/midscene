@@ -229,7 +229,7 @@ page:
 - `--concurrent <number>`：设置并发执行的数量，默认 `1`。
 - `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
 - `--retry <number>`：失败脚本的额外尝试次数。只有失败的脚本会被重试，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。Puppeteer Web setup retry 使用全新的 BrowserContext 和 Page，主脚本 retry 则保留成功的 setup 上下文。其他 target 每次 retry 会创建新的 player 和 Agent，但不会重置底层运行环境。
-- `--share-browser-context`：在多个 Puppeteer Web 脚本之间共享同一个 BrowserContext 和 Page（Cookies、`localStorage` 等）。同一批次中的 setup 和主脚本必须全部使用 Puppeteer Web target；不支持桥接模式和非 Web target。默认关闭。
+- `--share-browser-context`：在多个 Puppeteer Web 脚本之间共享同一个 BrowserContext 和 Page（Cookies、`localStorage` 等）。同一批次中的 setup 和主脚本必须全部使用 Puppeteer Web target；不支持桥接模式和非 Web target。由于 Browser 只会创建或连接一次，浏览器级选项（`cdpEndpoint`、`chromeArgs`、`acceptInsecureCerts` 和 `downloadPath`）必须放在批次配置的全局 Web target 中，不能放在单个 setup 或主脚本中。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
 - `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
@@ -282,6 +282,8 @@ midscene --config ./config.yaml
 #### 在并行脚本之前执行前置任务
 
 当多个互不依赖的 Puppeteer Web 脚本都依赖同一个前置条件（例如登录）时，可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行；成功后，主脚本再按配置的并发数运行。设置 `shareBrowserContext: true` 后，成功 setup attempt 的浏览器上下文（包括登录态）会被主脚本复用。同一共享批次中的所有脚本都必须使用 Puppeteer Web target，不支持桥接模式。
+
+共享 Browser 只会根据批次配置创建或连接一次。请在批次配置的全局 Web target 中设置 `cdpEndpoint`、`chromeArgs`、`acceptInsecureCerts` 和 `downloadPath`。如果在单个 setup 或主脚本中定义这些浏览器级选项，CLI 会直接报错，因为它们无法应用到已经创建的共享 Browser。
 
 ```yaml
 setup: ./scripts/login.yaml
