@@ -222,10 +222,20 @@ describe('AndroidDevice', () => {
     });
     const adapter = (device as any).getScrcpyAdapter();
 
-    await expect((adapter as any).resolveAdbServerEndpoint()).resolves.toEqual({
+    const connection = await (adapter as any).resolveAdbServerEndpoint();
+
+    expect(connection).toMatchObject({
       host: '192.168.1.10',
       port: 5038,
     });
+    await connection.pushServer(
+      '/tmp/scrcpy-server',
+      '/data/local/tmp/scrcpy-server',
+    );
+    expect(mockAdb.push).toHaveBeenCalledWith(
+      '/tmp/scrcpy-server',
+      '/data/local/tmp/scrcpy-server',
+    );
   });
 
   it('pushes yadb from unpacked Electron resources', async () => {

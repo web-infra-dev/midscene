@@ -732,6 +732,9 @@ ${Object.keys(size)
           return {
             host: adb.adbHost ?? '127.0.0.1',
             port: adb.adbPort ?? 5037,
+            pushServer: async (localPath: string, remotePath: string) => {
+              await adb.push(localPath, remotePath);
+            },
           };
         },
       );

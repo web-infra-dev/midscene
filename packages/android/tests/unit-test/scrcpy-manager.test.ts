@@ -160,6 +160,32 @@ describe('ScrcpyScreenshotManager', () => {
       );
     });
 
+    it('uses the configured server pusher instead of ADB sync', async () => {
+      const pushServer = rs.fn().mockResolvedValue(undefined);
+      const manager = new ScrcpyScreenshotManager({} as any, {}, pushServer);
+
+      await (manager as any).pushServerBinary(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
+      );
+
+      expect(pushServer).toHaveBeenCalledWith(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
+      );
+    });
+
+    it('rejects server transfer when no safe pusher is configured', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+
+      await expect(
+        (manager as any).pushServerBinary(
+          '/tmp/scrcpy-server',
+          '/data/local/tmp/scrcpy-server',
+        ),
+      ).rejects.toThrow('Scrcpy server pusher is not configured');
+    });
+
     it('shares one connection attempt across concurrent callers', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       let resolveConnection: (() => void) | undefined;

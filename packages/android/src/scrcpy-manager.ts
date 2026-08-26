@@ -1,4 +1,3 @@
-import { createReadStream } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
@@ -52,6 +51,16 @@ export interface ScrcpyScreenshotOptions {
   videoBitRate?: number;
   idleTimeoutMs?: number;
 }
+
+/** Transfers the local scrcpy server binary to its device path. */
+export type ScrcpyServerPusher = (
+  localPath: string,
+  remotePath: string,
+) => Promise<void>;
+
+const missingScrcpyServerPusher: ScrcpyServerPusher = async () => {
+  throw new Error('Scrcpy server pusher is not configured');
+};
 
 /**
  * A raw (not yet decoded) H.264 keyframe emitted by the scrcpy stream.
@@ -239,7 +248,11 @@ export class ScrcpyScreenshotManager {
   private lastFrameFreshnessWarningAt = 0;
   private disposePromise: Promise<void> | null = null;
 
-  constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
+  constructor(
+    adb: Adb,
+    options: ScrcpyScreenshotOptions = {},
+    private readonly pushServer: ScrcpyServerPusher = missingScrcpyServerPusher,
+  ) {
     this.adb = adb;
     const requestedBitRate = options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE;
     const clampedBitRate = Math.min(requestedBitRate, MAX_VIDEO_BIT_RATE);
@@ -306,15 +319,11 @@ export class ScrcpyScreenshotManager {
       debugScrcpy('Starting scrcpy connection...');
 
       const { AdbScrcpyClient } = await import('@yume-chan/adb-scrcpy');
-      const { ReadableStream } = await import('@yume-chan/stream-extra');
       const { DefaultServerPath } = await import('@yume-chan/scrcpy');
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
-      await AdbScrcpyClient.pushServer(
-        this.adb,
-        ReadableStream.from(createReadStream(serverBinPath)),
-      );
+      await this.pushServerBinary(serverBinPath, DefaultServerPath);
 
       const scrcpyOptions = await this.createScrcpyOptions();
 
@@ -365,6 +374,13 @@ export class ScrcpyScreenshotManager {
       }
       throw this.createConnectionError(error, serverOutput);
     }
+  }
+
+  private async pushServerBinary(
+    serverBinPath: string,
+    remoteServerPath: string,
+  ): Promise<void> {
+    await this.pushServer(serverBinPath, remoteServerPath);
   }
 
   private async createScrcpyOptions(): Promise<any> {

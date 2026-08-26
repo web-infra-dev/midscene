@@ -1,5 +1,4 @@
-import { exec } from 'node:child_process';
-import { createReadStream } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
@@ -27,7 +26,7 @@ import {
 import { withTimeout } from './timeout';
 
 export const debugPage = getDebug('android:playground');
-const promiseExec = promisify(exec);
+const promiseExecFile = promisify(execFile);
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const MAX_SCRCPY_OUTPUT_LINES = 100;
@@ -255,7 +254,7 @@ export default class ScrcpyServer {
     try {
       if (!this.adbClient) {
         await withTimeout(
-          promiseExec('adb start-server'),
+          promiseExecFile('adb', ['start-server']),
           SCRCPY_ADB_CONNECT_TIMEOUT_MS,
           `Timed out starting adb server after ${Math.round(SCRCPY_ADB_CONNECT_TIMEOUT_MS / 1000)}s`,
         );
@@ -336,7 +335,6 @@ export default class ScrcpyServer {
     const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
       '@yume-chan/adb-scrcpy'
     );
-    const { ReadableStream } = await import('@yume-chan/stream-extra');
     const { DefaultServerPath } = await import('@yume-chan/scrcpy');
     // Use __dirname in a way that works for both ESM and CommonJS
     const currentDir =
@@ -346,13 +344,22 @@ export default class ScrcpyServer {
     const serverBinPath = path.resolve(currentDir, '../../bin/scrcpy-server');
 
     try {
-      // Push server - use file path directly for createReadStream
+      const deviceId = this.currentDeviceId;
+      if (!deviceId) {
+        throw new Error('Cannot push the scrcpy server without a device ID');
+      }
+
+      // Avoid @yume-chan/adb sync here. Its locked sync socket does not release
+      // the WritableStream writer after close, retaining the uploaded buffer.
       onProgress?.('pushing-server');
       await withTimeout(
-        AdbScrcpyClient.pushServer(
-          adb,
-          ReadableStream.from(createReadStream(serverBinPath)),
-        ),
+        promiseExecFile('adb', [
+          '-s',
+          deviceId,
+          'push',
+          serverBinPath,
+          DefaultServerPath,
+        ]),
         SCRCPY_PUSH_TIMEOUT_MS,
         `Timed out pushing scrcpy server to device after ${Math.round(SCRCPY_PUSH_TIMEOUT_MS / 1000)}s`,
       );

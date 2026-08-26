@@ -1,45 +1,34 @@
-import * as nodeFsActual from 'node:fs' with { rstest: 'importActual' };
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 
-const {
-  mockPushServer,
-  mockStart,
-  mockReadableFrom,
-  mockCreateReadStream,
-  mockOptionsCtor,
-} = rs.hoisted(() => ({
-  mockPushServer: rs.fn(),
+const { mockExecFile, mockStart, mockOptionsCtor } = rs.hoisted(() => ({
+  mockExecFile: rs.fn(
+    (
+      _file: string,
+      _args: string[],
+      callback: (error: Error | null, stdout: string, stderr: string) => void,
+    ) => {
+      callback(null, '', '');
+    },
+  ),
   mockStart: rs.fn(),
-  mockReadableFrom: rs.fn(),
-  mockCreateReadStream: rs.fn(),
   mockOptionsCtor: rs.fn((options) => options),
 }));
 
+rs.mock('node:child_process', () => ({ execFile: mockExecFile }));
+
 rs.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyClient: {
-    pushServer: mockPushServer,
     start: mockStart,
   },
   AdbScrcpyOptions3_3_3: mockOptionsCtor,
 }));
 
-rs.mock('@yume-chan/stream-extra', () => ({
-  ReadableStream: {
-    from: mockReadableFrom,
-  },
-}));
-
 rs.mock('@yume-chan/scrcpy', () => ({
   DefaultServerPath: '/mocked/scrcpy-server.jar',
-}));
-
-rs.mock('node:fs', () => ({
-  ...nodeFsActual,
-  createReadStream: mockCreateReadStream,
 }));
 
 describe('ScrcpyServer', () => {
@@ -71,11 +60,10 @@ describe('ScrcpyServer', () => {
   });
 
   it('enables frame metadata for the scrcpy web preview stream', async () => {
-    mockCreateReadStream.mockReturnValue({ stream: true });
-    mockReadableFrom.mockReturnValue({ readable: true });
     mockStart.mockResolvedValue({ videoStream: Promise.resolve(null) });
 
     const server = new ScrcpyServer();
+    server.currentDeviceId = 'device-1';
     const adb = { serial: 'device-1' };
     const onProgress = rs.fn();
 
@@ -85,7 +73,17 @@ describe('ScrcpyServer', () => {
       onProgress,
     );
 
-    expect(mockPushServer).toHaveBeenCalledOnce();
+    expect(mockExecFile).toHaveBeenCalledWith(
+      'adb',
+      [
+        '-s',
+        'device-1',
+        'push',
+        expect.stringContaining('bin/scrcpy-server'),
+        '/mocked/scrcpy-server.jar',
+      ],
+      expect.any(Function),
+    );
     expect(mockOptionsCtor).toHaveBeenCalledWith(
       expect.objectContaining({
         audio: false,

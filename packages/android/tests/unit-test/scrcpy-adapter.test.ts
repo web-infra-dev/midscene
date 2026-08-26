@@ -8,15 +8,25 @@ import {
   DEFAULT_SCRCPY_CONFIG,
   SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE,
   ScrcpyFreshFrameUnavailableError,
+  ScrcpyScreenshotManager,
 } from '../../src/scrcpy-manager';
 import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
   rstest: 'importActual',
 };
 
-const mocks = rs.hoisted(() => ({
-  AdbServerNodeTcpConnector: rs.fn(),
-  createTransport: rs.fn().mockResolvedValue({}),
-}));
+const mocks = rs.hoisted(() => {
+  const fileTransferPush = rs.fn().mockResolvedValue(undefined);
+  return {
+    AdbServerNodeTcpConnector: rs.fn(),
+    createTransport: rs.fn().mockResolvedValue({}),
+    fileTransferPush,
+    AppiumAdb: rs.fn().mockImplementation(() => ({
+      push: fileTransferPush,
+    })),
+  };
+});
+
+rs.mock('appium-adb', () => ({ ADB: mocks.AppiumAdb }));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 rs.mock('@yume-chan/adb', () => ({
@@ -304,6 +314,42 @@ describe('ScrcpyDeviceAdapter', () => {
         host: '192.168.1.10',
         port: 5038,
       });
+    });
+
+    it('should forward a configured scrcpy server pusher to the manager', async () => {
+      const pushServer = rs.fn().mockResolvedValue(undefined);
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        () => ({ host: '127.0.0.1', port: 5037, pushServer }),
+      );
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      const [, options, managerPusher] = rs.mocked(ScrcpyScreenshotManager).mock
+        .calls[0];
+      expect(options).not.toHaveProperty('pushServer');
+      expect(managerPusher).toBe(pushServer);
+    });
+
+    it('should create an external ADB server pusher by default', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      const [, , pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
+      expect(pushServer).toBeDefined();
+      await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
+
+      expect(mocks.AppiumAdb).toHaveBeenCalledWith({
+        udid: 'device',
+        remoteAdbHost: '127.0.0.1',
+        remoteAdbPort: 5037,
+      });
+      expect(mocks.fileTransferPush).toHaveBeenCalledWith(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
+      );
     });
 
     it('should return cached manager without re-validation', async () => {
