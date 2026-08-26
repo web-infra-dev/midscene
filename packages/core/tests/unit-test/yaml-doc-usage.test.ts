@@ -611,6 +611,62 @@ tasks:
     expect(agent.recordErrorToReport).not.toHaveBeenCalled();
   });
 
+  it('does not duplicate assertion failures returned through keepRawResponse', async () => {
+    const failedAssertionResult = {
+      pass: false,
+      thought: 'the broken button is not visible',
+      message: 'Assertion failed: the broken button is not visible',
+    };
+    const script = parseYamlScript(`
+web:
+  url: about:blank
+tasks:
+  - name: Failed assertion
+    flow:
+      - aiAssert: The broken button is visible
+`);
+    const agent = createDocAgent({
+      aiAssert: rs.fn(async () => {
+        // Mirror Agent.aiAssert({ keepRawResponse: true }): the report task is
+        // recorded first, then the failed result is returned to the YAML layer.
+        agent.dump.executions.push({
+          id: 'failed-assertion',
+          logTime: Date.now(),
+          name: 'The broken button is visible',
+          tasks: [
+            {
+              taskId: 'failed-assertion-task',
+              type: 'Insight',
+              subType: 'Assert',
+              status: 'finished',
+              output: false,
+              executor: async () => {},
+            },
+          ],
+        });
+        return failedAssertionResult;
+      }),
+    });
+    const player = new ScriptPlayer(script, async () => ({
+      agent,
+      freeFn: [],
+    }));
+
+    await player.run();
+
+    expect(player.status).toBe('error');
+    expect(agent.aiAssert).toHaveBeenCalledWith(
+      'The broken button is visible',
+      undefined,
+      { keepRawResponse: true },
+    );
+    expect(player.taskStatusList[0].error?.message).toBe(
+      failedAssertionResult.message,
+    );
+    expect(player.result[0]).toEqual(failedAssertionResult);
+    expect(agent.recordErrorToReport).not.toHaveBeenCalled();
+  });
+
   it('dispatches documented Android and iOS platform-specific actions', async () => {
     const script = parseYamlScript(`
 android:

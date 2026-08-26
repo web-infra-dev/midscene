@@ -33,7 +33,7 @@ describe('deriveTaskStatus', () => {
     ).toBe('warning');
   });
 
-  it('treats a finished Assert with falsy output as failed (legacy fallback)', () => {
+  it('treats a finished Assert with false output as failed', () => {
     expect(
       deriveTaskStatus({
         status: 'finished',
