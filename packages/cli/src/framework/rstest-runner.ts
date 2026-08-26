@@ -63,7 +63,8 @@ const mapRunErrorsToCases = (
   project: GeneratedRstestYamlProject,
   result: TestRunResult,
 ): Map<string, string> => {
-  const knownCaseIds = new Set(project.cases.map((item) => item.caseId));
+  const casesById = new Map(project.cases.map((item) => [item.caseId, item]));
+  const knownCaseIds = new Set(casesById.keys());
   const errors = new Map<string, string>();
   const add = (caseId: string, message: string) => {
     if (knownCaseIds.has(caseId) && message && !errors.has(caseId)) {
@@ -109,18 +110,18 @@ const mapRunErrorsToCases = (
     }
   }
 
-  // With one generated module, a worker/config failure belongs to every case
-  // owned by that module. This covers batch and ordered sequential projects
-  // without encoding either execution strategy in the error mapper.
-  if (
-    project.modules.length === 1 &&
-    errors.size === 0 &&
-    result.unhandledErrors?.length
-  ) {
-    addCases(
-      project.modules[0].caseIds,
-      errorMessage(result.unhandledErrors[0]),
-    );
+  // With one generated module, a worker/config failure belongs to cases that
+  // have not already persisted a result. Preserve completed case results, but
+  // let the unhandled error replace broad module-level attribution for pending
+  // cases so a later worker crash is not reported as merely "not executed".
+  if (project.modules.length === 1 && result.unhandledErrors?.length) {
+    const message = errorMessage(result.unhandledErrors[0]);
+    for (const caseId of project.modules[0].caseIds) {
+      const item = casesById.get(caseId);
+      if (!errors.has(caseId) || (item && !existsSync(item.resultFile))) {
+        errors.set(caseId, message);
+      }
+    }
   }
 
   return errors;

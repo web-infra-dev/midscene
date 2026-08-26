@@ -28,6 +28,7 @@ export interface DefineYamlBatchTestOptions {
   testName: string;
   config: BatchRunnerConfig;
   resultTargets: Array<{
+    caseId: string;
     yamlFile: string;
     resultFile: string;
   }>;

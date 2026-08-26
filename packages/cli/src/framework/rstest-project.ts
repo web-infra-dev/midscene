@@ -211,7 +211,8 @@ export function createRstestYamlProject(
       caseIds: cases.map((item) => item.caseId),
       testName: RSTEST_YAML_BATCH_TEST_NAME,
       config: options.batchConfig,
-      resultTargets: cases.map(({ yamlFile, resultFile }) => ({
+      resultTargets: cases.map(({ caseId, yamlFile, resultFile }) => ({
+        caseId,
         yamlFile,
         resultFile,
       })),
