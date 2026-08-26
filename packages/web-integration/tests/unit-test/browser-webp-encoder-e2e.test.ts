@@ -5,9 +5,9 @@ import {
   encodedImageInfoOfBuffer,
   isValidWebPImageBuffer,
 } from '@midscene/shared/img';
+import { afterAll, beforeAll, describe, expect, test } from '@rstest/core';
 import { type Browser, type Page, chromium } from 'playwright';
 import puppeteer from 'puppeteer';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 type BrowserWebpEncoder = (
   input: BrowserWebpEncodeInput,
