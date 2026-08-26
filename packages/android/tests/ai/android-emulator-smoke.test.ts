@@ -29,6 +29,8 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 const UI_DUMP_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS = 10_000;
 const SEARCH_MAX_ATTEMPTS = 3;
 const SEARCH_TIMEOUT_MS = 90_000;
 
@@ -377,20 +379,53 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         systemDialog: Awaited<
           ReturnType<typeof dismissSystemErrorDialogIfPresent>
         >;
+        ready: boolean;
+        error?: string;
       }> = [];
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
+      evidence.settingsLaunches = settingsLaunches;
+      let initialTarget:
+        | Awaited<ReturnType<typeof waitForResource>>
+        | undefined;
+      for (
+        let attempt = 1;
+        attempt <= SETTINGS_LAUNCH_MAX_ATTEMPTS;
+        attempt += 1
+      ) {
         await adb.shell('am force-stop com.android.settings');
         await adb.shell('am start -W -n com.android.settings/.Settings');
         const systemDialog = await dismissSystemErrorDialogIfPresent(
           adb,
           systemDialogXmlFile,
         );
-        settingsLaunches.push({ attempt, systemDialog });
-        if (!systemDialog.detected) {
+        try {
+          initialTarget = await waitForResource(
+            adb,
+            [SETTINGS_SEARCH_BAR_ID],
+            initialXmlFile,
+            Date.now() + SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS,
+          );
+          settingsLaunches.push({ attempt, systemDialog, ready: true });
           break;
+        } catch (error) {
+          settingsLaunches.push({
+            attempt,
+            systemDialog,
+            ready: false,
+            error: String(error),
+          });
+          if (
+            !(error instanceof AndroidUiStateTimeoutError) ||
+            attempt === SETTINGS_LAUNCH_MAX_ATTEMPTS
+          ) {
+            throw error;
+          }
         }
       }
-      evidence.settingsLaunches = settingsLaunches;
+      if (!initialTarget) {
+        throw new Error(
+          'Settings launch retry loop completed without a search target',
+        );
+      }
 
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
@@ -408,12 +443,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       expect(logicalSize.height).toBeGreaterThan(0);
       expect(screenshotSize.width).toBeGreaterThan(logicalSize.width);
       expect(screenshotSize.height).toBeGreaterThan(logicalSize.height);
-
-      const initialTarget = await waitForResource(
-        adb,
-        [SETTINGS_SEARCH_BAR_ID],
-        initialXmlFile,
-      );
 
       agent = new AndroidAgent(device, {
         modelConfig: {

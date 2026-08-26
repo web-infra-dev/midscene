@@ -6,5 +6,13 @@
     "declarationDir": "dist/types",
     "types": ["node"]
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../ios"
+    }
+  ]
 }

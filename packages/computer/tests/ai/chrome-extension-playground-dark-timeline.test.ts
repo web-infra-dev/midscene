@@ -72,7 +72,7 @@ describe('chrome extension dark Playground timeline', () => {
 
   it('executes a Bing search and renders a visible dark execution timeline', async () => {
     await agent.aiAct(
-      `In ${SIDE_PANEL}, click the "Action" button, then click the text input area and type: Click the Bing search field, type "midscene.js", then press Enter`,
+      `In ${SIDE_PANEL}, click the Action text input area, select and delete any existing text, then type exactly: Click the Bing search field, select and delete any existing text, type "midscene.js", then press Enter`,
     );
     await sleep(500);
     await focusBingPage();

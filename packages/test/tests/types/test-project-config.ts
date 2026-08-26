@@ -1,10 +1,31 @@
+import type { AndroidAgent } from '@midscene/android';
+import type { IOSAgent } from '@midscene/ios';
 import { defineNode, z } from '@midscene/test';
+import {
+  type AndroidRunnerAgent,
+  createAndroidNodes,
+  runAdbShellInputSchema,
+} from '@midscene/test/android';
 import {
   type TestProjectDefinition,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
+import {
+  type IOSRunnerAgent,
+  type RunWdaRequestNodeInput,
+  createIOSNodes,
+  runWdaRequestInputSchema,
+} from '@midscene/test/ios';
+import {
+  clearCookiesInputSchema,
+  createPlaywrightNodes,
+  gotoUrlInputSchema,
+  setCookiesInputSchema,
+  setViewportSizeInputSchema,
+} from '@midscene/test/playwright';
+import type { Page } from 'playwright';
 
 interface ProjectContext {
   baseURL: string;
@@ -136,3 +157,62 @@ import { loadTestProjectSync } from '@midscene/test/config';
 
 void defineWorkflowProject;
 void loadTestProjectSync;
+
+interface PlatformContext {
+  page: Page;
+  baseUrl: string;
+  android: {
+    launch(uri: string): Promise<void>;
+    terminate(uri: string): Promise<void>;
+    runAdbShell(
+      command: string,
+      options?: { timeout?: number },
+    ): Promise<string>;
+  };
+  ios: {
+    launch(uri: string): Promise<void>;
+    terminate(uri: string): Promise<void>;
+    runWdaRequest(input: {
+      method: 'GET' | 'POST' | 'DELETE' | 'PUT';
+      endpoint: string;
+      data?: Record<string, unknown>;
+    }): Promise<unknown>;
+  };
+}
+
+createPlaywrightNodes<PlatformContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: ({ context }) => context.baseUrl,
+  getCookieProfile: ({ context }) => context.page.context().cookies(),
+});
+
+createAndroidNodes<PlatformContext>({
+  getAgent: ({ context }) => context.android,
+});
+
+createIOSNodes<PlatformContext>({
+  getAgent: ({ context }) => context.ios,
+});
+
+declare const androidAgent: AndroidAgent;
+declare const iosAgent: IOSAgent;
+declare const androidRunnerAgent: AndroidRunnerAgent;
+declare const iosRunnerAgent: IOSRunnerAgent;
+declare const iosAgentInput: Parameters<IOSAgent['runWdaRequest']>[0];
+declare const iosRunnerInput: RunWdaRequestNodeInput;
+
+createAndroidNodes({ getAgent: () => androidAgent });
+createIOSNodes({ getAgent: () => iosAgent });
+androidAgent satisfies AndroidRunnerAgent;
+iosAgent satisfies IOSRunnerAgent;
+androidRunnerAgent.runAdbShell satisfies AndroidAgent['runAdbShell'];
+iosRunnerAgent.runWdaRequest satisfies IOSAgent['runWdaRequest'];
+iosAgentInput satisfies RunWdaRequestNodeInput;
+iosRunnerInput satisfies Parameters<IOSAgent['runWdaRequest']>[0];
+
+void gotoUrlInputSchema;
+void setCookiesInputSchema;
+void clearCookiesInputSchema;
+void setViewportSizeInputSchema;
+void runAdbShellInputSchema;
+void runWdaRequestInputSchema;

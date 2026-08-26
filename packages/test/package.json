@@ -29,6 +29,21 @@
       "types": "./dist/types/midscene/index.d.ts",
       "import": "./dist/es/midscene/index.mjs",
       "require": "./dist/lib/midscene/index.js"
+    },
+    "./playwright": {
+      "types": "./dist/types/playwright/index.d.ts",
+      "import": "./dist/es/playwright/index.mjs",
+      "require": "./dist/lib/playwright/index.js"
+    },
+    "./android": {
+      "types": "./dist/types/android/index.d.ts",
+      "import": "./dist/es/android/index.mjs",
+      "require": "./dist/lib/android/index.js"
+    },
+    "./ios": {
+      "types": "./dist/types/ios/index.d.ts",
+      "import": "./dist/es/ios/index.mjs",
+      "require": "./dist/lib/ios/index.js"
     }
   },
   "files": ["dist", "bin"],
@@ -46,6 +61,8 @@
     "zod": "^3.25.1"
   },
   "devDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
@@ -53,6 +70,14 @@
     "playwright": "^1.45.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
+  },
+  "peerDependencies": {
+    "playwright": "^1.45.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

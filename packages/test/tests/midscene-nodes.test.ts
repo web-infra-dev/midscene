@@ -1,8 +1,14 @@
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { NodeRegistry, createDocumentRuntime } from '../src';
+import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
+import {
+  type MidsceneAiAssertOptions,
+  type MidsceneUIAgent,
+  type MidsceneUserPrompt,
+  createMidsceneNodes,
+  renderNodeHistory,
+} from '../src/midscene';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -185,6 +191,71 @@ describe('createMidsceneNodes', () => {
         abortSignal: expect.any(AbortSignal),
       }),
     );
+  });
+
+  it('bounds Agent history context without changing the complete Node result', async () => {
+    const stdout = 'x'.repeat(100_000);
+    const aiAssert = vi.fn(
+      async (
+        _prompt: MidsceneUserPrompt,
+        _message?: string,
+        _options?: MidsceneAiAssertOptions,
+      ) => undefined,
+    );
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'large-output',
+        execute() {
+          return { data: { stdout } };
+        },
+      }),
+      ...createMidsceneNodes({
+        getAgent: () => ({ aiAssert }) as unknown as MidsceneUIAgent,
+        includeLaunch: false,
+      }),
+    ]);
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'large-output',
+          input: {},
+          meta: { continueOnError: false },
+        },
+        {
+          node: 'aiAssert',
+          input: { prompt: 'The command completed.' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0].output?.data).toEqual({ stdout });
+    const agentContext = aiAssert.mock.calls[0][2]?.context;
+    expect(agentContext).toBeDefined();
+    expect(agentContext!.length).toBeLessThanOrEqual(64_000);
+    expect(agentContext).toContain('omittedFromContext');
+    expect(agentContext).not.toContain(stdout);
+  });
+
+  it('prioritizes recent entries when total Agent history is too large', () => {
+    const history = Array.from({ length: 12 }, (_, index) => ({
+      scope: 'case' as const,
+      phase: 'steps' as const,
+      stepIndex: index,
+      node: `output-${index + 1}`,
+      status: 'passed' as const,
+      data: { stdout: String(index + 1).repeat(9_000) },
+    }));
+
+    const rendered = renderNodeHistory(history);
+
+    expect(rendered).toBeDefined();
+    expect(rendered!.length).toBeLessThanOrEqual(64_000);
+    expect(rendered).toContain('earlier history entries were omitted');
+    expect(rendered).toContain('"node":"output-12"');
+    expect(rendered).not.toContain('"node":"output-1","status"');
   });
 
   it('rejects invalid node input and missing Agent methods clearly', async () => {
@@ -416,12 +487,13 @@ describe('createMidsceneNodes', () => {
     await runtime.finish();
   });
 
-  it('can omit launch when a project registers a platform-specific replacement', () => {
+  it('can omit the legacy launch node for a Web or platform preset', () => {
     const nodes = createMidsceneNodes({
       getAgent: () => ({}) as MidsceneUIAgent,
       includeLaunch: false,
     });
 
     expect(nodes.map((node) => node.name)).not.toContain('launch');
+    expect(nodes.map((node) => node.name)).not.toContain('terminate');
   });
 });

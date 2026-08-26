@@ -40,6 +40,7 @@ import {
   defineTestProject,
 } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
+import { createPlaywrightNodes } from '@midscene/test/playwright';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { chromium, type Browser, type Page } from 'playwright';
 
@@ -81,6 +82,11 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  includeLaunch: false,
+});
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
 });
 
 // 2. 声明浏览器环境的启动与清理
@@ -106,7 +112,7 @@ export default defineTestProject<ProjectContext>({
       files: { include: ['cases/**/*.{yaml,yml}'] },
     },
   ],
-  nodes: [mockLocation, ...midsceneNodes],
+  nodes: [mockLocation, ...midsceneNodes, ...playwrightNodes],
 });
 ```
 
@@ -122,8 +128,8 @@ cases:
       - browser.mockLocation:
           latitude: 35.6762
           longitude: 139.6503   # 模拟在东京 (Tokyo)
-      - launch:
-          uri: https://yoursite.com/stores
+      - gotoUrl:
+          url: https://yoursite.com/stores
       - aiAssert:
           prompt: 页面上成功加载并展示了“东京”或其临近区域的门店推荐列表
           message: 地理位置 Mock 未能正确生效
@@ -343,8 +349,121 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
+  // Web 使用 gotoUrl，不注册兼容旧 Agent 的 launch Node。
+  includeLaunch: false,
 });
 ```
+
+`createMidsceneNodes()` 保留 `launch`，用于兼容已有的 Agent 集成。Android 和 iOS
+项目应使用各自平台预置提供的生命周期 Node，并在这里设置 `includeLaunch: false`，
+避免重复注册 `launch`。
+
+## 注册平台预置 Node
+
+Test Runner 通过独立入口发布各平台的预置 Node factory。Factory 使用 getter 获取
+运行时资源，不要求 Project Context 使用固定字段名。
+
+Playwright factory 注册 `gotoUrl`、`setCookies`、`clearCookies` 和
+`setViewportSize`。`playwright` 是 `@midscene/test` 的 optional peer
+dependency，使用该预置能力的项目需要安装它：
+
+```bash
+pnpm add -D playwright
+```
+
+然后创建预置 Node：
+
+```ts
+import { createPlaywrightNodes } from '@midscene/test/playwright';
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: ({ context }) => context.baseUrl,
+  getEnv: () => process.env,
+});
+```
+
+`setCookies` 不允许在 YAML 中直接填写 Cookie value。Test Runner 会把 Node 输入保存到
+运行结果和 workflow history。如果直接填写 Cookie，这些敏感信息也会被保存。
+
+请使用 `cookiesEnv`、`profile` 或 `storageStatePath` 引用 Cookie，三者必须选择一个。
+Node 只在执行时读取实际的 Cookie，并将它直接传给 Playwright BrowserContext。Node
+结果只记录引用名称和 Cookie 数量，不会记录 Cookie 的名称、value 和作用域。因此，
+Cookie 不会进入 Test Runner 的运行结果和 workflow history。
+
+环境变量可以包含 Cookie header、Cookie JSON 数组或 Playwright storage-state JSON。
+相对的 storage-state 路径默认从当前工作目录解析。如果项目需要使用其他根目录，请配置
+`resolveStorageStatePath`。引用方式只能避免 Cookie 进入 Test Runner 的持久化数据；
+环境变量、profile 和 storage-state 文件本身仍需妥善保管。请勿将包含真实 Cookie 的
+storage-state 文件提交到代码仓库。
+
+```yaml
+beforeEach:
+  - clearCookies: {}
+  - setCookies:
+      cookiesEnv: E2E_COOKIES
+      url: https://example.com
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - gotoUrl:
+      url: /chat
+      waitUntil: domcontentloaded
+```
+
+`gotoUrl` 遵循 Playwright 的导航语义。只要导航完成，HTTP 4xx 和 5xx response
+也会作为成功的 Node 结果返回，并保留状态码，后续步骤可以继续检查错误页面。网络错误和
+导航超时仍会让 Node 失败。
+
+Android 平台预置会注册 `launch`、`terminate` 和 `runAdbShell`，并要求 Agent
+同时提供这三个能力：
+
+```ts
+import { createAndroidNodes } from '@midscene/test/android';
+
+const androidNodes = createAndroidNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+beforeEach:
+  - runAdbShell:
+      command: pm clear com.example.app
+  - launch:
+      uri: com.example.app
+```
+
+iOS 平台预置会注册 `launch`、`terminate` 和 `runWdaRequest`，并要求 Agent
+同时提供这三个能力：
+
+```ts
+import { createIOSNodes } from '@midscene/test/ios';
+
+const iosNodes = createIOSNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - launch:
+      uri: com.example.app
+  - runWdaRequest:
+      method: GET
+      endpoint: /status
+  - terminate:
+      uri: com.example.app
+```
+
+`runAdbShell` 和 `runWdaRequest` 会在 Node 结果和 workflow history 中保留完整
+response。Test Runner 只限制传给后续 Midscene Agent 的 history 内容：过大的 value
+会变成有长度限制的预览，并标明原始字符数；当 history 总量过大时，优先保留最近的记录。
+如果运行结果不需要完整输出，请直接在命令中进行过滤。
+
+`launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
+`gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和
+HTTP response 语义。
 
 ## 一键生成 Node 说明书
 

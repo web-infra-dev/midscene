@@ -386,6 +386,36 @@ describe('test project config', () => {
     expect(marker).toHaveBeenCalledOnce();
   });
 
+  it('falls back once when an imported module has an unknown extension', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { directory, path } = createConfig(`
+      import './plugin.unsupported';
+      globalThis.__testSetupMarker();
+      export default { nodes: [] };
+    `);
+    writeFileSync(join(directory, 'plugin.unsupported'), 'export default 1;');
+
+    await expect(loadTestProject(path)).resolves.toBeDefined();
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('does not retry runtime errors that only reuse a loader error code', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      globalThis.__testSetupMarker();
+      const error = new Error('runtime extension error');
+      error.code = 'ERR_UNKNOWN_FILE_EXTENSION';
+      throw error;
+    `);
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      'runtime extension error',
+    );
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
   it('does not resolve tsconfig paths', async () => {
     const { directory, path } = createConfig(
       `import { nodes } from '#nodes'; export default { nodes };`,
