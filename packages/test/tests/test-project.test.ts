@@ -13,8 +13,11 @@ afterEach(() => {
   (globalThis as Record<string, unknown>).__testSetupMarker = undefined;
 });
 
-const createConfig = (source: string): { directory: string; path: string } => {
-  const directory = mkdtempSync(join(tmpdir(), 'test-project-config-'));
+const createConfig = (
+  source: string,
+  directoryPrefix = 'test-project-config-',
+): { directory: string; path: string } => {
+  const directory = mkdtempSync(join(tmpdir(), directoryPrefix));
   directories.push(directory);
   const path = join(directory, 'midscene.config.ts');
   writeFileSync(path, source);
@@ -52,6 +55,17 @@ describe('test project config', () => {
       include: ['workflows/**/*.{yaml,yml}'],
       exclude: ['workflows/**/*.draft.yaml'],
     });
+  });
+
+  it('loads configs from paths containing URL control characters', async () => {
+    const { path } = createConfig(
+      'export default { nodes: [] };',
+      'test-project-config-#-',
+    );
+
+    const project = await loadTestProject(path);
+
+    expect(project.hasExplicitProjects).toBe(false);
   });
 
   it('loads adjacent TypeScript modules', async () => {
