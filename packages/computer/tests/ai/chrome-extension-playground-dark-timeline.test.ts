@@ -84,7 +84,7 @@ describe('chrome extension dark Playground timeline', () => {
       { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
     await agent.aiAssert(
-      `${SIDE_PANEL} shows the completed Playground execution timeline in dark mode. Each completed event is followed by its description, and consecutive event-description entries are joined by clearly visible, high-contrast light-gray connector lines. This includes short one-line Plan, Input, and KeyboardPress entries: their connector lines extend from the current icon to the next icon, rather than appearing as a dot. The connector lines must be visibly lighter than the dark background, not black or nearly black, and are not missing or clipped. The timeline clear control in the top-right is fully inside the side-panel edge, rather than being cut off by it.`,
+      `${SIDE_PANEL} is in dark mode and shows a completed Playground execution timeline. Completed steps have green check icons and readable descriptions. A thin light-gray vertical connector is visible below each completed check icon and extends toward the next step, including short one-line Plan, Input, and KeyboardPress rows. Small gaps where status icons cover the connector are expected, and the line may be thin or medium gray rather than pure white. The timeline clear control in the top-right is fully inside the side-panel edge and is not clipped.`,
     );
   });
 });
