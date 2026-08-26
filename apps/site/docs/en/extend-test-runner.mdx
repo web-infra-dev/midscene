@@ -416,6 +416,11 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
+`gotoUrl` follows Playwright's navigation semantics. When navigation completes,
+HTTP 4xx and 5xx responses are returned as successful Node results with their
+status code, so later steps can assert the error page. Network errors and
+navigation timeouts still fail the Node.
+
 For Android, the platform preset registers `launch`, `terminate`, and
 `runAdbShell`. Its Agent contract requires all three capabilities:
 
@@ -456,6 +461,13 @@ steps:
   - terminate:
       uri: com.example.app
 ```
+
+`runAdbShell` and `runWdaRequest` preserve their complete response in the Node
+result and workflow history. Test Runner limits only the history representation
+passed to later Midscene Agent calls: oversized values become bounded previews
+with their original character count, and recent entries take priority when the
+total context is too large. Use command-side filtering when the complete output
+is not needed in the run result.
 
 `launch` and `gotoUrl` are intentionally not aliases. `launch` manages an app,
 URL, or URI through a device Agent. `gotoUrl` navigates the current Playwright

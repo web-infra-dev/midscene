@@ -5,7 +5,7 @@ import { createPlaywrightNodes } from '../src/playwright';
 import { collected, createPage, step } from './playwright-node-helpers';
 
 describe('Playwright gotoUrl Node', () => {
-  it('navigates relative URLs and reports HTTP failures', async () => {
+  it('navigates relative URLs and returns the main-resource status', async () => {
     const { page, pageMock } = createPage();
     const registry = new NodeRegistry(
       createPlaywrightNodes({
@@ -28,12 +28,19 @@ describe('Playwright gotoUrl Node', () => {
       timeout: 60_000,
     });
 
-    pageMock.goto.mockResolvedValueOnce({ status: () => 503 });
-    const failure = await runCollectedCase(
-      collected([step('gotoUrl', { url: 'https://example.com/down' })]),
-      { resolveNode: registry.require.bind(registry), context: undefined },
-    );
-    expect(failure.steps[0].error?.message).toContain('HTTP 503');
+    for (const status of [404, 503]) {
+      pageMock.goto.mockResolvedValueOnce({ status: () => status });
+      const httpErrorPage = await runCollectedCase(
+        collected([step('gotoUrl', { url: 'https://example.com/down' })]),
+        { resolveNode: registry.require.bind(registry), context: undefined },
+      );
+      expect(httpErrorPage.status).toBe('success');
+      expect(httpErrorPage.steps[0].output?.data).toEqual({
+        url: 'https://example.com/final',
+        status,
+        title: 'Example',
+      });
+    }
   });
 
   it('rejects relative navigation without baseUrl', async () => {

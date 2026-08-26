@@ -75,9 +75,6 @@ export const createGotoUrlNode = <TContext>(
         timeout: ctx.input.timeoutMs,
       });
       const status = response?.status() ?? null;
-      if (status !== null && status >= 400) {
-        throw new Error(`Navigation failed with HTTP ${status}: ${page.url()}`);
-      }
       const result = {
         url: page.url(),
         status,

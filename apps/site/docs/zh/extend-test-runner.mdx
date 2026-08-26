@@ -411,6 +411,10 @@ beforeEach:
       waitUntil: domcontentloaded
 ```
 
+`gotoUrl` 遵循 Playwright 的导航语义。只要导航完成，HTTP 4xx 和 5xx response
+也会作为成功的 Node 结果返回，并保留状态码，后续步骤可以继续检查错误页面。网络错误和
+导航超时仍会让 Node 失败。
+
 Android 平台预置会注册 `launch`、`terminate` 和 `runAdbShell`，并要求 Agent
 同时提供这三个能力：
 
@@ -451,6 +455,11 @@ steps:
   - terminate:
       uri: com.example.app
 ```
+
+`runAdbShell` 和 `runWdaRequest` 会在 Node 结果和 workflow history 中保留完整
+response。Test Runner 只限制传给后续 Midscene Agent 的 history 内容：过大的 value
+会变成有长度限制的预览，并标明原始字符数；当 history 总量过大时，优先保留最近的记录。
+如果运行结果不需要完整输出，请直接在命令中进行过滤。
 
 `launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
 `gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和

@@ -261,15 +261,90 @@ const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
   return agent[method] as NonNullable<MidsceneUIAgent[TMethod]>;
 };
 
+const maxHistoryContextCharacters = 64_000;
+const maxHistoryValuePreviewCharacters = 8_000;
+const maxHistoryEntryCharacters = 24_000;
+const historyOmissionNoticeReserve = 256;
+
+const compactHistoryContextValue = (value: unknown): unknown => {
+  const serialized = JSON.stringify(value);
+  if (
+    serialized === undefined ||
+    serialized.length <= maxHistoryValuePreviewCharacters
+  ) {
+    return value;
+  }
+  return {
+    omittedFromContext: true,
+    originalCharacters: serialized.length,
+    preview:
+      typeof value === 'string'
+        ? value.slice(0, maxHistoryValuePreviewCharacters)
+        : serialized.slice(0, maxHistoryValuePreviewCharacters),
+  };
+};
+
+const serializeHistoryEntryForContext = (
+  entry: NodeHistoryEntry,
+  index: number,
+): string => {
+  const compacted = Object.fromEntries(
+    Object.entries({ index, ...entry }).map(([key, value]) => [
+      key,
+      compactHistoryContextValue(value),
+    ]),
+  );
+  const serialized = JSON.stringify(compacted);
+  if (serialized.length <= maxHistoryEntryCharacters) return serialized;
+
+  return JSON.stringify({
+    index,
+    scope: entry.scope,
+    phase: entry.phase,
+    stepIndex: entry.stepIndex,
+    node: entry.node,
+    status: entry.status,
+    ...(entry.summary === undefined
+      ? {}
+      : { summary: compactHistoryContextValue(entry.summary) }),
+    omittedFromContext: true,
+    compactedCharacters: serialized.length,
+  });
+};
+
 export const renderNodeHistory = (
   history: readonly NodeHistoryEntry[],
 ): string | undefined => {
   if (history.length === 0) return undefined;
+
+  const heading = 'Previous workflow results (read-only):';
+  const availableCharacters =
+    maxHistoryContextCharacters - heading.length - historyOmissionNoticeReserve;
+  const renderedEntries: string[] = [];
+  let renderedCharacters = 0;
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const rendered = serializeHistoryEntryForContext(history[index], index + 1);
+    const separatorCharacters = renderedEntries.length === 0 ? 0 : 1;
+    if (
+      renderedCharacters + separatorCharacters + rendered.length >
+      availableCharacters
+    ) {
+      break;
+    }
+    renderedEntries.unshift(rendered);
+    renderedCharacters += separatorCharacters + rendered.length;
+  }
+
+  const omittedEntries = history.length - renderedEntries.length;
   return [
-    'Previous workflow results (read-only):',
-    ...history.map((entry, index) =>
-      JSON.stringify({ index: index + 1, ...entry }),
-    ),
+    heading,
+    ...(omittedEntries === 0
+      ? []
+      : [
+          `${omittedEntries} earlier history entr${omittedEntries === 1 ? 'y was' : 'ies were'} omitted from Agent context to stay within the size limit. Complete results remain available in the Test Runner output.`,
+        ]),
+    ...renderedEntries,
   ].join('\n');
 };
 
