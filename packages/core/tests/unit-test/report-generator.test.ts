@@ -19,6 +19,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildIncrementalExecution,
   createExecution,
+  createPatternedPngFixture,
+  decodeImagePixels,
   defaultReportMeta,
   fakeBase64,
   getReportGeneratorTmpDir,
@@ -71,6 +73,32 @@ describe('ReportGenerator — append-only model', () => {
   });
 
   describe('inline mode — append-only strategy', () => {
+    it('preserves exact screenshot pixels in the HTML report', async () => {
+      const reportPath = join(tmpDir, 'pixel-integrity.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+      const { dataUri, expectedImage } = await createPatternedPngFixture();
+      const screenshot = ScreenshotItem.create(dataUri, Date.now());
+
+      generator.onExecutionUpdate(
+        createExecution([screenshot]),
+        defaultReportMeta,
+      );
+      await generator.finalize();
+
+      const imageMap = parseImageScripts(readFileSync(reportPath, 'utf-8'));
+      const outputDataUri = imageMap[screenshot.id];
+      expect(outputDataUri).toBeDefined();
+      const outputBase64 = outputDataUri.split(',', 2)[1];
+      expect(outputBase64).toBeDefined();
+      await expect(
+        decodeImagePixels(Buffer.from(outputBase64, 'base64')),
+      ).resolves.toEqual(expectedImage);
+    });
+
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
