@@ -141,88 +141,88 @@ describeIfReady(
       await expectExampleDomain(observer);
     });
 
-    // it('省略 activateTab 时保持旧行为并激活新标签页', async () => {
-    //   const observer = trackAgent(
-    //     new AgentOverChromeBridge({
-    //       enableWaterFlowAnimation: false,
-    //     }),
-    //   );
-    //   const target = createExampleTarget('foreground-default');
+    it('省略 activateTab 时保持旧行为并激活新标签页', async () => {
+      const observer = trackAgent(
+        new AgentOverChromeBridge({
+          enableWaterFlowAnimation: false,
+        }),
+      );
+      const target = createExampleTarget('foreground-default');
 
-    //   const activeTabBefore = await getCurrentActiveTab(observer);
+      const activeTabBefore = await getCurrentActiveTab(observer);
 
-    //   await observer.connectNewTabWithUrl(target.url);
+      await observer.connectNewTabWithUrl(target.url);
 
-    //   const createdTab = await findTabByToken(observer, target.token);
-    //   const activeTabAfter = await getCurrentActiveTab(observer);
+      const createdTab = await findTabByToken(observer, target.token);
+      const activeTabAfter = await getCurrentActiveTab(observer);
 
-    //   expect(createdTab.currentActiveTab).toBe(true);
-    //   expect(activeTabAfter.id).toBe(createdTab.id);
-    //   expect(activeTabAfter.id).not.toBe(activeTabBefore.id);
+      expect(createdTab.currentActiveTab).toBe(true);
+      expect(activeTabAfter.id).toBe(createdTab.id);
+      expect(activeTabAfter.id).not.toBe(activeTabBefore.id);
 
-    //   await expectExampleDomain(observer);
-    // });
+      await expectExampleDomain(observer);
+    });
 
-    // it('连接当前前台标签页时不改变现有标签选择', async () => {
-    //   const opener = trackAgent(
-    //     new AgentOverChromeBridge({
-    //       enableWaterFlowAnimation: false,
-    //     }),
-    //   );
-    //   const target = createExampleTarget('current-tab');
+    it('连接当前前台标签页时不改变现有标签选择', async () => {
+      const opener = trackAgent(
+        new AgentOverChromeBridge({
+          enableWaterFlowAnimation: false,
+        }),
+      );
+      const target = createExampleTarget('current-tab');
 
-    //   await opener.connectNewTabWithUrl(target.url);
-    //   const activeTabBeforeReconnect = await getCurrentActiveTab(opener);
-    //   expect(activeTabBeforeReconnect.url).toContain(target.token);
+      await opener.connectNewTabWithUrl(target.url);
+      const activeTabBeforeReconnect = await getCurrentActiveTab(opener);
+      expect(activeTabBeforeReconnect.url).toContain(target.token);
 
-    //   const reconnectAgent = trackAgent(
-    //     new AgentOverChromeBridge({
-    //       enableWaterFlowAnimation: false,
-    //     }),
-    //   );
+      const reconnectAgent = trackAgent(
+        new AgentOverChromeBridge({
+          enableWaterFlowAnimation: false,
+        }),
+      );
 
-    //   const currentTabBeforeConnect = await getCurrentActiveTab(reconnectAgent);
-    //   expect(currentTabBeforeConnect.id).toBe(activeTabBeforeReconnect.id);
+      const currentTabBeforeConnect = await getCurrentActiveTab(reconnectAgent);
+      expect(currentTabBeforeConnect.id).toBe(activeTabBeforeReconnect.id);
 
-    //   await reconnectAgent.connectCurrentTab();
+      await reconnectAgent.connectCurrentTab();
 
-    //   const currentTabAfterConnect = await getCurrentActiveTab(reconnectAgent);
-    //   expect(currentTabAfterConnect.id).toBe(currentTabBeforeConnect.id);
-    //   expect(currentTabAfterConnect.url).toContain(target.token);
+      const currentTabAfterConnect = await getCurrentActiveTab(reconnectAgent);
+      expect(currentTabAfterConnect.id).toBe(currentTabBeforeConnect.id);
+      expect(currentTabAfterConnect.url).toContain(target.token);
 
-    //   await expectExampleDomain(reconnectAgent);
-    // });
+      await expectExampleDomain(reconnectAgent);
+    });
 
-    // it('旧的 setActiveTabId 仍可将先前创建的后台标签页切到前台', async () => {
-    //   const opener = trackAgent(
-    //     new AgentOverChromeBridge({
-    //       enableWaterFlowAnimation: false,
-    //     }),
-    //   );
-    //   const target = createExampleTarget('manual-foreground');
+    it('旧的 setActiveTabId 仍可将先前创建的后台标签页切到前台', async () => {
+      const opener = trackAgent(
+        new AgentOverChromeBridge({
+          enableWaterFlowAnimation: false,
+        }),
+      );
+      const target = createExampleTarget('manual-foreground');
 
-    //   const activeTabBefore = await getCurrentActiveTab(opener);
+      const activeTabBefore = await getCurrentActiveTab(opener);
 
-    //   await opener.connectNewTabWithUrl(target.url, {
-    //     activateTab: false,
-    //   });
+      await opener.connectNewTabWithUrl(target.url, {
+        activateTab: false,
+      });
 
-    //   const backgroundTab = await findTabByToken(opener, target.token);
-    //   expect(backgroundTab.currentActiveTab).toBe(false);
+      const backgroundTab = await findTabByToken(opener, target.token);
+      expect(backgroundTab.currentActiveTab).toBe(false);
 
-    //   const switcher = trackAgent(
-    //     new AgentOverChromeBridge({
-    //       enableWaterFlowAnimation: false,
-    //     }),
-    //   );
+      const switcher = trackAgent(
+        new AgentOverChromeBridge({
+          enableWaterFlowAnimation: false,
+        }),
+      );
 
-    //   await switcher.setActiveTabId(backgroundTab.id);
+      await switcher.setActiveTabId(backgroundTab.id);
 
-    //   const activeTabAfter = await getCurrentActiveTab(switcher);
-    //   expect(activeTabAfter.id).toBe(backgroundTab.id);
-    //   expect(activeTabAfter.id).not.toBe(activeTabBefore.id);
+      const activeTabAfter = await getCurrentActiveTab(switcher);
+      expect(activeTabAfter.id).toBe(backgroundTab.id);
+      expect(activeTabAfter.id).not.toBe(activeTabBefore.id);
 
-    //   await expectExampleDomain(switcher);
-    // });
+      await expectExampleDomain(switcher);
+    });
   },
 );
