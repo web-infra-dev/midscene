@@ -1,41 +1,41 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const onUpdatedListeners = new Set<(...args: any[]) => void>();
-const tabsCreate = vi.fn();
-const tabsGet = vi.fn();
-const tabsQuery = vi.fn();
-const tabsUpdate = vi.fn();
+const tabsCreate = rs.fn();
+const tabsGet = rs.fn();
+const tabsQuery = rs.fn();
+const tabsUpdate = rs.fn();
 
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   tabs: {
     create: tabsCreate,
     get: tabsGet,
     query: tabsQuery,
     update: tabsUpdate,
     onUpdated: {
-      addListener: vi.fn((listener) => onUpdatedListeners.add(listener)),
-      removeListener: vi.fn((listener) => onUpdatedListeners.delete(listener)),
+      addListener: rs.fn((listener) => onUpdatedListeners.add(listener)),
+      removeListener: rs.fn((listener) => onUpdatedListeners.delete(listener)),
     },
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
-    sendCommand: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
+    sendCommand: rs.fn(),
     onEvent: {
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
+      addListener: rs.fn(),
+      removeListener: rs.fn(),
     },
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
-vi.mock('../../src/chrome-extension/dynamic-scripts', () => ({
-  getHtmlElementScript: vi.fn(async () => ''),
-  injectStopWaterFlowAnimation: vi.fn(async () => ''),
-  injectWaterFlowAnimation: vi.fn(async () => ''),
+rs.mock('../../src/chrome-extension/dynamic-scripts', () => ({
+  getHtmlElementScript: rs.fn(async () => ''),
+  injectStopWaterFlowAnimation: rs.fn(async () => ''),
+  injectWaterFlowAnimation: rs.fn(async () => ''),
 }));
 
 import { ExtensionBridgePageBrowserSide } from '../../src/bridge-mode/page-browser-side';
@@ -43,7 +43,7 @@ import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
 
 describe('Bridge tab activation behavior', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     onUpdatedListeners.clear();
     tabsCreate.mockResolvedValue({ id: 42 });
     tabsGet.mockResolvedValue({
@@ -56,7 +56,7 @@ describe('Bridge tab activation behavior', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   /**
@@ -110,7 +110,7 @@ describe('Bridge tab activation behavior', () => {
    */
   it('uses the controlled background tab during cleanup', async () => {
     const page = new ChromeExtensionProxyPage(true);
-    const detachDebugger = vi
+    const detachDebugger = rs
       .spyOn(page, 'detachDebugger')
       .mockResolvedValue(undefined);
 

@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { AgentOverChromeBridge } from '@/bridge-mode/agent-cli-side';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import dotenv from 'dotenv';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 dotenv.config({
   path: path.resolve(__dirname, '../../../../../.env'),
 });
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 300 * 1000,
 });
 
