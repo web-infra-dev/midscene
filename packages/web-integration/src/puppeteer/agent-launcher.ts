@@ -299,7 +299,7 @@ export async function launchPuppeteerPage(
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-    await browserInstance.setCookie(...JSON.parse(cookieFileContent));
+    await page.browserContext().setCookie(...JSON.parse(cookieFileContent));
   }
 
   if (ua) {

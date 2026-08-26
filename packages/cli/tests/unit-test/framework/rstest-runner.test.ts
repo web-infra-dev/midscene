@@ -1,17 +1,98 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { yamlProgressLogPrefix } from '@/framework/progress-reporter';
 import {
   resolveRstestCoreImportPath,
   runRstestYamlProject,
 } from '@/framework/rstest-runner';
-import { afterEach, describe, expect, test } from '@rstest/core';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
 
 describe('rstest runner', () => {
   test('resolves the bundled Rstest core import path', () => {
     expect(resolveRstestCoreImportPath()).toMatch(
       /@rstest[/\\]core[/\\]dist[/\\]index\.js$/,
     );
+  });
+
+  test('forwards marked YAML progress from an Rstest worker', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-progress-'));
+    const rstestImport = resolveRstestCoreImportPath();
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          include: ['virtual:progress.test.ts'],
+          virtualModules: {
+            'virtual:progress.test.ts': `import { test } from ${JSON.stringify(
+              rstestImport,
+            )};
+
+test('progress', () => {
+  console.log(${JSON.stringify(
+    `${yamlProgressLogPrefix}◌ login.yaml\n  ◌ open login page`,
+  )});
+});
+`,
+          },
+          cases: [],
+          maxConcurrency: 1,
+          testTimeout: 0,
+        },
+      });
+
+      expect(exitCode).toBe(0);
+      expect(consoleLog).toHaveBeenCalledWith(
+        '◌ login.yaml\n  ◌ open login page',
+      );
+    } finally {
+      consoleLog.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('does not leak worker console output when stdio is piped', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-pipe-'));
+    const rstestImport = resolveRstestCoreImportPath();
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      const exitCode = await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          include: ['virtual:pipe.test.ts'],
+          virtualModules: {
+            'virtual:pipe.test.ts': `import { test } from ${JSON.stringify(
+              rstestImport,
+            )};
+
+test('pipe', () => {
+  console.log(${JSON.stringify(`${yamlProgressLogPrefix}marked progress`)});
+  console.log('plain worker output');
+});
+`,
+          },
+          cases: [],
+          maxConcurrency: 1,
+          testTimeout: 0,
+        },
+      });
+
+      expect(exitCode).toBe(0);
+      expect(consoleLog).not.toHaveBeenCalled();
+    } finally {
+      consoleLog.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   describe('dependency resolution anchor', () => {

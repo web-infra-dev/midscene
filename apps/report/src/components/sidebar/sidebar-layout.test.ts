@@ -48,4 +48,15 @@ describe('sidebar layout', () => {
       /\.total-time-tooltip-metric,\s*\.total-time-tooltip-description\s*{[^}]*grid-column: 1 \/ -1;/s,
     );
   });
+
+  it('exposes replay-all as a labeled keyboard-accessible button', () => {
+    expect(source).toMatch(
+      /<button\s+type="button"\s+className="icon-button"\s+aria-label="Replay all tasks"/,
+    );
+    expect(source).not.toMatch(/<div\s+className="icon-button"/);
+    expect(styles).toMatch(
+      /\.icon-button\s*{[^}]*border: 0;[^}]*background: transparent;/s,
+    );
+    expect(styles).toMatch(/\.icon-button\s*{[\s\S]*?&:focus-visible\s*{/);
+  });
 });

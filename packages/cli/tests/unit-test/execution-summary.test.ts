@@ -14,6 +14,7 @@ import {
 } from '@midscene/core';
 import { afterEach, describe, expect, rs, test } from '@rstest/core';
 import {
+  preserveYamlAttemptReport,
   printExecutionPlan,
   printExecutionSummary,
   writeExecutionSummaryFile,
@@ -40,6 +41,44 @@ afterEach(() => {
 });
 
 describe('execution summary', () => {
+  test('preserves a directory-based report as a complete retry artifact', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
+    const reportFile = join(root, 'custom-report', 'index.html');
+    const screenshotFile = join(root, 'custom-report', 'screenshots', '1.png');
+    mkdirSync(dirname(screenshotFile), { recursive: true });
+    writeFileSync(reportFile, '<html>attempt one</html>', {
+      flag: 'w',
+    });
+    writeFileSync(screenshotFile, 'screenshot');
+
+    try {
+      const preserved = preserveYamlAttemptReport({
+        attempt: 1,
+        success: false,
+        report: reportFile,
+        duration: 10,
+        resultType: 'failed',
+      });
+      const archivedReport = join(
+        root,
+        'custom-report-attempt-1',
+        'index.html',
+      );
+
+      expect(preserved.report).toBe(archivedReport);
+      expect(existsSync(reportFile)).toBe(false);
+      expect(readFileSync(archivedReport, 'utf8')).toContain('attempt one');
+      expect(
+        readFileSync(
+          join(root, 'custom-report-attempt-1', 'screenshots', '1.png'),
+          'utf8',
+        ),
+      ).toBe('screenshot');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('prints the configured retry count in the execution plan', () => {
     printExecutionPlan({
       files: ['/tmp/case.yaml'],

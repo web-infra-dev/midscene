@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import type { RstestUserConfig, TestRunResult } from '@rstest/core/api';
+import { createYamlProgressReporter } from './progress-reporter';
 import { resolvePackageFromRstestCore } from './rstest-dependencies';
 import type {
   GeneratedRstestYamlProject,
@@ -206,7 +207,7 @@ export async function runRstestYamlProject(
     ...(project.retry !== undefined && project.retry > 0
       ? { retry: project.retry }
       : {}),
-    reporters: [],
+    reporters: options.stdio === 'pipe' ? [] : [createYamlProgressReporter()],
     tools: {
       rspack: (_config, { appendPlugins }) => {
         appendPlugins(

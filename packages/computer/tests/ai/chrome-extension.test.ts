@@ -10,6 +10,7 @@ import {
   findExtensionPageTarget,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
@@ -38,16 +39,10 @@ describe('chrome extension smoke test', () => {
   });
 
   it('open side panel via extension icon', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
-
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
+    await openExtensionSidePanel(agent);
 
     await agent.aiAssert(
-      'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
+      'A docked browser side panel is visible at the far right and contains Midscene or Playground UI, while the main browser content still shows the TodoMVC todos app',
     );
 
     // Inject env config into the side panel's localStorage via CDP

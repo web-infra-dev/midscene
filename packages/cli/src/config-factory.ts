@@ -91,23 +91,6 @@ async function expandFilePatterns(
 }
 
 /**
- * A setup file only makes sense when the batch shares one browser context: the
- * prerequisite state it establishes (typically a login) is carried to the main
- * files through the shared page. Without sharing, that state cannot reach the
- * main files, so reject the combination loudly instead of silently dropping it.
- */
-function assertSetupUsage(
-  setup: string | undefined,
-  shareBrowserContext: boolean,
-): void {
-  if (setup && !shareBrowserContext) {
-    throw new Error(
-      'setup requires shareBrowserContext: true, otherwise the setup state cannot be shared with the main files',
-    );
-  }
-}
-
-/**
  * Resolve the optional single setup file. It supports glob/relative paths like
  * the main files, but must reference exactly one file.
  */
@@ -239,7 +222,6 @@ export async function createConfig(
 
   const shareBrowserContext =
     options?.shareBrowserContext ?? parsedConfig.shareBrowserContext;
-  assertSetupUsage(setup, shareBrowserContext);
 
   return {
     files,
@@ -275,7 +257,6 @@ export async function createFilesConfig(
 
   const shareBrowserContext =
     options.shareBrowserContext ?? defaultConfig.shareBrowserContext;
-  assertSetupUsage(setup, shareBrowserContext);
 
   return {
     files,

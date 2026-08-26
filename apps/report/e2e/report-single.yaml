@@ -31,12 +31,27 @@ tasks:
       - aiTap:
           locate:
             prompt: >-
-              the black triangular report-wide replay button at the far right
-              of the top-left sidebar toolbar, immediately to the right of
-              "Switch: Command ..."; not a task row, timeline thumbnail, or
-              video player control
-      - sleep: 1000
-      - aiAssert: There is a video player area with a progress bar and playback time display
+              the button labeled "Replay all tasks", shown as a black
+              triangular play icon at the far right of the top-left sidebar
+              toolbar and immediately to the right of the visible text
+              "Switch: Command + Up / Down"; do not click a task row,
+              timeline thumbnail, copy button, download button, or player
+              control
+            deepLocate: true
+      - sleep: 500
+      - aiHover:
+          locate:
+            prompt: >-
+              the large central replay canvas below the Record timeline in the
+              main report area; not the left task sidebar and not a timeline
+              thumbnail
+            deepLocate: true
+      - sleep: 300
+      - aiAssert: >-
+          The report is in replay-all mode. The main report area shows the
+          interactive replay player, and its visible bottom overlay control bar
+          contains a play or pause control, current and total playback time, a
+          horizontal seek/progress bar, settings, and fullscreen controls.
 
   # --- Settings popup ---
   - name: settings popup opens and shows options

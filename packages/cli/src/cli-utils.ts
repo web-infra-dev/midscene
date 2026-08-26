@@ -50,7 +50,7 @@ Usage:
       setup: {
         type: 'string',
         description:
-          'A yaml file to run before the main files. Requires --share-browser-context',
+          'A yaml file to run before the main files. Puppeteer Web setup requires --share-browser-context',
       },
       config: {
         type: 'string',
@@ -83,7 +83,7 @@ Usage:
       },
       'share-browser-context': {
         type: 'boolean',
-        description: `Share browser context across multiple yaml files, default is ${defaultConfig.shareBrowserContext}`,
+        description: `Share a Puppeteer Web browser context across multiple yaml files, default is ${defaultConfig.shareBrowserContext}`,
       },
       'dotenv-override': {
         type: 'boolean',

@@ -1,9 +1,11 @@
 import {
   type Stats,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -29,22 +31,28 @@ import puppeteer from 'puppeteer';
 rs.mock('node:fs');
 rs.mock('puppeteer', () => ({
   default: {
-    launch: rs.fn().mockResolvedValue({
+    launch: rs.fn().mockImplementation(async () => ({
       close: rs.fn().mockResolvedValue(undefined),
-      newPage: rs.fn().mockResolvedValue({
-        browser: rs.fn().mockReturnValue({}),
+      createBrowserContext: rs.fn().mockImplementation(async () => ({
         close: rs.fn().mockResolvedValue(undefined),
-      }),
-    }),
-    connect: rs.fn().mockResolvedValue({
+        newPage: rs.fn().mockResolvedValue({
+          browser: rs.fn().mockReturnValue({}),
+          close: rs.fn().mockResolvedValue(undefined),
+        }),
+      })),
+    })),
+    connect: rs.fn().mockImplementation(async () => ({
       disconnect: rs.fn(),
       close: rs.fn().mockResolvedValue(undefined),
-      newPage: rs.fn().mockResolvedValue({
-        browser: rs.fn().mockReturnValue({}),
+      createBrowserContext: rs.fn().mockImplementation(async () => ({
         close: rs.fn().mockResolvedValue(undefined),
-      }),
+        newPage: rs.fn().mockResolvedValue({
+          browser: rs.fn().mockReturnValue({}),
+          close: rs.fn().mockResolvedValue(undefined),
+        }),
+      })),
       pages: rs.fn().mockResolvedValue([]),
-    }),
+    })),
   },
 }));
 rs.mock('@/create-yaml-player');
@@ -57,6 +65,12 @@ rs.mock('@/printer', () => ({
   isTTY: false,
   contextInfo: rs.fn().mockReturnValue({ mergedText: 'test info' }),
   contextTaskListSummary: rs.fn().mockReturnValue('test summary'),
+  formatYamlProgressSnapshot: rs.fn(
+    (message: string, attempt: number, totalAttempts: number) =>
+      totalAttempts > 1
+        ? `Attempt ${attempt}/${totalAttempts}\n${message}`
+        : message,
+  ),
   spinnerInterval: 80,
 }));
 rs.mock('@/tty-renderer');
@@ -142,6 +156,24 @@ describe('BatchRunner', () => {
     rs.mocked(getMidsceneRunSubDir).mockReturnValue('/test/output');
   });
 
+  test('delivers progress snapshots to the caller', async () => {
+    const onProgress = rs.fn();
+    const runner = new BatchRunner({
+      ...mockBatchConfig,
+      files: ['login.yml'],
+    });
+
+    await runner.run({
+      generateSummary: false,
+      printExecutionPlan: false,
+      onProgress,
+    });
+
+    expect(onProgress).toHaveBeenCalledTimes(2);
+    expect(onProgress).toHaveBeenNthCalledWith(1, 'test summary');
+    expect(onProgress).toHaveBeenNthCalledWith(2, 'test summary');
+  });
+
   describe('shareBrowserContext logic', () => {
     test('should create one browser instance when shareBrowserContext is true', async () => {
       const config = {
@@ -167,6 +199,111 @@ describe('BatchRunner', () => {
         expect.objectContaining({ browser: browserInstance }),
       );
     });
+
+    test('retries only a failed file while reusing the shared browser and page', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        ...mockYamlScript,
+        agent: { reportFileName: 'custom-report' },
+      } as MidsceneYamlScript);
+      let playerCreationCount = 0;
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
+        playerCreationCount++;
+        return createMockPlayer(playerCreationCount > 1);
+      });
+      const onProgress = rs.fn();
+      const dateNow = rs
+        .spyOn(Date, 'now')
+        .mockReturnValueOnce(100)
+        .mockReturnValueOnce(110)
+        .mockReturnValueOnce(200)
+        .mockReturnValueOnce(220);
+      try {
+        const runner = new BatchRunner({
+          ...mockBatchConfig,
+          shareBrowserContext: true,
+          files: ['retry.yml'],
+          retry: 1,
+        });
+
+        const results = await runner.run({
+          generateSummary: false,
+          printExecutionPlan: false,
+          onProgress,
+        });
+
+        expect(createYamlPlayer).toHaveBeenCalledTimes(2);
+        const firstOptions = rs.mocked(createYamlPlayer).mock.calls[0][2];
+        const secondOptions = rs.mocked(createYamlPlayer).mock.calls[1][2];
+        expect(firstOptions?.browser).toBe(secondOptions?.browser);
+        expect(firstOptions?.page).toBe(secondOptions?.page);
+        const browserInstance = (await rs.mocked(puppeteer.launch).mock
+          .results[0].value) as any;
+        expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
+        expect(results).toMatchObject([
+          {
+            file: 'retry.yml',
+            success: true,
+            duration: 30,
+            attempts: [
+              {
+                attempt: 1,
+                success: false,
+                resultType: 'failed',
+                duration: 10,
+                report: '/test/report-attempt-1.html',
+              },
+              {
+                attempt: 2,
+                success: true,
+                resultType: 'success',
+                duration: 20,
+                report: '/test/report.html',
+              },
+            ],
+          },
+        ]);
+        expect(copyFileSync).toHaveBeenCalledWith(
+          '/test/report.html',
+          '/test/report-attempt-1.html',
+        );
+        expect(unlinkSync).toHaveBeenCalledWith('/test/report.html');
+        expect(onProgress.mock.calls.map(([message]) => message)).toEqual([
+          'Attempt 1/2\ntest summary',
+          'Attempt 1/2\ntest summary',
+          'Attempt 2/2\ntest summary',
+          'Attempt 2/2\ntest summary',
+        ]);
+      } finally {
+        dateNow.mockRestore();
+      }
+    });
+
+    test.each([
+      ['cdpEndpoint', 'ws://localhost:9222/devtools/browser/test'],
+      ['chromeArgs', ['--no-sandbox']],
+      ['acceptInsecureCerts', true],
+      ['downloadPath', './downloads'],
+    ] as const)(
+      'rejects file-level %s instead of silently ignoring it in a shared browser',
+      async (option, value) => {
+        rs.mocked(parseYamlScript).mockReturnValue({
+          tasks: mockYamlScript.tasks,
+          web: { url: 'http://test.com', [option]: value },
+        } as MidsceneYamlScript);
+        const runner = new BatchRunner({
+          ...mockBatchConfig,
+          shareBrowserContext: true,
+          files: ['web1.yml'],
+        });
+
+        await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+          `browser-level option(s) "${option}" in "web1.yml" would be ignored`,
+        );
+        expect(createYamlPlayer).not.toHaveBeenCalled();
+        expect(puppeteer.launch).not.toHaveBeenCalled();
+        expect(puppeteer.connect).not.toHaveBeenCalled();
+      },
+    );
 
     test('should pass chromeArgs from global config to puppeteer.launch when shareBrowserContext is true', async () => {
       const config = {
@@ -244,6 +381,14 @@ describe('BatchRunner', () => {
         policy: 'allow',
         downloadPath: path.resolve('./downloads'),
       });
+      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
+        .value) as any;
+      expect(browserInstance.createBrowserContext).toHaveBeenCalledWith({
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should not create a shared browser instance when shareBrowserContext is false', async () => {
@@ -269,10 +414,10 @@ describe('BatchRunner', () => {
       );
     });
 
-    test('should not create any browser instance if no web tasks', async () => {
+    test('should not create any browser instance for non-Web tasks', async () => {
       const config = {
         ...mockBatchConfig,
-        shareBrowserContext: true, // even if true
+        shareBrowserContext: false,
         files: ['android1.yml', 'android2.yml'],
         globalConfig: {},
       };
@@ -336,17 +481,29 @@ describe('BatchRunner', () => {
           downloadPath: path.resolve('./downloads'),
         },
       });
+      const browserInstance = (await rs.mocked(puppeteer.connect).mock
+        .results[0].value) as any;
+      expect(browserInstance.createBrowserContext).toHaveBeenCalledWith({
+        downloadBehavior: {
+          policy: 'allow',
+          downloadPath: path.resolve('./downloads'),
+        },
+      });
     });
 
     test('should disconnect (not close) browser in CDP mode', async () => {
       const mockDisconnect = rs.fn();
       const mockClose = rs.fn().mockResolvedValue(undefined);
+      const mockContextClose = rs.fn().mockResolvedValue(undefined);
       rs.mocked(puppeteer.connect).mockResolvedValue({
         disconnect: mockDisconnect,
         close: mockClose,
-        newPage: rs.fn().mockResolvedValue({
-          browser: rs.fn().mockReturnValue({}),
-          close: rs.fn().mockResolvedValue(undefined),
+        createBrowserContext: rs.fn().mockResolvedValue({
+          close: mockContextClose,
+          newPage: rs.fn().mockResolvedValue({
+            browser: rs.fn().mockReturnValue({}),
+            close: rs.fn().mockResolvedValue(undefined),
+          }),
         }),
         pages: rs.fn().mockResolvedValue([]),
       } as any);
@@ -367,6 +524,7 @@ describe('BatchRunner', () => {
       await runner.run();
 
       // In CDP mode, should disconnect, not close
+      expect(mockContextClose).toHaveBeenCalledTimes(1);
       expect(mockDisconnect).toHaveBeenCalled();
       expect(mockClose).not.toHaveBeenCalled();
     });
@@ -530,23 +688,139 @@ describe('BatchRunner', () => {
       ]);
     });
 
-    test('aborts main files when the setup file fails', async () => {
+    test('aborts main files after setup retries are exhausted', async () => {
       const runOrder: string[] = [];
       trackRunOrder(runOrder, (file) => file !== 'login.yml');
 
-      const runner = new BatchRunner(setupConfig);
-      await runner.run();
+      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+      const results = await runner.run();
 
       // The main files must never run once the prerequisite setup fails.
-      expect(runOrder).toEqual(['login.yml']);
+      expect(runOrder).toEqual(['login.yml', 'login.yml']);
       expect(runner.getFailedFiles()).toEqual(['login.yml']);
       expect(runner.getNotExecutedFiles().sort()).toEqual([
         'report.yml',
         'search.yml',
       ]);
+      expect(
+        results.find((result) => result.file === 'login.yml'),
+      ).toMatchObject({
+        success: false,
+        attempts: [
+          { attempt: 1, success: false },
+          { attempt: 2, success: false },
+        ],
+      });
+      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
+        .value) as any;
+      expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(2);
+      const browserContexts = await Promise.all(
+        browserInstance.createBrowserContext.mock.results.map(
+          (result: { value: Promise<unknown> }) => result.value,
+        ),
+      );
+      for (const browserContext of browserContexts as Array<{
+        close: ReturnType<typeof rs.fn>;
+      }>) {
+        expect(browserContext.close).toHaveBeenCalledTimes(1);
+      }
+      expect(browserInstance.close).toHaveBeenCalledTimes(1);
     });
 
-    test('throws when setup is set without shareBrowserContext', async () => {
+    test('retries setup in a fresh context and shares only the successful context', async () => {
+      const runOrder: string[] = [];
+      const creationCountByFile = new Map<string, number>();
+      const setupPages: unknown[] = [];
+      const mainPages: unknown[] = [];
+      const browsers: unknown[] = [];
+      rs.mocked(createYamlPlayer).mockImplementation(
+        async (file, _, options) => {
+          const fileName = file as string;
+          const creationCount = (creationCountByFile.get(fileName) ?? 0) + 1;
+          creationCountByFile.set(fileName, creationCount);
+          browsers.push(options?.browser);
+          if (fileName === 'login.yml') {
+            setupPages.push(options?.page);
+          } else {
+            mainPages.push(options?.page);
+          }
+          const shouldSucceed = fileName !== 'login.yml' || creationCount > 1;
+          const player = createMockPlayer(shouldSucceed);
+          const originalRun = player.run;
+          (player as unknown as { run: () => Promise<void> }).run = rs.fn(
+            async () => {
+              runOrder.push(fileName);
+              return originalRun();
+            },
+          );
+          return player;
+        },
+      );
+
+      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+      const results = await runner.run();
+
+      expect(runOrder[0]).toBe('login.yml');
+      expect(runOrder[1]).toBe('login.yml');
+      expect(runOrder.slice(2).sort()).toEqual(['report.yml', 'search.yml']);
+      expect(rs.mocked(puppeteer.launch)).toHaveBeenCalledTimes(1);
+      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
+        .value) as any;
+      expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(2);
+      const firstBrowserContext = (await browserInstance.createBrowserContext
+        .mock.results[0].value) as any;
+      const secondBrowserContext = (await browserInstance.createBrowserContext
+        .mock.results[1].value) as any;
+      expect(firstBrowserContext).not.toBe(secondBrowserContext);
+      expect(firstBrowserContext.close).toHaveBeenCalledTimes(1);
+      expect(secondBrowserContext.close).toHaveBeenCalledTimes(1);
+      expect(browserInstance.close).toHaveBeenCalledTimes(1);
+      expect(setupPages).toHaveLength(2);
+      expect(setupPages[0]).not.toBe(setupPages[1]);
+      expect(mainPages).toEqual([setupPages[1], setupPages[1]]);
+      expect(browsers.every((candidate) => candidate === browserInstance)).toBe(
+        true,
+      );
+      expect(
+        results.find((result) => result.file === 'login.yml'),
+      ).toMatchObject({
+        success: true,
+        attempts: [
+          { attempt: 1, success: false },
+          { attempt: 2, success: true },
+        ],
+      });
+      expect(runner.getNotExecutedFiles()).toEqual([]);
+    });
+
+    test('cleans every context and the browser when setup runtime recreation fails', async () => {
+      const firstBrowserContext = {
+        close: rs.fn().mockResolvedValue(undefined),
+        newPage: rs.fn().mockResolvedValue({}),
+      };
+      const secondBrowserContext = {
+        close: rs.fn().mockResolvedValue(undefined),
+        newPage: rs.fn().mockRejectedValue(new Error('page creation failed')),
+      };
+      const browser = {
+        close: rs.fn().mockResolvedValue(undefined),
+        createBrowserContext: rs
+          .fn()
+          .mockResolvedValueOnce(firstBrowserContext)
+          .mockResolvedValueOnce(secondBrowserContext),
+      };
+      rs.mocked(puppeteer.launch).mockResolvedValueOnce(browser as any);
+      rs.mocked(createYamlPlayer).mockResolvedValue(createMockPlayer(false));
+
+      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+
+      await expect(runner.run()).rejects.toThrow('page creation failed');
+      expect(firstBrowserContext.close).toHaveBeenCalledTimes(1);
+      expect(secondBrowserContext.close).toHaveBeenCalledTimes(1);
+      expect(browser.close).toHaveBeenCalledTimes(1);
+    });
+
+    test('requires shareBrowserContext for Puppeteer Web setup', async () => {
       const config = {
         ...mockBatchConfig,
         shareBrowserContext: false,
@@ -555,8 +829,133 @@ describe('BatchRunner', () => {
       };
       const runner = new BatchRunner(config);
       await expect(runner.run()).rejects.toThrow(
-        'setup requires shareBrowserContext: true',
+        'Puppeteer Web setup "login.yml" requires shareBrowserContext: true',
       );
+    });
+
+    const nonPuppeteerTargets: Array<
+      [string, Omit<MidsceneYamlScript, 'tasks'>]
+    > = [
+      [
+        'Web bridge mode',
+        { page: { url: 'about:blank', bridgeMode: 'currentTab' } },
+      ],
+      ['Android', { android: {} }],
+      ['iOS', { ios: {} }],
+      ['HarmonyOS', { harmony: {} }],
+      ['Computer', { computer: {} }],
+      ['Interface', { interface: { module: './test-interface', param: {} } }],
+    ];
+
+    for (const [targetName, targetConfig] of nonPuppeteerTargets) {
+      test(`allows ${targetName} setup without shareBrowserContext`, async () => {
+        rs.mocked(parseYamlScript).mockReturnValue({
+          ...targetConfig,
+          tasks: mockYamlScript.tasks,
+        });
+        const config = {
+          ...mockBatchConfig,
+          globalConfig: {},
+          shareBrowserContext: false,
+          setup: 'prepare.yml',
+          files: ['main.yml'],
+        };
+
+        const runner = new BatchRunner(config);
+        const results = await runner.run({ generateSummary: false });
+
+        expect(results.map((result) => result.file)).toEqual([
+          'prepare.yml',
+          'main.yml',
+        ]);
+        expect(puppeteer.launch).not.toHaveBeenCalled();
+      });
+    }
+
+    test('retries non-Puppeteer setup with a new player before running main files', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        android: {},
+        tasks: mockYamlScript.tasks,
+      });
+      const runOrder: string[] = [];
+      let setupCreationCount = 0;
+      rs.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        const fileName = file as string;
+        if (fileName === 'prepare.yml') setupCreationCount++;
+        const player = createMockPlayer(
+          fileName !== 'prepare.yml' || setupCreationCount > 1,
+        );
+        const originalRun = player.run;
+        (player as unknown as { run: () => Promise<void> }).run = rs.fn(
+          async () => {
+            runOrder.push(fileName);
+            return originalRun();
+          },
+        );
+        return player;
+      });
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: false,
+        setup: 'prepare.yml',
+        files: ['main.yml'],
+        retry: 1,
+      });
+      const results = await runner.run({ generateSummary: false });
+
+      expect(runOrder).toEqual(['prepare.yml', 'prepare.yml', 'main.yml']);
+      expect(setupCreationCount).toBe(2);
+      expect(
+        results.find((result) => result.file === 'prepare.yml'),
+      ).toMatchObject({
+        success: true,
+        attempts: [
+          { attempt: 1, success: false },
+          { attempt: 2, success: true },
+        ],
+      });
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('rejects shareBrowserContext for non-Puppeteer targets', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        android: {},
+        tasks: mockYamlScript.tasks,
+      });
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: true,
+        files: ['android.yml'],
+      });
+
+      await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+        'shareBrowserContext only supports Puppeteer Web targets, but "android.yml" uses Android',
+      );
+      expect(createYamlPlayer).not.toHaveBeenCalled();
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('rejects shareBrowserContext for Web bridge mode', async () => {
+      rs.mocked(parseYamlScript).mockReturnValue({
+        page: { url: 'about:blank', bridgeMode: 'currentTab' },
+        tasks: mockYamlScript.tasks,
+      });
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        globalConfig: {},
+        shareBrowserContext: true,
+        setup: 'prepare.yml',
+        files: ['main.yml'],
+      });
+
+      await expect(runner.run({ generateSummary: false })).rejects.toThrow(
+        'shareBrowserContext only supports Puppeteer Web targets, but "prepare.yml" uses Web bridge mode',
+      );
+      expect(createYamlPlayer).not.toHaveBeenCalled();
+      expect(puppeteer.launch).not.toHaveBeenCalled();
     });
 
     test('throws when a yaml file is both the setup and a main file', async () => {

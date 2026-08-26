@@ -13,7 +13,7 @@ rs.mock('@rstest/core/api', () => ({
 }));
 
 describe('rstest runner config', () => {
-  test('suppresses Rstest reporter output by default', async () => {
+  test('uses the Midscene YAML progress reporter by default', async () => {
     const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-config-'));
     mocks.runRstest.mockResolvedValue({ ok: true, unhandledErrors: [] });
 
@@ -35,13 +35,41 @@ describe('rstest runner config', () => {
       });
 
       expect(exitCode).toBe(0);
-      expect(mocks.runRstest).toHaveBeenCalledWith(
+      const inlineConfig = mocks.runRstest.mock.calls[0]?.[0].inlineConfig;
+      expect(inlineConfig.reporters).toEqual([
         expect.objectContaining({
-          inlineConfig: expect.objectContaining({
-            reporters: [],
-          }),
+          onUserConsoleLog: expect.any(Function),
         }),
-      );
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('suppresses reporter output when stdio is piped', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-rstest-config-'));
+    mocks.runRstest.mockResolvedValue({ ok: true, unhandledErrors: [] });
+
+    try {
+      await runRstestYamlProject({
+        cwd: root,
+        stdio: 'pipe',
+        project: {
+          projectDir: root,
+          outputDir: join(root, 'output'),
+          resultDir: join(root, 'results'),
+          include: ['virtual:a.test.ts'],
+          virtualModules: {
+            'virtual:a.test.ts': 'export {};',
+          },
+          cases: [],
+          maxConcurrency: 1,
+          testTimeout: 0,
+        },
+      });
+
+      const inlineConfig = mocks.runRstest.mock.calls.at(-1)?.[0].inlineConfig;
+      expect(inlineConfig.reporters).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

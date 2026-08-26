@@ -1,0 +1,18 @@
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Pass on the second shared-context attempt
+    flow:
+      - javascript: |
+          (function() {
+            const attempt = Number(localStorage.getItem('retryAttempt') || '0') + 1;
+            localStorage.setItem('retryAttempt', String(attempt));
+            if (attempt === 1) {
+              throw new Error('intentional first-attempt failure');
+            }
+            return { attempt };
+          })()
+        name: retry_once

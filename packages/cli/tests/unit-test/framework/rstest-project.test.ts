@@ -142,6 +142,9 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.retry).toBe(3);
+      expect(project.virtualModules[project.cases[0].testModule]).toContain(
+        '"retry": 3',
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -226,6 +229,7 @@ describe('rstest yaml project generation', () => {
           files: [yamlA, yamlB],
           concurrent: 1,
           continueOnError: true,
+          retry: 2,
           summary: 'summary.json',
           shareBrowserContext: true,
           globalConfig: {
@@ -251,6 +255,7 @@ describe('rstest yaml project generation', () => {
         yamlB,
       ]);
       expect(project.maxConcurrency).toBe(1);
+      expect(project.retry).toBeUndefined();
       const generated = project.virtualModules[project.include[0]];
       expect(generated).toContain('import { test } from "@test/rstest-core"');
       expect(generated).toContain(
@@ -259,6 +264,7 @@ describe('rstest yaml project generation', () => {
       expect(generated).toContain('defineYamlBatchTest(test, testOptions)');
       expect(generated).not.toContain('defineYamlBatchTest(testOptions)');
       expect(generated).toContain('"shareBrowserContext": true');
+      expect(generated).toContain('"retry": 2');
       expect(generated).toContain(JSON.stringify(setupYaml));
       expect(generated).toContain(JSON.stringify(yamlA));
       expect(generated).toContain(JSON.stringify(yamlB));

@@ -2,6 +2,7 @@ import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
+import type { ComputerAgent } from '../../src';
 import { isHeadlessLinux } from './test-utils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -134,6 +135,21 @@ export async function launchChromeWithExtension(
 
   child.unref();
   await waitForCdpReady();
+}
+
+export async function openExtensionSidePanel(
+  agent: ComputerAgent,
+): Promise<void> {
+  await agent.aiTap(
+    'the Chrome toolbar Extensions button with a puzzle-piece icon in the top-right browser chrome, not any icon inside the web page',
+    { deepLocate: true },
+  );
+  await sleep(500);
+  await agent.aiTap(
+    'the row labeled "Midscene.js" inside the open Chrome Extensions menu below the toolbar, not any text or control inside the web page',
+    { deepLocate: true },
+  );
+  await sleep(3000);
 }
 
 // Wait until Chrome's CDP endpoint answers, i.e. the browser is actually up.

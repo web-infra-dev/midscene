@@ -143,11 +143,20 @@
           align-items: center;
           justify-content: center;
           padding: 6px;
+          border: 0;
           border-radius: 8px;
+          background: transparent;
+          color: inherit;
+          font: inherit;
           transition: all 0.2s;
 
           &:hover {
             background: #e6e8eb;
+          }
+
+          &:focus-visible {
+            outline: 2px solid #1677ff;
+            outline-offset: 1px;
           }
         }
       }

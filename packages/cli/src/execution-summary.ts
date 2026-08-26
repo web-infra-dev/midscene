@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname, relative, resolve } from 'node:path';
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
@@ -109,6 +117,78 @@ export function createExecutedYamlResult(options: {
     resultType,
     error: errorMessage,
   };
+}
+
+export function resolveYamlMaxAttempts(retry?: number): number {
+  if (!Number.isFinite(retry) || !retry || retry < 1) return 1;
+  return Math.floor(retry) + 1;
+}
+
+export function createYamlAttempt(
+  result: MidsceneYamlConfigResult,
+  attempt: number,
+): MidsceneYamlConfigAttempt {
+  return {
+    attempt,
+    success: result.success,
+    output: result.output,
+    report: result.report,
+    error: result.error,
+    duration: result.duration,
+    resultType: result.resultType,
+  };
+}
+
+export function getYamlAttemptsDuration(
+  attempts: MidsceneYamlConfigAttempt[],
+): number {
+  return attempts.reduce(
+    (total, attempt) => total + (attempt.duration ?? 0),
+    0,
+  );
+}
+
+const retryAttemptReportPath = (
+  reportFile: string,
+  attempt: number,
+): string => {
+  if (basename(reportFile) === 'index.html') {
+    const reportDir = dirname(reportFile);
+    return join(
+      dirname(reportDir),
+      `${basename(reportDir)}-attempt-${attempt}`,
+      'index.html',
+    );
+  }
+
+  const extension = extname(reportFile);
+  const stem = basename(reportFile, extension);
+  return join(dirname(reportFile), `${stem}-attempt-${attempt}${extension}`);
+};
+
+/**
+ * Move a completed attempt's report aside before a stable, user-configured
+ * reportFileName is reused by the next attempt.
+ */
+export function preserveYamlAttemptReport(
+  attempt: MidsceneYamlConfigAttempt,
+): MidsceneYamlConfigAttempt {
+  const source = attempt.report;
+  if (!source || !existsSync(source)) return attempt;
+
+  const target = retryAttemptReportPath(source, attempt.attempt);
+  if (basename(source) === 'index.html') {
+    const sourceDir = dirname(source);
+    const targetDir = dirname(target);
+    rmSync(targetDir, { recursive: true, force: true });
+    cpSync(sourceDir, targetDir, { recursive: true });
+    rmSync(sourceDir, { recursive: true, force: true });
+  } else {
+    copyFileSync(source, target);
+    unlinkSync(source);
+  }
+
+  return { ...attempt, report: target };
 }
 
 export function getExecutionSummary(

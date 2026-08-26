@@ -354,6 +354,10 @@ export interface MidsceneYamlConfig {
    */
   retry?: number;
   summary?: string;
+  /**
+   * Share one BrowserContext and Page across Puppeteer Web yaml files. This is
+   * not supported by bridge mode or non-Web targets.
+   */
   shareBrowserContext?: boolean;
   /** @deprecated Use `web`, `page`, or `browser` instead. */
   target?: MidsceneYamlScriptWebEnv;
@@ -363,11 +367,10 @@ export interface MidsceneYamlConfig {
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
   /**
-   * A setup yaml file that runs before the main `files`. It shares the same
-   * browser context as the main files, so authentication or other prerequisite
-   * state established here is visible to every main file. A setup failure
-   * aborts the whole batch and the main files are marked as not executed. Only
-   * meaningful with `shareBrowserContext: true`.
+   * A setup yaml file that runs before the main `files`. A setup failure aborts
+   * the whole batch and the main files are marked as not executed. Puppeteer
+   * Web setup requires `shareBrowserContext: true` to pass browser state to the
+   * main files. Other targets run setup without browser-context sharing.
    */
   setup?: string;
   files: string[];
