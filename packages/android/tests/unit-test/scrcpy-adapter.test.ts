@@ -338,7 +338,9 @@ describe('ScrcpyDeviceAdapter', () => {
       await adapter.ensureManager(defaultDeviceInfo);
 
       const [, , pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
-      expect(pushServer).toBeDefined();
+      if (!pushServer) {
+        throw new Error('Expected the manager to receive a server pusher');
+      }
       await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
 
       expect(mocks.AppiumAdb).toHaveBeenCalledWith({
