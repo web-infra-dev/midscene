@@ -23,6 +23,11 @@ export interface RunnerCaseView {
   finalAttempt?: TestRunReportAttempt;
 }
 
+export interface RunnerCaseSearchMatch {
+  label: string;
+  snippet: string;
+}
+
 export interface RunnerHealthStats {
   executed: number;
   firstPassCount: number;
@@ -237,6 +242,98 @@ export const getCaseFailure = (
       (step) => step.status === 'failed',
     );
     if (failed) return failed;
+  }
+  return undefined;
+};
+
+const searchableValue = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const searchSnippet = (value: string, query: string): string => {
+  const matchIndex = value.toLocaleLowerCase().indexOf(query);
+  if (matchIndex < 0 || value.length <= 150) return value;
+  const start = Math.max(0, matchIndex - 48);
+  const end = Math.min(value.length, matchIndex + query.length + 84);
+  return `${start > 0 ? '…' : ''}${value.slice(start, end)}${
+    end < value.length ? '…' : ''
+  }`;
+};
+
+/**
+ * Search every field that can identify a case or explain its execution.
+ * This deliberately includes failed retry attempts and debug-only identifiers,
+ * rather than mirroring the compact story shown in the list.
+ */
+export const getCaseSearchMatch = (
+  item: RunnerCaseView,
+  query: string,
+): RunnerCaseSearchMatch | undefined => {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) return undefined;
+
+  const entries: Array<[label: string, value: unknown]> = [
+    ['Case name', item.testCase.name],
+    ['Case ID', item.testCase.caseId],
+    ['Case status', item.status],
+    ['Not-run reason', item.testCase.notRunReason ?? ''],
+    ['Project', item.project.name],
+    ['Project ID', item.project.projectId],
+    ['Platform', item.project.platform],
+    ['Source file', item.document.sourcePath],
+    ['Document ID', item.document.documentId],
+  ];
+  const documentSteps = [
+    ...item.document.beforeAll,
+    ...item.testCase.attempts.flatMap(flattenAttemptSteps),
+    ...item.document.afterAll,
+  ];
+
+  for (const attempt of item.testCase.attempts) {
+    entries.push(
+      ['Attempt ID', attempt.attemptId],
+      ['Attempt status', attempt.status],
+      ['Attempt started', attempt.startedAt],
+      ['Attempt ended', attempt.endedAt],
+    );
+  }
+  for (const step of documentSteps) {
+    entries.push(
+      ['Step node', step.node],
+      ['Step title', step.title ?? ''],
+      ['Step ID', step.id],
+      ['Step phase', step.phase],
+      ['Step status', step.status],
+      ['Step summary', step.output?.summary ?? ''],
+      ['Error name', step.error?.name ?? ''],
+      ['Error code', step.error?.code ?? ''],
+      ['Error message', step.error?.message ?? ''],
+      ['Error details', step.error?.details?.value ?? ''],
+      ['Step input', step.input?.value ?? ''],
+      ['Step output', step.output?.data?.value ?? ''],
+      ['Trace diagnostic', step.agentDetailDiagnostic ?? ''],
+    );
+    for (const detail of step.agentDetails ?? []) {
+      entries.push(
+        ['Report ID', detail.reportId],
+        ['Execution ID', detail.executionId],
+      );
+    }
+  }
+
+  for (const [label, rawValue] of entries) {
+    const value = searchableValue(rawValue);
+    if (value.toLocaleLowerCase().includes(normalizedQuery)) {
+      return {
+        label,
+        snippet: searchSnippet(value, normalizedQuery),
+      };
+    }
   }
   return undefined;
 };

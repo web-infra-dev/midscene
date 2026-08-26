@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@rstest/core';
 import {
+  defaultRunnerCaseFilters,
   parseTestRunReportDump,
+  runnerCaseFiltersFromHash,
+  runnerHashForCaseFilters,
   runnerHashForRoute,
   runnerRouteFromHash,
   runnerStepIdFromHash,
@@ -58,6 +61,7 @@ describe('Test Runner report utilities', () => {
         caseKey: 'project:document:case',
         projectId: 'project',
         parent: 'cases',
+        stepId: 'failed-step',
       },
       projectHash,
     );
@@ -69,6 +73,30 @@ describe('Test Runner report utilities', () => {
     });
     expect(new URLSearchParams(caseHash.slice(1)).get('external')).toBe(
       'value',
+    );
+    expect(runnerStepIdFromHash(caseHash)).toBe('failed-step');
+  });
+
+  it('round-trips shareable Case filters without discarding the route', () => {
+    const hash = runnerHashForCaseFilters(
+      {
+        query: 'NODE_EXECUTION_ERROR',
+        status: 'failed',
+        projectId: 'android smoke',
+        sort: 'retries',
+      },
+      '#runner-page=cases&external=value',
+    );
+    expect(runnerCaseFiltersFromHash(hash)).toEqual({
+      query: 'NODE_EXECUTION_ERROR',
+      status: 'failed',
+      projectId: 'android smoke',
+      sort: 'retries',
+    });
+    expect(runnerRouteFromHash(hash)).toEqual({ page: 'cases' });
+    expect(new URLSearchParams(hash.slice(1)).get('external')).toBe('value');
+    expect(runnerCaseFiltersFromHash('#runner-status=unknown')).toEqual(
+      defaultRunnerCaseFilters,
     );
   });
 

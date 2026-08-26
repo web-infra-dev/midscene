@@ -41,7 +41,74 @@ export type RunnerRoute =
       caseKey: string;
       projectId: string;
       parent: 'project' | 'cases';
+      stepId?: string;
     };
+
+export type RunnerCaseFilterStatus =
+  | 'all'
+  | 'passed'
+  | 'retry-passed'
+  | 'failed'
+  | 'not-run';
+export type RunnerCaseSort = 'attention' | 'duration' | 'retries' | 'name';
+
+export interface RunnerCaseFilters {
+  query: string;
+  status: RunnerCaseFilterStatus;
+  projectId: string;
+  sort: RunnerCaseSort;
+}
+
+export const defaultRunnerCaseFilters: RunnerCaseFilters = {
+  query: '',
+  status: 'all',
+  projectId: 'all',
+  sort: 'attention',
+};
+
+const runnerCaseFilterKeys = [
+  'runner-query',
+  'runner-status',
+  'runner-filter-project',
+  'runner-sort',
+] as const;
+
+export function runnerCaseFiltersFromHash(hash: string): RunnerCaseFilters {
+  const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : '');
+  const status = params.get('runner-status');
+  const sort = params.get('runner-sort');
+  return {
+    query: params.get('runner-query') ?? '',
+    status: ['passed', 'retry-passed', 'failed', 'not-run'].includes(
+      status ?? '',
+    )
+      ? (status as RunnerCaseFilterStatus)
+      : 'all',
+    projectId: params.get('runner-filter-project') || 'all',
+    sort: ['duration', 'retries', 'name'].includes(sort ?? '')
+      ? (sort as RunnerCaseSort)
+      : 'attention',
+  };
+}
+
+/** Build a hash with shareable Case filters while keeping the current route. */
+export function runnerHashForCaseFilters(
+  filters: RunnerCaseFilters,
+  currentHash = '',
+): string {
+  const params = new URLSearchParams(
+    currentHash.startsWith('#') ? currentHash.slice(1) : '',
+  );
+  for (const key of runnerCaseFilterKeys) params.delete(key);
+  if (filters.query.trim()) params.set('runner-query', filters.query.trim());
+  if (filters.status !== 'all') params.set('runner-status', filters.status);
+  if (filters.projectId !== 'all') {
+    params.set('runner-filter-project', filters.projectId);
+  }
+  if (filters.sort !== 'attention') params.set('runner-sort', filters.sort);
+  const hash = params.toString();
+  return hash ? `#${hash}` : '#';
+}
 
 const runnerRouteKeys = [
   'runner-page',
@@ -95,6 +162,7 @@ export function runnerHashForRoute(
   if (route.page === 'case') {
     params.set('runner-case', route.caseKey);
     params.set('runner-parent', route.parent);
+    if (route.stepId) params.set('runner-step', route.stepId);
   }
 
   const hash = params.toString();

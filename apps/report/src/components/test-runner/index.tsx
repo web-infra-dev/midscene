@@ -42,11 +42,16 @@ import {
   theme,
 } from 'antd';
 import type { ReactNode } from 'react';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
 import {
+  type RunnerCaseFilters,
+  type RunnerCaseSort,
   type RunnerRoute,
   clearRunnerStepHash,
+  defaultRunnerCaseFilters,
+  runnerCaseFiltersFromHash,
+  runnerHashForCaseFilters,
   runnerHashForRoute,
   runnerRouteFromHash,
   runnerStepIdFromHash,
@@ -71,6 +76,7 @@ import {
   getAllAttemptVisualFrames,
   getAttemptVisualStory,
   getCaseFailure,
+  getCaseSearchMatch,
   getCaseStory,
   getRunnerHealth,
   getStepDisplayName,
@@ -238,6 +244,11 @@ function AttemptVisualStory({
           </div>
           <footer>
             <span>{item.frame?.label ?? item.step.node}</span>
+            {item.frame?.capturedAt !== undefined ? (
+              <time>
+                {formatTimestamp(new Date(item.frame.capturedAt).toISOString())}
+              </time>
+            ) : null}
           </footer>
         </article>
       ))}
@@ -308,7 +319,6 @@ function VisualTimeline({
   ) {
     ticks.push(tickMs);
   }
-
   return (
     <div
       className="runner-visual-timeline"
@@ -370,6 +380,25 @@ function VisualTimeline({
   );
 }
 
+function HighlightedText({
+  text,
+  query,
+}: {
+  text: string;
+  query: string;
+}): JSX.Element {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const index = text.toLocaleLowerCase().indexOf(normalizedQuery);
+  if (!normalizedQuery || index < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark>{text.slice(index, index + normalizedQuery.length)}</mark>
+      {text.slice(index + normalizedQuery.length)}
+    </>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -395,31 +424,44 @@ function CasePreview({
   visualIndex,
   frames: providedFrames,
   density = 'default',
+  searchMatch,
+  query = '',
   onOpen,
 }: {
   item: RunnerCaseView;
   visualIndex: RunnerVisualIndex;
   frames?: RunnerVisualFrame[];
   density?: 'default' | 'overview';
-  onOpen(item: RunnerCaseView): void;
+  searchMatch?: ReturnType<typeof getCaseSearchMatch>;
+  query?: string;
+  onOpen(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const story = getCaseStory(item.testCase);
   const frames =
     providedFrames ?? getAllAttemptVisualFrames(item.finalAttempt, visualIndex);
   const failure = getCaseFailure(item.testCase);
   return (
-    <button
-      type="button"
+    <article
       className={`runner-case-row${
         density === 'overview' ? ' is-overview' : ''
       }`}
-      onClick={() => onOpen(item)}
-      aria-label={`Open ${item.testCase.name}`}
+      data-case-key={item.key}
     >
       <div className="runner-case-main">
         <div className="runner-case-title-row">
           <CaseStatus status={item.status} />
-          <h3>{item.testCase.name}</h3>
+          <button
+            type="button"
+            className="runner-case-title-button"
+            aria-label={`Open ${item.testCase.name} in project ${
+              item.project.name
+            }${density === 'overview' && failure ? ' at the failed Step' : ''}`}
+            onClick={() =>
+              onOpen(item, density === 'overview' ? failure?.id : undefined)
+            }
+          >
+            <h3>{item.testCase.name}</h3>
+          </button>
         </div>
         <div className="runner-case-meta">
           <span>{item.project.name}</span>
@@ -435,7 +477,15 @@ function CasePreview({
             </span>
           ) : null}
         </div>
-        {density === 'default' ? <StorySteps steps={story} /> : null}
+        {searchMatch ? (
+          <div className="runner-case-search-match">
+            <SearchOutlined />
+            <span>{searchMatch.label}:</span>
+            <strong>
+              <HighlightedText text={searchMatch.snippet} query={query} />
+            </strong>
+          </div>
+        ) : null}
         {failure ? (
           <div className="runner-case-failure">
             <WarningFilled />
@@ -448,15 +498,32 @@ function CasePreview({
                 {failure.node}: {failure.error?.message || 'Step failed'}
               </span>
             </Tooltip>
+            <button
+              type="button"
+              aria-label={`Inspect failure in ${item.testCase.name}, project ${item.project.name}`}
+              onClick={() => onOpen(item, failure.id)}
+            >
+              Inspect failure
+            </button>
           </div>
         ) : null}
+        {density === 'default' ? <StorySteps steps={story} /> : null}
       </div>
       <VisualTimeline
         frames={frames}
         durationMs={item.finalAttempt?.durationMs ?? item.durationMs}
       />
-      <RightOutlined className="runner-case-chevron" />
-    </button>
+      <button
+        type="button"
+        className="runner-case-open-button"
+        onClick={() =>
+          onOpen(item, density === 'overview' ? failure?.id : undefined)
+        }
+        aria-label={`Open ${item.testCase.name} in project ${item.project.name}`}
+      >
+        <RightOutlined className="runner-case-chevron" />
+      </button>
+    </article>
   );
 }
 
@@ -472,7 +539,7 @@ function ProjectBreakdownCase({
   onOpen,
 }: {
   item: RunnerCaseView;
-  onOpen(item: RunnerCaseView): void;
+  onOpen(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const failure = getCaseFailure(item.testCase);
   return (
@@ -480,8 +547,10 @@ function ProjectBreakdownCase({
       <button
         type="button"
         className="runner-project-tree-case"
-        onClick={() => onOpen(item)}
-        aria-label={`Open ${item.testCase.name}`}
+        onClick={() => onOpen(item, failure?.id)}
+        aria-label={`Open ${item.testCase.name} in project ${item.project.name}${
+          failure ? ' at the failed Step' : ''
+        }`}
       >
         <span className={`runner-project-tree-branch is-${item.status}`} />
         <div className="runner-project-tree-case-main">
@@ -531,7 +600,7 @@ function ProjectBreakdownNode({
   expanded: boolean;
   onToggle(): void;
   onOpenProject(item: RunnerProjectView): void;
-  onOpenCase(item: RunnerCaseView): void;
+  onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const childGroupId = useId();
   const cases = useMemo(
@@ -634,7 +703,7 @@ function ProjectBreakdownTree({
 }: {
   projects: RunnerProjectView[];
   onOpenProject(item: RunnerProjectView): void;
-  onOpenCase(item: RunnerCaseView): void;
+  onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const [expandedProjectKeys, setExpandedProjectKeys] = useState<Set<string>>(
     () => {
@@ -690,7 +759,7 @@ function ProjectWorkspace({
   item: RunnerProjectView;
   visualIndex: RunnerVisualIndex;
   onBack(): void;
-  onOpenCase(item: RunnerCaseView): void;
+  onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const [visibleLimit, setVisibleLimit] = useState(25);
   const cases = useMemo(
@@ -839,7 +908,7 @@ function RunOverview({
   projects: RunnerProjectView[];
   visualIndex: RunnerVisualIndex;
   onViewCases(): void;
-  onOpenCase(item: RunnerCaseView): void;
+  onOpenCase(item: RunnerCaseView, stepId?: string): void;
   onOpenProject(item: RunnerProjectView): void;
 }): JSX.Element {
   const attentionCases = useMemo(
@@ -937,7 +1006,7 @@ function RunOverview({
         <MetricCard
           label="Total runner time"
           value={formatDuration(dump.durationMs)}
-          note="Start to result summary"
+          note="Wall-clock time from run start to final summary"
         />
       </section>
 
@@ -954,6 +1023,10 @@ function RunOverview({
         <span>
           <strong>{dump.metrics.totalTokens.toLocaleString()}</strong> tokens
         </span>
+        <small>
+          Runner time is wall-clock; model time is cumulative across calls and
+          may overlap when projects run in parallel.
+        </small>
       </section>
 
       <section className="runner-panel">
@@ -1032,24 +1105,48 @@ function RunOverview({
 function CasesView({
   cases,
   visualIndex,
+  filters,
+  onFiltersChange,
   onOpenCase,
 }: {
   cases: RunnerCaseView[];
   visualIndex: RunnerVisualIndex;
-  onOpenCase(item: RunnerCaseView): void;
+  filters: RunnerCaseFilters;
+  onFiltersChange(filters: RunnerCaseFilters): void;
+  onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<RunnerCaseStatus | 'all'>('all');
-  const [projectId, setProjectId] = useState('all');
   const [visibleLimit, setVisibleLimit] = useState(25);
+  const { projectId, query, sort, status } = filters;
+  const updateFilters = (next: Partial<RunnerCaseFilters>) =>
+    onFiltersChange({ ...filters, ...next });
+  const resetFilters = () => onFiltersChange(defaultRunnerCaseFilters);
+  const statusCounts = useMemo(
+    () => ({
+      all: cases.length,
+      failed: cases.filter((item) => item.status === 'failed').length,
+      'retry-passed': cases.filter((item) => item.status === 'retry-passed')
+        .length,
+      passed: cases.filter((item) => item.status === 'passed').length,
+      'not-run': cases.filter((item) => item.status === 'not-run').length,
+    }),
+    [cases],
+  );
   const projectOptions = useMemo(
     () => [
-      { label: 'All projects', value: 'all' },
+      { label: `All projects (${cases.length})`, value: 'all' },
       ...Array.from(
         new Map(
           cases.map((item) => [
             item.project.projectId,
-            { label: item.project.name, value: item.project.projectId },
+            {
+              label: `${item.project.name} (${
+                cases.filter(
+                  (candidate) =>
+                    candidate.project.projectId === item.project.projectId,
+                ).length
+              })`,
+              value: item.project.projectId,
+            },
           ]),
         ).values(),
       ),
@@ -1057,34 +1154,42 @@ function CasesView({
     [cases],
   );
   const filteredCases = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
     return cases
       .filter((item) => status === 'all' || item.status === status)
       .filter(
         (item) => projectId === 'all' || item.project.projectId === projectId,
       )
-      .filter((item) => {
-        if (!normalizedQuery) return true;
-        return [
-          item.testCase.name,
-          item.project.name,
-          item.document.sourcePath,
-          ...getCaseStory(item.testCase),
-        ]
-          .join(' ')
-          .toLowerCase()
-          .includes(normalizedQuery);
-      })
-      .sort(
-        (a, b) =>
-          statusSortWeight[a.status] - statusSortWeight[b.status] ||
-          b.durationMs - a.durationMs,
-      );
-  }, [cases, projectId, query, status]);
+      .map((item) => ({
+        item,
+        match: query.trim() ? getCaseSearchMatch(item, query) : undefined,
+      }))
+      .filter(({ match }) => !query.trim() || Boolean(match))
+      .sort((a, b) => {
+        if (sort === 'duration') return b.item.durationMs - a.item.durationMs;
+        if (sort === 'retries') {
+          return (
+            b.item.retryCount - a.item.retryCount ||
+            statusSortWeight[a.item.status] - statusSortWeight[b.item.status]
+          );
+        }
+        if (sort === 'name') {
+          return a.item.testCase.name.localeCompare(b.item.testCase.name);
+        }
+        return (
+          statusSortWeight[a.item.status] - statusSortWeight[b.item.status] ||
+          b.item.durationMs - a.item.durationMs
+        );
+      });
+  }, [cases, projectId, query, sort, status]);
 
-  useEffect(() => setVisibleLimit(25), [projectId, query, status]);
+  useEffect(() => setVisibleLimit(25), [projectId, query, sort, status]);
 
   const visibleCases = filteredCases.slice(0, visibleLimit);
+  const hasActiveFilters =
+    query.trim() ||
+    status !== 'all' ||
+    projectId !== 'all' ||
+    sort !== 'attention';
 
   return (
     <div className="runner-page runner-cases-page">
@@ -1100,38 +1205,96 @@ function CasesView({
       </div>
       <div className="runner-case-toolbar">
         <Input
-          allowClear
           prefix={<SearchOutlined />}
-          placeholder="Search cases, projects, or steps"
+          suffix={
+            <button
+              type="button"
+              className={`runner-search-clear${query ? '' : ' is-hidden'}`}
+              aria-label="Clear case search"
+              aria-hidden={!query}
+              disabled={!query}
+              onClick={() => updateFilters({ query: '' })}
+            >
+              <CloseCircleFilled />
+            </button>
+          }
+          placeholder="Search cases, errors, IDs, inputs, or steps"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => updateFilters({ query: event.target.value })}
         />
         <Select
           aria-label="Filter by status"
           value={status}
-          onChange={setStatus}
+          onChange={(value) => updateFilters({ status: value })}
           options={[
-            { label: 'All statuses', value: 'all' },
-            { label: 'Failed', value: 'failed' },
-            { label: 'Passed after retry', value: 'retry-passed' },
-            { label: 'Passed', value: 'passed' },
-            { label: 'Not run', value: 'not-run' },
+            { label: `All statuses (${statusCounts.all})`, value: 'all' },
+            { label: `Failed (${statusCounts.failed})`, value: 'failed' },
+            {
+              label: `Passed after retry (${statusCounts['retry-passed']})`,
+              value: 'retry-passed',
+            },
+            { label: `Passed (${statusCounts.passed})`, value: 'passed' },
+            {
+              label: `Not run (${statusCounts['not-run']})`,
+              value: 'not-run',
+            },
           ]}
         />
         <Select
           aria-label="Filter by project"
           value={projectId}
-          onChange={setProjectId}
+          onChange={(value) => updateFilters({ projectId: value })}
           options={projectOptions}
         />
+        <Select
+          aria-label="Sort cases"
+          value={sort}
+          onChange={(value: RunnerCaseSort) => updateFilters({ sort: value })}
+          options={[
+            { label: 'Attention first', value: 'attention' },
+            { label: 'Longest duration', value: 'duration' },
+            { label: 'Most retries', value: 'retries' },
+            { label: 'Case name', value: 'name' },
+          ]}
+        />
+        <div className="runner-filter-shortcuts">
+          <span>Quick filters</span>
+          <button
+            type="button"
+            className={status === 'failed' ? 'is-selected' : ''}
+            onClick={() => updateFilters({ status: 'failed' })}
+          >
+            Failed {statusCounts.failed}
+          </button>
+          <button
+            type="button"
+            className={status === 'retry-passed' ? 'is-selected' : ''}
+            onClick={() => updateFilters({ status: 'retry-passed' })}
+          >
+            Retried {statusCounts['retry-passed']}
+          </button>
+          <button
+            type="button"
+            disabled={!hasActiveFilters}
+            onClick={resetFilters}
+          >
+            Reset all
+          </button>
+          <small>
+            Search covers every attempt, error code/message, input/output, and
+            trace ID.
+          </small>
+        </div>
       </div>
       {filteredCases.length ? (
         <div className="runner-case-list runner-all-cases-list">
-          {visibleCases.map((item) => (
+          {visibleCases.map(({ item, match }) => (
             <CasePreview
               key={item.key}
               item={item}
               visualIndex={visualIndex}
+              searchMatch={match}
+              query={query}
               onOpen={onOpenCase}
             />
           ))}
@@ -1147,7 +1310,14 @@ function CasesView({
         </div>
       ) : (
         <div className="runner-empty-results">
-          <Empty description="No cases match these filters" />
+          <Empty
+            description={
+              <div className="runner-empty-search-copy">
+                <span>No cases match these filters</span>
+                <Button onClick={resetFilters}>Reset all filters</Button>
+              </div>
+            }
+          />
         </div>
       )}
     </div>
@@ -1668,6 +1838,14 @@ export default function TestRunnerReport({
   const [navigation, setNavigation] = useState<RunnerNavigationState>(() =>
     resolveRunnerNavigation(window.location.hash, cases, projects),
   );
+  const [caseFilters, setCaseFilters] = useState<RunnerCaseFilters>(() =>
+    runnerCaseFiltersFromHash(window.location.hash),
+  );
+  const mainRef = useRef<HTMLElement>(null);
+  const casesReturnStateRef = useRef<{
+    scrollTop: number;
+    caseKey?: string;
+  }>({ scrollTop: 0 });
   const {
     page,
     selectedProjectId,
@@ -1692,6 +1870,10 @@ export default function TestRunnerReport({
       setNavigation(
         resolveRunnerNavigation(window.location.hash, cases, projects),
       );
+      setCaseFilters(runnerCaseFiltersFromHash(window.location.hash));
+      window.requestAnimationFrame(() => {
+        if (mainRef.current) mainRef.current.scrollTop = 0;
+      });
     };
     window.addEventListener('popstate', syncNavigationFromUrl);
     window.addEventListener('hashchange', syncNavigationFromUrl);
@@ -1701,12 +1883,40 @@ export default function TestRunnerReport({
     };
   }, [cases, projects]);
 
-  const navigate = (route: RunnerRoute) => {
+  const restoreView = ({
+    scrollTop = 0,
+    focusCaseKey,
+  }: {
+    scrollTop?: number;
+    focusCaseKey?: string;
+  } = {}) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const main = mainRef.current;
+        if (!main) return;
+        main.scrollTop = scrollTop;
+        const caseRow = focusCaseKey
+          ? Array.from(
+              main.querySelectorAll<HTMLElement>('[data-case-key]'),
+            ).find((row) => row.dataset.caseKey === focusCaseKey)
+          : undefined;
+        const focusTarget = caseRow?.querySelector(
+          '.runner-case-title-button',
+        ) as HTMLElement | null | undefined;
+        (focusTarget ?? main).focus({ preventScroll: true });
+      });
+    });
+  };
+  const navigate = (
+    route: RunnerRoute,
+    viewState: { scrollTop?: number; focusCaseKey?: string } = {},
+  ) => {
     const nextHash = runnerHashForRoute(route, window.location.hash);
     if (nextHash !== (window.location.hash || '#')) {
       window.history.pushState({ midsceneRunnerRoute: true }, '', nextHash);
     }
     setNavigation(resolveRunnerNavigation(nextHash, cases, projects));
+    restoreView(viewState);
   };
   const selectPage = (nextPage: 'overview' | 'cases') => {
     navigate({ page: nextPage });
@@ -1717,17 +1927,31 @@ export default function TestRunnerReport({
   const openCase = (
     item: RunnerCaseView,
     parent: RunnerCaseParent = 'project',
+    stepId?: string,
   ) => {
+    if (parent === 'cases') {
+      casesReturnStateRef.current = {
+        scrollTop: mainRef.current?.scrollTop ?? 0,
+        caseKey: item.key,
+      };
+    }
     navigate({
       page: 'case',
       caseKey: item.key,
       projectId: item.project.projectId,
       parent,
+      stepId,
     });
   };
   const backFromCase = () => {
     if (caseParent === 'cases') {
-      navigate({ page: 'cases' });
+      navigate(
+        { page: 'cases' },
+        {
+          scrollTop: casesReturnStateRef.current.scrollTop,
+          focusCaseKey: casesReturnStateRef.current.caseKey,
+        },
+      );
     } else {
       navigate(
         selectedProject
@@ -1738,6 +1962,12 @@ export default function TestRunnerReport({
           : { page: 'overview' },
       );
     }
+  };
+  const updateCaseFilters = (filters: RunnerCaseFilters) => {
+    const nextHash = runnerHashForCaseFilters(filters, window.location.hash);
+    window.history.replaceState({ midsceneRunnerFilters: true }, '', nextHash);
+    setCaseFilters(filters);
+    if (mainRef.current) mainRef.current.scrollTop = 0;
   };
 
   const overviewSectionSelected =
@@ -1806,7 +2036,12 @@ export default function TestRunnerReport({
               </button>
             </div>
           </header>
-          <main className="runner-main">
+          <main
+            ref={mainRef}
+            className="runner-main"
+            tabIndex={-1}
+            aria-label="Test Runner report content"
+          >
             {page === 'overview' ? (
               <RunOverview
                 dump={dump}
@@ -1815,7 +2050,7 @@ export default function TestRunnerReport({
                 projects={projects}
                 visualIndex={visualIndex}
                 onViewCases={() => selectPage('cases')}
-                onOpenCase={(item) => openCase(item, 'project')}
+                onOpenCase={(item, stepId) => openCase(item, 'project', stepId)}
                 onOpenProject={openProject}
               />
             ) : page === 'project' && selectedProject ? (
@@ -1824,13 +2059,15 @@ export default function TestRunnerReport({
                 item={selectedProject}
                 visualIndex={visualIndex}
                 onBack={() => selectPage('overview')}
-                onOpenCase={(item) => openCase(item, 'project')}
+                onOpenCase={(item, stepId) => openCase(item, 'project', stepId)}
               />
             ) : page === 'cases' ? (
               <CasesView
                 cases={cases}
                 visualIndex={visualIndex}
-                onOpenCase={(item) => openCase(item, 'cases')}
+                filters={caseFilters}
+                onFiltersChange={updateCaseFilters}
+                onOpenCase={(item, stepId) => openCase(item, 'cases', stepId)}
               />
             ) : page === 'case' && selectedCase ? (
               <CaseWorkspace
@@ -1855,7 +2092,7 @@ export default function TestRunnerReport({
                 projects={projects}
                 visualIndex={visualIndex}
                 onViewCases={() => selectPage('cases')}
-                onOpenCase={(item) => openCase(item, 'project')}
+                onOpenCase={(item, stepId) => openCase(item, 'project', stepId)}
                 onOpenProject={openProject}
               />
             )}

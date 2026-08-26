@@ -12,6 +12,7 @@ import {
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
   getAttemptVisualStory,
+  getCaseSearchMatch,
   getCaseStory,
   getRunnerHealth,
   groupRunnerProjects,
@@ -125,7 +126,22 @@ const dump: TestRunReportDump = {
               status: 'success',
               attempts: [
                 attempt('retry-1', 0, 'failed', 4, 5, [
-                  step('search', 'failed'),
+                  step('demo.passOnRetry', 'failed', {
+                    error: {
+                      name: 'NodeExecutionError',
+                      code: 'NODE_EXECUTION_ERROR',
+                      message: 'Could not find 无线耳机 in the result list',
+                    },
+                    input: {
+                      value: { selector: '[data-product="headphones"]' },
+                    },
+                    agentDetails: [
+                      {
+                        reportId: 'technical-report-id',
+                        executionId: 'execution-retry-1',
+                      },
+                    ],
+                  }),
                 ]),
                 attempt('retry-2', 1, 'success', 5, 6, [
                   step('search', 'success', { title: 'Search for headphones' }),
@@ -212,6 +228,26 @@ describe('Test Runner hybrid report model', () => {
       'Search for headphones',
       'Verify the result list',
     ]);
+  });
+
+  it('searches failed retries, errors, values, and trace identifiers', () => {
+    const retryCase = flattenRunnerCases(dump)[1];
+    expect(getCaseSearchMatch(retryCase, 'demo.passOnRetry')).toMatchObject({
+      label: 'Step node',
+    });
+    expect(getCaseSearchMatch(retryCase, 'NODE_EXECUTION_ERROR')).toMatchObject(
+      { label: 'Error code' },
+    );
+    expect(getCaseSearchMatch(retryCase, '无线耳机')).toMatchObject({
+      label: 'Error message',
+    });
+    expect(getCaseSearchMatch(retryCase, 'data-product')).toMatchObject({
+      label: 'Step input',
+    });
+    expect(getCaseSearchMatch(retryCase, 'execution-retry-1')).toMatchObject({
+      label: 'Execution ID',
+    });
+    expect(getCaseSearchMatch(retryCase, 'not-present')).toBeUndefined();
   });
 
   it('keeps setup and teardown time visible around case execution', () => {
