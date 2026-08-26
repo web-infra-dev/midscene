@@ -1,6 +1,19 @@
+import {
+  convertBase64ImageToJpeg,
+  convertBase64ImageToWebp,
+} from '@midscene/shared/img';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { prepareModelMessagesImageInput } from '../../src/ai-model/service-caller/model-image-input';
+
+vi.mock('@midscene/shared/img', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
+  return {
+    ...actual,
+    convertBase64ImageToJpeg: vi.fn(actual.convertBase64ImageToJpeg),
+    convertBase64ImageToWebp: vi.fn(actual.convertBase64ImageToWebp),
+  };
+});
 
 const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
@@ -32,6 +45,10 @@ function preparedImageUrl(messages: ChatCompletionMessageParam[]): string {
 }
 
 describe('prepareModelMessagesImageInput', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('normalizes inline screenshots to WebP by default', async () => {
     const messages = imageMessage(pngDataUrl);
     const prepared = await prepareModelMessagesImageInput(messages);
@@ -55,5 +72,20 @@ describe('prepareModelMessagesImageInput', () => {
     await expect(
       prepareModelMessagesImageInput(messages, 'jpeg'),
     ).resolves.toBe(messages);
+  });
+
+  it('converts duplicate inline images only once per model request', async () => {
+    const messages = [
+      ...imageMessage(webpDataUrl),
+      ...imageMessage(webpDataUrl),
+    ];
+
+    const prepared = await prepareModelMessagesImageInput(messages, 'jpeg');
+
+    expect(convertBase64ImageToJpeg).toHaveBeenCalledTimes(1);
+    expect(convertBase64ImageToWebp).not.toHaveBeenCalled();
+    expect(preparedImageUrl([prepared[0]])).toBe(
+      preparedImageUrl([prepared[1]]),
+    );
   });
 });
