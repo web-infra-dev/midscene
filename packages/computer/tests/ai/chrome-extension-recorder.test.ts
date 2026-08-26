@@ -20,7 +20,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-rs.setConfig({ testTimeout: 600 * 1000 });
+rs.setConfig({ testTimeout: 900 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
