@@ -8,6 +8,7 @@ import {
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
+import type { Browser, BrowserContext, Page, Target } from 'puppeteer';
 
 const { mockLaunch } = rs.hoisted(() => ({
   mockLaunch: rs.fn(),
@@ -15,28 +16,49 @@ const { mockLaunch } = rs.hoisted(() => ({
 
 const mockNewPage = rs.fn();
 const browserContextMock = {
-  setCookie: rs.fn().mockResolvedValue(undefined),
+  newPage: rs.fn(),
+  setCookie: rs.fn(),
 };
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
+  pages: rs.fn(),
   on: rs.fn(),
   off: rs.fn(),
+  setCookie: rs.fn(),
   close: rs.fn(),
 };
 
-const createPageMock = () => ({
-  setUserAgent: rs.fn().mockResolvedValue(undefined),
-  setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
-  setViewport: rs.fn().mockResolvedValue(undefined),
-  goto: rs.fn().mockResolvedValue(undefined),
-  waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
-  browser: rs.fn(() => browserMock),
-  browserContext: rs.fn(() => browserContextMock),
-  bringToFront: rs.fn().mockResolvedValue(undefined),
-  on: rs.fn(),
-  isClosed: rs.fn().mockReturnValue(false),
-});
+const createPageMock = (
+  owningBrowser: Browser = browserMock as unknown as Browser,
+  opener?: Target,
+  owningBrowserContext: BrowserContext = browserContextMock as unknown as BrowserContext,
+) => {
+  const page = {
+    setUserAgent: rs.fn().mockResolvedValue(undefined),
+    setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
+    setViewport: rs.fn().mockResolvedValue(undefined),
+    evaluateOnNewDocument: rs.fn().mockResolvedValue({ identifier: 'preload' }),
+    removeScriptToEvaluateOnNewDocument: rs.fn().mockResolvedValue(undefined),
+    goto: rs.fn().mockResolvedValue(undefined),
+    waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
+    close: rs.fn().mockResolvedValue(undefined),
+    browser: rs.fn(() => owningBrowser),
+    browserContext: rs.fn(() => owningBrowserContext),
+    bringToFront: rs.fn().mockResolvedValue(undefined),
+    evaluate: rs.fn().mockResolvedValue(undefined),
+    on: rs.fn(),
+    isClosed: rs.fn().mockReturnValue(false),
+    target: rs.fn(),
+  };
+  const target = {
+    type: () => 'page',
+    opener: () => opener,
+    page: async () => page,
+  };
+  page.target.mockReturnValue(target);
+  return page;
+};
 
 rs.mock('puppeteer', () => ({
   __esModule: true,
@@ -49,7 +71,8 @@ describe('launchPuppeteerPage', () => {
     rs.clearAllMocks();
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
-    mockNewPage.mockResolvedValue(pageMock as any);
+    mockNewPage.mockResolvedValue(pageMock as unknown as Page);
+    browserContextMock.newPage.mockResolvedValue(pageMock as unknown as Page);
   });
 
   it('uses default viewport window size for headed runs', async () => {
@@ -132,7 +155,10 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({
       url: 'https://example.com',
       // YAML may yield booleans/numbers for unquoted values
-      extraHTTPHeaders: { 'X-Flag': true, 'X-Num': 123 } as any,
+      extraHTTPHeaders: {
+        'X-Flag': true,
+        'X-Num': 123,
+      } as unknown as Record<string, string>,
     });
 
     expect(pageMock.setExtraHTTPHeaders).toHaveBeenCalledWith({
@@ -145,33 +171,6 @@ describe('launchPuppeteerPage', () => {
     await launchPuppeteerPage({ url: 'https://example.com' });
 
     expect(pageMock.setExtraHTTPHeaders).not.toHaveBeenCalled();
-  });
-
-  it('sets cookie files on the active page browser context', async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'midscene-cookie-context-'));
-    const cookieFile = path.join(root, 'cookies.json');
-    const cookies = [
-      {
-        name: 'session',
-        value: 'isolated-context',
-        domain: 'example.com',
-      },
-    ];
-    writeFileSync(cookieFile, JSON.stringify(cookies));
-
-    try {
-      await launchPuppeteerPage(
-        { url: 'https://example.com', cookie: cookieFile },
-        undefined,
-        browserMock as any,
-        pageMock as any,
-      );
-
-      expect(pageMock.browserContext).toHaveBeenCalledTimes(1);
-      expect(browserContextMock.setCookie).toHaveBeenCalledWith(...cookies);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 
   it('configures Chrome download behavior when downloadPath is provided', async () => {
@@ -226,10 +225,48 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
+      browserMock as unknown as Browser,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('creates and owns a page in a caller-provided browser context', async () => {
+    const result = await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      undefined,
+      browserContextMock as unknown as BrowserContext,
+    );
+
+    expect(browserContextMock.newPage).toHaveBeenCalledTimes(1);
+    expect(mockNewPage).not.toHaveBeenCalled();
+    expect(result.page).toBe(pageMock);
+
+    for (const cleanup of result.freeFn) {
+      await cleanup.fn();
+    }
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets YAML cookies in the page browser context', async () => {
+    const cookie = { name: 'auth', value: 'token', domain: 'example.com' };
+    const fixtureDir = mkdtempSync(path.join(tmpdir(), 'midscene-cookie-'));
+    const cookieFile = path.join(fixtureDir, 'cookies.json');
+    writeFileSync(cookieFile, JSON.stringify([cookie]));
+
+    try {
+      await launchPuppeteerPage({
+        url: 'https://example.com',
+        cookie: cookieFile,
+      });
+
+      expect(browserContextMock.setCookie).toHaveBeenCalledWith(cookie);
+      expect(browserMock.setCookie).not.toHaveBeenCalled();
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
   });
 
   it('does not configure Chrome download behavior on an externally provided page', async () => {
@@ -239,11 +276,99 @@ describe('launchPuppeteerPage', () => {
         downloadPath: './downloads',
       },
       undefined,
-      browserMock as any,
-      pageMock as any,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('does not install a sessionStorage preload when reusing a browser context', async () => {
+    await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      pageMock as unknown as Page,
+    );
+
+    expect(pageMock.evaluateOnNewDocument).not.toHaveBeenCalled();
+    expect(pageMock.removeScriptToEvaluateOnNewDocument).not.toHaveBeenCalled();
+  });
+
+  it('propagates navigation errors instead of treating them as network-idle failures', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
+  });
+
+  it('closes an internally launched browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage({ url: 'https://example.invalid' }),
+    ).rejects.toBe(navigationError);
+
+    expect(browserMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a page created in a caller-provided browser when navigation fails', async () => {
+    const navigationError = new Error('net::ERR_NAME_NOT_RESOLVED');
+    pageMock.goto.mockRejectedValueOnce(navigationError);
+
+    await expect(
+      launchPuppeteerPage(
+        { url: 'https://example.invalid' },
+        undefined,
+        browserMock as unknown as Browser,
+      ),
+    ).rejects.toBe(navigationError);
+
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+    expect(browserMock.close).not.toHaveBeenCalled();
+  });
+
+  it('only applies continueOnNetworkIdleError to network-idle failures', async () => {
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: true },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).resolves.toMatchObject({ page: pageMock });
+
+    pageMock.waitForNetworkIdle.mockRejectedValueOnce(
+      new Error('network remained busy'),
+    );
+    await expect(
+      launchPuppeteerPage(
+        {
+          url: 'https://example.com',
+          waitForNetworkIdle: { continueOnNetworkIdleError: false },
+        },
+        undefined,
+        browserMock as unknown as Browser,
+        pageMock as unknown as Page,
+      ),
+    ).rejects.toThrow('failed to wait for network idle');
   });
 
   it('passes yaml waitForNetworkIdle settings to the agent for later actions', async () => {
@@ -256,7 +381,10 @@ describe('launchPuppeteerPage', () => {
       },
     });
 
-    expect((agent.page as any).waitForNetworkIdleTimeout).toBe(4321);
+    expect(
+      (agent.page as unknown as { waitForNetworkIdleTimeout: number })
+        .waitForNetworkIdleTimeout,
+    ).toBe(4321);
   });
 
   it('requires browser mode for autoFollowNewPage', async () => {
@@ -266,6 +394,8 @@ describe('launchPuppeteerPage', () => {
         autoFollowNewPage: true,
       }),
     ).rejects.toThrow('autoFollowNewPage requires browser mode');
+
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('creates browser agent in browser mode', async () => {
@@ -280,6 +410,96 @@ describe('launchPuppeteerPage', () => {
       'targetcreated',
       expect.any(Function),
     );
+  });
+
+  it('owns only the page tree created for browser mode in a shared browser', async () => {
+    const { agent, freeFn } = await puppeteerAgentForTarget(
+      {
+        mode: 'browser',
+        url: 'https://example.com',
+      },
+      undefined,
+      browserMock as unknown as Browser,
+    );
+    const foreignPage = createPageMock();
+
+    await expect(
+      (agent as { pages: () => Promise<Page[]> }).pages(),
+    ).resolves.toEqual([pageMock]);
+    await expect(
+      (
+        agent as {
+          setActivePage: (page: Page) => Promise<void>;
+        }
+      ).setActivePage(foreignPage as unknown as Page),
+    ).rejects.toThrow('out-of-scope page');
+    expect(freeFn.map(({ name }) => name)).toEqual([
+      'midscene_puppeteer_agent',
+      'puppeteer_page_scope',
+    ]);
+
+    for (const cleanup of freeFn) {
+      await cleanup.fn();
+    }
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('installs shared-browser ownership before initial navigation opens a popup', async () => {
+    const targetCreatedHandlers = new Set<(target: Target) => void>();
+    const lifecycleOrder: string[] = [];
+    const sharedBrowser = {
+      newPage: rs.fn(),
+      pages: rs.fn(),
+      on: rs.fn((event: string, handler: (target: Target) => void) => {
+        if (event === 'targetcreated') {
+          lifecycleOrder.push('listen');
+          targetCreatedHandlers.add(handler);
+        }
+      }),
+      off: rs.fn((event: string, handler: (target: Target) => void) => {
+        if (event === 'targetcreated') {
+          targetCreatedHandlers.delete(handler);
+        }
+      }),
+      setCookie: rs.fn(),
+      close: rs.fn(),
+    } as unknown as Browser;
+    const rootPage = createPageMock(sharedBrowser);
+    const popupPage = createPageMock(sharedBrowser, rootPage.target());
+    rs.mocked(sharedBrowser.newPage).mockResolvedValue(
+      rootPage as unknown as Page,
+    );
+    rootPage.goto.mockImplementationOnce(async () => {
+      lifecycleOrder.push('goto');
+      for (const handler of targetCreatedHandlers) {
+        handler(popupPage.target());
+      }
+      await Promise.resolve();
+    });
+
+    const { agent, freeFn } = await puppeteerAgentForTarget(
+      {
+        mode: 'browser',
+        url: 'https://example.com/opens-popup-during-load',
+        autoFollowNewPage: true,
+        waitForNetworkIdle: { timeout: 0 },
+      },
+      undefined,
+      sharedBrowser,
+    );
+
+    expect(lifecycleOrder).toEqual(['listen', 'listen', 'goto']);
+    expect((agent as { activePage: Page }).activePage).toBe(popupPage);
+    await expect(
+      (agent as { pages: () => Promise<Page[]> }).pages(),
+    ).resolves.toEqual([rootPage, popupPage]);
+
+    for (const cleanup of freeFn) {
+      await cleanup.fn();
+    }
+    expect(popupPage.close).toHaveBeenCalledTimes(1);
+    expect(rootPage.close).toHaveBeenCalledTimes(1);
+    expect(targetCreatedHandlers.size).toBe(0);
   });
 
   it('rejects forceSameTabNavigation in browser mode', async () => {

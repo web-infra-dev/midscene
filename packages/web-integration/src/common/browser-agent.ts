@@ -9,6 +9,7 @@ export type BrowserAgentAdapter<Page, NewPageEvent> = {
   pages(): Page[] | Promise<Page[]>;
   newPage(): Promise<Page>;
   isPageClosed(page: Page): boolean;
+  isPageAllowed?(page: Page): boolean;
   bringToFront(page: Page): Promise<void> | void;
   onNewPage(handler: (event: NewPageEvent) => void): void;
   offNewPage(handler: (event: NewPageEvent) => void): void;
@@ -130,6 +131,11 @@ export class BrowserPageManager<Page, NewPageEvent> {
     if (!page || this.adapter.isPageClosed(page)) {
       throw new Error(
         `[midscene] Cannot set ${this.agentName} active page to a closed or invalid page.`,
+      );
+    }
+    if (this.adapter.isPageAllowed?.(page) === false) {
+      throw new Error(
+        `[midscene] Cannot set ${this.agentName} active page to an out-of-scope page.`,
       );
     }
 

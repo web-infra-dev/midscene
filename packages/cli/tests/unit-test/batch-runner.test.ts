@@ -200,7 +200,7 @@ describe('BatchRunner', () => {
       );
     });
 
-    test('retries only a failed file while reusing the shared browser and page', async () => {
+    test('retries only a failed file while reusing the shared browser context', async () => {
       rs.mocked(parseYamlScript).mockReturnValue({
         ...mockYamlScript,
         agent: { reportFileName: 'custom-report' },
@@ -235,7 +235,11 @@ describe('BatchRunner', () => {
         const firstOptions = rs.mocked(createYamlPlayer).mock.calls[0][2];
         const secondOptions = rs.mocked(createYamlPlayer).mock.calls[1][2];
         expect(firstOptions?.browser).toBe(secondOptions?.browser);
-        expect(firstOptions?.page).toBe(secondOptions?.page);
+        expect(firstOptions?.browserContext).toBe(
+          secondOptions?.browserContext,
+        );
+        expect(firstOptions?.page).toBeUndefined();
+        expect(secondOptions?.page).toBeUndefined();
         const browserInstance = (await rs.mocked(puppeteer.launch).mock
           .results[0].value) as any;
         expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
@@ -771,8 +775,8 @@ describe('BatchRunner', () => {
     test('retries setup in a fresh context and shares only the successful context', async () => {
       const runOrder: string[] = [];
       const creationCountByFile = new Map<string, number>();
-      const setupPages: unknown[] = [];
-      const mainPages: unknown[] = [];
+      const setupBrowserContexts: unknown[] = [];
+      const mainBrowserContexts: unknown[] = [];
       const browsers: unknown[] = [];
       rs.mocked(createYamlPlayer).mockImplementation(
         async (file, _, options) => {
@@ -781,9 +785,9 @@ describe('BatchRunner', () => {
           creationCountByFile.set(fileName, creationCount);
           browsers.push(options?.browser);
           if (fileName === 'login.yml') {
-            setupPages.push(options?.page);
+            setupBrowserContexts.push(options?.browserContext);
           } else {
-            mainPages.push(options?.page);
+            mainBrowserContexts.push(options?.browserContext);
           }
           const shouldSucceed = fileName !== 'login.yml' || creationCount > 1;
           const player = createMockPlayer(shouldSucceed);
@@ -816,9 +820,12 @@ describe('BatchRunner', () => {
       expect(firstBrowserContext.close).toHaveBeenCalledTimes(1);
       expect(secondBrowserContext.close).toHaveBeenCalledTimes(1);
       expect(browserInstance.close).toHaveBeenCalledTimes(1);
-      expect(setupPages).toHaveLength(2);
-      expect(setupPages[0]).not.toBe(setupPages[1]);
-      expect(mainPages).toEqual([setupPages[1], setupPages[1]]);
+      expect(setupBrowserContexts).toHaveLength(2);
+      expect(setupBrowserContexts[0]).not.toBe(setupBrowserContexts[1]);
+      expect(mainBrowserContexts).toEqual([
+        setupBrowserContexts[1],
+        setupBrowserContexts[1],
+      ]);
       expect(browsers.every((candidate) => candidate === browserInstance)).toBe(
         true,
       );
@@ -841,7 +848,7 @@ describe('BatchRunner', () => {
       };
       const secondBrowserContext = {
         close: rs.fn().mockResolvedValue(undefined),
-        newPage: rs.fn().mockRejectedValue(new Error('page creation failed')),
+        newPage: rs.fn(),
       };
       const browser = {
         close: rs.fn().mockResolvedValue(undefined),
@@ -851,7 +858,17 @@ describe('BatchRunner', () => {
           .mockResolvedValueOnce(secondBrowserContext),
       };
       rs.mocked(puppeteer.launch).mockResolvedValueOnce(browser as any);
-      rs.mocked(createYamlPlayer).mockResolvedValue(createMockPlayer(false));
+      let playerCreationCount = 0;
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
+        playerCreationCount++;
+        const player = createMockPlayer(false);
+        if (playerCreationCount === 2) {
+          player.run = rs
+            .fn()
+            .mockRejectedValue(new Error('page creation failed'));
+        }
+        return player;
+      });
 
       const runner = new BatchRunner({ ...setupConfig, retry: 1 });
 

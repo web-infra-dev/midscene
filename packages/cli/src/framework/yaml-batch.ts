@@ -1,8 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
+import { isYamlBatchExecutionError } from '../yaml-batch-error';
 import {
   type BatchRunnerConfig,
+  type YamlBatchOccurrenceResult,
   runYamlBatchWithCaseIds,
 } from '../yaml-batch-executor';
 import { emitYamlProgress } from './progress-reporter';
@@ -47,15 +49,25 @@ export async function runYamlBatchInRstest(
     resultTargetsByCaseId.set(target.caseId, target);
   }
 
-  const occurrenceResults = await runYamlBatchWithCaseIds(
-    options.config,
-    options.resultTargets.map(({ caseId }) => caseId),
-    {
-      generateSummary: false,
-      printExecutionPlan: false,
-      onProgress: emitYamlProgress,
-    },
-  );
+  let executionError: unknown;
+  let occurrenceResults: YamlBatchOccurrenceResult[];
+  try {
+    occurrenceResults = await runYamlBatchWithCaseIds(
+      options.config,
+      options.resultTargets.map(({ caseId }) => caseId),
+      {
+        generateSummary: false,
+        printExecutionPlan: false,
+        onProgress: emitYamlProgress,
+      },
+    );
+  } catch (error) {
+    if (!isYamlBatchExecutionError(error)) {
+      throw error;
+    }
+    executionError = error;
+    occurrenceResults = error.occurrences;
+  }
 
   const unmappedResults: string[] = [];
   for (const { caseId, result } of occurrenceResults) {
@@ -66,6 +78,10 @@ export async function runYamlBatchInRstest(
     }
     writeResultFile(target.resultFile, result);
     resultTargetsByCaseId.delete(caseId);
+  }
+
+  if (executionError) {
+    throw executionError;
   }
 
   const unwrittenTargets = Array.from(resultTargetsByCaseId.keys());

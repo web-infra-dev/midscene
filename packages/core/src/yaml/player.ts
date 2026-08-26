@@ -55,6 +55,7 @@ import type {
 } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { runFreeFnCleanup } from './cleanup';
 import {
   buildDetailedLocateParam,
   buildDetailedLocateParamAndRestParams,
@@ -867,15 +868,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
     this.agentStatusTip = '';
 
-    // free the resources
-    for (const fn of freeFn) {
-      try {
-        // console.log('freeing', fn.name);
-        await fn.fn();
-        // console.log('freed', fn.name);
-      } catch (e) {
-        // console.error('error freeing', fn.name, e);
-      }
-    }
+    await runFreeFnCleanup(freeFn);
   }
 }
