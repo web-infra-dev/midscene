@@ -29,11 +29,11 @@ describe('rstest runner', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:progress.test.ts'],
-          virtualModules: {
-            'virtual:progress.test.ts': `import { test } from ${JSON.stringify(
-              rstestImport,
-            )};
+          modules: [
+            {
+              id: 'virtual:progress.test.ts',
+              caseIds: [],
+              source: `import { test } from ${JSON.stringify(rstestImport)};
 
 test('progress', () => {
   console.log(${JSON.stringify(
@@ -41,7 +41,8 @@ test('progress', () => {
   )});
 });
 `,
-          },
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,
@@ -71,18 +72,19 @@ test('progress', () => {
           projectDir: root,
           outputDir: join(root, 'output'),
           resultDir: join(root, 'results'),
-          include: ['virtual:pipe.test.ts'],
-          virtualModules: {
-            'virtual:pipe.test.ts': `import { test } from ${JSON.stringify(
-              rstestImport,
-            )};
+          modules: [
+            {
+              id: 'virtual:pipe.test.ts',
+              caseIds: [],
+              source: `import { test } from ${JSON.stringify(rstestImport)};
 
 test('pipe', () => {
   console.log(${JSON.stringify(`${yamlProgressLogPrefix}marked progress`)});
   console.log('plain worker output');
 });
 `,
-          },
+            },
+          ],
           cases: [],
           maxConcurrency: 1,
           testTimeout: 0,

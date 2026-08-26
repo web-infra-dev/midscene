@@ -187,9 +187,7 @@ describe('rstest yaml project generation', () => {
       });
 
       expect(project.retry).toBe(3);
-      expect(project.virtualModules[project.cases[0].testModule]).toContain(
-        '"retry": 3',
-      );
+      expect(project.modules[0].source).toContain('"retry": 3');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

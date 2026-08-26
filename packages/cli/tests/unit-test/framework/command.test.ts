@@ -224,11 +224,11 @@ export function defineYamlCaseTest(test: any, options: any) {
           frameworkImport: '@test/framework',
           stdio: 'pipe',
           rstestRunner: async ({ project }) => {
-            expect(project.include).toEqual([
+            expect(project.modules.map((item) => item.id)).toEqual([
               'virtual:midscene-yaml/batch.test.ts',
             ]);
             expect(project.maxConcurrency).toBe(1);
-            const batchModule = project.virtualModules[project.include[0]];
+            const batchModule = project.modules[0].source;
             expect(batchModule).toContain('defineYamlBatchTest');
             expect(batchModule).toContain('"shareBrowserContext": false');
             expect(batchModule).toContain('"retry": 1');
