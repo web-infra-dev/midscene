@@ -64,6 +64,6 @@ ios:
 ${tasks}`);
 
     expect(script.android?.deviceId).toBe('123');
-    expect(script.ios?.deviceId).toBe(456);
+    expect(Reflect.get(script.ios ?? {}, 'deviceId')).toBe(456);
   });
 });
