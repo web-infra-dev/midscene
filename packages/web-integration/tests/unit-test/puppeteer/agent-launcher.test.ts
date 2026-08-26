@@ -6,7 +6,7 @@ import {
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page, Target } from 'puppeteer';
 
 const { mockLaunch } = rs.hoisted(() => ({
   mockLaunch: rs.fn(),
@@ -23,7 +23,10 @@ const browserMock = {
   close: rs.fn(),
 };
 
-const createPageMock = () => {
+const createPageMock = (
+  owningBrowser: Browser = browserMock as unknown as Browser,
+  opener?: Target,
+) => {
   const page = {
     setUserAgent: rs.fn().mockResolvedValue(undefined),
     setExtraHTTPHeaders: rs.fn().mockResolvedValue(undefined),
@@ -33,7 +36,7 @@ const createPageMock = () => {
     goto: rs.fn().mockResolvedValue(undefined),
     waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
     close: rs.fn().mockResolvedValue(undefined),
-    browser: rs.fn(() => browserMock),
+    browser: rs.fn(() => owningBrowser),
     bringToFront: rs.fn().mockResolvedValue(undefined),
     evaluate: rs.fn().mockResolvedValue(undefined),
     on: rs.fn(),
@@ -42,7 +45,7 @@ const createPageMock = () => {
   };
   const target = {
     type: () => 'page',
-    opener: () => undefined,
+    opener: () => opener,
     page: async () => page,
   };
   page.target.mockReturnValue(target);
@@ -392,6 +395,64 @@ describe('launchPuppeteerPage', () => {
       await cleanup.fn();
     }
     expect(pageMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('installs shared-browser ownership before initial navigation opens a popup', async () => {
+    const targetCreatedHandlers = new Set<(target: Target) => void>();
+    const lifecycleOrder: string[] = [];
+    const sharedBrowser = {
+      newPage: rs.fn(),
+      pages: rs.fn(),
+      on: rs.fn((event: string, handler: (target: Target) => void) => {
+        if (event === 'targetcreated') {
+          lifecycleOrder.push('listen');
+          targetCreatedHandlers.add(handler);
+        }
+      }),
+      off: rs.fn((event: string, handler: (target: Target) => void) => {
+        if (event === 'targetcreated') {
+          targetCreatedHandlers.delete(handler);
+        }
+      }),
+      setCookie: rs.fn(),
+      close: rs.fn(),
+    } as unknown as Browser;
+    const rootPage = createPageMock(sharedBrowser);
+    const popupPage = createPageMock(sharedBrowser, rootPage.target());
+    rs.mocked(sharedBrowser.newPage).mockResolvedValue(
+      rootPage as unknown as Page,
+    );
+    rootPage.goto.mockImplementationOnce(async () => {
+      lifecycleOrder.push('goto');
+      for (const handler of targetCreatedHandlers) {
+        handler(popupPage.target());
+      }
+      await Promise.resolve();
+    });
+
+    const { agent, freeFn } = await puppeteerAgentForTarget(
+      {
+        mode: 'browser',
+        url: 'https://example.com/opens-popup-during-load',
+        autoFollowNewPage: true,
+        waitForNetworkIdle: { timeout: 0 },
+      },
+      undefined,
+      sharedBrowser,
+    );
+
+    expect(lifecycleOrder).toEqual(['listen', 'listen', 'goto']);
+    expect((agent as { activePage: Page }).activePage).toBe(popupPage);
+    await expect(
+      (agent as { pages: () => Promise<Page[]> }).pages(),
+    ).resolves.toEqual([rootPage, popupPage]);
+
+    for (const cleanup of freeFn) {
+      await cleanup.fn();
+    }
+    expect(popupPage.close).toHaveBeenCalledTimes(1);
+    expect(rootPage.close).toHaveBeenCalledTimes(1);
+    expect(targetCreatedHandlers.size).toBe(0);
   });
 
   it('rejects forceSameTabNavigation in browser mode', async () => {

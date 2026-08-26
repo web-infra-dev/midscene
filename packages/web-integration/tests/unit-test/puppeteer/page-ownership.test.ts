@@ -1,7 +1,7 @@
 import { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
 import { createScopedPuppeteerBrowserAgent } from '@/puppeteer/scoped-browser-agent';
-import { describe, expect, it, rs } from '@rstest/core';
-import type { Browser, Page, Target } from 'puppeteer';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
+import puppeteer, { type Browser, type Page, type Target } from 'puppeteer';
 
 const createBrowserHarness = () => {
   const targetCreatedHandlers = new Set<(target: Target) => void>();
@@ -127,5 +127,86 @@ describe('PuppeteerPageOwnership', () => {
     expect(agent.activePage).toBe(ownedNewPage.page);
 
     ownership.release();
+  });
+});
+
+describe('PuppeteerPageOwnership in Chromium', () => {
+  let browser: Browser;
+
+  beforeAll(async () => {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }, 120_000);
+
+  afterAll(async () => {
+    await browser?.close();
+  }, 120_000);
+
+  it('follows and closes a popup opened during initial navigation', async () => {
+    const rootPage = await browser.newPage();
+    const ownership = new PuppeteerPageOwnership(rootPage);
+    const agent = createScopedPuppeteerBrowserAgent(
+      browser,
+      rootPage,
+      {
+        autoFollowNewPage: true,
+        forceChromeSelectRendering: false,
+      },
+      ownership,
+    );
+    const popupTargetPromise = browser.waitForTarget(
+      (target) =>
+        target.type() === 'page' && target.opener() === rootPage.target(),
+    );
+    const html =
+      '<script>window.open("about:blank?initial-popup", "_blank")</script>';
+
+    await rootPage.goto(`data:text/html,${encodeURIComponent(html)}`);
+    const popupTarget = await popupTargetPromise;
+    const popupPage = await popupTarget.page();
+    expect(popupPage).not.toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(ownership.ownsPage(popupPage!)).toBe(true);
+    expect(agent.activePage).toBe(popupPage);
+
+    await agent.destroy();
+    await ownership.close();
+    expect(rootPage.isClosed()).toBe(true);
+    expect(popupPage?.isClosed()).toBe(true);
+  });
+
+  it.each([
+    { label: 'target=_blank', rel: '' },
+    { label: 'target=_blank rel=noopener', rel: 'noopener' },
+  ])('retains target ownership for $label', async ({ label, rel }) => {
+    const rootPage = await browser.newPage();
+    const ownership = new PuppeteerPageOwnership(rootPage);
+    const marker = encodeURIComponent(label);
+    const popupTargetPromise = browser.waitForTarget(
+      (target) =>
+        target.type() === 'page' && target.opener() === rootPage.target(),
+    );
+    await rootPage.setContent(
+      `<a id="popup" href="about:blank?${marker}" target="_blank"${
+        rel ? ` rel="${rel}"` : ''
+      }>open</a>`,
+    );
+
+    await rootPage.$eval('#popup', (element) =>
+      (element as HTMLAnchorElement).click(),
+    );
+    const popupTarget = await popupTargetPromise;
+    const popupPage = await popupTarget.page();
+    expect(popupPage).not.toBeNull();
+
+    expect(popupTarget.opener()).toBe(rootPage.target());
+    expect(ownership.ownsPage(popupPage!)).toBe(true);
+
+    await ownership.close();
+    expect(rootPage.isClosed()).toBe(true);
+    expect(popupPage?.isClosed()).toBe(true);
   });
 });
