@@ -4,6 +4,7 @@ import type {
   Rect,
   WebElementInfo,
 } from '@midscene/core';
+import type { InputStrategy } from '@midscene/core/device';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
 import type { NodeType } from '@midscene/shared/constants';
@@ -21,6 +22,13 @@ export type WebPageOpt = {
    * option unset and uses the underlying driver's own default.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to the browser. `bulk` uses one `insertText`
+   * operation; `sequential` sends one Unicode code point at a time. `bulk`
+   * cannot be combined with a positive `keyboardTypeDelay`.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
   /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
    * This makes select elements visible in screenshots captured by Playwright/Puppeteer.

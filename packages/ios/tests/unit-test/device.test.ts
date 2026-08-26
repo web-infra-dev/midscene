@@ -41,6 +41,7 @@ describe('IOSDevice', () => {
       appSwitcher: rs.fn().mockResolvedValue(undefined),
       pinch: rs.fn().mockResolvedValue(undefined),
       typeText: rs.fn().mockResolvedValue(undefined),
+      typeRawKeys: rs.fn().mockResolvedValue(undefined),
       clearActiveElement: rs.fn().mockResolvedValue(true),
       pressKey: rs.fn().mockResolvedValue(undefined),
       pressHomeButton: rs.fn().mockResolvedValue(undefined),
@@ -252,6 +253,41 @@ describe('IOSDevice', () => {
       expect(mockWdaClient.clearActiveElement).toHaveBeenCalledTimes(2);
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(1, 'from action');
       expect(mockWdaClient.typeText).toHaveBeenNthCalledWith(2, 'from pointer');
+    });
+
+    it('forces one WDA call per Unicode character for sequential input', async () => {
+      device.options = {
+        ...device.options,
+        inputStrategy: 'sequential',
+      };
+      await device.inputPrimitives.keyboard.typeText('A😀B', {
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+
+      expect(mockWdaClient.typeRawKeys.mock.calls).toEqual([
+        [['A']],
+        [['😀']],
+        [['B']],
+      ]);
+      expect(mockWdaClient.typeText).not.toHaveBeenCalled();
+    });
+
+    it('rejects bulk input when the device has a positive keyboard delay', async () => {
+      const delayedDevice = new IOSDevice({
+        keyboardTypeDelay: 10,
+        autoDismissKeyboard: false,
+      });
+
+      await expect(
+        delayedDevice.inputPrimitives.keyboard.typeText('hello', {
+          inputStrategy: 'bulk',
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow(
+        'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+      );
+      expect(mockWdaClient.clearActiveElement).not.toHaveBeenCalled();
     });
 
     it('should restore an auto-dismissed input target before a following key press', async () => {

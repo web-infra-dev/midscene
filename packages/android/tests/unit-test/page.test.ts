@@ -1567,6 +1567,39 @@ Stdout:
           expect((device as any).execYadb).not.toHaveBeenCalled();
         });
 
+        it('forces one input text call per Unicode character for sequential input', async () => {
+          device.options = {
+            ...device.options,
+            inputStrategy: 'sequential',
+          };
+          await device.inputPrimitives.keyboard.typeText('abc');
+
+          expect(mockAdb.shell.mock.calls).toEqual([
+            ["input text 'a'"],
+            ["input text 'b'"],
+            ["input text 'c'"],
+          ]);
+        });
+
+        it('rejects bulk input when the device has a positive keyboard delay', async () => {
+          device.options = {
+            imeStrategy: 'yadb-for-non-ascii',
+            autoDismissKeyboard: false,
+            keyboardTypeDelay: 10,
+          };
+          const clearInputRaw = rs.spyOn(device as any, 'clearInputRaw');
+
+          await expect(
+            device.inputPrimitives.keyboard.typeText('abc', {
+              inputStrategy: 'bulk',
+              target: { center: [10, 20] },
+            }),
+          ).rejects.toThrow(
+            'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+          );
+          expect(clearInputRaw).not.toHaveBeenCalled();
+        });
+
         it('space: hello world', async () => {
           await device.inputPrimitives.keyboard.typeText('hello world');
           expect(mockAdb.shell).toHaveBeenCalledWith(
@@ -1933,6 +1966,25 @@ Stdout:
           expect(mockAdb.shell).not.toHaveBeenCalledWith(
             expect.stringContaining('input text'),
           );
+        });
+
+        it('splits non-ASCII code points for explicit sequential input', async () => {
+          await device.inputPrimitives.keyboard.typeText('你😀', {
+            inputStrategy: 'sequential',
+          });
+
+          expect((device as any).execYadb.mock.calls).toEqual([['你'], ['😀']]);
+        });
+
+        it('preserves legacy yadb burst input when a delay is configured', async () => {
+          device.options = {
+            ...device.options,
+            keyboardTypeDelay: 10,
+          };
+
+          await device.inputPrimitives.keyboard.typeText('你😀');
+
+          expect((device as any).execYadb.mock.calls).toEqual([['你😀']]);
         });
       });
     });

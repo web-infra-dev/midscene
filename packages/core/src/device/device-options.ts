@@ -1,4 +1,5 @@
 import type { DeviceAction } from '../types';
+import type { InputStrategy } from './input-strategy';
 
 /**
  * Android device input options
@@ -16,10 +17,17 @@ export type AndroidDeviceInputOpt = {
    * on devices or input fields that drop characters when input arrives too
    * fast (e.g. WiFi password fields on automotive displays).
    *
-   * Only applies to the `input text` path (non-yadb). When yadb is used, the
-   * entire string is committed atomically and this option is ignored.
+   * In legacy mode, this applies to the native `input text` path and is
+   * ignored by yadb. Set `inputStrategy` to `sequential` to split yadb input.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to Android. `sequential` splits Unicode code
+   * points; `bulk` uses one backend operation where the selected IME supports
+   * it and cannot be combined with a positive `keyboardTypeDelay`.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**
@@ -159,6 +167,13 @@ export type IOSDeviceInputOpt = {
    * on devices or input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text through WDA. `sequential` makes one WDA call per
+   * Unicode code point; `bulk` makes one WDA text call and cannot be combined
+   * with a positive `keyboardTypeDelay`.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**
@@ -214,6 +229,13 @@ export type HarmonyDeviceInputOpt = {
    * on devices or input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text through HDC. `sequential` makes one HDC call per
+   * Unicode code point; `bulk` makes one HDC text call and cannot be combined
+   * with a positive `keyboardTypeDelay`.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**

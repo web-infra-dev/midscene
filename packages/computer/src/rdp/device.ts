@@ -8,8 +8,11 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type ResolvedTextInputOptions,
   defineAction,
   defineActionsFromInputPrimitives,
+  resolveTextInputOptions,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
@@ -113,6 +116,10 @@ export class RDPDevice implements AbstractInterface {
     keyboard: {
       typeText: async (value, opts) => {
         this.assertConnected();
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.options,
+        );
         const target = opts?.target as LocateResultElement | undefined;
         if (target) {
           await this.inputPrimitives.pointer!.tap({
@@ -128,9 +135,7 @@ export class RDPDevice implements AbstractInterface {
         if (opts?.focusOnly || !value) {
           return;
         }
-        const keyboardTypeDelay =
-          opts?.keyboardTypeDelay ?? this.options.keyboardTypeDelay;
-        await this.typeText(value, keyboardTypeDelay);
+        await this.typeText(value, resolvedInputOptions);
       },
       clearInput: async (target) => {
         this.assertConnected();
@@ -194,9 +199,9 @@ export class RDPDevice implements AbstractInterface {
 
   private async typeText(
     value: string,
-    keyboardTypeDelay?: number,
+    inputOptions: ResolvedTextInputOptions,
   ): Promise<void> {
-    if (!keyboardTypeDelay || keyboardTypeDelay <= 0) {
+    if (!shouldInputSequentially(inputOptions)) {
       await this.backend.typeText(value);
       return;
     }
@@ -204,8 +209,12 @@ export class RDPDevice implements AbstractInterface {
     const characters = Array.from(value);
     for (let index = 0; index < characters.length; index++) {
       await this.backend.typeText(characters[index]);
-      if (index < characters.length - 1) {
-        await sleep(keyboardTypeDelay);
+      if (
+        inputOptions.keyboardTypeDelay !== undefined &&
+        inputOptions.keyboardTypeDelay > 0 &&
+        index < characters.length - 1
+      ) {
+        await sleep(inputOptions.keyboardTypeDelay);
       }
     }
   }

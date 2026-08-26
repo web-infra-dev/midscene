@@ -17,6 +17,7 @@ import type {
   UIContext,
   UITreeSnapshot,
 } from '../types';
+import { type InputStrategy, inputStrategies } from './input-strategy';
 
 export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
@@ -109,6 +110,7 @@ export interface KeyboardInputPrimitives {
       autoDismissKeyboard?: boolean;
       keyboardDismissStrategy?: 'esc-first' | 'back-first';
       keyboardTypeDelay?: number;
+      inputStrategy?: InputStrategy;
       target?: unknown;
       replace?: boolean;
       focusOnly?: boolean;
@@ -513,9 +515,17 @@ export const actionInputParamSchema = z.object({
     ),
   keyboardTypeDelay: z
     .number()
+    .finite()
+    .nonnegative()
     .optional()
     .describe(
       'Delay in milliseconds between keystrokes when typing. Passed through from device/user configuration. Do not set it unless the user asks you to do so.',
+    ),
+  inputStrategy: z
+    .enum(inputStrategies)
+    .optional()
+    .describe(
+      'Text input strategy: "legacy" (default) preserves the current platform behavior; "sequential" enters Unicode characters one at a time; "bulk" sends the complete text through one platform input operation when supported and cannot be combined with a positive keyboardTypeDelay. Do not set it unless the user asks you to do so.',
     ),
 });
 export type ActionInputParam = {
@@ -524,6 +534,7 @@ export type ActionInputParam = {
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
   autoDismissKeyboard?: boolean;
   keyboardTypeDelay?: number;
+  inputStrategy?: InputStrategy;
 };
 
 export const defineActionInput = (
@@ -558,6 +569,7 @@ export const defineActionInput = (
         replace: param.mode !== 'typeOnly',
         autoDismissKeyboard: param.autoDismissKeyboard,
         keyboardTypeDelay: param.keyboardTypeDelay,
+        inputStrategy: param.inputStrategy,
       });
     },
   });
@@ -1198,6 +1210,15 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
 };
 
 export type { DeviceAction } from '../types';
+export {
+  inputStrategies,
+  type InputStrategy,
+  type ResolvedTextInputOptions,
+  type TextInputOptions,
+  resolveInputStrategy,
+  resolveTextInputOptions,
+  shouldInputSequentially,
+} from './input-strategy';
 export type {
   AndroidDeviceOpt,
   AndroidDeviceInputOpt,

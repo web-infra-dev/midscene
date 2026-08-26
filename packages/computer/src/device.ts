@@ -14,8 +14,12 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type InputStrategy,
+  type ResolvedTextInputOptions,
   defineAction,
   defineActionsFromInputPrimitives,
+  resolveTextInputOptions,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -709,6 +713,13 @@ export interface ComputerDeviceInputOpt {
    * zero, Computer keeps using clipboard paste to avoid IME interference.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to the desktop input backend. `bulk` uses one
+   * clipboard paste; `sequential` emits one Unicode code point at a time.
+   * `bulk` cannot be combined with a positive `keyboardTypeDelay`.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 }
 
 export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
@@ -863,6 +874,10 @@ export class ComputerDevice implements AbstractInterface {
     },
     keyboard: {
       typeText: async (value, opts) => {
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.options,
+        );
         const element = opts?.target as LocateResultElement | undefined;
 
         if (element) {
@@ -874,9 +889,7 @@ export class ComputerDevice implements AbstractInterface {
           }
         }
 
-        const keyboardTypeDelay =
-          opts?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
-        await this.smartTypeString(value, keyboardTypeDelay);
+        await this.smartTypeString(value, resolvedInputOptions);
       },
       keyboardPress: async (keyName, opts) => {
         const target = opts?.target as LocateResultElement | undefined;
@@ -1361,10 +1374,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
    */
   private async smartTypeString(
     text: string,
-    keyboardTypeDelay?: number,
+    inputOptions: ResolvedTextInputOptions,
   ): Promise<void> {
-    if (keyboardTypeDelay && keyboardTypeDelay > 0) {
-      await this.typeStringWithDelay(text, keyboardTypeDelay);
+    if (shouldInputSequentially(inputOptions)) {
+      await this.typeStringWithDelay(text, inputOptions.keyboardTypeDelay ?? 0);
       return;
     }
 
@@ -1392,7 +1405,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         this.inputDriver.typeString(character);
       }
 
-      if (index < characters.length - 1) {
+      if (keyboardTypeDelay > 0 && index < characters.length - 1) {
         await this.inputDriver.delay(keyboardTypeDelay);
       }
     }

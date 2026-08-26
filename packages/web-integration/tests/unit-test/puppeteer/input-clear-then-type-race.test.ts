@@ -91,6 +91,29 @@ const SCOPED_WAIT_PAGE_HTML = `
   </html>
 `;
 
+const BULK_INPUT_PAGE_HTML = `
+  <!DOCTYPE html>
+  <html>
+    <body>
+      <input id="i" value="old value" />
+      <script>
+        window.__midsceneInputEvents = [];
+        window.__midsceneKeydownCount = 0;
+        const input = document.getElementById('i');
+        input.addEventListener('input', (event) => {
+          window.__midsceneInputEvents.push({
+            data: event.data,
+            value: input.value,
+          });
+        });
+        input.addEventListener('keydown', () => {
+          window.__midsceneKeydownCount += 1;
+        });
+      </script>
+    </body>
+  </html>
+`;
+
 const inputCenter = async (page: any) =>
   page.$eval('#i', (el: HTMLInputElement) => {
     const r = el.getBoundingClientRect();
@@ -160,6 +183,45 @@ describe('clearInput → keyboard.type race (replace mode)', () => {
       await page.close();
 
       expect(elapsedMs).toBeLessThan(350);
+    },
+    PUPPETEER_TEST_TIMEOUT_MS,
+  );
+});
+
+describe('bulk input strategy', () => {
+  test(
+    'replaces the selected value through one input event',
+    async () => {
+      const page = await browser.newPage();
+      await page.setContent(BULK_INPUT_PAGE_HTML);
+      const webPage = new PuppeteerWebPage(page);
+      const { x, y } = await inputCenter(page);
+      const inputAction = webPage
+        .actionSpace()
+        .find((action) => action.name === 'Input');
+
+      await inputAction!.call(
+        {
+          value: '北京',
+          mode: 'replace',
+          inputStrategy: 'bulk',
+          locate: { center: [x, y] },
+        } as any,
+        {} as any,
+      );
+
+      const result = await page.evaluate(() => ({
+        value: (document.getElementById('i') as HTMLInputElement).value,
+        inputEvents: (window as any).__midsceneInputEvents,
+        keydownCount: (window as any).__midsceneKeydownCount,
+      }));
+      await page.close();
+
+      expect(result).toEqual({
+        value: '北京',
+        inputEvents: [{ data: '北京', value: '北京' }],
+        keydownCount: 0,
+      });
     },
     PUPPETEER_TEST_TIMEOUT_MS,
   );

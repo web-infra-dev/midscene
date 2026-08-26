@@ -312,6 +312,48 @@ describe('@midscene/computer RDP device', () => {
     ]);
   });
 
+  it('forces sequential RDP backend calls without a positive delay', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      inputStrategy: 'sequential',
+    });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('A😀B', {
+      replace: false,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['A'] },
+      { name: 'typeText', args: ['😀'] },
+      { name: 'typeText', args: ['B'] },
+    ]);
+  });
+
+  it('rejects conflicting bulk input before clearing the RDP field', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      keyboardTypeDelay: 80,
+    });
+    await device.connect();
+
+    await expect(
+      device.inputPrimitives.keyboard!.typeText('hello', {
+        inputStrategy: 'bulk',
+        target: createLocate([10, 20]),
+      }),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+    );
+    expect(backend.calls.some((call) => call.name === 'clearInput')).toBe(
+      false,
+    );
+  });
+
   it('lists the connected RDP display as a single primary monitor', async () => {
     const backend = new FakeRDPBackend();
     const device = new RDPDevice({

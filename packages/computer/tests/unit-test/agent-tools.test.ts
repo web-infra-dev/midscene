@@ -67,6 +67,7 @@ describe('ComputerMidsceneTools', () => {
         'display-id': 'display-2',
         headless: true,
         'keyboard-type-delay': 80,
+        'input-strategy': 'sequential',
       },
     });
 
@@ -74,6 +75,7 @@ describe('ComputerMidsceneTools', () => {
       displayId: 'display-2',
       headless: true,
       keyboardTypeDelay: 80,
+      inputStrategy: 'sequential',
     });
   });
 
@@ -147,6 +149,7 @@ describe('ComputerMidsceneTools', () => {
       expect.objectContaining({
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
+        'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
@@ -158,6 +161,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
         'computer.host': expect.anything(),
+        'computer.inputStrategy': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
@@ -187,6 +191,7 @@ describe('ComputerMidsceneTools', () => {
       'local-address': '10.0.0.20',
       'security-protocol': 'nla',
       'ignore-certificate': true,
+      'input-strategy': 'sequential',
       'keyboard-type-delay': 80,
     });
 
@@ -199,6 +204,7 @@ describe('ComputerMidsceneTools', () => {
         localAddress: '10.0.0.20',
         securityProtocol: 'nla',
         ignoreCertificate: true,
+        inputStrategy: 'sequential',
         keyboardTypeDelay: 80,
       }),
     );

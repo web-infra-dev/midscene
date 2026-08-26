@@ -152,4 +152,92 @@ describe('commonWebActionsForWebPage visual refresh', () => {
 
     expect(page.keyboard.type).toHaveBeenCalledWith('hello', { delay: 25 });
   });
+
+  it('uses the page-level bulk strategy when the action omits it', async () => {
+    const page = {
+      inputStrategy: 'bulk',
+      keyboard: {
+        insertText: rs.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: rs.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Input')
+      ?.call({ value: '北京', mode: 'typeOnly' }, mockExecutorContext);
+
+    expect(page.keyboard.insertText).toHaveBeenCalledWith('北京');
+    expect(page.keyboard.type).not.toHaveBeenCalled();
+  });
+
+  it('sends Unicode code points separately for sequential input', async () => {
+    const page = {
+      keyboard: {
+        insertText: rs.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: rs.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Input')
+      ?.call(
+        { value: 'A😀B', mode: 'typeOnly', inputStrategy: 'sequential' },
+        mockExecutorContext,
+      );
+
+    expect(page.keyboard.type.mock.calls).toEqual([['A'], ['😀'], ['B']]);
+    expect(page.keyboard.insertText).not.toHaveBeenCalled();
+  });
+
+  it('selects existing text without clearing before bulk replace input', async () => {
+    const locate = { center: [10, 20] };
+    const page = {
+      keyboard: {
+        insertText: rs.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
+      },
+      selectAllInput: rs.fn(async () => undefined),
+      clearInput: rs.fn(async () => undefined),
+      waitForDomQuiet: rs.fn(async () => undefined),
+      schedulePendingVisualUpdate: rs.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await actions
+      .find((action) => action.name === 'Input')
+      ?.call(
+        { value: '上海', mode: 'replace', inputStrategy: 'bulk', locate },
+        mockExecutorContext,
+      );
+
+    expect(page.selectAllInput).toHaveBeenCalledWith(locate);
+    expect(page.keyboard.insertText).toHaveBeenCalledWith('上海');
+    expect(page.clearInput).not.toHaveBeenCalled();
+    expect(page.waitForDomQuiet).not.toHaveBeenCalled();
+  });
+
+  it('rejects bulk input with a configured positive keyboard delay', async () => {
+    const page = {
+      keyboardTypeDelay: 25,
+      keyboard: {
+        insertText: rs.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: rs.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+    const input = actions.find((action) => action.name === 'Input');
+
+    await expect(
+      input?.call(
+        { value: 'hello', mode: 'typeOnly', inputStrategy: 'bulk' },
+        mockExecutorContext,
+      ),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+    );
+  });
 });

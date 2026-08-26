@@ -18,6 +18,7 @@ import type {
   DeviceAction,
   FileChooserHandler,
   FileChooserRegistration,
+  TextInputOptions,
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -159,6 +160,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public forceSameTabNavigation: boolean;
 
+  readonly keyboardTypeDelay?: number;
+
+  readonly inputStrategy?: TextInputOptions['inputStrategy'];
+
   private viewportSize?: Size;
 
   private activeTabId: number | null = null;
@@ -181,8 +186,13 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public _continueWhenFailedToAttachDebugger = false;
 
-  constructor(forceSameTabNavigation: boolean) {
+  constructor(
+    forceSameTabNavigation: boolean,
+    inputOptions?: TextInputOptions,
+  ) {
     this.forceSameTabNavigation = forceSameTabNavigation;
+    this.keyboardTypeDelay = inputOptions?.keyboardTypeDelay;
+    this.inputStrategy = inputOptions?.inputStrategy;
   }
 
   actionSpace(): DeviceAction[] {
@@ -955,6 +965,56 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
   }
 
+  async selectAllInput(element?: ElementInfo) {
+    if (!element) {
+      throw new Error('Bulk replace input requires a target element');
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
+    const selectionResult = await this.sendCommandToDebugger(
+      'Runtime.evaluate',
+      {
+        expression: `(() => {
+          let activeElement = document.activeElement;
+          while (activeElement?.shadowRoot?.activeElement) {
+            activeElement = activeElement.shadowRoot.activeElement;
+          }
+          if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+            try {
+              activeElement.select();
+              return true;
+            } catch {
+              return false;
+            }
+          }
+          if (activeElement instanceof HTMLElement && activeElement.isContentEditable) {
+            const selection = window.getSelection();
+            if (!selection) return false;
+            const range = document.createRange();
+            range.selectNodeContents(activeElement);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return true;
+          }
+          return false;
+        })()`,
+        returnByValue: true,
+      },
+    );
+    if (selectionResult?.result?.value === true) {
+      return;
+    }
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      commands: ['selectAll'],
+    });
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      commands: ['selectAll'],
+    });
+  }
+
   private latestMouseX = 100;
   private latestMouseY = 100;
 
@@ -1095,6 +1155,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         send: this.sendCommandToDebugger.bind(this),
       });
       await cdpKeyboard.type(text, { delay: 0 });
+    },
+    insertText: async (text: string) => {
+      await this.sendCommandToDebugger('Input.insertText', { text });
     },
     press: async (
       action:
