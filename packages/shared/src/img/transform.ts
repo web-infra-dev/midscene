@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { getDebug } from '../logger';
 import type { Rect, Size } from '../types';
-import { ifInNode } from '../utils';
+import { ifInBrowser, ifInNode, ifInWorker } from '../utils';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
 import { encodedImageInfoOfBuffer } from './info';
@@ -105,15 +105,10 @@ async function resizeImageBuffer(
     };
   }
 
-  // browser environment: use Photon (or Canvas fallback)
+  // Browser/worker environment: use Photon.
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(inputData);
-  // Support both sync (Photon) and async (Canvas fallback) versions
-  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
-  const inputImage =
-    bytesliceResult instanceof Promise
-      ? await bytesliceResult
-      : bytesliceResult;
+  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
   const originalWidth = options.sourceSize?.width ?? inputImage.get_width();
   const originalHeight = options.sourceSize?.height ?? inputImage.get_height();
 
@@ -198,6 +193,12 @@ export async function convertImgBufferToJpeg(
       const Sharp = await getSharp();
       return await Sharp(inputData).jpeg({ quality }).toBuffer();
     } catch (error) {
+      if (!ifInBrowser && !ifInWorker) {
+        throw new Error(
+          `Failed to convert image to JPEG with Sharp: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
       imgDebug('Sharp failed, falling back to Photon:', error);
     }
   }
@@ -578,9 +579,7 @@ export async function photonFromBase64(
 ): Promise<PhotonImageType> {
   const { PhotonImage } = await getPhoton();
   const { body } = parseBase64(base64);
-  // Support both sync (Photon) and async (Canvas fallback) versions
-  const result = PhotonImage.new_from_base64(body);
-  return result instanceof Promise ? await result : result;
+  return PhotonImage.new_from_base64(body);
 }
 
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/
@@ -908,15 +907,10 @@ export async function scaleImage(
     };
   }
 
-  // Browser environment: use Photon (or Canvas fallback)
+  // Browser/worker environment: use Photon.
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(buffer);
-  // Support both sync (Photon) and async (Canvas fallback) versions
-  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
-  const inputImage =
-    bytesliceResult instanceof Promise
-      ? await bytesliceResult
-      : bytesliceResult;
+  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
   const originalWidth = inputImage.get_width();
   const originalHeight = inputImage.get_height();
 
