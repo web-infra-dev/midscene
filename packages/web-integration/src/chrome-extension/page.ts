@@ -189,13 +189,21 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return commonWebActionsForWebPage(this);
   }
 
-  public async setActiveTabId(tabId: number) {
+  /**
+   * Set the tab currently used by Midscene and optionally activate it in Chrome.
+   */
+  public async setActiveTabId(
+    tabId: number,
+    options: { activate?: boolean } = {},
+  ) {
     if (this.activeTabId) {
       throw new Error(
         `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
       );
     }
-    await chrome.tabs.update(tabId, { active: true });
+    if (options.activate !== false) {
+      await chrome.tabs.update(tabId, { active: true });
+    }
     this.activeTabId = tabId;
   }
 
@@ -228,7 +236,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
-      // alway keep on the connected tab
+      // Always reuse the controlled tab to avoid switching to a tab activated later by the user.
       return this.activeTabId;
     }
     const tabId = await chrome.tabs

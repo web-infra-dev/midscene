@@ -46,6 +46,11 @@ export interface BridgeConnectTabOptions {
    */
   forceSameTabNavigation?: boolean;
   /**
+   * Whether the newly created tab should become Chrome's active tab.
+   * @default true
+   */
+  activateTab?: boolean;
+  /**
    * Custom timeout for connecting to the tab in milliseconds.
    * @default 30000 (30 seconds)
    */
