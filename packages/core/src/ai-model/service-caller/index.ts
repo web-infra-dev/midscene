@@ -403,6 +403,7 @@ export async function callAI(
     : undefined;
   const chatCompletionInput = {
     intent: modelConfig.intent,
+    modelName: modelConfig.modelName,
     userConfig: {
       temperature: modelConfig.temperature,
       reasoningEnabled: modelConfig.reasoningEnabled,

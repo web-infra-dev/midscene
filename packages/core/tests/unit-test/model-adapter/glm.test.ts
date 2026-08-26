@@ -110,3 +110,94 @@ describe('glm model adapter', () => {
     expect(result.config.response_format).toBeUndefined();
   });
 });
+
+describe('glm-5.3-flash always-thinking contract', () => {
+  it('never sends thinking.type=disabled for glm-5.3-flash', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: {},
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      thinking: { type: 'enabled', clear_thinking: false },
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('maps a reasoning-disable intent to effort=low for glm-5.3-flash', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { reasoningEnabled: false },
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      thinking: { type: 'enabled', clear_thinking: false },
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('forwards an explicit reasoning effort for glm-5.3-flash', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { reasoningEnabled: true, reasoningEffort: 'high' },
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      thinking: { type: 'enabled', clear_thinking: false },
+      reasoning_effort: 'high',
+    });
+  });
+
+  it('follows provider default for glm-5.3-flash when reasoningEnabled=default', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { reasoningEnabled: 'default' },
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+    });
+  });
+
+  it('keeps an explicit user temperature for glm-5.3-flash', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { temperature: 0 },
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      top_p: 0.95,
+      thinking: { type: 'enabled', clear_thinking: false },
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('combines json_object response format with always-thinking params', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      expectedJsonObjectResponse: true,
+      userConfig: {},
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      response_format: { type: 'json_object' },
+      thinking: { type: 'enabled', clear_thinking: false },
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('keeps toggleable thinking for non-flash glm-v models', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5v-turbo',
+      userConfig: {},
+    });
+    expect(result.config).toEqual({
+      temperature: 0,
+      thinking: { type: 'disabled' },
+    });
+  });
+});

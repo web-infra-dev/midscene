@@ -63,6 +63,12 @@ export type ChatCompletionUnsupportedUserConfig =
 
 export interface ChatCompletionCallInput {
   intent?: TIntent;
+  /**
+   * Model name resolved for this call. Adapters may use it to branch within a
+   * family when a specific model requires different request parameters (for
+   * example, always-thinking variants).
+   */
+  modelName?: string;
   userConfig?: ChatCompletionCallUserConfig;
   /**
    * Number of preceding semantic parsing failures for this request.
@@ -83,6 +89,10 @@ export interface ChatCompletionCallInput {
 
 export interface ChatCompletionCallContext {
   intent?: TIntent;
+  /**
+   * Model name resolved for this call; see ChatCompletionCallInput.
+   */
+  modelName?: string;
   userConfig: ChatCompletionCallUserConfig;
   semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
