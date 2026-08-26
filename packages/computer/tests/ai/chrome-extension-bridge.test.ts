@@ -25,7 +25,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-rs.setConfig({ testTimeout: 360 * 1000 });
+rs.setConfig({ testTimeout: 600 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -256,28 +256,22 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
   it('restart bridge and connect to server again', async () => {
     // Start a new server before clicking Start
     const server = await startBridgeServer();
+    try {
+      // A timed-out attempt may already have started the bridge. Make the
+      // retry safe by clicking Start only when the control is still visible.
+      await agent.aiAct(
+        `At the bottom of ${SIDE_PANEL}, click the "Start" button if it is visible. If the status already shows "Listening" or "Connected", do nothing`,
+      );
 
-    // Click Start in the UI
-    await agent.aiAct(
-      `Click the "Start" button at the bottom of ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-
-    // Verify UI shows "Listening"
-    await agent.aiAssert(
-      `${SIDE_PANEL} bottom area shows "Listening" or "Connected"`,
-    );
-
-    // Wait for actual connection
-    const connected = await server.waitForConnected(15000);
-    expect(connected).toBe(true);
-
-    // Wait for UI to update after WebSocket connection
-    await sleep(3000);
-
-    // Verify UI shows "Connected"
-    await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
-
-    await server.kill();
+      // Wait for the real WebSocket connection before checking its UI state.
+      const connected = await server.waitForConnected(15000);
+      expect(connected).toBe(true);
+      await agent.aiWaitFor(
+        `${SIDE_PANEL} bottom area shows the bridge status "Connected"`,
+        { timeoutMs: 30000, checkIntervalMs: 5000 },
+      );
+    } finally {
+      await server.kill();
+    }
   });
 });
