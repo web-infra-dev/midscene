@@ -279,6 +279,9 @@ retry: 2
 midscene --config ./config.yaml
 ```
 
+当脚本必须严格按照 `files` 列表的顺序执行时，请设置 `concurrent: 1`（默认值）。
+当该值大于 `1` 时，执行顺序不确定；脚本不得依赖其他脚本的启动或完成顺序。
+
 #### 在并行脚本之前执行前置任务
 
 当多个互不依赖的 Puppeteer Web 脚本都依赖同一个前置条件（例如登录）时，可以把前置任务写在 `setup` 下。前置脚本会在主 `files` 之前执行；成功后，主脚本再按配置的并发数运行。设置 `shareBrowserContext: true` 后，成功 setup attempt 的浏览器上下文（包括登录态）会被主脚本复用。同一共享批次中的所有脚本都必须使用 Puppeteer Web target，不支持桥接模式。

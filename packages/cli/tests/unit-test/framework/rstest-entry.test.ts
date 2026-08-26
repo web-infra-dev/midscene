@@ -68,12 +68,16 @@ describe('defineYamlCaseTest', () => {
 
     try {
       defineYamlCaseTest(injectedRstestTest(), {
+        caseId: '001-case',
         testName: 'case',
         yamlFile: yaml,
         resultFile,
       });
 
-      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      const [, testOptions, runCase] = mocks.rstestTest.mock.calls[0];
+      expect(testOptions).toEqual({
+        meta: { midsceneYamlCaseIds: ['001-case'] },
+      });
       await expect(runCase()).rejects.toThrow('first attempt failed');
       await expect(runCase()).resolves.toBeUndefined();
 
@@ -126,13 +130,14 @@ describe('defineYamlCaseTest', () => {
 
     try {
       defineYamlCaseTest(injectedRstestTest(), {
+        caseId: '001-case',
         testName: 'case',
         yamlFile: yaml,
         resultFile,
         retry: 1,
       });
 
-      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      const [, , runCase] = mocks.rstestTest.mock.calls[0];
       await expect(runCase()).rejects.toThrow('first attempt failed');
       await expect(runCase()).resolves.toBeUndefined();
 
@@ -176,12 +181,13 @@ describe('defineYamlCaseTest', () => {
 
     try {
       defineYamlCaseTest(injectedRstestTest(), {
+        caseId: '001-case',
         testName: 'case',
         yamlFile: yaml,
         resultFile,
       });
 
-      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      const [, , runCase] = mocks.rstestTest.mock.calls[0];
       await expect(runCase()).rejects.toThrow(
         'task failed with continue-on-error',
       );
@@ -234,12 +240,13 @@ describe('defineYamlCaseTest', () => {
 
     try {
       defineYamlCaseTest(injectedRstestTest(), {
+        caseId: '001-case',
         testName: 'case',
         yamlFile: yaml,
         resultFile,
       });
 
-      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      const [, , runCase] = mocks.rstestTest.mock.calls[0];
       await runCase();
 
       expect(mocks.emitYamlProgress).toHaveBeenCalledWith(
@@ -286,13 +293,14 @@ describe('defineYamlCaseTest', () => {
 
     try {
       defineYamlCaseTest(injectedRstestTest(), {
+        caseId: '001-case',
         testName: 'case',
         yamlFile: yaml,
         resultFile,
         retry: 1,
       });
 
-      const [, runCase] = mocks.rstestTest.mock.calls[0];
+      const [, , runCase] = mocks.rstestTest.mock.calls[0];
       await expect(runCase()).rejects.toThrow('first attempt failed');
       await expect(runCase()).resolves.toBeUndefined();
 

@@ -609,6 +609,47 @@ describe('BatchRunner', () => {
       expect(results[2].success).toBe(true);
       expect(results[2].executed).toBe(true);
     });
+
+    test('keeps duplicate YAML occurrences bound to distinct players and config order', async () => {
+      let finishSecond: () => void = () => {};
+      const secondFinished = new Promise<void>((resolve) => {
+        finishSecond = resolve;
+      });
+      const firstPlayer = createMockPlayer(true);
+      const secondPlayer = createMockPlayer(false);
+      firstPlayer.run = rs.fn(async () => {
+        await secondFinished;
+        firstPlayer.status = 'done';
+      });
+      secondPlayer.run = rs.fn(async () => {
+        secondPlayer.status = 'error';
+        finishSecond();
+      });
+      const players = [firstPlayer, secondPlayer];
+      rs.mocked(createYamlPlayer).mockImplementation(async () => {
+        const player = players.shift();
+        if (!player) throw new Error('Unexpected player creation');
+        return player;
+      });
+
+      const duplicateFile = 'duplicate.yml';
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        files: [duplicateFile, duplicateFile],
+        concurrent: 2,
+        continueOnError: true,
+        shareBrowserContext: true,
+      });
+      const results = await runner.run();
+
+      expect(firstPlayer.run).toHaveBeenCalledTimes(1);
+      expect(secondPlayer.run).toHaveBeenCalledTimes(1);
+      expect(results.map((result) => result.file)).toEqual([
+        duplicateFile,
+        duplicateFile,
+      ]);
+      expect(results.map((result) => result.success)).toEqual([true, false]);
+    });
   });
 
   describe('Summary file generation', () => {

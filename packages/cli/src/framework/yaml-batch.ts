@@ -1,12 +1,19 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
-import { type BatchRunnerConfig, runYamlBatch } from '../yaml-batch-executor';
+import {
+  type BatchRunnerConfig,
+  runYamlBatchWithCaseIds,
+} from '../yaml-batch-executor';
 import { emitYamlProgress } from './progress-reporter';
 
 export interface RunYamlBatchInRstestOptions {
   config: BatchRunnerConfig;
-  resultFiles: Record<string, string>;
+  resultTargets: Array<{
+    caseId: string;
+    yamlFile: string;
+    resultFile: string;
+  }>;
 }
 
 const writeResultFile = (
@@ -27,21 +34,48 @@ const batchFailureMessage = (results: MidsceneYamlConfigResult[]): string => {
 export async function runYamlBatchInRstest(
   options: RunYamlBatchInRstestOptions,
 ): Promise<MidsceneYamlConfigResult[]> {
-  const results = await runYamlBatch(options.config, {
-    generateSummary: false,
-    printExecutionPlan: false,
-    onProgress: emitYamlProgress,
-  });
-
-  for (const result of results) {
-    const resultFile =
-      options.resultFiles[result.file] ||
-      options.resultFiles[resolve(result.file)];
-    if (resultFile) {
-      writeResultFile(resultFile, result);
+  const resultTargetsByCaseId = new Map<
+    string,
+    RunYamlBatchInRstestOptions['resultTargets'][number]
+  >();
+  for (const target of options.resultTargets) {
+    if (resultTargetsByCaseId.has(target.caseId)) {
+      throw new Error(
+        `Duplicate batch result target case ID: ${target.caseId}`,
+      );
     }
+    resultTargetsByCaseId.set(target.caseId, target);
   }
 
+  const occurrenceResults = await runYamlBatchWithCaseIds(
+    options.config,
+    options.resultTargets.map(({ caseId }) => caseId),
+    {
+      generateSummary: false,
+      printExecutionPlan: false,
+      onProgress: emitYamlProgress,
+    },
+  );
+
+  const unmappedResults: string[] = [];
+  for (const { caseId, result } of occurrenceResults) {
+    const target = resultTargetsByCaseId.get(caseId);
+    if (!target || resolve(target.yamlFile) !== resolve(result.file)) {
+      unmappedResults.push(caseId);
+      continue;
+    }
+    writeResultFile(target.resultFile, result);
+    resultTargetsByCaseId.delete(caseId);
+  }
+
+  const unwrittenTargets = Array.from(resultTargetsByCaseId.keys());
+  if (unmappedResults.length || unwrittenTargets.length) {
+    throw new Error(
+      `Batch result mapping mismatch: ${unmappedResults.length} result(s) had no target and ${unwrittenTargets.length} target(s) had no result`,
+    );
+  }
+
+  const results = occurrenceResults.map(({ result }) => result);
   if (results.some((result) => !result.success)) {
     throw new Error(batchFailureMessage(results));
   }

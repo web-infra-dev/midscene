@@ -3,16 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { emitYamlProgress } from '@/framework/progress-reporter';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
-import { runYamlBatch } from '@/yaml-batch-executor';
+import { runYamlBatchWithCaseIds } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 const mocks = rs.hoisted(() => ({
-  runYamlBatch: rs.fn(),
+  runYamlBatchWithCaseIds: rs.fn(),
 }));
 
 rs.mock('@/yaml-batch-executor', () => ({
-  runYamlBatch: mocks.runYamlBatch,
+  runYamlBatchWithCaseIds: mocks.runYamlBatchWithCaseIds,
 }));
 
 const createTempDir = () => mkdtempSync(join(tmpdir(), 'midscene-yaml-batch-'));
@@ -62,24 +62,31 @@ describe('runYamlBatchInRstest', () => {
         resultType: 'success',
       },
     ];
-    mocks.runYamlBatch.mockResolvedValue(results);
+    mocks.runYamlBatchWithCaseIds.mockResolvedValue([
+      { caseId: 'case-a', result: results[0] },
+      { caseId: 'case-b', result: results[1] },
+    ]);
 
     try {
       await expect(
         runYamlBatchInRstest({
           config,
-          resultFiles: {
-            [yamlA]: resultA,
-            [yamlB]: resultB,
-          },
+          resultTargets: [
+            { caseId: 'case-a', yamlFile: yamlA, resultFile: resultA },
+            { caseId: 'case-b', yamlFile: yamlB, resultFile: resultB },
+          ],
         }),
       ).resolves.toEqual(results);
 
-      expect(runYamlBatch).toHaveBeenCalledWith(config, {
-        generateSummary: false,
-        printExecutionPlan: false,
-        onProgress: emitYamlProgress,
-      });
+      expect(runYamlBatchWithCaseIds).toHaveBeenCalledWith(
+        config,
+        ['case-a', 'case-b'],
+        {
+          generateSummary: false,
+          printExecutionPlan: false,
+          onProgress: emitYamlProgress,
+        },
+      );
       expect(JSON.parse(readFileSync(resultA, 'utf8'))).toMatchObject({
         file: yamlA,
         success: true,
@@ -102,32 +109,38 @@ describe('runYamlBatchInRstest', () => {
     const resultA = join(root, 'results', 'failed.json');
     const resultB = join(root, 'results', 'partial.json');
     const config = createConfig([yamlA, yamlB]);
-    mocks.runYamlBatch.mockResolvedValue([
+    mocks.runYamlBatchWithCaseIds.mockResolvedValue([
       {
-        file: yamlA,
-        success: false,
-        executed: true,
-        duration: 10,
-        resultType: 'failed',
-        error: 'browser crashed',
+        caseId: 'case-a',
+        result: {
+          file: yamlA,
+          success: false,
+          executed: true,
+          duration: 10,
+          resultType: 'failed',
+          error: 'browser crashed',
+        },
       },
       {
-        file: yamlB,
-        success: false,
-        executed: true,
-        duration: 20,
-        resultType: 'partialFailed',
+        caseId: 'case-b',
+        result: {
+          file: yamlB,
+          success: false,
+          executed: true,
+          duration: 20,
+          resultType: 'partialFailed',
+        },
       },
-    ] satisfies MidsceneYamlConfigResult[]);
+    ]);
 
     try {
       await expect(
         runYamlBatchInRstest({
           config,
-          resultFiles: {
-            [yamlA]: resultA,
-            [yamlB]: resultB,
-          },
+          resultTargets: [
+            { caseId: 'case-a', yamlFile: yamlA, resultFile: resultA },
+            { caseId: 'case-b', yamlFile: yamlB, resultFile: resultB },
+          ],
         }),
       ).rejects.toThrow(
         /failed\.yaml: browser crashed[\s\S]*partial\.yaml: partialFailed/,
@@ -144,6 +157,98 @@ describe('runYamlBatchInRstest', () => {
         success: false,
         resultType: 'partialFailed',
       });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('writes duplicate YAML occurrences to distinct result files', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'duplicate.yaml');
+    const firstResult = join(root, 'results', '001-duplicate.json');
+    const secondResult = join(root, 'results', '002-duplicate.json');
+    const config = createConfig([yaml, yaml]);
+    // Completion order is intentionally reversed. Stable case IDs, rather
+    // than result arrival order or file path, must select the result files.
+    mocks.runYamlBatchWithCaseIds.mockResolvedValue([
+      {
+        caseId: 'second-case',
+        result: {
+          file: yaml,
+          success: false,
+          executed: true,
+          duration: 20,
+          resultType: 'failed',
+          error: 'second occurrence failed',
+        },
+      },
+      {
+        caseId: 'first-case',
+        result: {
+          file: yaml,
+          success: true,
+          executed: true,
+          duration: 10,
+          resultType: 'success',
+        },
+      },
+    ]);
+
+    try {
+      await expect(
+        runYamlBatchInRstest({
+          config,
+          resultTargets: [
+            {
+              caseId: 'first-case',
+              yamlFile: yaml,
+              resultFile: firstResult,
+            },
+            {
+              caseId: 'second-case',
+              yamlFile: yaml,
+              resultFile: secondResult,
+            },
+          ],
+        }),
+      ).rejects.toThrow('second occurrence failed');
+
+      expect(JSON.parse(readFileSync(firstResult, 'utf8'))).toMatchObject({
+        success: true,
+        duration: 10,
+      });
+      expect(JSON.parse(readFileSync(secondResult, 'utf8'))).toMatchObject({
+        success: false,
+        duration: 20,
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('throws when a batch result has no matching output target', async () => {
+    const root = createTempDir();
+    const yaml = join(root, 'case.yaml');
+    const config = createConfig([yaml]);
+    mocks.runYamlBatchWithCaseIds.mockResolvedValue([
+      {
+        caseId: 'unexpected-case',
+        result: {
+          file: yaml,
+          success: true,
+          executed: true,
+          duration: 10,
+          resultType: 'success',
+        },
+      },
+    ]);
+
+    try {
+      await expect(
+        runYamlBatchInRstest({ config, resultTargets: [] }),
+      ).rejects.toThrow(
+        'Batch result mapping mismatch: 1 result(s) had no target and 0 target(s) had no result',
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

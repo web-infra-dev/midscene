@@ -5,15 +5,10 @@ import type {
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
-  MidsceneYamlScriptEnv,
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
-import {
-  type ScriptPlayer,
-  parseYamlScript,
-  resolveWebTarget,
-} from '@midscene/core/yaml';
+import { parseYamlScript, resolveWebTarget } from '@midscene/core/yaml';
 import {
   buildChromeArgs,
   buildDownloadBehavior,
@@ -90,6 +85,7 @@ export interface BatchRunnerConfig {
 }
 
 interface BatchFileContext {
+  caseId: string;
   file: string;
   sourceConfig: MidsceneYamlScript;
   executionConfig: MidsceneYamlScript;
@@ -195,8 +191,20 @@ const assertBrowserContextUsage = (
 };
 
 interface ExecutedBatchFileContext extends MidsceneYamlFileContext {
+  caseId: string;
   duration: number;
   yamlResult: MidsceneYamlConfigResult;
+}
+
+interface NotExecutedBatchFileContext {
+  caseId: string;
+  file: string;
+  player: null;
+}
+
+export interface YamlBatchOccurrenceResult {
+  caseId: string;
+  result: MidsceneYamlConfigResult;
 }
 
 interface SharedBrowserRuntime {
@@ -239,15 +247,31 @@ export interface RunYamlBatchOptions {
 
 class YamlBatchExecutor {
   private config: BatchRunnerConfig;
-  private results: MidsceneYamlConfigResult[] = [];
+  private caseIds: string[];
+  private results: YamlBatchOccurrenceResult[] = [];
 
-  constructor(config: BatchRunnerConfig) {
+  constructor(config: BatchRunnerConfig, caseIds?: string[]) {
     this.config = config;
+    const occurrenceCount = config.files.length + (config.setup ? 1 : 0);
+    this.caseIds =
+      caseIds ??
+      Array.from(
+        { length: occurrenceCount },
+        (_, index) => `batch-occurrence-${index + 1}`,
+      );
+    if (this.caseIds.length !== occurrenceCount) {
+      throw new Error(
+        `Batch occurrence identity mismatch: expected ${occurrenceCount} case ID(s), received ${this.caseIds.length}`,
+      );
+    }
+    if (new Set(this.caseIds).size !== this.caseIds.length) {
+      throw new Error('Batch occurrence case IDs must be unique');
+    }
   }
 
   async run(
     options: RunYamlBatchOptions = {},
-  ): Promise<MidsceneYamlConfigResult[]> {
+  ): Promise<YamlBatchOccurrenceResult[]> {
     const generateSummary = options.generateSummary ?? true;
     const shouldPrintExecutionPlan = options.printExecutionPlan ?? true;
     const { keepWindow, headed } = this.config;
@@ -263,31 +287,35 @@ class YamlBatchExecutor {
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
     const sharedRuntime = { current: null as SharedBrowserRuntime | null };
+    let caseIndex = 0;
 
     try {
       // Create the setup context (prerequisite) before the main files so the
       // TTY plan lists it first and its successful state can be handed off.
       if (setup) {
         const fileConfig = await this.loadFileConfig(setup);
-        setupContext = await this.createFileContext(setup, fileConfig, {
-          headed,
-          keepWindow,
-        });
+        setupContext = await this.createFileContext(
+          setup,
+          fileConfig,
+          { headed, keepWindow },
+          this.caseIds[caseIndex++],
+        );
       }
 
       // First, create all file contexts without a browser instance
       for (const file of this.config.files) {
         const fileConfig = await this.loadFileConfig(file);
-        const context = await this.createFileContext(file, fileConfig, {
-          headed,
-          keepWindow,
-        });
+        const context = await this.createFileContext(
+          file,
+          fileConfig,
+          { headed, keepWindow },
+          this.caseIds[caseIndex++],
+        );
         fileContextList.push(context);
       }
 
-      // A yaml file cannot be both the setup and a main file: players are keyed
-      // by resolved path, so the same file in both roles would silently reuse
-      // one already-finished player. Reject the overlap explicitly instead.
+      // A yaml file cannot be both the setup prerequisite and a main case.
+      // Reject the ambiguous configuration explicitly.
       if (setupContext) {
         const setupPath = resolve(setupContext.file);
         const conflict = fileContextList.find(
@@ -426,6 +454,7 @@ class YamlBatchExecutor {
     file: string,
     fileConfig: MidsceneYamlScript,
     options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
+    caseId: string,
   ): Promise<BatchFileContext> {
     const { globalConfig } = this.config;
 
@@ -437,6 +466,7 @@ class YamlBatchExecutor {
     const executionConfig = merge(clonedFileConfig, globalConfig);
 
     return {
+      caseId,
       file,
       sourceConfig: fileConfig,
       executionConfig,
@@ -453,31 +483,30 @@ class YamlBatchExecutor {
     },
   ): Promise<{
     executedResults: ExecutedBatchFileContext[];
-    notExecutedContexts: Array<{
-      file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
-    }>;
+    notExecutedContexts: NotExecutedBatchFileContext[];
   }> {
     const { onProgress, resetSetupRuntime } = options;
     const executedResults: ExecutedBatchFileContext[] = [];
-    const notExecutedContexts: Array<{
-      file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
-    }> = [];
+    const notExecutedContexts: NotExecutedBatchFileContext[] = [];
 
     // Create the setup player first. Main-file players are deferred until the
     // setup succeeds so they never retain a page from a discarded setup attempt.
     const allFileContexts: MidsceneYamlFileContext[] = [];
+    const fileContextsByCaseId = new Map<string, MidsceneYamlFileContext>();
     const createFilePlayerContext = async (
       context: BatchFileContext,
-    ): Promise<MidsceneYamlFileContext> => ({
-      file: context.file,
-      player: await createYamlPlayer(
-        context.file,
-        context.executionConfig,
-        context.options,
-      ),
-    });
+    ): Promise<MidsceneYamlFileContext> => {
+      const fileContext = {
+        file: context.file,
+        player: await createYamlPlayer(
+          context.file,
+          context.executionConfig,
+          context.options,
+        ),
+      };
+      fileContextsByCaseId.set(context.caseId, fileContext);
+      return fileContext;
+    };
     const initialContexts = setupContext ? [setupContext] : fileContextList;
     for (const context of initialContexts) {
       allFileContexts.push(await createFilePlayerContext(context));
@@ -523,10 +552,7 @@ class YamlBatchExecutor {
         context: BatchFileContext,
         beforeRetry?: () => Promise<void>,
       ): Promise<ExecutedBatchFileContext> => {
-        // Find the corresponding player in allFileContexts
-        const allFileContext = allFileContexts.find(
-          (c) => c.file === context.file,
-        );
+        const allFileContext = fileContextsByCaseId.get(context.caseId);
         if (!allFileContext) {
           throw new Error(`Player not found for file: ${context.file}`);
         }
@@ -578,6 +604,7 @@ class YamlBatchExecutor {
             attempts: [...attempts],
           };
           executedContext = {
+            caseId: context.caseId,
             file: context.file,
             player: allFileContext.player,
             duration: totalDuration,
@@ -620,7 +647,11 @@ class YamlBatchExecutor {
 
       if (setupFailed) {
         for (const context of fileContextList) {
-          notExecutedContexts.push({ file: context.file, player: null });
+          notExecutedContexts.push({
+            caseId: context.caseId,
+            file: context.file,
+            player: null,
+          });
         }
       } else {
         if (setupContext) {
@@ -661,10 +692,7 @@ class YamlBatchExecutor {
       context: BatchFileContext,
     ) => Promise<ExecutedBatchFileContext>,
     executedResults: ExecutedBatchFileContext[],
-    notExecutedContexts: Array<{
-      file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
-    }>,
+    notExecutedContexts: NotExecutedBatchFileContext[],
   ): Promise<void> {
     const limit = pLimit(this.config.concurrent);
 
@@ -686,6 +714,7 @@ class YamlBatchExecutor {
         limit(async () => {
           if (stopLock.value) {
             notExecutedContexts.push({
+              caseId: context.caseId,
               file: context.file,
               player: null,
             });
@@ -708,10 +737,14 @@ class YamlBatchExecutor {
       if (shouldStop) {
         for (const context of fileContextList) {
           if (
-            !executedResults.some((r) => r.file === context.file) &&
-            !notExecutedContexts.some((ctx) => ctx.file === context.file)
+            !executedResults.some((r) => r.caseId === context.caseId) &&
+            !notExecutedContexts.some((ctx) => ctx.caseId === context.caseId)
           ) {
-            notExecutedContexts.push({ file: context.file, player: null });
+            notExecutedContexts.push({
+              caseId: context.caseId,
+              file: context.file,
+              player: null,
+            });
           }
         }
       }
@@ -720,22 +753,28 @@ class YamlBatchExecutor {
 
   private async processResults(
     executedContexts: ExecutedBatchFileContext[],
-    notExecutedContexts: Array<{
-      file: string;
-      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
-    }>,
-  ): Promise<MidsceneYamlConfigResult[]> {
-    const results: MidsceneYamlConfigResult[] = [];
+    notExecutedContexts: NotExecutedBatchFileContext[],
+  ): Promise<YamlBatchOccurrenceResult[]> {
+    const resultsByCaseId = new Map<string, MidsceneYamlConfigResult>();
 
     for (const context of executedContexts) {
-      results.push(context.yamlResult);
+      resultsByCaseId.set(context.caseId, context.yamlResult);
     }
 
     for (const context of notExecutedContexts) {
-      results.push(createNotExecutedYamlResult(context.file));
+      resultsByCaseId.set(
+        context.caseId,
+        createNotExecutedYamlResult(context.file),
+      );
     }
 
-    return results;
+    return this.caseIds.map((caseId) => {
+      const result = resultsByCaseId.get(caseId);
+      if (!result) {
+        throw new Error(`Batch result missing for case ID: ${caseId}`);
+      }
+      return { caseId, result };
+    });
   }
 
   private async loadFileConfig(file: string): Promise<MidsceneYamlScript> {
@@ -745,7 +784,10 @@ class YamlBatchExecutor {
 
   private async generateOutputIndex(): Promise<void> {
     try {
-      writeExecutionSummaryFile(this.config.summary, this.results);
+      writeExecutionSummaryFile(
+        this.config.summary,
+        this.results.map(({ result }) => result),
+      );
       printExecutionFinished();
     } catch (error) {
       console.error('Failed to generate output index:', error);
@@ -757,5 +799,14 @@ export async function runYamlBatch(
   config: BatchRunnerConfig,
   options: RunYamlBatchOptions = {},
 ): Promise<MidsceneYamlConfigResult[]> {
-  return new YamlBatchExecutor(config).run(options);
+  const results = await new YamlBatchExecutor(config).run(options);
+  return results.map(({ result }) => result);
+}
+
+export async function runYamlBatchWithCaseIds(
+  config: BatchRunnerConfig,
+  caseIds: string[],
+  options: RunYamlBatchOptions = {},
+): Promise<YamlBatchOccurrenceResult[]> {
+  return new YamlBatchExecutor(config, caseIds).run(options);
 }

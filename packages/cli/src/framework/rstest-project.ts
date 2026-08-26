@@ -10,23 +10,25 @@ import {
 } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { BatchRunnerConfig } from '../batch-runner';
+import type {
+  DefineYamlBatchTestOptions,
+  DefineYamlCaseTestOptions,
+  RstestYamlCaseOptions,
+  WebYamlRuntimeOptions,
+} from './rstest-contract';
 import { resolveRstestCoreImportPath } from './rstest-dependencies';
-import type { RunYamlCaseOptions } from './yaml-case';
 
-export type RstestYamlCaseOptions = Omit<
-  RunYamlCaseOptions,
-  'file' | 'headed' | 'keepWindow'
->;
-
-export type WebYamlRuntimeOptions = Pick<
-  RunYamlCaseOptions,
-  'headed' | 'keepWindow'
->;
+export type {
+  RstestYamlCaseOptions,
+  WebYamlRuntimeOptions,
+} from './rstest-contract';
 
 export const DEFAULT_YAML_TEST_TIMEOUT = 0;
 export const RSTEST_YAML_BATCH_TEST_MODULE =
   'virtual:midscene-yaml/batch.test.ts';
 export const RSTEST_YAML_BATCH_TEST_NAME = 'midscene yaml batch';
+export const RSTEST_YAML_SEQUENTIAL_TEST_MODULE =
+  'virtual:midscene-yaml/sequential.test.ts';
 
 export interface CreateRstestYamlProjectOptions {
   files: string[];
@@ -44,26 +46,20 @@ export interface CreateRstestYamlProjectOptions {
   rstestCoreImport?: string;
 }
 
-export interface GeneratedYamlTestCase {
-  yamlFile: string;
-  testModule: string;
-  resultFile: string;
-  testName: string;
-}
+export type GeneratedYamlTestCase = DefineYamlCaseTestOptions;
 
-export interface GeneratedYamlBatchTest {
-  testModule: string;
-  testName: string;
+export interface GeneratedRstestYamlModule {
+  id: string;
+  source: string;
+  caseIds: string[];
 }
 
 export interface GeneratedRstestYamlProject {
   projectDir: string;
   outputDir: string;
   resultDir: string;
-  include: string[];
-  virtualModules: Record<string, string>;
+  modules: GeneratedRstestYamlModule[];
   cases: GeneratedYamlTestCase[];
-  batchTest?: GeneratedYamlBatchTest;
   maxConcurrency?: number;
   testTimeout: number;
   bail?: number;
@@ -93,53 +89,30 @@ export const resolveTestName = (
   return toPosixPath(relativePath.startsWith('..') ? yamlFile : relativePath);
 };
 
-const createGeneratedTestContent = (options: {
+const createGeneratedCaseTestContent = (options: {
   rstestCoreImport: string;
   frameworkImport: string;
-  yamlFile: string;
-  resultFile: string;
-  testName: string;
-  retry?: number;
-  caseOptions?: RstestYamlCaseOptions;
-  webRuntimeOptions?: WebYamlRuntimeOptions;
-}): string => {
-  const testOptions = {
-    testName: options.testName,
-    yamlFile: options.yamlFile,
-    resultFile: options.resultFile,
-    ...(options.retry && options.retry > 0 ? { retry: options.retry } : {}),
-    ...(options.caseOptions ? { caseOptions: options.caseOptions } : {}),
-    ...(options.webRuntimeOptions
-      ? { webRuntimeOptions: options.webRuntimeOptions }
-      : {}),
-  };
-
-  return `import { test } from ${toImportLiteral(options.rstestCoreImport)};
+  testOptions: DefineYamlCaseTestOptions[];
+  sequential: boolean;
+}): string => `import { test } from ${toImportLiteral(options.rstestCoreImport)};
 import { defineYamlCaseTest } from ${toImportLiteral(options.frameworkImport)};
 
-const testOptions = ${JSON.stringify(testOptions, null, 2)};
+const testOptionsList = ${JSON.stringify(options.testOptions, null, 2)};
 
-defineYamlCaseTest(test, testOptions);
+for (const testOptions of testOptionsList) {
+  defineYamlCaseTest(${options.sequential ? 'test.sequential' : 'test'}, testOptions);
+}
 `;
-};
 
 const createGeneratedBatchTestContent = (options: {
   rstestCoreImport: string;
   frameworkImport: string;
-  testName: string;
-  config: BatchRunnerConfig;
-  resultFiles: Record<string, string>;
+  testOptions: DefineYamlBatchTestOptions;
 }): string => {
-  const testOptions = {
-    testName: options.testName,
-    config: options.config,
-    resultFiles: options.resultFiles,
-  };
-
   return `import { test } from ${toImportLiteral(options.rstestCoreImport)};
 import { defineYamlBatchTest } from ${toImportLiteral(options.frameworkImport)};
 
-const testOptions = ${JSON.stringify(testOptions, null, 2)};
+const testOptions = ${JSON.stringify(options.testOptions, null, 2)};
 
 defineYamlBatchTest(test, testOptions);
 `;
@@ -204,66 +177,105 @@ export function createRstestYamlProject(
         ...options.batchConfig.files,
       ]
     : options.files;
-  const virtualModules: Record<string, string> = {};
-  const cases = resultYamlFiles.map((file, index) => {
+  const cases: GeneratedYamlTestCase[] = resultYamlFiles.map((file, index) => {
     const yamlFile = resolve(file);
     const testName = resolveTestName(projectDir, yamlFile);
-    const fileStem = safeFileStem(yamlFile, index);
-    const resultFile = join(resultDir, `${fileStem}.json`);
-    const testModule = toVirtualModuleId(fileStem);
-    virtualModules[testModule] = createGeneratedTestContent({
-      rstestCoreImport,
-      frameworkImport,
+    const caseId = safeFileStem(yamlFile, index);
+    const resultFile = join(resultDir, `${caseId}.json`);
+    return {
+      caseId,
       yamlFile,
       resultFile,
       testName,
       retry: options.retry,
-      caseOptions: options.caseOptions?.[yamlFile],
-      webRuntimeOptions: options.webRuntimeOptions?.[yamlFile],
-    });
-    return { yamlFile, testModule, resultFile, testName };
+      ...(options.caseOptions?.[yamlFile]
+        ? { caseOptions: options.caseOptions[yamlFile] }
+        : {}),
+      ...(options.webRuntimeOptions?.[yamlFile]
+        ? { webRuntimeOptions: options.webRuntimeOptions[yamlFile] }
+        : {}),
+    };
   });
 
+  const baseProject = {
+    projectDir,
+    outputDir,
+    resultDir,
+    cases,
+    testTimeout,
+    bail: options.bail,
+  };
+
   if (options.batchConfig) {
-    const resultFiles = Object.fromEntries(
-      cases.map((item) => [item.yamlFile, item.resultFile]),
-    );
-    const batchTest = {
-      testModule: RSTEST_YAML_BATCH_TEST_MODULE,
+    const testOptions: DefineYamlBatchTestOptions = {
+      caseIds: cases.map((item) => item.caseId),
       testName: RSTEST_YAML_BATCH_TEST_NAME,
+      config: options.batchConfig,
+      resultTargets: cases.map(({ caseId, yamlFile, resultFile }) => ({
+        caseId,
+        yamlFile,
+        resultFile,
+      })),
     };
     return {
-      projectDir,
-      outputDir,
-      resultDir,
-      include: [batchTest.testModule],
-      virtualModules: {
-        [batchTest.testModule]: createGeneratedBatchTestContent({
-          rstestCoreImport,
-          frameworkImport,
-          testName: batchTest.testName,
-          config: options.batchConfig,
-          resultFiles,
-        }),
-      },
-      cases,
-      batchTest,
+      ...baseProject,
+      modules: [
+        {
+          id: RSTEST_YAML_BATCH_TEST_MODULE,
+          caseIds: testOptions.caseIds,
+          source: createGeneratedBatchTestContent({
+            rstestCoreImport,
+            frameworkImport,
+            testOptions,
+          }),
+        },
+      ],
       maxConcurrency: 1,
-      testTimeout,
-      bail: options.bail,
+    };
+  }
+
+  // Rstest limits concurrency but does not guarantee that separate test files
+  // start in `include` order. Put serial YAML cases in one virtual module so
+  // Rstest executes their tests in declaration order. This keeps retries and
+  // per-case reporting in Rstest while making `concurrent: 1` actually honor
+  // the order of the config file's `files` array.
+  if (options.maxConcurrency === 1) {
+    const caseIds = cases.map((item) => item.caseId);
+    return {
+      ...baseProject,
+      modules: [
+        {
+          id: RSTEST_YAML_SEQUENTIAL_TEST_MODULE,
+          caseIds,
+          source: createGeneratedCaseTestContent({
+            rstestCoreImport,
+            frameworkImport,
+            testOptions: cases,
+            sequential: true,
+          }),
+        },
+      ],
+      maxConcurrency: 1,
+      retry: options.retry,
     };
   }
 
   return {
-    projectDir,
-    outputDir,
-    resultDir,
-    include: cases.map((item) => item.testModule),
-    virtualModules,
-    cases,
+    ...baseProject,
+    modules: cases.map((item) => {
+      const id = toVirtualModuleId(item.caseId);
+      return {
+        id,
+        caseIds: [item.caseId],
+        source: createGeneratedCaseTestContent({
+          rstestCoreImport,
+          frameworkImport,
+          testOptions: [item],
+          sequential: false,
+        }),
+      };
+    }),
     maxConcurrency: options.maxConcurrency,
-    testTimeout,
-    bail: options.bail,
     retry: options.retry,
   };
 }
