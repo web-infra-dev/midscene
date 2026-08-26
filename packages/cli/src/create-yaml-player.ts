@@ -25,7 +25,7 @@ import {
   buildDownloadBehavior,
   puppeteerAgentForTarget,
 } from '@midscene/web/puppeteer-agent-launcher';
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, BrowserContext, Page } from 'puppeteer';
 import puppeteer from 'puppeteer';
 
 export interface SingleYamlExecutionResult {
@@ -39,6 +39,7 @@ export interface CreateYamlPlayerOptions {
   keepWindow?: boolean;
   browser?: Browser;
   page?: Page;
+  browserContext?: BrowserContext;
   testId?: string;
 }
 
@@ -263,6 +264,7 @@ export async function createYamlPlayer(
                 },
                 cdpBrowser as Browser,
                 options?.page,
+                options?.browserContext,
               );
             } catch (error) {
               if (ownsCdpBrowser) {
@@ -308,6 +310,7 @@ export async function createYamlPlayer(
               },
               options?.browser,
               options?.page,
+              options?.browserContext,
             );
             freeFn.push(...newFreeFn);
 

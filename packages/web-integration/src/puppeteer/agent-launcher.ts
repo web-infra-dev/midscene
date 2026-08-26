@@ -16,6 +16,7 @@ import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, {
   type Browser,
+  type BrowserContext,
   type DownloadBehavior,
   type Page,
 } from 'puppeteer';
@@ -212,6 +213,7 @@ async function preparePuppeteerPage(
   },
   browser?: Browser,
   existingPage?: Page,
+  browserContext?: BrowserContext,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -310,7 +312,9 @@ async function preparePuppeteerPage(
           },
         });
       }
-      page = await browserInstance.newPage();
+      page = browserContext
+        ? await browserContext.newPage()
+        : await browserInstance.newPage();
       if (!ownsBrowser) {
         const createdPage = page;
         freeFn.push({
@@ -332,7 +336,7 @@ async function preparePuppeteerPage(
 
     if (target.cookie) {
       const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-      await browserInstance.setCookie(...JSON.parse(cookieFileContent));
+      await page.browserContext().setCookie(...JSON.parse(cookieFileContent));
     }
 
     if (ua) {
@@ -405,12 +409,14 @@ export async function launchPuppeteerPage(
   },
   browser?: Browser,
   existingPage?: Page,
+  browserContext?: BrowserContext,
 ) {
   const preparedPage = await preparePuppeteerPage(
     target,
     preference,
     browser,
     existingPage,
+    browserContext,
   );
   try {
     await navigatePuppeteerPage(preparedPage.page, target);
@@ -442,6 +448,7 @@ export async function puppeteerAgentForTarget(
   >,
   browser?: Browser,
   existingPage?: Page,
+  browserContext?: BrowserContext,
 ) {
   const mode = target.mode ?? 'page';
 
@@ -463,6 +470,7 @@ export async function puppeteerAgentForTarget(
     preference,
     browser,
     existingPage,
+    browserContext,
   );
   const aiActContext = resolveAiActionContext(target, preference);
 

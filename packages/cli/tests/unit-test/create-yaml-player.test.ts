@@ -199,6 +199,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -234,6 +235,7 @@ describe('create-yaml-player', () => {
           autoFollowNewPage: true,
         }),
         expect.any(Object),
+        undefined,
         undefined,
         undefined,
       );
@@ -458,6 +460,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         undefined,
         undefined,
+        undefined,
       );
     });
   });
@@ -605,6 +608,7 @@ describe('create-yaml-player', () => {
         expect.objectContaining({
           cache: false,
         }),
+        undefined,
         undefined,
         undefined,
       );
@@ -1216,6 +1220,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // browser context
       );
     });
 
@@ -1387,6 +1392,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // browser context
       );
     });
 
@@ -1432,6 +1438,7 @@ describe('create-yaml-player', () => {
         }),
         undefined, // browser
         undefined, // page
+        undefined, // browser context
       );
     });
 
@@ -1527,6 +1534,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         mockBrowser, // CDP browser passed as browser param
         undefined, // no shared page
+        undefined, // no shared browser context
       );
       expect(setupResult?.freeFn.map(({ name }: FreeFn) => name)).toEqual([
         'midscene_puppeteer_agent',
@@ -1661,6 +1669,7 @@ describe('create-yaml-player', () => {
         }),
         expect.any(Object),
         undefined,
+        undefined,
       );
     });
 
@@ -1675,6 +1684,7 @@ describe('create-yaml-player', () => {
 
       const mockSharedBrowser = { disconnect: rs.fn() };
       const mockSharedPage = { url: rs.fn() };
+      const mockSharedBrowserContext = { newPage: rs.fn() };
       const mockAgent = { destroy: rs.fn() };
 
       let setupFnCallback: (() => Promise<any>) | undefined;
@@ -1700,6 +1710,7 @@ describe('create-yaml-player', () => {
       await createYamlPlayer(mockFilePath, mockScript, {
         browser: mockSharedBrowser as any,
         page: mockSharedPage as any,
+        browserContext: mockSharedBrowserContext as any,
       });
 
       if (setupFnCallback) {
@@ -1715,6 +1726,7 @@ describe('create-yaml-player', () => {
         expect.any(Object),
         mockSharedBrowser,
         mockSharedPage,
+        mockSharedBrowserContext,
       );
     });
 

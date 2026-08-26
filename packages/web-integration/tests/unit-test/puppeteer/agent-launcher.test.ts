@@ -1,3 +1,5 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   defaultViewportHeight,
@@ -6,13 +8,17 @@ import {
   puppeteerAgentForTarget,
 } from '@/puppeteer/agent-launcher';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
-import type { Browser, Page, Target } from 'puppeteer';
+import type { Browser, BrowserContext, Page, Target } from 'puppeteer';
 
 const { mockLaunch } = rs.hoisted(() => ({
   mockLaunch: rs.fn(),
 }));
 
 const mockNewPage = rs.fn();
+const browserContextMock = {
+  newPage: rs.fn(),
+  setCookie: rs.fn(),
+};
 let pageMock: ReturnType<typeof createPageMock>;
 const browserMock = {
   newPage: mockNewPage,
@@ -26,6 +32,7 @@ const browserMock = {
 const createPageMock = (
   owningBrowser: Browser = browserMock as unknown as Browser,
   opener?: Target,
+  owningBrowserContext: BrowserContext = browserContextMock as unknown as BrowserContext,
 ) => {
   const page = {
     setUserAgent: rs.fn().mockResolvedValue(undefined),
@@ -37,6 +44,7 @@ const createPageMock = (
     waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
     close: rs.fn().mockResolvedValue(undefined),
     browser: rs.fn(() => owningBrowser),
+    browserContext: rs.fn(() => owningBrowserContext),
     bringToFront: rs.fn().mockResolvedValue(undefined),
     evaluate: rs.fn().mockResolvedValue(undefined),
     on: rs.fn(),
@@ -64,6 +72,7 @@ describe('launchPuppeteerPage', () => {
     mockLaunch.mockResolvedValue(browserMock);
     pageMock = createPageMock();
     mockNewPage.mockResolvedValue(pageMock as unknown as Page);
+    browserContextMock.newPage.mockResolvedValue(pageMock as unknown as Page);
   });
 
   it('uses default viewport window size for headed runs', async () => {
@@ -220,6 +229,44 @@ describe('launchPuppeteerPage', () => {
     );
 
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('creates and owns a page in a caller-provided browser context', async () => {
+    const result = await launchPuppeteerPage(
+      { url: 'https://example.com' },
+      undefined,
+      browserMock as unknown as Browser,
+      undefined,
+      browserContextMock as unknown as BrowserContext,
+    );
+
+    expect(browserContextMock.newPage).toHaveBeenCalledTimes(1);
+    expect(mockNewPage).not.toHaveBeenCalled();
+    expect(result.page).toBe(pageMock);
+
+    for (const cleanup of result.freeFn) {
+      await cleanup.fn();
+    }
+    expect(pageMock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets YAML cookies in the page browser context', async () => {
+    const cookie = { name: 'auth', value: 'token', domain: 'example.com' };
+    const fixtureDir = mkdtempSync(path.join(tmpdir(), 'midscene-cookie-'));
+    const cookieFile = path.join(fixtureDir, 'cookies.json');
+    writeFileSync(cookieFile, JSON.stringify([cookie]));
+
+    try {
+      await launchPuppeteerPage({
+        url: 'https://example.com',
+        cookie: cookieFile,
+      });
+
+      expect(browserContextMock.setCookie).toHaveBeenCalledWith(cookie);
+      expect(browserMock.setCookie).not.toHaveBeenCalled();
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
   });
 
   it('does not configure Chrome download behavior on an externally provided page', async () => {

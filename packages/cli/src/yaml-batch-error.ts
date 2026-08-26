@@ -1,5 +1,10 @@
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 
+export interface YamlBatchErrorOccurrence {
+  caseId: string;
+  result: MidsceneYamlConfigResult;
+}
+
 const normalizeBatchError = (error: unknown): Error =>
   error instanceof Error
     ? error
@@ -7,12 +12,17 @@ const normalizeBatchError = (error: unknown): Error =>
 
 export class YamlBatchExecutionError extends Error {
   readonly results: MidsceneYamlConfigResult[];
+  readonly occurrences: YamlBatchErrorOccurrence[];
 
-  constructor(error: unknown, results: MidsceneYamlConfigResult[]) {
+  constructor(error: unknown, occurrences: YamlBatchErrorOccurrence[]) {
     const cause = normalizeBatchError(error);
     super(cause.message, { cause });
     this.name = 'YamlBatchExecutionError';
-    this.results = [...results];
+    this.occurrences = occurrences.map(({ caseId, result }) => ({
+      caseId,
+      result,
+    }));
+    this.results = this.occurrences.map(({ result }) => result);
   }
 }
 

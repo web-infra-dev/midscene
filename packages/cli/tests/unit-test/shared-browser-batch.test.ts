@@ -72,9 +72,17 @@ const baseConfig = {
   dotenvOverride: false,
 };
 
+const createMockBrowserContext = () => ({
+  close: rs.fn().mockResolvedValue(undefined),
+  newPage: rs.fn(),
+});
+
 const createMockBrowser = () => ({
   close: rs.fn().mockResolvedValue(undefined),
   disconnect: rs.fn(),
+  createBrowserContext: rs
+    .fn()
+    .mockImplementation(async () => createMockBrowserContext()),
 });
 
 const createMockPlayer = (
@@ -112,17 +120,22 @@ describe('shared-browser YAML batch orchestration', () => {
     );
   });
 
-  test('shares one Browser while leaving Page creation to the web launcher', async () => {
+  test('shares one BrowserContext while leaving Page creation to the web launcher', async () => {
     await new BatchRunner(baseConfig).run();
 
     expect(puppeteer.launch).toHaveBeenCalledTimes(1);
     const browser = await rs.mocked(puppeteer.launch).mock.results[0].value;
+    expect(browser.createBrowserContext).toHaveBeenCalledTimes(1);
+    const browserContext =
+      await browser.createBrowserContext.mock.results[0].value;
     for (const [file, , options] of rs.mocked(createYamlPlayer).mock.calls) {
       expect(['web1.yml', 'web2.yml']).toContain(file);
-      expect(options).toMatchObject({ browser });
+      expect(options).toMatchObject({ browser, browserContext });
       expect(options).not.toHaveProperty('page');
       expect(options).not.toHaveProperty('pageOwnership');
     }
+    expect(browserContext.newPage).not.toHaveBeenCalled();
+    expect(browserContext.close).toHaveBeenCalledTimes(1);
   });
 
   test('passes shared-browser Chrome launch options', async () => {
@@ -173,6 +186,7 @@ describe('shared-browser YAML batch orchestration', () => {
       ...baseConfig,
       files: ['android.yml'],
       globalConfig: {},
+      shareBrowserContext: false,
     }).run();
 
     expect(puppeteer.launch).not.toHaveBeenCalled();
@@ -309,7 +323,7 @@ describe('shared-browser YAML batch orchestration', () => {
           ...setupConfig,
           shareBrowserContext: false,
         }).run(),
-      ).rejects.toThrow('setup requires shareBrowserContext: true');
+      ).rejects.toThrow('requires shareBrowserContext: true');
     });
 
     test('rejects a file used as both setup and a main file', async () => {
