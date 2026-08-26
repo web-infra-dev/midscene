@@ -3,6 +3,7 @@ import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -18,12 +19,14 @@ export function normalizePlanningActionLocateFields(
     locateResultCodec,
     locateResultContext,
     acceptBbox2dAlias = false,
+    parseRawLocateParameter,
   }: {
     actionSpace: DeviceAction[];
     includeLocateInPlanning: boolean;
     locateResultCodec?: LocateResultCodec;
     locateResultContext: LocateResultContext;
     acceptBbox2dAlias?: boolean;
+    parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
   },
 ): void {
   actions.forEach((action) => {
@@ -43,16 +46,16 @@ export function normalizePlanningActionLocateFields(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
-      const locateResult = action.param?.[field];
-      if (!locateResult) {
+      const rawLocateParameter = action.param?.[field];
+      if (!rawLocateParameter) {
         return;
       }
 
+      const locateParameter = parseRawLocateParameter(rawLocateParameter);
+
       if (!includeLocateInPlanning) {
-        if (typeof locateResult === 'object') {
-          // In prompt-only planning mode, ignore any accidental coordinates from the model.
-          action.param[field] = { prompt: locateResult.prompt };
-        }
+        // In prompt-only planning mode, ignore any accidental coordinates from the model.
+        action.param[field] = { prompt: locateParameter.prompt };
         return;
       }
 
@@ -61,11 +64,11 @@ export function normalizePlanningActionLocateFields(
         'planning locate normalization requires a locate result codec',
       );
       const rawLocateValue = (() => {
-        if (typeof locateResult !== 'object' || locateResult === null) {
-          return locateResult;
+        if (typeof locateParameter !== 'object' || locateParameter === null) {
+          return locateParameter;
         }
 
-        const locateResultRecord = locateResult as Record<string, unknown>;
+        const locateResultRecord = locateParameter as Record<string, unknown>;
         const resultKey = locateResultCodec.promptSpec.resultKey;
         if (locateResultRecord[resultKey] !== undefined) {
           return locateResultRecord[resultKey];
@@ -76,7 +79,7 @@ export function normalizePlanningActionLocateFields(
           : undefined;
       })();
       action.param[field] = {
-        ...locateResult,
+        ...locateParameter,
         locatedPixelBbox: locateResultCodec.toPixelBbox(
           rawLocateValue,
           locateResultContext,

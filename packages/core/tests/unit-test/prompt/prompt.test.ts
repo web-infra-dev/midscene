@@ -128,11 +128,13 @@ describe('system prompts', () => {
       buildActionOutput: ({ actionName }) =>
         `<custom-action type="${actionName}"></custom-action>`,
       parseActionOutput: vi.fn(),
+      parseRawLocateParameter: (value) => value as any,
     };
     const planningProtocol = {
       actionSpaceProtocol: {
         title: 'Custom action space',
         format: 'yaml',
+        includeActionOutputExample: true,
         buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
         buildActionDescription: (input) => ({
           marker: 'CUSTOM_ACTION_SPACE_DESCRIPTION',

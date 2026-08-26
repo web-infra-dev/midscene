@@ -9,6 +9,11 @@ export type PlanningActionOutputBuildInput = {
   locateResultKey?: string;
 };
 
+export type ParsedPlanningLocateParameter = {
+  prompt?: unknown;
+  [key: string]: unknown;
+};
+
 export type PlanningActionOutputProtocol = {
   /**
    * Ordered tag names that delimit the raw action output. The first tag must
@@ -20,6 +25,7 @@ export type PlanningActionOutputProtocol = {
   actionOutputPlaceholder: string;
   buildActionOutput: (input: PlanningActionOutputBuildInput) => string;
   parseActionOutput: (content: string) => PlanningAction | null;
+  parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
 };
 
 export type PlanningActionDescriptionBuildInput = {
@@ -33,6 +39,7 @@ export type PlanningActionSpaceFormat = 'yaml' | 'jsonl';
 export type PlanningActionSpaceProtocol = {
   title: string;
   format: PlanningActionSpaceFormat;
+  includeActionOutputExample: boolean;
   buildLocateFieldDescription: (
     locatePromptSpec?: LocateResultPromptSpec,
   ) => string;
@@ -42,6 +49,7 @@ export type PlanningActionSpaceProtocol = {
 };
 
 export type StandardPlanningProtocol = {
+  responsePrefix?: string;
   actionSpaceProtocol: PlanningActionSpaceProtocol;
   actionOutputProtocol: PlanningActionOutputProtocol;
 };

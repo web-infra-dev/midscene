@@ -1,4 +1,7 @@
-import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
+import type {
+  ParsedPlanningLocateParameter,
+  StandardPlanningProtocol,
+} from '@/ai-model/model-adapter/planning-protocol';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
@@ -302,6 +305,7 @@ describe('plan XML parse retry', () => {
       actionSpaceProtocol: {
         title: 'Custom tools',
         format: 'jsonl',
+        includeActionOutputExample: true,
         buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
         buildActionDescription: () => ({
           name: 'CUSTOM_TOOL_DEFINITION',
@@ -319,6 +323,8 @@ describe('plan XML parse retry', () => {
           )?.[1];
           return type ? { type } : null;
         },
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
       },
     };
     vi.mocked(callAI).mockResolvedValueOnce(
@@ -430,16 +436,19 @@ describe('plan XML parse retry', () => {
     expect(result.actions?.[0]?.param?.locate?.locatedPixelBbox).toEqual([
       10, 20, 30, 40,
     ]);
-    expect(yamlFlowInputs[1]).toEqual([
+    expect(yamlFlowInputs).toHaveLength(1);
+    expect(yamlFlowInputs[0]).toEqual([
       {
         type: 'Tap',
         param: {
           locate: {
             prompt: 'submit',
             bbox: [100, 200, 300, 400],
+            locatedPixelBbox: [10, 20, 30, 40],
           },
         },
       },
     ]);
+    expect(result.yamlFlow).toEqual([{ Tap: '', locate: 'submit' }]);
   });
 });

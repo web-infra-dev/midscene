@@ -1,3 +1,4 @@
+import type { ParsedPlanningLocateParameter } from '@/ai-model/model-adapter/planning-protocol';
 import { normalizePlanningActionLocateFields } from '@/ai-model/workflows/planning/locate-normalization';
 import { getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction } from '@/device';
@@ -23,6 +24,9 @@ const locateResultContext = {
   },
 };
 
+const parseRawLocateParameter = (value: unknown) =>
+  value as ParsedPlanningLocateParameter;
+
 describe('normalizePlanningActionLocateFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
     const toPixelBbox = vi.fn();
@@ -41,6 +45,7 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelBbox,
       } as any,
       locateResultContext,
+      parseRawLocateParameter,
     });
 
     expect(toPixelBbox).not.toHaveBeenCalled();
@@ -74,6 +79,7 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelBbox,
       } as any,
       locateResultContext,
+      parseRawLocateParameter,
     });
 
     expect(toPixelBbox).toHaveBeenCalledWith([50, 60], locateResultContext);
@@ -103,6 +109,7 @@ describe('normalizePlanningActionLocateFields', () => {
       } as any,
       locateResultContext,
       acceptBbox2dAlias: true,
+      parseRawLocateParameter,
     });
 
     expect(toPixelBbox).toHaveBeenCalledWith(
@@ -110,6 +117,43 @@ describe('normalizePlanningActionLocateFields', () => {
       locateResultContext,
     );
     expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
+  });
+
+  it('parses protocol-specific locate params after identifying locator fields', () => {
+    const parseProtocolLocateParameter = vi.fn(() => ({
+      prompt: 'submit',
+      point: [50, 60],
+    }));
+    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const actions: PlanningAction[] = [
+      {
+        type: 'Tap',
+        param: {
+          locate: '<prompt>submit</prompt><point>50 60</point>',
+        },
+      },
+    ];
+
+    normalizePlanningActionLocateFields(actions, {
+      actionSpace,
+      includeLocateInPlanning: true,
+      locateResultCodec: {
+        promptSpec: { resultKey: 'point' },
+        toPixelBbox,
+      } as any,
+      locateResultContext,
+      parseRawLocateParameter: parseProtocolLocateParameter,
+    });
+
+    expect(parseProtocolLocateParameter).toHaveBeenCalledWith(
+      '<prompt>submit</prompt><point>50 60</point>',
+    );
+    expect(toPixelBbox).toHaveBeenCalledWith([50, 60], locateResultContext);
+    expect(actions[0].param.locate).toEqual({
+      prompt: 'submit',
+      point: [50, 60],
+      locatedPixelBbox: [10, 20, 30, 40],
+    });
   });
 
   it('keeps only the prompt in prompt-only planning mode', () => {
@@ -134,6 +178,7 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelBbox,
       } as any,
       locateResultContext,
+      parseRawLocateParameter,
     });
 
     expect(toPixelBbox).not.toHaveBeenCalled();

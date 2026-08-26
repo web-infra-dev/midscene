@@ -322,6 +322,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+${planningProtocol.responsePrefix ?? ''}
+
 ${renderThoughtContent(`**Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>`)}
@@ -355,5 +357,6 @@ ${buildPlanningMultiTurnExample({
   includeLog,
   locatePromptSpec,
   actionOutputProtocol,
+  prefix: planningProtocol.responsePrefix,
 })}`;
 }
