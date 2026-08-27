@@ -3,6 +3,7 @@ import { act, cloneElement, createElement, isValidElement } from 'react';
 import type { ComponentProps, ReactElement, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { StudioRecordingSession } from '../src/renderer/recorder/types';
 
 const mocks = vi.hoisted(() => ({
   playground: null as any,
@@ -235,9 +236,20 @@ describe('StudioRecorderPanel', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const session = {
-      ...createRecorderMock().state.sessions[0],
+    const session: StudioRecordingSession = {
+      createdAt: Date.now(),
+      description: '',
+      events: [],
       generatedCode: { markdown: '# Recorded flow' },
+      id: 'session-exporting',
+      name: 'Exporting recording',
+      status: 'completed',
+      target: {
+        label: 'Android Device',
+        platformId: 'android',
+        values: {},
+      },
+      updatedAt: Date.now(),
     };
 
     await act(async () => {
