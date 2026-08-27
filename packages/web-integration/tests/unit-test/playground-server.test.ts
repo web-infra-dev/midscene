@@ -1,6 +1,10 @@
 import { ScreenshotItem } from '@midscene/core';
 import { PlaygroundServer } from '@midscene/playground';
 import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
+import {
+  createPlaceholderScreenshot,
+  transparentPixelPngBase64,
+} from '../../src/common/screenshot';
 import { StaticPage, StaticPageAgent } from '../../src/static';
 
 describe('Playground Server', () => {
@@ -10,7 +14,7 @@ describe('Playground Server', () => {
     const page = new StaticPage({
       shotSize: { width: 800, height: 600 },
       shrunkShotToLogicalRatio: 1,
-      screenshot: ScreenshotItem.create('', Date.now()),
+      screenshot: createPlaceholderScreenshot(),
     });
     const agent = new StaticPageAgent(page);
     server = new PlaygroundServer(agent);
@@ -46,7 +50,7 @@ describe('Playground Server', () => {
   });
 
   it('updates static context with a JSON-serialized ScreenshotItem', async () => {
-    const screenshotBase64 = 'data:image/png;base64,abc123';
+    const screenshotBase64 = transparentPixelPngBase64;
     const serializedScreenshot = JSON.parse(
       JSON.stringify(ScreenshotItem.create(screenshotBase64, Date.now())),
     );

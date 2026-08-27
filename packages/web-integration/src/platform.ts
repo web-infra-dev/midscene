@@ -1,4 +1,3 @@
-import { ScreenshotItem } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 import {
   type AgentFactory,
@@ -7,6 +6,7 @@ import {
   createMjpegPreviewDescriptor,
   definePlaygroundPlatform,
 } from '@midscene/playground';
+import { createPlaceholderScreenshot } from './common/screenshot';
 import { StaticPage, StaticPageAgent } from './static';
 
 export interface WebPlatformOptions {
@@ -20,7 +20,7 @@ export interface WebPlatformOptions {
 function createDefaultWebAgent(): StaticPageAgent {
   const page = new StaticPage({
     shotSize: { width: 800, height: 600 },
-    screenshot: ScreenshotItem.create('', Date.now()),
+    screenshot: createPlaceholderScreenshot(),
     shrunkShotToLogicalRatio: 1,
   });
 

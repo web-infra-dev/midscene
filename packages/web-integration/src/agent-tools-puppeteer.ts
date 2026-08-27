@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, open, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ScreenshotItem } from '@midscene/core';
 import {
   extractAgentBehaviorInitArgs,
   getAgentInitArgsSignature,
@@ -24,6 +23,7 @@ import {
   adaptWebAgentInitArgs,
   webAgentInitArgShape,
 } from './agent-init-args';
+import { createPlaceholderScreenshot } from './common/screenshot';
 import {
   type ViewportSize,
   defaultPuppeteerWindowViewportSize,
@@ -411,7 +411,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<
 
   protected createTemporaryDevice() {
     return new StaticPage({
-      screenshot: ScreenshotItem.create('', Date.now()),
+      screenshot: createPlaceholderScreenshot(),
       shotSize: this.viewport ?? defaultStaticPageViewportSize,
       shrunkShotToLogicalRatio: 1,
     });
