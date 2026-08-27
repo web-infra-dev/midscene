@@ -5,6 +5,23 @@ import { describe, expect, it } from 'vitest';
 const gpt5Adapter = new ResolvedModelAdapter(gptAdapters['gpt-5'], 'gpt-5');
 
 describe('gpt model adapter', () => {
+  it('uses normalized locate coordinates for edge elements', () => {
+    const locateAdapter = gpt5Adapter.locate;
+    expect(locateAdapter.kind).toBe('standard');
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('gpt-5 should use the standard locate adapter');
+    }
+
+    expect(
+      locateAdapter.element.resultCodec.promptSpec.resultValueDescription,
+    ).toContain('normalized to 0-1000 relative to the screenshot');
+    expect(
+      locateAdapter.element.resultCodec.toPixelBbox([43, 951, 485, 1000], {
+        preparedSize: { width: 1440, height: 3200 },
+      }),
+    ).toEqual([62, 3042, 698, 3199]);
+  });
+
   it('keeps GPT-5 image-detail policy in the adapter', () => {
     expect(
       gpt5Adapter.chatCompletion.buildChatCompletionParams({

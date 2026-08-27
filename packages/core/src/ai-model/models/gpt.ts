@@ -56,7 +56,11 @@ export const gptAdapters = {
     locate: {
       element: {
         resultFormat: {
-          coordinates: { shape: 'bbox', order: 'xy' },
+          // GPT does not receive the screenshot's authoritative pixel size.
+          // Asking it to infer absolute dimensions makes edge coordinates
+          // fragile when the provider presents a resized image. Normalize the
+          // response and map it against the prepared image locally instead.
+          coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
         },
       },
     },
