@@ -77,8 +77,33 @@ function isAllowedOrigin(origin?: string) {
 
 export interface ScrcpyConnectDeviceRequest {
   deviceId?: string;
+  maxFps?: number;
   maxSize?: number;
   videoBitRate?: number;
+}
+
+interface ScrcpySourceVideoPacket {
+  type?: string;
+  data: Uint8Array;
+  keyframe?: boolean;
+}
+
+export function buildScrcpyVideoTransportPacket(
+  packet: ScrcpySourceVideoPacket,
+  sequence: number,
+  receivedAt: number,
+  sentAt = Date.now(),
+) {
+  const type = packet.type || 'data';
+  return {
+    data: packet.data,
+    type,
+    sequence,
+    receivedAt,
+    sentAt,
+    timestamp: sentAt,
+    keyFrame: type === 'data' ? packet.keyframe : undefined,
+  };
 }
 
 export interface ScrcpyListedDevice {
@@ -715,9 +740,11 @@ export default class ScrcpyServer {
                 // convert video stream
                 const reader = stream.getReader();
                 const processStream = async () => {
+                  let sequence = 0;
                   try {
                     while (true) {
                       const { done, value } = await reader.read();
+                      const receivedAt = Date.now();
                       if (done) break;
                       if (
                         !isCurrentGeneration() ||
@@ -725,9 +752,6 @@ export default class ScrcpyServer {
                       ) {
                         return;
                       }
-
-                      // ensure type field is correctly set to 'configuration' or 'data'
-                      const frameType = value.type || 'data'; // default to 'data'
 
                       // Forward the raw Uint8Array — socket.io transports it as
                       // a binary frame. Converting via Array.from inflates each
@@ -737,13 +761,19 @@ export default class ScrcpyServer {
                       // Frames are disposable. `volatile` prevents Socket.IO
                       // from retaining an unbounded write buffer when the
                       // renderer is busy decoding or has stopped responding.
-                      socket.volatile.emit('video-data', {
-                        data: value.data,
-                        type: frameType,
-                        timestamp: Date.now(),
-                        // fix keyframe access
-                        keyFrame: value.keyFrame,
-                      });
+                      const transportPacket = buildScrcpyVideoTransportPacket(
+                        value,
+                        sequence,
+                        receivedAt,
+                      );
+                      sequence += 1;
+                      if (transportPacket.type === 'configuration') {
+                        // Decoder configuration is not disposable. Losing it
+                        // leaves every following compressed frame unusable.
+                        socket.emit('video-data', transportPacket);
+                      } else {
+                        socket.volatile.emit('video-data', transportPacket);
+                      }
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);

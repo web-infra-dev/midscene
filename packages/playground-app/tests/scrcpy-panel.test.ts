@@ -2,6 +2,7 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  SCRCPY_PREVIEW_MAX_FPS,
   SCRCPY_PREVIEW_MAX_SIZE,
   SCRCPY_PREVIEW_VIDEO_BIT_RATE,
   ScrcpyPanel,
@@ -41,6 +42,7 @@ describe('ScrcpyPanel', () => {
 
   it('uses a higher quality live preview stream profile', () => {
     expect(SCRCPY_PREVIEW_MAX_SIZE).toBe(1600);
+    expect(SCRCPY_PREVIEW_MAX_FPS).toBe(30);
     expect(SCRCPY_PREVIEW_VIDEO_BIT_RATE).toBe(8_000_000);
   });
 });

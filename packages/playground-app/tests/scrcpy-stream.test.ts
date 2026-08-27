@@ -6,6 +6,9 @@ interface RawVideoPayload {
   type?: string;
   data: ArrayBuffer | ArrayBufferView;
   keyFrame?: boolean;
+  sequence?: number;
+  receivedAt?: number;
+  sentAt?: number;
 }
 
 type VideoDataHandler = (data: RawVideoPayload) => void;
@@ -246,5 +249,210 @@ describe('createScrcpyVideoStream', () => {
 
     expect(dataPackets).toHaveLength(1);
     expect(dataPackets[0].pts).toBeUndefined();
+  });
+
+  test('drops stale packets until a fresh keyframe arrives', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { now: () => 1_000 });
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+      sequence: 0,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: false,
+      sequence: 1,
+      receivedAt: 400,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: false,
+      sequence: 2,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([3]),
+      keyFrame: true,
+      sequence: 3,
+      receivedAt: 900,
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    expect(packets.map((packet) => packet.data[0])).toEqual([0, 3]);
+  });
+
+  test('waits for a keyframe after a sequence discontinuity', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { now: () => 1_000 });
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+      sequence: 0,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: true,
+      sequence: 1,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([3]),
+      keyFrame: false,
+      sequence: 3,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([4]),
+      keyFrame: false,
+      sequence: 4,
+      receivedAt: 900,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([5]),
+      keyFrame: true,
+      sequence: 5,
+      receivedAt: 900,
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    expect(packets.map((packet) => packet.data[0])).toEqual([0, 1, 5]);
+  });
+
+  test('keeps legacy packets without freshness metadata compatible', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { now: () => 1_000 });
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    expect(packets.map((packet) => packet.data[0])).toEqual([0, 1, 2]);
+  });
+
+  test('does not resume from a delta frame after local queue overload', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, { now: () => 1_000 });
+    const reader = stream.getReader();
+
+    const dispatch = (sequence: number, keyFrame: boolean) => {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([sequence]),
+        keyFrame,
+        sequence,
+        receivedAt: 900,
+      });
+    };
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+      sequence: 0,
+      receivedAt: 900,
+    });
+    dispatch(1, true);
+    dispatch(2, false);
+    dispatch(3, false);
+    dispatch(4, false);
+
+    expect((await reader.read()).value?.data[0]).toBe(0);
+    expect((await reader.read()).value?.data[0]).toBe(1);
+    expect((await reader.read()).value?.data[0]).toBe(2);
+    expect((await reader.read()).value?.data[0]).toBe(3);
+
+    dispatch(5, false);
+    dispatch(6, true);
+    socket.dispatchDisconnect();
+
+    expect((await reader.read()).value?.data[0]).toBe(6);
+    expect((await reader.read()).done).toBe(true);
+  });
+
+  test('discards a retained keyframe if it ages before the decoder pulls', async () => {
+    let currentTime = 1_000;
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket, {
+      now: () => currentTime,
+    });
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([0]),
+      sequence: 0,
+      receivedAt: currentTime,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: true,
+      sequence: 1,
+      receivedAt: currentTime,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: true,
+      sequence: 2,
+      receivedAt: currentTime,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([3]),
+      keyFrame: true,
+      sequence: 3,
+      receivedAt: currentTime,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([4]),
+      keyFrame: true,
+      sequence: 4,
+      receivedAt: currentTime,
+    });
+    currentTime = 1_600;
+    const reader = stream.getReader();
+    expect((await reader.read()).value?.data[0]).toBe(0);
+    expect((await reader.read()).value?.data[0]).toBe(1);
+    expect((await reader.read()).value?.data[0]).toBe(2);
+    expect((await reader.read()).value?.data[0]).toBe(3);
+    const nextPacket = reader.read();
+    await Promise.resolve();
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([5]),
+      keyFrame: true,
+      sequence: 5,
+      receivedAt: currentTime,
+    });
+    expect((await nextPacket).value?.data[0]).toBe(5);
+
+    socket.dispatchDisconnect();
+    expect((await reader.read()).done).toBe(true);
   });
 });

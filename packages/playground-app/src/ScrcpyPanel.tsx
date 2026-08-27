@@ -44,6 +44,7 @@ const { Text } = Typography;
 // CPU, memory, and transport cost of a full-resolution 32 Mbps stream.
 export const SCRCPY_PREVIEW_MAX_SIZE = 1600;
 export const SCRCPY_PREVIEW_VIDEO_BIT_RATE = 8_000_000;
+export const SCRCPY_PREVIEW_MAX_FPS = 30;
 
 export interface ScrcpyErrorOverlayContext {
   errorMessage: string | null;
@@ -339,6 +340,7 @@ export function ScrcpyPanel({
             ? { deviceId: deviceId.trim() }
             : {}),
           maxSize: SCRCPY_PREVIEW_MAX_SIZE,
+          maxFps: SCRCPY_PREVIEW_MAX_FPS,
           videoBitRate: SCRCPY_PREVIEW_VIDEO_BIT_RATE,
         });
       });

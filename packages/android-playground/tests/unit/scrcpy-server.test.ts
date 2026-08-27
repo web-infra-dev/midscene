@@ -2,6 +2,7 @@ import * as nodeFsActual from 'node:fs' with { rstest: 'importActual' };
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
+  buildScrcpyVideoTransportPacket,
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 
@@ -57,6 +58,29 @@ describe('ScrcpyServer', () => {
     expect(lines).toEqual(['line-2', 'line-3', 'line-4']);
   });
 
+  it('maps typed scrcpy packet metadata to the preview wire contract', () => {
+    expect(
+      buildScrcpyVideoTransportPacket(
+        {
+          type: 'data',
+          data: new Uint8Array([1, 2, 3]),
+          keyframe: true,
+        },
+        7,
+        1_000,
+        1_025,
+      ),
+    ).toEqual({
+      data: new Uint8Array([1, 2, 3]),
+      type: 'data',
+      sequence: 7,
+      receivedAt: 1_000,
+      sentAt: 1_025,
+      timestamp: 1_025,
+      keyFrame: true,
+    });
+  });
+
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(
@@ -81,7 +105,7 @@ describe('ScrcpyServer', () => {
 
     await (server as any).startScrcpy(
       adb,
-      { maxSize: 0, videoBitRate: 8_000_000 },
+      { maxFps: 30, maxSize: 0, videoBitRate: 8_000_000 },
       onProgress,
     );
 
@@ -90,6 +114,7 @@ describe('ScrcpyServer', () => {
       expect.objectContaining({
         audio: false,
         control: true,
+        maxFps: 30,
         maxSize: 0,
         sendFrameMeta: true,
         videoBitRate: 8_000_000,
