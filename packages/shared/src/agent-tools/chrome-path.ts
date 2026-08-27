@@ -10,10 +10,6 @@ const warnChromePath = getDebug('agent-tools:chrome-path', { console: true });
 let hasWarnedLegacyChromePath = false;
 let cachedSystemChromePath: string | undefined;
 
-export function clearSystemChromePathCache() {
-  cachedSystemChromePath = undefined;
-}
-
 export function getSystemChromePath(): string | undefined {
   if (cachedSystemChromePath !== undefined) {
     return cachedSystemChromePath;

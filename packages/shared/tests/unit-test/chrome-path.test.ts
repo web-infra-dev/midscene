@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import type * as FsModule from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -7,11 +7,7 @@ import {
   rs,
   test,
 } from '@rstest/core';
-import {
-  clearSystemChromePathCache,
-  getSystemChromePath,
-  resolveChromePath,
-} from '../../src/agent-tools/chrome-path';
+import type * as ChromePathModule from '../../src/agent-tools/chrome-path';
 
 rs.mock('node:fs', () => ({
   existsSync: rs.fn(),
@@ -31,11 +27,18 @@ rs.mock('../../src/env', () => ({
 
 describe('Chrome Path Resolution', () => {
   const originalPlatform = process.platform;
+  let existsSync: typeof FsModule.existsSync;
+  let getSystemChromePath: typeof ChromePathModule.getSystemChromePath;
+  let resolveChromePath: typeof ChromePathModule.resolveChromePath;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    rs.resetModules();
+    ({ existsSync } = await import('node:fs'));
     rs.clearAllMocks();
     rs.mocked(existsSync).mockReturnValue(false);
-    clearSystemChromePathCache();
+    ({ getSystemChromePath, resolveChromePath } = await import(
+      '../../src/agent-tools/chrome-path'
+    ));
   });
 
   afterEach(() => {
