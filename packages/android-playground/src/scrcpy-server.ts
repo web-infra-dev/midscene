@@ -14,6 +14,7 @@ import {
   SCRCPY_VIDEO_STREAM_TIMEOUT_MS,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import type { ScrcpyVideoTransportPacket } from '@midscene/shared/scrcpy-video';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
 import cors from 'cors';
 import express from 'express';
@@ -83,9 +84,9 @@ export interface ScrcpyConnectDeviceRequest {
 }
 
 interface ScrcpySourceVideoPacket {
-  type?: string;
   data: Uint8Array;
   keyframe?: boolean;
+  type?: 'configuration' | 'data';
 }
 
 export function buildScrcpyVideoTransportPacket(
@@ -93,16 +94,20 @@ export function buildScrcpyVideoTransportPacket(
   sequence: number,
   receivedAt: number,
   sentAt = Date.now(),
-) {
-  const type = packet.type || 'data';
+): ScrcpyVideoTransportPacket<Uint8Array> {
+  const metadata = { sequence, receivedAt, sentAt, timestamp: sentAt };
+  if (packet.type === 'configuration') {
+    return {
+      ...metadata,
+      data: packet.data,
+      type: 'configuration',
+    };
+  }
   return {
+    ...metadata,
     data: packet.data,
-    type,
-    sequence,
-    receivedAt,
-    sentAt,
-    timestamp: sentAt,
-    keyFrame: type === 'data' ? packet.keyframe : undefined,
+    keyFrame: packet.keyframe === true,
+    type: 'data',
   };
 }
 

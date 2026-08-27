@@ -22,6 +22,7 @@ import React, {
 void React;
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
+import { createBoundedScrcpyDecoderWritable } from './scrcpy-decoder-admission';
 import {
   SCRCPY_METADATA_TIMEOUT_MS,
   SCRCPY_STABLE_CONNECTION_MS,
@@ -378,12 +379,14 @@ export function ScrcpyPanel({
           const decoder = await createDecoder(codecId);
           decoderRef.current = decoder;
 
-          videoStream.pipeTo(decoder.writable).catch((error: Error) => {
-            if (!isCurrentAttempt()) {
-              return;
-            }
-            scheduleReconnect(error.message);
-          });
+          videoStream
+            .pipeTo(createBoundedScrcpyDecoderWritable(decoder))
+            .catch((error: Error) => {
+              if (!isCurrentAttempt()) {
+                return;
+              }
+              scheduleReconnect(error.message);
+            });
 
           setStatus('waiting-for-stream');
         } catch (error) {

@@ -81,6 +81,27 @@ describe('ScrcpyServer', () => {
     });
   });
 
+  it('uses a discriminated configuration packet without data-only fields', () => {
+    expect(
+      buildScrcpyVideoTransportPacket(
+        {
+          type: 'configuration',
+          data: new Uint8Array([9]),
+        },
+        3,
+        2_000,
+        2_010,
+      ),
+    ).toEqual({
+      data: new Uint8Array([9]),
+      type: 'configuration',
+      sequence: 3,
+      receivedAt: 2_000,
+      sentAt: 2_010,
+      timestamp: 2_010,
+    });
+  });
+
   it('prefers the explicit device from the preview handshake', () => {
     expect(
       resolveRequestedDeviceId(
