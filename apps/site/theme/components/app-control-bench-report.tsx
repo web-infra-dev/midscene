@@ -1,12 +1,15 @@
 import {
-  APP_CONTROL_BENCH_REPORT_BASE_URL,
-  APP_CONTROL_BENCH_TASKS,
-  getAppControlBenchReportStatus,
+  APP_CONTROL_BENCH_RUNS,
+  getAppControlBenchReportUrl,
 } from './app-control-bench-data';
 
 const REPORT_COPY = {
   en: {
-    summary: 'Round 1 (60 reports · 58 PASS · 0 PARTIAL · 2 FAIL)',
+    overviewTableLabel: 'AppControlBench model results',
+    model: 'Model',
+    passAt1: 'Pass@1',
+    result: 'Result',
+    totalModelCost: 'Total Model Cost',
     tableLabel: 'AppControlBench task execution results',
     task: 'Task',
     status: 'Status',
@@ -16,7 +19,11 @@ const REPORT_COPY = {
     reportTitle: 'Open report in a new page',
   },
   zh: {
-    summary: '第 1 轮（60 份报告 · 58 PASS · 0 PARTIAL · 2 FAIL）',
+    overviewTableLabel: 'AppControlBench 模型结果',
+    model: '模型',
+    passAt1: 'Pass@1',
+    result: '结果',
+    totalModelCost: '模型总成本',
     tableLabel: 'AppControlBench 任务执行结果',
     task: '任务',
     status: '状态',
@@ -29,10 +36,16 @@ const REPORT_COPY = {
 
 interface AppControlBenchReportProps {
   locale: keyof typeof REPORT_COPY;
+  section?: 'all' | 'summary' | 'reports';
 }
 
-export function AppControlBenchReport({ locale }: AppControlBenchReportProps) {
+export function AppControlBenchReport({
+  locale,
+  section = 'all',
+}: AppControlBenchReportProps) {
   const copy = REPORT_COPY[locale];
+  const showSummary = section !== 'reports';
+  const showReports = section !== 'summary';
 
   return (
     <>
@@ -89,8 +102,47 @@ export function AppControlBenchReport({ locale }: AppControlBenchReportProps) {
   cursor: pointer;
 }
 
+.app-control-benchmark-round {
+  margin-top: 12px;
+}
+
 .app-control-benchmark-table-wrap {
   overflow-x: auto;
+}
+
+.app-control-benchmark-overview-table {
+  display: table;
+  width: 100%;
+  min-width: 520px;
+  table-layout: fixed;
+}
+
+.app-control-benchmark-overview-table th,
+.app-control-benchmark-overview-table td {
+  vertical-align: middle;
+}
+
+.app-control-benchmark-overview-table th:nth-child(1),
+.app-control-benchmark-overview-table td:nth-child(1) {
+  width: 34%;
+}
+
+.app-control-benchmark-overview-table th:nth-child(2),
+.app-control-benchmark-overview-table td:nth-child(2) {
+  width: 14%;
+  text-align: center;
+}
+
+.app-control-benchmark-overview-table th:nth-child(3),
+.app-control-benchmark-overview-table td:nth-child(3) {
+  width: 27%;
+  text-align: center;
+}
+
+.app-control-benchmark-overview-table th:nth-child(4),
+.app-control-benchmark-overview-table td:nth-child(4) {
+  width: 25%;
+  text-align: center;
 }
 
 .app-control-benchmark-table {
@@ -156,62 +208,106 @@ export function AppControlBenchReport({ locale }: AppControlBenchReportProps) {
 }
 `}</style>
 
-      <details open className="app-control-benchmark-round">
-        <summary>{copy.summary}</summary>
+      {showSummary && (
         <div className="app-control-benchmark-table-wrap">
           <table
-            aria-label={copy.tableLabel}
-            className="app-control-benchmark-table"
+            aria-label={copy.overviewTableLabel}
+            className="app-control-benchmark-overview-table"
           >
             <thead>
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">{copy.task}</th>
-                <th scope="col">{copy.status}</th>
-                <th scope="col">{copy.modelCost}</th>
-                <th scope="col">{copy.report}</th>
+                <th scope="col">{copy.model}</th>
+                <th scope="col">{copy.passAt1}</th>
+                <th scope="col">{copy.result}</th>
+                <th scope="col">{copy.totalModelCost}</th>
               </tr>
             </thead>
             <tbody>
-              {APP_CONTROL_BENCH_TASKS.map((task, taskIndex) => {
-                const index = taskIndex + 1;
-                const reportStatus = getAppControlBenchReportStatus(task);
-                const reportFile = `Task-${index}-${task.name}-${reportStatus}.html`;
-
-                return (
-                  <tr key={task.name}>
-                    <td>{index}</td>
-                    <td>{task.name}</td>
-                    <td>
-                      <span
-                        className={`app-control-benchmark-status app-control-benchmark-status-${task.status.toLowerCase()}`}
-                      >
-                        {task.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="app-control-benchmark-cost">
-                        {`$${task.costUsd.toFixed(4)}/¥${task.costCny.toFixed(4)}`}
-                      </span>
-                    </td>
-                    <td>
-                      <a
-                        className="app-control-benchmark-report-link"
-                        href={`${APP_CONTROL_BENCH_REPORT_BASE_URL}${reportFile}`}
-                        rel="noreferrer"
-                        target="_blank"
-                        title={copy.reportTitle}
-                      >
-                        {copy.reportLabel}
-                      </a>
-                    </td>
-                  </tr>
-                );
-              })}
+              {APP_CONTROL_BENCH_RUNS.map((run) => (
+                <tr key={run.id}>
+                  <td>{run.modelName}</td>
+                  <td>{`${run.summary.passAt1.toFixed(2)}%`}</td>
+                  <td>{`${run.summary.passCount} PASS · ${run.summary.partialCount} PARTIAL · ${run.summary.failCount} FAIL`}</td>
+                  <td>
+                    <span className="app-control-benchmark-cost">
+                      {`$${run.summary.totalUsd.toFixed(4)}/¥${run.summary.totalCny.toFixed(4)}`}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </details>
+      )}
+
+      {showReports &&
+        APP_CONTROL_BENCH_RUNS.map((run, runIndex) => (
+          <details
+            className="app-control-benchmark-round"
+            key={run.id}
+            open={runIndex === 0}
+          >
+            <summary>
+              {`${run.modelName} · Pass@1 ${run.summary.passAt1.toFixed(2)}% · ${run.summary.passCount} PASS · ${run.summary.partialCount} PARTIAL · ${run.summary.failCount} FAIL`}
+            </summary>
+            <div className="app-control-benchmark-table-wrap">
+              <table
+                aria-label={`${copy.tableLabel}: ${run.modelName}`}
+                className="app-control-benchmark-table"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">{copy.task}</th>
+                    <th scope="col">{copy.status}</th>
+                    <th scope="col">{copy.modelCost}</th>
+                    <th scope="col">{copy.report}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {run.tasks.map((task, taskIndex) => {
+                    const index = taskIndex + 1;
+                    const reportUrl = getAppControlBenchReportUrl(
+                      run,
+                      task,
+                      taskIndex,
+                    );
+
+                    return (
+                      <tr key={task.name}>
+                        <td>{index}</td>
+                        <td>{task.name}</td>
+                        <td>
+                          <span
+                            className={`app-control-benchmark-status app-control-benchmark-status-${task.status.toLowerCase()}`}
+                          >
+                            {task.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="app-control-benchmark-cost">
+                            {`$${task.costUsd.toFixed(4)}/¥${task.costCny.toFixed(4)}`}
+                          </span>
+                        </td>
+                        <td>
+                          <a
+                            className="app-control-benchmark-report-link"
+                            href={reportUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                            title={copy.reportTitle}
+                          >
+                            {copy.reportLabel}
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ))}
     </>
   );
 }

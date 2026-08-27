@@ -1,12 +1,20 @@
 # Midscene AppControlBench Benchmark 测试报告
 
-import { AppControlBenchReport } from '@theme';
+import { AppControlBenchComparison, AppControlBenchReport } from '@theme';
 
-本报告展示 Midscene 在 AppControlBench 上的测试结果。本次评测包含 60 个 iOS 任务，**Pass@1 为 96.67%。** 完整运行记录的模型总成本为 **$0.6382 / ¥4.3399**。
+本文是 Midscene 针对 AppControlBench benchmark 的测试报告。本次测试中，每个模型均覆盖同一批 60 个任务，Midscene 取得了如下成绩：
+
+<AppControlBenchReport locale="zh" section="summary" />
+
+> 注：模型成本按 OpenRouter 价格计算，人民币按 ¥6.8 / $1 换算。
+
+**可以发现，Midscene + GUI 视觉的路线在成本、通过率上都有很强的竞争力。**
+
+<AppControlBenchComparison locale="zh" />
 
 :::info 关于 AppControlBench
 
-[AppControlBench](https://github.com/software-mansion/app-control-bench) 用于评估 Agent 操作真实 iOS 应用的能力。每个任务都在隔离的 Simulator 中运行；任务结束后，根据任务专属的目标界面描述对最终截图进行评分。本次运行包含 30 个 Bluesky 任务和 30 个 Element iOS 任务。
+[AppControlBench](https://github.com/software-mansion/app-control-bench) 用于评估 Agent 操作真实 iOS 应用的能力。每个任务都在隔离的 Simulator 中运行；任务结束后，根据任务专属的目标界面描述对最终截图进行评分。每组运行包含 30 个 Bluesky 任务和 30 个 Element iOS 任务。
 
 :::
 
@@ -14,32 +22,25 @@ import { AppControlBenchReport } from '@theme';
 
 | 字段 | 值 |
 | --- | --- |
-| 测试日期 | 2026-08-24 |
-| Model Name | Doubao Seed 2.1 pro |
+| 测试日期 | 2026-08-25 至 2026-08-27 |
+| Model Name | Doubao Seed 2.1 Turbo、Qwen3.7 Plus、DeepSeek V4 Flash Vision Exp |
 | Midscene 版本 | `1.12.0` |
 | DeepThink | 关闭 |
 | Device | iOS Simulator |
-| 任务数 | 60 |
+| Bluesky 版本 | `1.122.0` |
+| Element iOS 版本 | `1.11.40` |
+| 任务数 | 每个模型 60 个 |
 | AppControlBench 工程 | Midscene 适配层把 Agent 执行委托给 `@midscene/ios`；AppControlBench 继续负责任务重置、Simulator 生命周期、最终截图采集和评分。 |
-| 验收规则 | 沿用原有目标状态和 judge 规则；对 2 个 case 的操作意图进行校准，并人工复核 1 个 case 的自动判定结果。 |
+| 验收规则 | 沿用原有目标状态和 judge 规则；对 1 个 case 的操作意图进行校准。 |
 
 ## Case 意图校准
 
-本次评测针对固定版本 Element iOS 的实际界面，对 2 个 case 的操作路径描述进行了校准。校准只消除旧版或不存在的 UI 入口描述，不改变 case 的最终目标状态和 judge 规则。
+本次评测针对固定版本 Element iOS 的实际界面，对 1 个 case 的操作路径描述进行了校准。校准只消除旧版或不存在的 UI 入口描述，不改变 case 的最终目标状态和 judge 规则。
 
 | Case | Before | After | 变更理由 |
 | --- | --- | --- | --- |
-| `element-06` | Open the create-room menu (the + button) in the messenger. | Open the create/compose menu in the messenger. | 固定版本 Element iOS 已不再提供旧版 “+ button” 入口；仅校准操作路径，目标状态和 judge 规则不变。 |
 | `element-07` | Open the "Project Phoenix" room and open its room-options menu (the '...' in the header). | Open the "Project Phoenix" room info/options screen. | 固定版本 Element iOS 不存在 header `...` 入口；仅校准操作路径，目标状态和 judge 规则不变。 |
-
-## Judge 校准
-
-本次评测对以下自动判定结果进行了人工复核。Judge 校准只修正误判，不改变 case 的任务目标或 judge 规则。
-
-| 校准内容 | 涉及的 case |
-| --- | --- |
-| 回复实际已成功发送；由于最终截图中的键盘没有收回，自动评测误判为 `Partial`。人工复核后将结果校准为 `Pass`。 | `element-24` |
 
 ## 报告文件
 
-<AppControlBenchReport locale="zh" />
+<AppControlBenchReport locale="zh" section="reports" />
