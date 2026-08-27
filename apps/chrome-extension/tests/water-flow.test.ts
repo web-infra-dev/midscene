@@ -52,16 +52,22 @@ describe('water-flow pointer lifecycle', () => {
     expect(querySelectorSpy).not.toHaveBeenCalled();
   });
 
-  it('replaces a cached pointer that was detached externally', () => {
+  it('adopts a live replacement after the cached pointer is detached', () => {
     animation.showMousePointer(20, 30);
     const detachedPointer = animation.pointerElement;
     expect(detachedPointer).not.toBeNull();
+    const replacementPointer = detachedPointer?.cloneNode(
+      true,
+    ) as HTMLDivElement;
     detachedPointer?.remove();
+    document.body.appendChild(replacementPointer);
 
     animation.showMousePointer(40, 50);
 
-    expect(animation.pointerElement).not.toBe(detachedPointer);
-    expect(document.body.contains(animation.pointerElement)).toBe(true);
+    expect(animation.pointerElement).toBe(replacementPointer);
+    expect(
+      document.querySelectorAll(`div[${animation.mousePointerAttribute}]`),
+    ).toHaveLength(1);
   });
 
   it('does not let an old timeout clear a newer pointer', async () => {
