@@ -587,8 +587,11 @@ function renderCliVerboseEventText(
     case 'recording_ready':
       return '[Midscene] Recording. Press Ctrl+C to stop and save.';
     case 'recording_stopping':
-      return event.reason === 'watchdog'
-        ? '[Midscene] Recording watchdog reached; finalizing and saving.'
+      if (event.reason === 'watchdog') {
+        return '[Midscene] Recording watchdog reached; finalizing and saving.';
+      }
+      return event.reason === 'sigterm'
+        ? '[Midscene] SIGTERM received; finalizing and saving.'
         : '[Midscene] Ctrl+C received; finalizing and saving.';
     case 'dump_update': {
       if (isActVerboseEvent(command, tool)) {

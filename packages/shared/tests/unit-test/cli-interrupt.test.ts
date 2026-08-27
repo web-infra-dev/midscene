@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import {
+  createCliInterruptWaiter,
   hasActiveCliInterruptWaiter,
   waitForCliInterrupt,
 } from '@/cli/interrupt';
@@ -33,6 +34,40 @@ describe('waitForCliInterrupt', () => {
     await expect(stopped).resolves.toBe('watchdog');
     expect(hasActiveCliInterruptWaiter(source)).toBe(false);
     expect(source.listenerCount('SIGINT')).toBe(0);
+  });
+
+  it('keeps SIGINT and SIGTERM guarded until asynchronous saving finishes', async () => {
+    const source = new EventEmitter();
+    const waiter = createCliInterruptWaiter(0, source);
+
+    source.emit('SIGINT');
+    await expect(waiter.result).resolves.toBe('sigint');
+
+    expect(hasActiveCliInterruptWaiter(source)).toBe(true);
+    expect(source.listenerCount('SIGINT')).toBe(1);
+    expect(source.listenerCount('SIGTERM')).toBe(1);
+
+    // Package runners may forward SIGTERM immediately after the terminal's
+    // SIGINT. It must be absorbed while the recorder is still saving.
+    source.emit('SIGTERM');
+    expect(hasActiveCliInterruptWaiter(source)).toBe(true);
+
+    waiter.dispose();
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
+    expect(source.listenerCount('SIGINT')).toBe(0);
+    expect(source.listenerCount('SIGTERM')).toBe(0);
+  });
+
+  it('gracefully stops on SIGTERM', async () => {
+    const source = new EventEmitter();
+    const stopped = waitForCliInterrupt(0, source);
+
+    source.emit('SIGTERM');
+
+    await expect(stopped).resolves.toBe('sigterm');
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
+    expect(source.listenerCount('SIGINT')).toBe(0);
+    expect(source.listenerCount('SIGTERM')).toBe(0);
   });
 
   it('does not treat unrelated SIGINT listeners as CLI waiters', () => {
