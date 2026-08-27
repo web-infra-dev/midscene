@@ -24,8 +24,16 @@ export interface CliInterruptWaiter {
   dispose(): void;
 }
 
+export interface CliInterruptWaiterOptions {
+  source?: CliInterruptSource;
+  input?: CliInterruptInputSource;
+  /** Called after restoring the terminal when Ctrl+C is pressed again. */
+  forceExit?: (exitCode: number) => void;
+}
+
 const activeInterruptWaiters = new WeakMap<object, number>();
 const noop = () => {};
+const sigintExitCode = 130;
 
 function guardTerminalCtrlC(
   input: CliInterruptInputSource | undefined,
@@ -100,11 +108,18 @@ export function hasActiveCliInterruptWaiter(
  */
 export function createCliInterruptWaiter(
   watchdogMs: number,
-  source: CliInterruptSource = process,
-  input: CliInterruptInputSource | undefined = source === process
-    ? process.stdin
-    : undefined,
+  options: CliInterruptWaiterOptions = {},
 ): CliInterruptWaiter {
+  const source = options.source ?? process;
+  const input =
+    options.input ?? (source === process ? process.stdin : undefined);
+  const forceExit =
+    options.forceExit ??
+    (source === process
+      ? (exitCode: number) => {
+          process.exit(exitCode);
+        }
+      : undefined);
   const unregisterWaiter = registerCliInterruptWaiter(source);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let finished = false;
@@ -131,7 +146,7 @@ export function createCliInterruptWaiter(
   const onSigterm = () => finish('sigterm');
   const onSighup = () => finish('sighup');
 
-  const dispose = () => {
+  function dispose() {
     if (disposed) return;
     disposed = true;
     source.removeListener('SIGINT', onSigint);
@@ -146,13 +161,25 @@ export function createCliInterruptWaiter(
       }
       unregisterWaiter();
     }
+  }
+
+  const onTerminalCtrlC = () => {
+    if (!finished) {
+      finish('sigint');
+      return;
+    }
+
+    // The first Ctrl+C protects asynchronous artifact finalization. A second
+    // explicit Ctrl+C is the user's escape hatch if device or file I/O hangs.
+    dispose();
+    forceExit?.(sigintExitCode);
   };
 
   try {
     source.on('SIGINT', onSigint);
     source.on('SIGTERM', onSigterm);
     source.on('SIGHUP', onSighup);
-    disposeInput = guardTerminalCtrlC(input, onSigint);
+    disposeInput = guardTerminalCtrlC(input, onTerminalCtrlC);
     if (watchdogMs > 0) {
       timer = setTimeout(() => finish('watchdog'), watchdogMs);
     }
@@ -175,6 +202,6 @@ export function waitForCliInterrupt(
     ? process.stdin
     : undefined,
 ): Promise<CliInterruptReason> {
-  const waiter = createCliInterruptWaiter(watchdogMs, source, input);
+  const waiter = createCliInterruptWaiter(watchdogMs, { source, input });
   return waiter.result.finally(waiter.dispose);
 }

@@ -21,10 +21,10 @@ export interface XvfbInstance {
 }
 
 /**
- * Keep Xvfb alive while the foreground recorder handles SIGINT and saves its
- * artifact. Other SIGINT listeners do not defer cleanup.
+ * Keep Xvfb alive while the foreground recorder handles a termination signal
+ * and saves its artifact. Other signal listeners do not defer cleanup.
  */
-export function createXvfbSigintCleanup(
+export function createXvfbSignalCleanup(
   cleanup: () => void,
   source: CliInterruptSource = process,
 ): () => void {

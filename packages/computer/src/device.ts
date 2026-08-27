@@ -29,7 +29,7 @@ import {
 import type { XvfbInstance } from './xvfb';
 import {
   checkXvfbInstalled,
-  createXvfbSigintCleanup,
+  createXvfbSignalCleanup,
   needsXvfb,
   startXvfb,
 } from './xvfb';
@@ -743,7 +743,7 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
-  private xvfbSigintCleanup?: () => void;
+  private xvfbSignalCleanup?: () => void;
   private readonly inputDriver = new ComputerInputDriver({
     getLibnut: () => libnut,
     useAppleScript: () => this.useAppleScript,
@@ -981,12 +981,12 @@ export class ComputerDevice implements AbstractInterface {
             this.xvfbInstance = undefined;
           }
         };
-        this.xvfbSigintCleanup = createXvfbSigintCleanup(() =>
+        this.xvfbSignalCleanup = createXvfbSignalCleanup(() =>
           this.xvfbCleanup?.(),
         );
         process.on('exit', this.xvfbCleanup);
-        process.on('SIGINT', this.xvfbSigintCleanup);
-        process.on('SIGTERM', this.xvfbCleanup);
+        process.on('SIGINT', this.xvfbSignalCleanup);
+        process.on('SIGTERM', this.xvfbSignalCleanup);
       }
 
       // Load libnut on first connect
@@ -1018,12 +1018,12 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       }
       if (this.xvfbCleanup) {
         process.removeListener('exit', this.xvfbCleanup);
-        process.removeListener('SIGTERM', this.xvfbCleanup);
         this.xvfbCleanup = undefined;
       }
-      if (this.xvfbSigintCleanup) {
-        process.removeListener('SIGINT', this.xvfbSigintCleanup);
-        this.xvfbSigintCleanup = undefined;
+      if (this.xvfbSignalCleanup) {
+        process.removeListener('SIGINT', this.xvfbSignalCleanup);
+        process.removeListener('SIGTERM', this.xvfbSignalCleanup);
+        this.xvfbSignalCleanup = undefined;
       }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
@@ -1597,12 +1597,12 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     }
     if (this.xvfbCleanup) {
       process.removeListener('exit', this.xvfbCleanup);
-      process.removeListener('SIGTERM', this.xvfbCleanup);
       this.xvfbCleanup = undefined;
     }
-    if (this.xvfbSigintCleanup) {
-      process.removeListener('SIGINT', this.xvfbSigintCleanup);
-      this.xvfbSigintCleanup = undefined;
+    if (this.xvfbSignalCleanup) {
+      process.removeListener('SIGINT', this.xvfbSignalCleanup);
+      process.removeListener('SIGTERM', this.xvfbSignalCleanup);
+      this.xvfbSignalCleanup = undefined;
     }
 
     debugDevice('Computer device destroyed');

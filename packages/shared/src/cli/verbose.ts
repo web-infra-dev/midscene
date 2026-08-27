@@ -595,7 +595,7 @@ function renderCliVerboseEventText(
       }
       return event.reason === 'sighup'
         ? '[Midscene] SIGHUP received; finalizing and saving.'
-        : '[Midscene] Ctrl+C received; finalizing and saving.';
+        : '[Midscene] Ctrl+C received; finalizing and saving. Press Ctrl+C again to force exit.';
     case 'dump_update': {
       if (isActVerboseEvent(command, tool)) {
         return undefined;

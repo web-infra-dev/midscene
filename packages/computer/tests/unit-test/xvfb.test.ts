@@ -1,10 +1,13 @@
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
-import { waitForCliInterrupt } from '@midscene/shared/cli/interrupt';
+import {
+  createCliInterruptWaiter,
+  waitForCliInterrupt,
+} from '@midscene/shared/cli/interrupt';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   checkXvfbInstalled,
-  createXvfbSigintCleanup,
+  createXvfbSignalCleanup,
   findAvailableDisplay,
   needsXvfb,
 } from '../../src/xvfb';
@@ -88,12 +91,12 @@ describe('checkXvfbInstalled', () => {
   });
 });
 
-describe('createXvfbSigintCleanup', () => {
+describe('createXvfbSignalCleanup', () => {
   it('cleans up when the host only has unrelated SIGINT listeners', () => {
     const source = new EventEmitter();
     const cleanup = rs.fn();
     source.on('SIGINT', () => {});
-    source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
+    source.on('SIGINT', createXvfbSignalCleanup(cleanup, source));
 
     source.emit('SIGINT');
 
@@ -103,7 +106,7 @@ describe('createXvfbSigintCleanup', () => {
   it('defers cleanup while a foreground recorder is handling SIGINT', async () => {
     const source = new EventEmitter();
     const cleanup = rs.fn();
-    source.on('SIGINT', createXvfbSigintCleanup(cleanup, source));
+    source.on('SIGINT', createXvfbSignalCleanup(cleanup, source));
     const stopped = waitForCliInterrupt(0, source);
 
     source.emit('SIGINT');
@@ -112,6 +115,24 @@ describe('createXvfbSigintCleanup', () => {
     expect(cleanup).not.toHaveBeenCalled();
 
     source.emit('SIGINT');
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Xvfb alive through a forwarded SIGTERM while saving', async () => {
+    const source = new EventEmitter();
+    const cleanup = rs.fn();
+    const signalCleanup = createXvfbSignalCleanup(cleanup, source);
+    source.on('SIGINT', signalCleanup);
+    source.on('SIGTERM', signalCleanup);
+    const waiter = createCliInterruptWaiter(0, { source });
+
+    source.emit('SIGINT');
+    await expect(waiter.result).resolves.toBe('sigint');
+    source.emit('SIGTERM');
+
+    expect(cleanup).not.toHaveBeenCalled();
+    waiter.dispose();
+    source.emit('SIGTERM');
     expect(cleanup).toHaveBeenCalledOnce();
   });
 });

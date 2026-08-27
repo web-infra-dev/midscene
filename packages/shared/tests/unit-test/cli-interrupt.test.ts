@@ -38,7 +38,7 @@ describe('waitForCliInterrupt', () => {
 
   it('keeps termination signals guarded until asynchronous saving finishes', async () => {
     const source = new EventEmitter();
-    const waiter = createCliInterruptWaiter(0, source);
+    const waiter = createCliInterruptWaiter(0, { source });
 
     source.emit('SIGINT');
     await expect(waiter.result).resolves.toBe('sigint');
@@ -101,7 +101,7 @@ describe('waitForCliInterrupt', () => {
         this.readableFlowing = false;
       },
     });
-    const waiter = createCliInterruptWaiter(0, source, input);
+    const waiter = createCliInterruptWaiter(0, { source, input });
 
     expect(input.isRaw).toBe(true);
     input.emit('data', Buffer.from([3]));
@@ -114,6 +114,38 @@ describe('waitForCliInterrupt', () => {
     expect(input.isRaw).toBe(false);
     expect(input.readableFlowing).toBe(false);
     expect(input.listenerCount('data')).toBe(0);
+  });
+
+  it('releases the terminal guard on a second Ctrl+C during finalization', async () => {
+    const source = new EventEmitter();
+    const forceExit = rs.fn();
+    const input = Object.assign(new EventEmitter(), {
+      isTTY: true,
+      isRaw: false,
+      readableFlowing: null as boolean | null,
+      setRawMode(enabled: boolean) {
+        this.isRaw = enabled;
+      },
+      pause() {
+        this.readableFlowing = false;
+      },
+    });
+    const waiter = createCliInterruptWaiter(0, {
+      source,
+      input,
+      forceExit,
+    });
+
+    input.emit('data', Buffer.from([3]));
+    await expect(waiter.result).resolves.toBe('sigint');
+
+    input.emit('data', Buffer.from([3]));
+
+    expect(hasActiveCliInterruptWaiter(source)).toBe(false);
+    expect(input.isRaw).toBe(false);
+    expect(input.readableFlowing).toBe(false);
+    expect(input.listenerCount('data')).toBe(0);
+    expect(forceExit).toHaveBeenCalledWith(130);
   });
 
   it('restores the terminal when input listener setup fails', async () => {
@@ -133,7 +165,7 @@ describe('waitForCliInterrupt', () => {
         this.readableFlowing = false;
       },
     };
-    const waiter = createCliInterruptWaiter(0, source, input);
+    const waiter = createCliInterruptWaiter(0, { source, input });
 
     await expect(waiter.result).rejects.toThrow('input setup failed');
     expect(input.isRaw).toBe(false);
