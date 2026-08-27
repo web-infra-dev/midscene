@@ -7,7 +7,7 @@ import type {
   ModelRuntime,
 } from '../model-adapter/types';
 import { autoGlmAdapters } from './auto-glm/adapter';
-import { deepSeekAdapters } from './deepseek';
+import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
 import { doubaoAdapters } from './doubao';
 import { geminiAdapters } from './gemini';

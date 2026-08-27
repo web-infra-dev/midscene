@@ -3,15 +3,15 @@ import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
-} from '../model-adapter/types';
+} from '../../model-adapter/types';
 import {
   type LocateResultValue,
   createLocateResultValue,
-} from '../shared/model-locate-result';
+} from '../../shared/model-locate-result';
 import {
   deepSeekElementLocateProtocol,
   deepSeekSearchAreaProtocol,
-} from './deepseek-locate-protocol';
+} from './locate-protocol';
 
 const deepSeekPointCoordinates = {
   shape: 'point',
