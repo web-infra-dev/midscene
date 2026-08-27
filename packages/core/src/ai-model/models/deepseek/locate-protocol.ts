@@ -1,11 +1,11 @@
 import type {
   ParsedLocateResponse,
   StandardLocateProtocol,
-} from '../model-adapter/locate-protocol';
+} from '../../model-adapter/locate-protocol';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
-} from '../shared/model-locate-result';
+} from '../../shared/model-locate-result';
 
 const deepSeekRefBoxPattern =
   /<(?:｜｜|\|)ref(?:｜｜|\|)>\s*[\s\S]*?\s*<(?:｜｜|\|)\/ref(?:｜｜|\|)>\s*<(?:｜｜|\|)box(?:｜｜|\|)>\s*([\s\S]*?)\s*<(?:｜｜|\|)\/box(?:｜｜|\|)>/g;

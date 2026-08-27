@@ -1,9 +1,9 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
-import { deepSeekAdapters } from '@/ai-model/models/deepseek';
+import { deepSeekAdapters } from '@/ai-model/models/deepseek/adapter';
 import {
   deepSeekElementLocateProtocol,
   deepSeekSearchAreaProtocol,
-} from '@/ai-model/models/deepseek-locate-protocol';
+} from '@/ai-model/models/deepseek/locate-protocol';
 import { systemPromptToLocateElement } from '@/ai-model/prompt/llm-locator';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from 'vitest';
