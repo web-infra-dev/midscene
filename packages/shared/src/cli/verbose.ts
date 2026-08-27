@@ -590,8 +590,11 @@ function renderCliVerboseEventText(
       if (event.reason === 'watchdog') {
         return '[Midscene] Recording watchdog reached; finalizing and saving.';
       }
-      return event.reason === 'sigterm'
-        ? '[Midscene] SIGTERM received; finalizing and saving.'
+      if (event.reason === 'sigterm') {
+        return '[Midscene] SIGTERM received; finalizing and saving.';
+      }
+      return event.reason === 'sighup'
+        ? '[Midscene] SIGHUP received; finalizing and saving.'
         : '[Midscene] Ctrl+C received; finalizing and saving.';
     case 'dump_update': {
       if (isActVerboseEvent(command, tool)) {
