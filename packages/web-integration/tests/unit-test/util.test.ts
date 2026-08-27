@@ -7,6 +7,7 @@ import {
   buildDetailedLocateParamAndRestParams,
 } from '@midscene/core/yaml';
 import { describe, expect, it } from '@rstest/core';
+import { transparentPixelPngBase64 } from '../../src/common/screenshot';
 
 describe('getKeyCommands', () => {
   it('should return a single key without command when no meta or control key is provided', () => {
@@ -166,7 +167,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       tree: { node: null, children: [] },
       shotSize: { width: 800, height: 600 },
       shrunkShotToLogicalRatio: 1,
-      screenshot: ScreenshotItem.create('mock-base64-string', Date.now()),
+      screenshot: ScreenshotItem.create(transparentPixelPngBase64, Date.now()),
     };
     const options = {
       deepLocate: true,
