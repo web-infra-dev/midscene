@@ -58,10 +58,6 @@ export type ScrcpyServerPusher = (
   remotePath: string,
 ) => Promise<void>;
 
-const missingScrcpyServerPusher: ScrcpyServerPusher = async () => {
-  throw new Error('Scrcpy server pusher is not configured');
-};
-
 /**
  * A raw (not yet decoded) H.264 keyframe emitted by the scrcpy stream.
  * Holding these is cheap — decoding to JPEG costs an ffmpeg run per frame, so
@@ -250,8 +246,8 @@ export class ScrcpyScreenshotManager {
 
   constructor(
     adb: Adb,
+    private readonly pushServer: ScrcpyServerPusher,
     options: ScrcpyScreenshotOptions = {},
-    private readonly pushServer: ScrcpyServerPusher = missingScrcpyServerPusher,
   ) {
     this.adb = adb;
     const requestedBitRate = options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE;
@@ -323,7 +319,7 @@ export class ScrcpyScreenshotManager {
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
-      await this.pushServerBinary(serverBinPath, DefaultServerPath);
+      await this.pushServer(serverBinPath, DefaultServerPath);
 
       const scrcpyOptions = await this.createScrcpyOptions();
 
@@ -374,13 +370,6 @@ export class ScrcpyScreenshotManager {
       }
       throw this.createConnectionError(error, serverOutput);
     }
-  }
-
-  private async pushServerBinary(
-    serverBinPath: string,
-    remoteServerPath: string,
-  ): Promise<void> {
-    await this.pushServer(serverBinPath, remoteServerPath);
   }
 
   private async createScrcpyOptions(): Promise<any> {

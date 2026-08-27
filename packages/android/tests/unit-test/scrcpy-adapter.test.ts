@@ -26,7 +26,10 @@ const mocks = rs.hoisted(() => {
   };
 });
 
-rs.mock('appium-adb', () => ({ ADB: mocks.AppiumAdb }));
+rs.mock('appium-adb', () => ({
+  ADB: mocks.AppiumAdb,
+  getSdkRootFromEnv: rs.fn(() => undefined),
+}));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
 rs.mock('@yume-chan/adb', () => ({
@@ -296,58 +299,48 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(mocks.createTransport).toHaveBeenCalledWith({ serial: 'device' });
     });
 
-    it('should connect to the resolved ADB server endpoint', async () => {
-      const resolveAdbServerEndpoint = rs.fn().mockResolvedValue({
-        host: '192.168.1.10',
-        port: 5038,
+    it('should use one resolved ADB backend for connection and upload', async () => {
+      const push = rs.fn().mockResolvedValue(undefined);
+      const resolveAdbBackend = rs.fn().mockResolvedValue({
+        adbHost: '192.168.1.10',
+        adbPort: 5038,
+        push,
       });
       const adapter = new ScrcpyDeviceAdapter(
         'device',
         { enabled: true },
-        resolveAdbServerEndpoint,
+        resolveAdbBackend,
       );
 
       await adapter.ensureManager(defaultDeviceInfo);
 
-      expect(resolveAdbServerEndpoint).toHaveBeenCalledTimes(1);
+      expect(resolveAdbBackend).toHaveBeenCalledTimes(1);
       expect(mocks.AdbServerNodeTcpConnector).toHaveBeenCalledWith({
         host: '192.168.1.10',
         port: 5038,
       });
-    });
-
-    it('should forward a configured scrcpy server pusher to the manager', async () => {
-      const pushServer = rs.fn().mockResolvedValue(undefined);
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        () => ({ host: '127.0.0.1', port: 5037, pushServer }),
+      const [, pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
+      await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
+      expect(push).toHaveBeenCalledWith(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
       );
-
-      await adapter.ensureManager(defaultDeviceInfo);
-
-      const [, options, managerPusher] = rs.mocked(ScrcpyScreenshotManager).mock
-        .calls[0];
-      expect(options).not.toHaveProperty('pushServer');
-      expect(managerPusher).toBe(pushServer);
     });
 
-    it('should create an external ADB server pusher by default', async () => {
+    it('should create its default backend through the canonical ADB factory', async () => {
       const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
       await adapter.ensureManager(defaultDeviceInfo);
 
-      const [, , pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
-      if (!pushServer) {
-        throw new Error('Expected the manager to receive a server pusher');
-      }
+      const [, pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
       await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
 
-      expect(mocks.AppiumAdb).toHaveBeenCalledWith({
-        udid: 'device',
-        remoteAdbHost: '127.0.0.1',
-        remoteAdbPort: 5037,
-      });
+      expect(mocks.AppiumAdb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          adbExecTimeout: 60_000,
+          udid: 'device',
+        }),
+      );
       expect(mocks.fileTransferPush).toHaveBeenCalledWith(
         '/tmp/scrcpy-server',
         '/data/local/tmp/scrcpy-server',

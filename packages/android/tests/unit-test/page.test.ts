@@ -215,29 +215,6 @@ describe('AndroidDevice', () => {
     );
   });
 
-  it('should share the resolved ADB server endpoint with scrcpy', async () => {
-    Object.assign(mockAdb, {
-      adbHost: '192.168.1.10',
-      adbPort: 5038,
-    });
-    const adapter = (device as any).getScrcpyAdapter();
-
-    const connection = await (adapter as any).resolveAdbServerEndpoint();
-
-    expect(connection).toMatchObject({
-      host: '192.168.1.10',
-      port: 5038,
-    });
-    await connection.pushServer(
-      '/tmp/scrcpy-server',
-      '/data/local/tmp/scrcpy-server',
-    );
-    expect(mockAdb.push).toHaveBeenCalledWith(
-      '/tmp/scrcpy-server',
-      '/data/local/tmp/scrcpy-server',
-    );
-  });
-
   it('pushes yadb from unpacked Electron resources', async () => {
     const unpackedYadbPath = String.raw`C:\Program Files\Midscene Studio\resources\app.asar.unpacked\node_modules\@midscene\android\bin\yadb`;
     rs.spyOn(device as any, 'resolveYadbBinPath').mockReturnValue(

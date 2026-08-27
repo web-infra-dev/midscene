@@ -727,16 +727,7 @@ ${Object.keys(size)
       this.scrcpyAdapter = new ScrcpyDeviceAdapter(
         this.deviceId,
         this.options?.scrcpyConfig,
-        async () => {
-          const adb = await this.getAdb();
-          return {
-            host: adb.adbHost ?? '127.0.0.1',
-            port: adb.adbPort ?? 5037,
-            pushServer: async (localPath: string, remotePath: string) => {
-              await adb.push(localPath, remotePath);
-            },
-          };
-        },
+        () => this.getAdb(),
       );
     }
     return this.scrcpyAdapter;

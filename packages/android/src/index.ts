@@ -10,5 +10,7 @@ export {
 export type { AndroidConnectedDevice } from './utils';
 export {
   ScrcpyDeviceAdapter,
+  type ResolveScrcpyAdbBackend,
+  type ScrcpyAdbBackend,
   type ScrcpyStatus,
 } from './scrcpy-device-adapter';

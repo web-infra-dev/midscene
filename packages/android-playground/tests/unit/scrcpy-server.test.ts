@@ -63,7 +63,7 @@ describe('ScrcpyServer', () => {
     mockStart.mockResolvedValue({ videoStream: Promise.resolve(null) });
 
     const server = new ScrcpyServer();
-    server.currentDeviceId = 'device-1';
+    server.currentDeviceId = 'another-device';
     const adb = { serial: 'device-1' };
     const onProgress = rs.fn();
 

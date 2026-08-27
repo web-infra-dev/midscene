@@ -2,12 +2,8 @@ import type { Size } from '@midscene/core';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb as YumeAdb } from '@yume-chan/adb';
-import { ADB } from 'appium-adb';
-import type {
-  RawKeyframe,
-  ScrcpyScreenshotManager,
-  ScrcpyServerPusher,
-} from './scrcpy-manager';
+import { createAndroidAdb } from './adb';
+import type { RawKeyframe, ScrcpyScreenshotManager } from './scrcpy-manager';
 import {
   DEFAULT_SCRCPY_CONFIG,
   type ScrcpyFreshFrameUnavailableError,
@@ -50,20 +46,16 @@ interface ResolvedScrcpyConfig {
   idleTimeoutMs: number;
 }
 
-interface AdbServerConnection {
-  host: string;
-  port: number;
-  pushServer?: ScrcpyServerPusher;
+/** ADB capabilities scrcpy needs from the canonical Appium transport. */
+export interface ScrcpyAdbBackend {
+  adbHost?: string;
+  adbPort?: number;
+  push(localPath: string, remotePath: string): Promise<unknown>;
 }
 
-type ResolveAdbServerConnection = () =>
-  | AdbServerConnection
-  | Promise<AdbServerConnection>;
-
-const DEFAULT_ADB_SERVER_CONNECTION: AdbServerConnection = {
-  host: '127.0.0.1',
-  port: 5037,
-};
+export type ResolveScrcpyAdbBackend = () =>
+  | ScrcpyAdbBackend
+  | Promise<ScrcpyAdbBackend>;
 
 export interface DevicePhysicalInfo {
   physicalWidth: number;
@@ -105,8 +97,8 @@ export class ScrcpyDeviceAdapter {
   constructor(
     private deviceId: string,
     private scrcpyConfig: ScrcpyConfig | undefined,
-    private resolveAdbServerEndpoint: ResolveAdbServerConnection = () =>
-      DEFAULT_ADB_SERVER_CONNECTION,
+    private resolveAdbBackend: ResolveScrcpyAdbBackend = () =>
+      createAndroidAdb({ adbExecTimeout: 60_000, deviceId }),
   ) {}
 
   isEnabled(): boolean {
@@ -223,11 +215,11 @@ export class ScrcpyDeviceAdapter {
           './scrcpy-manager'
         );
 
-        const adbServerConnection = await this.resolveAdbServerEndpoint();
+        const adbBackend = await this.resolveAdbBackend();
         const adbClient = new AdbServerClient(
           new AdbServerNodeTcpConnector({
-            host: adbServerConnection.host,
-            port: adbServerConnection.port,
+            host: adbBackend.adbHost ?? '127.0.0.1',
+            port: adbBackend.adbPort ?? 5037,
           }),
         );
         adb = new Adb(
@@ -235,17 +227,16 @@ export class ScrcpyDeviceAdapter {
         );
 
         const config = this.resolveConfig();
-        const serverPusher =
-          adbServerConnection.pushServer ??
-          this.createDefaultServerPusher(adbServerConnection);
         manager = new ScrcpyManager(
           adb,
+          async (localPath, remotePath) => {
+            await adbBackend.push(localPath, remotePath);
+          },
           {
             maxSize: config.maxSize,
             videoBitRate: config.videoBitRate,
             idleTimeoutMs: config.idleTimeoutMs,
           },
-          serverPusher,
         );
 
         // Validate environment prerequisites (ffmpeg, etc.) once before caching.
@@ -290,20 +281,6 @@ export class ScrcpyDeviceAdapter {
         this.managerPromise = null;
       }
     }
-  }
-
-  private createDefaultServerPusher(
-    endpoint: Pick<AdbServerConnection, 'host' | 'port'>,
-  ): ScrcpyServerPusher {
-    let fileTransferAdb: ADB | undefined;
-    return async (localPath, remotePath) => {
-      fileTransferAdb ??= new ADB({
-        udid: this.deviceId,
-        remoteAdbHost: endpoint.host,
-        remoteAdbPort: endpoint.port,
-      });
-      await fileTransferAdb.push(localPath, remotePath);
-    };
   }
 
   /**

@@ -344,18 +344,13 @@ export default class ScrcpyServer {
     const serverBinPath = path.resolve(currentDir, '../../bin/scrcpy-server');
 
     try {
-      const deviceId = this.currentDeviceId;
-      if (!deviceId) {
-        throw new Error('Cannot push the scrcpy server without a device ID');
-      }
-
       // Avoid @yume-chan/adb sync here. Its locked sync socket does not release
       // the WritableStream writer after close, retaining the uploaded buffer.
       onProgress?.('pushing-server');
       await withTimeout(
         promiseExecFile('adb', [
           '-s',
-          deviceId,
+          adb.serial,
           'push',
           serverBinPath,
           DefaultServerPath,

@@ -2,8 +2,17 @@ import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import {
   ScrcpyFreshFrameUnavailableError,
   ScrcpyScreenshotManager,
+  type ScrcpyScreenshotOptions,
+  type ScrcpyServerPusher,
   parseDeviceUptimeMs,
 } from '../../src/scrcpy-manager';
+
+const noopPushServer: ScrcpyServerPusher = async () => {};
+const createManager = (
+  adb: ConstructorParameters<typeof ScrcpyScreenshotManager>[0],
+  options: ScrcpyScreenshotOptions = {},
+  pushServer: ScrcpyServerPusher = noopPushServer,
+) => new ScrcpyScreenshotManager(adb, pushServer, options);
 
 // A minimal H.264 keyframe: 4-byte start code + IDR NAL (type 5).
 const idrFrame = (tag: number): Buffer =>
@@ -25,14 +34,14 @@ describe('ScrcpyScreenshotManager', () => {
 
   describe('validateEnvironment', () => {
     it('should succeed when ffmpeg is available', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       await expect(manager.validateEnvironment()).resolves.toBeUndefined();
     });
 
     it('should throw when ffmpeg is not available', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(false);
 
       await expect(manager.validateEnvironment()).rejects.toThrow(
@@ -41,7 +50,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should throw when checkFfmpegAvailable throws an error', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       rs.spyOn(manager as any, 'checkFfmpegAvailable').mockRejectedValue(
         new Error('unexpected error'),
       );
@@ -52,7 +61,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should cache ffmpeg check result (only check once on success)', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const spy = rs
         .spyOn(manager as any, 'checkFfmpegAvailable')
         .mockResolvedValue(true);
@@ -64,7 +73,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should be independent from ensureConnected', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       rs.spyOn(manager as any, 'checkFfmpegAvailable').mockResolvedValue(true);
 
       // validateEnvironment should not trigger ensureConnected logic
@@ -78,7 +87,7 @@ describe('ScrcpyScreenshotManager', () => {
 
   describe('constructor defaults', () => {
     it('should use default options when none provided', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const options = (manager as any).options;
       expect(options.maxSize).toBe(0);
       expect(options.videoBitRate).toBe(100_000_000);
@@ -86,7 +95,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should use provided options', () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
+      const manager = createManager({} as any, {
         maxSize: 1024,
         videoBitRate: 4_000_000,
         idleTimeoutMs: 60_000,
@@ -98,7 +107,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should partially override defaults', () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
+      const manager = createManager({} as any, {
         maxSize: 512,
       });
       const options = (manager as any).options;
@@ -108,7 +117,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should clamp videoBitRate to safe maximum', () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
+      const manager = createManager({} as any, {
         videoBitRate: 500_000_000,
       });
       const options = (manager as any).options;
@@ -118,21 +127,21 @@ describe('ScrcpyScreenshotManager', () => {
 
   describe('getResolution', () => {
     it('should return null when not connected', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       expect(manager.getResolution()).toBeNull();
     });
   });
 
   describe('isConnected', () => {
     it('should return false initially', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       expect(manager.isConnected()).toBe(false);
     });
   });
 
   describe('ensureConnected', () => {
     it('should use a forward tunnel with a fresh scrcpy instance id', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any, {
+      const manager = createManager({} as any, {
         maxSize: 1024,
         videoBitRate: 8_000_000,
       });
@@ -151,7 +160,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('disables repeated frames so unchanged pixels cannot acquire a fresh PTS', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
 
       const options = await (manager as any).createScrcpyOptions();
 
@@ -160,34 +169,45 @@ describe('ScrcpyScreenshotManager', () => {
       );
     });
 
-    it('uses the configured server pusher instead of ADB sync', async () => {
+    it('uses the configured server pusher during connection', async () => {
+      const { AdbScrcpyClient } = await import('@yume-chan/adb-scrcpy');
       const pushServer = rs.fn().mockResolvedValue(undefined);
-      const manager = new ScrcpyScreenshotManager({} as any, {}, pushServer);
-
-      await (manager as any).pushServerBinary(
-        '/tmp/scrcpy-server',
-        '/data/local/tmp/scrcpy-server',
+      const manager = createManager(
+        { close: rs.fn().mockResolvedValue(undefined) } as any,
+        {},
+        pushServer,
       );
+      const videoStream = new ReadableStream();
+      rs.spyOn(manager as any, 'resolveServerBinPath').mockReturnValue(
+        '/tmp/scrcpy-server',
+      );
+      rs.spyOn(manager as any, 'ensureFrameClockCalibration').mockResolvedValue(
+        undefined,
+      );
+      rs.spyOn(AdbScrcpyClient, 'start').mockResolvedValue({
+        close: rs.fn().mockResolvedValue(undefined),
+        output: new ReadableStream({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        videoStream: Promise.resolve({
+          metadata: { width: 1080, height: 1920 },
+          stream: videoStream,
+        }),
+      } as any);
+
+      await manager.ensureConnected();
 
       expect(pushServer).toHaveBeenCalledWith(
         '/tmp/scrcpy-server',
-        '/data/local/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server.jar',
       );
-    });
-
-    it('rejects server transfer when no safe pusher is configured', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
-
-      await expect(
-        (manager as any).pushServerBinary(
-          '/tmp/scrcpy-server',
-          '/data/local/tmp/scrcpy-server',
-        ),
-      ).rejects.toThrow('Scrcpy server pusher is not configured');
+      await manager.dispose();
     });
 
     it('shares one connection attempt across concurrent callers', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       let resolveConnection: (() => void) | undefined;
       const connection = new Promise<void>((resolve) => {
         resolveConnection = resolve;
@@ -208,7 +228,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should calibrate an already-started stream only once', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).scrcpyClient = {};
       (manager as any).videoStream = {};
       const readClock = rs
@@ -227,7 +247,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('shares a connection failure across concurrent callers', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const connectionError = new Error('codec unavailable');
       rs.spyOn(manager as any, 'connectScrcpy').mockRejectedValue(
         connectionError,
@@ -240,7 +260,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should include client and server output in connection errors', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const error = Object.assign(new Error('ExactReadable ended'), {
         output: ['server exited before metadata'],
       });
@@ -257,7 +277,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should bound collected server output to the latest lines', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const lines: string[] = [];
       const output = new ReadableStream<string>({
         start(controller) {
@@ -278,7 +298,7 @@ describe('ScrcpyScreenshotManager', () => {
 
   describe('consumeFramesLoop', () => {
     it('should absorb a rejected cancellation after a stream read error', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const streamError = new Error(
         'The underlying readable ended before the struct was deserialized',
       );
@@ -302,7 +322,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should disconnect the current session after a clean stream end', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const reader = {
         read: rs.fn().mockResolvedValue({ done: true }),
         cancel: rs.fn().mockResolvedValue(undefined),
@@ -321,7 +341,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should not disconnect a replacement session when an obsolete reader ends', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const obsoleteReader = {
         read: rs.fn().mockResolvedValue({ done: true }),
         cancel: rs.fn().mockResolvedValue(undefined),
@@ -361,7 +381,7 @@ describe('ScrcpyScreenshotManager', () => {
         stdout: 'mLastWakeTime=1000 (50 ms ago)',
         stderr: '',
       });
-      const manager = new ScrcpyScreenshotManager({
+      const manager = createManager({
         subprocess: {
           shellProtocol: { spawnWaitText },
         },
@@ -385,7 +405,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('drops frames captured before the device-clock barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const listener = rs.fn();
       const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
       manager.subscribeKeyframes(listener);
@@ -421,7 +441,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('projects every barrier from one stream-epoch clock sample', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValue({
@@ -446,7 +466,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('projects a deferred action barrier from when the action completed', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -468,7 +488,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('preserves a cached frame that already crosses a completed-action barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('post-action-frame');
       (manager as any).lastRawKeyframePtsUs = 1_200_000n;
@@ -491,7 +511,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('rejects a delayed first frame even while the new-stream startup window is active', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('delayed-in-transport');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
@@ -526,7 +546,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('uses the startup timeout while waiting for the first data frame of a new stream', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).streamStartupWindow = {
         deadlineAt: Date.now() + 5_000,
@@ -563,7 +583,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('deduplicates concurrent clock calibration for one stream epoch', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       let resolveClock:
         | ((value: {
             deviceUptimeUs: bigint;
@@ -597,7 +617,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('discards an in-flight clock sample from a disconnected epoch', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       let resolveClock:
         | ((value: {
             deviceUptimeUs: bigint;
@@ -626,7 +646,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('requires a stream-epoch clock anchor before arming a barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const readClock = rs.spyOn(manager as any, 'readDeviceClockCalibration');
 
       await expect(
@@ -637,7 +657,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('takes a new clock sample after the stream epoch is reset', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const readClock = rs
         .spyOn(manager as any, 'readDeviceClockCalibration')
         .mockResolvedValueOnce({
@@ -664,7 +684,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('derives host capture time and absolute age from calibrated PTS', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -684,7 +704,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('does not use Android or host wall-clock time for frame age', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -698,7 +718,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('includes half the clock-calibration RTT in the frame-age upper bound', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_000_000n,
         hostMonotonicUs: 10_000_000n,
@@ -716,7 +736,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('accepts a frame only when estimated age plus uncertainty is within 500ms', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_490_000n,
         hostMonotonicUs: 10_000_000n,
@@ -732,7 +752,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('recalibrates the clock anchor when frame PTS moves backwards', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).deviceClockCalibration = {
         deviceUptimeUs: 1_100_000n,
         hostMonotonicUs: 10_000_000n,
@@ -774,7 +794,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('hides over-age frames from continuous frame consumers', () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const listener = rs.fn();
       manager.subscribeKeyframes(listener);
       (manager as any).deviceClockCalibration = {
@@ -796,7 +816,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('reuses a cached frame that crossed the active action barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('post-action');
       (manager as any).lastRawKeyframePtsUs = 1_050_000n;
@@ -827,7 +847,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('adds a planning barrier for a post-action frame that is already over-age', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('post-action-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_100_000n;
@@ -867,7 +887,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('adds a planning barrier after the new-stream startup window expires', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('first-planning-backlog');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
@@ -902,7 +922,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('returns a quiet diagnostic when a static screen cannot cross the Planning barrier', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('old-header');
       (manager as any).lastRawKeyframe = Buffer.from('stale-static-frame');
       (manager as any).lastRawKeyframePtsUs = 1_000_000n;
@@ -938,7 +958,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('rejects frames without PTS instead of treating arrival time as freshness', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).spsHeader = Buffer.from('header');
       (manager as any).lastRawKeyframe = Buffer.from('no-pts');
       (manager as any).deviceClockCalibration = {
@@ -958,7 +978,7 @@ describe('ScrcpyScreenshotManager', () => {
 
   describe('disconnect', () => {
     it('should reset all state', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       // Manually populate state to verify cleanup
       (manager as any).spsHeader = Buffer.from('sps');
       (manager as any).lastRawKeyframe = Buffer.from('keyframe');
@@ -990,7 +1010,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should clear idle timer', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const timer = setTimeout(() => {}, 10000);
       (manager as any).idleTimer = timer;
 
@@ -1000,7 +1020,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should handle scrcpyClient.close() error gracefully', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).scrcpyClient = {
         close: rs.fn().mockRejectedValue(new Error('close failed')),
       };
@@ -1013,7 +1033,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('closes the owned ADB transport only when permanently disposed', async () => {
       const close = rs.fn().mockResolvedValue(undefined);
-      const manager = new ScrcpyScreenshotManager({ close } as any);
+      const manager = createManager({ close } as any);
 
       await manager.disconnect();
       expect(close).not.toHaveBeenCalled();
@@ -1033,7 +1053,7 @@ describe('ScrcpyScreenshotManager', () => {
           finishClose = resolve;
         }),
       );
-      const manager = new ScrcpyScreenshotManager({ close } as any);
+      const manager = createManager({ close } as any);
 
       const firstDispose = manager.dispose();
       const secondDispose = manager.dispose();
@@ -1055,7 +1075,7 @@ describe('ScrcpyScreenshotManager', () => {
 
     it('waits for an in-flight connection before disposing its ADB transport', async () => {
       const close = rs.fn().mockResolvedValue(undefined);
-      const manager = new ScrcpyScreenshotManager({ close } as any);
+      const manager = createManager({ close } as any);
       let resolveConnection: (() => void) | undefined;
       rs.spyOn(manager as any, 'connectScrcpy').mockReturnValue(
         new Promise<void>((resolve) => {
@@ -1076,7 +1096,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should cancel streamReader to stop consumeFramesLoop', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       const cancelFn = rs.fn().mockResolvedValue(undefined);
       (manager as any).streamReader = { cancel: cancelFn };
 
@@ -1087,7 +1107,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should wait for asynchronous streamReader cancellation', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       let resolveCancel: (() => void) | undefined;
       const cancelPromise = new Promise<void>((resolve) => {
         resolveCancel = resolve;
@@ -1110,7 +1130,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should handle streamReader.cancel() error gracefully', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       (manager as any).streamReader = {
         cancel: rs.fn().mockRejectedValue(new Error('stream already errored')),
       };
@@ -1120,7 +1140,7 @@ describe('ScrcpyScreenshotManager', () => {
     });
 
     it('should null references before awaiting close to prevent race conditions', async () => {
-      const manager = new ScrcpyScreenshotManager({} as any);
+      const manager = createManager({} as any);
       let clientNulledBeforeClose = false;
       (manager as any).scrcpyClient = {
         close: rs.fn().mockImplementation(async () => {
