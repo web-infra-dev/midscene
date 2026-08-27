@@ -9,6 +9,42 @@ const midsceneWaterFlowAnimation = {
 
   cleanupTimeout: null as null | number,
 
+  clearPointerTimeouts(pointer: HTMLDivElement) {
+    const timeoutId = Number(pointer.getAttribute('data-timeout-id'));
+    if (timeoutId) clearTimeout(timeoutId);
+    const removeTimeoutId = Number(
+      pointer.getAttribute('data-remove-timeout-id'),
+    );
+    if (removeTimeoutId) clearTimeout(removeTimeoutId);
+  },
+
+  getPointerElement(): HTMLDivElement | null {
+    if (this.pointerElement) {
+      if (document.body.contains(this.pointerElement)) {
+        return this.pointerElement;
+      }
+      this.clearPointerTimeouts(this.pointerElement);
+      this.pointerElement = null;
+    }
+
+    const existingPointer = document.querySelector(
+      `div[${this.mousePointerAttribute}]`,
+    ) as HTMLDivElement | null;
+    if (existingPointer && document.body.contains(existingPointer)) {
+      this.pointerElement = existingPointer;
+      return existingPointer;
+    }
+    return null;
+  },
+
+  removePointerElement(pointer: HTMLDivElement) {
+    this.clearPointerTimeouts(pointer);
+    pointer.remove();
+    if (this.pointerElement === pointer) {
+      this.pointerElement = null;
+    }
+  },
+
   // call to reset the self cleaning timer
   registerSelfCleaning() {
     // clean up all the indicators if there is no call for 30 seconds
@@ -30,28 +66,11 @@ const midsceneWaterFlowAnimation = {
   showMousePointer(x: number, y: number) {
     this.enable(); // show water flow animation
     this.registerSelfCleaning();
-    let existingPointer =
-      this.pointerElement ||
-      (document.querySelector(
-        `div[${this.mousePointerAttribute}]`,
-      ) as HTMLDivElement | null);
+    const existingPointer = this.getPointerElement();
 
     // Clear any existing timeouts to prevent race conditions
     if (existingPointer) {
-      const timeoutId = Number(existingPointer.getAttribute('data-timeout-id'));
-      if (timeoutId) clearTimeout(timeoutId);
-      const removeTimeoutId = Number(
-        existingPointer.getAttribute('data-remove-timeout-id'),
-      );
-      if (removeTimeoutId) clearTimeout(removeTimeoutId);
-    }
-
-    // Clear detached cached nodes so a new pointer can be created.
-    if (existingPointer && !document.body.contains(existingPointer)) {
-      if (this.pointerElement === existingPointer) {
-        this.pointerElement = null;
-      }
-      existingPointer = null;
+      this.clearPointerTimeouts(existingPointer);
     }
 
     const size = 30;
@@ -87,12 +106,7 @@ const midsceneWaterFlowAnimation = {
     const fadeTimeoutId = setTimeout(() => {
       pointer.style.opacity = '0';
       const removeTimeoutId = setTimeout(() => {
-        if (pointer.parentNode) {
-          document.body.removeChild(pointer);
-        }
-        if (this.pointerElement === pointer) {
-          this.pointerElement = null;
-        }
+        this.removePointerElement(pointer);
       }, 500);
       pointer.setAttribute('data-remove-timeout-id', String(removeTimeoutId));
     }, 3000);
@@ -101,18 +115,9 @@ const midsceneWaterFlowAnimation = {
 
   hideMousePointer() {
     this.registerSelfCleaning();
-    const pointer =
-      this.pointerElement ||
-      (document.querySelector(
-        `div[${this.mousePointerAttribute}]`,
-      ) as HTMLDivElement | null);
+    const pointer = this.getPointerElement();
     if (pointer) {
-      if (pointer.parentNode) {
-        document.body.removeChild(pointer);
-      }
-      if (this.pointerElement === pointer) {
-        this.pointerElement = null;
-      }
+      this.removePointerElement(pointer);
     }
   },
 
@@ -201,9 +206,7 @@ const midsceneWaterFlowAnimation = {
       `div[${this.mousePointerAttribute}]`,
     );
     mousePointers.forEach((element) => {
-      if (element.parentNode) {
-        document.body.removeChild(element);
-      }
+      this.removePointerElement(element as HTMLDivElement);
     });
     this.pointerElement = null;
   },
