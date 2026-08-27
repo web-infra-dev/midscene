@@ -21,44 +21,35 @@ export const isRunButtonEnabled = (
   runButtonEnabled: boolean,
   needsStructuredParams: boolean,
   params: any,
-  actionMap: Map<string, DeviceAction<any>> | undefined,
-  selectedType: string,
+  action: DeviceAction<any> | undefined,
   promptValue: string,
 ) => {
   if (!runButtonEnabled) {
     return false;
   }
 
-  const action = actionMap?.get(selectedType);
-
   // Check if this method needs any input
   const needsAnyInput = (() => {
-    if (actionMap) {
-      // If action exists in actionMap, check if it has paramSchema with actual fields
-      if (action) {
-        if (!action.paramSchema) return false;
+    if (action) {
+      if (!action.paramSchema) return false;
 
-        // Check if paramSchema actually has fields
-        if (
-          typeof action.paramSchema === 'object' &&
-          'shape' in action.paramSchema
-        ) {
-          const shape =
-            (action.paramSchema as { shape: Record<string, unknown> }).shape ||
-            {};
-          const shapeKeys = Object.keys(shape);
-          return shapeKeys.length > 0; // Only need input if there are actual fields
-        }
-
-        // If paramSchema exists but not in expected format, assume it needs input
-        return true;
+      // Check if paramSchema actually has fields
+      if (
+        typeof action.paramSchema === 'object' &&
+        'shape' in action.paramSchema
+      ) {
+        const shape =
+          (action.paramSchema as { shape: Record<string, unknown> }).shape ||
+          {};
+        const shapeKeys = Object.keys(shape);
+        return shapeKeys.length > 0; // Only need input if there are actual fields
       }
 
-      // If not found in actionMap, assume most methods need input
+      // If paramSchema exists but not in expected format, assume it needs input
       return true;
     }
 
-    // Fallback: most methods need some input
+    // If the action is unavailable, assume most methods need some input.
     return true;
   })();
 
