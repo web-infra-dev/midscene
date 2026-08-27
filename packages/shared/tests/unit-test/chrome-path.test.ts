@@ -8,6 +8,7 @@ import {
   test,
 } from '@rstest/core';
 import {
+  clearSystemChromePathCache,
   getSystemChromePath,
   resolveChromePath,
 } from '../../src/agent-tools/chrome-path';
@@ -34,6 +35,7 @@ describe('Chrome Path Resolution', () => {
   beforeEach(() => {
     rs.clearAllMocks();
     rs.mocked(existsSync).mockReturnValue(false);
+    clearSystemChromePathCache();
   });
 
   afterEach(() => {
@@ -84,6 +86,30 @@ describe('Chrome Path Resolution', () => {
     test('should return undefined when no Chrome found', () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       expect(getSystemChromePath()).toBeUndefined();
+    });
+
+    test('should cache the resolved Chrome path', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const optPath = '/opt/google/chrome/chrome';
+      rs.mocked(existsSync).mockImplementation((path) => path === optPath);
+
+      expect(getSystemChromePath()).toBe(optPath);
+      expect(existsSync).toHaveBeenCalled();
+
+      rs.mocked(existsSync).mockClear();
+      expect(getSystemChromePath()).toBe(optPath);
+      expect(existsSync).not.toHaveBeenCalled();
+    });
+
+    test('should not cache when Chrome is not found', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      rs.mocked(existsSync).mockReturnValue(false);
+
+      expect(getSystemChromePath()).toBeUndefined();
+
+      rs.mocked(existsSync).mockClear();
+      expect(getSystemChromePath()).toBeUndefined();
+      expect(existsSync).toHaveBeenCalled();
     });
   });
 
