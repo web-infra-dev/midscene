@@ -35,7 +35,13 @@
  *                           upstream has changed and replace the proxy.
  */
 
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
 import WebSocket, { WebSocketServer } from 'ws';
 import {
@@ -50,25 +56,37 @@ import {
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * Report a startup configuration error before exiting.
+ *
+ * Startup validation runs before the proxy's async lifecycle is installed.
+ * Use a synchronous write so a piped stderr cannot lose the diagnostic when
+ * process.exit() terminates the process immediately afterwards.
+ */
+function exitWithStartupError(message: string): never {
+  try {
+    writeSync(process.stderr.fd, message);
+  } finally {
+    process.exit(1);
+  }
+}
+
 const chromeEndpoint = process.argv[2];
 if (!chromeEndpoint) {
-  process.stderr.write('Usage: node cdp-proxy.js <chrome-ws-endpoint>\n');
-  process.exit(1);
+  exitWithStartupError('Usage: node cdp-proxy.js <chrome-ws-endpoint>\n');
 }
 
 let parsedEndpoint: URL;
 try {
   parsedEndpoint = new URL(chromeEndpoint);
 } catch {
-  process.stderr.write(`Invalid CDP endpoint URL: ${chromeEndpoint}\n`);
-  process.exit(1);
+  exitWithStartupError(`Invalid CDP endpoint URL: ${chromeEndpoint}\n`);
 }
 
 if (parsedEndpoint.protocol !== 'ws:' && parsedEndpoint.protocol !== 'wss:') {
-  process.stderr.write(
+  exitWithStartupError(
     `Invalid CDP endpoint protocol: ${parsedEndpoint.protocol}. Only ws: and wss: are allowed.\n`,
   );
-  process.exit(1);
 }
 
 // ---------------------------------------------------------------------------

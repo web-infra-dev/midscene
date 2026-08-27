@@ -17,6 +17,7 @@ const PROXY_ENDPOINT_FILE = join(tmpdir(), 'midscene-cdp-proxy-endpoint');
 const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
 const PROXY_UPSTREAM_FILE = join(tmpdir(), 'midscene-cdp-proxy-upstream');
 const PROXY_SCRIPT = join(__dirname, '../../dist/lib/cdp-proxy.js');
+const PROXY_PROCESS_TIMEOUT_MS = 10000;
 
 /**
  * Spin up a fake "Chrome" WebSocket server that echoes CDP messages.
@@ -154,8 +155,27 @@ function runProxyToExit(
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    proc.on('error', reject);
-    proc.on('close', (code) => resolve({ code, stderr }));
+
+    let settled = false;
+    const settle = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback();
+    };
+    const timer = setTimeout(() => {
+      settle(() => {
+        proc.kill('SIGKILL');
+        reject(
+          new Error(
+            `Proxy exit timeout for ${chromeEndpoint}. stderr: ${stderr}`,
+          ),
+        );
+      });
+    }, PROXY_PROCESS_TIMEOUT_MS);
+
+    proc.on('error', (error) => settle(() => reject(error)));
+    proc.on('close', (code) => settle(() => resolve({ code, stderr })));
   });
 }
 
