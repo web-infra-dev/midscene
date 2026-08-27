@@ -90,6 +90,9 @@ vi.mock('../src/renderer/recorder/useStudioRecorder', () => ({
 const { StudioRecorderPanel } = await import(
   '../src/renderer/components/Recorder/StudioRecorderPanel'
 );
+const { RecorderDetailView } = await import(
+  '../src/renderer/components/Recorder/RecorderDetailView'
+);
 const { StudioReplayPanel } = await import(
   '../src/renderer/components/Recorder/StudioReplayPanel'
 );
@@ -226,6 +229,61 @@ describe('StudioRecorderPanel', () => {
     document.body.replaceChildren();
     mocks.truncated = false;
     vi.restoreAllMocks();
+  });
+
+  it('shows export feedback while a recorder download is prepared', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const session = {
+      ...createRecorderMock().state.sessions[0],
+      generatedCode: { markdown: '# Recorded flow' },
+    };
+
+    await act(async () => {
+      root.render(
+        <RecorderDetailView
+          activeCode="# Recorded flow"
+          activeCodeType="markdown"
+          activeTab="code"
+          codeLabel="Markdown"
+          detailSession={session}
+          fallback={null}
+          generation={
+            {
+              sessionId: session.id,
+              type: 'markdown',
+              status: 'success',
+              content: '# Recorded flow',
+              error: null,
+              steps: {},
+            } as any
+          }
+          isExporting
+          isGenerating={false}
+          onBackToList={vi.fn()}
+          onCodeTabClick={vi.fn()}
+          onCodeTypeChange={vi.fn()}
+          onCopyCode={vi.fn()}
+          onExportCode={vi.fn()}
+          onLanguageChange={vi.fn()}
+          onRegenerateCode={vi.fn()}
+          onTabChange={vi.fn()}
+          selectedLanguage="auto"
+        />,
+      );
+    });
+
+    expect(container.textContent).toContain('Preparing download...');
+    expect(
+      (
+        container.querySelector(
+          'button[aria-busy="true"]',
+        ) as HTMLButtonElement | null
+      )?.disabled,
+    ).toBe(true);
+
+    await unmount(root);
   });
 
   it('starts without the initial empty timeline panel or recorder history controls', async () => {

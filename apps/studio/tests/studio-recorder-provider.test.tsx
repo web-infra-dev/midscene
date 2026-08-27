@@ -1738,7 +1738,7 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
-  it('waits for final event descriptions before completing a stopped recording', async () => {
+  it('completes Stop while final event descriptions continue in background', async () => {
     const finalEvent = {
       type: 'click',
       source: 'studio-preview',
@@ -1795,11 +1795,7 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(describeRecorderEventAtPoint).toHaveBeenCalledWith(
       expect.objectContaining({ hashId: 'click-final-ai-describe' }),
     );
-    expect(stopSettled).toBe(false);
-    expect(mounted.recorder?.currentSession?.status).toBe('recording');
-
     await act(async () => {
-      describeDeferred.resolve({ ok: true, event: describedFinalEvent });
       await stopPromise;
     });
     await flushPromises();
@@ -1809,11 +1805,37 @@ describe('StudioRecorderProvider preview recording', () => {
     expect(mounted.recorder?.currentSession?.events[0]).toMatchObject({
       hashId: 'click-final-ai-describe',
       semantic: {
+        source: 'recorderAI',
+        status: 'pending',
+      },
+    });
+
+    stopped = false;
+    let nextSessionId: string | undefined;
+    await act(async () => {
+      nextSessionId = (await mounted.recorder?.startRecording())?.id;
+    });
+    await flushPromises();
+
+    await act(async () => {
+      describeDeferred.resolve({ ok: true, event: describedFinalEvent });
+    });
+    await flushPromises();
+    await flushPromises();
+
+    const finalizedSession = mounted.recorder?.state.sessions.find(
+      (item) => item.id !== nextSessionId,
+    );
+    expect(finalizedSession?.events[0]).toMatchObject({
+      hashId: 'click-final-ai-describe',
+      semantic: {
         source: 'aiDescribe',
         status: 'ready',
         elementDescription: 'Save button in the login dialog',
       },
     });
+    expect(mounted.recorder?.currentSession?.id).toBe(nextSessionId);
+    expect(mounted.recorder?.currentSession?.status).toBe('recording');
 
     await mounted.cleanup();
   });

@@ -139,9 +139,13 @@ function mockDescribeElementAtPoint(
 }
 
 describe('PlaygroundServer manual interaction APIs', () => {
-  test('recorder stop does not wait for navigation completion', async () => {
+  test('recorder stop does not wait for queued capture enhancements', async () => {
     const server = new PlaygroundServer({ interface: {} } as any);
     (server as any)._recorderSessionId = 'session-navigation-pending';
+    let releaseCaptureQueue: (() => void) | undefined;
+    (server as any)._recorderEventQueue = new Promise<void>((resolve) => {
+      releaseCaptureQueue = resolve;
+    });
 
     await server.launch(6130);
     const stopRecorderHandler = getRouteHandler(
@@ -151,10 +155,13 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
     const response = createMockResponse();
 
-    await stopRecorderHandler({}, response);
+    const stopPromise = stopRecorderHandler({}, response);
+    await Promise.resolve();
 
     expect(response.body).toEqual({ ok: true });
     expect((server as any)._recorderSessionId).toBeNull();
+    releaseCaptureQueue?.();
+    await stopPromise;
   });
 
   test('records a session navigation event without polling for page idle', async () => {
@@ -1039,6 +1046,67 @@ describe('PlaygroundServer manual interaction APIs', () => {
         onProgress: expect.any(Function),
       }),
     );
+  });
+
+  test('publishes a preview-bound Timeline event before capture settles', async () => {
+    const inputPrimitives = makeInputPrimitiveStub();
+    const server = new PlaygroundServer({
+      interface: {
+        interfaceType: 'ios',
+        actionSpace: () => [],
+        inputPrimitives,
+        screenshotBase64: async () => VALID_PNG_BASE64,
+        size: async () => ({ width: 390, height: 844 }),
+      },
+    } as any);
+
+    await server.launch(6140);
+    const startRecorderHandler = getRouteHandler(
+      server,
+      'post',
+      '/recorder/start',
+    );
+    await startRecorderHandler(
+      { body: { sessionId: 'session-immediate-timeline' } },
+      createMockResponse(),
+    );
+
+    const interactHandler = getRouteHandler(server, 'post', '/interact');
+    await interactHandler(
+      { body: { actionType: 'Tap', x: 10, y: 20 } },
+      createMockResponse(),
+    );
+
+    const eventsHandler = getRouteHandler(server, 'get', '/recorder/events');
+    const eventsResponse = createMockResponse();
+    await eventsHandler({ query: { since: '0' } }, eventsResponse);
+
+    expect(eventsResponse.body).toMatchObject({
+      events: [
+        {
+          type: 'click',
+          semantic: { source: 'aiDescribe', status: 'pending' },
+          screenshotAsset: expect.any(Object),
+        },
+      ],
+      nextIndex: 1,
+    });
+    const provisionalHashId = (eventsResponse.body as any).events[0].hashId;
+
+    await server.waitForRecorderIdle();
+
+    const revisionResponse = createMockResponse();
+    await eventsHandler({ query: { since: '1' } }, revisionResponse);
+    expect(revisionResponse.body).toMatchObject({
+      events: [
+        {
+          hashId: provisionalHashId,
+          type: 'click',
+          screenshotAsset: expect.any(Object),
+        },
+      ],
+      nextIndex: 2,
+    });
   });
 
   test('recorder marks events failed when a screenshot cannot be retained', async () => {

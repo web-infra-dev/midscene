@@ -240,11 +240,14 @@ function getStudioTimelineEventTooltip(event: StudioRecordedEvent) {
   const title = getStudioTimelineEventTitle(event);
   const description = getStudioTimelineEventDescription(event);
   const semantic = getMidsceneRecorderSemantic(event);
+  const failure =
+    semantic?.status === 'failed' ? semantic.error?.trim() : undefined;
   const text =
     description ||
     (semantic?.status === 'pending' ? 'analyzing target...' : '');
 
-  return text ? `${title} - ${text}` : title;
+  const summary = text ? `${title} - ${text}` : title;
+  return failure ? `${summary}. Description unavailable: ${failure}` : summary;
 }
 
 function StudioTimelineEventText({ event }: { event: StudioRecordedEvent }) {
@@ -267,6 +270,9 @@ function StudioTimelineEventText({ event }: { event: StudioRecordedEvent }) {
             analyzing target...
           </span>
         </>
+      ) : null}
+      {semantic?.status === 'failed' ? (
+        <span title={semantic.error}> · description unavailable</span>
       ) : null}
     </>
   );

@@ -31,6 +31,7 @@ interface RecorderDetailViewProps {
   detailSession: StudioRecordingSession | null;
   fallback: ReactNode;
   generation: StudioRecorderGenerationState;
+  isExporting: boolean;
   isGenerating: boolean;
   onBackToList: () => void;
   onCodeTabClick: () => void;
@@ -106,6 +107,7 @@ export function RecorderDetailView({
   detailSession,
   fallback,
   generation,
+  isExporting,
   isGenerating,
   onBackToList,
   onCodeTabClick,
@@ -250,19 +252,31 @@ export function RecorderDetailView({
               <ReloadIcon />
             </button>
             <button
-              disabled={!activeCode || isGenerating}
+              aria-busy={isExporting}
+              disabled={!activeCode || isGenerating || isExporting}
               onClick={onExportCode}
-              title={`Download ${codeLabel}`}
+              title={
+                isExporting
+                  ? `Preparing ${codeLabel} download`
+                  : `Download ${codeLabel}`
+              }
               type="button"
             >
               <DownloadIcon />
             </button>
           </div>
 
-          <RecorderGenerationStatus
-            detailSession={detailSession}
-            generation={generation}
-          />
+          {isExporting ? (
+            <output className="studio-recorder-generating-card">
+              <span>Preparing download...</span>
+              <span className="studio-recorder-generating-pill">Exporting</span>
+            </output>
+          ) : (
+            <RecorderGenerationStatus
+              detailSession={detailSession}
+              generation={generation}
+            />
+          )}
 
           {detailSession.events.length === 0 ? (
             <div className="studio-recorder-empty">

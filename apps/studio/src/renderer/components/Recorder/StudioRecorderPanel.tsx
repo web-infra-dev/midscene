@@ -69,6 +69,9 @@ export function StudioRecorderPanel({
   );
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
+  const [exportingSessionId, setExportingSessionId] = useState<string | null>(
+    null,
+  );
   const [generation, setGeneration] = useState<StudioRecorderGenerationState>({
     sessionId: null,
     type: 'markdown',
@@ -122,6 +125,7 @@ export function StudioRecorderPanel({
     generation.status === 'generating' &&
     generation.sessionId === detailSession?.id &&
     generation.type === activeCodeType;
+  const isExporting = exportingSessionId === detailSession?.id;
   const statusText = useMemo(() => {
     if (state.initializing) {
       return 'Loading recorder...';
@@ -409,6 +413,7 @@ export function StudioRecorderPanel({
         </div>
       }
       generation={generation}
+      isExporting={isExporting}
       isGenerating={isGenerating}
       onBackToList={() => {
         setDetailSessionId(null);
@@ -423,9 +428,14 @@ export function StudioRecorderPanel({
         if (!detailSession) {
           return;
         }
-        void runPanelAction(() =>
-          exportSessionCode(detailSession.id, activeCodeType),
-        );
+        void runPanelAction(async () => {
+          setExportingSessionId(detailSession.id);
+          try {
+            await exportSessionCode(detailSession.id, activeCodeType);
+          } finally {
+            setExportingSessionId(null);
+          }
+        });
       }}
       onLanguageChange={handleLanguageChange}
       onRegenerateCode={() => {
