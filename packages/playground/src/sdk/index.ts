@@ -308,7 +308,7 @@ export class PlaygroundSDK {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getRecorderEvents(since);
     }
-    return { events: [], nextIndex: since };
+    return { envelopes: [], nextIndex: since };
   }
 
   async describeRecorderEventAtPoint(

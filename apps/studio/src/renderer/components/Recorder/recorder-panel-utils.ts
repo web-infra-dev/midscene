@@ -56,7 +56,7 @@ export function readPersistedCodeType(): StudioRecorderCodeType {
   if (typeof window === 'undefined') {
     return 'markdown';
   }
-  const storedType = window.localStorage.getItem(CODE_TYPE_STORAGE_KEY);
+  const storedType = window.localStorage?.getItem(CODE_TYPE_STORAGE_KEY);
   return storedType === 'markdown' ||
     storedType === 'yaml' ||
     storedType === 'playwright'
@@ -68,7 +68,7 @@ export function readPersistedLanguage() {
   if (typeof window === 'undefined') {
     return 'auto';
   }
-  return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'auto';
+  return window.localStorage?.getItem(LANGUAGE_STORAGE_KEY) || 'auto';
 }
 
 export function getSessionTargetText(session: StudioRecordingSession) {

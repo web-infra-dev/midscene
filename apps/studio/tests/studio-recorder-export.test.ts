@@ -7,9 +7,14 @@ import {
   generateStudioRecorderMarkdown,
   materializeStudioRecorderSessionScreenshots,
   saveStudioRecorderFile,
+  saveStudioRecorderMarkdownArchive,
 } from '../src/renderer/recorder/export';
 import type { StudioRecordingSession } from '../src/renderer/recorder/types';
-import type { ElectronShellApi } from '../src/shared/electron-contract';
+import type {
+  ElectronShellApi,
+  WriteZipArchiveRequest,
+  ZipArchiveProgress,
+} from '../src/shared/electron-contract';
 
 describe('studio recorder export', () => {
   afterEach(() => {
@@ -209,6 +214,95 @@ describe('studio recorder export', () => {
     expect(zip.file('screenshots/event-001-click.png')).toBeTruthy();
   });
 
+  it('uses the main-process streaming bridge for asset-backed screenshots', async () => {
+    const session: StudioRecordingSession = {
+      id: 'session-streaming',
+      name: 'Streaming recording',
+      status: 'completed',
+      target: {
+        platformId: 'web',
+        label: 'Web',
+        values: { url: 'https://example.com' },
+      },
+      events: [
+        {
+          type: 'click',
+          platformId: 'web',
+          actionType: 'Click',
+          rawPayload: {},
+          target: {
+            platformId: 'web',
+            label: 'Web',
+            values: { url: 'https://example.com' },
+          },
+          pageInfo: { width: 1280, height: 720 },
+          screenshotAsset: {
+            id: 'screenshot-streaming',
+            mimeType: 'image/png',
+            bytes: 42,
+          },
+          timestamp: 1,
+          hashId: 'click-streaming',
+        },
+      ],
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    let progressListener: ((progress: ZipArchiveProgress) => void) | undefined;
+    const stopProgress = vi.fn();
+    const writeZipArchive = vi.fn(async (request: WriteZipArchiveRequest) => {
+      progressListener?.({
+        bytesWritten: 1024,
+        completedEntries: request.entries.length,
+        exportId: request.exportId,
+        phase: 'completed',
+        totalEntries: request.entries.length,
+      });
+    });
+    (window as Window & { electronShell?: unknown }).electronShell = {
+      chooseFileSavePath: vi.fn(async () => '/tmp/streaming-recording.zip'),
+      onZipArchiveProgress: vi.fn((listener) => {
+        progressListener = listener;
+        return stopProgress;
+      }),
+      writeZipArchive,
+    } satisfies Partial<ElectronShellApi> as unknown as ElectronShellApi;
+    const loadScreenshot = vi.fn(async () => {
+      throw new Error('Streaming export must not materialize screenshots.');
+    });
+    const onProgress = vi.fn();
+
+    const result = await saveStudioRecorderMarkdownArchive({
+      session,
+      getScreenshotAssetUrl: () =>
+        'http://127.0.0.1:5800/recorder/screenshots/screenshot-streaming',
+      loadScreenshot,
+      onProgress,
+    });
+
+    expect(result).toEqual({
+      browserScreenshotLimitApplied: false,
+      canceled: false,
+    });
+    expect(loadScreenshot).not.toHaveBeenCalled();
+    expect(writeZipArchive).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entries: expect.arrayContaining([
+          {
+            path: 'screenshots/event-001-click.png',
+            sourceUrl:
+              'http://127.0.0.1:5800/recorder/screenshots/screenshot-streaming',
+          },
+        ]),
+        path: '/tmp/streaming-recording.zip',
+      }),
+    );
+    expect(onProgress).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: 'completed' }),
+    );
+    expect(stopProgress).toHaveBeenCalledOnce();
+  });
+
   it('includes Markdown replay files with screenshots in export-all zip', async () => {
     const session: StudioRecordingSession = {
       id: 'session-1',
@@ -254,11 +348,11 @@ describe('studio recorder export', () => {
       await createStudioRecorderZipBase64([session]),
       { base64: true },
     );
-    const markdownFileName = 'markdown/replay-login-session-1.md';
+    const markdownFileName = 'markdown/replay-login-session-1/recording.md';
     const markdown = await zip.file(markdownFileName)?.async('string');
     const manifest = JSON.parse(
       (await zip
-        .file('markdown/replay-login-session-1.manifest.json')
+        .file('markdown/replay-login-session-1/recording.manifest.json')
         ?.async('string')) || '{}',
     );
 
@@ -282,7 +376,9 @@ describe('studio recorder export', () => {
       ],
     });
     expect(
-      zip.file('markdown/screenshots/event-001-navigation.png'),
+      zip.file(
+        'markdown/replay-login-session-1/screenshots/event-001-navigation.png',
+      ),
     ).toBeTruthy();
   });
 

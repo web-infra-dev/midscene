@@ -23,14 +23,14 @@ import {
 } from './codegen';
 import { mapPreviewRecorderEventToStudioRecordedEvent } from './event-mapper';
 import {
-  createStudioRecorderMarkdownZipBase64,
-  createStudioRecorderZipBase64,
   generateStudioRecorderJson,
   generateStudioRecorderPlaywright,
   generateStudioRecorderYaml,
   getStudioRecorderExportVariantFileName,
   materializeStudioRecorderSessionScreenshots,
+  saveStudioRecorderArchive,
   saveStudioRecorderFile,
+  saveStudioRecorderMarkdownArchive,
 } from './export';
 import { createSecureRecorderId } from './secure-id';
 import {
@@ -48,6 +48,7 @@ import {
 import type {
   StudioRecordedEvent,
   StudioRecorderContextValue,
+  StudioRecorderExportProgress,
   StudioRecorderGenerationProgress,
   StudioRecorderState,
   StudioRecorderTarget,
@@ -441,10 +442,22 @@ function getRecorderEventTimestamp(event: StudioRecordedEvent) {
   return Number.isFinite(timestamp) ? timestamp : undefined;
 }
 
+function getRecorderEventOrder(event: StudioRecordedEvent) {
+  const order = event.rawPayload?.recorderOrder;
+  return typeof order === 'number' && Number.isFinite(order)
+    ? order
+    : undefined;
+}
+
 function sortRecorderEventsByTimestamp(events: StudioRecordedEvent[]) {
   return events
     .map((event, index) => ({ event, index }))
     .sort((left, right) => {
+      const leftOrder = getRecorderEventOrder(left.event);
+      const rightOrder = getRecorderEventOrder(right.event);
+      if (leftOrder !== undefined && rightOrder !== undefined) {
+        return leftOrder - rightOrder || left.index - right.index;
+      }
       const leftTimestamp = getRecorderEventTimestamp(left.event);
       const rightTimestamp = getRecorderEventTimestamp(right.event);
       if (leftTimestamp !== undefined && rightTimestamp !== undefined) {
@@ -637,7 +650,8 @@ type StudioRecorderRuntime = {
   drainAgain?: boolean;
   drainPromise?: Promise<void>;
   getRecorderEvents: (since?: number) => Promise<{
-    events: PlaygroundPageRecordedEvent[];
+    envelopes?: Array<{ event: PlaygroundPageRecordedEvent }>;
+    events?: PlaygroundPageRecordedEvent[];
     nextIndex: number;
   }>;
   describeRecorderEventAtPoint?: (
@@ -925,6 +939,7 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   const pendingRecorderInputRef = useRef<PendingRecorderInput | null>(null);
   const descriptionQueueRef = useRef<RecorderDescriptionTask[]>([]);
   const descriptionInFlightRef = useRef(0);
+  const descriptionTaskKeysRef = useRef(new Set<string>());
   const descriptionIdleResolversRef = useRef<Set<() => void>>(new Set());
   const pendingDescriptionRetryKeysRef = useRef<Set<string>>(new Set());
 
@@ -1231,15 +1246,35 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
             task.runtime,
           );
           if (describedEvent) {
-            await updateRecordedEvent(task.sessionId, describedEvent);
+            const latestSession = stateRef.current.sessions.find(
+              (item) => item.id === task.sessionId,
+            );
+            const latestEvent = latestSession
+              ? findSessionEventByHashLineage(latestSession, task.event)
+              : undefined;
+            await updateRecordedEvent(
+              task.sessionId,
+              latestEvent
+                ? mergeDescribedRecorderEvent(latestEvent, describedEvent)
+                : describedEvent,
+            );
           }
         } catch (error) {
           debugRecorder('failed to describe recorder event:', error);
+          const latestSession = stateRef.current.sessions.find(
+            (item) => item.id === task.sessionId,
+          );
+          const latestEvent = latestSession
+            ? findSessionEventByHashLineage(latestSession, task.event)
+            : undefined;
           await updateRecordedEvent(
             task.sessionId,
-            createFallbackRecorderEvent(task.event, error),
+            createFallbackRecorderEvent(latestEvent || task.event, error),
           );
         } finally {
+          descriptionTaskKeysRef.current.delete(
+            `${task.sessionId}:${task.event.hashId}`,
+          );
           descriptionInFlightRef.current -= 1;
           notifyDescriptionIdle();
           processDescriptionQueue();
@@ -1247,17 +1282,41 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
       })();
     }
     notifyDescriptionIdle();
-  }, [describeRecorderEventsNow, notifyDescriptionIdle, updateRecordedEvent]);
+  }, [
+    describeRecorderEventsNow,
+    mergeDescribedRecorderEvent,
+    notifyDescriptionIdle,
+    updateRecordedEvent,
+  ]);
 
   const enqueueRecorderEventDescription = useCallback(
     (sessionId: string, event: StudioRecordedEvent) => {
-      if (!shouldDescribeRecorderEvent(event)) {
+      const session = stateRef.current.sessions.find(
+        (item) => item.id === sessionId,
+      );
+      const canonicalEvent = session
+        ? findSessionEventByHashLineage(session, event) || event
+        : event;
+      if (!shouldDescribeRecorderEvent(canonicalEvent)) {
+        return;
+      }
+      const taskKey = `${sessionId}:${canonicalEvent.hashId}`;
+      if (descriptionTaskKeysRef.current.has(taskKey)) {
+        const queuedTask = descriptionQueueRef.current.find(
+          (task) =>
+            task.sessionId === sessionId &&
+            task.event.hashId === canonicalEvent.hashId,
+        );
+        if (queuedTask) {
+          queuedTask.event = canonicalEvent;
+        }
         return;
       }
       const runtime = recorderRuntimeRef.current;
+      descriptionTaskKeysRef.current.add(taskKey);
       descriptionQueueRef.current.push({
         sessionId,
-        event,
+        event: canonicalEvent,
         ...(runtime?.sessionId === sessionId ? { runtime } : {}),
       });
       processDescriptionQueue();
@@ -1406,7 +1465,10 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
 
         const result = await runtime.getRecorderEvents(runtime.cursor);
         runtime.cursor = result.nextIndex;
-        for (const event of result.events) {
+        const events = result.envelopes
+          ? result.envelopes.map((envelope) => envelope.event)
+          : result.events || [];
+        for (const event of events) {
           await recordPageEventRef.current(event);
         }
       } while (runtime.drainAgain);
@@ -1472,8 +1534,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  const materializeSessionForScreenshotExport = useCallback(
-    async (session: StudioRecordingSession, maxScreenshots?: number) => {
+  const prepareSessionScreenshotAssets = useCallback(
+    async (session: StudioRecordingSession) => {
       if (studioPlayground.phase !== 'ready') {
         throw new Error(
           'Studio Playground is unavailable for recorder screenshots.',
@@ -1484,13 +1546,21 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         event.screenshotAsset ? [event.screenshotAsset.id] : [],
       );
       await playgroundSDK.pruneRecorderScreenshotAssets(session.id, assetIds);
+      return playgroundSDK;
+    },
+    [studioPlayground],
+  );
+
+  const materializeSessionForScreenshotExport = useCallback(
+    async (session: StudioRecordingSession, maxScreenshots?: number) => {
+      const playgroundSDK = await prepareSessionScreenshotAssets(session);
       return materializeStudioRecorderSessionScreenshots(
         session,
         (assetId) => playgroundSDK.getRecorderScreenshotAsset(assetId),
         maxScreenshots,
       );
     },
-    [studioPlayground],
+    [prepareSessionScreenshotAssets],
   );
 
   const generateSessionMetadata = useCallback(
@@ -2347,7 +2417,11 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
   );
 
   const exportSessionCode = useCallback(
-    async (sessionId: string, type: StudioRecorderCodeType) => {
+    async (
+      sessionId: string,
+      type: StudioRecorderCodeType,
+      onProgress?: (progress: StudioRecorderExportProgress) => void,
+    ) => {
       await flushPendingRecorderInput(sessionId);
       const session = stateRef.current.sessions.find(
         (item) => item.id === sessionId,
@@ -2365,22 +2439,20 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
         if (!session.generatedCode?.markdown) {
           throw new Error('Generate AI Markdown before downloading.');
         }
-        await saveStudioRecorderFile({
-          title: 'Export Recorder Markdown Replay',
-          defaultFileName: getStudioRecorderExportVariantFileName(
-            session,
-            'markdown',
-            'zip',
-          ),
-          filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-          content: await createStudioRecorderMarkdownZipBase64(
-            await materializeSessionForScreenshotExport(
-              session,
-              session.events.length,
-            ),
-          ),
-          encoding: 'base64',
+        const playgroundSDK = await prepareSessionScreenshotAssets(session);
+        const result = await saveStudioRecorderMarkdownArchive({
+          session,
+          getScreenshotAssetUrl: (assetId) =>
+            playgroundSDK.getRecorderScreenshotAssetUrl(assetId),
+          loadScreenshot: (assetId) =>
+            playgroundSDK.getRecorderScreenshotAsset(assetId),
+          onProgress,
         });
+        if (result.browserScreenshotLimitApplied) {
+          message.info(
+            `Browser-compatible export includes the first ${DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS} screenshots. Use the current Studio desktop build to stream every retained screenshot.`,
+          );
+        }
         return;
       }
 
@@ -2406,7 +2478,8 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [
       exportSessionYaml,
       flushPendingRecorderInput,
-      materializeSessionForScreenshotExport,
+      message,
+      prepareSessionScreenshotAssets,
     ],
   );
 
@@ -2441,28 +2514,43 @@ export function StudioRecorderProvider({ children }: PropsWithChildren) {
     [studioPlayground],
   );
 
-  const exportAllZip = useCallback(async () => {
-    await flushPendingRecorderInput();
-    const sessions = stateRef.current.sessions;
-    if (!sessions.length) {
-      return;
-    }
-    const exportSessions: StudioRecordingSession[] = [];
-    for (const session of sessions) {
-      const exportSession = await materializeSessionForScreenshotExport(
-        session,
-        session.events.length,
-      );
-      exportSessions.push(exportSession);
-    }
-    await saveStudioRecorderFile({
-      title: 'Export Recorder Archive',
-      defaultFileName: 'midscene-studio-recordings.zip',
-      filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-      content: await createStudioRecorderZipBase64(exportSessions),
-      encoding: 'base64',
-    });
-  }, [flushPendingRecorderInput, materializeSessionForScreenshotExport]);
+  const exportAllZip = useCallback(
+    async (onProgress?: (progress: StudioRecorderExportProgress) => void) => {
+      await flushPendingRecorderInput();
+      const sessions = stateRef.current.sessions;
+      if (!sessions.length) {
+        return;
+      }
+      for (const session of sessions) {
+        await prepareSessionScreenshotAssets(session);
+      }
+      if (studioPlayground.phase !== 'ready') {
+        throw new Error(
+          'Studio Playground is unavailable for recorder screenshots.',
+        );
+      }
+      const { playgroundSDK } = studioPlayground.controller.state;
+      const result = await saveStudioRecorderArchive({
+        sessions,
+        getScreenshotAssetUrl: (assetId) =>
+          playgroundSDK.getRecorderScreenshotAssetUrl(assetId),
+        loadScreenshot: (assetId) =>
+          playgroundSDK.getRecorderScreenshotAsset(assetId),
+        onProgress,
+      });
+      if (result.browserScreenshotLimitApplied) {
+        message.info(
+          `Browser-compatible export includes the first ${DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS} screenshots. Use the current Studio desktop build to stream every retained screenshot.`,
+        );
+      }
+    },
+    [
+      flushPendingRecorderInput,
+      message,
+      prepareSessionScreenshotAssets,
+      studioPlayground,
+    ],
+  );
 
   const contextValue = useMemo<StudioRecorderContextValue>(
     () => ({

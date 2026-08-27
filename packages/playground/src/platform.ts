@@ -104,6 +104,16 @@ export type PlaygroundRecorderEventType = MidsceneRecorderEventType;
 
 export type PlaygroundRecorderEvent = MidsceneRecorderEvent;
 
+export interface PlaygroundRecorderEventEnvelope {
+  event: PlaygroundRecorderEvent;
+  kind: 'event' | 'revision';
+  /** Stable causal order; revisions retain the order of their original event. */
+  order: number;
+  revisionOf?: string;
+  /** Append-log cursor position used for incremental delivery. */
+  sequence: number;
+}
+
 export interface PlaygroundRecorderCapabilitiesResult {
   supported: boolean;
   source: PlaygroundRecorderSourceKind;
@@ -120,7 +130,7 @@ export interface PlaygroundRecorderStartResult {
 }
 
 export interface PlaygroundRecorderEventsResult {
-  events: PlaygroundRecorderEvent[];
+  envelopes: PlaygroundRecorderEventEnvelope[];
   nextIndex: number;
 }
 

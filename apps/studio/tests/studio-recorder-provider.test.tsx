@@ -297,6 +297,71 @@ describe('StudioRecorderProvider preview recording', () => {
     await mounted.cleanup();
   });
 
+  it('describes each provisional event only once when revisions arrive', async () => {
+    const events = Array.from({ length: 30 }, (_, index) => {
+      const base = {
+        type: 'click',
+        source: 'studio-preview',
+        actionType: 'Tap',
+        rawPayload: { actionType: 'Tap', x: index, y: index + 1 },
+        elementRect: { x: index, y: index + 1 },
+        pageInfo: { width: 1200, height: 800 },
+        screenshotAsset: {
+          id: `asset-${index}`,
+          mimeType: 'image/png',
+          bytes: 42,
+        },
+        timestamp: index + 1,
+        hashId: `click-${index}`,
+      };
+      return [
+        base,
+        {
+          ...base,
+          title: `Final page ${index}`,
+          url: `https://example.com/${index}`,
+        },
+      ];
+    }).flat();
+    const describeRecorderEventAtPoint = vi.fn(async (event) => ({
+      ok: true,
+      event: {
+        ...event,
+        semantic: {
+          source: 'aiDescribe',
+          status: 'ready',
+          elementDescription: `Target ${event.hashId}`,
+        },
+      },
+    }));
+    const { context } = createConnectedStudioContext({
+      events,
+      describeRecorderEventAtPoint,
+    });
+    const mounted = await mountRecorder(context);
+
+    await act(async () => {
+      await mounted.recorder?.startRecording();
+    });
+    for (let index = 0; index < 40; index += 1) {
+      await flushPromises();
+    }
+
+    expect(describeRecorderEventAtPoint).toHaveBeenCalledTimes(30);
+    expect(mounted.recorder?.currentSession?.events).toHaveLength(30);
+    expect(mounted.recorder?.currentSession?.events[29]).toMatchObject({
+      hashId: 'click-29',
+      title: 'Final page 29',
+      url: 'https://example.com/29',
+      semantic: {
+        status: 'ready',
+        elementDescription: 'Target click-29',
+      },
+    });
+
+    await mounted.cleanup();
+  });
+
   it('keeps recording when the live Playground context rerenders', async () => {
     const { context, stopRecorderSession, startRecorderSession } =
       createConnectedStudioContext();

@@ -28,6 +28,17 @@ const electronShellApi: ElectronShellApi = {
   writeReportFile: (request) =>
     ipcRenderer.invoke(IPC_CHANNELS.writeReportFile, request),
   writeFile: (request) => ipcRenderer.invoke(IPC_CHANNELS.writeFile, request),
+  writeZipArchive: (request) =>
+    ipcRenderer.invoke(IPC_CHANNELS.writeZipArchive, request),
+  onZipArchiveProgress: (listener) => {
+    const handler = (_event: unknown, progress: unknown) => {
+      listener(progress as Parameters<typeof listener>[0]);
+    };
+    ipcRenderer.on(IPC_CHANNELS.zipArchiveProgress, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.zipArchiveProgress, handler);
+    };
+  },
   setNativeTheme: (mode) =>
     ipcRenderer.invoke(IPC_CHANNELS.setNativeTheme, mode),
   onSystemThemeChanged: (listener) => {

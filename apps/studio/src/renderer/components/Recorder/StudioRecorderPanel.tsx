@@ -5,7 +5,10 @@ import {
   filterStudioRecorderSessionsForTarget,
   isStudioRecorderSessionForTarget,
 } from '../../recorder/selectors';
-import type { StudioRecordedEvent } from '../../recorder/types';
+import type {
+  StudioRecordedEvent,
+  StudioRecorderExportProgress,
+} from '../../recorder/types';
 import { useStudioRecorder } from '../../recorder/useStudioRecorder';
 import { RecorderDetailView } from './RecorderDetailView';
 import { RecorderFloatingPanel } from './RecorderFloatingPanel';
@@ -72,6 +75,8 @@ export function StudioRecorderPanel({
   const [exportingSessionId, setExportingSessionId] = useState<string | null>(
     null,
   );
+  const [exportProgress, setExportProgress] =
+    useState<StudioRecorderExportProgress | null>(null);
   const [generation, setGeneration] = useState<StudioRecorderGenerationState>({
     sessionId: null,
     type: 'markdown',
@@ -126,6 +131,7 @@ export function StudioRecorderPanel({
     generation.sessionId === detailSession?.id &&
     generation.type === activeCodeType;
   const isExporting = exportingSessionId === detailSession?.id;
+  const detailExportProgress = isExporting ? exportProgress : null;
   const statusText = useMemo(() => {
     if (state.initializing) {
       return 'Loading recorder...';
@@ -285,6 +291,25 @@ export function StudioRecorderPanel({
     ],
   );
 
+  const runCodeExport = useCallback(
+    async (sessionId: string, type: StudioRecorderCodeType) => {
+      setExportingSessionId(sessionId);
+      setExportProgress({
+        bytesWritten: 0,
+        completedEntries: 0,
+        phase: 'preparing',
+        totalEntries: 0,
+      });
+      try {
+        await exportSessionCode(sessionId, type, setExportProgress);
+      } finally {
+        setExportingSessionId(null);
+        setExportProgress(null);
+      }
+    },
+    [exportSessionCode],
+  );
+
   const openDetail = useCallback(
     (sessionId: string, tab: StudioRecorderTab = 'timeline') => {
       selectSession(sessionId);
@@ -331,7 +356,7 @@ export function StudioRecorderPanel({
         return;
       }
       setSelectedCodeType(nextType);
-      window.localStorage.setItem(CODE_TYPE_STORAGE_KEY, nextType);
+      window.localStorage?.setItem(CODE_TYPE_STORAGE_KEY, nextType);
       if (
         detailSession.events.length > 0 &&
         !detailSession.generatedCode?.[nextType]
@@ -346,7 +371,7 @@ export function StudioRecorderPanel({
 
   const handleLanguageChange = useCallback((nextLanguage: string) => {
     setSelectedLanguage(nextLanguage);
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
   }, []);
 
   const recorderPanelSession = detailSession;
@@ -413,6 +438,7 @@ export function StudioRecorderPanel({
         </div>
       }
       generation={generation}
+      exportProgress={detailExportProgress}
       isExporting={isExporting}
       isGenerating={isGenerating}
       onBackToList={() => {
@@ -428,14 +454,9 @@ export function StudioRecorderPanel({
         if (!detailSession) {
           return;
         }
-        void runPanelAction(async () => {
-          setExportingSessionId(detailSession.id);
-          try {
-            await exportSessionCode(detailSession.id, activeCodeType);
-          } finally {
-            setExportingSessionId(null);
-          }
-        });
+        void runPanelAction(() =>
+          runCodeExport(detailSession.id, activeCodeType),
+        );
       }}
       onLanguageChange={handleLanguageChange}
       onRegenerateCode={() => {
@@ -477,7 +498,7 @@ export function StudioRecorderPanel({
             onShowMarkdown?.({
               markdown,
               onDelete: () => deleteSessionCode(sessionId, 'markdown'),
-              onDownload: () => exportSessionCode(sessionId, 'markdown'),
+              onDownload: () => runCodeExport(sessionId, 'markdown'),
               title: sessionName,
             });
           }

@@ -8,9 +8,14 @@ import {
 import type {
   ElectronShellApi,
   SaveFileFilter,
+  WriteZipArchiveEntry,
 } from '@shared/electron-contract';
 import JSZip from 'jszip';
-import type { StudioRecordedEvent, StudioRecordingSession } from './types';
+import type {
+  StudioRecordedEvent,
+  StudioRecorderExportProgress,
+  StudioRecordingSession,
+} from './types';
 
 export async function materializeStudioRecorderSessionScreenshots(
   session: StudioRecordingSession,
@@ -56,7 +61,8 @@ function isMissingGenericFileBridgeError(error: unknown) {
   return (
     message.includes('No handler registered') &&
     (message.includes('choose-file-save-path') ||
-      message.includes('write-file'))
+      message.includes('write-file') ||
+      message.includes('write-zip-archive'))
   );
 }
 
@@ -437,9 +443,11 @@ export function generateStudioRecorderPlaywright(
 
 export async function createStudioRecorderZipBase64(
   sessions: StudioRecordingSession[],
+  maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
 ) {
   const zip = new JSZip();
   zip.file('recordings.md', generateStudioRecorderMarkdown(sessions));
+  let remainingScreenshots = Math.max(0, maxScreenshots);
   for (const session of sessions) {
     const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
     const markdownSource = session.generatedCode?.markdown
@@ -448,14 +456,23 @@ export async function createStudioRecorderZipBase64(
     const markdown =
       session.generatedCode?.markdown ||
       generateStudioRecorderMarkdownReplay(session);
-    zip.file(`markdown/${baseName}.md`, markdown);
+    zip.file(`markdown/${baseName}/recording.md`, markdown);
     zip.file(
-      `markdown/${baseName}.manifest.json`,
+      `markdown/${baseName}/recording.manifest.json`,
       createMarkdownReplayManifest(session, markdownSource),
     );
-    for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+    const screenshots = createMidsceneRecorderMarkdownScreenshotAssets(
       session.events,
-    )) {
+      {
+        baseDir: `./${baseName}/screenshots`,
+        maxScreenshots: remainingScreenshots,
+      },
+    );
+    remainingScreenshots = Math.max(
+      0,
+      remainingScreenshots - screenshots.length,
+    );
+    for (const screenshot of screenshots) {
       zip.file(
         `markdown/${screenshot.relativePath.replace(/^\.\//, '')}`,
         screenshot.base64Data,
@@ -478,6 +495,7 @@ export async function createStudioRecorderZipBase64(
 
 export async function createStudioRecorderMarkdownZipBase64(
   session: StudioRecordingSession,
+  maxScreenshots = DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
 ) {
   const zip = new JSZip();
   const markdownSource = session.generatedCode?.markdown
@@ -493,6 +511,7 @@ export async function createStudioRecorderMarkdownZipBase64(
   );
   for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
     session.events,
+    { maxScreenshots },
   )) {
     zip.file(
       screenshot.relativePath.replace(/^\.\//, ''),
@@ -503,6 +522,301 @@ export async function createStudioRecorderMarkdownZipBase64(
     );
   }
   return zip.generateAsync({ type: 'base64' });
+}
+
+export interface StudioRecorderArchiveSaveResult {
+  browserScreenshotLimitApplied: boolean;
+  canceled: boolean;
+}
+
+function screenshotExtension(mimeType?: string) {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/webp':
+      return 'webp';
+    default:
+      return 'png';
+  }
+}
+
+function screenshotArchivePath(
+  event: StudioRecordedEvent,
+  eventIndex: number,
+  baseDir: string,
+) {
+  const safeType = event.type.replace(/[^a-zA-Z0-9-]/g, '-');
+  const fileName = `event-${String(eventIndex + 1).padStart(3, '0')}-${safeType}.${screenshotExtension(event.screenshotAsset?.mimeType)}`;
+  return `${baseDir ? `${baseDir}/` : ''}screenshots/${fileName}`;
+}
+
+function createScreenshotArchiveEntries(
+  session: StudioRecordingSession,
+  baseDir: string,
+  getScreenshotAssetUrl: (assetId: string) => string | null,
+) {
+  const entries = new Map<string, WriteZipArchiveEntry>();
+  session.events.forEach((event, eventIndex) => {
+    if (!event.screenshotAsset) {
+      return;
+    }
+    const sourceUrl = getScreenshotAssetUrl(event.screenshotAsset.id);
+    if (!sourceUrl) {
+      throw new Error(
+        `Recorder screenshot asset is unavailable: ${event.screenshotAsset.id}`,
+      );
+    }
+    const entryPath = screenshotArchivePath(event, eventIndex, baseDir);
+    entries.set(entryPath, { path: entryPath, sourceUrl });
+  });
+
+  for (const screenshot of createMidsceneRecorderMarkdownScreenshotAssets(
+    session.events,
+    { maxScreenshots: session.events.length },
+  )) {
+    const entryPath = `${baseDir ? `${baseDir}/` : ''}${screenshot.relativePath.replace(/^\.\//, '')}`;
+    if (!entries.has(entryPath)) {
+      entries.set(entryPath, {
+        path: entryPath,
+        content: screenshot.base64Data,
+        encoding: 'base64',
+      });
+    }
+  }
+  return Array.from(entries.values());
+}
+
+export function createStudioRecorderMarkdownArchiveEntries(
+  session: StudioRecordingSession,
+  getScreenshotAssetUrl: (assetId: string) => string | null,
+  baseDir = '',
+): WriteZipArchiveEntry[] {
+  const markdownSource = session.generatedCode?.markdown
+    ? 'ai'
+    : 'local-fallback';
+  const markdown =
+    session.generatedCode?.markdown ||
+    generateStudioRecorderMarkdownReplay(session);
+  const prefix = baseDir ? `${baseDir}/` : '';
+  return [
+    { path: `${prefix}recording.md`, content: markdown },
+    {
+      path: `${prefix}recording.manifest.json`,
+      content: createMarkdownReplayManifest(session, markdownSource),
+    },
+    ...createScreenshotArchiveEntries(session, baseDir, getScreenshotAssetUrl),
+  ];
+}
+
+export function createStudioRecorderArchiveEntries(
+  sessions: StudioRecordingSession[],
+  getScreenshotAssetUrl: (assetId: string) => string | null,
+): WriteZipArchiveEntry[] {
+  const entries: WriteZipArchiveEntry[] = [
+    {
+      path: 'recordings.md',
+      content: generateStudioRecorderMarkdown(sessions),
+    },
+  ];
+  for (const session of sessions) {
+    const baseName = `${sanitizeFileName(session.name)}-${session.id}`;
+    entries.push(
+      ...createStudioRecorderMarkdownArchiveEntries(
+        session,
+        getScreenshotAssetUrl,
+        `markdown/${baseName}`,
+      ),
+      {
+        path: `${baseName}.yaml`,
+        content:
+          session.generatedCode?.yaml || generateStudioRecorderYaml(session),
+      },
+    );
+    const playwright =
+      session.generatedCode?.playwright ||
+      generateStudioRecorderPlaywright(session);
+    if (playwright) {
+      entries.push({ path: `${baseName}.spec.ts`, content: playwright });
+    }
+  }
+  return entries;
+}
+
+function createExportId() {
+  return `recorder-export-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function saveStudioRecorderZipArchive(options: {
+  createFallbackBase64: () => Promise<{
+    content: string;
+    limited: boolean;
+  }>;
+  defaultFileName: string;
+  entries: WriteZipArchiveEntry[];
+  onProgress?: (progress: StudioRecorderExportProgress) => void;
+  title: string;
+}): Promise<StudioRecorderArchiveSaveResult> {
+  const shell = (globalThis.window as Window | undefined)?.electronShell;
+  const totalEntries = options.entries.length;
+  const preparingProgress: StudioRecorderExportProgress = {
+    bytesWritten: 0,
+    completedEntries: 0,
+    phase: 'preparing',
+    totalEntries,
+  };
+  options.onProgress?.(preparingProgress);
+
+  const filters = [{ name: 'ZIP Archive', extensions: ['zip'] }];
+  let targetPath: string | null = null;
+  if (shell?.chooseFileSavePath) {
+    targetPath = await shell.chooseFileSavePath({
+      title: options.title,
+      defaultFileName: options.defaultFileName,
+      filters,
+    });
+    if (!targetPath) {
+      return { browserScreenshotLimitApplied: false, canceled: true };
+    }
+  }
+
+  if (targetPath && shell?.writeZipArchive && shell.onZipArchiveProgress) {
+    const exportId = createExportId();
+    const stopProgress = shell.onZipArchiveProgress((progress) => {
+      if (progress.exportId === exportId) {
+        const { exportId: _exportId, ...visibleProgress } = progress;
+        options.onProgress?.(visibleProgress);
+      }
+    });
+    try {
+      await shell.writeZipArchive({
+        entries: options.entries,
+        exportId,
+        path: targetPath,
+      });
+      return { browserScreenshotLimitApplied: false, canceled: false };
+    } catch (error) {
+      if (!isMissingGenericFileBridgeError(error)) {
+        throw error;
+      }
+    } finally {
+      stopProgress();
+    }
+  }
+
+  const fallback = await options.createFallbackBase64();
+  options.onProgress?.({
+    bytesWritten: 0,
+    completedEntries: 0,
+    phase: 'writing',
+    totalEntries: 1,
+  });
+  if (targetPath && shell?.writeFile) {
+    await shell.writeFile({
+      path: targetPath,
+      content: fallback.content,
+      encoding: 'base64',
+    });
+  } else {
+    triggerBrowserDownload({
+      defaultFileName: options.defaultFileName,
+      content: fallback.content,
+      encoding: 'base64',
+      filters,
+    });
+  }
+  options.onProgress?.({
+    bytesWritten: 0,
+    completedEntries: 1,
+    phase: 'completed',
+    totalEntries: 1,
+  });
+  return {
+    browserScreenshotLimitApplied: fallback.limited,
+    canceled: false,
+  };
+}
+
+function countSessionScreenshotAssets(session: StudioRecordingSession) {
+  return session.events.filter((event) => event.screenshotAsset).length;
+}
+
+export async function saveStudioRecorderMarkdownArchive(options: {
+  getScreenshotAssetUrl: (assetId: string) => string | null;
+  loadScreenshot: (assetId: string) => Promise<string | null>;
+  onProgress?: (progress: StudioRecorderExportProgress) => void;
+  session: StudioRecordingSession;
+}) {
+  const screenshotCount = countSessionScreenshotAssets(options.session);
+  return saveStudioRecorderZipArchive({
+    title: 'Export Recorder Markdown Replay',
+    defaultFileName: getStudioRecorderExportVariantFileName(
+      options.session,
+      'markdown',
+      'zip',
+    ),
+    entries: createStudioRecorderMarkdownArchiveEntries(
+      options.session,
+      options.getScreenshotAssetUrl,
+    ),
+    onProgress: options.onProgress,
+    createFallbackBase64: async () => ({
+      content: await createStudioRecorderMarkdownZipBase64(
+        await materializeStudioRecorderSessionScreenshots(
+          options.session,
+          options.loadScreenshot,
+          DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+        ),
+      ),
+      limited:
+        screenshotCount > DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+    }),
+  });
+}
+
+export async function saveStudioRecorderArchive(options: {
+  getScreenshotAssetUrl: (assetId: string) => string | null;
+  loadScreenshot: (assetId: string) => Promise<string | null>;
+  onProgress?: (progress: StudioRecorderExportProgress) => void;
+  sessions: StudioRecordingSession[];
+}) {
+  const screenshotCount = options.sessions.reduce(
+    (count, session) => count + countSessionScreenshotAssets(session),
+    0,
+  );
+  return saveStudioRecorderZipArchive({
+    title: 'Export Recorder Archive',
+    defaultFileName: 'midscene-studio-recordings.zip',
+    entries: createStudioRecorderArchiveEntries(
+      options.sessions,
+      options.getScreenshotAssetUrl,
+    ),
+    onProgress: options.onProgress,
+    createFallbackBase64: async () => {
+      let remainingScreenshots =
+        DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS;
+      const sessions: StudioRecordingSession[] = [];
+      for (const session of options.sessions) {
+        const materialized = await materializeStudioRecorderSessionScreenshots(
+          session,
+          options.loadScreenshot,
+          remainingScreenshots,
+        );
+        remainingScreenshots = Math.max(
+          0,
+          remainingScreenshots - countSessionScreenshotAssets(session),
+        );
+        sessions.push(materialized);
+      }
+      return {
+        content: await createStudioRecorderZipBase64(
+          sessions,
+          DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+        ),
+        limited:
+          screenshotCount > DEFAULT_MIDSCENE_RECORDER_MARKDOWN_MAX_SCREENSHOTS,
+      };
+    },
+  });
 }
 
 export async function saveStudioRecorderFile(options: {

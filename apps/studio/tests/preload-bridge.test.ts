@@ -68,6 +68,12 @@ describe('preload bridge', () => {
       path: '/tmp/recording.json',
       content: '{}',
     });
+    await shellApi.writeZipArchive({
+      entries: [{ archivePath: 'recording.md', content: '# Recording' }],
+      exportId: 'export-1',
+      path: '/tmp/recording.zip',
+    });
+    const stopZipProgress = shellApi.onZipArchiveProgress(() => undefined);
 
     await studioRuntimeApi.getPlaygroundBootstrap();
     await studioRuntimeApi.restartPlayground();
@@ -138,6 +144,7 @@ describe('preload bridge', () => {
       },
     });
     stopListening();
+    stopZipProgress();
 
     await updaterApi.check();
     await updaterApi.download();
@@ -173,6 +180,14 @@ describe('preload bridge', () => {
         {
           path: '/tmp/recording.json',
           content: '{}',
+        },
+      ],
+      [
+        IPC_CHANNELS.writeZipArchive,
+        {
+          entries: [{ archivePath: 'recording.md', content: '# Recording' }],
+          exportId: 'export-1',
+          path: '/tmp/recording.zip',
         },
       ],
       [IPC_CHANNELS.getPlaygroundBootstrap],
@@ -259,11 +274,19 @@ describe('preload bridge', () => {
       [IPC_CHANNELS.updaterGetStatus],
     ]);
     expect(mocks.on).toHaveBeenCalledWith(
+      IPC_CHANNELS.zipArchiveProgress,
+      expect.any(Function),
+    );
+    expect(mocks.on).toHaveBeenCalledWith(
       IPC_CHANNELS.discoveredDevicesUpdated,
       expect.any(Function),
     );
     expect(mocks.on).toHaveBeenCalledWith(
       IPC_CHANNELS.updaterStatus,
+      expect.any(Function),
+    );
+    expect(mocks.removeListener).toHaveBeenCalledWith(
+      IPC_CHANNELS.zipArchiveProgress,
       expect.any(Function),
     );
     expect(mocks.removeListener).toHaveBeenCalledWith(

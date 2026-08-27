@@ -1322,7 +1322,7 @@ class PlaygroundServer {
   private _baseSidecars?: PlaygroundSidecar[];
   private _recorderSessionId: string | null = null;
   private _recorderEvents: PlaygroundRecorderEvent[] = [];
-  private _recorderDeliveredEventCount = 0;
+  private _recorderNextEventOrder = 0;
   private _recorderPendingTypeOnlyInput: PlaygroundRecorderEvent | null = null;
   private _recorderPendingTypeOnlyInputFlushTimer:
     | ReturnType<typeof setTimeout>
@@ -1644,7 +1644,7 @@ class PlaygroundServer {
     this.clearPendingTypeOnlyRecorderInputFlushTimer();
     this._recorderSessionId = null;
     this._recorderEvents = [];
-    this._recorderDeliveredEventCount = 0;
+    this._recorderNextEventOrder = 0;
     this._recorderPendingTypeOnlyInput = null;
     this._recorderEventQueue = Promise.resolve();
     this._studioPreviewRecorderLastTargetPoint = undefined;
@@ -1654,6 +1654,12 @@ class PlaygroundServer {
 
   async waitForRecorderIdle(): Promise<void> {
     await this.waitForQueuedRecorderEvents();
+  }
+
+  private allocateRecorderEventOrder(): number {
+    const order = this._recorderNextEventOrder;
+    this._recorderNextEventOrder += 2;
+    return order;
   }
 
   private async waitForQueuedRecorderEvents(): Promise<void> {
@@ -1865,30 +1871,19 @@ class PlaygroundServer {
       payload,
       pageStateBefore,
       pageStateAfter,
+      event,
     );
     this._studioPreviewRecorderLastScreenshot = screenshotAfter;
     this._studioPreviewRecorderLastPageState = pageStateAfter;
     if (provisionalEvent) {
-      const provisionalIndex = this._recorderEvents.findIndex(
-        (candidate) => candidate.hashId === provisionalEvent.hashId,
-      );
-      if (provisionalIndex >= 0) {
-        if (provisionalIndex < this._recorderDeliveredEventCount) {
-          // The renderer has already advanced past the provisional entry.
-          // Publish an append-only revision with the same hash so cursor-based
-          // polling can observe the completed capture.
-          this._recorderEvents.push(event);
-          if (navigationEvent) {
-            this._recorderEvents.push(navigationEvent);
-          }
-          return;
-        }
-        this._recorderEvents[provisionalIndex] = event;
-        if (navigationEvent) {
-          this._recorderEvents.splice(provisionalIndex + 1, 0, navigationEvent);
-        }
-        return;
+      // Revisions are always appended with the provisional hash. Consumers
+      // receive an explicit revision envelope and can update their local
+      // Timeline without producer-side knowledge of delivery state.
+      this._recorderEvents.push(event);
+      if (navigationEvent) {
+        this._recorderEvents.push(navigationEvent);
       }
+      return;
     }
     this.queueStudioPreviewRecorderEventAppend(event, navigationEvent);
   }
@@ -1906,6 +1901,11 @@ class PlaygroundServer {
 
     const { pageInfo, url, title } = pageState;
     const timestamp = provisionalEvent?.timestamp ?? Date.now();
+    const provisionalOrder = provisionalEvent?.rawPayload?.recorderOrder;
+    const recorderOrder =
+      typeof provisionalOrder === 'number'
+        ? provisionalOrder
+        : this.allocateRecorderEventOrder();
     const payloadX = typeof payload.x === 'number' ? payload.x : undefined;
     const payloadY = typeof payload.y === 'number' ? payload.y : undefined;
     const canReuseLastTargetPoint =
@@ -1956,7 +1956,7 @@ class PlaygroundServer {
     const base = {
       source: 'studio-preview' as const,
       actionType,
-      rawPayload: payload,
+      rawPayload: { ...payload, recorderOrder },
       pageInfo,
       url,
       title,
@@ -2532,6 +2532,7 @@ class PlaygroundServer {
     payload: Record<string, unknown>,
     pageStateBefore: PlaygroundRecorderPageState | undefined,
     pageStateAfter: PlaygroundRecorderPageState,
+    triggerEvent?: PlaygroundRecorderEvent,
   ): PlaygroundRecorderEvent | null {
     const triggerActionType =
       typeof payload.actionType === 'string' ? payload.actionType : undefined;
@@ -2542,6 +2543,11 @@ class PlaygroundServer {
     }
 
     const timestamp = Date.now();
+    const triggerOrder = triggerEvent?.rawPayload?.recorderOrder;
+    const recorderOrder =
+      typeof triggerOrder === 'number'
+        ? triggerOrder + 1
+        : this.allocateRecorderEventOrder();
     const semanticAction = buildRecorderSemanticAction(
       'Navigate',
       { value: afterUrl },
@@ -2556,6 +2562,7 @@ class PlaygroundServer {
         beforeUrl,
         afterUrl,
         implicitNavigationState: true,
+        recorderOrder,
       },
       pageInfo: pageStateAfter.pageInfo,
       url: afterUrl,
@@ -2624,8 +2631,6 @@ class PlaygroundServer {
             // this newer URL for the same user action.
             hashId: existingState.hashId,
           });
-        } else if (lastActionIndex >= 0) {
-          this._recorderEvents.splice(lastActionIndex + 1, 0, navigationEvent);
         } else {
           this._recorderEvents.push(navigationEvent);
         }
@@ -2706,6 +2711,7 @@ class PlaygroundServer {
     }
 
     const timestamp = Date.now();
+    const recorderOrder = this.allocateRecorderEventOrder();
     const semanticEvent = buildRecorderSemanticAction(
       'InitialNavigation',
       { value: pageState.url },
@@ -2716,6 +2722,7 @@ class PlaygroundServer {
       type: 'navigation',
       actionType: 'InitialNavigation',
       rawPayload: {
+        recorderOrder,
         url: pageState.url,
         title: pageState.title,
       },
@@ -3823,12 +3830,49 @@ class PlaygroundServer {
           : 0;
       const startIndex = Number.isFinite(since) && since > 0 ? since : 0;
       const events = this._recorderEvents.slice(startIndex);
-      this._recorderDeliveredEventCount = Math.max(
-        this._recorderDeliveredEventCount,
-        this._recorderEvents.length,
+      const seenHashes = new Set(
+        this._recorderEvents
+          .slice(0, startIndex)
+          .map((event) => event.hashId)
+          .filter(Boolean),
       );
+      const envelopes = events.map((event, index) => {
+        const revision = seenHashes.has(event.hashId);
+        seenHashes.add(event.hashId);
+        return {
+          event,
+          kind: revision ? ('revision' as const) : ('event' as const),
+          order:
+            typeof event.rawPayload?.recorderOrder === 'number'
+              ? event.rawPayload.recorderOrder
+              : startIndex + index,
+          ...(revision ? { revisionOf: event.hashId } : {}),
+          sequence: startIndex + index,
+        };
+      });
+      const legacyEventIndexes = new Map<string, number>();
+      const legacyEvents: PlaygroundRecorderEvent[] = [];
+      for (const event of events) {
+        const existingIndex = legacyEventIndexes.get(event.hashId);
+        if (existingIndex === undefined) {
+          legacyEventIndexes.set(event.hashId, legacyEvents.length);
+          legacyEvents.push(event);
+        } else {
+          legacyEvents[existingIndex] = event;
+        }
+      }
+      legacyEvents.sort((left, right) => {
+        const leftOrder = left.rawPayload?.recorderOrder;
+        const rightOrder = right.rawPayload?.recorderOrder;
+        return typeof leftOrder === 'number' && typeof rightOrder === 'number'
+          ? leftOrder - rightOrder
+          : 0;
+      });
       res.json({
-        events,
+        envelopes,
+        // Legacy clients receive a stable, latest-revision snapshot. New
+        // clients consume the append-only `envelopes` stream.
+        events: legacyEvents,
         nextIndex: this._recorderEvents.length,
       });
     });

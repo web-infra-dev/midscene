@@ -11,6 +11,8 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.chooseFileSavePath).toBe('shell:choose-file-save-path');
     expect(IPC_CHANNELS.writeReportFile).toBe('shell:write-report-file');
     expect(IPC_CHANNELS.writeFile).toBe('shell:write-file');
+    expect(IPC_CHANNELS.writeZipArchive).toBe('shell:write-zip-archive');
+    expect(IPC_CHANNELS.zipArchiveProgress).toBe('shell:zip-archive-progress');
     expect(IPC_CHANNELS.getPlaygroundBootstrap).toBe(
       'studio:get-playground-bootstrap',
     );

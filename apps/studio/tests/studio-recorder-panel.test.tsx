@@ -260,6 +260,12 @@ describe('StudioRecorderPanel', () => {
           activeTab="code"
           codeLabel="Markdown"
           detailSession={session}
+          exportProgress={{
+            bytesWritten: 1024,
+            completedEntries: 4,
+            phase: 'writing',
+            totalEntries: 10,
+          }}
           fallback={null}
           generation={
             {
@@ -286,7 +292,7 @@ describe('StudioRecorderPanel', () => {
       );
     });
 
-    expect(container.textContent).toContain('Preparing download...');
+    expect(container.textContent).toContain('Exporting 4 of 10 files...');
     expect(
       (
         container.querySelector(

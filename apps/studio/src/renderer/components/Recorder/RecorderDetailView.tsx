@@ -1,7 +1,10 @@
 import { RecordTimeline } from '@midscene/recorder-ui';
 import type { StudioRecorderCodeType } from '@shared/electron-contract';
 import type { ReactNode } from 'react';
-import type { StudioRecordingSession } from '../../recorder/types';
+import type {
+  StudioRecorderExportProgress,
+  StudioRecordingSession,
+} from '../../recorder/types';
 import {
   ArrowIcon,
   BackIcon,
@@ -29,6 +32,7 @@ interface RecorderDetailViewProps {
   activeTab: StudioRecorderTab;
   codeLabel: string;
   detailSession: StudioRecordingSession | null;
+  exportProgress: StudioRecorderExportProgress | null;
   fallback: ReactNode;
   generation: StudioRecorderGenerationState;
   isExporting: boolean;
@@ -42,6 +46,16 @@ interface RecorderDetailViewProps {
   onRegenerateCode: () => void;
   onTabChange: (tab: StudioRecorderTab) => void;
   selectedLanguage: string;
+}
+
+function exportProgressText(progress: StudioRecorderExportProgress | null) {
+  if (!progress || progress.phase === 'preparing') {
+    return 'Preparing download...';
+  }
+  if (progress.phase === 'completed') {
+    return `Exported ${progress.completedEntries} files.`;
+  }
+  return `Exporting ${progress.completedEntries} of ${progress.totalEntries} files...`;
 }
 
 function RecorderGenerationStatus({
@@ -105,6 +119,7 @@ export function RecorderDetailView({
   activeTab,
   codeLabel,
   detailSession,
+  exportProgress,
   fallback,
   generation,
   isExporting,
@@ -268,8 +283,12 @@ export function RecorderDetailView({
 
           {isExporting ? (
             <output className="studio-recorder-generating-card">
-              <span>Preparing download...</span>
-              <span className="studio-recorder-generating-pill">Exporting</span>
+              <span>{exportProgressText(exportProgress)}</span>
+              <span className="studio-recorder-generating-pill">
+                {exportProgress?.phase === 'writing'
+                  ? `${exportProgress.completedEntries}/${exportProgress.totalEntries}`
+                  : 'Exporting'}
+              </span>
             </output>
           ) : (
             <RecorderGenerationStatus

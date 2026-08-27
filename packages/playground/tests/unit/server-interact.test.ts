@@ -959,8 +959,16 @@ describe('PlaygroundServer manual interaction APIs', () => {
           },
         },
       ],
-      nextIndex: 1,
+      nextIndex: 2,
     });
+    expect((eventsResponse.body as any).envelopes).toMatchObject([
+      { kind: 'event', sequence: 0 },
+      {
+        kind: 'revision',
+        revisionOf: expect.any(String),
+        sequence: 1,
+      },
+    ]);
     const rawEvents = (eventsResponse.body as any).events;
     expect(rawEvents).toHaveLength(1);
     expect(rawEvents[0]).toMatchObject({
@@ -1098,6 +1106,17 @@ describe('PlaygroundServer manual interaction APIs', () => {
     const revisionResponse = createMockResponse();
     await eventsHandler({ query: { since: '1' } }, revisionResponse);
     expect(revisionResponse.body).toMatchObject({
+      envelopes: [
+        {
+          kind: 'revision',
+          revisionOf: provisionalHashId,
+          sequence: 1,
+          event: {
+            hashId: provisionalHashId,
+            type: 'click',
+          },
+        },
+      ],
       events: [
         {
           hashId: provisionalHashId,

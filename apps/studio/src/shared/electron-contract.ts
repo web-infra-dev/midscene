@@ -25,6 +25,8 @@ export const IPC_CHANNELS = {
   toggleMaximizeWindow: 'shell:toggle-maximize-window',
   writeReportFile: 'shell:write-report-file',
   writeFile: 'shell:write-file',
+  writeZipArchive: 'shell:write-zip-archive',
+  zipArchiveProgress: 'shell:zip-archive-progress',
   setNativeTheme: 'shell:set-native-theme',
   systemThemeChanged: 'shell:system-theme-changed',
   // Multi-platform playground runtime (Android, iOS, HarmonyOS, Computer).
@@ -76,6 +78,32 @@ export interface WriteFileRequest {
   path: string;
   content: string;
   encoding?: 'utf-8' | 'base64';
+}
+
+export type WriteZipArchiveEntry =
+  | {
+      content: string;
+      encoding?: 'utf-8' | 'base64';
+      path: string;
+    }
+  | {
+      path: string;
+      sourceUrl: string;
+    };
+
+export interface WriteZipArchiveRequest {
+  entries: WriteZipArchiveEntry[];
+  exportId: string;
+  path: string;
+}
+
+export interface ZipArchiveProgress {
+  bytesWritten: number;
+  completedEntries: number;
+  currentFile?: string;
+  exportId: string;
+  phase: 'writing' | 'completed';
+  totalEntries: number;
 }
 
 export interface OpenImagePreviewRequest {
@@ -255,6 +283,12 @@ export interface ElectronShellApi {
   writeReportFile: (request: WriteReportFileRequest) => Promise<void>;
   /** Persist a generic text or base64-encoded binary file via the shell. */
   writeFile: (request: WriteFileRequest) => Promise<void>;
+  /** Stream source URLs and small text entries into a ZIP in the main process. */
+  writeZipArchive: (request: WriteZipArchiveRequest) => Promise<void>;
+  /** Subscribe to progress for main-process ZIP exports. */
+  onZipArchiveProgress: (
+    listener: (progress: ZipArchiveProgress) => void,
+  ) => () => void;
   /**
    * Sync the app's resolved theme to the OS so window chrome (border,
    * traffic lights) and `vibrancy` use the matching light/dark variant.

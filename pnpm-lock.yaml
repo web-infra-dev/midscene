@@ -491,16 +491,16 @@ importers:
     devDependencies:
       '@rspress/core':
         specifier: 2.0.18
-        version: 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+        version: 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       '@rspress/plugin-client-redirects':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rspress/plugin-llms':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rspress/plugin-sitemap':
         specifier: 2.0.18
-        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
+        version: 2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       '@rstest/core':
         specifier: 0.11.5
         version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
@@ -564,6 +564,9 @@ importers:
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      archiver:
+        specifier: ^6.0.0
+        version: 6.0.2
       electron-updater:
         specifier: 6.8.3
         version: 6.8.3
@@ -617,6 +620,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
+      '@types/archiver':
+        specifier: ^6.0.4
+        version: 6.0.4
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -4330,6 +4336,9 @@ packages:
   '@tybys/wasm-util@0.9.0':
     resolution: {integrity: sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==}
 
+  '@types/archiver@6.0.4':
+    resolution: {integrity: sha512-ULdQpARQ3sz9WH4nb98mJDYA0ft2A8C4f4fovvUcFwINa1cgGjY36JCAYuP5YypRq4mco1lJp1/7jEMS2oR0Hg==}
+
   '@types/argparse@1.0.38':
     resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
 
@@ -4505,6 +4514,9 @@ packages:
 
   '@types/react@19.1.5':
     resolution: {integrity: sha512-piErsCVVbpMMT2r7wbawdZsq4xMvIAhQuac2gedQHysu1TZYEigE6pnFfgZT+/jQnrRuF5r+SHzuehFjfRjr4g==}
+
+  '@types/readdir-glob@1.1.5':
+    resolution: {integrity: sha512-raiuEPUYqXu+nvtY2Pe8s8FEmZ3x5yAH4VkLdihcPdalvsHltomrRC9BzuStrJ9yk06470hS0Crw0f1pXqD+Hg==}
 
   '@types/responselike@1.0.3':
     resolution: {integrity: sha512-H/+L+UkTV33uf49PH5pCAUBVPNj2nDBXTN+qS1dOwyyg24l3CcicicCA7ca+HMvJBZcFgl5r8e+RR6elsb4Lyw==}
@@ -6931,7 +6943,7 @@ packages:
   git-raw-commits@4.0.0:
     resolution: {integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==}
     engines: {node: '>=16'}
-    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   glob-parent@5.1.2:
@@ -14361,9 +14373,9 @@ snapshots:
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6)':
     dependencies:
-      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.6(@swc/helpers@0.5.23))(react-refresh@0.18.0)
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.6)(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
@@ -14696,18 +14708,18 @@ snapshots:
       error-stack-parser: 2.1.4
       react-refresh: 0.18.0
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.1.6(@swc/helpers@0.5.23))(react-refresh@0.18.0)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.1.6)(react-refresh@0.18.0)':
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
       '@rspack/core': 2.1.6(@swc/helpers@0.5.23)
 
-  '@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)':
+  '@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.1.5)(react@19.2.8)
       '@rsbuild/core': 2.1.8(core-js@3.47.0)
-      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6(@swc/helpers@0.5.23))
+      '@rsbuild/plugin-react': 2.1.0(@rsbuild/core@2.1.8(core-js@3.47.0))(@rspack/core@2.1.6)
       '@rspress/shared': 2.0.18(core-js@3.47.0)
       '@shikijs/rehype': 4.3.1
       '@types/unist': 3.0.3
@@ -14752,13 +14764,13 @@ snapshots:
       - micromark-util-types
       - supports-color
 
-  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-client-redirects@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rspress/plugin-llms@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-llms@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
       remark-mdx: 3.1.1
       remark-parse: 11.0.0
       remark-stringify: 11.0.0
@@ -14767,9 +14779,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
+  '@rspress/plugin-sitemap@2.0.18(@rspress/core@2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2))':
     dependencies:
-      '@rspress/core': 2.0.18(@rspack/core@2.1.6(@swc/helpers@0.5.23))(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+      '@rspress/core': 2.0.18(@rspack/core@2.1.6)(@types/mdast@4.0.4)(@types/react@19.1.5)(core-js@3.47.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
   '@rspress/shared@2.0.18(core-js@3.47.0)':
     dependencies:
@@ -15153,6 +15165,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@types/archiver@6.0.4':
+    dependencies:
+      '@types/readdir-glob': 1.1.5
+
   '@types/argparse@1.0.38':
     optional: true
 
@@ -15352,6 +15368,10 @@ snapshots:
   '@types/react@19.1.5':
     dependencies:
       csstype: 3.2.3
+
+  '@types/readdir-glob@1.1.5':
+    dependencies:
+      '@types/node': 18.19.130
 
   '@types/responselike@1.0.3':
     dependencies:

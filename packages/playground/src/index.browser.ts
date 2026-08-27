@@ -56,6 +56,7 @@ export type {
   PlaygroundRecorderCapabilitiesResult,
   PlaygroundRecorderDescribeResult,
   PlaygroundRecorderEvent,
+  PlaygroundRecorderEventEnvelope,
   PlaygroundRecorderEventsResult,
   PlaygroundRecorderSourceKind,
   PlaygroundRecorderStartResult,

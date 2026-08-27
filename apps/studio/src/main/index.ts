@@ -19,6 +19,7 @@ import {
   type PrepareRecorderMarkdownReplayRequest,
   type WriteFileRequest,
   type WriteReportFileRequest,
+  type WriteZipArchiveRequest,
 } from '@shared/electron-contract';
 import type { NativeThemeMode } from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
@@ -51,6 +52,7 @@ import {
   generateRecorderCodeInMain,
   generateRecorderMetadataInMain,
 } from './recorder/codegen';
+import { writeStudioZipArchive } from './recorder/export-archive';
 import { configureStudioShellEnvHydration } from './shell-env';
 import {
   acquireStudioSingleInstanceLock,
@@ -771,6 +773,16 @@ const registerIpcHandlers = () => {
         throw new Error(`writeFile: unsupported encoding ${request.encoding}`);
       }
       await writeFileToDisk(targetPath, request.content, 'utf-8');
+    },
+  );
+  ipcMain.handle(
+    IPC_CHANNELS.writeZipArchive,
+    async (event, request: WriteZipArchiveRequest) => {
+      await writeStudioZipArchive(request, (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IPC_CHANNELS.zipArchiveProgress, progress);
+        }
+      });
     },
   );
   // Multi-platform playground — a single server for Android, iOS,

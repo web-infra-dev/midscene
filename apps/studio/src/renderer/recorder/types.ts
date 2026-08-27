@@ -6,6 +6,7 @@ import type {
 import type {
   StudioPlatformId,
   StudioRecorderCodeType,
+  ZipArchiveProgress,
 } from '@shared/electron-contract';
 
 export enum StudioModeTab {
@@ -29,6 +30,10 @@ export interface StudioRecorderGenerationProgress {
   status: StudioRecorderGenerationStepStatus;
   details?: string;
 }
+
+export type StudioRecorderExportProgress =
+  | ({ phase: 'preparing' } & Omit<ZipArchiveProgress, 'exportId' | 'phase'>)
+  | Omit<ZipArchiveProgress, 'exportId'>;
 
 export interface StudioRecorderTarget extends MidsceneRecorderTarget {
   platformId: StudioPlatformId;
@@ -119,8 +124,11 @@ export interface StudioRecorderContextValue {
   exportSessionCode: (
     sessionId: string,
     type: StudioRecorderCodeType,
+    onProgress?: (progress: StudioRecorderExportProgress) => void,
   ) => Promise<void>;
   getRecorderScreenshotAssetUrl: (assetId: string) => string | null;
   loadSessionScreenshots: (sessionId: string) => Promise<StudioRecordedEvent[]>;
-  exportAllZip: () => Promise<void>;
+  exportAllZip: (
+    onProgress?: (progress: StudioRecorderExportProgress) => void,
+  ) => Promise<void>;
 }

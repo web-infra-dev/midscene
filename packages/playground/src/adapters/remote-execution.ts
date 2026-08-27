@@ -647,7 +647,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
   async getRecorderEvents(since = 0): Promise<PlaygroundRecorderEventsResult> {
     if (!this.serverUrl) {
-      return { events: [], nextIndex: since };
+      return { envelopes: [], nextIndex: since };
     }
 
     try {
@@ -655,14 +655,25 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
         `${this.serverUrl}/recorder/events?since=${encodeURIComponent(String(since))}&flushPending=false`,
       );
       if (!response.ok) {
-        return { events: [], nextIndex: since };
+        return { envelopes: [], nextIndex: since };
       }
       const data = (await response.json().catch(() => null)) as {
+        envelopes?: unknown;
         events?: unknown;
         nextIndex?: unknown;
       } | null;
+      const envelopes = Array.isArray(data?.envelopes)
+        ? data.envelopes
+        : Array.isArray(data?.events)
+          ? data.events.map((event, index) => ({
+              event,
+              kind: 'event' as const,
+              order: since + index,
+              sequence: since + index,
+            }))
+          : [];
       return {
-        events: Array.isArray(data?.events) ? data.events : [],
+        envelopes,
         nextIndex:
           typeof data?.nextIndex === 'number' && Number.isFinite(data.nextIndex)
             ? data.nextIndex
@@ -670,7 +681,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       };
     } catch (error) {
       console.error('Failed to poll recorder events:', error);
-      return { events: [], nextIndex: since };
+      return { envelopes: [], nextIndex: since };
     }
   }
 
