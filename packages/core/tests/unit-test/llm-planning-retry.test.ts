@@ -275,6 +275,25 @@ describe('plan XML parse retry', () => {
     );
   });
 
+  it('does not record a planning log before its action executes', async () => {
+    const conversationHistory = new ConversationHistory();
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<log>Tap button</log>
+<action-type>Tap</action-type>`),
+    );
+
+    await standardPlan('tap the button', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime(mockModelConfig()),
+      conversationHistory,
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(conversationHistory.historicalLogsToText()).toBe('');
+  });
+
   it('marks planning as requiring original image detail when locate is included', async () => {
     vi.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>

@@ -251,6 +251,27 @@ export class TaskExecutor {
   }
 
   /**
+   * Commit the model's action log only after the corresponding action batch
+   * succeeds. Planning logs describe work to be performed, so recording them
+   * before execution would make failed actions appear completed on the next
+   * planning round.
+   */
+  private commitSuccessfulPlanningLog(
+    conversationHistory: ConversationHistory,
+    log: string | undefined,
+    effort: AiActEffort,
+  ): void {
+    if (!log) {
+      return;
+    }
+    if (effort === 'deepThink') {
+      conversationHistory.appendSubGoalLog(log);
+    } else {
+      conversationHistory.appendHistoricalLog(log);
+    }
+  }
+
+  /**
    * Get a readable time string. When device time is enabled, use the
    * device-formatted wall-clock time directly so host timezone formatting does
    * not reinterpret a device timestamp.
@@ -772,6 +793,13 @@ export class TaskExecutor {
       );
       try {
         await session.appendAndRun(executables.tasks);
+        if (executables.tasks.length > 0) {
+          this.commitSuccessfulPlanningLog(
+            conversationHistory,
+            planResult?.log,
+            effort,
+          );
+        }
         this.setPendingFeedbackMessage(
           conversationHistory,
           initialTimeString,

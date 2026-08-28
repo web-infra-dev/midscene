@@ -327,9 +327,6 @@ export async function standardPlan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: The plan log is recorded before its action has executed, so a failed
-  // action may still appear in the next round as an action already performed.
-  // Move this write to the successful action execution path in TaskExecutor.action.
   // Update sub-goals in conversation history only in planning deep-think mode.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {
@@ -339,15 +336,6 @@ export async function standardPlan(
       for (const index of planFromAI.markFinishedIndexes) {
         conversationHistory.markSubGoalFinished(index);
       }
-    }
-    // Append the planning log to the currently running sub-goal
-    if (planFromAI.log) {
-      conversationHistory.appendSubGoalLog(planFromAI.log);
-    }
-  } else {
-    // Without planning deep-think mode, accumulate logs as historical execution steps.
-    if (planFromAI.log) {
-      conversationHistory.appendHistoricalLog(planFromAI.log);
     }
   }
 
