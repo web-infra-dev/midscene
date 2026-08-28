@@ -185,6 +185,30 @@ describe('TaskExecutor planning history', () => {
     expect(appendLog).not.toHaveBeenCalled();
   });
 
+  it('does not commit a planning log when no action is executable', async () => {
+    const appendLog = vi.spyOn(
+      ConversationHistory.prototype,
+      'appendHistoricalLog',
+    );
+    vi.mocked(standardPlan).mockResolvedValue({
+      actions: [],
+      log: 'No action was performed',
+      shouldContinuePlanning: false,
+    });
+    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+      tasks: [],
+      yamlFlow: [],
+    } as never);
+
+    await taskExecutor.action(
+      'perform the action',
+      planningModel(),
+      defaultModel(),
+    );
+
+    expect(appendLog).not.toHaveBeenCalled();
+  });
+
   it('commits successful deepThink logs to the running sub-goal', async () => {
     const history = await runTwoPlanningRounds({
       actionExecutor: async () => undefined,
