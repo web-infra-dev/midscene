@@ -140,7 +140,7 @@ try {
     $snapshot = Get-ElementSnapshot -Element $_
     $snapshot.name -match $currentScalePattern -or
       $snapshot.value -match $currentScalePattern -or
-      $snapshot.automationId -match '(?i)scale'
+      $snapshot.automationId -eq 'SystemSettings_Display_Scaling_ItemSizeOverride_ComboBox'
   } | Select-Object -First 1
 
   if ($null -eq $scaleCombo) {
