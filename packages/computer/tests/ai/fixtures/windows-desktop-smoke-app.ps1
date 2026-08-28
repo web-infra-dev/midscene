@@ -66,7 +66,10 @@ using System.Runtime.InteropServices;
 public static class MidsceneWindowsFixtureNativeMethods
 {
     [DllImport("user32.dll")]
-    public static extern uint GetDpiForWindow(IntPtr windowHandle);
+    public static extern uint GetDpiForSystem();
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -334,9 +337,23 @@ $form.Add_Shown({
   $form.BringToFront()
   $form.Refresh()
 
-  $dpi = [MidsceneWindowsFixtureNativeMethods]::GetDpiForWindow($form.Handle)
+  $systemAwareContext = [System.IntPtr]::new(-2)
+  $previousDpiContext = [MidsceneWindowsFixtureNativeMethods]::SetThreadDpiAwarenessContext(
+    $systemAwareContext
+  )
+  if ($previousDpiContext -eq [System.IntPtr]::Zero) {
+    throw 'Unable to enter a system-aware thread DPI context for the fixture probe.'
+  }
+  try {
+    $dpi = [MidsceneWindowsFixtureNativeMethods]::GetDpiForSystem()
+  }
+  finally {
+    [MidsceneWindowsFixtureNativeMethods]::SetThreadDpiAwarenessContext(
+      $previousDpiContext
+    ) | Out-Null
+  }
   if ($dpi -eq 0) {
-    throw 'GetDpiForWindow returned zero for the visible fixture window.'
+    throw 'GetDpiForSystem returned zero for the system-aware fixture probe.'
   }
 
   $screenBounds = $primaryScreen.Bounds

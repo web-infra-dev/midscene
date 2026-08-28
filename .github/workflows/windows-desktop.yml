@@ -107,6 +107,11 @@ jobs:
           public static class MidsceneNativeDpi {
             [DllImport("user32.dll")]
             public static extern uint GetDpiForSystem();
+
+            [DllImport("user32.dll")]
+            public static extern System.IntPtr SetThreadDpiAwarenessContext(
+              System.IntPtr dpiContext
+            );
           }
           '@
 
@@ -119,7 +124,26 @@ jobs:
 
             $bounds = $primaryScreen.Bounds
             $workingArea = $primaryScreen.WorkingArea
-            $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            # PowerShell is DPI-unaware by default, so an unqualified
+            # GetDpiForSystem call always returns 96 even after Settings has
+            # applied 175%. Temporarily query from a system-aware thread
+            # context, then restore the runner's original context so the
+            # production smoke still exercises DPI virtualization.
+            $systemAwareContext = [System.IntPtr]::new(-2)
+            $previousDpiContext = [MidsceneNativeDpi]::SetThreadDpiAwarenessContext(
+              $systemAwareContext
+            )
+            if ($previousDpiContext -eq [System.IntPtr]::Zero) {
+              throw 'Unable to enter a system-aware thread DPI context for the display-scale probe.'
+            }
+            try {
+              $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            }
+            finally {
+              [MidsceneNativeDpi]::SetThreadDpiAwarenessContext(
+                $previousDpiContext
+              ) | Out-Null
+            }
             $expectedScalePercent = [int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT
             $expectedDpi = [int][Math]::Round(96 * $expectedScalePercent / 100)
             $windowsPowerShellVersion = (
