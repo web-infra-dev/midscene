@@ -209,6 +209,8 @@ describe('deepseek model adapter', () => {
   it.each([
     '<｜｜point｜｜>[[928.5,780]]<｜｜/point｜｜>',
     '<｜｜point｜｜>no coordinates<｜｜/point｜｜>',
+    '<｜｜point｜｜>[-10,500]<｜｜/point｜｜>',
+    '<｜｜point｜｜>[500,-10]<｜｜/point｜｜>',
   ])('rejects output without exactly two integers: %s', (content) => {
     const locateAdapter = getStandardLocateAdapter().element;
     const rawResult = locateAdapter.protocol.parseRawResponse(
@@ -224,6 +226,28 @@ describe('deepseek model adapter', () => {
         preparedSize: { width: 1000, height: 1000 },
       }),
     ).toThrow('must contain exactly 2 positive integers');
+  });
+
+  it.each([
+    '<｜｜ref｜｜>target<｜｜/ref｜｜><｜｜box｜｜>[[-1,100,200,300]]<｜｜/box｜｜>',
+    '<｜｜ref｜｜>target<｜｜/ref｜｜><｜｜box｜｜>[[100,-1,200,300]]<｜｜/box｜｜>',
+    '<｜｜ref｜｜>target<｜｜/ref｜｜><｜｜box｜｜>[[100,200,-1,300]]<｜｜/box｜｜>',
+    '<｜｜ref｜｜>target<｜｜/ref｜｜><｜｜box｜｜>[[100,200,300,-1]]<｜｜/box｜｜>',
+  ])('rejects negative bbox coordinates: %s', (content) => {
+    const locateAdapter = getStandardLocateAdapter().searchArea!;
+    const rawResult = locateAdapter.protocol.parseRawResponse(
+      content,
+      locateAdapter.resultCodec.promptSpec,
+    );
+    if (rawResult.kind !== 'located') {
+      throw new Error('DeepSeek response should contain a raw location');
+    }
+
+    expect(() =>
+      locateAdapter.resultCodec.toPixelBbox(rawResult.target, {
+        preparedSize: { width: 1000, height: 1000 },
+      }),
+    ).toThrow('must contain exactly 4 positive integers');
   });
 
   it.each([

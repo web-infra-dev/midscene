@@ -30,14 +30,18 @@ function parseDeepSeekCoordinateValues(
   expectedLength: number,
   label: string,
 ): number[] {
-  const coordinateTexts = String(input).match(/\d+/g);
-  if (coordinateTexts?.length !== expectedLength) {
+  const coordinateTexts = String(input).match(/[+-]?\d+/g);
+  const coordinates = coordinateTexts?.map(Number);
+  if (
+    coordinates?.length !== expectedLength ||
+    !coordinates.every((coordinate) => coordinate >= 0)
+  ) {
     throw new Error(
       `DeepSeek ${label} locate result must contain exactly ${expectedLength} positive integers, got ${coordinateTexts?.length ?? 0}`,
     );
   }
 
-  return coordinateTexts.map(Number);
+  return coordinates;
 }
 
 function parseDeepSeekPointLocateValue(input: unknown): LocateResultValue {
