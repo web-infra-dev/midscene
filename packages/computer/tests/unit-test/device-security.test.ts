@@ -15,6 +15,8 @@ const mockState = rs.hoisted(() => {
     },
   ];
   let windowsDisplays = defaultWindowsDisplays;
+  let windowsCursorPos = { x: 10, y: 20 };
+  let windowsCursorTransform = (x: number, y: number) => ({ x, y });
   // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
   // now (issue #2150); answer based on which script is being run.
   const execFileSync = rs.fn(
@@ -34,6 +36,17 @@ const mockState = rs.hoisted(() => {
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }
+        if (script.includes('[System.Windows.Forms.Cursor]::Position')) {
+          const targetX = script.match(/\$targetX = (-?\d+)/)?.[1];
+          const targetY = script.match(/\$targetY = (-?\d+)/)?.[1];
+          if (targetX !== undefined && targetY !== undefined) {
+            windowsCursorPos = windowsCursorTransform(
+              Number(targetX),
+              Number(targetY),
+            );
+          }
+          return `${windowsCursorPos.x},${windowsCursorPos.y}`;
+        }
         return JSON.stringify(windowsDisplays);
       }
       return undefined;
@@ -50,12 +63,11 @@ const mockState = rs.hoisted(() => {
   ]);
 
   let mousePos = { x: 10, y: 20 };
-  let mouseTransform = (x: number, y: number) => ({ x, y });
   const libnut = {
     getScreenSize: rs.fn(() => ({ width: 800, height: 600 })),
     getMousePos: rs.fn(() => ({ ...mousePos })),
     moveMouse: rs.fn((x: number, y: number) => {
-      mousePos = mouseTransform(x, y);
+      mousePos = { x, y };
     }),
     mouseClick: rs.fn(),
     mouseToggle: rs.fn(),
@@ -75,7 +87,8 @@ const mockState = rs.hoisted(() => {
 
   const reset = () => {
     mousePos = { x: 10, y: 20 };
-    mouseTransform = (x: number, y: number) => ({ x, y });
+    windowsCursorPos = { x: 10, y: 20 };
+    windowsCursorTransform = (x: number, y: number) => ({ x, y });
     windowsDisplays = defaultWindowsDisplays;
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
@@ -97,15 +110,17 @@ const mockState = rs.hoisted(() => {
     createRequire.mockClear();
   };
 
-  const setMouseTransform = (
-    transform: (x: number, y: number) => { x: number; y: number },
-  ) => {
-    mouseTransform = transform;
-  };
-
   const setWindowsDisplays = (displays: typeof defaultWindowsDisplays) => {
     windowsDisplays = displays;
   };
+
+  const setWindowsCursorTransform = (
+    transform: (x: number, y: number) => { x: number; y: number },
+  ) => {
+    windowsCursorTransform = transform;
+  };
+
+  const getWindowsCursorPos = () => ({ ...windowsCursorPos });
 
   return {
     execSync,
@@ -114,8 +129,9 @@ const mockState = rs.hoisted(() => {
     libnut,
     createRequire,
     reset,
-    setMouseTransform,
     setWindowsDisplays,
+    setWindowsCursorTransform,
+    getWindowsCursorPos,
   };
 });
 
@@ -175,6 +191,7 @@ async function runPointerTap(
 async function createConnectedDeviceForPlatform(platform: NodeJS.Platform) {
   Object.defineProperty(process, 'platform', { value: platform });
   const device = await createConnectedDevice();
+  mockState.execFileSync.mockClear();
   mockState.libnut.moveMouse.mockClear();
   mockState.libnut.mouseClick.mockClear();
   mockState.libnut.scrollMouse.mockClear();
@@ -305,7 +322,8 @@ describe('ComputerDevice scroll targeting', () => {
       direction: 'down',
     });
 
-    expect(mockState.libnut.moveMouse).toHaveBeenCalledWith(400, 300);
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 400, y: 300 });
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.focusWindow).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
     expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
@@ -328,27 +346,34 @@ describe('ComputerDevice scroll targeting', () => {
 
     expect(mockState.libnut.getWindowRect).toHaveBeenCalledWith(123);
     expect(mockState.libnut.focusWindow).toHaveBeenCalledWith(123);
-    expect(mockState.libnut.moveMouse).toHaveBeenCalledWith(220, 330);
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 220, y: 330 });
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
     expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
   });
 });
 
 describe('ComputerDevice pointer input', () => {
-  it('corrects scaled Windows mouse coordinates before clicking', async () => {
-    mockState.setMouseTransform((x, y) => ({ x: x * 1.75, y: y * 1.75 }));
+  it('does not trust a self-consistent libnut position outside screenshot space', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
+
+    // This reproduces the previous false-positive check: libnut reports the
+    // same point it was asked to move to while the independent WinForms
+    // cursor used by screenshots has not moved there.
+    mockState.libnut.moveMouse(400, 300);
+    expect(mockState.libnut.getMousePos()).toEqual({ x: 400, y: 300 });
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 10, y: 20 });
+    mockState.libnut.moveMouse.mockClear();
 
     await device.inputPrimitives.pointer!.tap({ x: 400, y: 300 });
 
-    const actual = mockState.libnut.getMousePos();
-    expect(Math.abs(actual.x - 400)).toBeLessThanOrEqual(1);
-    expect(Math.abs(actual.y - 300)).toBeLessThanOrEqual(1);
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 400, y: 300 });
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
   });
 
-  it('calibrates scaled and offset coordinates inside the selected Windows display', async () => {
+  it('moves in screenshot-space coordinates inside the selected Windows display', async () => {
     mockState.setWindowsDisplays([
       {
         id: '\\\\.\\DISPLAY1',
@@ -363,10 +388,6 @@ describe('ComputerDevice pointer input', () => {
         bounds: { x: -1200, y: -200, width: 1200, height: 900 },
       },
     ]);
-    mockState.setMouseTransform((x, y) => ({
-      x: x * 1.75 + 50,
-      y: y * 1.5 + 20,
-    }));
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const { ComputerDevice } = await import('../../src/device');
     const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY2' });
@@ -375,14 +396,13 @@ describe('ComputerDevice pointer input', () => {
 
     await device.inputPrimitives.pointer!.tap({ x: 200, y: 300 });
 
-    const actual = mockState.libnut.getMousePos();
-    expect(Math.abs(actual.x - -1000)).toBeLessThanOrEqual(1);
-    expect(Math.abs(actual.y - 100)).toBeLessThanOrEqual(1);
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: -1000, y: 100 });
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
   });
 
-  it('corrects the reported top-edge residual before double-clicking', async () => {
+  it('moves to the reported top-edge target in screenshot coordinates', async () => {
     mockState.setWindowsDisplays([
       {
         id: '\\\\.\\DISPLAY1',
@@ -392,19 +412,17 @@ describe('ComputerDevice pointer input', () => {
       },
     ]);
     const device = await createConnectedDeviceForPlatform('win32');
-    mockState.setMouseTransform((x, y) => ({ x: x + 5, y: y + 31 }));
 
     await device.inputPrimitives.pointer!.doubleClick({ x: 1395, y: 50 });
 
-    expect(mockState.libnut.moveMouse).toHaveBeenNthCalledWith(1, 1395, 50);
-    expect(mockState.libnut.moveMouse).toHaveBeenNthCalledWith(2, 1390, 19);
-    expect(mockState.libnut.getMousePos()).toEqual({ x: 1395, y: 50 });
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 1395, y: 50 });
+    expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseClick).toHaveBeenCalledWith('left', true);
   });
 
-  it('does not click when pointer drift appears after Windows calibration', async () => {
+  it('does not click when screenshot-space pointer verification fails', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
-    mockState.setMouseTransform(() => ({ x: 700, y: 500 }));
+    mockState.setWindowsCursorTransform(() => ({ x: 700, y: 500 }));
 
     await expect(
       device.inputPrimitives.pointer!.tap({ x: 400, y: 300 }),
@@ -441,13 +459,11 @@ describe('ComputerDevice pointer input', () => {
     ];
 
     for (const run of guardedActions) {
-      mockState.setMouseTransform((x, y) => ({ x, y }));
-      mockState.libnut.moveMouse(10, 20);
       mockState.libnut.mouseClick.mockClear();
       mockState.libnut.mouseToggle.mockClear();
       mockState.libnut.scrollMouse.mockClear();
       mockState.libnut.keyTap.mockClear();
-      mockState.setMouseTransform(() => ({ x: 700, y: 500 }));
+      mockState.setWindowsCursorTransform(() => ({ x: 700, y: 500 }));
 
       await expect(run()).rejects.toThrow(/did not reach/);
       expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();

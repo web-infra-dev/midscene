@@ -26,6 +26,11 @@ import {
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
+import {
+  WindowsPointerDriver,
+  windowsPointerDrift,
+  windowsPointerIsWithinTolerance,
+} from './windows-pointer';
 import type { XvfbInstance } from './xvfb';
 import {
   checkXvfbInstalled,
@@ -571,10 +576,10 @@ async function pressMouseAtGlobalPoint(
   inputDriver: ComputerInputDriver,
   targetX: number,
   targetY: number,
+  current: Point,
   holdDuration: number,
   reason: 'primary' | 'focus-follow-up',
 ): Promise<void> {
-  const current = inputDriver.getMousePos();
   const drift = { x: current.x - targetX, y: current.y - targetY };
   debugComputerInput('tap mouse moved %o', {
     reason,
@@ -837,6 +842,9 @@ export class ComputerDevice implements AbstractInterface {
     runPhasedScroll,
     debug: (message) => debugDevice(message),
   });
+  private readonly windowsPointerDriver = new WindowsPointerDriver({
+    runPowershell,
+  });
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -868,7 +876,7 @@ export class ComputerDevice implements AbstractInterface {
           process.platform === 'darwin'
             ? readDarwinFrontmostApplication()
             : undefined;
-        await this.moveGlobalPointer(
+        const current = await this.moveGlobalPointer(
           { x: targetX, y: targetY },
           'Mouse did not reach the tap target',
           {
@@ -880,6 +888,7 @@ export class ComputerDevice implements AbstractInterface {
           this.inputDriver,
           targetX,
           targetY,
+          current,
           holdDuration,
           'primary',
         );
@@ -895,7 +904,7 @@ export class ComputerDevice implements AbstractInterface {
             focusChanged,
           });
           if (focusChanged) {
-            await this.moveGlobalPointer(
+            const followUpCurrent = await this.moveGlobalPointer(
               { x: targetX, y: targetY },
               'Mouse did not reach the focus follow-up target',
             );
@@ -903,6 +912,7 @@ export class ComputerDevice implements AbstractInterface {
               this.inputDriver,
               targetX,
               targetY,
+              followUpCurrent,
               holdDuration,
               'focus-follow-up',
             );
@@ -1002,10 +1012,27 @@ export class ComputerDevice implements AbstractInterface {
     context: string,
     smooth?: { smoothSteps: number; smoothDelay: number },
   ): Promise<Point> {
+    if (this.destroyed) {
+      throw new Error('ComputerDevice has been destroyed');
+    }
     const target = {
       x: Math.round(point.x),
       y: Math.round(point.y),
     };
+    if (process.platform === 'win32') {
+      const actual = this.windowsPointerDriver.moveTo(target, {
+        smoothSteps: smooth?.smoothSteps,
+        smoothDelayMs: smooth?.smoothDelay,
+      });
+      const drift = windowsPointerDrift(target, actual);
+      if (!windowsPointerIsWithinTolerance(drift)) {
+        throw new Error(
+          `${context}: expected (${target.x}, ${target.y}), got (${actual.x}, ${actual.y}), drift=(${drift.x}, ${drift.y})`,
+        );
+      }
+      await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+      return actual;
+    }
     if (smooth) {
       await this.inputDriver.smoothMoveMouse(
         target.x,
@@ -1017,9 +1044,6 @@ export class ComputerDevice implements AbstractInterface {
       this.inputDriver.moveMouse(target.x, target.y);
     }
     await this.inputDriver.delay(CLICK_SETTLE_DELAY);
-    if (process.platform === 'win32') {
-      await this.inputDriver.correctMousePosition(target.x, target.y, context);
-    }
     return target;
   }
 
@@ -1184,10 +1208,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
-    // Step 2: Verify pointer control. On Windows this also calibrates libnut
-    // into the selected display's logical coordinate space.
+    // Step 2: Verify pointer control. Windows movement and observation use the
+    // same WinForms coordinate space as Screen.Bounds and CopyFromScreen.
     console.log('[HealthCheck] Verifying mouse control...');
-    const startPos = this.inputDriver.getMousePos();
+    const startPos =
+      process.platform === 'win32'
+        ? this.windowsPointerDriver.getPosition()
+        : this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
@@ -1196,11 +1223,24 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       if (!this.displayGeometry) {
         throw new Error('Windows display geometry is unavailable');
       }
-      await this.inputDriver.calibrateMouseCoordinates(
-        this.displayGeometry.bounds,
-      );
+      const bounds = this.displayGeometry.bounds;
+      const target = {
+        x: Math.round(bounds.x + bounds.width / 2),
+        y: Math.round(bounds.y + bounds.height / 2),
+      };
+      try {
+        const actual = this.windowsPointerDriver.moveTo(target);
+        const drift = windowsPointerDrift(target, actual);
+        if (!windowsPointerIsWithinTolerance(drift)) {
+          throw new Error(
+            `Windows screenshot-space pointer verification: expected (${target.x}, ${target.y}), got (${actual.x}, ${actual.y}), drift=(${drift.x}, ${drift.y})`,
+          );
+        }
+      } finally {
+        this.windowsPointerDriver.moveTo(startPos);
+      }
       console.log(
-        `[HealthCheck] Mouse calibrated for display bounds (${this.displayGeometry.bounds.x}, ${this.displayGeometry.bounds.y}, ${this.displayGeometry.bounds.width}, ${this.displayGeometry.bounds.height})`,
+        `[HealthCheck] Mouse verified in screenshot-space display bounds (${bounds.x}, ${bounds.y}, ${bounds.width}, ${bounds.height})`,
       );
     } else {
       const offsetX = Math.floor(Math.random() * 40) + 10;
@@ -1377,9 +1417,10 @@ Original error: ${lastRawMessage}`,
    * the exact .NET-compiler dependency this PR removes by dropping
    * screenshot-desktop's polyglot .bat — so it is intentionally avoided here.
    * As a result, captures on a scaled display come back at logical (scaled)
-   * resolution. Display enumeration uses the same logical bounds, and the
-   * input driver calibrates pointer coordinates inside those selected-display
-   * bounds so screenshot locations and pointer actions remain aligned.
+   * resolution. Display enumeration and Windows pointer movement use the same
+   * WinForms logical coordinate space, so screenshot locations and pointer
+   * actions remain aligned without comparing them to libnut's process-level
+   * DPI coordinate space.
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';

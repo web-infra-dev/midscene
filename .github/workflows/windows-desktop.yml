@@ -82,22 +82,10 @@ jobs:
             Add-Type -TypeDefinition @'
           using System.Runtime.InteropServices;
           public static class MidsceneNativeDpi {
-            [DllImport("user32.dll", SetLastError = true)]
-            [return: MarshalAs(UnmanagedType.Bool)]
-            public static extern bool SetProcessDPIAware();
-
             [DllImport("user32.dll")]
             public static extern uint GetDpiForSystem();
           }
           '@
-
-            $dpiAware = [MidsceneNativeDpi]::SetProcessDPIAware()
-            if (-not $dpiAware) {
-              $lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-              if ($lastError -ne 5) {
-                throw "SetProcessDPIAware failed with Win32 error $lastError."
-              }
-            }
 
             Add-Type -AssemblyName System.Windows.Forms
             $process = [System.Diagnostics.Process]::GetCurrentProcess()
@@ -143,10 +131,6 @@ jobs:
             if ($bounds.Width -le 0 -or $bounds.Height -le 0) {
               $violations += "Primary screen has invalid bounds $($bounds.Width)x$($bounds.Height)"
             }
-            if ($dpi -ne 96) {
-              $violations += "Expected 96 DPI (100% scaling), received $dpi DPI"
-            }
-
             $probe.violations = $violations
             $probe.valid = $violations.Count -eq 0
             Write-ProbeManifest

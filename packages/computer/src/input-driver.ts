@@ -1,18 +1,5 @@
 import assert from 'node:assert';
 import type { Size } from '@midscene/core';
-import {
-  type MouseCalibrationBounds,
-  type MouseCoordinateCalibration,
-  type MousePoint,
-  applyMouseCoordinateCalibration,
-  assertValidMouseCalibrationBounds,
-  calculateMouseCoordinateCalibration,
-  getMouseCoordinateDrift,
-  mouseCalibrationPoint,
-  mouseCoordinateCalibrationNeedsCorrection,
-  mouseCoordinateCorrectionPoint,
-  mouseCoordinateDriftIsWithinTolerance,
-} from './mouse-coordinate-calibration';
 
 export interface LibNut {
   getScreenSize(): { width: number; height: number };
@@ -31,9 +18,7 @@ export interface LibNut {
 export type MouseButton = 'left' | 'right' | 'middle';
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
-const CALIBRATION_SETTLE_DELAY_MS = 80;
-const MOUSE_CORRECTION_SETTLE_DELAY_MS = 50;
-const MAX_MOUSE_CORRECTION_ATTEMPTS = 3;
+const MOUSE_COORDINATE_TOLERANCE_PX = 5;
 
 export interface WindowRect {
   x: number;
@@ -56,7 +41,6 @@ interface ComputerInputDriverOptions {
 
 export class ComputerInputDriver {
   private destroyed = false;
-  private mouseCoordinateCalibration?: MouseCoordinateCalibration;
   private pendingInputDelayWaits = new Set<{
     timeoutId: ReturnType<typeof setTimeout>;
     reject: (error: Error) => void;
@@ -81,144 +65,25 @@ export class ComputerInputDriver {
   }
 
   moveMouse(x: number, y: number): void {
-    const target = this.mouseCoordinateCalibration
-      ? applyMouseCoordinateCalibration(
-          { x, y },
-          this.mouseCoordinateCalibration,
-        )
-      : { x, y };
-    this.getLibnutOrThrow('moveMouse').moveMouse(target.x, target.y);
-  }
-
-  /**
-   * Measure and invert the coordinate transform applied by the Windows input
-   * stack for the selected display. libnut's moveMouse can be scaled or offset
-   * on a DPI-scaled desktop even though getMousePos and screenshots use logical
-   * coordinates. Calibrating inside the selected display keeps its pointer
-   * primitives in the screenshot coordinate space seen by the model.
-   */
-  async calibrateMouseCoordinates(
-    bounds: MouseCalibrationBounds,
-  ): Promise<void> {
-    this.assertActive('calibrateMouseCoordinates');
-    assertValidMouseCalibrationBounds(bounds);
-
-    // Keep raw probes near the top-left. On the broken high-DPI path a raw
-    // coordinate can be magnified substantially, so 25%/75% probes may be
-    // clamped or spill onto another monitor before we have a correction.
-    const firstInput = mouseCalibrationPoint(bounds, 0.1);
-    const secondInput = mouseCalibrationPoint(bounds, 0.3);
-    const savedPosition = this.getMousePos();
-    this.mouseCoordinateCalibration = undefined;
-
-    try {
-      this.moveMouse(firstInput.x, firstInput.y);
-      await this.delay(CALIBRATION_SETTLE_DELAY_MS);
-      const firstActual = this.getMousePos();
-
-      this.moveMouse(secondInput.x, secondInput.y);
-      await this.delay(CALIBRATION_SETTLE_DELAY_MS);
-      const secondActual = this.getMousePos();
-
-      const calibration = calculateMouseCoordinateCalibration(
-        firstInput,
-        firstActual,
-        secondInput,
-        secondActual,
-      );
-      const needsCorrection =
-        mouseCoordinateCalibrationNeedsCorrection(calibration);
-      this.mouseCoordinateCalibration = needsCorrection
-        ? calibration
-        : undefined;
-
-      let verificationDrift: MousePoint = { x: 0, y: 0 };
-      if (needsCorrection) {
-        const verificationTarget = mouseCalibrationPoint(bounds, 0.5);
-        this.moveMouse(verificationTarget.x, verificationTarget.y);
-        await this.delay(CALIBRATION_SETTLE_DELAY_MS);
-        verificationDrift = this.assertMousePosition(
-          verificationTarget.x,
-          verificationTarget.y,
-          'Mouse coordinate calibration verification',
-        );
-      }
-
-      this.options.debug(
-        needsCorrection
-          ? `Mouse coordinate calibration applied: scale=(${calibration.scaleX.toFixed(4)}, ${calibration.scaleY.toFixed(4)}), offset=(${calibration.offsetX.toFixed(1)}, ${calibration.offsetY.toFixed(1)}), verification drift=(${verificationDrift.x}, ${verificationDrift.y})`
-          : 'Mouse coordinate calibration is identity',
-      );
-      this.moveMouse(savedPosition.x, savedPosition.y);
-    } catch (error) {
-      // Restore using the measured inverse when one is available, then reject
-      // the connection. Continuing would make actions report success while
-      // clicks land elsewhere.
-      try {
-        this.moveMouse(savedPosition.x, savedPosition.y);
-      } finally {
-        this.mouseCoordinateCalibration = undefined;
-      }
-      throw error;
-    }
+    this.getLibnutOrThrow('moveMouse').moveMouse(x, y);
   }
 
   assertMousePosition(
     targetX: number,
     targetY: number,
     context: string,
-  ): MousePoint {
+  ): { x: number; y: number } {
     const current = this.getMousePos();
-    const drift = getMouseCoordinateDrift({ x: targetX, y: targetY }, current);
-    if (!mouseCoordinateDriftIsWithinTolerance(drift)) {
+    const drift = { x: current.x - targetX, y: current.y - targetY };
+    if (
+      Math.abs(drift.x) > MOUSE_COORDINATE_TOLERANCE_PX ||
+      Math.abs(drift.y) > MOUSE_COORDINATE_TOLERANCE_PX
+    ) {
       throw new Error(
         `${context}: expected (${targetX}, ${targetY}), got (${current.x}, ${current.y}), drift=(${drift.x}, ${drift.y})`,
       );
     }
     return drift;
-  }
-
-  /**
-   * Verify an absolute pointer move and use measured residuals as closed-loop
-   * feedback before giving up. Windows SendInput normalizes absolute movement
-   * against desktop metrics, and its remaining error can vary near display
-   * edges or across mixed-DPI monitors even after affine calibration.
-   */
-  async correctMousePosition(
-    targetX: number,
-    targetY: number,
-    context: string,
-  ): Promise<MousePoint> {
-    const target = { x: targetX, y: targetY };
-    let requested = target;
-
-    for (let attempt = 0; attempt <= MAX_MOUSE_CORRECTION_ATTEMPTS; attempt++) {
-      const current = this.getMousePos();
-      const drift = getMouseCoordinateDrift(target, current);
-      if (mouseCoordinateDriftIsWithinTolerance(drift)) {
-        if (attempt > 0) {
-          this.options.debug(
-            `${context}: pointer correction converged after ${attempt} attempt(s), drift=(${drift.x}, ${drift.y})`,
-          );
-        }
-        return drift;
-      }
-
-      if (attempt === MAX_MOUSE_CORRECTION_ATTEMPTS) {
-        return this.assertMousePosition(targetX, targetY, context);
-      }
-
-      requested = mouseCoordinateCorrectionPoint(requested, drift);
-      this.options.debug(
-        `${context}: correcting pointer drift=(${drift.x}, ${drift.y}) with requested point=(${requested.x}, ${requested.y}), attempt=${attempt + 1}/${MAX_MOUSE_CORRECTION_ATTEMPTS}`,
-      );
-      this.moveMouse(requested.x, requested.y);
-      await this.delay(MOUSE_CORRECTION_SETTLE_DELAY_MS);
-    }
-
-    // The loop either returns a verified position or assertMousePosition
-    // throws on the final attempt. Keep an explicit guard for type safety.
-    throw new Error(`${context}: mouse correction ended unexpectedly`);
   }
 
   focusActiveWindow(): boolean {

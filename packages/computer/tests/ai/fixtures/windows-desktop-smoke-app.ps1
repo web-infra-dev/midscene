@@ -65,10 +65,6 @@ using System.Runtime.InteropServices;
 
 public static class MidsceneWindowsFixtureNativeMethods
 {
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool SetProcessDPIAware();
-
     [DllImport("user32.dll")]
     public static extern uint GetDpiForWindow(IntPtr windowHandle);
 
@@ -77,14 +73,6 @@ public static class MidsceneWindowsFixtureNativeMethods
     public static extern bool IsWindowVisible(IntPtr windowHandle);
 }
 '@
-
-$dpiAware = [MidsceneWindowsFixtureNativeMethods]::SetProcessDPIAware()
-if (-not $dpiAware) {
-  $lastError = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
-  if ($lastError -ne 5) {
-    throw "SetProcessDPIAware failed with Win32 error $lastError."
-  }
-}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing

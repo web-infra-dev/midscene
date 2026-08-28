@@ -478,7 +478,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(metadata.userInteractive).toBe(true);
       expect(metadata.sessionId).toBeGreaterThan(0);
       expect(metadata.visible).toBe(true);
-      expect(metadata.dpi).toBe(96);
+      expect(metadata.dpi).toBeGreaterThan(0);
       expect(metadata.screen.width).toBeGreaterThan(0);
       expect(metadata.screen.height).toBeGreaterThan(0);
       expect(metadata.screenDeviceName).toMatch(/^\\\\\.\\DISPLAY\d+$/i);
