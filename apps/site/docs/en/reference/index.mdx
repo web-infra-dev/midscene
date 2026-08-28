@@ -360,7 +360,7 @@ function aiInput(
       - `'typeOnly'`: Type the value directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
-  Every platform defaults to `inputStrategy: 'legacy'`. The default strategy is consistent; only the platform-specific legacy input path differs:
+  The default value of `inputStrategy` is `'legacy'` on every platform. This mode preserves Midscene's platform-specific input logic from earlier versions, so its behavior can vary by platform:
 
   | Platform | `legacy` behavior |
   | --- | --- |

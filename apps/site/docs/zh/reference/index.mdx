@@ -351,7 +351,7 @@ function aiInput(
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。
       - `'clear'`: 清空输入框，不会输入新的文本。
 
-  所有平台的默认值都是 `inputStrategy: 'legacy'`。各平台的默认策略一致，但 `legacy` 的实际输入方式不同：
+  所有平台的 `inputStrategy` 默认值均为 `'legacy'`。该模式会沿用先前版本中 Midscene 针对各平台的输入逻辑，具体表现可能因平台而异：
 
   | 平台 | `legacy` 行为 |
   | --- | --- |
