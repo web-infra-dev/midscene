@@ -412,7 +412,11 @@ describe('ComputerDevice pointer input', () => {
         device.inputPrimitives.scroll!.scroll({
           scrollType: 'singleAction',
           direction: 'down',
-          locate: { center: [400, 300] },
+          locate: {
+            description: 'scroll target',
+            rect: { left: 390, top: 290, width: 20, height: 20 },
+            center: [400, 300],
+          },
         }),
     ];
 
