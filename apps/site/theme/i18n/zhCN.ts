@@ -17,6 +17,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   introduction: '使用文档',
   whatsNew: '案例展示',
   benchmark: 'Pass@1',
+  completion: '完成率',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
@@ -66,7 +67,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - BENCHMARKS
   benchmarksTitle: '评测',
   benchmarksHeading: 'Benchmark 成绩',
-  benchmarksDesc: '查看 Midscene 在 AndroidWorld 和 MobileWorld 上的成绩。',
+  benchmarksDesc:
+    '查看 Midscene 在 AndroidWorld、MobileWorld 和 AppControlBench 上的成绩。',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',
@@ -87,6 +89,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
+  featureAppControlBenchLink: '/app-control-bench-report',
 
   // View All APIs
   apiMoreLink: '查看所有 API',

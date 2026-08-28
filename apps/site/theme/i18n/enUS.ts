@@ -15,6 +15,7 @@ export const EN_US = {
   introduction: 'Documentation',
   whatsNew: 'Showcases',
   benchmark: 'Pass@1',
+  completion: 'Completion',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
@@ -73,7 +74,8 @@ UI testing toolkit`,
   // Feature Sections - BENCHMARKS
   benchmarksTitle: 'EVALUATION',
   benchmarksHeading: 'Benchmarks',
-  benchmarksDesc: "Explore Midscene's results on AndroidWorld and MobileWorld.",
+  benchmarksDesc:
+    "Explore Midscene's results on AndroidWorld, MobileWorld, and AppControlBench.",
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
@@ -94,6 +96,7 @@ UI testing toolkit`,
   featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
+  featureAppControlBenchLink: '/app-control-bench-report',
 
   // View All APIs
   apiMoreLink: 'View All APIs',
