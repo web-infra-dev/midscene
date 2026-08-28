@@ -20,6 +20,11 @@ export interface MidsceneAiActOptions {
   abortSignal?: AbortSignal;
 }
 
+type MidsceneAiActInternalOptions = MidsceneAiActOptions & {
+  /** Ask a Core Agent to append Test Runner context to its Agent-level context. */
+  _internalContextMode: 'append';
+};
+
 export interface MidsceneAiAssertOptions {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
@@ -444,11 +449,17 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
-        const output = await aiAct.call(agent, toAgentPrompt(ctx.input), {
+        const aiActOptions: MidsceneAiActInternalOptions = {
           ...ctx.input.options,
           context: mergeContext(ctx.input.options?.context, ctx.history),
           abortSignal: ctx.signal,
-        });
+          _internalContextMode: 'append',
+        };
+        const output = await aiAct.call(
+          agent,
+          toAgentPrompt(ctx.input),
+          aiActOptions,
+        );
         return output === undefined ? undefined : { summary: output };
       },
     }),

@@ -78,6 +78,7 @@ describe('createMidsceneNodes', () => {
       deepThink: true,
       context: undefined,
       abortSignal: expect.any(AbortSignal),
+      _internalContextMode: 'append',
     });
     expect(aiAssert).toHaveBeenCalledWith(
       'The order is paid',
@@ -96,6 +97,56 @@ describe('createMidsceneNodes', () => {
       'Assertion passed: The order is paid',
       'Recorded to report: Order created',
     ]);
+  });
+
+  it('appends beforeEach launch history to the Agent-level aiAct context', async () => {
+    const aiAct = vi.fn(
+      async (_prompt: MidsceneUserPrompt, _options?: MidsceneAiActOptions) =>
+        'page reset',
+    );
+    const launch = vi.fn(async () => undefined);
+    const agent = { aiAct, launch } as unknown as MidsceneUIAgent;
+    const registry = new NodeRegistry(
+      createMidsceneNodes<{ agent: MidsceneUIAgent }>({
+        getAgent: ({ context }) => context.agent,
+      }),
+    );
+
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiAct',
+          input: {
+            prompt: 'Reset the page',
+            options: { context: 'Use the app reset rules.' },
+          },
+          meta: { continueOnError: false },
+        },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        context: { agent },
+        beforeEach: [
+          {
+            node: 'launch',
+            input: { uri: 'com.example.app' },
+            meta: { continueOnError: false },
+          },
+        ],
+      },
+    );
+
+    expect(result.status).toBe('success');
+    expect(launch).toHaveBeenCalledWith('com.example.app');
+    expect(aiAct).toHaveBeenCalledWith('Reset the page', {
+      context: expect.stringMatching(
+        /^Use the app reset rules\.\n\nPrevious workflow results \(read-only\):/,
+      ),
+      abortSignal: expect.any(AbortSignal),
+      _internalContextMode: 'append',
+    });
+    expect(aiAct.mock.calls[0][1]?.context).toContain('"phase":"beforeEach"');
+    expect(aiAct.mock.calls[0][1]?.context).toContain('"node":"launch"');
   });
 
   it('supports recordToReport string shorthand without an AI call', async () => {

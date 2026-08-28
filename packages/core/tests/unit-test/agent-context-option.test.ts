@@ -1,4 +1,4 @@
-import { Agent } from '@/agent';
+import { Agent, type AiActOptions } from '@/agent';
 import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -94,6 +94,30 @@ describe('Agent per-call context option', () => {
       'Click the submit button',
     );
     expect(taskExecutor.action.mock.calls[0][3]).toBe('');
+  });
+
+  it('appends framework context without mutating the global aiActContext', async () => {
+    const { agent, taskExecutor, taskCache } = createAgentStub();
+    const options: AiActOptions & { _internalContextMode: 'append' } = {
+      context: 'Previous workflow results (read-only):\nlaunch passed',
+      _internalContextMode: 'append',
+    };
+
+    await agent.aiAct('Reset the page', options);
+    await agent.aiAct('Reset the page again', options);
+
+    const expectedContext =
+      'Global action context.\n\nPrevious workflow results (read-only):\nlaunch passed';
+    expect(taskCache.matchPlanCache).toHaveBeenNthCalledWith(
+      1,
+      `Context for this request:\n${expectedContext}\n\nReset the page`,
+    );
+    expect(taskCache.matchPlanCache).toHaveBeenNthCalledWith(
+      2,
+      `Context for this request:\n${expectedContext}\n\nReset the page again`,
+    );
+    expect(taskExecutor.action.mock.calls[0][3]).toBe(expectedContext);
+    expect(taskExecutor.action.mock.calls[1][3]).toBe(expectedContext);
   });
 
   it('does not register a file chooser for an empty fileChooserAccept array', async () => {

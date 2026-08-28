@@ -128,10 +128,23 @@ export type AiActOptions = {
 };
 
 type AiActInternalOptions = AiActOptions & {
+  /** Append framework-owned context without changing public context override semantics. */
+  _internalContextMode?: 'append';
   _internalReportDisplay?: {
     type?: TaskTitleType;
     prompt?: string;
   };
+};
+
+const appendAiActContext = (
+  baseContext: string | undefined,
+  appendedContext: string | undefined,
+): string | undefined => {
+  if (baseContext === undefined) return appendedContext;
+  if (appendedContext === undefined) return baseContext;
+  if (!baseContext) return appendedContext;
+  if (!appendedContext) return baseContext;
+  return `${baseContext}\n\n${appendedContext}`;
 };
 
 /**
@@ -1117,8 +1130,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
-    const internalReportDisplay = (opt as AiActInternalOptions | undefined)
-      ?._internalReportDisplay;
+    const internalOptions = opt as AiActInternalOptions | undefined;
+    const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
       typeof taskPrompt === 'string' ? taskPrompt : taskPrompt.prompt;
     const reportPrompt = internalReportDisplay?.prompt || taskPromptText;
@@ -1137,7 +1150,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
       const aiActContext =
-        opt?.context !== undefined ? opt.context : this.aiActContext;
+        internalOptions?._internalContextMode === 'append'
+          ? appendAiActContext(this.aiActContext, opt?.context)
+          : opt?.context !== undefined
+            ? opt.context
+            : this.aiActContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
