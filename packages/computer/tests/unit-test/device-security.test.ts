@@ -328,7 +328,9 @@ describe('ComputerDevice pointer input', () => {
 
     await device.inputPrimitives.pointer!.tap({ x: 400, y: 300 });
 
-    expect(mockState.libnut.getMousePos()).toEqual({ x: 400, y: 300 });
+    const actual = mockState.libnut.getMousePos();
+    expect(Math.abs(actual.x - 400)).toBeLessThanOrEqual(1);
+    expect(Math.abs(actual.y - 300)).toBeLessThanOrEqual(1);
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
   });

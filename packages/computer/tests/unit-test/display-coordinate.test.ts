@@ -4,6 +4,10 @@ import {
   mapDisplayLocalPointToGlobal,
   resolveDarwinDisplayGeometryFromList,
 } from '../../src/device';
+import {
+  applyMouseCoordinateCalibration,
+  calculateMouseCoordinateCalibration,
+} from '../../src/input-driver';
 
 describe('display coordinate mapping', () => {
   it('keeps points unchanged when no display geometry is available', () => {
@@ -92,5 +96,37 @@ describe('macOS display geometry resolution', () => {
     expect(resolveDarwinDisplayGeometryFromList(undefined, displays)).toBe(
       displays[0],
     );
+  });
+});
+
+describe('Windows mouse coordinate calibration', () => {
+  it('inverts scaled and offset driver coordinates', () => {
+    const calibration = calculateMouseCoordinateCalibration(
+      { x: 100, y: 100 },
+      { x: 225, y: 155 },
+      { x: 300, y: 300 },
+      { x: 575, y: 455 },
+    );
+
+    expect(calibration).toEqual({
+      scaleX: 1.75,
+      scaleY: 1.5,
+      offsetX: 50,
+      offsetY: 5,
+    });
+    expect(
+      applyMouseCoordinateCalibration({ x: 400, y: 300 }, calibration),
+    ).toEqual({ x: 200, y: 197 });
+  });
+
+  it('rejects a driver that did not move between calibration points', () => {
+    expect(() =>
+      calculateMouseCoordinateCalibration(
+        { x: 100, y: 100 },
+        { x: 200, y: 200 },
+        { x: 300, y: 300 },
+        { x: 200, y: 200 },
+      ),
+    ).toThrow(/invalid scale/);
   });
 });

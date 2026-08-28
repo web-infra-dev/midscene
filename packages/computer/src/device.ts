@@ -519,12 +519,21 @@ async function pressMouseAtGlobalPoint(
 ): Promise<void> {
   await inputDriver.delay(CLICK_SETTLE_DELAY);
   const current = inputDriver.getMousePos();
+  const drift = { x: current.x - targetX, y: current.y - targetY };
   debugComputerInput('tap mouse moved %o', {
     reason,
     target: { x: targetX, y: targetY },
     current,
-    drift: { x: current.x - targetX, y: current.y - targetY },
+    drift,
   });
+  if (
+    process.platform === 'win32' &&
+    (Math.abs(drift.x) > 5 || Math.abs(drift.y) > 5)
+  ) {
+    throw new Error(
+      `Mouse did not reach the click target: expected (${targetX}, ${targetY}), got (${current.x}, ${current.y}), drift=(${drift.x}, ${drift.y})`,
+    );
+  }
   await inputDriver.withMouseButton('left', async () => {
     debugComputerInput('tap mouse down %o', { reason });
     await inputDriver.delay(holdDuration);
@@ -994,6 +1003,14 @@ export class ComputerDevice implements AbstractInterface {
       this.displayGeometry = resolveDisplayGeometry(this.displayId);
 
       const size = await this.size();
+      if (process.platform === 'win32') {
+        await this.inputDriver.calibrateMouseCoordinates({
+          x: 0,
+          y: 0,
+          width: size.width,
+          height: size.height,
+        });
+      }
       const displays = await ComputerDevice.listDisplays();
 
       const headlessInfo = this.xvfbInstance
@@ -1058,11 +1075,25 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
 
-    // Move the mouse by a small random offset, then move it back
-    const offsetX = Math.floor(Math.random() * 40) + 10;
-    const offsetY = Math.floor(Math.random() * 40) + 10;
-    const targetX = startPos.x + offsetX;
-    const targetY = startPos.y + offsetY;
+    // On Windows, validate the calibrated coordinate space on the display we
+    // capture instead of near the current cursor, which may be on a monitor
+    // with a different DPI. Other platforms retain the small relative probe.
+    let targetX: number;
+    let targetY: number;
+    if (process.platform === 'win32') {
+      const size = await this.size();
+      const target = this.toGlobalPoint({
+        x: Math.round(size.width / 2),
+        y: Math.round(size.height / 2),
+      });
+      targetX = Math.round(target.x);
+      targetY = Math.round(target.y);
+    } else {
+      const offsetX = Math.floor(Math.random() * 40) + 10;
+      const offsetY = Math.floor(Math.random() * 40) + 10;
+      targetX = startPos.x + offsetX;
+      targetY = startPos.y + offsetY;
+    }
 
     console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
     this.inputDriver.moveMouse(targetX, targetY);
