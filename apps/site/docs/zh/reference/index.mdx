@@ -3190,7 +3190,7 @@ const displays = await ComputerDevice.listDisplays();
 | 名称 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `MIDSCENE_RUN_DIR` | 字符串 | `midscene_run` | 报告、日志、模型调用记录和其他运行产物的保存目录。支持绝对路径，也支持相对于当前工作目录的路径。 |
-| `MIDSCENE_PREFERRED_LANGUAGE` | 字符串 | `Asia/Shanghai` 时区为 `Chinese`，其他时区为 `English` | 模型响应的首选语言。 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 字符串 | 根据时区自动判断：如果时区是 `Asia/Shanghai`，则为 `Chinese`，否则为 `English` | 相关模型响应的首选语言。该设置通过提示词引导模型，并非强制约束；实际输出可能因模型能力和上下文而不完全遵循。 |
 | `MIDSCENE_PLAYGROUND_HOST` | 字符串 | `127.0.0.1` | Playground 服务器监听的网络接口。远程设备、虚拟机、容器或其他计算机需要连接时，请设为对方可访问的接口地址。 |
 | `DEBUG` | 字符串 | 未设置 | 启用额外的 Debug 日志命名空间。支持的选择器请参考 [Debug 日志](#debug-logs)。 |
 
