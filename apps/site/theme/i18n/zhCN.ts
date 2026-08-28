@@ -50,8 +50,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Model Cards
   modelSeedName: '豆包 Seed',
   modelSeedDesc: '强大的视觉定位能力，元素定位可靠——Midscene 的稳妥默认选择。',
-  modelQwenName: 'qwen3.7-plus',
-  modelQwenDesc: '高质量视觉定位，性价比高，并提供可自托管的开源版本。',
+  modelSupportedName: '支持多种模型',
+  modelSupportedDesc: '适配 Qwen、GPT、Gemini、Kimi 等多款模型，可按需选择。',
   modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
   modelDeepSeekDesc: '视觉定位速度极快，但在复杂界面下稳定性相对有限。',
   modelMultiModelName: '多模型组合',
