@@ -3238,7 +3238,7 @@ These environment variables control global runtime behavior rather than model re
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
 | `MIDSCENE_RUN_DIR` | string | `midscene_run` | Directory for reports, logs, model-call records, and other run artifacts. Accepts an absolute path or a path relative to the current working directory. |
-| `MIDSCENE_PREFERRED_LANGUAGE` | string | `Chinese` in the `Asia/Shanghai` time zone; otherwise `English` | Preferred language for model responses. |
+| `MIDSCENE_PREFERRED_LANGUAGE` | string | Automatically determined from the time zone: `Chinese` if the time zone is `Asia/Shanghai`; otherwise `English` | Preferred language for relevant model responses. This setting guides the model through prompts rather than enforcing the language; actual output may not fully comply depending on the model's capabilities and context. |
 | `MIDSCENE_PLAYGROUND_HOST` | string | `127.0.0.1` | Network interface used by the Playground server. Set it to a reachable interface address when a remote device, virtual machine, container, or another computer needs to connect. |
 | `DEBUG` | string | Unset | Enables additional debug log namespaces. See [Debug logs](#debug-logs) for supported selectors. |
 
