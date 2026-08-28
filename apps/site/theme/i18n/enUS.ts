@@ -53,9 +53,9 @@ and more`,
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
     'Strong visual grounding for reliable element location — a solid default for Midscene.',
-  modelQwenName: 'qwen3.7-plus',
-  modelQwenDesc:
-    'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
+  modelSupportedName: 'Multiple model options',
+  modelSupportedDesc:
+    'Works with Qwen, GPT, Gemini, Kimi, and more — choose what fits your needs.',
   modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
   modelDeepSeekDesc:
     'Extremely fast visual grounding, but less reliable on complex interfaces.',

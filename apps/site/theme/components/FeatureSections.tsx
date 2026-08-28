@@ -260,13 +260,6 @@ export function FeatureSections() {
             darkBackground="/images/backgrounds/doubao-dark.svg"
           />
           <FeatureCard
-            href={tUrl('/model-common-config#qwen')}
-            title={t('modelQwenName')}
-            description={t('modelQwenDesc')}
-            lightBackground="/images/backgrounds/qwen.svg"
-            darkBackground="/images/backgrounds/qwen-dark.svg"
-          />
-          <FeatureCard
             href={tUrl('/model-common-config#deepseek')}
             title={t('modelDeepSeekName')}
             description={t('modelDeepSeekDesc')}
@@ -275,25 +268,18 @@ export function FeatureSections() {
             visualClassName="home-feature-card__visual--deepseek"
           />
           <FeatureCard
+            href={tUrl('/model-common-config')}
+            title={t('modelSupportedName')}
+            description={t('modelSupportedDesc')}
+            lightBackground="/images/models/supported-models-light.svg"
+            darkBackground="/images/models/supported-models-dark.svg"
+          />
+          <FeatureCard
             href={tUrl(t('multiModelStrategyLink'))}
             title={t('modelMultiModelName')}
             description={t('modelMultiModelDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/models/multi-model-combo-light.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--model"
-              />
-            }
-            darkContent={
-              <img
-                src="/images/models/multi-model-combo-dark.png"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--model"
-              />
-            }
+            lightBackground="/images/models/multi-model-combo-light.svg"
+            darkBackground="/images/models/multi-model-combo-dark.svg"
           />
         </div>
       </FeatureSection>
