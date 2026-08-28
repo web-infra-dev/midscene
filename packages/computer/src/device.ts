@@ -732,6 +732,14 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    * Resolution for Xvfb virtual display (default '1920x1080x24')
    */
   xvfbResolution?: string;
+  /**
+   * Keep a managed Xvfb server alive until process exit.
+   *
+   * @internal The foreground CLI uses this because libnut keeps a process-wide
+   * X11 connection open. Stopping Xvfb during normal CLI teardown would make
+   * Xlib terminate an otherwise successful command with exit code 1.
+   */
+  keepXvfbAliveUntilProcessExit?: boolean;
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -971,6 +979,9 @@ export class ComputerDevice implements AbstractInterface {
         this.xvfbInstance = await startXvfb({
           resolution: this.options?.xvfbResolution,
         });
+        if (this.options?.keepXvfbAliveUntilProcessExit) {
+          this.xvfbInstance.process.unref();
+        }
         process.env.DISPLAY = this.xvfbInstance.display;
         debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
 
@@ -1591,11 +1602,13 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     this.destroyed = true;
     this.inputDriver.destroy();
 
-    if (this.xvfbInstance) {
+    const keepXvfbAliveUntilProcessExit =
+      this.options?.keepXvfbAliveUntilProcessExit === true;
+    if (this.xvfbInstance && !keepXvfbAliveUntilProcessExit) {
       this.xvfbInstance.stop();
       this.xvfbInstance = undefined;
     }
-    if (this.xvfbCleanup) {
+    if (this.xvfbCleanup && !keepXvfbAliveUntilProcessExit) {
       process.removeListener('exit', this.xvfbCleanup);
       this.xvfbCleanup = undefined;
     }
