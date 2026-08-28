@@ -182,6 +182,18 @@ describe('system prompts', () => {
     expect(prompt).toContain('<action-type>...</action-type>');
   });
 
+  it('planning uses the preferred language in the planning tag', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).toContain(
+      'Write the content of the <planning> tag in English.',
+    );
+  });
+
   it('planning - cot', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
