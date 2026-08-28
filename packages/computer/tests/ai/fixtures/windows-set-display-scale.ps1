@@ -163,13 +163,20 @@ try {
 
   $targetPattern = "^\s*$ScalePercent%"
   $targetItem = $null
+  $expandedListItems = @()
   $selectionDeadline = [DateTime]::UtcNow.AddSeconds(15)
   while ([DateTime]::UtcNow -lt $selectionDeadline -and $null -eq $targetItem) {
     $allElements = $root.FindAll(
       [System.Windows.Automation.TreeScope]::Descendants,
       [System.Windows.Automation.Condition]::TrueCondition
     )
-    $targetItem = $allElements | Where-Object {
+    $expandedListItems = @(
+      $allElements | Where-Object {
+        $_.Current.ProcessId -eq $scaleCombo.Current.ProcessId -and
+        $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::ListItem
+      }
+    )
+    $targetItem = $expandedListItems | Where-Object {
       $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::ListItem -and
       $_.Current.Name -match $targetPattern
     } | Select-Object -First 1
@@ -177,6 +184,9 @@ try {
       Start-Sleep -Milliseconds 250
     }
   }
+  $diagnostics.expandedListItems = @(
+    $expandedListItems | ForEach-Object { Get-ElementSnapshot -Element $_ }
+  )
 
   if ($null -ne $targetItem) {
     $diagnostics.selectionMethod = 'UIAutomation.SelectionItemPattern'
@@ -193,12 +203,21 @@ try {
     }
   }
   else {
-    # Some Windows builds keep collapsed combo-box items out of the automation
-    # tree. Keyboard type-ahead still uses the public Settings UI and applies
-    # the same standard scale entry a user would select.
-    $diagnostics.selectionMethod = 'Settings combo keyboard type-ahead'
+    # Some Windows builds keep expanded combo-box items out of the automation
+    # tree. The standard scale choices are ordered 100, 125, 150, 175, 200;
+    # select by keyboard index through the same public Settings control. Do not
+    # send a literal "%": SendKeys interprets it as the Alt modifier.
+    $standardScales = @(100, 125, 150, 175, 200)
+    $targetIndex = [Array]::IndexOf($standardScales, $ScalePercent)
+    if ($targetIndex -lt 0) {
+      throw "No standard Settings keyboard index for $ScalePercent%."
+    }
+    $diagnostics.selectionMethod = 'Settings combo keyboard index'
     $scaleCombo.SetFocus()
-    [System.Windows.Forms.SendKeys]::SendWait("$ScalePercent%")
+    [System.Windows.Forms.SendKeys]::SendWait('{HOME}')
+    if ($targetIndex -gt 0) {
+      [System.Windows.Forms.SendKeys]::SendWait("{DOWN $targetIndex}")
+    }
     [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
   }
 
