@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@rstest/core';
+import { describe, expect, it, rs } from '@rstest/core';
 import { ComputerDevice, checkComputerEnvironment } from '../../src';
 
 const needsDisplay = process.platform === 'linux' && !process.env.DISPLAY;
@@ -13,6 +13,34 @@ describe('ComputerDevice', () => {
   it('should create device with display id', () => {
     const device = new ComputerDevice({ displayId: 'test-display' });
     expect(device).toBeDefined();
+  });
+
+  it('leaves CLI-owned Xvfb for the process exit cleanup', async () => {
+    const device = new ComputerDevice({
+      keepXvfbAliveUntilProcessExit: true,
+    });
+    const stop = rs.fn();
+    const deviceInternals = device as unknown as {
+      xvfbInstance?: { stop(): void };
+    };
+    deviceInternals.xvfbInstance = { stop };
+
+    await device.destroy();
+
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('stops API-owned Xvfb during normal device teardown', async () => {
+    const device = new ComputerDevice({});
+    const stop = rs.fn();
+    const deviceInternals = device as unknown as {
+      xvfbInstance?: { stop(): void };
+    };
+    deviceInternals.xvfbInstance = { stop };
+
+    await device.destroy();
+
+    expect(stop).toHaveBeenCalledOnce();
   });
 
   it.skipIf(needsDisplay)('should list displays', async () => {
