@@ -120,3 +120,28 @@ export function getMouseCoordinateDrift(
     y: actual.y - expected.y,
   };
 }
+
+export function mouseCoordinateDriftIsWithinTolerance(
+  drift: MousePoint,
+): boolean {
+  return (
+    Math.abs(drift.x) <= MOUSE_COORDINATE_TOLERANCE_PX &&
+    Math.abs(drift.y) <= MOUSE_COORDINATE_TOLERANCE_PX
+  );
+}
+
+/**
+ * Refine a requested point using the residual measured after an absolute
+ * move. The base affine calibration handles the stable DPI transform; this
+ * feedback step handles local rounding, clipping, and mixed-DPI residuals
+ * that are not represented by one desktop-wide affine transform.
+ */
+export function mouseCoordinateCorrectionPoint(
+  requested: MousePoint,
+  drift: MousePoint,
+): MousePoint {
+  return {
+    x: requested.x - drift.x,
+    y: requested.y - drift.y,
+  };
+}

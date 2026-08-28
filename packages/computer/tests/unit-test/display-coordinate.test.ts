@@ -9,6 +9,7 @@ import {
 import {
   applyMouseCoordinateCalibration,
   calculateMouseCoordinateCalibration,
+  mouseCoordinateCorrectionPoint,
 } from '../../src/mouse-coordinate-calibration';
 
 describe('display coordinate mapping', () => {
@@ -141,6 +142,12 @@ describe('Windows mouse coordinate calibration', () => {
         { x: 200, y: 200 },
       ),
     ).toThrow(/invalid scale/);
+  });
+
+  it('feeds the measured residual back into the next requested point', () => {
+    expect(
+      mouseCoordinateCorrectionPoint({ x: 1395, y: 50 }, { x: 5, y: 31 }),
+    ).toEqual({ x: 1390, y: 19 });
   });
 });
 

@@ -1018,7 +1018,7 @@ export class ComputerDevice implements AbstractInterface {
     }
     await this.inputDriver.delay(CLICK_SETTLE_DELAY);
     if (process.platform === 'win32') {
-      this.inputDriver.assertMousePosition(target.x, target.y, context);
+      await this.inputDriver.correctMousePosition(target.x, target.y, context);
     }
     return target;
   }

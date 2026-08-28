@@ -382,9 +382,29 @@ describe('ComputerDevice pointer input', () => {
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
   });
 
+  it('corrects the reported top-edge residual before double-clicking', async () => {
+    mockState.setWindowsDisplays([
+      {
+        id: '\\\\.\\DISPLAY1',
+        name: '\\\\.\\DISPLAY1',
+        primary: true,
+        bounds: { x: 0, y: 0, width: 1600, height: 900 },
+      },
+    ]);
+    const device = await createConnectedDeviceForPlatform('win32');
+    mockState.setMouseTransform((x, y) => ({ x: x + 5, y: y + 31 }));
+
+    await device.inputPrimitives.pointer!.doubleClick({ x: 1395, y: 50 });
+
+    expect(mockState.libnut.moveMouse).toHaveBeenNthCalledWith(1, 1395, 50);
+    expect(mockState.libnut.moveMouse).toHaveBeenNthCalledWith(2, 1390, 19);
+    expect(mockState.libnut.getMousePos()).toEqual({ x: 1395, y: 50 });
+    expect(mockState.libnut.mouseClick).toHaveBeenCalledWith('left', true);
+  });
+
   it('does not click when pointer drift appears after Windows calibration', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
-    mockState.setMouseTransform((x, y) => ({ x: x + 100, y: y + 100 }));
+    mockState.setMouseTransform(() => ({ x: 700, y: 500 }));
 
     await expect(
       device.inputPrimitives.pointer!.tap({ x: 400, y: 300 }),
@@ -427,7 +447,7 @@ describe('ComputerDevice pointer input', () => {
       mockState.libnut.mouseToggle.mockClear();
       mockState.libnut.scrollMouse.mockClear();
       mockState.libnut.keyTap.mockClear();
-      mockState.setMouseTransform((x, y) => ({ x: x + 100, y: y + 100 }));
+      mockState.setMouseTransform(() => ({ x: 700, y: 500 }));
 
       await expect(run()).rejects.toThrow(/did not reach/);
       expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
