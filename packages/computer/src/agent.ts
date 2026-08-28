@@ -33,6 +33,7 @@ function createLocalComputerDevice(
     keyboardDriver: opts?.keyboardDriver,
     headless: opts?.headless,
     xvfbResolution: opts?.xvfbResolution,
+    keepXvfbAliveUntilProcessExit: opts?.keepXvfbAliveUntilProcessExit,
   });
 }
 

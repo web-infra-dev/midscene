@@ -29,8 +29,9 @@ import {
 import type { XvfbInstance } from './xvfb';
 import {
   checkXvfbInstalled,
-  createXvfbSigintCleanup,
+  createXvfbSignalCleanup,
   needsXvfb,
+  scheduleXvfbStopAfterProcessExit,
   startXvfb,
 } from './xvfb';
 
@@ -732,6 +733,14 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    * Resolution for Xvfb virtual display (default '1920x1080x24')
    */
   xvfbResolution?: string;
+  /**
+   * Keep a managed Xvfb server alive until process exit.
+   *
+   * @internal The foreground CLI uses this because libnut keeps a process-wide
+   * X11 connection open. Stopping Xvfb during normal CLI teardown would make
+   * Xlib terminate an otherwise successful command with exit code 1.
+   */
+  keepXvfbAliveUntilProcessExit?: boolean;
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -743,7 +752,7 @@ export class ComputerDevice implements AbstractInterface {
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
   private xvfbCleanup?: () => void;
-  private xvfbSigintCleanup?: () => void;
+  private xvfbSignalCleanup?: () => void;
   private readonly inputDriver = new ComputerInputDriver({
     getLibnut: () => libnut,
     useAppleScript: () => this.useAppleScript,
@@ -971,22 +980,27 @@ export class ComputerDevice implements AbstractInterface {
         this.xvfbInstance = await startXvfb({
           resolution: this.options?.xvfbResolution,
         });
+        if (this.options?.keepXvfbAliveUntilProcessExit) {
+          scheduleXvfbStopAfterProcessExit(this.xvfbInstance);
+        }
         process.env.DISPLAY = this.xvfbInstance.display;
         debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
 
-        // Clean up Xvfb on process exit (stored for removal in destroy())
-        this.xvfbCleanup = () => {
-          if (this.xvfbInstance) {
-            this.xvfbInstance.stop();
-            this.xvfbInstance = undefined;
-          }
-        };
-        this.xvfbSigintCleanup = createXvfbSigintCleanup(() =>
-          this.xvfbCleanup?.(),
-        );
-        process.on('exit', this.xvfbCleanup);
-        process.on('SIGINT', this.xvfbSigintCleanup);
-        process.on('SIGTERM', this.xvfbCleanup);
+        if (!this.options?.keepXvfbAliveUntilProcessExit) {
+          // Clean up SDK-owned Xvfb during device teardown or process exit.
+          this.xvfbCleanup = () => {
+            if (this.xvfbInstance) {
+              this.xvfbInstance.stop();
+              this.xvfbInstance = undefined;
+            }
+          };
+          this.xvfbSignalCleanup = createXvfbSignalCleanup(() =>
+            this.xvfbCleanup?.(),
+          );
+          process.on('exit', this.xvfbCleanup);
+          process.on('SIGINT', this.xvfbSignalCleanup);
+          process.on('SIGTERM', this.xvfbSignalCleanup);
+        }
       }
 
       // Load libnut on first connect
@@ -1013,17 +1027,19 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
-        this.xvfbInstance.stop();
+        if (!this.options?.keepXvfbAliveUntilProcessExit) {
+          this.xvfbInstance.stop();
+        }
         this.xvfbInstance = undefined;
       }
       if (this.xvfbCleanup) {
         process.removeListener('exit', this.xvfbCleanup);
-        process.removeListener('SIGTERM', this.xvfbCleanup);
         this.xvfbCleanup = undefined;
       }
-      if (this.xvfbSigintCleanup) {
-        process.removeListener('SIGINT', this.xvfbSigintCleanup);
-        this.xvfbSigintCleanup = undefined;
+      if (this.xvfbSignalCleanup) {
+        process.removeListener('SIGINT', this.xvfbSignalCleanup);
+        process.removeListener('SIGTERM', this.xvfbSignalCleanup);
+        this.xvfbSignalCleanup = undefined;
       }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
@@ -1591,18 +1607,22 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     this.destroyed = true;
     this.inputDriver.destroy();
 
+    const keepXvfbAliveUntilProcessExit =
+      this.options?.keepXvfbAliveUntilProcessExit === true;
     if (this.xvfbInstance) {
-      this.xvfbInstance.stop();
+      if (!keepXvfbAliveUntilProcessExit) {
+        this.xvfbInstance.stop();
+      }
       this.xvfbInstance = undefined;
     }
-    if (this.xvfbCleanup) {
+    if (this.xvfbCleanup && !keepXvfbAliveUntilProcessExit) {
       process.removeListener('exit', this.xvfbCleanup);
-      process.removeListener('SIGTERM', this.xvfbCleanup);
       this.xvfbCleanup = undefined;
     }
-    if (this.xvfbSigintCleanup) {
-      process.removeListener('SIGINT', this.xvfbSigintCleanup);
-      this.xvfbSigintCleanup = undefined;
+    if (this.xvfbSignalCleanup) {
+      process.removeListener('SIGINT', this.xvfbSignalCleanup);
+      process.removeListener('SIGTERM', this.xvfbSignalCleanup);
+      this.xvfbSignalCleanup = undefined;
     }
 
     debugDevice('Computer device destroyed');

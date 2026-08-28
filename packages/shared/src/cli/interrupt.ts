@@ -1,11 +1,72 @@
-export type CliInterruptReason = 'sigint' | 'watchdog';
+export type CliInterruptReason = 'sigint' | 'sigterm' | 'sighup' | 'watchdog';
+
+type CliInterruptSignal = 'SIGINT' | 'SIGTERM' | 'SIGHUP';
 
 export interface CliInterruptSource {
-  once(event: 'SIGINT', listener: () => void): unknown;
-  removeListener(event: 'SIGINT', listener: () => void): unknown;
+  on(event: CliInterruptSignal, listener: () => void): unknown;
+  removeListener(event: CliInterruptSignal, listener: () => void): unknown;
+}
+
+export interface CliInterruptInputSource {
+  readonly isTTY?: boolean;
+  readonly isRaw?: boolean;
+  readonly readableFlowing?: boolean | null;
+  on(event: 'data', listener: (chunk: unknown) => void): unknown;
+  removeListener(event: 'data', listener: (chunk: unknown) => void): unknown;
+  setRawMode?(enabled: boolean): unknown;
+  pause?(): unknown;
+}
+
+export interface CliInterruptWaiter {
+  /** Resolves on the first stop signal or watchdog timeout. */
+  readonly result: Promise<CliInterruptReason>;
+  /** Release signal handlers after asynchronous finalization has completed. */
+  dispose(): void;
+}
+
+export interface CliInterruptWaiterOptions {
+  source?: CliInterruptSource;
+  input?: CliInterruptInputSource;
+  /** Called after restoring the terminal when Ctrl+C is pressed again. */
+  forceExit?: (exitCode: number) => void;
 }
 
 const activeInterruptWaiters = new WeakMap<object, number>();
+const noop = () => {};
+const sigintExitCode = 130;
+
+function guardTerminalCtrlC(
+  input: CliInterruptInputSource | undefined,
+  onInterrupt: () => void,
+): () => void {
+  if (!input?.isTTY || !input.setRawMode) return noop;
+
+  const wasRaw = input.isRaw === true;
+  const wasFlowing = input.readableFlowing === true;
+  const onData = (chunk: unknown) => {
+    const includesCtrlC =
+      (typeof chunk === 'string' && chunk.includes('\u0003')) ||
+      (chunk instanceof Uint8Array && chunk.includes(3));
+    if (includesCtrlC) onInterrupt();
+  };
+  const dispose = () => {
+    input.removeListener('data', onData);
+    try {
+      if (!wasFlowing) input.pause?.();
+    } finally {
+      if (!wasRaw) input.setRawMode?.(false);
+    }
+  };
+
+  input.setRawMode(true);
+  try {
+    input.on('data', onData);
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+  return dispose;
+}
 
 function registerCliInterruptWaiter(source: CliInterruptSource): () => void {
   const key = source as object;
@@ -33,39 +94,114 @@ export function hasActiveCliInterruptWaiter(
 }
 
 /**
- * Wait until the foreground CLI receives Ctrl+C. A positive watchdog keeps a
- * forgotten recording from running forever and uses the same graceful save
- * path as an explicit interrupt.
+ * Keep graceful-stop handlers installed until the caller has finished saving.
+ *
+ * Package runners such as pnpm can deliver SIGINT to the foreground child,
+ * immediately follow it with SIGTERM, then cause SIGHUP when the runner exits
+ * and its pseudo-terminal closes. Resolving on the first signal is not enough:
+ * removing any handler at that point lets a subsequent signal kill the child
+ * during asynchronous artifact finalization.
+ *
+ * On a TTY, Ctrl+C is captured as raw input so the package runner itself stays
+ * alive until the child has saved and restored the terminal. Signal handlers
+ * remain as the graceful-stop path for externally delivered termination.
+ */
+export function createCliInterruptWaiter(
+  watchdogMs: number,
+  options: CliInterruptWaiterOptions = {},
+): CliInterruptWaiter {
+  const source = options.source ?? process;
+  const input =
+    options.input ?? (source === process ? process.stdin : undefined);
+  const forceExit =
+    options.forceExit ??
+    (source === process
+      ? (exitCode: number) => {
+          process.exit(exitCode);
+        }
+      : undefined);
+  const unregisterWaiter = registerCliInterruptWaiter(source);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let finished = false;
+  let disposed = false;
+  let disposeInput = noop;
+  let resolveResult!: (reason: CliInterruptReason) => void;
+  let rejectResult!: (error: unknown) => void;
+
+  const result = new Promise<CliInterruptReason>((resolve, reject) => {
+    resolveResult = resolve;
+    rejectResult = reject;
+  });
+
+  const finish = (reason: CliInterruptReason) => {
+    if (finished) return;
+    finished = true;
+    if (timer) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    resolveResult(reason);
+  };
+  const onSigint = () => finish('sigint');
+  const onSigterm = () => finish('sigterm');
+  const onSighup = () => finish('sighup');
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    source.removeListener('SIGINT', onSigint);
+    source.removeListener('SIGTERM', onSigterm);
+    source.removeListener('SIGHUP', onSighup);
+    try {
+      disposeInput();
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      unregisterWaiter();
+    }
+  }
+
+  const onTerminalCtrlC = () => {
+    if (!finished) {
+      finish('sigint');
+      return;
+    }
+
+    // The first Ctrl+C protects asynchronous artifact finalization. A second
+    // explicit Ctrl+C is the user's escape hatch if device or file I/O hangs.
+    dispose();
+    forceExit?.(sigintExitCode);
+  };
+
+  try {
+    source.on('SIGINT', onSigint);
+    source.on('SIGTERM', onSigterm);
+    source.on('SIGHUP', onSighup);
+    disposeInput = guardTerminalCtrlC(input, onTerminalCtrlC);
+    if (watchdogMs > 0) {
+      timer = setTimeout(() => finish('watchdog'), watchdogMs);
+    }
+  } catch (error) {
+    dispose();
+    rejectResult(error);
+  }
+
+  return { result, dispose };
+}
+
+/**
+ * Wait for one stop request and release the handlers immediately afterwards.
+ * Long-running finalizers should use {@link createCliInterruptWaiter} instead.
  */
 export function waitForCliInterrupt(
   watchdogMs: number,
   source: CliInterruptSource = process,
+  input: CliInterruptInputSource | undefined = source === process
+    ? process.stdin
+    : undefined,
 ): Promise<CliInterruptReason> {
-  const unregisterWaiter = registerCliInterruptWaiter(source);
-
-  return new Promise((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let finished = false;
-
-    const finish = (reason: CliInterruptReason) => {
-      if (finished) return;
-      finished = true;
-      source.removeListener('SIGINT', onSigint);
-      if (timer) clearTimeout(timer);
-      unregisterWaiter();
-      resolve(reason);
-    };
-    const onSigint = () => finish('sigint');
-
-    try {
-      source.once('SIGINT', onSigint);
-    } catch (error) {
-      unregisterWaiter();
-      reject(error);
-      return;
-    }
-    if (watchdogMs > 0) {
-      timer = setTimeout(() => finish('watchdog'), watchdogMs);
-    }
-  });
+  const waiter = createCliInterruptWaiter(watchdogMs, { source, input });
+  return waiter.result.finally(waiter.dispose);
 }

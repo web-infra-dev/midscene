@@ -430,9 +430,13 @@ describe('generateToolsFromActionSpace', () => {
       ),
     );
     const recordTool = createRecordCliCommand(getAgent);
+    const interruptDispose = rs.fn();
     const interruptSpy = rs
-      .spyOn(cliInterrupt, 'waitForCliInterrupt')
-      .mockResolvedValue('sigint');
+      .spyOn(cliInterrupt, 'createCliInterruptWaiter')
+      .mockReturnValue({
+        result: Promise.resolve('sigint'),
+        dispose: interruptDispose,
+      });
 
     const result = await withCliVerboseContext(
       {
@@ -460,8 +464,13 @@ describe('generateToolsFromActionSpace', () => {
     expect(stop).toHaveBeenCalledOnce();
     expect(exportRecord).toHaveBeenCalledOnce();
     expect(dispose).toHaveBeenCalledOnce();
+    expect(interruptDispose).toHaveBeenCalledOnce();
+    expect(existsSync(output)).toBe(true);
     expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
       stop.mock.invocationCallOrder[0],
+    );
+    expect(dispose.mock.invocationCallOrder[0]).toBeLessThan(
+      interruptDispose.mock.invocationCallOrder[0],
     );
     expect(result).toEqual({
       content: [{ type: 'text', text: `Observation record saved: ${output}` }],
