@@ -1,7 +1,7 @@
 {
   "name": "@midscene/test",
   "description": "Extensible YAML test runner and node SDK for Midscene.",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
