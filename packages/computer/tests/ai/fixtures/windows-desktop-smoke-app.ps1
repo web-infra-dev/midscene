@@ -131,7 +131,7 @@ $form.Text = 'Midscene Windows Desktop Smoke'
 $form.Name = 'MidsceneWindowsDesktopSmoke'
 $form.AccessibleName = 'Midscene Windows Desktop Smoke'
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
-$form.ClientSize = New-Object System.Drawing.Size(680, 470)
+$form.ClientSize = New-Object System.Drawing.Size(520, 340)
 $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
@@ -150,7 +150,7 @@ $form.Top = $workingArea.Top + [Math]::Max(20, [int][Math]::Floor(($workingArea.
 
 $heading = New-Object System.Windows.Forms.Label
 $heading.AutoSize = $true
-$heading.Location = New-Object System.Drawing.Point(48, 28)
+$heading.Location = New-Object System.Drawing.Point(24, 18)
 $heading.Font = New-Object System.Drawing.Font('Segoe UI', 15, [System.Drawing.FontStyle]::Bold)
 $heading.ForeColor = [System.Drawing.Color]::FromArgb(31, 41, 55)
 $heading.Text = 'Midscene Windows CI desktop fixture'
@@ -158,20 +158,34 @@ $heading.Text = 'Midscene Windows CI desktop fixture'
 $button = New-Object System.Windows.Forms.Button
 $button.Name = 'MidsceneSmokeButton'
 $button.AccessibleName = 'Midscene Smoke Button'
-$button.Location = New-Object System.Drawing.Point(50, 88)
-$button.Size = New-Object System.Drawing.Size(270, 76)
+$button.Location = New-Object System.Drawing.Point(340, 72)
+$button.Size = New-Object System.Drawing.Size(150, 58)
 $button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $button.FlatAppearance.BorderSize = 2
 $button.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0, 92, 52)
 $button.BackColor = [System.Drawing.Color]::FromArgb(0, 210, 80)
 $button.ForeColor = [System.Drawing.Color]::FromArgb(10, 35, 20)
 $button.UseVisualStyleBackColor = $false
-$button.Font = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Bold)
-$button.Text = 'MIDSCENE GREEN TARGET'
+$button.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
+$button.Text = 'GREEN TAP TARGET'
+
+$doubleClickButton = New-Object System.Windows.Forms.Button
+$doubleClickButton.Name = 'MidsceneDoubleClickButton'
+$doubleClickButton.AccessibleName = 'Midscene Double Click Button'
+$doubleClickButton.Location = New-Object System.Drawing.Point(340, 145)
+$doubleClickButton.Size = New-Object System.Drawing.Size(150, 48)
+$doubleClickButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$doubleClickButton.FlatAppearance.BorderSize = 2
+$doubleClickButton.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(20, 60, 130)
+$doubleClickButton.BackColor = [System.Drawing.Color]::FromArgb(80, 150, 255)
+$doubleClickButton.ForeColor = [System.Drawing.Color]::FromArgb(10, 25, 55)
+$doubleClickButton.UseVisualStyleBackColor = $false
+$doubleClickButton.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+$doubleClickButton.Text = 'DOUBLE-CLICK TARGET'
 
 $textLabel = New-Object System.Windows.Forms.Label
 $textLabel.AutoSize = $true
-$textLabel.Location = New-Object System.Drawing.Point(366, 82)
+$textLabel.Location = New-Object System.Drawing.Point(24, 68)
 $textLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9)
 $textLabel.ForeColor = [System.Drawing.Color]::FromArgb(55, 65, 81)
 $textLabel.Text = 'Type into the real WinForms TextBox:'
@@ -179,13 +193,13 @@ $textLabel.Text = 'Type into the real WinForms TextBox:'
 $textBox = New-Object System.Windows.Forms.TextBox
 $textBox.Name = 'MidsceneSmokeTextBox'
 $textBox.AccessibleName = 'Midscene Smoke Text Box'
-$textBox.Location = New-Object System.Drawing.Point(368, 108)
-$textBox.Size = New-Object System.Drawing.Size(258, 34)
+$textBox.Location = New-Object System.Drawing.Point(24, 94)
+$textBox.Size = New-Object System.Drawing.Size(270, 34)
 $textBox.Font = New-Object System.Drawing.Font('Segoe UI', 12)
 
 $scrollLabel = New-Object System.Windows.Forms.Label
 $scrollLabel.AutoSize = $true
-$scrollLabel.Location = New-Object System.Drawing.Point(50, 202)
+$scrollLabel.Location = New-Object System.Drawing.Point(24, 205)
 $scrollLabel.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
 $scrollLabel.ForeColor = [System.Drawing.Color]::FromArgb(31, 41, 55)
 $scrollLabel.Text = 'Hover here and send a real mouse-wheel event'
@@ -193,8 +207,8 @@ $scrollLabel.Text = 'Hover here and send a real mouse-wheel event'
 $scrollArea = New-Object System.Windows.Forms.ListBox
 $scrollArea.Name = 'MidsceneSmokeScrollArea'
 $scrollArea.AccessibleName = 'Midscene Smoke Scroll Area'
-$scrollArea.Location = New-Object System.Drawing.Point(50, 232)
-$scrollArea.Size = New-Object System.Drawing.Size(576, 174)
+$scrollArea.Location = New-Object System.Drawing.Point(24, 230)
+$scrollArea.Size = New-Object System.Drawing.Size(466, 82)
 $scrollArea.IntegralHeight = $false
 $scrollArea.TabStop = $true
 $scrollArea.BackColor = [System.Drawing.Color]::FromArgb(231, 245, 255)
@@ -208,6 +222,7 @@ for ($index = 0; $index -lt 30; $index += 1) {
 $form.Controls.AddRange(@(
   $heading,
   $button,
+  $doubleClickButton,
   $textLabel,
   $textBox,
   $scrollLabel,
@@ -220,6 +235,7 @@ $state = [ordered]@{
   updatedAt = (Get-Date).ToUniversalTime().ToString('o')
   visible = $false
   clickCount = 0
+  doubleClickCount = 0
   text = ''
   lastKey = ''
   keyEventCount = 0
@@ -246,6 +262,11 @@ function Write-State {
 
 $button.Add_Click({
   $state.clickCount += 1
+  Write-State
+})
+
+$doubleClickButton.Add_Click({
+  $state.doubleClickCount += 1
   Write-State
 })
 
@@ -358,6 +379,11 @@ $form.Add_Shown({
   $buttonMetadata['name'] = $button.Name
   $buttonMetadata['text'] = $button.Text
 
+  $doubleClickButtonMetadata = Get-ControlScreenBounds -Control $doubleClickButton
+  $doubleClickButtonMetadata['handle'] = $doubleClickButton.Handle.ToInt64().ToString()
+  $doubleClickButtonMetadata['name'] = $doubleClickButton.Name
+  $doubleClickButtonMetadata['text'] = $doubleClickButton.Text
+
   $textBoxMetadata = Get-ControlScreenBounds -Control $textBox
   $textBoxMetadata['handle'] = $textBox.Handle.ToInt64().ToString()
   $textBoxMetadata['name'] = $textBox.Name
@@ -376,6 +402,7 @@ $form.Add_Shown({
     screen = $screenMetadata
     form = $formMetadata
     button = $buttonMetadata
+    doubleClickButton = $doubleClickButtonMetadata
     textBox = $textBoxMetadata
     scroll = $scrollMetadata
   }

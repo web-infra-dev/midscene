@@ -51,6 +51,7 @@ interface FixtureMetadata {
   screen: Bounds;
   form: Bounds;
   button: Bounds;
+  doubleClickButton: Bounds;
   textBox: Bounds;
   scroll: Bounds;
 }
@@ -58,6 +59,7 @@ interface FixtureMetadata {
 interface FixtureState {
   visible: boolean;
   clickCount: number;
+  doubleClickCount: number;
   text: string;
   lastKey: string;
   wheelEventCount: number;
@@ -138,6 +140,10 @@ function normalizeMetadata(value: unknown): FixtureMetadata {
   const rawScreen = asRecord(raw.screen, 'fixture.screen');
   const rawForm = asRecord(raw.form, 'fixture.form');
   const rawButton = asRecord(raw.button, 'fixture.button');
+  const rawDoubleClickButton = asRecord(
+    raw.doubleClickButton,
+    'fixture.doubleClickButton',
+  );
   const rawTextBox = asRecord(raw.textBox, 'fixture.textBox');
   const rawScroll = asRecord(raw.scroll, 'fixture.scroll');
   return {
@@ -153,6 +159,10 @@ function normalizeMetadata(value: unknown): FixtureMetadata {
     screen: normalizeBounds(rawScreen, 'fixture.screen'),
     form: normalizeBounds(rawForm, 'fixture.form'),
     button: normalizeBounds(rawButton, 'fixture.button'),
+    doubleClickButton: normalizeBounds(
+      rawDoubleClickButton,
+      'fixture.doubleClickButton',
+    ),
     textBox: normalizeBounds(rawTextBox, 'fixture.textBox'),
     scroll: normalizeBounds(rawScroll, 'fixture.scroll'),
   };
@@ -167,6 +177,10 @@ function normalizeState(value: unknown): FixtureState {
   return {
     visible: raw.visible === true,
     clickCount: asFiniteNumber(raw.clickCount ?? 0, 'state.clickCount'),
+    doubleClickCount: asFiniteNumber(
+      raw.doubleClickCount ?? 0,
+      'state.doubleClickCount',
+    ),
     text: String(raw.text ?? ''),
     lastKey: String(raw.lastKey ?? ''),
     wheelEventCount: asFiniteNumber(
@@ -479,6 +493,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(metadata.sessionId).toBeGreaterThan(0);
       expect(metadata.visible).toBe(true);
       expect(metadata.dpi).toBeGreaterThan(0);
+      const expectedScalePercent = Number(
+        process.env.MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT || '100',
+      );
+      expect(metadata.dpi).toBe(Math.round((96 * expectedScalePercent) / 100));
       expect(metadata.screen.width).toBeGreaterThan(0);
       expect(metadata.screen.height).toBeGreaterThan(0);
       expect(metadata.screenDeviceName).toMatch(/^\\\\\.\\DISPLAY\d+$/i);
@@ -598,6 +616,22 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       );
       expect(clickedState.clickCount).toBe(1);
 
+      await agent.callActionInActionSpace('DoubleClick', {
+        locate: locate(
+          metadata.doubleClickButton,
+          metadata.screen,
+          'right-side double-click target',
+        ),
+      });
+      const doubleClickedState = await waitForJson(
+        stateFile,
+        normalizeState,
+        (state) => state.doubleClickCount >= 2,
+        STATE_TIMEOUT_MS,
+        startedFixture,
+      );
+      expect(doubleClickedState.doubleClickCount).toBe(2);
+
       const inputText = 'Midscene Windows 输入 😀';
       await agent.callActionInActionSpace('Input', {
         value: inputText,
@@ -656,7 +690,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(4);
+      expect(locateTasks).toHaveLength(5);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -682,11 +716,17 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(4);
+      expect(reportLocateTasks).toHaveLength(5);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
-      for (const action of ['Tap', 'Input', 'KeyboardPress', 'Scroll']) {
+      for (const action of [
+        'Tap',
+        'DoubleClick',
+        'Input',
+        'KeyboardPress',
+        'Scroll',
+      ]) {
         expect(
           reportTasks.some(
             (task) => task.type === 'Action Space' && task.subType === action,

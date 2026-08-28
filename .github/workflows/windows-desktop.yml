@@ -21,6 +21,14 @@ on:
         required: false
         default: 'main'
         type: string
+      display_scale:
+        description: 'Windows display scale used by the live desktop smoke'
+        required: true
+        default: '100'
+        type: choice
+        options:
+          - '100'
+          - '175'
 
 permissions:
   contents: read
@@ -47,12 +55,27 @@ jobs:
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
       MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+      MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT: ${{ inputs.display_scale || '100' }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure requested Windows display scale
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.display_scale != '100' }}
+        shell: pwsh
+        run: |
+          $diagnosticsDir = $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR
+          New-Item -ItemType Directory -Force -Path $diagnosticsDir | Out-Null
+          $diagnosticsPath = Join-Path $diagnosticsDir 'display-scale-configuration.json'
+          & packages/computer/tests/ai/fixtures/windows-set-display-scale.ps1 `
+            -ScalePercent ([int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT) `
+            -DiagnosticsFile $diagnosticsPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to configure Windows display scale to $env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT%."
+          }
 
       - name: Verify interactive Windows desktop
         shell: pwsh
@@ -97,6 +120,8 @@ jobs:
             $bounds = $primaryScreen.Bounds
             $workingArea = $primaryScreen.WorkingArea
             $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            $expectedScalePercent = [int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT
+            $expectedDpi = [int][Math]::Round(96 * $expectedScalePercent / 100)
             $windowsPowerShellVersion = (
               & powershell.exe -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()' |
                 Out-String
@@ -111,6 +136,8 @@ jobs:
             $probe.powerShellVersion = $PSVersionTable.PSVersion.ToString()
             $probe.windowsPowerShellVersion = $windowsPowerShellVersion
             $probe.dpi = $dpi
+            $probe.expectedScalePercent = $expectedScalePercent
+            $probe.expectedDpi = $expectedDpi
             $probe.primaryScreen = [ordered]@{
               deviceName = $primaryScreen.DeviceName
               primary = $primaryScreen.Primary
@@ -130,6 +157,9 @@ jobs:
             }
             if ($bounds.Width -le 0 -or $bounds.Height -le 0) {
               $violations += "Primary screen has invalid bounds $($bounds.Width)x$($bounds.Height)"
+            }
+            if ($dpi -ne $expectedDpi) {
+              $violations += "Expected $expectedScalePercent% display scaling ($expectedDpi DPI), but the fresh PowerShell process observed $dpi DPI"
             }
             $probe.violations = $violations
             $probe.valid = $violations.Count -eq 0
