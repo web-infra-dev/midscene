@@ -349,7 +349,7 @@ function aiInput(
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `autoDismissKeyboard?: boolean` — Whether to dismiss the on-screen keyboard after entering text. Available only on Android, iOS, and HarmonyOS. Default: `true`.
-    - `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. A positive value makes legacy input enter one Unicode code point at a time. Use this option when an input field drops characters during fast input.
+    - `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. Whether this option affects `legacy` input depends on the platform's existing input path; see the table below. A `legacy` path that supports delay enters one Unicode code point at a time when the value is greater than `0`. Use this option when an input field drops characters during fast input.
     - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — How Midscene sends the text to the platform. Default: `'legacy'`.
       - `'legacy'`: Preserve the platform's existing behavior. This is the compatibility-safe default, so existing tests do not change after upgrading.
       - `'sequential'`: Send one Unicode code point at a time, including when `keyboardTypeDelay` is omitted or `0`.

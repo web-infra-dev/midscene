@@ -340,7 +340,7 @@ function aiInput(
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
-    - `keyboardTypeDelay?: number` - 按键间延迟，单位为毫秒。取值必须是有限的非负数。设为正数后，`legacy` 输入会逐个 Unicode 码点执行。适用于输入框在快速输入下丢字的场景。
+    - `keyboardTypeDelay?: number` - 按键间延迟，单位为毫秒。取值必须是有限的非负数。该选项在 `legacy` 模式下是否生效取决于平台既有的输入路径，详见下表。支持延迟的 `legacy` 路径会在值大于 `0` 时逐个 Unicode 码点输入。适用于输入框在快速输入下丢字的场景。
     - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` - 控制 Midscene 如何把文本发送给平台。默认值为 `'legacy'`。
       - `'legacy'`：保留各平台现有行为。它是兼容性默认值，升级后不会改变已有测试的输入方式。
       - `'sequential'`：逐个 Unicode 码点发送。即使未设置 `keyboardTypeDelay` 或将其设为 `0`，Midscene 也会逐个发送。
