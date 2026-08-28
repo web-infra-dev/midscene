@@ -162,7 +162,7 @@ jobs:
           touch "$record_log"
           find /tmp -maxdepth 1 -name '.X*-lock' -print | sort > "$before_locks"
 
-          record_command="pnpm --filter @midscene/computer exec midscene-computer record start --output '${manifest}' --interval-ms 500 --max-frames 12 --watchdog-ms 90000 --headless --verbose=jsonl"
+          record_command="pnpm --filter @midscene/computer exec ./bin/midscene-computer record start --output '${manifest}' --interval-ms 500 --max-frames 12 --watchdog-ms 90000 --headless --verbose=jsonl"
 
           set +e
           (
@@ -248,7 +248,7 @@ jobs:
           cmp "$before_locks" "$after_locks"
           echo "COMPUTER_RECORDER_XVFB_CLEANUP_OK"
 
-          pnpm --filter @midscene/computer exec midscene-computer assert \
+          pnpm --filter @midscene/computer exec ./bin/midscene-computer assert \
             --record "$manifest" \
             --prompt "The observation shows the virtual desktop changing from a dark background to a blue background." \
             2>&1 | tee "$assert_log"
