@@ -122,6 +122,35 @@ describe('createLocateResultCodec', () => {
     ).toThrow(/invalid bbox data/);
   });
 
+  it.each([null, true, false, '', '   '])(
+    'rejects coercible non-coordinate bbox value: %j',
+    (invalidValue) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      });
+
+      expect(() =>
+        codec.toPixelBbox(
+          [invalidValue, 100, 300, 400] as never,
+          locateCtx(640, 360),
+        ),
+      ).toThrow(/invalid bbox data/);
+    },
+  );
+
+  it('accepts decimal coordinate strings without general JavaScript coercion', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+    });
+
+    expect(
+      codec.toPixelBbox(
+        ['100', '200.5', '300.25', '400'] as never,
+        locateCtx(200, 100),
+      ),
+    ).toEqual([20, 20, 60, 40]);
+  });
+
   it('rejects invalid parsed adapter results before coordinate range checks', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
@@ -156,6 +185,16 @@ describe('createLocateResultCodec', () => {
     expect(() => codec.toPixelBbox([500], locateCtx(640, 360))).toThrow(
       /invalid point data/,
     );
+  });
+
+  it('rejects point coordinate values with more than two entries', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+    });
+
+    expect(() =>
+      codec.toPixelBbox([500, 500, 500], locateCtx(640, 360)),
+    ).toThrow(/invalid point data/);
   });
 
   it('rejects non-positive normalizedBy values', () => {
