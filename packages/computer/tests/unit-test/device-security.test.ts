@@ -43,11 +43,12 @@ const mockState = rs.hoisted(() => {
   ]);
 
   let mousePos = { x: 10, y: 20 };
+  let mouseTransform = (x: number, y: number) => ({ x, y });
   const libnut = {
     getScreenSize: rs.fn(() => ({ width: 800, height: 600 })),
     getMousePos: rs.fn(() => ({ ...mousePos })),
     moveMouse: rs.fn((x: number, y: number) => {
-      mousePos = { x, y };
+      mousePos = mouseTransform(x, y);
     }),
     mouseClick: rs.fn(),
     mouseToggle: rs.fn(),
@@ -67,6 +68,7 @@ const mockState = rs.hoisted(() => {
 
   const reset = () => {
     mousePos = { x: 10, y: 20 };
+    mouseTransform = (x: number, y: number) => ({ x, y });
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
     execFileSync.mockClear();
@@ -87,6 +89,12 @@ const mockState = rs.hoisted(() => {
     createRequire.mockClear();
   };
 
+  const setMouseTransform = (
+    transform: (x: number, y: number) => { x: number; y: number },
+  ) => {
+    mouseTransform = transform;
+  };
+
   return {
     execSync,
     execFileSync,
@@ -94,6 +102,7 @@ const mockState = rs.hoisted(() => {
     libnut,
     createRequire,
     reset,
+    setMouseTransform,
   };
 });
 
@@ -313,6 +322,17 @@ describe('ComputerDevice scroll targeting', () => {
 });
 
 describe('ComputerDevice pointer input', () => {
+  it('corrects scaled Windows mouse coordinates before clicking', async () => {
+    mockState.setMouseTransform((x, y) => ({ x: x * 1.75, y: y * 1.75 }));
+    const device = await createConnectedDeviceForPlatform('win32');
+
+    await device.inputPrimitives.pointer!.tap({ x: 400, y: 300 });
+
+    expect(mockState.libnut.getMousePos()).toEqual({ x: 400, y: 300 });
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
+  });
+
   it('sends a press and release for tap after moving to the target', async () => {
     await runPointerTap({ x: 100, y: 120 });
 
