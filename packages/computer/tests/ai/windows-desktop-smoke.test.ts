@@ -347,6 +347,8 @@ function Find-ColorTarget(
   $green = 0L
   $blue = 0L
   $count = 0L
+  $columnCounts = New-Object int[] $bitmap.Width
+  $rowCounts = New-Object int[] $bitmap.Height
 
   for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
     for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
@@ -364,12 +366,37 @@ function Find-ColorTarget(
         $green += $pixel.G
         $blue += $pixel.B
         $count += 1
+        $columnCounts[$x] += 1
+        $rowCounts[$y] += 1
       }
     }
   }
 
   if ($count -eq 0) {
     throw "Screenshot does not contain target color ($expectedRed, $expectedGreen, $expectedBlue)."
+  }
+
+  # Ignore isolated wallpaper/taskbar pixels that happen to share the exact
+  # fixture color. Every row and column inside a real target has a dense run.
+  $minimumX = $bitmap.Width
+  $minimumY = $bitmap.Height
+  $maximumX = -1
+  $maximumY = -1
+  $minimumDensePixels = 10
+  for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
+    if ($columnCounts[$x] -ge $minimumDensePixels) {
+      $minimumX = [Math]::Min($minimumX, $x)
+      $maximumX = [Math]::Max($maximumX, $x)
+    }
+  }
+  for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
+    if ($rowCounts[$y] -ge $minimumDensePixels) {
+      $minimumY = [Math]::Min($minimumY, $y)
+      $maximumY = [Math]::Max($maximumY, $y)
+    }
+  }
+  if ($maximumX -lt $minimumX -or $maximumY -lt $minimumY) {
+    throw "Screenshot target color ($expectedRed, $expectedGreen, $expectedBlue) has no dense region."
   }
 
   [PSCustomObject]@{
