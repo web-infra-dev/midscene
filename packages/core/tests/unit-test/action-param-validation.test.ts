@@ -526,13 +526,46 @@ describe('Action Parameter Validation', () => {
       expect(parsed!.keyboardTypeDelay).toBe(100);
     });
 
-    it('should apply default mode when not specified', () => {
+    it.each([-1, Number.POSITIVE_INFINITY])(
+      'should reject invalid keyboardTypeDelay %s',
+      (keyboardTypeDelay) => {
+        expect(() =>
+          parseActionParam(
+            { value: 'hello', keyboardTypeDelay },
+            actionInputParamSchema,
+          ),
+        ).toThrow();
+      },
+    );
+
+    it('should apply the default mode without masking device input strategy', () => {
       const rawParam = {
         value: 'test',
       };
 
       const parsed = parseActionParam(rawParam, actionInputParamSchema);
       expect(parsed!.mode).toBe('replace');
+      expect(parsed!.inputStrategy).toBeUndefined();
+    });
+
+    it.each(['legacy', 'sequential', 'bulk'] as const)(
+      'should accept the %s input strategy',
+      (inputStrategy) => {
+        const parsed = parseActionParam(
+          { value: 'test', inputStrategy },
+          actionInputParamSchema,
+        );
+        expect(parsed!.inputStrategy).toBe(inputStrategy);
+      },
+    );
+
+    it('should reject an unknown input strategy', () => {
+      expect(() =>
+        parseActionParam(
+          { value: 'test', inputStrategy: 'paste' },
+          actionInputParamSchema,
+        ),
+      ).toThrow();
     });
 
     it('should accept autoDismissKeyboard', () => {
@@ -589,6 +622,7 @@ describe('Action Parameter Validation', () => {
         replace: true,
         autoDismissKeyboard: undefined,
         keyboardTypeDelay: 80,
+        inputStrategy: undefined,
       });
     });
 
@@ -613,6 +647,7 @@ describe('Action Parameter Validation', () => {
         replace: false,
         autoDismissKeyboard: false,
         keyboardTypeDelay: undefined,
+        inputStrategy: undefined,
       });
     });
 
@@ -656,6 +691,31 @@ describe('Action Parameter Validation', () => {
         replace: false,
         autoDismissKeyboard: undefined,
         keyboardTypeDelay: undefined,
+        inputStrategy: undefined,
+      });
+    });
+
+    it('should pass inputStrategy to typeText', async () => {
+      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+      const action = defineActionInput({
+        typeText: typeTextMock,
+        clearInput: vi.fn(),
+        keyboardPress: vi.fn(),
+        cursorMove: vi.fn(),
+      });
+
+      await action.call({
+        value: 'whole value',
+        mode: 'replace',
+        inputStrategy: 'bulk',
+      });
+
+      expect(typeTextMock).toHaveBeenCalledWith('whole value', {
+        target: undefined,
+        replace: true,
+        autoDismissKeyboard: undefined,
+        keyboardTypeDelay: undefined,
+        inputStrategy: 'bulk',
       });
     });
   });

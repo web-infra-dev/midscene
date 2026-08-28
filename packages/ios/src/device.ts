@@ -15,8 +15,12 @@ import {
   type IOSDeviceOpt,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -89,6 +93,10 @@ export class IOSDevice implements AbstractInterface {
       keyboardPress: (keyName, opts) =>
         this.pressKey(keyName, opts?.target as ElementInfo | undefined),
       typeText: async (value, opts) => {
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.options,
+        );
         const target = opts?.target as ElementInfo | undefined;
         const focusRestorePoint = target
           ? { x: target.center[0], y: target.center[1] }
@@ -103,7 +111,12 @@ export class IOSDevice implements AbstractInterface {
           return;
         }
 
-        await this.typeText(value, opts, focusRestorePoint);
+        await this.typeText(
+          value,
+          opts,
+          focusRestorePoint,
+          resolvedInputOptions,
+        );
       },
       clearInput: (target) =>
         this.clearInput(target as ElementInfo | undefined),
@@ -614,14 +627,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     text: string,
     options?: IOSDeviceInputOpt,
     focusRestorePoint?: PointerPoint,
+    resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
+      options,
+      this.options,
+    ),
   ): Promise<void> {
     this.invalidatePendingKeyboardFollowUp('new text input');
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
-    const typeDelay =
-      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+    const typeDelay = resolvedInputOptions.keyboardTypeDelay;
+    const inputSequentially = shouldInputSequentially(resolvedInputOptions);
 
     debugDevice(`Typing text: "${text}"`);
 
@@ -629,14 +646,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       // Wait a bit to ensure keyboard is ready
       await sleep(200);
 
-      if (typeDelay && typeDelay > 0) {
+      if (inputSequentially) {
         // Type one character at a time with a delay between keystrokes.
         // Use typeRawKeys instead of typeText — the latter trims whitespace,
         // which would silently drop spaces and newlines when sent one at a time.
-        for (const ch of text) {
-          await this.wdaBackend.typeRawKeys([ch]);
-          await sleep(typeDelay);
-        }
+        await sendTextSequentially(
+          text,
+          {
+            sendCharacter: (character) =>
+              this.wdaBackend.typeRawKeys([character]),
+            wait: sleep,
+          },
+          {
+            delayMs: typeDelay,
+            delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
+          },
+        );
       } else {
         await this.wdaBackend.typeText(text);
       }

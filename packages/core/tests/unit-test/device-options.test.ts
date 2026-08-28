@@ -48,6 +48,8 @@ describe('Device Options Type Definitions', () => {
       const inputOptions: AndroidDeviceInputOpt = {
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'back-first',
+        keyboardTypeDelay: 20,
+        inputStrategy: 'sequential',
       };
 
       expect(inputOptions).toBeDefined();
@@ -101,6 +103,8 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceInputOpt should include keyboard options', () => {
       const inputOptions: IOSDeviceInputOpt = {
         autoDismissKeyboard: true,
+        keyboardTypeDelay: 20,
+        inputStrategy: 'bulk',
       };
 
       expect(inputOptions).toBeDefined();
@@ -123,6 +127,8 @@ describe('Device Options Type Definitions', () => {
       const inputOptions: HarmonyDeviceInputOpt = {
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'back-first',
+        keyboardTypeDelay: 20,
+        inputStrategy: 'legacy',
       };
 
       expect(inputOptions).toBeDefined();

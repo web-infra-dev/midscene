@@ -22,8 +22,12 @@ import {
   type DeviceFrameSource,
   type MobileInputPrimitives,
   type PointerPoint,
+  type ResolvedTextInputOptions,
   createDefaultMobileActions,
   defineAction,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -282,6 +286,10 @@ export class AndroidDevice implements AbstractInterface {
         dragAndDrop: (from, to) => this.dragPoint(from, to),
         keyboardPress: (keyName) => this.pressKey(keyName),
         typeText: async (value, opts) => {
+          const resolvedInputOptions = resolveTextInputOptions(
+            opts,
+            this.options,
+          );
           const target = opts?.target as ElementInfo | undefined;
           if (target && opts?.replace !== false) {
             await this.clearInputRaw(target);
@@ -293,7 +301,7 @@ export class AndroidDevice implements AbstractInterface {
             return;
           }
 
-          await this.typeText(value, opts);
+          await this.typeText(value, opts, resolvedInputOptions);
         },
         clearInput: (target) =>
           this.clearInputRaw(target as ElementInfo | undefined),
@@ -2009,6 +2017,7 @@ ${Object.keys(size)
   private async typeText(
     text: string,
     options?: AndroidDeviceInputOpt,
+    resolvedInputOptions = resolveTextInputOptions(options, this.options),
   ): Promise<void> {
     if (!text) return;
     const IME_STRATEGY =
@@ -2017,8 +2026,9 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
-    const typeDelay =
-      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+    const { inputStrategy, keyboardTypeDelay: typeDelay } =
+      resolvedInputOptions;
+    const inputYadbSequentially = inputStrategy === 'sequential';
 
     // yadb (app_process) cannot target a non-default display. If a displayId
     // other than 0 is configured and the text requires yadb, we throw rather
@@ -2045,14 +2055,26 @@ ${Object.keys(size)
     }
 
     if (needsYadb) {
-      // yadb handles newlines natively: escapeForShell converts \n (0x0A)
-      // to literal \n (two chars), which yadb interprets back as newline.
-      // Single adb call for the entire text.
-      await this.execYadbRaw(escapeForShell(text));
+      if (inputYadbSequentially) {
+        await sendTextSequentially(
+          text,
+          {
+            sendCharacter: (character) =>
+              this.execYadbRaw(escapeForShell(character)),
+            wait: sleep,
+          },
+          { delayMs: typeDelay },
+        );
+      } else {
+        // yadb handles newlines natively: escapeForShell converts \n (0x0A)
+        // to literal \n (two chars), which yadb interprets back as newline.
+        // Single adb call for the entire text.
+        await this.execYadbRaw(escapeForShell(text));
+      }
     } else {
       // Use the display-aware `input text` primitive. Handles shell escaping,
       // newline splitting, and per-character typing delay internally.
-      await this.shellInputText(text, { keyboardTypeDelay: typeDelay });
+      await this.shellInputText(text, resolvedInputOptions);
     }
 
     if (shouldAutoDismissKeyboard === true) {
@@ -2483,22 +2505,33 @@ ${Object.keys(size)
    */
   private async shellInputText(
     text: string,
-    opts?: { keyboardTypeDelay?: number },
+    inputOptions: ResolvedTextInputOptions,
   ): Promise<void> {
     const adb = await this.getAdb();
     const displayArg = this.getDisplayArg();
-    const typeDelay = opts?.keyboardTypeDelay;
+    const typeDelay = inputOptions.keyboardTypeDelay;
+    const inputSequentially = shouldInputSequentially(inputOptions);
 
     // input text cannot handle newlines; split and press Enter between segments.
     const segments = text.split('\n');
     for (let i = 0; i < segments.length; i++) {
       if (segments[i].length > 0) {
-        if (typeDelay && typeDelay > 0) {
+        if (inputSequentially) {
           // Per-character typing with delay. Each char is shell-escaped.
-          for (const ch of segments[i]) {
-            await adb.shell(`input${displayArg} text ${shellEscapeArg(ch)}`);
-            await sleep(typeDelay);
-          }
+          await sendTextSequentially(
+            segments[i],
+            {
+              sendCharacter: (character) =>
+                adb.shell(
+                  `input${displayArg} text ${shellEscapeArg(character)}`,
+                ),
+              wait: sleep,
+            },
+            {
+              delayMs: typeDelay,
+              delayAfterLast: inputOptions.inputStrategy === 'legacy',
+            },
+          );
         } else {
           // Burst the whole segment. shellEscapeArg protects against
           // shell metacharacters (&, ;, ', $, etc.).

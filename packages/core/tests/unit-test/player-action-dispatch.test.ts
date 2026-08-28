@@ -352,6 +352,31 @@ describe('player action dispatch ordering', () => {
   });
 
   describe('player task dispatch without runtime result interpolation', () => {
+    it('should forward YAML inputStrategy to the Input action', async () => {
+      const player = createPlayerWithActionSpace([]);
+      const agent = createMockAgent();
+      const taskStatus = {
+        name: 'test',
+        flow: [
+          {
+            aiInput: 'search box',
+            value: 'Beijing',
+            inputStrategy: 'bulk',
+          },
+        ],
+        index: 0,
+        status: 'running' as const,
+        totalSteps: 1,
+      };
+
+      await player.playTask(taskStatus, agent);
+
+      expect(agent.callActionInActionSpace).toHaveBeenCalledWith(
+        'Input',
+        expect.objectContaining({ inputStrategy: 'bulk', value: 'Beijing' }),
+      );
+    });
+
     it('should pass $var text through as a literal value', async () => {
       const player = createPlayerWithActionSpace([]);
       const agent = createMockAgent();

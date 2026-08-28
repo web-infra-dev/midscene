@@ -42,6 +42,7 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import { selectAllInputScript } from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -206,7 +207,8 @@ export class Page<
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
-  private keyboardTypeDelay: number | undefined;
+  readonly keyboardTypeDelay: number | undefined;
+  readonly inputStrategy: WebPageAgentOpt['inputStrategy'];
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
@@ -272,6 +274,7 @@ export class Page<
     this.enableTouchEventsInActionSpace =
       opts?.enableTouchEventsInActionSpace ?? false;
     this.keyboardTypeDelay = opts?.keyboardTypeDelay;
+    this.inputStrategy = opts?.inputStrategy;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -1057,6 +1060,21 @@ export class Page<
           delay: effectiveDelay,
         });
       },
+      insertText: async (text: string) => {
+        debugPage(`keyboard insert text ${text}`);
+        if (this.interfaceType === 'playwright') {
+          return (this.underlyingPage as PlaywrightPage).keyboard.insertText(
+            text,
+          );
+        }
+
+        const client = await this.createPageCdpSession('bulk text input');
+        try {
+          await client.send('Input.insertText', { text });
+        } finally {
+          await client.detach().catch(() => undefined);
+        }
+      },
       press: async (
         action:
           | { key: KeyInput; command?: string }
@@ -1102,6 +1120,17 @@ export class Page<
       });
     } finally {
       await client.detach().catch(() => undefined);
+    }
+  }
+
+  async selectAllInput(element?: ElementInfo): Promise<void> {
+    if (!element) {
+      throw new Error('Bulk replace input requires a target element');
+    }
+    await this.mouse.click(element.center[0], element.center[1]);
+    const selected = await this.evaluate<boolean>(selectAllInputScript);
+    if (!selected) {
+      await this.selectAllByCdp();
     }
   }
 

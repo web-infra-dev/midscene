@@ -239,6 +239,42 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.inputText).toHaveBeenCalledWith(500, 600, 'hello');
     });
 
+    it('forces one HDC call per Unicode character for sequential input', async () => {
+      device.options = {
+        ...device.options,
+        inputStrategy: 'sequential',
+      };
+      await device.inputPrimitives.keyboard.typeText('A😀B', {
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+
+      expect(mockHdc.inputText.mock.calls).toEqual([
+        [608, 1344, 'A'],
+        [608, 1344, '😀'],
+        [608, 1344, 'B'],
+      ]);
+    });
+
+    it('rejects bulk input when the device has a positive keyboard delay', async () => {
+      const delayedDevice = new HarmonyDevice('delayed-device', {
+        keyboardTypeDelay: 10,
+        autoDismissKeyboard: false,
+      });
+      await delayedDevice.connect();
+
+      await expect(
+        delayedDevice.inputPrimitives.keyboard.typeText('hello', {
+          inputStrategy: 'bulk',
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow(
+        'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+      );
+      expect(mockHdc.clearTextField).not.toHaveBeenCalled();
+      await delayedDevice.destroy();
+    });
+
     it('should use lastTapPosition when no element', async () => {
       await device.inputPrimitives.pointer.tap({ x: 300, y: 400 });
       mockHdc.inputText.mockClear();

@@ -74,6 +74,7 @@ export enum MouseEvent {
 export enum KeyboardEvent {
   PREFIX = 'keyboard.',
   Type = 'keyboard.type',
+  InsertText = 'keyboard.insertText',
   Press = 'keyboard.press',
 }
 

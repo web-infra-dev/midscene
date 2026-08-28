@@ -119,6 +119,8 @@ describe('@midscene/computer RDP device', () => {
       ignoreCertificate: true,
       backend,
       customActions: [],
+      inputStrategy: 'sequential',
+      keyboardTypeDelay: 25,
     });
     await device.connect();
 
@@ -128,6 +130,8 @@ describe('@midscene/computer RDP device', () => {
     // never be serialized into the helper's JSON connection request.
     expect(config).not.toHaveProperty('backend');
     expect(config).not.toHaveProperty('customActions');
+    expect(config).not.toHaveProperty('inputStrategy');
+    expect(config).not.toHaveProperty('keyboardTypeDelay');
     expect(config).toMatchObject({
       host: '10.0.0.3',
       port: 3389,
@@ -310,6 +314,48 @@ describe('@midscene/computer RDP device', () => {
     expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
       { name: 'typeText', args: ['hello'] },
     ]);
+  });
+
+  it('forces sequential RDP backend calls without a positive delay', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      inputStrategy: 'sequential',
+    });
+    await device.connect();
+
+    await device.inputPrimitives.keyboard!.typeText('A😀B', {
+      replace: false,
+    });
+
+    expect(backend.calls.filter((call) => call.name === 'typeText')).toEqual([
+      { name: 'typeText', args: ['A'] },
+      { name: 'typeText', args: ['😀'] },
+      { name: 'typeText', args: ['B'] },
+    ]);
+  });
+
+  it('rejects conflicting bulk input before clearing the RDP field', async () => {
+    const backend = new FakeRDPBackend();
+    const device = new RDPDevice({
+      host: '10.0.0.1',
+      backend,
+      keyboardTypeDelay: 80,
+    });
+    await device.connect();
+
+    await expect(
+      device.inputPrimitives.keyboard!.typeText('hello', {
+        inputStrategy: 'bulk',
+        target: createLocate([10, 20]),
+      }),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+    );
+    expect(backend.calls.some((call) => call.name === 'clearInput')).toBe(
+      false,
+    );
   });
 
   it('lists the connected RDP display as a single primary monitor', async () => {

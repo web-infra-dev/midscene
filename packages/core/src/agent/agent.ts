@@ -57,7 +57,7 @@ import {
 
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
-import type { AbstractInterface } from '@/device';
+import type { AbstractInterface, InputStrategy } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import {
@@ -141,6 +141,7 @@ type AiActInternalOptions = AiActOptions & {
 type AgentInputOption = LocateOption & {
   autoDismissKeyboard?: boolean;
   keyboardTypeDelay?: number;
+  inputStrategy?: InputStrategy;
   mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 

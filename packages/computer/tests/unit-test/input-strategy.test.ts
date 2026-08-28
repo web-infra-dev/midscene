@@ -64,6 +64,39 @@ describe('Input Strategy', () => {
       keyboardTypeDelay: 0,
     });
 
-    expect(smartTypeString).toHaveBeenCalledWith('hello', 0);
+    expect(smartTypeString).toHaveBeenCalledWith('hello', {
+      inputStrategy: 'legacy',
+      keyboardTypeDelay: 0,
+    });
+  });
+
+  it('forces real key input without requiring a positive delay', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+    });
+    const inputDriver = (device as any).inputDriver;
+    const typeString = rs
+      .spyOn(inputDriver, 'typeString')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.typeText('A😀B');
+
+    expect(typeString.mock.calls).toEqual([['A'], ['😀'], ['B']]);
+  });
+
+  it('rejects bulk input with a positive device delay', async () => {
+    const device = new ComputerDevice({ keyboardTypeDelay: 80 });
+    const clearInput = rs.spyOn(device as any, 'selectAllAndDelete');
+
+    await expect(
+      device.inputPrimitives.keyboard!.typeText('hello', {
+        inputStrategy: 'bulk',
+        target: { center: [10, 20] },
+      }),
+    ).rejects.toThrow(
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+    );
+    expect(clearInput).not.toHaveBeenCalled();
   });
 });

@@ -322,6 +322,7 @@ function aiInput(
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
     keyboardTypeDelay?: number;
+    inputStrategy?: 'legacy' | 'sequential' | 'bulk';
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -348,11 +349,28 @@ function aiInput(
     - `xpath?: string` — XPath for the target element. Midscene tries the XPath before consulting the cache or AI model. Default: `undefined`.
     - `cacheable?: boolean` — Whether this call can use the [cache](../caching.mdx). Default: `true`.
     - `autoDismissKeyboard?: boolean` — Whether to dismiss the on-screen keyboard after entering text. Available only on Android, iOS, and HarmonyOS. Default: `true`.
-    - `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time. Use this option when an input field drops characters during fast input.
+    - `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. Whether this option affects `legacy` input depends on the platform's existing input path; see the table below. A `legacy` path that supports delay enters one Unicode code point at a time when the value is greater than `0`. Use this option when an input field drops characters during fast input.
+    - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — How Midscene sends the text to the platform. Default: `'legacy'`.
+      - `'legacy'`: Preserve the platform's existing behavior. This is the compatibility-safe default, so existing tests do not change after upgrading.
+      - `'sequential'`: Send one Unicode code point at a time, including when `keyboardTypeDelay` is omitted or `0`.
+      - `'bulk'`: Send the complete text in one platform input operation where the platform supports it. On Web, `replace` selects the existing value and uses `insertText`, producing one insertion `input` event rather than first emitting a clearing input event and then per-character input events. Other platforms make one call from Midscene to their input backend, but the OS or driver may still synthesize multiple application events.
+      - `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`. A value greater than `0` causes Midscene to throw an error; negative and non-finite values are invalid for every strategy. An action-level value overrides the Device or Agent default, so use `keyboardTypeDelay: 0` to override a positive default when selecting `'bulk'` for one action.
     - `mode?: 'replace' | 'clear' | 'typeOnly'` — Input mode. Default: `'replace'`.
       - `'replace'`: Clear the input field first, then input the text.
       - `'typeOnly'`: Type the value directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
+
+  The default value of `inputStrategy` is `'legacy'` on every platform. This mode preserves Midscene's platform-specific input logic from earlier versions, so its behavior can vary by platform:
+
+  | Platform | `legacy` behavior |
+  | --- | --- |
+  | Web / Playwright / Puppeteer | In `replace` mode, clear the existing value and wait for the DOM to settle, then pass the complete value to `keyboard.type(value)`. A positive delay is handled by the browser driver. |
+  | Chrome Extension / Bridge | Keep the Web clear-then-type flow and send text through the remote keyboard primitive. Legacy CDP typing keeps its existing zero-delay behavior; Bridge resolves the strategy on the CLI side before forwarding the primitive. |
+  | Android | Non-ASCII or shell-sensitive text normally uses one yadb call and preserves the historical behavior of ignoring delay. The native `input text` path sends a complete segment by default and switches to one call per Unicode code point when delay is greater than `0`. |
+  | iOS | Use one WDA `typeText` call by default; when delay is greater than `0`, use `typeRawKeys` once per Unicode code point. |
+  | HarmonyOS | Use one HDC `inputText` call by default; when delay is greater than `0`, call it once per Unicode code point. |
+  | Local Computer | Use clipboard paste when delay is omitted or `0`; when delay is greater than `0`, use real keyboard events once per Unicode code point. |
+  | RDP Computer | Use one backend `typeText` call when delay is omitted or `0`; when delay is greater than `0`, call the backend once per Unicode code point. |
 
   **Backward-compatible usage (deprecated but still supported):**
   - `value: string | number` — The text content to input.
@@ -1918,7 +1936,8 @@ In addition to the base agent options, Puppeteer exposes:
 - `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait when an action triggers navigation. Set to `0` to skip the wait. Default: `5000`.
 - `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
-- `keyboardTypeDelay: number` — Per-character delay in milliseconds passed to Puppeteer's `page.keyboard.type`. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Puppeteer's default.
+- `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Puppeteer's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Puppeteer's default.
+- `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 - `forceChromeSelectRendering: boolean` — Whether to render `select` elements with Chrome's base-select styling so they remain visible in screenshots and element extraction. Requires a Puppeteer version later than `24.6.0`. Default: `true`.
 - `customActions: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
@@ -1986,7 +2005,8 @@ const agent = new PlaywrightPageAgent(page, {
 - `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait for navigation. Set to `0` to skip the wait. Default: `5000`.
 - `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
-- `keyboardTypeDelay: number` — Per-character delay in milliseconds passed to Playwright's `page.keyboard.type`. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Playwright's default.
+- `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Playwright's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Playwright's default.
+- `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 - `forceChromeSelectRendering: boolean` — Whether to render `select` elements with Chrome's base-select styling so they remain visible in screenshots and element extraction. Requires Playwright `1.52.0` or later. Default: `true`.
 - `customActions: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
@@ -2054,6 +2074,8 @@ const agent = new AgentOverChromeBridge({
 - `host?: string` — Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
 - `port?: number` — TCP port for the bridge server. Default: `3766`.
 - `enableWaterFlowAnimation?: boolean` — Show the blue animated border and mouse pointer while Midscene controls the page. Defaults to `true`; set it to `false` when taking screenshots without the visual overlay.
+- `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds. Legacy Bridge input preserves the existing zero-delay CDP typing behavior. Set `inputStrategy` to `'sequential'` to apply the delay between forwarded Unicode code points.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy. `'sequential'` forwards one Unicode code point at a time, while `'bulk'` forwards one `insertText` operation. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`. Default: `'legacy'`.
 
 See [Bridge mode by Chrome extension](../bridge-mode#constructor) for full installation and capability details.
 
@@ -2127,7 +2149,7 @@ Use this section to configure Midscene's Android automation and review Android-s
 
 - `Tap` — Tap an element.
 - `DoubleClick` — Double-tap an element.
-- `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
+- `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
@@ -2169,7 +2191,8 @@ const device = new AndroidDevice(deviceId, {
 - `deviceId: string` — Value returned by `adb devices` or `getConnectedDevices()`.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key order used to dismiss the on-screen keyboard. Default: `'esc-first'`.
-- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time instead of sending the entire string. Use this option when a device or input field drops characters during fast input. It applies only to the `input text` path and is ignored when yadb is used.
+- `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. In `'legacy'` mode, a positive value makes the native `input text` path enter one Unicode code point at a time and remains ignored by yadb, preserving existing behavior. Set `inputStrategy` to `'sequential'` to split yadb input too.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'sequential'` for one ADB/yadb call per code point or `'bulk'` for one backend text call where the selected IME supports it. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 - `androidAdbPath?: string` — Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` — Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` — When to invoke [yadb](https://github.com/ysbing/yadb) for text input. Default: `'yadb-for-non-ascii'`.
@@ -2393,7 +2416,7 @@ Use this section to configure iOS device behavior, integrate Midscene with WebDr
 
 - `Tap` — Tap an element.
 - `DoubleClick` — Double-tap an element.
-- `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard` and `keyboardTypeDelay` parameters.
+- `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
@@ -2433,7 +2456,8 @@ const device = new IOSDevice({
 - `wdaMjpegPort?: number` — WDA MJPEG server port for real-time screen streaming. Default: `9100`.
 - `wdaMjpegFrameSource?: { enabled?: boolean }` — Use WDA's MJPEG stream as the continuous frame source for `agent.startObserving()`. Disabled by default; when disabled, observers fall back to sequential `screenshotBase64()` capture.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
-- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
+- `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. A positive value makes legacy input enter one Unicode code point at a time through WDA's `/wda/keys` endpoint. Use this option when an input field drops characters during fast input.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'sequential'` for one WDA call per code point or `'bulk'` for one WDA text call. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 - `customActions?: DeviceAction<any>[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
 **Usage notes**
@@ -2655,7 +2679,8 @@ const device = new HarmonyDevice(deviceId, {
 - `hdcPath?: string` — Custom path to the HDC executable. If omitted, Midscene checks the `HDC_HOME` environment variable and common installation paths.
 - `autoDismissKeyboard?: boolean` — Whether to hide the on-screen keyboard after text input. Default: `true`.
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` — Key used to dismiss the on-screen keyboard. `'esc-first'` sends Escape, while `'back-first'` sends Back. Default: `'esc-first'`.
-- `keyboardTypeDelay?: number` — Delay in milliseconds between keystrokes. When set, Midscene enters one character at a time through `uitest uiInput inputText`. Use this option when an input field drops characters during fast input.
+- `keyboardTypeDelay?: number` — Finite non-negative delay in milliseconds between keystrokes. A positive value makes legacy input enter one Unicode code point at a time through `uitest uiInput inputText`. Use this option when an input field drops characters during fast input.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'sequential'` for one HDC call per code point or `'bulk'` for one HDC text call. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 - `screenshotResizeScale?: number` — **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
 - `customActions?: DeviceAction[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 
@@ -2858,6 +2883,7 @@ interface BaseComputerAgentOpt {
 
   customActions?: DeviceAction<any>[];
   keyboardTypeDelay?: number;
+  inputStrategy?: 'legacy' | 'sequential' | 'bulk';
 }
 
 interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
@@ -2893,7 +2919,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 
 **Keyboard input options**
 
-- `keyboardTypeDelay?: number` — Minimum delay in milliseconds between keystrokes. A positive value makes local and RDP Computer Agents emit text one Unicode character at a time instead of using the default burst input. A local Computer Agent uses real key events in this mode; when this option is omitted or set to `0`, it uses clipboard paste to avoid interference from the active IME. An action-level `keyboardTypeDelay` passed to `aiInput()` overrides the Agent-level default. Pass `0` to restore clipboard input for one action. Default: `undefined`.
+- `keyboardTypeDelay?: number` — Finite non-negative minimum delay in milliseconds between keystrokes. In `'legacy'` mode, a positive value makes local and RDP Computer Agents emit text one Unicode code point at a time instead of using the default burst input. A local Computer Agent uses real key events in this mode; when this option is omitted or set to `0`, legacy input uses clipboard paste to avoid interference from the active IME. An action-level `keyboardTypeDelay` passed to `aiInput()` overrides the Agent-level default. Pass `0` to restore clipboard input for one action. Default: `undefined`.
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy. `'sequential'` uses real key events locally and one backend call per code point over RDP. `'bulk'` uses one clipboard paste locally and one backend call over RDP. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
 
 The Agent-level option also applies to `Input` actions generated by `agent.ai()`, so the prompt does not need to call `aiInput()` explicitly:
 
@@ -2906,6 +2933,7 @@ await agent.ai('Type the account details into the form');
 await agent.aiInput('the notes field', {
   value: 'Pasted as one value',
   keyboardTypeDelay: 0,
+  inputStrategy: 'bulk',
 });
 ```
 

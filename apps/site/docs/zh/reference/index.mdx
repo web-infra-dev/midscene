@@ -313,6 +313,7 @@ function aiInput(
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
     keyboardTypeDelay?: number;
+    inputStrategy?: 'legacy' | 'sequential' | 'bulk';
     mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
@@ -339,11 +340,28 @@ function aiInput(
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS/HarmonyOS 中有效。默认值为 true。
-    - `keyboardTypeDelay?: number` - 输入文本时每个按键之间的延迟（毫秒）。设置后，文本将逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
+    - `keyboardTypeDelay?: number` - 按键间延迟，单位为毫秒。取值必须是有限的非负数。该选项在 `legacy` 模式下是否生效取决于平台既有的输入路径，详见下表。支持延迟的 `legacy` 路径会在值大于 `0` 时逐个 Unicode 码点输入。适用于输入框在快速输入下丢字的场景。
+    - `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` - 控制 Midscene 如何把文本发送给平台。默认值为 `'legacy'`。
+      - `'legacy'`：保留各平台现有行为。它是兼容性默认值，升级后不会改变已有测试的输入方式。
+      - `'sequential'`：逐个 Unicode 码点发送。即使未设置 `keyboardTypeDelay` 或将其设为 `0`，Midscene 也会逐个发送。
+      - `'bulk'`：在平台支持时，只调用一次平台输入操作，以发送完整字符串。Web 的 `replace` 会先选中旧值，再使用 `insertText`。这个过程只产生一次插入 `input` 事件。它不会先产生清空 `input` 事件，再逐字符产生 `input` 事件。其他平台只会收到 Midscene 发起的一次底层输入调用。不过，操作系统或驱动仍可能合成多个应用事件。
+      - 使用 `'bulk'` 时，必须省略 `keyboardTypeDelay`，或将它设为 `0`。如果值大于 `0`，Midscene 会抛出错误。所有策略都拒绝负数和非有限数值。动作级配置优先于 Device 或 Agent 的默认值。因此，单次动作选择 `'bulk'` 时，可以用 `keyboardTypeDelay: 0` 覆盖正数默认值。
     - `mode?: 'replace' | 'clear' | 'typeOnly'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'typeOnly'`: 直接输入文本，不会先清空输入框。
       - `'clear'`: 清空输入框，不会输入新的文本。
+
+  所有平台的 `inputStrategy` 默认值均为 `'legacy'`。该模式会沿用先前版本中 Midscene 针对各平台的输入逻辑，具体表现可能因平台而异：
+
+  | 平台 | `legacy` 行为 |
+  | --- | --- |
+  | Web / Playwright / Puppeteer | `replace` 模式会先清空旧值并等待 DOM 稳定，再将完整字符串传给 `keyboard.type(value)`。浏览器驱动负责处理正数 `keyboardTypeDelay`。 |
+  | Chrome Extension / Bridge | 沿用 Web 的“先清空、再输入”流程，通过远端键盘操作发送文本。`legacy` CDP 输入沿用零延迟行为。Bridge 在 CLI 侧解析策略，再转发键盘操作。 |
+  | Android | 文本含有非 ASCII 字符或 shell 敏感字符时，通常只调用一次 yadb。为兼容旧行为，该路径忽略 `keyboardTypeDelay`。原生 `input text` 路径默认整段发送。`keyboardTypeDelay` 大于 `0` 时，改为逐个 Unicode 码点调用。 |
+  | iOS | 默认调用一次 WDA `typeText`。`keyboardTypeDelay` 大于 `0` 时，改为对每个 Unicode 码点调用一次 `typeRawKeys`。 |
+  | HarmonyOS | 默认调用一次 HDC `inputText`。`keyboardTypeDelay` 大于 `0` 时，改为对每个 Unicode 码点调用一次。 |
+  | Local Computer | 未设置 `keyboardTypeDelay` 或将其设为 `0` 时，使用剪贴板粘贴。值大于 `0` 时，改为逐个 Unicode 码点发送真实键盘事件。 |
+  | RDP Computer | 未设置 `keyboardTypeDelay` 或将其设为 `0` 时，只调用一次后端 `typeText`。值大于 `0` 时，改为对每个 Unicode 码点调用一次后端。 |
 
   **兼容用法**（已过时，但仍然支持）：
   - `value: string | number` - 要输入的文本内容。
@@ -1875,7 +1893,8 @@ const agent = new PuppeteerPageAgent(page, {
 - `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
-- `keyboardTypeDelay: number` —— 透传给 Puppeteer `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Puppeteer 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
+- `keyboardTypeDelay: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，Puppeteer 的 `page.keyboard.type` 负责处理正数延迟。默认值为 `undefined`。此时，Midscene 不传该选项，而是使用 Puppeteer 自身的默认值。通常无须配置。只有受控输入框在快速输入时丢字，才需要调大该值，例如 `80`。
+- `inputStrategy: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。使用 `'bulk'` 可以一次插入完整字符串。使用 `'sequential'` 可以强制逐个 Unicode 码点输入。`'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Puppeteer）可设为 `false`。
 - `customActions: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
@@ -1943,7 +1962,8 @@ const agent = new PlaywrightPageAgent(page, {
 - `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
-- `keyboardTypeDelay: number` —— 透传给 Playwright `page.keyboard.type` 的每字符延迟（毫秒）。默认值为 `undefined`，表示 Midscene 不传该选项，使用 Playwright 自身默认值。通常无需配置；只有当受控输入框在快速输入下出现丢字等特殊情况时，再调大该值（例如 `80`）。
+- `keyboardTypeDelay: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，Playwright 的 `page.keyboard.type` 负责处理正数延迟。默认值为 `undefined`。此时，Midscene 不传该选项，而是使用 Playwright 自身的默认值。通常无须配置。只有受控输入框在快速输入时丢字，才需要调大该值，例如 `80`。
+- `inputStrategy: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。使用 `'bulk'` 可以一次插入完整字符串。使用 `'sequential'` 可以强制逐个 Unicode 码点输入。`'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。默认值为 `true`；如需关闭（例如旧版 Chrome/Playwright）可设为 `false`。
 - `customActions: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
@@ -2011,6 +2031,8 @@ const agent = new AgentOverChromeBridge({
 - `host?: string` —— 自定义 Bridge Server 的监听地址，优先级高于 `allowRemoteAccess`。
 - `port?: number` —— Bridge Server 端口，默认 `3766`。
 - `enableWaterFlowAnimation?: boolean` —— Midscene 控制页面时是否显示蓝色动态边框和鼠标指示，默认 `true`；如需截取不含视觉覆盖层的截图，可设为 `false`。
+- `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。`legacy` Bridge 输入沿用零延迟的 CDP 行为。如需在转发 Unicode 码点时应用延迟，请将 `inputStrategy` 设为 `'sequential'`。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— 默认文本输入策略。`'sequential'` 逐个转发 Unicode 码点。`'bulk'` 只转发一次 `insertText` 操作，并且要求不设置 `keyboardTypeDelay` 或将其设为 `0`。默认值为 `'legacy'`。
 
 完整安装与能力说明，见 [Chrome 插件桥接模式](../bridge-mode#constructor)。
 
@@ -2082,7 +2104,7 @@ function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
 
 - `Tap` —— 点击元素。
 - `DoubleClick` —— 双击元素。
-- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard` 和 `keyboardTypeDelay`。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
@@ -2124,7 +2146,8 @@ const device = new AndroidDevice(deviceId, {
 - `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
 - `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 关闭键盘的顺序，默认 `'esc-first'`。
-- `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，文本将逐字符输入，每个字符之间等待指定的延迟，而不是一次性发送整串文本。适用于输入过快导致丢字的设备或输入框。仅对 `input text` 路径生效；使用 yadb 时忽略此选项。
+- `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，正数延迟会让原生 `input text` 路径逐个 Unicode 码点输入。为兼容旧行为，yadb 仍会忽略该选项。如需拆分 yadb 输入，请将 `inputStrategy` 设为 `'sequential'`。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。`'sequential'` 会针对每个 Unicode 码点调用一次 ADB 或 yadb。所选 IME 支持时，`'bulk'` 只调用一次底层文本接口。`'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 - `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/yadb) 进行文本输入，默认 `'yadb-for-non-ascii'`。
@@ -2348,7 +2371,7 @@ function getConnectedDevicesWithDetails(
 
 - `Tap` —— 点击元素。
 - `DoubleClick` —— 双击元素。
-- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard` 和 `keyboardTypeDelay`。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。支持可选参数 `autoDismissKeyboard`、`keyboardTypeDelay` 和 `inputStrategy`。
 - `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `KeyboardPress` —— 按下指定键位。
@@ -2388,7 +2411,8 @@ const device = new IOSDevice({
 - `wdaMjpegPort?: number` —— WDA MJPEG 服务端口，用于实时画面流，默认 `9100`。
 - `wdaMjpegFrameSource?: { enabled?: boolean }` —— 使用 WDA 的 MJPEG stream 作为 `agent.startObserving()` 的连续帧源。默认关闭；关闭时，观察逻辑会退回到连续调用 `screenshotBase64()`。
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
-- `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，通过 WDA 的 `/wda/keys` 接口逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
+- `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。设为正数后，`legacy` 输入会通过 WDA 的 `/wda/keys` 接口逐个 Unicode 码点执行。适用于输入框在快速输入下丢字的场景。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。`'sequential'` 会针对每个 Unicode 码点调用一次 WDA。`'bulk'` 只调用一次 WDA 文本接口，并且要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 - `customActions?: DeviceAction<any>[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
 **使用说明**
@@ -2609,7 +2633,8 @@ const device = new HarmonyDevice(deviceId, {
 - `hdcPath?: string` —— HDC 可执行文件的自定义路径。若未设置，将依次从 `HDC_HOME` 环境变量和常见安装路径中查找。
 - `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
 - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 自动隐藏键盘时优先使用的按键，默认 `'esc-first'`。HarmonyOS 只发送该策略的首选按键：`'esc-first'` 发送 ESC，`'back-first'` 发送 Back。
-- `keyboardTypeDelay?: number` —— 输入文本时每个按键之间的延迟（毫秒）。设置后，通过 `uitest uiInput inputText` 逐字符输入，每个字符之间等待指定的延迟。适用于输入框在快速输入下丢字的场景。
+- `keyboardTypeDelay?: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。设为正数后，`legacy` 输入会通过 `uitest uiInput inputText` 逐个 Unicode 码点执行。适用于输入框在快速输入下丢字的场景。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。`'sequential'` 会针对每个 Unicode 码点调用一次 HDC。`'bulk'` 只调用一次 HDC 文本接口，并且要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 - `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `customActions?: DeviceAction[]` —— 添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 
@@ -2810,6 +2835,7 @@ interface BaseComputerAgentOpt {
 
   customActions?: DeviceAction<any>[];
   keyboardTypeDelay?: number;
+  inputStrategy?: 'legacy' | 'sequential' | 'bulk';
 }
 
 interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
@@ -2846,7 +2872,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 
 **键盘输入选项**
 
-- `keyboardTypeDelay`（可选）：每次按键之间的最小延迟，单位为毫秒。设为正数后，本机和 RDP Computer Agent 会逐个 Unicode 字符发送文本，不再使用默认的整串输入。本机 Computer 会发送真实按键事件；未设置或设为 `0` 时，仍使用剪贴板粘贴，以免受到当前输入法的干扰。通过 `aiInput()` 传入的动作级 `keyboardTypeDelay` 优先于 Agent 级默认值，也可以传 `0`，只对当前动作恢复剪贴板输入。
+- `keyboardTypeDelay`（可选）：按键间的最小延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，正数延迟会让本机和 RDP Computer Agent 逐个 Unicode 码点发送文本。本机 Computer Agent 会发送真实按键事件。未设置该选项或将其设为 `0` 时，`legacy` 输入使用剪贴板粘贴，以免受到当前输入法的干扰。通过 `aiInput()` 传入的动作级 `keyboardTypeDelay` 优先于 Agent 级默认值。将它设为 `0`，可以只为当前动作恢复剪贴板输入。
+- `inputStrategy?: 'legacy' | 'sequential' | 'bulk'`：默认文本输入策略。`'sequential'` 在本机使用真实按键事件，在 RDP 中针对每个 Unicode 码点调用一次后端。`'bulk'` 在本机执行一次剪贴板粘贴，在 RDP 中只调用一次后端。使用 `'bulk'` 时，必须省略 `keyboardTypeDelay`，或将它设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
 
 Agent 级选项同样会作用于 `agent.ai()` 自动规划生成的 `Input` 动作，因此不要求用户单独调用 `aiInput()`：
 
@@ -2859,6 +2886,7 @@ await agent.ai('把账号信息输入表单');
 await agent.aiInput('备注输入框', {
   value: '整串粘贴的内容',
   keyboardTypeDelay: 0,
+  inputStrategy: 'bulk',
 });
 ```
 

@@ -10,6 +10,10 @@ interface MidsceneYamlFlowItemAIInput extends LocateOption {
   // locate: TUserPrompt; // where to input
   aiInput: TUserPrompt | undefined; // where to input
   value: string | number; // value to input
+  mode?: 'replace' | 'clear' | 'typeOnly';
+  autoDismissKeyboard?: boolean;
+  keyboardTypeDelay?: number;
+  inputStrategy?: InputStrategy;
 }
 
 interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
@@ -35,6 +39,7 @@ type RuntimeYamlFlowItem =
 
 import type { Agent } from '@/agent/agent';
 import type { TUserPrompt } from '@/common';
+import type { InputStrategy } from '@/device';
 import type {
   DeviceAction,
   FreeFn,

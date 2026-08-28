@@ -17,6 +17,9 @@ import {
   type PointerPoint,
   createDefaultMobileActions,
   defineAction,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -90,6 +93,7 @@ export class HarmonyDevice implements AbstractInterface {
                 autoDismissKeyboard: harmonyOpts?.autoDismissKeyboard,
                 keyboardDismissStrategy: harmonyOpts?.keyboardDismissStrategy,
                 keyboardTypeDelay: harmonyOpts?.keyboardTypeDelay,
+                inputStrategy: harmonyOpts?.inputStrategy,
               },
             );
       },
@@ -427,9 +431,10 @@ export class HarmonyDevice implements AbstractInterface {
   ): Promise<void> {
     if (!text) return;
 
+    const resolvedInputOptions = resolveTextInputOptions(options, this.options);
     const hdc = await this.getHdc();
-    const typeDelay =
-      options?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
+    const typeDelay = resolvedInputOptions.keyboardTypeDelay;
+    const inputSequentially = shouldInputSequentially(resolvedInputOptions);
     let x: number;
     let y: number;
 
@@ -452,17 +457,24 @@ export class HarmonyDevice implements AbstractInterface {
       await sleep(100);
     }
 
-    if (typeDelay && typeDelay > 0) {
+    if (inputSequentially) {
       // Type one character at a time with a delay between keystrokes.
       // `uitest uiInput inputText x y text` uses (x, y) to identify the target
       // component, not to position the text cursor. Once the field is focused,
       // repeated calls at the same coordinates append to the existing content
       // rather than repositioning the cursor. Verified on real device:
       // character order is preserved and no characters are lost.
-      for (const ch of text) {
-        await hdc.inputText(x, y, ch);
-        await sleep(typeDelay);
-      }
+      await sendTextSequentially(
+        text,
+        {
+          sendCharacter: (character) => hdc.inputText(x, y, character),
+          wait: sleep,
+        },
+        {
+          delayMs: typeDelay,
+          delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
+        },
+      );
     } else {
       await hdc.inputText(x, y, text);
     }

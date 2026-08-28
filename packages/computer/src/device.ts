@@ -14,8 +14,13 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type InputStrategy,
+  type ResolvedTextInputOptions,
   defineAction,
   defineActionsFromInputPrimitives,
+  resolveTextInputOptions,
+  sendTextSequentially,
+  shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -704,12 +709,20 @@ export interface ComputerDeviceInputOpt {
   /**
    * Delay in milliseconds between keystrokes when typing text.
    *
-   * Positive values switch input from clipboard paste to real key events.
-   * This helps applications that require physical-looking keystrokes or drop
-   * characters when an entire value arrives at once. When omitted or set to
-   * zero, Computer keeps using clipboard paste to avoid IME interference.
+   * Must be a finite non-negative number. In `legacy` mode, positive values
+   * switch input from clipboard paste to real key events. This helps
+   * applications that require physical-looking keystrokes or drop characters
+   * when an entire value arrives at once. When omitted or set to zero,
+   * `legacy` mode keeps using clipboard paste to avoid IME interference.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to the desktop input backend. `bulk` uses one
+   * clipboard paste; `sequential` emits one Unicode code point at a time.
+   * `bulk` requires `keyboardTypeDelay` to be omitted or set to zero.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 }
 
 export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
@@ -872,6 +885,10 @@ export class ComputerDevice implements AbstractInterface {
     },
     keyboard: {
       typeText: async (value, opts) => {
+        const resolvedInputOptions = resolveTextInputOptions(
+          opts,
+          this.options,
+        );
         const element = opts?.target as LocateResultElement | undefined;
 
         if (element) {
@@ -883,9 +900,7 @@ export class ComputerDevice implements AbstractInterface {
           }
         }
 
-        const keyboardTypeDelay =
-          opts?.keyboardTypeDelay ?? this.options?.keyboardTypeDelay;
-        await this.smartTypeString(value, keyboardTypeDelay);
+        await this.smartTypeString(value, resolvedInputOptions);
       },
       keyboardPress: async (keyName, opts) => {
         const target = opts?.target as LocateResultElement | undefined;
@@ -1377,10 +1392,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
    */
   private async smartTypeString(
     text: string,
-    keyboardTypeDelay?: number,
+    inputOptions: ResolvedTextInputOptions,
   ): Promise<void> {
-    if (keyboardTypeDelay && keyboardTypeDelay > 0) {
-      await this.typeStringWithDelay(text, keyboardTypeDelay);
+    if (shouldInputSequentially(inputOptions)) {
+      await this.typeStringWithDelay(text, inputOptions.keyboardTypeDelay ?? 0);
       return;
     }
 
@@ -1391,27 +1406,26 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     text: string,
     keyboardTypeDelay: number,
   ): Promise<void> {
-    const characters = Array.from(text.replace(/\r\n?/g, '\n'));
-
-    for (let index = 0; index < characters.length; index++) {
-      const character = characters[index];
-
-      if (character === '\n') {
-        this.inputDriver.sendKey('enter');
-      } else if (character === '\t') {
-        this.inputDriver.sendKey('tab');
-      } else if (character === ' ') {
-        this.inputDriver.sendKey('space');
-      } else if (this.useAppleScript) {
-        this.inputDriver.sendKeyViaAppleScript(character);
-      } else {
-        this.inputDriver.typeString(character);
-      }
-
-      if (index < characters.length - 1) {
-        await this.inputDriver.delay(keyboardTypeDelay);
-      }
-    }
+    await sendTextSequentially(
+      text.replace(/\r\n?/g, '\n'),
+      {
+        sendCharacter: (character) => {
+          if (character === '\n') {
+            this.inputDriver.sendKey('enter');
+          } else if (character === '\t') {
+            this.inputDriver.sendKey('tab');
+          } else if (character === ' ') {
+            this.inputDriver.sendKey('space');
+          } else if (this.useAppleScript) {
+            this.inputDriver.sendKeyViaAppleScript(character);
+          } else {
+            this.inputDriver.typeString(character);
+          }
+        },
+        wait: (delayMs) => this.inputDriver.delay(delayMs),
+      },
+      { delayMs: keyboardTypeDelay },
+    );
   }
 
   private async selectAllAndDelete(): Promise<void> {
