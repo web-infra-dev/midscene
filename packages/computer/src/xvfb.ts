@@ -20,11 +20,66 @@ export interface XvfbInstance {
   stop(): void;
 }
 
+const xvfbCleanupMonitorScript = String.raw`
+const parentPid = Number(process.argv[1]);
+const xvfbPid = Number(process.argv[2]);
+const timer = setInterval(() => {
+  try {
+    process.kill(xvfbPid, 0);
+  } catch {
+    clearInterval(timer);
+    process.exit(0);
+  }
+  try {
+    process.kill(parentPid, 0);
+    return;
+  } catch {
+    // The owner is gone, so its X11 clients can no longer receive XIO errors.
+  }
+  try {
+    process.kill(xvfbPid, 'SIGTERM');
+  } catch {
+    // Xvfb may have already exited.
+  }
+  clearInterval(timer);
+}, 100);
+`;
+
 /**
- * Keep Xvfb alive while the foreground recorder handles SIGINT and saves its
- * artifact. Other SIGINT listeners do not defer cleanup.
+ * Let a detached monitor stop Xvfb only after the owning process has exited.
+ *
+ * libnut keeps a process-wide X11 connection open and exposes no close API.
+ * Killing Xvfb from that same process makes Xlib call exit(1), even after a
+ * successful CLI command. The monitor runs outside the owner, waits until its
+ * X11 sockets have closed with process exit, and then stops the server.
  */
-export function createXvfbSigintCleanup(
+export function scheduleXvfbStopAfterProcessExit(
+  instance: XvfbInstance,
+  parentPid = process.pid,
+): ChildProcess {
+  const xvfbPid = instance.process.pid;
+  if (!xvfbPid) {
+    throw new Error('Cannot schedule Xvfb cleanup before its process starts');
+  }
+
+  const monitor = spawn(
+    process.execPath,
+    ['-e', xvfbCleanupMonitorScript, String(parentPid), String(xvfbPid)],
+    { detached: true, stdio: 'ignore' },
+  );
+  monitor.on('error', (error) => {
+    debugXvfb(`Xvfb cleanup monitor failed: ${error.message}`);
+  });
+  instance.process.unref();
+  monitor.unref();
+  return monitor;
+}
+
+/**
+ * Keep Xvfb alive while the foreground recorder handles a termination signal
+ * and saves its artifact. Other signal listeners do not defer cleanup.
+ */
+export function createXvfbSignalCleanup(
   cleanup: () => void,
   source: CliInterruptSource = process,
 ): () => void {

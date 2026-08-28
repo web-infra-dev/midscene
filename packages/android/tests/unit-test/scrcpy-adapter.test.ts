@@ -8,14 +8,27 @@ import {
   DEFAULT_SCRCPY_CONFIG,
   SCRCPY_FRESH_FRAME_UNAVAILABLE_ERROR_CODE,
   ScrcpyFreshFrameUnavailableError,
+  ScrcpyScreenshotManager,
 } from '../../src/scrcpy-manager';
 import * as scrcpyManagerActual from '../../src/scrcpy-manager' with {
   rstest: 'importActual',
 };
 
-const mocks = rs.hoisted(() => ({
-  AdbServerNodeTcpConnector: rs.fn(),
-  createTransport: rs.fn().mockResolvedValue({}),
+const mocks = rs.hoisted(() => {
+  const fileTransferPush = rs.fn().mockResolvedValue(undefined);
+  return {
+    AdbServerNodeTcpConnector: rs.fn(),
+    createTransport: rs.fn().mockResolvedValue({}),
+    fileTransferPush,
+    AppiumAdb: rs.fn().mockImplementation(() => ({
+      push: fileTransferPush,
+    })),
+  };
+});
+
+rs.mock('appium-adb', () => ({
+  ADB: mocks.AppiumAdb,
+  getSdkRootFromEnv: rs.fn(() => undefined),
 }));
 
 // Mock @yume-chan packages (ESM-only, used via dynamic import in ensureManager)
@@ -286,24 +299,52 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(mocks.createTransport).toHaveBeenCalledWith({ serial: 'device' });
     });
 
-    it('should connect to the resolved ADB server endpoint', async () => {
-      const resolveAdbServerEndpoint = rs.fn().mockResolvedValue({
-        host: '192.168.1.10',
-        port: 5038,
+    it('should use one resolved ADB backend for connection and upload', async () => {
+      const push = rs.fn().mockResolvedValue(undefined);
+      const resolveAdbBackend = rs.fn().mockResolvedValue({
+        adbHost: '192.168.1.10',
+        adbPort: 5038,
+        push,
       });
       const adapter = new ScrcpyDeviceAdapter(
         'device',
         { enabled: true },
-        resolveAdbServerEndpoint,
+        resolveAdbBackend,
       );
 
       await adapter.ensureManager(defaultDeviceInfo);
 
-      expect(resolveAdbServerEndpoint).toHaveBeenCalledTimes(1);
+      expect(resolveAdbBackend).toHaveBeenCalledTimes(1);
       expect(mocks.AdbServerNodeTcpConnector).toHaveBeenCalledWith({
         host: '192.168.1.10',
         port: 5038,
       });
+      const [, pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
+      await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
+      expect(push).toHaveBeenCalledWith(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
+      );
+    });
+
+    it('should create its default backend through the canonical ADB factory', async () => {
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
+
+      await adapter.ensureManager(defaultDeviceInfo);
+
+      const [, pushServer] = rs.mocked(ScrcpyScreenshotManager).mock.calls[0];
+      await pushServer('/tmp/scrcpy-server', '/data/local/tmp/scrcpy-server');
+
+      expect(mocks.AppiumAdb).toHaveBeenCalledWith(
+        expect.objectContaining({
+          adbExecTimeout: 60_000,
+          udid: 'device',
+        }),
+      );
+      expect(mocks.fileTransferPush).toHaveBeenCalledWith(
+        '/tmp/scrcpy-server',
+        '/data/local/tmp/scrcpy-server',
+      );
     });
 
     it('should return cached manager without re-validation', async () => {

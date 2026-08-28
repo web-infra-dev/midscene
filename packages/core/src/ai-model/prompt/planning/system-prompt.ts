@@ -94,6 +94,8 @@ ${renderThoughtContent(`### <planning> tag (REQUIRED)
 
 REQUIRED: You MUST always output the <planning> tag. Never skip it.
 
+Write the content of the <planning> tag in ${preferredLanguage}.
+
 Include your planning details in the <planning> tag. It should answer: ${renderSubGoalsContent(
   "What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action?",
   'What is the current state based on the screenshot? What should be the next action?',
