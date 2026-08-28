@@ -188,6 +188,16 @@ try {
     $expandedListItems | ForEach-Object { Get-ElementSnapshot -Element $_ }
   )
 
+  $availableScaleItems = @(
+    $expandedListItems | Where-Object {
+      $_.Current.ClassName -eq 'ComboBoxItem' -and
+      $_.Current.Name -match '^\s*\d{2,3}%'
+    }
+  )
+  $diagnostics.availableScales = @(
+    $availableScaleItems | ForEach-Object { $_.Current.Name }
+  )
+
   if ($null -ne $targetItem) {
     $diagnostics.selectionMethod = 'UIAutomation.SelectionItemPattern'
     $diagnostics.targetItem = Get-ElementSnapshot -Element $targetItem
@@ -203,6 +213,9 @@ try {
     }
   }
   else {
+    if ($availableScaleItems.Count -gt 0) {
+      throw "Windows Display Settings does not offer $ScalePercent% on this runner. Available scales: $($diagnostics.availableScales -join ', ')."
+    }
     # Some Windows builds keep expanded combo-box items out of the automation
     # tree. The standard scale choices are ordered 100, 125, 150, 175, 200;
     # select by keyboard index through the same public Settings control. Do not

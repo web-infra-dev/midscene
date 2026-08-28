@@ -28,6 +28,7 @@ on:
         type: choice
         options:
           - '100'
+          - '125'
           - '175'
 
 permissions:
