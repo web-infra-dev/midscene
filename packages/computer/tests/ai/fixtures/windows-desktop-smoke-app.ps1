@@ -199,6 +199,7 @@ $textBox.AccessibleName = 'Midscene Smoke Text Box'
 $textBox.Location = New-Object System.Drawing.Point(24, 94)
 $textBox.Size = New-Object System.Drawing.Size(270, 34)
 $textBox.Font = New-Object System.Drawing.Font('Segoe UI', 12)
+$textBox.BackColor = [System.Drawing.Color]::FromArgb(255, 220, 80)
 
 $scrollLabel = New-Object System.Windows.Forms.Label
 $scrollLabel.AutoSize = $true
@@ -214,7 +215,7 @@ $scrollArea.Location = New-Object System.Drawing.Point(24, 230)
 $scrollArea.Size = New-Object System.Drawing.Size(466, 82)
 $scrollArea.IntegralHeight = $false
 $scrollArea.TabStop = $true
-$scrollArea.BackColor = [System.Drawing.Color]::FromArgb(231, 245, 255)
+$scrollArea.BackColor = [System.Drawing.Color]::FromArgb(220, 100, 240)
 $scrollArea.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $scrollArea.Font = New-Object System.Drawing.Font('Segoe UI', 11)
 
