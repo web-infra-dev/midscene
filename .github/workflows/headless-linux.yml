@@ -197,11 +197,13 @@ jobs:
 
             # stdin is a real PTY here. The first Ctrl+C must be consumed only by
             # the Midscene child so pnpm stays alive while artifacts are saved.
-            printf '\003'
-            while true; do
-              sleep 1
-              printf '\000'
-            done
+          printf '\003'
+          while true; do
+            sleep 1
+            if ! printf '\000'; then
+              exit 0
+            fi
+          done
           ) | timeout --signal=TERM 120s script --quiet --return --flush --command "$record_command" "$record_log"
           recorder_status=${PIPESTATUS[1]}
           set -e
@@ -244,6 +246,13 @@ jobs:
           console.log(`COMPUTER_RECORDER_MANIFEST_OK frames=${record.frames.length}`);
           NODE
 
+          for _ in $(seq 1 20); do
+            find /tmp -maxdepth 1 -name '.X*-lock' -print | sort > "$after_locks"
+            if cmp --silent "$before_locks" "$after_locks"; then
+              break
+            fi
+            sleep 0.25
+          done
           find /tmp -maxdepth 1 -name '.X*-lock' -print | sort > "$after_locks"
           cmp "$before_locks" "$after_locks"
           echo "COMPUTER_RECORDER_XVFB_CLEANUP_OK"
