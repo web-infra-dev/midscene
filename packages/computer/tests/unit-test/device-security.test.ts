@@ -6,6 +6,15 @@ const mockState = rs.hoisted(() => {
   // 1x1 PNG, base64-encoded — what the Windows PowerShell capture prints.
   const FAKE_PNG_BASE64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const defaultWindowsDisplays = [
+    {
+      id: '\\\\.\\DISPLAY1',
+      name: '\\\\.\\DISPLAY1',
+      primary: true,
+      bounds: { x: 0, y: 0, width: 800, height: 600 },
+    },
+  ];
+  let windowsDisplays = defaultWindowsDisplays;
   // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
   // now (issue #2150); answer based on which script is being run.
   const execFileSync = rs.fn(
@@ -25,9 +34,7 @@ const mockState = rs.hoisted(() => {
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }
-        return JSON.stringify([
-          { id: '\\\\.\\DISPLAY1', name: '\\\\.\\DISPLAY1', primary: true },
-        ]);
+        return JSON.stringify(windowsDisplays);
       }
       return undefined;
     },
@@ -69,6 +76,7 @@ const mockState = rs.hoisted(() => {
   const reset = () => {
     mousePos = { x: 10, y: 20 };
     mouseTransform = (x: number, y: number) => ({ x, y });
+    windowsDisplays = defaultWindowsDisplays;
     execSync.mockReset();
     // mockClear (not mockReset) so the powershell-aware implementation survives.
     execFileSync.mockClear();
@@ -95,6 +103,10 @@ const mockState = rs.hoisted(() => {
     mouseTransform = transform;
   };
 
+  const setWindowsDisplays = (displays: typeof defaultWindowsDisplays) => {
+    windowsDisplays = displays;
+  };
+
   return {
     execSync,
     execFileSync,
@@ -103,6 +115,7 @@ const mockState = rs.hoisted(() => {
     createRequire,
     reset,
     setMouseTransform,
+    setWindowsDisplays,
   };
 });
 
@@ -333,6 +346,91 @@ describe('ComputerDevice pointer input', () => {
     expect(Math.abs(actual.y - 300)).toBeLessThanOrEqual(1);
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
     expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
+  });
+
+  it('calibrates scaled and offset coordinates inside the selected Windows display', async () => {
+    mockState.setWindowsDisplays([
+      {
+        id: '\\\\.\\DISPLAY1',
+        name: '\\\\.\\DISPLAY1',
+        primary: true,
+        bounds: { x: 0, y: 0, width: 800, height: 600 },
+      },
+      {
+        id: '\\\\.\\DISPLAY2',
+        name: '\\\\.\\DISPLAY2',
+        primary: false,
+        bounds: { x: -1200, y: -200, width: 1200, height: 900 },
+      },
+    ]);
+    mockState.setMouseTransform((x, y) => ({
+      x: x * 1.75 + 50,
+      y: y * 1.5 + 20,
+    }));
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice({ displayId: '\\\\.\\DISPLAY2' });
+    await device.connect();
+    mockState.libnut.mouseToggle.mockClear();
+
+    await device.inputPrimitives.pointer!.tap({ x: 200, y: 300 });
+
+    const actual = mockState.libnut.getMousePos();
+    expect(Math.abs(actual.x - -1000)).toBeLessThanOrEqual(1);
+    expect(Math.abs(actual.y - 100)).toBeLessThanOrEqual(1);
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('down', 'left');
+    expect(mockState.libnut.mouseToggle).toHaveBeenCalledWith('up', 'left');
+  });
+
+  it('does not click when pointer drift appears after Windows calibration', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+    mockState.setMouseTransform((x, y) => ({ x: x + 100, y: y + 100 }));
+
+    await expect(
+      device.inputPrimitives.pointer!.tap({ x: 400, y: 300 }),
+    ).rejects.toThrow(/did not reach the tap target/);
+
+    expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
+    expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+  });
+
+  it('blocks every pointer-consuming action when Windows pointer drift is detected', async () => {
+    const device = await createConnectedDeviceForPlatform('win32');
+    const guardedActions = [
+      () => device.inputPrimitives.pointer!.doubleClick({ x: 400, y: 300 }),
+      () => device.inputPrimitives.pointer!.rightClick({ x: 400, y: 300 }),
+      () =>
+        device.inputPrimitives.pointer!.dragAndDrop(
+          { x: 200, y: 200 },
+          { x: 400, y: 300 },
+        ),
+      () =>
+        device.inputPrimitives.keyboard.keyboardPress('Enter', {
+          target: { center: [400, 300] },
+        }),
+      () =>
+        device.inputPrimitives.scroll!.scroll({
+          scrollType: 'singleAction',
+          direction: 'down',
+          locate: { center: [400, 300] },
+        }),
+    ];
+
+    for (const run of guardedActions) {
+      mockState.setMouseTransform((x, y) => ({ x, y }));
+      mockState.libnut.moveMouse(10, 20);
+      mockState.libnut.mouseClick.mockClear();
+      mockState.libnut.mouseToggle.mockClear();
+      mockState.libnut.scrollMouse.mockClear();
+      mockState.libnut.keyTap.mockClear();
+      mockState.setMouseTransform((x, y) => ({ x: x + 100, y: y + 100 }));
+
+      await expect(run()).rejects.toThrow(/did not reach/);
+      expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
+      expect(mockState.libnut.mouseToggle).not.toHaveBeenCalled();
+      expect(mockState.libnut.scrollMouse).not.toHaveBeenCalled();
+      expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+    }
   });
 
   it('sends a press and release for tap after moving to the target', async () => {

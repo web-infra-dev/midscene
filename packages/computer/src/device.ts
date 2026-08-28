@@ -74,16 +74,26 @@ interface DarwinFrontmostApplication {
   name: string;
 }
 
-export interface DarwinDisplayGeometry {
+export interface DisplayBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DisplayGeometry {
+  primary: boolean;
+  bounds: DisplayBounds;
+}
+
+export interface DarwinDisplayGeometry extends DisplayGeometry {
   screenIndex: number;
   cgDisplayId: number;
-  primary: boolean;
-  bounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+}
+
+export interface WindowsDisplayGeometry extends DisplayGeometry {
+  id: string;
+  name: string;
 }
 
 export interface Point {
@@ -294,25 +304,45 @@ function runPowershell(script: string): string {
   );
 }
 
-/** Enumerate Windows monitors via PowerShell (screenshot-desktop's .bat-based
- * listDisplays is broken under Claude Code — see #2150). */
-function listWindowsDisplays(): DisplayInfo[] {
+/** Enumerate Windows monitors and their logical desktop bounds via PowerShell
+ * (screenshot-desktop's .bat-based listDisplays is broken under Claude Code —
+ * see #2150). */
+export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
   const script = `
 Add-Type -AssemblyName System.Windows.Forms
 $s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  [PSCustomObject]@{ id = $_.DeviceName; name = $_.DeviceName; primary = $_.Primary }
+  $b = $_.Bounds
+  [PSCustomObject]@{
+    id = $_.DeviceName
+    name = $_.DeviceName
+    primary = $_.Primary
+    bounds = [PSCustomObject]@{ x = $b.X; y = $b.Y; width = $b.Width; height = $b.Height }
+  }
 }
 ConvertTo-Json @($s) -Compress
 `.trim();
-  const parsed = JSON.parse(runPowershell(script).trim()) as Array<{
-    id: string;
-    name?: string;
-    primary?: boolean;
-  }>;
-  return parsed.map((d) => ({
-    id: String(d.id),
-    name: d.name || String(d.id),
-    primary: d.primary || false,
+  const output = runPowershell(script).trim();
+  if (!output) {
+    throw new Error('Windows display enumeration returned no data');
+  }
+  const parsed: unknown = JSON.parse(output);
+  if (!Array.isArray(parsed)) {
+    throw new Error('Windows display enumeration returned invalid data');
+  }
+  const displays = parsed.filter(isWindowsDisplayGeometry);
+  if (displays.length !== parsed.length || displays.length === 0) {
+    throw new Error('Windows display enumeration returned invalid geometry');
+  }
+  return displays;
+}
+
+function listWindowsDisplays(
+  geometries = readWindowsDisplayGeometries(),
+): DisplayInfo[] {
+  return geometries.map((display) => ({
+    id: display.id,
+    name: display.name,
+    primary: display.primary,
   }));
 }
 
@@ -448,6 +478,33 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function isDisplayBounds(value: unknown): value is DisplayBounds {
+  if (!value || typeof value !== 'object') return false;
+  const bounds = value as DisplayBounds;
+  return (
+    isFiniteNumber(bounds.x) &&
+    isFiniteNumber(bounds.y) &&
+    isFiniteNumber(bounds.width) &&
+    isFiniteNumber(bounds.height) &&
+    bounds.width > 0 &&
+    bounds.height > 0
+  );
+}
+
+function isWindowsDisplayGeometry(
+  value: unknown,
+): value is WindowsDisplayGeometry {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as WindowsDisplayGeometry;
+  return (
+    typeof candidate.id === 'string' &&
+    candidate.id.length > 0 &&
+    typeof candidate.name === 'string' &&
+    typeof candidate.primary === 'boolean' &&
+    isDisplayBounds(candidate.bounds)
+  );
+}
+
 function isDarwinDisplayGeometry(
   value: unknown,
 ): value is DarwinDisplayGeometry {
@@ -517,7 +574,6 @@ async function pressMouseAtGlobalPoint(
   holdDuration: number,
   reason: 'primary' | 'focus-follow-up',
 ): Promise<void> {
-  await inputDriver.delay(CLICK_SETTLE_DELAY);
   const current = inputDriver.getMousePos();
   const drift = { x: current.x - targetX, y: current.y - targetY };
   debugComputerInput('tap mouse moved %o', {
@@ -526,14 +582,6 @@ async function pressMouseAtGlobalPoint(
     current,
     drift,
   });
-  if (
-    process.platform === 'win32' &&
-    (Math.abs(drift.x) > 5 || Math.abs(drift.y) > 5)
-  ) {
-    throw new Error(
-      `Mouse did not reach the click target: expected (${targetX}, ${targetY}), got (${current.x}, ${current.y}), drift=(${drift.x}, ${drift.y})`,
-    );
-  }
   await inputDriver.withMouseButton('left', async () => {
     debugComputerInput('tap mouse down %o', { reason });
     await inputDriver.delay(holdDuration);
@@ -566,20 +614,49 @@ export function resolveDarwinDisplayGeometryFromList(
   );
 }
 
+/** @internal exported for unit tests — do not consume from outside this package */
+export function resolveWindowsDisplayGeometryFromList(
+  displayId: string | undefined,
+  displays: WindowsDisplayGeometry[],
+): WindowsDisplayGeometry | undefined {
+  if (!displays.length) return undefined;
+  if (displayId === undefined || displayId === '') {
+    return displays.find((display) => display.primary) || displays[0];
+  }
+  return displays.find((display) => display.id === displayId);
+}
+
 function resolveDisplayGeometry(
   displayId: string | undefined,
-): DarwinDisplayGeometry | undefined {
-  if (process.platform !== 'darwin') return undefined;
-  return resolveDarwinDisplayGeometryFromList(
-    displayId,
-    readDarwinDisplayGeometries(),
-  );
+  windowsDisplays?: WindowsDisplayGeometry[],
+): DisplayGeometry | undefined {
+  if (process.platform === 'darwin') {
+    return resolveDarwinDisplayGeometryFromList(
+      displayId,
+      readDarwinDisplayGeometries(),
+    );
+  }
+  if (process.platform === 'win32') {
+    const geometry = resolveWindowsDisplayGeometryFromList(
+      displayId,
+      windowsDisplays ?? readWindowsDisplayGeometries(),
+    );
+    if (!geometry) {
+      throw new Error(
+        displayId
+          ? `Requested Windows display not found: ${displayId}`
+          : 'No Windows displays were detected',
+      );
+    }
+    return geometry;
+  }
+  return undefined;
 }
 
 /** @internal exported for unit tests — do not consume from outside this package */
 export function mapDisplayLocalPointToGlobal(
   point: Point,
-  geometry?: DarwinDisplayGeometry,
+  geometry?: DisplayGeometry,
 ): Point {
   if (!geometry) return point;
   return {
@@ -747,7 +824,7 @@ export class ComputerDevice implements AbstractInterface {
   interfaceType: InterfaceType = 'computer';
   private options?: ComputerDeviceOpt;
   private displayId?: string;
-  private displayGeometry?: DarwinDisplayGeometry;
+  private displayGeometry?: DisplayGeometry;
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -784,24 +861,20 @@ export class ComputerDevice implements AbstractInterface {
           global: { x: targetX, y: targetY },
           holdDuration,
           displayId: this.displayId,
-          displayGeometry: this.displayGeometry
-            ? {
-                screenIndex: this.displayGeometry.screenIndex,
-                cgDisplayId: this.displayGeometry.cgDisplayId,
-                bounds: this.displayGeometry.bounds,
-              }
-            : undefined,
+          displayGeometry: this.displayGeometry,
         });
 
         const frontmostBefore =
           process.platform === 'darwin'
             ? readDarwinFrontmostApplication()
             : undefined;
-        await this.inputDriver.smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_TAP,
-          SMOOTH_MOVE_DELAY_TAP,
+        await this.moveGlobalPointer(
+          { x: targetX, y: targetY },
+          'Mouse did not reach the tap target',
+          {
+            smoothSteps: SMOOTH_MOVE_STEPS_TAP,
+            smoothDelay: SMOOTH_MOVE_DELAY_TAP,
+          },
         );
         await pressMouseAtGlobalPoint(
           this.inputDriver,
@@ -822,7 +895,10 @@ export class ComputerDevice implements AbstractInterface {
             focusChanged,
           });
           if (focusChanged) {
-            this.inputDriver.moveMouse(targetX, targetY);
+            await this.moveGlobalPointer(
+              { x: targetX, y: targetY },
+              'Mouse did not reach the focus follow-up target',
+            );
             await pressMouseAtGlobalPoint(
               this.inputDriver,
               targetX,
@@ -834,37 +910,40 @@ export class ComputerDevice implements AbstractInterface {
         }
       },
       doubleClick: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the double-click target',
+        );
         this.inputDriver.mouseClick('left', true);
       },
       rightClick: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        this.inputDriver.moveMouse(Math.round(target.x), Math.round(target.y));
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the right-click target',
+        );
         this.inputDriver.mouseClick('right');
       },
       hover: async ({ x, y }) => {
-        const target = this.toGlobalPoint({ x, y });
-        await this.inputDriver.smoothMoveMouse(
-          Math.round(target.x),
-          Math.round(target.y),
-          SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-          SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+        await this.moveDisplayPointer(
+          { x, y },
+          'Mouse did not reach the hover target',
+          {
+            smoothSteps: SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            smoothDelay: SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          },
         );
         await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        const globalFrom = this.toGlobalPoint(from);
-        const globalTo = this.toGlobalPoint(to);
-        this.inputDriver.moveMouse(
-          Math.round(globalFrom.x),
-          Math.round(globalFrom.y),
+        await this.moveDisplayPointer(
+          from,
+          'Mouse did not reach the drag start target',
         );
         await this.inputDriver.withMouseButton('left', async () => {
           await this.inputDriver.delay(100);
-          this.inputDriver.moveMouse(
-            Math.round(globalTo.x),
-            Math.round(globalTo.y),
+          await this.moveDisplayPointer(
+            to,
+            'Mouse did not reach the drag end target',
           );
           await this.inputDriver.delay(100);
         });
@@ -918,6 +997,40 @@ export class ComputerDevice implements AbstractInterface {
       process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
+  private async moveGlobalPointer(
+    point: Point,
+    context: string,
+    smooth?: { smoothSteps: number; smoothDelay: number },
+  ): Promise<Point> {
+    const target = {
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+    };
+    if (smooth) {
+      await this.inputDriver.smoothMoveMouse(
+        target.x,
+        target.y,
+        smooth.smoothSteps,
+        smooth.smoothDelay,
+      );
+    } else {
+      this.inputDriver.moveMouse(target.x, target.y);
+    }
+    await this.inputDriver.delay(CLICK_SETTLE_DELAY);
+    if (process.platform === 'win32') {
+      this.inputDriver.assertMousePosition(target.x, target.y, context);
+    }
+    return target;
+  }
+
+  private moveDisplayPointer(
+    point: Point,
+    context: string,
+    smooth?: { smoothSteps: number; smoothDelay: number },
+  ): Promise<Point> {
+    return this.moveGlobalPointer(this.toGlobalPoint(point), context, smooth);
+  }
+
   private async focusKeyboardTarget(
     element: LocateResultElement,
     delayMs: number,
@@ -930,8 +1043,10 @@ export class ComputerDevice implements AbstractInterface {
       // on hosted desktops, leaving subsequent AppleScript typing unfocused.
       await this.inputPrimitives.pointer.tap({ x, y });
     } else {
-      const point = this.toGlobalPoint({ x, y });
-      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      await this.moveDisplayPointer(
+        { x, y },
+        'Mouse did not reach the keyboard focus target',
+      );
       this.inputDriver.mouseClick('left');
     }
     await this.inputDriver.delay(delayMs);
@@ -959,7 +1074,7 @@ export class ComputerDevice implements AbstractInterface {
       }));
     } catch (error) {
       debugDevice(`Failed to list displays: ${error}`);
-      return [];
+      throw new Error(`Failed to list displays: ${error}`);
     }
   }
 
@@ -1000,18 +1115,19 @@ export class ComputerDevice implements AbstractInterface {
 
       // Load libnut on first connect
       libnut = await getLibnut();
-      this.displayGeometry = resolveDisplayGeometry(this.displayId);
+      const windowsDisplayGeometries =
+        process.platform === 'win32'
+          ? readWindowsDisplayGeometries()
+          : undefined;
+      this.displayGeometry = resolveDisplayGeometry(
+        this.displayId,
+        windowsDisplayGeometries,
+      );
 
       const size = await this.size();
-      if (process.platform === 'win32') {
-        await this.inputDriver.calibrateMouseCoordinates({
-          x: 0,
-          y: 0,
-          width: size.width,
-          height: size.height,
-        });
-      }
-      const displays = await ComputerDevice.listDisplays();
+      const displays = windowsDisplayGeometries
+        ? listWindowsDisplays(windowsDisplayGeometries)
+        : await ComputerDevice.listDisplays();
 
       const headlessInfo = this.xvfbInstance
         ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
@@ -1026,7 +1142,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 `;
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
-      await this.healthCheck();
+      await this.healthCheck(displays);
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
@@ -1047,7 +1163,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
   }
 
-  private async healthCheck(): Promise<void> {
+  private async healthCheck(displays: DisplayInfo[]): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
     console.log(`[HealthCheck] @midscene/computer v${__VERSION__}`);
 
@@ -1068,48 +1184,44 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
-    // Step 2: Move the mouse
-    console.log('[HealthCheck] Moving mouse...');
+    // Step 2: Verify pointer control. On Windows this also calibrates libnut
+    // into the selected display's logical coordinate space.
+    console.log('[HealthCheck] Verifying mouse control...');
     const startPos = this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
 
-    // On Windows, validate the calibrated coordinate space on the display we
-    // capture instead of near the current cursor, which may be on a monitor
-    // with a different DPI. Other platforms retain the small relative probe.
-    let targetX: number;
-    let targetY: number;
     if (process.platform === 'win32') {
-      const size = await this.size();
-      const target = this.toGlobalPoint({
-        x: Math.round(size.width / 2),
-        y: Math.round(size.height / 2),
-      });
-      targetX = Math.round(target.x);
-      targetY = Math.round(target.y);
+      if (!this.displayGeometry) {
+        throw new Error('Windows display geometry is unavailable');
+      }
+      await this.inputDriver.calibrateMouseCoordinates(
+        this.displayGeometry.bounds,
+      );
+      console.log(
+        `[HealthCheck] Mouse calibrated for display bounds (${this.displayGeometry.bounds.x}, ${this.displayGeometry.bounds.y}, ${this.displayGeometry.bounds.width}, ${this.displayGeometry.bounds.height})`,
+      );
     } else {
       const offsetX = Math.floor(Math.random() * 40) + 10;
       const offsetY = Math.floor(Math.random() * 40) + 10;
-      targetX = startPos.x + offsetX;
-      targetY = startPos.y + offsetY;
-    }
-
-    console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
-    this.inputDriver.moveMouse(targetX, targetY);
-    await sleep(50);
-
-    const movedPos = this.inputDriver.getMousePos();
-    console.log(
-      `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
-    );
-
-    // Detect if moveMouse actually worked
-    const deltaX = Math.abs(movedPos.x - targetX);
-    const deltaY = Math.abs(movedPos.y - targetY);
-    if (deltaX > 5 || deltaY > 5) {
-      const msg = `[HealthCheck] WARNING: Mouse control may not be working. Expected (${targetX}, ${targetY}), got (${movedPos.x}, ${movedPos.y}), delta=(${deltaX}, ${deltaY})`;
-      warnDevice(msg);
+      const targetX = startPos.x + offsetX;
+      const targetY = startPos.y + offsetY;
+      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+      try {
+        this.inputDriver.moveMouse(targetX, targetY);
+        await sleep(CLICK_SETTLE_DELAY);
+        this.inputDriver.assertMousePosition(
+          targetX,
+          targetY,
+          'Mouse health check failed',
+        );
+      } finally {
+        this.inputDriver.moveMouse(startPos.x, startPos.y);
+        console.log(
+          `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+        );
+      }
     }
 
     // Windows UIPI advisory. This must NOT be gated on the moveMouse delta
@@ -1130,15 +1242,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       warnDevice(`[HealthCheck] ${hint}`);
     }
 
-    // Restore original position
-    this.inputDriver.moveMouse(startPos.x, startPos.y);
-    console.log(
-      `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
-    );
-
     // Step 3: List available monitors
     console.log('[HealthCheck] Listing monitors...');
-    const displays = await ComputerDevice.listDisplays();
     if (displays.length > 0) {
       console.log(`[HealthCheck] Found ${displays.length} monitor(s):`);
       for (const display of displays) {
@@ -1272,10 +1377,9 @@ Original error: ${lastRawMessage}`,
    * the exact .NET-compiler dependency this PR removes by dropping
    * screenshot-desktop's polyglot .bat — so it is intentionally avoided here.
    * As a result, captures on a scaled display come back at logical (scaled)
-   * resolution. That is sufficient for the #2150 fix (the health check only
-   * needs a successful capture). Per-monitor DPI / coordinate accuracy is a
-   * separate Windows concern to be addressed in a follow-up with real-device
-   * verification.
+   * resolution. Display enumeration uses the same logical bounds, and the
+   * input driver calibrates pointer coordinates inside those selected-display
+   * bounds so screenshot locations and pointer actions remain aligned.
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';
@@ -1462,10 +1566,20 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     if (process.platform === 'win32') {
       const activeWindowRect = this.inputDriver.getActiveWindowRect();
       if (activeWindowRect) {
-        return {
+        const activeWindowCenter = {
           x: activeWindowRect.x + activeWindowRect.width / 2,
           y: activeWindowRect.y + activeWindowRect.height / 2,
         };
+        const bounds = this.displayGeometry?.bounds;
+        if (
+          !bounds ||
+          (activeWindowCenter.x >= bounds.x &&
+            activeWindowCenter.x < bounds.x + bounds.width &&
+            activeWindowCenter.y >= bounds.y &&
+            activeWindowCenter.y < bounds.y + bounds.height)
+        ) {
+          return activeWindowCenter;
+        }
       }
     }
 
@@ -1479,8 +1593,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     if (param.locate) {
       const element = param.locate as LocateResultElement;
       const [x, y] = element.center;
-      const point = this.toGlobalPoint({ x, y });
-      this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+      await this.moveDisplayPointer(
+        { x, y },
+        'Mouse did not reach the scroll target',
+      );
       return undefined;
     }
 
@@ -1492,7 +1608,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       await this.inputDriver.delay(CLICK_FOCUS_SETTLE_DELAY);
     }
     const point = this.resolveUntargetedScrollPoint(screenSize);
-    this.inputDriver.moveMouse(Math.round(point.x), Math.round(point.y));
+    await this.moveGlobalPointer(
+      point,
+      'Mouse did not reach the scroll viewport',
+    );
     await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
     return screenSize;
   }
