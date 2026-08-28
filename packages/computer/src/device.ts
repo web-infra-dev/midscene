@@ -26,6 +26,7 @@ import {
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
+import { WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE } from './windows-dpi';
 import {
   WindowsPointerDriver,
   windowsPointerDrift,
@@ -310,11 +311,12 @@ function runPowershell(script: string): string {
   );
 }
 
-/** Enumerate Windows monitors and their logical desktop bounds via PowerShell
+/** Enumerate Windows monitors and their physical-pixel bounds via PowerShell
  * (screenshot-desktop's .bat-based listDisplays is broken under Claude Code —
  * see #2150). */
 export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
   const script = `
+${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms
 $s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
   $b = $_.Bounds
@@ -1224,8 +1226,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
-    // Step 2: Verify pointer control. Windows movement and observation use the
-    // same WinForms coordinate space as Screen.Bounds and CopyFromScreen.
+    // Step 2: Verify pointer control. Windows capture, display enumeration,
+    // movement, and observation all use physical pixels.
     console.log('[HealthCheck] Verifying mouse control...');
     const startPos =
       process.platform === 'win32'
@@ -1428,15 +1430,10 @@ Original error: ${lastRawMessage}`,
    * DeviceName and captures in virtual-desktop coordinates, so secondary
    * displays — including those at negative offsets — are supported.
    *
-   * Note: the process is left at its default (DPI-unaware) state on purpose.
-   * Making it DPI-aware would require a runtime `Add-Type` C# compile (csc) —
-   * the exact .NET-compiler dependency this PR removes by dropping
-   * screenshot-desktop's polyglot .bat — so it is intentionally avoided here.
-   * As a result, captures on a scaled display come back at logical (scaled)
-   * resolution. Display enumeration and Windows pointer movement use the same
-   * WinForms logical coordinate space, so screenshot locations and pointer
-   * actions remain aligned without comparing them to libnut's process-level
-   * DPI coordinate space.
+   * The PowerShell thread is switched to Per-Monitor V2 before WinForms is
+   * loaded. Screen.Bounds, CopyFromScreen, and pointer movement therefore use
+   * physical pixels even when Windows display scaling is enabled. The native
+   * declaration is emitted in memory, so this does not require csc.exe.
    */
   private screenshotViaPowershell(): string {
     const deviceName = this.displayId ? String(this.displayId) : '';
@@ -1451,6 +1448,7 @@ if (-not $screen) { throw "Requested display not found: $dn" }`
       : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
     const script = `
 $ErrorActionPreference = 'Stop'
+${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 ${selectScreen}
 $b = $screen.Bounds

@@ -1,3 +1,5 @@
+import { WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE } from './windows-dpi';
+
 export interface WindowsPointerPoint {
   x: number;
   y: number;
@@ -37,6 +39,7 @@ function parseWindowsPointerPosition(
 
 function windowsPointerPositionScript(): string {
   return `
+${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $position = [System.Windows.Forms.Cursor]::Position
 [Console]::Out.Write(('{0},{1}' -f $position.X, $position.Y))
@@ -63,6 +66,7 @@ export function windowsPointerMoveScript(
   const smoothDelayMs = Math.max(0, Math.round(options?.smoothDelayMs ?? 0));
 
   return `
+${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $targetX = ${targetX}
 $targetY = ${targetY}
@@ -84,15 +88,15 @@ $position = [System.Windows.Forms.Cursor]::Position
 }
 
 /**
- * Move and observe the Windows cursor through the same DPI-virtualized
- * WinForms coordinate space used by Screen.Bounds and CopyFromScreen.
+ * Move and observe the Windows cursor in physical screenshot pixels.
  *
  * libnut's Windows implementation normalizes SendInput coordinates with the
  * host Node process metrics. On a scaled or mixed-DPI desktop, checking that
  * move with libnut.getMousePos only proves that the two native calls agree
  * with each other; it does not prove that the cursor overlays the screenshot
- * pixel selected by the model. Keeping capture, display geometry, movement,
- * and verification in WinForms removes that cross-process DPI mismatch.
+ * pixel selected by the model. Each short-lived PowerShell pipeline enters a
+ * Per-Monitor V2 context before using WinForms, keeping capture, display
+ * geometry, movement, and verification in physical pixels.
  */
 export class WindowsPointerDriver {
   constructor(private readonly options: WindowsPointerDriverOptions) {}

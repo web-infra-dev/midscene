@@ -7,7 +7,7 @@ import {
 } from '../../src/windows-pointer';
 
 describe('Windows screenshot-space pointer driver', () => {
-  it('moves and observes through WinForms with the requested smooth path', () => {
+  it('moves and observes physical pixels with the requested smooth path', () => {
     const runPowershell = rs.fn((_script: string) => '1395,50');
     const driver = new WindowsPointerDriver({ runPowershell });
 
@@ -20,6 +20,9 @@ describe('Windows screenshot-space pointer driver', () => {
     expect(script).toContain('$targetY = 50');
     expect(script).toContain('$smoothSteps = 8');
     expect(script).toContain('$smoothDelayMs = 8');
+    expect(script).toContain('SetThreadDpiAwarenessContext');
+    expect(script).toContain('DefinePInvokeMethod');
+    expect(script).toContain('[System.IntPtr](-4)');
     expect(script).toContain('[System.Windows.Forms.Cursor]::Position');
     expect(script).not.toContain('Add-Type -TypeDefinition');
   });

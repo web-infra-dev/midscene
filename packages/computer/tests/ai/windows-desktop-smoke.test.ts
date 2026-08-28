@@ -579,10 +579,15 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       await device.connect();
       const deviceSize = await device.size();
       evidence.deviceSize = deviceSize;
-      expect(deviceSize).toEqual({
-        width: metadata.screen.width,
-        height: metadata.screen.height,
-      });
+      const expectedScale = expectedScalePercent / 100;
+      expect(deviceSize.width / metadata.screen.width).toBeCloseTo(
+        expectedScale,
+        2,
+      );
+      expect(deviceSize.height / metadata.screen.height).toBeCloseTo(
+        expectedScale,
+        2,
+      );
       const screenshotBase64 = await device.screenshotBase64();
       const screenshotBuffer = Buffer.from(
         base64Body(screenshotBase64),
@@ -596,8 +601,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         bytes: screenshotBuffer.length,
       };
       expect(screenshotInfo).toEqual({
-        width: metadata.screen.width,
-        height: metadata.screen.height,
+        width: deviceSize.width,
+        height: deviceSize.height,
       });
       expect(screenshotBuffer.subarray(0, 8)).toEqual(
         Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
