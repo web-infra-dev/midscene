@@ -13,8 +13,11 @@ afterEach(() => {
   (globalThis as Record<string, unknown>).__testSetupMarker = undefined;
 });
 
-const createConfig = (source: string): { directory: string; path: string } => {
-  const directory = mkdtempSync(join(tmpdir(), 'test-project-config-'));
+const createConfig = (
+  source: string,
+  directoryPrefix = 'test-project-config-',
+): { directory: string; path: string } => {
+  const directory = mkdtempSync(join(tmpdir(), directoryPrefix));
   directories.push(directory);
   const path = join(directory, 'midscene.config.ts');
   writeFileSync(path, source);
@@ -52,6 +55,17 @@ describe('test project config', () => {
       include: ['workflows/**/*.{yaml,yml}'],
       exclude: ['workflows/**/*.draft.yaml'],
     });
+  });
+
+  it('loads configs from paths containing URL control characters', async () => {
+    const { path } = createConfig(
+      'export default { nodes: [] };',
+      'test-project-config-#-',
+    );
+
+    const project = await loadTestProject(path);
+
+    expect(project.hasExplicitProjects).toBe(false);
   });
 
   it('loads adjacent TypeScript modules', async () => {
@@ -369,6 +383,36 @@ describe('test project config', () => {
     `);
 
     await expect(loadTestProject(path)).rejects.toThrow('runtime syntax error');
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('falls back once when an imported module has an unknown extension', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { directory, path } = createConfig(`
+      import './plugin.unsupported';
+      globalThis.__testSetupMarker();
+      export default { nodes: [] };
+    `);
+    writeFileSync(join(directory, 'plugin.unsupported'), 'export default 1;');
+
+    await expect(loadTestProject(path)).resolves.toBeDefined();
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('does not retry runtime errors that only reuse a loader error code', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      globalThis.__testSetupMarker();
+      const error = new Error('runtime extension error');
+      error.code = 'ERR_UNKNOWN_FILE_EXTENSION';
+      throw error;
+    `);
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      'runtime extension error',
+    );
     expect(marker).toHaveBeenCalledOnce();
   });
 

@@ -3,15 +3,15 @@ import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
-} from '../model-adapter/types';
+} from '../../model-adapter/types';
 import {
   type LocateResultValue,
   createLocateResultValue,
-} from '../shared/model-locate-result';
+} from '../../shared/model-locate-result';
 import {
   deepSeekElementLocateProtocol,
   deepSeekSearchAreaProtocol,
-} from './deepseek-locate-protocol';
+} from './locate-protocol';
 
 const deepSeekPointCoordinates = {
   shape: 'point',
@@ -60,8 +60,17 @@ const buildDeepSeekChatCompletionParams = (
   const { midsceneDefaults, userConfig } = input;
   const { reasoningEnabled, reasoningEffort } = userConfig;
   const commonOverrideConfig: Record<string, unknown> = {};
+  const isThinkingMode =
+    reasoningEnabled === true || reasoningEnabled === 'default';
 
-  if (userConfig.temperature !== undefined) {
+  // DeepSeek thinking mode does not support temperature. For compatibility,
+  // DeepSeek ignores this parameter instead of rejecting the request, so omit
+  // the ineffective setting. `default` also uses thinking mode because
+  // DeepSeek enables it by default.
+  // https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
+  if (isThinkingMode) {
+    commonOverrideConfig.temperature = undefined;
+  } else if (userConfig.temperature !== undefined) {
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 

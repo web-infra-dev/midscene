@@ -1393,6 +1393,12 @@ importers:
         specifier: ^3.25.1
         version: 3.25.76
     devDependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
+      '@midscene/ios':
+        specifier: workspace:*
+        version: link:../ios
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration

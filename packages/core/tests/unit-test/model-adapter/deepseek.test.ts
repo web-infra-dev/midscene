@@ -1,9 +1,9 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
-import { deepSeekAdapters } from '@/ai-model/models/deepseek';
+import { deepSeekAdapters } from '@/ai-model/models/deepseek/adapter';
 import {
   deepSeekElementLocateProtocol,
   deepSeekSearchAreaProtocol,
-} from '@/ai-model/models/deepseek-locate-protocol';
+} from '@/ai-model/models/deepseek/locate-protocol';
 import { systemPromptToLocateElement } from '@/ai-model/prompt/llm-locator';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from 'vitest';
@@ -264,6 +264,14 @@ describe('deepseek model adapter', () => {
         userConfig: {
           reasoningEnabled: 'default',
           reasoningEffort: 'max',
+          temperature: 0.7,
+        },
+      });
+    const reasoningDisabledResult =
+      deepSeekAdapter.chatCompletion.buildChatCompletionParams({
+        userConfig: {
+          reasoningEnabled: false,
+          temperature: 0.7,
         },
       });
 
@@ -272,11 +280,15 @@ describe('deepseek model adapter', () => {
       thinking: { type: 'disabled' },
     });
     expect(reasoningResult.config).toEqual({
-      temperature: 0,
+      temperature: undefined,
       thinking: { type: 'enabled' },
       reasoning_effort: 'max',
     });
-    expect(providerDefaultResult.config).toEqual({ temperature: 0 });
+    expect(providerDefaultResult.config).toEqual({ temperature: undefined });
+    expect(reasoningDisabledResult.config).toEqual({
+      temperature: 0.7,
+      thinking: { type: 'disabled' },
+    });
   });
 
   it('does not replay raw assistant messages without tool calls', () => {

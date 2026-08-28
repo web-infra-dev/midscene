@@ -1,0 +1,9 @@
+tasks:
+  - name: Verify report tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('report')
+      - javascript: openParallelYamlPopup('report')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('report')
+      - recordToReport: Report tab verification passed
+        content: The report YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, retained isolated window and sessionStorage state, and only followed its own popup in browser mode.

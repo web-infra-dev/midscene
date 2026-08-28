@@ -9,14 +9,24 @@ dotenv.config({
 });
 
 const enableAiTest = Boolean(process.env.AITEST);
+const enableCliE2eTest = Boolean(process.env.CLI_E2E);
 const basicTest = ['tests/unit-test/**/*.test.ts'];
+const include = enableAiTest
+  ? ['tests/ai/**/*.test.ts']
+  : enableCliE2eTest
+    ? ['tests/e2e/**/*.test.ts']
+    : basicTest;
 
 export default defineConfig({
   coverage: createCoverageConfig(__dirname),
-  include: enableAiTest ? ['tests/ai/**/*.test.ts'] : basicTest,
+  include,
   testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
-  retry: process.env.CI ? 1 : 0,
-  ...(enableAiTest && process.env.CI ? { pool: { maxWorkers: 4 } } : {}),
+  retry: enableCliE2eTest ? 0 : process.env.CI ? 1 : 0,
+  ...(enableCliE2eTest
+    ? { pool: { maxWorkers: 1 } }
+    : enableAiTest && process.env.CI
+      ? { pool: { maxWorkers: 4 } }
+      : {}),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

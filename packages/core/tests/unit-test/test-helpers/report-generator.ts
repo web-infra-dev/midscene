@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, type ReportMeta } from '@/types';
+import sharp from 'sharp';
 
 /** Create a valid-looking image data URL with a predictable payload size. */
 export function fakeBase64(
@@ -69,4 +70,35 @@ export function parseScriptAttributes(openTag: string): Record<string, string> {
     attributes[match[1]] = decodeURIComponent(match[2]);
   }
   return attributes;
+}
+
+export async function decodeImagePixels(image: Buffer) {
+  const { data, info } = await sharp(image)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  return {
+    width: info.width,
+    height: info.height,
+    channels: info.channels,
+    pixels: data,
+  };
+}
+
+export async function createPatternedPngFixture() {
+  const width = 2;
+  const height = 2;
+  const channels = 3;
+  const pixels = Buffer.from([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]);
+  const png = await sharp(pixels, {
+    raw: { width, height, channels },
+  })
+    .png()
+    .toBuffer();
+
+  return {
+    dataUri: `data:image/png;base64,${png.toString('base64')}`,
+    expectedImage: { width, height, channels, pixels },
+  };
 }

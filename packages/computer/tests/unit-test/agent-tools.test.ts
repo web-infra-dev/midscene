@@ -79,6 +79,26 @@ describe('ComputerMidsceneTools', () => {
     });
   });
 
+  it('keeps CLI-owned Xvfb alive until process exit when configured', async () => {
+    const tools = new ComputerMidsceneTools({
+      keepXvfbAliveUntilProcessExit: true,
+    });
+    await tools.initTools();
+
+    const takeScreenshotTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'take_screenshot');
+
+    await takeScreenshotTool?.handler({
+      computer: { headless: true },
+    });
+
+    expect(agentFromComputer).toHaveBeenCalledWith({
+      headless: true,
+      keepXvfbAliveUntilProcessExit: true,
+    });
+  });
+
   it('passes common agent behavior args to local agent creation', async () => {
     const tools = new ComputerMidsceneTools();
     await tools.initTools();

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { emitYamlProgress } from '@/framework/progress-reporter';
 import { runYamlBatchInRstest } from '@/framework/yaml-batch';
+import { YamlBatchExecutionError } from '@/yaml-batch-error';
 import { runYamlBatchWithCaseIds } from '@/yaml-batch-executor';
 import type { MidsceneYamlConfigResult } from '@midscene/core';
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
@@ -220,6 +221,65 @@ describe('runYamlBatchInRstest', () => {
       expect(JSON.parse(readFileSync(secondResult, 'utf8'))).toMatchObject({
         success: false,
         duration: 20,
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('writes occurrence results before rethrowing an unexpected batch error', async () => {
+    const root = createTempDir();
+    const yamlA = join(root, 'completed.yaml');
+    const yamlB = join(root, 'crashed.yaml');
+    const resultA = join(root, 'results', 'completed.json');
+    const resultB = join(root, 'results', 'crashed.json');
+    const config = createConfig([yamlA, yamlB]);
+    const executionError = new Error('page cleanup failed');
+    const occurrences = [
+      {
+        caseId: 'case-a',
+        result: {
+          file: yamlA,
+          success: true,
+          executed: true,
+          duration: 10,
+          resultType: 'success' as const,
+        },
+      },
+      {
+        caseId: 'case-b',
+        result: {
+          file: yamlB,
+          success: false,
+          executed: true,
+          duration: 20,
+          resultType: 'failed' as const,
+          error: executionError.message,
+        },
+      },
+    ];
+    const batchError = new YamlBatchExecutionError(executionError, occurrences);
+    mocks.runYamlBatchWithCaseIds.mockRejectedValue(batchError);
+
+    try {
+      await expect(
+        runYamlBatchInRstest({
+          config,
+          resultTargets: [
+            { caseId: 'case-a', yamlFile: yamlA, resultFile: resultA },
+            { caseId: 'case-b', yamlFile: yamlB, resultFile: resultB },
+          ],
+        }),
+      ).rejects.toBe(batchError);
+
+      expect(JSON.parse(readFileSync(resultA, 'utf8'))).toMatchObject({
+        file: yamlA,
+        resultType: 'success',
+      });
+      expect(JSON.parse(readFileSync(resultB, 'utf8'))).toMatchObject({
+        file: yamlB,
+        resultType: 'failed',
+        error: executionError.message,
       });
     } finally {
       rmSync(root, { recursive: true, force: true });

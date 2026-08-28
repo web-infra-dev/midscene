@@ -141,6 +141,11 @@ type ExtractedComputerInitArgs = Partial<
     AgentBehaviorInitArgs
 >;
 
+export interface ComputerMidsceneToolsOptions {
+  /** Keep CLI-owned Xvfb alive until process exit so Xlib clients stay valid. */
+  keepXvfbAliveUntilProcessExit?: boolean;
+}
+
 function adaptComputerInitArgs(
   extracted: ExtractedComputerInitArgs | undefined,
 ): ComputerInitArgs | undefined {
@@ -196,6 +201,10 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   ComputerInitArgs
 > {
   private lastInitArgsSignature?: string;
+
+  constructor(private readonly options: ComputerMidsceneToolsOptions = {}) {
+    super();
+  }
 
   protected getCliReportSessionName() {
     return 'midscene-computer';
@@ -259,6 +268,9 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
       ...(headless !== undefined ? { headless } : {}),
       ...(keyboardTypeDelay !== undefined ? { keyboardTypeDelay } : {}),
       ...(inputStrategy !== undefined ? { inputStrategy } : {}),
+      ...(this.options.keepXvfbAliveUntilProcessExit
+        ? { keepXvfbAliveUntilProcessExit: true }
+        : {}),
       ...(extractAgentBehaviorInitArgs(opts) ?? {}),
       ...(reportOptions ?? {}),
     };

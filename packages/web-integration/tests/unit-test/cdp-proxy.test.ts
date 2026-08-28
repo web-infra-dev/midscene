@@ -17,6 +17,7 @@ const PROXY_ENDPOINT_FILE = join(tmpdir(), 'midscene-cdp-proxy-endpoint');
 const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
 const PROXY_UPSTREAM_FILE = join(tmpdir(), 'midscene-cdp-proxy-upstream');
 const PROXY_SCRIPT = join(__dirname, '../../dist/lib/cdp-proxy.js');
+const PROXY_PROCESS_TIMEOUT_MS = 10000;
 
 /**
  * Spin up a fake "Chrome" WebSocket server that echoes CDP messages.
@@ -143,6 +144,41 @@ function startProxy(chromeEndpoint: string): Promise<{
   });
 }
 
+function runProxyToExit(
+  chromeEndpoint: string,
+): Promise<{ code: number | null; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(process.execPath, [PROXY_SCRIPT, chromeEndpoint], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let stderr = '';
+    proc.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    let settled = false;
+    const settle = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback();
+    };
+    const timer = setTimeout(() => {
+      settle(() => {
+        proc.kill('SIGKILL');
+        reject(
+          new Error(
+            `Proxy exit timeout for ${chromeEndpoint}. stderr: ${stderr}`,
+          ),
+        );
+      });
+    }, PROXY_PROCESS_TIMEOUT_MS);
+
+    proc.on('error', (error) => settle(() => reject(error)));
+    proc.on('close', (code) => settle(() => resolve({ code, stderr })));
+  });
+}
+
 function cleanupFiles() {
   try {
     if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
@@ -176,6 +212,22 @@ describe('CDP WebSocket Proxy', () => {
     fakeChrome.wss.close();
     fakeChrome.server.close();
     cleanupFiles();
+  });
+
+  it('rejects a malformed CDP endpoint URL', async () => {
+    const result = await runProxyToExit('not-a-url');
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('Invalid CDP endpoint URL: not-a-url');
+  });
+
+  it('rejects a non-WebSocket CDP endpoint protocol', async () => {
+    const result = await runProxyToExit('http://127.0.0.1:9222');
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(
+      'Invalid CDP endpoint protocol: http:. Only ws: and wss: are allowed.',
+    );
   });
 
   it('starts and writes endpoint/pid files', async () => {

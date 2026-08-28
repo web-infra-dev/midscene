@@ -9,6 +9,7 @@ import type {
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { parseYamlScript, resolveWebTarget } from '@midscene/core/yaml';
+import { getDebug } from '@midscene/shared/logger';
 import {
   buildChromeArgs,
   buildDownloadBehavior,
@@ -22,12 +23,12 @@ import puppeteer, {
   type Browser,
   type BrowserContext,
   type BrowserContextOptions,
-  type Page,
 } from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
 import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
+  createUnexpectedYamlResult,
   createYamlAttempt,
   getYamlAttemptsDuration,
   preserveYamlAttemptReport,
@@ -45,6 +46,14 @@ import {
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
+import { YamlBatchExecutionError } from './yaml-batch-error';
+
+const batchWarning = getDebug('yaml-batch-executor', { console: true });
+
+const normalizeExecutionError = (error: unknown): Error =>
+  error instanceof Error
+    ? error
+    : new Error('Unexpected YAML execution failure', { cause: error });
 
 export interface BatchRunnerConfig {
   files: string[];
@@ -68,7 +77,7 @@ export interface BatchRunnerConfig {
    */
   retry?: number;
   summary: string;
-  /** Share one BrowserContext and Page across Puppeteer Web yaml files. */
+  /** Share one BrowserContext across Puppeteer Web yaml files. */
   shareBrowserContext: boolean;
   globalConfig?: {
     page?: Partial<MidsceneYamlScriptWebEnv>;
@@ -94,7 +103,7 @@ interface BatchFileContext {
     headed?: boolean;
     keepWindow?: boolean;
     browser?: Browser;
-    page?: Page;
+    browserContext?: BrowserContext;
   };
 }
 
@@ -202,6 +211,17 @@ interface NotExecutedBatchFileContext {
   player: null;
 }
 
+interface UnexpectedBatchFileContext {
+  caseId: string;
+  file: string;
+  error: Error;
+  yamlResult: MidsceneYamlConfigResult;
+}
+
+type FileExecutionOutcome =
+  | { kind: 'executed'; context: ExecutedBatchFileContext }
+  | { kind: 'unexpected'; context: UnexpectedBatchFileContext };
+
 export interface YamlBatchOccurrenceResult {
   caseId: string;
   result: MidsceneYamlConfigResult;
@@ -209,7 +229,6 @@ export interface YamlBatchOccurrenceResult {
 
 interface SharedBrowserRuntime {
   browserContext: BrowserContext;
-  page: Page;
 }
 
 const createSharedBrowserRuntime = async (
@@ -219,20 +238,7 @@ const createSharedBrowserRuntime = async (
   const browserContext = await browser.createBrowserContext(
     browserContextOptions,
   );
-  try {
-    const page = await browserContext.newPage();
-    return { browserContext, page };
-  } catch (error) {
-    try {
-      await browserContext.close();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        'Failed to create and clean up a shared browser runtime',
-      );
-    }
-    throw error;
-  }
+  return { browserContext };
 };
 
 export interface RunYamlBatchOptions {
@@ -288,6 +294,7 @@ class YamlBatchExecutor {
     let browser: Browser | null = null;
     const sharedRuntime = { current: null as SharedBrowserRuntime | null };
     let caseIndex = 0;
+    let executionError: unknown;
 
     try {
       // Create the setup context (prerequisite) before the main files so the
@@ -402,7 +409,8 @@ class YamlBatchExecutor {
           );
           for (const context of allContexts) {
             context.options.browser = browser;
-            context.options.page = sharedRuntime.current.page;
+            context.options.browserContext =
+              sharedRuntime.current.browserContext;
           }
         };
 
@@ -411,19 +419,24 @@ class YamlBatchExecutor {
 
       // A failed setup attempt replaces the shared runtime; main-file retries
       // keep using the successful setup runtime.
-      const { executedResults, notExecutedContexts } = await this.executeFiles(
-        setupContext,
-        fileContextList,
-        {
-          onProgress: options.onProgress,
-          resetSetupRuntime,
-        },
-      );
+      const {
+        executedResults,
+        unexpectedResults,
+        notExecutedContexts,
+        unexpectedError,
+      } = await this.executeFiles(setupContext, fileContextList, {
+        onProgress: options.onProgress,
+        resetSetupRuntime,
+      });
 
       this.results = await this.processResults(
         executedResults,
+        unexpectedResults,
         notExecutedContexts,
       );
+      executionError = unexpectedError;
+    } catch (error) {
+      executionError = error;
     } finally {
       if (browser && !this.config.keepWindow) {
         try {
@@ -431,7 +444,18 @@ class YamlBatchExecutor {
             await sharedRuntime.current.browserContext.close();
             sharedRuntime.current = null;
           }
-        } finally {
+        } catch (error) {
+          if (executionError) {
+            batchWarning(
+              'failed to close the shared browser context after execution had already failed; preserving the original error',
+              error,
+            );
+          } else {
+            executionError = error;
+          }
+        }
+
+        try {
           // For CDP mode, disconnect instead of closing the externally managed browser.
           const isCdp = !!resolveWebTarget(this.config.globalConfig ?? {})
             ?.target.cdpEndpoint;
@@ -440,11 +464,24 @@ class YamlBatchExecutor {
           } else {
             await browser.close();
           }
+        } catch (error) {
+          if (executionError) {
+            batchWarning(
+              'failed to clean up the shared browser after execution had already failed; preserving the original error',
+              error,
+            );
+          } else {
+            executionError = error;
+          }
         }
       }
       if (generateSummary) {
         await this.generateOutputIndex();
       }
+    }
+
+    if (executionError) {
+      throw new YamlBatchExecutionError(executionError, this.results);
     }
 
     return this.results;
@@ -483,10 +520,13 @@ class YamlBatchExecutor {
     },
   ): Promise<{
     executedResults: ExecutedBatchFileContext[];
+    unexpectedResults: UnexpectedBatchFileContext[];
     notExecutedContexts: NotExecutedBatchFileContext[];
+    unexpectedError?: Error;
   }> {
     const { onProgress, resetSetupRuntime } = options;
     const executedResults: ExecutedBatchFileContext[] = [];
+    const unexpectedResults: UnexpectedBatchFileContext[] = [];
     const notExecutedContexts: NotExecutedBatchFileContext[] = [];
 
     // Create the setup player first. Main-file players are deferred until the
@@ -546,89 +586,115 @@ class YamlBatchExecutor {
       onProgress?.(formatYamlProgressSnapshot(summary, attempt, totalAttempts));
     };
 
+    let unexpectedError: Error | undefined;
+
     try {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
         beforeRetry?: () => Promise<void>,
-      ): Promise<ExecutedBatchFileContext> => {
+      ): Promise<FileExecutionOutcome> => {
         const allFileContext = fileContextsByCaseId.get(context.caseId);
-        if (!allFileContext) {
-          throw new Error(`Player not found for file: ${context.file}`);
-        }
+        let lastAttemptStartTime: number | undefined;
 
-        const totalAttempts = resolveYamlMaxAttempts(this.config.retry);
-        const attempts: MidsceneYamlConfigAttempt[] = [];
-        let executedContext: ExecutedBatchFileContext | undefined;
+        try {
+          if (!allFileContext) {
+            throw new Error(`Player not found for file: ${context.file}`);
+          }
 
-        for (let attempt = 1; attempt <= totalAttempts; attempt++) {
-          if (attempt > 1) {
-            if (context.executionConfig.agent?.reportFileName) {
-              attempts[attempts.length - 1] = preserveYamlAttemptReport(
-                attempts[attempts.length - 1],
+          const totalAttempts = resolveYamlMaxAttempts(this.config.retry);
+          const attempts: MidsceneYamlConfigAttempt[] = [];
+          let executedContext: ExecutedBatchFileContext | undefined;
+
+          for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+            if (attempt > 1) {
+              if (context.executionConfig.agent?.reportFileName) {
+                attempts[attempts.length - 1] = preserveYamlAttemptReport(
+                  attempts[attempts.length - 1],
+                );
+              }
+              await beforeRetry?.();
+              allFileContext.player = await createYamlPlayer(
+                context.file,
+                context.executionConfig,
+                context.options,
               );
             }
-            await beforeRetry?.();
-            allFileContext.player = await createYamlPlayer(
-              context.file,
-              context.executionConfig,
-              context.options,
-            );
+
+            if (onProgress) {
+              reportProgressSnapshot(allFileContext, attempt, totalAttempts);
+            } else if (!isTTY) {
+              const { mergedText } = contextInfo(allFileContext);
+              console.log(mergedText);
+            }
+
+            if (context.outputPath) {
+              allFileContext.player.output = context.outputPath;
+            }
+
+            const startTime = Date.now();
+            lastAttemptStartTime = startTime;
+            await allFileContext.player.run();
+            const duration = Date.now() - startTime;
+            const attemptResult = createExecutedYamlResult({
+              file: context.file,
+              player: allFileContext.player,
+              duration,
+            });
+            attempts.push(createYamlAttempt(attemptResult, attempt));
+            const totalDuration = getYamlAttemptsDuration(attempts);
+
+            const yamlResult: MidsceneYamlConfigResult = {
+              ...attemptResult,
+              duration: totalDuration,
+              attempts: [...attempts],
+            };
+            executedContext = {
+              caseId: context.caseId,
+              file: context.file,
+              player: allFileContext.player,
+              duration: totalDuration,
+              yamlResult,
+            };
+
+            if (onProgress) {
+              reportProgressSnapshot(executedContext, attempt, totalAttempts);
+            } else if (!isTTY) {
+              console.log(
+                contextTaskListSummary(
+                  allFileContext.player.taskStatusList,
+                  executedContext,
+                ),
+              );
+            }
+
+            if (yamlResult.success) break;
           }
 
-          if (onProgress) {
-            reportProgressSnapshot(allFileContext, attempt, totalAttempts);
-          } else if (!isTTY) {
-            const { mergedText } = contextInfo(allFileContext);
-            console.log(mergedText);
+          if (!executedContext) {
+            throw new Error(`No attempts executed for file: ${context.file}`);
           }
-
-          if (context.outputPath) {
-            allFileContext.player.output = context.outputPath;
-          }
-
-          const startTime = Date.now();
-          await allFileContext.player.run();
-          const duration = Date.now() - startTime;
-          const attemptResult = createExecutedYamlResult({
-            file: context.file,
-            player: allFileContext.player,
-            duration,
-          });
-          attempts.push(createYamlAttempt(attemptResult, attempt));
-          const totalDuration = getYamlAttemptsDuration(attempts);
-
-          const yamlResult: MidsceneYamlConfigResult = {
-            ...attemptResult,
-            duration: totalDuration,
-            attempts: [...attempts],
+          return { kind: 'executed', context: executedContext };
+        } catch (error) {
+          const normalizedError = normalizeExecutionError(error);
+          return {
+            kind: 'unexpected',
+            context: {
+              caseId: context.caseId,
+              file: context.file,
+              error: normalizedError,
+              yamlResult: createUnexpectedYamlResult({
+                file: context.file,
+                error: normalizedError,
+                duration:
+                  lastAttemptStartTime === undefined
+                    ? 0
+                    : Date.now() - lastAttemptStartTime,
+                player: allFileContext?.player,
+              }),
+            },
           };
-          executedContext = {
-            caseId: context.caseId,
-            file: context.file,
-            player: allFileContext.player,
-            duration: totalDuration,
-            yamlResult,
-          };
-
-          if (onProgress) {
-            reportProgressSnapshot(executedContext, attempt, totalAttempts);
-          } else if (!isTTY) {
-            console.log(
-              contextTaskListSummary(
-                allFileContext.player.taskStatusList,
-                executedContext,
-              ),
-            );
-          }
-
-          if (yamlResult.success) break;
         }
-
-        if (!executedContext) {
-          throw new Error(`No attempts executed for file: ${context.file}`);
-        }
-        return executedContext;
       };
 
       // Run the setup file first, if any. A setup failure aborts the batch:
@@ -637,12 +703,15 @@ class YamlBatchExecutor {
       // the setup file establishes.
       let setupFailed = false;
       if (setupContext) {
-        const executedContext = await executeFile(
-          setupContext,
-          resetSetupRuntime,
-        );
-        executedResults.push(executedContext);
-        setupFailed = !executedContext.yamlResult.success;
+        const outcome = await executeFile(setupContext, resetSetupRuntime);
+        if (outcome.kind === 'unexpected') {
+          unexpectedResults.push(outcome.context);
+          unexpectedError = outcome.context.error;
+          setupFailed = true;
+        } else {
+          executedResults.push(outcome.context);
+          setupFailed = !outcome.context.yamlResult.success;
+        }
       }
 
       if (setupFailed) {
@@ -660,10 +729,11 @@ class YamlBatchExecutor {
           }
         }
         // Execute based on concurrency and error handling settings
-        await this.executeConcurrently(
+        unexpectedError = await this.executeConcurrently(
           fileContextList,
           executeFile,
           executedResults,
+          unexpectedResults,
           notExecutedContexts,
         );
       }
@@ -683,28 +753,40 @@ class YamlBatchExecutor {
       }
     }
 
-    return { executedResults, notExecutedContexts };
+    return {
+      executedResults,
+      unexpectedResults,
+      notExecutedContexts,
+      unexpectedError,
+    };
   }
 
   private async executeConcurrently(
     fileContextList: BatchFileContext[],
-    executeFile: (
-      context: BatchFileContext,
-    ) => Promise<ExecutedBatchFileContext>,
+    executeFile: (context: BatchFileContext) => Promise<FileExecutionOutcome>,
     executedResults: ExecutedBatchFileContext[],
+    unexpectedResults: UnexpectedBatchFileContext[],
     notExecutedContexts: NotExecutedBatchFileContext[],
-  ): Promise<void> {
+  ): Promise<Error | undefined> {
     const limit = pLimit(this.config.concurrent);
+    let unexpectedError: Error | undefined;
+    const recordOutcome = (outcome: FileExecutionOutcome) => {
+      if (outcome.kind === 'unexpected') {
+        unexpectedResults.push(outcome.context);
+        unexpectedError ??= outcome.context.error;
+      } else {
+        executedResults.push(outcome.context);
+      }
+    };
 
     if (this.config.continueOnError) {
       // Execute all tasks with concurrency
       const tasks = fileContextList.map((context) =>
         limit(async () => {
-          const executedContext = await executeFile(context);
-          executedResults.push(executedContext);
+          recordOutcome(await executeFile(context));
         }),
       );
-      await Promise.allSettled(tasks);
+      await Promise.all(tasks);
     } else {
       // Execute with concurrency but stop new tasks when failure occurs
       let shouldStop = false;
@@ -721,23 +803,28 @@ class YamlBatchExecutor {
             return;
           }
 
-          const executedContext = await executeFile(context);
-          executedResults.push(executedContext);
+          const outcome = await executeFile(context);
+          recordOutcome(outcome);
 
-          if (!executedContext.yamlResult.success && !stopLock.value) {
+          if (
+            (outcome.kind === 'unexpected' ||
+              !outcome.context.yamlResult.success) &&
+            !stopLock.value
+          ) {
             stopLock.value = true;
             shouldStop = true;
           }
         }),
       );
 
-      await Promise.allSettled(tasks);
+      await Promise.all(tasks);
 
       // Handle not executed contexts
       if (shouldStop) {
         for (const context of fileContextList) {
           if (
             !executedResults.some((r) => r.caseId === context.caseId) &&
+            !unexpectedResults.some((r) => r.caseId === context.caseId) &&
             !notExecutedContexts.some((ctx) => ctx.caseId === context.caseId)
           ) {
             notExecutedContexts.push({
@@ -749,15 +836,22 @@ class YamlBatchExecutor {
         }
       }
     }
+
+    return unexpectedError;
   }
 
   private async processResults(
     executedContexts: ExecutedBatchFileContext[],
+    unexpectedContexts: UnexpectedBatchFileContext[],
     notExecutedContexts: NotExecutedBatchFileContext[],
   ): Promise<YamlBatchOccurrenceResult[]> {
     const resultsByCaseId = new Map<string, MidsceneYamlConfigResult>();
 
     for (const context of executedContexts) {
+      resultsByCaseId.set(context.caseId, context.yamlResult);
+    }
+
+    for (const context of unexpectedContexts) {
       resultsByCaseId.set(context.caseId, context.yamlResult);
     }
 

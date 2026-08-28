@@ -1,4 +1,7 @@
 import { z } from 'zod/v4';
+import { createLaunchNode } from '../device/lifecycle';
+export type { LaunchNodeInput } from '../device/lifecycle';
+export { launchInputSchema } from '../device/lifecycle';
 import type { Awaitable, NodeHistoryEntry } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
@@ -211,30 +214,6 @@ export const recordToReportInputSchema = z
     }
   });
 
-export const launchInputSchema = z
-  .strictObject({
-    prompt: z
-      .string()
-      .min(1)
-      .optional()
-      .describe('String shorthand for the app, URL, or URI to launch.'),
-    uri: z
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        'The app, URL, URI, package name, or bundle identifier to launch.',
-      ),
-  })
-  .superRefine((input, ctx) => {
-    if ((input.prompt === undefined) === (input.uri === undefined)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'exactly one of prompt and uri is required',
-      });
-    }
-  });
-
 export const waitInputSchema = z.strictObject({
   duration: z.number().positive().describe('How long to wait.'),
   unit: z
@@ -252,7 +231,6 @@ export const agentInputSchema = z.strictObject({
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
-export type LaunchNodeInput = z.infer<typeof launchInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 export type AgentNodeInput = z.infer<typeof agentInputSchema>;
 
@@ -283,15 +261,90 @@ const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
   return agent[method] as NonNullable<MidsceneUIAgent[TMethod]>;
 };
 
+const maxHistoryContextCharacters = 64_000;
+const maxHistoryValuePreviewCharacters = 8_000;
+const maxHistoryEntryCharacters = 24_000;
+const historyOmissionNoticeReserve = 256;
+
+const compactHistoryContextValue = (value: unknown): unknown => {
+  const serialized = JSON.stringify(value);
+  if (
+    serialized === undefined ||
+    serialized.length <= maxHistoryValuePreviewCharacters
+  ) {
+    return value;
+  }
+  return {
+    omittedFromContext: true,
+    originalCharacters: serialized.length,
+    preview:
+      typeof value === 'string'
+        ? value.slice(0, maxHistoryValuePreviewCharacters)
+        : serialized.slice(0, maxHistoryValuePreviewCharacters),
+  };
+};
+
+const serializeHistoryEntryForContext = (
+  entry: NodeHistoryEntry,
+  index: number,
+): string => {
+  const compacted = Object.fromEntries(
+    Object.entries({ index, ...entry }).map(([key, value]) => [
+      key,
+      compactHistoryContextValue(value),
+    ]),
+  );
+  const serialized = JSON.stringify(compacted);
+  if (serialized.length <= maxHistoryEntryCharacters) return serialized;
+
+  return JSON.stringify({
+    index,
+    scope: entry.scope,
+    phase: entry.phase,
+    stepIndex: entry.stepIndex,
+    node: entry.node,
+    status: entry.status,
+    ...(entry.summary === undefined
+      ? {}
+      : { summary: compactHistoryContextValue(entry.summary) }),
+    omittedFromContext: true,
+    compactedCharacters: serialized.length,
+  });
+};
+
 export const renderNodeHistory = (
   history: readonly NodeHistoryEntry[],
 ): string | undefined => {
   if (history.length === 0) return undefined;
+
+  const heading = 'Previous workflow results (read-only):';
+  const availableCharacters =
+    maxHistoryContextCharacters - heading.length - historyOmissionNoticeReserve;
+  const renderedEntries: string[] = [];
+  let renderedCharacters = 0;
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const rendered = serializeHistoryEntryForContext(history[index], index + 1);
+    const separatorCharacters = renderedEntries.length === 0 ? 0 : 1;
+    if (
+      renderedCharacters + separatorCharacters + rendered.length >
+      availableCharacters
+    ) {
+      break;
+    }
+    renderedEntries.unshift(rendered);
+    renderedCharacters += separatorCharacters + rendered.length;
+  }
+
+  const omittedEntries = history.length - renderedEntries.length;
   return [
-    'Previous workflow results (read-only):',
-    ...history.map((entry, index) =>
-      JSON.stringify({ index: index + 1, ...entry }),
-    ),
+    heading,
+    ...(omittedEntries === 0
+      ? []
+      : [
+          `${omittedEntries} earlier history entr${omittedEntries === 1 ? 'y was' : 'ies were'} omitted from Agent context to stay within the size limit. Complete results remain available in the Test Runner output.`,
+        ]),
+    ...renderedEntries,
   ].join('\n');
 };
 
@@ -447,23 +500,7 @@ export function createMidsceneNodes<TContext>(
         return { summary: `Recorded to report: ${title ?? 'untitled'}` };
       },
     }),
-    ...(options.includeLaunch === false
-      ? []
-      : [
-          defineNode<typeof launchInputSchema, unknown, TContext>({
-            name: 'launch',
-            description:
-              'Launch an app, URL, or URI through the current Midscene Agent. This Node does not install or manage applications.',
-            inputSchema: launchInputSchema,
-            async execute(ctx) {
-              const uri = ctx.input.uri ?? ctx.input.prompt!;
-              const agent = await getAgent(ctx);
-              const launch = requireAgentMethod(agent, 'launch', 'launch');
-              await launch.call(agent, uri);
-              return { summary: `Launched ${uri}` };
-            },
-          }),
-        ]),
+    ...(options.includeLaunch === false ? [] : [createLaunchNode(getAgent)]),
     defineNode<typeof waitInputSchema, unknown, TContext>({
       name: 'wait',
       description: 'Wait for a fixed duration while honoring cancellation.',

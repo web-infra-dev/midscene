@@ -70,6 +70,14 @@ const fallbackPngBuffer = Buffer.from(
   'base64',
 );
 
+const buildExpectedClearInputCommand = (displayId?: number) => {
+  const displayArgument = displayId === undefined ? '' : ` -d ${displayId}`;
+  const deletionKeyCodes = Array.from({ length: 100 }, () => '67 112').join(
+    ' ',
+  );
+  return `input${displayArgument} keyevent 123 ${deletionKeyCodes}`;
+};
+
 rs.mock('appium-adb', () => {
   const MockADB = rs.fn(() => {
     if (!mockAdbInstance) {
@@ -205,19 +213,6 @@ describe('AndroidDevice', () => {
     await expect(adbProxy.shell(['wm', 'size'])).rejects.toThrow(
       'ADB error with device test-device when calling shell (ADB executable: /mock/platform-tools/adb)',
     );
-  });
-
-  it('should share the resolved ADB server endpoint with scrcpy', async () => {
-    Object.assign(mockAdb, {
-      adbHost: '192.168.1.10',
-      adbPort: 5038,
-    });
-    const adapter = (device as any).getScrcpyAdapter();
-
-    await expect((adapter as any).resolveAdbServerEndpoint()).resolves.toEqual({
-      host: '192.168.1.10',
-      port: 5038,
-    });
   });
 
   it('pushes yadb from unpacked Electron resources', async () => {
@@ -2014,22 +2009,21 @@ Stdout:
 
     describe('clearInput', () => {
       beforeEach(() => {
-        mockAdb.getApiLevel.mockResolvedValue(35);
         mockAdb.shell.mockResolvedValue('');
       });
 
-      it('should select all and forward-delete on Android 12 and newer', async () => {
-        mockAdb.getApiLevel.mockResolvedValue(31);
+      it('should clear with cursor-independent keyevents without SDK branching', async () => {
+        const ensureYadb = rs.spyOn(device as any, 'ensureYadb');
 
         await device.clearInput();
 
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(
-          1,
-          'input keycombination 113 29',
-          expect.objectContaining({ outputFormat: 'full' }),
+        expect(mockAdb.getApiLevel).not.toHaveBeenCalled();
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          buildExpectedClearInputCommand(),
         );
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
         expect(mockAdb.clearTextField).not.toHaveBeenCalled();
+        expect(ensureYadb).not.toHaveBeenCalled();
       });
 
       it('should clear before typing replacement text', async () => {
@@ -2044,89 +2038,56 @@ Stdout:
 
         expect(mockAdb.shell).toHaveBeenNthCalledWith(
           1,
-          'input keycombination 113 29',
-          expect.objectContaining({ outputFormat: 'full' }),
+          buildExpectedClearInputCommand(),
         );
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(2, 'input keyevent 112');
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(3, "input text '15'");
+        expect(mockAdb.shell).toHaveBeenNthCalledWith(2, "input text '15'");
       });
 
-      it('should target the configured display for select-all and deletion', async () => {
-        device.options = { displayId: 2 };
-
-        await device.clearInput();
-
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(
-          1,
-          'input -d 2 keycombination 113 29',
-          expect.objectContaining({ outputFormat: 'full' }),
-        );
-        expect(mockAdb.shell).toHaveBeenNthCalledWith(
-          2,
-          'input -d 2 keyevent 112',
-        );
-      });
-
-      it('should preserve batch deletion on Android 11 and older', async () => {
-        mockAdb.getApiLevel.mockResolvedValue(30);
-        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-
-        await device.clearInput();
-
-        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
-        expect(mockAdb.shell).not.toHaveBeenCalledWith(
-          expect.stringContaining('keycombination'),
-        );
-      });
-
-      it('should fall back when an Android 12+ device rejects the combination', async () => {
-        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        mockAdb.shell.mockRejectedValueOnce(
-          new Error('Unknown command: keycombination'),
-        );
-
-        await device.clearInput();
-
-        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
-      });
-
-      it('should fall back when keycombination reports an unknown command on stdout', async () => {
-        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        mockAdb.shell.mockResolvedValueOnce('Unknown command: keycombination');
-
-        await device.clearInput();
-
-        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
-        expect(mockAdb.shell).toHaveBeenCalledWith(
-          'input keycombination 113 29',
-          expect.objectContaining({ outputFormat: 'full' }),
-        );
-        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
-      });
-
-      it('should fall back when keycombination writes to stderr', async () => {
-        rs.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-        mockAdb.shell.mockResolvedValueOnce({
-          stdout: '',
-          stderr: 'Unknown command: keycombination',
-        } as any);
-
-        await device.clearInput();
-
-        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
-        expect(mockAdb.clearTextField).toHaveBeenCalledWith(100);
-      });
-
-      it('should preserve display-aware deletion on legacy Android', async () => {
-        mockAdb.getApiLevel.mockResolvedValue(30);
+      it('should target the configured display for all clear keyevents', async () => {
         device.options = { displayId: 2 };
 
         await device.clearInput();
 
         expect(mockAdb.shell).toHaveBeenCalledTimes(1);
         expect(mockAdb.shell).toHaveBeenCalledWith(
-          expect.stringMatching(/^input -d 2 keyevent (?:67 112 ){99}67 112$/),
+          buildExpectedClearInputCommand(2),
         );
+      });
+
+      it('should preserve the explicit always-yadb clear strategy', async () => {
+        device.options = { imeStrategy: 'always-yadb' };
+        const ensureYadb = rs
+          .spyOn(device as any, 'ensureYadb')
+          .mockResolvedValue(undefined);
+
+        await device.clearInput();
+
+        expect(ensureYadb).toHaveBeenCalledTimes(1);
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboardClear',
+        );
+        expect(mockAdb.clearTextField).not.toHaveBeenCalled();
+      });
+
+      it('should use display-aware keyevents instead of yadb on a secondary display', async () => {
+        device.options = { displayId: 2, imeStrategy: 'always-yadb' };
+        const ensureYadb = rs
+          .spyOn(device as any, 'ensureYadb')
+          .mockResolvedValue(undefined);
+
+        await device.clearInput();
+
+        expect(mockAdb.shell).toHaveBeenCalledTimes(1);
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          buildExpectedClearInputCommand(2),
+        );
+        expect(ensureYadb).not.toHaveBeenCalled();
+      });
+
+      it('should surface keyevent failures', async () => {
+        mockAdb.shell.mockRejectedValueOnce(new Error('keyevent failed'));
+
+        await expect(device.clearInput()).rejects.toThrow('keyevent failed');
       });
     });
 

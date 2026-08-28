@@ -3,7 +3,13 @@ import { AndroidDevice } from '../../src/device';
 import {
   type RawKeyframe,
   ScrcpyScreenshotManager,
+  type ScrcpyServerPusher,
 } from '../../src/scrcpy-manager';
+
+const noopPushServer: ScrcpyServerPusher = async () => {};
+const createManager = (
+  adb: ConstructorParameters<typeof ScrcpyScreenshotManager>[0],
+) => new ScrcpyScreenshotManager(adb, noopPushServer);
 
 // A minimal H.264 "keyframe": 4-byte start code + IDR NAL (type 5).
 const idrFrame = (tag: number): Buffer =>
@@ -36,7 +42,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
   });
 
   it('fans out raw keyframes (with header + ts) to subscribers', () => {
-    const manager = new ScrcpyScreenshotManager({} as any);
+    const manager = createManager({} as any);
     calibrateFrameClock(manager);
     const received: RawKeyframe[] = [];
     manager.subscribeKeyframes((frame) => received.push(frame));
@@ -54,7 +60,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
   });
 
   it('stops delivering after unsubscribe', () => {
-    const manager = new ScrcpyScreenshotManager({} as any);
+    const manager = createManager({} as any);
     calibrateFrameClock(manager);
     const received: RawKeyframe[] = [];
     const unsubscribe = manager.subscribeKeyframes((f) => received.push(f));
@@ -68,7 +74,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
   });
 
   it('keeps the connection alive while subscribed (resets idle timer per frame)', () => {
-    const manager = new ScrcpyScreenshotManager({} as any);
+    const manager = createManager({} as any);
     calibrateFrameClock(manager);
     const resetSpy = rs.spyOn(manager as any, 'resetIdleTimer');
     manager.subscribeKeyframes(() => {});
@@ -82,7 +88,7 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
   });
 
   it('exposes the latest raw keyframe', () => {
-    const manager = new ScrcpyScreenshotManager({} as any);
+    const manager = createManager({} as any);
     calibrateFrameClock(manager);
     expect(manager.getLatestRawKeyframe()).toBeNull();
 

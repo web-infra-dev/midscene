@@ -12,6 +12,8 @@ import { ScreenshotItem } from '@/screenshot-item';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   createExecution,
+  createPatternedPngFixture,
+  decodeImagePixels,
   defaultReportMeta,
   fakeBase64,
   getReportGeneratorTmpDir,
@@ -33,6 +35,34 @@ describe('ReportGenerator directory mode', () => {
     if (existsSync(temporaryDirectory)) {
       rmSync(temporaryDirectory, { recursive: true, force: true });
     }
+  });
+
+  it('preserves exact screenshot pixels in external assets', async () => {
+    const reportDirectory = join(temporaryDirectory, 'pixel-integrity');
+    const reportPath = join(reportDirectory, 'index.html');
+    const generator = new ReportGenerator({
+      reportPath,
+      screenshotMode: 'directory',
+      autoPrint: false,
+    });
+    const { dataUri, expectedImage } = await createPatternedPngFixture();
+    const screenshot = ScreenshotItem.create(dataUri, Date.now());
+
+    generator.onExecutionUpdate(
+      createExecution([screenshot]),
+      defaultReportMeta,
+    );
+    await generator.finalize();
+
+    const screenshotPath = join(
+      reportDirectory,
+      'screenshots',
+      `${screenshot.id}.png`,
+    );
+    expect(existsSync(screenshotPath)).toBe(true);
+    await expect(
+      decodeImagePixels(readFileSync(screenshotPath)),
+    ).resolves.toEqual(expectedImage);
   });
 
   it('writes each PNG/JPEG once with typed file references', async () => {

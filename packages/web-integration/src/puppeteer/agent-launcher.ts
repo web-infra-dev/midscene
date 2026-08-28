@@ -10,10 +10,13 @@ import {
   resolveWebViewportSize,
 } from '@/common/viewport';
 import { PuppeteerAgent, PuppeteerBrowserAgent } from '@/puppeteer/index';
+import { PuppeteerPageOwnership } from '@/puppeteer/page-ownership';
+import { createScopedPuppeteerBrowserAgent } from '@/puppeteer/scoped-browser-agent';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, {
   type Browser,
+  type BrowserContext,
   type DownloadBehavior,
   type Page,
 } from 'puppeteer';
@@ -107,10 +110,24 @@ function validateChromeArgs(args: string[], baseArgs: string[]): void {
 
 interface FreeFn {
   name: string;
-  fn: () => void;
+  fn: () => void | Promise<void>;
 }
 
 const launcherDebug = getDebug('puppeteer:launcher');
+const launcherWarning = getDebug('puppeteer:launcher', { console: true });
+
+async function cleanupFailedLaunch(freeFn: FreeFn[]): Promise<void> {
+  for (const cleanup of [...freeFn].reverse()) {
+    try {
+      await cleanup.fn();
+    } catch (error) {
+      launcherWarning(
+        `failed to run ${cleanup.name} after Puppeteer page initialization failed`,
+        error,
+      );
+    }
+  }
+}
 
 export function buildDownloadBehavior(
   downloadPath: string | undefined,
@@ -187,7 +204,7 @@ export function buildChromeArgs(options?: BuildChromeArgsOptions): string[] {
   return baseArgs;
 }
 
-export async function launchPuppeteerPage(
+async function preparePuppeteerPage(
   target: MidsceneYamlScriptWebEnv,
   preference?: {
     headed?: boolean;
@@ -196,6 +213,7 @@ export async function launchPuppeteerPage(
   },
   browser?: Browser,
   existingPage?: Page,
+  browserContext?: BrowserContext,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -254,104 +272,159 @@ export async function launchPuppeteerPage(
     'preference',
     preference,
   );
-  // If an existing page is provided, reuse it instead of creating a new one
-  // This allows sharing localStorage and sessionStorage between YAML files
+  // Callers may provide a page when they need to own its lifecycle. Otherwise
+  // create a new page in the supplied browser (or a newly launched browser).
   let page: Page;
   let browserInstance = browser;
+  let ownsBrowser = false;
 
-  if (existingPage) {
-    // Reuse the existing page - this preserves localStorage and sessionStorage
-    page = existingPage;
-    launcherDebug('reusing existing page for shared browser context');
+  try {
+    if (existingPage) {
+      page = existingPage;
+      launcherDebug('using caller-provided page');
 
-    // Get the browser instance from the existing page
-    if (!browserInstance) {
-      browserInstance = page.browser();
-    }
-  } else {
-    // Create a new browser and page
-    if (!browserInstance) {
-      browserInstance = await puppeteer.launch({
-        headless: !preference?.headed,
-        defaultViewport: defaultViewportConfig,
-        downloadBehavior,
-        args,
-        acceptInsecureCerts: target.acceptInsecureCerts,
-        ignoreDefaultArgs: preference?.ignoreDefaultArgs,
-      });
-      freeFn.push({
-        name: 'puppeteer_browser',
-        fn: () => {
-          if (!preference?.keepWindow) {
-            if (process.platform === 'win32') {
-              setTimeout(() => {
-                browserInstance?.close();
-              }, 800);
-            } else {
-              browserInstance?.close();
+      // Get the browser instance from the existing page
+      if (!browserInstance) {
+        browserInstance = page.browser();
+      }
+    } else {
+      // Create a new browser and page
+      if (!browserInstance) {
+        browserInstance = await puppeteer.launch({
+          headless: !preference?.headed,
+          defaultViewport: defaultViewportConfig,
+          downloadBehavior,
+          args,
+          acceptInsecureCerts: target.acceptInsecureCerts,
+          ignoreDefaultArgs: preference?.ignoreDefaultArgs,
+        });
+        ownsBrowser = true;
+        freeFn.push({
+          name: 'puppeteer_browser',
+          fn: async () => {
+            if (preference?.keepWindow) {
+              return;
             }
-          }
-        },
-      });
+            if (process.platform === 'win32') {
+              await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+            await browserInstance?.close();
+          },
+        });
+      }
+      page = browserContext
+        ? await browserContext.newPage()
+        : await browserInstance.newPage();
+      if (!ownsBrowser) {
+        const createdPage = page;
+        freeFn.push({
+          name: 'puppeteer_page',
+          fn: async () => {
+            if (!preference?.keepWindow && !createdPage.isClosed()) {
+              try {
+                await createdPage.close();
+              } catch (error) {
+                throw new Error('Failed to close a YAML execution page', {
+                  cause: error,
+                });
+              }
+            }
+          },
+        });
+      }
     }
-    page = await browserInstance.newPage();
-  }
 
-  if (target.cookie) {
-    const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-    await page.browserContext().setCookie(...JSON.parse(cookieFileContent));
-  }
+    if (target.cookie) {
+      const cookieFileContent = readFileSync(target.cookie, 'utf-8');
+      await page.browserContext().setCookie(...JSON.parse(cookieFileContent));
+    }
 
-  if (ua) {
-    await page.setUserAgent(ua);
-  }
+    if (ua) {
+      await page.setUserAgent(ua);
+    }
 
-  if (target.extraHTTPHeaders) {
-    // YAML may parse unquoted values into booleans/numbers (e.g. `yes` -> true),
-    // but Puppeteer requires string header values, so normalize them here.
-    const normalizedHeaders = Object.fromEntries(
-      Object.entries(target.extraHTTPHeaders).map(([key, value]) => [
-        key,
-        String(value),
-      ]),
-    );
-    await page.setExtraHTTPHeaders(normalizedHeaders);
-  }
+    if (target.extraHTTPHeaders) {
+      // YAML may parse unquoted values into booleans/numbers (e.g. `yes` -> true),
+      // but Puppeteer requires string header values, so normalize them here.
+      const normalizedHeaders = Object.fromEntries(
+        Object.entries(target.extraHTTPHeaders).map(([key, value]) => [
+          key,
+          String(value),
+        ]),
+      );
+      await page.setExtraHTTPHeaders(normalizedHeaders);
+    }
 
-  if (viewportConfig) {
-    await page.setViewport(viewportConfig);
-  }
+    if (viewportConfig) {
+      await page.setViewport(viewportConfig);
+    }
 
+    return { page, freeFn };
+  } catch (error) {
+    await cleanupFailedLaunch(freeFn);
+    throw error;
+  }
+}
+
+async function navigatePuppeteerPage(
+  page: Page,
+  target: MidsceneYamlScriptWebEnv,
+): Promise<void> {
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
       ? target.waitForNetworkIdle.timeout
       : defaultWaitForNetworkIdleTimeout;
 
-  try {
-    launcherDebug('goto', target.url);
-    await page.goto(target.url);
-    if (waitForNetworkIdleTimeout > 0) {
-      launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
-      await page.waitForNetworkIdle({
-        timeout: waitForNetworkIdleTimeout,
-      });
-    }
-  } catch (e) {
-    if (
-      typeof target.waitForNetworkIdle?.continueOnNetworkIdleError ===
-        'boolean' &&
-      !target.waitForNetworkIdle?.continueOnNetworkIdleError
-    ) {
-      const newError = new Error(`failed to wait for network idle: ${e}`, {
-        cause: e,
-      });
-      throw newError;
-    }
-    const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
-    console.warn(newMessage);
+  launcherDebug('goto', target.url);
+  await page.goto(target.url);
+
+  if (waitForNetworkIdleTimeout <= 0) {
+    return;
   }
 
-  return { page, freeFn };
+  launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
+  try {
+    await page.waitForNetworkIdle({
+      timeout: waitForNetworkIdleTimeout,
+    });
+  } catch (error) {
+    if (target.waitForNetworkIdle?.continueOnNetworkIdleError === false) {
+      throw new Error(`failed to wait for network idle: ${error}`, {
+        cause: error,
+      });
+    }
+    launcherWarning(
+      `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`,
+      error,
+    );
+  }
+}
+
+export async function launchPuppeteerPage(
+  target: MidsceneYamlScriptWebEnv,
+  preference?: {
+    headed?: boolean;
+    keepWindow?: boolean;
+    ignoreDefaultArgs?: boolean | string[];
+  },
+  browser?: Browser,
+  existingPage?: Page,
+  browserContext?: BrowserContext,
+) {
+  const preparedPage = await preparePuppeteerPage(
+    target,
+    preference,
+    browser,
+    existingPage,
+    browserContext,
+  );
+  try {
+    await navigatePuppeteerPage(preparedPage.page, target);
+    return preparedPage;
+  } catch (error) {
+    await cleanupFailedLaunch(preparedPage.freeFn);
+    throw error;
+  }
 }
 
 export async function puppeteerAgentForTarget(
@@ -375,17 +448,8 @@ export async function puppeteerAgentForTarget(
   >,
   browser?: Browser,
   existingPage?: Page,
+  browserContext?: BrowserContext,
 ) {
-  const { page, freeFn } = await launchPuppeteerPage(
-    target,
-    preference,
-    browser,
-    existingPage,
-  );
-  const aiActContext = resolveAiActionContext(target, preference);
-
-  const { aiActionContext, ...preferenceToUse } = preference ?? {};
-
   const mode = target.mode ?? 'page';
 
   if (mode !== 'page' && mode !== 'browser') {
@@ -401,6 +465,17 @@ export async function puppeteerAgentForTarget(
     autoFollowNewPage: target.autoFollowNewPage,
   });
 
+  const { page, freeFn } = await preparePuppeteerPage(
+    target,
+    preference,
+    browser,
+    existingPage,
+    browserContext,
+  );
+  const aiActContext = resolveAiActionContext(target, preference);
+
+  const { aiActionContext, ...preferenceToUse } = preference ?? {};
+
   const commonAgentOpts = {
     ...preferenceToUse,
     aiActContext,
@@ -410,23 +485,89 @@ export async function puppeteerAgentForTarget(
         : undefined,
   };
 
-  // prepare Midscene agent
-  const agent =
-    mode === 'browser'
-      ? await PuppeteerBrowserAgent.create(page.browser(), {
-          ...commonAgentOpts,
-          initialPage: page,
-          autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-        })
-      : new PuppeteerAgent(page, {
-          ...commonAgentOpts,
-          forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
-        });
+  // Install page ownership and BrowserAgent listeners before the first
+  // navigation. Initial document loading may synchronously open a popup; if
+  // listeners are installed after goto(), that page escapes the YAML scope.
+  let agent: PuppeteerAgent | PuppeteerBrowserAgent | undefined;
+  let pageOwnership: PuppeteerPageOwnership | undefined;
+  try {
+    if (mode === 'browser' && browser && !existingPage) {
+      pageOwnership = new PuppeteerPageOwnership(page);
+    }
 
-  freeFn.push({
+    if (mode === 'browser') {
+      const browserAgentOptions = {
+        ...commonAgentOpts,
+        autoFollowNewPage: runtimeOptions.autoFollowNewPage,
+      };
+      agent = pageOwnership
+        ? createScopedPuppeteerBrowserAgent(
+            page.browser(),
+            page,
+            browserAgentOptions,
+            pageOwnership,
+          )
+        : await PuppeteerBrowserAgent.create(page.browser(), {
+            ...browserAgentOptions,
+            initialPage: page,
+          });
+    } else {
+      agent = new PuppeteerAgent(page, {
+        ...commonAgentOpts,
+        forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      });
+    }
+
+    await navigatePuppeteerPage(page, target);
+  } catch (error) {
+    const failedLaunchCleanup = pageOwnership
+      ? [
+          ...freeFn.filter((cleanup) => cleanup.name !== 'puppeteer_page'),
+          {
+            name: 'puppeteer_page_scope',
+            fn: () =>
+              preference?.keepWindow
+                ? pageOwnership?.release()
+                : pageOwnership?.close(),
+          },
+        ]
+      : [...freeFn];
+    if (agent) {
+      failedLaunchCleanup.push({
+        name: 'midscene_puppeteer_agent',
+        fn: () => agent?.destroy(),
+      });
+    }
+    await cleanupFailedLaunch(failedLaunchCleanup);
+    throw error;
+  }
+
+  assert(agent, 'failed to initialize the Puppeteer agent');
+  const launchedAgent = agent;
+
+  const agentCleanup: FreeFn = {
     name: 'midscene_puppeteer_agent',
-    fn: () => agent.destroy(),
-  });
+    fn: () => launchedAgent.destroy(),
+  };
+  const pageOwnershipCleanup: FreeFn | undefined = pageOwnership
+    ? {
+        name: 'puppeteer_page_scope',
+        fn: () =>
+          preference?.keepWindow
+            ? pageOwnership.release()
+            : pageOwnership.close(),
+      }
+    : undefined;
+  const launcherCleanup = pageOwnership
+    ? freeFn.filter((cleanup) => cleanup.name !== 'puppeteer_page')
+    : freeFn;
 
-  return { agent, freeFn };
+  return {
+    agent: launchedAgent,
+    freeFn: [
+      agentCleanup,
+      ...(pageOwnershipCleanup ? [pageOwnershipCleanup] : []),
+      ...launcherCleanup,
+    ],
+  };
 }

@@ -1,0 +1,7 @@
+tasks:
+  - name: Verify search tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('search')
+      - javascript: openParallelYamlPopup('search')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('search')

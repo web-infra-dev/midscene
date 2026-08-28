@@ -9,7 +9,7 @@ import type {
   ToolResult,
   ToolSchema,
 } from '../agent-tools/types';
-import { waitForCliInterrupt } from './interrupt';
+import { type CliInterruptWaiter, createCliInterruptWaiter } from './interrupt';
 import { attachCliVerboseDumpListener, emitCliVerboseEvent } from './verbose';
 
 const recordCliMetadata: ToolCliMetadata = {
@@ -62,7 +62,7 @@ export function createRecordCliCommand(
   return {
     name: 'record',
     description:
-      'Record the page/screen in the foreground until Ctrl+C, then save the ordered frame window for a later assert command.',
+      'Record the page/screen in the foreground until Ctrl+C or a termination signal, then save the ordered frame window for a later assert command.',
     schema: {
       action: z
         .literal('start')
@@ -125,6 +125,7 @@ export function createRecordCliCommand(
         let observer:
           | Awaited<ReturnType<NonNullable<BaseAgent['startObserving']>>>
           | undefined;
+        let interruptWaiter: CliInterruptWaiter | undefined;
         try {
           const watchdogMs = (args.watchdogMs as number | undefined) ?? 300_000;
           observer = await agent.startObserving({
@@ -132,12 +133,13 @@ export function createRecordCliCommand(
             maxFrames: args.maxFrames as number | undefined,
             watchdogMs,
           });
+          interruptWaiter = createCliInterruptWaiter(watchdogMs);
           emitCliVerboseEvent({
             event: 'recording_ready',
             tool: 'record',
             watchdogMs,
           });
-          const stopReason = await waitForCliInterrupt(watchdogMs);
+          const stopReason = await interruptWaiter.result;
           emitCliVerboseEvent({
             event: 'recording_stopping',
             tool: 'record',
@@ -158,8 +160,12 @@ export function createRecordCliCommand(
             ],
           };
         } finally {
-          await observer?.dispose?.();
-          unsubscribeVerbose();
+          try {
+            await observer?.dispose?.();
+          } finally {
+            interruptWaiter?.dispose();
+            unsubscribeVerbose();
+          }
         }
       } catch (error: unknown) {
         const errorMessage = getErrorMessage(error);

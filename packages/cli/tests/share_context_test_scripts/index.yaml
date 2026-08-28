@@ -7,3 +7,4 @@ setup: 01-login.yaml
 
 files:
   - 02-check-login.yaml
+  - 03-check-session-continuity.yaml

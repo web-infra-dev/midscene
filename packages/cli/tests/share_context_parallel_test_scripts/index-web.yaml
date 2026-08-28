@@ -1,0 +1,17 @@
+concurrent: 3
+continueOnError: true
+shareBrowserContext: true
+
+web:
+  # Compatibility target: recommended YAML uses page: or browser:.
+  # The integration test injects its dynamically allocated server origin.
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+setup: 00-setup.yaml
+
+files:
+  - 01-search.yaml
+  - 02-report.yaml
+  - 03-settings.yaml
