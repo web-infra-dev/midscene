@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import {
@@ -10,6 +11,7 @@ import {
   createXvfbSignalCleanup,
   findAvailableDisplay,
   needsXvfb,
+  scheduleXvfbStopAfterProcessExit,
 } from '../../src/xvfb';
 
 rs.mock('node:fs', () => ({
@@ -88,6 +90,36 @@ describe('checkXvfbInstalled', () => {
     const { execSync } = await import('node:child_process');
     rs.mocked(execSync).mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'));
     expect(checkXvfbInstalled()).toBe(true);
+  });
+});
+
+describe('scheduleXvfbStopAfterProcessExit', () => {
+  it('unrefs Xvfb and a detached process-exit monitor', () => {
+    const xvfbUnref = rs.fn();
+    const monitorUnref = rs.fn();
+    const monitorOn = rs.fn();
+    rs.mocked(spawn).mockReturnValueOnce({
+      on: monitorOn,
+      unref: monitorUnref,
+    } as never);
+
+    scheduleXvfbStopAfterProcessExit(
+      {
+        display: ':99',
+        process: { pid: 4321, unref: xvfbUnref } as never,
+        stop: rs.fn(),
+      },
+      1234,
+    );
+
+    expect(spawn).toHaveBeenCalledWith(
+      process.execPath,
+      ['-e', expect.any(String), '1234', '4321'],
+      { detached: true, stdio: 'ignore' },
+    );
+    expect(monitorOn).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(xvfbUnref).toHaveBeenCalledOnce();
+    expect(monitorUnref).toHaveBeenCalledOnce();
   });
 });
 

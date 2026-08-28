@@ -31,6 +31,7 @@ import {
   checkXvfbInstalled,
   createXvfbSignalCleanup,
   needsXvfb,
+  scheduleXvfbStopAfterProcessExit,
   startXvfb,
 } from './xvfb';
 
@@ -980,24 +981,26 @@ export class ComputerDevice implements AbstractInterface {
           resolution: this.options?.xvfbResolution,
         });
         if (this.options?.keepXvfbAliveUntilProcessExit) {
-          this.xvfbInstance.process.unref();
+          scheduleXvfbStopAfterProcessExit(this.xvfbInstance);
         }
         process.env.DISPLAY = this.xvfbInstance.display;
         debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
 
-        // Clean up Xvfb on process exit (stored for removal in destroy())
-        this.xvfbCleanup = () => {
-          if (this.xvfbInstance) {
-            this.xvfbInstance.stop();
-            this.xvfbInstance = undefined;
-          }
-        };
-        this.xvfbSignalCleanup = createXvfbSignalCleanup(() =>
-          this.xvfbCleanup?.(),
-        );
-        process.on('exit', this.xvfbCleanup);
-        process.on('SIGINT', this.xvfbSignalCleanup);
-        process.on('SIGTERM', this.xvfbSignalCleanup);
+        if (!this.options?.keepXvfbAliveUntilProcessExit) {
+          // Clean up SDK-owned Xvfb during device teardown or process exit.
+          this.xvfbCleanup = () => {
+            if (this.xvfbInstance) {
+              this.xvfbInstance.stop();
+              this.xvfbInstance = undefined;
+            }
+          };
+          this.xvfbSignalCleanup = createXvfbSignalCleanup(() =>
+            this.xvfbCleanup?.(),
+          );
+          process.on('exit', this.xvfbCleanup);
+          process.on('SIGINT', this.xvfbSignalCleanup);
+          process.on('SIGTERM', this.xvfbSignalCleanup);
+        }
       }
 
       // Load libnut on first connect
@@ -1024,7 +1027,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
-        this.xvfbInstance.stop();
+        if (!this.options?.keepXvfbAliveUntilProcessExit) {
+          this.xvfbInstance.stop();
+        }
         this.xvfbInstance = undefined;
       }
       if (this.xvfbCleanup) {
@@ -1604,8 +1609,10 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
     const keepXvfbAliveUntilProcessExit =
       this.options?.keepXvfbAliveUntilProcessExit === true;
-    if (this.xvfbInstance && !keepXvfbAliveUntilProcessExit) {
-      this.xvfbInstance.stop();
+    if (this.xvfbInstance) {
+      if (!keepXvfbAliveUntilProcessExit) {
+        this.xvfbInstance.stop();
+      }
       this.xvfbInstance = undefined;
     }
     if (this.xvfbCleanup && !keepXvfbAliveUntilProcessExit) {
