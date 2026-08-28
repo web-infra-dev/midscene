@@ -7,6 +7,7 @@ import {
 
 const EXPECTED_SUMMARIES = {
   'doubao-20260825': {
+    averageDurationSeconds: 51.982133,
     passAt1: 96.67,
     passCount: 58,
     partialCount: 1,
@@ -15,6 +16,7 @@ const EXPECTED_SUMMARIES = {
     totalCny: 10.630066,
   },
   'qwen-20260825': {
+    averageDurationSeconds: 53.990117,
     passAt1: 93.33,
     passCount: 56,
     partialCount: 4,
@@ -23,6 +25,7 @@ const EXPECTED_SUMMARIES = {
     totalCny: 3.944211,
   },
   'deepseek-20260825': {
+    averageDurationSeconds: 86.360417,
     passAt1: 86.67,
     passCount: 52,
     partialCount: 4,

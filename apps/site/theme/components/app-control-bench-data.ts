@@ -8,6 +8,7 @@ export interface AppControlBenchTask {
 }
 
 export interface AppControlBenchRunSummary {
+  averageDurationSeconds: number;
   passAt1: number;
   passCount: number;
   partialCount: number;
@@ -35,6 +36,7 @@ export const APP_CONTROL_BENCH_RUNS = [
     modelKey: 'doubao-seed-2-1-turbo-260628',
     reportGroupId: '39e22f33-4039-4891-854c-009333ade66f',
     summary: {
+      averageDurationSeconds: 51.982133,
       passAt1: 96.67,
       passCount: 58,
       partialCount: 1,
@@ -256,6 +258,7 @@ export const APP_CONTROL_BENCH_RUNS = [
     modelKey: 'qwen3.7-plus',
     reportGroupId: '2f618b11-f26d-4aeb-b861-02f7ee9795fd',
     summary: {
+      averageDurationSeconds: 53.990117,
       passAt1: 93.33,
       passCount: 56,
       partialCount: 4,
@@ -492,6 +495,7 @@ export const APP_CONTROL_BENCH_RUNS = [
     modelKey: 'deepseek-v4-flash-vision-exp',
     reportGroupId: '7d8b44f7-2b52-4211-a922-746938a7509a',
     summary: {
+      averageDurationSeconds: 86.360417,
       passAt1: 86.67,
       passCount: 52,
       partialCount: 4,

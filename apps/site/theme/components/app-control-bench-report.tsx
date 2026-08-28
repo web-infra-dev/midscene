@@ -1,15 +1,22 @@
 import {
   APP_CONTROL_BENCH_RUNS,
+  type AppControlBenchRunSummary,
   getAppControlBenchReportUrl,
 } from './app-control-bench-data';
+
+const PARTIAL_COMPLETION_WEIGHT = 0.5;
 
 const REPORT_COPY = {
   en: {
     overviewTableLabel: 'AppControlBench model results',
     model: 'Model',
-    passAt1: 'Pass@1',
-    result: 'Result',
-    totalModelCost: 'Total Model Cost',
+    completion: 'Completion',
+    timePerRun: 'Time / run',
+    costPerRun: 'Cost / run',
+    taskOutcomes: 'Task outcomes',
+    passOutcome: 'Pass',
+    partialOutcome: 'Partial',
+    failOutcome: 'Fail',
     tableLabel: 'AppControlBench task execution results',
     task: 'Task',
     status: 'Status',
@@ -21,9 +28,13 @@ const REPORT_COPY = {
   zh: {
     overviewTableLabel: 'AppControlBench 模型结果',
     model: '模型',
-    passAt1: 'Pass@1',
-    result: '结果',
-    totalModelCost: '模型总成本',
+    completion: 'Completion',
+    timePerRun: 'Time / run',
+    costPerRun: 'Cost / run',
+    taskOutcomes: 'Task outcomes',
+    passOutcome: 'Pass',
+    partialOutcome: 'Partial',
+    failOutcome: 'Fail',
     tableLabel: 'AppControlBench 任务执行结果',
     task: '任务',
     status: '状态',
@@ -33,6 +44,86 @@ const REPORT_COPY = {
     reportTitle: '在新页面打开报告',
   },
 } as const;
+
+function getTaskCount(summary: AppControlBenchRunSummary) {
+  return summary.passCount + summary.partialCount + summary.failCount;
+}
+
+function getCompletionRate(summary: AppControlBenchRunSummary) {
+  return (
+    ((summary.passCount + summary.partialCount * PARTIAL_COMPLETION_WEIGHT) /
+      getTaskCount(summary)) *
+    100
+  );
+}
+
+function formatDuration(seconds: number) {
+  const roundedSeconds = Math.round(seconds);
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
+
+  if (minutes === 0) {
+    return `${remainingSeconds}s`;
+  }
+
+  return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+}
+
+interface TaskOutcomeBarProps {
+  failCount: number;
+  labels: {
+    fail: string;
+    partial: string;
+    pass: string;
+  };
+  partialCount: number;
+  passAt1: number;
+  passCount: number;
+}
+
+function TaskOutcomeBar({
+  failCount,
+  labels,
+  partialCount,
+  passAt1,
+  passCount,
+}: TaskOutcomeBarProps) {
+  const outcomes = [
+    { count: passCount, label: labels.pass, status: 'pass' },
+    { count: partialCount, label: labels.partial, status: 'partial' },
+    { count: failCount, label: labels.fail, status: 'fail' },
+  ] as const;
+  const tooltipText = [
+    `Pass@1: ${passAt1.toFixed(2)}%`,
+    ...outcomes.map(({ count, label }) => `${label}: ${count}`),
+  ].join(' · ');
+
+  return (
+    <div
+      aria-label={tooltipText}
+      className="app-control-benchmark-outcomes-trigger"
+      role="img"
+    >
+      <div aria-hidden="true" className="app-control-benchmark-outcomes">
+        {outcomes.map(({ count, status }) =>
+          count > 0 ? (
+            <span
+              className={`app-control-benchmark-outcome app-control-benchmark-outcome-${status}`}
+              key={status}
+              style={{ flexGrow: count }}
+            />
+          ) : null,
+        )}
+      </div>
+      <span
+        aria-hidden="true"
+        className="app-control-benchmark-outcomes-tooltip"
+      >
+        {tooltipText}
+      </span>
+    </div>
+  );
+}
 
 interface AppControlBenchReportProps {
   locale: keyof typeof REPORT_COPY;
@@ -119,30 +210,143 @@ export function AppControlBenchReport({
 
 .app-control-benchmark-overview-table th,
 .app-control-benchmark-overview-table td {
+  padding-inline: 6px;
+  font-size: 13px;
   vertical-align: middle;
+}
+
+.app-control-benchmark-overview-table th {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .app-control-benchmark-overview-table th:nth-child(1),
 .app-control-benchmark-overview-table td:nth-child(1) {
-  width: 34%;
+  width: 28%;
 }
 
 .app-control-benchmark-overview-table th:nth-child(2),
 .app-control-benchmark-overview-table td:nth-child(2) {
-  width: 14%;
+  width: 15%;
   text-align: center;
 }
 
 .app-control-benchmark-overview-table th:nth-child(3),
 .app-control-benchmark-overview-table td:nth-child(3) {
-  width: 27%;
+  width: 14%;
   text-align: center;
 }
 
 .app-control-benchmark-overview-table th:nth-child(4),
 .app-control-benchmark-overview-table td:nth-child(4) {
-  width: 25%;
+  width: 14%;
   text-align: center;
+}
+
+.app-control-benchmark-overview-table th:nth-child(5),
+.app-control-benchmark-overview-table td:nth-child(5) {
+  width: 29%;
+}
+
+.app-control-benchmark-outcomes-trigger {
+  position: relative;
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  outline: none;
+}
+
+.app-control-benchmark-outcomes {
+  display: flex;
+  height: 10px;
+  min-width: 100px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #e5e7eb;
+}
+
+.app-control-benchmark-outcomes-tooltip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 10;
+  visibility: hidden;
+  width: max-content;
+  max-width: 320px;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #fff;
+  background: #111827;
+  box-shadow: 0 6px 18px rgb(15 23 42 / 22%);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
+  white-space: nowrap;
+}
+
+.app-control-benchmark-outcomes-tooltip::before {
+  position: absolute;
+  right: 18px;
+  bottom: 100%;
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #111827;
+  border-left: 5px solid transparent;
+  content: '';
+}
+
+.app-control-benchmark-outcomes-trigger:hover
+  .app-control-benchmark-outcomes-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-control-benchmark-overview-table tbody tr:last-child
+  .app-control-benchmark-outcomes-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.app-control-benchmark-overview-table tbody tr:last-child
+  .app-control-benchmark-outcomes-tooltip::before {
+  top: 100%;
+  bottom: auto;
+  border-top: 5px solid #111827;
+  border-right: 5px solid transparent;
+  border-bottom: 0;
+  border-left: 5px solid transparent;
+}
+
+.app-control-benchmark-outcome {
+  display: block;
+  min-width: 2px;
+  flex-basis: 0;
+}
+
+.app-control-benchmark-outcome-pass {
+  background: #2f855a;
+}
+
+.app-control-benchmark-outcome-partial {
+  background: #a17613;
+}
+
+.app-control-benchmark-outcome-fail {
+  background: #ba3d3d;
+}
+
+.dark .app-control-benchmark-outcomes {
+  background: #283041;
 }
 
 .app-control-benchmark-table {
@@ -217,21 +421,35 @@ export function AppControlBenchReport({
             <thead>
               <tr>
                 <th scope="col">{copy.model}</th>
-                <th scope="col">{copy.passAt1}</th>
-                <th scope="col">{copy.result}</th>
-                <th scope="col">{copy.totalModelCost}</th>
+                <th scope="col">{copy.completion}</th>
+                <th scope="col">{copy.timePerRun}</th>
+                <th scope="col">{copy.costPerRun}</th>
+                <th scope="col">{copy.taskOutcomes}</th>
               </tr>
             </thead>
             <tbody>
               {APP_CONTROL_BENCH_RUNS.map((run) => (
                 <tr key={run.id}>
                   <td>{run.modelName}</td>
-                  <td>{`${run.summary.passAt1.toFixed(2)}%`}</td>
-                  <td>{`${run.summary.passCount} PASS · ${run.summary.partialCount} PARTIAL · ${run.summary.failCount} FAIL`}</td>
+                  <td>{`${Math.round(getCompletionRate(run.summary))}%`}</td>
+                  <td>{formatDuration(run.summary.averageDurationSeconds)}</td>
                   <td>
                     <span className="app-control-benchmark-cost">
-                      {`$${run.summary.totalUsd.toFixed(4)}/¥${run.summary.totalCny.toFixed(4)}`}
+                      {`$${(run.summary.totalUsd / run.tasks.length).toFixed(4)}/¥${(run.summary.totalCny / run.tasks.length).toFixed(4)}`}
                     </span>
+                  </td>
+                  <td>
+                    <TaskOutcomeBar
+                      failCount={run.summary.failCount}
+                      labels={{
+                        fail: copy.failOutcome,
+                        partial: copy.partialOutcome,
+                        pass: copy.passOutcome,
+                      }}
+                      partialCount={run.summary.partialCount}
+                      passAt1={run.summary.passAt1}
+                      passCount={run.summary.passCount}
+                    />
                   </td>
                 </tr>
               ))}
