@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import {
+  type MidsceneAiActOptions,
   type MidsceneAiAssertOptions,
   type MidsceneUIAgent,
   type MidsceneUserPrompt,
