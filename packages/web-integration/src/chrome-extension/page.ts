@@ -33,6 +33,7 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import { selectAllInputScript } from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -974,30 +975,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     const selectionResult = await this.sendCommandToDebugger(
       'Runtime.evaluate',
       {
-        expression: `(() => {
-          let activeElement = document.activeElement;
-          while (activeElement?.shadowRoot?.activeElement) {
-            activeElement = activeElement.shadowRoot.activeElement;
-          }
-          if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
-            try {
-              activeElement.select();
-              return true;
-            } catch {
-              return false;
-            }
-          }
-          if (activeElement instanceof HTMLElement && activeElement.isContentEditable) {
-            const selection = window.getSelection();
-            if (!selection) return false;
-            const range = document.createRange();
-            range.selectNodeContents(activeElement);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            return true;
-          }
-          return false;
-        })()`,
+        expression: selectAllInputScript,
         returnByValue: true,
       },
     );

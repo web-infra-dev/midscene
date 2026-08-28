@@ -20,6 +20,12 @@ export type ResolvedTextInputOptions = {
   inputStrategy: InputStrategy;
 };
 
+/** Platform callbacks used to send text one Unicode code point at a time. */
+export type SequentialTextInputHandlers = {
+  sendCharacter: (character: string) => unknown;
+  wait: (delayMs: number) => unknown;
+};
+
 /**
  * Resolve an input strategy and reject combinations whose intent conflicts.
  * Prefer `resolveTextInputOptions` when both action and platform defaults exist.
@@ -35,7 +41,12 @@ export function resolveInputStrategy(
     throw new Error('keyboardTypeDelay must be a finite non-negative number');
   }
 
-  const resolved = inputStrategy ?? 'legacy';
+  const resolved = inputStrategy === undefined ? 'legacy' : inputStrategy;
+  if (!inputStrategies.includes(resolved)) {
+    throw new Error(
+      `inputStrategy must be one of: ${inputStrategies.join(', ')}; received ${String(resolved)}`,
+    );
+  }
   if (
     resolved === 'bulk' &&
     keyboardTypeDelay !== undefined &&
@@ -56,7 +67,9 @@ export function resolveTextInputOptions(
   const keyboardTypeDelay =
     actionOptions?.keyboardTypeDelay ?? platformDefaults?.keyboardTypeDelay;
   const inputStrategy = resolveInputStrategy(
-    actionOptions?.inputStrategy ?? platformDefaults?.inputStrategy,
+    actionOptions?.inputStrategy !== undefined
+      ? actionOptions.inputStrategy
+      : platformDefaults?.inputStrategy,
     keyboardTypeDelay,
   );
 
@@ -77,4 +90,31 @@ export function shouldInputSequentially({
       keyboardTypeDelay !== undefined &&
       keyboardTypeDelay > 0)
   );
+}
+
+/**
+ * Send text one Unicode code point at a time with one canonical delay policy.
+ * `delayAfterLast` exists only for platforms whose legacy behavior included a
+ * trailing delay; explicit sequential input should leave it disabled.
+ */
+export async function sendTextSequentially(
+  text: string,
+  handlers: SequentialTextInputHandlers,
+  options?: {
+    delayMs?: number;
+    delayAfterLast?: boolean;
+  },
+): Promise<void> {
+  const characters = Array.from(text);
+  const delayMs = options?.delayMs ?? 0;
+
+  for (let index = 0; index < characters.length; index++) {
+    await handlers.sendCharacter(characters[index]);
+    if (
+      delayMs > 0 &&
+      (index < characters.length - 1 || options?.delayAfterLast === true)
+    ) {
+      await handlers.wait(delayMs);
+    }
+  }
 }

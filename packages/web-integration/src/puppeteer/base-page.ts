@@ -42,6 +42,7 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import { selectAllInputScript } from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -1127,39 +1128,7 @@ export class Page<
       throw new Error('Bulk replace input requires a target element');
     }
     await this.mouse.click(element.center[0], element.center[1]);
-    const selected = await this.evaluate(() => {
-      let activeElement = document.activeElement;
-      while (activeElement?.shadowRoot?.activeElement) {
-        activeElement = activeElement.shadowRoot.activeElement;
-      }
-
-      if (
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement
-      ) {
-        try {
-          activeElement.select();
-          return true;
-        } catch {
-          return false;
-        }
-      }
-
-      if (
-        activeElement instanceof HTMLElement &&
-        activeElement.isContentEditable
-      ) {
-        const selection = window.getSelection();
-        if (!selection) return false;
-        const range = document.createRange();
-        range.selectNodeContents(activeElement);
-        selection.removeAllRanges();
-        selection.addRange(range);
-        return true;
-      }
-
-      return false;
-    });
+    const selected = await this.evaluate<boolean>(selectAllInputScript);
     if (!selected) {
       await this.selectAllByCdp();
     }

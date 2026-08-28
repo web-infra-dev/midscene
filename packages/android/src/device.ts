@@ -26,6 +26,7 @@ import {
   createDefaultMobileActions,
   defineAction,
   resolveTextInputOptions,
+  sendTextSequentially,
   shouldInputSequentially,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -2086,13 +2087,15 @@ ${Object.keys(size)
 
     if (needsYadb) {
       if (inputYadbSequentially) {
-        const characters = Array.from(text);
-        for (let index = 0; index < characters.length; index++) {
-          await this.execYadbRaw(escapeForShell(characters[index]));
-          if (typeDelay && typeDelay > 0 && index < characters.length - 1) {
-            await sleep(typeDelay);
-          }
-        }
+        await sendTextSequentially(
+          text,
+          {
+            sendCharacter: (character) =>
+              this.execYadbRaw(escapeForShell(character)),
+            wait: sleep,
+          },
+          { delayMs: typeDelay },
+        );
       } else {
         // yadb handles newlines natively: escapeForShell converts \n (0x0A)
         // to literal \n (two chars), which yadb interprets back as newline.
@@ -2567,19 +2570,20 @@ ${Object.keys(size)
       if (segments[i].length > 0) {
         if (inputSequentially) {
           // Per-character typing with delay. Each char is shell-escaped.
-          const characters = Array.from(segments[i]);
-          for (let index = 0; index < characters.length; index++) {
-            const ch = characters[index];
-            await adb.shell(`input${displayArg} text ${shellEscapeArg(ch)}`);
-            if (
-              typeDelay &&
-              typeDelay > 0 &&
-              (index < characters.length - 1 ||
-                inputOptions.inputStrategy === 'legacy')
-            ) {
-              await sleep(typeDelay);
-            }
-          }
+          await sendTextSequentially(
+            segments[i],
+            {
+              sendCharacter: (character) =>
+                adb.shell(
+                  `input${displayArg} text ${shellEscapeArg(character)}`,
+                ),
+              wait: sleep,
+            },
+            {
+              delayMs: typeDelay,
+              delayAfterLast: inputOptions.inputStrategy === 'legacy',
+            },
+          );
         } else {
           // Burst the whole segment. shellEscapeArg protects against
           // shell metacharacters (&, ;, ', $, etc.).

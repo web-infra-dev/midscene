@@ -19,6 +19,7 @@ import {
   createDefaultMobileActions,
   defineAction,
   resolveTextInputOptions,
+  sendTextSequentially,
   shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
@@ -649,18 +650,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         // Type one character at a time with a delay between keystrokes.
         // Use typeRawKeys instead of typeText — the latter trims whitespace,
         // which would silently drop spaces and newlines when sent one at a time.
-        const characters = Array.from(text);
-        for (let index = 0; index < characters.length; index++) {
-          await this.wdaBackend.typeRawKeys([characters[index]]);
-          if (
-            typeDelay &&
-            typeDelay > 0 &&
-            (index < characters.length - 1 ||
-              resolvedInputOptions.inputStrategy === 'legacy')
-          ) {
-            await sleep(typeDelay);
-          }
-        }
+        await sendTextSequentially(
+          text,
+          {
+            sendCharacter: (character) =>
+              this.wdaBackend.typeRawKeys([character]),
+            wait: sleep,
+          },
+          {
+            delayMs: typeDelay,
+            delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
+          },
+        );
       } else {
         await this.wdaBackend.typeText(text);
       }

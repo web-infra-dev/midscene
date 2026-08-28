@@ -8,6 +8,7 @@ import {
   defineAction,
   defineActionsFromInputPrimitives,
   resolveTextInputOptions,
+  sendTextSequentially,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -531,17 +532,18 @@ export function createWebInputPrimitives(
         if (inputStrategy === 'bulk') {
           await page.keyboard.insertText(value);
         } else if (inputStrategy === 'sequential') {
-          const characters = Array.from(value);
-          for (let index = 0; index < characters.length; index++) {
-            await page.keyboard.type(characters[index]);
-            if (
-              keyboardTypeDelay !== undefined &&
-              keyboardTypeDelay > 0 &&
-              index < characters.length - 1
-            ) {
-              await sleep(keyboardTypeDelay);
-            }
-          }
+          await sendTextSequentially(
+            value,
+            {
+              // The shared loop owns the inter-character delay. Explicitly
+              // disable the page default so action-level zero remains
+              // effective and positive delays are not applied twice.
+              sendCharacter: (character) =>
+                page.keyboard.type(character, { delay: 0 }),
+              wait: sleep,
+            },
+            { delayMs: keyboardTypeDelay },
+          );
         } else {
           const keyboardTypeOptions =
             keyboardTypeDelay === undefined

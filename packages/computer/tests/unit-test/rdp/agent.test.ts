@@ -119,6 +119,8 @@ describe('@midscene/computer RDP device', () => {
       ignoreCertificate: true,
       backend,
       customActions: [],
+      inputStrategy: 'sequential',
+      keyboardTypeDelay: 25,
     });
     await device.connect();
 
@@ -128,6 +130,8 @@ describe('@midscene/computer RDP device', () => {
     // never be serialized into the helper's JSON connection request.
     expect(config).not.toHaveProperty('backend');
     expect(config).not.toHaveProperty('customActions');
+    expect(config).not.toHaveProperty('inputStrategy');
+    expect(config).not.toHaveProperty('keyboardTypeDelay');
     expect(config).toMatchObject({
       host: '10.0.0.3',
       port: 3389,

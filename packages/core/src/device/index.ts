@@ -1214,9 +1214,11 @@ export {
   inputStrategies,
   type InputStrategy,
   type ResolvedTextInputOptions,
+  type SequentialTextInputHandlers,
   type TextInputOptions,
   resolveInputStrategy,
   resolveTextInputOptions,
+  sendTextSequentially,
   shouldInputSequentially,
 } from './input-strategy';
 export type {

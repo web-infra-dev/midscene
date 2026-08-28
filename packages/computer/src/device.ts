@@ -19,6 +19,7 @@ import {
   defineAction,
   defineActionsFromInputPrimitives,
   resolveTextInputOptions,
+  sendTextSequentially,
   shouldInputSequentially,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
@@ -1388,27 +1389,26 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     text: string,
     keyboardTypeDelay: number,
   ): Promise<void> {
-    const characters = Array.from(text.replace(/\r\n?/g, '\n'));
-
-    for (let index = 0; index < characters.length; index++) {
-      const character = characters[index];
-
-      if (character === '\n') {
-        this.inputDriver.sendKey('enter');
-      } else if (character === '\t') {
-        this.inputDriver.sendKey('tab');
-      } else if (character === ' ') {
-        this.inputDriver.sendKey('space');
-      } else if (this.useAppleScript) {
-        this.inputDriver.sendKeyViaAppleScript(character);
-      } else {
-        this.inputDriver.typeString(character);
-      }
-
-      if (keyboardTypeDelay > 0 && index < characters.length - 1) {
-        await this.inputDriver.delay(keyboardTypeDelay);
-      }
-    }
+    await sendTextSequentially(
+      text.replace(/\r\n?/g, '\n'),
+      {
+        sendCharacter: (character) => {
+          if (character === '\n') {
+            this.inputDriver.sendKey('enter');
+          } else if (character === '\t') {
+            this.inputDriver.sendKey('tab');
+          } else if (character === ' ') {
+            this.inputDriver.sendKey('space');
+          } else if (this.useAppleScript) {
+            this.inputDriver.sendKeyViaAppleScript(character);
+          } else {
+            this.inputDriver.typeString(character);
+          }
+        },
+        wait: (delayMs) => this.inputDriver.delay(delayMs),
+      },
+      { delayMs: keyboardTypeDelay },
+    );
   }
 
   private async selectAllAndDelete(): Promise<void> {

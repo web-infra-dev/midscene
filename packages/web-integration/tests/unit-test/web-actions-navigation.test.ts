@@ -1,5 +1,6 @@
 import type { ExecutorContext } from '@midscene/core';
 import { describe, expect, it, rs } from '@rstest/core';
+import { PuppeteerWebPage } from '../../src/puppeteer/page';
 import { commonWebActionsForWebPage } from '../../src/web-page';
 
 const mockExecutorContext = { task: {} } as ExecutorContext;
@@ -189,7 +190,64 @@ describe('commonWebActionsForWebPage visual refresh', () => {
         mockExecutorContext,
       );
 
-    expect(page.keyboard.type.mock.calls).toEqual([['A'], ['😀'], ['B']]);
+    expect(page.keyboard.type.mock.calls).toEqual([
+      ['A', { delay: 0 }],
+      ['😀', { delay: 0 }],
+      ['B', { delay: 0 }],
+    ]);
+    expect(page.keyboard.insertText).not.toHaveBeenCalled();
+  });
+
+  it('lets action-level zero disable the page-level keyboard delay', async () => {
+    const type = rs.fn(async () => undefined);
+    const page = new PuppeteerWebPage({ keyboard: { type } } as any, {
+      keyboardTypeDelay: 80,
+    });
+    const actions = commonWebActionsForWebPage(page);
+
+    await actions
+      .find((action) => action.name === 'Input')
+      ?.call(
+        {
+          value: 'AB',
+          mode: 'typeOnly',
+          inputStrategy: 'sequential',
+          keyboardTypeDelay: 0,
+        },
+        mockExecutorContext,
+      );
+
+    expect(type.mock.calls).toEqual([
+      ['A', { delay: 0 }],
+      ['B', { delay: 0 }],
+    ]);
+  });
+
+  it('rejects an unsupported runtime strategy before typing', async () => {
+    const page = {
+      keyboard: {
+        insertText: rs.fn(async () => undefined),
+        type: rs.fn(async () => undefined),
+      },
+      schedulePendingVisualUpdate: rs.fn(),
+    };
+    const actions = commonWebActionsForWebPage(page as any);
+
+    await expect(
+      actions
+        .find((action) => action.name === 'Input')
+        ?.call(
+          {
+            value: 'hello',
+            mode: 'typeOnly',
+            inputStrategy: 'paste' as any,
+          },
+          mockExecutorContext,
+        ),
+    ).rejects.toThrow(
+      'inputStrategy must be one of: legacy, sequential, bulk; received paste',
+    );
+    expect(page.keyboard.type).not.toHaveBeenCalled();
     expect(page.keyboard.insertText).not.toHaveBeenCalled();
   });
 

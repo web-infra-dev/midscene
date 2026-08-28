@@ -18,6 +18,7 @@ import {
   createDefaultMobileActions,
   defineAction,
   resolveTextInputOptions,
+  sendTextSequentially,
   shouldInputSequentially,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
@@ -463,18 +464,17 @@ export class HarmonyDevice implements AbstractInterface {
       // repeated calls at the same coordinates append to the existing content
       // rather than repositioning the cursor. Verified on real device:
       // character order is preserved and no characters are lost.
-      const characters = Array.from(text);
-      for (let index = 0; index < characters.length; index++) {
-        await hdc.inputText(x, y, characters[index]);
-        if (
-          typeDelay &&
-          typeDelay > 0 &&
-          (index < characters.length - 1 ||
-            resolvedInputOptions.inputStrategy === 'legacy')
-        ) {
-          await sleep(typeDelay);
-        }
-      }
+      await sendTextSequentially(
+        text,
+        {
+          sendCharacter: (character) => hdc.inputText(x, y, character),
+          wait: sleep,
+        },
+        {
+          delayMs: typeDelay,
+          delayAfterLast: resolvedInputOptions.inputStrategy === 'legacy',
+        },
+      );
     } else {
       await hdc.inputText(x, y, text);
     }
