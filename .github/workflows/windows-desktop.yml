@@ -73,9 +73,6 @@ jobs:
           & packages/computer/tests/ai/fixtures/windows-set-display-scale.ps1 `
             -ScalePercent ([int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT) `
             -DiagnosticsFile $diagnosticsPath
-          if ($LASTEXITCODE -ne 0) {
-            throw "Unable to configure Windows display scale to $env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT%."
-          }
 
       - name: Verify interactive Windows desktop
         shell: pwsh

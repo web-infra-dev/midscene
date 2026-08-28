@@ -179,6 +179,7 @@ try {
   }
 
   if ($null -ne $targetItem) {
+    $diagnostics.selectionMethod = 'UIAutomation.SelectionItemPattern'
     $diagnostics.targetItem = Get-ElementSnapshot -Element $targetItem
     $selectionPattern = Get-Pattern `
       -Element $targetItem `
@@ -195,6 +196,7 @@ try {
     # Some Windows builds keep collapsed combo-box items out of the automation
     # tree. Keyboard type-ahead still uses the public Settings UI and applies
     # the same standard scale entry a user would select.
+    $diagnostics.selectionMethod = 'Settings combo keyboard type-ahead'
     $scaleCombo.SetFocus()
     [System.Windows.Forms.SendKeys]::SendWait("$ScalePercent%")
     [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
