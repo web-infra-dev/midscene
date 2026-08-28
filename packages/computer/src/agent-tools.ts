@@ -50,16 +50,17 @@ const computerInitArgShape = {
     ),
   keyboardTypeDelay: z
     .number()
+    .finite()
     .nonnegative()
     .optional()
     .describe(
-      'Delay in milliseconds between keystrokes. Positive values enable key-by-key input; zero or omitted uses the default clipboard input strategy.',
+      'Finite non-negative delay in milliseconds between keystrokes. In "legacy" mode, positive values enable key-by-key input; zero or omitted uses clipboard input.',
     ),
   inputStrategy: z
     .enum(inputStrategies)
     .optional()
     .describe(
-      'Text input strategy. "legacy" (default) preserves current Computer behavior, "sequential" sends characters individually, and "bulk" uses one backend input operation. "bulk" cannot be combined with a positive keyboardTypeDelay.',
+      'Text input strategy. "legacy" (default) preserves current Computer behavior, "sequential" sends one Unicode code point at a time, and "bulk" uses one backend input operation. "bulk" requires keyboardTypeDelay to be omitted or set to 0.',
     ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.

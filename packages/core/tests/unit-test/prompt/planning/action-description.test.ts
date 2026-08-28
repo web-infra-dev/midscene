@@ -439,7 +439,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           inputStrategy:
             type: enum('legacy', 'sequential', 'bulk')
             optional: true
-            description: 'Text input strategy: "legacy" (default) preserves the current platform behavior; "sequential" enters Unicode characters one at a time; "bulk" sends the complete text through one platform input operation when supported and cannot be combined with a positive keyboardTypeDelay. Do not set it unless the user asks you to do so.'
+            description: 'Text input strategy: "legacy" (default) preserves the current platform behavior; "sequential" enters one Unicode code point at a time; "bulk" sends the complete text through one platform input operation when supported and requires keyboardTypeDelay to be omitted or set to 0. Do not set it unless the user asks you to do so.'
         sample: |-
           <action-type>Input</action-type>
           <action-param-json>

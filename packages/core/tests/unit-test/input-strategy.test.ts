@@ -25,7 +25,7 @@ describe('text input strategy', () => {
 
   it('rejects bulk input with a positive keyboard delay', () => {
     expect(() => resolveInputStrategy('bulk', 1)).toThrow(
-      'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
     );
   });
 
@@ -33,7 +33,7 @@ describe('text input strategy', () => {
     expect(resolveInputStrategy('bulk', 0)).toBe('bulk');
   });
 
-  it.each([-1, Number.POSITIVE_INFINITY])(
+  it.each([-1, Number.NaN, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY])(
     'rejects invalid keyboard delay %s',
     (keyboardTypeDelay) => {
       expect(() => resolveInputStrategy('legacy', keyboardTypeDelay)).toThrow(

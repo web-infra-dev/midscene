@@ -10,12 +10,12 @@ export type AndroidDeviceInputOpt = {
   /** Strategy for dismissing the keyboard: 'esc-first' tries ESC before BACK, 'back-first' tries BACK before ESC */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too
-   * fast (e.g. WiFi password fields on automotive displays).
+   * A positive value can type text one Unicode code point at a time instead of
+   * sending the whole string at once. This helps on devices or input fields
+   * that drop characters when input arrives too fast (e.g. WiFi password
+   * fields on automotive displays).
    *
    * In legacy mode, this applies to the native `input text` path and is
    * ignored by yadb. Set `inputStrategy` to `sequential` to split yadb input.
@@ -24,7 +24,7 @@ export type AndroidDeviceInputOpt = {
   /**
    * How Midscene sends text to Android. `sequential` splits Unicode code
    * points; `bulk` uses one backend operation where the selected IME supports
-   * it and cannot be combined with a positive `keyboardTypeDelay`.
+   * it and requires `keyboardTypeDelay` to be omitted or set to zero.
    * @default 'legacy'
    */
   inputStrategy?: InputStrategy;
@@ -160,17 +160,17 @@ export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too fast.
+   * In legacy mode, a positive value types text one Unicode code point at a
+   * time instead of sending the whole string at once. This helps on devices or
+   * input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
   /**
    * How Midscene sends text through WDA. `sequential` makes one WDA call per
-   * Unicode code point; `bulk` makes one WDA text call and cannot be combined
-   * with a positive `keyboardTypeDelay`.
+   * Unicode code point; `bulk` makes one WDA text call and requires
+   * `keyboardTypeDelay` to be omitted or set to zero.
    * @default 'legacy'
    */
   inputStrategy?: InputStrategy;
@@ -222,17 +222,17 @@ export type HarmonyDeviceInputOpt = {
   /** Strategy for dismissing the keyboard. Defaults to 'esc-first'. */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too fast.
+   * In legacy mode, a positive value types text one Unicode code point at a
+   * time instead of sending the whole string at once. This helps on devices or
+   * input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
   /**
    * How Midscene sends text through HDC. `sequential` makes one HDC call per
-   * Unicode code point; `bulk` makes one HDC text call and cannot be combined
-   * with a positive `keyboardTypeDelay`.
+   * Unicode code point; `bulk` makes one HDC text call and requires
+   * `keyboardTypeDelay` to be omitted or set to zero.
    * @default 'legacy'
    */
   inputStrategy?: InputStrategy;

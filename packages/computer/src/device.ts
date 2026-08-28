@@ -709,16 +709,17 @@ export interface ComputerDeviceInputOpt {
   /**
    * Delay in milliseconds between keystrokes when typing text.
    *
-   * Positive values switch input from clipboard paste to real key events.
-   * This helps applications that require physical-looking keystrokes or drop
-   * characters when an entire value arrives at once. When omitted or set to
-   * zero, Computer keeps using clipboard paste to avoid IME interference.
+   * Must be a finite non-negative number. In `legacy` mode, positive values
+   * switch input from clipboard paste to real key events. This helps
+   * applications that require physical-looking keystrokes or drop characters
+   * when an entire value arrives at once. When omitted or set to zero,
+   * `legacy` mode keeps using clipboard paste to avoid IME interference.
    */
   keyboardTypeDelay?: number;
   /**
    * How Midscene sends text to the desktop input backend. `bulk` uses one
    * clipboard paste; `sequential` emits one Unicode code point at a time.
-   * `bulk` cannot be combined with a positive `keyboardTypeDelay`.
+   * `bulk` requires `keyboardTypeDelay` to be omitted or set to zero.
    * @default 'legacy'
    */
   inputStrategy?: InputStrategy;

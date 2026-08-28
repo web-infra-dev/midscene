@@ -269,7 +269,7 @@ describe('HarmonyDevice', () => {
           target: { center: [10, 20] },
         }),
       ).rejects.toThrow(
-        'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+        'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
       );
       expect(mockHdc.clearTextField).not.toHaveBeenCalled();
       await delayedDevice.destroy();

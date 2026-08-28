@@ -17,15 +17,15 @@ export type WebPageOpt = {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   enableTouchEventsInActionSpace?: boolean;
   /**
-   * Per-character delay (ms) used when typing text via the underlying
-   * Puppeteer/Playwright `keyboard.type` API. Default undefined leaves the
-   * option unset and uses the underlying driver's own default.
+   * Finite non-negative per-character delay (ms) used when typing text via the
+   * underlying Puppeteer/Playwright `keyboard.type` API. Default undefined
+   * leaves the option unset and uses the underlying driver's own default.
    */
   keyboardTypeDelay?: number;
   /**
    * How Midscene sends text to the browser. `bulk` uses one `insertText`
    * operation; `sequential` sends one Unicode code point at a time. `bulk`
-   * cannot be combined with a positive `keyboardTypeDelay`.
+   * requires `keyboardTypeDelay` to be omitted or set to zero.
    * @default 'legacy'
    */
   inputStrategy?: InputStrategy;

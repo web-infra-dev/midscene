@@ -295,7 +295,7 @@ describe('commonWebActionsForWebPage visual refresh', () => {
         mockExecutorContext,
       ),
     ).rejects.toThrow(
-      'inputStrategy "bulk" cannot be used with a positive keyboardTypeDelay',
+      'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
     );
   });
 });
