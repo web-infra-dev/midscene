@@ -33,15 +33,17 @@ function createPlanOptions(
 }
 
 describe('custom planning messages', () => {
-  it('consumes pending feedback in the latest screenshot message', () => {
+  it('consumes pending feedback in the latest screenshot message', async () => {
     const conversationHistory = new ConversationHistory();
     conversationHistory.pendingFeedbackMessage =
       'Current time: 2026-06-16 19:35:17 (YYYY-MM-DD HH:mm:ss)';
 
-    const messages = buildCustomPlanningMessages(
+    const messages = await buildCustomPlanningMessages(
       {
-        userInstruction: 'click save',
-        userInstructionText: 'click save',
+        userInstruction: {
+          text: 'click save',
+          referenceImages: [],
+        },
         options: createPlanOptions(conversationHistory),
       },
       {

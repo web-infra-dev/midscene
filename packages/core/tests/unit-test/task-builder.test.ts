@@ -190,7 +190,7 @@ describe('TaskBuilder', () => {
       mockModelRuntime,
     );
     const locateTask = tasks[0];
-    await locateTask.executor(locateTask.param, {
+    await locateTask.executor({
       task: { timing: {} },
       uiContext: {
         shrunkShotToLogicalRatio: 1,
@@ -291,7 +291,7 @@ describe('TaskBuilder', () => {
       uiContext: { shrunkShotToLogicalRatio: 1 },
     } as any;
 
-    const defaultPromise = defaultTask.executor(defaultTask.param, taskContext);
+    const defaultPromise = defaultTask.executor(taskContext);
 
     await vi.advanceTimersByTimeAsync(199);
     expect(defaultBeforeHook).toHaveBeenCalledTimes(1);
@@ -309,7 +309,7 @@ describe('TaskBuilder', () => {
     await expect(defaultPromise).resolves.toEqual({ output: undefined });
     expect(defaultAfterHook).toHaveBeenCalledTimes(1);
 
-    const fastPromise = fastTask.executor(fastTask.param, taskContext);
+    const fastPromise = fastTask.executor(taskContext);
     await expect(fastPromise).resolves.toEqual({ output: undefined });
     expect(fastBeforeHook).toHaveBeenCalledTimes(1);
     expect(fastActionCall).toHaveBeenCalledTimes(1);
@@ -358,7 +358,7 @@ describe('TaskBuilder', () => {
       task: { timing: {} },
       uiContext: { shrunkShotToLogicalRatio: 1 },
     } as any;
-    const result = await tasks[0].executor(tasks[0].param, taskContext);
+    const result = await tasks[0].executor(taskContext);
 
     expect(result).toEqual({
       output: '0\n',

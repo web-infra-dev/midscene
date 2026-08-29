@@ -165,7 +165,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Execute the locate task to verify cache is not used
     if (locateTask) {
-      await locateTask.executor(locateTask.param, {
+      await locateTask.executor({
         task: createRuntimeTask(locateTask),
       });
 

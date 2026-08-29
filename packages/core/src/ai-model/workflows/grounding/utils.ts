@@ -1,33 +1,58 @@
+import { type TUserPrompt, userPromptToMultimodalPrompt } from '@/common';
 import type {
   ChatCompletionContentPart,
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
+import {
+  type ImagePreprocessPolicy,
+  type PreparedModelImage,
+  prepareModelImage,
+} from '../../model-adapter/image-preprocess';
 import type { LocateUserMessageContentOrder } from '../../model-adapter/types';
 import type { ModelRuntime } from '../../models';
+import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 
 export type GroundingAIArgs = [
   ChatCompletionSystemMessageParam,
   ...ChatCompletionUserMessageParam[],
 ];
 
-export function buildLocateMessages({
+export async function prepareLocateModelInput({
+  locateImage,
+  targetDescription,
   systemPrompt,
-  imagePayload,
   userPrompt,
+  imagePreprocess,
   userMessageContentOrder,
-  additionalMessages = [],
 }: {
+  locateImage: {
+    imageBase64: string;
+    width: number;
+    height: number;
+  };
+  targetDescription: TUserPrompt;
   systemPrompt: string;
-  imagePayload: string;
   userPrompt: string;
+  imagePreprocess: ImagePreprocessPolicy;
   userMessageContentOrder: LocateUserMessageContentOrder;
-  additionalMessages?: ChatCompletionUserMessageParam[];
-}): GroundingAIArgs {
+}): Promise<{
+  messages: GroundingAIArgs;
+  preparedImage: PreparedModelImage;
+}> {
+  const preparedImage = await prepareModelImage({
+    imageBase64: locateImage.imageBase64,
+    width: locateImage.width,
+    height: locateImage.height,
+    policy: imagePreprocess,
+  });
+  const referenceImageMessages = await multimodalPromptToChatMessages(
+    userPromptToMultimodalPrompt(targetDescription),
+  );
   const imageContent: ChatCompletionContentPart = {
     type: 'image_url',
     image_url: {
-      url: imagePayload,
+      url: preparedImage.imageBase64,
       detail: 'high',
     },
   };
@@ -36,17 +61,20 @@ export function buildLocateMessages({
     text: userPrompt,
   };
 
-  return [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content:
-        userMessageContentOrder === 'prompt-first'
-          ? [promptContent, imageContent]
-          : [imageContent, promptContent],
-    },
-    ...additionalMessages,
-  ];
+  return {
+    preparedImage,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content:
+          userMessageContentOrder === 'prompt-first'
+            ? [promptContent, imageContent]
+            : [imageContent, promptContent],
+      },
+      ...referenceImageMessages,
+    ],
+  };
 }
 
 export function formatLocateModelContext(modelRuntime: ModelRuntime): string {

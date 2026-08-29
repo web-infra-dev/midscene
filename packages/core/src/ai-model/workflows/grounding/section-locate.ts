@@ -2,11 +2,7 @@ import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
-import {
-  userPromptToMultimodalPrompt,
-  userPromptToString,
-} from '../../../common';
-import { prepareModelImage } from '../../model-adapter/image-preprocess';
+import { userPromptToString } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import { systemPromptToLocateSection } from '../../prompt/llm-section-locator';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
@@ -14,15 +10,10 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
-import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { mergePixelBboxesToRect } from './locate-result-rect';
 import { buildSearchAreaConfig, expandSearchArea } from './search-area';
 import type { SearchAreaConfig } from './types';
-import {
-  type GroundingAIArgs,
-  buildLocateMessages,
-  formatLocateModelContext,
-} from './utils';
+import { formatLocateModelContext, prepareLocateModelInput } from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
@@ -51,33 +42,28 @@ export async function AiLocateSection(options: {
   assert(searchArea, 'section locate requires a search area operation');
   const { protocol: searchAreaProtocol, resultCodec } = searchArea;
   const screenshotBase64 = context.screenshot.base64;
-  const preparedImage = await prepareModelImage({
-    imageBase64: screenshotBase64,
-    width: context.shotSize.width,
-    height: context.shotSize.height,
-    policy: adapter.imagePreprocess,
-  });
 
   const systemPrompt = systemPromptToLocateSection({
     responseInstructions: searchAreaProtocol.buildResponseInstructions(
       resultCodec.promptSpec,
     ),
   });
-  const sectionLocatorInstructionText = searchAreaProtocol.buildUserPrompt(
+
+  const userInstructionPrompt = searchAreaProtocol.buildUserPrompt(
     userPromptToString(sectionDescription),
   );
-  const additionalMessages =
-    typeof sectionDescription === 'string'
-      ? []
-      : await multimodalPromptToChatMessages(
-          userPromptToMultimodalPrompt(sectionDescription),
-        );
-  const msgs: GroundingAIArgs = buildLocateMessages({
+
+  const { messages, preparedImage } = await prepareLocateModelInput({
     systemPrompt,
-    imagePayload: preparedImage.imageBase64,
-    userPrompt: sectionLocatorInstructionText,
+    userPrompt: userInstructionPrompt,
+    locateImage: {
+      imageBase64: screenshotBase64,
+      width: context.shotSize.width,
+      height: context.shotSize.height,
+    },
+    imagePreprocess: adapter.imagePreprocess,
+    targetDescription: sectionDescription,
     userMessageContentOrder: adapter.locate.userMessageContentOrder,
-    additionalMessages,
   });
 
   let parsedResult:
@@ -96,7 +82,7 @@ export async function AiLocateSection(options: {
     parsedResult = await callAiAndParseWithRetry({
       callAi: (retryAttempt, previousParseError) =>
         callAI(
-          withSemanticRetryFeedback(msgs, previousParseError),
+          withSemanticRetryFeedback(messages, previousParseError),
           modelRuntime,
           {
             abortSignal: options.abortSignal,

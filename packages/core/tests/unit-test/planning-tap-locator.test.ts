@@ -57,23 +57,12 @@ function createLocateRequest() {
   } as any;
 
   return {
-    elementDescriptionText: 'submit button',
+    targetElementDescription: 'submit button',
     locateImage: {
       imageBase64: 'data:image/png;base64,CROP==',
       width: 320,
       height: 240,
     },
-    referenceImageMessages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'reference image',
-          },
-        ],
-      },
-    ],
     options,
   } as any;
 }
@@ -105,11 +94,7 @@ describe('resolvePlanningTapLocator', () => {
       createPlanner(),
     );
 
-    const result = await locate(
-      'submit button',
-      createLocateRequest().options,
-      createLocateRequest(),
-    );
+    const result = await locate(createLocateRequest());
 
     const [, planOptions, locatorPlanner] =
       vi.mocked(runCustomPlanning).mock.calls[0];
@@ -122,9 +107,10 @@ describe('resolvePlanningTapLocator', () => {
     expect(planOptions.actionSpace.map((action: any) => action.name)).toEqual([
       'Tap',
     ]);
-    expect(planOptions.referenceImageMessages).toEqual(
-      createLocateRequest().referenceImageMessages,
-    );
+    expect(vi.mocked(runCustomPlanning).mock.calls[0][0]).toEqual({
+      text: 'submit button',
+      referenceImages: [],
+    });
     expect(locatorPlanner.messages.buildSystemPrompt()).toBe(
       'locate system prompt',
     );
@@ -157,11 +143,7 @@ describe('resolvePlanningTapLocator', () => {
       createPlanner(),
     );
 
-    const result = await locate(
-      'submit button',
-      createLocateRequest().options,
-      createLocateRequest(),
-    );
+    const result = await locate(createLocateRequest());
 
     expect(result).toEqual({
       rawResponse: 'raw planning response',
@@ -192,11 +174,7 @@ describe('resolvePlanningTapLocator', () => {
       createPlanner(),
     );
 
-    const result = await locate(
-      'submit button',
-      createLocateRequest().options,
-      createLocateRequest(),
-    );
+    const result = await locate(createLocateRequest());
 
     expect(result).toEqual({
       rawResponse: 'raw malformed response',

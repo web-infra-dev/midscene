@@ -198,7 +198,7 @@ describe('bbox locate cache fix', () => {
       expect(locateTask).toBeDefined();
 
       // Execute the locate task
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -248,7 +248,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -285,7 +285,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -372,7 +372,7 @@ describe('bbox locate cache fix', () => {
       // Clear the mock to track new calls
       vi.mocked(mockInterface.cacheFeatureForPoint!).mockClear();
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -427,7 +427,7 @@ describe('bbox locate cache fix', () => {
 
     const runtimeTask = createRuntimeTask(locateTask!);
 
-    await locateTask!.executor(locateTask!.param, {
+    await locateTask!.executor({
       task: runtimeTask,
       uiContext: await createMockUIContext(validBase64Image),
     });
@@ -497,7 +497,7 @@ describe('bbox locate cache fix', () => {
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -540,7 +540,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw even with empty prompt
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -577,7 +577,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -624,7 +624,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -712,7 +712,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
       expect(locateTask).toBeDefined();
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -805,7 +805,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });

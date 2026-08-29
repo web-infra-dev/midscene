@@ -269,7 +269,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const timing = taskContext.task.timing;
 
         debug(
@@ -325,9 +325,13 @@ export class TaskBuilder {
           );
         }
 
-        if (action.paramSchema) {
+        const parsedParam = (() => {
+          if (!action.paramSchema) {
+            return param;
+          }
+
           try {
-            param = parseActionParam(param, action.paramSchema, {
+            return parseActionParam(param, action.paramSchema, {
               shrunkShotToLogicalRatio,
             });
           } catch (error: any) {
@@ -336,13 +340,13 @@ export class TaskBuilder {
               { cause: error },
             );
           }
-        }
+        })();
 
         setTimingFieldOnce(timing, 'callActionStart');
 
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(param, taskContext);
+        const actionResult = await actionFn(parsedParam, taskContext);
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
@@ -359,7 +363,7 @@ export class TaskBuilder {
             debug(
               `will call "afterInvokeAction" for interface with action name ${action.name}`,
             );
-            await this.interface.afterInvokeAction(action.name, param);
+            await this.interface.afterInvokeAction(action.name, parsedParam);
             debug(
               `called "afterInvokeAction" for interface with action name ${action.name}`,
             );
@@ -413,19 +417,19 @@ export class TaskBuilder {
       subType: 'Locate',
       param: locateParam,
       thought: plan.thought,
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const { task } = taskContext;
         let { uiContext } = taskContext;
         const paramWithLocatedPixelBbox = ifPlanLocateParamHasLocatedPixelBbox(
-          param,
+          locateParam,
         )
-          ? param
+          ? locateParam
           : undefined;
 
         assert(
-          param?.prompt || paramWithLocatedPixelBbox,
+          locateParam?.prompt || paramWithLocatedPixelBbox,
           `No prompt or id or position or locatedPixelBbox to locate, param=${JSON.stringify(
-            param,
+            locateParam,
           )}`,
         );
 
@@ -480,7 +484,7 @@ export class TaskBuilder {
         // from locatedPixelBbox (direct plan hit)
         // when deepLocate is enabled, locatedPixelBbox should be used as search
         // area hint, not as a final direct hit
-        const elementFromPlan = param.deepLocate
+        const elementFromPlan = locateParam.deepLocate
           ? undefined
           : planLocatedElement;
         const isPlanDirectHit = !!elementFromPlan;
@@ -489,12 +493,12 @@ export class TaskBuilder {
         let rectFromXpath: Rect | undefined;
         if (
           !isPlanDirectHit &&
-          param.xpath &&
+          locateParam.xpath &&
           this.interface.rectMatchesCacheFeature
         ) {
           try {
             rectFromXpath = await this.interface.rectMatchesCacheFeature({
-              xpaths: [param.xpath],
+              xpaths: [locateParam.xpath],
             });
           } catch {
             // xpath locate failed, allow fallback to cache or AI locate
@@ -508,15 +512,15 @@ export class TaskBuilder {
                 rectFromXpath,
                 shrunkShotToLogicalRatio,
               ),
-              typeof param.prompt === 'string'
-                ? param.prompt
-                : param.prompt?.prompt || '',
+              typeof locateParam.prompt === 'string'
+                ? locateParam.prompt
+                : locateParam.prompt?.prompt || '',
             )
           : undefined;
 
         const isXpathHit = !!elementFromXpath;
 
-        const cachePrompt = param.prompt;
+        const cachePrompt = locateParam.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
@@ -530,7 +534,7 @@ export class TaskBuilder {
                 },
                 cacheEntry,
                 cachePrompt,
-                param.cacheable,
+                locateParam.cacheable,
               );
 
         // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
@@ -549,7 +553,7 @@ export class TaskBuilder {
           try {
             setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
-              param,
+              locateParam,
               {
                 context: uiContext,
                 planLocatedElement,
@@ -602,7 +606,7 @@ export class TaskBuilder {
           this.taskCache &&
           !isCacheHit &&
           (!isPlanDirectHit || !locateCacheAlreadyExists) &&
-          param?.cacheable !== false
+          locateParam.cacheable !== false
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {
@@ -625,9 +629,9 @@ export class TaskBuilder {
                 pointForCache,
                 {
                   targetDescription:
-                    typeof param.prompt === 'string'
-                      ? param.prompt
-                      : param.prompt?.prompt,
+                    typeof locateParam.prompt === 'string'
+                      ? locateParam.prompt
+                      : locateParam.prompt?.prompt,
                   modelRuntime: defaultModel,
                 },
               );
@@ -663,11 +667,11 @@ export class TaskBuilder {
         if (!element) {
           if (locateDump) {
             throw new ServiceError(
-              `Element not found : ${param.prompt}`,
+              `Element not found : ${locateParam.prompt}`,
               locateDump,
             );
           }
-          throw new Error(`Element not found: ${param.prompt}`);
+          throw new Error(`Element not found: ${locateParam.prompt}`);
         }
 
         let hitBy: ExecutionTaskHitBy | undefined;
@@ -683,7 +687,7 @@ export class TaskBuilder {
           hitBy = {
             from: 'User expected path',
             context: {
-              xpath: param.xpath,
+              xpath: locateParam.xpath,
             },
           };
         } else if (isCacheHit) {
@@ -696,7 +700,7 @@ export class TaskBuilder {
           };
         }
 
-        const promptDisplay = param.promptDisplay;
+        const promptDisplay = locateParam.promptDisplay;
         const elementForAction = promptDisplay
           ? {
               ...element,

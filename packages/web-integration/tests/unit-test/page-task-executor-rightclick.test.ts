@@ -170,7 +170,7 @@ describe('TaskExecutor RightClick Action', () => {
     };
 
     // Execute the right click task
-    await rightClickTask.executor(null, mockContext);
+    await rightClickTask.executor(mockContext);
 
     // Verify mouse.click was called with right button
     expect(mockPage.mouse.click).toHaveBeenCalledWith(
@@ -208,6 +208,6 @@ describe('TaskExecutor RightClick Action', () => {
     };
 
     // Should throw error when element is null
-    await expect(rightClickTask.executor(null, mockContext)).rejects.toThrow();
+    await expect(rightClickTask.executor(mockContext)).rejects.toThrow();
   });
 });

@@ -5,9 +5,15 @@ import type {
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller/index';
-import { standardPlan } from '@/ai-model/workflows/planning';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import { standardPlan as runPreparedStandardPlan } from '@/ai-model/workflows/planning';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
-import { buildYamlFlowFromPlans, getMidsceneLocationSchema } from '@/common';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import {
+  type TUserPrompt,
+  buildYamlFlowFromPlans,
+  getMidsceneLocationSchema,
+} from '@/common';
 import type { DeviceAction, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,6 +40,11 @@ const mockAIResponse = (content: string) => ({
   content,
   isStreamed: false,
 });
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 const mockModelConfig = (
   modelFamily?: IModelConfig['modelFamily'],
@@ -110,6 +121,49 @@ describe('plan XML parse retry', () => {
     expect(result.thought).toBeUndefined();
     expect(result.log).toBe('{"type":"Tap","param":{}}');
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
+  });
+
+  it('resolves reference images from the planning instruction', async () => {
+    vi.mocked(callAI).mockResolvedValueOnce(
+      mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{}</action-param-json>`),
+    );
+
+    await standardPlan(
+      {
+        prompt: 'tap the matching button',
+        images: [
+          {
+            name: 'target',
+            url: 'data:image/png;base64,REFERENCE==',
+          },
+        ],
+      },
+      {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning: false,
+        effort: 'fast',
+      },
+    );
+
+    expect(vi.mocked(callAI).mock.calls[0][0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'image_url',
+              image_url: expect.objectContaining({
+                url: 'data:image/png;base64,REFERENCE==',
+              }),
+            }),
+          ]),
+        }),
+      ]),
+    );
   });
 
   it('uses model retry settings when XML response parsing fails', async () => {

@@ -23,13 +23,14 @@ vi.mock('@/ai-model/service-caller/index', () => ({
 import { callAI } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
+  const locateParam = {
+    prompt: 'test',
+  };
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
-    param: {
-      prompt: 'test',
-    },
-    async executor(param, taskContext) {
+    param: locateParam,
+    async executor(taskContext) {
       if (shouldThrow) {
         const { task } = taskContext;
         task.output = 'error-output';
@@ -40,7 +41,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
       const service = new Service(context);
       const { element, dump: insightDump } = await service.locate(
         {
-          prompt: param.prompt,
+          prompt: locateParam.prompt,
         },
         {},
         getModelRuntime({
@@ -135,8 +136,8 @@ describe(
       expect(tasks[0].hitBy?.from).not.toBe('Cache');
 
       expect(tapperFn).toBeCalledTimes(1);
-      expect(tapperFn.mock.calls[0][0]).toBe(taskParam);
-      expect(tapperFn.mock.calls[0][1].task).toBeTruthy();
+      expect(tapperFn.mock.calls[0][0].task).toBeTruthy();
+      expect(tasks[1].param).toBe(taskParam);
 
       const dump = runner.dump();
       expect(dump.logTime).toBeTruthy();

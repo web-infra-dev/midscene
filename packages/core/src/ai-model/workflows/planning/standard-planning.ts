@@ -1,4 +1,3 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -20,6 +19,10 @@ import type {
   LocateResultContext,
 } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
+import {
+  type PreparedUserPrompt,
+  preparedReferenceImagesToChatMessages,
+} from '../../shared/multimodal-prompt';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
@@ -134,7 +137,7 @@ async function callAndParsePlanningResponse(
 }
 
 export async function standardPlan(
-  userInstruction: TUserPrompt,
+  userInstruction: PreparedUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
   const { context, conversationHistory } = opts;
@@ -191,19 +194,20 @@ export async function standardPlan(
   });
   const imagePayload = preparedImage.imageBase64;
 
-  const userInstructionText = userPromptToString(userInstruction);
   const actionContext = opts.actionContext
     ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
     : '';
 
-  const referenceImageMessages = opts.referenceImageMessages ?? [];
+  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+    userInstruction.referenceImages,
+  );
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>`,
         },
       ],
     },

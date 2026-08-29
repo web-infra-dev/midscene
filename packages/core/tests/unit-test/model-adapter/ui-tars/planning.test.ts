@@ -4,12 +4,13 @@ import { getModelRuntime } from '@/ai-model/models';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { createUiTarsPlanner } from '@/ai-model/models/ui-tars/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockActionSpace } from '../../../common';
 
@@ -58,13 +59,13 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   };
 }
 
-function runUiTarsPlanning(
-  userInstruction: string,
+async function runUiTarsPlanning(
+  userInstruction: TUserPrompt,
   options: PlanOptions,
   uiTarsModelVersion: UITarsModelVersion,
 ) {
   return runCustomPlanning(
-    userInstruction,
+    await prepareUserPrompt(userInstruction),
     options,
     resolveCustomPlanningDefinition(createUiTarsPlanner(uiTarsModelVersion)),
   );
@@ -86,7 +87,7 @@ Action: click(start_box='(500,500)')`,
     });
 
     const result = await uiTarsAdapter.planning.planFn(
-      'click submit',
+      { text: 'click submit', referenceImages: [] },
       createPlanOptions({
         modelRuntime: {
           ...modelRuntime,
@@ -132,17 +133,6 @@ Action: click(start_box='(500,500)')`,
 
   it('passes action context, reference images, and abort signal to the model call', async () => {
     const abortController = new AbortController();
-    const referenceImageMessages: ChatCompletionUserMessageParam[] = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,REF==' },
-          },
-        ],
-      },
-    ];
     const conversationHistory = new ConversationHistory();
 
     vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
@@ -153,10 +143,17 @@ Action: click(start_box='(500,500)')`,
     });
 
     const result = await runUiTarsPlanning(
-      'click submit',
+      {
+        prompt: 'click submit',
+        images: [
+          {
+            name: 'submit reference',
+            url: 'data:image/png;base64,REF==',
+          },
+        ],
+      },
       createPlanOptions({
         actionContext: 'prefer the primary submit button',
-        referenceImageMessages,
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -176,7 +173,6 @@ Action: click(start_box='(500,500)')`,
         '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>\n',
       ),
     });
-    expect(messages).toContain(referenceImageMessages[0]);
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

@@ -3,11 +3,12 @@ import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import type { UIContext } from '@/types';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const serviceCallerMock = vi.hoisted(() => {
@@ -81,9 +82,12 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
   };
 }
 
-function runAutoGlmPlanning(userInstruction: string, options: PlanOptions) {
+async function runAutoGlmPlanning(
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) {
   return runCustomPlanning(
-    userInstruction,
+    await prepareUserPrompt(userInstruction),
     options,
     resolveCustomPlanningDefinition(createAutoGlmPlanner(false)),
   );
@@ -96,17 +100,6 @@ describe('createAutoGlmPlanner messages', () => {
 
   it('passes Auto-GLM action context, reference images, and abort signal to the model call', async () => {
     const abortController = new AbortController();
-    const referenceImageMessages: ChatCompletionUserMessageParam[] = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: 'data:image/png;base64,REF==' },
-          },
-        ],
-      },
-    ];
     const conversationHistory = new ConversationHistory();
     vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
@@ -116,10 +109,17 @@ describe('createAutoGlmPlanner messages', () => {
     });
 
     const result = await runAutoGlmPlanning(
-      'click submit',
+      {
+        prompt: 'click submit',
+        images: [
+          {
+            name: 'submit reference',
+            url: 'data:image/png;base64,REF==',
+          },
+        ],
+      },
       createPlanOptions({
         actionContext: 'prefer the primary submit button',
-        referenceImageMessages,
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -144,7 +144,21 @@ describe('createAutoGlmPlanner messages', () => {
       role: 'user',
       content: [{ type: 'text', text: 'click submit' }],
     });
-    expect(messages).toContain(referenceImageMessages[0]);
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'user',
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'image_url',
+              image_url: expect.objectContaining({
+                url: 'data:image/png;base64,REF==',
+              }),
+            }),
+          ]),
+        }),
+      ]),
+    );
     expect(result.rawChoiceMessage).toEqual({
       role: 'assistant',
       content: 'raw choice',
