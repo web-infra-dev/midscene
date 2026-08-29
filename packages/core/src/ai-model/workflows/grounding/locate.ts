@@ -19,10 +19,14 @@ import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping
 import type {
   LocateModelResponse,
   LocateOptions,
-  LocateRequestContext,
+  LocateRequest,
   LocateResult,
 } from './types';
-import { type GroundingAIArgs, formatLocateModelContext } from './utils';
+import {
+  type GroundingAIArgs,
+  buildLocateMessages,
+  formatLocateModelContext,
+} from './utils';
 
 const debugGrounding = getDebug('ai:grounding');
 
@@ -44,27 +48,16 @@ export async function AiLocateElement(
     width: context.shotSize.width,
     height: context.shotSize.height,
   };
-  const referenceImageMessages =
-    typeof targetElementDescription === 'string'
-      ? undefined
-      : await multimodalPromptToChatMessages(
-          userPromptToMultimodalPrompt(targetElementDescription),
-        );
-  const locateRequest: LocateRequestContext = {
-    elementDescriptionText: userPromptToString(targetElementDescription),
+  const locateRequest: LocateRequest = {
+    targetElementDescription,
     locateImage,
-    referenceImageMessages,
     options: locateOptions,
   };
 
   const locateAdapter = options.modelRuntime.adapter.locate;
   const locateFn =
     locateAdapter.kind === 'custom' ? locateAdapter.locateFn : genericLocate;
-  const locateResponse = await locateFn(
-    targetElementDescription,
-    locateOptions,
-    locateRequest,
-  );
+  const locateResponse = await locateFn(locateRequest);
   const {
     locatedPixelBbox,
     rawResponse,
@@ -105,7 +98,7 @@ export async function AiLocateElement(
       parseResult: {
         element: generateElementByRect(
           rect,
-          locateRequest.elementDescriptionText,
+          userPromptToString(targetElementDescription),
         ),
         errors: [],
       },
@@ -128,10 +121,9 @@ export async function AiLocateElement(
 }
 
 export async function genericLocate(
-  _elementDescription: TUserPrompt,
-  options: LocateOptions,
-  locateRequest: LocateRequestContext,
+  locateRequest: LocateRequest,
 ): Promise<LocateModelResponse> {
+  const { options, targetElementDescription } = locateRequest;
   const modelRuntime = options.modelRuntime;
   const { adapter } = modelRuntime;
   assert(
@@ -139,8 +131,9 @@ export async function genericLocate(
     'generic locate requires a standard locate adapter',
   );
   const { protocol, resultCodec } = adapter.locate.element;
+  const elementDescriptionText = userPromptToString(targetElementDescription);
   const userInstructionPrompt = protocol.buildUserPrompt(
-    locateRequest.elementDescriptionText,
+    elementDescriptionText,
   );
   const systemPrompt = systemPromptToLocateElement({
     systemPromptIntroduction: protocol.systemPromptIntroduction,
@@ -157,30 +150,17 @@ export async function genericLocate(
   });
 
   const imagePayload = preparedImage.imageBase64;
+  const referenceImageMessages = await multimodalPromptToChatMessages(
+    userPromptToMultimodalPrompt(targetElementDescription),
+  );
 
-  const msgs: GroundingAIArgs = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: userInstructionPrompt,
-        },
-      ],
-    },
-  ];
-
-  if (locateRequest.referenceImageMessages) {
-    msgs.push(...locateRequest.referenceImageMessages);
-  }
+  const msgs: GroundingAIArgs = buildLocateMessages({
+    systemPrompt,
+    imagePayload,
+    userPrompt: userInstructionPrompt,
+    userMessageContentOrder: adapter.locate.userMessageContentOrder,
+    additionalMessages: referenceImageMessages,
+  });
 
   try {
     return await callAiAndParseWithRetry({

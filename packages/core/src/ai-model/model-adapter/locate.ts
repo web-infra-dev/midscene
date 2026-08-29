@@ -89,6 +89,7 @@ export function resolveLocate(
 
   return {
     kind: 'standard',
+    userMessageContentOrder: locate?.userMessageContentOrder ?? 'image-first',
     element: {
       protocol: elementProtocol,
       resultCodec: elementResultCodec,

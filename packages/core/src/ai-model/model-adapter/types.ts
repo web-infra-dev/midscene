@@ -202,8 +202,11 @@ export type PlanningDefinition =
           }
       ));
 
+export type LocateUserMessageContentOrder = 'image-first' | 'prompt-first';
+
 type StandardLocateAdapter = {
   kind: 'standard';
+  userMessageContentOrder: LocateUserMessageContentOrder;
   element: LocateOperation;
   searchArea?: LocateOperation;
 };
@@ -222,6 +225,7 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
+  userMessageContentOrder?: LocateUserMessageContentOrder;
   element?: LocateOperationDefinition;
   searchArea?: LocateOperationDefinition | false;
 };

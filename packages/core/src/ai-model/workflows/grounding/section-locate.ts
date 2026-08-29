@@ -18,7 +18,11 @@ import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
 import { mergePixelBboxesToRect } from './locate-result-rect';
 import { buildSearchAreaConfig, expandSearchArea } from './search-area';
 import type { SearchAreaConfig } from './types';
-import { type GroundingAIArgs, formatLocateModelContext } from './utils';
+import {
+  type GroundingAIArgs,
+  buildLocateMessages,
+  formatLocateModelContext,
+} from './utils';
 
 const debugSection = getDebug('ai:grounding:section');
 
@@ -62,32 +66,19 @@ export async function AiLocateSection(options: {
   const sectionLocatorInstructionText = searchAreaProtocol.buildUserPrompt(
     userPromptToString(sectionDescription),
   );
-  const msgs: GroundingAIArgs = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: preparedImage.imageBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: sectionLocatorInstructionText,
-        },
-      ],
-    },
-  ];
-
-  if (typeof sectionDescription !== 'string') {
-    const addOns = await multimodalPromptToChatMessages(
-      userPromptToMultimodalPrompt(sectionDescription),
-    );
-    msgs.push(...addOns);
-  }
+  const additionalMessages =
+    typeof sectionDescription === 'string'
+      ? []
+      : await multimodalPromptToChatMessages(
+          userPromptToMultimodalPrompt(sectionDescription),
+        );
+  const msgs: GroundingAIArgs = buildLocateMessages({
+    systemPrompt,
+    imagePayload: preparedImage.imageBase64,
+    userPrompt: sectionLocatorInstructionText,
+    userMessageContentOrder: adapter.locate.userMessageContentOrder,
+    additionalMessages,
+  });
 
   let parsedResult:
     | {
