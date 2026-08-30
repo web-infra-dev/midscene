@@ -7,16 +7,16 @@ import type {
 import type { TMultimodalPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import {
+  buildInsightSystemPrompt,
   extractDataQueryPrompt,
-  systemPromptToExtract,
-} from '../../prompt/extraction';
+} from '../../prompt/insight';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
 import { multimodalPromptToChatMessages } from '../../shared/multimodal-prompt';
-import { parseXMLExtractionResponse } from './extraction-parser';
+import { parseInsightResponse } from './insight-response-parser';
 
 type InsightAIArgs = [
   ChatCompletionSystemMessageParam,
@@ -36,12 +36,13 @@ export async function AiExtractElementInfo<T>(options: {
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
-  const systemPrompt = systemPromptToExtract({
+  const insightProtocol = modelRuntime.adapter.insight.protocol;
+  const systemPrompt = buildInsightSystemPrompt({
     screenshotIncluded: extractOption?.screenshotIncluded !== false,
     referenceImagesIncluded: !!multimodalPrompt?.images?.length,
+    insightProtocol,
   });
   const screenshotBase64 = context.screenshot.base64;
-
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
     dataQuery,
@@ -122,7 +123,11 @@ export async function AiExtractElementInfo<T>(options: {
         reasoning_content,
         rawChoiceMessage,
       } = response;
-      const parseResult = parseXMLExtractionResponse<T>(rawResponse);
+      const parseResult = parseInsightResponse<T>(
+        rawResponse,
+        insightProtocol.dataOutput,
+        modelRuntime.adapter.jsonParser,
+      );
       return {
         parseResult,
         rawResponse,

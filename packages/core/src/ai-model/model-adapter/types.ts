@@ -21,6 +21,7 @@ import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
+import type { InsightAdapter, InsightDefinition } from './insight-protocol';
 import type {
   StandardLocateProtocol,
   StandardLocateProtocolDefinition,
@@ -262,6 +263,7 @@ export interface ModelAdapter {
   chatCompletion: ChatCompletionAdapter;
   acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
+  insight: InsightAdapter;
   planning: PlanningAdapter;
   locate: LocateAdapter;
 }
@@ -293,6 +295,7 @@ export interface ModelAdapterDefinition {
    */
   acceptBbox2dAlias?: boolean;
   imagePreprocess?: ImagePreprocessDefinition;
+  insight?: InsightDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;
 }

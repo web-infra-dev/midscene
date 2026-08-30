@@ -1,6 +1,6 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
+import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import {

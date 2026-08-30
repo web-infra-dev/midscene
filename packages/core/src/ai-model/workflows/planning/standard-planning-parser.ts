@@ -5,7 +5,7 @@ import type {
   SubGoalStatus,
 } from '@/types';
 import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
-import { extractXMLTag } from '../../shared/xml';
+import { extractRawXMLFragment, extractXMLTag } from '../../shared/xml';
 import { buildPlanningActionLog } from './planning-action-log';
 
 /**
@@ -56,33 +56,6 @@ type XMLPlanningResponseParseResult = {
   rawActionOutput: string;
 };
 
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const extractRawActionOutput = (
-  content: string,
-  actionOutputTagNames: PlanningActionOutputProtocol['actionOutputTagNames'],
-) => {
-  const startTagName = actionOutputTagNames[0];
-  const endTagName = actionOutputTagNames.at(-1)!;
-  const startTagRegex = new RegExp(`<${escapeRegExp(startTagName)}>`, 'i');
-  const startTag = startTagRegex.exec(content);
-  if (startTag?.index === undefined) {
-    return '';
-  }
-
-  const contentFromStartTag = content.slice(startTag.index);
-  const endTagRegex = new RegExp(`</${escapeRegExp(endTagName)}>`, 'gi');
-  const endTags = [...contentFromStartTag.matchAll(endTagRegex)];
-  const lastEndTag = endTags.at(-1);
-  const end =
-    lastEndTag?.index !== undefined
-      ? lastEndTag.index + lastEndTag[0].length
-      : contentFromStartTag.length;
-
-  return contentFromStartTag.slice(0, end);
-};
-
 /** Parse common XML fields and retain the raw action-protocol XML. */
 export function parseXMLPlanningResponse(
   xmlString: string,
@@ -130,7 +103,7 @@ export function parseXMLPlanningResponse(
       ...(updateSubGoals?.length ? { updateSubGoals } : {}),
       ...(markFinishedIndexes?.length ? { markFinishedIndexes } : {}),
     },
-    rawActionOutput: extractRawActionOutput(xmlString, actionOutputTagNames),
+    rawActionOutput: extractRawXMLFragment(xmlString, actionOutputTagNames),
   };
 }
 

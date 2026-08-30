@@ -1,3 +1,4 @@
+import { createDefaultInsightProtocol } from '@/ai-model/model-adapter/default-insight-protocol';
 import { createDefaultSearchAreaProtocol } from '@/ai-model/model-adapter/default-locate-protocol';
 import {
   buildActionDescription,
@@ -16,14 +17,27 @@ import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
+  buildInsightSystemPrompt,
   extractDataQueryPrompt,
-  systemPromptToExtract,
-} from '../../../src/ai-model/prompt/extraction';
+} from '../../../src/ai-model/prompt/insight';
 import { mockActionSpace } from '../../common';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
   jsonParser: parseModelResponseJson,
 });
+const defaultInsightProtocol = createDefaultInsightProtocol({
+  jsonParser: parseModelResponseJson,
+});
+const buildDefaultInsightSystemPrompt = (
+  options: {
+    screenshotIncluded?: boolean;
+    referenceImagesIncluded?: boolean;
+  } = {},
+) =>
+  buildInsightSystemPrompt({
+    ...options,
+    insightProtocol: defaultInsightProtocol,
+  });
 
 // Mock getPreferredLanguage to ensure consistent test output
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -531,26 +545,28 @@ describe('system prompts', () => {
 });
 
 describe('extract element', () => {
-  it('systemPromptToExtract', () => {
-    const prompt = systemPromptToExtract();
+  it('buildInsightSystemPrompt', () => {
+    const prompt = buildDefaultInsightSystemPrompt();
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract without screenshot', () => {
-    const prompt = systemPromptToExtract({ screenshotIncluded: false });
+  it('buildInsightSystemPrompt without screenshot', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
+      screenshotIncluded: false,
+    });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract with screenshot and reference images', () => {
-    const prompt = systemPromptToExtract({
+  it('buildInsightSystemPrompt with screenshot and reference images', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
       screenshotIncluded: true,
       referenceImagesIncluded: true,
     });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract with reference images and without screenshot', () => {
-    const prompt = systemPromptToExtract({
+  it('buildInsightSystemPrompt with reference images and without screenshot', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
       screenshotIncluded: false,
       referenceImagesIncluded: true,
     });

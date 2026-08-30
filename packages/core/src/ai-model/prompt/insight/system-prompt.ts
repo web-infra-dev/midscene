@@ -1,32 +1,13 @@
-import type { ServiceExtractParam } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
+import type { InsightProtocol } from '../../model-adapter/insight-protocol';
 
-export function buildTypeQueryDemandValue(
-  type: 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
-  demand: ServiceExtractParam,
-) {
-  const currentScreenshotConstraint =
-    'based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images';
-
-  if (type === 'Assert') {
-    return `Boolean, ${currentScreenshotConstraint}, whether the following statement is true: ${demand}`;
-  }
-
-  if (type === 'WaitFor') {
-    return `Boolean, the user wants to do some 'wait for' operation. ${currentScreenshotConstraint}, please check whether the following statement is true: ${demand}`;
-  }
-
-  return `${type}, ${currentScreenshotConstraint}, ${demand}`;
-}
-
-export function systemPromptToExtract(options?: {
-  screenshotIncluded?: boolean;
-  referenceImagesIncluded?: boolean;
+function buildInsightContextPrompt({
+  screenshotIncluded,
+  referenceImagesIncluded,
+}: {
+  screenshotIncluded: boolean;
+  referenceImagesIncluded: boolean;
 }) {
-  const preferredLanguage = getPreferredLanguage();
-  const screenshotIncluded = options?.screenshotIncluded ?? true;
-  const referenceImagesIncluded = options?.referenceImagesIncluded ?? false;
-
   const contextPrompts = [
     "The user will give you data requirements in <DATA_DEMAND>. You need to understand the user's requirements and extract the data satisfying the <DATA_DEMAND>.",
   ];
@@ -50,7 +31,24 @@ export function systemPromptToExtract(options?: {
         : `${referenceImagesPrompt} Do not treat reference images as direct evidence of the current state unless the demand explicitly asks you to use them that way.`,
     );
   }
-  const contextPrompt = contextPrompts.join('\n\n');
+
+  return contextPrompts.join('\n\n');
+}
+
+export function buildInsightSystemPrompt(options: {
+  screenshotIncluded?: boolean;
+  referenceImagesIncluded?: boolean;
+  insightProtocol: InsightProtocol;
+}) {
+  const preferredLanguage = getPreferredLanguage();
+  const screenshotIncluded = options.screenshotIncluded ?? true;
+  const referenceImagesIncluded = options.referenceImagesIncluded ?? false;
+  const { responsePrefix, dataOutput } = options.insightProtocol;
+
+  const contextPrompt = buildInsightContextPrompt({
+    screenshotIncluded,
+    referenceImagesIncluded,
+  });
 
   return `
 You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
@@ -59,12 +57,13 @@ ${contextPrompt}
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
-When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.
+When DATA_DEMAND is a JSON object, the keys in your response must exactly match the keys in DATA_DEMAND. Do not rename, translate, or substitute any key.${dataOutput.rules ? `\n\n${dataOutput.rules}` : ''}
 
 
 Return in the following XML format:
+${responsePrefix ? responsePrefix : ''}
 <observation>brief evidence observed for the extraction, less than 300 words. Use ${preferredLanguage} in this field.</observation>
-<data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
+${dataOutput.placeholder}
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
 # Example 1
@@ -80,14 +79,15 @@ For example, if the DATA_DEMAND is:
 
 By viewing the screenshot and page contents, you can extract the following data:
 
+${responsePrefix ? responsePrefix : ''}
 <observation>According to the screenshot, i can see ...</observation>
-<data-json>
-{
+${dataOutput.buildExample(
+  `{
   "name": "John",
   "age": 30,
   "isAdmin": true
-}
-</data-json>
+}`.trim(),
+)}
 
 # Example 2
 If the DATA_DEMAND is:
@@ -98,10 +98,9 @@ the todo items list, string[]
 
 By viewing the screenshot and page contents, you can extract the following data:
 
+${responsePrefix ? responsePrefix : ''}
 <observation>According to the screenshot, i can see ...</observation>
-<data-json>
-["todo 1", "todo 2", "todo 3"]
-</data-json>
+${dataOutput.buildExample('["todo 1", "todo 2", "todo 3"]')}
 
 # Example 3
 If the DATA_DEMAND is:
@@ -112,10 +111,9 @@ the page title, string
 
 By viewing the screenshot and page contents, you can extract the following data:
 
+${responsePrefix ? responsePrefix : ''}
 <observation>According to the screenshot, i can see ...</observation>
-<data-json>
-"todo list"
-</data-json>
+${dataOutput.buildExample('"todo list"')}
 
 # Example 4
 If the DATA_DEMAND is:
@@ -128,37 +126,8 @@ If the DATA_DEMAND is:
 
 By viewing the screenshot and page contents, you can extract the following data:
 
+${responsePrefix ? responsePrefix : ''}
 <observation>According to the screenshot, i can see ...</observation>
-<data-json>
-{ "StatementIsTruthy": true }
-</data-json>
+${dataOutput.buildExample('{ "StatementIsTruthy": true }')}
 `;
 }
-
-export const extractDataQueryPrompt = (
-  pageDescription: string,
-  dataQuery: string | Record<string, string>,
-  context?: string,
-) => {
-  let dataQueryText = '';
-  if (typeof dataQuery === 'string') {
-    dataQueryText = dataQuery;
-  } else {
-    dataQueryText = JSON.stringify(dataQuery, null, 2);
-  }
-
-  const trimmedContext = context?.trim();
-  const contextSection = trimmedContext
-    ? `\n<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n`
-    : '';
-
-  return `
-<PageDescription>
-${pageDescription}
-</PageDescription>
-${contextSection}
-<DATA_DEMAND>
-${dataQueryText}
-</DATA_DEMAND>
-  `;
-};
