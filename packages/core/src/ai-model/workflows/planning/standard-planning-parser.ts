@@ -110,15 +110,9 @@ export function parseXMLPlanningResponse(
 type ParseStandardPlanningResponseOptions = {
   includeThought: boolean;
   actionOutputProtocol: PlanningActionOutputProtocol;
-} & (
-  | {
-      logSource?: 'model';
-    }
-  | {
-      logSource: 'action';
-      actionSpace: DeviceAction<any>[];
-    }
-);
+  actionSpace: DeviceAction<any>[];
+  logSource?: 'model' | 'action';
+};
 
 function buildNonActionPlanningLog(
   response: RawResponsePlanningAIResponse,
@@ -152,7 +146,10 @@ export function parseStandardPlanningResponse(
   );
   const response: RawResponsePlanningAIResponse = {
     ...parsed,
-    action: options.actionOutputProtocol.parseActionOutput(rawActionOutput),
+    action: options.actionOutputProtocol.parseActionOutput(
+      rawActionOutput,
+      options.actionSpace,
+    ),
   };
 
   if (options.logSource !== 'action') {

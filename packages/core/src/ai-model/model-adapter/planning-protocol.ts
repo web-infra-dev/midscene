@@ -24,7 +24,10 @@ export type PlanningActionOutputProtocol = {
   actionOutputRules: string;
   actionOutputPlaceholder: string;
   buildActionOutput: (input: PlanningActionOutputBuildInput) => string;
-  parseActionOutput: (content: string) => PlanningAction | null;
+  parseActionOutput: (
+    content: string,
+    actionSpace: DeviceAction<any>[],
+  ) => PlanningAction | null;
   parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
 };
 

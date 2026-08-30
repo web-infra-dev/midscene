@@ -87,9 +87,8 @@ async function callAndParsePlanningResponse(
       const planFromAI = parseStandardPlanningResponse(response.content, {
         includeThought,
         actionOutputProtocol,
-        ...(includeLog
-          ? { logSource: 'model' }
-          : { logSource: 'action', actionSpace }),
+        actionSpace,
+        logSource: includeLog ? 'model' : 'action',
       });
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
