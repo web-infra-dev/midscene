@@ -1,8 +1,30 @@
 import { AgentProgressBus } from '@/agent/progress';
-import type { AgentProgressEvent } from '@/types';
+import { type AgentProgressEvent, isAiActProgressEvent } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentProgressBus', () => {
+  it('narrows only events from the aiAct progress stream', () => {
+    const aiActEvent: AgentProgressEvent = {
+      scope: 'aiAct',
+      phase: 'action_done',
+      sequence: 1,
+      data: { action: { name: 'Tap' }, durationMs: 20 },
+    };
+    const queryEvent: AgentProgressEvent = {
+      scope: 'aiQuery',
+      phase: 'complete',
+      sequence: 2,
+      data: { output: 'Midscene' },
+    };
+
+    expect(isAiActProgressEvent(aiActEvent)).toBe(true);
+    if (isAiActProgressEvent(aiActEvent)) {
+      expect(aiActEvent.data.action?.name).toBe('Tap');
+      expect(aiActEvent.data.durationMs).toBe(20);
+    }
+    expect(isAiActProgressEvent(queryEvent)).toBe(false);
+  });
+
   it('wraps payloads in an envelope and stamps a monotonic sequence', async () => {
     const bus = new AgentProgressBus();
     const events: AgentProgressEvent[] = [];

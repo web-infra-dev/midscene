@@ -35,6 +35,7 @@ export {
   type IGroupedActionDump,
   type ReportMeta,
   type GroupMeta,
+  isAiActProgressEvent,
 } from './types';
 
 export { z };

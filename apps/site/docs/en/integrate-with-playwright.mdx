@@ -101,6 +101,65 @@ Promise.resolve(
 
 For more Agent API details, please refer to [API Reference](./reference/#interaction-methods).
 
+### Track every atomic action
+
+An `aiAct()` call may run several atomic actions. Subscribe to the Agent progress
+stream to receive each action result while the call is still running. Async
+listeners are awaited before the next action starts, so the listener can capture
+the current page, persist debugging data, or push live progress to another
+service.
+
+```typescript
+import { mkdir } from 'node:fs/promises';
+import { chromium } from 'playwright';
+import {
+  isAiActProgressEvent,
+  PlaywrightAgent,
+} from '@midscene/web/playwright';
+
+const browser = await chromium.launch();
+const page = await browser.newPage();
+const agent = new PlaywrightAgent(page);
+await mkdir('artifacts', { recursive: true });
+
+let actionIndex = 0;
+const removeProgressListener = agent.addProgressListener(async (event) => {
+  if (
+    !isAiActProgressEvent(event) ||
+    (event.phase !== 'action_done' && event.phase !== 'action_failed')
+  ) {
+    return;
+  }
+
+  actionIndex += 1;
+  const screenshotPath = `artifacts/action-${actionIndex}-${event.phase}.png`;
+  await page.screenshot({ path: screenshotPath });
+
+  // Replace this with a WebSocket, SSE, or your own progress sink.
+  console.log({
+    actionIndex,
+    action: event.data.action?.name,
+    status: event.phase,
+    durationMs: event.data.durationMs,
+    error: event.data.error,
+    screenshotPath,
+  });
+});
+
+try {
+  await agent.aiAct('type "midscene" in the search box and click search');
+} finally {
+  removeProgressListener();
+  await browser.close();
+}
+```
+
+The listener receives progress from every `aiAct()` call on that Agent. Filter
+on `event.scope`, remove the listener when its owner is disposed, and keep the
+callback reasonably fast because execution waits for it. `action_failed` is
+emitted at the failure site, allowing the callback to preserve the current page
+before `aiAct()` rejects.
+
 ### Step 3: Run the script
 
 Use `tsx` to run, and you will see the product information printed in the terminal:
