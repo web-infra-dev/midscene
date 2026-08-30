@@ -3,7 +3,7 @@ import { getPreferredLanguage } from '@midscene/shared/env';
 import type { StandardPlanningProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
-import { locateGroundingRules } from '../locate-grounding-rules';
+import { locateGroundingRules } from '../locate';
 import {
   buildActionOutputExample,
   createSampleTapAction,

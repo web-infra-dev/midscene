@@ -4,7 +4,7 @@ import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
 import { userPromptToString } from '../../../common';
 import type { ModelRuntime } from '../../models';
-import { systemPromptToLocateSection } from '../../prompt/llm-section-locator';
+import { buildSearchAreaLocateSystemPrompt } from '../../prompt/locate';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -43,7 +43,7 @@ export async function AiLocateSection(options: {
   const { protocol: searchAreaProtocol, resultCodec } = searchArea;
   const screenshotBase64 = context.screenshot.base64;
 
-  const systemPrompt = systemPromptToLocateSection({
+  const systemPrompt = buildSearchAreaLocateSystemPrompt({
     responseInstructions: searchAreaProtocol.buildResponseInstructions(
       resultCodec.promptSpec,
     ),

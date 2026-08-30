@@ -9,7 +9,7 @@ import type {
   StandardPlanningProtocol,
 } from '@/ai-model/model-adapter/planning-protocol';
 import { getModelAdapter } from '@/ai-model/models';
-import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
+import { buildSearchAreaLocateSystemPrompt } from '@/ai-model/prompt/locate';
 import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
@@ -523,7 +523,7 @@ describe('system prompts', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const prompt = systemPromptToLocateSection({
+    const prompt = buildSearchAreaLocateSystemPrompt({
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('gemini'),
       ),
@@ -535,7 +535,7 @@ describe('system prompts', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const prompt = systemPromptToLocateSection({
+    const prompt = buildSearchAreaLocateSystemPrompt({
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('qwen2.5-vl'),
       ),

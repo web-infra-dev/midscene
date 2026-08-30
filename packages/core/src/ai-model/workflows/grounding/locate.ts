@@ -3,7 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
 import { userPromptToString } from '../../../common';
-import { systemPromptToLocateElement } from '../../prompt/llm-locator';
+import { buildElementLocateSystemPrompt } from '../../prompt/locate';
 import { AIResponseParseError, callAI } from '../../service-caller/index';
 import {
   callAiAndParseWithRetry,
@@ -122,7 +122,7 @@ export async function genericLocate(
   );
   const { protocol, resultCodec } = adapter.locate.element;
 
-  const systemPrompt = systemPromptToLocateElement({
+  const systemPrompt = buildElementLocateSystemPrompt({
     systemPromptIntroduction: protocol.systemPromptIntroduction,
     responseInstructions: protocol.buildResponseInstructions(
       resultCodec.promptSpec,

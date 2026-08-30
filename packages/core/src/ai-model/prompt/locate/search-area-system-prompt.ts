@@ -1,4 +1,4 @@
-export function systemPromptToLocateSection({
+export function buildSearchAreaLocateSystemPrompt({
   responseInstructions,
 }: {
   responseInstructions: string;

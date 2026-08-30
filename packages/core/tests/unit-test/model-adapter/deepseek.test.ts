@@ -4,7 +4,7 @@ import {
   deepSeekElementLocateProtocol,
   deepSeekSearchAreaProtocol,
 } from '@/ai-model/models/deepseek/locate-protocol';
-import { systemPromptToLocateElement } from '@/ai-model/prompt/llm-locator';
+import { buildElementLocateSystemPrompt } from '@/ai-model/prompt/locate';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from 'vitest';
 
@@ -27,7 +27,7 @@ describe('deepseek model adapter', () => {
     const responseInstructions = elementProtocol.buildResponseInstructions(
       locateAdapter.element.resultCodec.promptSpec,
     );
-    const systemPrompt = systemPromptToLocateElement({
+    const systemPrompt = buildElementLocateSystemPrompt({
       systemPromptIntroduction: elementProtocol.systemPromptIntroduction,
       responseInstructions,
     });
