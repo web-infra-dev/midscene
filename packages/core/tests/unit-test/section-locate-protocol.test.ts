@@ -90,12 +90,7 @@ describe('section locate protocol', () => {
       adapter.locate.searchArea?.resultCodec.promptSpec,
     );
     expect(vi.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
-      content: expect.stringContaining(
-        'You are an AI assistant that helps identify UI elements.',
-      ),
-    });
-    expect(vi.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
-      content: expect.not.stringContaining('Custom search-area introduction'),
+      content: expect.stringContaining('Custom search-area introduction'),
     });
     expect(callAI).toHaveBeenCalledWith(
       [

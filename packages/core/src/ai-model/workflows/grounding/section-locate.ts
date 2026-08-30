@@ -44,6 +44,7 @@ export async function AiLocateSection(options: {
   const screenshotBase64 = context.screenshot.base64;
 
   const systemPrompt = buildSearchAreaLocateSystemPrompt({
+    systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
     responseInstructions: searchAreaProtocol.buildResponseInstructions(
       resultCodec.promptSpec,
     ),

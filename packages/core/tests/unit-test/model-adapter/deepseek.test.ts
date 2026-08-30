@@ -115,7 +115,9 @@ describe('deepseek model adapter', () => {
     const responseInstructions = searchAreaProtocol.buildResponseInstructions(
       searchAreaResultCodec.promptSpec,
     );
-    expect(searchAreaProtocol.systemPromptIntroduction).toBe('');
+    expect(searchAreaProtocol.systemPromptIntroduction).toContain(
+      'You are a GUI grounding agent.',
+    );
     expect(responseInstructions).toContain(
       'you MUST return that visible element as a reference',
     );

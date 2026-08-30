@@ -524,6 +524,7 @@ describe('system prompts', () => {
       jsonParser: parseModelResponseJson,
     });
     const prompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('gemini'),
       ),
@@ -536,6 +537,7 @@ describe('system prompts', () => {
       jsonParser: parseModelResponseJson,
     });
     const prompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('qwen2.5-vl'),
       ),

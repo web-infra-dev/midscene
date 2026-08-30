@@ -39,6 +39,7 @@ describe('default locate protocol', () => {
     expect(elementProtocol.expectedJsonObjectResponse).toBe(true);
 
     const searchAreaSystemPrompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions:
         searchAreaProtocol.buildResponseInstructions(locatePromptSpec),
     });
