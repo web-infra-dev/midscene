@@ -50,14 +50,20 @@ const buildGlmChatCompletionParams = (
         type: 'enabled',
         clear_thinking: false,
       };
-      // Thinking cannot be disabled, so a "no reasoning" intent maps to the
-      // cheapest effort level. `low` was sufficient for the KSL-49 vision
-      // probes; users can raise it via the reasoning-effort config.
-      modelSpecificConfig.reasoning_effort =
-        userConfig.reasoningEffort ?? 'low';
-    } else if (userConfig.reasoningEffort) {
-      modelSpecificConfig.reasoning_effort = userConfig.reasoningEffort;
+      if (reasoningEnabled !== true) {
+        // Thinking cannot be disabled, so a "no reasoning" intent (explicit
+        // false or unset) maps to the cheapest effort level. `low` was
+        // sufficient for the KSL-49 vision probes; users can raise it via
+        // the reasoning-effort config.
+        modelSpecificConfig.reasoning_effort =
+          userConfig.reasoningEffort ?? 'low';
+      } else if (userConfig.reasoningEffort) {
+        modelSpecificConfig.reasoning_effort = userConfig.reasoningEffort;
+      }
     }
+    // reasoningEnabled='default' sends no thinking or effort override, per
+    // the documented contract in docs/model-config.mdx: default follows the
+    // provider behavior and ignores explicit effort settings.
   } else if (reasoningEnabled !== 'default') {
     modelSpecificConfig.thinking = {
       type: (reasoningEnabled ?? false) ? 'enabled' : 'disabled',

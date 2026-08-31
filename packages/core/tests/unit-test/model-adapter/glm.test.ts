@@ -151,6 +151,30 @@ describe('glm-5.3-flash always-thinking contract', () => {
     });
   });
 
+  it('keeps the provider effort default when reasoning is explicitly enabled without effort', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { reasoningEnabled: true },
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+      thinking: { type: 'enabled', clear_thinking: false },
+    });
+    expect(result.config.reasoning_effort).toBeUndefined();
+  });
+
+  it('ignores an explicit effort in default reasoning mode for glm-5.3-flash', () => {
+    const result = glmAdapter.chatCompletion.buildChatCompletionParams({
+      modelName: 'glm-5.3-flash',
+      userConfig: { reasoningEnabled: 'default', reasoningEffort: 'high' },
+    });
+    expect(result.config).toEqual({
+      temperature: 1,
+      top_p: 0.95,
+    });
+  });
+
   it('follows provider default for glm-5.3-flash when reasoningEnabled=default', () => {
     const result = glmAdapter.chatCompletion.buildChatCompletionParams({
       modelName: 'glm-5.3-flash',
