@@ -22,11 +22,11 @@ const createAgentStub = () => {
         yamlFlow: [],
       },
     })),
-    createTypeQueryExecution: rs.fn(async () => ({
+    createTypeQueryExecution: rs.fn(async (..._args: unknown[]) => ({
       output: true,
       thought: 'ok',
     })),
-    runPlans: rs.fn(async () => ({
+    runPlans: rs.fn(async (..._args: unknown[]) => ({
       output: {
         element: {
           rect: { left: 0, top: 0, width: 10, height: 10 },
@@ -35,7 +35,7 @@ const createAgentStub = () => {
         },
       },
     })),
-    waitFor: rs.fn(async () => undefined),
+    waitFor: rs.fn(async (..._args: unknown[]) => undefined),
   };
   const taskCache = {
     matchPlanCache: rs.fn(),
@@ -242,7 +242,7 @@ describe('Agent per-call context option', () => {
 
     await agent.aiAssert('The success toast is visible', undefined, options);
 
-    expect(taskExecutor.createTypeQueryExecution.mock.calls[0][3]).toEqual({
+    expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
       context:
         'Global context.\n\nThe current user is a logged-in buyer.\n\nPrevious workflow results (read-only):\nlaunch passed',
       domIncluded: false,
@@ -265,10 +265,13 @@ describe('Agent per-call context option', () => {
       checkIntervalMs: 100,
     });
 
-    expect(taskExecutor.runPlans.mock.calls[0][1][0].param.prompt).toContain(
+    const locatePlans = taskExecutor.runPlans.mock.calls[0]?.[1] as
+      | Array<{ param: { prompt: string } }>
+      | undefined;
+    expect(locatePlans?.[0]?.param.prompt).toContain(
       '<CONTEXT>\nGlobal context.\n\nUse the cart footer.\n</CONTEXT>',
     );
-    expect(taskExecutor.createTypeQueryExecution.mock.calls[0][3]).toEqual({
+    expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
       context: 'Global context.\n\nThe cart has one item.',
     });
     expect(taskExecutor.waitFor).toHaveBeenCalledWith(
