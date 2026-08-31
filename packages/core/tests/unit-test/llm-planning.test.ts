@@ -38,6 +38,7 @@ const parseStandardPlanningResponse = (
   parseStandardPlanningResponseWithOptions(xmlString, {
     ...options,
     actionOutputProtocol: defaultMidscenePlanningProtocol.actionOutputProtocol,
+    actionSpace: options.logSource === 'action' ? options.actionSpace : [],
   });
 
 describe('llm planning - doubao', () => {

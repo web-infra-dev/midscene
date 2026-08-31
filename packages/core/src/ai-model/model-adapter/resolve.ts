@@ -1,5 +1,7 @@
 import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
+import { resolveInsight } from './insight';
+import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
 import type {
@@ -39,6 +41,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
   readonly chatCompletion: ChatCompletionAdapter;
   readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
+  readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
 
@@ -47,6 +50,9 @@ export class ResolvedModelAdapter implements ModelAdapter {
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
     this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
+    this.insight = resolveInsight(config.insight, {
+      jsonParser: this.jsonParser,
+    });
     const customPlanner =
       config.planning?.kind === 'custom' ? config.planning.planner : undefined;
     const resolvedCustomPlanner = customPlanner

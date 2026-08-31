@@ -240,10 +240,8 @@ describe('grounding locate not-found parsing', () => {
     });
 
     expect(locateFn).toHaveBeenCalledWith(
-      'custom target',
-      expect.any(Object),
       expect.objectContaining({
-        elementDescriptionText: 'custom target',
+        targetElementDescription: 'custom target',
         locateImage: {
           imageBase64: 'data:image/png;base64,CROP==',
           width: 300,

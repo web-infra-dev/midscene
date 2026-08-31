@@ -3,7 +3,7 @@ import { getPreferredLanguage } from '@midscene/shared/env';
 import type { StandardPlanningProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
-import { locateGroundingRules } from '../locate-grounding-rules';
+import { locateGroundingRules } from '../locate';
 import {
   buildActionOutputExample,
   createSampleTapAction,
@@ -322,6 +322,8 @@ For example:
 
 Return in XML format following this decision flow:
 
+${planningProtocol.responsePrefix ?? ''}
+
 ${renderThoughtContent(`**Always include (REQUIRED):**
 <!-- Step 1: Observe and Plan -->
 <planning>Your planning details here. NEVER skip this tag.</planning>`)}
@@ -355,5 +357,6 @@ ${buildPlanningMultiTurnExample({
   includeLog,
   locatePromptSpec,
   actionOutputProtocol,
+  prefix: planningProtocol.responsePrefix,
 })}`;
 }

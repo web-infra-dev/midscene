@@ -358,7 +358,7 @@ export class TaskRunner {
           `unsupported task type: ${task.type}`,
         );
 
-        const { executor, param } = task;
+        const { executor } = task;
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
@@ -386,9 +386,9 @@ export class TaskRunner {
               task.subType === 'String',
             `unsupported service subType: ${task.subType}`,
           );
-          returnValue = await task.executor(param, executorContext);
+          returnValue = await task.executor(executorContext);
         } else if (task.type === 'Planning') {
-          returnValue = await task.executor(param, executorContext);
+          returnValue = await task.executor(executorContext);
           if (task.subType === 'Locate') {
             previousFindOutput = (
               returnValue as ExecutionTaskReturn<ExecutionTaskPlanningLocateOutput>
@@ -396,7 +396,7 @@ export class TaskRunner {
           }
         } else if (task.type === 'Action Space') {
           try {
-            returnValue = await task.executor(param, executorContext);
+            returnValue = await task.executor(executorContext);
           } finally {
             // The short TTL still lets planning and the action itself share one
             // context. Once an action settles, time alone can no longer prove
@@ -407,7 +407,7 @@ export class TaskRunner {
           console.warn(
             `unsupported task type: ${task.type}, will try to execute it directly`,
           );
-          returnValue = await task.executor(param, executorContext);
+          returnValue = await task.executor(executorContext);
         }
 
         const isLastTask = taskIndex === this.tasks.length - 1;

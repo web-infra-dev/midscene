@@ -1,6 +1,5 @@
 import type { AIUsageInfo, PixelBbox, Rect, UIContext } from '@/types';
 import type { LocateResultElement } from '@midscene/shared/types';
-import type { ChatCompletionUserMessageParam } from 'openai/resources/index';
 import type { TUserPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
 
@@ -30,14 +29,13 @@ export interface LocateOptions {
   abortSignal?: AbortSignal;
 }
 
-export interface LocateRequestContext {
-  elementDescriptionText: string;
+export interface LocateRequest {
+  targetElementDescription: TUserPrompt;
   locateImage: {
     imageBase64: string;
     width: number;
     height: number;
   };
-  referenceImageMessages?: ChatCompletionUserMessageParam[];
   options: LocateOptions;
 }
 
@@ -63,7 +61,5 @@ export interface LocateModelResponse {
 }
 
 export type LocateFn = (
-  elementDescription: TUserPrompt,
-  options: LocateOptions,
-  locateRequest: LocateRequestContext,
+  locateRequest: LocateRequest,
 ) => Promise<LocateModelResponse>;

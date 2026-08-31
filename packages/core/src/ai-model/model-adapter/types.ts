@@ -21,6 +21,7 @@ import type { LocateFn } from '../workflows/grounding/types';
 import type { PlanFn } from '../workflows/planning/types';
 import type { CustomPlanningDefinition } from './custom-planning-types';
 import type { ImagePreprocessPolicy } from './image-preprocess';
+import type { InsightAdapter, InsightDefinition } from './insight-protocol';
 import type {
   StandardLocateProtocol,
   StandardLocateProtocolDefinition,
@@ -202,8 +203,11 @@ export type PlanningDefinition =
           }
       ));
 
+export type LocateUserMessageContentOrder = 'image-first' | 'prompt-first';
+
 type StandardLocateAdapter = {
   kind: 'standard';
+  userMessageContentOrder: LocateUserMessageContentOrder;
   element: LocateOperation;
   searchArea?: LocateOperation;
 };
@@ -222,6 +226,7 @@ export type LocateAdapter = StandardLocateAdapter | CustomLocateAdapter;
 
 type StandardLocateDefinition = {
   kind?: 'standard';
+  userMessageContentOrder?: LocateUserMessageContentOrder;
   element?: LocateOperationDefinition;
   searchArea?: LocateOperationDefinition | false;
 };
@@ -258,6 +263,7 @@ export interface ModelAdapter {
   chatCompletion: ChatCompletionAdapter;
   acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
+  insight: InsightAdapter;
   planning: PlanningAdapter;
   locate: LocateAdapter;
 }
@@ -289,6 +295,7 @@ export interface ModelAdapterDefinition {
    */
   acceptBbox2dAlias?: boolean;
   imagePreprocess?: ImagePreprocessDefinition;
+  insight?: InsightDefinition;
   planning?: PlanningDefinition;
   locate?: LocateDefinition;
 }

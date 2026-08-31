@@ -1,4 +1,3 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -20,6 +19,10 @@ import type {
   LocateResultContext,
 } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
+import {
+  type PreparedUserPrompt,
+  preparedReferenceImagesToChatMessages,
+} from '../../shared/multimodal-prompt';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
@@ -84,9 +87,8 @@ async function callAndParsePlanningResponse(
       const planFromAI = parseStandardPlanningResponse(response.content, {
         includeThought,
         actionOutputProtocol,
-        ...(includeLog
-          ? { logSource: 'model' }
-          : { logSource: 'action', actionSpace }),
+        actionSpace,
+        logSource: includeLog ? 'model' : 'action',
       });
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
@@ -97,16 +99,17 @@ async function callAndParsePlanningResponse(
       }
 
       const actions = planFromAI.action ? [planFromAI.action] : [];
-      // Keep yamlFlow based on the model's original action params. Coordinate
-      // normalization adds runtime-only locatedPixelBbox fields afterwards.
-      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
       normalizePlanningActionLocateFields(actions, {
         actionSpace,
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
         acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
+        parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
       });
+      // dumpActionParam keeps only the locator prompt, so runtime-only
+      // locatedPixelBbox fields added during normalization are not serialized.
+      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
       return { response, planFromAI, actions, yamlFlow };
     },
     toParseError: (parseError, response) => {
@@ -133,7 +136,7 @@ async function callAndParsePlanningResponse(
 }
 
 export async function standardPlan(
-  userInstruction: TUserPrompt,
+  userInstruction: PreparedUserPrompt,
   opts: PlanOptions,
 ): Promise<PlanningAIResponse> {
   const { context, conversationHistory } = opts;
@@ -190,19 +193,20 @@ export async function standardPlan(
   });
   const imagePayload = preparedImage.imageBase64;
 
-  const userInstructionText = userPromptToString(userInstruction);
   const actionContext = opts.actionContext
     ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
     : '';
 
-  const referenceImageMessages = opts.referenceImageMessages ?? [];
+  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+    userInstruction.referenceImages,
+  );
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${actionContext}<user_instruction>${userInstructionText}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction.text}</user_instruction>`,
         },
       ],
     },

@@ -1,3 +1,4 @@
+import { createDefaultInsightProtocol } from '@/ai-model/model-adapter/default-insight-protocol';
 import { createDefaultSearchAreaProtocol } from '@/ai-model/model-adapter/default-locate-protocol';
 import {
   buildActionDescription,
@@ -8,7 +9,7 @@ import type {
   StandardPlanningProtocol,
 } from '@/ai-model/model-adapter/planning-protocol';
 import { getModelAdapter } from '@/ai-model/models';
-import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
+import { buildSearchAreaLocateSystemPrompt } from '@/ai-model/prompt/locate';
 import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
@@ -16,14 +17,27 @@ import type { TModelFamily } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
+  buildInsightSystemPrompt,
   extractDataQueryPrompt,
-  systemPromptToExtract,
-} from '../../../src/ai-model/prompt/extraction';
+} from '../../../src/ai-model/prompt/insight';
 import { mockActionSpace } from '../../common';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({
   jsonParser: parseModelResponseJson,
 });
+const defaultInsightProtocol = createDefaultInsightProtocol({
+  jsonParser: parseModelResponseJson,
+});
+const buildDefaultInsightSystemPrompt = (
+  options: {
+    screenshotIncluded?: boolean;
+    referenceImagesIncluded?: boolean;
+  } = {},
+) =>
+  buildInsightSystemPrompt({
+    ...options,
+    insightProtocol: defaultInsightProtocol,
+  });
 
 // Mock getPreferredLanguage to ensure consistent test output
 vi.mock('@midscene/shared/env', async (importOriginal) => {
@@ -128,11 +142,13 @@ describe('system prompts', () => {
       buildActionOutput: ({ actionName }) =>
         `<custom-action type="${actionName}"></custom-action>`,
       parseActionOutput: vi.fn(),
+      parseRawLocateParameter: (value) => value as any,
     };
     const planningProtocol = {
       actionSpaceProtocol: {
         title: 'Custom action space',
         format: 'yaml',
+        includeActionOutputExample: true,
         buildLocateFieldDescription: () => 'CUSTOM_LOCATE_DESCRIPTION',
         buildActionDescription: (input) => ({
           marker: 'CUSTOM_ACTION_SPACE_DESCRIPTION',
@@ -507,7 +523,8 @@ describe('system prompts', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const prompt = systemPromptToLocateSection({
+    const prompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('gemini'),
       ),
@@ -519,7 +536,8 @@ describe('system prompts', () => {
     const searchAreaProtocol = createDefaultSearchAreaProtocol({
       jsonParser: parseModelResponseJson,
     });
-    const prompt = systemPromptToLocateSection({
+    const prompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions: searchAreaProtocol.buildResponseInstructions(
         locatePromptSpecFor('qwen2.5-vl'),
       ),
@@ -529,26 +547,28 @@ describe('system prompts', () => {
 });
 
 describe('extract element', () => {
-  it('systemPromptToExtract', () => {
-    const prompt = systemPromptToExtract();
+  it('buildInsightSystemPrompt', () => {
+    const prompt = buildDefaultInsightSystemPrompt();
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract without screenshot', () => {
-    const prompt = systemPromptToExtract({ screenshotIncluded: false });
+  it('buildInsightSystemPrompt without screenshot', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
+      screenshotIncluded: false,
+    });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract with screenshot and reference images', () => {
-    const prompt = systemPromptToExtract({
+  it('buildInsightSystemPrompt with screenshot and reference images', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
       screenshotIncluded: true,
       referenceImagesIncluded: true,
     });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('systemPromptToExtract with reference images and without screenshot', () => {
-    const prompt = systemPromptToExtract({
+  it('buildInsightSystemPrompt with reference images and without screenshot', () => {
+    const prompt = buildDefaultInsightSystemPrompt({
       screenshotIncluded: false,
       referenceImagesIncluded: true,
     });

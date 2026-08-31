@@ -1,7 +1,6 @@
 import { type TModelFamily, UITarsModelVersion } from '@midscene/shared/env';
 import { assert } from '@midscene/shared/utils';
 import type { ModelAdapterDefinition } from '../../model-adapter/types';
-import { parseModelResponseJson } from '../../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -98,7 +97,6 @@ function createUiTarsAdapter(
   uiTarsModelVersion: UITarsModelVersion,
 ): ModelAdapterDefinition {
   return {
-    jsonParser: parseModelResponseJson,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',

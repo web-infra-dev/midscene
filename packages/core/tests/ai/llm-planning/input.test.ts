@@ -1,5 +1,11 @@
-import { ConversationHistory, standardPlan } from '@/ai-model';
+import {
+  ConversationHistory,
+  standardPlan as runPreparedStandardPlan,
+} from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { mockActionSpace } from '../../common';
@@ -11,6 +17,11 @@ vi.setConfig({
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 const defaultModelRuntime = getModelRuntime(defaultModelConfig);
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 describe('automation - planning input', () => {
   it('input value', async () => {

@@ -1,4 +1,7 @@
-import type { StandardPlanningProtocol } from '@/ai-model/model-adapter/planning-protocol';
+import type {
+  ParsedPlanningLocateParameter,
+  StandardPlanningProtocol,
+} from '@/ai-model/model-adapter/planning-protocol';
 import { buildPlanningActionSpaceDescription } from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { getMidsceneLocationSchema } from '@/index';
@@ -23,6 +26,7 @@ describe('buildPlanningActionSpaceDescription', () => {
       actionSpaceProtocol: {
         title: 'Functions',
         format: 'jsonl',
+        includeActionOutputExample: true,
         buildLocateFieldDescription,
         buildActionDescription: ({
           action,
@@ -40,6 +44,8 @@ describe('buildPlanningActionSpaceDescription', () => {
         actionOutputPlaceholder: '<tool>...</tool>',
         buildActionOutput,
         parseActionOutput: () => null,
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
       },
     };
 
@@ -74,5 +80,44 @@ describe('buildPlanningActionSpaceDescription', () => {
       locateFields: ['locate'],
       locateResultKey: 'point',
     });
+  });
+
+  it('skips action output examples when the action space protocol excludes them', () => {
+    const buildActionOutput = vi.fn(() => '<tool>Tap</tool>');
+    const planningProtocol: StandardPlanningProtocol = {
+      actionSpaceProtocol: {
+        title: 'Functions',
+        format: 'jsonl',
+        includeActionOutputExample: false,
+        buildLocateFieldDescription: () => 'LOCATE_FIELD',
+        buildActionDescription: ({ action, actionOutputExample }) => ({
+          name: action.name,
+          actionOutputExample,
+        }),
+      },
+      actionOutputProtocol: {
+        actionOutputTagNames: ['tool'],
+        actionOutputRules: 'Return a tool.',
+        actionOutputPlaceholder: '<tool>...</tool>',
+        buildActionOutput,
+        parseActionOutput: () => null,
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
+      },
+    };
+
+    expect(
+      buildPlanningActionSpaceDescription({
+        actionSpace: [
+          {
+            name: 'Tap',
+            sample: { locate: { prompt: 'the Submit button' } },
+            call: async () => {},
+          },
+        ],
+        planningProtocol,
+      }),
+    ).toBe('{"name":"Tap"}');
+    expect(buildActionOutput).not.toHaveBeenCalled();
   });
 });

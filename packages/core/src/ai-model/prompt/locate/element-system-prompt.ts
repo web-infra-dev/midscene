@@ -1,6 +1,6 @@
-import { locateGroundingRules } from './locate-grounding-rules';
+import { locateGroundingRules } from './grounding-rules';
 
-export function systemPromptToLocateElement({
+export function buildElementLocateSystemPrompt({
   systemPromptIntroduction,
   responseInstructions,
 }: {

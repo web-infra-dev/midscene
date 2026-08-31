@@ -154,7 +154,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       );
 
       // Execute the task
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -196,7 +196,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -240,7 +240,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       // Keep a falsy assertion result as task output. The caller turns it into
       // an assertion error after TaskRunner persists the task dump.
       await expect(
-        queryTask.executor({}, {
+        queryTask.executor({
           task: queryTask,
           uiContext: await createEmptyUIContext(),
         } as any),
@@ -308,7 +308,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -376,7 +376,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -501,7 +501,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      await queryTask.executor({}, {
+      await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -550,7 +550,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -589,7 +589,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -630,7 +630,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -674,7 +674,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -773,7 +773,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -829,7 +829,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);

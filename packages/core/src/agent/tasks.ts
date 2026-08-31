@@ -1,7 +1,7 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
-import { multimodalPromptToChatMessages } from '@/ai-model/shared/multimodal-prompt';
+import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
@@ -314,7 +314,7 @@ export class TaskExecutor {
           ? { userInstructionDisplay: reportOptions.prompt }
           : {}),
       },
-      executor: async (param, executorContext) => {
+      executor: async (executorContext) => {
         const { uiContext } = executorContext;
         assert(uiContext, 'uiContext is required for Planning task');
         return {
@@ -534,9 +534,14 @@ export class TaskExecutor {
         `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
       );
     }
-    const referenceImageMessages = await multimodalPromptToChatMessages(
-      userPromptToMultimodalPrompt(userPrompt),
-    );
+    const getPreparedUserPrompt = (() => {
+      let promise: ReturnType<typeof prepareUserPrompt> | undefined;
+
+      return () => {
+        promise ??= prepareUserPrompt(userPrompt);
+        return promise;
+      };
+    })();
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -573,10 +578,9 @@ export class TaskExecutor {
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
-          executor: async (param, executorContext) => {
+          executor: async (executorContext) => {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
-            assert(param.effort, 'effort is required for Planning Plan task');
             const planningUiContext = uiContext as UIContext;
             const timing = executorContext.task.timing;
             await this.emitAiActProgress('plan_thinking', {
@@ -604,17 +608,18 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
+              const preparedUserPrompt = await getPreparedUserPrompt();
+
               setTimingFieldOnce(timing, 'callAiStart');
-              planResult = await planImpl(param.userInstruction, {
+              planResult = await planImpl(preparedUserPrompt, {
                 context: planningUiContext,
-                actionContext: param.aiActContext,
+                actionContext: aiActContext,
                 actionSpace,
                 modelRuntime: planningModel,
                 conversationHistory,
                 includeLocateInPlanning,
-                imagesIncludeCount: param.imagesIncludeCount,
-                effort: param.effort,
-                referenceImageMessages,
+                imagesIncludeCount,
+                effort,
                 abortSignal,
               });
             } catch (planError) {
@@ -886,7 +891,7 @@ export class TaskExecutor {
             } as never)
           : demand, // for user param presentation in report right sidebar
       },
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const { task } = taskContext;
         let queryDump: ServiceDump | undefined;
         const applyDump = (dump: ServiceDump) => {

@@ -9,12 +9,21 @@ vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
   };
 });
 
+vi.mock('@midscene/shared/img', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
+  return {
+    ...actual,
+    preProcessImageUrl: vi.fn(async (url: string) => `prepared:${url}`),
+  };
+});
+
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, ExecutorContext } from '@/types';
+import { preProcessImageUrl } from '@midscene/shared/img';
 import { z } from 'zod';
 import type Service from '../../src';
 
@@ -150,7 +159,7 @@ describe('TaskExecutor concurrency isolation', () => {
       );
 
       expect(standardPlan).toHaveBeenCalledWith(
-        'prompt',
+        { text: 'prompt', referenceImages: [] },
         expect.objectContaining({
           effort,
           includeLocateInPlanning: expectedIncludeLocateInPlanning,
@@ -186,6 +195,52 @@ describe('TaskExecutor concurrency isolation', () => {
     expect(result.runner.dump().getReferenceImageUrls()).toEqual([
       validBase64Image,
     ]);
+  });
+
+  it('prepares aiAct reference images once across replanning cycles', async () => {
+    vi.mocked(standardPlan)
+      .mockResolvedValueOnce({
+        actions: [],
+        yamlFlow: [],
+        shouldContinuePlanning: true,
+        log: 'continue',
+        rawResponse: '',
+      })
+      .mockResolvedValueOnce({
+        actions: [],
+        yamlFlow: [],
+        shouldContinuePlanning: false,
+        log: '',
+        rawResponse: '',
+        finalizeSuccess: true,
+        finalizeMessage: 'done',
+      });
+
+    await taskExecutor.action(
+      {
+        prompt: 'compare with the reference image',
+        images: [{ name: 'reference', url: 'https://example.com/image.png' }],
+        convertHttpImage2Base64: true,
+      },
+      planningModel(),
+      defaultModel(),
+    );
+
+    expect(preProcessImageUrl).toHaveBeenCalledTimes(1);
+    expect(standardPlan).toHaveBeenCalledTimes(2);
+    expect(standardPlan).toHaveBeenNthCalledWith(
+      2,
+      {
+        text: 'compare with the reference image',
+        referenceImages: [
+          {
+            name: 'reference',
+            url: 'prepared:https://example.com/image.png',
+          },
+        ],
+      },
+      expect.any(Object),
+    );
   });
 
   it('should isolate conversation history between concurrent action calls', async () => {
@@ -268,11 +323,13 @@ describe('TaskExecutor concurrency isolation', () => {
     vi.mocked(standardPlan).mockImplementation(async (instruction: any) => {
       // Gate B's plan until A is executing inside its action batch, so the
       // two batches are guaranteed to overlap.
-      if (instruction === 'B') {
+      if (instruction.text === 'B') {
         await aInBatch.promise;
       }
       return {
-        actions: [{ type: instruction === 'A' ? 'TapA' : 'TapB', param: {} }],
+        actions: [
+          { type: instruction.text === 'A' ? 'TapA' : 'TapB', param: {} },
+        ],
         yamlFlow: [],
         shouldContinuePlanning: false,
         log: '',
@@ -503,7 +560,7 @@ Stdout:
             type: 'Action Space',
             subType: 'RunAdbShell',
             param: { command: 'settings get system screen_brightness' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = planningFeedback;
               return {
                 output: '0',
@@ -575,7 +632,7 @@ Stdout:
             type: 'Action Space',
             subType: 'RunAdbShell',
             param: { command: 'cat big-file' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = longFeedback;
               return {
                 output: longFeedback,
@@ -663,7 +720,7 @@ mCurrentFocus=Window{abc}`;
             type: 'Action Space',
             subType: 'RunAdbShell',
             param: { command: 'settings get system screen_brightness' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = firstPlanningFeedback;
               return {
                 output: '0',
@@ -674,7 +731,7 @@ mCurrentFocus=Window{abc}`;
             type: 'Action Space',
             subType: 'RunAdbShell',
             param: { command: 'settings get system screen_off_timeout' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = secondPlanningFeedback;
               return {
                 output: '30000',
@@ -685,7 +742,7 @@ mCurrentFocus=Window{abc}`;
             type: 'Action Space',
             subType: 'RunAdbShell',
             param: { command: 'dumpsys window' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = thirdPlanningFeedback;
               return {
                 output: 'mCurrentFocus=Window{abc}',
@@ -788,7 +845,7 @@ ${thirdPlanningFeedback}`);
             type: 'Action Space',
             subType: 'WriteState',
             param: { key: 'clipboard' },
-            executor: async (_param: unknown, context: ExecutorContext) => {
+            executor: async (context: ExecutorContext) => {
               context.task.planningFeedback = '';
               return {
                 output: '',

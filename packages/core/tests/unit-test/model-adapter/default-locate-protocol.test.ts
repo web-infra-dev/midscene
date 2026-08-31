@@ -2,8 +2,10 @@ import {
   createDefaultElementProtocol,
   createDefaultSearchAreaProtocol,
 } from '@/ai-model/model-adapter/default-locate-protocol';
-import { systemPromptToLocateElement } from '@/ai-model/prompt/llm-locator';
-import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
+import {
+  buildElementLocateSystemPrompt,
+  buildSearchAreaLocateSystemPrompt,
+} from '@/ai-model/prompt/locate';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,7 +23,7 @@ describe('default locate protocol', () => {
       order: 'xy',
       normalizedBy: 1000,
     });
-    const systemPrompt = systemPromptToLocateElement({
+    const systemPrompt = buildElementLocateSystemPrompt({
       systemPromptIntroduction: elementProtocol.systemPromptIntroduction,
       responseInstructions:
         elementProtocol.buildResponseInstructions(locatePromptSpec),
@@ -36,7 +38,8 @@ describe('default locate protocol', () => {
     );
     expect(elementProtocol.expectedJsonObjectResponse).toBe(true);
 
-    const searchAreaSystemPrompt = systemPromptToLocateSection({
+    const searchAreaSystemPrompt = buildSearchAreaLocateSystemPrompt({
+      systemPromptIntroduction: searchAreaProtocol.systemPromptIntroduction,
       responseInstructions:
         searchAreaProtocol.buildResponseInstructions(locatePromptSpec),
     });

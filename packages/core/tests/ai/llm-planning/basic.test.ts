@@ -1,5 +1,11 @@
-import { ConversationHistory, standardPlan } from '@/ai-model';
+import {
+  ConversationHistory,
+  standardPlan as runPreparedStandardPlan,
+} from '@/ai-model';
 import { getModelRuntime } from '@/ai-model/models';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import type { PlanOptions } from '@/ai-model/workflows/planning/types';
+import type { TUserPrompt } from '@/common';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 import { mockActionSpace } from '../../common';
@@ -12,6 +18,11 @@ vi.setConfig({
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 const modelRuntime = getModelRuntime(modelConfig);
+
+const standardPlan = async (
+  userInstruction: TUserPrompt,
+  options: PlanOptions,
+) => runPreparedStandardPlan(await prepareUserPrompt(userInstruction), options);
 
 // These assertions check a deterministic next-action shape. In real
 // model-family runs, planning may choose a valid intermediate Tap before Input
