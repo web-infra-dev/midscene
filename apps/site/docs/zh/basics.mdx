@@ -24,6 +24,14 @@ await agent.aiAct(
 );
 ```
 
+如需为所有需要调用 AI 模型的 Agent API 提供共享业务上下文，可以在创建 Agent 时设置 `globalContext`：
+
+```typescript
+const agent = new PlaywrightAgent(page, {
+  globalContext: '页面中的价格单位是美元。',
+});
+```
+
 如需为后续所有 `aiAct` 调用补充业务上下文，可以使用 [`agent.setAIActContext()`](./reference/#agentsetaiactcontext)：
 
 ```typescript
@@ -36,7 +44,7 @@ agent.setAIActContext(
 
 - `deepThink`：加强任务拆解，并通过不同的模型调用分别完成规划和元素定位。该选项可以提高复杂任务的稳定性，但会增加模型调用次数和延迟。
 - `deepLocate`：增加一次模型调用，提高元素定位的准确性。当目标元素较小或容易与周围元素混淆时，可以启用该选项。
-- `context`：仅为本次调用补充业务知识或其他背景信息。对于 `aiAct`，该选项会覆盖 Agent 级别的 `aiActContext`。显式传入空字符串也会覆盖原有内容。
+- `context`：仅为本次调用补充业务知识或其他背景信息。对于 `aiAct`，该选项会覆盖 Agent 级别的 `aiActContext`，显式传入空字符串也会覆盖；最终内容会追加在 `globalContext` 之后。
 
 ```typescript
 await agent.aiAct('完成结账表单，在下单前停止', {

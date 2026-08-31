@@ -83,7 +83,7 @@ import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
-import { buildPromptWithContext } from './prompt-context';
+import { buildPromptWithContext, mergeAIContexts } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
@@ -128,23 +128,12 @@ export type AiActOptions = {
 };
 
 type AiActInternalOptions = AiActOptions & {
-  /** Append framework-owned context without changing public context override semantics. */
-  _internalContextMode?: 'append';
+  /** Framework-owned context appended after all user-configured context. */
+  _internalAdditionalContext?: string;
   _internalReportDisplay?: {
     type?: TaskTitleType;
     prompt?: string;
   };
-};
-
-const appendAiActContext = (
-  baseContext: string | undefined,
-  appendedContext: string | undefined,
-): string | undefined => {
-  if (baseContext === undefined) return appendedContext;
-  if (appendedContext === undefined) return baseContext;
-  if (!baseContext) return appendedContext;
-  if (!appendedContext) return baseContext;
-  return `${baseContext}\n\n${appendedContext}`;
 };
 
 /**
@@ -241,6 +230,20 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.opts.aiActContext ?? this.opts.aiActionContext;
   }
 
+  private withGlobalContext<T extends { context?: string }>(
+    options?: T,
+  ): T | undefined {
+    const context = mergeAIContexts(this.opts.globalContext, options?.context);
+    if (context === undefined) {
+      return options;
+    }
+
+    return {
+      ...(options ?? ({} as T)),
+      context,
+    };
+  }
+
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
@@ -318,6 +321,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       this.taskExecutor,
       () => this.resolveModelRuntime('insight'),
       getUIContext,
+      () => this.opts.globalContext,
     );
   }
 
@@ -807,7 +811,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for tap');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withGlobalContext(opt),
+    );
 
     const fileChooserAccept = opt?.fileChooserAccept
       ? this.normalizeFileInput(opt.fileChooserAccept)
@@ -826,7 +833,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for right click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withGlobalContext(opt),
+    );
 
     await this.callActionInActionSpace('RightClick', {
       locate: detailedLocateParam,
@@ -839,7 +849,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for double click');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withGlobalContext(opt),
+    );
 
     await this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
@@ -849,7 +862,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for hover');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withGlobalContext(opt),
+    );
 
     await this.callActionInActionSpace('Hover', {
       locate: detailedLocateParam,
@@ -916,7 +932,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      opt,
+      this.withGlobalContext(opt),
     );
 
     // Convert value to string to ensure consistency
@@ -987,7 +1003,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withGlobalContext(opt),
     );
 
     await this.callActionInActionSpace('KeyboardPress', {
@@ -1068,7 +1084,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withGlobalContext(opt),
     );
 
     await this.callActionInActionSpace('Scroll', {
@@ -1087,7 +1103,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      opt,
+      this.withGlobalContext(opt),
     );
 
     await this.callActionInActionSpace('Pinch', {
@@ -1104,7 +1120,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      opt,
+      this.withGlobalContext(opt),
     );
 
     await this.callActionInActionSpace('LongPress', {
@@ -1119,7 +1135,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     assert(locatePrompt, 'missing locate prompt for clear input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      this.withGlobalContext(opt),
+    );
 
     await this.callActionInActionSpace('ClearInput', {
       locate: detailedLocateParam,
@@ -1149,12 +1168,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext =
-        internalOptions?._internalContextMode === 'append'
-          ? appendAiActContext(this.aiActContext, opt?.context)
-          : opt?.context !== undefined
-            ? opt.context
-            : this.aiActContext;
+      const aiActContext = mergeAIContexts(
+        this.opts.globalContext,
+        opt?.context !== undefined ? opt.context : this.aiActContext,
+        internalOptions?._internalAdditionalContext,
+      );
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
@@ -1390,7 +1408,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * target, prefer `center`.
    */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locateParam = buildDetailedLocateParam(prompt, opt);
+    const locateParam = buildDetailedLocateParam(
+      prompt,
+      this.withGlobalContext(opt),
+    );
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
@@ -1424,12 +1445,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelRuntime = this.resolveModelRuntime('insight');
+    const options = this.withGlobalContext(opt);
     await this.taskExecutor.waitFor(
       assertion,
       {
-        ...opt,
-        timeoutMs: opt?.timeoutMs || 15 * 1000,
-        checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
+        ...options,
+        timeoutMs: options?.timeoutMs || 15 * 1000,
+        checkIntervalMs: options?.checkIntervalMs || 3 * 1000,
       },
       modelRuntime,
     );

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export interface AgentBehaviorInitArgs {
+  globalContext?: string;
   aiActContext?: string;
   aiActionContext?: string;
   replanningCycleLimit?: number;
@@ -14,6 +15,12 @@ type ExposedAgentBehaviorInitArgKey = Exclude<
 >;
 
 export const agentBehaviorInitArgShape = {
+  globalContext: z
+    .string()
+    .optional()
+    .describe(
+      'Background knowledge passed to every AI-powered Agent API call. Default: no extra context.',
+    ),
   aiActContext: z
     .string()
     .optional()
@@ -52,6 +59,9 @@ export function extractAgentBehaviorInitArgs(
   }
 
   const agentOptions: AgentBehaviorInitArgs = {
+    ...(typeof extracted.globalContext === 'string'
+      ? { globalContext: extracted.globalContext }
+      : {}),
     ...(typeof extracted.aiActContext === 'string'
       ? { aiActContext: extracted.aiActContext }
       : {}),

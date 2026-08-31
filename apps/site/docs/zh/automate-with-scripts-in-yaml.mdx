@@ -96,6 +96,9 @@ agent:
   # AI 最大重规划循环次数，可选，默认 20（UI-TARS 模型为 40）
   replanningCycleLimit: <number>
 
+  # 所有需要调用 AI 模型的 Agent API 都会携带的背景知识，可选
+  globalContext: <string>
+
   # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
   aiActContext: <string>
   # 兼容的旧字段（aiActionContext）仍可使用，但不推荐
@@ -112,6 +115,7 @@ agent:
 
 - **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
 - **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
+- **globalContext**：为所有需要调用 AI 模型的 Agent API 提供共享背景知识，单次调用的 `context` 会追加在它之后。
 - **aiActContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景。兼容旧字段（见注释），但不建议新脚本继续使用。
 - **缓存配置**：详细用法请参考 [缓存功能文档](./caching.mdx)
 
@@ -129,6 +133,7 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
+  globalContext: "页面中的价格单位是美元。"
   aiActContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
   cache:
     id: "checkout-cache"

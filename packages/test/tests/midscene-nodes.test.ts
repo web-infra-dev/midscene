@@ -77,17 +77,17 @@ describe('createMidsceneNodes', () => {
     expect(getAgent).toHaveBeenCalledTimes(3);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
       deepThink: true,
-      context: undefined,
       abortSignal: expect.any(AbortSignal),
-      _internalContextMode: 'append',
     });
     expect(aiAssert).toHaveBeenCalledWith(
       'The order is paid',
       'Paid state is missing',
       {
         domIncluded: false,
-        context: expect.stringContaining('Previous workflow results'),
         abortSignal: expect.any(AbortSignal),
+        _internalAdditionalContext: expect.stringContaining(
+          'Previous workflow results',
+        ),
       },
     );
     expect(recordToReport).toHaveBeenCalledWith('Order created', {
@@ -100,7 +100,7 @@ describe('createMidsceneNodes', () => {
     ]);
   });
 
-  it('appends beforeEach launch history to the Agent-level aiAct context', async () => {
+  it('passes beforeEach launch history separately from aiAct context', async () => {
     const aiAct = vi.fn(
       async (_prompt: MidsceneUserPrompt, _options?: MidsceneAiActOptions) =>
         'page reset',
@@ -140,14 +140,21 @@ describe('createMidsceneNodes', () => {
     expect(result.status).toBe('success');
     expect(launch).toHaveBeenCalledWith('com.example.app');
     expect(aiAct).toHaveBeenCalledWith('Reset the page', {
-      context: expect.stringMatching(
-        /^Use the app reset rules\.\n\nPrevious workflow results \(read-only\):/,
-      ),
+      context: 'Use the app reset rules.',
       abortSignal: expect.any(AbortSignal),
-      _internalContextMode: 'append',
+      _internalAdditionalContext: expect.stringMatching(
+        /^Previous workflow results \(read-only\):/,
+      ),
     });
-    expect(aiAct.mock.calls[0][1]?.context).toContain('"phase":"beforeEach"');
-    expect(aiAct.mock.calls[0][1]?.context).toContain('"node":"launch"');
+    const internalOptions = aiAct.mock.calls[0][1] as MidsceneAiActOptions & {
+      _internalAdditionalContext?: string;
+    };
+    expect(internalOptions._internalAdditionalContext).toContain(
+      '"phase":"beforeEach"',
+    );
+    expect(internalOptions._internalAdditionalContext).toContain(
+      '"node":"launch"',
+    );
   });
 
   it('supports recordToReport string shorthand without an AI call', async () => {
@@ -284,7 +291,13 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(result.steps[0].output?.data).toEqual({ stdout });
-    const agentContext = aiAssert.mock.calls[0][2]?.context;
+    const agentContext = (
+      aiAssert.mock.calls[0][2] as
+        | (MidsceneAiAssertOptions & {
+            _internalAdditionalContext?: string;
+          })
+        | undefined
+    )?._internalAdditionalContext;
     expect(agentContext).toBeDefined();
     expect(agentContext!.length).toBeLessThanOrEqual(64_000);
     expect(agentContext).toContain('omittedFromContext');

@@ -1,8 +1,23 @@
 import {
   buildLocatePromptWithContext,
   buildPromptWithContext,
+  mergeAIContexts,
 } from '@/agent/prompt-context';
 import { describe, expect, it } from '@rstest/core';
+
+describe('mergeAIContexts', () => {
+  it('joins defined non-empty layers in order', () => {
+    expect(
+      mergeAIContexts('Global context.', undefined, 'Per-call context.'),
+    ).toBe('Global context.\n\nPer-call context.');
+  });
+
+  it('distinguishes an omitted context from an explicitly empty context', () => {
+    expect(mergeAIContexts(undefined, undefined)).toBeUndefined();
+    expect(mergeAIContexts(undefined, '')).toBe('');
+    expect(mergeAIContexts('Global context.', '')).toBe('Global context.');
+  });
+});
 
 describe('buildPromptWithContext', () => {
   it('returns the original string prompt when context is undefined or blank', () => {

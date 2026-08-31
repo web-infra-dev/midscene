@@ -978,7 +978,16 @@ export interface AgentOpt {
   outputFormat?: 'single-html' | 'html-and-external-assets';
 
   onTaskStartTip?: OnTaskStartTip;
+  /**
+   * Background context included in every AI-powered Agent API call.
+   * Per-call `options.context` is appended after this context.
+   */
+  globalContext?: string;
+  /**
+   * Default context for aiAct calls. A per-call `options.context` replaces it.
+   */
   aiActContext?: string;
+  /** @deprecated Use `aiActContext` instead. */
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;

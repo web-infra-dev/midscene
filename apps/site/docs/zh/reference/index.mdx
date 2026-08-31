@@ -49,6 +49,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - `strategy`：可选缓存策略。默认值为 `'read-write'`。
   - `cacheDir`：可选缓存目录路径。配置后，缓存文件会写入该目录，而不是 `<MIDSCENE_RUN_DIR>/cache`。相对路径会基于当前工作目录解析，而不是基于 `MIDSCENE_RUN_DIR`。这样可以把缓存、日志和报告目录拆开。
 - `cacheId: string | undefined`（已废弃）：仅用于向后兼容。推荐使用 `cache.id`。
+- `globalContext: string`：所有需要调用 AI 模型的 Agent API 都会携带的背景上下文。各方法的单次调用 `options.context` 会追加在它之后。默认值为空。
 - `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
@@ -1518,7 +1519,7 @@ function destroy(): Promise<void>;
 
 ## 单次调用上下文
 
-每个 `agent.ai*` 方法的 options 都支持可选的 `context` 字符串。它可以为单次请求补充业务知识、用户状态、术语或其他背景，而不必把这些信息写入主 prompt。
+创建 Agent 时可以通过 `globalContext` 设置所有 AI 方法共享的背景上下文。每个 `agent.ai*` 方法的 options 也支持可选的 `context` 字符串，用于补充仅与本次请求相关的业务知识、用户状态、术语或其他背景。
 
 ```typescript
 await agent.aiAssert('当前页面是新版本样式', undefined, {
@@ -1527,7 +1528,12 @@ await agent.aiAssert('当前页面是新版本样式', undefined, {
 });
 ```
 
-context 仅对本次方法调用生效。对于 `aiAct`，单次调用的 `context` 优先于 Agent 级别的 `aiActContext`（显式传入空字符串也会覆盖）。其他 AI 方法不会自动继承 `aiActContext`。
+最终 context 按以下规则生成：
+
+- `aiAct`：`globalContext + (options.context ?? aiActContext)`
+- 其他 `ai*` 方法：`globalContext + options.context`
+
+因此，对于 `aiAct`，单次调用的 `context` 仍然会替换 `aiActContext`，显式传入空字符串也会替换；它不会替换 `globalContext`。其他 AI 方法不会继承 `aiActContext`。
 
 <a id="深度定位deeplocate"></a>
 
@@ -2218,7 +2224,7 @@ const agent = new AndroidAgent(device, {
 **Android 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到包名。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的包名；若未找到映射，则按原样尝试启动 `target`。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 
@@ -2459,7 +2465,7 @@ const agent = new IOSAgent(device, {
 **iOS 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 Bundle Identifier。当你在 `launch(target)` 或 `terminate(bundleId)` 里传入应用名称时，Agent 会在此映射中查找对应的 Bundle ID；若未找到映射，则按原样使用 `target`。用户提供的 appNameMapping 优先级高于默认映射。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 
@@ -2681,7 +2687,7 @@ const agent = new HarmonyAgent(device, {
 **HarmonyOS 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name 或显式 `bundle/Ability` 目标。仅填写 bundle name 时，Agent 会读取 bundle 元数据并解析其声明的启动 Ability；显式目标会跳过该查询。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应目标；若未找到映射，则按原样尝试启动 `target`。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 

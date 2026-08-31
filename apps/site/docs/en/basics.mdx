@@ -24,6 +24,14 @@ await agent.aiAct(
 );
 ```
 
+To share business context across every AI-powered Agent API, set `globalContext` when creating the Agent:
+
+```typescript
+const agent = new PlaywrightAgent(page, {
+  globalContext: 'Prices are shown in USD.',
+});
+```
+
 To give every subsequent `aiAct` call more business context, use [`agent.setAIActContext()`](./reference/#agentsetaiactcontext):
 
 ```typescript
@@ -36,7 +44,7 @@ agent.setAIActContext(
 
 - `deepThink`: focuses more on task decomposition and uses separate model calls for planning and element localization. It can make complex tasks more stable, but increases model calls and latency.
 - `deepLocate`: uses an additional model call to improve element localization accuracy. Enable it when a target is small or difficult to distinguish from nearby elements.
-- `context`: provides business knowledge or other background for this call only. For `aiAct`, it overrides the Agent-level `aiActContext`, including when it is explicitly set to an empty string.
+- `context`: provides business knowledge or other background for this call only. For `aiAct`, it overrides the Agent-level `aiActContext`, including when it is explicitly set to an empty string, and is appended after `globalContext`.
 
 ```typescript
 await agent.aiAct('Complete the checkout form and stop before placing the order', {

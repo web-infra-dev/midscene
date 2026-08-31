@@ -21,8 +21,8 @@ export interface MidsceneAiActOptions {
 }
 
 type MidsceneAiActInternalOptions = MidsceneAiActOptions & {
-  /** Ask a Core Agent to append Test Runner context to its Agent-level context. */
-  _internalContextMode: 'append';
+  /** Workflow history appended by Core after user-configured context. */
+  _internalAdditionalContext?: string;
 };
 
 export interface MidsceneAiAssertOptions {
@@ -32,6 +32,11 @@ export interface MidsceneAiAssertOptions {
   abortSignal?: AbortSignal;
   keepRawResponse?: boolean;
 }
+
+type MidsceneAiAssertInternalOptions = MidsceneAiAssertOptions & {
+  /** Workflow history appended by Core after user-configured context. */
+  _internalAdditionalContext?: string;
+};
 
 export interface MidscenePromptImage {
   name: string;
@@ -353,13 +358,6 @@ export const renderNodeHistory = (
   ].join('\n');
 };
 
-const mergeContext = (
-  explicit: string | undefined,
-  history: readonly NodeHistoryEntry[],
-): string | undefined =>
-  [explicit, renderNodeHistory(history)].filter(Boolean).join('\n\n') ||
-  undefined;
-
 const toAgentPrompt = (input: {
   prompt: string;
   images?: MidscenePromptImage[];
@@ -449,11 +447,13 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
+        const additionalContext = renderNodeHistory(ctx.history);
         const aiActOptions: MidsceneAiActInternalOptions = {
           ...ctx.input.options,
-          context: mergeContext(ctx.input.options?.context, ctx.history),
           abortSignal: ctx.signal,
-          _internalContextMode: 'append',
+          ...(additionalContext === undefined
+            ? {}
+            : { _internalAdditionalContext: additionalContext }),
         };
         const output = await aiAct.call(
           agent,
@@ -471,15 +471,19 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
+        const additionalContext = renderNodeHistory(ctx.history);
+        const aiAssertOptions: MidsceneAiAssertInternalOptions = {
+          ...ctx.input.options,
+          abortSignal: ctx.signal,
+          ...(additionalContext === undefined
+            ? {}
+            : { _internalAdditionalContext: additionalContext }),
+        };
         await aiAssert.call(
           agent,
           toAgentPrompt(ctx.input),
           ctx.input.message,
-          {
-            ...ctx.input.options,
-            context: mergeContext(ctx.input.options?.context, ctx.history),
-            abortSignal: ctx.signal,
-          },
+          aiAssertOptions,
         );
         return { summary: `Assertion passed: ${ctx.input.prompt}` };
       },

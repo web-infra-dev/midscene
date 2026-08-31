@@ -1,5 +1,6 @@
 import { Agent, type AiActOptions } from '@/agent';
 import { TaskExecutionError } from '@/task-runner';
+import type { AssertOptions } from '@/types';
 import { describe, expect, it, rs } from '@rstest/core';
 
 const planningModel = {
@@ -25,6 +26,16 @@ const createAgentStub = () => {
       output: true,
       thought: 'ok',
     })),
+    runPlans: rs.fn(async () => ({
+      output: {
+        element: {
+          rect: { left: 0, top: 0, width: 10, height: 10 },
+          center: [5, 5],
+          dpr: 1,
+        },
+      },
+    })),
+    waitFor: rs.fn(async () => undefined),
   };
   const taskCache = {
     matchPlanCache: rs.fn(),
@@ -33,6 +44,7 @@ const createAgentStub = () => {
   };
 
   (agent as any).opts = {
+    globalContext: 'Global context.',
     aiActContext: 'Global action context.',
   };
   const registerFileChooserListener = rs.fn();
@@ -56,6 +68,19 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it('preserves existing aiAct context resolution when globalContext is omitted', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).opts.globalContext = undefined;
+
+    await agent.aiAct('Click the submit button', {
+      context: 'Use buyer checkout rules.',
+    });
+
+    expect(taskExecutor.action.mock.calls[0][3]).toBe(
+      'Use buyer checkout rules.',
+    );
+  });
+
   it('uses per-call context instead of global aiActContext when provided', async () => {
     const { agent, taskExecutor, taskCache } = createAgentStub();
 
@@ -64,11 +89,11 @@ describe('Agent per-call context option', () => {
     });
 
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
-      'Context for this request:\nUse buyer checkout rules.\n\nClick the submit button',
+      'Context for this request:\nGlobal context.\n\nUse buyer checkout rules.\n\nClick the submit button',
     );
     expect(taskExecutor.action).toHaveBeenCalledTimes(1);
     expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      'Use buyer checkout rules.',
+      'Global context.\n\nUse buyer checkout rules.',
     );
   });
 
@@ -78,9 +103,11 @@ describe('Agent per-call context option', () => {
     await agent.aiAct('Click the submit button');
 
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
-      'Context for this request:\nGlobal action context.\n\nClick the submit button',
+      'Context for this request:\nGlobal context.\n\nGlobal action context.\n\nClick the submit button',
     );
-    expect(taskExecutor.action.mock.calls[0][3]).toBe('Global action context.');
+    expect(taskExecutor.action.mock.calls[0][3]).toBe(
+      'Global context.\n\nGlobal action context.',
+    );
   });
 
   it('allows blank per-call context to override global aiActContext', async () => {
@@ -91,23 +118,23 @@ describe('Agent per-call context option', () => {
     });
 
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
-      'Click the submit button',
+      'Context for this request:\nGlobal context.\n\nClick the submit button',
     );
-    expect(taskExecutor.action.mock.calls[0][3]).toBe('');
+    expect(taskExecutor.action.mock.calls[0][3]).toBe('Global context.');
   });
 
   it('appends framework context without mutating the global aiActContext', async () => {
     const { agent, taskExecutor, taskCache } = createAgentStub();
-    const options: AiActOptions & { _internalContextMode: 'append' } = {
-      context: 'Previous workflow results (read-only):\nlaunch passed',
-      _internalContextMode: 'append',
+    const options: AiActOptions & { _internalAdditionalContext: string } = {
+      _internalAdditionalContext:
+        'Previous workflow results (read-only):\nlaunch passed',
     };
 
     await agent.aiAct('Reset the page', options);
     await agent.aiAct('Reset the page again', options);
 
     const expectedContext =
-      'Global action context.\n\nPrevious workflow results (read-only):\nlaunch passed';
+      'Global context.\n\nGlobal action context.\n\nPrevious workflow results (read-only):\nlaunch passed';
     expect(taskCache.matchPlanCache).toHaveBeenNthCalledWith(
       1,
       `Context for this request:\n${expectedContext}\n\nReset the page`,
@@ -118,6 +145,21 @@ describe('Agent per-call context option', () => {
     );
     expect(taskExecutor.action.mock.calls[0][3]).toBe(expectedContext);
     expect(taskExecutor.action.mock.calls[1][3]).toBe(expectedContext);
+  });
+
+  it('keeps per-call context ahead of aiActContext when framework context is appended', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const options: AiActOptions & { _internalAdditionalContext: string } = {
+      context: 'Use buyer checkout rules.',
+      _internalAdditionalContext:
+        'Previous workflow results (read-only):\nlaunch passed',
+    };
+
+    await agent.aiAct('Reset the page', options);
+
+    expect(taskExecutor.action.mock.calls[0][3]).toBe(
+      'Global context.\n\nUse buyer checkout rules.\n\nPrevious workflow results (read-only):\nlaunch passed',
+    );
   });
 
   it('does not register a file chooser for an empty fileChooserAccept array', async () => {
@@ -149,7 +191,7 @@ describe('Agent per-call context option', () => {
       'The success toast is visible',
       expect.objectContaining(defaultModel),
       {
-        context: 'The current user is a logged-in buyer.',
+        context: 'Global context.\n\nThe current user is a logged-in buyer.',
         domIncluded: false,
         screenshotIncluded: true,
       },
@@ -178,6 +220,7 @@ describe('Agent per-call context option', () => {
       'The success toast is visible',
       expect.objectContaining(defaultModel),
       {
+        context: 'Global context.',
         domIncluded: false,
         screenshotIncluded: true,
       },
@@ -185,6 +228,57 @@ describe('Agent per-call context option', () => {
       {
         abortSignal: abortController.signal,
       },
+    );
+  });
+
+  it('appends framework context after global and per-call assertion context', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const options: AssertOptions & { _internalAdditionalContext: string } = {
+      context: 'The current user is a logged-in buyer.',
+      keepRawResponse: true,
+      _internalAdditionalContext:
+        'Previous workflow results (read-only):\nlaunch passed',
+    };
+
+    await agent.aiAssert('The success toast is visible', undefined, options);
+
+    expect(taskExecutor.createTypeQueryExecution.mock.calls[0][3]).toEqual({
+      context:
+        'Global context.\n\nThe current user is a logged-in buyer.\n\nPrevious workflow results (read-only):\nlaunch passed',
+      domIncluded: false,
+      screenshotIncluded: true,
+    });
+  });
+
+  it('adds globalContext to locate, query, and wait operations', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+
+    await agent.aiLocate('The checkout button', {
+      context: 'Use the cart footer.',
+    });
+    await agent.aiBoolean('The checkout button is enabled', {
+      context: 'The cart has one item.',
+    });
+    await agent.aiWaitFor('The order is complete', {
+      context: 'The order id is 42.',
+      timeoutMs: 1000,
+      checkIntervalMs: 100,
+    });
+
+    expect(taskExecutor.runPlans.mock.calls[0][1][0].param.prompt).toContain(
+      '<CONTEXT>\nGlobal context.\n\nUse the cart footer.\n</CONTEXT>',
+    );
+    expect(taskExecutor.createTypeQueryExecution.mock.calls[0][3]).toEqual({
+      context: 'Global context.\n\nThe cart has one item.',
+    });
+    expect(taskExecutor.waitFor).toHaveBeenCalledWith(
+      'The order is complete',
+      {
+        context: 'Global context.\n\nThe order id is 42.',
+        timeoutMs: 1000,
+        checkIntervalMs: 100,
+      },
+      expect.objectContaining(defaultModel),
     );
   });
 

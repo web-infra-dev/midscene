@@ -120,6 +120,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
+  | 'globalContext'
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'

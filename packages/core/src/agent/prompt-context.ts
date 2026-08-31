@@ -1,5 +1,22 @@
 import type { TUserPrompt } from '@/ai-model';
 
+/**
+ * Combine context layers from broadest to most specific while preserving the
+ * distinction between an omitted context and an explicitly empty context.
+ */
+export const mergeAIContexts = (
+  ...contexts: Array<string | undefined>
+): string | undefined => {
+  const definedContexts = contexts.filter(
+    (context): context is string => context !== undefined,
+  );
+  if (definedContexts.length === 0) {
+    return undefined;
+  }
+
+  return definedContexts.filter(Boolean).join('\n\n');
+};
+
 export const buildPromptWithContext = (
   prompt: TUserPrompt,
   context: string | undefined,

@@ -8,6 +8,7 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '@/types';
+import { mergeAIContexts } from './prompt-context';
 import { TaskExecutionError, type TaskExecutor } from './tasks';
 import { parsePrompt } from './utils';
 
@@ -18,13 +19,28 @@ const defaultQueryOptions: QueryOptions = {
 
 type InsightTaskExecutor = Pick<TaskExecutor, 'createTypeQueryExecution'>;
 
+type InsightInternalOptions = {
+  context?: string;
+  /** Framework-owned context appended after all user-configured context. */
+  _internalAdditionalContext?: string;
+};
+
 /** Execute read-only AI operations against either live or fixed UI context. */
 export class Insight implements InsightAPI {
   constructor(
     private readonly taskExecutor: InsightTaskExecutor,
     private readonly resolveModelRuntime: () => ModelRuntime,
     private readonly getUIContext?: () => UIContext,
+    private readonly getGlobalContext?: () => string | undefined,
   ) {}
+
+  private resolveContext(options?: InsightInternalOptions): string | undefined {
+    return mergeAIContexts(
+      this.getGlobalContext?.(),
+      options?.context,
+      options?._internalAdditionalContext,
+    );
+  }
 
   private executionOptions(
     options?: AssertOptions,
@@ -48,12 +64,17 @@ export class Insight implements InsightAPI {
   ): Promise<ReturnType> {
     const modelRuntime = this.resolveModelRuntime();
     const executionOptions = this.executionOptions();
+    const context = this.resolveContext(options);
+    const serviceOptions: QueryOptions = {
+      ...options,
+      ...(context !== undefined ? { context } : {}),
+    };
     const { output } = executionOptions
       ? await this.taskExecutor.createTypeQueryExecution(
           'Query',
           demand,
           modelRuntime,
-          options,
+          serviceOptions,
           undefined,
           executionOptions,
         )
@@ -61,7 +82,7 @@ export class Insight implements InsightAPI {
           'Query',
           demand,
           modelRuntime,
-          options,
+          serviceOptions,
         );
     return output as ReturnType;
   }
@@ -100,11 +121,16 @@ export class Insight implements InsightAPI {
     options: QueryOptions,
   ): Promise<ReturnType> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const context = this.resolveContext(options);
+    const serviceOptions: QueryOptions = {
+      ...options,
+      ...(context !== undefined ? { context } : {}),
+    };
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       type,
       textPrompt,
       this.resolveModelRuntime(),
-      options,
+      serviceOptions,
       multimodalPrompt,
       this.executionOptions(),
     );
@@ -116,11 +142,12 @@ export class Insight implements InsightAPI {
     message?: string,
     options?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
+    const context = this.resolveContext(options as InsightInternalOptions);
     const serviceOptions: QueryOptions = {
       domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
         options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
-      ...(options?.context !== undefined ? { context: options.context } : {}),
+      ...(context !== undefined ? { context } : {}),
     };
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =

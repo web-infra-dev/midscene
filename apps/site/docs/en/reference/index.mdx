@@ -49,6 +49,7 @@ All agents share these base options:
   - `strategy` — Cache strategy. Default: `'read-write'`.
   - `cacheDir` — Cache directory. When set, Midscene writes cache files here instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you use separate cache, log, and report directories.
 - `cacheId: string | undefined` (deprecated) — Legacy cache ID for backward compatibility. Prefer `cache.id`.
+- `globalContext: string` — Background context included in every AI-powered Agent API call. A method's per-call `options.context` is appended after it. Default: `undefined`.
 - `aiActContext: string` — Background context sent to the AI model with `agent.aiAct()` calls. For example: `'Close the cookie consent dialog first if it exists.'` Default: `undefined`. This option was previously named `aiActionContext`; the legacy name remains supported.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
@@ -1550,7 +1551,7 @@ path.
 
 ## Per-call context
 
-Every `agent.ai*` method accepts an optional `context` string in its options. Use it to provide business knowledge, user state, terminology, or other background that is relevant to one request without changing the main prompt.
+Set `globalContext` when creating an Agent to provide background shared by every AI-powered Agent API call. Every `agent.ai*` method also accepts an optional `context` string in its options for business knowledge, user state, terminology, or other background relevant to one request.
 
 ```typescript
 await agent.aiAssert('The current page uses the new version styling', undefined, {
@@ -1560,7 +1561,12 @@ await agent.aiAssert('The current page uses the new version styling', undefined,
 ```
 
 
-The context only applies to that method call. For `aiAct`, a per-call `context` takes precedence over the Agent-level `aiActContext` (including an explicitly empty string). Other AI methods do not automatically inherit `aiActContext`.
+The effective context is resolved as follows:
+
+- `aiAct`: `globalContext + (options.context ?? aiActContext)`
+- Other `ai*` methods: `globalContext + options.context`
+
+For `aiAct`, a per-call `context` therefore continues to replace `aiActContext`, including when it is explicitly set to an empty string. It does not replace `globalContext`; other AI methods do not inherit `aiActContext`.
 
 
 ### Shared types {#shared-types}
@@ -2263,7 +2269,7 @@ const agent = new AndroidAgent(device, {
 **Android-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2505,7 +2511,7 @@ const agent = new IOSAgent(device, {
 **iOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2729,7 +2735,7 @@ const agent = new HarmonyAgent(device, {
 **HarmonyOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names or explicit `bundle/Ability` targets. Bundle-only values use bundle metadata to resolve the declared launch ability; explicit targets bypass that lookup. When you pass an app name to `launch(target)`, the Agent uses the mapped target when available; otherwise, it launches `target` as provided.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
