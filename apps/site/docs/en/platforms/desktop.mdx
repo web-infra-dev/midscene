@@ -292,19 +292,13 @@ macOS requires Accessibility permissions for keyboard and mouse control. Go to *
 
 If you have already granted permission but it still doesn't work, try removing the app from the Accessibility list and re-adding it — macOS sometimes caches stale permissions.
 
-### Windows: the cursor misses the target when display scaling is enabled
-
-Windows display scaling (for example, 125%, 150%, or 175%) can make native pointer APIs and screenshots use different coordinate spaces. The symptom is consistent offset: Midscene identifies the right element, but the cursor lands somewhere else. Running as Administrator does not change this coordinate mapping.
-
-`@midscene/computer` calibrates pointer coordinates when the Device connects, using the logical bounds of the selected display. This also supports secondary displays with non-zero or negative desktop offsets. If you change display scaling, resolution, display order, or the selected monitor while a Device is connected, destroy that Device and create a new one so calibration runs again. A failed calibration stops the connection or action instead of clicking at an unverified location.
-
 ### Windows: clicks have no effect on some apps
 
 If the cursor moves to the correct position but clicks or key presses do nothing on a particular application — while other apps work fine — check whether the target app is running **as Administrator** (elevated). Windows UIPI blocks input injected from a lower-privilege process into an elevated window and drops it silently, with no error.
 
 Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
 
-> Use this check only when the cursor reaches the correct position. If the cursor itself is offset, follow the display-scaling guidance above; Administrator privileges do not fix coordinate drift. The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
+> Use this check only when the cursor reaches the correct position. The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
 
 ### Linux: Screenshots or interactions fail on a headless server
 
