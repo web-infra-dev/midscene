@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { encodedImageInfoOfBuffer } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
 import { resolveExternalResourcePath } from './resource-path';
@@ -24,6 +25,10 @@ const MAX_KEYFRAME_WAIT_MS = 5_000;
 // Maximum time to wait for a frame that crosses the active freshness target
 // before closing the stale epoch and letting the caller use ADB fallback.
 const FRESH_FRAME_TIMEOUT_MS = 300;
+// Give an established stream a brief chance to emit a frame naturally before
+// restarting only its capture/encoder pipeline. The reset stays inside the
+// existing freshness timeout and does not extend the fallback budget.
+const VIDEO_RESET_DELAY_MS = 10;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
@@ -73,6 +78,8 @@ export interface RawKeyframe {
   ptsUs?: bigint;
   /** Estimated frame age when the packet reached the host. */
   estimatedAgeMs?: number;
+  /** Encoder epoch that produced this frame (always set by this manager). */
+  streamEpoch?: symbol;
   capturedAt: number;
 }
 
@@ -208,6 +215,12 @@ interface ResolvedScrcpyOptions {
   idleTimeoutMs: number;
 }
 
+interface VideoResetState {
+  previousSpsHeader: Buffer | null;
+  writePromise: Promise<void> | null;
+  frameAccepted: boolean;
+}
+
 export class ScrcpyScreenshotManager {
   private adb: Adb;
   // Using 'any' for external library types to avoid type compatibility issues
@@ -226,6 +239,14 @@ export class ScrcpyScreenshotManager {
   private lastRawKeyframeAt = 0;
   private lastRawKeyframePtsUs: bigint | undefined;
   private lastRawKeyframeEstimatedAgeMs: number | undefined;
+  private lastRawKeyframeStreamEpoch: symbol | undefined;
+  // Changes to a unique identity for every new stream and encoder reset.
+  // Deferred frame references from an older epoch may still be decoded, but
+  // must never update state belonging to the current encoder.
+  private streamEpoch = Symbol('scrcpy-stream');
+  // Separately identifies the transport reader. An in-band encoder reset
+  // advances `streamEpoch` while deliberately keeping this reader alive.
+  private streamReaderEpoch = 0;
   private videoResolution: { width: number; height: number } | null = null;
   private streamReader: any = null;
   private frameFreshnessBarrierPtsUs: bigint | null = null;
@@ -242,6 +263,8 @@ export class ScrcpyScreenshotManager {
   private lastFramePtsUs: bigint | null = null;
   private frameFreshnessError: Error | null = null;
   private lastFrameFreshnessWarningAt = 0;
+  private hasEstablishedVideoFrame = false;
+  private videoResetState: VideoResetState | null = null;
   private disposePromise: Promise<void> | null = null;
 
   constructor(
@@ -348,6 +371,8 @@ export class ScrcpyScreenshotManager {
 
       // Store the actual video resolution
       this.videoResolution = { width, height };
+      this.advanceStreamEpoch();
+      this.streamReaderEpoch++;
 
       this.streamStartupWindow = {
         deadlineAt: Date.now() + MAX_KEYFRAME_WAIT_MS,
@@ -379,7 +404,12 @@ export class ScrcpyScreenshotManager {
 
     return new AdbScrcpyOptions3_3_3({
       audio: false,
-      control: false,
+      // RESET_VIDEO is carried by scrcpy's control channel. Keep the channel
+      // enabled without allowing scrcpy to wake the device or synchronize the
+      // clipboard as a side effect of screenshot capture.
+      control: true,
+      powerOn: false,
+      clipboardAutosync: false,
       tunnelForward: true,
       scid: ScrcpyInstanceId.random(),
       maxSize: this.options.maxSize,
@@ -482,7 +512,7 @@ export class ScrcpyScreenshotManager {
 
     const reader = this.videoStream.stream.getReader();
     this.streamReader = reader;
-    this.consumeFramesLoop(reader);
+    this.consumeFramesLoop(reader, this.streamReaderEpoch);
   }
 
   /**
@@ -490,7 +520,10 @@ export class ScrcpyScreenshotManager {
    * Includes busy-loop detection: if reader.read() resolves too fast
    * (e.g. broken stream returning immediately), we throttle to prevent 100% CPU.
    */
-  private async consumeFramesLoop(reader: any): Promise<void> {
+  private async consumeFramesLoop(
+    reader: any,
+    streamReaderEpoch = this.streamReaderEpoch,
+  ): Promise<void> {
     let readCount = 0;
     let windowStart = Date.now();
     let lastBusyWarn = 0;
@@ -533,7 +566,7 @@ export class ScrcpyScreenshotManager {
           windowStart = Date.now();
         }
 
-        this.processFrame(value);
+        this.processFrame(value, streamReaderEpoch);
       }
     } catch (error) {
       endReason = 'stream error';
@@ -561,7 +594,14 @@ export class ScrcpyScreenshotManager {
    * This avoids the frame-splitting issue that occurs with sendFrameMeta: false
    * at high resolutions where raw chunks may not align with frame boundaries.
    */
-  private processFrame(packet: any): void {
+  private processFrame(
+    packet: any,
+    streamReaderEpoch = this.streamReaderEpoch,
+  ): void {
+    if (streamReaderEpoch !== this.streamReaderEpoch) {
+      return;
+    }
+
     if (packet.type === 'configuration') {
       // Configuration packet contains SPS/PPS in Annex B format
       this.spsHeader = Buffer.from(packet.data);
@@ -584,13 +624,27 @@ export class ScrcpyScreenshotManager {
       this.lastRawKeyframeAt = timing.capturedAt;
       this.lastRawKeyframePtsUs = packet.pts;
       this.lastRawKeyframeEstimatedAgeMs = timing.estimatedAgeMs;
+      // Receiving a fresh keyframe with codec configuration proves that the
+      // stream is established even when a continuous observer defers JPEG
+      // decoding. Later static captures may use in-band reset immediately.
+      this.hasEstablishedVideoFrame = true;
+      this.streamStartupWindow = null;
       const frame: RawKeyframe = {
         data: frameBuffer,
         header: this.spsHeader,
         ptsUs: packet.pts,
         estimatedAgeMs: timing.estimatedAgeMs,
+        streamEpoch: this.streamEpoch,
         capturedAt: this.lastRawKeyframeAt,
       };
+      this.lastRawKeyframeStreamEpoch = this.streamEpoch;
+      const resetState = this.videoResetState;
+      if (resetState) {
+        resetState.frameAccepted = true;
+        if (resetState.writePromise === null) {
+          this.videoResetState = null;
+        }
+      }
       if (this.keyframeResolvers.length > 0) {
         this.notifyKeyframeWaiters(frame);
       }
@@ -942,6 +996,7 @@ export class ScrcpyScreenshotManager {
     this.lastRawKeyframeAt = 0;
     this.lastRawKeyframePtsUs = undefined;
     this.lastRawKeyframeEstimatedAgeMs = undefined;
+    this.lastRawKeyframeStreamEpoch = undefined;
   }
 
   private restoreFrameCache(frame: RawKeyframe): void {
@@ -949,10 +1004,17 @@ export class ScrcpyScreenshotManager {
     this.lastRawKeyframeAt = frame.capturedAt;
     this.lastRawKeyframePtsUs = frame.ptsUs;
     this.lastRawKeyframeEstimatedAgeMs = frame.estimatedAgeMs;
+    this.lastRawKeyframeStreamEpoch = frame.streamEpoch;
   }
 
   private monotonicTimeUs(): bigint {
     return process.hrtime.bigint() / 1_000n;
+  }
+
+  private advanceStreamEpoch(): void {
+    // Symbols stay unique across manager instances without shared mutable
+    // counters, so deferred frame handles cannot collide after replacement.
+    this.streamEpoch = Symbol('scrcpy-stream');
   }
 
   private resetFrameFreshnessState(): void {
@@ -966,6 +1028,107 @@ export class ScrcpyScreenshotManager {
     this.lastFramePtsUs = null;
     this.frameFreshnessError = null;
     this.lastFrameFreshnessWarningAt = 0;
+    this.hasEstablishedVideoFrame = false;
+    this.videoResetState = null;
+  }
+
+  /**
+   * Restart scrcpy's capture and encoder pipeline without rebuilding the video
+   * stream or the underlying ADB transport. One request is shared by all
+   * concurrent capture callers until a post-reset keyframe is accepted.
+   */
+  private async requestVideoReset(
+    deadlineAt = Date.now() + FRESH_FRAME_TIMEOUT_MS,
+  ): Promise<void> {
+    const activeReset = this.videoResetState;
+    if (activeReset) {
+      if (activeReset.writePromise) {
+        await this.waitForVideoResetWrite(activeReset.writePromise, deadlineAt);
+      }
+      return;
+    }
+
+    const controller = this.scrcpyClient?.controller;
+    if (!controller?.resetVideo) {
+      throw new Error('Scrcpy control channel is unavailable for video reset');
+    }
+
+    const resetState: VideoResetState = {
+      previousSpsHeader: this.spsHeader,
+      writePromise: null,
+      frameAccepted: false,
+    };
+    this.videoResetState = resetState;
+
+    // Keep the planning/action barrier that made this frame wait necessary.
+    // Moving it forward to the reset request would add the device-clock
+    // calibration uncertainty a second time and can reject the first frame
+    // from the restarted encoder on high-latency ADB transports.
+    this.advanceStreamEpoch();
+    this.clearFrameCache();
+    // RESET_VIDEO recreates the encoder and emits a new configuration packet.
+    // Discard the old SPS/PPS so a new frame can never be decoded with stale
+    // codec configuration (for example after rotation).
+    this.spsHeader = null;
+
+    const resetPromise = Promise.resolve()
+      .then(() => controller.resetVideo())
+      .then(
+        () => {
+          debugScrcpy('Requested scrcpy in-band video reset');
+          if (this.videoResetState === resetState) {
+            resetState.writePromise = null;
+            if (resetState.frameAccepted) {
+              this.videoResetState = null;
+            }
+          }
+        },
+        (error) => {
+          if (this.videoResetState === resetState) {
+            // A failed RESET_VIDEO leaves the existing encoder alive. Restore
+            // its codec configuration so a naturally emitted frame can still
+            // satisfy the remainder of the original freshness window.
+            if (this.spsHeader === null) {
+              this.spsHeader = resetState.previousSpsHeader;
+            }
+            this.videoResetState = null;
+          }
+          throw error;
+        },
+      );
+    resetState.writePromise = resetPromise;
+    // A caller may time out before the underlying stream write settles. Keep
+    // observing it so a later rejection never becomes unhandled.
+    void resetPromise.catch(() => {});
+    await this.waitForVideoResetWrite(resetPromise, deadlineAt);
+  }
+
+  private async waitForVideoResetWrite(
+    writePromise: Promise<void>,
+    deadlineAt: number,
+  ): Promise<void> {
+    const remainingMs = deadlineAt - Date.now();
+    if (remainingMs <= 0) {
+      throw new Error('Scrcpy video reset exceeded the freshness deadline');
+    }
+
+    let timeout: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        writePromise,
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new Error('Scrcpy video reset exceeded the freshness deadline'),
+              ),
+            remainingMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   }
 
   /**
@@ -1002,6 +1165,7 @@ export class ScrcpyScreenshotManager {
       header: this.spsHeader,
       ptsUs: this.lastRawKeyframePtsUs,
       estimatedAgeMs: this.lastRawKeyframeEstimatedAgeMs,
+      streamEpoch: this.lastRawKeyframeStreamEpoch,
       capturedAt: this.lastRawKeyframeAt,
     };
   }
@@ -1013,11 +1177,37 @@ export class ScrcpyScreenshotManager {
    * sampled frames, never inside a capture loop.
    */
   async decodeRawKeyframeToJpeg(frame: RawKeyframe): Promise<Buffer> {
-    return this.decodeH264ToJpeg(Buffer.concat([frame.header, frame.data]));
+    const result = await this.decodeH264ToJpeg(
+      Buffer.concat([frame.header, frame.data]),
+    );
+    this.recordDecodedFrame(frame, result);
+    return result;
+  }
+
+  private recordDecodedFrame(frame: RawKeyframe, jpeg: Buffer): void {
+    // Every frame emitted by this manager is tagged. Untagged compatibility
+    // inputs may still be decoded, but fail closed for lifecycle state updates.
+    if (frame.streamEpoch !== this.streamEpoch) {
+      return;
+    }
+
+    const decodedResolution = encodedImageInfoOfBuffer(jpeg);
+    if (
+      this.videoResolution?.width !== decodedResolution.width ||
+      this.videoResolution?.height !== decodedResolution.height
+    ) {
+      debugScrcpy(
+        `Updating scrcpy resolution from ${this.videoResolution?.width ?? 0}x${this.videoResolution?.height ?? 0} to decoded frame ${decodedResolution.width}x${decodedResolution.height}`,
+      );
+      this.videoResolution = decodedResolution;
+    }
+    this.hasEstablishedVideoFrame = true;
+    this.streamStartupWindow = null;
   }
 
   private async waitForPlanningFrame(): Promise<RawKeyframe> {
     let planningBarrierArmed = false;
+    let videoResetAttempted = false;
     // A new encoder/stream gets the normal startup allowance while waiting for
     // its first data frame. The allowance never bypasses the age check below.
     // Established epochs still fail fast when they cannot cross a newly armed
@@ -1074,7 +1264,37 @@ export class ScrcpyScreenshotManager {
         );
       }
 
-      candidate = await this.waitForNextKeyframe(remainingMs);
+      const shouldTryVideoReset =
+        !videoResetAttempted &&
+        this.hasEstablishedVideoFrame &&
+        this.streamStartupWindow === null &&
+        Boolean(this.scrcpyClient?.controller?.resetVideo) &&
+        remainingMs > VIDEO_RESET_DELAY_MS;
+      const nextFrameWaitMs = shouldTryVideoReset
+        ? VIDEO_RESET_DELAY_MS
+        : remainingMs;
+
+      try {
+        candidate = await this.waitForNextKeyframe(nextFrameWaitMs);
+      } catch (error) {
+        if (!shouldTryVideoReset) {
+          throw error;
+        }
+
+        videoResetAttempted = true;
+        try {
+          await this.requestVideoReset(deadline);
+        } catch (resetError) {
+          // Preserve the rest of the original 300ms window. A natural frame
+          // may still arrive; otherwise the existing full reconnect and ADB
+          // fallback path will run at the unchanged deadline.
+          debugScrcpy(`Unable to request scrcpy video reset: ${resetError}`);
+        }
+        // The encoder can emit its one post-reset keyframe before the control
+        // write promise settles. Re-read the cache before subscribing for a
+        // later frame, otherwise a static screen may never emit another one.
+        candidate = this.getCachedKeyframeCandidate();
+      }
     }
   }
 
@@ -1138,7 +1358,7 @@ export class ScrcpyScreenshotManager {
     const t5 = Date.now();
     const result = await this.decodeH264ToJpeg(keyframeBuffer);
     const decodeTime = Date.now() - t5;
-    this.streamStartupWindow = null;
+    this.recordDecodedFrame(frame, result);
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
@@ -1369,6 +1589,10 @@ export class ScrcpyScreenshotManager {
     this.keyframeResolvers = [];
     this.keyframeListeners.clear();
     this.resetFrameFreshnessState();
+    // Invalidate deferred refs before awaiting transport teardown. A blocked
+    // control-channel RESET_VIDEO write must not block disconnect/dispose.
+    this.advanceStreamEpoch();
+    this.streamReaderEpoch++;
 
     // Cancel reader first to stop consumeFramesLoop
     if (reader) {
