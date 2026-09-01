@@ -520,11 +520,13 @@ export const actionScrollParamSchema = z.object({
     .number()
     .nullable()
     .optional()
-    .describe('The distance in pixels to scroll'),
+    .describe(
+      'The distance in pixels to scroll. When searching or browsing unseen content (e.g. off-screen table columns, list items, fields), leave distance null (or omit it) to automatically advance by one full container page (90% of visible container size). Do NOT specify tiny distances (< 300px) when exploring/locating content.',
+    ),
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'Describe the target element to be scrolled on, like "the table" or "the list" or "the content area" or "the scrollable area". Do NOT provide a general intent like "scroll to find some element"',
+      'Describe the target element to be scrolled on, like "the table" or "the list" or "the content area" or "the scrollable area". Always target the whole container rather than the scrollbar slider. Do NOT provide a general intent like "scroll to find some element"',
     ),
 });
 
@@ -534,7 +536,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
+      'Scroll the page or a scrollable container (e.g. tables, lists) to browse unseen content. This is the preferred way to scroll on all platforms, including mobile and desktop web. When searching for off-screen table columns, fields, or list items, use Scroll with direction ("right"/"down"/"left"/"up") and leave distance null to automatically advance by one full container page (90% of visible container width/height). Do NOT specify micro distances (< 300px) when browsing/searching. Supports scrollToBottom/scrollToTop/scrollToRight/scrollToLeft for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     sample: {
@@ -630,7 +632,7 @@ export const ActionSwipeParamSchema = z.object({
   start: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'Starting point of the swipe gesture, if not specified, the center of the page will be used',
+      'Starting point of the swipe gesture, if not specified, the center of the page will be used. For content/table scrolling, use Scroll on the container rather than Swiping the scrollbar.',
     ),
   direction: z
     .enum(['up', 'down', 'left', 'right'])
@@ -641,7 +643,9 @@ export const ActionSwipeParamSchema = z.object({
   distance: z
     .number()
     .optional()
-    .describe('The distance in pixels to swipe (mutually exclusive with end)'),
+    .describe(
+      'The distance in pixels to swipe (mutually exclusive with end). For table/list content browsing or searching unseen fields, ALWAYS prefer Scroll instead.',
+    ),
   end: getMidsceneLocationSchema()
     .optional()
     .describe(
@@ -735,7 +739,7 @@ export const defineActionSwipe = (config: {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
+      'Perform a touch gesture strictly for interactions beyond regular content scrolling (e.g., flip pages in a mobile carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, table column navigation, or browsing unseen fields, ALWAYS prefer Scroll instead. Do NOT use Swipe with small distance to search for table headers or list fields. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },
