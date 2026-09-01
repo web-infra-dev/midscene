@@ -409,12 +409,12 @@
   width: 1200px;
   height: 8px;
   align-items: center;
-  color: rgb(16 24 40 / 25%);
+  color: rgb(16 24 40 / 8%);
   pointer-events: none;
 }
 
 .dark .home-section-divider {
-  color: rgb(255 255 255 / 25%);
+  color: rgb(255 255 255 / 8%);
 }
 
 .home-section-divider__line {
@@ -891,6 +891,13 @@
   display: flex;
 }
 
+.home-feature--toolkit .home-feature-card__theme {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
 .home-feature-card__asset {
   display: block;
   max-width: calc(100% - 32px);
@@ -909,8 +916,8 @@
 }
 
 .home-feature-card__asset--tool {
-  width: 64px;
-  height: 64px;
+  width: 40px;
+  height: 40px;
 }
 
 .home-feature-card__phones {
