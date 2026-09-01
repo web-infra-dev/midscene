@@ -353,9 +353,21 @@ export async function plan(
       }
     }
 
-    // Append memory to conversation history if present
+    // Append memory to conversation history if present, or auto-retain key visual observations
     if (planFromAI.memory) {
       conversationHistory.appendMemory(planFromAI.memory);
+    } else if (planFromAI.thought) {
+      // Auto-extract observations about table columns/elements so they are preserved across scrolling
+      const lowerThought = planFromAI.thought;
+      if (
+        lowerThought.includes('表头') ||
+        lowerThought.includes('可见') ||
+        lowerThought.includes('包含') ||
+        lowerThought.includes('列') ||
+        lowerThought.includes('已确认')
+      ) {
+        conversationHistory.appendMemory(`Observation: ${planFromAI.thought.trim().slice(0, 300)}`);
+      }
     }
 
     conversationHistory.append({

@@ -29,6 +29,7 @@ const MEMORY_STEP_NOTES = [
   'Use `<memory>` to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.',
   '',
   '- Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.',
+  '- When inspecting a scrollable table or list to verify multiple columns/items, ALWAYS use `<memory>` to record all currently visible target columns/items (e.g., "已在当前视野中确认表格列: 运单号, 先找车后报价") BEFORE performing any Scroll/Swipe action. In later steps after scrolling, previously recorded memories remain fully valid proof that those items exist in the table.',
   '- When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.',
   '- Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.',
   '- After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.',
@@ -362,10 +363,9 @@ After some time, when the last sub-goal is also completed, you can mark it as do
     : '';
 
   // Step numbering adjusts based on whether sub-goals are included
-  // When includeSubGoals=false, memory step is skipped
-  const memoryStepNumber = 2; // Only used when shouldIncludeSubGoals is true
-  const checkGoalStepNumber = shouldIncludeSubGoals ? 3 : 2;
-  const actionStepNumber = shouldIncludeSubGoals ? 4 : 3;
+  const memoryStepNumber = 2;
+  const checkGoalStepNumber = 3;
+  const actionStepNumber = 4;
 
   return `
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
@@ -373,25 +373,23 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 ${step1Title}
 
 ${step1Description}
-${shouldIncludeSubGoals ? `\n${OBSERVE_STEP_NOTES}\n` : ''}
+
+${OBSERVE_STEP_NOTES}
+
 * <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
 ${subGoalTags}
-${
-  shouldIncludeSubGoals
-    ? `
+
 ## Step ${memoryStepNumber}: Memory Data from Current Screenshot (related tags: <memory>)
 
 ${MEMORY_STEP_NOTES}
 
 Don't use this tag if no information needs to be preserved.
-`
-    : ''
-}
+
 ## Step ${checkGoalStepNumber}: ${shouldIncludeSubGoals ? 'Check if Goal is Accomplished' : 'Check if the Instruction is Fulfilled'} (related tags: <complete>)
 
-${shouldIncludeSubGoals ? 'Based on the current screenshot and the status of all sub-goals, determine' : 'Determine'} if the entire task is completed.
+${shouldIncludeSubGoals ? 'Based on the current screenshot, memories from previous steps, and the status of all sub-goals, determine' : 'Based on the current screenshot, memories from previous steps, and execution history, determine'} if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -432,6 +430,29 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${shouldIncludeSubGoals ? 'the goal' : 'it'} as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
+
+**Special case - Table and Grid scope vs. Filter/Form areas:**
+- When the instruction asks to verify, inspect, or operate on a **Table**, **Grid**, or **Table Header / Column Header** (e.g., "表格", "表头", "列表列", "查看表格列"):
+  - You MUST strictly confine your visual inspection and element matching to the **table component itself** (the region bounded by the table header \`<th>\` cells, table columns, and data grid rows).
+  - You MUST NEVER confuse or match table columns with external UI elements outside the table, such as:
+    1. Top query/filter forms, search boxes, input labels, or dropdown labels (e.g., "运单状态:", "输入xxx", search filter tags);
+    2. Page headers, breadcrumbs, navigation bars, action buttons, or floating toolbars above/around the table.
+  - A field label in a search form (like \`Label: [Input]\`) is NOT a table column header. Only the actual header cells at the top of the data columns count as table headers.
+
+**Special case - Table Header Row vs. Data Rows (Avoid Row Misalignment):**
+- When reading column headers from a table:
+  - **Locate the True Header Row**: The table header row is the **topmost row of the table grid** (directly above the first data row and below any filter bars/tags, containing abstract column titles like "运单类型", "运单状态", "三方状态", "提货状态", "操作").
+  - **Authoritative Table Header Recognition**: The row of column names sitting directly above data rows is the authoritative table header. Even if filter buttons/tags (such as "必发货运单", "可付款/部分冻结") sit closely above it, or watermarks overlay it, whenever you see target column names (e.g., "运单状态", "运单类型", "先找车后报价") positioned above data cells, you MUST recognize them immediately as valid table column headers! Never mistake them for being obscured, filter items, or incomplete.
+  - **NEVER Mistake Data Rows for the Header Row**: Data rows sit below the header row and contain concrete record values (e.g., "项目货订单", "待安排司机", "待发车", "已推送", "未申请", date-time strings, amounts).
+  - Concrete data values (e.g., "待安排司机" or "待发车" under the "运单状态" column) are **cell data values**, NOT column names. You MUST read the header title from the header row at the top of the column, not the data row underneath it.
+  - Header text may be displayed with smaller font size or lower contrast (or have watermarks behind it) — always inspect the top title row of the table carefully.
+
+**Special case - Cumulative verification across multi-step scrolling:**
+- When an instruction involves scrolling across a container or table to discover/verify items or column headers (e.g., "向右滚动查看后续列", "滚动查找所有列", "预期包含 A, B, C"):
+  - **Cumulative Memory across Steps**: Any column header, field, or item that was clearly visible in earlier screenshots or execution history during this task MUST be remembered and treated as **confirmed existing** in that container.
+  - **NO Single-Frame Simultaneity Requirement**: Do NOT require all target columns or items to be simultaneously visible in the final single screenshot if the container width/height exceeds the viewport. As long as each required item was observed during the scrolling exploration, the assertion condition is satisfied.
+  - **Avoid premature failure on scrolled-out elements**: When the container is scrolled to one side (e.g., scrolled to the right), elements on the opposite side (e.g., left columns) may naturally be scrolled out of view. Do NOT report them as "missing" or "not found" if they were already observed in previous steps of the same execution.
+  - **Immediate Success upon Full Discovery**: In verification tasks requiring checking multiple columns or elements (e.g., "预期：所有列的表头至少包含 运单号、先找车后报价、运单状态"), once all required elements have been confirmed (either remembered from previous steps or currently visible on screen), you MUST IMMEDIATELY output \`<complete success="true">\` to finish the task! Do NOT keep scrolling blindly to the end of the table once all required items are already found.
 
 ### Completion Criteria for Process-required Instructions
 
