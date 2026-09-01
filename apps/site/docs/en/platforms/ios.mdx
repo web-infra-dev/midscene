@@ -133,7 +133,7 @@ After the script finishes, you should see `Midscene - report file updated: /path
 
 ## Keyboard dismissal
 
-`autoDismissKeyboard` defaults to `true`. After entering text, Midscene locates the standard iOS keyboard accessory toolbar, activates its dismissal control, and waits until WebDriverAgent confirms that the keyboard is hidden. If the toolbar cannot be identified safely or the keyboard does not disappear before the operation deadline, the input action fails instead of continuing with an uncertain keyboard state.
+`autoDismissKeyboard` defaults to `true`. After entering text, Midscene makes a best-effort attempt to locate the standard iOS keyboard accessory toolbar, activate its dismissal control, and wait until WebDriverAgent confirms that the keyboard is hidden. Some keyboards, such as the iPhone number pad, do not expose a dismissal control. If the toolbar cannot be identified safely, the keyboard remains visible, or the dismissal request fails, the input action continues and Midscene logs a warning.
 
 When an `Enter`, `Return`, or `Tab` action immediately follows an auto-dismissed input, Midscene can restore that input's focus once before sending the key. A different pointer, touch, system, custom, or text-input action invalidates the pending focus target.
 

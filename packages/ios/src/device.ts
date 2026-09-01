@@ -36,6 +36,7 @@ import { MjpegFrameSource } from './mjpeg-frame-source';
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
+const debugDeviceWarning = getDebug('ios:device', { console: true });
 
 /**
  * HTTP methods supported by WebDriverAgent API
@@ -198,6 +199,25 @@ export class IOSDevice implements AbstractInterface {
     }
 
     return pendingFollowUp.target;
+  }
+
+  private async tryAutoDismissKeyboard(): Promise<boolean> {
+    let dismissed: boolean;
+    try {
+      dismissed = await this.hideKeyboard();
+    } catch (error) {
+      debugDeviceWarning(
+        'Text input request completed, but auto-dismissing the iOS keyboard failed',
+        error,
+      );
+      return false;
+    }
+    if (!dismissed) {
+      debugDeviceWarning(
+        'Text input request completed, but the iOS keyboard could not be auto-dismissed because no supported dismissal control was found or the keyboard remained visible',
+      );
+    }
+    return dismissed;
   }
 
   private async tapPoint(point: PointerPoint): Promise<void> {
@@ -673,13 +693,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
 
     if (shouldAutoDismissKeyboard) {
-      const dismissed = await this.hideKeyboard();
-      if (!dismissed) {
-        throw new Error(
-          'Failed to auto-dismiss the iOS keyboard: no supported dismissal control was found or the keyboard remained visible',
-        );
+      const dismissed = await this.tryAutoDismissKeyboard();
+      if (dismissed) {
+        this.registerPendingKeyboardFollowUp(focusRestorePoint);
       }
-      this.registerPendingKeyboardFollowUp(focusRestorePoint);
     }
   }
 

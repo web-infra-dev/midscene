@@ -133,7 +133,7 @@ npx tsx demo.ts
 
 ## 隐藏键盘
 
-`autoDismissKeyboard` 默认值为 `true`。文本输入完成后，Midscene 会定位标准的 iOS 键盘辅助工具栏，触发其中的隐藏控件，并等待 WebDriverAgent 确认键盘已经消失。如果无法安全识别工具栏，或者键盘未在操作期限内消失，输入动作会直接失败，不会在键盘状态不确定时继续执行。
+`autoDismissKeyboard` 默认值为 `true`。文本输入完成后，Midscene 会尽力定位标准的 iOS 键盘辅助工具栏、触发其中的隐藏控件，并等待 WebDriverAgent 确认键盘已经消失。部分键盘（例如 iPhone 数字键盘）不提供隐藏控件。如果无法安全识别工具栏、键盘仍然可见或隐藏请求失败，输入动作会继续执行，Midscene 会记录一条警告日志。
 
 如果自动隐藏键盘后紧接着执行 `Enter`、`Return` 或 `Tab`，Midscene 可以在发送按键前恢复一次原输入框的焦点。其他指针、触控、系统、自定义或文本输入动作都会使这个待恢复目标失效。
 
