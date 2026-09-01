@@ -2,6 +2,7 @@ import {
   getZodDescription,
   getZodTypeName,
   isMidsceneLocatorField,
+  markMidsceneLocatorField,
   unwrapZodField,
 } from '@/zod-schema-utils';
 import { describe, expect, it } from '@rstest/core';
@@ -173,36 +174,59 @@ describe('zod-schema-utils', () => {
       expect(isMidsceneLocatorField(z.number())).toBe(false);
     });
 
-    it('should return true for object with prompt field', () => {
-      const schema = z.object({
-        prompt: z.string(),
-        deepLocate: z.boolean().optional(),
-      });
+    it('should return true for the canonical locator schema', () => {
+      const schema = markMidsceneLocatorField(
+        z.object({
+          prompt: z.string(),
+          deepLocate: z.boolean().optional(),
+        }),
+      );
       expect(isMidsceneLocatorField(schema)).toBe(true);
     });
 
-    it('should return false for object without prompt field', () => {
+    it('should return false for an unmarked object with prompt field', () => {
       const schema = z.object({
-        command: z.string(),
+        prompt: z.string(),
       });
       expect(isMidsceneLocatorField(schema)).toBe(false);
     });
 
-    it('should handle optional locator field', () => {
-      const schema = z
-        .object({
-          prompt: z.string(),
-        })
+    it('should handle optional and described locator fields', () => {
+      const schema = markMidsceneLocatorField(z.object({ prompt: z.string() }))
+        .describe('target element')
         .optional();
       expect(isMidsceneLocatorField(schema)).toBe(true);
+    });
+
+    it('should handle nested nullable and optional locator wrappers', () => {
+      const schema = markMidsceneLocatorField(z.object({ prompt: z.string() }))
+        .nullable()
+        .optional();
+      expect(isMidsceneLocatorField(schema)).toBe(true);
+    });
+
+    it('should handle wrappers applied before marking the locator field', () => {
+      const schema = markMidsceneLocatorField(
+        z.object({ prompt: z.string() }).nullable().optional(),
+      );
+      expect(isMidsceneLocatorField(schema)).toBe(true);
+    });
+
+    it('should handle default and transform locator wrappers', () => {
+      const locatorSchema = markMidsceneLocatorField(
+        z.object({ prompt: z.string() }),
+      );
+      const defaultSchema = locatorSchema.default({ prompt: 'default target' });
+      const transformedSchema = locatorSchema.transform((value) => value);
+
+      expect(isMidsceneLocatorField(defaultSchema)).toBe(true);
+      expect(isMidsceneLocatorField(transformedSchema)).toBe(true);
     });
 
     it('should handle z.preprocess wrapping locator field', () => {
       const schema = z.preprocess(
         (val) => val,
-        z.object({
-          prompt: z.string(),
-        }),
+        markMidsceneLocatorField(z.object({ prompt: z.string() })),
       );
       expect(isMidsceneLocatorField(schema)).toBe(true);
     });
