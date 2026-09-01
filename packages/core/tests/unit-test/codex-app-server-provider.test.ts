@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -21,6 +21,7 @@ const baseModelConfig: IModelConfig = {
 };
 
 const temporaryDirectories: string[] = [];
+const initialWorkingDirectory = process.cwd();
 
 const createTemporaryDirectory = async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'midscene-codex-test-'));
@@ -31,6 +32,7 @@ const createTemporaryDirectory = async () => {
 describe('codex app-server provider helper', () => {
   afterEach(async () => {
     await __shutdownCodexAppServerForTests();
+    process.chdir(initialWorkingDirectory);
     rs.unstubAllEnvs();
     rs.restoreAllMocks();
     await Promise.all(
@@ -301,17 +303,12 @@ describe('codex app-server provider helper', () => {
     );
   });
 
-  // The production code spawns `codex` without `shell: true`, which cannot
-  // execute a `.cmd`/`.bat` shim on Windows, so the fake server below is
-  // POSIX-only.
-  it.skipIf(process.platform === 'win32')(
-    'reports Codex JSON-RPC requests, responses, and turn notifications',
-    async () => {
-      const executableDirectory = await createTemporaryDirectory();
-      const serverPath = path.join(executableDirectory, 'codex-server.cjs');
-      await writeFile(
-        serverPath,
-        `const readline = require('node:readline').createInterface({ input: process.stdin });
+  it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
+    const executableDirectory = await createTemporaryDirectory();
+    const serverPath = path.join(executableDirectory, 'codex-server.cjs');
+    await writeFile(
+      serverPath,
+      `const readline = require('node:readline').createInterface({ input: process.stdin });
 const send = (message) => process.stdout.write(JSON.stringify(message) + '\\n');
 readline.on('line', (line) => {
   const message = JSON.parse(line);
@@ -337,74 +334,90 @@ readline.on('line', (line) => {
   }
 });
 `,
+    );
+    if (process.platform === 'win32') {
+      // Node's spawn without `shell: true` can only execute real Windows
+      // executables (no `.cmd`/`.bat` shims), so provide a `codex.exe` that
+      // is a copy of the Node binary. It receives the production argument
+      // `app-server` and resolves it as an entry script relative to the
+      // working directory, so run the test from the fake-server directory.
+      await copyFile(
+        process.execPath,
+        path.join(executableDirectory, 'codex.exe'),
       );
+      await writeFile(
+        path.join(executableDirectory, 'app-server.js'),
+        "require('./codex-server.cjs');\n",
+      );
+      process.chdir(executableDirectory);
+    } else {
       const executablePath = path.join(executableDirectory, 'codex');
       await writeFile(
         executablePath,
         "#!/usr/bin/env node\nrequire('./codex-server.cjs');\n",
       );
       await chmod(executablePath, 0o755);
-      rs.stubEnv(
-        'PATH',
-        `${executableDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
-      );
+    }
+    rs.stubEnv(
+      'PATH',
+      `${executableDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
+    );
 
-      const events: unknown[] = [];
-      const result = await callAIWithCodexAppServer(
-        [{ role: 'user', content: 'hello' }],
-        baseModelConfig,
-        { onRecordEvent: (event) => events.push(event) },
-      );
+    const events: unknown[] = [];
+    const result = await callAIWithCodexAppServer(
+      [{ role: 'user', content: 'hello' }],
+      baseModelConfig,
+      { onRecordEvent: (event) => events.push(event) },
+    );
 
-      expect(result).toMatchObject({
-        content: 'hello',
-        protocolMetadata: {
-          transport: 'json-rpc',
-          threadId: 'thread-1',
-          turnId: 'turn-1',
-          turnStatus: 'completed',
-        },
-      });
-      expect(events).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: 'request',
-            protocol: expect.objectContaining({ method: 'thread/start' }),
+    expect(result).toMatchObject({
+      content: 'hello',
+      protocolMetadata: {
+        transport: 'json-rpc',
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        turnStatus: 'completed',
+      },
+    });
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'request',
+          protocol: expect.objectContaining({ method: 'thread/start' }),
+        }),
+        expect.objectContaining({
+          type: 'request',
+          protocol: expect.objectContaining({ method: 'turn/start' }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            direction: 'server',
+            method: 'thread/start',
+            result: { thread: { id: 'thread-1' } },
           }),
-          expect.objectContaining({
-            type: 'request',
-            protocol: expect.objectContaining({ method: 'turn/start' }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            direction: 'server',
+            method: 'turn/start',
+            result: { turn: { id: 'turn-1' } },
           }),
-          expect.objectContaining({
-            type: 'chunk',
-            protocol: expect.objectContaining({
-              direction: 'server',
-              method: 'thread/start',
-              result: { thread: { id: 'thread-1' } },
-            }),
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({
+            method: 'item/agentMessage/delta',
           }),
-          expect.objectContaining({
-            type: 'chunk',
-            protocol: expect.objectContaining({
-              direction: 'server',
-              method: 'turn/start',
-              result: { turn: { id: 'turn-1' } },
-            }),
-          }),
-          expect.objectContaining({
-            type: 'chunk',
-            protocol: expect.objectContaining({
-              method: 'item/agentMessage/delta',
-            }),
-          }),
-          expect.objectContaining({
-            type: 'chunk',
-            protocol: expect.objectContaining({ method: 'turn/completed' }),
-          }),
-        ]),
-      );
+        }),
+        expect.objectContaining({
+          type: 'chunk',
+          protocol: expect.objectContaining({ method: 'turn/completed' }),
+        }),
+      ]),
+    );
 
-      await __shutdownCodexAppServerForTests();
-    },
-  );
+    await __shutdownCodexAppServerForTests();
+  });
 });
