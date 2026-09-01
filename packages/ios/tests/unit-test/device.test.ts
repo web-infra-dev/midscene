@@ -760,13 +760,55 @@ describe('IOSDevice', () => {
       expect(mockBackend.swipe).not.toHaveBeenCalled();
     });
 
-    it('should reject input when auto-dismiss cannot hide the keyboard', async () => {
-      mockWdaClient.isKeyboardVisible = rs.fn().mockResolvedValue(true);
+    it('should continue input when auto-dismiss cannot hide the keyboard', async () => {
       mockWdaClient.dismissKeyboard = rs.fn().mockResolvedValue(false);
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
-      await expect(
-        getInternalTextInput(device).typeText('test text'),
-      ).rejects.toThrow('Failed to auto-dismiss the iOS keyboard');
+      try {
+        await expect(
+          device.inputPrimitives.keyboard.typeText('test text', {
+            target: { center: [30, 40] },
+            replace: false,
+          }),
+        ).resolves.toBeUndefined();
+        expect(mockWdaClient.typeText).toHaveBeenCalledWith('test text');
+        expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
+          expect.stringContaining(
+            'Text input request completed, but the iOS keyboard could not be auto-dismissed',
+          ),
+        );
+
+        mockWdaClient.tap.mockClear();
+        await device.inputPrimitives.keyboard.keyboardPress('Enter');
+        expect(mockWdaClient.tap).not.toHaveBeenCalled();
+        expect(mockWdaClient.pressKey).toHaveBeenCalledWith('Enter');
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it('should continue input when auto-dismiss throws', async () => {
+      const transportError = new Error('WDA transport failed');
+      mockWdaClient.dismissKeyboard = rs.fn().mockRejectedValue(transportError);
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        await expect(
+          getInternalTextInput(device).typeText('test text'),
+        ).resolves.toBeUndefined();
+        expect(mockWdaClient.typeText).toHaveBeenCalledWith('test text');
+        expect(warnSpy).toHaveBeenCalledWith(
+          '[Midscene]',
+          'Text input request completed, but auto-dismissing the iOS keyboard failed',
+          expect.any(Error),
+        );
+        expect(warnSpy.mock.calls[0][2]).toMatchObject({
+          cause: transportError,
+        });
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('should preserve WDA dismissal errors', async () => {
