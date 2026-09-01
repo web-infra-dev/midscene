@@ -187,14 +187,44 @@ export async function openExtensionSidePanel(
     y: EXTENSION_MENU_ROW_Y,
   });
 
-  for (let attempt = 0; attempt < SIDE_PANEL_READY_MAX_ATTEMPTS; attempt++) {
-    if (await findExtensionPageTarget(extensionId)) {
-      return;
-    }
-    await sleep(SIDE_PANEL_READY_INTERVAL);
+  if (await waitForExtensionPageTarget(extensionId)) {
+    return;
+  }
+
+  // Chrome occasionally ignores a native-menu click even when the pointer
+  // reaches the expected coordinates. Clear any menu left behind and use
+  // vision as a fallback instead of cascading the missing side panel into the
+  // remaining bridge tests.
+  console.log(
+    'Fixed-coordinate side-panel open did not succeed; retrying with vision',
+  );
+  await agent.interface.inputPrimitives?.keyboard?.keyboardPress('Escape');
+  await sleep(EXTENSION_MENU_OPEN_DELAY);
+  await agent.aiTap(
+    'the Chrome toolbar Extensions button with a puzzle-piece icon in the top-right browser chrome, not any icon inside the web page',
+    { deepLocate: true },
+  );
+  await sleep(EXTENSION_MENU_OPEN_DELAY);
+  await agent.aiTap(
+    'the row labeled "Midscene.js" inside the open Chrome Extensions menu below the toolbar, not any text or control inside the web page',
+    { deepLocate: true },
+  );
+
+  if (await waitForExtensionPageTarget(extensionId)) {
+    return;
   }
 
   throw new Error('Midscene extension side panel did not open');
+}
+
+async function waitForExtensionPageTarget(extensionId: string) {
+  for (let attempt = 0; attempt < SIDE_PANEL_READY_MAX_ATTEMPTS; attempt++) {
+    if (await findExtensionPageTarget(extensionId)) {
+      return true;
+    }
+    await sleep(SIDE_PANEL_READY_INTERVAL);
+  }
+  return false;
 }
 
 // Wait until Chrome's CDP endpoint answers, i.e. the browser is actually up.

@@ -24,18 +24,25 @@ function stubCdpTargets(...responses: CdpTarget[][]) {
 
 function createAgent() {
   const tap = rs.fn(async () => undefined);
+  const keyboardPress = rs.fn(async () => undefined);
   const size = rs.fn(async () => ({ width: 1920, height: 1080 }));
+  const aiTap = rs.fn(async () => undefined);
   const agent = {
+    aiTap,
     interface: {
-      inputPrimitives: { pointer: { tap } },
+      inputPrimitives: {
+        keyboard: { keyboardPress },
+        pointer: { tap },
+      },
       size,
     },
   } as unknown as ComputerAgent;
-  return { agent, size, tap };
+  return { agent, aiTap, keyboardPress, size, tap };
 }
 
 describe('Chrome extension side-panel helper', () => {
   afterEach(() => {
+    rs.useRealTimers();
     rs.unstubAllGlobals();
   });
 
@@ -47,6 +54,27 @@ describe('Chrome extension side-panel helper', () => {
 
     expect(tap).toHaveBeenNthCalledWith(1, { x: 1760, y: 72 });
     expect(tap).toHaveBeenNthCalledWith(2, { x: 1554, y: 228 });
+  });
+
+  it('falls back to vision when Chrome ignores the native-menu click', async () => {
+    rs.useFakeTimers();
+    const { agent, aiTap, keyboardPress } = createAgent();
+    rs.stubGlobal(
+      'fetch',
+      rs.fn(async () => ({
+        json: async () =>
+          aiTap.mock.calls.length === 2 ? [EXTENSION_TARGET] : [],
+      })),
+    );
+
+    const openPromise = openExtensionSidePanel(agent, EXTENSION_ID);
+    await rs.runAllTimersAsync();
+    await openPromise;
+
+    expect(keyboardPress).toHaveBeenCalledWith('Escape');
+    expect(aiTap).toHaveBeenCalledTimes(2);
+    expect(aiTap.mock.calls[0][0]).toContain('Extensions button');
+    expect(aiTap.mock.calls[1][0]).toContain('Midscene.js');
   });
 
   it('does not toggle an already-open side panel during a test retry', async () => {
