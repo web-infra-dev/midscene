@@ -107,7 +107,7 @@ describe('resolvePlanningTapLocator', () => {
     expect(planOptions.actionSpace.map((action: any) => action.name)).toEqual([
       'Tap',
     ]);
-    expect(vi.mocked(runCustomPlanning).mock.calls[0][0]).toEqual({
+    expect(rs.mocked(runCustomPlanning).mock.calls[0][0]).toEqual({
       text: 'submit button',
       referenceImages: [],
     });

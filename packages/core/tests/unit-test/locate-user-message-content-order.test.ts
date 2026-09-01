@@ -5,18 +5,17 @@ import {
   AiLocateSection,
 } from '@/ai-model/workflows/grounding';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/service-caller/index', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/ai-model/service-caller/index')
-  >('@/ai-model/service-caller/index');
-  return {
-    ...actual,
-    callAI: vi.fn(),
-  };
-});
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  callAI: rs.fn(),
+}));
 
 describe('locate user message content order', () => {
   const modelConfig: IModelConfig = {
@@ -41,8 +40,8 @@ describe('locate user message content order', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(callAI).mockResolvedValue({
+    rs.clearAllMocks();
+    rs.mocked(callAI).mockResolvedValue({
       content: '{"bbox":[100,200,300,400]}',
       isStreamed: false,
     });
@@ -55,7 +54,7 @@ describe('locate user message content order', () => {
       modelRuntime,
     });
 
-    expect(vi.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
+    expect(rs.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),
@@ -71,7 +70,7 @@ describe('locate user message content order', () => {
       modelRuntime,
     });
 
-    expect(vi.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
+    expect(rs.mocked(callAI).mock.calls[0][0][1]).toMatchObject({
       role: 'user',
       content: [
         expect.objectContaining({ type: 'text' }),

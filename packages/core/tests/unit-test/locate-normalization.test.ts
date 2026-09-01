@@ -120,11 +120,11 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('parses protocol-specific locate params after identifying locator fields', () => {
-    const parseProtocolLocateParameter = vi.fn(() => ({
+    const parseProtocolLocateParameter = rs.fn(() => ({
       prompt: 'submit',
       point: [50, 60],
     }));
-    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const toPixelBbox = rs.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',

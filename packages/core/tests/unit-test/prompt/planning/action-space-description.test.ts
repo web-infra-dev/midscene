@@ -83,7 +83,7 @@ describe('buildPlanningActionSpaceDescription', () => {
   });
 
   it('skips action output examples when the action space protocol excludes them', () => {
-    const buildActionOutput = vi.fn(() => '<tool>Tap</tool>');
+    const buildActionOutput = rs.fn(() => '<tool>Tap</tool>');
     const planningProtocol: StandardPlanningProtocol = {
       actionSpaceProtocol: {
         title: 'Functions',

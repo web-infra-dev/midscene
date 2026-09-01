@@ -696,12 +696,12 @@ describe('Action Parameter Validation', () => {
     });
 
     it('should pass inputStrategy to typeText', async () => {
-      const typeTextMock = vi.fn().mockResolvedValue(undefined);
+      const typeTextMock = rs.fn().mockResolvedValue(undefined);
       const action = defineActionInput({
         typeText: typeTextMock,
-        clearInput: vi.fn(),
-        keyboardPress: vi.fn(),
-        cursorMove: vi.fn(),
+        clearInput: rs.fn(),
+        keyboardPress: rs.fn(),
+        cursorMove: rs.fn(),
       });
 
       await action.call({

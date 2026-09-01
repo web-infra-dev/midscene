@@ -1,7 +1,7 @@
 import { createDefaultInsightProtocol } from '@/ai-model/model-adapter/default-insight-protocol';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { parseInsightResponse } from '@/ai-model/workflows/insight/insight-response-parser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const defaultInsightProtocol = createDefaultInsightProtocol({
   jsonParser: parseModelResponseJson,

@@ -9,13 +9,14 @@ rs.mock('@/ai-model/workflows/planning', () => ({
   standardPlan: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/img', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
-  return {
-    ...actual,
-    preProcessImageUrl: vi.fn(async (url: string) => `prepared:${url}`),
-  };
-});
+import * as sharedImgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@midscene/shared/img', () => ({
+  ...sharedImgActual,
+  preProcessImageUrl: rs.fn(async (url: string) => `prepared:${url}`),
+}));
 
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
@@ -198,7 +199,7 @@ describe('TaskExecutor concurrency isolation', () => {
   });
 
   it('prepares aiAct reference images once across replanning cycles', async () => {
-    vi.mocked(standardPlan)
+    rs.mocked(standardPlan)
       .mockResolvedValueOnce({
         actions: [],
         yamlFlow: [],

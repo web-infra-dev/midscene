@@ -122,7 +122,7 @@ describe('plan XML parse retry', () => {
   });
 
   it('resolves reference images from the planning instruction', async () => {
-    vi.mocked(callAI).mockResolvedValueOnce(
+    rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
     );
@@ -147,7 +147,7 @@ describe('plan XML parse retry', () => {
       },
     );
 
-    expect(vi.mocked(callAI).mock.calls[0][0]).toEqual(
+    expect(rs.mocked(callAI).mock.calls[0][0]).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: 'user',
