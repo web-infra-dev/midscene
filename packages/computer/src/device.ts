@@ -26,7 +26,7 @@ import {
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
-import { WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE } from './windows-dpi';
+import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
   windowsPointerDrift,
@@ -273,42 +273,8 @@ function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
   execFileSync('osascript', ['-e', script]);
 }
 
-// Lazy load libnut with fallback
-const POWERSHELL_TIMEOUT_MS = 15_000;
-// CopyFromScreen output can be several MB once base64-encoded.
-const POWERSHELL_MAX_BUFFER = 64 * 1024 * 1024;
-
 function escapePowershellSingleQuoted(value: string): string {
   return value.replace(/'/g, "''");
-}
-
-/**
- * Run a PowerShell script and return its stdout. The script is passed via
- * `-EncodedCommand` (UTF-16LE base64) to avoid any shell quoting/escaping and
- * the Git Bash argument mangling that breaks screenshot-desktop (#2150).
- * `powershell.exe` (Windows PowerShell 5.x) is used because it ships with
- * System.Windows.Forms / System.Drawing out of the box.
- *
- * No `-ExecutionPolicy Bypass`: execution policy only gates `.ps1` script
- * files, not inline `-EncodedCommand`/`-Command` input, so it would be a
- * no-op here while making the invocation look more privileged to auditing.
- */
-function runPowershell(script: string): string {
-  // Suppress PowerShell progress output (CLIXML) that non-interactive
-  // child processes emit to stdout — it shows up as `#< CLIXML` XML noise
-  // in Midscene logs and wastes tokens in agent flows (#2751).
-  const prefixed = `$ProgressPreference = 'SilentlyContinue'\n${script}`;
-  const encoded = Buffer.from(prefixed, 'utf16le').toString('base64');
-  return execFileSync(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
-    {
-      encoding: 'utf8',
-      timeout: POWERSHELL_TIMEOUT_MS,
-      maxBuffer: POWERSHELL_MAX_BUFFER,
-      windowsHide: true,
-    },
-  );
 }
 
 /** Enumerate Windows monitors and their physical-pixel bounds via PowerShell
@@ -316,7 +282,6 @@ function runPowershell(script: string): string {
  * see #2150). */
 export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
   const script = `
-${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms
 $s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
   $b = $_.Bounds
@@ -329,7 +294,7 @@ $s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
 }
 ConvertTo-Json @($s) -Compress
 `.trim();
-  const output = runPowershell(script).trim();
+  const output = runWindowsPhysicalPixelPowershell(script).trim();
   if (!output) {
     throw new Error('Windows display enumeration returned no data');
   }
@@ -854,7 +819,7 @@ export class ComputerDevice implements AbstractInterface {
     debug: (message) => debugDevice(message),
   });
   private readonly windowsPointerDriver = new WindowsPointerDriver({
-    runPowershell,
+    runPhysicalPixelPowershell: runWindowsPhysicalPixelPowershell,
   });
   /**
    * On macOS, use AppleScript for keyboard operations by default
@@ -1055,7 +1020,7 @@ export class ComputerDevice implements AbstractInterface {
       this.inputDriver.moveMouse(target.x, target.y);
     }
     await this.inputDriver.delay(CLICK_SETTLE_DELAY);
-    return target;
+    return this.inputDriver.getMousePos();
   }
 
   private moveDisplayPointer(
@@ -1447,8 +1412,6 @@ $screen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceNa
 if (-not $screen) { throw "Requested display not found: $dn" }`
       : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
     const script = `
-$ErrorActionPreference = 'Stop'
-${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 ${selectScreen}
 $b = $screen.Bounds
@@ -1463,7 +1426,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
     let stdout: string;
     try {
-      stdout = runPowershell(script);
+      stdout = runWindowsPhysicalPixelPowershell(script);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to take screenshot on Windows: ${message}`);
@@ -1619,7 +1582,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
 
   private resolveUntargetedScrollPoint(screenSize: Size): Point {
     if (process.platform === 'win32') {
-      const activeWindowRect = this.inputDriver.getActiveWindowRect();
+      const activeWindowRect = this.windowsPointerDriver.getActiveWindowRect();
       if (activeWindowRect) {
         const activeWindowCenter = {
           x: activeWindowRect.x + activeWindowRect.width / 2,

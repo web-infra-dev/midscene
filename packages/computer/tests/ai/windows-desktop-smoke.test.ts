@@ -773,6 +773,23 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(scrolledState.wheelDelta).not.toBe(0);
       expect(scrolledState.scrollValue).toBeGreaterThan(0);
 
+      await agent.callActionInActionSpace('Scroll', {
+        scrollType: 'singleAction',
+        direction: 'up',
+        distance: 100,
+      });
+      const untargetedScrollState = await waitForJson(
+        stateFile,
+        normalizeState,
+        (state) => state.wheelEventCount > scrolledState.wheelEventCount,
+        STATE_TIMEOUT_MS,
+        startedFixture,
+      );
+      evidence.untargetedScrollState = untargetedScrollState;
+      expect(untargetedScrollState.wheelEventCount).toBeGreaterThan(
+        scrolledState.wheelEventCount,
+      );
+
       const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
       await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');
       const dumpTasks = (dump.executions ?? []).flatMap(

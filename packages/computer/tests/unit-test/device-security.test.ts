@@ -16,6 +16,9 @@ const mockState = rs.hoisted(() => {
   ];
   let windowsDisplays = defaultWindowsDisplays;
   let windowsCursorPos = { x: 10, y: 20 };
+  let windowsActiveWindowRect:
+    | { x: number; y: number; width: number; height: number }
+    | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
   // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
   // now (issue #2150); answer based on which script is being run.
@@ -35,6 +38,10 @@ const mockState = rs.hoisted(() => {
             : '';
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
+        }
+        if (script.includes('$midsceneWindowRectBuffer')) {
+          const rect = windowsActiveWindowRect;
+          return rect ? `${rect.x},${rect.y},${rect.width},${rect.height}` : '';
         }
         if (script.includes('[System.Windows.Forms.Cursor]::Position')) {
           const targetX = script.match(/\$targetX = (-?\d+)/)?.[1];
@@ -88,6 +95,7 @@ const mockState = rs.hoisted(() => {
   const reset = () => {
     mousePos = { x: 10, y: 20 };
     windowsCursorPos = { x: 10, y: 20 };
+    windowsActiveWindowRect = undefined;
     windowsCursorTransform = (x: number, y: number) => ({ x, y });
     windowsDisplays = defaultWindowsDisplays;
     execSync.mockReset();
@@ -120,6 +128,12 @@ const mockState = rs.hoisted(() => {
     windowsCursorTransform = transform;
   };
 
+  const setWindowsActiveWindowRect = (
+    rect: { x: number; y: number; width: number; height: number } | undefined,
+  ) => {
+    windowsActiveWindowRect = rect;
+  };
+
   const getWindowsCursorPos = () => ({ ...windowsCursorPos });
 
   return {
@@ -130,6 +144,7 @@ const mockState = rs.hoisted(() => {
     createRequire,
     reset,
     setWindowsDisplays,
+    setWindowsActiveWindowRect,
     setWindowsCursorTransform,
     getWindowsCursorPos,
   };
@@ -332,11 +347,18 @@ describe('ComputerDevice scroll targeting', () => {
   it('focuses and anchors untargeted Windows scrolls at the active window center', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
     mockState.libnut.getActiveWindow.mockReturnValue(123);
+    mockState.setWindowsActiveWindowRect({
+      x: 500,
+      y: 100,
+      width: 200,
+      height: 200,
+    });
+    // libnut's GetWindowRect result is DPI-virtualized and must not be used.
     mockState.libnut.getWindowRect.mockReturnValue({
-      x: 40,
+      x: 160,
       y: 80,
-      width: 360,
-      height: 500,
+      width: 320,
+      height: 320,
     });
 
     await device.inputPrimitives.scroll!.scroll({
@@ -344,9 +366,9 @@ describe('ComputerDevice scroll targeting', () => {
       direction: 'down',
     });
 
-    expect(mockState.libnut.getWindowRect).toHaveBeenCalledWith(123);
+    expect(mockState.libnut.getWindowRect).not.toHaveBeenCalled();
     expect(mockState.libnut.focusWindow).toHaveBeenCalledWith(123);
-    expect(mockState.getWindowsCursorPos()).toEqual({ x: 220, y: 330 });
+    expect(mockState.getWindowsCursorPos()).toEqual({ x: 600, y: 200 });
     expect(mockState.libnut.moveMouse).not.toHaveBeenCalled();
     expect(mockState.libnut.mouseClick).not.toHaveBeenCalled();
     expect(mockState.libnut.scrollMouse).toHaveBeenCalled();
@@ -354,6 +376,17 @@ describe('ComputerDevice scroll targeting', () => {
 });
 
 describe('ComputerDevice pointer input', () => {
+  it('observes the actual cursor position after non-Windows movement', async () => {
+    const device = await createConnectedDeviceForPlatform('darwin');
+    mockState.libnut.getMousePos.mockClear();
+
+    await device.inputPrimitives.pointer!.hover({ x: 100, y: 120 });
+
+    // smoothMoveMouse reads the starting point; moveGlobalPointer then reads
+    // again after settling so click diagnostics use the observed position.
+    expect(mockState.libnut.getMousePos).toHaveBeenCalledTimes(2);
+  });
+
   it('does not trust a self-consistent libnut position outside screenshot space', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, rs } from '@rstest/core';
 import {
   WindowsPointerDriver,
+  windowsActiveWindowRectScript,
   windowsPointerDrift,
   windowsPointerIsWithinTolerance,
   windowsPointerMoveScript,
@@ -8,21 +9,18 @@ import {
 
 describe('Windows screenshot-space pointer driver', () => {
   it('moves and observes physical pixels with the requested smooth path', () => {
-    const runPowershell = rs.fn((_script: string) => '1395,50');
-    const driver = new WindowsPointerDriver({ runPowershell });
+    const runPhysicalPixelPowershell = rs.fn((_script: string) => '1395,50');
+    const driver = new WindowsPointerDriver({ runPhysicalPixelPowershell });
 
     expect(
       driver.moveTo({ x: 1395, y: 50 }, { smoothSteps: 8, smoothDelayMs: 8 }),
     ).toEqual({ x: 1395, y: 50 });
 
-    const script = runPowershell.mock.lastCall?.[0] ?? '';
+    const script = runPhysicalPixelPowershell.mock.lastCall?.[0] ?? '';
     expect(script).toContain('$targetX = 1395');
     expect(script).toContain('$targetY = 50');
     expect(script).toContain('$smoothSteps = 8');
     expect(script).toContain('$smoothDelayMs = 8');
-    expect(script).toContain('SetThreadDpiAwarenessContext');
-    expect(script).toContain('DefinePInvokeMethod');
-    expect(script).toContain('[System.IntPtr](-4)');
     expect(script).toContain('[System.Windows.Forms.Cursor]::Position');
     expect(script).not.toContain('Add-Type -TypeDefinition');
   });
@@ -35,10 +33,33 @@ describe('Windows screenshot-space pointer driver', () => {
 
   it('throws instead of accepting an unreadable cursor position', () => {
     const driver = new WindowsPointerDriver({
-      runPowershell: () => '',
+      runPhysicalPixelPowershell: () => '',
     });
 
     expect(() => driver.getPosition()).toThrow(/invalid cursor position/);
+  });
+
+  it('reads the active window rectangle through the physical-pixel runner', () => {
+    const runPhysicalPixelPowershell = rs.fn(() => '-1200,100,800,600');
+    const driver = new WindowsPointerDriver({ runPhysicalPixelPowershell });
+
+    expect(driver.getActiveWindowRect()).toEqual({
+      x: -1200,
+      y: 100,
+      width: 800,
+      height: 600,
+    });
+    expect(runPhysicalPixelPowershell).toHaveBeenCalledWith(
+      windowsActiveWindowRectScript(),
+    );
+  });
+
+  it('rejects malformed active window geometry', () => {
+    const driver = new WindowsPointerDriver({
+      runPhysicalPixelPowershell: () => '0,0,0,600',
+    });
+
+    expect(() => driver.getActiveWindowRect()).toThrow(/invalid rectangle/);
   });
 
   it('checks observed drift in screenshot coordinates', () => {

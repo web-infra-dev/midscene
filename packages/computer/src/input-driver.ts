@@ -11,7 +11,6 @@ export interface LibNut {
   keyTap(key: string, modifiers?: string[]): void;
   typeString(text: string): void;
   getActiveWindow?(): number;
-  getWindowRect?(handle: number): WindowRect;
   focusWindow?(handle: number): void;
 }
 
@@ -19,13 +18,6 @@ export type MouseButton = 'left' | 'right' | 'middle';
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 const MOUSE_COORDINATE_TOLERANCE_PX = 5;
-
-export interface WindowRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 interface ComputerInputDriverOptions {
   getLibnut(): LibNut | null;
@@ -103,38 +95,6 @@ export class ComputerInputDriver {
     } catch (error) {
       this.options.debug(`focusActiveWindow failed: ${error}`);
       return false;
-    }
-  }
-
-  getActiveWindowRect(): WindowRect | null {
-    const lib = this.getLibnutOrThrow('getActiveWindowRect');
-    if (
-      typeof lib.getActiveWindow !== 'function' ||
-      typeof lib.getWindowRect !== 'function'
-    ) {
-      return null;
-    }
-
-    try {
-      const handle = lib.getActiveWindow();
-      if (!handle) return null;
-
-      const rect = lib.getWindowRect(handle);
-      if (
-        !Number.isFinite(rect.x) ||
-        !Number.isFinite(rect.y) ||
-        !Number.isFinite(rect.width) ||
-        !Number.isFinite(rect.height) ||
-        rect.width <= 0 ||
-        rect.height <= 0
-      ) {
-        return null;
-      }
-
-      return rect;
-    } catch (error) {
-      this.options.debug(`getActiveWindowRect failed: ${error}`);
-      return null;
     }
   }
 

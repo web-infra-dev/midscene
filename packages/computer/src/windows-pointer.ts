@@ -1,5 +1,3 @@
-import { WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE } from './windows-dpi';
-
 export interface WindowsPointerPoint {
   x: number;
   y: number;
@@ -11,7 +9,12 @@ export interface WindowsPointerMoveOptions {
 }
 
 interface WindowsPointerDriverOptions {
-  runPowershell(script: string): string;
+  runPhysicalPixelPowershell(script: string): string;
+}
+
+export interface WindowsWindowRect extends WindowsPointerPoint {
+  width: number;
+  height: number;
 }
 
 export const WINDOWS_POINTER_TOLERANCE_PX = 5;
@@ -39,7 +42,6 @@ function parseWindowsPointerPosition(
 
 function windowsPointerPositionScript(): string {
   return `
-${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $position = [System.Windows.Forms.Cursor]::Position
 [Console]::Out.Write(('{0},{1}' -f $position.X, $position.Y))
@@ -66,7 +68,6 @@ export function windowsPointerMoveScript(
   const smoothDelayMs = Math.max(0, Math.round(options?.smoothDelayMs ?? 0));
 
   return `
-${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $targetX = ${targetX}
 $targetY = ${targetY}
@@ -87,6 +88,55 @@ $position = [System.Windows.Forms.Cursor]::Position
 `.trim();
 }
 
+function parseWindowsWindowRect(output: string): WindowsWindowRect | null {
+  const value = output.trim();
+  if (!value) {
+    return null;
+  }
+  const match = value.match(/^(-?\d+),(-?\d+),(\d+),(\d+)$/);
+  if (!match) {
+    throw new Error(
+      `Windows active window query returned an invalid rectangle: ${JSON.stringify(value)}`,
+    );
+  }
+  const rect = {
+    x: Number(match[1]),
+    y: Number(match[2]),
+    width: Number(match[3]),
+    height: Number(match[4]),
+  };
+  if (rect.width <= 0 || rect.height <= 0) {
+    throw new Error(
+      `Windows active window query returned an invalid rectangle: ${JSON.stringify(value)}`,
+    );
+  }
+  return rect;
+}
+
+/** @internal exported for unit tests — do not consume from outside this package */
+export function windowsActiveWindowRectScript(): string {
+  return `
+$midsceneWindowHandle = $midsceneNativeMethods::GetForegroundWindow()
+if ($midsceneWindowHandle -eq [System.IntPtr]::Zero) {
+  return
+}
+$midsceneWindowRectBuffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(16)
+try {
+  if (-not $midsceneNativeMethods::GetWindowRect($midsceneWindowHandle, $midsceneWindowRectBuffer)) {
+    throw 'GetWindowRect failed for the foreground window.'
+  }
+  $left = [System.Runtime.InteropServices.Marshal]::ReadInt32($midsceneWindowRectBuffer, 0)
+  $top = [System.Runtime.InteropServices.Marshal]::ReadInt32($midsceneWindowRectBuffer, 4)
+  $right = [System.Runtime.InteropServices.Marshal]::ReadInt32($midsceneWindowRectBuffer, 8)
+  $bottom = [System.Runtime.InteropServices.Marshal]::ReadInt32($midsceneWindowRectBuffer, 12)
+  [Console]::Out.Write(('{0},{1},{2},{3}' -f $left, $top, ($right - $left), ($bottom - $top)))
+}
+finally {
+  [System.Runtime.InteropServices.Marshal]::FreeHGlobal($midsceneWindowRectBuffer)
+}
+`.trim();
+}
+
 /**
  * Move and observe the Windows cursor in physical screenshot pixels.
  *
@@ -103,8 +153,14 @@ export class WindowsPointerDriver {
 
   getPosition(): WindowsPointerPoint {
     return parseWindowsPointerPosition(
-      this.options.runPowershell(windowsPointerPositionScript()),
+      this.options.runPhysicalPixelPowershell(windowsPointerPositionScript()),
       'Windows pointer query',
+    );
+  }
+
+  getActiveWindowRect(): WindowsWindowRect | null {
+    return parseWindowsWindowRect(
+      this.options.runPhysicalPixelPowershell(windowsActiveWindowRectScript()),
     );
   }
 
@@ -113,7 +169,9 @@ export class WindowsPointerDriver {
     options?: WindowsPointerMoveOptions,
   ): WindowsPointerPoint {
     return parseWindowsPointerPosition(
-      this.options.runPowershell(windowsPointerMoveScript(point, options)),
+      this.options.runPhysicalPixelPowershell(
+        windowsPointerMoveScript(point, options),
+      ),
       'Windows pointer move',
     );
   }
