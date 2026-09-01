@@ -930,6 +930,7 @@ export function parseAIObjectResponse<T>(
   assert(response, 'empty response');
   const jsonContent = adapter.jsonParser(response.content, {
     source: jsonParserSource,
+    requireObject: true,
   });
   // This API expects a JSON object. Bare JSON primitives are valid JSON,
   // but do not satisfy object-response callers.

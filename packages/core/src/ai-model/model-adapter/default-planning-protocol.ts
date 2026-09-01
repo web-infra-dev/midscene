@@ -192,6 +192,7 @@ export const createMidscenePlanningActionOutputParser =
       try {
         param = jsonParser(actionParamStr, {
           source: 'planning-action-param',
+          requireObject: false,
           preserveStringValueKeys:
             type.toLowerCase() === 'input' ? ['value'] : undefined,
         });

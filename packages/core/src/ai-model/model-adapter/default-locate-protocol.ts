@@ -124,8 +124,13 @@ const createParseRawResponse =
   ): ParsedLocateResponse => {
     const parsedResponse = jsonParser(content, {
       source,
+      requireObject: true,
     });
-    if (!parsedResponse || typeof parsedResponse !== 'object') {
+    if (
+      !parsedResponse ||
+      typeof parsedResponse !== 'object' ||
+      Array.isArray(parsedResponse)
+    ) {
       throw new Error(`Failed to parse JSON locate response: ${content}`);
     }
     const record = parsedResponse as Record<string, unknown>;

@@ -52,6 +52,7 @@ export type JsonParserSource =
 export interface JsonParserContext {
   source: JsonParserSource;
   preserveStringValueKeys?: string[];
+  /** Require the parsed top-level JSON value to be an object. Defaults to false. */
   requireObject?: boolean;
 }
 
@@ -121,10 +122,13 @@ function assertJsonObject(
   parsed: unknown,
 ): asserts parsed is Record<string, unknown> {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const parsedType = Array.isArray(parsed)
+      ? 'array'
+      : parsed === null
+        ? 'null'
+        : typeof parsed;
     throw new Error(
-      `expected parsed LLM response to be a JSON object, got ${JSON.stringify(
-        parsed,
-      )}`,
+      `LLM response is valid JSON but does not match the expected schema. Expected to be a JSON object, got ${parsedType}: ${JSON.stringify(parsed)}.`,
     );
   }
 }
@@ -142,15 +146,12 @@ export function parseModelResponseJson(
   context?: JsonParserContext,
 ) {
   const cleanJsonString = extractJSONFromCodeBlock(raw);
-  const requireObject = context?.requireObject ?? true;
+  const requireObject = context?.requireObject ?? false;
 
   let parsedObj: unknown;
 
   try {
     parsedObj = parseJsonWithRepair(cleanJsonString);
-    if (requireObject) {
-      assertJsonObject(parsedObj);
-    }
   } catch (e1) {
     const code = repairKnownJsonIssues(cleanJsonString, raw);
     if (code === cleanJsonString) {
@@ -163,9 +164,6 @@ export function parseModelResponseJson(
 
     try {
       parsedObj = parseJsonWithRepair(code);
-      if (requireObject) {
-        assertJsonObject(parsedObj);
-      }
     } catch (e2) {
       throw new Error(
         `failed to parse LLM response into JSON. First error - ${String(
@@ -173,6 +171,10 @@ export function parseModelResponseJson(
         )}. Second error - ${String(e2)}. Response - \n ${raw}`,
       );
     }
+  }
+
+  if (requireObject) {
+    assertJsonObject(parsedObj);
   }
 
   return trimParsedJsonStrings(parsedObj, context);

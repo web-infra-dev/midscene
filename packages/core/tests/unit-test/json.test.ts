@@ -89,13 +89,11 @@ describe('parseModelResponseJson', () => {
     );
   });
 
-  it('should reject top-level non-object JSON values', () => {
-    expect(() => parseModelResponseJson('[1, 2]')).toThrow(
-      /expected parsed LLM response to be a JSON object/,
-    );
+  it('should allow top-level non-object JSON values by default', () => {
+    expect(parseModelResponseJson('[1, 2]')).toEqual([1, 2]);
   });
 
-  it('should allow top-level non-object JSON values when object validation is disabled', () => {
+  it('should allow top-level non-object JSON values when object validation is explicitly disabled', () => {
     expect(
       parseModelResponseJson('[" todo 1 ", " todo 2 "]', {
         source: 'generic-object',
@@ -117,6 +115,24 @@ describe('parseModelResponseJson', () => {
       }),
     ).toBe(42);
   });
+
+  it.each([
+    { input: '[1, 2]', parsedType: 'array', parsedValue: '[1,2]' },
+    { input: 'null', parsedType: 'null', parsedValue: 'null' },
+    { input: '"text"', parsedType: 'string', parsedValue: '"text"' },
+  ])(
+    'should report a schema mismatch for a parsed $parsedType when an object is required',
+    ({ input, parsedType, parsedValue }) => {
+      expect(() =>
+        parseModelResponseJson(input, {
+          source: 'generic-object',
+          requireObject: true,
+        }),
+      ).toThrow(
+        `LLM response is valid JSON but does not match the expected schema. Expected to be a JSON object, got ${parsedType}: ${parsedValue}.`,
+      );
+    },
+  );
 
   it('should parse JSON from code block', () => {
     const input = '```json\n{"key": "value"}\n```';

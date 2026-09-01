@@ -106,6 +106,20 @@ describe('llm planning - doubao', () => {
   });
 });
 
+describe('llm planning - action parameters', () => {
+  it('parses a primitive action parameter', () => {
+    const result = parseStandardPlanningResponse(`
+<action-type>CustomAction</action-type>
+<action-param-json>"hello world"</action-param-json>
+    `);
+
+    expect(result.action).toEqual({
+      type: 'CustomAction',
+      param: 'hello world',
+    });
+  });
+});
+
 describe('llm planning - build yaml flow', () => {
   it('throws when planned action is not in actionSpace', () => {
     expect(() =>
