@@ -61,6 +61,7 @@ export type {
 
 export {
   Agent,
+  mergeAIContexts,
   type AgentOpt,
   type AiActOptions,
   type GherkinStepKeyword,

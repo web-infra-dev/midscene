@@ -1,8 +1,26 @@
 import { z } from 'zod';
+import {
+  AGENT_CONTEXT_KEYS,
+  type AgentContexts,
+  isAgentContextKey,
+} from './agent-context';
 
 export interface AgentBehaviorInitArgs {
-  globalContext?: string;
+  /**
+   * Agent-level AI guidance. `default` is used only when neither the current
+   * call nor its API key provides a context. Values override rather than
+   * implicitly concatenate.
+   */
+  contexts?: AgentContexts;
+  /**
+   * Compatibility alias for `contexts.aiAct`; that field wins when both exist.
+   * @deprecated Use `contexts.aiAct` instead.
+   */
   aiActContext?: string;
+  /**
+   * Older compatibility alias for `contexts.aiAct`.
+   * @deprecated Use `contexts.aiAct` instead.
+   */
   aiActionContext?: string;
   replanningCycleLimit?: number;
   waitAfterAction?: number;
@@ -15,17 +33,17 @@ type ExposedAgentBehaviorInitArgKey = Exclude<
 >;
 
 export const agentBehaviorInitArgShape = {
-  globalContext: z
-    .string()
+  contexts: z
+    .record(z.enum(AGENT_CONTEXT_KEYS), z.string())
     .optional()
     .describe(
-      'Background knowledge passed to every AI-powered Agent API call. Default: no extra context.',
+      'Additional AI guidance such as business facts, rules, constraints, or output requirements. contexts.default is used only when neither the call nor its API key provides a context. Values override rather than implicitly concatenate.',
     ),
   aiActContext: z
     .string()
     .optional()
     .describe(
-      'Background knowledge passed to aiAct. Default: no extra context.',
+      'Deprecated compatibility alias for contexts.aiAct. contexts.aiAct takes precedence when both are provided.',
     ),
   replanningCycleLimit: z
     .number()
@@ -58,10 +76,14 @@ export function extractAgentBehaviorInitArgs(
     return undefined;
   }
 
+  const contexts = Object.fromEntries(
+    Object.entries(extracted.contexts ?? {}).filter(
+      ([key, value]) => isAgentContextKey(key) && typeof value === 'string',
+    ),
+  ) as AgentContexts;
+
   const agentOptions: AgentBehaviorInitArgs = {
-    ...(typeof extracted.globalContext === 'string'
-      ? { globalContext: extracted.globalContext }
-      : {}),
+    ...(Object.keys(contexts).length > 0 ? { contexts } : {}),
     ...(typeof extracted.aiActContext === 'string'
       ? { aiActContext: extracted.aiActContext }
       : {}),

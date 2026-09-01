@@ -88,12 +88,15 @@ agent:
   # Maximum AI replanning cycle limit, optional, defaults to 20 (40 for UI-TARS model)
   replanningCycleLimit: <number>
 
-  # Background knowledge sent with every AI-powered Agent API call, optional
-  globalContext: <string>
+  # Additional AI guidance, optional. default is the shared fallback.
+  contexts:
+    default: <string>
+    aiAct: <string>
+    aiQuery: <string>
 
-  # Background knowledge to send to the AI model when calling aiAct, optional
+  # Deprecated compatibility alias for contexts.aiAct, optional
   aiActContext: <string>
-  # Legacy alias (aiActionContext) remains for backward compatibility, but avoid using it in new scripts
+  # The older alias aiActionContext also remains supported
 
   # Cache configuration, optional
   cache:
@@ -107,8 +110,8 @@ agent:
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **globalContext**: Provides background knowledge shared by every AI-powered Agent API call. Per-call `context` is appended after it.
-- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. A legacy alias remains for backward compatibility (see inline comment) but should not be used in new scripts.
+- **contexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. `default` is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically concatenated. Empty strings explicitly clear inherited user context.
+- **aiActContext**: Deprecated compatibility field for `contexts.aiAct`. `contexts.aiAct` wins when both are present. The older `aiActionContext` alias also remains supported.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
@@ -125,8 +128,9 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  globalContext: "Prices are displayed in USD."
-  aiActContext: "If any popup appears, click agree. If login page appears, skip it."
+  contexts:
+    default: "Prices are displayed in USD."
+    aiAct: "If any popup appears, click agree. If login page appears, skip it."
   cache:
     id: "checkout-cache"
     strategy: "read-write"

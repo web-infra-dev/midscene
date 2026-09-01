@@ -8,7 +8,11 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
-import { buildLocatePromptWithContext } from '../agent/prompt-context';
+import {
+  INTERNAL_AI_CONTEXT_METADATA_KEY,
+  type InternalAIContextOptions,
+  buildLocatePromptWithContext,
+} from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
 
@@ -318,7 +322,14 @@ export function buildDetailedLocateParam(
 
   const promptDisplay = typeof prompt === 'string' ? prompt : prompt.prompt;
   const context = opt?.context?.trim() || undefined;
-  prompt = buildLocatePromptWithContext(prompt, opt?.context);
+  const internalOptions = opt as
+    | (LocateOption & Partial<InternalAIContextOptions>)
+    | undefined;
+  prompt = buildLocatePromptWithContext(
+    prompt,
+    opt?.context,
+    internalOptions?.[INTERNAL_AI_CONTEXT_METADATA_KEY],
+  );
 
   const multimodalPrompt = extractMultimodalPrompt(opt);
   if (multimodalPrompt) {
@@ -373,6 +384,7 @@ export function buildDetailedLocateParamAndRestParams(
       if (
         !locateParamKeys.includes(key) &&
         key !== 'context' &&
+        key !== INTERNAL_AI_CONTEXT_METADATA_KEY &&
         key !== 'deepThink' &&
         !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&

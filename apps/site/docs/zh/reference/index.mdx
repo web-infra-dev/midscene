@@ -49,8 +49,8 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - `strategy`：可选缓存策略。默认值为 `'read-write'`。
   - `cacheDir`：可选缓存目录路径。配置后，缓存文件会写入该目录，而不是 `<MIDSCENE_RUN_DIR>/cache`。相对路径会基于当前工作目录解析，而不是基于 `MIDSCENE_RUN_DIR`。这样可以把缓存、日志和报告目录拆开。
 - `cacheId: string | undefined`（已废弃）：仅用于向后兼容。推荐使用 `cache.id`。
-- `globalContext: string`：所有需要调用 AI 模型的 Agent API 都会携带的背景上下文。各方法的单次调用 `options.context` 会追加在它之后。默认值为空。
-- `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
+- `contexts: { default?: string; [apiName]?: string }`：Agent 级 AI 补充信息，可包含业务事实、判断或操作规则、约束以及输出要求。`default` 是所有 AI API 共享的缺省回退值，仅当本次调用和对应 API 都没有自己的 context 时使用。解析规则为 `options.context ?? contexts[apiName] ?? contexts.default`，只使用优先级最高的已定义值，不会自动拼接。空字符串会显式清空低优先级的用户 context。默认值为空。
+- `aiActContext: string`（已废弃）：`contexts.aiAct` 的兼容配置。两者同时存在时以 `contexts.aiAct` 为准；没有 `contexts.aiAct` 时，它与 `contexts.aiAct` 的作用相同。新代码请使用 `contexts.aiAct`；更早的名称 `aiActionContext` 也继续兼容。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `waitAfterAction: number`: 每次动作执行后的等待时间（毫秒）。这让 UI 有时间稳定，然后再执行下一个动作。默认值为 300 毫秒。
@@ -753,7 +753,7 @@ await agent.aiRightClick('页面顶部的文件名称', { deepLocate: true });
 
 使用此方法，你可以针对当前页面，直接向 AI 模型发起提问，并获得字符串形式的回答。
 
-`aiAsk()` 与 `aiString()` 完全等价。
+`aiAsk()` 与 `aiString()` 的查询和返回行为相同，但仍可分别通过 `contexts.aiAsk` 和 `contexts.aiString` 配置 Agent 级 context。
 
 - 类型
 
@@ -904,7 +904,7 @@ const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值',
 
 从 UI 中提取一个字符串。
 
-`aiString()` 与 `aiAsk()` 完全等价。
+`aiString()` 与 `aiAsk()` 的查询和返回行为相同，但仍可分别通过 `contexts.aiString` 和 `contexts.aiAsk` 配置 Agent 级 context。
 
 - 类型
 
@@ -1198,7 +1198,7 @@ function runGherkinScenario(
 
   - `scenarioText: string` - 一个 Gherkin scenario，或者一组不带 `Scenario:` 头部的 Gherkin 步骤
   - `options?: object` - 可选的运行选项
-    - `context?: string` - 本次运行使用的临时上下文
+    - `context?: string` - 应用于本次运行每个步骤的 AI 补充信息。对于每个映射后的 API 调用，它会覆盖 Agent 的 API 级 context 和 `contexts.default`
     - `abortSignal?: AbortSignal` - 用于中止本次运行的可选信号
     - `deepThink?: 'unset' | true | false` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
     - `deepLocate?: boolean` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
@@ -1220,9 +1220,36 @@ Scenario: 添加待办事项
 
 关于支持规则、限制、缓存行为和 YAML 用法，请参考 [BDD 风格脚本（Gherkin）](../advanced/bdd-style-scripts-with-gherkin)。
 
-#### `setAIActContext()` {#agentsetaiactcontext}
+#### `setContext()` {#agentsetcontext}
 
-设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
+设置 Agent 级共享回退 context，或某个 API 的 context。
+
+- 类型
+
+```typescript
+function setContext(
+  target: 'default' | AiApiName,
+  context: string | undefined,
+): void;
+```
+
+- 参数：
+
+  - `target`：使用 `'default'` 表示所有 AI API 共享的缺省回退值，也可以传入 `'aiAct'`、`'aiTap'`、`'aiQuery'` 或 `'aiAssert'` 等 API 名称。
+  - `context`：提供给 AI 的补充信息，例如业务事实、规则、约束或输出要求。对 API target 传入 `''` 会屏蔽共享默认值；传入 `undefined` 会移除该 API 的覆盖值，重新回退到 `contexts.default`。
+
+- 示例：
+
+```typescript
+agent.setContext('default', '页面中的价格单位是美元。');
+agent.setContext('aiQuery', '金额不返回货币符号。');
+agent.setContext('aiQuery', ''); // aiQuery 不使用 contexts.default
+agent.setContext('aiQuery', undefined); // aiQuery 重新继承 contexts.default
+```
+
+#### `setAIActContext()`（已废弃） {#agentsetaiactcontext}
+
+已废弃的兼容性 setter，用于设置后续 `agent.aiAct()` 或 `agent.ai()` 调用发送给 AI 模型的背景知识。新代码请使用 `agent.setContext('aiAct', context)`。该方法仍与后者等价，并覆盖原有的 `contexts.aiAct`。
 
 对于即时操作类型的 API，比如 `aiTap()`，这个设置不会生效。
 
@@ -1234,7 +1261,7 @@ function setAIActContext(aiActContext: string): void;
 
 - 参数：
 
-  - `aiActContext: string` - 要发送给 AI 模型的背景知识。`aiActionContext` 旧参数名依然可用。
+  - `aiActContext: string` - 要发送给 AI 模型的背景知识。
 
 - 示例：
 
@@ -1242,9 +1269,9 @@ function setAIActContext(aiActContext: string): void;
 await agent.setAIActContext('如果 “使用cookie” 对话框存在，先关闭它');
 ```
 
-:::note
+:::info
 
-`agent.setAIActionContext()` 已被弃用，请改用 `agent.setAIActContext()`。弃用的方法仍作为兼容别名保留。
+`agent.setAIActContext()` 和更早的 `agent.setAIActionContext()` 都仅为兼容而保留；新代码请使用 `agent.setContext('aiAct', context)`。
 
 :::
 
@@ -1519,21 +1546,32 @@ function destroy(): Promise<void>;
 
 ## 单次调用上下文
 
-创建 Agent 时可以通过 `globalContext` 设置所有 AI 方法共享的背景上下文。每个 `agent.ai*` 方法的 options 也支持可选的 `context` 字符串，用于补充仅与本次请求相关的业务知识、用户状态、术语或其他背景。
+context 是提供给 AI 的补充信息，例如业务事实、判断或操作规则、约束以及输出要求。它用于补充 API 的主提示词，而不是替代主提示词。
+
+使用 `contexts.default` 为所有 AI API 提供共享的缺省回退值，使用 `contexts[apiName]` 配置某个 API，再使用单次调用的 `options.context` 配置某一次请求。只有两个更具体的层级都没有提供值时，才会选用 `contexts.default`；它不会与其他层级自动拼接。
 
 ```typescript
-await agent.aiAssert('当前页面是新版本样式', undefined, {
-  context:
-    '新版本的 Tab 栏位于页面顶部，且页面主色调为红色；旧版本的 Tab 栏位于页面底部，且页面主色调为绿色。只有同时满足新版本的两项条件时，才视为新版本。',
+import { mergeAIContexts } from '@midscene/core';
+
+const defaultContext = '页面中的价格单位是美元。';
+const agent = new PlaywrightAgent(page, {
+  contexts: {
+    default: defaultContext,
+    aiAct: '', // 显式不使用默认 context
+    aiQuery: '金额不返回货币符号。',
+    aiBoolean: mergeAIContexts(
+      defaultContext,
+      '只有明确可见的状态才判断为 true。',
+    ),
+  },
 });
 ```
 
-最终 context 按以下规则生成：
+最终用户 context 为 `options.context ?? contexts[apiName] ?? contexts.default`。这些层级互相覆盖，不会隐式拼接。`''` 是一个已定义值，会清空低优先级用户 context；`undefined` 或未配置字段则继续向下 fallback。需要显式拼接时，可以使用 `mergeAIContexts()`。
 
-- `aiAct`：`globalContext + (options.context ?? aiActContext)`
-- 其他 `ai*` 方法：`globalContext + options.context`
+支持的 API key 包括 `aiAct`、`aiTap`、`aiRightClick`、`aiDoubleClick`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiPinch`、`aiLongPress`、`aiClearInput`、`aiLocate`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、`aiAssert` 和 `aiWaitFor`。`ai` 与已废弃的 `aiAction` 别名使用 `aiAct` context。
 
-因此，对于 `aiAct`，单次调用的 `context` 仍然会替换 `aiActContext`，显式传入空字符串也会替换；它不会替换 `globalContext`。其他 AI 方法不会继承 `aiActContext`。
+框架自有 context（例如 Test Runner 工作流 history）会追加在选中的用户 context 之后，不受上述覆盖链影响。
 
 <a id="深度定位deeplocate"></a>
 
@@ -2224,7 +2262,7 @@ const agent = new AndroidAgent(device, {
 **Android 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到包名。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的包名；若未找到映射，则按原样尝试启动 `target`。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`contexts`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 
@@ -2465,7 +2503,7 @@ const agent = new IOSAgent(device, {
 **iOS 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 Bundle Identifier。当你在 `launch(target)` 或 `terminate(bundleId)` 里传入应用名称时，Agent 会在此映射中查找对应的 Bundle ID；若未找到映射，则按原样使用 `target`。用户提供的 appNameMapping 优先级高于默认映射。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`contexts`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 
@@ -2580,7 +2618,7 @@ const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
   wdaPort: 8100,
   iOSDeviceClassOverride: '@your-scope/ios-device',
-  aiActContext: 'Accept permission dialogs automatically.',
+  contexts: { aiAct: 'Accept permission dialogs automatically.' },
 });
 ```
 
@@ -2687,7 +2725,7 @@ const agent = new HarmonyAgent(device, {
 **HarmonyOS 特有选项**
 
 - `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name 或显式 `bundle/Ability` 目标。仅填写 bundle name 时，Agent 会读取 bundle 元数据并解析其声明的启动 Ability；显式目标会跳过该查询。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应目标；若未找到映射，则按原样尝试启动 `target`。
-- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`globalContext`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
+- 其余字段与[通用构造参数](#common-parameters)一致，包括 `generateReport`、`reportFileName`、`contexts`、`aiActContext`、`modelConfig`、`cache`、`createOpenAIClient` 和 `onTaskStartTip` 等。
 
 **使用说明**
 
@@ -2836,7 +2874,7 @@ console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
 ```typescript
 interface BaseComputerAgentOpt {
   // Agent 选项（继承自 AgentOpt）
-  aiActContext?: string;
+  contexts?: AgentContexts;
   cache?: false | CacheConfig;
   // ... 其他 AgentOpt 属性
 
@@ -2920,7 +2958,7 @@ import { agentForComputer } from '@midscene/computer';
 
 // 连接到主显示器
 const agent = await agentForComputer({
-  aiActContext: '你正在自动化一个桌面应用。',
+  contexts: { aiAct: '你正在自动化一个桌面应用。' },
 });
 
 // 连接到特定显示器
@@ -2936,8 +2974,9 @@ const agent2 = await agentForComputer({
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  contexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',

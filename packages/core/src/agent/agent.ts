@@ -13,10 +13,13 @@ import {
   type ActionParam,
   type ActionReturn,
   type AgentAssertResult,
+  type AgentContextKey,
+  type AgentContexts,
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
   type AiActEffort,
+  type AiApiName,
   type AssertOptions,
   type DeepThinkOption,
   type DeviceAction,
@@ -59,6 +62,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface, InputStrategy } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import { isAgentContextKey } from '@midscene/shared/agent-tools/agent-context';
 import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import {
   type ObservationArtifactAdapter,
@@ -83,7 +87,13 @@ import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
-import { buildPromptWithContext, mergeAIContexts } from './prompt-context';
+import {
+  INTERNAL_AI_CONTEXT_METADATA_KEY,
+  type InternalAIContextOptions,
+  type ResolvedAIContext,
+  buildPromptWithContext,
+  renderAIContext,
+} from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
@@ -124,11 +134,16 @@ export type AiActOptions = {
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
+  /**
+   * Additional facts, rules, constraints, or output requirements for this AI
+   * call. It overrides `contexts.aiAct` and `contexts.default`; `''` disables
+   * inherited user context for this call.
+   */
   context?: string;
 };
 
 type AiActInternalOptions = AiActOptions & {
-  /** Framework-owned context appended after all user-configured context. */
+  /** Framework-owned workflow history appended after user context. */
   _internalAdditionalContext?: string;
   _internalReportDisplay?: {
     type?: TaskTitleType;
@@ -226,21 +241,64 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   /** Observers own temporary frame files until their observation is disposed. */
   private ownedObservers = new Set<UIObserverImpl>();
 
-  private get aiActContext(): string | undefined {
-    return this.opts.aiActContext ?? this.opts.aiActionContext;
+  private get contexts(): AgentContexts {
+    if (!this.opts.contexts) {
+      this.opts.contexts = {};
+    }
+    return this.opts.contexts;
   }
 
-  private withGlobalContext<T extends { context?: string }>(
+  private resolveUserContext(
+    apiName: AiApiName,
+    callContext?: string,
+  ): ResolvedAIContext | undefined {
+    if (callContext !== undefined) {
+      return { value: callContext, metadata: { source: 'call' } };
+    }
+
+    const apiContext = this.opts.contexts?.[apiName];
+    if (apiContext !== undefined) {
+      return {
+        value: apiContext,
+        metadata: { source: 'api', apiName },
+      };
+    }
+
+    const defaultContext = this.opts.contexts?.default;
+    if (defaultContext !== undefined) {
+      return {
+        value: defaultContext,
+        metadata: { source: 'default' },
+      };
+    }
+
+    return undefined;
+  }
+
+  private resolveContext(
+    apiName: AiApiName,
+    callContext?: string,
+    additionalContext?: string,
+  ): string | undefined {
+    return renderAIContext(
+      this.resolveUserContext(apiName, callContext),
+      additionalContext,
+    );
+  }
+
+  private withContext<T extends { context?: string }>(
+    apiName: AiApiName,
     options?: T,
-  ): T | undefined {
-    const context = mergeAIContexts(this.opts.globalContext, options?.context);
-    if (context === undefined) {
+  ): (T & InternalAIContextOptions) | undefined {
+    const resolvedContext = this.resolveUserContext(apiName, options?.context);
+    if (resolvedContext === undefined) {
       return options;
     }
 
     return {
       ...(options ?? ({} as T)),
-      context,
+      context: resolvedContext.value,
+      [INTERNAL_AI_CONTEXT_METADATA_KEY]: resolvedContext.metadata,
     };
   }
 
@@ -321,7 +379,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       this.taskExecutor,
       () => this.resolveModelRuntime('insight'),
       getUIContext,
-      () => this.opts.globalContext,
+      (apiName, callContext) => this.resolveUserContext(apiName, callContext),
     );
   }
 
@@ -340,12 +398,47 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     );
     assertReportGenerationOptions(this.opts);
 
+    if (
+      this.opts.contexts !== undefined &&
+      (typeof this.opts.contexts !== 'object' ||
+        this.opts.contexts === null ||
+        Array.isArray(this.opts.contexts))
+    ) {
+      throw new TypeError('opts.contexts must be a plain object');
+    }
+
+    for (const [key, value] of Object.entries(this.opts.contexts ?? {})) {
+      if (!isAgentContextKey(key)) {
+        throw new TypeError(`Unknown Agent context key: ${key}`);
+      }
+      if (value !== undefined && typeof value !== 'string') {
+        throw new TypeError(`Agent context "${key}" must be a string`);
+      }
+    }
+
+    const deprecatedAiActContextOption =
+      this.opts.aiActContext !== undefined
+        ? 'aiActContext'
+        : this.opts.aiActionContext !== undefined
+          ? 'aiActionContext'
+          : undefined;
+    if (deprecatedAiActContextOption) {
+      warn(
+        `Agent option "${deprecatedAiActContextOption}" is deprecated; use "contexts.aiAct" instead. When both are provided, "contexts.aiAct" takes precedence.`,
+      );
+    }
+
+    const normalizedContexts: AgentContexts = { ...this.opts.contexts };
     const resolvedAiActContext =
-      this.opts.aiActContext ?? this.opts.aiActionContext;
+      normalizedContexts.aiAct ??
+      this.opts.aiActContext ??
+      this.opts.aiActionContext;
     if (resolvedAiActContext !== undefined) {
+      normalizedContexts.aiAct = resolvedAiActContext;
       this.opts.aiActContext = resolvedAiActContext;
       this.opts.aiActionContext ??= resolvedAiActContext;
     }
+    this.opts.contexts = normalizedContexts;
 
     if (
       opts?.modelConfig &&
@@ -607,20 +700,51 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   /**
-   * @deprecated Use {@link setAIActContext} instead.
+   * @deprecated Use `setContext('aiAct', context)` instead.
    */
   async setAIActionContext(prompt: string) {
-    await this.setAIActContext(prompt);
+    warn(
+      'setAIActionContext() is deprecated; use setContext("aiAct", context) instead.',
+    );
+    this.setContext('aiAct', prompt);
   }
 
+  /**
+   * @deprecated Use `setContext('aiAct', context)` instead.
+   */
   async setAIActContext(prompt: string) {
-    if (this.aiActContext) {
-      console.warn(
-        'aiActContext is already set, and it is called again, will override the previous setting',
-      );
+    warn(
+      'setAIActContext() is deprecated; use setContext("aiAct", context) instead.',
+    );
+    this.setContext('aiAct', prompt);
+  }
+
+  /**
+   * Set Agent-level AI guidance. Use `default` as the shared fallback for all
+   * AI-powered APIs, or an API name to override that fallback for the API.
+   * API-specific values are not implicitly concatenated with `default`.
+   * Passing `undefined` removes an API override; passing `''` keeps an explicit
+   * empty value and therefore prevents that API from using `default`.
+   */
+  setContext(target: AgentContextKey, context: string | undefined): void {
+    if (!isAgentContextKey(target)) {
+      throw new TypeError(`Unknown Agent context key: ${String(target)}`);
     }
-    this.opts.aiActContext = prompt;
-    this.opts.aiActionContext = prompt;
+    if (context !== undefined && typeof context !== 'string') {
+      throw new TypeError('Agent context must be a string or undefined');
+    }
+
+    this.contexts[target] = context;
+
+    if (target === 'aiAct') {
+      if (context === undefined) {
+        this.opts.aiActContext = undefined;
+        this.opts.aiActionContext = undefined;
+      } else {
+        this.opts.aiActContext = context;
+        this.opts.aiActionContext = context;
+      }
+    }
   }
 
   resetDump() {
@@ -813,7 +937,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiTap', opt),
     );
 
     const fileChooserAccept = opt?.fileChooserAccept
@@ -835,7 +959,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiRightClick', opt),
     );
 
     await this.callActionInActionSpace('RightClick', {
@@ -851,7 +975,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiDoubleClick', opt),
     );
 
     await this.callActionInActionSpace('DoubleClick', {
@@ -864,7 +988,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiHover', opt),
     );
 
     await this.callActionInActionSpace('Hover', {
@@ -932,7 +1056,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiInput', opt),
     );
 
     // Convert value to string to ensure consistency
@@ -1003,7 +1127,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withGlobalContext(opt),
+      this.withContext('aiKeyboardPress', opt),
     );
 
     await this.callActionInActionSpace('KeyboardPress', {
@@ -1084,7 +1208,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withGlobalContext(opt),
+      this.withContext('aiScroll', opt),
     );
 
     await this.callActionInActionSpace('Scroll', {
@@ -1103,7 +1227,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ): Promise<void> {
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt || '',
-      this.withGlobalContext(opt),
+      this.withContext('aiPinch', opt),
     );
 
     await this.callActionInActionSpace('Pinch', {
@@ -1120,7 +1244,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const { locateParam, restParams } = buildDetailedLocateParamAndRestParams(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiLongPress', opt),
     );
 
     await this.callActionInActionSpace('LongPress', {
@@ -1137,7 +1261,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiClearInput', opt),
     );
 
     await this.callActionInActionSpace('ClearInput', {
@@ -1168,9 +1292,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext = mergeAIContexts(
-        this.opts.globalContext,
-        opt?.context !== undefined ? opt.context : this.aiActContext,
+      const aiActContext = this.resolveContext(
+        'aiAct',
+        opt?.context,
         internalOptions?._internalAdditionalContext,
       );
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
@@ -1410,7 +1534,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(
       prompt,
-      this.withGlobalContext(opt),
+      this.withContext('aiLocate', opt),
     );
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
@@ -1445,7 +1569,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelRuntime = this.resolveModelRuntime('insight');
-    const options = this.withGlobalContext(opt);
+    const options = this.withContext('aiWaitFor', opt);
     await this.taskExecutor.waitFor(
       assertion,
       {

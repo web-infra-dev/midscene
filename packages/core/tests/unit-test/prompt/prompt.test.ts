@@ -595,11 +595,11 @@ describe('extract element', () => {
     const prompt = extractDataQueryPrompt(
       'todo page',
       { foo: 'an array indicates the foo' },
-      'Only include active items.',
+      '<REQUEST_CONTEXT source="call">\nOnly include active items.\n</REQUEST_CONTEXT>',
     );
 
     expect(prompt).toContain(
-      '<CONTEXT>\nOnly include active items.\n</CONTEXT>',
+      '<REQUEST_CONTEXT source="call">\nOnly include active items.\n</REQUEST_CONTEXT>',
     );
     expect(prompt).toContain(
       '<DATA_DEMAND>\n{\n  "foo": "an array indicates the foo"\n}\n</DATA_DEMAND>',

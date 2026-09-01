@@ -300,7 +300,7 @@ describe('buildDetailedLocateParam', () => {
     });
 
     expect(result?.prompt).toBe(
-      '<CONTEXT>\nThe current user is a wholesale customer.\n</CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
+      '<REQUEST_CONTEXT source="call">\nThe current user is a wholesale customer.\n</REQUEST_CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
     );
     expect(result?.promptDisplay).toBe('Click the checkout button');
     expect(result?.context).toBe('The current user is a wholesale customer.');

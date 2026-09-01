@@ -5,6 +5,7 @@ export type GherkinStepKeyword = 'Given' | 'When' | 'Then' | 'And' | 'But';
 type RunGherkinScenarioStepAction = 'aiAct' | 'aiAssert';
 
 export type RunGherkinScenarioOptions = AiActOptions & {
+  /** Additional AI guidance applied to every step in this scenario run. */
   context?: string;
 };
 

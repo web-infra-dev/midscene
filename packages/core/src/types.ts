@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { AgentContexts } from '@midscene/shared/agent-tools/agent-context';
 import type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
@@ -26,6 +27,11 @@ export type {
   Point,
 } from '@midscene/shared/types';
 export type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
+export type {
+  AgentContextKey,
+  AgentContexts,
+  AiApiName,
+} from '@midscene/shared/agent-tools/agent-context';
 export * from './yaml';
 
 export { ServiceError } from './errors';
@@ -302,6 +308,11 @@ export interface AgentWaitForOpt extends ServiceExtractOption {
 
 export interface AgentAssertOpt {
   keepRawResponse?: boolean;
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this assertion. It overrides `contexts.aiAssert` and `contexts.default`;
+   * `''` disables inherited user context for this call.
+   */
   context?: string;
   abortSignal?: AbortSignal;
 }
@@ -979,15 +990,25 @@ export interface AgentOpt {
 
   onTaskStartTip?: OnTaskStartTip;
   /**
-   * Background context included in every AI-powered Agent API call.
-   * Per-call `options.context` is appended after this context.
+   * Agent-level AI guidance containing business facts, rules, constraints, or
+   * output requirements. `contexts.default` is a shared fallback used only
+   * when neither the call nor the matching API key provides a context.
+   *
+   * A per-call `options.context` overrides the matching API context, which
+   * overrides `contexts.default`. An empty string explicitly clears inherited
+   * user context for that scope. These layers are not implicitly concatenated.
    */
-  globalContext?: string;
+  contexts?: AgentContexts;
   /**
-   * Default context for aiAct calls. A per-call `options.context` replaces it.
+   * Compatibility alias for `contexts.aiAct`. `contexts.aiAct` takes
+   * precedence when both are provided.
+   * @deprecated Use `contexts.aiAct` instead.
    */
   aiActContext?: string;
-  /** @deprecated Use `aiActContext` instead. */
+  /**
+   * Older compatibility alias for `contexts.aiAct`.
+   * @deprecated Use `contexts.aiAct` instead.
+   */
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;

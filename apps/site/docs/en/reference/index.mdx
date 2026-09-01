@@ -49,8 +49,8 @@ All agents share these base options:
   - `strategy` — Cache strategy. Default: `'read-write'`.
   - `cacheDir` — Cache directory. When set, Midscene writes cache files here instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you use separate cache, log, and report directories.
 - `cacheId: string | undefined` (deprecated) — Legacy cache ID for backward compatibility. Prefer `cache.id`.
-- `globalContext: string` — Background context included in every AI-powered Agent API call. A method's per-call `options.context` is appended after it. Default: `undefined`.
-- `aiActContext: string` — Background context sent to the AI model with `agent.aiAct()` calls. For example: `'Close the cookie consent dialog first if it exists.'` Default: `undefined`. This option was previously named `aiActionContext`; the legacy name remains supported.
+- `contexts: { default?: string; [apiName]?: string }` — Agent-level AI guidance, such as business facts, decision or interaction rules, constraints, and output requirements. `default` is the shared fallback for all AI-powered APIs and is used only when neither the current call nor the matching API has its own context. Resolution uses `options.context ?? contexts[apiName] ?? contexts.default`; only the highest-priority defined value is used, with no automatic concatenation. An empty string explicitly clears lower-priority user context. Default: `undefined`.
+- `aiActContext: string` (deprecated) — Compatibility option for `contexts.aiAct`. `contexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `contexts.aiAct`. Use `contexts.aiAct` in new code. The older `aiActionContext` name also remains supported.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
 - `waitAfterAction: number` — Delay in milliseconds after each action. This gives the UI time to settle before the next action. Default: `300`.
@@ -768,7 +768,7 @@ await agent.aiRightClick('The file name at the top of the page', {
 
 Ask the AI model a question about the current page. The method returns the model's answer as a string.
 
-`aiAsk()` is fully equivalent to `aiString()`.
+`aiAsk()` has the same query and return behavior as `aiString()`. They can still use separate Agent-level contexts through `contexts.aiAsk` and `contexts.aiString`.
 
 - Type
 
@@ -914,7 +914,7 @@ const numberB = await agent.aiNumber(
 
 Extract a string value from the UI.
 
-`aiString()` is fully equivalent to `aiAsk()`.
+`aiString()` has the same query and return behavior as `aiAsk()`. They can still use separate Agent-level contexts through `contexts.aiString` and `contexts.aiAsk`.
 
 - Type
 
@@ -1214,7 +1214,7 @@ function runGherkinScenario(
 
   - `scenarioText: string` — One Gherkin scenario, or a list of Gherkin steps without the `Scenario:` header.
   - `options?: object` — Optional runtime options.
-    - `context?: string` — Temporary context for this run.
+    - `context?: string` — Additional AI guidance applied to every step in this run. For each mapped API call, it overrides the Agent's API-specific context and `contexts.default`.
     - `abortSignal?: AbortSignal` — An optional signal for aborting the run.
     - `deepThink?: 'unset' | true | false` — Passed to `aiAct` for `Given` and `When` steps.
     - `deepLocate?: boolean` — Passed to `aiAct` for `Given` and `When` steps.
@@ -1236,9 +1236,36 @@ Scenario: Add a todo item
 
 For supported rules, limitations, cache behavior, and YAML usage, see [BDD-style scripts with Gherkin](../advanced/bdd-style-scripts-with-gherkin).
 
-#### `setAIActContext()` {#agentsetaiactcontext}
+#### `setContext()` {#agentsetcontext}
 
-Set the context sent with subsequent `agent.aiAct()` or `agent.ai()` calls. This replaces any existing context.
+Set the Agent-level shared fallback context or the context for one API.
+
+- Type
+
+```typescript
+function setContext(
+  target: 'default' | AiApiName,
+  context: string | undefined,
+): void;
+```
+
+- Parameters:
+
+  - `target` — Use `'default'` for the shared fallback used by all AI-powered APIs, or an API name such as `'aiAct'`, `'aiTap'`, `'aiQuery'`, or `'aiAssert'`.
+  - `context` — Additional AI guidance, such as business facts, rules, constraints, or output requirements. Use `''` to block the shared default for an API target, or `undefined` to remove that API override and fall back to `contexts.default` again.
+
+- Example:
+
+```typescript
+agent.setContext('default', 'Prices are displayed in USD.');
+agent.setContext('aiQuery', 'Return monetary values without currency symbols.');
+agent.setContext('aiQuery', ''); // Do not use contexts.default for aiQuery
+agent.setContext('aiQuery', undefined); // Inherit contexts.default again
+```
+
+#### `setAIActContext()` (deprecated) {#agentsetaiactcontext}
+
+Deprecated compatibility setter for the context sent with subsequent `agent.aiAct()` or `agent.ai()` calls. Use `agent.setContext('aiAct', context)` instead. It remains equivalent to that call and replaces any existing `contexts.aiAct` value.
 
 This setting does not affect instant-action APIs such as `aiTap()`.
 
@@ -1250,7 +1277,7 @@ function setAIActContext(aiActContext: string): void;
 
 - Parameters:
 
-  - `aiActContext: string` — The background knowledge that should be sent to the AI model. The deprecated `aiActionContext` name is still accepted.
+  - `aiActContext: string` — The background knowledge that should be sent to the AI model.
 
 - Example:
 
@@ -1258,9 +1285,9 @@ function setAIActContext(aiActContext: string): void;
 await agent.setAIActContext('Close the cookie consent dialog first if it exists');
 ```
 
-:::note
+:::info
 
-`agent.setAIActionContext()` is deprecated. Please use `agent.setAIActContext()` instead. The deprecated method remains as an alias for compatibility.
+Both `agent.setAIActContext()` and the older `agent.setAIActionContext()` remain available for compatibility, but new code should use `agent.setContext('aiAct', context)`.
 
 :::
 
@@ -1551,22 +1578,32 @@ path.
 
 ## Per-call context
 
-Set `globalContext` when creating an Agent to provide background shared by every AI-powered Agent API call. Every `agent.ai*` method also accepts an optional `context` string in its options for business knowledge, user state, terminology, or other background relevant to one request.
+A context is additional guidance for the AI, such as business facts, decision or interaction rules, constraints, and output requirements. It supplements the API's main prompt instead of replacing it.
+
+Use `contexts.default` as the shared fallback for every AI-powered API, `contexts[apiName]` to configure one API, and the optional per-call `options.context` for one request. `contexts.default` is selected only when neither of the more specific levels provides a value; it is not automatically concatenated with them.
 
 ```typescript
-await agent.aiAssert('The current page uses the new version styling', undefined, {
-  context:
-    'In the new version, the Tab bar is at the top and the page theme color is red. In the old version, the Tab bar is at the bottom and the page theme color is green. Treat the page as the new version only when both new-version conditions are met.',
+import { mergeAIContexts } from '@midscene/core';
+
+const defaultContext = 'Prices are displayed in USD.';
+const agent = new PlaywrightAgent(page, {
+  contexts: {
+    default: defaultContext,
+    aiAct: '', // Explicitly ignore the default context
+    aiQuery: 'Return monetary values without currency symbols.',
+    aiBoolean: mergeAIContexts(
+      defaultContext,
+      'Only clearly visible states count as true.',
+    ),
+  },
 });
 ```
 
+The effective user context is `options.context ?? contexts[apiName] ?? contexts.default`. These layers override one another; they are not implicitly concatenated. `''` is a defined value and clears lower-priority user context, while `undefined` or an omitted key continues to the next fallback. Use `mergeAIContexts()` when you explicitly want to concatenate context fragments.
 
-The effective context is resolved as follows:
+Supported API keys are `aiAct`, `aiTap`, `aiRightClick`, `aiDoubleClick`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiPinch`, `aiLongPress`, `aiClearInput`, `aiLocate`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `aiAssert`, and `aiWaitFor`. The `ai` and deprecated `aiAction` aliases use the `aiAct` context.
 
-- `aiAct`: `globalContext + (options.context ?? aiActContext)`
-- Other `ai*` methods: `globalContext + options.context`
-
-For `aiAct`, a per-call `context` therefore continues to replace `aiActContext`, including when it is explicitly set to an empty string. It does not replace `globalContext`; other AI methods do not inherit `aiActContext`.
+Framework-owned context, such as Test Runner workflow history, is appended after the selected user context and is not affected by this override chain.
 
 
 ### Shared types {#shared-types}
@@ -2269,7 +2306,7 @@ const agent = new AndroidAgent(device, {
 **Android-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `contexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2511,7 +2548,7 @@ const agent = new IOSAgent(device, {
 **iOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `contexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2626,7 +2663,7 @@ const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
   wdaPort: 8100,
   iOSDeviceClassOverride: '@your-scope/ios-device',
-  aiActContext: 'Accept permission dialogs automatically.',
+  contexts: { aiAct: 'Accept permission dialogs automatically.' },
 });
 ```
 
@@ -2735,7 +2772,7 @@ const agent = new HarmonyAgent(device, {
 **HarmonyOS-specific options**
 
 - `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names or explicit `bundle/Ability` targets. Bundle-only values use bundle metadata to resolve the declared launch ability; explicit targets bypass that lookup. When you pass an app name to `launch(target)`, the Agent uses the mapped target when available; otherwise, it launches `target` as provided.
-- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `globalContext`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
+- All other fields match the [common constructor parameters](#common-parameters), including `generateReport`, `reportFileName`, `contexts`, `aiActContext`, `modelConfig`, `cache`, `createOpenAIClient`, and `onTaskStartTip`.
 
 **Usage notes**
 
@@ -2884,7 +2921,7 @@ Create an agent for remote Windows desktop automation over RDP.
 ```typescript
 interface BaseComputerAgentOpt {
   // Agent options (inherited from AgentOpt)
-  aiActContext?: string;
+  contexts?: AgentContexts;
   cache?: false | CacheConfig;
   // ... other AgentOpt properties
 
@@ -2967,7 +3004,7 @@ import { agentForComputer } from '@midscene/computer';
 
 // Connect to primary display
 const agent = await agentForComputer({
-  aiActContext: 'You are automating a desktop application.',
+  contexts: { aiAct: 'You are automating a desktop application.' },
 });
 
 // Connect to specific display
@@ -2983,8 +3020,9 @@ const agent2 = await agentForComputer({
 import { agentForRDPComputer } from '@midscene/computer';
 
 const agent = await agentForRDPComputer({
-  aiActContext:
-    'You are controlling a remote Windows desktop over the RDP protocol.',
+  contexts: {
+    aiAct: 'You are controlling a remote Windows desktop over the RDP protocol.',
+  },
   host: '10.75.166.249',
   port: 3389,
   username: 'Admin',

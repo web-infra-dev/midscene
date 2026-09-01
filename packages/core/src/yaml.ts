@@ -9,7 +9,11 @@ import type { UIContext } from './types';
 
 export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
-  /** Additional context for this AI request. */
+  /**
+   * Additional facts, rules, or constraints for this AI call. It overrides
+   * the matching API context and `contexts.default`; `''` disables inherited
+   * user context for this call.
+   */
   context?: string;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
@@ -21,7 +25,11 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
 }
 
 export interface ServiceExtractOption {
-  /** Additional context for this AI request. */
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this AI call. It overrides the matching API context and
+   * `contexts.default`; `''` disables inherited user context for this call.
+   */
   context?: string;
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
@@ -36,7 +44,7 @@ export interface DetailedLocateParam
   prompt: TUserPrompt;
   /** Original prompt text used for user-facing reports. */
   promptDisplay?: string;
-  /** Per-call business context used for user-facing reports. */
+  /** Per-call AI guidance recorded in user-facing reports. */
   context?: string;
 }
 
@@ -120,7 +128,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
-  | 'globalContext'
+  | 'contexts'
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'

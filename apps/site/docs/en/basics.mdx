@@ -24,18 +24,24 @@ await agent.aiAct(
 );
 ```
 
-To share business context across every AI-powered Agent API, set `globalContext` when creating the Agent:
+A context is additional guidance for the AI. It can contain business facts, decision or interaction rules, constraints, and output requirements. It supplements the main prompt instead of replacing it.
+
+To share the same guidance across every AI-powered Agent API, set `contexts.default` when creating the Agent. `contexts.default` is only a fallback: Midscene uses it when neither the current call nor the matching API has its own context. API-specific and per-call contexts override it instead of being automatically concatenated with it.
 
 ```typescript
 const agent = new PlaywrightAgent(page, {
-  globalContext: 'Prices are shown in USD.',
+  contexts: {
+    default: 'Prices are shown in USD.',
+    aiQuery: 'Return monetary values as numbers without currency symbols.',
+  },
 });
 ```
 
-To give every subsequent `aiAct` call more business context, use [`agent.setAIActContext()`](./reference/#agentsetaiactcontext):
+To change a context after creating the Agent, use [`agent.setContext()`](./reference/#agentsetcontext):
 
 ```typescript
-agent.setAIActContext(
+agent.setContext(
+  'aiAct',
   'Close the cookie consent dialog first if it appears. Prices are shown in USD.',
 );
 ```
@@ -44,7 +50,7 @@ agent.setAIActContext(
 
 - `deepThink`: focuses more on task decomposition and uses separate model calls for planning and element localization. It can make complex tasks more stable, but increases model calls and latency.
 - `deepLocate`: uses an additional model call to improve element localization accuracy. Enable it when a target is small or difficult to distinguish from nearby elements.
-- `context`: provides business knowledge or other background for this call only. For `aiAct`, it overrides the Agent-level `aiActContext`, including when it is explicitly set to an empty string, and is appended after `globalContext`.
+- `context`: provides additional AI guidance for this call only, such as business facts, rules, constraints, or output requirements. It overrides `contexts.aiAct`, which overrides the shared fallback in `contexts.default`. An explicitly empty string disables inherited user context for this call.
 
 ```typescript
 await agent.aiAct('Complete the checkout form and stop before placing the order', {

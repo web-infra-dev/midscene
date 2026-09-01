@@ -8,7 +8,12 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '@/types';
-import { mergeAIContexts } from './prompt-context';
+import type { AiApiName } from '@midscene/shared/agent-tools/agent-context';
+import {
+  INTERNAL_AI_CONTEXT_METADATA_KEY,
+  type InternalAIContextOptions,
+  type ResolvedAIContext,
+} from './prompt-context';
 import { TaskExecutionError, type TaskExecutor } from './tasks';
 import { parsePrompt } from './utils';
 
@@ -19,10 +24,8 @@ const defaultQueryOptions: QueryOptions = {
 
 type InsightTaskExecutor = Pick<TaskExecutor, 'createTypeQueryExecution'>;
 
-type InsightInternalOptions = {
+type InsightInternalOptions = InternalAIContextOptions & {
   context?: string;
-  /** Framework-owned context appended after all user-configured context. */
-  _internalAdditionalContext?: string;
 };
 
 /** Execute read-only AI operations against either live or fixed UI context. */
@@ -31,15 +34,42 @@ export class Insight implements InsightAPI {
     private readonly taskExecutor: InsightTaskExecutor,
     private readonly resolveModelRuntime: () => ModelRuntime,
     private readonly getUIContext?: () => UIContext,
-    private readonly getGlobalContext?: () => string | undefined,
+    private readonly resolveAgentContext?: (
+      apiName: AiApiName,
+      callContext?: string,
+    ) => ResolvedAIContext | undefined,
   ) {}
 
-  private resolveContext(options?: InsightInternalOptions): string | undefined {
-    return mergeAIContexts(
-      this.getGlobalContext?.(),
-      options?.context,
-      options?._internalAdditionalContext,
-    );
+  private resolveContext(
+    apiName: AiApiName,
+    options?: InsightInternalOptions,
+  ): ResolvedAIContext | undefined {
+    if (this.resolveAgentContext) {
+      return this.resolveAgentContext(apiName, options?.context);
+    }
+
+    return options?.context === undefined
+      ? undefined
+      : {
+          value: options.context,
+          metadata: { source: 'call' },
+        };
+  }
+
+  private withContext<T extends InsightInternalOptions>(
+    apiName: AiApiName,
+    options: T,
+  ): T {
+    const resolvedContext = this.resolveContext(apiName, options);
+    if (resolvedContext === undefined) {
+      return options;
+    }
+
+    return {
+      ...options,
+      context: resolvedContext.value,
+      [INTERNAL_AI_CONTEXT_METADATA_KEY]: resolvedContext.metadata,
+    };
   }
 
   private executionOptions(
@@ -64,11 +94,7 @@ export class Insight implements InsightAPI {
   ): Promise<ReturnType> {
     const modelRuntime = this.resolveModelRuntime();
     const executionOptions = this.executionOptions();
-    const context = this.resolveContext(options);
-    const serviceOptions: QueryOptions = {
-      ...options,
-      ...(context !== undefined ? { context } : {}),
-    };
+    const serviceOptions = this.withContext('aiQuery', options);
     const { output } = executionOptions
       ? await this.taskExecutor.createTypeQueryExecution(
           'Query',
@@ -91,41 +117,38 @@ export class Insight implements InsightAPI {
     prompt: TUserPrompt,
     options: QueryOptions = defaultQueryOptions,
   ): Promise<boolean> {
-    return this.queryPrimitive('Boolean', prompt, options);
+    return this.queryPrimitive('Boolean', 'aiBoolean', prompt, options);
   }
 
   async aiNumber(
     prompt: TUserPrompt,
     options: QueryOptions = defaultQueryOptions,
   ): Promise<number> {
-    return this.queryPrimitive('Number', prompt, options);
+    return this.queryPrimitive('Number', 'aiNumber', prompt, options);
   }
 
   async aiString(
     prompt: TUserPrompt,
     options: QueryOptions = defaultQueryOptions,
   ): Promise<string> {
-    return this.queryPrimitive('String', prompt, options);
+    return this.queryPrimitive('String', 'aiString', prompt, options);
   }
 
   async aiAsk(
     prompt: TUserPrompt,
     options: QueryOptions = defaultQueryOptions,
   ): Promise<string> {
-    return this.aiString(prompt, options);
+    return this.queryPrimitive('String', 'aiAsk', prompt, options);
   }
 
   private async queryPrimitive<ReturnType>(
     type: 'Boolean' | 'Number' | 'String',
+    apiName: 'aiBoolean' | 'aiNumber' | 'aiString' | 'aiAsk',
     prompt: TUserPrompt,
     options: QueryOptions,
   ): Promise<ReturnType> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const context = this.resolveContext(options);
-    const serviceOptions: QueryOptions = {
-      ...options,
-      ...(context !== undefined ? { context } : {}),
-    };
+    const serviceOptions = this.withContext(apiName, options);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       type,
       textPrompt,
@@ -142,12 +165,29 @@ export class Insight implements InsightAPI {
     message?: string,
     options?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
-    const context = this.resolveContext(options as InsightInternalOptions);
+    const contextOptions = this.withContext(
+      'aiAssert',
+      (options ?? {}) as AssertOptions & InsightInternalOptions,
+    );
     const serviceOptions: QueryOptions = {
       domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
         options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
-      ...(context !== undefined ? { context } : {}),
+      ...(contextOptions.context !== undefined
+        ? { context: contextOptions.context }
+        : {}),
+      ...(contextOptions[INTERNAL_AI_CONTEXT_METADATA_KEY] !== undefined
+        ? {
+            [INTERNAL_AI_CONTEXT_METADATA_KEY]:
+              contextOptions[INTERNAL_AI_CONTEXT_METADATA_KEY],
+          }
+        : {}),
+      ...(contextOptions._internalAdditionalContext !== undefined
+        ? {
+            _internalAdditionalContext:
+              contextOptions._internalAdditionalContext,
+          }
+        : {}),
     };
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =

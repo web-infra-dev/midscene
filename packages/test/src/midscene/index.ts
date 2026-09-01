@@ -16,25 +16,35 @@ export interface MidsceneAiActOptions {
   fileChooserAccept?: string | string[];
   deepThink?: 'unset' | boolean;
   deepLocate?: boolean;
+  /**
+   * Additional facts, rules, constraints, or output requirements for this AI
+   * call. It overrides Agent API and default contexts; `''` disables inherited
+   * user context for this call.
+   */
   context?: string;
   abortSignal?: AbortSignal;
 }
 
 type MidsceneAiActInternalOptions = MidsceneAiActOptions & {
-  /** Workflow history appended by Core after user-configured context. */
+  /** Workflow history rendered by Core as a separate read-only prompt block. */
   _internalAdditionalContext?: string;
 };
 
 export interface MidsceneAiAssertOptions {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this assertion. It overrides Agent API and default contexts; `''` disables
+   * inherited user context for this call.
+   */
   context?: string;
   abortSignal?: AbortSignal;
   keepRawResponse?: boolean;
 }
 
 type MidsceneAiAssertInternalOptions = MidsceneAiAssertOptions & {
-  /** Workflow history appended by Core after user-configured context. */
+  /** Workflow history rendered by Core as a separate read-only prompt block. */
   _internalAdditionalContext?: string;
 };
 
@@ -153,7 +163,9 @@ const aiActOptionsInputSchema = z.strictObject({
   context: z
     .string()
     .optional()
-    .describe('Additional context supplied to the UI Agent.'),
+    .describe(
+      'Additional facts, rules, constraints, or output requirements for this AI call. It overrides Agent API and default contexts; an empty string disables inherited user context.',
+    ),
 });
 
 export const aiActInputSchema = z.strictObject({
@@ -175,7 +187,9 @@ const aiAssertOptionsInputSchema = z.strictObject({
   context: z
     .string()
     .optional()
-    .describe('Additional context supplied to the UI Agent.'),
+    .describe(
+      'Additional facts, decision rules, constraints, or output requirements for this assertion. It overrides Agent API and default contexts; an empty string disables inherited user context.',
+    ),
 });
 
 export const aiAssertInputSchema = z.strictObject({

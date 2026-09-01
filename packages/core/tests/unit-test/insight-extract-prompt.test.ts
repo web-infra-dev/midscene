@@ -1,3 +1,4 @@
+import { INTERNAL_AI_CONTEXT_METADATA_KEY } from '@/agent/prompt-context';
 import { getModelRuntime } from '@/ai-model/models';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -160,6 +161,38 @@ describe('insight extraction prompt assembly', () => {
     expect(rs.mocked(callAI).mock.calls[0]?.[2]).toEqual({
       abortSignal: abortController.signal,
       semanticRetryAttempt: 0,
+    });
+  });
+
+  it('renders the selected context and workflow history as separate prompt blocks', async () => {
+    await AiExtractElementInfo<{ result: boolean }>({
+      context: createFakeContext(),
+      dataQuery: {
+        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      },
+      extractOption: {
+        context: 'Only consider visible UI state.',
+        [INTERNAL_AI_CONTEXT_METADATA_KEY]: {
+          source: 'api',
+          apiName: 'aiAssert',
+        },
+        _internalAdditionalContext: 'The login step passed.',
+      },
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    const userMessage = rs.mocked(callAI).mock.calls[0]?.[0]?.[1];
+    const demandMessage = Array.isArray(userMessage?.content)
+      ? userMessage.content.find(
+          (item) =>
+            item.type === 'text' && item.text.includes('<REQUEST_CONTEXT'),
+        )
+      : undefined;
+    expect(demandMessage).toMatchObject({
+      type: 'text',
+      text: expect.stringContaining(
+        '<REQUEST_CONTEXT source="api" api="aiAssert">\nOnly consider visible UI state.\n</REQUEST_CONTEXT>\n\n<WORKFLOW_HISTORY read_only="true">\nThe login step passed.\n</WORKFLOW_HISTORY>',
+      ),
     });
   });
 

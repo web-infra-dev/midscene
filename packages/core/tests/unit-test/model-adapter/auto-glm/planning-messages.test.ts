@@ -119,7 +119,8 @@ describe('createAutoGlmPlanner messages', () => {
         ],
       },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
+        actionContext:
+          '<REQUEST_CONTEXT source="api" api="aiAct">\nprefer the primary submit button\n</REQUEST_CONTEXT>',
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -137,7 +138,7 @@ describe('createAutoGlmPlanner messages', () => {
     expect(messages[0]).toMatchObject({
       role: 'system',
       content: expect.stringContaining(
-        '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>\n',
+        '<REQUEST_CONTEXT source="api" api="aiAct">\nprefer the primary submit button\n</REQUEST_CONTEXT>\n',
       ),
     });
     expect(messages[1]).toMatchObject({

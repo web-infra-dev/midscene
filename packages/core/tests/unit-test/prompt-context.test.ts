@@ -2,6 +2,7 @@ import {
   buildLocatePromptWithContext,
   buildPromptWithContext,
   mergeAIContexts,
+  renderAIContext,
 } from '@/agent/prompt-context';
 import { describe, expect, it } from '@rstest/core';
 
@@ -29,9 +30,12 @@ describe('buildPromptWithContext', () => {
 
   it('prepends context to string prompts', () => {
     expect(
-      buildPromptWithContext('Click submit', 'Use buyer checkout rules.'),
+      buildPromptWithContext(
+        'Click submit',
+        '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>',
+      ),
     ).toBe(
-      'Context for this request:\nUse buyer checkout rules.\n\nClick submit',
+      '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>\n\nClick submit',
     );
   });
 
@@ -43,11 +47,11 @@ describe('buildPromptWithContext', () => {
           images: [{ name: 'target', url: './target.png' }],
           convertHttpImage2Base64: true,
         },
-        'Use mobile layout.',
+        '<GLOBAL_CONTEXT>\nUse mobile layout.\n</GLOBAL_CONTEXT>',
       ),
     ).toEqual({
       prompt:
-        'Context for this request:\nUse mobile layout.\n\nClick the target shown in the reference image.',
+        '<GLOBAL_CONTEXT>\nUse mobile layout.\n</GLOBAL_CONTEXT>\n\nClick the target shown in the reference image.',
       images: [{ name: 'target', url: './target.png' }],
       convertHttpImage2Base64: true,
     });
@@ -55,14 +59,14 @@ describe('buildPromptWithContext', () => {
 });
 
 describe('buildLocatePromptWithContext', () => {
-  it('wraps context and locate target in explicit tags', () => {
+  it('renders call context and locate target in explicit tags', () => {
     expect(
       buildLocatePromptWithContext(
         'Favorite button',
         'The favorite button is the star icon in the bottom-right corner.',
       ),
     ).toBe(
-      '<CONTEXT>\nThe favorite button is the star icon in the bottom-right corner.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+      '<REQUEST_CONTEXT source="call">\nThe favorite button is the star icon in the bottom-right corner.\n</REQUEST_CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
     );
   });
 
@@ -77,8 +81,63 @@ describe('buildLocatePromptWithContext', () => {
       ),
     ).toEqual({
       prompt:
-        '<CONTEXT>\nUse the mobile layout.\n</CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
+        '<REQUEST_CONTEXT source="call">\nUse the mobile layout.\n</REQUEST_CONTEXT>\n\n<LOCATE_TARGET>\nFavorite button\n</LOCATE_TARGET>',
       images: [{ name: 'target', url: './target.png' }],
     });
+  });
+});
+
+describe('renderAIContext', () => {
+  it('renders default, API, and call contexts with their source', () => {
+    expect(
+      renderAIContext({
+        value: 'Shared business rules.',
+        metadata: { source: 'default' },
+      }),
+    ).toBe('<GLOBAL_CONTEXT>\nShared business rules.\n</GLOBAL_CONTEXT>');
+    expect(
+      renderAIContext({
+        value: 'Return a plain number.',
+        metadata: { source: 'api', apiName: 'aiQuery' },
+      }),
+    ).toBe(
+      '<REQUEST_CONTEXT source="api" api="aiQuery">\nReturn a plain number.\n</REQUEST_CONTEXT>',
+    );
+    expect(
+      renderAIContext({
+        value: 'Use the cart footer.',
+        metadata: { source: 'call' },
+      }),
+    ).toBe(
+      '<REQUEST_CONTEXT source="call">\nUse the cart footer.\n</REQUEST_CONTEXT>',
+    );
+  });
+
+  it('appends workflow history as a separate read-only block', () => {
+    expect(
+      renderAIContext(
+        {
+          value: 'Use the cart footer.',
+          metadata: { source: 'call' },
+        },
+        'Previous step passed.',
+      ),
+    ).toBe(
+      '<REQUEST_CONTEXT source="call">\nUse the cart footer.\n</REQUEST_CONTEXT>\n\n<WORKFLOW_HISTORY read_only="true">\nPrevious step passed.\n</WORKFLOW_HISTORY>',
+    );
+  });
+
+  it('keeps history when an empty selected context clears inherited context', () => {
+    expect(
+      renderAIContext(
+        { value: '', metadata: { source: 'call' } },
+        'Previous step passed.',
+      ),
+    ).toBe(
+      '<WORKFLOW_HISTORY read_only="true">\nPrevious step passed.\n</WORKFLOW_HISTORY>',
+    );
+    expect(renderAIContext({ value: '', metadata: { source: 'call' } })).toBe(
+      '',
+    );
   });
 });
