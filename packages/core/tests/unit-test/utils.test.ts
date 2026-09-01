@@ -8,7 +8,7 @@ import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
-  ifPlanLocateParamHasLocatedPixelBbox,
+  ifLocateParamHasLocatedPixelBbox,
   isPixelBbox,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
@@ -788,7 +788,7 @@ describe('dumpActionParam', () => {
   });
 });
 
-describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
+describe('ifLocateParamHasLocatedPixelBbox', () => {
   it('should return true when locatedPixelBbox is valid array with 4 elements', () => {
     const param = {
       prompt: 'test element',
@@ -799,14 +799,14 @@ describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
         number,
       ],
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(true);
+    expect(ifLocateParamHasLocatedPixelBbox(param)).toBe(true);
   });
 
   it('should return false when locatedPixelBbox is undefined', () => {
     const param = {
       prompt: 'test element',
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param)).toBe(false);
   });
 
   it('should return false when locatedPixelBbox is not an array', () => {
@@ -814,7 +814,7 @@ describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
       prompt: 'test element',
       locatedPixelBbox: 'not an array' as any,
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param)).toBe(false);
   });
 
   it('should return false when locatedPixelBbox array length is not 4', () => {
@@ -822,19 +822,19 @@ describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
       prompt: 'test element',
       locatedPixelBbox: [100, 200] as any,
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param1)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param1)).toBe(false);
 
     const param2 = {
       prompt: 'test element',
       locatedPixelBbox: [100, 200, 300] as any,
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param2)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param2)).toBe(false);
 
     const param3 = {
       prompt: 'test element',
       locatedPixelBbox: [100, 200, 300, 400, 500] as any,
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param3)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param3)).toBe(false);
   });
 
   it('should return false when locatedPixelBbox is null', () => {
@@ -842,18 +842,18 @@ describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
       prompt: 'test element',
       locatedPixelBbox: null as any,
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelBbox(param)).toBe(false);
   });
 
   it('should return false when locatedPixelBbox contains non-finite or non-number values', () => {
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelBbox({
         prompt: 'test element',
         locatedPixelBbox: [100, Number.NaN, 300, 400] as any,
       }),
     ).toBe(false);
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelBbox({
         prompt: 'test element',
         locatedPixelBbox: [100, '200', 300, 400] as any,
       }),

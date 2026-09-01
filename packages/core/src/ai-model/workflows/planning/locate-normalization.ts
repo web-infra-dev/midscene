@@ -63,23 +63,30 @@ export function normalizePlanningActionLocateFields(
         locateResultCodec,
         'planning locate normalization requires a locate result codec',
       );
-      const rawLocateValue = (() => {
-        if (typeof locateParameter !== 'object' || locateParameter === null) {
-          return locateParameter;
-        }
 
-        const locateResultRecord = locateParameter as Record<string, unknown>;
-        const resultKey = locateResultCodec.promptSpec.resultKey;
-        if (locateResultRecord[resultKey] !== undefined) {
-          return locateResultRecord[resultKey];
-        }
+      const resultKey = locateResultCodec.promptSpec.resultKey;
+      const rawLocateValue =
+        locateParameter[resultKey] !== undefined
+          ? locateParameter[resultKey]
+          : acceptBbox2dAlias && resultKey === 'bbox'
+            ? locateParameter.bbox_2d
+            : undefined;
 
-        return acceptBbox2dAlias && resultKey === 'bbox'
-          ? locateResultRecord.bbox_2d
-          : undefined;
-      })();
+      // The raw result field is replaced by locatedPixelBbox, so it should not
+      // remain in the normalized locate parameter.
+      const rawCoordinateKeys = new Set([
+        resultKey,
+        ...(acceptBbox2dAlias && resultKey === 'bbox' ? ['bbox_2d'] : []),
+      ]);
+
+      const locateParamWithoutRawCoordinates = Object.fromEntries(
+        Object.entries(locateParameter).filter(
+          ([key]) => !rawCoordinateKeys.has(key),
+        ),
+      );
+
       action.param[field] = {
-        ...locateParameter,
+        ...locateParamWithoutRawCoordinates,
         locatedPixelBbox: locateResultCodec.toPixelBbox(
           rawLocateValue,
           locateResultContext,

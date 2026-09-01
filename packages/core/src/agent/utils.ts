@@ -5,11 +5,10 @@ import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
+  DetailedLocateParam,
   ElementCacheFeature,
   LocateResultElement,
   PixelBbox,
-  PlanningLocateParam,
-  PlanningLocateParamWithLocatedPixelBbox,
   Rect,
   ScrollParam,
   Size,
@@ -283,18 +282,23 @@ export function isPixelBbox(value: unknown): value is PixelBbox {
   );
 }
 
-type PlanningLocateParamWithMaybeLocatedPixelBbox = PlanningLocateParam & {
+type LocateParamWithMaybeLocatedPixelBbox = DetailedLocateParam & {
   locatedPixelBbox?: unknown;
 };
 
-export function ifPlanLocateParamHasLocatedPixelBbox(
-  planLocateParam: PlanningLocateParamWithMaybeLocatedPixelBbox,
-): planLocateParam is PlanningLocateParamWithLocatedPixelBbox {
-  return isPixelBbox(planLocateParam.locatedPixelBbox);
+type LocateParamWithLocatedPixelBbox = DetailedLocateParam & {
+  /** Pixel bbox of the located element in screenshot coordinates. */
+  locatedPixelBbox: PixelBbox;
+};
+
+export function ifLocateParamHasLocatedPixelBbox(
+  locateParam: LocateParamWithMaybeLocatedPixelBbox,
+): locateParam is LocateParamWithLocatedPixelBbox {
+  return isPixelBbox(locateParam.locatedPixelBbox);
 }
 
 export function matchElementFromPlan(
-  planLocateParam: PlanningLocateParamWithLocatedPixelBbox,
+  planLocateParam: LocateParamWithLocatedPixelBbox,
 ): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;

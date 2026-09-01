@@ -1,4 +1,4 @@
-import { getTapLocatedPixelBbox } from '../../model-adapter/planning-action';
+import { getTapLocatedPixelBbox } from '../../model-adapter/custom-planning-action';
 import type { PlanningTapLocatorDefinition } from '../../model-adapter/types';
 import {
   getAutoGLMChineseLocatePrompt,

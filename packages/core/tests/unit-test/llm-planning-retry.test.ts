@@ -497,7 +497,6 @@ describe('plan XML parse retry', () => {
         param: {
           locate: {
             prompt: 'submit',
-            bbox: [100, 200, 300, 400],
             locatedPixelBbox: [10, 20, 30, 40],
           },
         },

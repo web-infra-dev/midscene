@@ -350,16 +350,6 @@ export interface InsightAPI<
  *
  */
 
-export interface PlanningLocateParam extends DetailedLocateParam {
-  bbox?: LocateResultBbox;
-  point?: LocateResultPoint;
-}
-
-export type PlanningLocateParamWithLocatedPixelBbox = PlanningLocateParam & {
-  /** Pixel bbox of the located element in screenshot coordinates. */
-  locatedPixelBbox: PixelBbox;
-};
-
 type PlanningActionBase = {
   thought?: string;
   log?: string; // a brief preamble to the user explaining what you’re about to do
@@ -674,8 +664,6 @@ export interface IExecutionDump extends DumpMeta {
 /*
 task - service-locate
 */
-export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
-
 export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
@@ -684,7 +672,7 @@ export type ExecutionTaskInsightDump = ServiceDump;
 
 export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
-  ExecutionTaskInsightLocateParam,
+  DetailedLocateParam,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskInsightDump
 >;
@@ -782,8 +770,6 @@ export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
 /*
 task - planning-locate
 */
-export type ExecutionTaskPlanningLocateParam = PlanningLocateParam;
-
 export interface ExecutionTaskPlanningLocateOutput {
   element: LocateResultElement | null;
 }
@@ -792,7 +778,7 @@ export type ExecutionTaskPlanningDump = ServiceDump;
 
 export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
   'Planning',
-  ExecutionTaskPlanningLocateParam,
+  DetailedLocateParam,
   ExecutionTaskPlanningLocateOutput,
   ExecutionTaskPlanningDump
 >;

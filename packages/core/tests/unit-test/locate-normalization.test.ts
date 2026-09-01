@@ -65,6 +65,9 @@ describe('normalizePlanningActionLocateFields', () => {
         param: {
           locate: {
             prompt: 'submit',
+            deepLocate: true,
+            cacheable: false,
+            xpath: '//button[@type="submit"]',
             point: [50, 60],
           },
         },
@@ -83,7 +86,13 @@ describe('normalizePlanningActionLocateFields', () => {
     });
 
     expect(toPixelBbox).toHaveBeenCalledWith([50, 60], locateResultContext);
-    expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
+    expect(actions[0].param.locate).toEqual({
+      prompt: 'submit',
+      deepLocate: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+      locatedPixelBbox: [10, 20, 30, 40],
+    });
   });
 
   it('accepts bbox_2d when the model adapter enables the alias', () => {
@@ -116,7 +125,10 @@ describe('normalizePlanningActionLocateFields', () => {
       [50, 60, 70, 80],
       locateResultContext,
     );
-    expect(actions[0].param.locate.locatedPixelBbox).toEqual([10, 20, 30, 40]);
+    expect(actions[0].param.locate).toEqual({
+      prompt: 'submit',
+      locatedPixelBbox: [10, 20, 30, 40],
+    });
   });
 
   it('parses protocol-specific locate params after identifying locator fields', () => {
@@ -151,7 +163,6 @@ describe('normalizePlanningActionLocateFields', () => {
     expect(toPixelBbox).toHaveBeenCalledWith([50, 60], locateResultContext);
     expect(actions[0].param.locate).toEqual({
       prompt: 'submit',
-      point: [50, 60],
       locatedPixelBbox: [10, 20, 30, 40],
     });
   });
