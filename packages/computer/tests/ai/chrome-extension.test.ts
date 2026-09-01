@@ -39,7 +39,7 @@ describe('chrome extension smoke test', () => {
   });
 
   it('open side panel via extension icon', async () => {
-    await openExtensionSidePanel(agent);
+    await openExtensionSidePanel(agent, extId);
 
     await agent.aiAssert(
       'A docked browser side panel is visible at the far right and contains Midscene or Playground UI, while the main browser content still shows the TodoMVC todos app',
