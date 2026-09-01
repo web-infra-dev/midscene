@@ -583,6 +583,18 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(metadata.form.top + metadata.form.height).toBeLessThanOrEqual(
         metadata.screen.top + metadata.screen.height,
       );
+      const formCenter = {
+        x: metadata.form.left + metadata.form.width / 2,
+        y: metadata.form.top + metadata.form.height / 2,
+      };
+      expect(formCenter.x).toBeGreaterThanOrEqual(metadata.scroll.left);
+      expect(formCenter.x).toBeLessThan(
+        metadata.scroll.left + metadata.scroll.width,
+      );
+      expect(formCenter.y).toBeGreaterThanOrEqual(metadata.scroll.top);
+      expect(formCenter.y).toBeLessThan(
+        metadata.scroll.top + metadata.scroll.height,
+      );
       if (metadata.processId !== undefined) {
         expect(metadata.processId).toBe(startedFixture.pid);
       }

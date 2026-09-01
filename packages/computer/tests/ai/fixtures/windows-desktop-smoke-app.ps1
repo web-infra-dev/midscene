@@ -203,7 +203,7 @@ $textBox.BackColor = [System.Drawing.Color]::FromArgb(255, 220, 80)
 
 $scrollLabel = New-Object System.Windows.Forms.Label
 $scrollLabel.AutoSize = $true
-$scrollLabel.Location = New-Object System.Drawing.Point(24, 137)
+$scrollLabel.Location = New-Object System.Drawing.Point(24, 127)
 $scrollLabel.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
 $scrollLabel.ForeColor = [System.Drawing.Color]::FromArgb(31, 41, 55)
 $scrollLabel.Text = 'Hover here and send a real mouse-wheel event'
@@ -211,7 +211,7 @@ $scrollLabel.Text = 'Hover here and send a real mouse-wheel event'
 $scrollArea = New-Object System.Windows.Forms.ListBox
 $scrollArea.Name = 'MidsceneSmokeScrollArea'
 $scrollArea.AccessibleName = 'Midscene Smoke Scroll Area'
-$scrollArea.Location = New-Object System.Drawing.Point(24, 160)
+$scrollArea.Location = New-Object System.Drawing.Point(24, 150)
 $scrollArea.Size = New-Object System.Drawing.Size(270, 152)
 $scrollArea.IntegralHeight = $false
 $scrollArea.TabStop = $true
