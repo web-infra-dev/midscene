@@ -22,7 +22,6 @@ ${serializedData}
       try {
         return jsonParser(dataJsonContent, {
           source: 'generic-object',
-          requireObject: false,
         }) as T;
       } catch (error) {
         throw new Error(`Failed to parse data-json: ${error}`);

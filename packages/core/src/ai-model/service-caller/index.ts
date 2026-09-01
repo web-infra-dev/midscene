@@ -42,7 +42,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { getVersion } from '../../utils';
 import type { ModelRuntime } from '../models';
-import type { JsonParserSource } from '../shared/json';
+import { type JsonParserSource, assertJsonObject } from '../shared/json';
 import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
@@ -926,19 +926,12 @@ export function parseAIObjectResponse<T>(
   modelRuntime: ModelRuntime,
   jsonParserSource: JsonParserSource = 'generic-object',
 ): AIObjectResponse<T> {
-  const { config: modelConfig, adapter } = modelRuntime;
+  const { adapter } = modelRuntime;
   assert(response, 'empty response');
   const jsonContent = adapter.jsonParser(response.content, {
     source: jsonParserSource,
-    requireObject: true,
   });
-  // This API expects a JSON object. Bare JSON primitives are valid JSON,
-  // but do not satisfy object-response callers.
-  if (!jsonContent || typeof jsonContent !== 'object') {
-    throw new Error(
-      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-    );
-  }
+  assertJsonObject(jsonContent);
   return {
     content: jsonContent as T,
     contentString: response.content,

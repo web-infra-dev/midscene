@@ -21,7 +21,6 @@ export function parseInsightResponse<T>(
     try {
       const parsedErrors = jsonParser(errorsContent, {
         source: 'generic-object',
-        requireObject: false,
       });
       if (Array.isArray(parsedErrors)) {
         errors = parsedErrors;

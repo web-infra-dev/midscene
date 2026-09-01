@@ -52,8 +52,6 @@ export type JsonParserSource =
 export interface JsonParserContext {
   source: JsonParserSource;
   preserveStringValueKeys?: string[];
-  /** Require the parsed top-level JSON value to be an object. Defaults to false. */
-  requireObject?: boolean;
 }
 
 export type JsonParser = (raw: string, context?: JsonParserContext) => unknown;
@@ -118,7 +116,7 @@ function repairKnownJsonIssues(
   return jsonBlock;
 }
 
-function assertJsonObject(
+export function assertJsonObject(
   parsed: unknown,
 ): asserts parsed is Record<string, unknown> {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -146,7 +144,6 @@ export function parseModelResponseJson(
   context?: JsonParserContext,
 ) {
   const cleanJsonString = extractJSONFromCodeBlock(raw);
-  const requireObject = context?.requireObject ?? false;
 
   let parsedObj: unknown;
 
@@ -171,10 +168,6 @@ export function parseModelResponseJson(
         )}. Second error - ${String(e2)}. Response - \n ${raw}`,
       );
     }
-  }
-
-  if (requireObject) {
-    assertJsonObject(parsedObj);
   }
 
   return trimParsedJsonStrings(parsedObj, context);

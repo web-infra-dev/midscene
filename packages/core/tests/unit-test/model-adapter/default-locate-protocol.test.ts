@@ -149,7 +149,6 @@ describe('default locate protocol', () => {
     ).toEqual({ kind: 'located', target: [100, 200, 300, 400] });
     expect(jsonParser).toHaveBeenCalledWith('model-specific response', {
       source: 'locate',
-      requireObject: true,
     });
 
     searchAreaProtocol.parseRawResponse(
@@ -158,7 +157,6 @@ describe('default locate protocol', () => {
     );
     expect(jsonParser).toHaveBeenLastCalledWith('model-specific response', {
       source: 'section-locator',
-      requireObject: true,
     });
   });
 
@@ -179,6 +177,6 @@ describe('default locate protocol', () => {
         'model-specific response',
         locatePromptSpec,
       ),
-    ).toThrow('Failed to parse JSON locate response');
+    ).toThrow('Expected to be a JSON object, got array');
   });
 });

@@ -49,7 +49,24 @@ describe('parseAIObjectResponse', () => {
     ).toEqual({ answer: 42 });
     expect(jsonParser).toHaveBeenCalledWith('{"answer":42}', {
       source: 'generic-object',
-      requireObject: true,
     });
+  });
+
+  it('rejects an array returned by a custom JSON parser', () => {
+    const modelRuntime = getModelRuntime(modelConfig);
+    const objectResponseModelRuntime: ModelRuntime = {
+      ...modelRuntime,
+      adapter: {
+        ...modelRuntime.adapter,
+        jsonParser: vi.fn(() => [{ answer: 42 }]),
+      },
+    };
+
+    expect(() =>
+      parseAIObjectResponse(
+        modelResponse('[{"answer":42}]'),
+        objectResponseModelRuntime,
+      ),
+    ).toThrow('Expected to be a JSON object, got array');
   });
 });

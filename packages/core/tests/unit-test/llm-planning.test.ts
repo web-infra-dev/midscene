@@ -107,16 +107,27 @@ describe('llm planning - doubao', () => {
 });
 
 describe('llm planning - action parameters', () => {
-  it('parses a primitive action parameter', () => {
-    const result = parseStandardPlanningResponse(`
+  it('rejects a primitive action parameter', () => {
+    expect(() =>
+      parseStandardPlanningResponse(`
 <action-type>CustomAction</action-type>
 <action-param-json>"hello world"</action-param-json>
-    `);
+    `),
+    ).toThrow('Expected to be a JSON object, got string');
+  });
 
-    expect(result.action).toEqual({
-      type: 'CustomAction',
-      param: 'hello world',
+  it('rejects an array returned by a custom JSON parser', () => {
+    const planningProtocol = createDefaultMidscenePlanningProtocol({
+      jsonParser: () => [{ custom: true }],
     });
+
+    expect(() =>
+      planningProtocol.actionOutputProtocol.parseActionOutput(
+        `<action-type>CustomAction</action-type>
+<action-param-json>{custom syntax}</action-param-json>`,
+        [],
+      ),
+    ).toThrow('Expected to be a JSON object, got array');
   });
 });
 
