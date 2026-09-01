@@ -73,8 +73,16 @@ describe('Chrome extension side-panel helper', () => {
 
     expect(keyboardPress).toHaveBeenCalledWith('Escape');
     expect(aiTap).toHaveBeenCalledTimes(2);
-    expect(aiTap.mock.calls[0][0]).toContain('Extensions button');
-    expect(aiTap.mock.calls[1][0]).toContain('Midscene.js');
+    expect(aiTap).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('Extensions button'),
+      { deepLocate: true },
+    );
+    expect(aiTap).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('Midscene.js'),
+      { deepLocate: true },
+    );
   });
 
   it('does not toggle an already-open side panel during a test retry', async () => {
