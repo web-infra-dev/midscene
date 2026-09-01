@@ -778,13 +778,7 @@
   height: 346px;
 }
 
-.home-feature--platforms .home-feature-card:first-child {
-  border-color: #d1dfff;
-  background: rgb(23 97 255 / 6%);
-}
-
-.dark .home-feature-card,
-.dark .home-feature--platforms .home-feature-card:first-child {
+.dark .home-feature-card {
   border-color: rgb(255 255 255 / 8%);
   background: #111;
 }
