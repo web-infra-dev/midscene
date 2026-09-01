@@ -46,6 +46,9 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
     calibrateFrameClock(manager);
     const received: RawKeyframe[] = [];
     manager.subscribeKeyframes((frame) => received.push(frame));
+    (manager as any).streamStartupWindow = {
+      deadlineAt: Date.now() + 5_000,
+    };
 
     (manager as any).processFrame(spsPacket());
     (manager as any).processFrame(dataPacket(0x01));
@@ -56,7 +59,11 @@ describe('ScrcpyScreenshotManager keyframe subscription', () => {
     expect(received[1].data[5]).toBe(0x02);
     // header is the SPS/PPS configuration buffer
     expect(received[0].header[4]).toBe(0x67);
+    expect(received[0].streamEpoch).toBeDefined();
+    expect(received[1].streamEpoch).toBe(received[0].streamEpoch);
     expect(received[0].capturedAt).toBeGreaterThan(0);
+    expect((manager as any).hasEstablishedVideoFrame).toBe(true);
+    expect((manager as any).streamStartupWindow).toBeNull();
   });
 
   it('stops delivering after unsubscribe', () => {
@@ -122,11 +129,13 @@ describe('AndroidDevice frame-source capability', () => {
     const frameA: RawKeyframe = {
       data: idrFrame(0x0a),
       header: Buffer.from([0x67]),
+      streamEpoch: Symbol('stream-a'),
       capturedAt: 1000,
     };
     const frameB: RawKeyframe = {
       data: idrFrame(0x0b),
       header: Buffer.from([0x67]),
+      streamEpoch: frameA.streamEpoch,
       capturedAt: 2000,
     };
     let latestFrame: RawKeyframe | null = frameA;

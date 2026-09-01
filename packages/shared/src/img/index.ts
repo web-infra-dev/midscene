@@ -1,4 +1,5 @@
 export {
+  encodedImageInfoOfBuffer,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   isValidJPEGImageBuffer,
