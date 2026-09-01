@@ -36,9 +36,11 @@ describe('codex app-server provider helper', () => {
     rs.unstubAllEnvs();
     rs.restoreAllMocks();
     await Promise.all(
-      temporaryDirectories
-        .splice(0)
-        .map((directory) => rm(directory, { recursive: true })),
+      temporaryDirectories.splice(0).map((directory) =>
+        // On Windows the killed codex.exe may still be mapped for a moment
+        // after shutdown resolves; retry EPERM/EBUSY instead of racing it.
+        rm(directory, { recursive: true, maxRetries: 10, retryDelay: 200 }),
+      ),
     );
   });
 
