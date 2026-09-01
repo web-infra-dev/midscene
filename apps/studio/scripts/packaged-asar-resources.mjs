@@ -1,12 +1,25 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const packagedAndroidBinDir = 'node_modules/@midscene/android/bin';
+const requiredPackagedExternalResources = [
+  'node_modules/@midscene/android/bin/scrcpy-server',
+  'node_modules/@midscene/android/bin/yadb',
+  'node_modules/@midscene/android-playground/bin/scrcpy-server',
+];
+
+const packagedExternalResourceDirs = [
+  ...new Set(
+    requiredPackagedExternalResources.map((resourcePath) =>
+      path.posix.dirname(resourcePath),
+    ),
+  ),
+];
+
 const packagedAsarUnpackDirs = [
   'node_modules/@computer-use/libnut',
   'node_modules/@ffmpeg-installer',
   'node_modules/@img',
-  packagedAndroidBinDir,
+  ...packagedExternalResourceDirs,
   'node_modules/@midscene/computer/bin',
   'node_modules/@midscene/computer/native',
   'node_modules/sharp',
@@ -20,10 +33,6 @@ export const packagedAsarOptions = {
   // extensionless helpers such as scrcpy-server inside app.asar.
   unpackDir: `{${packagedAsarUnpackDirs.join(',')}}`,
 };
-
-const requiredPackagedExternalResources = ['scrcpy-server', 'yadb'].map(
-  (fileName) => `${packagedAndroidBinDir}/${fileName}`,
-);
 
 export const assertPackagedExternalResourcesUnpacked = async (resourcesDir) => {
   const unpackedRoot = path.join(resourcesDir, 'app.asar.unpacked');

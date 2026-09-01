@@ -22,12 +22,57 @@ describe('packaged ASAR resources', () => {
       'node_modules/@midscene/android/bin',
     );
     expect(packagedAsarOptions.unpackDir).toContain(
+      'node_modules/@midscene/android-playground/bin',
+    );
+    expect(packagedAsarOptions.unpackDir).toContain(
       'node_modules/@midscene/computer/bin',
     );
     expect(packagedAsarOptions.unpackDir).not.toContain('\\');
   });
 
   it('accepts Android helpers that are materialized outside app.asar', async () => {
+    const resourcesDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-resources-'),
+    );
+    try {
+      const unpackedAndroidBinDir = path.join(
+        resourcesDir,
+        'app.asar.unpacked',
+        'node_modules',
+        '@midscene',
+        'android',
+        'bin',
+      );
+      const unpackedAndroidPlaygroundBinDir = path.join(
+        resourcesDir,
+        'app.asar.unpacked',
+        'node_modules',
+        '@midscene',
+        'android-playground',
+        'bin',
+      );
+      await Promise.all([
+        fs.mkdir(unpackedAndroidBinDir, { recursive: true }),
+        fs.mkdir(unpackedAndroidPlaygroundBinDir, { recursive: true }),
+      ]);
+      await Promise.all([
+        fs.writeFile(path.join(unpackedAndroidBinDir, 'scrcpy-server'), ''),
+        fs.writeFile(path.join(unpackedAndroidBinDir, 'yadb'), ''),
+        fs.writeFile(
+          path.join(unpackedAndroidPlaygroundBinDir, 'scrcpy-server'),
+          '',
+        ),
+      ]);
+
+      await expect(
+        assertPackagedExternalResourcesUnpacked(resourcesDir),
+      ).resolves.toBeUndefined();
+    } finally {
+      await fs.rm(resourcesDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a packaged playground scrcpy server that remains inside app.asar', async () => {
     const resourcesDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'midscene-resources-'),
     );
@@ -48,7 +93,9 @@ describe('packaged ASAR resources', () => {
 
       await expect(
         assertPackagedExternalResourcesUnpacked(resourcesDir),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(
+        /@midscene\/android-playground\/bin\/scrcpy-server.*External processes cannot read/,
+      );
     } finally {
       await fs.rm(resourcesDir, { recursive: true, force: true });
     }
@@ -63,7 +110,9 @@ describe('packaged ASAR resources', () => {
 
       await expect(
         assertPackagedExternalResourcesUnpacked(resourcesDir),
-      ).rejects.toThrow(/scrcpy-server.*yadb.*External processes cannot read/);
+      ).rejects.toThrow(
+        /@midscene\/android\/bin\/scrcpy-server.*@midscene\/android\/bin\/yadb.*@midscene\/android-playground\/bin\/scrcpy-server.*External processes cannot read/,
+      );
     } finally {
       await fs.rm(resourcesDir, { recursive: true, force: true });
     }
