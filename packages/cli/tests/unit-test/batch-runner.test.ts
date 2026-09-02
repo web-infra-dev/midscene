@@ -1410,7 +1410,7 @@ describe('BatchRunner', () => {
           launch: 'file.bundle/FileAbility',
           deviceId: 'file-harmony-device',
           autoDismissKeyboard: false,
-          waitAfterAction: 500,
+          hdcPath: '/file/path/to/hdc',
         },
       });
 
@@ -1424,7 +1424,7 @@ describe('BatchRunner', () => {
         launch: 'global.bundle/GlobalAbility',
         deviceId: 'global-harmony-device',
         autoDismissKeyboard: true,
-        waitAfterAction: 500,
+        hdcPath: '/file/path/to/hdc',
       });
     });
 

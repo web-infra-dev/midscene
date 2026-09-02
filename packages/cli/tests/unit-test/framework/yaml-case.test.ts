@@ -163,7 +163,7 @@ describe('runYamlCase', () => {
         'harmony:',
         '  launch: file.bundle/FileAbility',
         '  autoDismissKeyboard: false',
-        '  waitAfterAction: 500',
+        '  hdcPath: /file/path/to/hdc',
         'tasks: []',
         '',
       ].join('\n'),
@@ -210,7 +210,7 @@ describe('runYamlCase', () => {
           harmony: {
             launch: 'global.bundle/GlobalAbility',
             autoDismissKeyboard: true,
-            waitAfterAction: 500,
+            hdcPath: '/file/path/to/hdc',
             deviceId: 'global-harmony-device',
           },
           ios: {

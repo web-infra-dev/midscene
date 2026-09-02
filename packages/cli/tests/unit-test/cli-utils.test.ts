@@ -303,8 +303,8 @@ describe('parseProcessArgs', () => {
       'midscene',
       '--harmony.device-id',
       '127.0.0.1:5555',
-      '--harmony.wait-after-action',
-      '800',
+      '--harmony.hdc-path',
+      '/custom/path/to/hdc',
     ];
 
     const { options } = await parseProcessArgs();
@@ -312,8 +312,8 @@ describe('parseProcessArgs', () => {
     expect(options.harmony).toEqual({
       'device-id': '127.0.0.1:5555',
       deviceId: '127.0.0.1:5555',
-      'wait-after-action': 800,
-      waitAfterAction: 800,
+      'hdc-path': '/custom/path/to/hdc',
+      hdcPath: '/custom/path/to/hdc',
     });
   });
 
