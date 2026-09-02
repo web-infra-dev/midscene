@@ -2215,6 +2215,7 @@ const device = new AndroidDevice(deviceId, {
   - `maxSize?: number` — Maximum screenshot width or height in pixels. The same limit applies to ADB/yadb fallback screenshots while scrcpy is temporarily unavailable, preventing planning and report images from returning to full device resolution. Use a non-negative integer; `0` disables scaling. Default: `0`.
   - `videoBitRate?: number` — scrcpy H.264 encoding bitrate in bits per second. Default: `100000000`. Changing it trades encoded bandwidth against screenshot detail. Tune it only from independent transport measurements and validate recognition quality; a freshness-timeout warning alone is not a reason to change it.
   - `idleTimeoutMs?: number` — Idle time before disconnecting the scrcpy stream. `0` disables automatic disconnection. Default: `30000`.
+  - `videoResetFrameTimeoutMs?: number` — Time to wait for a fresh keyframe after scrcpy accepts an in-band video reset. Use a positive integer. Default: `800`. Increase it only for devices whose display capture pipeline has a slower restart tail.
 
 `device.getScrcpyStatus()` returns the current `enabled`, `connected`, `lastError`, and `retryAfter` state. `device.retryScrcpy()` immediately retries the scrcpy connection and returns `Promise<void>`.
 
