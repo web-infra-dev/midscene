@@ -305,6 +305,8 @@ describe('parseProcessArgs', () => {
       '127.0.0.1:5555',
       '--harmony.hdc-path',
       '/custom/path/to/hdc',
+      '--harmony.auto-dismiss-keyboard',
+      'false',
     ];
 
     const { options } = await parseProcessArgs();
@@ -314,6 +316,24 @@ describe('parseProcessArgs', () => {
       deviceId: '127.0.0.1:5555',
       'hdc-path': '/custom/path/to/hdc',
       hdcPath: '/custom/path/to/hdc',
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
+    });
+  });
+
+  test('should parse camelCase HarmonyOS boolean options as booleans', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.autoDismissKeyboard',
+      'false',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
     });
   });
 

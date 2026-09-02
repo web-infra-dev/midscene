@@ -94,6 +94,11 @@ Usage:
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
+      'harmony.auto-dismiss-keyboard': {
+        type: 'boolean',
+        description:
+          'Whether to dismiss the HarmonyOS keyboard after text input',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
