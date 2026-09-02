@@ -106,6 +106,31 @@ describe('llm planning - doubao', () => {
   });
 });
 
+describe('llm planning - action parameters', () => {
+  it('rejects a primitive action parameter', () => {
+    expect(() =>
+      parseStandardPlanningResponse(`
+<action-type>CustomAction</action-type>
+<action-param-json>"hello world"</action-param-json>
+    `),
+    ).toThrow('Expected to be a JSON object, got string');
+  });
+
+  it('rejects an array returned by a custom JSON parser', () => {
+    const planningProtocol = createDefaultMidscenePlanningProtocol({
+      jsonParser: () => [{ custom: true }],
+    });
+
+    expect(() =>
+      planningProtocol.actionOutputProtocol.parseActionOutput(
+        `<action-type>CustomAction</action-type>
+<action-param-json>{custom syntax}</action-param-json>`,
+        [],
+      ),
+    ).toThrow('Expected to be a JSON object, got array');
+  });
+});
+
 describe('llm planning - build yaml flow', () => {
   it('throws when planned action is not in actionSpace', () => {
     expect(() =>

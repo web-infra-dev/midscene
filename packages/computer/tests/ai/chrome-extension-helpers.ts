@@ -18,6 +18,16 @@ const CDP_INJECTION_TIMEOUT = 10_000;
 const NAVIGATE_INJECT_TIMEOUT = 15_000;
 const RELOAD_TIMEOUT = 5_000;
 const BRING_TO_FRONT_TIMEOUT = 5_000;
+const EXTENSION_MENU_OPEN_DELAY = 500;
+const SIDE_PANEL_READY_MAX_ATTEMPTS = 20;
+const SIDE_PANEL_READY_INTERVAL = 250;
+// The headless-extension jobs launch a pinned Chrome 135 window at 1920x1080.
+// Browser chrome is not exposed through the page CDP target, so address the
+// two stable native controls relative to the right edge of that window.
+const CHROME_TOOLBAR_Y = 72;
+const EXTENSIONS_BUTTON_RIGHT_OFFSET = 160;
+const EXTENSION_MENU_ROW_RIGHT_OFFSET = 366;
+const EXTENSION_MENU_ROW_Y = 228;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -139,17 +149,82 @@ export async function launchChromeWithExtension(
 
 export async function openExtensionSidePanel(
   agent: ComputerAgent,
+  extensionId: string,
 ): Promise<void> {
+  // Rstest can retry a failed case without restarting Chrome. Clicking the
+  // extension action again in that state closes an already-open side panel,
+  // so make this helper idempotent before sending any native input.
+  if (await findExtensionPageTarget(extensionId)) {
+    console.log('Extension side panel is already open');
+    return;
+  }
+
+  const pointer = agent.interface.inputPrimitives?.pointer;
+  if (!pointer) {
+    throw new Error('Computer pointer input is unavailable');
+  }
+
+  const { width, height } = await agent.interface.size();
+  if (
+    width <= EXTENSION_MENU_ROW_RIGHT_OFFSET ||
+    height <= EXTENSION_MENU_ROW_Y
+  ) {
+    throw new Error(
+      `Chrome window is too small to open the extension: ${width}x${height}`,
+    );
+  }
+
+  // Keep browser-chrome interaction deterministic. A slow vision-model retry
+  // previously consumed almost the entire test timeout and left Chrome state
+  // open across the test retry.
+  await pointer.tap({
+    x: width - EXTENSIONS_BUTTON_RIGHT_OFFSET,
+    y: CHROME_TOOLBAR_Y,
+  });
+  await sleep(EXTENSION_MENU_OPEN_DELAY);
+  await pointer.tap({
+    x: width - EXTENSION_MENU_ROW_RIGHT_OFFSET,
+    y: EXTENSION_MENU_ROW_Y,
+  });
+
+  if (await waitForExtensionPageTarget(extensionId)) {
+    return;
+  }
+
+  // Chrome occasionally ignores a native-menu click even when the pointer
+  // reaches the expected coordinates. Clear any menu left behind and use
+  // vision as a fallback instead of cascading the missing side panel into the
+  // remaining bridge tests.
+  console.log(
+    'Fixed-coordinate side-panel open did not succeed; retrying with vision',
+  );
+  await agent.interface.inputPrimitives?.keyboard?.keyboardPress('Escape');
+  await sleep(EXTENSION_MENU_OPEN_DELAY);
   await agent.aiTap(
     'the Chrome toolbar Extensions button with a puzzle-piece icon in the top-right browser chrome, not any icon inside the web page',
     { deepLocate: true },
   );
-  await sleep(500);
+  await sleep(EXTENSION_MENU_OPEN_DELAY);
   await agent.aiTap(
     'the row labeled "Midscene.js" inside the open Chrome Extensions menu below the toolbar, not any text or control inside the web page',
     { deepLocate: true },
   );
-  await sleep(3000);
+
+  if (await waitForExtensionPageTarget(extensionId)) {
+    return;
+  }
+
+  throw new Error('Midscene extension side panel did not open');
+}
+
+async function waitForExtensionPageTarget(extensionId: string) {
+  for (let attempt = 0; attempt < SIDE_PANEL_READY_MAX_ATTEMPTS; attempt++) {
+    if (await findExtensionPageTarget(extensionId)) {
+      return true;
+    }
+    await sleep(SIDE_PANEL_READY_INTERVAL);
+  }
+  return false;
 }
 
 // Wait until Chrome's CDP endpoint answers, i.e. the browser is actually up.
@@ -259,6 +334,62 @@ function cdpParse(event: MessageEvent): {
   return JSON.parse(
     typeof event.data === 'string' ? event.data : String(event.data),
   );
+}
+
+export async function evaluateViaWebSocket<T>(
+  wsUrl: string,
+  expression: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      finish(() => reject(new Error('CDP evaluation timed out')));
+    }, CDP_INJECTION_TIMEOUT);
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      ws.close();
+      callback();
+    };
+
+    ws.onopen = () =>
+      cdpSend(ws, 1, 'Runtime.evaluate', {
+        expression,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id !== 1) return;
+
+      const response = msg as {
+        error?: { message?: string };
+        result?: {
+          exceptionDetails?: { text?: string };
+          result?: { value?: T };
+        };
+      };
+      const errorMessage =
+        response.error?.message ?? response.result?.exceptionDetails?.text;
+      if (errorMessage) {
+        finish(() =>
+          reject(new Error(`CDP evaluation failed: ${errorMessage}`)),
+        );
+        return;
+      }
+      const runtimeResult = response.result?.result;
+      if (!runtimeResult || !('value' in runtimeResult)) {
+        finish(() => reject(new Error('CDP evaluation returned no value')));
+        return;
+      }
+      finish(() => resolve(runtimeResult.value as T));
+    };
+    ws.onerror = () =>
+      finish(() => reject(new Error('CDP evaluation WebSocket failed')));
+  });
 }
 
 async function listCdpTargets(): Promise<CdpTarget[]> {

@@ -53,6 +53,37 @@ const jpegFrame = (width = 1, height = 1): Buffer =>
     0xd9,
   ]);
 
+const prepareCachedPlanningFrame = (
+  manager: ScrcpyScreenshotManager,
+  options: {
+    ptsUs?: bigint;
+    frameData?: string;
+    roundTripUs?: bigint;
+    resetVideo?: () => Promise<void>;
+  } = {},
+) => {
+  const internals = manager as any;
+  if (options.resetVideo) {
+    internals.scrcpyClient = {
+      controller: { resetVideo: options.resetVideo },
+    };
+  }
+  internals.spsHeader = Buffer.from('header');
+  internals.lastRawKeyframe = Buffer.from(options.frameData ?? 'fresh-frame');
+  internals.lastRawKeyframePtsUs = options.ptsUs ?? 2_000_000n;
+  internals.lastRawKeyframeAt = 2_000;
+  internals.lastRawKeyframeStreamEpoch = internals.streamEpoch;
+  internals.deviceClockCalibration = {
+    deviceUptimeUs: 2_000_000n,
+    hostMonotonicUs: 10_000_000n,
+    hostWallTimeMs: 2_000,
+    roundTripUs: options.roundTripUs ?? 1_544_554n,
+  };
+  rs.spyOn(internals, 'monotonicTimeUs').mockReturnValue(10_000_000n);
+  rs.spyOn(manager, 'ensureConnected').mockResolvedValue();
+  rs.spyOn(internals, 'resetIdleTimer').mockImplementation(() => {});
+};
+
 describe('ScrcpyScreenshotManager', () => {
   afterEach(() => {
     rs.useRealTimers();
@@ -792,6 +823,131 @@ describe('ScrcpyScreenshotManager', () => {
 
       (manager as any).deviceClockCalibration.roundTripUs = 22_000n;
       expect((manager as any).isFrameAgeAcceptable(1_000_000n)).toBe(false);
+    });
+
+    it('recalibrates instead of resetting when only clock uncertainty makes a planning frame look stale', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockResolvedValue({
+          deviceUptimeUs: 2_000_000n,
+          hostMonotonicUs: 10_000_000n,
+          hostWallTimeMs: 2_000,
+          roundTripUs: 20_000n,
+        });
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledTimes(1);
+      expect((manager as any).deviceClockCalibration.roundTripUs).toBe(20_000n);
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('retries a persistently uncertain clock only once per calibration lifetime', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockResolvedValue({
+          deviceUptimeUs: 2_000_000n,
+          hostMonotonicUs: 10_000_000n,
+          hostWallTimeMs: 2_000,
+          roundTripUs: 1_600_000n,
+        });
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledTimes(1);
+      expect((manager as any).deviceClockCalibration.roundTripUs).toBe(
+        1_544_554n,
+      );
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('uses estimated age when the best-effort recalibration fails without changing epochs', async () => {
+      const resetVideo = rs.fn().mockResolvedValue(undefined);
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { resetVideo });
+      const readClock = rs
+        .spyOn(manager as any, 'readDeviceClockCalibration')
+        .mockRejectedValue(new Error('ADB clock sample failed'));
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(
+        jpegFrame(),
+      );
+
+      await expect(manager.getScreenshotJpeg()).resolves.toEqual(jpegFrame());
+
+      expect(readClock).toHaveBeenCalledOnce();
+      expect(barrier).not.toHaveBeenCalled();
+      expect(resetVideo).not.toHaveBeenCalled();
+      expect(disconnect).not.toHaveBeenCalled();
+    });
+
+    it('still rejects a genuinely stale planning frame when clock uncertainty is high', async () => {
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, {
+        ptsUs: 1_400_000n,
+        frameData: 'stale-frame',
+      });
+      const readClock = rs.spyOn(manager as any, 'readDeviceClockCalibration');
+      const barrier = rs.spyOn(manager, 'setFreshnessBarrier');
+      rs.spyOn(manager as any, 'waitForNextKeyframe').mockRejectedValue(
+        new Error('no fresh frame'),
+      );
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        failureKind: 'freshness-target',
+      });
+
+      expect(readClock).not.toHaveBeenCalled();
+      expect(barrier).toHaveBeenCalledWith('stale planning frame');
+      expect(disconnect).toHaveBeenCalledOnce();
+    });
+
+    it('rejects an uncertainty-only candidate when its stream epoch changes during recalibration', async () => {
+      const manager = createManager({} as any);
+      prepareCachedPlanningFrame(manager, { frameData: 'obsolete-frame' });
+      rs.spyOn(manager as any, 'readDeviceClockCalibration').mockImplementation(
+        async () => {
+          (manager as any).advanceStreamEpoch();
+          (manager as any).deviceClockCalibration = null;
+          throw new Error('calibration invalidated');
+        },
+      );
+      const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+      const decode = rs.spyOn(manager as any, 'decodeH264ToJpeg');
+
+      await expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+        name: 'ScrcpyFreshFrameUnavailableError',
+        message: expect.stringContaining(
+          'stream epoch changed while recalibrating',
+        ),
+      });
+
+      expect(decode).not.toHaveBeenCalled();
+      expect(disconnect).toHaveBeenCalledOnce();
     });
 
     it('recalibrates the clock anchor when frame PTS moves backwards', async () => {

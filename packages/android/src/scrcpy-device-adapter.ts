@@ -1,4 +1,5 @@
 import type { Size } from '@midscene/core';
+import type { AndroidDeviceOpt } from '@midscene/core/device';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb as YumeAdb } from '@yume-chan/adb';
@@ -32,19 +33,8 @@ export function formatScrcpyFreshFrameFailure(
   return `No usable scrcpy frame crossed the active freshness target within ${timeoutMs}ms. This can happen when a static screen emits no new encoded frame, or when the video stream or transport is interrupted. This timeout does not by itself identify bandwidth or the configured video bitrate as the cause.${bitRateDescription}`;
 }
 
-interface ScrcpyConfig {
-  enabled?: boolean;
-  maxSize?: number;
-  videoBitRate?: number;
-  idleTimeoutMs?: number;
-}
-
-interface ResolvedScrcpyConfig {
-  enabled: boolean;
-  maxSize: number;
-  videoBitRate: number;
-  idleTimeoutMs: number;
-}
+type ScrcpyConfig = NonNullable<AndroidDeviceOpt['scrcpyConfig']>;
+type ResolvedScrcpyConfig = Required<ScrcpyConfig>;
 
 /** ADB capabilities scrcpy needs from the canonical Appium transport. */
 export interface ScrcpyAdbBackend {
@@ -178,6 +168,17 @@ export class ScrcpyDeviceAdapter {
 
     const videoBitRate =
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
+    const videoResetFrameTimeoutMs =
+      config?.videoResetFrameTimeoutMs ??
+      DEFAULT_SCRCPY_CONFIG.videoResetFrameTimeoutMs;
+    if (
+      !Number.isInteger(videoResetFrameTimeoutMs) ||
+      videoResetFrameTimeoutMs <= 0
+    ) {
+      throw new Error(
+        `Invalid scrcpyConfig.videoResetFrameTimeoutMs: expected a positive integer, received ${videoResetFrameTimeoutMs}`,
+      );
+    }
 
     this.resolvedConfig = {
       enabled: this.isConfigured(),
@@ -185,6 +186,7 @@ export class ScrcpyDeviceAdapter {
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
       videoBitRate,
+      videoResetFrameTimeoutMs,
     };
 
     return this.resolvedConfig;
@@ -236,6 +238,7 @@ export class ScrcpyDeviceAdapter {
             maxSize: config.maxSize,
             videoBitRate: config.videoBitRate,
             idleTimeoutMs: config.idleTimeoutMs,
+            videoResetFrameTimeoutMs: config.videoResetFrameTimeoutMs,
           },
         );
 

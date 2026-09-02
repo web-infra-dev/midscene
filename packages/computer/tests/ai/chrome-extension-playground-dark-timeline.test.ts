@@ -6,10 +6,11 @@
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, rs } from '@rstest/core';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   bringPageToFront,
+  evaluateViaWebSocket,
   findExtensionPageTarget,
   findPageTargetByUrlPrefix,
   injectExtensionConfig,
@@ -57,7 +58,7 @@ describe('chrome extension dark Playground timeline', () => {
   // Keep setup separate so the Bing execution and visual assertion receive
   // their own test timeout budget.
   it('opens the dark side panel and configures the extension', async () => {
-    await openExtensionSidePanel(agent);
+    await openExtensionSidePanel(agent, extId);
     await agent.aiAssert(
       'The browser shows a dark side panel on the right side containing Midscene Playground UI, and the Bing page is still visible on the left',
     );
@@ -83,8 +84,61 @@ describe('chrome extension dark Playground timeline', () => {
       'The Bing page on the left shows search results for "midscene.js"',
       { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
+    const extensionTarget = await findExtensionPageTarget(extId);
+    if (!extensionTarget?.webSocketDebuggerUrl) {
+      throw new Error('Extension side-panel target not found');
+    }
+
+    const visualState = await evaluateViaWebSocket<{
+      connectorColors: string[];
+      connectorCount: number;
+      connectorHeights: number[];
+      clearButtonInsideViewport: boolean;
+    }>(
+      extensionTarget.webSocketDebuggerUrl,
+      `(() => {
+        const connectorItems = Array.from(document.querySelectorAll('.list-item')).filter(
+          (item) => item.querySelector('.progress-row:not(.progress-row-last)'),
+        );
+        const connectorColors = Array.from(
+          new Set(
+            connectorItems.map(
+              (item) => getComputedStyle(item, '::after').backgroundColor,
+            ),
+          ),
+        );
+        const connectorHeights = connectorItems.map((item) => {
+          const style = getComputedStyle(item, '::after');
+          const rect = item.getBoundingClientRect();
+          return rect.height - parseFloat(style.top) - parseFloat(style.bottom);
+        });
+        const clearButton = document.querySelector('.clear-button');
+        const clearRect = clearButton?.getBoundingClientRect();
+        return {
+          connectorColors,
+          connectorCount: connectorItems.length,
+          connectorHeights,
+          clearButtonInsideViewport: Boolean(
+            clearRect &&
+              clearRect.left >= 0 &&
+              clearRect.right <= window.innerWidth &&
+              clearRect.top >= 0 &&
+              clearRect.bottom <= window.innerHeight
+          ),
+        };
+      })()`,
+    );
+
+    expect(visualState.connectorCount).toBeGreaterThan(2);
+    expect(visualState.connectorColors).toEqual(['rgb(217, 217, 217)']);
+    expect(Math.min(...visualState.connectorHeights)).toBeGreaterThan(0);
+    expect(visualState.clearButtonInsideViewport).toBe(true);
+
+    // Keep visual dogfooding for the user-visible result. Fine-grained 2px
+    // color and clipping checks above use the browser's computed geometry so
+    // they do not become false negatives when the full-screen image is scaled.
     await agent.aiAssert(
-      `${SIDE_PANEL} shows the completed Playground execution timeline in dark mode. Each completed event is followed by its description, and consecutive event-description entries are joined by clearly visible, high-contrast light-gray connector lines. This includes short one-line Plan, Input, and KeyboardPress entries: their connector lines extend from the current icon to the next icon, rather than appearing as a dot. The connector lines must be visibly lighter than the dark background, not black or nearly black, and are not missing or clipped. The timeline clear control in the top-right is fully inside the side-panel edge, rather than being cut off by it.`,
+      `${SIDE_PANEL} is in dark mode and shows a Playground execution timeline with multiple visible action steps and descriptions`,
     );
   });
 });

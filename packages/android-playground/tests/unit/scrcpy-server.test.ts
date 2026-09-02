@@ -4,7 +4,12 @@ import ScrcpyServer, {
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 
-const { mockExecFile, mockStart, mockOptionsCtor } = rs.hoisted(() => ({
+const {
+  mockExecFile,
+  mockStart,
+  mockOptionsCtor,
+  mockResolveExternalResourcePath,
+} = rs.hoisted(() => ({
   mockExecFile: rs.fn(
     (
       _file: string,
@@ -16,9 +21,16 @@ const { mockExecFile, mockStart, mockOptionsCtor } = rs.hoisted(() => ({
   ),
   mockStart: rs.fn(),
   mockOptionsCtor: rs.fn((options) => options),
+  mockResolveExternalResourcePath: rs.fn(
+    (_resourcePath: string) => '/unpacked/scrcpy-server',
+  ),
 }));
 
 rs.mock('node:child_process', () => ({ execFile: mockExecFile }));
+
+rs.mock('@midscene/android', () => ({
+  resolveExternalResourcePath: mockResolveExternalResourcePath,
+}));
 
 rs.mock('@yume-chan/adb-scrcpy', () => ({
   AdbScrcpyClient: {
@@ -79,10 +91,13 @@ describe('ScrcpyServer', () => {
         '-s',
         'device-1',
         'push',
-        expect.stringContaining('bin/scrcpy-server'),
+        '/unpacked/scrcpy-server',
         '/mocked/scrcpy-server.jar',
       ],
       expect.any(Function),
+    );
+    expect(mockResolveExternalResourcePath).toHaveBeenCalledWith(
+      expect.stringContaining('bin/scrcpy-server'),
     );
     expect(mockOptionsCtor).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -51,6 +51,7 @@ interface FixtureMetadata {
   screen: Bounds;
   form: Bounds;
   button: Bounds;
+  doubleClickButton: Bounds;
   textBox: Bounds;
   scroll: Bounds;
 }
@@ -58,6 +59,7 @@ interface FixtureMetadata {
 interface FixtureState {
   visible: boolean;
   clickCount: number;
+  doubleClickCount: number;
   text: string;
   lastKey: string;
   wheelEventCount: number;
@@ -71,10 +73,19 @@ interface PixelChannels {
   b: number;
 }
 
+interface DetectedScreenshotTarget {
+  bounds: Bounds;
+  pixels: number;
+  average: PixelChannels;
+}
+
 interface ScreenshotAnalysis {
-  target: PixelChannels;
-  background: PixelChannels;
-  channelDifference: number;
+  width: number;
+  height: number;
+  tap: DetectedScreenshotTarget;
+  doubleClick: DetectedScreenshotTarget;
+  textBox: DetectedScreenshotTarget;
+  scroll: DetectedScreenshotTarget;
 }
 
 interface ReportTask {
@@ -138,6 +149,10 @@ function normalizeMetadata(value: unknown): FixtureMetadata {
   const rawScreen = asRecord(raw.screen, 'fixture.screen');
   const rawForm = asRecord(raw.form, 'fixture.form');
   const rawButton = asRecord(raw.button, 'fixture.button');
+  const rawDoubleClickButton = asRecord(
+    raw.doubleClickButton,
+    'fixture.doubleClickButton',
+  );
   const rawTextBox = asRecord(raw.textBox, 'fixture.textBox');
   const rawScroll = asRecord(raw.scroll, 'fixture.scroll');
   return {
@@ -153,6 +168,10 @@ function normalizeMetadata(value: unknown): FixtureMetadata {
     screen: normalizeBounds(rawScreen, 'fixture.screen'),
     form: normalizeBounds(rawForm, 'fixture.form'),
     button: normalizeBounds(rawButton, 'fixture.button'),
+    doubleClickButton: normalizeBounds(
+      rawDoubleClickButton,
+      'fixture.doubleClickButton',
+    ),
     textBox: normalizeBounds(rawTextBox, 'fixture.textBox'),
     scroll: normalizeBounds(rawScroll, 'fixture.scroll'),
   };
@@ -167,6 +186,10 @@ function normalizeState(value: unknown): FixtureState {
   return {
     visible: raw.visible === true,
     clickCount: asFiniteNumber(raw.clickCount ?? 0, 'state.clickCount'),
+    doubleClickCount: asFiniteNumber(
+      raw.doubleClickCount ?? 0,
+      'state.doubleClickCount',
+    ),
     text: String(raw.text ?? ''),
     lastKey: String(raw.lastKey ?? ''),
     wheelEventCount: asFiniteNumber(
@@ -251,10 +274,18 @@ function locatedPixelBbox(bounds: Bounds, screen: Bounds) {
   ] as [number, number, number, number];
 }
 
-function locate(bounds: Bounds, screen: Bounds, prompt: string) {
+function locateScreenshotTarget(
+  target: DetectedScreenshotTarget,
+  prompt: string,
+) {
   return {
     prompt,
-    locatedPixelBbox: locatedPixelBbox(bounds, screen),
+    locatedPixelBbox: locatedPixelBbox(target.bounds, {
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+    }),
   };
 }
 
@@ -298,42 +329,100 @@ function runPowerShell(script: string): Promise<string> {
 
 async function analyzeScreenshot(
   screenshotPath: string,
-  button: Bounds,
-  form: Bounds,
-  screen: Bounds,
 ): Promise<ScreenshotAnalysis> {
-  const target = toDisplayLocalBounds(button, screen);
-  const localForm = toDisplayLocalBounds(form, screen);
-  const backgroundSize = 10;
-  const backgroundLeft = Math.max(
-    localForm.left + 2,
-    localForm.left + localForm.width - backgroundSize - 12,
-  );
-  const backgroundTop = Math.max(localForm.top + 2, localForm.top + 42);
-
   const script = `
 Add-Type -AssemblyName System.Drawing
 $bitmap = [System.Drawing.Bitmap]::FromFile(${quotePowerShellSingle(screenshotPath)})
-function Get-AverageColor([int] $left, [int] $top, [int] $width, [int] $height) {
-  $red = 0L; $green = 0L; $blue = 0L; $count = 0L
-  $stepX = [Math]::Max(1, [Math]::Floor($width / 7))
-  $stepY = [Math]::Max(1, [Math]::Floor($height / 7))
-  for ($x = $left; $x -lt ($left + $width); $x += $stepX) {
-    for ($y = $top; $y -lt ($top + $height); $y += $stepY) {
+function Find-ColorTarget(
+  [int] $expectedRed,
+  [int] $expectedGreen,
+  [int] $expectedBlue,
+  [int] $tolerance
+) {
+  $minimumX = $bitmap.Width
+  $minimumY = $bitmap.Height
+  $maximumX = -1
+  $maximumY = -1
+  $red = 0L
+  $green = 0L
+  $blue = 0L
+  $count = 0L
+  $columnCounts = New-Object int[] $bitmap.Width
+  $rowCounts = New-Object int[] $bitmap.Height
+
+  for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
+    for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
       $pixel = $bitmap.GetPixel($x, $y)
-      $red += $pixel.R; $green += $pixel.G; $blue += $pixel.B; $count += 1
+      if (
+        [Math]::Abs([int]$pixel.R - $expectedRed) -le $tolerance -and
+        [Math]::Abs([int]$pixel.G - $expectedGreen) -le $tolerance -and
+        [Math]::Abs([int]$pixel.B - $expectedBlue) -le $tolerance
+      ) {
+        $minimumX = [Math]::Min($minimumX, $x)
+        $minimumY = [Math]::Min($minimumY, $y)
+        $maximumX = [Math]::Max($maximumX, $x)
+        $maximumY = [Math]::Max($maximumY, $y)
+        $red += $pixel.R
+        $green += $pixel.G
+        $blue += $pixel.B
+        $count += 1
+        $columnCounts[$x] += 1
+        $rowCounts[$y] += 1
+      }
     }
   }
+
+  if ($count -eq 0) {
+    throw "Screenshot does not contain target color ($expectedRed, $expectedGreen, $expectedBlue)."
+  }
+
+  # Ignore isolated wallpaper/taskbar pixels that happen to share the exact
+  # fixture color. Every row and column inside a real target has a dense run.
+  $minimumX = $bitmap.Width
+  $minimumY = $bitmap.Height
+  $maximumX = -1
+  $maximumY = -1
+  $minimumDensePixels = 10
+  for ($x = 0; $x -lt $bitmap.Width; $x += 1) {
+    if ($columnCounts[$x] -ge $minimumDensePixels) {
+      $minimumX = [Math]::Min($minimumX, $x)
+      $maximumX = [Math]::Max($maximumX, $x)
+    }
+  }
+  for ($y = 0; $y -lt $bitmap.Height; $y += 1) {
+    if ($rowCounts[$y] -ge $minimumDensePixels) {
+      $minimumY = [Math]::Min($minimumY, $y)
+      $maximumY = [Math]::Max($maximumY, $y)
+    }
+  }
+  if ($maximumX -lt $minimumX -or $maximumY -lt $minimumY) {
+    throw "Screenshot target color ($expectedRed, $expectedGreen, $expectedBlue) has no dense region."
+  }
+
   [PSCustomObject]@{
-    r = [Math]::Round($red / $count)
-    g = [Math]::Round($green / $count)
-    b = [Math]::Round($blue / $count)
+    bounds = [PSCustomObject]@{
+      left = $minimumX
+      top = $minimumY
+      width = $maximumX - $minimumX + 1
+      height = $maximumY - $minimumY + 1
+    }
+    pixels = $count
+    average = [PSCustomObject]@{
+      r = [Math]::Round($red / $count)
+      g = [Math]::Round($green / $count)
+      b = [Math]::Round($blue / $count)
+    }
   }
 }
-$target = Get-AverageColor ${Math.round(target.left + 7)} ${Math.round(target.top + 7)} ${Math.max(1, Math.round(target.width - 14))} ${Math.max(1, Math.round(target.height - 14))}
-$background = Get-AverageColor ${Math.round(backgroundLeft)} ${Math.round(backgroundTop)} ${backgroundSize} ${backgroundSize}
-$difference = [Math]::Abs($target.r - $background.r) + [Math]::Abs($target.g - $background.g) + [Math]::Abs($target.b - $background.b)
-[PSCustomObject]@{ target = $target; background = $background; channelDifference = $difference } | ConvertTo-Json -Compress
+$analysis = [PSCustomObject]@{
+  width = $bitmap.Width
+  height = $bitmap.Height
+  tap = Find-ColorTarget 0 210 80 8
+  doubleClick = Find-ColorTarget 80 150 255 8
+  textBox = Find-ColorTarget 255 220 80 8
+  scroll = Find-ColorTarget 220 100 240 8
+}
+$analysis | ConvertTo-Json -Depth 5 -Compress
 $bitmap.Dispose()
 `.trim();
 
@@ -478,7 +567,11 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(metadata.userInteractive).toBe(true);
       expect(metadata.sessionId).toBeGreaterThan(0);
       expect(metadata.visible).toBe(true);
-      expect(metadata.dpi).toBe(96);
+      expect(metadata.dpi).toBeGreaterThan(0);
+      const expectedScalePercent = Number(
+        process.env.MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT || '100',
+      );
+      expect(metadata.dpi).toBe(Math.round((96 * expectedScalePercent) / 100));
       expect(metadata.screen.width).toBeGreaterThan(0);
       expect(metadata.screen.height).toBeGreaterThan(0);
       expect(metadata.screenDeviceName).toMatch(/^\\\\\.\\DISPLAY\d+$/i);
@@ -489,6 +582,18 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       );
       expect(metadata.form.top + metadata.form.height).toBeLessThanOrEqual(
         metadata.screen.top + metadata.screen.height,
+      );
+      const formCenter = {
+        x: metadata.form.left + metadata.form.width / 2,
+        y: metadata.form.top + metadata.form.height / 2,
+      };
+      expect(formCenter.x).toBeGreaterThanOrEqual(metadata.scroll.left);
+      expect(formCenter.x).toBeLessThan(
+        metadata.scroll.left + metadata.scroll.width,
+      );
+      expect(formCenter.y).toBeGreaterThanOrEqual(metadata.scroll.top);
+      expect(formCenter.y).toBeLessThan(
+        metadata.scroll.top + metadata.scroll.height,
       );
       if (metadata.processId !== undefined) {
         expect(metadata.processId).toBe(startedFixture.pid);
@@ -513,10 +618,15 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       await device.connect();
       const deviceSize = await device.size();
       evidence.deviceSize = deviceSize;
-      expect(deviceSize).toEqual({
-        width: metadata.screen.width,
-        height: metadata.screen.height,
-      });
+      const expectedScale = expectedScalePercent / 100;
+      expect(deviceSize.width / metadata.screen.width).toBeCloseTo(
+        expectedScale,
+        2,
+      );
+      expect(deviceSize.height / metadata.screen.height).toBeCloseTo(
+        expectedScale,
+        2,
+      );
       const screenshotBase64 = await device.screenshotBase64();
       const screenshotBuffer = Buffer.from(
         base64Body(screenshotBase64),
@@ -530,27 +640,27 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         bytes: screenshotBuffer.length,
       };
       expect(screenshotInfo).toEqual({
-        width: metadata.screen.width,
-        height: metadata.screen.height,
+        width: deviceSize.width,
+        height: deviceSize.height,
       });
       expect(screenshotBuffer.subarray(0, 8)).toEqual(
         Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
       );
 
-      const screenshotAnalysis = await analyzeScreenshot(
-        screenshotFile,
-        metadata.button,
-        metadata.form,
-        metadata.screen,
-      );
+      const screenshotAnalysis = await analyzeScreenshot(screenshotFile);
       evidence.screenshotAnalysis = screenshotAnalysis;
-      expect(
-        screenshotAnalysis.target.g - screenshotAnalysis.target.r,
-      ).toBeGreaterThan(20);
-      expect(
-        screenshotAnalysis.target.g - screenshotAnalysis.target.b,
-      ).toBeGreaterThan(20);
-      expect(screenshotAnalysis.channelDifference).toBeGreaterThan(60);
+      expect(screenshotAnalysis.width).toBe(screenshotInfo.width);
+      expect(screenshotAnalysis.height).toBe(screenshotInfo.height);
+      for (const target of [
+        screenshotAnalysis.tap,
+        screenshotAnalysis.doubleClick,
+        screenshotAnalysis.textBox,
+        screenshotAnalysis.scroll,
+      ]) {
+        expect(target.pixels).toBeGreaterThan(200);
+        expect(target.bounds.width).toBeGreaterThan(20);
+        expect(target.bounds.height).toBeGreaterThan(20);
+      }
 
       selectedDisplayDevice = new ComputerDevice({
         displayId: primaryDisplay!.id,
@@ -587,7 +697,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       });
 
       await agent.callActionInActionSpace('Tap', {
-        locate: locate(metadata.button, metadata.screen, 'green smoke button'),
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.tap,
+          'green smoke button detected in the captured screenshot',
+        ),
       });
       const clickedState = await waitForJson(
         stateFile,
@@ -598,11 +711,29 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       );
       expect(clickedState.clickCount).toBe(1);
 
+      await agent.callActionInActionSpace('DoubleClick', {
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.doubleClick,
+          'right-side double-click target detected in the captured screenshot',
+        ),
+      });
+      const doubleClickedState = await waitForJson(
+        stateFile,
+        normalizeState,
+        (state) => state.doubleClickCount >= 2,
+        STATE_TIMEOUT_MS,
+        startedFixture,
+      );
+      expect(doubleClickedState.doubleClickCount).toBe(2);
+
       const inputText = 'Midscene Windows 输入 😀';
       await agent.callActionInActionSpace('Input', {
         value: inputText,
         mode: 'replace',
-        locate: locate(metadata.textBox, metadata.screen, 'smoke text box'),
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.textBox,
+          'yellow text box detected in the captured screenshot',
+        ),
       });
       const inputState = await waitForJson(
         stateFile,
@@ -615,7 +746,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
 
       await agent.callActionInActionSpace('KeyboardPress', {
         keyName: 'Enter',
-        locate: locate(metadata.textBox, metadata.screen, 'smoke text box'),
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.textBox,
+          'yellow text box detected in the captured screenshot',
+        ),
       });
       const keyState = await waitForJson(
         stateFile,
@@ -630,7 +764,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         scrollType: 'singleAction',
         direction: 'down',
         distance: 200,
-        locate: locate(metadata.scroll, metadata.screen, 'scroll smoke panel'),
+        locate: locateScreenshotTarget(
+          screenshotAnalysis.scroll,
+          'purple scroll panel detected in the captured screenshot',
+        ),
       });
       const scrolledState = await waitForJson(
         stateFile,
@@ -648,6 +785,23 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(scrolledState.wheelDelta).not.toBe(0);
       expect(scrolledState.scrollValue).toBeGreaterThan(0);
 
+      await agent.callActionInActionSpace('Scroll', {
+        scrollType: 'singleAction',
+        direction: 'up',
+        distance: 100,
+      });
+      const untargetedScrollState = await waitForJson(
+        stateFile,
+        normalizeState,
+        (state) => state.wheelEventCount > scrolledState.wheelEventCount,
+        STATE_TIMEOUT_MS,
+        startedFixture,
+      );
+      evidence.untargetedScrollState = untargetedScrollState;
+      expect(untargetedScrollState.wheelEventCount).toBeGreaterThan(
+        scrolledState.wheelEventCount,
+      );
+
       const dump = JSON.parse(agent.dumpDataString()) as ReportDump;
       await writeFile(dumpFile, `${JSON.stringify(dump, null, 2)}\n`, 'utf8');
       const dumpTasks = (dump.executions ?? []).flatMap(
@@ -656,7 +810,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(4);
+      expect(locateTasks).toHaveLength(5);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -682,11 +836,17 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(4);
+      expect(reportLocateTasks).toHaveLength(5);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);
-      for (const action of ['Tap', 'Input', 'KeyboardPress', 'Scroll']) {
+      for (const action of [
+        'Tap',
+        'DoubleClick',
+        'Input',
+        'KeyboardPress',
+        'Scroll',
+      ]) {
         expect(
           reportTasks.some(
             (task) => task.type === 'Action Space' && task.subType === action,

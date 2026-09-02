@@ -1,7 +1,13 @@
-import type { PixelBbox, PlanningAction, PlanningLocateParam } from '@/types';
+import type { LocateResultPoint, PixelBbox, PlanningAction } from '@/types';
+
+// AutoGLM and UI-TARS both produce point coordinates before normalization.
+type PreNormalizedPlanningLocateParam = {
+  prompt: string;
+  point: LocateResultPoint;
+};
 
 export type LocateActionParam = {
-  locate: PlanningLocateParam;
+  locate: PreNormalizedPlanningLocateParam;
 };
 
 export type LocatePlanningAction<TType extends string> =
@@ -19,8 +25,8 @@ export type ScrollPlanningAction = PlanningAction<
 };
 
 export type DragAndDropPlanningAction = PlanningAction<{
-  from: PlanningLocateParam;
-  to: PlanningLocateParam;
+  from: PreNormalizedPlanningLocateParam;
+  to: PreNormalizedPlanningLocateParam;
 }> & {
   type: 'DragAndDrop';
 };

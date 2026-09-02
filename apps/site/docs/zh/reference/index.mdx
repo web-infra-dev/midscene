@@ -2172,6 +2172,7 @@ const device = new AndroidDevice(deviceId, {
   - `maxSize?: number` —— 截图的最大宽度或高度。scrcpy 暂时不可用时，ADB/yadb 回退截图也会应用相同限制，避免规划和报告中的图片恢复为设备原始分辨率。必须使用非负整数；默认 `0`，表示不缩放。
   - `videoBitRate?: number` —— scrcpy H.264 编码码率，单位为 bps，默认 `100000000`。调整该值是在编码带宽和截图细节之间取舍；只有独立的链路测量表明有需要时才应调优，并验证识别质量，不能仅凭 freshness 超时告警调整。
   - `idleTimeoutMs?: number` —— 空闲连接的断开时间，单位为毫秒，默认 `30000`；设为 `0` 时禁用。
+  - `videoResetFrameTimeoutMs?: number` —— scrcpy 接受流内视频重置后，等待新鲜关键帧的时间，单位为毫秒。必须使用正整数，默认 `800`。仅当设备的 display capture 重启长尾更慢时再增大该值。
 
 - `device.getScrcpyStatus()` —— 返回 `enabled`、`connected`、`lastError` 和 `retryAfter`。
 - `device.retryScrcpy(): Promise<void>` —— 跳过冷却时间，立即重试 scrcpy 连接。

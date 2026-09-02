@@ -8,6 +8,7 @@ export {
   getConnectedDevicesWithDetails,
 } from './utils';
 export type { AndroidConnectedDevice } from './utils';
+export { resolveExternalResourcePath } from './resource-path';
 export {
   ScrcpyDeviceAdapter,
   type ResolveScrcpyAdbBackend,

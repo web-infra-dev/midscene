@@ -20,7 +20,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
-  PlanningLocateParam,
   Rect,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -97,16 +96,14 @@ export default class Service {
   }
 
   async locate(
-    query: PlanningLocateParam,
+    query: DetailedLocateParam,
     opt: LocateOpts,
     modelRuntime: ModelRuntime,
     abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const { config: modelConfig } = modelRuntime;
-    const queryPrompt = typeof query === 'string' ? query : query.prompt;
+    const queryPrompt = query.prompt;
     assert(queryPrompt, 'query is required for locate');
-
-    assert(typeof query === 'object', 'query should be an object for locate');
 
     if (!modelConfig.modelFamily) {
       throw new Error(defaultModelFamilyRequiredForLocateMessage);
@@ -224,7 +221,7 @@ export default class Service {
   }
 
   private async resolveLocateSearchArea(options: {
-    query: PlanningLocateParam;
+    query: DetailedLocateParam;
     queryPrompt: TUserPrompt;
     opt: LocateOpts;
     context: UIContext;

@@ -111,6 +111,7 @@ export type AndroidDeviceOpt = {
    *     maxSize: 0,        // 0 = no scaling
    *     idleTimeoutMs: 30000,
    *     videoBitRate: 8_000_000,
+   *     videoResetFrameTimeoutMs: 1000,
    *   },
    * });
    * ```
@@ -150,6 +151,13 @@ export type AndroidDeviceOpt = {
      * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;
+    /**
+     * Time in milliseconds to wait for a fresh keyframe after scrcpy accepts
+     * an in-band video reset. Increase this for devices whose display capture
+     * pipeline has a slower restart tail. Must be a positive integer.
+     * @default 800
+     */
+    videoResetFrameTimeoutMs?: number;
   };
 } & AndroidDeviceInputOpt;
 
