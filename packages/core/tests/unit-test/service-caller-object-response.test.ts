@@ -2,7 +2,7 @@ import type { ModelRuntime } from '@/ai-model/model-adapter/types';
 import { getModelRuntime } from '@/ai-model/models';
 import { type callAI, parseAIObjectResponse } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const modelConfig: IModelConfig = {
   modelName: 'gpt-5',
@@ -32,7 +32,7 @@ describe('parseAIObjectResponse', () => {
 
   it('requires the adapter JSON parser to return an object', () => {
     const modelRuntime = getModelRuntime(modelConfig);
-    const jsonParser = vi.fn(() => ({ answer: 42 }));
+    const jsonParser = rs.fn(() => ({ answer: 42 }));
     const objectResponseModelRuntime: ModelRuntime = {
       ...modelRuntime,
       adapter: {
@@ -58,7 +58,7 @@ describe('parseAIObjectResponse', () => {
       ...modelRuntime,
       adapter: {
         ...modelRuntime.adapter,
-        jsonParser: vi.fn(() => [{ answer: 42 }]),
+        jsonParser: rs.fn(() => [{ answer: 42 }]),
       },
     };
 

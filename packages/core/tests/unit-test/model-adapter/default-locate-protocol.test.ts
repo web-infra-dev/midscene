@@ -161,7 +161,7 @@ describe('default locate protocol', () => {
   });
 
   it('rejects a non-object response from a custom JSON parser', () => {
-    const jsonParser = vi.fn(() => [
+    const jsonParser = rs.fn(() => [
       { bbox: [100, 200, 300, 400] },
       { bbox: [500, 600, 700, 800] },
     ]);
