@@ -1,6 +1,7 @@
 export {
   dataExtractionAPIs,
   noReplayAPIs,
+  outputAndReportAPIs,
   validationAPIs,
   formatErrorMessage,
   validateStructuredParams,

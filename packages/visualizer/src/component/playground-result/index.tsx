@@ -1,5 +1,5 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { noReplayAPIs } from '@midscene/playground';
+import { outputAndReportAPIs } from '@midscene/playground';
 import { Spin } from 'antd';
 import type React from 'react';
 import type {
@@ -60,9 +60,8 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
 
   let resultDataToShow: React.ReactNode = emptyResultTip;
 
-  // Determine if this is a data extraction API that should prioritize result output
-  const shouldPrioritizeResult =
-    actionType && noReplayAPIs.includes(actionType);
+  const shouldShowOutputAlongsideReport =
+    actionType && outputAndReportAPIs.includes(actionType);
 
   if (!serverValid && serviceMode === 'Server') {
     resultDataToShow = serverLaunchTip(notReadyMessage);
@@ -122,11 +121,11 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       resultDataToShow = errorNode;
     }
   } else if (
-    shouldPrioritizeResult &&
+    shouldShowOutputAlongsideReport &&
     result?.result !== undefined &&
     replayScriptsInfo
   ) {
-    // For data extraction APIs: show both result output and replay/report
+    // Show both the API return value and the replay/report.
     const resultOutput =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
@@ -188,11 +187,11 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       />
     );
   } else if (
-    shouldPrioritizeResult &&
+    shouldShowOutputAlongsideReport &&
     result?.result !== undefined &&
     (result?.reportHTML || result?.report)
   ) {
-    // For data extraction APIs: show both result output and reportHTML
+    // Show both the API return value and the report.
     const resultOutput =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
@@ -227,8 +226,8 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         </div>
       </div>
     );
-  } else if (shouldPrioritizeResult && result?.result !== undefined) {
-    // For data extraction APIs without reportHTML: show result output only
+  } else if (shouldShowOutputAlongsideReport && result?.result !== undefined) {
+    // Without a report, show the API return value on its own.
     resultDataToShow =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
