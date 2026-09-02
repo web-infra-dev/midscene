@@ -7,27 +7,27 @@ import type { IModelConfig } from '@midscene/shared/env';
  * applied when creating OpenAI clients. Uses mocking to verify that the correct
  * proxy implementations are instantiated with proper parameters.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock undici and fetch-socks before importing service-caller
-const mockProxyAgent = vi.fn();
-const mockSocksDispatcher = vi.fn();
+const mockProxyAgent = rs.fn();
+const mockSocksDispatcher = rs.fn();
 
-vi.mock('undici', () => ({
+rs.mock('undici', () => ({
   ProxyAgent: mockProxyAgent,
 }));
 
-vi.mock('fetch-socks', () => ({
+rs.mock('fetch-socks', () => ({
   socksDispatcher: mockSocksDispatcher,
 }));
 
 // Mock OpenAI to avoid actual API calls
-vi.mock('openai', () => {
+rs.mock('openai', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
+    default: rs.fn().mockImplementation(() => ({
       chat: {
         completions: {
-          create: vi.fn().mockResolvedValue({
+          create: rs.fn().mockResolvedValue({
             choices: [{ message: { content: 'test response' } }],
             usage: {
               prompt_tokens: 10,
@@ -43,11 +43,11 @@ vi.mock('openai', () => {
 
 describe('Proxy Configuration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   describe('HTTP Proxy', () => {

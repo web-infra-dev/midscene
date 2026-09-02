@@ -1,7 +1,7 @@
 import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
 import { locateResultExampleRegions } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const locateCtx = (width: number, height: number) => ({
   preparedSize: { width, height },

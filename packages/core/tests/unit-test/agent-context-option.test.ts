@@ -1,6 +1,6 @@
 import { Agent } from '@/agent';
 import { TaskExecutionError } from '@/task-runner';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 const planningModel = {
   config: { slot: 'default' },
@@ -15,37 +15,37 @@ const defaultModel = {
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
   const taskExecutor = {
-    action: vi.fn(async (..._args: unknown[]) => ({
+    action: rs.fn(async (..._args: unknown[]) => ({
       output: {
         output: 'done',
         yamlFlow: [],
       },
     })),
-    createTypeQueryExecution: vi.fn(async () => ({
+    createTypeQueryExecution: rs.fn(async () => ({
       output: true,
       thought: 'ok',
     })),
   };
   const taskCache = {
-    matchPlanCache: vi.fn(),
+    matchPlanCache: rs.fn(),
     isCacheResultUsed: true,
-    updateOrAppendCacheRecord: vi.fn(),
+    updateOrAppendCacheRecord: rs.fn(),
   };
 
   (agent as any).opts = {
     aiActContext: 'Global action context.',
   };
-  const registerFileChooserListener = vi.fn();
+  const registerFileChooserListener = rs.fn();
   (agent as any).interface = {
     interfaceType: 'playwright',
     registerFileChooserListener,
   };
   (agent as any).taskExecutor = taskExecutor;
   (agent as any).taskCache = taskCache;
-  (agent as any).resolveModelRuntime = vi.fn((slot: string) =>
+  (agent as any).resolveModelRuntime = rs.fn((slot: string) =>
     slot === 'planning' ? planningModel : defaultModel,
   );
-  (agent as any).resolveReplanningCycleLimit = vi.fn(() => 3);
+  (agent as any).resolveReplanningCycleLimit = rs.fn(() => 3);
 
   return {
     agent,

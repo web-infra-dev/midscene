@@ -208,9 +208,8 @@ export async function createChatClient({
         'HTTP proxy is configured but not supported in browser environment',
       );
     } else {
-      // Dynamic import with variable to avoid bundler static analysis
-      const moduleName = 'undici';
-      const { ProxyAgent } = await import(moduleName);
+      const { loadUndici } = await import('#proxy-deps');
+      const { ProxyAgent } = await loadUndici();
       proxyAgent = new ProxyAgent({
         uri: httpProxy,
         // Note: authentication is handled via the URI (e.g., http://user:pass@proxy.com:8080)
@@ -224,9 +223,8 @@ export async function createChatClient({
       );
     } else {
       try {
-        // Dynamic import with variable to avoid bundler static analysis
-        const moduleName = 'fetch-socks';
-        const { socksDispatcher } = await import(moduleName);
+        const { loadFetchSocks } = await import('#proxy-deps');
+        const { socksDispatcher } = await loadFetchSocks();
         // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
         const proxyUrl = new URL(socksProxy);
 

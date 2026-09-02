@@ -8,7 +8,7 @@ import {
 } from '@/ai-model/prompt/locate';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import { createLocateResultPromptSpec } from '@/ai-model/shared/model-locate-result/prompt-spec';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('default locate protocol', () => {
   it('builds the existing JSON locate prompts', () => {
@@ -130,7 +130,7 @@ describe('default locate protocol', () => {
   });
 
   it('uses the adapter JSON parser', () => {
-    const jsonParser = vi.fn(() => ({ bbox: [100, 200, 300, 400] }));
+    const jsonParser = rs.fn(() => ({ bbox: [100, 200, 300, 400] }));
     const elementProtocol = createDefaultElementProtocol({ jsonParser });
     const searchAreaProtocol = createDefaultSearchAreaProtocol({ jsonParser });
     const locatePromptSpec = createLocateResultPromptSpec({

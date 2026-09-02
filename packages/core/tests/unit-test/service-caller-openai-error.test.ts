@@ -1,8 +1,8 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
-const mockOpenAIConstructor = vi.fn().mockImplementation(() => ({
+const mockCreate = rs.fn();
+const mockOpenAIConstructor = rs.fn().mockImplementation(() => ({
   chat: {
     completions: {
       create: mockCreate,
@@ -10,7 +10,7 @@ const mockOpenAIConstructor = vi.fn().mockImplementation(() => ({
   },
 }));
 
-vi.mock('openai', () => ({
+rs.mock('openai', () => ({
   default: mockOpenAIConstructor,
 }));
 
@@ -30,13 +30,13 @@ describe('service-caller OpenAI error handling', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     globalThis.fetch = originalFetch;
   });
 
   afterEach(() => {
-    vi.unmock('@/ai-model/service-caller/model-call-recorder');
-    vi.resetModules();
+    rs.unmock('@/ai-model/service-caller/model-call-recorder');
+    rs.resetModules();
   });
 
   it('records non-2xx raw response body without changing the response', async () => {
@@ -56,7 +56,7 @@ describe('service-caller OpenAI error handling', () => {
         'x-request-id': 'req_123',
       },
     });
-    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    globalThis.fetch = rs.fn().mockResolvedValue(response);
 
     const wrappedResponse = await wrapOpenAICompatibleFetch(context)(
       'https://example.com/v1/chat/completions',
@@ -82,7 +82,7 @@ describe('service-caller OpenAI error handling', () => {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    globalThis.fetch = rs.fn().mockResolvedValue(response);
 
     await expect(
       wrapOpenAICompatibleFetch(context)('https://example.com'),
@@ -98,7 +98,7 @@ describe('service-caller OpenAI error handling', () => {
     const context = {
       recordEvent: (event: Record<string, unknown>) => events.push(event),
     };
-    globalThis.fetch = vi.fn().mockResolvedValue(new Response(null));
+    globalThis.fetch = rs.fn().mockResolvedValue(new Response(null));
 
     await wrapOpenAICompatibleFetch(context)('https://example.com', {
       method: 'POST',
@@ -123,7 +123,7 @@ describe('service-caller OpenAI error handling', () => {
   it('uses x-model-request-id as usage request_id when x-request-id is absent', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
-    globalThis.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
         headers: { 'x-model-request-id': 'model_req_123' },
       }),
@@ -154,7 +154,7 @@ describe('service-caller OpenAI error handling', () => {
   it('prefers x-request-id over x-model-request-id', async () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
-    globalThis.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
         headers: {
           'x-request-id': 'req_123',
@@ -190,7 +190,7 @@ describe('service-caller OpenAI error handling', () => {
       '@/ai-model/service-caller/openai-error'
     );
     const context = {};
-    globalThis.fetch = vi
+    globalThis.fetch = rs
       .fn()
       .mockResolvedValueOnce(new Response('first body', { status: 500 }))
       .mockRejectedValueOnce(new Error('network error'))
@@ -232,7 +232,7 @@ describe('service-caller OpenAI error handling', () => {
     const fetchError = Object.assign(new TypeError('fetch failed'), {
       cause,
     });
-    globalThis.fetch = vi.fn().mockRejectedValue(fetchError);
+    globalThis.fetch = rs.fn().mockRejectedValue(fetchError);
 
     await expect(
       wrapOpenAICompatibleFetch(context)('https://example.com'),
@@ -256,7 +256,7 @@ describe('service-caller OpenAI error handling', () => {
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
     const actualOpenAI =
-      await vi.importActual<typeof import('openai')>('openai');
+      await rs.importActual<typeof import('openai')>('openai');
     const rawResponseBody = JSON.stringify({
       detail: 'model does not exist',
       trace_id: 'trace_123',
@@ -273,7 +273,7 @@ describe('service-caller OpenAI error handling', () => {
     expect(bareOpenAIError.message).not.toContain('trace_123');
     expect(bareOpenAIError.error).toBeUndefined();
 
-    globalThis.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(rawResponseBody, {
         status: 422,
         headers: {
@@ -306,8 +306,8 @@ describe('service-caller OpenAI error handling', () => {
 
   it('uses the successful retry attempt for the final record', async () => {
     const events: Array<Record<string, unknown>> = [];
-    vi.resetModules();
-    vi.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
+    rs.resetModules();
+    rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
       isModelCallRecordingEnabled: () => true,
       recordModelCallEvent: (event: Record<string, unknown>) => {
         events.push(event);
@@ -315,7 +315,7 @@ describe('service-caller OpenAI error handling', () => {
     }));
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
-    globalThis.fetch = vi
+    globalThis.fetch = rs
       .fn()
       .mockResolvedValueOnce(new Response('temporary failure', { status: 500 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })));
@@ -353,8 +353,8 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records every streaming chunk with its sequence', async () => {
     const events: Array<Record<string, unknown>> = [];
-    vi.resetModules();
-    vi.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
+    rs.resetModules();
+    rs.doMock('@/ai-model/service-caller/model-call-recorder', () => ({
       isModelCallRecordingEnabled: () => true,
       recordModelCallEvent: (event: Record<string, unknown>) => {
         events.push(event);
@@ -362,7 +362,7 @@ describe('service-caller OpenAI error handling', () => {
     }));
     const { callAI } = await import('@/ai-model/service-caller');
     const { getModelRuntime } = await import('@/ai-model/models');
-    globalThis.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = rs.fn().mockResolvedValue(
       new Response(null, {
         headers: { 'content-type': 'text/event-stream' },
       }),
@@ -386,7 +386,7 @@ describe('service-caller OpenAI error handling', () => {
     await callAI(
       [{ role: 'user', content: 'hello' }],
       getModelRuntime(baseConfig()),
-      { stream: true, onChunk: vi.fn() },
+      { stream: true, onChunk: rs.fn() },
     );
 
     expect(

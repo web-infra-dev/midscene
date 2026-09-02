@@ -1,5 +1,5 @@
 import { buildSubGoalsText } from '@/ai-model/prompt/planning';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('buildSubGoalsText', () => {
   it('returns an empty string when no sub-goals are provided', () => {

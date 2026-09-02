@@ -14,7 +14,7 @@ import {
 import { restoreImageReferences } from '@/dump/screenshot-restoration';
 import { ReportGenerator } from '@/report-generator';
 import { ExecutionDump, type ExecutionTaskPlanningParam } from '@/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import {
   defaultReportMeta,
   fakeBase64,

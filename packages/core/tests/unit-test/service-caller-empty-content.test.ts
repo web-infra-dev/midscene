@@ -1,10 +1,10 @@
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const mockCreate = vi.fn();
+const mockCreate = rs.fn();
 
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(() => ({
+rs.mock('openai', () => ({
+  default: rs.fn().mockImplementation(() => ({
     chat: {
       completions: {
         create: mockCreate,
@@ -15,7 +15,7 @@ vi.mock('openai', () => ({
 
 describe('service-caller empty content handling', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('should preserve usage when model returns empty content', async () => {

@@ -3,7 +3,7 @@ import {
   extractGeminiContentAndReasoning,
   geminiAdapters,
 } from '@/ai-model/models/gemini';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const geminiAdapter = new ResolvedModelAdapter(geminiAdapters.gemini, 'gemini');
 

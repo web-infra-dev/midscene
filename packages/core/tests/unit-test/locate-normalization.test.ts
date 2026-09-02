@@ -3,7 +3,7 @@ import { normalizePlanningActionLocateFields } from '@/ai-model/workflows/planni
 import { getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const actionSpace: DeviceAction[] = [
@@ -29,7 +29,7 @@ const parseRawLocateParameter = (value: unknown) =>
 
 describe('normalizePlanningActionLocateFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
-    const toPixelBbox = vi.fn();
+    const toPixelBbox = rs.fn();
     const actions: PlanningAction[] = [
       {
         type: 'UnknownAction',
@@ -58,7 +58,7 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('normalizes locate params with the configured locate codec', () => {
-    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const toPixelBbox = rs.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -87,7 +87,7 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('accepts bbox_2d when the model adapter enables the alias', () => {
-    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const toPixelBbox = rs.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -120,11 +120,11 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('parses protocol-specific locate params after identifying locator fields', () => {
-    const parseProtocolLocateParameter = vi.fn(() => ({
+    const parseProtocolLocateParameter = rs.fn(() => ({
       prompt: 'submit',
       point: [50, 60],
     }));
-    const toPixelBbox = vi.fn(() => [10, 20, 30, 40]);
+    const toPixelBbox = rs.fn(() => [10, 20, 30, 40]);
     const actions: PlanningAction[] = [
       {
         type: 'Tap',
@@ -157,7 +157,7 @@ describe('normalizePlanningActionLocateFields', () => {
   });
 
   it('keeps only the prompt in prompt-only planning mode', () => {
-    const toPixelBbox = vi.fn();
+    const toPixelBbox = rs.fn();
     const actions: PlanningAction[] = [
       {
         type: 'Tap',

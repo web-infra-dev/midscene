@@ -10,7 +10,7 @@ import { ScreenshotItem } from '@/screenshot-item';
 import type { UIContext } from '@/types';
 import { resolveObservationArtifactAdapter } from '@midscene/shared/agent-tools/observation-artifact';
 import type { UIObservationRecord } from '@midscene/shared/agent-tools/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 const defaultModel = { config: { slot: 'default' } };
 const tempDirectories: string[] = [];
@@ -33,20 +33,20 @@ const fakeContext = (tag: string): UIContext =>
 
 const createAgentStub = (opts: { openFrameSource?: () => any } = {}) => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
-  const createTypeQueryExecution = vi.fn(async () => ({
+  const createTypeQueryExecution = rs.fn(async () => ({
     output: true,
     thought: 'ok',
   }));
-  const screenshotBase64 = vi.fn(async () => dataUrl('fallback'));
+  const screenshotBase64 = rs.fn(async () => dataUrl('fallback'));
   (agent as any).opts = {};
   (agent as any).ownedObservers = new Set();
   (agent as any).taskExecutor = { createTypeQueryExecution };
-  (agent as any).resolveModelRuntime = vi.fn(() => defaultModel);
+  (agent as any).resolveModelRuntime = rs.fn(() => defaultModel);
   (agent as any).interface = {
     screenshotBase64,
     ...(opts.openFrameSource ? { openFrameSource: opts.openFrameSource } : {}),
   };
-  (agent as any).getUIContext = vi.fn(async () =>
+  (agent as any).getUIContext = rs.fn(async () =>
     fakeContext('representative'),
   );
   return { agent, createTypeQueryExecution, screenshotBase64 };
@@ -60,12 +60,12 @@ describe('Agent.startObserving', () => {
   });
 
   it('returns a fixed observation that can run aiAssert', async () => {
-    const decode = vi.fn(async (refs: any[]) =>
+    const decode = rs.fn(async (refs: any[]) =>
       refs.map((frame) => dataUrl(`decoded:${frame.ref}`)),
     );
-    const stop = vi.fn();
+    const stop = rs.fn();
     let tick = 0;
-    const openFrameSource = vi.fn(async () => ({
+    const openFrameSource = rs.fn(async () => ({
       latest: () => ({ ref: `frame-${tick++}`, capturedAt: tick }),
       decode,
       stop,
@@ -99,11 +99,11 @@ describe('Agent.startObserving', () => {
   });
 
   it('rejects a second active observer but permits another after stop', async () => {
-    const decode = vi.fn(async (refs: any[]) =>
+    const decode = rs.fn(async (refs: any[]) =>
       refs.map((frame) => dataUrl(`decoded:${frame.ref}`)),
     );
-    const stop = vi.fn();
-    const openFrameSource = vi.fn(async () => ({
+    const stop = rs.fn();
+    const openFrameSource = rs.fn(async () => ({
       latest: () => ({ ref: 'f0', capturedAt: 0 }),
       decode,
       stop,
@@ -142,10 +142,10 @@ describe('Agent.startObserving', () => {
       bufferedFrame.persisted,
     );
     (agent as any).reportGenerator = {
-      flush: vi.fn().mockResolvedValue(undefined),
-      finalize: vi.fn().mockResolvedValue(undefined),
+      flush: rs.fn().mockResolvedValue(undefined),
+      finalize: rs.fn().mockResolvedValue(undefined),
     };
-    (agent as any).resetDump = vi.fn();
+    (agent as any).resetDump = rs.fn();
 
     expect(existsSync(framePath)).toBe(true);
     await agent.destroy();

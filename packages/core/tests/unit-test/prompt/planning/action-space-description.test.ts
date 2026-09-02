@@ -5,7 +5,7 @@ import type {
 import { buildPlanningActionSpaceDescription } from '@/ai-model/prompt/planning';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import { getMidsceneLocationSchema } from '@/index';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 describe('buildPlanningActionSpaceDescription', () => {
@@ -18,8 +18,8 @@ describe('buildPlanningActionSpaceDescription', () => {
       resultNounPlural: 'points',
       exampleValues: [[500, 500]],
     };
-    const buildLocateFieldDescription = vi.fn(() => 'LOCATE_FIELD');
-    const buildActionOutput = vi.fn(
+    const buildLocateFieldDescription = rs.fn(() => 'LOCATE_FIELD');
+    const buildActionOutput = rs.fn(
       ({ actionName }: { actionName: string }) => `<tool>${actionName}</tool>`,
     );
     const planningProtocol: StandardPlanningProtocol = {
@@ -83,7 +83,7 @@ describe('buildPlanningActionSpaceDescription', () => {
   });
 
   it('skips action output examples when the action space protocol excludes them', () => {
-    const buildActionOutput = vi.fn(() => '<tool>Tap</tool>');
+    const buildActionOutput = rs.fn(() => '<tool>Tap</tool>');
     const planningProtocol: StandardPlanningProtocol = {
       actionSpaceProtocol: {
         title: 'Functions',

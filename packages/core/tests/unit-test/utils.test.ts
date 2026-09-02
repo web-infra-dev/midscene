@@ -5,7 +5,7 @@ import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 import {
   ifPlanLocateParamHasLocatedPixelBbox,
@@ -28,18 +28,19 @@ import {
 } from '../../src/yaml/utils';
 import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
-const { readFileSyncMock } = vi.hoisted(() => ({
-  readFileSyncMock: vi.fn(),
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+
+const { readFileSyncMock } = rs.hoisted(() => ({
+  readFileSyncMock: rs.fn(),
 }));
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  readFileSyncMock.mockImplementation(actual.readFileSync);
+rs.mock('node:fs', () => {
+  readFileSyncMock.mockImplementation(fsActual.readFileSync);
 
   return {
-    ...actual,
+    ...fsActual,
     default: {
-      ...actual,
+      ...fsActual,
       readFileSync: readFileSyncMock,
     },
     readFileSync: readFileSyncMock,

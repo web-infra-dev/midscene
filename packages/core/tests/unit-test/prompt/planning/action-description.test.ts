@@ -14,8 +14,8 @@ import {
   defineActionSwipe,
 } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
+import { describe, expect, it } from '@rstest/core';
 import yaml from 'js-yaml';
-import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 const defaultMidscenePlanningProtocol = createDefaultMidscenePlanningProtocol({

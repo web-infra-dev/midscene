@@ -2,18 +2,17 @@ import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { callAI } from '@/ai-model/service-caller/index';
 import { AiLocateSection } from '@/ai-model/workflows/grounding';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/service-caller/index', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/ai-model/service-caller/index')
-  >('@/ai-model/service-caller/index');
-  return {
-    ...actual,
-    callAI: vi.fn(),
-  };
-});
+import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@/ai-model/service-caller/index', () => ({
+  ...serviceCallerActual,
+  callAI: rs.fn(),
+}));
 
 describe('section locate protocol', () => {
   const modelConfig: IModelConfig = {
@@ -26,21 +25,21 @@ describe('section locate protocol', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(callAI).mockResolvedValue({
+    rs.clearAllMocks();
+    rs.mocked(callAI).mockResolvedValue({
       content: 'custom section response',
       isStreamed: false,
     });
   });
 
   it('uses the search-area protocol to build and parse the model call', async () => {
-    const buildResponseInstructions = vi.fn(
+    const buildResponseInstructions = rs.fn(
       () => 'Custom search-area response instructions',
     );
-    const buildUserPrompt = vi.fn(
+    const buildUserPrompt = rs.fn(
       (description: string) => `Custom search-area task: ${description}`,
     );
-    const parseRawResponse = vi.fn(() => ({
+    const parseRawResponse = rs.fn(() => ({
       kind: 'located' as const,
       target: [100, 200, 300, 400],
     }));
@@ -89,7 +88,7 @@ describe('section locate protocol', () => {
       'custom section response',
       adapter.locate.searchArea?.resultCodec.promptSpec,
     );
-    expect(vi.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
+    expect(rs.mocked(callAI).mock.calls[0][0][0]).toMatchObject({
       content: expect.stringContaining('Custom search-area introduction'),
     });
     expect(callAI).toHaveBeenCalledWith(

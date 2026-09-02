@@ -14,7 +14,7 @@ import { buildStandardPlanningSystemPrompt } from '@/ai-model/prompt/planning';
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import type { TModelFamily } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 import {
   buildInsightSystemPrompt,
@@ -39,14 +39,15 @@ const buildDefaultInsightSystemPrompt = (
     insightProtocol: defaultInsightProtocol,
   });
 
+import * as sharedEnvActual from '@midscene/shared/env' with {
+  rstest: 'importActual',
+};
+
 // Mock getPreferredLanguage to ensure consistent test output
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    getPreferredLanguage: vi.fn().mockReturnValue('English'),
-  };
-});
+rs.mock('@midscene/shared/env', () => ({
+  ...sharedEnvActual,
+  getPreferredLanguage: rs.fn().mockReturnValue('English'),
+}));
 
 const locatePromptSpecFor = (
   modelFamily: TModelFamily,
@@ -141,7 +142,7 @@ describe('system prompts', () => {
       actionOutputPlaceholder: '<custom-action>...</custom-action>',
       buildActionOutput: ({ actionName }) =>
         `<custom-action type="${actionName}"></custom-action>`,
-      parseActionOutput: vi.fn(),
+      parseActionOutput: rs.fn(),
       parseRawLocateParameter: (value) => value as any,
     };
     const planningProtocol = {

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ScriptPlayer } from '@/yaml/player';
 import { parseYamlScript } from '@/yaml/utils';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rs, test } from '@rstest/core';
 
 describe('YAML player output', () => {
   test.each([
@@ -12,7 +12,7 @@ describe('YAML player output', () => {
   ])(
     'resolves configured output paths for the %s environment without launching an agent',
     (_label, environmentKey, fileName) => {
-      const setupAgent = vi.fn();
+      const setupAgent = rs.fn();
       const relativeOutput = `./midscene_run/output/${fileName}`;
       const script = parseYamlScript(`
 ${environmentKey}:
@@ -37,8 +37,8 @@ tasks: []
       message: 'Expected assertion failure',
     };
     const agent = {
-      aiAssert: vi.fn().mockResolvedValue(assertionResult),
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      aiAssert: rs.fn().mockResolvedValue(assertionResult),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       onTaskStartTip: undefined,
       reportFile: null,
     };

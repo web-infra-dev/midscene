@@ -1,7 +1,7 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callAIWithStringResponse } from '../../../../src/ai-model/service-caller';
 import type { ChromeRecordedEvent } from '../../../../src/ai-model/workflows/recorder-generation/common';
 import {
@@ -9,24 +9,24 @@ import {
   generateRecorderMarkdownReplay,
 } from '../../../../src/ai-model/workflows/recorder-generation/markdown';
 
-const { mockDebugMarkdownReplay } = vi.hoisted(() => ({
-  mockDebugMarkdownReplay: vi.fn(),
+import * as loggerActual from '@midscene/shared/logger' with {
+  rstest: 'importActual',
+};
+
+const { mockDebugMarkdownReplay } = rs.hoisted(() => ({
+  mockDebugMarkdownReplay: rs.fn(),
 }));
 
-vi.mock('@midscene/shared/logger', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@midscene/shared/logger')>();
-  return {
-    ...actual,
-    getDebug: vi.fn(() => mockDebugMarkdownReplay),
-  };
-});
-
-vi.mock('../../../../src/ai-model/service-caller', () => ({
-  callAIWithStringResponse: vi.fn(),
+rs.mock('@midscene/shared/logger', () => ({
+  ...loggerActual,
+  getDebug: rs.fn(() => mockDebugMarkdownReplay),
 }));
 
-const mockCallAIWithStringResponse = vi.mocked(callAIWithStringResponse);
+rs.mock('../../../../src/ai-model/service-caller', () => ({
+  callAIWithStringResponse: rs.fn(),
+}));
+
+const mockCallAIWithStringResponse = rs.mocked(callAIWithStringResponse);
 
 const mockedModelConfig = {
   modelName: 'mock',
@@ -64,7 +64,7 @@ const mockEvents: ChromeRecordedEvent[] = [
 
 describe('markdown-generator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('compresses oversized screenshots to JPEG before model generation', async () => {

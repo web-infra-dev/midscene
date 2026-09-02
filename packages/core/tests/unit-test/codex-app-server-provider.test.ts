@@ -1,14 +1,17 @@
-import { EventEmitter } from 'node:events';
+import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
+  callAIWithCodexAppServer,
   isCodexAppServerProvider,
   normalizeCodexLocalImagePath,
   resolveCodexReasoningEffort,
 } from '@/ai-model/service-caller/codex-app-server';
 import type { IModelConfig } from '@midscene/shared/env';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const baseModelConfig: IModelConfig = {
   modelName: 'gpt-5.4',
@@ -17,13 +20,28 @@ const baseModelConfig: IModelConfig = {
   slot: 'default',
 };
 
+const temporaryDirectories: string[] = [];
+const initialWorkingDirectory = process.cwd();
+
+const createTemporaryDirectory = async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'midscene-codex-test-'));
+  temporaryDirectories.push(directory);
+  return directory;
+};
+
 describe('codex app-server provider helper', () => {
   afterEach(async () => {
     await __shutdownCodexAppServerForTests();
-    vi.restoreAllMocks();
-    vi.resetModules();
-    vi.unmock('node:child_process');
-    vi.unmock('node:readline');
+    process.chdir(initialWorkingDirectory);
+    rs.unstubAllEnvs();
+    rs.restoreAllMocks();
+    await Promise.all(
+      temporaryDirectories.splice(0).map((directory) =>
+        // On Windows the killed codex.exe may still be mapped for a moment
+        // after shutdown resolves; retry EPERM/EBUSY instead of racing it.
+        rm(directory, { recursive: true, maxRetries: 10, retryDelay: 200 }),
+      ),
+    );
   });
 
   it('detects codex provider base url', () => {
@@ -275,172 +293,80 @@ describe('codex app-server provider helper', () => {
   });
 
   it('surfaces codex spawn errors as regular model errors', async () => {
-    vi.resetModules();
-
-    const lineReader = new EventEmitter() as EventEmitter & {
-      close: ReturnType<typeof vi.fn>;
-      on: EventEmitter['on'];
-    };
-    lineReader.close = vi.fn();
-
-    const stdout = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stdout.unref = vi.fn();
-
-    const stderr = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stderr.unref = vi.fn();
-
-    const stdin = {
-      end: vi.fn(),
-      unref: vi.fn(),
-      write: vi.fn(
-        (
-          _line: string,
-          callback?: (error?: Error | null | undefined) => void,
-        ) => {
-          callback?.(null);
-          return true;
-        },
-      ),
-    };
-
-    const child = new EventEmitter() as EventEmitter & {
-      stdin: typeof stdin;
-      stdout: typeof stdout;
-      stderr: typeof stderr;
-      kill: ReturnType<typeof vi.fn>;
-      unref: ReturnType<typeof vi.fn>;
-    };
-    child.stdin = stdin;
-    child.stdout = stdout;
-    child.stderr = stderr;
-    child.kill = vi.fn();
-    child.unref = vi.fn();
-
-    vi.doMock('node:child_process', () => ({
-      spawn: vi.fn(() => {
-        queueMicrotask(() => {
-          child.emit('error', new Error('spawn ENOENT'));
-        });
-        return child;
-      }),
-    }));
-
-    vi.doMock('node:readline', () => ({
-      createInterface: vi.fn(() => lineReader),
-    }));
-
-    const mockedModule = await import(
-      '@/ai-model/service-caller/codex-app-server'
-    );
+    rs.stubEnv('PATH', await createTemporaryDirectory());
 
     await expect(
-      mockedModule.callAIWithCodexAppServer(
+      callAIWithCodexAppServer(
         [{ role: 'user', content: 'hello' }],
         baseModelConfig,
       ),
-    ).rejects.toThrow(/codex app-server process error: spawn ENOENT/);
+    ).rejects.toThrow(
+      /(?:codex app-server process error: spawn codex ENOENT|failed writing to codex app-server stdin: write EPIPE)/,
+    );
   });
 
   it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
-    vi.resetModules();
-
-    const lineReader = new EventEmitter() as EventEmitter & {
-      close: ReturnType<typeof vi.fn>;
-      on: EventEmitter['on'];
-    };
-    lineReader.close = vi.fn();
-
-    const stdout = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stdout.unref = vi.fn();
-
-    const stderr = new EventEmitter() as EventEmitter & {
-      unref: ReturnType<typeof vi.fn>;
-    };
-    stderr.unref = vi.fn();
-
-    const sendResponse = (id: number, result: unknown) => {
-      queueMicrotask(() => {
-        lineReader.emit('line', JSON.stringify({ id, result }));
-      });
-    };
-    const stdin = {
-      end: vi.fn(),
-      unref: vi.fn(),
-      write: vi.fn(
-        (
-          line: string,
-          callback?: (error?: Error | null | undefined) => void,
-        ) => {
-          const message = JSON.parse(line);
-          if (message.method === 'initialize') {
-            sendResponse(message.id, {});
-          } else if (message.method === 'thread/start') {
-            sendResponse(message.id, { thread: { id: 'thread-1' } });
-          } else if (message.method === 'turn/start') {
-            sendResponse(message.id, { turn: { id: 'turn-1' } });
-            queueMicrotask(() => {
-              lineReader.emit(
-                'line',
-                JSON.stringify({
-                  method: 'item/agentMessage/delta',
-                  params: {
-                    threadId: 'thread-1',
-                    turnId: 'turn-1',
-                    delta: 'hello',
-                  },
-                }),
-              );
-              lineReader.emit(
-                'line',
-                JSON.stringify({
-                  method: 'turn/completed',
-                  params: {
-                    threadId: 'thread-1',
-                    turn: { id: 'turn-1', status: 'completed' },
-                  },
-                }),
-              );
-            });
-          } else if (message.method === 'thread/unsubscribe') {
-            sendResponse(message.id, {});
-          }
-          callback?.(null);
-          return true;
-        },
-      ),
-    };
-
-    const child = new EventEmitter() as EventEmitter & {
-      stdin: typeof stdin;
-      stdout: typeof stdout;
-      stderr: typeof stderr;
-      kill: ReturnType<typeof vi.fn>;
-      unref: ReturnType<typeof vi.fn>;
-    };
-    child.stdin = stdin;
-    child.stdout = stdout;
-    child.stderr = stderr;
-    child.kill = vi.fn();
-    child.unref = vi.fn();
-
-    vi.doMock('node:child_process', () => ({
-      spawn: vi.fn(() => child),
-    }));
-    vi.doMock('node:readline', () => ({
-      createInterface: vi.fn(() => lineReader),
-    }));
-
-    const mockedModule = await import(
-      '@/ai-model/service-caller/codex-app-server'
+    const executableDirectory = await createTemporaryDirectory();
+    const serverPath = path.join(executableDirectory, 'codex-server.cjs');
+    await writeFile(
+      serverPath,
+      `const readline = require('node:readline').createInterface({ input: process.stdin });
+const send = (message) => process.stdout.write(JSON.stringify(message) + '\\n');
+readline.on('line', (line) => {
+  const message = JSON.parse(line);
+  if (message.method === 'initialize') {
+    send({ id: message.id, result: {} });
+  } else if (message.method === 'thread/start') {
+    send({ id: message.id, result: { thread: { id: 'thread-1' } } });
+  } else if (message.method === 'turn/start') {
+    send({ id: message.id, result: { turn: { id: 'turn-1' } } });
+    send({
+      method: 'item/agentMessage/delta',
+      params: { threadId: 'thread-1', turnId: 'turn-1', delta: 'hello' },
+    });
+    send({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'completed' },
+      },
+    });
+  } else if (message.method === 'thread/unsubscribe') {
+    send({ id: message.id, result: {} });
+  }
+});
+`,
     );
+    if (process.platform === 'win32') {
+      // Node's spawn without `shell: true` can only execute real Windows
+      // executables (no `.cmd`/`.bat` shims), so provide a `codex.exe` that
+      // is a copy of the Node binary. It receives the production argument
+      // `app-server` and resolves it as an entry script relative to the
+      // working directory, so run the test from the fake-server directory.
+      await copyFile(
+        process.execPath,
+        path.join(executableDirectory, 'codex.exe'),
+      );
+      await writeFile(
+        path.join(executableDirectory, 'app-server.js'),
+        "require('./codex-server.cjs');\n",
+      );
+      process.chdir(executableDirectory);
+    } else {
+      const executablePath = path.join(executableDirectory, 'codex');
+      await writeFile(
+        executablePath,
+        "#!/usr/bin/env node\nrequire('./codex-server.cjs');\n",
+      );
+      await chmod(executablePath, 0o755);
+    }
+    rs.stubEnv(
+      'PATH',
+      `${executableDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
+    );
+
     const events: unknown[] = [];
-    const result = await mockedModule.callAIWithCodexAppServer(
+    const result = await callAIWithCodexAppServer(
       [{ role: 'user', content: 'hello' }],
       baseModelConfig,
       { onRecordEvent: (event) => events.push(event) },
@@ -494,6 +420,6 @@ describe('codex app-server provider helper', () => {
       ]),
     );
 
-    await mockedModule.__shutdownCodexAppServerForTests();
+    await __shutdownCodexAppServerForTests();
   });
 });

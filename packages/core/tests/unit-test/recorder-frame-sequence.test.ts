@@ -1,7 +1,7 @@
 import { recordAndReleaseScreenshotSequence } from '@/agent/tasks';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, UIContext } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const makeUiContext = (frameCount: number): UIContext => {
   const frames = Array.from({ length: frameCount }, (_, i) =>

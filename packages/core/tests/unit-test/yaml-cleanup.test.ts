@@ -1,7 +1,7 @@
 import type { Agent } from '@/agent/agent';
 import { runFreeFnCleanup } from '@/yaml/cleanup';
 import { ScriptPlayer } from '@/yaml/player';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('YAML resource cleanup', () => {
   test('runs cleanup functions in declared order and attempts all of them', async () => {
@@ -41,7 +41,7 @@ describe('YAML resource cleanup', () => {
   test('ScriptPlayer rejects when resource cleanup fails', async () => {
     const cleanupError = new Error('cleanup failed');
     const agent = {
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
     } as unknown as Agent;
     const player = new ScriptPlayer({ tasks: [] }, async () => ({
       agent,

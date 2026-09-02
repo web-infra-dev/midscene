@@ -2,7 +2,7 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import {
   createExecution,
   defaultReportMeta,
@@ -21,7 +21,7 @@ describe('ReportGenerator options and factory', () => {
     if (existsSync(temporaryDirectory)) {
       rmSync(temporaryDirectory, { recursive: true, force: true });
     }
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('provides a null generator when report generation is disabled', async () => {
@@ -119,7 +119,7 @@ describe('ReportGenerator options and factory', () => {
   );
 
   it('prints an inline report path once after the first write', async () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     const reportPath = join(temporaryDirectory, 'autoprint-inline.html');
     const generator = new ReportGenerator({
       reportPath,
@@ -143,7 +143,7 @@ describe('ReportGenerator options and factory', () => {
   });
 
   it('supports disabled logging and directory-mode serve instructions', async () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
     const quietGenerator = new ReportGenerator({
       reportPath: join(temporaryDirectory, 'quiet.html'),
       screenshotMode: 'inline',

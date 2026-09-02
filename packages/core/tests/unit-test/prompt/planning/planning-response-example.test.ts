@@ -1,5 +1,5 @@
 import { buildPlanningResponseExample } from '@/ai-model/prompt/planning';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('buildPlanningResponseExample', () => {
   it('builds a planning response with sub-goal state and an action', () => {
