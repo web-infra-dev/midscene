@@ -8,78 +8,80 @@ The Test Runner is currently in **Beta**, and its test protocol and APIs continu
 (If you are still using the previous solution, see [YAML script runner](./yaml-script-runner).)
 :::
 
-After extensive use of Midscene, we believe that **in the AI era, natural language should be the primary medium for automated test cases**.
+## Testing Engineering Challenges in the AI Era
 
-Describing test intent directly in natural language matches how people communicate and provides strong business-level expressiveness. We use declarative YAML as the structural format so that these natural-language workflows are easy for people to write and review, as well as for AI and Agents to understand and maintain.
+We are living in an era of AI transformation. In moving toward natural language testing, engineering teams face very real transition pain points:
 
-Real-world test workflows also need to call external tools or scripts, such as business APIs, test data setup utilities, and browser resource managers. For this reason, `@midscene/test` establishes a test paradigm designed for long-term evolution: **use natural language to drive the main test flow, with programmable Nodes providing supporting extensions**.
+1. **Concerns about the Selector Pattern**: The traditional selector pattern is not only fragile and hard for non-technical staff to maintain, but more importantly, it is based on the DOM tree. It cannot truly simulate what real users see on the screen (such as overlapping elements or broken layouts), failing to maximize the true value of AI's visual and semantic understanding.
+2. **The Efficiency Trap of "AI for AI's Sake"**: In the rush to adopt AI, there is often an anxious feeling that "not using AI is outdated." This drives teams to blindly chase 100% AI coverage, forcing simple background tasks (like database seeding or API calls) that could be solved instantly and stably with traditional scripts to be driven by AI. This degrades overall efficiency, inflates costs, and compromises stability—**once trapped, we actually lose our most fundamental pursuits of testing: being faster, cheaper, and more stable.** Introducing AI must be rational: applying the right solution to the right problem.
+3. **Organizational Challenges in Combining Engineering and AI**: We believe the future of testing projects must be a combination of "engineering (code) and AI (natural language)." However, existing frameworks often deliver a suboptimal developer experience when trying to organize both. Without clear boundaries and collaboration models, code and natural language can easily become tangled, leading to poor maintainability over time. We need a better organizational form that allows code and natural language to play to their strengths and collaborate seamlessly.
 
-## Core design: natural language first, programmable Nodes second
+Everyone wants to move toward natural language, but they lack a practical path that connects "deterministic code" with "natural language intent."
 
-This approach divides the test framework into two clear tracks:
+## A Hybrid Architecture: Declarative Semantics and Deterministic Engineering
 
-- **Primary track (natural language + YAML)**: expresses more than 80% of business test intent. Test cases are assembled declaratively in YAML, with natural language describing UI actions such as `aiAct` and assertions such as `aiAssert`.
-- **Supporting track (TypeScript Nodes)**: provides the remaining 20% of programmable extension capabilities. Custom Nodes registered in TypeScript handle API calls, data preparation, and resource management.
+To break this dilemma, `@midscene/test` returns to the first principles of end-to-end (E2E) testing and advocates a **hybrid architecture that balances "Declarative Semantics" and "Deterministic Engineering"**. It divides the test framework into two complementary, equal capabilities that align with two core perspectives in testing teams:
 
-With this design, `@midscene/test` creates a clear collaboration boundary between platform developers and test case authors:
+1. **Deterministic Engineering: TypeScript Programming for a Solid Foundation (TypeScript Nodes)**
+   **Focuses on "How to support"**. Provides programmable extension capabilities, ensuring the stability, determinism, and high efficiency of the underlying engineering foundation.
+   This capability is designed for engineering and platform builders. They use TypeScript to integrate browsers, Agents, external tools, and business APIs, while centrally managing runtime resources and execution lifecycles. Engineering builders only need to declare Zod validation rules and descriptions in their TypeScript Nodes. By encapsulating these technical and business capabilities as reusable custom Nodes, they automatically generate a reference document, eliminating the need to write and maintain API references manually.
 
-- **Test framework maintenance (platform developers)**: use TypeScript to integrate browsers, Agents, external tools, and business APIs, while centrally managing runtime resources and the execution lifecycle.
-- **Test case maintenance (case authors and Agents)**: people or Agents use YAML to compose the capabilities provided by the framework. They can write and maintain test cases directly in natural language without writing JavaScript or dealing with implementation details.
+2. **Declarative Semantics: Expressing Business Intent in Natural Language (YAML + AI Actions)**
+   **Focuses on "What to test"**. Expresses business test intent. Test cases are assembled declaratively in YAML.
+   At this layer, authors can describe UI actions (such as `aiAct`) and assertions (such as `aiAssert`) in natural language, while **seamlessly calling and composing custom business capabilities provided and exposed by "Deterministic Engineering" (such as `order.prepare`)** to assemble their own end-to-end business flows.
+   This capability is designed for business-centric scenarios. Test authors can write and maintain test cases directly in natural language and declarative nodes, focusing entirely on business flows without needing to write JavaScript or deal with underlying engineering and system details. This significantly enhances authoring efficiency and long-term maintainability.
 
-## Smooth three-party collaboration with generated Node references
+**Customizing Your Domain-Specific Test Framework and Supporting Capabilities**
 
-A testing system often involves three distinct roles: **framework developers who write TypeScript Nodes**, **people who write YAML test cases**, and **AI Agents that automatically operate and maintain tests**.
+The core engineering value of this design is that it empowers developers to **customize and build their own domain-specific test frameworks**. By registering custom Nodes in "Deterministic Engineering" that match your unique business context, you can easily assemble and extend a tailored, highly cohesive testing framework that perfectly fits your team's background and needs.
 
-To make collaboration among these roles straightforward, `@midscene/test` provides the `describe-nodes` tool. It exports all registered Node definitions as a Markdown reference:
+To help developers build and run these proprietary frameworks with minimal effort and maximum efficiency, we provide a suite of essential supporting engineering capabilities:
+- **Unified Observability**: Both AI visual steps and your custom Node executions are centrally recorded in the same execution lifecycle. The test report and runtime logs visualize the inputs, outputs, duration, execution status, and screenshots of every step. This simplifies troubleshooting and replay for human engineers and provides highly structured context for AI Agents to autonomously diagnose issues and optimize test cases.
+- **Standardized Lifecycle and Concurrency Control**: Out-of-the-box lifecycle hooks (Before/After), concurrent environment isolation, and sandboxing ensure that your proprietary framework and test cases run stably and predictably in CI (Continuous Integration) pipelines.
+- **Auto-Generated Node Reference**: The `describe-nodes` tool automatically compiles registered custom Nodes and their validation rules (Zod Schema) into standard Markdown documentation. This eliminates the cost of manually maintaining API manuals for your proprietary framework, allowing human authors and AI Agents to easily consult and consume these custom capabilities.
 
-- **Framework developers stay focused**: declare Zod validation rules and descriptions in TypeScript Nodes. The documentation is generated automatically, so there is no separate API reference to write and maintain.
-- **Test case authors get a clear reference**: people can read the exported Markdown to see which business-specific Nodes, such as `order.prepare`, are available and which parameters they accept.
-- **AI assistants call Nodes accurately**: the Markdown reference combines explicit type constraints with semantic descriptions, making it effective context for AI Agents. Agents can use it to write, run, and maintain YAML test cases with valid Node calls.
+### Example Scenario: Verify an Order Refund Flow
 
-**Example of an exported Node reference**
+Suppose an e-commerce team needs to verify the refund flow for paid orders:
 
-For example, the `describe-nodes` tool exports a custom Node named `browser.mockLocation` in the following Markdown structure:
+1. **Deterministic Engineering (TypeScript Nodes)**: call an order API or script before each case to create test data, and clean up the test order when the case finishes.
+2. **Declarative Semantics (AI Natural Language)**: use YAML instructions to have the Agent submit a refund request in the UI and verify the result.
+
+#### 1. Auto-Generated Node Reference Example
+
+In this scenario, the custom Node `order.prepare` defined by engineering builders automatically compiles into the following Markdown reference using the `describe-nodes` tool:
 
 ```markdown
-## browser.mockLocation
+## order.prepare
 
-- **Title**: Mock location
-- **Description**: Mock the browser's GPS location.
+- **Title**: Prepare order data
+- **Description**: Pre-create an order with a specified status in the database.
 - **Parameter schema (JSON Schema)**:
 
 {
   "type": "object",
   "properties": {
-    "latitude": {
-      "type": "number",
-      "description": "Latitude of the mocked location."
-    },
-    "longitude": {
-      "type": "number",
-      "description": "Longitude of the mocked location."
+    "status": {
+      "type": "string",
+      "description": "Order status, such as paid or refunded."
     }
   },
-  "required": ["latitude", "longitude"]
+  "required": ["status"]
 }
 ```
 
-This generated, strongly typed reference connects platform development, test case authoring, and AI-based test operations, making subsequent workflows easier to implement and run.
+#### 2. Writing and Running Test Cases (YAML)
 
-## Example scenario: verify an order refund flow
-
-Suppose an e-commerce team needs to verify the refund flow for paid orders:
-
-1. **Programmable Nodes (supporting)**: call an order API or script before each case to create test data, then clean up the test order when the case finishes.
-2. **Natural language (primary)**: use YAML instructions to have the Agent submit a refund request in the UI and verify the result.
+After reading the reference, test authors (or AI Agents) can directly call and compose the Node in the declarative YAML file:
 
 ```yaml
-# 1. Programmable Nodes: prepare data and the environment
+# 1. Deterministic Engineering: prepare data and the environment
 beforeEach:
   - order.prepare:
       status: paid
   - browser.openRefundPage: {}
 
-# 2. Natural language: express business test intent
+# 2. Declarative Semantics: express business test intent
 cases:
   - name: A paid order supports a full refund
     steps:
@@ -95,7 +97,7 @@ cases:
           prompt: The page shows that the refund request was submitted and the refund amount is 10
           message: Failed to submit the partial refund request
 
-# 3. Programmable Nodes: clean up resources
+# 3. Deterministic Engineering: clean up resources
 afterEach:
   - order.cleanup: {}
 ```
