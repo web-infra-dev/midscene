@@ -75,7 +75,9 @@ describe('default locate protocol', () => {
     });
     expect(() =>
       elementProtocol.parseRawResponse('null', locatePromptSpec),
-    ).toThrow('failed to parse LLM response into JSON');
+    ).toThrow(
+      'LLM response is valid JSON but does not match the expected schema',
+    );
 
     expect(
       searchAreaProtocol.parseRawResponse(
@@ -156,5 +158,25 @@ describe('default locate protocol', () => {
     expect(jsonParser).toHaveBeenLastCalledWith('model-specific response', {
       source: 'section-locator',
     });
+  });
+
+  it('rejects a non-object response from a custom JSON parser', () => {
+    const jsonParser = vi.fn(() => [
+      { bbox: [100, 200, 300, 400] },
+      { bbox: [500, 600, 700, 800] },
+    ]);
+    const elementProtocol = createDefaultElementProtocol({ jsonParser });
+    const locatePromptSpec = createLocateResultPromptSpec({
+      shape: 'bbox',
+      order: 'xy',
+      normalizedBy: 1000,
+    });
+
+    expect(() =>
+      elementProtocol.parseRawResponse(
+        'model-specific response',
+        locatePromptSpec,
+      ),
+    ).toThrow('Expected to be a JSON object, got array');
   });
 });

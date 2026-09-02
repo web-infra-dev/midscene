@@ -89,33 +89,25 @@ describe('parseModelResponseJson', () => {
     );
   });
 
-  it('should reject top-level non-object JSON values', () => {
-    expect(() => parseModelResponseJson('[1, 2]')).toThrow(
-      /expected parsed LLM response to be a JSON object/,
-    );
-  });
-
-  it('should allow top-level non-object JSON values when object validation is disabled', () => {
+  it('should allow top-level non-object JSON values', () => {
     expect(
       parseModelResponseJson('[" todo 1 ", " todo 2 "]', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toEqual(['todo 1', 'todo 2']);
 
     expect(
       parseModelResponseJson('" todo list "', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe('todo list');
 
     expect(
       parseModelResponseJson('42', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe(42);
+    expect(parseModelResponseJson('null')).toBeNull();
   });
 
   it('should parse JSON from code block', () => {

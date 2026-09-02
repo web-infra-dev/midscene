@@ -1,5 +1,9 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
-import type { JsonParser, JsonParserSource } from '../shared/json';
+import {
+  type JsonParser,
+  type JsonParserSource,
+  assertJsonObject,
+} from '../shared/json';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
@@ -125,10 +129,8 @@ const createParseRawResponse =
     const parsedResponse = jsonParser(content, {
       source,
     });
-    if (!parsedResponse || typeof parsedResponse !== 'object') {
-      throw new Error(`Failed to parse JSON locate response: ${content}`);
-    }
-    const record = parsedResponse as Record<string, unknown>;
+    assertJsonObject(parsedResponse);
+    const record = parsedResponse;
     const target =
       record[promptSpec.resultKey] !== undefined
         ? record[promptSpec.resultKey]

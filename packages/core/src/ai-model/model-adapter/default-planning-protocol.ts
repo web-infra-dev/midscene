@@ -5,7 +5,7 @@ import {
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import { getZodDefaultValue } from '../shared/action-schema';
-import type { JsonParser } from '../shared/json';
+import { type JsonParser, assertJsonObject } from '../shared/json';
 import {
   type LocateResultPromptSpec,
   formatLocateExampleValue,
@@ -195,6 +195,7 @@ export const createMidscenePlanningActionOutputParser =
           preserveStringValueKeys:
             type.toLowerCase() === 'input' ? ['value'] : undefined,
         });
+        assertJsonObject(param);
       } catch (error) {
         throw new Error(`Failed to parse action-param-json: ${error}`);
       }
