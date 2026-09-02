@@ -5,6 +5,9 @@ import {
   createFilesConfig,
   parseConfigYaml,
 } from '@/config-factory';
+import * as yamlActual from '@midscene/core/yaml' with {
+  rstest: 'importActual',
+};
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 // Mock dependencies
@@ -17,6 +20,7 @@ rs.mock('@/cli-utils', () => ({
 }));
 
 rs.mock('@midscene/core/yaml', () => ({
+  ...yamlActual,
   interpolateEnvVars: rs.fn((content) => content),
   resolveWebTarget: rs.fn((config) => {
     const sources = ['page', 'browser', 'web', 'target'] as const;
@@ -83,6 +87,8 @@ web:
   userAgent: "yaml-ua"
 android:
   deviceId: "yaml-device"
+harmony:
+  deviceId: "yaml-harmony-device"
 summary: "yaml-summary.json"
 `;
       const mockParsedYaml = {
@@ -98,6 +104,7 @@ summary: "yaml-summary.json"
         web: { url: 'http://example.com', userAgent: 'yaml-ua' },
         target: undefined,
         android: { deviceId: 'yaml-device' },
+        harmony: { deviceId: 'yaml-harmony-device' },
         summary: 'yaml-summary.json',
       };
 
@@ -118,6 +125,7 @@ summary: "yaml-summary.json"
         dotenvDebug: false,
         web: { url: 'http://example.com', userAgent: 'yaml-ua' },
         android: { deviceId: 'yaml-device' },
+        harmony: { deviceId: 'yaml-harmony-device' },
         summary: 'yaml-summary.json',
         patterns: ['*.yml'],
         shareBrowserContext: false,
@@ -363,6 +371,11 @@ concurrent: 2
         web: { userAgent: 'from-file', viewportWidth: 800 },
         target: undefined,
         android: { deviceId: 'from-file' },
+        harmony: {
+          deviceId: 'harmony-from-file',
+          launch: 'file.bundle',
+          autoDismissKeyboard: false,
+        },
         ios: undefined,
       };
       rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
@@ -375,6 +388,10 @@ concurrent: 2
         summary: 'from-cmd.json',
         web: { userAgent: 'from-cmd', viewportHeight: 900 },
         android: { deviceId: 'from-cmd' },
+        harmony: {
+          deviceId: 'harmony-from-cmd',
+          autoDismissKeyboard: true,
+        },
       };
 
       const result = await createConfig('/test/index.yml', cmdLineOptions);
@@ -385,6 +402,7 @@ concurrent: 2
           browser: mockParsedYaml.browser,
           web: mockParsedYaml.web,
           android: mockParsedYaml.android,
+          harmony: mockParsedYaml.harmony,
           ios: mockParsedYaml.ios,
           target: mockParsedYaml.target,
         },
@@ -393,6 +411,7 @@ concurrent: 2
           browser: cmdLineOptions.browser,
           web: cmdLineOptions.web,
           android: cmdLineOptions.android,
+          harmony: cmdLineOptions.harmony,
           ios: cmdLineOptions.ios,
           target: cmdLineOptions.target,
         },
@@ -402,6 +421,11 @@ concurrent: 2
       expect(result.headed).toBe(true);
       expect(result.summary).toBe('from-cmd.json');
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
+      expect(result.globalConfig?.harmony).toEqual({
+        deviceId: 'harmony-from-cmd',
+        launch: 'file.bundle',
+        autoDismissKeyboard: true,
+      });
     });
 
     test('should keep setup when shareBrowserContext is enabled', async () => {
@@ -553,14 +577,7 @@ concurrent: 2
         keepWindow: false,
         dotenvOverride: false,
         dotenvDebug: false,
-        globalConfig: {
-          page: undefined,
-          browser: undefined,
-          web: undefined,
-          target: undefined,
-          android: undefined,
-          ios: undefined,
-        },
+        globalConfig: {},
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
         cwd: process.cwd(),
@@ -625,6 +642,9 @@ concurrent: 2
         dotenvDebug: false,
         web: { userAgent: 'custom-ua' },
         android: { deviceId: 'custom-device' },
+        harmony: { deviceId: 'custom-harmony-device' },
+        computer: { displayId: 'main' },
+        interface: { module: './custom-interface.js' },
       };
       const result = await createFilesConfig(patterns, options);
 
@@ -641,12 +661,11 @@ concurrent: 2
         dotenvOverride: true,
         dotenvDebug: false,
         globalConfig: {
-          page: undefined,
-          browser: undefined,
           web: { userAgent: 'custom-ua' },
-          target: undefined,
           android: { deviceId: 'custom-device' },
-          ios: undefined,
+          harmony: { deviceId: 'custom-harmony-device' },
+          computer: { displayId: 'main' },
+          interface: { module: './custom-interface.js' },
         },
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
@@ -699,14 +718,11 @@ concurrent: 2
         dotenvOverride: false,
         dotenvDebug: false,
         globalConfig: {
-          page: undefined,
-          browser: undefined,
           web: {
             userAgent: 'Doc Agent',
             viewportWidth: 1440,
             viewportHeight: 900,
           },
-          target: undefined,
           android: {
             deviceId: 'android-doc-device',
           },

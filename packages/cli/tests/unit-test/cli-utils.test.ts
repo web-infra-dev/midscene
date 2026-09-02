@@ -297,6 +297,26 @@ describe('parseProcessArgs', () => {
     });
   });
 
+  test('should parse HarmonyOS options in both key formats', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.device-id',
+      '127.0.0.1:5555',
+      '--harmony.wait-after-action',
+      '800',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'device-id': '127.0.0.1:5555',
+      deviceId: '127.0.0.1:5555',
+      'wait-after-action': 800,
+      waitAfterAction: 800,
+    });
+  });
+
   test('should handle mixed web, android, and ios parameters', async () => {
     process.argv = [
       'node',
@@ -367,10 +387,14 @@ describe('parseProcessArgs', () => {
       '900',
       '--android.deviceId',
       'android-doc-device',
+      '--harmony.deviceId',
+      'harmony-doc-device',
       '--ios.wdaPort',
       '8100',
       '--ios.wdaHost',
       '127.0.0.1',
+      '--computer.displayId',
+      'main',
       '--dotenv-debug',
       '--dotenv-override',
     ];
@@ -397,9 +421,15 @@ describe('parseProcessArgs', () => {
       android: {
         deviceId: 'android-doc-device',
       },
+      harmony: {
+        deviceId: 'harmony-doc-device',
+      },
       ios: {
         wdaPort: 8100,
         wdaHost: '127.0.0.1',
+      },
+      computer: {
+        displayId: 'main',
       },
     });
   });
@@ -439,7 +469,9 @@ describe('parseProcessArgs', () => {
     const { options } = await parseProcessArgs();
     expect(options.web).toBeUndefined();
     expect(options.android).toBeUndefined();
+    expect(options.harmony).toBeUndefined();
     expect(options.ios).toBeUndefined();
+    expect(options.computer).toBeUndefined();
   });
 });
 

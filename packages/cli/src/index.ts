@@ -3,7 +3,12 @@ import type { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools'
 import { runToolsCLI } from '@midscene/shared/cli';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { createConfig, createFilesConfig } from './config-factory';
+import {
+  type ConfigFactoryOptions,
+  createConfig,
+  createFilesConfig,
+} from './config-factory';
+import { pickYamlTargetConfig } from './config-options';
 import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
 import { runModelCommand } from './model-command';
@@ -56,6 +61,7 @@ Promise.resolve(
 
     // Extract new configuration options
     const configOptions = {
+      ...pickYamlTargetConfig(options),
       concurrent: options.concurrent,
       continueOnError: options['continue-on-error'],
       retry: options.retry,
@@ -65,12 +71,9 @@ Promise.resolve(
       keepWindow: options['keep-window'],
       dotenvOverride: options['dotenv-override'],
       dotenvDebug: options['dotenv-debug'],
-      web: options.web,
-      android: options.android,
-      ios: options.ios,
       files: cmdFiles,
       setup: options.setup as string | undefined,
-    };
+    } satisfies ConfigFactoryOptions;
 
     let config;
 

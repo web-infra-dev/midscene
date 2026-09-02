@@ -278,6 +278,41 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
 
+/** Target sections that can be supplied as batch-wide YAML overrides. */
+export type MidsceneYamlTargetKey = Exclude<
+  keyof MidsceneYamlScript,
+  'config' | 'agent' | 'tasks'
+>;
+
+const midsceneYamlTargetKeyMap = {
+  target: true,
+  page: true,
+  browser: true,
+  web: true,
+  android: true,
+  ios: true,
+  harmony: true,
+  computer: true,
+  interface: true,
+} as const satisfies Record<MidsceneYamlTargetKey, true>;
+
+export const midsceneYamlTargetKeys = Object.keys(
+  midsceneYamlTargetKeyMap,
+) as MidsceneYamlTargetKey[];
+
+/**
+ * Partial target settings applied to every script in a YAML batch.
+ *
+ * Batch settings are deep-merged over each script's target section, so every
+ * nested target field is optional here even when a standalone script requires
+ * it.
+ */
+export type MidsceneYamlTargetConfig = {
+  [Target in MidsceneYamlTargetKey]?: Partial<
+    NonNullable<MidsceneYamlScript[Target]>
+  >;
+};
+
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
   aiAction?: TUserPrompt | null;
@@ -343,7 +378,9 @@ export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
 export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 // Index YAML file types for batch execution
-export interface MidsceneYamlConfig {
+export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
+  /** @deprecated Use `web`, `page`, or `browser` instead. */
+  target?: Partial<MidsceneYamlScriptWebEnv>;
   concurrent?: number;
   continueOnError?: boolean;
   /**
@@ -359,13 +396,6 @@ export interface MidsceneYamlConfig {
    * not supported by bridge mode or non-Web targets.
    */
   shareBrowserContext?: boolean;
-  /** @deprecated Use `web`, `page`, or `browser` instead. */
-  target?: MidsceneYamlScriptWebEnv;
-  page?: MidsceneYamlScriptWebEnv;
-  browser?: MidsceneYamlScriptWebEnv;
-  web?: MidsceneYamlScriptWebEnv;
-  android?: MidsceneYamlScriptAndroidEnv;
-  ios?: MidsceneYamlScriptIOSEnv;
   /**
    * A setup yaml file that runs before the main `files`. A setup failure aborts
    * the whole batch and the main files are marked as not executed. Puppeteer

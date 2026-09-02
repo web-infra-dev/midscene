@@ -1388,6 +1388,46 @@ describe('BatchRunner', () => {
       expect(script.android?.deviceId).toBe('global-device');
     });
 
+    test('should merge harmony config from global config, overriding existing values', async () => {
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        files: ['harmony.yml'],
+        globalConfig: {
+          harmony: {
+            launch: 'global.bundle/GlobalAbility',
+            deviceId: 'global-harmony-device',
+            autoDismissKeyboard: true,
+          },
+        },
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
+      });
+      rs.mocked(parseYamlScript).mockReturnValue({
+        tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],
+        harmony: {
+          launch: 'file.bundle/FileAbility',
+          deviceId: 'file-harmony-device',
+          autoDismissKeyboard: false,
+          waitAfterAction: 500,
+        },
+      });
+
+      await runner.run();
+
+      const createYamlPlayerSpy = rs.mocked(createYamlPlayer);
+      const call = createYamlPlayerSpy.mock.calls[0];
+      const script = call[1]!;
+
+      expect(script.harmony).toEqual({
+        launch: 'global.bundle/GlobalAbility',
+        deviceId: 'global-harmony-device',
+        autoDismissKeyboard: true,
+        waitAfterAction: 500,
+      });
+    });
+
     test('should create web/android config if it does not exist in file config', async () => {
       const fileConfigWithoutWebAndroid = {
         tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],

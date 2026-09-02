@@ -160,6 +160,10 @@ describe('runYamlCase', () => {
         '  userAgent: file-agent',
         'android:',
         '  launch: file.app',
+        'harmony:',
+        '  launch: file.bundle/FileAbility',
+        '  autoDismissKeyboard: false',
+        '  waitAfterAction: 500',
         'tasks: []',
         '',
       ].join('\n'),
@@ -179,6 +183,11 @@ describe('runYamlCase', () => {
           android: {
             deviceId: 'global-device',
           },
+          harmony: {
+            deviceId: 'global-harmony-device',
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+          },
           ios: {
             wdaHost: 'ios-wda-host',
           },
@@ -197,6 +206,12 @@ describe('runYamlCase', () => {
           android: {
             launch: 'file.app',
             deviceId: 'global-device',
+          },
+          harmony: {
+            launch: 'global.bundle/GlobalAbility',
+            autoDismissKeyboard: true,
+            waitAfterAction: 500,
+            deviceId: 'global-harmony-device',
           },
           ios: {
             wdaHost: 'ios-wda-host',

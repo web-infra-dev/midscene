@@ -399,6 +399,18 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
       await d.destroy();
     });
+
+    it('should dismiss keyboard by default from the Input action', async () => {
+      const inputAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Input') as any;
+      const param = inputAction.paramSchema.parse({ value: 'hi' });
+
+      await inputAction.call(param);
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
   });
 
   describe('clearInput', () => {
