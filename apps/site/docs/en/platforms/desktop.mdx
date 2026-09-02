@@ -298,7 +298,7 @@ If the cursor moves to the correct position but clicks or key presses do nothing
 
 Prefer lowering the target application's privilege level first, for example by launching it without "Run as Administrator" or disabling any setting that always starts it elevated. If the target app must stay elevated, run the terminal or Node.js that launches Midscene **as Administrator** so it matches the target app's privilege level, then try again. System-level shortcuts such as `Win+Tab` are handled by the shell and keep working even when this happens, which is why keyboard shortcuts may appear to work while in-app clicks do not.
 
-> The health check logged at connection time prints this troubleshooting link when Midscene is not running as Administrator on Windows.
+> Check administrator privileges only when the cursor reaches the correct position. Midscene runs a health check when it connects to Windows. If Midscene is not running as Administrator, the health-check log prints a link to this section.
 
 ### Linux: Screenshots or interactions fail on a headless server
 

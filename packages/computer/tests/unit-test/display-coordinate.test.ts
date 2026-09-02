@@ -1,8 +1,10 @@
 import { describe, expect, it } from '@rstest/core';
 import {
   type DarwinDisplayGeometry,
+  type WindowsDisplayGeometry,
   mapDisplayLocalPointToGlobal,
   resolveDarwinDisplayGeometryFromList,
+  resolveWindowsDisplayGeometryFromList,
 } from '../../src/device';
 
 describe('display coordinate mapping', () => {
@@ -92,5 +94,43 @@ describe('macOS display geometry resolution', () => {
     expect(resolveDarwinDisplayGeometryFromList(undefined, displays)).toBe(
       displays[0],
     );
+  });
+});
+
+describe('Windows display geometry resolution', () => {
+  const displays: WindowsDisplayGeometry[] = [
+    {
+      id: '\\\\.\\DISPLAY1',
+      name: '\\\\.\\DISPLAY1',
+      primary: true,
+      bounds: { x: 0, y: 0, width: 800, height: 600 },
+    },
+    {
+      id: '\\\\.\\DISPLAY2',
+      name: '\\\\.\\DISPLAY2',
+      primary: false,
+      bounds: { x: -1200, y: -200, width: 1200, height: 900 },
+    },
+  ];
+
+  it('uses the primary Windows display by default', () => {
+    expect(resolveWindowsDisplayGeometryFromList(undefined, displays)).toBe(
+      displays[0],
+    );
+  });
+
+  it('resolves a selected display with non-zero virtual-desktop bounds', () => {
+    expect(
+      resolveWindowsDisplayGeometryFromList('\\\\.\\DISPLAY2', displays),
+    ).toBe(displays[1]);
+    expect(
+      mapDisplayLocalPointToGlobal({ x: 200, y: 300 }, displays[1]),
+    ).toEqual({ x: -1000, y: 100 });
+  });
+
+  it('does not silently fall back when a selected display is missing', () => {
+    expect(
+      resolveWindowsDisplayGeometryFromList('\\\\.\\DISPLAY9', displays),
+    ).toBeUndefined();
   });
 });

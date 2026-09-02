@@ -11,19 +11,13 @@ export interface LibNut {
   keyTap(key: string, modifiers?: string[]): void;
   typeString(text: string): void;
   getActiveWindow?(): number;
-  getWindowRect?(handle: number): WindowRect;
   focusWindow?(handle: number): void;
 }
 
 export type MouseButton = 'left' | 'right' | 'middle';
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
-export interface WindowRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+const MOUSE_COORDINATE_TOLERANCE_PX = 5;
 
 interface ComputerInputDriverOptions {
   getLibnut(): LibNut | null;
@@ -66,6 +60,24 @@ export class ComputerInputDriver {
     this.getLibnutOrThrow('moveMouse').moveMouse(x, y);
   }
 
+  assertMousePosition(
+    targetX: number,
+    targetY: number,
+    context: string,
+  ): { x: number; y: number } {
+    const current = this.getMousePos();
+    const drift = { x: current.x - targetX, y: current.y - targetY };
+    if (
+      Math.abs(drift.x) > MOUSE_COORDINATE_TOLERANCE_PX ||
+      Math.abs(drift.y) > MOUSE_COORDINATE_TOLERANCE_PX
+    ) {
+      throw new Error(
+        `${context}: expected (${targetX}, ${targetY}), got (${current.x}, ${current.y}), drift=(${drift.x}, ${drift.y})`,
+      );
+    }
+    return drift;
+  }
+
   focusActiveWindow(): boolean {
     const lib = this.getLibnutOrThrow('focusActiveWindow');
     if (
@@ -83,38 +95,6 @@ export class ComputerInputDriver {
     } catch (error) {
       this.options.debug(`focusActiveWindow failed: ${error}`);
       return false;
-    }
-  }
-
-  getActiveWindowRect(): WindowRect | null {
-    const lib = this.getLibnutOrThrow('getActiveWindowRect');
-    if (
-      typeof lib.getActiveWindow !== 'function' ||
-      typeof lib.getWindowRect !== 'function'
-    ) {
-      return null;
-    }
-
-    try {
-      const handle = lib.getActiveWindow();
-      if (!handle) return null;
-
-      const rect = lib.getWindowRect(handle);
-      if (
-        !Number.isFinite(rect.x) ||
-        !Number.isFinite(rect.y) ||
-        !Number.isFinite(rect.width) ||
-        !Number.isFinite(rect.height) ||
-        rect.width <= 0 ||
-        rect.height <= 0
-      ) {
-        return null;
-      }
-
-      return rect;
-    } catch (error) {
-      this.options.debug(`getActiveWindowRect failed: ${error}`);
-      return null;
     }
   }
 
