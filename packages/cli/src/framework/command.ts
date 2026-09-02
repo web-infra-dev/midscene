@@ -133,7 +133,8 @@ export async function runFrameworkTestConfigDetailed(
     return runConfigInMainProcess(config, commandOptions);
   }
 
-  const shouldPrintHumanOutput = commandOptions.outputMode !== 'json';
+  const isJsonOutput = commandOptions.outputMode === 'json';
+  const shouldPrintHumanOutput = !isJsonOutput;
   if (shouldPrintHumanOutput) {
     printExecutionPlan(config);
   }
@@ -147,19 +148,26 @@ export async function runFrameworkTestConfigDetailed(
     caseOptions: createCaseOptions(config),
     webRuntimeOptions: createWebRuntimeOptions(config, commandOptions),
     maxConcurrency: commandOptions.concurrent ?? config.concurrent,
-    bail: config.continueOnError ? 0 : 1,
+    // Rstest logs its bail message directly to stdout even with no reporters.
+    // In JSON mode, keep Rstest's bail disabled and let the batch executor own
+    // stop-on-error behavior so stdout remains reserved for the final result.
+    bail: isJsonOutput ? 0 : config.continueOnError ? 0 : 1,
     retry: config.retry,
-    // setup requires one orchestrated batch even when its target does not use
-    // a shared Puppeteer BrowserContext (for example Android or Computer).
+    // JSON output also uses one orchestrated batch so stop-on-error and retry
+    // semantics do not depend on Rstest's stdout-producing bail mechanism.
+    // Setup requires the same treatment even when its target does not use a
+    // shared Puppeteer BrowserContext (for example Android or Computer).
     batchConfig:
-      config.shareBrowserContext || config.setup ? config : undefined,
+      isJsonOutput || config.shareBrowserContext || config.setup
+        ? config
+        : undefined,
   });
 
   const runner = commandOptions.rstestRunner || runRstestYamlProject;
   const exitCode = await runner({
     project,
     cwd: projectDir,
-    stdio: commandOptions.outputMode === 'json' ? 'pipe' : commandOptions.stdio,
+    stdio: isJsonOutput ? 'pipe' : commandOptions.stdio,
   });
 
   const results = readProjectResults(project);

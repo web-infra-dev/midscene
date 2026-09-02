@@ -1,11 +1,11 @@
 import { runCli } from './run-cli';
 
 void runCli()
-  .then(({ exitCode, keepAlive }) => {
-    if (keepAlive) {
-      process.exitCode = exitCode;
-    } else {
+  .then(({ exitCode, termination }) => {
+    if (termination === 'force') {
       process.exit(exitCode);
+    } else {
+      process.exitCode = exitCode;
     }
   })
   .catch((error) => {

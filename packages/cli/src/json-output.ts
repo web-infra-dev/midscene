@@ -30,6 +30,7 @@ export interface CliJsonResult {
 
 export interface CliJsonRunOutput {
   schemaVersion: typeof schemaVersion;
+  kind: 'run';
   ok: boolean;
   exitCode: number;
   summary: ExecutionSummary & { path: string };
@@ -38,6 +39,7 @@ export interface CliJsonRunOutput {
 
 export interface CliJsonErrorOutput {
   schemaVersion: typeof schemaVersion;
+  kind: 'error';
   ok: false;
   exitCode: number;
   error: {
@@ -88,6 +90,7 @@ export function createCliJsonRunOutput(
 ): CliJsonRunOutput {
   return {
     schemaVersion,
+    kind: 'run',
     ok: run.exitCode === 0,
     exitCode: run.exitCode,
     summary: {
@@ -104,6 +107,7 @@ export function createCliJsonErrorOutput(
 ): CliJsonErrorOutput {
   return {
     schemaVersion,
+    kind: 'error',
     ok: false,
     exitCode,
     error: {

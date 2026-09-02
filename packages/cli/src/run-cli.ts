@@ -1,7 +1,7 @@
 import { createReportCliCommands } from '@midscene/core';
 import { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools';
 import type { BaseAgent, BaseDevice } from '@midscene/shared/agent-tools/types';
-import { runToolsCLI } from '@midscene/shared/cli';
+import { CLIError, reportCLIError, runToolsCLI } from '@midscene/shared/cli';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
@@ -25,7 +25,7 @@ export interface CliOutput {
 
 export interface CliRunOutcome {
   exitCode: number;
-  keepAlive: boolean;
+  termination: 'force' | 'natural' | 'keep-alive';
 }
 
 class ReportCommandTools extends BaseMidsceneTools<BaseAgent> {
@@ -80,13 +80,13 @@ export async function runCli(
         version,
         extraCommands: createReportCliCommands(),
       });
-      return { exitCode: 0, keepAlive: false };
+      return { exitCode: 0, termination: 'natural' };
     }
 
     if (firstArg === 'model') {
       return {
         exitCode: await runModelCommand(rawArgs),
-        keepAlive: false,
+        termination: 'force',
       };
     }
 
@@ -102,14 +102,14 @@ export async function runCli(
     }
 
     if (options.url) {
-      throw new Error(
+      throw new CLIError(
         'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
       );
     }
 
     const configFile = options.config as string | undefined;
     if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
-      throw new Error('No script path, files, or config provided');
+      throw new CLIError('No script path, files, or config provided');
     }
 
     const configOptions = {
@@ -143,7 +143,7 @@ export async function runCli(
     } else if (path) {
       const files = await matchYamlFiles(path);
       if (files.length === 0) {
-        throw new Error(`No yaml files found in ${path}`);
+        throw new CLIError(`No yaml files found in ${path}`);
       }
       if (!jsonOutput) {
         output.log('   Executing YAML files...');
@@ -152,13 +152,13 @@ export async function runCli(
     }
 
     if (!config) {
-      throw new Error('Could not create a valid configuration.');
+      throw new CLIError('Could not create a valid configuration.');
     }
     if (jsonOutput && config.keepWindow) {
-      throw new Error(JSON_KEEP_WINDOW_ERROR);
+      throw new CLIError(JSON_KEEP_WINDOW_ERROR);
     }
     if (jsonOutput && config.dotenvDebug) {
-      throw new Error(
+      throw new CLIError(
         '--json cannot be used with --dotenv-debug because dotenv debug logs are not machine-readable.',
       );
     }
@@ -184,14 +184,15 @@ export async function runCli(
 
     return {
       exitCode: run.exitCode,
-      keepAlive: config.keepWindow,
+      termination: config.keepWindow ? 'keep-alive' : 'force',
     };
   } catch (error) {
+    const exitCode = error instanceof CLIError ? error.exitCode : 1;
     if (jsonOutput) {
-      await output.writeJson(createCliJsonErrorOutput(error));
+      await output.writeJson(createCliJsonErrorOutput(error, exitCode));
     } else {
-      output.error(error);
+      reportCLIError(error, (message) => output.error(message));
     }
-    return { exitCode: 1, keepAlive: false };
+    return { exitCode, termination: 'force' };
   }
 }

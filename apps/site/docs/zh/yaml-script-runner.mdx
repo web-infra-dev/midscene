@@ -180,6 +180,7 @@ midscene ./bing-search.yaml --json | jq .
 ```json
 {
   "schemaVersion": 1,
+  "kind": "run",
   "ok": true,
   "exitCode": 0,
   "summary": {
@@ -207,7 +208,7 @@ midscene ./bing-search.yaml --json | jq .
 }
 ```
 
-如果 CLI 无法创建或序列化运行结果，stdout 仍会输出结构化错误对象，其中包含 `ok: false`、`exitCode` 以及 `error.name` / `error.message`。YAML 声明的输出文件必须存在并包含合法 JSON；否则序列化会明确失败，而不是静默返回 `null`。
+如果 CLI 无法创建或序列化运行结果，stdout 仍会输出结构化错误对象，其中包含 `kind: "error"`、`ok: false`、`exitCode` 以及 `error.name` / `error.message`。已完成的运行统一使用 `kind: "run"`（包括脚本执行失败的运行），因此消费者无需检查可选字段即可区分两种结果结构。YAML 声明的输出文件必须存在并包含合法 JSON；否则序列化会明确失败，而不是静默返回 `null`。
 
 `--json` 不能与 `--keep-window` 一起使用，因为后者会让命令保持运行；也不能与 `--dotenv-debug` 一起使用，因为 dotenv 调试信息不是机器可读数据。依赖产生的诊断警告仍可能写入 stderr，但 stdout 会保持 JSON 契约。
 

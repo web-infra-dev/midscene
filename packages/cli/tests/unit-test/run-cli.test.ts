@@ -98,6 +98,7 @@ describe('runCli', () => {
     expect(output.error).not.toHaveBeenCalled();
     expect(output.writeJson).toHaveBeenCalledWith({
       schemaVersion: 1,
+      kind: 'run',
       ok: true,
       exitCode: 0,
       summary: {
@@ -130,7 +131,7 @@ describe('runCli', () => {
     finishJsonWrite?.();
     await expect(runPromise).resolves.toEqual({
       exitCode: 0,
-      keepAlive: false,
+      termination: 'force',
     });
   });
 
@@ -150,7 +151,7 @@ describe('runCli', () => {
 
     await expect(runCli(['case.yaml'], output)).resolves.toEqual({
       exitCode: 0,
-      keepAlive: false,
+      termination: 'force',
     });
 
     expect(output.log).toHaveBeenCalledWith(
@@ -169,19 +170,51 @@ describe('runCli', () => {
     });
   });
 
+  test('prints expected human CLI errors without a stack trace', async () => {
+    const output = createOutput();
+    mocks.parseProcessArgs.mockResolvedValue({
+      options: {},
+    });
+
+    await expect(runCli([], output)).resolves.toEqual({
+      exitCode: 1,
+      termination: 'force',
+    });
+
+    expect(output.error).toHaveBeenCalledWith(
+      'No script path, files, or config provided',
+    );
+    expect(output.writeJson).not.toHaveBeenCalled();
+  });
+
+  test('lets report-tool exit naturally so its stdout can flush', async () => {
+    const output = createOutput();
+    const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      await expect(runCli(['report-tool', '--help'], output)).resolves.toEqual({
+        exitCode: 0,
+        termination: 'natural',
+      });
+    } finally {
+      consoleLog.mockRestore();
+    }
+  });
+
   test('emits a structured error when argument parsing fails in JSON mode', async () => {
     const output = createOutput();
     mocks.parseProcessArgs.mockRejectedValue(new Error('invalid arguments'));
 
     await expect(runCli(['--json'], output)).resolves.toEqual({
       exitCode: 1,
-      keepAlive: false,
+      termination: 'force',
     });
 
     expect(output.log).not.toHaveBeenCalled();
     expect(output.error).not.toHaveBeenCalled();
     expect(output.writeJson).toHaveBeenCalledWith({
       schemaVersion: 1,
+      kind: 'error',
       ok: false,
       exitCode: 1,
       error: {
@@ -218,7 +251,7 @@ describe('runCli', () => {
 
     await expect(runCli(['case.yaml', '--json'], output)).resolves.toEqual({
       exitCode: 1,
-      keepAlive: false,
+      termination: 'force',
     });
 
     expect(mocks.loadDotenvConfig).not.toHaveBeenCalled();

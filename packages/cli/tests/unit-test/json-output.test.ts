@@ -32,6 +32,7 @@ describe('CLI JSON output', () => {
         }),
       ).toEqual({
         schemaVersion: 1,
+        kind: 'run',
         ok: true,
         exitCode: 0,
         summary: {
@@ -116,6 +117,7 @@ describe('CLI JSON output', () => {
   test('creates a structured error result without exposing a stack', () => {
     expect(createCliJsonErrorOutput(new TypeError('invalid config'))).toEqual({
       schemaVersion: 1,
+      kind: 'error',
       ok: false,
       exitCode: 1,
       error: {

@@ -1,0 +1,11 @@
+page:
+  serve: ./tests/server_root
+  url: index.html
+
+tasks:
+  - name: Fail deterministically
+    flow:
+      - javascript: |
+          (function() {
+            throw new Error('intentional JSON contract failure');
+          })()

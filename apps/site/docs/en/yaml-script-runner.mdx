@@ -169,6 +169,7 @@ The command writes exactly one versioned JSON object to stdout and suppresses no
 ```json
 {
   "schemaVersion": 1,
+  "kind": "run",
   "ok": true,
   "exitCode": 0,
   "summary": {
@@ -196,7 +197,7 @@ The command writes exactly one versioned JSON object to stdout and suppresses no
 }
 ```
 
-If the CLI cannot create or serialize a run result, stdout still contains a structured error object with `ok: false`, `exitCode`, and `error.name` / `error.message`. A declared YAML output file must exist and contain valid JSON; otherwise serialization fails explicitly instead of returning a silent `null` value.
+If the CLI cannot create or serialize a run result, stdout still contains a structured error object with `kind: "error"`, `ok: false`, `exitCode`, and `error.name` / `error.message`. Completed runs use `kind: "run"`, including runs with failed scripts, so consumers can distinguish the two result shapes without inspecting optional fields. A declared YAML output file must exist and contain valid JSON; otherwise serialization fails explicitly instead of returning a silent `null` value.
 
 `--json` cannot be combined with `--keep-window`, because that command intentionally does not terminate, or with `--dotenv-debug`, because dotenv debug messages are not machine-readable. Diagnostic warnings from dependencies may still use stderr; stdout remains the JSON contract.
 

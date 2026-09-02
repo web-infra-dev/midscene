@@ -1,0 +1,9 @@
+page:
+  serve: ./tests/server_root
+  url: index.html
+
+tasks:
+  - name: Produce deterministic JSON output
+    flow:
+      - javascript: document.querySelector('h1')?.textContent
+        name: heading

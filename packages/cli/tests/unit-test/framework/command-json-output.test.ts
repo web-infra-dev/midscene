@@ -38,6 +38,11 @@ describe('framework command JSON output', () => {
           outputMode: 'json',
           rstestRunner: async ({ project, stdio }) => {
             expect(stdio).toBe('pipe');
+            expect(project.bail).toBe(0);
+            expect(project.modules).toHaveLength(1);
+            expect(project.modules[0].id).toBe(
+              'virtual:midscene-yaml/batch.test.ts',
+            );
             mkdirSync(dirname(project.cases[0].resultFile), {
               recursive: true,
             });
