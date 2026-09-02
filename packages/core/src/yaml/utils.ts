@@ -15,9 +15,7 @@ const warnUtils = getDebug('yaml:utils', { console: true });
 
 const topLevelTasksPattern = /^tasks\s*:/;
 const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
-const androidBlockStartPattern = /^android\s*:\s*(?:#.*)?$/;
-const numericDeviceIdPattern =
-  /^(\s*deviceId\s*:\s*)(\d+)((?:[^\S\r\n]+#.*|[^\S\r\n]*))$/;
+const plainDecimalScalarPattern = /^\d+$/;
 
 export type WebTargetSource = 'page' | 'browser' | 'web' | 'target';
 
@@ -236,57 +234,71 @@ function interpolateYamlScriptEnvVars(content: string): string {
     .join('\n');
 }
 
-function quoteNumericAndroidDeviceIds(content: string): {
-  content: string;
-  exampleDeviceId?: string;
+function loadYamlPreservingNumericAndroidDeviceId(content: string): {
+  script: MidsceneYamlScript;
+  normalizedDeviceId?: string;
 } {
-  let inAndroidBlock = false;
-  let propertyIndent: number | undefined;
-  let exampleDeviceId: string | undefined;
+  const nodeStartPositions: number[] = [];
+  const decimalScalarRanges: Array<{ start: number; end: number }> = [];
+  const script = yaml.load(content, {
+    schema: yaml.JSON_SCHEMA,
+    listener(eventType, state) {
+      if (eventType === 'open') {
+        nodeStartPositions.push(state.position);
+        return;
+      }
 
-  const normalizedLines = content.split(/(?<=\n)/).map((line) => {
-    const lineEnding = line.endsWith('\r\n')
-      ? '\r\n'
-      : line.endsWith('\n')
-        ? '\n'
-        : '';
-    const lineContent = line.slice(0, line.length - lineEnding.length);
-    const trimmedLine = lineContent.trimStart();
+      const nodeStart = nodeStartPositions.pop();
+      if (
+        nodeStart === undefined ||
+        state.kind !== 'scalar' ||
+        typeof state.result !== 'number'
+      ) {
+        return;
+      }
 
-    if (!trimmedLine || trimmedLine.startsWith('#')) {
-      return line;
-    }
+      const scalarSource = content.slice(nodeStart, state.position);
+      const rawScalar = scalarSource.trim();
+      if (!plainDecimalScalarPattern.test(rawScalar)) {
+        return;
+      }
 
-    const indent = lineContent.length - trimmedLine.length;
-    if (indent === 0) {
-      inAndroidBlock = androidBlockStartPattern.test(lineContent);
-      propertyIndent = undefined;
-      return line;
-    }
+      const rawScalarOffset = scalarSource.indexOf(rawScalar);
+      const start = nodeStart + rawScalarOffset;
+      decimalScalarRanges.push({ start, end: start + rawScalar.length });
+    },
+  }) as MidsceneYamlScript;
 
-    if (!inAndroidBlock) {
-      return line;
-    }
+  const androidTarget = script.android;
+  if (
+    typeof androidTarget?.deviceId !== 'number' ||
+    decimalScalarRanges.length === 0
+  ) {
+    return { script };
+  }
 
-    propertyIndent ??= indent;
-    if (indent !== propertyIndent) {
-      return line;
-    }
+  // js-yaml converts numeric scalars before returning them, which loses leading
+  // zeros and unsafe integer digits. Build a shadow parse where plain decimal
+  // scalar tokens are quoted, then read the exact value through YAML's own
+  // mapping and alias semantics instead of reconstructing those semantics here.
+  const contentWithQuotedDecimals = decimalScalarRanges.reduceRight(
+    (result, { start, end }) =>
+      `${result.slice(0, start)}'${result.slice(start, end)}'${result.slice(end)}`,
+    content,
+  );
+  const stringScalarView = yaml.load(contentWithQuotedDecimals, {
+    schema: yaml.JSON_SCHEMA,
+  }) as MidsceneYamlScript;
+  const rawDeviceId = stringScalarView.android?.deviceId;
+  if (
+    typeof rawDeviceId !== 'string' ||
+    !plainDecimalScalarPattern.test(rawDeviceId)
+  ) {
+    return { script };
+  }
 
-    const match = numericDeviceIdPattern.exec(lineContent);
-    if (!match) {
-      return line;
-    }
-
-    const [, prefix, deviceId, suffix] = match;
-    exampleDeviceId ??= deviceId;
-    return `${prefix}'${deviceId}'${suffix}${lineEnding}`;
-  });
-
-  return {
-    content: normalizedLines.join(''),
-    exampleDeviceId,
-  };
+  androidTarget.deviceId = rawDeviceId;
+  return { script, normalizedDeviceId: rawDeviceId };
 }
 
 export function parseYamlScript(
@@ -294,29 +306,30 @@ export function parseYamlScript(
   filePath?: string,
 ): MidsceneYamlScript {
   const interpolatedContent = interpolateYamlScriptEnvVars(content);
-  const normalizedDeviceIds = quoteNumericAndroidDeviceIds(interpolatedContent);
-  if (normalizedDeviceIds.exampleDeviceId) {
+  const { script, normalizedDeviceId } =
+    loadYamlPreservingNumericAndroidDeviceId(interpolatedContent);
+  if (normalizedDeviceId) {
     warnUtils(
-      `Numeric Android deviceId values are treated as strings. Quote deviceId in YAML, for example: deviceId: "${normalizedDeviceIds.exampleDeviceId}".`,
+      `Numeric Android deviceId values are treated as strings. Quote deviceId in YAML, for example: deviceId: "${normalizedDeviceId}".`,
     );
   }
-  const obj = yaml.load(normalizedDeviceIds.content, {
-    schema: yaml.JSON_SCHEMA,
-  }) as MidsceneYamlScript;
 
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   assert(
-    obj.android?.deviceId === undefined ||
-      typeof obj.android.deviceId === 'string',
+    script.android?.deviceId === undefined ||
+      typeof script.android.deviceId === 'string',
     `property "android.deviceId" must be a string in yaml script${pathTip}`,
   );
-  resolveWebTarget(obj);
-  assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
+  resolveWebTarget(script);
   assert(
-    Array.isArray(obj.tasks),
-    `property "tasks" must be an array in yaml script, but got ${obj.tasks}`,
+    script.tasks,
+    `property "tasks" is required in yaml script ${pathTip}`,
   );
-  return obj;
+  assert(
+    Array.isArray(script.tasks),
+    `property "tasks" must be an array in yaml script, but got ${script.tasks}`,
+  );
+  return script;
 }
 
 export function buildDetailedLocateParam(

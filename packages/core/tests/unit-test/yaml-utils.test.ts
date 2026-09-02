@@ -1,5 +1,5 @@
 import { parseYamlScript } from '@/yaml/utils';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const tasks = `tasks:
   - name: Noop
@@ -8,11 +8,11 @@ const tasks = `tasks:
 
 describe('parseYamlScript Android deviceId normalization', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    rs.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     Reflect.deleteProperty(process.env, 'ANDROID_DEVICE_ID');
   });
 
@@ -40,6 +40,37 @@ ${tasks}`);
         '      - sleep: 0',
       ].join('\r\n'),
     );
+
+    expect(script.android?.deviceId).toBe('00012345678901234567890');
+  });
+
+  it.each([
+    [
+      'a flow mapping',
+      `android: { deviceId: 00012345678901234567890 }
+tasks: []`,
+    ],
+    [
+      'an anchored mapping',
+      `android: &phone
+  deviceId: 00012345678901234567890
+tasks: []`,
+    ],
+    [
+      'an aliased mapping',
+      `phone: &phone
+  deviceId: 00012345678901234567890
+android: *phone
+tasks: []`,
+    ],
+    [
+      'an indented document root',
+      `  android:
+    deviceId: 00012345678901234567890
+  tasks: []`,
+    ],
+  ])('preserves a numeric deviceId in %s', (_name, yamlContent) => {
+    const script = parseYamlScript(yamlContent);
 
     expect(script.android?.deviceId).toBe('00012345678901234567890');
   });
