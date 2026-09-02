@@ -405,40 +405,27 @@
 
 .home-section-divider {
   position: relative;
-  display: flex;
   width: 1200px;
-  height: 8px;
-  align-items: center;
-  color: rgb(16 24 40 / 25%);
+  height: 7.5px;
   pointer-events: none;
 }
 
-.dark .home-section-divider {
-  color: rgb(255 255 255 / 25%);
+.home-section-divider__asset {
+  display: block;
+  width: 100%;
+  height: 7.5px;
 }
 
-.home-section-divider__line {
-  height: 1px;
-  flex: 1 1 auto;
-  background: currentcolor;
+.home-section-divider__asset--dark {
+  display: none;
 }
 
-.home-section-divider__plus {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  box-sizing: border-box;
-  transform: translateY(-50%);
+.dark .home-section-divider__asset--light {
+  display: none;
 }
 
-.home-section-divider__plus:first-child {
-  left: -18px;
-}
-
-.home-section-divider__plus:last-child {
-  right: -18px;
+.dark .home-section-divider__asset--dark {
+  display: block;
 }
 
 .home-hero__divider {
@@ -450,7 +437,7 @@
 }
 
 .home-feature__divider {
-  height: 8px;
+  height: 7.5px;
   margin-inline: auto;
 }
 
@@ -791,13 +778,7 @@
   height: 346px;
 }
 
-.home-feature--platforms .home-feature-card:first-child {
-  border-color: #d1dfff;
-  background: rgb(23 97 255 / 6%);
-}
-
-.dark .home-feature-card,
-.dark .home-feature--platforms .home-feature-card:first-child {
+.dark .home-feature-card {
   border-color: rgb(255 255 255 / 8%);
   background: #111;
 }
@@ -891,6 +872,13 @@
   display: flex;
 }
 
+.home-feature--toolkit .home-feature-card__theme {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
 .home-feature-card__asset {
   display: block;
   max-width: calc(100% - 32px);
@@ -909,8 +897,8 @@
 }
 
 .home-feature-card__asset--tool {
-  width: 64px;
-  height: 64px;
+  width: 40px;
+  height: 40px;
 }
 
 .home-feature-card__phones {
