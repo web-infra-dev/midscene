@@ -137,6 +137,29 @@ const LIBNUT_FALLBACK_PIXELS_PER_DETENT = 100;
 const LIBNUT_FALLBACK_TICK_DELAY_MS = 30;
 const LIBNUT_FALLBACK_MAX_DETENTS = 200;
 const LIBNUT_FALLBACK_DETENT_AMOUNT = process.platform === 'win32' ? 120 : 1;
+const LINUX_SHIFTED_CHARACTER_KEYS = new Map<string, string>([
+  ['~', '`'],
+  ['!', '1'],
+  ['@', '2'],
+  ['#', '3'],
+  ['$', '4'],
+  ['%', '5'],
+  ['^', '6'],
+  ['&', '7'],
+  ['*', '8'],
+  ['(', '9'],
+  [')', '0'],
+  ['_', '-'],
+  ['+', '='],
+  ['{', '['],
+  ['}', ']'],
+  ['|', '\\'],
+  [':', ';'],
+  ['"', "'"],
+  ['<', ','],
+  ['>', '.'],
+  ['?', '/'],
+]);
 // Edge scrolls (scrollToTop / scrollToBottom / ...) must drive all the way to
 // the boundary on every backend. The phased path requests EDGE_SCROLL_TOTAL_PX
 // (50_000 px); the libnut fallback aims for the same distance, capped at
@@ -1410,14 +1433,20 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       text.replace(/\r\n?/g, '\n'),
       {
         sendCharacter: (character) => {
+          const linuxShiftedKey =
+            process.platform === 'linux'
+              ? LINUX_SHIFTED_CHARACTER_KEYS.get(character)
+              : undefined;
           if (character === '\n') {
-            this.inputDriver.sendKey('enter');
+            this.inputDriver.sendKey('return');
           } else if (character === '\t') {
             this.inputDriver.sendKey('tab');
           } else if (character === ' ') {
             this.inputDriver.sendKey('space');
           } else if (this.useAppleScript) {
             this.inputDriver.sendKeyViaAppleScript(character);
+          } else if (linuxShiftedKey !== undefined) {
+            this.inputDriver.keyTap(linuxShiftedKey, ['shift']);
           } else {
             this.inputDriver.typeString(character);
           }
