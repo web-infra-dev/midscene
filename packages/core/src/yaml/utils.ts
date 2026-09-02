@@ -239,7 +239,10 @@ function loadYamlPreservingNumericAndroidDeviceId(content: string): {
   normalizedDeviceId?: string;
 } {
   const nodeStartPositions: number[] = [];
-  const decimalScalarRanges: Array<{ start: number; end: number }> = [];
+  const decimalScalarRangesByKey = new Map<
+    string,
+    { start: number; end: number }
+  >();
   const script = yaml.load(content, {
     schema: yaml.JSON_SCHEMA,
     listener(eventType, state) {
@@ -258,21 +261,29 @@ function loadYamlPreservingNumericAndroidDeviceId(content: string): {
       }
 
       const scalarSource = content.slice(nodeStart, state.position);
-      const rawScalar = scalarSource.trim();
-      if (!plainDecimalScalarPattern.test(rawScalar)) {
+      const decimalMatch = /(\d+)\s*$/.exec(scalarSource);
+      if (!decimalMatch) {
         return;
       }
 
-      const rawScalarOffset = scalarSource.indexOf(rawScalar);
-      const start = nodeStart + rawScalarOffset;
-      decimalScalarRanges.push({ start, end: start + rawScalar.length });
+      // js-yaml includes an anchor declared on a scalar in the listener range.
+      // Accept that one YAML property, but keep explicit numeric tags numeric.
+      const scalarPrefix = scalarSource.slice(0, decimalMatch.index).trim();
+      if (scalarPrefix && !/^&[^\s,[\]{}]+$/.test(scalarPrefix)) {
+        return;
+      }
+
+      const rawScalar = decimalMatch[1];
+      const start = nodeStart + decimalMatch.index;
+      const end = start + rawScalar.length;
+      decimalScalarRangesByKey.set(`${start}:${end}`, { start, end });
     },
   }) as MidsceneYamlScript;
 
   const androidTarget = script.android;
   if (
     typeof androidTarget?.deviceId !== 'number' ||
-    decimalScalarRanges.length === 0
+    decimalScalarRangesByKey.size === 0
   ) {
     return { script };
   }
@@ -281,11 +292,22 @@ function loadYamlPreservingNumericAndroidDeviceId(content: string): {
   // zeros and unsafe integer digits. Build a shadow parse where plain decimal
   // scalar tokens are quoted, then read the exact value through YAML's own
   // mapping and alias semantics instead of reconstructing those semantics here.
-  const contentWithQuotedDecimals = decimalScalarRanges.reduceRight(
-    (result, { start, end }) =>
-      `${result.slice(0, start)}'${result.slice(start, end)}'${result.slice(end)}`,
-    content,
+  // A block-sequence scalar can produce duplicate listener events. De-duplicate
+  // those ranges, then quote every token in one pass so offsets stay stable.
+  const decimalScalarRanges = [...decimalScalarRangesByKey.values()].sort(
+    (left, right) => left.start - right.start,
   );
+  const quotedContentParts: string[] = [];
+  let cursor = 0;
+  for (const { start, end } of decimalScalarRanges) {
+    quotedContentParts.push(
+      content.slice(cursor, start),
+      `'${content.slice(start, end)}'`,
+    );
+    cursor = end;
+  }
+  quotedContentParts.push(content.slice(cursor));
+  const contentWithQuotedDecimals = quotedContentParts.join('');
   const stringScalarView = yaml.load(contentWithQuotedDecimals, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;

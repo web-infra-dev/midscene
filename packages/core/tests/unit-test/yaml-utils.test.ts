@@ -64,6 +64,19 @@ android: *phone
 tasks: []`,
     ],
     [
+      'an anchored scalar',
+      `android:
+  deviceId: &serial 00012345678901234567890
+tasks: []`,
+    ],
+    [
+      'an aliased scalar',
+      `serial: &serial 00012345678901234567890
+android:
+  deviceId: *serial
+tasks: []`,
+    ],
+    [
       'an indented document root',
       `  android:
     deviceId: 00012345678901234567890
@@ -104,5 +117,17 @@ ${tasks}`);
 
     expect(script.android?.deviceId).toBe('123');
     expect(Reflect.get(script.ios ?? {}, 'deviceId')).toBe(456);
+  });
+
+  it('does not corrupt numeric scalars in block sequences', () => {
+    const script = parseYamlScript(`android:
+  deviceId: 00012345678901234567890
+retryDelays:
+  - 10
+  - 20
+${tasks}`);
+
+    expect(script.android?.deviceId).toBe('00012345678901234567890');
+    expect(Reflect.get(script, 'retryDelays')).toEqual([10, 20]);
   });
 });
