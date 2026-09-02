@@ -7,7 +7,8 @@ import {
 const noopPushServer: ScrcpyServerPusher = async () => {};
 const createManager = (
   adb: ConstructorParameters<typeof ScrcpyScreenshotManager>[0],
-) => new ScrcpyScreenshotManager(adb, noopPushServer);
+  options: ConstructorParameters<typeof ScrcpyScreenshotManager>[2] = {},
+) => new ScrcpyScreenshotManager(adb, noopPushServer, options);
 
 const prepareEstablishedStaleManager = (
   manager: ScrcpyScreenshotManager,
@@ -166,7 +167,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(waitForNextKeyframe).toHaveBeenCalledTimes(1);
   });
 
-  it('waits up to 500ms after a successful reset control write', async () => {
+  it('waits up to 800ms after a successful reset control write by default', async () => {
     rs.useFakeTimers();
     rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
     const resetVideo = rs.fn().mockImplementation(
@@ -205,7 +206,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
                   streamEpoch: (manager as any).streamEpoch,
                   capturedAt: Date.now(),
                 }),
-              450,
+              650,
             );
           }),
       );
@@ -218,12 +219,12 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(waitForNextKeyframe).toHaveBeenCalledTimes(1);
     await rs.advanceTimersByTimeAsync(1);
     expect(waitForNextKeyframe).toHaveBeenCalledTimes(2);
-    await rs.advanceTimersByTimeAsync(449);
+    await rs.advanceTimersByTimeAsync(649);
     expect(close).not.toHaveBeenCalled();
     await rs.advanceTimersByTimeAsync(1);
 
     await expect(capture).resolves.toEqual(jpegFrame());
-    expect(waitForNextKeyframe.mock.calls[1][0]).toBe(500);
+    expect(waitForNextKeyframe.mock.calls[1][0]).toBe(800);
     expect(close).not.toHaveBeenCalled();
   });
 
@@ -356,7 +357,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('reports when a successful reset produces no data frames within 500ms', async () => {
+  it('reports when a successful reset produces no data frames within 800ms', async () => {
     rs.useFakeTimers();
     rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
     const resetVideo = rs.fn().mockResolvedValue(undefined);
@@ -368,7 +369,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
 
     const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
       name: 'ScrcpyFreshFrameUnavailableError',
-      timeoutMs: 500,
+      timeoutMs: 800,
       message: expect.stringContaining(
         'no data packets were observed while reset recovery was active',
       ),
@@ -382,7 +383,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(resetVideo).toHaveBeenCalledTimes(1);
     expect(disconnect).not.toHaveBeenCalled();
 
-    await rs.advanceTimersByTimeAsync(499);
+    await rs.advanceTimersByTimeAsync(799);
     expect(disconnect).not.toHaveBeenCalled();
     await rs.advanceTimersByTimeAsync(1);
 
@@ -394,7 +395,9 @@ describe('ScrcpyScreenshotManager video reset', () => {
     rs.useFakeTimers();
     rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
     const resetVideo = rs.fn().mockResolvedValue(undefined);
-    const manager = createManager({} as any);
+    const manager = createManager({} as any, {
+      videoResetFrameTimeoutMs: 950,
+    });
     prepareEstablishedStaleManager(manager, resetVideo, {
       hostWallTimeMs: Date.now(),
     });
@@ -402,7 +405,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
 
     const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
       name: 'ScrcpyFreshFrameUnavailableError',
-      timeoutMs: 500,
+      timeoutMs: 950,
       message: expect.stringContaining(
         '1 data packet was observed while reset recovery was active',
       ),
@@ -410,7 +413,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
     await rs.advanceTimersByTimeAsync(10);
     (manager as any).processFrame(spsPacket());
     (manager as any).processFrame(dataPacket(0x01, 2_005_000n));
-    await rs.advanceTimersByTimeAsync(500);
+    await rs.advanceTimersByTimeAsync(950);
 
     await capture;
     expect(resetVideo).toHaveBeenCalledTimes(1);

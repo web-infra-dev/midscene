@@ -30,7 +30,7 @@ const FRESH_FRAME_TIMEOUT_MS = 300;
 const VIDEO_RESET_DELAY_MS = 10;
 // RESET_VIDEO is only a control-channel write. Once the write succeeds, give
 // the restarted encoder its own budget to emit configuration and an IDR frame.
-const VIDEO_RESET_FRAME_TIMEOUT_MS = 500;
+const DEFAULT_VIDEO_RESET_FRAME_TIMEOUT_MS = 800;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const MAX_SERVER_OUTPUT_LINES = 100;
@@ -51,12 +51,14 @@ export const DEFAULT_SCRCPY_CONFIG = {
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
   videoBitRate: DEFAULT_VIDEO_BIT_RATE,
+  videoResetFrameTimeoutMs: DEFAULT_VIDEO_RESET_FRAME_TIMEOUT_MS,
 } as const;
 
 export interface ScrcpyScreenshotOptions {
   maxSize?: number;
   videoBitRate?: number;
   idleTimeoutMs?: number;
+  videoResetFrameTimeoutMs?: number;
 }
 
 /** Transfers the local scrcpy server binary to its device path. */
@@ -225,6 +227,7 @@ interface ResolvedScrcpyOptions {
   maxSize: number;
   videoBitRate: number;
   idleTimeoutMs: number;
+  videoResetFrameTimeoutMs: number;
 }
 
 interface VideoResetState {
@@ -301,6 +304,9 @@ export class ScrcpyScreenshotManager {
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
       videoBitRate: clampedBitRate,
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
+      videoResetFrameTimeoutMs:
+        options.videoResetFrameTimeoutMs ??
+        DEFAULT_VIDEO_RESET_FRAME_TIMEOUT_MS,
     };
   }
 
@@ -1412,9 +1418,9 @@ export class ScrcpyScreenshotManager {
         try {
           await this.requestVideoReset(deadline);
           videoResetWritten = true;
-          deadline = Date.now() + VIDEO_RESET_FRAME_TIMEOUT_MS;
+          deadline = Date.now() + this.options.videoResetFrameTimeoutMs;
           debugScrcpy(
-            `Scrcpy video reset control write completed; waiting up to ${VIDEO_RESET_FRAME_TIMEOUT_MS}ms for a post-reset frame`,
+            `Scrcpy video reset control write completed; waiting up to ${this.options.videoResetFrameTimeoutMs}ms for a post-reset frame`,
           );
         } catch (resetError) {
           // Preserve the rest of the original 300ms window. A natural frame
@@ -1431,17 +1437,15 @@ export class ScrcpyScreenshotManager {
   }
 
   private createVideoResetFrameTimeoutError(): ScrcpyFrameWaitTimeoutError {
+    const timeoutMs = this.options.videoResetFrameTimeoutMs;
     const dataPacketsSeen = this.videoResetState?.dataPacketsSeen ?? 0;
     const observation =
       dataPacketsSeen === 0
         ? 'no data packets were observed while reset recovery was active'
         : `${dataPacketsSeen} data packet${dataPacketsSeen === 1 ? ' was' : 's were'} observed while reset recovery was active`;
-    const message = `Scrcpy video reset produced no usable fresh keyframe within the ${VIDEO_RESET_FRAME_TIMEOUT_MS}ms post-reset window; ${observation}`;
+    const message = `Scrcpy video reset produced no usable fresh keyframe within the ${timeoutMs}ms post-reset window; ${observation}`;
     debugScrcpy(message);
-    return new ScrcpyFrameWaitTimeoutError(
-      message,
-      VIDEO_RESET_FRAME_TIMEOUT_MS,
-    );
+    return new ScrcpyFrameWaitTimeoutError(message, timeoutMs);
   }
 
   private async closeStaleStreamAndCreateFallbackError(
