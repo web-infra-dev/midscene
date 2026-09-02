@@ -119,7 +119,7 @@ export const buildLocateFieldDescription = (
   return '{ prompt: string /* description of the target element */ }';
 };
 
-const serializeActionParam = (
+export const serializePlanningActionParam = (
   param: Record<string, unknown>,
   locateFields: string[],
   locateResultKey: string,
@@ -170,7 +170,7 @@ export const buildPlanningActionOutput = ({
 ${
   // Keep locate result arrays on one line when serializing action examples.
   locateFields && locateResultKey
-    ? serializeActionParam(param, locateFields, locateResultKey)
+    ? serializePlanningActionParam(param, locateFields, locateResultKey)
     : JSON.stringify(param, null, 2)
 }
 </action-param-json>`;

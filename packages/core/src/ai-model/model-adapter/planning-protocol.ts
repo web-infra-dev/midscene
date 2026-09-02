@@ -49,6 +49,11 @@ export type PlanningActionSpaceProtocol = {
   buildActionDescription: (
     input: PlanningActionDescriptionBuildInput,
   ) => unknown;
+  /** Override the final action-space envelope while reusing action builders. */
+  serializeActionDescriptions?: (
+    actionDescriptions: unknown[],
+    format: PlanningActionSpaceFormat,
+  ) => string;
 };
 
 export type StandardPlanningProtocol = {

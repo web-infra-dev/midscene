@@ -91,6 +91,37 @@ describe('qwen model adapter', () => {
     );
   });
 
+  it('uses Qwen tool_call planning only for the qwen3 family', () => {
+    if (
+      qwen3Adapter.planning.kind !== 'standard' ||
+      qwen35Adapter.planning.kind !== 'standard' ||
+      qwen36Adapter.planning.kind !== 'standard' ||
+      qwen3VlAdapter.planning.kind !== 'standard'
+    ) {
+      throw new Error('qwen should use standard planning protocols');
+    }
+
+    expect(
+      qwen3Adapter.planning.protocol.actionOutputProtocol.actionOutputTagNames,
+    ).toEqual(['tool_call']);
+    expect(
+      qwen3Adapter.planning.protocol.actionOutputProtocol.buildActionOutput({
+        actionName: 'Tap',
+        param: {},
+      }),
+    ).toContain('<function=computer_use>');
+    expect(
+      qwen3VlAdapter.planning.protocol.actionOutputProtocol
+        .actionOutputTagNames,
+    ).toEqual(['action-type', 'action-param-json']);
+    expect(
+      qwen35Adapter.planning.protocol.actionOutputProtocol.actionOutputTagNames,
+    ).toEqual(['action-type', 'action-param-json']);
+    expect(
+      qwen36Adapter.planning.protocol.actionOutputProtocol.actionOutputTagNames,
+    ).toEqual(['action-type', 'action-param-json']);
+  });
+
   it('keeps model-specific image preprocess policy in the adapter', () => {
     expect(qwen25Adapter.imagePreprocess).toEqual({
       padBlockSize: 28,

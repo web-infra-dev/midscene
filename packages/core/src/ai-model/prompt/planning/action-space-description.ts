@@ -57,7 +57,11 @@ export const buildPlanningActionSpaceDescription = ({
     });
   });
 
-  return serializeActionDescriptions(
+  const serialize =
+    planningProtocol.actionSpaceProtocol.serializeActionDescriptions ??
+    serializeActionDescriptions;
+
+  return serialize(
     actionDescriptions,
     planningProtocol.actionSpaceProtocol.format,
   );

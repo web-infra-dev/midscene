@@ -11,6 +11,7 @@ import {
   isBboxLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
+import { createQwenComputerUsePlanningProtocol } from './qwen-planning-protocol';
 
 const defaultBboxSize = 20;
 const qwen25BboxCoordinatesMeta = {
@@ -156,6 +157,13 @@ const qwen3Adapter: ModelAdapterDefinition = {
   },
 };
 
+const qwen3ComputerUseAdapter: ModelAdapterDefinition = {
+  ...qwen3Adapter,
+  planning: {
+    protocol: createQwenComputerUsePlanningProtocol,
+  },
+};
+
 export const qwenAdapters = {
   'qwen2.5-vl': {
     acceptBbox2dAlias: true,
@@ -181,7 +189,7 @@ export const qwenAdapters = {
     },
   },
   'qwen3-vl': qwen3Adapter,
-  qwen3: qwen3Adapter,
+  qwen3: qwen3ComputerUseAdapter,
   'qwen3.5': qwen3Adapter,
   'qwen3.6': qwen3Adapter,
 } satisfies Pick<

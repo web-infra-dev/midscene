@@ -120,4 +120,43 @@ describe('buildPlanningActionSpaceDescription', () => {
     ).toBe('{"name":"Tap"}');
     expect(buildActionOutput).not.toHaveBeenCalled();
   });
+
+  it('uses the protocol action description serializer when provided', () => {
+    const serializeActionDescriptions = rs.fn(() => 'SERIALIZED_ACTIONS');
+    const planningProtocol: StandardPlanningProtocol = {
+      actionSpaceProtocol: {
+        title: 'Functions',
+        format: 'jsonl',
+        includeActionOutputExample: false,
+        buildLocateFieldDescription: () => 'LOCATE_FIELD',
+        buildActionDescription: ({ action }) => ({ type: action.name }),
+        serializeActionDescriptions,
+      },
+      actionOutputProtocol: {
+        actionOutputTagNames: ['tool'],
+        actionOutputRules: 'Return a tool.',
+        actionOutputPlaceholder: '<tool>...</tool>',
+        buildActionOutput: () => '<tool>Tap</tool>',
+        parseActionOutput: () => null,
+        parseRawLocateParameter: (value) =>
+          value as ParsedPlanningLocateParameter,
+      },
+    };
+
+    expect(
+      buildPlanningActionSpaceDescription({
+        actionSpace: [
+          {
+            name: 'Tap',
+            call: async () => {},
+          },
+        ],
+        planningProtocol,
+      }),
+    ).toBe('SERIALIZED_ACTIONS');
+    expect(serializeActionDescriptions).toHaveBeenCalledWith(
+      [{ type: 'Tap' }],
+      'jsonl',
+    );
+  });
 });
