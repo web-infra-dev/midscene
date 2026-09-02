@@ -51,8 +51,53 @@ describe('Input Strategy', () => {
     await device.inputPrimitives.keyboard!.typeText('a \r\n\tb');
 
     expect(typeString.mock.calls).toEqual([['a'], ['b']]);
-    expect(sendKey.mock.calls).toEqual([['space'], ['enter'], ['tab']]);
+    expect(sendKey.mock.calls).toEqual([['space'], ['return'], ['tab']]);
   });
+
+  it.runIf(process.platform === 'linux')(
+    'types shifted punctuation with explicit Shift key taps on Linux',
+    async () => {
+      const device = new ComputerDevice({
+        keyboardDriver: 'libnut',
+        keyboardTypeDelay: 1,
+      });
+      const inputDriver = (device as any).inputDriver;
+      const typeString = rs
+        .spyOn(inputDriver, 'typeString')
+        .mockImplementation(() => {});
+      const keyTap = rs
+        .spyOn(inputDriver, 'keyTap')
+        .mockImplementation(() => {});
+      rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+
+      await device.inputPrimitives.keyboard!.typeText(`~!@#$%^&*()_+{}|:"<>?`);
+
+      expect(typeString).not.toHaveBeenCalled();
+      expect(keyTap.mock.calls).toEqual([
+        ['`', ['shift']],
+        ['1', ['shift']],
+        ['2', ['shift']],
+        ['3', ['shift']],
+        ['4', ['shift']],
+        ['5', ['shift']],
+        ['6', ['shift']],
+        ['7', ['shift']],
+        ['8', ['shift']],
+        ['9', ['shift']],
+        ['0', ['shift']],
+        ['-', ['shift']],
+        ['=', ['shift']],
+        ['[', ['shift']],
+        [']', ['shift']],
+        ['\\', ['shift']],
+        [';', ['shift']],
+        ["'", ['shift']],
+        [',', ['shift']],
+        ['.', ['shift']],
+        ['/', ['shift']],
+      ]);
+    },
+  );
 
   it('lets an action-level zero disable the device delay', async () => {
     const device = new ComputerDevice({ keyboardTypeDelay: 80 });
