@@ -1708,5 +1708,22 @@ afterAll:
     expect(() =>
       parseTestCliArgs(['describe-nodes', '--project', 'ios']),
     ).toThrow('--project is not supported by describe-nodes');
+    expect(
+      parseTestCliArgs(
+        ['migrate', 'legacy', '--output-dir', 'migrated'],
+        '/workspace',
+      ),
+    ).toEqual({
+      command: 'migrate',
+      cwd: '/workspace',
+      migrationSource: '/workspace/legacy',
+      migrationOutputDir: '/workspace/migrated',
+    });
+    expect(() => parseTestCliArgs(['migrate', 'legacy'])).toThrow(
+      'migrate requires --output-dir <directory>',
+    );
+    expect(() => parseTestCliArgs(['--output-dir', 'migrated'])).toThrow(
+      '--output-dir is only supported by migrate',
+    );
   });
 });
