@@ -22,6 +22,7 @@ import type {
   AiActEffort,
   AiActProgressData,
   AiActProgressPhase,
+  DetailedLocateParam,
   DeviceAction,
   ExecutionRecorderItem,
   ExecutionTask,
@@ -33,7 +34,6 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
-  PlanningLocateParam,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -431,7 +431,7 @@ export class TaskExecutor {
         task.subType === 'Locate' &&
         task.hitBy?.from === 'Cache'
       ) {
-        const prompt = (task.param as PlanningLocateParam | undefined)?.prompt;
+        const prompt = (task.param as DetailedLocateParam | undefined)?.prompt;
         if (prompt) {
           this.taskCache.markLocateCacheStale(prompt);
         }

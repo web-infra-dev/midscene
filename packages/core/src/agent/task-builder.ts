@@ -16,7 +16,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningLocateParam,
   Rect,
   ServiceDump,
 } from '@/types';
@@ -28,7 +27,7 @@ import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
-  ifPlanLocateParamHasLocatedPixelBbox,
+  ifLocateParamHasLocatedPixelBbox,
   matchElementFromCache,
   matchElementFromPlan,
   transformLogicalElementToScreenshot,
@@ -90,7 +89,7 @@ function normalizeLocateParam(
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = normalizeLocateParam(param);
-  const locatePlan: PlanningAction<PlanningLocateParam> = {
+  const locatePlan: PlanningAction<DetailedLocateParam> = {
     type: 'Locate',
     param: locate,
     thought: '',
@@ -171,7 +170,7 @@ export class TaskBuilder {
         'Locate',
         (plan) =>
           this.handleLocatePlan(
-            plan as PlanningAction<PlanningLocateParam>,
+            plan as PlanningAction<DetailedLocateParam>,
             context,
           ),
       ],
@@ -206,7 +205,7 @@ export class TaskBuilder {
   }
 
   private async handleLocatePlan(
-    plan: PlanningAction<PlanningLocateParam>,
+    plan: PlanningAction<DetailedLocateParam>,
     context: PlanBuildContext,
   ): Promise<void> {
     const taskLocate = this.createLocateTask(plan, plan.param, context);
@@ -239,7 +238,7 @@ export class TaskBuilder {
           `action.type=${planType}`,
           `param=${JSON.stringify(param[field])}`,
           `locatePlan=${JSON.stringify(locatePlan)}`,
-          `hasLocatedPixelBbox=${ifPlanLocateParamHasLocatedPixelBbox(param[field])}`,
+          `hasLocatedPixelBbox=${ifLocateParamHasLocatedPixelBbox(param[field])}`,
         );
         const locateTask = this.createLocateTask(
           locatePlan,
@@ -389,7 +388,7 @@ export class TaskBuilder {
   }
 
   private createLocateTask(
-    plan: PlanningAction<PlanningLocateParam>,
+    plan: PlanningAction<DetailedLocateParam>,
     detailedLocateParam: DetailedLocateParam | string,
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
@@ -420,7 +419,7 @@ export class TaskBuilder {
       executor: async (taskContext) => {
         const { task } = taskContext;
         let { uiContext } = taskContext;
-        const paramWithLocatedPixelBbox = ifPlanLocateParamHasLocatedPixelBbox(
+        const paramWithLocatedPixelBbox = ifLocateParamHasLocatedPixelBbox(
           locateParam,
         )
           ? locateParam
