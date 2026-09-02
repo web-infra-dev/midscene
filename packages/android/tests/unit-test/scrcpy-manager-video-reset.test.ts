@@ -166,6 +166,67 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(waitForNextKeyframe).toHaveBeenCalledTimes(1);
   });
 
+  it('waits up to 500ms after a successful reset control write', async () => {
+    rs.useFakeTimers();
+    rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const resetVideo = rs.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 75);
+        }),
+    );
+    const close = rs.fn().mockResolvedValue(undefined);
+    const manager = createManager({} as any);
+    prepareEstablishedStaleManager(manager, resetVideo, {
+      hostWallTimeMs: Date.now(),
+      clientExtras: { close },
+    });
+    const waitForNextKeyframe = rs
+      .spyOn(manager as any, 'waitForNextKeyframe')
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            setTimeout(
+              () => reject(new Error('no natural frame within 10ms')),
+              10,
+            );
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  data: Buffer.from('delayed-post-reset-frame'),
+                  header: Buffer.from('new-header'),
+                  ptsUs: 2_006_000n,
+                  estimatedAgeMs: 0,
+                  streamEpoch: (manager as any).streamEpoch,
+                  capturedAt: Date.now(),
+                }),
+              450,
+            );
+          }),
+      );
+    rs.spyOn(manager as any, 'decodeH264ToJpeg').mockResolvedValue(jpegFrame());
+
+    const capture = manager.getScreenshotJpeg();
+    await rs.advanceTimersByTimeAsync(10);
+    expect(resetVideo).toHaveBeenCalledTimes(1);
+    await rs.advanceTimersByTimeAsync(74);
+    expect(waitForNextKeyframe).toHaveBeenCalledTimes(1);
+    await rs.advanceTimersByTimeAsync(1);
+    expect(waitForNextKeyframe).toHaveBeenCalledTimes(2);
+    await rs.advanceTimersByTimeAsync(449);
+    expect(close).not.toHaveBeenCalled();
+    await rs.advanceTimersByTimeAsync(1);
+
+    await expect(capture).resolves.toEqual(jpegFrame());
+    expect(waitForNextKeyframe.mock.calls[1][0]).toBe(500);
+    expect(close).not.toHaveBeenCalled();
+  });
+
   it('shares one video reset across concurrent recovery callers', async () => {
     let finishReset: (() => void) | undefined;
     const resetVideo = rs.fn().mockReturnValue(
@@ -295,7 +356,7 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps video reset and full reconnect fallback inside the original 300ms budget', async () => {
+  it('reports when a successful reset produces no data frames within 500ms', async () => {
     rs.useFakeTimers();
     rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
     const resetVideo = rs.fn().mockResolvedValue(undefined);
@@ -307,7 +368,10 @@ describe('ScrcpyScreenshotManager video reset', () => {
 
     const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
       name: 'ScrcpyFreshFrameUnavailableError',
-      timeoutMs: 300,
+      timeoutMs: 500,
+      message: expect.stringContaining(
+        'no data packets were observed while reset recovery was active',
+      ),
     });
     await rs.advanceTimersByTimeAsync(0);
     await rs.advanceTimersByTimeAsync(9);
@@ -318,11 +382,38 @@ describe('ScrcpyScreenshotManager video reset', () => {
     expect(resetVideo).toHaveBeenCalledTimes(1);
     expect(disconnect).not.toHaveBeenCalled();
 
-    await rs.advanceTimersByTimeAsync(289);
+    await rs.advanceTimersByTimeAsync(499);
     expect(disconnect).not.toHaveBeenCalled();
     await rs.advanceTimersByTimeAsync(1);
 
     await capture;
+    expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports unusable data packets observed while reset recovery is active', async () => {
+    rs.useFakeTimers();
+    rs.setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const resetVideo = rs.fn().mockResolvedValue(undefined);
+    const manager = createManager({} as any);
+    prepareEstablishedStaleManager(manager, resetVideo, {
+      hostWallTimeMs: Date.now(),
+    });
+    const disconnect = rs.spyOn(manager, 'disconnect').mockResolvedValue();
+
+    const capture = expect(manager.getScreenshotJpeg()).rejects.toMatchObject({
+      name: 'ScrcpyFreshFrameUnavailableError',
+      timeoutMs: 500,
+      message: expect.stringContaining(
+        '1 data packet was observed while reset recovery was active',
+      ),
+    });
+    await rs.advanceTimersByTimeAsync(10);
+    (manager as any).processFrame(spsPacket());
+    (manager as any).processFrame(dataPacket(0x01, 2_005_000n));
+    await rs.advanceTimersByTimeAsync(500);
+
+    await capture;
+    expect(resetVideo).toHaveBeenCalledTimes(1);
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
 
