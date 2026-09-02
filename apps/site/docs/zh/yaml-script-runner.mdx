@@ -238,8 +238,10 @@ page:
 - `--web.viewportWidth <width>`：设置浏览器视口宽度，覆盖所有脚本中的 `web.viewportWidth`。
 - `--web.viewportHeight <height>`：设置浏览器视口高度，覆盖所有脚本中的 `web.viewportHeight`。
 - `--android.deviceId <device-id>`：设置安卓设备 ID，覆盖所有脚本中的 `android.deviceId`。
+- `--harmony.deviceId <device-id>`：设置 HarmonyOS 设备 ID，覆盖所有脚本中的 `harmony.deviceId`。
 - `--ios.wdaPort <port>`：设置 WebDriverAgent 端口，覆盖所有脚本中的 `ios.wdaPort`。
 - `--ios.wdaHost <host>`：设置 WebDriverAgent 主机地址，覆盖所有脚本中的 `ios.wdaHost`。
+- `--computer.displayId <display-id>`：设置显示器 ID，覆盖所有脚本中的 `computer.displayId`。
 - `--dotenv-debug`：开启 dotenv 的调试日志，默认关闭。
 - `--dotenv-override`：允许 dotenv 覆盖同名的全局环境变量，默认关闭。
 
@@ -261,6 +263,8 @@ midscene --files './scripts/search-*.yaml' --concurrent 4 --continue-on-error
 
 可以把参数写到 YAML 配置文件中，并通过 `--config` 引用。命令行传入的参数优先级高于配置文件。
 
+配置文件还可以包含一个全局 target 部分：`page`、`browser`、`web`、已弃用的 `target`、`android`、`ios`、`harmony`、`computer` 或 `interface`。其中的字段会深度合并到每个脚本对应的 target 部分，并覆盖脚本中的同名字段。完整优先级为：命令行 target 参数 > 配置文件中的 target 部分 > 单个脚本中的 target 部分；未被覆盖的字段会保留。合并后的每个脚本仍必须且只能解析出一种 target 类型。
+
 ```yaml
 files:
   - './scripts/search-iphone.yaml'
@@ -271,6 +275,17 @@ files:
 concurrent: 4
 continueOnError: true
 retry: 2
+```
+
+例如，下面的配置会为所有匹配的脚本统一指定 HarmonyOS 设备，同时保留单个脚本中未被覆盖的其他 HarmonyOS 设置：
+
+```yaml
+files:
+  - './scripts/harmony/*.yaml'
+
+harmony:
+  deviceId: '127.0.0.1:5555'
+  autoDismissKeyboard: true
 ```
 
 运行方式：

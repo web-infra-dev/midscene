@@ -1,10 +1,11 @@
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { midsceneYamlTargetKeys } from '@midscene/core/yaml';
 import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
-import { defaultConfig } from './config-factory';
+import { defaultConfig } from './config-options';
 
 declare const __VERSION__: string;
 
@@ -93,18 +94,25 @@ Usage:
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
+      'harmony.auto-dismiss-keyboard': {
+        type: 'boolean',
+        description:
+          'Whether to dismiss the HarmonyOS keyboard after text input',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
     .epilogue(`For complete list of configuration options, please visit:
   • Web options: https://midscenejs.com/automate-with-scripts-in-yaml#the-web-part
   • Android options: https://midscenejs.com/automate-with-scripts-in-yaml#the-android-part
+  • HarmonyOS options: https://midscenejs.com/automate-with-scripts-in-yaml#the-harmony-part
   • iOS options: https://midscenejs.com/automate-with-scripts-in-yaml#the-ios-part
 
 Examples:
   $0 script.yaml --web.user-agent "Custom Agent" --web.viewport-width 1920
   $0 script.yaml --android.device-id emulator-5554 --android.ime-strategy yadb-for-non-ascii
   $0 script.yaml --android.device-id emulator-5554 --android.screenshot-strategy always-yadb
+  $0 script.yaml --harmony.device-id 127.0.0.1:5555
   $0 script.yaml --ios.wda-port 8100 --ios.auto-dismiss-keyboard`)
     .wrap(yargs().terminalWidth());
 
@@ -127,15 +135,10 @@ Examples:
     return result;
   };
 
-  // Process web, android, and ios options
-  if (argv.web && typeof argv.web === 'object') {
-    transformedArgv.web = ensureBothFormats(argv.web);
-  }
-  if (argv.android && typeof argv.android === 'object') {
-    transformedArgv.android = ensureBothFormats(argv.android);
-  }
-  if (argv.ios && typeof argv.ios === 'object') {
-    transformedArgv.ios = ensureBothFormats(argv.ios);
+  for (const target of midsceneYamlTargetKeys) {
+    if (argv[target] && typeof argv[target] === 'object') {
+      transformedArgv[target] = ensureBothFormats(argv[target]);
+    }
   }
 
   return {

@@ -226,8 +226,10 @@ The CLI provides parameters to control how scripts run:
 - `--web.viewportWidth <width>`: Override `web.viewportWidth` for all scripts.
 - `--web.viewportHeight <height>`: Override `web.viewportHeight` for all scripts.
 - `--android.deviceId <device-id>`: Override `android.deviceId` for all scripts.
+- `--harmony.deviceId <device-id>`: Override `harmony.deviceId` for all scripts.
 - `--ios.wdaPort <port>`: Override `ios.wdaPort` for all scripts.
 - `--ios.wdaHost <host>`: Override `ios.wdaHost` for all scripts.
+- `--computer.displayId <display-id>`: Override `computer.displayId` for all scripts.
 - `--dotenv-debug`: Enable dotenv debug logs. Default off.
 - `--dotenv-override`: Allow dotenv to override global environment variables. Default off.
 
@@ -249,6 +251,8 @@ midscene --files './scripts/search-*.yaml' --concurrent 4 --continue-on-error
 
 You can place arguments in a YAML config file and reference it with `--config`. Command-line arguments take priority over the config file.
 
+A config file can also contain one global target section: `page`, `browser`, `web`, the deprecated `target`, `android`, `ios`, `harmony`, `computer`, or `interface`. Its fields are deep-merged over the corresponding target section in every script. The complete priority order is command-line target options, then the config file's target section, then each script's target section. Fields that are not overridden are preserved. Each resulting script must still resolve to exactly one target type.
+
 ```yaml
 files:
   - './scripts/search-iphone.yaml'
@@ -259,6 +263,17 @@ files:
 concurrent: 4
 continueOnError: true
 retry: 2
+```
+
+For example, this config selects one HarmonyOS device for every matched script while allowing individual scripts to keep other HarmonyOS settings that are not overridden:
+
+```yaml
+files:
+  - './scripts/harmony/*.yaml'
+
+harmony:
+  deviceId: '127.0.0.1:5555'
+  autoDismissKeyboard: true
 ```
 
 Run with:

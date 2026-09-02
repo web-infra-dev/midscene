@@ -3,24 +3,15 @@ import { resolve } from 'node:path';
 import type {
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
-  MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
-  MidsceneYamlScriptIOSEnv,
-  MidsceneYamlScriptWebEnv,
+  MidsceneYamlTargetConfig,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import merge from 'lodash.merge';
 import { createYamlPlayer } from '../create-yaml-player';
 
-export interface RunYamlCaseGlobalConfig {
-  page?: Partial<MidsceneYamlScriptWebEnv>;
-  browser?: Partial<MidsceneYamlScriptWebEnv>;
-  web?: Partial<MidsceneYamlScriptWebEnv>;
-  android?: Partial<MidsceneYamlScriptAndroidEnv>;
-  ios?: Partial<MidsceneYamlScriptIOSEnv>;
-  target?: Partial<MidsceneYamlScriptWebEnv>;
-}
+export type RunYamlCaseGlobalConfig = MidsceneYamlTargetConfig;
 
 export interface RunYamlCaseOptions {
   file: string;

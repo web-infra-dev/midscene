@@ -4,9 +4,7 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
   MidsceneYamlScript,
-  MidsceneYamlScriptAndroidEnv,
-  MidsceneYamlScriptIOSEnv,
-  MidsceneYamlScriptWebEnv,
+  MidsceneYamlTargetConfig,
 } from '@midscene/core';
 import { parseYamlScript, resolveWebTarget } from '@midscene/core/yaml';
 import { getDebug } from '@midscene/shared/logger';
@@ -79,14 +77,7 @@ export interface BatchRunnerConfig {
   summary: string;
   /** Share one BrowserContext across Puppeteer Web yaml files. */
   shareBrowserContext: boolean;
-  globalConfig?: {
-    page?: Partial<MidsceneYamlScriptWebEnv>;
-    browser?: Partial<MidsceneYamlScriptWebEnv>;
-    web?: Partial<MidsceneYamlScriptWebEnv>;
-    android?: Partial<MidsceneYamlScriptAndroidEnv>;
-    ios?: Partial<MidsceneYamlScriptIOSEnv>;
-    target?: Partial<MidsceneYamlScriptWebEnv>;
-  };
+  globalConfig?: MidsceneYamlTargetConfig;
   headed: boolean;
   keepWindow: boolean;
   dotenvOverride: boolean;
