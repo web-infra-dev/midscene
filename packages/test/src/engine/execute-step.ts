@@ -81,41 +81,54 @@ async function executeNode<TOutputData>(
   const startedAt = new Date();
   const abortController = new AbortController();
   const parentSignal = options.parentSignal;
-  const abortFromParent = () =>
-    abortController.abort(
-      parentSignal?.reason ?? new Error('Workflow execution aborted.'),
-    );
+  const abortFromParent = () => abortController.abort(parentSignal?.reason);
   if (parentSignal?.aborted) abortFromParent();
   else parentSignal?.addEventListener('abort', abortFromParent, { once: true });
   const timeoutMs = step.meta.timeoutMs ?? options.defaultTimeoutMs;
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  let timeoutError: StepTimeoutError | undefined;
+  let abortGraceTimeout: ReturnType<typeof setTimeout> | undefined;
   const execution = Promise.resolve().then(() => {
-    if (abortController.signal.aborted) {
-      throw (
-        abortController.signal.reason ??
-        new Error('Workflow execution aborted.')
-      );
-    }
+    abortController.signal.throwIfAborted();
     return execute(abortController.signal);
   });
-  const timedExecution =
+  let settleOnAbort: (() => void) | undefined;
+  const abortedExecution = new Promise<never>((_, reject) => {
+    settleOnAbort = () => {
+      // Abort listeners run synchronously. Wait one task before rejecting so a
+      // cooperative node can settle in response to the forwarded abort first.
+      abortGraceTimeout = setTimeout(() => {
+        reject(abortController.signal.reason);
+      }, 0);
+    };
+    if (abortController.signal.aborted) settleOnAbort();
+    else
+      abortController.signal.addEventListener('abort', settleOnAbort, {
+        once: true,
+      });
+  });
+  const timeoutExecution =
     timeoutMs === undefined
-      ? execution
-      : Promise.race([
-          execution,
-          new Promise<never>((_, reject) => {
-            timeout = setTimeout(() => {
-              timeoutError = new StepTimeoutError(timeoutMs, step.node);
-              abortController.abort(timeoutError);
-              reject(timeoutError);
-            }, timeoutMs);
-          }),
-        ]);
+      ? undefined
+      : new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            if (abortController.signal.aborted) {
+              reject(abortController.signal.reason);
+              return;
+            }
+            const timeoutError = new StepTimeoutError(timeoutMs, step.node);
+            abortController.abort(timeoutError);
+            reject(timeoutError);
+          }, timeoutMs);
+        });
+  const settledExecution = Promise.race([
+    execution,
+    abortedExecution,
+    ...(timeoutExecution === undefined ? [] : [timeoutExecution]),
+  ]);
 
   try {
     const output = validateNodeOutput<TOutputData>(
-      await timedExecution,
+      await settledExecution,
       step.node,
     );
     return {
@@ -129,10 +142,14 @@ async function executeNode<TOutputData>(
       ...createStepResultBase(step, startedAt, phase, stepIndex),
       status: 'failed',
       continuedAfterError: step.meta.continueOnError,
-      error: normalizeNodeExecutionError(timeoutError ?? error, step.node),
+      error: normalizeNodeExecutionError(error, step.node),
     };
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
+    if (abortGraceTimeout !== undefined) clearTimeout(abortGraceTimeout);
+    if (settleOnAbort !== undefined) {
+      abortController.signal.removeEventListener('abort', settleOnAbort);
+    }
     parentSignal?.removeEventListener('abort', abortFromParent);
   }
 }
@@ -181,6 +198,7 @@ export async function executeStep<
     step,
     async (signal) => {
       const input = await parseNodeInput(node, step.input);
+      signal.throwIfAborted();
       const common = {
         input,
         $: step.meta,

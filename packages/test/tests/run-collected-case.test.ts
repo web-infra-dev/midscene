@@ -1,13 +1,32 @@
 import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
-import { type CollectedCase, NodeRegistry, defineNode } from '../src';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  type CollectedCase,
+  NodeRegistry,
+  StepTimeoutError,
+  defineNode,
+  z,
+} from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
-const step = (node: string, continueOnError = false) => ({
+const step = (node: string, continueOnError = false, timeoutMs?: number) => ({
   node,
   input: {},
-  meta: { continueOnError },
+  meta: {
+    continueOnError,
+    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+  },
 });
+
+const createDeferred = <T = void>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+};
 
 const collected = (
   steps: CollectedCase['definition']['steps'],
@@ -17,6 +36,10 @@ const collected = (
   sourcePath: 'flows/example.yaml',
   caseIndex: 2,
   definition: { name: 'example case', steps },
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('runCollectedCase', () => {
@@ -215,5 +238,295 @@ describe('runCollectedCase', () => {
       resolve('/tmp/second.html'),
       resolve('/tmp/first.html'),
     ]);
+  });
+
+  it('settles a non-cooperative running step on parent cancellation and runs cleanup', async () => {
+    vi.useFakeTimers();
+    const calls: string[] = [];
+    const controller = new AbortController();
+    const removeAbortListener = vi.spyOn(
+      controller.signal,
+      'removeEventListener',
+    );
+    const cancellationReason = new Error('workflow interrupted');
+    const started = createDeferred();
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'blocking',
+        execute({ onTeardown }) {
+          calls.push('step');
+          onTeardown(() => {
+            calls.push('teardown');
+          });
+          started.resolve();
+          return new Promise<void>(() => {});
+        },
+      }),
+      defineNode({
+        name: 'after',
+        execute() {
+          calls.push('afterEach');
+        },
+      }),
+    ]);
+
+    const execution = runCollectedCase(
+      collected([step('blocking', false, 60_000)]),
+      {
+        afterEach: [step('after')],
+        resolveNode: registry.require.bind(registry),
+        signal: controller.signal,
+      },
+    );
+    await started.promise;
+
+    let result: Awaited<typeof execution> | undefined;
+    const settled = execution.then((value) => {
+      result = value;
+      return true;
+    });
+    controller.abort(cancellationReason);
+    const observed = Promise.race([
+      settled,
+      new Promise<false>((resolve) => setTimeout(() => resolve(false), 50)),
+    ]);
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(await observed).toBe(true);
+    expect(result?.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      cause: cancellationReason,
+    });
+    expect(calls).toEqual(['step', 'afterEach', 'teardown']);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(removeAbortListener).toHaveBeenCalledWith(
+      'abort',
+      expect.any(Function),
+    );
+  });
+
+  it('preserves a null parent cancellation reason', async () => {
+    const controller = new AbortController();
+    const started = createDeferred();
+    const node = defineNode({
+      name: 'null-cancellation-reason',
+      execute() {
+        started.resolve();
+        return new Promise<void>(() => {});
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const execution = runCollectedCase(collected([step(node.name)]), {
+      resolveNode: registry.require.bind(registry),
+      signal: controller.signal,
+    });
+    await started.promise;
+
+    controller.abort(null);
+    const result = await execution;
+
+    expect(result.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      cause: null,
+    });
+  });
+
+  it('retains the result of a node that settles cooperatively on parent cancellation', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const started = createDeferred();
+    const node = defineNode({
+      name: 'cooperative',
+      execute({ signal }) {
+        started.resolve();
+        return new Promise<{ summary: string }>((resolve) => {
+          signal.addEventListener(
+            'abort',
+            () => resolve({ summary: 'stopped cleanly' }),
+            { once: true },
+          );
+        });
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const execution = runCollectedCase(
+      collected([step(node.name, false, 60_000)]),
+      {
+        resolveNode: registry.require.bind(registry),
+        signal: controller.signal,
+      },
+    );
+    await started.promise;
+
+    controller.abort(new Error('stop requested'));
+    await vi.advanceTimersByTimeAsync(0);
+    const result = await execution;
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'success',
+      output: { summary: 'stopped cleanly' },
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps StepTimeoutError when timeout aborts a cooperative node first', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const node = defineNode({
+      name: 'timed-cooperative',
+      execute(ctx) {
+        signal = ctx.signal;
+        return new Promise<{ summary: string }>((resolve) => {
+          ctx.signal.addEventListener(
+            'abort',
+            () => resolve({ summary: 'stopped after timeout' }),
+            { once: true },
+          );
+        });
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const execution = runCollectedCase(
+      collected([step(node.name, false, 50)]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    await vi.advanceTimersByTimeAsync(50);
+    const result = await execution;
+
+    expect(signal?.reason).toBeInstanceOf(StepTimeoutError);
+    expect(result.steps[0].error).toBeInstanceOf(StepTimeoutError);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('preserves parent cancellation when timeout expires in the same timer turn', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const cancellationReason = new Error('cancelled at timeout boundary');
+    const node = defineNode({
+      name: 'parent-cancelled-at-timeout',
+      execute() {
+        return new Promise<void>(() => {});
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    setTimeout(() => controller.abort(cancellationReason), 50);
+
+    const execution = runCollectedCase(
+      collected([step(node.name, false, 50)]),
+      {
+        resolveNode: registry.require.bind(registry),
+        signal: controller.signal,
+      },
+    );
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(50);
+    const result = await execution;
+
+    expect(result.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      cause: cancellationReason,
+    });
+  });
+
+  it('handles a late node rejection after cancellation settles the runner', async () => {
+    const controller = new AbortController();
+    const started = createDeferred();
+    const nodeExecution = createDeferred();
+    const node = defineNode({
+      name: 'late-rejection',
+      execute() {
+        started.resolve();
+        return nodeExecution.promise;
+      },
+    });
+    const registry = new NodeRegistry([node]);
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown) => {
+      unhandledRejections.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const execution = runCollectedCase(collected([step(node.name)]), {
+        resolveNode: registry.require.bind(registry),
+        signal: controller.signal,
+      });
+      await started.promise;
+      controller.abort(new Error('cancel running node'));
+      await execution;
+
+      nodeExecution.reject(new Error('late node failure'));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      expect(unhandledRejections).toEqual([]);
+    } finally {
+      process.removeListener('unhandledRejection', onUnhandledRejection);
+    }
+  });
+
+  it('does not start a node after parent cancellation interrupts input parsing', async () => {
+    const controller = new AbortController();
+    const cancellationReason = new Error('cancelled during input parsing');
+    const execute = vi.fn();
+    const parsingStarted = createDeferred();
+    const validationGate = createDeferred();
+    const parsingFinished = createDeferred();
+    const inputSchema = z.strictObject({
+      value: z.string().refine(async () => {
+        parsingStarted.resolve();
+        await validationGate.promise;
+        return true;
+      }),
+    });
+    const safeParseAsync = inputSchema.safeParseAsync.bind(inputSchema);
+    vi.spyOn(inputSchema, 'safeParseAsync').mockImplementation(
+      async (input) => {
+        const parsed = await safeParseAsync(input);
+        parsingFinished.resolve();
+        return parsed;
+      },
+    );
+    const node = defineNode({
+      name: 'cancelled-during-parse',
+      inputSchema,
+      execute,
+    });
+    const registry = new NodeRegistry([node]);
+    const execution = runCollectedCase(
+      collected([
+        {
+          node: node.name,
+          input: { value: 'valid' },
+          meta: { continueOnError: false },
+        },
+      ]),
+      {
+        resolveNode: registry.require.bind(registry),
+        signal: controller.signal,
+      },
+    );
+    await parsingStarted.promise;
+
+    controller.abort(cancellationReason);
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const observed = await Promise.race([
+      execution,
+      new Promise<'watchdog'>((resolve) => {
+        watchdog = setTimeout(() => resolve('watchdog'), 50);
+      }),
+    ]);
+    if (watchdog !== undefined) clearTimeout(watchdog);
+    validationGate.resolve();
+    await parsingFinished.promise;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(observed).not.toBe('watchdog');
+    if (observed === 'watchdog') return;
+    expect(observed.steps[0].error).toMatchObject({
+      code: 'NODE_EXECUTION_ERROR',
+      cause: cancellationReason,
+    });
+    expect(execute).not.toHaveBeenCalled();
   });
 });
