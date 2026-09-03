@@ -249,7 +249,11 @@ export class ReportImageStore {
     const shouldWriteFileCopy =
       this.mode === 'directory' || this.alsoWriteFileCopy;
     const fileLocation = shouldWriteFileCopy
-      ? await this.writeImageFileIfNeeded({ id, extension, rawBase64 })
+      ? await this.writeImageFileIfNeeded({
+          id,
+          extension,
+          readRawBase64: () => rawBase64,
+        })
       : null;
 
     let ref: ImageUrlRef;
@@ -321,7 +325,7 @@ export class ReportImageStore {
     const { relativePath, absolutePath } = await this.writeImageFileIfNeeded({
       id: screenshot.id,
       extension: screenshot.extension,
-      rawBase64: screenshot.rawBase64,
+      readRawBase64: () => screenshot.rawBase64,
     });
 
     if (options.markAsPersisted) {
@@ -334,7 +338,7 @@ export class ReportImageStore {
   private async writeImageFileIfNeeded(image: {
     id: string;
     extension: string;
-    rawBase64: string;
+    readRawBase64: () => string;
   }): Promise<{ relativePath: string; absolutePath: string }> {
     const screenshotsDir = this.screenshotsDir;
     if (!screenshotsDir) {
@@ -352,7 +356,7 @@ export class ReportImageStore {
     if (!this.writtenFileIds.has(image.id)) {
       await writeFileAsync(
         absolutePath,
-        Buffer.from(image.rawBase64, 'base64'),
+        Buffer.from(image.readRawBase64(), 'base64'),
       );
       this.writtenFileIds.add(image.id);
     }

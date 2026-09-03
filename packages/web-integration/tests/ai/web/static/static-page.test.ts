@@ -41,7 +41,10 @@ describe(
       const page = new StaticPage({
         shotSize: { width: 800, height: 600 },
         shrunkShotToLogicalRatio: 1,
-        screenshot: ScreenshotItem.create('', Date.now()),
+        screenshot: ScreenshotItem.create(
+          contextJson.screenshotBase64,
+          Date.now(),
+        ),
       });
       const agent = new StaticPageAgent(page);
       server = new PlaygroundServer(agent);

@@ -44,6 +44,7 @@ export {
 export {
   type JpegBase64DataUrl,
   type NormalizeScreenshotBase64Options,
+  type ParsedScreenshotBase64,
   type WebpBase64DataUrl,
   createImgBase64ByFormat,
   inferBase64ImageFormat,
@@ -51,6 +52,7 @@ export {
   normalizeBase64Image,
   normalizeScreenshotBase64,
   parseBase64,
+  parseScreenshotBase64,
 } from './base64';
 export {
   DEFAULT_JPEG_SCREENSHOT_QUALITY,

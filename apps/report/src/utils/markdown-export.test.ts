@@ -105,6 +105,24 @@ describe('markdown-export helpers', () => {
     );
   });
 
+  it('packages an in-memory WebP attachment without changing its bytes', () => {
+    const webpBytes = 'webp-image-bytes';
+    const files = buildMarkdownArchiveFiles('# report', [
+      {
+        id: 'inline-webp',
+        suggestedFileName: 'inline.webp',
+        mimeType: 'image/webp',
+        executionIndex: 0,
+        taskIndex: 0,
+        base64Data: `data:image/webp;base64,${btoa(webpBytes)}`,
+      },
+    ]);
+
+    expect(new TextDecoder().decode(files['screenshots/inline.webp'])).toBe(
+      webpBytes,
+    );
+  });
+
   it('builds display items from markdown attachment names and paths', () => {
     const items = getMarkdownAttachmentDisplayItems([
       {

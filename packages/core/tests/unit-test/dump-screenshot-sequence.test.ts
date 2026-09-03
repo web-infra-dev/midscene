@@ -15,9 +15,9 @@ import {
  * must still be serialized.
  */
 describe('dump serialization drops screenshotSequence', () => {
-  const FRAME_A = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-A';
-  const FRAME_B = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-B';
-  const FRAME_C = 'data:image/png;base64,iVBORw0KGgoAAAA-FRAME-C';
+  const FRAME_A = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1B';
+  const FRAME_B = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1C';
+  const FRAME_C = 'data:image/png;base64,iVBORw0KGgpGUkFNRS1D';
 
   const buildExecutionDumpData = (): IExecutionDump => {
     const representative = ScreenshotItem.create(FRAME_C, 3);
@@ -52,8 +52,8 @@ describe('dump serialization drops screenshotSequence', () => {
 
     expect(serialized).not.toContain('screenshotSequence');
     // The early frames must not leak their base64 either.
-    expect(serialized).not.toContain('FRAME-A');
-    expect(serialized).not.toContain('FRAME-B');
+    expect(serialized).not.toContain(FRAME_A);
+    expect(serialized).not.toContain(FRAME_B);
     // The representative screenshot is still serialized (as a ref).
     expect(serialized).toContain('screenshot');
   });
@@ -72,8 +72,8 @@ describe('dump serialization drops screenshotSequence', () => {
     expect(serialized).not.toContain('screenshotSequence');
     // Inline mode would embed each frame's base64; the sequence frames must be
     // dropped so only the representative frame is inlined.
-    expect(serialized).not.toContain('FRAME-A');
-    expect(serialized).not.toContain('FRAME-B');
-    expect(serialized).toContain('FRAME-C');
+    expect(serialized).not.toContain(FRAME_A);
+    expect(serialized).not.toContain(FRAME_B);
+    expect(serialized).toContain(FRAME_C);
   });
 });

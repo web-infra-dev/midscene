@@ -32,7 +32,7 @@ function createLocateRequest() {
   const options = {
     context: {
       screenshot: ScreenshotItem.create(
-        'data:image/png;base64,SCREENSHOT==',
+        'data:image/png;base64,iVBORw0KGgoAAAAA',
         123,
       ),
       shotSize: {
@@ -59,7 +59,7 @@ function createLocateRequest() {
   return {
     targetElementDescription: 'submit button',
     locateImage: {
-      imageBase64: 'data:image/png;base64,CROP==',
+      imageBase64: 'data:image/png;base64,iVBORw0KGgpDUk9Q',
       width: 320,
       height: 240,
     },
@@ -99,7 +99,7 @@ describe('resolvePlanningTapLocator', () => {
     const [, planOptions, locatorPlanner] =
       rs.mocked(runCustomPlanning).mock.calls[0];
     expect(planOptions.context.screenshot.base64).toBe(
-      'data:image/png;base64,CROP==',
+      'data:image/png;base64,iVBORw0KGgpDUk9Q',
     );
     expect(planOptions.context.screenshot.capturedAt).toBe(123);
     expect(planOptions.context.shotSize).toEqual({ width: 320, height: 240 });

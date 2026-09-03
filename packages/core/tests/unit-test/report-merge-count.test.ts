@@ -25,8 +25,9 @@ import { describe, expect, it } from '@rstest/core';
 // ---------- helpers ----------
 
 function fakeScreenshot(size = 200): ScreenshotItem {
+  const signature = 'iVBORw0KGgoAAAAA';
   return ScreenshotItem.create(
-    `data:image/png;base64,${'A'.repeat(size)}`,
+    `data:image/png;base64,${signature}${'A'.repeat(Math.max(0, size - signature.length))}`,
     Date.now(),
   );
 }

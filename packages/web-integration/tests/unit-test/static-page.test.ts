@@ -1,8 +1,9 @@
 import { ScreenshotItem } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
+import { transparentPixelPngBase64 } from '../../src/common/screenshot';
 import { StaticPage } from '../../src/static';
 
-const screenshotBase64 = 'data:image/png;base64,abc123';
+const screenshotBase64 = transparentPixelPngBase64;
 
 function createContext(
   screenshot: ConstructorParameters<typeof StaticPage>[0]['screenshot'],

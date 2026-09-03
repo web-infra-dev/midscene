@@ -413,8 +413,18 @@ describe('runToolsCLI', () => {
   });
 
   it('writes image tool results with an extension matching the mime type', async () => {
+    const jpegData = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff]),
+      Buffer.from('hello'),
+    ]);
     const handler = rs.fn().mockResolvedValue({
-      content: [{ type: 'image', data: 'aGVsbG8=', mimeType: 'image/jpeg' }],
+      content: [
+        {
+          type: 'image',
+          data: jpegData.toString('base64'),
+          mimeType: 'image/jpeg',
+        },
+      ],
       isError: false,
     });
     const tools = createMockTools([{ name: 'take_screenshot', handler }]);
@@ -429,7 +439,7 @@ describe('runToolsCLI', () => {
     const screenshotPath = message?.replace('Screenshot saved: ', '');
     expect(screenshotPath).toBeDefined();
     expect(existsSync(screenshotPath!)).toBe(true);
-    expect(readFileSync(screenshotPath!, 'utf8')).toBe('hello');
+    expect(readFileSync(screenshotPath!)).toEqual(jpegData);
     consoleSpy.mockRestore();
   });
 

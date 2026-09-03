@@ -1,9 +1,14 @@
+import {
+  type ScreenshotImageMimeType,
+  isScreenshotImageMimeType,
+} from '@midscene/shared/img';
+
 /** Serialized reference to a captured screenshot stored by a report. */
 export interface ScreenshotRef {
   type: 'midscene_screenshot_ref';
   id: string;
   capturedAt: number;
-  mimeType: 'image/png' | 'image/jpeg';
+  mimeType: ScreenshotImageMimeType;
   storage: 'inline' | 'file';
   path?: string;
 }
@@ -64,7 +69,7 @@ export function normalizeScreenshotRef(value: unknown): ScreenshotRef | null {
     record.type === 'midscene_screenshot_ref' &&
     hasValidImageId(record) &&
     typeof record.capturedAt === 'number' &&
-    (record.mimeType === 'image/png' || record.mimeType === 'image/jpeg') &&
+    isScreenshotImageMimeType(record.mimeType) &&
     hasValidStorage(record)
   ) {
     return record as unknown as ScreenshotRef;

@@ -2,9 +2,9 @@ import { getModelRuntime } from '@/ai-model/models';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import { AIResponseParseError } from '@/ai-model/service-caller';
 import Service from '@/service';
+import type { UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
-import { createFakeContext } from '../utils';
 
 import * as serviceCallerActual from '@/ai-model/service-caller' with {
   rstest: 'importActual',
@@ -40,6 +40,17 @@ rs.mock('@midscene/shared/img', () => ({
   cropByRect: mockCropByRect,
   resizeBase64ImageToJpeg: mockResizeBase64ImageToJpeg,
 }));
+
+function createFakeContext(): UIContext {
+  return {
+    screenshot: {
+      base64:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    } as UIContext['screenshot'],
+    shotSize: { width: 1920, height: 1080 },
+    shrunkShotToLogicalRatio: 1,
+  };
+}
 
 describe('service.describe', () => {
   const modelConfig: IModelConfig = {
