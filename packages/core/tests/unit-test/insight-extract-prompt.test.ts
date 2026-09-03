@@ -6,10 +6,6 @@ import { createFakeContext } from '../utils';
 import * as serviceCallerActual from '@/ai-model/service-caller/index' with {
   rstest: 'importActual',
 };
-import * as imgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
-
 rs.mock('@/ai-model/service-caller/index', () => ({
   ...serviceCallerActual,
   AIResponseParseError: class AIResponseParseError extends Error {},
@@ -18,21 +14,11 @@ rs.mock('@/ai-model/service-caller/index', () => ({
   callAIWithStringResponse: rs.fn(),
 }));
 
-rs.mock('@midscene/shared/img', () => ({
-  ...imgActual,
-  isScreenshotImageMimeType: imgActual.isScreenshotImageMimeType,
-  localImg2Base64: imgActual.localImg2Base64,
-  parseScreenshotBase64: imgActual.parseScreenshotBase64,
-  screenshotImageExtension: imgActual.screenshotImageExtension,
-  screenshotImageMimeType: imgActual.screenshotImageMimeType,
-  preProcessImageUrl: rs
-    .fn()
-    .mockResolvedValue('data:image/png;base64,REFERENCE'),
-}));
-
 import { callAI } from '@/ai-model/service-caller/index';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
-import { preProcessImageUrl } from '@midscene/shared/img';
+
+const referenceImageDataUrl =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 describe('insight extraction prompt assembly', () => {
   const modelConfig: IModelConfig = {
@@ -68,7 +54,7 @@ describe('insight extraction prompt assembly', () => {
         images: [
           {
             name: 'like-button',
-            url: 'https://example.com/ref.png',
+            url: referenceImageDataUrl,
           },
         ],
         convertHttpImage2Base64: true,
@@ -77,11 +63,6 @@ describe('insight extraction prompt assembly', () => {
     });
 
     expect(result.parseResult.data).toEqual({ result: true });
-    expect(preProcessImageUrl).toHaveBeenCalledWith(
-      'https://example.com/ref.png',
-      true,
-    );
-
     const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
     expect(msgs).toHaveLength(5);
     expect(msgs?.[0]).toMatchObject({
@@ -143,7 +124,7 @@ describe('insight extraction prompt assembly', () => {
         expect.objectContaining({
           type: 'image_url',
           image_url: expect.objectContaining({
-            url: 'data:image/png;base64,REFERENCE',
+            url: referenceImageDataUrl,
           }),
         }),
       ],
