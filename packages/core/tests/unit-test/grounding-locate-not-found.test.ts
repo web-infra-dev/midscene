@@ -35,37 +35,57 @@ describe('grounding locate not-found parsing', () => {
     rs.mocked(callAI).mockResolvedValue({ content: '{}', isStreamed: false });
   });
 
-  it('keeps locate errors without parsing coordinates when result key is missing', async () => {
-    rs.mocked(callAI).mockResolvedValue({
-      content: '{"error":"target element is not found"}',
-      isStreamed: false,
-    });
+  it.each([
+    '{}',
+    '{"error":"target element is not found"}',
+    '```json\n[{"bbox_1":920,"ymin":73,"xmax":964,"ymax":98}]\n```',
+  ])('retries a response missing the coordinate field: %s', async (content) => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce({ content, isStreamed: false })
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,200,300,400]}',
+        isStreamed: false,
+      });
 
     const result = await AiLocateElement({
       context: createFakeContext(),
-      targetElementDescription: 'missing button',
-      modelRuntime: getModelRuntime(modelConfig),
+      targetElementDescription: 'top-right menu button',
+      modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
     });
 
-    expect(result.rect).toBeUndefined();
-    expect(result.parseResult).toEqual({
-      element: undefined,
-      errors: ['target element is not found'],
-    });
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(rs.mocked(callAI).mock.calls.map((call) => call[2])).toEqual([
+      expect.objectContaining({ semanticRetryAttempt: 0 }),
+      expect.objectContaining({ semanticRetryAttempt: 1 }),
+    ]);
+    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback?.content).toContain(
+      'Missing required coordinate field "bbox"',
+    );
+    expect(retryFeedback?.content).toContain('Expected "bbox":');
+    expect(result.rect).toBeDefined();
+    expect(result.parseResult.errors).toEqual([]);
   });
 
-  it('skips coordinate parsing when result key is missing even without errors', async () => {
+  it('preserves the missing-field error and response after retries are exhausted', async () => {
+    const content = '{"error":"target element is not found"}';
+    rs.mocked(callAI).mockResolvedValue({ content, isStreamed: false });
+
     const result = await AiLocateElement({
       context: createFakeContext(),
       targetElementDescription: 'missing button',
       modelRuntime: getModelRuntime(modelConfig),
     });
 
+    expect(callAI).toHaveBeenCalledTimes(2);
     expect(result.rect).toBeUndefined();
-    expect(result.parseResult).toEqual({
-      element: undefined,
-      errors: [],
-    });
+    expect(result.parseResult.errors?.[0]).toContain(
+      'Missing required coordinate field "bbox"',
+    );
+    expect(result.parseResult.errors?.[0]).toContain(
+      'target element is not found',
+    );
+    expect(result.rawResponse).toBe(content);
   });
 
   it('skips coordinate parsing when result key is an empty array', async () => {
@@ -80,6 +100,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
+    expect(callAI).toHaveBeenCalledTimes(1);
     expect(result.rect).toBeUndefined();
     expect(result.parseResult).toEqual({
       element: undefined,
@@ -261,20 +282,29 @@ describe('grounding locate not-found parsing', () => {
     expect(result.reasoning_content).toBe('custom reasoning');
   });
 
-  it('keeps section locate error without parsing coordinates when result key is missing', async () => {
-    rs.mocked(callAI).mockResolvedValue({
-      content: '{"error":"target section is not found"}',
-      isStreamed: false,
-    });
+  it('retries a search-area response missing the coordinate field', async () => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce({
+        content: '{"error":"target section is not found"}',
+        isStreamed: false,
+      })
+      .mockResolvedValueOnce({
+        content: '{"bbox":[100,200,300,400]}',
+        isStreamed: false,
+      });
 
     const result = await AiLocateSection({
       context: createFakeContext(),
-      sectionDescription: 'missing section',
+      sectionDescription: 'target section',
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(result.searchAreaConfig).toBeUndefined();
-    expect(result.error).toBe('target section is not found');
+    expect(callAI).toHaveBeenCalledTimes(2);
+    const retryFeedback = rs.mocked(callAI).mock.calls[1][0].at(-1);
+    expect(retryFeedback?.content).toContain(
+      'Missing required coordinate field "bbox"',
+    );
+    expect(result.searchAreaConfig).toBeDefined();
   });
 
   it('keeps section locate error without parsing coordinates when result key is an empty array', async () => {
@@ -289,6 +319,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
+    expect(callAI).toHaveBeenCalledTimes(1);
     expect(result.searchAreaConfig).toBeUndefined();
     expect(result.error).toBe('target section is not found');
   });
