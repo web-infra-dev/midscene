@@ -40,6 +40,7 @@ type RuntimeYamlFlowItem =
 import type { Agent } from '@/agent/agent';
 import type { TUserPrompt } from '@/common';
 import type { InputStrategy } from '@/device';
+import { deriveCaseStatus } from '@/dump/task-status';
 import type {
   DeviceAction,
   FreeFn,
@@ -326,15 +327,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     agent: Agent,
     executionCountBefore: number,
   ) {
-    return (agent.dump?.executions ?? [])
-      .slice(executionCountBefore)
-      .some((execution) =>
-        execution.tasks.some(
-          (task) =>
-            task.status === 'failed' ||
-            Boolean(task.error || task.errorMessage),
-        ),
-      );
+    const executions = (agent.dump?.executions ?? []).slice(
+      executionCountBefore,
+    );
+    return deriveCaseStatus(executions) === 'failed';
   }
 
   private async playFlowItem(
