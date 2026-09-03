@@ -2,18 +2,19 @@ import {
   convertBase64ImageToJpeg,
   convertBase64ImageToWebp,
 } from '@midscene/shared/img';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { prepareModelMessagesImageInput } from '../../src/ai-model/service-caller/model-image-input';
 
-vi.mock('@midscene/shared/img', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/img')>();
-  return {
-    ...actual,
-    convertBase64ImageToJpeg: vi.fn(actual.convertBase64ImageToJpeg),
-    convertBase64ImageToWebp: vi.fn(actual.convertBase64ImageToWebp),
-  };
-});
+import * as imgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@midscene/shared/img', () => ({
+  ...imgActual,
+  convertBase64ImageToJpeg: rs.fn(imgActual.convertBase64ImageToJpeg),
+  convertBase64ImageToWebp: rs.fn(imgActual.convertBase64ImageToWebp),
+}));
 
 const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
@@ -46,7 +47,7 @@ function preparedImageUrl(messages: ChatCompletionMessageParam[]): string {
 
 describe('prepareModelMessagesImageInput', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('normalizes inline screenshots to WebP by default', async () => {
