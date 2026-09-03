@@ -1,0 +1,219 @@
+# AI testing best practices
+
+Midscene is the GUI Agent responsible for execution: it interprets the task it receives, understands the current interface, plans, and performs the required actions. What the business needs to test, what visible result counts as correct, and knowledge that cannot be inferred reliably from the current interface—such as page entry points and component behavior—should be provided explicitly instead of left for Midscene to guess.
+
+To reduce the cost of authoring and maintaining test cases, another Agent can generate Cases that Midscene then executes. This requires more than a prompt. You also need to decide how the supporting information is produced, organized, updated, and which Agent consumes it at which stage. Too little information forces an Agent to guess; too much increases maintenance and comprehension costs. This guide explains how to make that trade-off.
+
+## Example: testing the Dongchedi Android app
+
+Suppose we want to **generate** and **run** this test:
+
+> Open the price-reduction ranking, filter for new-energy MPVs launched within the past year, set a custom price range of CNY 100,000–400,000, and verify that the filters take effect.
+
+The initial prompt to the case-generation Agent might be:
+
+```text
+Create ranking-filter test Cases based on [the product requirements](packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md).
+```
+
+That prompt leaves both Agents without essential information:
+
+- The **case-generation Agent** does not know how to reach the ranking page or which filters the page actually provides. It can only produce vague steps or invent a navigation path.
+- The **case-execution Agent** may not know how to reach the ranking page from its current state. Even if it finds the page, it may guess how a component works, which is not reliable enough for repeatable testing.
+
+For example, the ranking entry is in the shortcut area on the home page:
+
+<img
+  src="/images/test-runner-best-practices/ranking-entry-home.jpg"
+  alt="Ranking entry in the shortcut area of the Dongchedi home page"
+  width="240"
+/>
+
+An Agent that has never seen the real app or a screenshot does not know this path by default. The execution Agent can inspect the current screen, but different starting states, dialogs, or UI changes can still make discovery unreliable.
+
+The custom price control exposes more hidden behavior:
+
+<img
+  src="/images/test-runner-best-practices/price-filter-initial.jpg"
+  alt="Initial custom price state, from zero to unlimited"
+  width="240"
+/>
+
+The following interaction details are not obvious from a screenshot:
+
+- Adjusting the range inside the panel does not apply it. The user must still select the result button at the bottom.
+- The lower and upper handles begin near the Android screen edges, where a drag can trigger the system back gesture.
+- Success should be checked from the complete price text, not inferred from the slider position.
+- When the target value already has a tick mark, selecting the tick is more stable than recording a fixed coordinate or drag distance.
+
+| Range set to CNY 100,000–400,000 but not yet applied | Filter displayed and result list updated after confirmation |
+| --- | --- |
+| <img src="/images/test-runner-best-practices/price-filter-pending.jpg" alt="Custom price range pending confirmation" width="180" /> | <img src="/images/test-runner-best-practices/price-filter-applied.jpg" alt="Custom price range applied" width="180" /> |
+
+> All screenshots come from a real test run.
+
+**Solving this problem requires maintaining and organizing the app knowledge that the Agents need.**
+
+Midscene is a GUI Agent responsible for carrying out tasks. It should not be expected to invent app knowledge such as the ranking entry or component interaction rules. Developers who genuinely understand the app's logic should maintain and organize this knowledge, then provide it to the case-generation and execution Agents as Context.
+
+## Context is the missing knowledge
+
+Context is additional information supplied alongside the main task. It can contain business facts, decision or interaction rules, constraints, and output requirements. In this example, the most important content is **knowledge that the AI needs to complete the task but cannot infer reliably from the test goal and current screenshot alone**.
+
+The minimum useful knowledge for this test includes:
+
+```text
+- The shortcut area on the home page contains the Rankings entry.
+- A custom price range is not applied until the result button is selected.
+- Validate the range from the complete price text shown by the page.
+- Android edge gestures are a risk; prefer an existing tick when one is available.
+```
+
+These facts come from using the real app, not from AI speculation. The complete demo separates them by responsibility into [page-navigation Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md) and [ranking-component Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md).
+
+Context does not require a special format. Plain Markdown is enough:
+
+```markdown
+# Dongchedi page-navigation Context
+
+## Home page
+- The shortcut area on the home page contains the Rankings entry.
+
+# Ranking-page component Context
+
+## Price filter
+- Select the result button after adjusting the range.
+- Validate the range from the complete price text.
+- Avoid Android edge gestures.
+```
+
+The complete example keeps [page navigation](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md) and [component usage](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md) in separate files.
+
+There are two ways to decide when an Agent consumes this knowledge.
+
+## Approach 1: consume Context at runtime
+
+Read the relevant files and inject them when creating the Agent, as shown in [midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts):
+
+```ts
+import { mergeAIContexts } from '@midscene/core';
+
+const pageNavigationContext = readFileSync(pageNavigationFile, 'utf8');
+const rankingComponentsContext = readFileSync(rankingComponentsFile, 'utf8');
+const rankingActionContext = mergeAIContexts(
+  pageNavigationContext,
+  rankingComponentsContext,
+  rankingTimeContext,
+);
+
+await agentFromAdbDevice(deviceId, {
+  contexts: {
+    aiAct: rankingActionContext,
+  },
+});
+```
+
+Maintain Context by responsibility, such as page and component, and combine only the files required by the current Workflow. Page navigation and component interactions are action knowledge, so place them in `contexts.aiAct`. Pass information that applies to only one Step through `options.context`. Test Runner appends its read-only workflow history separately; do not copy that history into app Context.
+
+The case-generation Agent can now produce a higher-level Case:
+
+```yaml
+- aiAct: In the price-reduction ranking, filter for new-energy MPVs launched within the past year and apply a custom price range of CNY 100,000–400,000
+- aiAssert: The MPV, past-year, new-energy, and CNY 100,000–400,000 filters are visible, and the result list is displayed normally
+```
+
+At runtime, Midscene reads the current interface together with the relevant Context and decides how to complete the goal.
+
+This approach keeps Cases short and lets many Cases reuse page knowledge. When the UI changes but the business goal stays the same, updating Context may be sufficient.
+
+The trade-off appears as knowledge accumulates. Context can grow into a very long document that dilutes the Agent's attention at runtime. Separating Context from workflow history does not remove the comprehension cost of an oversized Context.
+
+Use on-demand loading to control that cost:
+
+- Split knowledge by global concern, page, component, or Feature.
+- Load only the fragments needed by the current Workflow or Case.
+- Remove duplicate, conflicting, and outdated facts.
+- Load a complete Context only when it remains short and all of its content is relevant.
+
+This Test Project injects [page-navigation Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md) and [ranking-component Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md), which provide the ranking-page entry path and the filter interaction rules.
+
+## Approach 2: consume Context while generating Cases
+
+Provide Context to the case-generation Agent:
+
+```text
+Create ranking-filter test Cases based on [the product requirements](packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md).
+You must use [page-navigation Context](packages/test/example/android-dongchedi/app-context/page-navigation.md) and [ranking-component Context](packages/test/example/android-dongchedi/app-context/ranking-components.md) for the interaction details. Do not invent missing behavior.
+```
+
+The generation Agent reads the requirements, Context, and evidence from the real interface, then produces a more detailed Case:
+
+```yaml
+- aiAct: From the home-page shortcut, open Rankings and switch to the price-reduction ranking
+- aiAct: Select MPV, launched within the past year, and new energy
+- aiAct: Open the custom price control, set the upper bound to CNY 400,000 and then the lower bound to CNY 100,000; verify the complete range text and select the result button
+- aiAssert: The MPV, past-year, new-energy, and CNY 100,000–400,000 filters are visible, and the result list is displayed normally
+```
+
+The runtime Agent no longer needs to consume the same Context because it receives the expanded steps directly.
+
+This moves comprehension cost to case generation. Runtime execution is more constrained, and a failure is easier to associate with a particular business stage.
+
+It also introduces two risks:
+
+1. If Context is wrong or incomplete, or the Agent is allowed to improvise, it can write a navigation path, sequence, or expected result that does not exist in the real app.
+2. Expanding the same navigation and interaction paths in many Cases creates duplication. A behavior change then requires batch maintenance.
+
+This approach therefore requires the following practices:
+
+- Keep Context accurate and specific, backed by screenshots or real runs.
+- Tell the Agent not to guess missing interface facts. When information is missing, keep the goal at a higher level or report the knowledge gap.
+- Derive expected results from product requirements and real interface capabilities; do not let the generation Agent invent them together with the interaction path.
+- Let an Agent generate and maintain related Cases as a batch instead of editing repeated paths one by one.
+- Continue to use business semantics. Do not put coordinates or fixed pixel values into generated Cases.
+
+## Choosing an approach
+
+| Trade-off | Runtime consumption | Generation-time consumption |
+| --- | --- | --- |
+| Who interprets the knowledge | The Agent on every run | The case-generation Agent |
+| Case content | Higher-level goals | More explicit business stages |
+| Better fit | Context is short; UI paths may change | Runtime model may miss details; paths are relatively stable |
+| Main risk | Losing focus in a long Context | Generating an incorrect path; duplicated steps become hard to maintain |
+| Main control | Split Context and load it on demand | Ground generation in real evidence and maintain related Cases in batches |
+
+Neither approach is always better. They can also be combined: ordinary navigation can use runtime Context, while a high-risk component such as the custom price control can be expanded into several semantic steps during case generation.
+
+## Practices to avoid
+
+| Anti-pattern | Problem | Better approach |
+| --- | --- | --- |
+| Provide only "test the ranking page" | The goal, expected result, and required knowledge are missing, so both Agents must guess | State the business goal and observable result, and provide the relevant Context |
+| Leave Context unchanged after the interaction changes | Outdated knowledge makes the Agent fail consistently and is harder to notice than missing knowledge | Update it from real screenshots or runs and remove conflicting descriptions |
+| "Select (424, 815), then drag left by 310 pixels" | The instruction is tied to one device and layout, and prevents the Agent from adapting | Describe the business goal and necessary constraints, such as "set CNY 100,000–400,000 and confirm" |
+| Describe every click, wait, and swipe | The Case becomes a fragile recorded script | Split only stages with stable business meaning or genuine interaction risk |
+| Inject the entire app knowledge base into every Case | Irrelevant information consumes attention and hides important details | Split by page, component, or Feature and load on demand |
+| Let the generation Agent fill in paths missing from Context | It may generate an entry point or state that does not exist in the real app | Provide real evidence; when information is missing, keep the higher-level goal or report the gap |
+| Put one Case's input and expected result into shared Context | Other Cases receive irrelevant goals, and reusable facts become mixed with test design | Keep the current goal in the Case and only reusable knowledge in Context |
+| Manually edit a repeated path in many Cases | Some Cases will be missed and versions will diverge | Let an Agent identify, regenerate, validate, and maintain the related Cases as a batch |
+| Assert only that "the previous action succeeded" | The assertion does not define what visible state counts as correct | Specify observable results such as filter labels, mutually exclusive states, and the result list |
+
+Many steps are not necessarily a problem. The important distinction is whether each Step expresses stable business meaning or merely repeats the physical trajectory of one run.
+
+## Files in the complete demo
+
+| Content | File |
+| --- | --- |
+| Test goals and expected results | [Product requirements](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md) |
+| Missing reusable knowledge | [Page-navigation Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md), [ranking-component Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md) |
+| Reference prompt for case generation | [generate-cases-prompt.md](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/features/ranking-filtering/generate-cases-prompt.md) |
+| AI-generated test Cases | [Test Runner YAML](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/test-runner/ranking-filtering.yaml) |
+| Android device run | Five Cases passed without retries on August 28, 2026 |
+
+The complete demo uses [Test Runner](./test-runner-overview) for the generated YAML. Its [midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts) manages the Agent, Context, variables, and resource lifecycle. See the [Android guide](./platforms/android) for device setup and [Supported models and configuration](./model-common-config) for model configuration.
+
+```bash
+cp packages/test/example/android-dongchedi/.env.example packages/test/example/android-dongchedi/.env
+pnpm exec midscene-test describe-nodes packages/test/example/android-dongchedi
+node --env-file=packages/test/example/android-dongchedi/.env packages/test/bin/midscene-test packages/test/example/android-dongchedi --project dongchedi-android
+```

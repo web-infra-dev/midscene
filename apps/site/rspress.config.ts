@@ -290,6 +290,10 @@ export default defineConfig(async () => {
             link: '/use-test-runner',
           },
           {
+            text: 'AI testing best practices',
+            link: '/test-runner-best-practices',
+          },
+          {
             sectionHeaderText: 'Resources',
           },
           {
@@ -456,6 +460,10 @@ export default defineConfig(async () => {
           {
             text: '编写和运行测试用例',
             link: '/zh/use-test-runner',
+          },
+          {
+            text: 'AI 测试最佳实践',
+            link: '/zh/test-runner-best-practices',
           },
           {
             sectionHeaderText: '资源',
