@@ -20,6 +20,11 @@ rs.mock('@/ai-model/service-caller/index', () => ({
 
 rs.mock('@midscene/shared/img', () => ({
   ...imgActual,
+  isScreenshotImageMimeType: imgActual.isScreenshotImageMimeType,
+  localImg2Base64: imgActual.localImg2Base64,
+  parseScreenshotBase64: imgActual.parseScreenshotBase64,
+  screenshotImageExtension: imgActual.screenshotImageExtension,
+  screenshotImageMimeType: imgActual.screenshotImageMimeType,
   preProcessImageUrl: rs
     .fn()
     .mockResolvedValue('data:image/png;base64,REFERENCE'),
