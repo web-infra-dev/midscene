@@ -3,6 +3,7 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_RESPONSE_FORMAT,
 } from '../../../src/env';
@@ -83,6 +84,29 @@ describe('decideOpenaiSdkConfig', () => {
         provider: { [MIDSCENE_MODEL_RESPONSE_FORMAT]: 'json_object' },
       }),
     ).toThrow('MIDSCENE_MODEL_RESPONSE_FORMAT must be one of: none, auto');
+  });
+
+  it('defaults model image input to WebP and accepts the JPEG fallback', () => {
+    const webpResult = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {},
+    });
+    const jpegResult = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: { [MIDSCENE_MODEL_IMAGE_INPUT_FORMAT]: 'jpeg' },
+    });
+
+    expect(webpResult.imageInputFormat).toBe('webp');
+    expect(jpegResult.imageInputFormat).toBe('jpeg');
+  });
+
+  it('rejects unsupported model image input formats', () => {
+    expect(() =>
+      parseOpenaiSdkConfig({
+        keys: DEFAULT_MODEL_CONFIG_KEYS,
+        provider: { [MIDSCENE_MODEL_IMAGE_INPUT_FORMAT]: 'png' },
+      }),
+    ).toThrow('MIDSCENE_MODEL_IMAGE_INPUT_FORMAT must be one of: webp, jpeg');
   });
 
   it('throws on invalid extraBody JSON', () => {

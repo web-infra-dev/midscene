@@ -5,6 +5,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
@@ -14,6 +15,7 @@ import {
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_FAMILY,
+  MIDSCENE_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_REASONING_BUDGET,
@@ -23,6 +25,7 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
+  MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
@@ -88,6 +91,19 @@ describe('ModelConfigManager', () => {
     expect(planningConfig.intent).toBe('planning');
     expect(planningConfig.slot).toBe('default');
     expect(planningConfig.modelName).toBe('gpt-4');
+  });
+
+  it('resolves image input formats independently for each model slot', () => {
+    const manager = new ModelConfigManager({
+      ...baseMap,
+      [MIDSCENE_MODEL_IMAGE_INPUT_FORMAT]: 'jpeg',
+      [MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT]: 'webp',
+      [MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT]: 'jpeg',
+    });
+
+    expect(manager.getModelConfig('default').imageInputFormat).toBe('jpeg');
+    expect(manager.getModelConfig('insight').imageInputFormat).toBe('webp');
+    expect(manager.getModelConfig('planning').imageInputFormat).toBe('jpeg');
   });
 
   it('prefer MIDSCENE_MODEL', () => {

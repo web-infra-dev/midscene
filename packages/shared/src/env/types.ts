@@ -36,9 +36,12 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
 export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
+export const MIDSCENE_MODEL_IMAGE_INPUT_FORMAT =
+  'MIDSCENE_MODEL_IMAGE_INPUT_FORMAT';
 
 export type TModelReasoningEnabled = boolean | 'default';
 export type TModelResponseFormat = 'none' | 'auto';
+export type TModelImageInputFormat = 'webp' | 'jpeg';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -124,6 +127,8 @@ export const MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET =
   'MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET';
 export const MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT =
   'MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT';
+export const MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT =
+  'MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -156,6 +161,8 @@ export const MIDSCENE_PLANNING_MODEL_REASONING_BUDGET =
   'MIDSCENE_PLANNING_MODEL_REASONING_BUDGET';
 export const MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT =
   'MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT';
+export const MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT =
+  'MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -236,6 +243,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_MODEL_RESPONSE_FORMAT,
+  MIDSCENE_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -265,6 +273,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT,
+  MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -282,6 +291,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT,
+  MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -358,6 +368,7 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
   // model family
   [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamily;
+  [MIDSCENE_INSIGHT_MODEL_IMAGE_INPUT_FORMAT]?: TModelImageInputFormat;
 }
 
 export interface IModelConfigForPlanning {
@@ -377,6 +388,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_TEMPERATURE]?: string;
   // model family
   [MIDSCENE_PLANNING_MODEL_FAMILY]?: TModelFamily;
+  [MIDSCENE_PLANNING_MODEL_IMAGE_INPUT_FORMAT]?: TModelImageInputFormat;
 }
 
 /**
@@ -410,6 +422,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
   // Response format strategy (none/auto)
   [MIDSCENE_MODEL_RESPONSE_FORMAT]?: TModelResponseFormat;
+  // Image format sent to the model (webp/jpeg)
+  [MIDSCENE_MODEL_IMAGE_INPUT_FORMAT]?: TModelImageInputFormat;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -540,6 +554,11 @@ export interface IModelConfig {
    * provider-supported structured response format for eligible intents.
    */
   responseFormat?: TModelResponseFormat;
+  /**
+   * Encoding used for Base64 image inputs at the model request boundary.
+   * Defaults to WebP. Set to JPEG for providers that reject WebP inputs.
+   */
+  imageInputFormat?: TModelImageInputFormat;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
