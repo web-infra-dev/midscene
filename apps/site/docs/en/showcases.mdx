@@ -41,7 +41,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Test scope:** Verify that the sales ranking correctly applies the combined filters for sedan, the month before last, fuel, and a preset CNY 180,000–250,000 price range, and displays the corresponding results
 - **Steps:** 8 / 16 (script / model calls)
 - **Tokens:** Input 126,935 (89,760 cached) / output 3,109
-- **Cost:** $0.0299
+- **Cost:** $0.0312
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/01-sales-sedan-fuel-preset-price.html)
 
 #### Case 2: Sales ranking combined-filter test
@@ -49,7 +49,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Test scope:** Verify that the sales ranking correctly applies the combined filters for SUV, the previous month, and plug-in hybrid, and displays the corresponding results
 - **Steps:** 4 / 14 (script / model calls)
 - **Tokens:** Input 137,310 (100,000 cached) / output 2,472
-- **Cost:** $0.0295
+- **Cost:** $0.0307
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/02-sales-suv-hybrid.html)
 
 #### Case 3: New-energy ranking test
@@ -57,7 +57,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Test scope:** Verify that the new-energy ranking correctly applies the combined filters for SUV, the last six months, battery electric, and a preset CNY 180,000–250,000 price range, and displays the corresponding results
 - **Steps:** 8 / 18 (script / model calls)
 - **Tokens:** Input 149,996 (103,896 cached) / output 6,279
-- **Cost:** $0.0415
+- **Cost:** $0.0434
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/03-new-energy-suv-pure-electric-preset-price.html)
 
 #### Case 4: Price-drop ranking test
@@ -65,7 +65,7 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Test scope:** Verify that the price-drop ranking correctly applies the combined filters for MPV, the last year, new energy, and a custom CNY 150,000–300,000 price range, and displays the corresponding results
 - **Steps:** 13 / 29 (script / model calls)
 - **Tokens:** Input 253,991 (174,176 cached) / output 8,203
-- **Cost:** $0.0658
+- **Cost:** $0.0687
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/04-price-drop-mpv-new-energy-custom-price.html)
 
 #### Case 5: Ranking switch and filter reset test
@@ -73,11 +73,11 @@ The following five test cases use `doubao-seed-2-1-turbo-260628` to test the ran
 - **Test scope:** Verify that switching from the sales ranking to the new-energy ranking resets dependent filters correctly, and that subsequent filtering and reset-to-default behavior work as expected
 - **Steps:** 16 / 28 (script / model calls)
 - **Tokens:** Input 217,283 (151,848 cached) / output 5,688
-- **Cost:** $0.0525
+- **Cost:** $0.0548
 - **Test report:** [View report](https://lf3-static.bytednsdoc.com/obj/eden-cn/luljzkpt/ljhwZthlaukjlkulzlp/showcases/dongchedi/05-switch-and-reset.html)
 
 :::info Doubao pricing assumptions
-Pricing was checked on August 17, 2026 and sourced from [AIHubMix](https://aihubmix.com/model/doubao-seed-2-1-turbo). Input tokens are priced at `$0.423 / M tokens`, cache reads at `$0.08452 / M tokens`, and output tokens at `$2.113 / M tokens`. The five cases cost approximately `$0.2192` in total and average `$0.0438` per case. These figures reflect this test run only; actual costs vary with task complexity, cache hit rate, and model pricing.
+Pricing was checked on September 3, 2026, and Doubao costs use [Volcengine's official pricing](https://ark.volcengine.com/region:cn-beijing/model/detail?name=doubao-seed-2-1-turbo). Standard inference rates are CNY `¥3 / M input tokens`, `¥0.6 / M cached input tokens`, and `¥15 / M output tokens`; USD costs use `¥6.8 / $1`. The five cases cost approximately `¥1.5556 ($0.2288)` in total and average `¥0.3111 ($0.0458)` per case. These figures reflect this test run only; actual costs vary with task complexity, cache hit rate, and model pricing.
 :::
 
 ### Reddit App: Qwen 3.7 Plus
