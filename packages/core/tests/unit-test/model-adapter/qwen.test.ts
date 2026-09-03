@@ -1,5 +1,5 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
-import { qwenAdapters } from '@/ai-model/models/qwen';
+import { qwenAdapters } from '@/ai-model/models/qwen/adapter';
 import { describe, expect, it } from '@rstest/core';
 
 const qwen25Adapter = new ResolvedModelAdapter(
@@ -21,6 +21,34 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  it.each([
+    ['qwen3', qwen3Adapter],
+    ['qwen3.5', qwen35Adapter],
+    ['qwen3.6', qwen36Adapter],
+  ])(
+    'uses point tool calls for %s element locate but keeps search-area bbox',
+    (_family, adapter) => {
+      const locate = adapter.locate;
+      if (locate.kind !== 'standard' || !locate.searchArea) {
+        throw new Error('Qwen should support standard locate and search area');
+      }
+      expect(locate.element.resultCodec.promptSpec.resultKey).toBe('point');
+      expect(locate.element.protocol.expectedJsonObjectResponse).toBe(false);
+      expect(locate.searchArea.resultCodec.promptSpec.resultKey).toBe('bbox');
+      expect(locate.searchArea.protocol.expectedJsonObjectResponse).toBe(true);
+      expect(
+        locate.searchArea.protocol.parseRawResponse(
+          '{"bbox":[100,200,300,400],"references_bbox":[[500,600,700,800]]}',
+          locate.searchArea.resultCodec.promptSpec,
+        ),
+      ).toEqual({
+        kind: 'located',
+        target: [100, 200, 300, 400],
+        references: [[500, 600, 700, 800]],
+      });
+    },
+  );
+
   it.each([
     ['qwen2.5-vl', qwen25Adapter],
     ['qwen3-vl', qwen3VlAdapter],
@@ -89,6 +117,30 @@ describe('qwen model adapter', () => {
         },
       }),
     );
+  });
+
+  it('uses the Qwen planning protocol only for qwen3 and its aliases', () => {
+    for (const adapter of [qwen3Adapter, qwen35Adapter, qwen36Adapter]) {
+      expect(adapter.planning.kind).toBe('standard');
+      if (adapter.planning.kind !== 'standard') {
+        throw new Error('qwen3 should use standard planning');
+      }
+      expect(
+        adapter.planning.protocol.actionOutputProtocol.actionOutputTagNames,
+      ).toEqual(['tool_call']);
+      expect(adapter.planning.locateResultCodec?.promptSpec.resultKey).toBe(
+        'point',
+      );
+    }
+
+    expect(qwen3VlAdapter.planning.kind).toBe('standard');
+    if (qwen3VlAdapter.planning.kind !== 'standard') {
+      throw new Error('qwen3-vl should use standard planning');
+    }
+    expect(
+      qwen3VlAdapter.planning.protocol.actionOutputProtocol
+        .actionOutputTagNames,
+    ).toEqual(['action-type', 'action-param-json']);
   });
 
   it('keeps model-specific image preprocess policy in the adapter', () => {
