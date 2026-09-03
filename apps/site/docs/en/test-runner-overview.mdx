@@ -10,35 +10,35 @@ The Test Runner is currently in **Beta**, and its test protocol and APIs continu
 
 ## Testing Engineering Challenges in the AI Era
 
-We are living in an era of AI transformation. In moving toward natural language testing, engineering teams face very real transition pain points:
+Even though GUI Agents can already drive E2E testing processes, there are still many practical demands before actual production deployment. Typical challenges include:
 
-1. **Concerns about the Selector Pattern**: The traditional selector pattern is not only fragile and hard for non-technical staff to maintain, but more importantly, it is based on the DOM tree. It cannot truly simulate what real users see on the screen (such as overlapping elements or broken layouts), failing to maximize the true value of AI's visual and semantic understanding.
-2. **The Efficiency Trap of "AI for AI's Sake"**: In the rush to adopt AI, there is often an anxious feeling that "not using AI is outdated." This drives teams to blindly chase 100% AI coverage, forcing simple background tasks (like database seeding or API calls) that could be solved instantly and stably with traditional scripts to be driven by AI. This degrades overall efficiency, inflates costs, and compromises stability—**once trapped, we actually lose our most fundamental pursuits of testing: being faster, cheaper, and more stable.** Introducing AI must be rational: applying the right solution to the right problem.
-3. **Organizational Challenges in Combining Engineering and AI**: We believe the future of testing projects must be a combination of "engineering (code) and AI (natural language)." However, existing frameworks often deliver a suboptimal developer experience when trying to organize both. Without clear boundaries and collaboration models, code and natural language can easily become tangled, leading to poor maintainability over time. We need a better organizational form that allows code and natural language to play to their strengths and collaborate seamlessly.
+1. **Need to Integrate Deterministic Scripts**: In actual testing scenarios, there is a clear need to combine deterministic scripts (such as API calls, data preparation, and test case lifecycle control) to handle background or setup/teardown tasks, ensuring test engineering remains stable, fast, and cost-effective.
+2. **Preference for a Declarative Core Flow**: A strong desire for the core testing flow to be in a YAML-like declarative language, rather than embedding a large amount of natural language inside `.ts` / `.js` code, which burdens the codebase and hurts the long-term maintenance experience.
+3. **Requirement for Extensibility to Co-maintain Scripts**: The need for sufficient extensibility to let Agents and humans co-maintain test scripts, keeping clear boundaries and collaboration models between deterministic engineering and natural language intent to avoid tangled code and natural language.
 
-Everyone wants to move toward natural language, but they lack a practical path that connects "deterministic code" with "natural language intent."
+To address these practical deployment challenges, Midscene has designed a new testing framework, `@midscene/test`.
 
-## A Hybrid Architecture: Declarative Semantics and Deterministic Engineering
+## Design Philosophy: Balancing Declarative Semantics and Deterministic Engineering
 
-To break this dilemma, `@midscene/test` returns to the first principles of end-to-end (E2E) testing and advocates a **hybrid architecture that balances "Declarative Semantics" and "Deterministic Engineering"**. It divides the test framework into two complementary, equal capabilities that align with two core perspectives in testing teams:
+To embrace the evolution of test engineering, `@midscene/test` returns to the first principles of end-to-end (E2E) testing and advocates a **design philosophy of balancing "Declarative Semantics" and "Deterministic Engineering"**.
 
-1. **Deterministic Engineering: TypeScript Programming for a Solid Foundation (TypeScript Nodes)**
-   **Focuses on "How to support"**. Provides programmable extension capabilities, ensuring the stability, determinism, and high efficiency of the underlying engineering foundation.
-   This capability is designed for engineering and platform builders. They use TypeScript to integrate browsers, Agents, external tools, and business APIs, while centrally managing runtime resources and execution lifecycles. Engineering builders only need to declare Zod validation rules and descriptions in their TypeScript Nodes. By encapsulating these technical and business capabilities as reusable custom Nodes, they automatically generate a reference document, eliminating the need to write and maintain API references manually.
+To address these challenges, Midscene's test framework focuses on providing the following capabilities:
 
-2. **Declarative Semantics: Expressing Business Intent in Natural Language (YAML + AI Actions)**
-   **Focuses on "What to test"**. Expresses business test intent. Test cases are assembled declaratively in YAML.
-   At this layer, authors can describe UI actions (such as `aiAct`) and assertions (such as `aiAssert`) in natural language, while **seamlessly calling and composing custom business capabilities provided and exposed by "Deterministic Engineering" (such as `order.prepare`)** to assemble their own end-to-end business flows.
-   This capability is designed for business-centric scenarios. Test authors can write and maintain test cases directly in natural language and declarative nodes, focusing entirely on business flows without needing to write JavaScript or deal with underlying engineering and system details. This significantly enhances authoring efficiency and long-term maintainability.
+### Out-of-the-Box Atomic Capabilities with High Extensibility
+Midscene provides built-in atomic capabilities (including not only AI interactions like `aiAct` and `aiAssert`, but also environment initialization, device, and browser configurations) out of the box, enabling a quick start with zero configuration.
 
-**Customizing Your Domain-Specific Test Framework and Supporting Capabilities**
+To handle complex business scenarios, Midscene supports custom atomic nodes (custom Nodes) defined in TypeScript. You can wrap APIs, data preparation, or custom toolchains into cohesive blocks and call them directly in upper-level YAML test cases. This keeps the authoring process simple while allowing the test engineering to scale for custom requirements.
 
-The core engineering value of this design is that it empowers developers to **customize and build their own domain-specific test frameworks**. By registering custom Nodes in "Deterministic Engineering" that match your unique business context, you can easily assemble and extend a tailored, highly cohesive testing framework that perfectly fits your team's background and needs.
+### Writing Daily Test Cases via Declarative YAML Files
+Focusing on "What to test", expressing business test intent. At this layer, test authors can describe UI actions (such as `aiAct`) and assertions (such as `aiAssert`) in natural language, while calling and composing custom business capabilities provided by "Deterministic Engineering" (such as `order.prepare`). Test authors can focus on business flows without needing to worry about underlying details, which enhances authoring efficiency and long-term maintainability.
 
-To help developers build and run these proprietary frameworks with minimal effort and maximum efficiency, we provide a suite of essential supporting engineering capabilities:
-- **Unified Observability**: Both AI visual steps and your custom Node executions are centrally recorded in the same execution lifecycle. The test report and runtime logs visualize the inputs, outputs, duration, execution status, and screenshots of every step. This simplifies troubleshooting and replay for human engineers and provides highly structured context for AI Agents to autonomously diagnose issues and optimize test cases.
-- **Standardized Lifecycle and Concurrency Control**: Out-of-the-box lifecycle hooks (Before/After), concurrent environment isolation, and sandboxing ensure that your proprietary framework and test cases run stably and predictably in CI (Continuous Integration) pipelines.
-- **Auto-Generated Node Reference**: The `describe-nodes` tool automatically compiles registered custom Nodes and their validation rules (Zod Schema) into standard Markdown documentation. This eliminates the cost of manually maintaining API manuals for your proprietary framework, allowing human authors and AI Agents to easily consult and consume these custom capabilities.
+### Auto-Generating Agent-Friendly Markdown Documentation
+The framework provides the `describe-nodes` tool, which automatically compiles registered custom Nodes and their validation rules (Zod Schema) into standard Markdown documentation. This eliminates the cost of manually maintaining API manuals for your customized framework, allowing human authors and AI Agents to easily consult and consume these custom capabilities.
+
+### Engineering Demands of E2E Projects
+In actual enterprise-level adoption, E2E testing projects are by no means one-time, AI-driven instant verifications. Instead, they must run continuously as long-term assets, facing real and rigorous engineering demands such as stability, speed, and maintainability. To address this, Midscene provides supporting engineering capabilities to ensure the stability and efficiency of E2E projects in production:
+- **Unified Observability and Logging**: Both AI visual steps and your custom Node executions are centrally recorded in the same execution lifecycle. The test report and runtime logs visualize the inputs, outputs, duration, execution status, and screenshots of every step. This simplifies troubleshooting and replay for human engineers and provides structured context for AI Agents to autonomously diagnose issues and optimize test cases.
+- **Standardized Lifecycle and Concurrency Control**: Out-of-the-box lifecycle hooks (Before/After), concurrent environment isolation, and sandboxing ensure that your custom framework and test cases run stably and predictably in CI (Continuous Integration) pipelines.
 
 ### Example Scenario: Verify an Order Refund Flow
 
@@ -46,6 +46,20 @@ Suppose an e-commerce team needs to verify the refund flow for paid orders:
 
 1. **Deterministic Engineering (TypeScript Nodes)**: call an order API or script before each case to create test data, and clean up the test order when the case finishes.
 2. **Declarative Semantics (AI Natural Language)**: use YAML instructions to have the Agent submit a refund request in the UI and verify the result.
+
+#### Project File Structure
+
+The recommended file structure for this example project is as follows:
+
+```text
+ecommerce-tests/
+├── cases/
+│   └── refund.yaml            # Declarative cases: describe test cases and steps via YAML files
+└── midscene.config.ts         # Deterministic engineering: register custom Nodes (e.g. order.prepare), define execution environments
+```
+
+- **`midscene.config.ts`**: Maintained by automation/test platform developers to build the underlying "Deterministic Engineering" (writing custom Zod Schemas, execution logic for custom Nodes, configuring browsers, etc.).
+- **`cases/refund.yaml`**: Maintained by QA engineers (or AI Agents) to compose and express high-level business test intents via "Declarative Semantics" (combining natural language and custom Nodes).
 
 #### 1. Auto-Generated Node Reference Example
 
