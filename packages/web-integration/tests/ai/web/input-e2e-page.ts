@@ -63,22 +63,31 @@ const stateScript = (fieldIds: string[]) => `
   }
 
   function updateInputSummary() {
-    const values = fieldIds.map((id) => {
+    const summary = document.getElementById('input-summary');
+    const fragment = document.createDocumentFragment();
+
+    for (const id of fieldIds) {
       const field = document.getElementById(id);
-      return '<div data-summary="' + id + '">' +
-        field.dataset.summaryLabel + ': ' +
-        displayValue(fieldValue(field)) + '</div>';
-    });
+      const row = document.createElement('div');
+      row.dataset.summary = id;
+      row.textContent =
+        field.dataset.summaryLabel + ': ' + displayValue(fieldValue(field));
+      fragment.append(row);
+    }
+
     const counts = window.__midsceneInputEvents.reduce((result, event) => {
       result[event.type] = (result[event.type] || 0) + 1;
       return result;
     }, {});
-    values.push(
-      '<div data-summary="events">Events: beforeinput=' +
-        (counts.beforeinput || 0) + ', input=' + (counts.input || 0) +
-        ', change=' + (counts.change || 0) + '</div>',
-    );
-    document.getElementById('input-summary').innerHTML = values.join('');
+    const eventRow = document.createElement('div');
+    eventRow.dataset.summary = 'events';
+    eventRow.textContent =
+      'Events: beforeinput=' + (counts.beforeinput || 0) +
+      ', input=' + (counts.input || 0) +
+      ', change=' + (counts.change || 0);
+    fragment.append(eventRow);
+
+    summary.replaceChildren(fragment);
   }
 
   for (const id of fieldIds) {
@@ -224,7 +233,7 @@ const CONTROLLED_HTML = `
   </html>
 `;
 
-type InputTestServers = {
+export type InputTestServers = {
   close(): Promise<void>;
   controlledUrl: string;
   iframeUrl(mode: 'same-origin' | 'cross-origin'): string;
