@@ -1,5 +1,4 @@
 import { PuppeteerAgent } from '@/puppeteer';
-import puppeteer, { type Browser, type Frame, type Page } from 'puppeteer';
 import {
   afterAll,
   afterEach,
@@ -7,11 +6,12 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+import puppeteer, { type Browser, type Frame, type Page } from 'puppeteer';
 import { startInputTestServers } from '../input-e2e-page';
 
-vi.setConfig({ testTimeout: 180_000 });
+rs.setConfig({ testTimeout: 180_000 });
 
 type InputMode = 'replace' | 'clear' | 'typeOnly';
 
