@@ -38,7 +38,12 @@ rs.mock('@midscene/shared/img', () => ({
   compositeElementInfoImg: mockCompositeElementInfoImg,
   compositePointMarkerImg: mockCompositePointMarkerImg,
   cropByRect: mockCropByRect,
+  isScreenshotImageMimeType: imgActual.isScreenshotImageMimeType,
+  localImg2Base64: imgActual.localImg2Base64,
+  parseScreenshotBase64: imgActual.parseScreenshotBase64,
   resizeBase64ImageToJpeg: mockResizeBase64ImageToJpeg,
+  screenshotImageExtension: imgActual.screenshotImageExtension,
+  screenshotImageMimeType: imgActual.screenshotImageMimeType,
 }));
 
 describe('service.describe', () => {

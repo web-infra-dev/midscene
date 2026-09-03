@@ -1,13 +1,20 @@
 import { prepareScreenshotForPersistence } from '@/agent/screenshot-preparation';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
+import * as imgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+
 const imageMocks = rs.hoisted(() => ({
   convertBase64ImageToJpeg: rs.fn(),
   imageInfoOfBase64: rs.fn(),
   resizeBase64ImageToJpeg: rs.fn(),
 }));
 
-rs.mock('@midscene/shared/img', () => imageMocks);
+rs.mock('@midscene/shared/img', () => ({
+  ...imgActual,
+  ...imageMocks,
+}));
 
 describe('prepareScreenshotForPersistence', () => {
   beforeEach(() => {

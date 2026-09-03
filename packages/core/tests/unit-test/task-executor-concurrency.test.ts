@@ -9,22 +9,12 @@ rs.mock('@/ai-model/workflows/planning', () => ({
   standardPlan: rs.fn(),
 }));
 
-import * as sharedImgActual from '@midscene/shared/img' with {
-  rstest: 'importActual',
-};
-
-rs.mock('@midscene/shared/img', () => ({
-  ...sharedImgActual,
-  preProcessImageUrl: rs.fn(async (url: string) => `prepared:${url}`),
-}));
-
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { DeviceAction, ExecutorContext } from '@/types';
-import { preProcessImageUrl } from '@midscene/shared/img';
 import { z } from 'zod';
 import type Service from '../../src';
 
@@ -69,6 +59,12 @@ describe('TaskExecutor concurrency isolation', () => {
   let mockService: Service;
 
   beforeEach(() => {
+    rs.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(Buffer.from(validBase64Image.split(',')[1], 'base64'), {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+      }),
+    );
     mockInterface = {
       interfaceType: 'web',
       actionSpace: rs.fn().mockReturnValue(emptyParamActionSpace),
@@ -227,7 +223,7 @@ describe('TaskExecutor concurrency isolation', () => {
       defaultModel(),
     );
 
-    expect(preProcessImageUrl).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(standardPlan).toHaveBeenCalledTimes(2);
     expect(standardPlan).toHaveBeenNthCalledWith(
       2,
@@ -236,7 +232,7 @@ describe('TaskExecutor concurrency isolation', () => {
         referenceImages: [
           {
             name: 'reference',
-            url: 'prepared:https://example.com/image.png',
+            url: validBase64Image,
           },
         ],
       },
