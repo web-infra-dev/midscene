@@ -1,0 +1,219 @@
+# AI 测试最佳实践
+
+Midscene 是负责执行的 GUI Agent：它根据收到的任务目标理解当前界面、规划并完成操作。业务上要测试什么、什么现象代表结果正确，以及页面入口、组件交互等无法从当前界面稳定推断的知识，不应由 Midscene 临场猜测，而应作为额外信息明确输入。
+
+为了降低人工编写和维护测试用例的成本，可以让另一个 Agent 生成 Case，再交给 Midscene 执行。此时需要设计的不只是提示词，还有这些信息如何生产、组织和更新，以及在哪个阶段由哪个 Agent 消费。信息不足会让 Agent 猜测，信息堆积又会增加维护和理解成本。本文讨论的最佳实践，就是如何在两者之间取舍。
+
+## 以懂车帝 APP 测试为例
+
+我们希望**生成**并**执行**这样一条测试：
+
+> 进入降价榜，筛选近一年上市的新能源 MPV，将价格区间筛选设为 10–40 万元，并检查筛选是否生效。
+
+给 AI 的提示词可能是：
+
+```txt
+帮我根据 [产品需求文档](packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md) 写一下排行榜筛选的测试 Case
+```
+
+只给这句话，会同时难住两个 Agent：
+
+- **生成 Case 的 Agent** 不知道排行榜从哪里进入，也不知道具体有哪些筛选项目。它只能生成模糊步骤，或者自行编造操作路径。
+- **运行 Case 的 Agent** 可能也不知道怎样从当前页面进入排行榜。即使找到了，也可能不清楚组件具体用法，靠猜测完成，不能稳定复现。
+
+例如，排行榜入口实际位于首页的快捷入口区域：
+
+<img
+  src="/images/test-runner-best-practices/ranking-entry-home.jpg"
+  alt="懂车帝首页的排行榜入口"
+  width="240"
+/>
+
+生成 Agent 如果没见过真实 App 或截图，不会天然知道这条路径。运行 Agent 可以临时观察页面，但不能保证在不同起点、弹窗或 UI 变化下始终猜对。
+
+价格组件的问题更明显：
+
+<img
+  src="/images/test-runner-best-practices/price-filter-initial.jpg"
+  alt="价格筛选初始状态，范围为 0 到不限"
+  width="240"
+/>
+
+运行时 AI 可能看不出下面这些隐含的交互知识：
+
+- 自定义范围在面板内调整后仍未应用，需要点击底部结果按钮。
+- 上下限贴近 Android 屏幕边缘，直接拖动可能触发系统返回手势。
+- 是否设置成功应以完整价格文案为准，不能根据滑块位置猜测。
+- 目标值已有刻度时，点击刻度比记录固定坐标或拖动距离更稳定。
+
+| 面板内已调为 10–40 万，仍待确认 | 确认后，筛选栏回显并更新列表 |
+| --- | --- |
+| <img src="/images/test-runner-best-practices/price-filter-pending.jpg" alt="价格范围待确认" width="180" /> | <img src="/images/test-runner-best-practices/price-filter-applied.jpg" alt="价格范围已应用" width="180" /> |
+
+> 截图均来自一次真实测试运行
+
+**为了解决这个问题，必须维护、组织 APP 的核心知识**
+
+Midscene 是负责执行任务的 GUI Agent，不应该凭空猜测排行榜入口、组件交互规则等 App 知识。这些知识应由真正理解 App 逻辑的开发者合理地维护和组织，再作为 Context 提供给生成和运行 Agent。
+
+## Context 就是缺失的知识
+
+Context 是主任务目标之外提供给 AI 的补充信息，可以包含业务事实、判断或交互规则、约束和输出要求。对本例而言，最重要的是：**AI 完成任务需要、但无法仅从测试目标和当前截图稳定推断出的知识**。
+
+本例需要记录的最小知识包括：
+
+```text
+- 首页快捷入口区域有“排行榜”入口。
+- 自定义价格必须点击底部结果按钮才会应用。
+- 价格结果以页面完整文案为准。
+- Android 边缘存在系统手势风险；有刻度时优先点击刻度。
+```
+
+它们来自真实 App 使用体验，而非 AI 的想象。完整 Demo 将这些知识按职责整理为[页面跳转 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md)和[排行榜组件 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md)。
+
+Context 没有特殊格式，普通 Markdown 就可以。举个例子：
+
+```markdown
+# 懂车帝页面跳转 Context
+
+## 首页
+- 首页快捷入口区域有“排行榜”入口。
+
+# 排行榜页面组件使用 Context
+
+## 价格筛选
+- 调整后仍需点击底部结果按钮。
+- 以完整价格文案判断范围。
+- Android 边缘存在系统手势风险。
+```
+
+完整示例拆成[页面跳转](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md)和[组件使用](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md)两个文件。
+
+有了这些知识，接下来有两种组织方式。
+
+## 方式一：运行时消费 Context
+
+运行时消费，可在创建 Agent 时读取并注入这份文件：[midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts)
+
+```ts
+import { mergeAIContexts } from '@midscene/core';
+
+const pageNavigationContext = readFileSync(pageNavigationFile, 'utf8');
+const rankingComponentsContext = readFileSync(rankingComponentsFile, 'utf8');
+const rankingActionContext = mergeAIContexts(
+  pageNavigationContext,
+  rankingComponentsContext,
+  rankingTimeContext,
+);
+
+await agentFromAdbDevice(deviceId, {
+  contexts: {
+    aiAct: rankingActionContext,
+  },
+});
+```
+
+推荐先按页面、组件等职责维护 Context，再只合并当前 Workflow 需要的文件。页面跳转和组件交互属于动作知识，统一放在 `contexts.aiAct`；只对某个 Step 有用的信息，通过 `options.context` 单独传入。Test Runner 会另行附加只读的 workflow history，无需复制到 App Context 中。
+
+生成 Agent 产出较上层的 Case：
+
+```yaml
+- aiAct: 在降价榜中筛选近一年上市的新能源 MPV，并应用 10–40 万元自定义价格
+- aiAssert: MPV、近一年、新能源和 10–40 万元均已回显，结果列表正常展示
+```
+
+执行时，运行 Agent 同时读取当前页面和相关 Context，自主决定怎样完成目标。
+
+这种方式的好处是 Case 简短，页面知识可以被多条 Case 复用；UI 变化但业务目标不变时，也可能只需更新 Context。
+
+但也有不足之处：知识持续积累后，Context 可能变成万字长文，容易在运行时稀释 Agent 注意力。Context 与 workflow history 分开传入后，超长 Context 本身的理解成本仍然需要解决。
+
+可选的解决办法是**按需读取**：
+
+- 按全局、页面、组件或 Feature 拆分知识。
+- 每个 Workflow 或 Case 只加载会用到的片段。
+- 删除重复、冲突和过期事实。
+- 只有 Context 本身不长、内容高度相关时，才整体加载。
+
+本示例的 Test Project 注入[页面跳转 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md)和[排行榜组件 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md)，分别提供进入排行榜的路径和筛选组件的使用知识。
+
+## 方式二：生成 Case 时消费 Context
+
+将 Context 注入给生成 Case Agent：
+
+```txt
+帮我根据 [产品需求文档](packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md) 写一下排行榜筛选的测试 Case
+必须参考 [页面跳转 Context](packages/test/example/android-dongchedi/app-context/page-navigation.md) 和 [排行榜组件 Context](packages/test/example/android-dongchedi/app-context/ranking-components.md) 编写 Case 详细交互细节，不得捏造
+```
+
+生成 Agent 先读取产品要求、Context 和真实界面证据，再产出细节更丰富的 Case：
+
+```yaml
+- aiAct: 从首页快捷入口进入排行榜，切换到降价榜
+- aiAct: 选择 MPV、近一年和新能源
+- aiAct: 打开自定义价格，先设置上限 40 万元，再设置下限 10 万元；核对完整文案后点击底部结果按钮
+- aiAssert: 筛选栏回显 MPV、近一年、新能源和 10–40 万元，结果列表正常展示
+```
+
+运行时 Agent 不用再消费 Context，而是直接消费细节丰富的 Case。
+
+这种方式的好处是把理解成本放在生成阶段，运行时更容易收敛，也更容易从步骤判断失败发生在哪里。
+
+但也有不足之处：
+
+1. 如果 Context 错误、不完整，或允许 Agent 自由发挥，生成 Agent 可能把并不存在的入口、顺序或页面结果写进 Case。
+2. 多条 Case 反复展开相同的导航和操作路径，会产生冗余；交互变化后需要批量维护。
+
+因此这种方式要求：
+
+- Context 必须正确、具体且有截图或真实运行依据。
+- 明确要求 Agent 不猜测缺失的界面事实；信息不足时保留上层目标，或明确报告知识缺口。
+- 预期结果来自产品要求和真实页面能力，不能由生成 Agent 随操作路径一起发明。
+- 将相关 Case 交给 AI 批量生成和维护，而不是人工逐条查找、修改重复路径。
+- 仍然使用业务语义，不把坐标和固定像素写进生成结果。
+
+## 怎样选择
+
+| 权衡 | 运行时消费 | 生成时消费 |
+| --- | --- | --- |
+| 知识由谁理解 | 每次运行的 Agent | 生成 Case 的 Agent |
+| Case 内容 | 上层目标 | 更明确的业务阶段 |
+| 更适合 | Context 较短、UI 路径可能变化 | 运行模型易丢细节、路径相对稳定 |
+| 主要风险 | 长 Context 失焦 | 生成错误路径、重复步骤难维护 |
+| 主要治理手段 | 拆分并按需加载 Context | 真实证据约束生成，AI 批量维护 |
+
+两种方式没有绝对优劣，也可以混用：普通导航在运行时读取 Context，自定义价格这类高风险组件则在生成阶段展开为多个语义步骤。
+
+## 不推荐的做法
+
+| 反例 | 问题 | 更合适的做法 |
+| --- | --- | --- |
+| 只输入“测试一下排行榜” | 目标、预期结果和必要知识都不足，两个 Agent 只能猜 | 说明业务目标和可观察结果，并提供相关 Context |
+| 交互已变化，Context 未及时更新 | 过期知识会让 Agent 稳定地做错，比没有 Context 更隐蔽 | 用真实截图或运行结果及时更新，并删除冲突描述 |
+| “点击 (424, 815)，再左拖 310 像素” | 绑定当前设备和布局，Agent 也失去现场调整空间 | 描述“设置 10–40 万并确认”等业务目标和必要约束 |
+| 把每次点击、等待、滑动都写成指令 | Case 退化为脆弱的录制脚本，稍有变化就失效 | 只拆分有业务意义或确实高风险的阶段 |
+| 每条 Case 都注入整个 App 的超长知识库 | 无关信息挤占理解成本，关键细节容易被忽略 | 按页面、组件或 Feature 拆分并按需读取 |
+| 让生成 Agent 自行补全 Context 没写的路径 | 它可能生成真实 App 中不存在的入口或状态 | 提供真实证据；信息不足时保留上层目标或报告缺口 |
+| 把某条 Case 的输入和预期结果写进公共 Context | 其他 Case 会受到无关目标污染，事实与测试设计混在一起 | Case 保存本次目标，Context 只保存可复用知识 |
+| 人工在多条 Case 中逐个修改重复路径 | 容易漏改，版本之间产生不一致 | 让 AI 识别关联 Case 并批量生成、校验和维护 |
+| 用“刚才操作成功”作为断言 | 没有说明页面上什么现象代表正确 | 明确筛选回显、互斥状态和结果列表等可观察结果 |
+
+步骤多并不一定错误。问题在于是否每一步都表达了稳定的业务意义，还是只复述某次运行的物理轨迹。
+
+## 仓库中的对应关系
+
+| 内容 | 文件 |
+| --- | --- |
+| 测试目标和预期结果 | [产品要求](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/features/ranking-filtering/product-requirements.md) |
+| 缺失的可复用知识 | [页面跳转 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/page-navigation.md)、[排行榜组件 Context](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/app-context/ranking-components.md) |
+| Case 生成参考提示词 | [generate-cases-prompt.md](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/features/ranking-filtering/generate-cases-prompt.md) |
+| AI 生成的测试用例 | [Test Runner YAML](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/test-runner/ranking-filtering.yaml) |
+| Android 真机运行结果 | 2026-08-28 运行 5 个 Case，全部通过且未发生重试 |
+
+完整 Demo 采用 Midscene [Test Runner](./test-runner-overview) 承载生成后的 YAML；[midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts)负责 Agent、Context、变量和资源生命周期。Android 环境准备见 [Android 平台文档](./platforms/android)，模型配置见[支持的模型与配置](./model-common-config)。
+
+```bash
+cp packages/test/example/android-dongchedi/.env.example packages/test/example/android-dongchedi/.env
+pnpm exec midscene-test describe-nodes packages/test/example/android-dongchedi
+node --env-file=packages/test/example/android-dongchedi/.env packages/test/bin/midscene-test packages/test/example/android-dongchedi --project dongchedi-android
+```
