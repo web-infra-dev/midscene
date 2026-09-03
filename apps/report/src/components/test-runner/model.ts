@@ -48,6 +48,24 @@ export interface RunnerProjectView {
   durationMs?: number;
 }
 
+export type RunnerBreakdownStatus = 'all' | 'attention' | RunnerCaseStatus;
+
+export type RunnerBreakdownSort = 'attention' | 'issues' | 'duration' | 'name';
+
+export interface RunnerProjectBreakdownView {
+  item: RunnerProjectView;
+  cases: RunnerCaseView[];
+}
+
+export const getDefaultExpandedProjectKeys = (
+  projects: readonly RunnerProjectBreakdownView[],
+): Set<string> =>
+  new Set(
+    projects
+      .filter(({ item }) => item.failedCount > 0)
+      .map(({ item }) => item.key),
+  );
+
 export interface RunnerTimelineSegment {
   key: string;
   label: string;
@@ -77,6 +95,13 @@ export interface RunnerVisualFrame {
   label: string;
   capturedAt?: number;
   screenshot: ScreenshotLike;
+}
+
+export interface RunnerPositionedVisualFrame {
+  frame: RunnerVisualFrame;
+  offsetMs: number;
+  offsetPercent: number;
+  stepId?: string;
 }
 
 export interface RunnerVisualStoryItem {
@@ -336,6 +361,118 @@ export const getCaseSearchMatch = (
     }
   }
   return undefined;
+};
+
+const matchesBreakdownStatus = (
+  item: RunnerCaseView,
+  status: RunnerBreakdownStatus,
+): boolean => {
+  if (status === 'all') return true;
+  if (status === 'attention') return item.status !== 'passed';
+  return item.status === status;
+};
+
+const breakdownCaseSorter = (
+  sort: RunnerBreakdownSort,
+): ((a: RunnerCaseView, b: RunnerCaseView) => number) => {
+  if (sort === 'duration') {
+    return (a, b) => b.durationMs - a.durationMs;
+  }
+  if (sort === 'name') {
+    return (a, b) => a.testCase.name.localeCompare(b.testCase.name);
+  }
+  return (a, b) =>
+    statusSortWeight[a.status] - statusSortWeight[b.status] ||
+    b.durationMs - a.durationMs;
+};
+
+const projectIssueCount = (item: RunnerProjectView): number =>
+  item.failedCount + item.retryPassedCount + item.notRunCount;
+
+/**
+ * Build the compact Overview tree without mutating the full Project model.
+ * Project health always reflects the whole run while the child Case list may
+ * be narrowed by the user's status or search filters.
+ */
+export const filterAndSortRunnerProjectBreakdown = (
+  projects: readonly RunnerProjectView[],
+  options: {
+    query: string;
+    status: RunnerBreakdownStatus;
+    sort: RunnerBreakdownSort;
+  },
+): RunnerProjectBreakdownView[] => {
+  const normalizedQuery = options.query.trim().toLocaleLowerCase();
+  const caseSorter = breakdownCaseSorter(options.sort);
+  const result = projects
+    .map((item) => {
+      const projectMatches = normalizedQuery
+        ? [item.project.name, item.project.projectId, item.project.platform]
+            .join(' ')
+            .toLocaleLowerCase()
+            .includes(normalizedQuery)
+        : false;
+      const cases = item.cases
+        .filter((caseItem) => matchesBreakdownStatus(caseItem, options.status))
+        .filter(
+          (caseItem) =>
+            !normalizedQuery ||
+            projectMatches ||
+            Boolean(getCaseSearchMatch(caseItem, normalizedQuery)),
+        )
+        .sort(caseSorter);
+      const projectStatus = projectDisplayStatusForSort(item);
+      const projectMatchesStatus =
+        options.status === 'all' ||
+        (options.status === 'attention'
+          ? projectStatus !== 'passed'
+          : projectStatus === options.status);
+      return {
+        item,
+        cases,
+        projectMatches,
+        projectMatchesStatus,
+      };
+    })
+    .filter(({ item, cases, projectMatches, projectMatchesStatus }) => {
+      if (cases.length) return true;
+      return (
+        item.cases.length === 0 &&
+        projectMatchesStatus &&
+        (!normalizedQuery || projectMatches)
+      );
+    })
+    .map(({ item, cases }) => ({ item, cases }));
+
+  return result.sort((a, b) => {
+    if (options.sort === 'name') {
+      return a.item.project.name.localeCompare(b.item.project.name);
+    }
+    if (options.sort === 'duration') {
+      return (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0);
+    }
+    if (options.sort === 'issues') {
+      return (
+        projectIssueCount(b.item) - projectIssueCount(a.item) ||
+        a.item.project.name.localeCompare(b.item.project.name)
+      );
+    }
+    return (
+      statusSortWeight[projectDisplayStatusForSort(a.item)] -
+        statusSortWeight[projectDisplayStatusForSort(b.item)] ||
+      projectIssueCount(b.item) - projectIssueCount(a.item) ||
+      (b.item.durationMs ?? 0) - (a.item.durationMs ?? 0)
+    );
+  });
+};
+
+const projectDisplayStatusForSort = (
+  item: RunnerProjectView,
+): RunnerCaseStatus => {
+  if (item.project.status === 'failed' || item.failedCount > 0) return 'failed';
+  if (item.retryPassedCount > 0) return 'retry-passed';
+  if (!item.cases.length || item.notRunCount > 0) return 'not-run';
+  return 'passed';
 };
 
 const projectExecutionBounds = (
@@ -642,6 +779,102 @@ export const getAllAttemptVisualFrames = (
   index: RunnerVisualIndex,
 ): RunnerVisualFrame[] =>
   getAttemptVisualFrames(attempt, index, Number.POSITIVE_INFINITY);
+
+export const getStepForVisualFrame = (
+  steps: readonly TestRunReportStep[],
+  frame: RunnerVisualFrame,
+): TestRunReportStep | undefined =>
+  steps.find((step) =>
+    step.agentDetails?.some(
+      (detail) =>
+        detail.reportId === frame.reportId &&
+        detail.executionId === frame.executionId,
+    ),
+  );
+
+export const getDefaultVisualFrameForStep = (
+  step: TestRunReportStep,
+  frames: readonly RunnerVisualFrame[],
+): RunnerVisualFrame | undefined =>
+  frames.find((frame) =>
+    step.agentDetails?.some(
+      (detail) =>
+        detail.reportId === frame.reportId &&
+        detail.executionId === frame.executionId,
+    ),
+  );
+
+export const positionAttemptVisualFrames = (
+  attempt: TestRunReportAttempt,
+  frames: readonly RunnerVisualFrame[],
+): RunnerPositionedVisualFrame[] => {
+  const steps = flattenAttemptSteps(attempt);
+  const attemptStartedAt = timestamp(attempt.startedAt);
+  const attemptEndedAt = timestamp(attempt.endedAt);
+  const measuredDurationMs =
+    attemptStartedAt !== undefined && attemptEndedAt !== undefined
+      ? Math.max(0, attemptEndedAt - attemptStartedAt)
+      : 0;
+  const capturedTimes = frames.flatMap((frame) =>
+    frame.capturedAt === undefined ? [] : [frame.capturedAt],
+  );
+  const firstCapturedAt = capturedTimes.length
+    ? Math.min(...capturedTimes)
+    : undefined;
+  const lastCapturedAt = capturedTimes.length
+    ? Math.max(...capturedTimes)
+    : undefined;
+  const capturedSpanMs =
+    firstCapturedAt !== undefined && lastCapturedAt !== undefined
+      ? Math.max(0, lastCapturedAt - firstCapturedAt)
+      : 0;
+  const timelineDurationMs = Math.max(
+    1,
+    attempt.durationMs,
+    measuredDurationMs,
+    capturedSpanMs,
+  );
+  const usesAttemptClock =
+    attemptStartedAt !== undefined &&
+    firstCapturedAt !== undefined &&
+    firstCapturedAt >= attemptStartedAt - 1_000 &&
+    firstCapturedAt <= attemptStartedAt + timelineDurationMs + 1_000;
+
+  return frames
+    .map((frame, sourceIndex) => {
+      let offsetMs: number;
+      if (frame.capturedAt !== undefined && usesAttemptClock) {
+        offsetMs = frame.capturedAt - attemptStartedAt!;
+      } else if (
+        frame.capturedAt !== undefined &&
+        firstCapturedAt !== undefined
+      ) {
+        offsetMs = frame.capturedAt - firstCapturedAt;
+      } else if (frames.length > 1) {
+        offsetMs = (timelineDurationMs * sourceIndex) / (frames.length - 1);
+      } else {
+        offsetMs = 0;
+      }
+      const clampedOffsetMs = Math.max(
+        0,
+        Math.min(timelineDurationMs, offsetMs),
+      );
+      return {
+        frame,
+        offsetMs: clampedOffsetMs,
+        offsetPercent: (clampedOffsetMs / timelineDurationMs) * 100,
+        stepId: getStepForVisualFrame(steps, frame)?.id,
+        sourceIndex,
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.offsetMs - right.offsetMs || left.sourceIndex - right.sourceIndex,
+    )
+    .map(
+      ({ sourceIndex: _sourceIndex, ...positionedFrame }) => positionedFrame,
+    );
+};
 
 export const getAttemptVisualStory = (
   attempt: TestRunReportAttempt | undefined,

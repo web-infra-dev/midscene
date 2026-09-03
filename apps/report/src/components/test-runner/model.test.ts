@@ -8,14 +8,19 @@ import type { PlaywrightTasks } from '../../types';
 import {
   buildRunnerTimeline,
   buildRunnerVisualIndex,
+  filterAndSortRunnerProjectBreakdown,
   flattenRunnerCases,
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
   getAttemptVisualStory,
   getCaseSearchMatch,
   getCaseStory,
+  getDefaultExpandedProjectKeys,
+  getDefaultVisualFrameForStep,
   getRunnerHealth,
+  getStepForVisualFrame,
   groupRunnerProjects,
+  positionAttemptVisualFrames,
 } from './model';
 
 const at = (seconds: number): string =>
@@ -222,6 +227,85 @@ describe('Test Runner hybrid report model', () => {
     ]);
   });
 
+  it('filters and sorts the compact Project-to-Case breakdown', () => {
+    const projects = groupRunnerProjects(dump);
+    const emptyFailedProject = {
+      ...projects[0],
+      key: 'empty-project',
+      project: {
+        ...projects[0].project,
+        projectId: 'empty-project',
+        name: 'Empty failed project',
+        documents: [],
+      },
+      cases: [],
+      health: getRunnerHealth([]),
+      passedCount: 0,
+      failedCount: 0,
+      retryPassedCount: 0,
+      notRunCount: 0,
+    };
+    const projectsWithEmptyFailure = [...projects, emptyFailedProject];
+
+    expect(
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: '',
+        status: 'attention',
+        sort: 'attention',
+      })[0].cases.map((item) => item.status),
+    ).toEqual(['failed', 'retry-passed', 'not-run']);
+
+    expect(
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: 'NODE_EXECUTION_ERROR',
+        status: 'all',
+        sort: 'attention',
+      })[0].cases.map((item) => item.testCase.caseId),
+    ).toEqual(['retried']);
+
+    expect(
+      filterAndSortRunnerProjectBreakdown(projects, {
+        query: '',
+        status: 'all',
+        sort: 'name',
+      })[0].cases.map((item) => item.testCase.caseId),
+    ).toEqual(['failed', 'not-run', 'passed', 'retried']);
+
+    expect(
+      filterAndSortRunnerProjectBreakdown(projectsWithEmptyFailure, {
+        query: '',
+        status: 'attention',
+        sort: 'attention',
+      }).map(({ item, cases }) => ({ name: item.project.name, cases })),
+    ).toMatchObject([
+      { name: 'Web', cases: expect.any(Array) },
+      { name: 'Empty failed project', cases: [] },
+    ]);
+  });
+
+  it('expands only Projects containing final failures by default', () => {
+    const [failedProject] = groupRunnerProjects(dump);
+    const retryPassedProject = {
+      ...failedProject,
+      key: 'retry-passed-project',
+      failedCount: 0,
+      retryPassedCount: 1,
+    };
+    const passedProject = {
+      ...failedProject,
+      key: 'passed-project',
+      failedCount: 0,
+      retryPassedCount: 0,
+    };
+    const views = [failedProject, retryPassedProject, passedProject].map(
+      (item) => ({ item, cases: item.cases }),
+    );
+
+    expect([...getDefaultExpandedProjectKeys(views)]).toEqual([
+      failedProject.key,
+    ]);
+  });
+
   it('builds a compact semantic story from the final Attempt', () => {
     const retryCase = dump.projects[0].documents[0].cases[1];
     expect(getCaseStory(retryCase)).toEqual([
@@ -352,5 +436,53 @@ describe('Test Runner hybrid report model', () => {
     ]);
     getAttemptVisualFrames(visualAttempt, visualIndex);
     expect(reportReadCount).toBe(1);
+  });
+
+  it('links visual frames to Steps and positions them on the full Attempt clock', () => {
+    const agentStep = step('aiAct', 'success', {
+      startedAt: at(6),
+      endedAt: at(8),
+      agentDetails: [{ reportId: 'report-1', executionId: 'execution-1' }],
+    });
+    const customStep = step('verify', 'success', {
+      startedAt: at(8),
+      endedAt: at(9),
+    });
+    const visualAttempt = attempt(
+      'attempt-with-timeline',
+      0,
+      'success',
+      5,
+      10,
+      [agentStep, customStep],
+    );
+    const frames = [
+      {
+        key: 'frame-1',
+        reportId: 'report-1',
+        executionId: 'execution-1',
+        label: 'Locate',
+        capturedAt: Date.parse(at(6)),
+        screenshot: { base64: 'data:image/png;base64,one' },
+      },
+      {
+        key: 'frame-2',
+        reportId: 'report-1',
+        executionId: 'execution-1',
+        label: 'Tap',
+        capturedAt: Date.parse(at(9)),
+        screenshot: { base64: 'data:image/png;base64,two' },
+      },
+    ];
+
+    expect(getStepForVisualFrame(visualAttempt.steps, frames[0])).toBe(
+      agentStep,
+    );
+    expect(getDefaultVisualFrameForStep(agentStep, frames)).toBe(frames[0]);
+    expect(getDefaultVisualFrameForStep(customStep, frames)).toBeUndefined();
+    expect(positionAttemptVisualFrames(visualAttempt, frames)).toMatchObject([
+      { frame: frames[0], offsetMs: 1_000, offsetPercent: 20, stepId: 'aiAct' },
+      { frame: frames[1], offsetMs: 4_000, offsetPercent: 80, stepId: 'aiAct' },
+    ]);
   });
 });

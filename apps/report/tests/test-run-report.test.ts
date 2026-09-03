@@ -1,9 +1,6 @@
 import { describe, expect, it } from '@rstest/core';
 import {
-  defaultRunnerCaseFilters,
   parseTestRunReportDump,
-  runnerCaseFiltersFromHash,
-  runnerHashForCaseFilters,
   runnerHashForRoute,
   runnerRouteFromHash,
   runnerStepIdFromHash,
@@ -60,7 +57,7 @@ describe('Test Runner report utilities', () => {
         page: 'case',
         caseKey: 'project:document:case',
         projectId: 'project',
-        parent: 'cases',
+        parent: 'overview',
         stepId: 'failed-step',
       },
       projectHash,
@@ -69,7 +66,7 @@ describe('Test Runner report utilities', () => {
       page: 'case',
       caseKey: 'project:document:case',
       projectId: 'project',
-      parent: 'cases',
+      parent: 'overview',
     });
     expect(new URLSearchParams(caseHash.slice(1)).get('external')).toBe(
       'value',
@@ -77,27 +74,16 @@ describe('Test Runner report utilities', () => {
     expect(runnerStepIdFromHash(caseHash)).toBe('failed-step');
   });
 
-  it('round-trips shareable Case filters without discarding the route', () => {
-    const hash = runnerHashForCaseFilters(
-      {
-        query: 'NODE_EXECUTION_ERROR',
-        status: 'failed',
-        projectId: 'android smoke',
-        sort: 'retries',
-      },
-      '#runner-page=cases&external=value',
+  it('folds the retired Cases route into Overview and clears its filters', () => {
+    const hash = runnerHashForRoute(
+      { page: 'overview' },
+      '#runner-page=cases&runner-query=NODE_EXECUTION_ERROR&runner-status=failed&runner-filter-project=android+smoke&runner-sort=retries&external=value',
     );
-    expect(runnerCaseFiltersFromHash(hash)).toEqual({
-      query: 'NODE_EXECUTION_ERROR',
-      status: 'failed',
-      projectId: 'android smoke',
-      sort: 'retries',
+    expect(hash).toBe('#external=value');
+    expect(runnerRouteFromHash('#runner-page=cases')).toEqual({
+      page: 'overview',
     });
-    expect(runnerRouteFromHash(hash)).toEqual({ page: 'cases' });
     expect(new URLSearchParams(hash.slice(1)).get('external')).toBe('value');
-    expect(runnerCaseFiltersFromHash('#runner-status=unknown')).toEqual(
-      defaultRunnerCaseFilters,
-    );
   });
 
   it('falls back to Overview for an incomplete route', () => {
