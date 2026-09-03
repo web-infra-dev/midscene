@@ -11,6 +11,7 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
+  overrideAIConfig,
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -40,9 +41,11 @@ const createMockInterface = () =>
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
     rs.mock('openai');
+    overrideAIConfig(defaultModelConfig);
   });
 
   afterEach(() => {
+    overrideAIConfig({});
     rs.clearAllMocks();
   });
 
@@ -245,6 +248,29 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('constructor with createOpenAIClient', () => {
+    it('should combine global model config with an agent-scoped createOpenAIClient', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const runtime = (agent as any).resolveModelRuntime('default');
+
+      expect(runtime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(runtime.config.openaiApiKey).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_API_KEY],
+      );
+      expect(runtime.config.openaiBaseURL).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
+      );
+      expect(runtime.config.createOpenAIClient).toBe(mockCreateClient);
+      expect(mockCreateClient).not.toHaveBeenCalled();
+    });
+
     it('should accept createOpenAIClient in AgentOpt with modelConfig', () => {
       const mockCreateClient = rs.fn(async () => ({
         chat: { completions: { create: rs.fn() } },
