@@ -15,7 +15,7 @@ import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
 import { kimiAdapters } from './kimi';
 import { mimoAdapters } from './mimo';
-import { qwenAdapters } from './qwen';
+import { qwenAdapters } from './qwen/adapter';
 import { uiTarsAdapters } from './ui-tars/adapter';
 
 export const MODEL_ADAPTER_CONFIGS = {

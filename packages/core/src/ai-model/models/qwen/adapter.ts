@@ -3,14 +3,16 @@ import type {
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
-} from '../model-adapter/types';
+} from '../../model-adapter/types';
 import {
   type LocateResultValue,
   type PixelBbox,
   createLocateResultValue,
   isBboxLocateResultValue,
   unwrapCoordinateListLikeInput,
-} from '../shared/model-locate-result';
+} from '../../shared/model-locate-result';
+import { qwenElementProtocol } from './element-protocol';
+import { createQwenPlanningProtocol } from './planning-protocol';
 
 const defaultBboxSize = 20;
 const qwen25BboxCoordinatesMeta = {
@@ -26,6 +28,26 @@ const qwen3BboxCoordinatesMeta = {
   order: 'xy',
   normalizedBy: 1000,
 } as const;
+const qwen3PointCoordinatesMeta = {
+  shape: 'point',
+  order: 'xy',
+  normalizedBy: 1000,
+} as const;
+
+function parseQwenRawPointLocateValue(input: unknown): LocateResultValue {
+  const point = typeof input === 'string' ? JSON.parse(input) : input;
+  if (
+    !Array.isArray(point) ||
+    point.length !== 2 ||
+    !point.every(
+      (value) => typeof value === 'number' && Number.isInteger(value),
+    )
+  ) {
+    throw new Error('Qwen coordinate must be a JSON array of two integers');
+  }
+
+  return createLocateResultValue(qwen3PointCoordinatesMeta, point);
+}
 
 function topLeftPointToPixelBbox(x: number, y: number): PixelBbox {
   return [
@@ -132,7 +154,7 @@ const buildQwen25ChatCompletionParams = (
   };
 };
 
-const qwen3Adapter: ModelAdapterDefinition = {
+const qwen3VlAdapter: ModelAdapterDefinition = {
   acceptBbox2dAlias: true,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
@@ -152,6 +174,31 @@ const qwen3Adapter: ModelAdapterDefinition = {
       resultFormat: {
         coordinates: qwen3BboxCoordinatesMeta,
       },
+    },
+  },
+};
+
+const qwen3Adapter: ModelAdapterDefinition = {
+  ...qwen3VlAdapter,
+  locate: {
+    element: {
+      protocol: qwenElementProtocol,
+      resultFormat: {
+        coordinates: qwen3PointCoordinatesMeta,
+        parseRawLocateValue: parseQwenRawPointLocateValue,
+      },
+    },
+    // Search-area localization still uses the default JSON bbox protocol.
+    searchArea: {
+      resultFormat: {
+        coordinates: qwen3BboxCoordinatesMeta,
+      },
+    },
+  },
+  planning: {
+    protocol: createQwenPlanningProtocol,
+    locateResultFormat: {
+      coordinates: qwen3PointCoordinatesMeta,
     },
   },
 };
@@ -180,7 +227,7 @@ export const qwenAdapters = {
       },
     },
   },
-  'qwen3-vl': qwen3Adapter,
+  'qwen3-vl': qwen3VlAdapter,
   qwen3: qwen3Adapter,
   'qwen3.5': qwen3Adapter,
   'qwen3.6': qwen3Adapter,
