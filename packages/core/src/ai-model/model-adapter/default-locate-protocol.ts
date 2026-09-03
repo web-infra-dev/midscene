@@ -138,10 +138,12 @@ const createParseRawResponse =
           ? record.bbox_2d
           : undefined;
     const error = typeof record.error === 'string' ? record.error : undefined;
-    const hasTarget = Array.isArray(target)
-      ? target.length > 0
-      : target !== undefined;
-    if (!hasTarget) {
+    if (target === undefined) {
+      throw new Error(
+        `Missing required coordinate field "${promptSpec.resultKey}". Expected "${promptSpec.resultKey}": ${promptSpec.resultValueSchema}; use an empty array when no element is found.${error ? ` Model error: ${error}` : ''}`,
+      );
+    }
+    if (Array.isArray(target) && target.length === 0) {
       return { kind: 'not-found', ...(error ? { error } : {}) };
     }
 

@@ -103,14 +103,12 @@ describe('default locate protocol', () => {
       normalizedBy: 1000,
     });
 
-    expect(
+    expect(() =>
       elementProtocol.parseRawResponse(
         '{"bbox_2d":[100,200,300,400]}',
         locatePromptSpec,
       ),
-    ).toEqual({
-      kind: 'not-found',
-    });
+    ).toThrow('Missing required coordinate field "bbox"');
     expect(
       elementProtocol.parseRawResponse(
         '{"bbox":[100,200,300,400],"bbox_2d":[500,600,700,800]}',
