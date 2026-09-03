@@ -629,7 +629,7 @@ tasks:
 
       # 输入文本到一个元素，用 prompt 描述元素位置
       - aiInput: <prompt> # 要输入文本的元素
-        value: <输入框的最终文本内容>
+        value: "<输入框的最终文本内容>" # 建议使用引号明确表示文本；未加引号的数字形式（如 00005）也会按原始文本保留
         deepLocate: <boolean> # 可选，是否为该元素开启深度定位。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
