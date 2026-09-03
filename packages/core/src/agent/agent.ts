@@ -328,9 +328,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    const runtime = getModelRuntime(
-      this.modelConfigManager.getModelConfig(intent),
-    );
+    const modelConfig: IModelConfig = {
+      ...this.modelConfigManager.getModelConfig(intent),
+      createOpenAIClient: this.opts.createOpenAIClient,
+    };
+    const runtime = getModelRuntime(modelConfig);
     return {
       ...runtime,
       onUsage: (usage) => {
@@ -422,11 +424,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
-    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
-    // Otherwise, use the global config manager
-    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
-    this.modelConfigManager = hasCustomConfig
-      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
+    // Explicit modelConfig is isolated from global configuration.
+    // A custom client factory alone still uses the global model values.
+    this.modelConfigManager = opts?.modelConfig
+      ? new ModelConfigManager(opts.modelConfig, opts.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
