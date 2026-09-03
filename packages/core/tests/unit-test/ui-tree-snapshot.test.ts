@@ -1,6 +1,6 @@
 import { pruneUITreeSnapshotToTarget } from '@/agent/ui-tree-snapshot';
 import type { UITreeSnapshot, UiNode } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const node = (
   type: string,

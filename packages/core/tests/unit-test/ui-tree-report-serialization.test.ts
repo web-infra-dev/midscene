@@ -1,7 +1,7 @@
 import { ExecutionDump, ReportActionDump } from '@/dump/report-action-dump';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { ExecutionTask, UIContext, UITreeSnapshot } from '@/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('UI tree report serialization', () => {
   it('keeps the captured tree directly on ExecutionTask.uiContext', () => {

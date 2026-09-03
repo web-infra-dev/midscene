@@ -177,7 +177,7 @@ describe(
           ],
         },
       };
-      const contextBuilder = vi.fn<
+      const contextBuilder = rs.fn<
         (task?: ExecutionTaskApply) => Promise<UIContext>
       >(async () => ({
         screenshot: ScreenshotItem.create('', Date.now()),
@@ -241,7 +241,7 @@ describe(
           children: [],
         },
       };
-      const contextBuilder = vi.fn(async () => ({
+      const contextBuilder = rs.fn(async () => ({
         screenshot: ScreenshotItem.create('', Date.now()),
         shotSize: { width: 400, height: 400 },
         shrunkShotToLogicalRatio: 2,
