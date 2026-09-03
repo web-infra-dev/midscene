@@ -5,7 +5,6 @@ import {
   executeAction,
   formatErrorMessage,
   noReplayAPIs,
-  outputAndReportAPIs,
   validateStructuredParams,
   validationAPIs,
 } from '../../src/common';
@@ -37,10 +36,6 @@ describe('common utilities', () => {
 
     it('should identify APIs that do not generate replay scripts', () => {
       expect(noReplayAPIs).toEqual([...dataExtractionAPIs, ...validationAPIs]);
-    });
-
-    it('should identify APIs that display output alongside reports', () => {
-      expect(outputAndReportAPIs).toEqual([...noReplayAPIs, 'aiAct']);
     });
   });
 

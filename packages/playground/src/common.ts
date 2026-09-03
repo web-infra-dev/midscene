@@ -22,9 +22,6 @@ export const validationAPIs = ['aiAssert', 'aiWaitFor'];
 // APIs whose executions should not be rendered as replays by StandardPlayground.
 export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
-// APIs whose return value UniversalPlayground should show with an available report.
-export const outputAndReportAPIs = [...noReplayAPIs, 'aiAct'];
-
 const agentPromptAPIs = [
   'aiAct',
   'runMarkdown',

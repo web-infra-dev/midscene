@@ -1,5 +1,4 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { outputAndReportAPIs } from '@midscene/playground';
 import { Spin } from 'antd';
 import type React from 'react';
 import type {
@@ -25,7 +24,8 @@ interface PlaygroundResultProps {
   notReadyMessage?: React.ReactNode | string;
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
-  actionType?: string; // The action type that was executed
+  // When a report is available, also show the return value above it.
+  showOutputAlongsideReport?: boolean;
   canDownloadReport?: boolean;
   onDownloadReport?: ReportDownloadHandler;
   playerPresentation?: PlayerPresentation;
@@ -44,7 +44,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   notReadyMessage,
   fitMode,
   autoZoom,
-  actionType,
+  showOutputAlongsideReport = false,
   canDownloadReport,
   onDownloadReport,
   playerPresentation,
@@ -59,9 +59,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   }
 
   let resultDataToShow: React.ReactNode = emptyResultTip;
-
-  const shouldShowOutputAlongsideReport =
-    actionType && outputAndReportAPIs.includes(actionType);
 
   if (!serverValid && serviceMode === 'Server') {
     resultDataToShow = serverLaunchTip(notReadyMessage);
@@ -121,7 +118,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       resultDataToShow = errorNode;
     }
   } else if (
-    shouldShowOutputAlongsideReport &&
+    showOutputAlongsideReport &&
     result?.result !== undefined &&
     replayScriptsInfo
   ) {
@@ -187,7 +184,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       />
     );
   } else if (
-    shouldShowOutputAlongsideReport &&
+    showOutputAlongsideReport &&
     result?.result !== undefined &&
     (result?.reportHTML || result?.report)
   ) {
@@ -226,7 +223,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         </div>
       </div>
     );
-  } else if (shouldShowOutputAlongsideReport && result?.result !== undefined) {
+  } else if (showOutputAlongsideReport && result?.result !== undefined) {
     // Without a report, show the API return value on its own.
     resultDataToShow =
       typeof result?.result === 'string' ? (

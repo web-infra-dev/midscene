@@ -40,6 +40,7 @@ import {
   createStorageProvider,
   detectBestStorageType,
 } from './providers/storage-provider';
+import { shouldShowOutputAlongsideReport } from './result-display';
 
 const handledExternalRunRequestIds = new Set<string>();
 const MAX_HANDLED_EXTERNAL_RUN_REQUEST_IDS = 100;
@@ -780,7 +781,9 @@ export function UniversalPlayground({
                                       }
                                       verticalMode={item.verticalMode || false}
                                       fitMode="width"
-                                      actionType={item.actionType}
+                                      showOutputAlongsideReport={shouldShowOutputAlongsideReport(
+                                        item.actionType,
+                                      )}
                                       onDownloadReport={
                                         componentConfig.onDownloadReport
                                       }
