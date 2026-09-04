@@ -22,17 +22,17 @@ export const AI_API_NAMES = [
 
 export type AiApiName = (typeof AI_API_NAMES)[number];
 
-export const AGENT_CONTEXT_KEYS = ['default', ...AI_API_NAMES] as const;
+export const AGENT_AI_CONTEXT_KEYS = ['default', ...AI_API_NAMES] as const;
 
-export type AgentContextKey = (typeof AGENT_CONTEXT_KEYS)[number];
+export type AgentAIContextKey = (typeof AGENT_AI_CONTEXT_KEYS)[number];
 
 /**
  * Additional AI guidance configured at Agent level. Values may contain
  * business facts, decision or interaction rules, constraints, and output
  * requirements. An API-specific value overrides `default`; values are not
- * implicitly concatenated.
+ * automatically merged.
  */
-export type AgentContexts = {
+export type AgentAIContexts = {
   /**
    * Shared fallback for every AI-powered API. It is used only when neither
    * the current call nor the matching API key provides a context.
@@ -40,6 +40,8 @@ export type AgentContexts = {
   default?: string;
 } & Partial<Record<AiApiName, string | undefined>>;
 
-export const isAgentContextKey = (value: unknown): value is AgentContextKey =>
+export const isAgentAIContextKey = (
+  value: unknown,
+): value is AgentAIContextKey =>
   typeof value === 'string' &&
-  (AGENT_CONTEXT_KEYS as readonly string[]).includes(value);
+  (AGENT_AI_CONTEXT_KEYS as readonly string[]).includes(value);

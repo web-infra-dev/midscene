@@ -1,7 +1,5 @@
-import { Agent, type AiActOptions } from '@/agent';
-import { INTERNAL_AI_CONTEXT_METADATA_KEY } from '@/agent/prompt-context';
+import { Agent } from '@/agent';
 import { TaskExecutionError } from '@/task-runner';
-import type { AssertOptions } from '@/types';
 import { describe, expect, it, rs } from '@rstest/core';
 
 const planningModel = {
@@ -51,7 +49,7 @@ const createAgentStub = () => {
   };
 
   (agent as any).opts = {
-    contexts: {
+    aiContexts: {
       default: 'Default context.',
       aiAct: 'Default action context.',
     },
@@ -77,7 +75,7 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
-  it('normalizes legacy aiAct context options without overriding contexts.aiAct', () => {
+  it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {
     const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const legacyAgent = new Agent(createInterfaceStub(), {
@@ -86,17 +84,19 @@ describe('Agent per-call context option', () => {
       });
       const configuredAgent = new Agent(createInterfaceStub(), {
         generateReport: false,
-        contexts: { default: 'Default context.', aiAct: '' },
+        aiContexts: { default: 'Default context.', aiAct: '' },
         aiActContext: 'Legacy action context.',
       });
 
-      expect((legacyAgent as any).opts.contexts.aiAct).toBe(
+      expect((legacyAgent as any).opts.aiContexts.aiAct).toBe(
         'Legacy action context.',
       );
-      expect((configuredAgent as any).opts.contexts).toEqual({
+      expect((configuredAgent as any).opts.aiContexts).toEqual({
         default: 'Default context.',
         aiAct: '',
       });
+      expect((configuredAgent as any).opts.aiActContext).toBe('');
+      expect((configuredAgent as any).opts.aiActionContext).toBe('');
       expect(warnSpy).toHaveBeenCalledTimes(2);
       expect(warnSpy).toHaveBeenNthCalledWith(
         1,
@@ -106,27 +106,27 @@ describe('Agent per-call context option', () => {
       expect(warnSpy).toHaveBeenNthCalledWith(
         2,
         '[Midscene]',
-        expect.stringContaining('"contexts.aiAct" takes precedence'),
+        expect.stringContaining('"aiContexts.aiAct" takes precedence'),
       );
     } finally {
       warnSpy.mockRestore();
     }
   });
 
-  it('uses a per-call aiAct context when no Agent contexts are configured', async () => {
+  it('uses a per-call aiAct context when no Agent aiContexts are configured', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = {};
+    (agent as any).opts.aiContexts = {};
 
     await agent.aiAct('Click the submit button', {
       context: 'Use buyer checkout rules.',
     });
 
     expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>',
+      'Use buyer checkout rules.',
     );
   });
 
-  it('uses per-call context instead of API and default contexts', async () => {
+  it('uses per-call context instead of API and default aiContexts', async () => {
     const { agent, taskExecutor, taskCache } = createAgentStub();
 
     await agent.aiAct('Click the submit button', {
@@ -134,11 +134,11 @@ describe('Agent per-call context option', () => {
     });
 
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
-      '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>\n\nClick the submit button',
+      '<CONTEXT>\nUse buyer checkout rules.\n</CONTEXT>\n\nClick the submit button',
     );
     expect(taskExecutor.action).toHaveBeenCalledTimes(1);
     expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>',
+      'Use buyer checkout rules.',
     );
   });
 
@@ -148,25 +148,23 @@ describe('Agent per-call context option', () => {
     await agent.aiAct('Click the submit button');
 
     expect(taskCache.matchPlanCache).toHaveBeenCalledWith(
-      '<REQUEST_CONTEXT source="api" api="aiAct">\nDefault action context.\n</REQUEST_CONTEXT>\n\nClick the submit button',
+      '<CONTEXT>\nDefault action context.\n</CONTEXT>\n\nClick the submit button',
     );
     expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      '<REQUEST_CONTEXT source="api" api="aiAct">\nDefault action context.\n</REQUEST_CONTEXT>',
+      'Default action context.',
     );
   });
 
-  it('renders the default context as global context when no API context exists', async () => {
+  it('uses the default context when no API context exists', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = { default: 'Default context.' };
+    (agent as any).opts.aiContexts = { default: 'Default context.' };
 
     await agent.aiAct('Click the submit button');
 
-    expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      '<GLOBAL_CONTEXT>\nDefault context.\n</GLOBAL_CONTEXT>',
-    );
+    expect(taskExecutor.action.mock.calls[0][3]).toBe('Default context.');
   });
 
-  it('allows blank per-call context to clear API and default contexts', async () => {
+  it('allows blank per-call context to clear API and default aiContexts', async () => {
     const { agent, taskExecutor, taskCache } = createAgentStub();
 
     await agent.aiAct('Click the submit button', {
@@ -177,45 +175,6 @@ describe('Agent per-call context option', () => {
       'Click the submit button',
     );
     expect(taskExecutor.action.mock.calls[0][3]).toBe('');
-  });
-
-  it('appends framework context without mutating the API context', async () => {
-    const { agent, taskExecutor, taskCache } = createAgentStub();
-    const options: AiActOptions & { _internalAdditionalContext: string } = {
-      _internalAdditionalContext:
-        'Previous workflow results (read-only):\nlaunch passed',
-    };
-
-    await agent.aiAct('Reset the page', options);
-    await agent.aiAct('Reset the page again', options);
-
-    const expectedContext =
-      '<REQUEST_CONTEXT source="api" api="aiAct">\nDefault action context.\n</REQUEST_CONTEXT>\n\n<WORKFLOW_HISTORY read_only="true">\nPrevious workflow results (read-only):\nlaunch passed\n</WORKFLOW_HISTORY>';
-    expect(taskCache.matchPlanCache).toHaveBeenNthCalledWith(
-      1,
-      `${expectedContext}\n\nReset the page`,
-    );
-    expect(taskCache.matchPlanCache).toHaveBeenNthCalledWith(
-      2,
-      `${expectedContext}\n\nReset the page again`,
-    );
-    expect(taskExecutor.action.mock.calls[0][3]).toBe(expectedContext);
-    expect(taskExecutor.action.mock.calls[1][3]).toBe(expectedContext);
-  });
-
-  it('appends framework context after the selected per-call context', async () => {
-    const { agent, taskExecutor } = createAgentStub();
-    const options: AiActOptions & { _internalAdditionalContext: string } = {
-      context: 'Use buyer checkout rules.',
-      _internalAdditionalContext:
-        'Previous workflow results (read-only):\nlaunch passed',
-    };
-
-    await agent.aiAct('Reset the page', options);
-
-    expect(taskExecutor.action.mock.calls[0][3]).toBe(
-      '<REQUEST_CONTEXT source="call">\nUse buyer checkout rules.\n</REQUEST_CONTEXT>\n\n<WORKFLOW_HISTORY read_only="true">\nPrevious workflow results (read-only):\nlaunch passed\n</WORKFLOW_HISTORY>',
-    );
   });
 
   it('does not register a file chooser for an empty fileChooserAccept array', async () => {
@@ -250,7 +209,6 @@ describe('Agent per-call context option', () => {
         context: 'The current user is a logged-in buyer.',
         domIncluded: false,
         screenshotIncluded: true,
-        [INTERNAL_AI_CONTEXT_METADATA_KEY]: { source: 'call' },
       },
       undefined,
       {
@@ -280,34 +238,12 @@ describe('Agent per-call context option', () => {
         context: 'Default context.',
         domIncluded: false,
         screenshotIncluded: true,
-        [INTERNAL_AI_CONTEXT_METADATA_KEY]: { source: 'default' },
       },
       undefined,
       {
         abortSignal: abortController.signal,
       },
     );
-  });
-
-  it('appends framework context after the selected per-call assertion context', async () => {
-    const { agent, taskExecutor } = createAgentStub();
-    const options: AssertOptions & { _internalAdditionalContext: string } = {
-      context: 'The current user is a logged-in buyer.',
-      keepRawResponse: true,
-      _internalAdditionalContext:
-        'Previous workflow results (read-only):\nlaunch passed',
-    };
-
-    await agent.aiAssert('The success toast is visible', undefined, options);
-
-    expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
-      context: 'The current user is a logged-in buyer.',
-      domIncluded: false,
-      screenshotIncluded: true,
-      [INTERNAL_AI_CONTEXT_METADATA_KEY]: { source: 'call' },
-      _internalAdditionalContext:
-        'Previous workflow results (read-only):\nlaunch passed',
-    });
   });
 
   it('uses per-call context for locate, query, and wait operations', async () => {
@@ -329,11 +265,10 @@ describe('Agent per-call context option', () => {
       | Array<{ param: { prompt: string } }>
       | undefined;
     expect(locatePlans?.[0]?.param.prompt).toContain(
-      '<REQUEST_CONTEXT source="call">\nUse the cart footer.\n</REQUEST_CONTEXT>',
+      '<CONTEXT>\nUse the cart footer.\n</CONTEXT>',
     );
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual({
       context: 'The cart has one item.',
-      [INTERNAL_AI_CONTEXT_METADATA_KEY]: { source: 'call' },
     });
     expect(taskExecutor.waitFor).toHaveBeenCalledWith(
       'The order is complete',
@@ -341,15 +276,14 @@ describe('Agent per-call context option', () => {
         context: 'The order id is 42.',
         timeoutMs: 1000,
         checkIntervalMs: 100,
-        [INTERNAL_AI_CONTEXT_METADATA_KEY]: { source: 'call' },
       },
       expect.objectContaining(defaultModel),
     );
   });
 
-  it('uses API contexts before the default context for each API', async () => {
+  it('uses API aiContexts before the default context for each API', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = {
+    (agent as any).opts.aiContexts = {
       default: 'Default context.',
       aiLocate: 'Locate context.',
       aiBoolean: 'Boolean context.',
@@ -364,7 +298,7 @@ describe('Agent per-call context option', () => {
       | Array<{ param: { prompt: string } }>
       | undefined;
     expect(locatePlans?.[0]?.param.prompt).toContain(
-      '<REQUEST_CONTEXT source="api" api="aiLocate">\nLocate context.\n</REQUEST_CONTEXT>',
+      '<CONTEXT>\nLocate context.\n</CONTEXT>',
     );
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
       expect.objectContaining({ context: 'Boolean context.' }),
@@ -373,16 +307,12 @@ describe('Agent per-call context option', () => {
       context: 'Wait context.',
       timeoutMs: 15_000,
       checkIntervalMs: 3_000,
-      [INTERNAL_AI_CONTEXT_METADATA_KEY]: {
-        source: 'api',
-        apiName: 'aiWaitFor',
-      },
     });
   });
 
   it('uses the default context when an API context is undefined', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = {
+    (agent as any).opts.aiContexts = {
       default: 'Default context.',
       aiBoolean: undefined,
     };
@@ -396,7 +326,7 @@ describe('Agent per-call context option', () => {
 
   it('allows a blank API context to clear the default context', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = {
+    (agent as any).opts.aiContexts = {
       default: 'Default context.',
       aiBoolean: '',
     };
@@ -410,7 +340,7 @@ describe('Agent per-call context option', () => {
 
   it('uses a separate API context for aiAsk', async () => {
     const { agent, taskExecutor } = createAgentStub();
-    (agent as any).opts.contexts = {
+    (agent as any).opts.aiContexts = {
       default: 'Default context.',
       aiString: 'String context.',
       aiAsk: 'Ask context.',
@@ -423,17 +353,17 @@ describe('Agent per-call context option', () => {
     );
   });
 
-  it('updates default and API contexts through setContext', async () => {
+  it('updates default and API aiContexts through setAIContext', async () => {
     const { agent, taskExecutor } = createAgentStub();
 
-    agent.setContext('default', 'New default context.');
-    agent.setContext('aiBoolean', 'Runtime Boolean context.');
+    agent.setAIContext('default', 'New default context.');
+    agent.setAIContext('aiBoolean', 'Runtime Boolean context.');
     await agent.aiBoolean('First check');
 
-    agent.setContext('aiBoolean', undefined);
+    agent.setAIContext('aiBoolean', undefined);
     await agent.aiBoolean('Second check');
 
-    agent.setContext('aiBoolean', '');
+    agent.setAIContext('aiBoolean', '');
     await agent.aiBoolean('Third check');
 
     expect(taskExecutor.createTypeQueryExecution.mock.calls[0]?.[3]).toEqual(
@@ -456,7 +386,7 @@ describe('Agent per-call context option', () => {
       await agent.aiAct('Click the submit button');
 
       expect(taskExecutor.action.mock.calls[0][3]).toBe(
-        '<REQUEST_CONTEXT source="api" api="aiAct">\nUpdated action context.\n</REQUEST_CONTEXT>',
+        'Updated action context.',
       );
       expect(warnSpy).toHaveBeenCalledWith(
         '[Midscene]',

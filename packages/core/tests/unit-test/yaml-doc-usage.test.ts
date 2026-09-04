@@ -69,7 +69,7 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  contexts:
+  aiContexts:
     default: "Prices are displayed in USD."
     aiAct: "If a consent dialog appears, click accept."
     aiQuery: "Return monetary values without currency symbols."
@@ -121,7 +121,7 @@ tasks:
       testId: 'checkout-test',
       reportFileName: 'checkout-report',
       replanningCycleLimit: 30,
-      contexts: {
+      aiContexts: {
         default: 'Prices are displayed in USD.',
         aiAct: 'If a consent dialog appears, click accept.',
         aiQuery: 'Return monetary values without currency symbols.',

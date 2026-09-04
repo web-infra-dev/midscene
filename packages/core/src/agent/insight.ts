@@ -9,11 +9,6 @@ import type {
   UIContext,
 } from '@/types';
 import type { AiApiName } from '@midscene/shared/agent-tools/agent-context';
-import {
-  INTERNAL_AI_CONTEXT_METADATA_KEY,
-  type InternalAIContextOptions,
-  type ResolvedAIContext,
-} from './prompt-context';
 import { TaskExecutionError, type TaskExecutor } from './tasks';
 import { parsePrompt } from './utils';
 
@@ -24,39 +19,28 @@ const defaultQueryOptions: QueryOptions = {
 
 type InsightTaskExecutor = Pick<TaskExecutor, 'createTypeQueryExecution'>;
 
-type InsightInternalOptions = InternalAIContextOptions & {
-  context?: string;
-};
+type InsightContextOptions = { context?: string };
 
 /** Execute read-only AI operations against either live or fixed UI context. */
 export class Insight implements InsightAPI {
   constructor(
     private readonly taskExecutor: InsightTaskExecutor,
     private readonly resolveModelRuntime: () => ModelRuntime,
-    private readonly getUIContext?: () => UIContext,
-    private readonly resolveAgentContext?: (
+    private readonly resolveAgentContext: (
       apiName: AiApiName,
       callContext?: string,
-    ) => ResolvedAIContext | undefined,
+    ) => string | undefined,
+    private readonly getUIContext?: () => UIContext,
   ) {}
 
   private resolveContext(
     apiName: AiApiName,
-    options?: InsightInternalOptions,
-  ): ResolvedAIContext | undefined {
-    if (this.resolveAgentContext) {
-      return this.resolveAgentContext(apiName, options?.context);
-    }
-
-    return options?.context === undefined
-      ? undefined
-      : {
-          value: options.context,
-          metadata: { source: 'call' },
-        };
+    options?: InsightContextOptions,
+  ): string | undefined {
+    return this.resolveAgentContext(apiName, options?.context);
   }
 
-  private withContext<T extends InsightInternalOptions>(
+  private withContext<T extends InsightContextOptions>(
     apiName: AiApiName,
     options: T,
   ): T {
@@ -67,8 +51,7 @@ export class Insight implements InsightAPI {
 
     return {
       ...options,
-      context: resolvedContext.value,
-      [INTERNAL_AI_CONTEXT_METADATA_KEY]: resolvedContext.metadata,
+      context: resolvedContext,
     };
   }
 
@@ -165,28 +148,13 @@ export class Insight implements InsightAPI {
     message?: string,
     options?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
-    const contextOptions = this.withContext(
-      'aiAssert',
-      (options ?? {}) as AssertOptions & InsightInternalOptions,
-    );
+    const contextOptions = this.withContext('aiAssert', options ?? {});
     const serviceOptions: QueryOptions = {
       domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
         options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
       ...(contextOptions.context !== undefined
         ? { context: contextOptions.context }
-        : {}),
-      ...(contextOptions[INTERNAL_AI_CONTEXT_METADATA_KEY] !== undefined
-        ? {
-            [INTERNAL_AI_CONTEXT_METADATA_KEY]:
-              contextOptions[INTERNAL_AI_CONTEXT_METADATA_KEY],
-          }
-        : {}),
-      ...(contextOptions._internalAdditionalContext !== undefined
-        ? {
-            _internalAdditionalContext:
-              contextOptions._internalAdditionalContext,
-          }
         : {}),
     };
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);

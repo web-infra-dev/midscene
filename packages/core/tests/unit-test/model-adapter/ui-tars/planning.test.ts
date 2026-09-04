@@ -154,7 +154,7 @@ Action: click(start_box='(500,500)')`,
       },
       createPlanOptions({
         actionContext:
-          '<REQUEST_CONTEXT source="api" api="aiAct">\nprefer the primary submit button\n</REQUEST_CONTEXT>',
+          '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>',
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -171,7 +171,7 @@ Action: click(start_box='(500,500)')`,
     expect(messages[0]).toMatchObject({
       role: 'user',
       content: expect.stringContaining(
-        '<REQUEST_CONTEXT source="api" api="aiAct">\nprefer the primary submit button\n</REQUEST_CONTEXT>\n',
+        '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>\n',
       ),
     });
     expect(messages).toEqual(

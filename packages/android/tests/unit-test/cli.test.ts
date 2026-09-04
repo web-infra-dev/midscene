@@ -146,7 +146,7 @@ describe('Android CLI integration', () => {
         '650',
         '--replanning-cycle-limit',
         '12',
-        '--contexts',
+        '--ai-contexts',
         '{"default":"prices are displayed in USD","aiQuery":"return numbers only"}',
         '--ai-act-context',
         'accept permission dialogs',
@@ -159,7 +159,7 @@ describe('Android CLI integration', () => {
       autoDismissKeyboard: false,
       waitAfterAction: 650,
       replanningCycleLimit: 12,
-      contexts: {
+      aiContexts: {
         default: 'prices are displayed in USD',
         aiQuery: 'return numbers only',
       },
@@ -275,7 +275,7 @@ describe('Android CLI integration', () => {
     expect(output.join('\n')).toContain('--waitAfterAction');
     expect(output.join('\n')).toContain('Default: 300ms');
     expect(output.join('\n')).toContain('--replanning-cycle-limit');
-    expect(output.join('\n')).toContain('--contexts');
+    expect(output.join('\n')).toContain('--ai-contexts');
     expect(output.join('\n')).toContain('--ai-act-context');
     expect(output.join('\n')).not.toContain('--ai-action-context');
     expect(output.join('\n')).not.toContain('--aiActionContext');

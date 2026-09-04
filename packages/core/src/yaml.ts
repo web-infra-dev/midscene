@@ -11,7 +11,7 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
   /**
    * Additional facts, rules, or constraints for this AI call. It overrides
-   * the matching API context and `contexts.default`; `''` disables inherited
+   * the matching API context and `aiContexts.default`; `''` disables inherited
    * user context for this call.
    */
   context?: string;
@@ -28,7 +28,7 @@ export interface ServiceExtractOption {
   /**
    * Additional facts, decision rules, constraints, or output requirements for
    * this AI call. It overrides the matching API context and
-   * `contexts.default`; `''` disables inherited user context for this call.
+   * `aiContexts.default`; `''` disables inherited user context for this call.
    */
   context?: string;
   domIncluded?: boolean | 'visible-only';
@@ -128,7 +128,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
-  | 'contexts'
+  | 'aiContexts'
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'

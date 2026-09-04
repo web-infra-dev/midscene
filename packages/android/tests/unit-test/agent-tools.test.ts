@@ -134,7 +134,7 @@ describe('AndroidMidsceneTools', () => {
         deviceId: 'target-device',
         waitAfterAction: 650,
         replanningCycleLimit: 12,
-        contexts: {
+        aiContexts: {
           default: 'prices are displayed in USD',
           aiAct: 'accept permission dialogs',
         },
@@ -147,7 +147,7 @@ describe('AndroidMidsceneTools', () => {
       autoDismissKeyboard: false,
       waitAfterAction: 650,
       replanningCycleLimit: 12,
-      contexts: {
+      aiContexts: {
         default: 'prices are displayed in USD',
         aiAct: 'accept permission dialogs',
       },
@@ -169,7 +169,7 @@ describe('AndroidMidsceneTools', () => {
 
     expect(takeScreenshotTool?.schema).toHaveProperty('android.deviceId');
     expect(actTool?.schema).toHaveProperty('android.deviceId');
-    expect(takeScreenshotTool?.schema).toHaveProperty('android.contexts');
+    expect(takeScreenshotTool?.schema).toHaveProperty('android.aiContexts');
     expect(takeScreenshotTool?.schema).toHaveProperty('android.aiActContext');
     expect(takeScreenshotTool?.schema).not.toHaveProperty(
       'android.aiActionContext',

@@ -102,7 +102,7 @@ describe('LongPress Action', () => {
           context: '文章位于首页的信息流中',
           deepLocate: true,
           prompt:
-            '<REQUEST_CONTEXT source="call">\n文章位于首页的信息流中\n</REQUEST_CONTEXT>\n\n<LOCATE_TARGET>\n首页任意一篇文章\n</LOCATE_TARGET>',
+            '<CONTEXT>\n文章位于首页的信息流中\n</CONTEXT>\n\n<LOCATE_TARGET>\n首页任意一篇文章\n</LOCATE_TARGET>',
           promptDisplay: '首页任意一篇文章',
           xpath: undefined,
         },

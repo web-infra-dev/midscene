@@ -1,25 +1,26 @@
 import { z } from 'zod';
 import {
-  AGENT_CONTEXT_KEYS,
-  type AgentContexts,
-  isAgentContextKey,
+  AGENT_AI_CONTEXT_KEYS,
+  type AgentAIContexts,
+  isAgentAIContextKey,
 } from './agent-context';
 
 export interface AgentBehaviorInitArgs {
   /**
    * Agent-level AI guidance. `default` is used only when neither the current
    * call nor its API key provides a context. Values override rather than
-   * implicitly concatenate.
+   * automatically merge.
    */
-  contexts?: AgentContexts;
+  aiContexts?: AgentAIContexts;
   /**
-   * Compatibility alias for `contexts.aiAct`; that field wins when both exist.
-   * @deprecated Use `contexts.aiAct` instead.
+   * Compatibility alias for `aiContexts.aiAct`; that field wins when both
+   * exist.
+   * @deprecated Use `aiContexts.aiAct` instead.
    */
   aiActContext?: string;
   /**
-   * Older compatibility alias for `contexts.aiAct`.
-   * @deprecated Use `contexts.aiAct` instead.
+   * Older compatibility alias for `aiContexts.aiAct`.
+   * @deprecated Use `aiContexts.aiAct` instead.
    */
   aiActionContext?: string;
   replanningCycleLimit?: number;
@@ -33,17 +34,17 @@ type ExposedAgentBehaviorInitArgKey = Exclude<
 >;
 
 export const agentBehaviorInitArgShape = {
-  contexts: z
-    .record(z.enum(AGENT_CONTEXT_KEYS), z.string())
+  aiContexts: z
+    .record(z.enum(AGENT_AI_CONTEXT_KEYS), z.string())
     .optional()
     .describe(
-      'Additional AI guidance such as business facts, rules, constraints, or output requirements. contexts.default is used only when neither the call nor its API key provides a context. Values override rather than implicitly concatenate.',
+      'Additional AI guidance such as business facts, rules, constraints, or output requirements. aiContexts.default is used only when neither the call nor its API key provides a context. Values override rather than automatically merge.',
     ),
   aiActContext: z
     .string()
     .optional()
     .describe(
-      'Deprecated compatibility alias for contexts.aiAct. contexts.aiAct takes precedence when both are provided.',
+      'Deprecated compatibility alias for aiContexts.aiAct. aiContexts.aiAct takes precedence when both are provided.',
     ),
   replanningCycleLimit: z
     .number()
@@ -76,14 +77,14 @@ export function extractAgentBehaviorInitArgs(
     return undefined;
   }
 
-  const contexts = Object.fromEntries(
-    Object.entries(extracted.contexts ?? {}).filter(
-      ([key, value]) => isAgentContextKey(key) && typeof value === 'string',
+  const aiContexts = Object.fromEntries(
+    Object.entries(extracted.aiContexts ?? {}).filter(
+      ([key, value]) => isAgentAIContextKey(key) && typeof value === 'string',
     ),
-  ) as AgentContexts;
+  ) as AgentAIContexts;
 
   const agentOptions: AgentBehaviorInitArgs = {
-    ...(Object.keys(contexts).length > 0 ? { contexts } : {}),
+    ...(Object.keys(aiContexts).length > 0 ? { aiContexts } : {}),
     ...(typeof extracted.aiActContext === 'string'
       ? { aiActContext: extracted.aiActContext }
       : {}),

@@ -12,9 +12,9 @@ import {
   type AIUsageInfo,
   type ActionParam,
   type ActionReturn,
+  type AgentAIContextKey,
+  type AgentAIContexts,
   type AgentAssertResult,
-  type AgentContextKey,
-  type AgentContexts,
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
@@ -62,7 +62,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type { AbstractInterface, InputStrategy } from '@/device';
 import type { TaskRunner } from '@/task-runner';
-import { isAgentContextKey } from '@midscene/shared/agent-tools/agent-context';
+import { isAgentAIContextKey } from '@midscene/shared/agent-tools/agent-context';
 import { serializeError } from '@midscene/shared/agent-tools/error-formatter';
 import {
   type ObservationArtifactAdapter,
@@ -87,13 +87,7 @@ import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
-import {
-  INTERNAL_AI_CONTEXT_METADATA_KEY,
-  type InternalAIContextOptions,
-  type ResolvedAIContext,
-  buildPromptWithContext,
-  renderAIContext,
-} from './prompt-context';
+import { buildPromptWithContext } from './prompt-context';
 import { normalizeRecordToReportScreenshot } from './record-to-report';
 import {
   type RunGherkinScenarioOptions,
@@ -136,15 +130,13 @@ export type AiActOptions = {
   abortSignal?: AbortSignal;
   /**
    * Additional facts, rules, constraints, or output requirements for this AI
-   * call. It overrides `contexts.aiAct` and `contexts.default`; `''` disables
-   * inherited user context for this call.
+   * call. It overrides `aiContexts.aiAct` and `aiContexts.default`; `''`
+   * disables inherited user context for this call.
    */
   context?: string;
 };
 
 type AiActInternalOptions = AiActOptions & {
-  /** Framework-owned workflow history appended after user context. */
-  _internalAdditionalContext?: string;
   _internalReportDisplay?: {
     type?: TaskTitleType;
     prompt?: string;
@@ -241,55 +233,38 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   /** Observers own temporary frame files until their observation is disposed. */
   private ownedObservers = new Set<UIObserverImpl>();
 
-  private get contexts(): AgentContexts {
-    if (!this.opts.contexts) {
-      this.opts.contexts = {};
+  private get aiContexts(): AgentAIContexts {
+    if (!this.opts.aiContexts) {
+      this.opts.aiContexts = {};
     }
-    return this.opts.contexts;
+    return this.opts.aiContexts;
   }
 
   private resolveUserContext(
     apiName: AiApiName,
     callContext?: string,
-  ): ResolvedAIContext | undefined {
+  ): string | undefined {
     if (callContext !== undefined) {
-      return { value: callContext, metadata: { source: 'call' } };
+      return callContext;
     }
 
-    const apiContext = this.opts.contexts?.[apiName];
+    const apiContext = this.opts.aiContexts?.[apiName];
     if (apiContext !== undefined) {
-      return {
-        value: apiContext,
-        metadata: { source: 'api', apiName },
-      };
+      return apiContext;
     }
 
-    const defaultContext = this.opts.contexts?.default;
+    const defaultContext = this.opts.aiContexts?.default;
     if (defaultContext !== undefined) {
-      return {
-        value: defaultContext,
-        metadata: { source: 'default' },
-      };
+      return defaultContext;
     }
 
     return undefined;
   }
 
-  private resolveContext(
-    apiName: AiApiName,
-    callContext?: string,
-    additionalContext?: string,
-  ): string | undefined {
-    return renderAIContext(
-      this.resolveUserContext(apiName, callContext),
-      additionalContext,
-    );
-  }
-
   private withContext<T extends { context?: string }>(
     apiName: AiApiName,
     options?: T,
-  ): (T & InternalAIContextOptions) | undefined {
+  ): T | undefined {
     const resolvedContext = this.resolveUserContext(apiName, options?.context);
     if (resolvedContext === undefined) {
       return options;
@@ -297,8 +272,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     return {
       ...(options ?? ({} as T)),
-      context: resolvedContext.value,
-      [INTERNAL_AI_CONTEXT_METADATA_KEY]: resolvedContext.metadata,
+      context: resolvedContext,
     };
   }
 
@@ -378,8 +352,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return new Insight(
       this.taskExecutor,
       () => this.resolveModelRuntime('insight'),
-      getUIContext,
       (apiName, callContext) => this.resolveUserContext(apiName, callContext),
+      getUIContext,
     );
   }
 
@@ -399,16 +373,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     assertReportGenerationOptions(this.opts);
 
     if (
-      this.opts.contexts !== undefined &&
-      (typeof this.opts.contexts !== 'object' ||
-        this.opts.contexts === null ||
-        Array.isArray(this.opts.contexts))
+      this.opts.aiContexts !== undefined &&
+      (typeof this.opts.aiContexts !== 'object' ||
+        this.opts.aiContexts === null ||
+        Array.isArray(this.opts.aiContexts))
     ) {
-      throw new TypeError('opts.contexts must be a plain object');
+      throw new TypeError('opts.aiContexts must be a plain object');
     }
 
-    for (const [key, value] of Object.entries(this.opts.contexts ?? {})) {
-      if (!isAgentContextKey(key)) {
+    for (const [key, value] of Object.entries(this.opts.aiContexts ?? {})) {
+      if (!isAgentAIContextKey(key)) {
         throw new TypeError(`Unknown Agent context key: ${key}`);
       }
       if (value !== undefined && typeof value !== 'string') {
@@ -424,21 +398,21 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           : undefined;
     if (deprecatedAiActContextOption) {
       warn(
-        `Agent option "${deprecatedAiActContextOption}" is deprecated; use "contexts.aiAct" instead. When both are provided, "contexts.aiAct" takes precedence.`,
+        `Agent option "${deprecatedAiActContextOption}" is deprecated; use "aiContexts.aiAct" instead. When both are provided, "aiContexts.aiAct" takes precedence.`,
       );
     }
 
-    const normalizedContexts: AgentContexts = { ...this.opts.contexts };
+    const normalizedAIContexts: AgentAIContexts = { ...this.opts.aiContexts };
     const resolvedAiActContext =
-      normalizedContexts.aiAct ??
+      normalizedAIContexts.aiAct ??
       this.opts.aiActContext ??
       this.opts.aiActionContext;
     if (resolvedAiActContext !== undefined) {
-      normalizedContexts.aiAct = resolvedAiActContext;
+      normalizedAIContexts.aiAct = resolvedAiActContext;
       this.opts.aiActContext = resolvedAiActContext;
-      this.opts.aiActionContext ??= resolvedAiActContext;
+      this.opts.aiActionContext = resolvedAiActContext;
     }
-    this.opts.contexts = normalizedContexts;
+    this.opts.aiContexts = normalizedAIContexts;
 
     if (
       opts?.modelConfig &&
@@ -700,41 +674,43 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   /**
-   * @deprecated Use `setContext('aiAct', context)` instead.
+   * @deprecated Use `setAIContext('aiAct', context)` instead.
    */
   async setAIActionContext(prompt: string) {
     warn(
-      'setAIActionContext() is deprecated; use setContext("aiAct", context) instead.',
+      'setAIActionContext() is deprecated; use setAIContext("aiAct", context) instead.',
     );
-    this.setContext('aiAct', prompt);
+    this.setAIContext('aiAct', prompt);
   }
 
   /**
-   * @deprecated Use `setContext('aiAct', context)` instead.
+   * @deprecated Use `setAIContext('aiAct', context)` instead.
    */
   async setAIActContext(prompt: string) {
     warn(
-      'setAIActContext() is deprecated; use setContext("aiAct", context) instead.',
+      'setAIActContext() is deprecated; use setAIContext("aiAct", context) instead.',
     );
-    this.setContext('aiAct', prompt);
+    this.setAIContext('aiAct', prompt);
   }
 
   /**
    * Set Agent-level AI guidance. Use `default` as the shared fallback for all
    * AI-powered APIs, or an API name to override that fallback for the API.
-   * API-specific values are not implicitly concatenated with `default`.
-   * Passing `undefined` removes an API override; passing `''` keeps an explicit
-   * empty value and therefore prevents that API from using `default`.
+   * API-specific values are not automatically merged with `default`.
+   * Passing `undefined` removes the selected value; an API then falls back to
+   * `default`, while removing `default` disables the shared fallback. Passing
+   * `''` keeps an explicit empty value and therefore prevents an API from using
+   * `default`.
    */
-  setContext(target: AgentContextKey, context: string | undefined): void {
-    if (!isAgentContextKey(target)) {
+  setAIContext(target: AgentAIContextKey, context: string | undefined): void {
+    if (!isAgentAIContextKey(target)) {
       throw new TypeError(`Unknown Agent context key: ${String(target)}`);
     }
     if (context !== undefined && typeof context !== 'string') {
       throw new TypeError('Agent context must be a string or undefined');
     }
 
-    this.contexts[target] = context;
+    this.aiContexts[target] = context;
 
     if (target === 'aiAct') {
       if (context === undefined) {
@@ -1292,11 +1268,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
-      const aiActContext = this.resolveContext(
-        'aiAct',
-        opt?.context,
-        internalOptions?._internalAdditionalContext,
-      );
+      const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
