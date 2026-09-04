@@ -4,6 +4,11 @@ import {
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
+import {
+  BrowserPageManagerSlot,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
+} from '@/common/browser-page-actions';
 import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -29,7 +34,27 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
-  protected pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
+  private readonly pageManagerSlot: BrowserPageManagerSlot<
+    PuppeteerPage,
+    PuppeteerTarget
+  >;
+
+  protected get pageManager() {
+    return this.pageManagerSlot.requireCurrent();
+  }
+
+  protected set pageManager(pageManager: BrowserPageManager<
+    PuppeteerPage,
+    PuppeteerTarget
+  >) {
+    this.replacePageManager(pageManager);
+  }
+
+  protected replacePageManager(
+    pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget>,
+  ) {
+    this.pageManagerSlot.replace(pageManager);
+  }
 
   constructor(
     browser: PuppeteerBrowser,
@@ -57,9 +82,21 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageManagerSlot = new BrowserPageManagerSlot<
+      PuppeteerPage,
+      PuppeteerTarget
+    >('PuppeteerBrowserAgent');
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PuppeteerBrowserAgent',
+      getPageManager: () => pageManagerSlot.requireCurrent(),
+    });
     const webPage = new PuppeteerWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageManager = createPuppeteerBrowserPageManager({
       browser,
@@ -67,8 +104,9 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       runtimeOptions,
       debug,
     });
+    pageManagerSlot.initialize(pageManager);
     super(webPage, agentOpts);
-    this.pageManager = pageManager;
+    this.pageManagerSlot = pageManagerSlot;
 
     applyForceChromeSelectRendering(
       initialPage,

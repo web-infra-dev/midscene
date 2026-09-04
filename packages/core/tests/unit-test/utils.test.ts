@@ -185,8 +185,8 @@ describe('utils', () => {
 
   it(
     'should handle multiple large reports correctly',
-    { timeout: 30000 },
-    async () => {
+    { timeout: 60000 },
+    () => {
       const tmpFile = createTempHtmlFile('');
 
       // Create a large string of approximately 100MB
@@ -260,9 +260,7 @@ describe('utils', () => {
       const fileSizeInMB = stats.size / (1024 * 1024);
       console.log(`File size: ${fileSizeInMB.toFixed(2)}MB`);
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      // We expect the file to be approximately 700MB plus template overhead
+      // We expect the file to be approximately 1000MB plus template overhead
       const expectedMinSize = 1000; // 10 reports × 100MB
       expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
     },

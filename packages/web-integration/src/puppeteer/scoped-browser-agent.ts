@@ -26,7 +26,6 @@ class ScopedPuppeteerBrowserAgent extends PuppeteerBrowserAgent {
       autoFollowNewPage: false,
     });
 
-    this.pageManager.destroy();
     const runtimeOptions = resolveBrowserAgentRuntimeOptions({
       agentName: 'PuppeteerBrowserAgent',
       pageScope: 'browser',
