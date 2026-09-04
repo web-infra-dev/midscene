@@ -92,7 +92,6 @@ export async function runWorkflowDocument<TContext = undefined>(
             context: runtime.context,
             projectName,
             attemptIndex,
-            documentHistory: runtime.history,
             signal: options.signal,
             defaultTimeoutMs: options.defaultTimeoutMs,
             onStepStart: options.onStepStart,

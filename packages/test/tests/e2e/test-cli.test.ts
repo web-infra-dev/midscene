@@ -134,9 +134,9 @@ describe('midscene-test CLI', () => {
     );
     expect(execution.stdout).toContain('[document 1/2] flows/first.yaml');
     expect(execution.stdout).toContain('    [case 1/2] first case');
-    expect(execution.stdout).toContain('      → step 1/3: test.record');
+    expect(execution.stdout).toContain('      → step 1/2: test.record');
     expect(execution.stdout).toMatch(
-      / {6}✓ step 1\/3: test\.record \(\d+ ms\)/,
+      / {6}✓ step 1\/2: test\.record \(\d+ ms\)/,
     );
     expect(execution.stdout).toContain('3/3 cases passed, 0 failed, 0 not run');
     expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([

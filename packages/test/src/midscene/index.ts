@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import { createLaunchNode } from '../device/lifecycle';
 export type { LaunchNodeInput } from '../device/lifecycle';
 export { launchInputSchema } from '../device/lifecycle';
-import type { Awaitable, NodeHistoryEntry } from '../engine/types';
+import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
 import type {
@@ -18,35 +18,25 @@ export interface MidsceneAiActOptions {
   deepLocate?: boolean;
   /**
    * Additional facts, rules, constraints, or output requirements for this AI
-   * call. It overrides Agent API and default contexts; `''` disables inherited
-   * user context for this call.
+   * call. It overrides `aiContexts.aiAct` and `aiContexts.default`; `''`
+   * disables inherited user context for this call.
    */
   context?: string;
   abortSignal?: AbortSignal;
 }
-
-type MidsceneAiActInternalOptions = MidsceneAiActOptions & {
-  /** Workflow history rendered by Core as a separate read-only prompt block. */
-  _internalAdditionalContext?: string;
-};
 
 export interface MidsceneAiAssertOptions {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   /**
    * Additional facts, decision rules, constraints, or output requirements for
-   * this assertion. It overrides Agent API and default contexts; `''` disables
-   * inherited user context for this call.
+   * this assertion. It overrides `aiContexts.aiAssert` and
+   * `aiContexts.default`; `''` disables inherited user context for this call.
    */
   context?: string;
   abortSignal?: AbortSignal;
   keepRawResponse?: boolean;
 }
-
-type MidsceneAiAssertInternalOptions = MidsceneAiAssertOptions & {
-  /** Workflow history rendered by Core as a separate read-only prompt block. */
-  _internalAdditionalContext?: string;
-};
 
 export interface MidscenePromptImage {
   name: string;
@@ -107,7 +97,6 @@ export interface AgentReleaseResult {
 
 export interface AgentExecutorInput<TContext> {
   prompt: string;
-  history: readonly NodeHistoryEntry[];
   context: TContext;
   signal: AbortSignal;
   execution:
@@ -164,7 +153,7 @@ const aiActOptionsInputSchema = z.strictObject({
     .string()
     .optional()
     .describe(
-      'Additional facts, rules, constraints, or output requirements for this AI call. It overrides Agent API and default contexts; an empty string disables inherited user context.',
+      'Additional facts, rules, constraints, or output requirements for this AI call. It overrides aiContexts.aiAct and aiContexts.default; an empty string disables inherited user context.',
     ),
 });
 
@@ -188,7 +177,7 @@ const aiAssertOptionsInputSchema = z.strictObject({
     .string()
     .optional()
     .describe(
-      'Additional facts, decision rules, constraints, or output requirements for this assertion. It overrides Agent API and default contexts; an empty string disables inherited user context.',
+      'Additional facts, decision rules, constraints, or output requirements for this assertion. It overrides aiContexts.aiAssert and aiContexts.default; an empty string disables inherited user context.',
     ),
 });
 
@@ -285,93 +274,6 @@ const requireAgentMethod = <TMethod extends keyof MidsceneUIAgent>(
   return agent[method] as NonNullable<MidsceneUIAgent[TMethod]>;
 };
 
-const maxHistoryContextCharacters = 64_000;
-const maxHistoryValuePreviewCharacters = 8_000;
-const maxHistoryEntryCharacters = 24_000;
-const historyOmissionNoticeReserve = 256;
-
-const compactHistoryContextValue = (value: unknown): unknown => {
-  const serialized = JSON.stringify(value);
-  if (
-    serialized === undefined ||
-    serialized.length <= maxHistoryValuePreviewCharacters
-  ) {
-    return value;
-  }
-  return {
-    omittedFromContext: true,
-    originalCharacters: serialized.length,
-    preview:
-      typeof value === 'string'
-        ? value.slice(0, maxHistoryValuePreviewCharacters)
-        : serialized.slice(0, maxHistoryValuePreviewCharacters),
-  };
-};
-
-const serializeHistoryEntryForContext = (
-  entry: NodeHistoryEntry,
-  index: number,
-): string => {
-  const compacted = Object.fromEntries(
-    Object.entries({ index, ...entry }).map(([key, value]) => [
-      key,
-      compactHistoryContextValue(value),
-    ]),
-  );
-  const serialized = JSON.stringify(compacted);
-  if (serialized.length <= maxHistoryEntryCharacters) return serialized;
-
-  return JSON.stringify({
-    index,
-    scope: entry.scope,
-    phase: entry.phase,
-    stepIndex: entry.stepIndex,
-    node: entry.node,
-    status: entry.status,
-    ...(entry.summary === undefined
-      ? {}
-      : { summary: compactHistoryContextValue(entry.summary) }),
-    omittedFromContext: true,
-    compactedCharacters: serialized.length,
-  });
-};
-
-export const renderNodeHistory = (
-  history: readonly NodeHistoryEntry[],
-): string | undefined => {
-  if (history.length === 0) return undefined;
-
-  const heading = 'Previous workflow results (read-only):';
-  const availableCharacters =
-    maxHistoryContextCharacters - heading.length - historyOmissionNoticeReserve;
-  const renderedEntries: string[] = [];
-  let renderedCharacters = 0;
-
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const rendered = serializeHistoryEntryForContext(history[index], index + 1);
-    const separatorCharacters = renderedEntries.length === 0 ? 0 : 1;
-    if (
-      renderedCharacters + separatorCharacters + rendered.length >
-      availableCharacters
-    ) {
-      break;
-    }
-    renderedEntries.unshift(rendered);
-    renderedCharacters += separatorCharacters + rendered.length;
-  }
-
-  const omittedEntries = history.length - renderedEntries.length;
-  return [
-    heading,
-    ...(omittedEntries === 0
-      ? []
-      : [
-          `${omittedEntries} earlier history entr${omittedEntries === 1 ? 'y was' : 'ies were'} omitted from Agent context to stay within the size limit. Complete results remain available in the Test Runner output.`,
-        ]),
-    ...renderedEntries,
-  ].join('\n');
-};
-
 const toAgentPrompt = (input: {
   prompt: string;
   images?: MidscenePromptImage[];
@@ -461,13 +363,9 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAct = requireAgentMethod(agent, 'aiAct', 'aiAct');
-        const additionalContext = renderNodeHistory(ctx.history);
-        const aiActOptions: MidsceneAiActInternalOptions = {
+        const aiActOptions: MidsceneAiActOptions = {
           ...ctx.input.options,
           abortSignal: ctx.signal,
-          ...(additionalContext === undefined
-            ? {}
-            : { _internalAdditionalContext: additionalContext }),
         };
         const output = await aiAct.call(
           agent,
@@ -485,13 +383,9 @@ export function createMidsceneNodes<TContext>(
       async execute(ctx) {
         const agent = await getAgent(ctx);
         const aiAssert = requireAgentMethod(agent, 'aiAssert', 'aiAssert');
-        const additionalContext = renderNodeHistory(ctx.history);
-        const aiAssertOptions: MidsceneAiAssertInternalOptions = {
+        const aiAssertOptions: MidsceneAiAssertOptions = {
           ...ctx.input.options,
           abortSignal: ctx.signal,
-          ...(additionalContext === undefined
-            ? {}
-            : { _internalAdditionalContext: additionalContext }),
         };
         await aiAssert.call(
           agent,
@@ -567,7 +461,6 @@ export function createMidsceneNodes<TContext>(
               };
         const result = await options.agentExecutor.execute({
           prompt: ctx.input.prompt,
-          history: ctx.history,
           context: ctx.context,
           signal: ctx.signal,
           execution,

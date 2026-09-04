@@ -73,11 +73,8 @@ const webSetup = defineProjectSetup<ProjectContext>({
 
 const projectNode = defineNode<unknown, unknown, ProjectContext>({
   name: 'project.read',
-  execute({ context, history }) {
+  execute({ context }) {
     context.baseURL satisfies string;
-    history[0]?.node satisfies string | undefined;
-    // @ts-expect-error Node history is read-only.
-    history.push({});
   },
 });
 
