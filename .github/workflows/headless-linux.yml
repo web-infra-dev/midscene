@@ -21,6 +21,14 @@ on:
         required: false
         default: 'main'
         type: string
+      suite:
+        description: 'Jobs to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - drag-only
 
 permissions:
   contents: read
@@ -69,6 +77,7 @@ jobs:
       timeout-minutes: 10
 
   headless-linux-ai-todo:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -138,6 +147,7 @@ jobs:
       run: exit 1
 
   chrome-extension:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       # Env vars for computer agent (screenshot + AI actions)
@@ -197,6 +207,7 @@ jobs:
       run: exit 1
 
   chrome-extension-bridge:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -254,6 +265,7 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     strategy:
       fail-fast: false
@@ -319,6 +331,7 @@ jobs:
       run: exit 1
 
   chrome-extension-recorder:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -376,6 +389,7 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
