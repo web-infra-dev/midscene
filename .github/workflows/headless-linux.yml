@@ -73,7 +73,10 @@ jobs:
       run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
 
     - name: Run Linux drag-and-drop regression
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/linux-drag-and-drop.test.ts
+      # libnut keeps a process-wide X11 connection. Retrying after the test
+      # tears down Xvfb would terminate the worker before it can report the
+      # original assertion, so this live-display regression runs once.
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/linux-drag-and-drop.test.ts --retry 0
       timeout-minutes: 10
 
   headless-linux-ai-todo:
