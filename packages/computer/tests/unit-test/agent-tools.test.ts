@@ -68,6 +68,7 @@ describe('ComputerMidsceneTools', () => {
         headless: true,
         'keyboard-type-delay': 80,
         'input-strategy': 'sequential',
+        'keyboard-event-mode': 'physical',
       },
     });
 
@@ -76,6 +77,7 @@ describe('ComputerMidsceneTools', () => {
       headless: true,
       keyboardTypeDelay: 80,
       inputStrategy: 'sequential',
+      keyboardEventMode: 'physical',
     });
   });
 
@@ -170,6 +172,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.displayId': expect.anything(),
         'computer.headless': expect.anything(),
         'computer.inputStrategy': expect.anything(),
+        'computer.keyboardEventMode': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
@@ -182,6 +185,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.headless': expect.anything(),
         'computer.host': expect.anything(),
         'computer.inputStrategy': expect.anything(),
+        'computer.keyboardEventMode': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
@@ -213,6 +217,7 @@ describe('ComputerMidsceneTools', () => {
       'ignore-certificate': true,
       'input-strategy': 'sequential',
       'keyboard-type-delay': 80,
+      'keyboard-event-mode': 'physical',
     });
 
     expect(agentForRDPComputer).toHaveBeenCalledWith(
@@ -227,6 +232,9 @@ describe('ComputerMidsceneTools', () => {
         inputStrategy: 'sequential',
         keyboardTypeDelay: 80,
       }),
+    );
+    expect(agentForRDPComputer.mock.calls[0][0]).not.toHaveProperty(
+      'keyboardEventMode',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
   });

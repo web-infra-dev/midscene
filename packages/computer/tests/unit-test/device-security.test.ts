@@ -177,15 +177,20 @@ afterEach(() => {
   Object.defineProperty(process, 'platform', { value: originalPlatform });
 });
 
-async function createConnectedDevice() {
+async function createConnectedDevice(options?: {
+  keyboardEventMode?: 'logical' | 'physical';
+}) {
   const { ComputerDevice } = await import('../../src/device');
-  const device = new ComputerDevice({});
+  const device = new ComputerDevice(options);
   await device.connect();
   return device;
 }
 
-async function runKeyboardPress(keyName: string): Promise<void> {
-  const device = await createConnectedDevice();
+async function runKeyboardPress(
+  keyName: string,
+  keyboardEventMode?: 'logical' | 'physical',
+): Promise<void> {
+  const device = await createConnectedDevice({ keyboardEventMode });
 
   const keyboardPress = device
     .actionSpace()
@@ -233,6 +238,35 @@ describe('ComputerDevice AppleScript security', () => {
     expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
       '-e',
       'tell application "System Events" to keystroke "a\\"\\\\b"',
+    ]);
+  });
+
+  it('keeps logical modifier events by default', async () => {
+    await runKeyboardPress('Control+s');
+
+    expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
+      '-e',
+      'tell application "System Events" to keystroke "s" using {control down}',
+    ]);
+  });
+
+  it('holds shortcut modifiers explicitly for VNC clients', async () => {
+    await runKeyboardPress('Control+s', 'physical');
+
+    expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
+      '-e',
+      [
+        'tell application "System Events"',
+        'try',
+        'key down control',
+        'keystroke "s"',
+        'on error errorMessage number errorNumber',
+        'key up control',
+        'error errorMessage number errorNumber',
+        'end try',
+        'key up control',
+        'end tell',
+      ].join('\n'),
     ]);
   });
 });

@@ -1,4 +1,5 @@
 export { ComputerDevice } from './device';
+export type { KeyboardEventMode } from './apple-script-keyboard';
 export type { ComputerDeviceOpt, DisplayInfo } from './device';
 
 export {
