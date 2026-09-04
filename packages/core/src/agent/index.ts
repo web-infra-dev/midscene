@@ -24,6 +24,11 @@ export type {
   RunGherkinScenarioOptions,
 } from './run-gherkin-scenario';
 
-export type { AgentOpt } from '../types';
+export type {
+  AgentAIContextKey,
+  AgentAIContexts,
+  AgentOpt,
+  AiApiName,
+} from '../types';
 export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';
 export type { AiActOptions } from './agent';

@@ -6,7 +6,6 @@ import {
 } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
 import { executeStep } from './execute-step';
-import { createHistory } from './history';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CreateDocumentRuntimeOptions,
@@ -26,7 +25,6 @@ export function createDocumentRuntime<TContext = undefined>(
   const startedAt = new Date();
   const beforeAll: StepRunResult[] = [];
   const afterAll: StepRunResult[] = [];
-  const completedNodes: StepRunResult[] = [];
   const nodes = {
     beforeAll: document.lifecycle.beforeAll.map((step) =>
       options.resolveNode(step.node),
@@ -68,7 +66,8 @@ export function createDocumentRuntime<TContext = undefined>(
       projectName: project.name,
       sourcePath: document.sourcePath,
       status:
-        completedNodes.some((step) => step.status === 'failed') ||
+        beforeAll.some((step) => step.status === 'failed') ||
+        afterAll.some((step) => step.status === 'failed') ||
         teardownErrors.length > 0
           ? 'failed'
           : 'success',
@@ -96,7 +95,6 @@ export function createDocumentRuntime<TContext = undefined>(
         sourcePath: document.sourcePath,
         phase,
         stepIndex,
-        completedNodes: Object.freeze([...completedNodes]),
       };
       const stepInfo = {
         scope: 'document' as const,
@@ -111,7 +109,6 @@ export function createDocumentRuntime<TContext = undefined>(
         { scope: 'document', document: documentContext },
         context,
         {
-          history: createHistory([], completedNodes, 'document'),
           signal: executionSignal,
           defaultTimeoutMs: options.defaultTimeoutMs,
           onTeardown(node, teardown) {
@@ -137,7 +134,6 @@ export function createDocumentRuntime<TContext = undefined>(
       );
       await options.onStepResult?.(stepInfo, result);
       results.push(result);
-      completedNodes.push(result);
       if (result.status === 'failed' && !result.continuedAfterError) break;
     }
   };
@@ -145,9 +141,6 @@ export function createDocumentRuntime<TContext = undefined>(
   return {
     get context() {
       return context;
-    },
-    get history() {
-      return createHistory([], completedNodes, 'document');
     },
     get canRunCases() {
       return (

@@ -5,8 +5,6 @@ cases:
           value: first:one
       - test.record:
           value: first:two
-      - test.expect-history:
-          count: 2
 
   - name: second case
     steps:

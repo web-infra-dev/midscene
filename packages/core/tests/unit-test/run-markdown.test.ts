@@ -10,6 +10,7 @@ let tempDir: string | undefined;
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  (agent as any).opts = {};
   (agent as any).aiAct = rs.fn(async () => 'done');
   return agent;
 };

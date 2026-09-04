@@ -40,19 +40,6 @@ export interface StepRunResult<TOutputData = unknown> {
   error?: WorkflowError;
 }
 
-export interface NodeHistoryEntry {
-  readonly scope: 'document' | 'case';
-  readonly phase: NodeExecutionPhase;
-  readonly stepIndex: number;
-  readonly node: string;
-  readonly input?: unknown;
-  readonly intent?: string;
-  readonly status: 'passed' | 'failed' | 'skipped';
-  readonly summary?: string;
-  readonly data?: unknown;
-  readonly error?: { readonly name: string; readonly message: string };
-}
-
 export interface CaseRunResult {
   caseId: string;
   runId: string;
@@ -96,13 +83,11 @@ export interface CaseExecutionContext {
   readonly name: string;
   readonly sourcePath: string;
   readonly caseIndex: number;
-  readonly completedSteps: readonly StepRunResult[];
 }
 
 export interface NodeCaseContext extends CaseExecutionContext {
   readonly phase: CaseNodePhase;
   readonly stepIndex: number;
-  readonly completedNodes: readonly StepRunResult[];
 }
 
 export interface NodeDocumentContext {
@@ -113,7 +98,6 @@ export interface NodeDocumentContext {
   readonly sourcePath: string;
   readonly phase: DocumentNodePhase;
   readonly stepIndex: number;
-  readonly completedNodes: readonly StepRunResult[];
 }
 
 export type StepExecutionInfo =
@@ -145,7 +129,6 @@ export interface RunCollectedCaseOptions<TContext = undefined> {
   context?: TContext;
   projectName?: string;
   attemptIndex?: number;
-  documentHistory?: readonly NodeHistoryEntry[];
   signal?: AbortSignal;
   defaultTimeoutMs?: number;
   onStepStart?: StepStartHandler;
@@ -213,7 +196,6 @@ export interface CreateDocumentRuntimeOptions<TContext = undefined> {
 
 export interface WorkflowDocumentRuntime<TContext = undefined> {
   readonly context: TContext;
-  readonly history: readonly NodeHistoryEntry[];
   readonly canRunCases: boolean;
   start(): Promise<WorkflowDocumentRunResult>;
   finish(): Promise<WorkflowDocumentRunResult>;

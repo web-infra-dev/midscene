@@ -4,6 +4,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
+import { renderAIContext } from '../../../agent/prompt-context';
 import type { TMultimodalPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
 import {
@@ -43,10 +44,12 @@ export async function AiExtractElementInfo<T>(options: {
     insightProtocol,
   });
   const screenshotBase64 = context.screenshot.base64;
+
+  const renderedContext = renderAIContext(extractOption?.context);
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
     dataQuery,
-    extractOption?.context,
+    renderedContext,
   );
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];

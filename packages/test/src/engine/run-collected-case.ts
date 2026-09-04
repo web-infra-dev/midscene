@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { NodeScopeTeardownError, WorkflowLifecycleError } from '../errors';
 import type { CollectedCase, NormalizedStep } from '../parser/types';
 import { executeStep } from './execute-step';
-import { createHistory } from './history';
 import { reportPathsFromTeardown } from './scope-teardown';
 import type {
   CaseNodePhase,
@@ -32,7 +31,6 @@ export async function runCollectedCase<TContext = undefined>(
   const beforeEach: StepRunResult[] = [];
   const steps: StepRunResult[] = [];
   const afterEach: StepRunResult[] = [];
-  const completedNodes: StepRunResult[] = [];
   const teardownStack: Array<{
     registrationIndex: number;
     node: string;
@@ -76,8 +74,6 @@ export async function runCollectedCase<TContext = undefined>(
         caseIndex: collectedCase.caseIndex,
         phase,
         stepIndex,
-        completedSteps: Object.freeze([...steps]),
-        completedNodes: Object.freeze([...completedNodes]),
       };
       const stepInfo = {
         scope: 'case' as const,
@@ -92,11 +88,6 @@ export async function runCollectedCase<TContext = undefined>(
         { scope: 'case', case: caseContext },
         options.context as TContext,
         {
-          history: createHistory(
-            options.documentHistory ?? [],
-            completedNodes,
-            'case',
-          ),
           signal,
           defaultTimeoutMs: options.defaultTimeoutMs,
           onTeardown,
@@ -104,7 +95,6 @@ export async function runCollectedCase<TContext = undefined>(
       );
       await options.onStepResult?.(stepInfo, result);
       results.push(result);
-      completedNodes.push(result);
       if (result.status === 'failed' && !result.continuedAfterError) break;
     }
   };
@@ -158,7 +148,9 @@ export async function runCollectedCase<TContext = undefined>(
     sourcePath: collectedCase.sourcePath,
     caseIndex: collectedCase.caseIndex,
     status:
-      completedNodes.some((step) => step.status === 'failed') ||
+      beforeEach.some((step) => step.status === 'failed') ||
+      steps.some((step) => step.status === 'failed') ||
+      afterEach.some((step) => step.status === 'failed') ||
       teardownErrors.length > 0
         ? 'failed'
         : 'success',

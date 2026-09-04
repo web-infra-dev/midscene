@@ -2,16 +2,15 @@ import type { z } from 'zod/v4';
 import type {
   NodeCaseContext,
   NodeDocumentContext,
-  NodeHistoryEntry,
   NodeScopeTeardown,
 } from '../engine/types';
 import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
-  /** Human-readable summary for reports and later agent context. */
+  /** Human-readable summary for reports. */
   summary?: string;
 
-  /** Structured data for later steps. */
+  /** Structured data included in the step result. */
   data?: TData;
 }
 
@@ -28,9 +27,6 @@ interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
   /** Resources shared by the current workflow document. */
   context: TContext;
 
-  /** Read-only results completed in the current document/case scope. */
-  history: readonly NodeHistoryEntry[];
-
   /** Register resource cleanup for the current case attempt or document. */
   onTeardown(teardown: NodeScopeTeardown): void;
 }
@@ -44,7 +40,7 @@ export type NodeExecutionContext<
         /** The node is running for one case. */
         scope: 'case';
 
-        /** Identity and completed-step history for the case being executed. */
+        /** Identity and phase information for the case being executed. */
         case: NodeCaseContext;
 
         document?: never;
@@ -53,7 +49,7 @@ export type NodeExecutionContext<
         /** The node is running for the workflow document. */
         scope: 'document';
 
-        /** Identity and completed-node history for the document being executed. */
+        /** Identity and phase information for the document being executed. */
         document: NodeDocumentContext;
 
         case?: never;

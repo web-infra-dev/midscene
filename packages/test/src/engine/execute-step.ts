@@ -7,15 +7,68 @@ import {
 import type { NodeDefinition, NodeResult } from '../node/types';
 import { validateCommonNodeInput } from '../parser/normalize';
 import type { CommonNodeInput, NormalizedStep } from '../parser/types';
-import { assertJsonSerializable } from './history';
 import type {
   NodeCaseContext,
   NodeDocumentContext,
   NodeExecutionPhase,
-  NodeHistoryEntry,
   NodeScopeTeardown,
   StepRunResult,
 } from './types';
+
+const assertJsonSerializable = (
+  value: unknown,
+  label: string,
+  node: string,
+): void => {
+  const visit = (
+    candidate: unknown,
+    path: string,
+    seen: Set<unknown>,
+  ): void => {
+    if (
+      candidate === null ||
+      typeof candidate === 'string' ||
+      typeof candidate === 'boolean'
+    ) {
+      return;
+    }
+    if (typeof candidate === 'number') {
+      if (Number.isFinite(candidate)) return;
+      throw new TypeError(`${path} contains a non-finite number.`);
+    }
+    if (candidate === undefined) {
+      throw new TypeError(`${path} contains undefined.`);
+    }
+    if (typeof candidate !== 'object') {
+      throw new TypeError(`${path} is not JSON-serializable.`);
+    }
+    if (
+      !Array.isArray(candidate) &&
+      Object.getPrototypeOf(candidate) !== Object.prototype &&
+      Object.getPrototypeOf(candidate) !== null
+    ) {
+      throw new TypeError(`${path} must contain only plain objects.`);
+    }
+    if (seen.has(candidate)) throw new TypeError(`${path} contains a cycle.`);
+    seen.add(candidate);
+    if (Array.isArray(candidate)) {
+      candidate.forEach((child, index) =>
+        visit(child, `${path}[${index}]`, seen),
+      );
+    } else {
+      for (const [key, child] of Object.entries(candidate)) {
+        visit(child, `${path}.${key}`, seen);
+      }
+    }
+    seen.delete(candidate);
+  };
+
+  try {
+    visit(value, label, new Set());
+  } catch (error) {
+    throw new NodeExecutionError(node, error);
+  }
+};
 
 function validateNodeOutput<TData>(
   output: unknown,
@@ -183,7 +236,6 @@ export async function executeStep<
   target: StepExecutionTarget,
   context: TContext,
   execution: {
-    history?: readonly NodeHistoryEntry[];
     signal?: AbortSignal;
     defaultTimeoutMs?: number;
     onTeardown?(node: string, teardown: NodeScopeTeardown): void;
@@ -204,7 +256,6 @@ export async function executeStep<
         $: step.meta,
         signal,
         context,
-        history: execution.history ?? Object.freeze([]),
         onTeardown: (teardown: NodeScopeTeardown) => {
           if (!execution.onTeardown) {
             throw new NodeExecutionError(

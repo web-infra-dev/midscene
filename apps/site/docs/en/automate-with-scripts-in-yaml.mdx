@@ -88,9 +88,15 @@ agent:
   # Maximum AI replanning cycle limit, optional, defaults to 20 (40 for UI-TARS model)
   replanningCycleLimit: <number>
 
-  # Background knowledge to send to the AI model when calling aiAct, optional
+  # Additional AI guidance, optional. default is the shared fallback.
+  aiContexts:
+    default: <string>
+    aiAct: <string>
+    aiQuery: <string>
+
+  # Deprecated compatibility alias for aiContexts.aiAct, optional
   aiActContext: <string>
-  # Legacy alias (aiActionContext) remains for backward compatibility, but avoid using it in new scripts
+  # The older deprecated alias aiActionContext also remains available for compatibility
 
   # Cache configuration, optional
   cache:
@@ -104,7 +110,8 @@ agent:
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. A legacy alias remains for backward compatibility (see inline comment) but should not be used in new scripts.
+- **aiContexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. If `default` is configured, it is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically merged. Empty strings explicitly clear inherited user context.
+- **aiActContext**: Deprecated compatibility field for `aiContexts.aiAct`. `aiContexts.aiAct` wins when both are present. The older `aiActionContext` alias is also deprecated and remains available only for compatibility.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
@@ -121,7 +128,9 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActContext: "If any popup appears, click agree. If login page appears, skip it."
+  aiContexts:
+    default: "Prices are displayed in USD."
+    aiAct: "If any popup appears, click agree. If login page appears, skip it."
   cache:
     id: "checkout-cache"
     strategy: "read-write"

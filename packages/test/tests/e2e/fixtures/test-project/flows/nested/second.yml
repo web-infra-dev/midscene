@@ -5,5 +5,3 @@ cases:
           value: nested:one
       - test.record:
           value: nested:two
-      - test.expect-history:
-          count: 2
