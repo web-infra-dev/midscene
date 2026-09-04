@@ -59,6 +59,34 @@ function createExecution(
   });
 }
 
+function validFailedAnalysisResult(): Record<string, unknown> {
+  return {
+    report: '/absolute/path/report.html',
+    reportStatus: 'fail',
+    resultAssessment: 'true_fail',
+    resultAssessmentReason: 'The required state remained absent.',
+    causeCategories: [
+      {
+        category: 'tested_system',
+        confidence: 'high',
+        reason:
+          'The correct action completed but the application state did not update.',
+      },
+    ],
+    conclusion: 'The recorded failure is established.',
+    failureReason: 'The application did not expose the required state.',
+    failedStep: 'Wait for the required state after the correct action.',
+    evidence: [
+      {
+        source: 'action record',
+        fact: 'The action completed before the required state was checked.',
+      },
+    ],
+    confidence: 'high',
+    limitations: 'none',
+  };
+}
+
 describe('createReportCliCommands', () => {
   let tmpDir: string;
 
@@ -77,6 +105,304 @@ describe('createReportCliCommands', () => {
     const [command] = createReportCliCommands();
     expect(command.name).toBe('report-tool');
     expect('aliases' in command).toBe(false);
+    expect(command.def.schema).toHaveProperty('reportStatus');
+    expect(command.def.schema).toHaveProperty('resultAssessment');
+  });
+
+  it('generates a failed-result schema and renders a matching result', async () => {
+    const [command] = createReportCliCommands();
+    const schemaResponse = await command.def.handler({
+      action: 'analysis-template',
+      reportStatus: 'fail',
+      resultAssessment: 'true_fail',
+    });
+    const schema = JSON.parse(schemaResponse.content[0].text);
+    expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
+    expect(schema.title).toBe('Midscene failed-report analysis result');
+    expect(schema).not.toHaveProperty('anyOf');
+    expect(schema.properties.resultAssessment.const).toBe('true_fail');
+    expect(JSON.stringify(schema)).toContain('resultAssessmentReason');
+    expect(JSON.stringify(schema)).toContain('failureReason');
+    expect(JSON.stringify(schema)).toContain('failedStep');
+    expect(JSON.stringify(schema)).not.toContain('rootCauseStatus');
+
+    const resultPath = join(tmpDir, 'analysis-result.json');
+    const outputPath = join(tmpDir, 'analysis-result.md');
+    writeFileSync(
+      resultPath,
+      JSON.stringify(validFailedAnalysisResult()),
+      'utf8',
+    );
+    const renderResponse = await command.def.handler({
+      action: 'render-analysis',
+      analysisResultPath: resultPath,
+      analysisOutputPath: outputPath,
+    });
+
+    expect(renderResponse.isError).toBe(false);
+    const markdown = readFileSync(outputPath, 'utf8');
+    expect(renderResponse.content[0].text).toBe(
+      `${markdown}\n\n**Markdown report:** [Open file](<${outputPath}>)`,
+    );
+    expect(markdown).toContain('**Result assessment:** `true_fail`');
+    expect(markdown).toContain('**Result-assessment reason:**');
+    expect(markdown).toContain('**Cause categories:**');
+    expect(markdown).toContain(
+      '`tested_system` (`high` confidence) — 被测系统状态与行为异常',
+    );
+    expect(markdown).toContain(
+      'The correct action completed but the application state did not update.',
+    );
+    expect(markdown).toContain('**Failure reason:**');
+    expect(markdown).toContain('**Failed step:**');
+  });
+
+  it.each(['true_fail', 'false_fail', 'unverifiable', 'inconclusive'] as const)(
+    'generates only the selected failed-result schema for %s',
+    async (resultAssessment) => {
+      const [command] = createReportCliCommands();
+      const response = await command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'fail',
+        resultAssessment,
+      });
+      const schema = JSON.parse(response.content[0].text);
+
+      expect(schema).not.toHaveProperty('anyOf');
+      expect(schema.properties.resultAssessment.const).toBe(resultAssessment);
+      expect(schema.properties).toHaveProperty('causeCategories');
+      expect(schema.required).toContain('causeCategories');
+      if (resultAssessment === 'true_fail') {
+        expect(schema.properties).toHaveProperty('failureReason');
+        expect(schema.properties).toHaveProperty('failedStep');
+      } else {
+        expect(schema.properties).not.toHaveProperty('failureReason');
+        expect(schema.properties).not.toHaveProperty('failedStep');
+      }
+    },
+  );
+
+  it.each(['true_pass', 'false_pass', 'unverifiable', 'inconclusive'] as const)(
+    'generates only the selected passed-result schema for %s',
+    async (resultAssessment) => {
+      const [command] = createReportCliCommands();
+      const response = await command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'pass',
+        resultAssessment,
+      });
+      const schema = JSON.parse(response.content[0].text);
+
+      expect(schema.title).toBe('Midscene passed-report analysis result');
+      expect(schema).not.toHaveProperty('anyOf');
+      expect(schema.properties.resultAssessment.const).toBe(resultAssessment);
+      expect(schema.properties).toHaveProperty('causeCategories');
+      expect(schema.required).toContain('causeCategories');
+      if (resultAssessment === 'false_pass') {
+        expect(schema.properties).toHaveProperty('passClaimIssuePoint');
+      } else {
+        expect(schema.properties).not.toHaveProperty('passClaimIssuePoint');
+      }
+    },
+  );
+
+  it('generates the incomplete-execution JSON Schema', async () => {
+    const [command] = createReportCliCommands();
+    const schemaResponse = await command.def.handler({
+      action: 'analysis-template',
+      reportStatus: 'incomplete',
+    });
+    const schema = JSON.parse(schemaResponse.content[0].text);
+
+    expect(schema.title).toBe('Midscene incomplete-execution analysis result');
+    expect(schema).not.toHaveProperty('anyOf');
+    expect(schema.properties).toHaveProperty('observedIssue');
+    expect(schema.properties).toHaveProperty('interruptionReason');
+    expect(schema.properties).toHaveProperty('lastRecordedStep');
+    expect(schema.properties).toHaveProperty('confidence');
+    expect(schema.properties).toHaveProperty('causeCategories');
+    expect([...schema.required].sort()).toEqual(
+      [
+        'report',
+        'reportStatus',
+        'conclusion',
+        'observedIssue',
+        'interruptionReason',
+        'lastRecordedStep',
+        'evidence',
+        'confidence',
+        'limitations',
+        'causeCategories',
+      ].sort(),
+    );
+    expect(schema.properties).not.toHaveProperty('lastTaskStatus');
+    expect(schema.properties).not.toHaveProperty('observedIssueStatus');
+    expect(schema.properties).not.toHaveProperty('interruptionCauseStatus');
+  });
+
+  it('returns the schema and an analysis-result path derived from the HTML filename', async () => {
+    const [command] = createReportCliCommands();
+    const htmlPath = join(tmpDir, 'sample-report.html');
+    writeFileSync(htmlPath, '<html></html>', 'utf8');
+
+    const firstResponse = await command.def.handler({
+      action: 'analysis-template',
+      reportStatus: 'fail',
+      resultAssessment: 'true_fail',
+      htmlPath,
+      outputDir: tmpDir,
+    });
+    const first = JSON.parse(firstResponse.content[0].text);
+    expect(Object.keys(first).sort()).toEqual(
+      ['analysisResultPath', 'schema'].sort(),
+    );
+    expect(first.analysisResultPath).toBe(
+      join(tmpDir, 'sample-report-analysis-json.json'),
+    );
+    expect(first.schema.title).toBe('Midscene failed-report analysis result');
+    expect(first.schema.properties.resultAssessment.const).toBe('true_fail');
+    expect(existsSync(first.analysisResultPath)).toBe(false);
+    expect(existsSync(join(tmpDir, 'sample-report-analysis-schema.json'))).toBe(
+      false,
+    );
+    const firstOutputPath = join(tmpDir, 'sample-report-analysis-result.md');
+    expect(existsSync(firstOutputPath)).toBe(false);
+
+    writeFileSync(
+      first.analysisResultPath,
+      JSON.stringify(validFailedAnalysisResult()),
+      'utf8',
+    );
+    const renderResponse = await command.def.handler({
+      action: 'render-analysis',
+      analysisResultPath: first.analysisResultPath,
+    });
+    expect(existsSync(firstOutputPath)).toBe(true);
+    expect(renderResponse.content[0].text).toBe(
+      `${readFileSync(firstOutputPath, 'utf8')}\n\n**Markdown report:** [Open file](<${firstOutputPath}>)`,
+    );
+
+    const secondResponse = await command.def.handler({
+      action: 'analysis-template',
+      reportStatus: 'fail',
+      resultAssessment: 'true_fail',
+      htmlPath,
+      outputDir: tmpDir,
+    });
+    const second = JSON.parse(secondResponse.content[0].text);
+    expect(second.analysisResultPath).toBe(
+      join(tmpDir, 'sample-report-analysis-json-1.json'),
+    );
+    expect(second.schema).toEqual(first.schema);
+  });
+
+  it.each(['analysis-json.json', 'analysis-result.md'] as const)(
+    'allocates a new analysis-result suffix when %s already exists',
+    async (occupiedSuffix) => {
+      const [command] = createReportCliCommands();
+      const htmlPath = join(tmpDir, `occupied-${occupiedSuffix}.html`);
+      const reportName = `occupied-${occupiedSuffix}`;
+      writeFileSync(
+        join(tmpDir, `${reportName}-${occupiedSuffix}`),
+        'occupied',
+        'utf8',
+      );
+
+      const response = await command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'pass',
+        resultAssessment: 'true_pass',
+        htmlPath,
+        outputDir: tmpDir,
+      });
+      const preparation = JSON.parse(response.content[0].text);
+
+      expect(preparation.analysisResultPath).toBe(
+        join(tmpDir, `${reportName}-analysis-json-1.json`),
+      );
+      expect(preparation.schema.title).toBe(
+        'Midscene passed-report analysis result',
+      );
+    },
+  );
+
+  it('skips every occupied analysis-result suffix', async () => {
+    const [command] = createReportCliCommands();
+    const htmlPath = join(tmpDir, 'multiple-collisions.html');
+    writeFileSync(
+      join(tmpDir, 'multiple-collisions-analysis-json.json'),
+      'occupied',
+      'utf8',
+    );
+    writeFileSync(
+      join(tmpDir, 'multiple-collisions-analysis-result-1.md'),
+      'occupied',
+      'utf8',
+    );
+
+    const response = await command.def.handler({
+      action: 'analysis-template',
+      reportStatus: 'incomplete',
+      htmlPath,
+      outputDir: tmpDir,
+    });
+    const preparation = JSON.parse(response.content[0].text);
+
+    expect(preparation.analysisResultPath).toBe(
+      join(tmpDir, 'multiple-collisions-analysis-json-2.json'),
+    );
+    expect(preparation.schema.properties.reportStatus.const).toBe('incomplete');
+  });
+
+  it('validates analysis action parameters', async () => {
+    const [command] = createReportCliCommands();
+    await expect(
+      command.def.handler({ action: 'analysis-template' }),
+    ).rejects.toThrow('report-tool: --reportStatus is required');
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'unknown' as never,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'fail',
+      }),
+    ).rejects.toThrow('--resultAssessment is required');
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'fail',
+        resultAssessment: 'unknown' as never,
+      }),
+    ).rejects.toThrow('--resultAssessment is required');
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'pass',
+      }),
+    ).rejects.toThrow('--resultAssessment is required');
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'pass',
+        resultAssessment: 'true_fail',
+      }),
+    ).rejects.toThrow('--resultAssessment is required');
+    await expect(
+      command.def.handler({
+        action: 'analysis-template',
+        reportStatus: 'incomplete',
+        resultAssessment: 'true_pass',
+      }),
+    ).rejects.toThrow(
+      '--resultAssessment is only supported when --reportStatus is "fail" or "pass"',
+    );
+    await expect(
+      command.def.handler({ action: 'render-analysis' }),
+    ).rejects.toThrow('report-tool: --analysisResultPath is required');
   });
 
   it('runs report split through the generic report command', async () => {
@@ -195,7 +521,7 @@ describe('createReportCliCommands', () => {
   });
 
   it('supports to-markdown via the JS SDK API', async () => {
-    const reportPath = join(tmpDir, 'input-report-sdk-md', 'index.html');
+    const reportPath = join(tmpDir, 'input-report-sdk-md', 'sdk-report.html');
     mkdirSync(join(tmpDir, 'input-report-sdk-md'), { recursive: true });
 
     const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
@@ -219,8 +545,8 @@ describe('createReportCliCommands', () => {
       outputDir,
     });
 
-    expect(result.markdownFiles.length).toBe(1);
-    expect(existsSync(join(outputDir, 'report.md'))).toBe(true);
+    expect(result.markdownFiles).toEqual([join(outputDir, 'sdk-report.md')]);
+    expect(existsSync(join(outputDir, 'sdk-report.md'))).toBe(true);
   });
 
   it('throws SDK-friendly validation errors for reportFileToMarkdown', async () => {
@@ -325,7 +651,7 @@ describe('createReportCliCommands', () => {
         outputDir: join(tmpDir, 'unused-output'),
       }),
     ).rejects.toThrow(
-      'report-tool: unsupported --action value "invalid-action". Currently supported: split, to-markdown, merge-html',
+      'report-tool: unsupported --action value "invalid-action". Currently supported: inspect, analysis-template, render-analysis, split, to-markdown, merge-html',
     );
   });
 
@@ -370,7 +696,7 @@ describe('createReportCliCommands', () => {
     expect(result.content[0].text).toContain('Markdown export completed.');
     expect(result.content[0].text).toContain(`Output path: ${outputDir}`);
 
-    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    const mdContent = readFileSync(join(outputDir, 'index.md'), 'utf-8');
     expect(mdContent).toContain('# markdown-test');
     expect(mdContent).toContain('# execution-exec-md-1');
     expect(mdContent).toContain('# execution-exec-md-2');
@@ -420,7 +746,7 @@ describe('createReportCliCommands', () => {
       action: 'to-markdown',
     });
 
-    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    const mdContent = readFileSync(join(outputDir, 'index.md'), 'utf-8');
     expect(mdContent).toContain('# execution-exec-md-dedup');
     expect(mdContent).toContain(newScreenshot.id);
     expect(mdContent).not.toContain(oldScreenshot.id);
@@ -476,7 +802,7 @@ describe('createReportCliCommands', () => {
 
     // The markdown must reference the exported (prefixed) file name, not the
     // original source path. See issue #2392.
-    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    const mdContent = readFileSync(join(outputDir, 'index.md'), 'utf-8');
     expect(mdContent).toContain(
       './screenshots/execution-1-task-1-file-shot.png',
     );
@@ -538,7 +864,7 @@ describe('createReportCliCommands', () => {
 
     // Markdown references the exported copy; the original relative path
     // ./screenshots/rel-shot.png must no longer appear on its own.
-    const mdContent = readFileSync(join(outputDir, 'report.md'), 'utf-8');
+    const mdContent = readFileSync(join(outputDir, 'index.md'), 'utf-8');
     expect(mdContent).toContain(
       './screenshots/execution-1-task-1-rel-shot.png',
     );
