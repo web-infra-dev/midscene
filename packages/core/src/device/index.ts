@@ -760,6 +760,8 @@ export const ActionSwipeParamSchema = z.object({
     ),
   distance: z
     .number()
+    .finite()
+    .positive()
     .optional()
     .describe('The distance in pixels to swipe (mutually exclusive with end)'),
   end: getMidsceneLocationSchema()
@@ -769,13 +771,18 @@ export const ActionSwipeParamSchema = z.object({
     ),
   duration: z
     .number()
+    .finite()
+    .positive()
     .default(300)
     .describe('Duration of the swipe gesture in milliseconds'),
   repeat: z
     .number()
+    .finite()
+    .int()
+    .nonnegative()
     .optional()
     .describe(
-      'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+      'The number of times to repeat the swipe gesture. 1 for default, 0 for continuous mode capped at 10 repeats',
     ),
 });
 
@@ -798,7 +805,31 @@ export function normalizeMobileSwipeParam(
   repeatCount: number;
 } {
   const { width, height } = screenSize;
-  const { start, end } = param;
+  const { start, end, distance, direction } = param;
+
+  if (end !== undefined && distance !== undefined) {
+    throw new Error('end and distance are mutually exclusive');
+  }
+  if (distance !== undefined && (!Number.isFinite(distance) || distance <= 0)) {
+    throw new Error('distance must be a positive finite number');
+  }
+  if (distance !== undefined && direction === undefined) {
+    throw new Error('direction is required when using distance');
+  }
+
+  const duration = param.duration ?? 300;
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error('duration must be a positive finite number');
+  }
+
+  const repeatCount = param.repeat ?? 1;
+  if (
+    !Number.isFinite(repeatCount) ||
+    !Number.isInteger(repeatCount) ||
+    repeatCount < 0
+  ) {
+    throw new Error('repeat must be a non-negative finite integer');
+  }
 
   const startPoint = start
     ? { x: start.center[0], y: start.center[1] }
@@ -808,26 +839,18 @@ export function normalizeMobileSwipeParam(
 
   if (end) {
     endPoint = { x: end.center[0], y: end.center[1] };
-  } else if (param.distance) {
-    const direction = param.direction;
-    if (!direction) {
-      throw new Error('direction is required for swipe gesture');
-    }
+  } else if (distance !== undefined) {
     endPoint = {
       x:
         startPoint.x +
         (direction === 'right'
-          ? param.distance
+          ? distance
           : direction === 'left'
-            ? -param.distance
+            ? -distance
             : 0),
       y:
         startPoint.y +
-        (direction === 'down'
-          ? param.distance
-          : direction === 'up'
-            ? -param.distance
-            : 0),
+        (direction === 'down' ? distance : direction === 'up' ? -distance : 0),
     };
   } else {
     throw new Error(
@@ -838,14 +861,12 @@ export function normalizeMobileSwipeParam(
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
 
-  const duration = param.duration ?? 300;
-
-  let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
-  if (repeatCount === 0) {
-    repeatCount = 10;
-  }
-
-  return { startPoint, endPoint, duration, repeatCount };
+  return {
+    startPoint,
+    endPoint,
+    duration,
+    repeatCount: repeatCount === 0 ? 10 : repeatCount,
+  };
 }
 
 export const defineActionSwipe = (config: {
