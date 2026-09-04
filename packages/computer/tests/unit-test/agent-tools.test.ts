@@ -233,7 +233,7 @@ describe('ComputerMidsceneTools', () => {
         keyboardTypeDelay: 80,
       }),
     );
-    expect(agentForRDPComputer.mock.calls[0][0]).not.toHaveProperty(
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
       'keyboardEventMode',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
