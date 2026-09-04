@@ -42,7 +42,7 @@ env:
 
 jobs:
   headless-linux-drag-and-drop:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: ubuntu-22.04
     env:
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
