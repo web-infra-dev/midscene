@@ -97,14 +97,14 @@ agent:
   replanningCycleLimit: <number>
 
   # 提供给 AI 的补充信息，可选；default 是共享的缺省回退值
-  contexts:
+  aiContexts:
     default: <string>
     aiAct: <string>
     aiQuery: <string>
 
-  # contexts.aiAct 的已废弃兼容字段，可选
+  # aiContexts.aiAct 的已废弃兼容字段，可选
   aiActContext: <string>
-  # 更早的兼容字段 aiActionContext 仍可使用
+  # 更早的已废弃字段 aiActionContext 仅为兼容而保留
 
   # 缓存配置，可选
   cache:
@@ -118,8 +118,8 @@ agent:
 
 - **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
 - **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
-- **contexts**：提供给 AI 的补充信息，例如业务事实、规则、约束或输出要求。仅当本次调用和对应 API 都没有自己的 context 时，才使用 `default`。单次调用的 `context` 覆盖 API 级值，API 级值覆盖 `default`，这些值不会自动拼接；空字符串会显式清空继承的用户 context。
-- **aiActContext**：`contexts.aiAct` 的已废弃兼容字段。两者同时存在时以 `contexts.aiAct` 为准；更早的 `aiActionContext` 字段也继续兼容。
+- **aiContexts**：提供给 AI 的补充信息，例如业务事实、规则、约束或输出要求。如果配置了 `default`，仅当本次调用和对应 API 都没有自己的 context 时才使用它。单次调用的 `context` 覆盖 API 级值，API 级值覆盖 `default`，这些值不会自动合并；空字符串会显式清空继承的用户 context。
+- **aiActContext**：`aiContexts.aiAct` 的已废弃兼容字段。两者同时存在时以 `aiContexts.aiAct` 为准；更早的 `aiActionContext` 字段也已废弃，仅为兼容而保留。
 - **缓存配置**：详细用法请参考 [缓存功能文档](./caching.mdx)
 
 :::
@@ -136,7 +136,7 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  contexts:
+  aiContexts:
     default: "页面中的价格单位是美元。"
     aiAct: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
   cache:

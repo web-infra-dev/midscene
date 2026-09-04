@@ -115,7 +115,7 @@ steps:
 - An object or array variable can be used as a complete value, but it cannot be embedded in a longer string.
 - An undefined variable fails during collection. Variables are resolved only in Node input, not in `$`.
 
-Workflow YAML does not provide `set`, `saveAs`, or Step output expressions. Natural-language Nodes can use the runner's read-only execution history to understand previous results.
+Workflow YAML does not provide `set`, `saveAs`, or Step output expressions. Each Step runs independently and does not automatically receive previous Step results. To share required values explicitly, provide them through the Execution Project's `context`.
 
 ### Filter Cases with tags
 
@@ -178,7 +178,7 @@ Each phase has the following responsibilities:
 
 - `beforeAll` and `afterAll` run once for each YAML file and handle document-level business setup and cleanup.
 - `beforeEach` and `afterEach` run once for every Case attempt.
-- A retry reruns the entire Case with a new run ID, Agent scope, cache scope, and Case history, but it does not rerun `beforeAll`.
+- A retry reruns the entire Case with a new run ID, Agent scope, and cache scope, but it does not rerun `beforeAll`.
 - A Node can register internal cleanup at attempt or Document scope, such as destroying an Agent or generating a report. Each cleanup runs when its scope ends.
 
 `afterEach` still runs if the main body of a Case fails.

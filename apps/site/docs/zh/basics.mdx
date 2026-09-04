@@ -26,21 +26,21 @@ await agent.aiAct(
 
 context 是提供给 AI 的补充信息，可以包含业务事实、判断或操作规则、约束以及输出要求。它用于补充主提示词，而不是替代主提示词。
 
-如需让所有需要调用 AI 模型的 Agent API 共享同一份补充信息，可以在创建 Agent 时设置 `contexts.default`。`contexts.default` 只是缺省回退值：只有当本次调用和对应 API 都没有自己的 context 时才会使用它。API 级和单次调用的 context 会覆盖它，不会与它自动拼接。
+如需让所有需要调用 AI 模型的 Agent API 共享同一份补充信息，可以在创建 Agent 时设置 `aiContexts.default`。`aiContexts.default` 只是缺省回退值：如果配置了该值，只有当本次调用和对应 API 都没有自己的 context 时才会使用它。API 级和单次调用的 context 会覆盖它，不会与它自动合并。
 
 ```typescript
 const agent = new PlaywrightAgent(page, {
-  contexts: {
+  aiContexts: {
     default: '页面中的价格单位是美元。',
     aiQuery: '金额只返回数字，不包含货币符号。',
   },
 });
 ```
 
-如需在创建 Agent 后修改 context，可以使用 [`agent.setContext()`](./reference/#agentsetcontext)：
+如需在创建 Agent 后修改 context，可以使用 [`agent.setAIContext()`](./reference/#agentsetaicontext)：
 
 ```typescript
-agent.setContext(
+agent.setAIContext(
   'aiAct',
   '如果出现 Cookie 授权弹窗，请先关闭。页面中的价格单位是美元。',
 );
@@ -50,7 +50,7 @@ agent.setContext(
 
 - `deepThink`：加强任务拆解，并通过不同的模型调用分别完成规划和元素定位。该选项可以提高复杂任务的稳定性，但会增加模型调用次数和延迟。
 - `deepLocate`：增加一次模型调用，提高元素定位的准确性。当目标元素较小或容易与周围元素混淆时，可以启用该选项。
-- `context`：仅为本次调用提供补充信息，例如业务事实、规则、约束或输出要求。它会覆盖 `contexts.aiAct`，后者又会覆盖 `contexts.default` 这个共享回退值。显式传入空字符串会让本次调用不使用继承的用户 context。
+- `context`：仅为本次调用提供补充信息，例如业务事实、规则、约束或输出要求。它会覆盖 `aiContexts.aiAct`，后者又会覆盖 `aiContexts.default` 这个共享回退值。显式传入空字符串会让本次调用不使用继承的用户 context。
 
 ```typescript
 await agent.aiAct('完成结账表单，在下单前停止', {

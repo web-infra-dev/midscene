@@ -115,7 +115,7 @@ steps:
 - 对象或数组变量可以作为完整值使用，但不能嵌入更长的字符串。
 - 未定义变量会在收集阶段失败。变量只解析 Node input，不解析 `$`。
 
-Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。自然语言 Node 可以通过运行器维护的只读执行历史理解前序结果。
+Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过 Execution Project 的 `context` 显式提供。
 
 ### 使用 tags 筛选 Case
 
@@ -178,7 +178,7 @@ Project teardown
 
 - `beforeAll` 和 `afterAll` 对每个 YAML 文件各运行一次，负责文档级业务准备与清理。
 - `beforeEach` 和 `afterEach` 对每次 Case attempt 各运行一次。
-- retry 会以新的 run ID、Agent scope、缓存 scope 和 Case history 重跑整个 Case，但不会重跑 `beforeAll`。
+- retry 会以新的 run ID、Agent scope 和缓存 scope 重跑整个 Case，但不会重跑 `beforeAll`。
 - Node 可以注册 attempt 或 Document scope 的内部清理，例如释放 Agent 和生成报告；这些清理在相应 scope 结束时执行。
 
 即使 Case 主体失败，`afterEach` 仍会执行。

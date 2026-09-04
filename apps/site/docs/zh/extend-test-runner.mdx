@@ -243,10 +243,11 @@ const refundOrder = defineNode({
 * `$`：由运行器控制的通用 Step 属性（如规范化后的 `timeout` 和 `continue-on-error`）。
 * `signal`：超时或运行取消时触发的 `AbortSignal`，建议在内部异步请求或长耗时任务中使用它以实现提前优雅退出。
 * `context`：在 `defineProjectSetup()` 中返回并共享的项目级运行时资源。
-* `history`：深度只读、JSON 兼容的已运行 Node 历史。AI Agent 节点会自动读取并利用此字段理解上下文。
 * `onTeardown()`：注册当前 Node 所创建资源的清理函数，支持 attempt 级别或 Document 级，按 LIFO（后进先出）顺序执行。
 * `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
 * `case` 或 `document`：当前执行位置的详细运行信息。
+
+Node 不会自动收到前序 Node 的结果。如果后续 Node 需要某个值，请按下文所述将它显式写入项目 `context`。
 
 ## 多节点协作与状态共享
 
@@ -384,12 +385,12 @@ const playwrightNodes = createPlaywrightNodes<ProjectContext>({
 ```
 
 `setCookies` 不允许在 YAML 中直接填写 Cookie value。Test Runner 会把 Node 输入保存到
-运行结果和 workflow history。如果直接填写 Cookie，这些敏感信息也会被保存。
+运行结果。如果直接填写 Cookie，这些敏感信息也会被保存。
 
 请使用 `cookiesEnv`、`profile` 或 `storageStatePath` 引用 Cookie，三者必须选择一个。
 Node 只在执行时读取实际的 Cookie，并将它直接传给 Playwright BrowserContext。Node
 结果只记录引用名称和 Cookie 数量，不会记录 Cookie 的名称、value 和作用域。因此，
-Cookie 不会进入 Test Runner 的运行结果和 workflow history。
+Cookie 不会进入 Test Runner 的运行结果。
 
 环境变量可以包含 Cookie header、Cookie JSON 数组或 Playwright storage-state JSON。
 相对的 storage-state 路径默认从当前工作目录解析。如果项目需要使用其他根目录，请配置
@@ -456,10 +457,10 @@ steps:
       uri: com.example.app
 ```
 
-`runAdbShell` 和 `runWdaRequest` 会在 Node 结果和 workflow history 中保留完整
-response。Test Runner 只限制传给后续 Midscene Agent 的 history 内容：过大的 value
-会变成有长度限制的预览，并标明原始字符数；当 history 总量过大时，优先保留最近的记录。
-如果运行结果不需要完整输出，请直接在命令中进行过滤。
+`runAdbShell` 和 `runWdaRequest` 会在 Node 结果中保留完整 response，但 Test Runner
+不会自动把该 response 传给后续 Node 或 Midscene Agent 调用。如果运行结果不需要完整
+输出，请直接在命令中进行过滤；如果后续 Node 需要其中某个值，请只将该值显式写入项目
+`context`。
 
 `launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
 `gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和

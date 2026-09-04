@@ -243,10 +243,11 @@ The `ctx` passed to `execute(ctx)` contains these commonly used fields:
 - `$`: general Step properties controlled by the runner, such as normalized `timeout` and `continue-on-error` values.
 - `signal`: an `AbortSignal` triggered by a timeout or cancellation. Use it in asynchronous requests or long-running tasks to exit early and cleanly.
 - `context`: Project-level runtime resources returned by `defineProjectSetup()` and shared within the Project.
-- `history`: deeply read-only, JSON-compatible history of executed Nodes. AI Agent Nodes automatically read this field to understand context.
 - `onTeardown()`: registers cleanup functions for resources created by the current Node. Cleanup can use attempt or Document scope and runs in LIFO order.
 - `scope`: identifies the current Node execution boundary as either `case` or `document`.
 - `case` or `document`: detailed runtime information for the current execution position.
+
+Nodes do not receive previous Node results automatically. When later Nodes need a value, store it explicitly in the Project `context` as described below.
 
 ## Share state across Nodes
 
@@ -386,14 +387,14 @@ const playwrightNodes = createPlaywrightNodes<ProjectContext>({
 ```
 
 `setCookies` does not accept cookie values in YAML. Test Runner persists every
-Node input in the run result and workflow history. An inline cookie would be
-copied into those records.
+Node input in the run result. An inline cookie would be copied into that
+record.
 
 Use exactly one of `cookiesEnv`, `profile`, or `storageStatePath` as a cookie
 reference. The Node resolves the actual cookies only at execution time and
 passes them directly to the Playwright BrowserContext. Its result contains only
 the reference name and cookie count. Cookie names, values, and scopes are not
-written to the run result or workflow history.
+written to the run result.
 
 An environment variable may contain a Cookie header, a JSON cookie array, or
 Playwright storage-state JSON. Relative storage-state paths resolve from the
@@ -463,11 +464,10 @@ steps:
 ```
 
 `runAdbShell` and `runWdaRequest` preserve their complete response in the Node
-result and workflow history. Test Runner limits only the history representation
-passed to later Midscene Agent calls: oversized values become bounded previews
-with their original character count, and recent entries take priority when the
-total context is too large. Use command-side filtering when the complete output
-is not needed in the run result.
+result, but Test Runner does not automatically pass that response to later
+Nodes or Midscene Agent calls. Use command-side filtering when the complete
+output is not needed in the run result, or explicitly store only the value a
+later Node needs in the Project `context`.
 
 `launch` and `gotoUrl` are intentionally not aliases. `launch` manages an app,
 URL, or URI through a device Agent. `gotoUrl` navigates the current Playwright
