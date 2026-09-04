@@ -9,7 +9,7 @@ import type {
 import { autoGlmAdapters } from './auto-glm/adapter';
 import { deepSeekAdapters } from './deepseek/adapter';
 import { defaultOpenAICompatibleAdapterConfig } from './default';
-import { doubaoAdapters } from './doubao';
+import { doubaoAdapters } from './doubao/adapter';
 import { geminiAdapters } from './gemini';
 import { glmAdapters } from './glm';
 import { gptAdapters } from './gpt';
