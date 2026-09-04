@@ -1,4 +1,5 @@
 import type { AndroidAgent } from '@midscene/android';
+import type { HarmonyAgent } from '@midscene/harmony';
 import type { IOSAgent } from '@midscene/ios';
 import { defineNode, z } from '@midscene/test';
 import {
@@ -12,6 +13,11 @@ import {
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
+import {
+  type HarmonyRunnerAgent,
+  createHarmonyNodes,
+  runHdcShellInputSchema,
+} from '@midscene/test/harmony';
 import {
   type IOSRunnerAgent,
   type RunWdaRequestNodeInput,
@@ -63,7 +69,12 @@ const webSetup = defineProjectSetup<ProjectContext>({
   platform: 'web',
   setup({ project, onTeardown }) {
     project.projectId satisfies string;
-    project.platform satisfies 'web' | 'android' | 'ios' | 'computer';
+    project.platform satisfies
+      | 'web'
+      | 'android'
+      | 'ios'
+      | 'harmony'
+      | 'computer';
     onTeardown(({ context }) => {
       context?.baseURL satisfies string | undefined;
     });
@@ -168,6 +179,9 @@ interface PlatformContext {
       command: string,
       options?: { timeout?: number },
     ): Promise<string>;
+    back(): Promise<void>;
+    home(): Promise<void>;
+    recentApps(): Promise<void>;
   };
   ios: {
     launch(uri: string): Promise<void>;
@@ -177,6 +191,16 @@ interface PlatformContext {
       endpoint: string;
       data?: Record<string, unknown>;
     }): Promise<unknown>;
+    home(): Promise<void>;
+    appSwitcher(): Promise<void>;
+  };
+  harmony: {
+    launch(uri: string): Promise<void>;
+    terminate(uri: string): Promise<void>;
+    runHdcShell(command: string): Promise<string>;
+    back(): Promise<void>;
+    home(): Promise<void>;
+    recentApps(): Promise<void>;
   };
 }
 
@@ -194,21 +218,30 @@ createIOSNodes<PlatformContext>({
   getAgent: ({ context }) => context.ios,
 });
 
+createHarmonyNodes<PlatformContext>({
+  getAgent: ({ context }) => context.harmony,
+});
+
 declare const androidAgent: AndroidAgent;
 declare const iosAgent: IOSAgent;
+declare const harmonyAgent: HarmonyAgent;
 declare const androidRunnerAgent: AndroidRunnerAgent;
 declare const iosRunnerAgent: IOSRunnerAgent;
+declare const harmonyRunnerAgent: HarmonyRunnerAgent;
 declare const iosAgentInput: Parameters<IOSAgent['runWdaRequest']>[0];
 declare const iosRunnerInput: RunWdaRequestNodeInput;
 
 createAndroidNodes({ getAgent: () => androidAgent });
 createIOSNodes({ getAgent: () => iosAgent });
+createHarmonyNodes({ getAgent: () => harmonyAgent });
 androidAgent satisfies AndroidRunnerAgent;
 iosAgent satisfies IOSRunnerAgent;
+harmonyAgent satisfies HarmonyRunnerAgent;
 androidRunnerAgent.runAdbShell satisfies AndroidAgent['runAdbShell'];
 iosRunnerAgent.runWdaRequest satisfies IOSAgent['runWdaRequest'];
-iosAgentInput satisfies RunWdaRequestNodeInput;
-iosRunnerInput satisfies Parameters<IOSAgent['runWdaRequest']>[0];
+harmonyRunnerAgent.runHdcShell satisfies HarmonyAgent['runHdcShell'];
+iosAgentInput satisfies RunWdaRequestNodeInput['request'];
+iosRunnerInput.request satisfies Parameters<IOSAgent['runWdaRequest']>[0];
 
 void gotoUrlInputSchema;
 void setCookiesInputSchema;
@@ -216,3 +249,4 @@ void clearCookiesInputSchema;
 void setViewportSizeInputSchema;
 void runAdbShellInputSchema;
 void runWdaRequestInputSchema;
+void runHdcShellInputSchema;

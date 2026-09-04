@@ -1,9 +1,13 @@
 import { WorkflowParseError } from '../errors';
-import type {
-  CommonNodeInput,
-  NormalizedStep,
-  NormalizedStepMeta,
-} from './types';
+import type { NormalizedStep, NormalizedStepMeta } from './types';
+
+interface StringInputNodeDefinition {
+  stringInputKey?: string | false;
+}
+
+export type ResolveNodeForNormalization = (
+  name: string,
+) => StringInputNodeDefinition | undefined;
 
 const supportedMetaKeys = new Set(['timeout', 'continue-on-error']);
 
@@ -67,19 +71,11 @@ function normalizeMeta(value: unknown, index: number): NormalizedStepMeta {
   };
 }
 
-export function validateCommonNodeInput(
-  input: Record<string, unknown>,
-  index: number,
-): asserts input is Record<string, unknown> & CommonNodeInput {
-  if (input.prompt !== undefined && typeof input.prompt !== 'string') {
-    throw new WorkflowParseError(
-      `${formatStep(index)} "prompt" must be a string.`,
-      { index, prompt: input.prompt },
-    );
-  }
-}
-
-export function normalizeStep(value: unknown, index = 0): NormalizedStep {
+export function normalizeStep(
+  value: unknown,
+  index = 0,
+  resolveNode?: ResolveNodeForNormalization,
+): NormalizedStep {
   if (!isMapping(value)) {
     throw new WorkflowParseError(`${formatStep(index)} must be a mapping.`, {
       index,
@@ -103,9 +99,19 @@ export function normalizeStep(value: unknown, index = 0): NormalizedStep {
   }
 
   if (typeof rawValue === 'string') {
+    const resolvedNode = resolveNode?.(node);
+    const stringInputKey = resolvedNode
+      ? resolvedNode.stringInputKey
+      : 'prompt';
+    if (stringInputKey === false || stringInputKey === undefined) {
+      throw new WorkflowParseError(
+        `${formatStep(index)} node "${node}" does not accept string shorthand.`,
+        { index, node },
+      );
+    }
     return {
       node,
-      input: { prompt: rawValue },
+      input: { [stringInputKey]: rawValue },
       meta: { continueOnError: false },
     };
   }
@@ -118,7 +124,6 @@ export function normalizeStep(value: unknown, index = 0): NormalizedStep {
   }
 
   const { $: rawMeta, ...input } = rawValue;
-  validateCommonNodeInput(input, index);
 
   return {
     node,
@@ -127,9 +132,12 @@ export function normalizeStep(value: unknown, index = 0): NormalizedStep {
   };
 }
 
-export function normalizeSteps(steps: unknown): NormalizedStep[] {
+export function normalizeSteps(
+  steps: unknown,
+  resolveNode?: ResolveNodeForNormalization,
+): NormalizedStep[] {
   if (!Array.isArray(steps)) {
     throw new WorkflowParseError('Steps must be an array.');
   }
-  return steps.map((step, index) => normalizeStep(step, index));
+  return steps.map((step, index) => normalizeStep(step, index, resolveNode));
 }

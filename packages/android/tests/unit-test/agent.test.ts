@@ -31,6 +31,27 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_FAMILY: 'doubao-vision',
 } as const;
 
+it('declares common and Android Test Runner Nodes', () => {
+  expect(
+    AndroidAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
+  ).toEqual([
+    'aiAct',
+    'aiTap',
+    'aiAssert',
+    'aiBoolean',
+    'aiNumber',
+    'aiString',
+    'aiAsk',
+    'recordToReport',
+    'launch',
+    'terminate',
+    'runAdbShell',
+    'back',
+    'home',
+    'recentApps',
+  ]);
+});
+
 async function createActualAndroidDevice(
   options?: ConstructorParameters<typeof AndroidDevice>[1],
 ) {

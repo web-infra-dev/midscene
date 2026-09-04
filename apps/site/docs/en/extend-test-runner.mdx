@@ -78,11 +78,11 @@ const mockLocation = defineNode<
 
 // Integrate Midscene's built-in AI Nodes, such as aiAct and aiAssert
 const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PlaywrightAgent,
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-  includeLaunch: false,
 });
 
 const playwrightNodes = createPlaywrightNodes<ProjectContext>({
@@ -337,27 +337,55 @@ export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
 
 ## Integrate a Midscene Agent
 
-`@midscene/test/midscene` exports six built-in system Nodes: `aiAct`, `aiAssert`, `recordToReport`, `launch`, `wait`, and `agent`.
+`@midscene/test/midscene` exports common system Nodes: `aiAct`, `aiTap`,
+`aiAssert`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `recordToReport`,
+`wait`, and `agent`.
 
-Call `createMidsceneNodes()` with a `getAgent` callback to integrate them into your Test Runner configuration:
+Call `createMidsceneNodes()` with the Agent class that declares the Nodes and a `getAgent` callback that supplies the Agent instance at execution time:
 
 ```ts
 import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
 
 const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PlaywrightAgent,
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-  // Web uses gotoUrl instead of the legacy launch Node.
-  includeLaunch: false,
 });
 ```
 
-`createMidsceneNodes()` keeps `launch` for compatibility with existing Agent
-integrations. Android and iOS projects should use the lifecycle Nodes owned by
-their platform preset and set `includeLaunch: false` here to avoid registering
-`launch` twice.
+Agent-backed Node inputs mirror the Agent method parameters. Positional
+parameters become named top-level fields, while structured parameters keep their original nesting. For example, `recordToReport(title, options)` uses `title` and `options`, and a multimodal `TUserPrompt` stays entirely inside `prompt`:
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: Match the page to the reference image
+        images:
+          - name: target state
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
+  - recordToReport:
+      title: Finished
+      options:
+        content: The visual check completed.
+```
+
+`agentClass` is the sole source of Agent-backed Node definitions. The factory throws during registration if the class does not expose
+`getTestRunnerNodeDefinitions()`. A platform Agent class registers its common and platform Node definitions together. The base or web Agent registers no platform lifecycle Nodes. You can also compose the platform-only factories described below.
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+  agentClass: AndroidAgent,
+});
+```
 
 ## Register platform preset Nodes
 
@@ -421,8 +449,7 @@ HTTP 4xx and 5xx responses are returned as successful Node results with their
 status code, so later steps can assert the error page. Network errors and
 navigation timeouts still fail the Node.
 
-For Android, the platform preset registers `launch`, `terminate`, and
-`runAdbShell`. Its Agent contract requires all three capabilities:
+For Android, the platform preset registers `launch`, `terminate`, `runAdbShell`, `back`, `home`, and `recentApps`. Its Agent contract requires the corresponding Agent methods:
 
 ```ts
 import { createAndroidNodes } from '@midscene/test/android';
@@ -436,12 +463,14 @@ const androidNodes = createAndroidNodes<ProjectContext>({
 beforeEach:
   - runAdbShell:
       command: pm clear com.example.app
+      options:
+        timeout: 5000
   - launch:
       uri: com.example.app
 ```
 
-For iOS, the platform preset registers `launch`, `terminate`, and
-`runWdaRequest`. Its Agent contract requires all three capabilities:
+For iOS, the platform preset registers `launch`, `terminate`,
+`runWdaRequest`, `home`, and `appSwitcher`:
 
 ```ts
 import { createIOSNodes } from '@midscene/test/ios';
@@ -456,14 +485,33 @@ steps:
   - launch:
       uri: com.example.app
   - runWdaRequest:
-      method: GET
-      endpoint: /status
+      request:
+        method: GET
+        endpoint: /status
   - terminate:
       uri: com.example.app
 ```
 
-`runAdbShell` and `runWdaRequest` preserve their complete response in the Node
-result and workflow history. Test Runner limits only the history representation
+For HarmonyOS, the platform preset registers `launch`, `terminate`,
+`runHdcShell`, `back`, `home`, and `recentApps`:
+
+```ts
+import { createHarmonyNodes } from '@midscene/test/harmony';
+
+const harmonyNodes = createHarmonyNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - runHdcShell:
+      command: bm dump -a
+  - home: {}
+```
+
+`runAdbShell`, `runWdaRequest`, and `runHdcShell` preserve their complete
+response in the Node result and workflow history. Test Runner limits only the history representation
 passed to later Midscene Agent calls: oversized values become bounded previews
 with their original character count, and recent entries take priority when the
 total context is too large. Use command-side filtering when the complete output
@@ -490,7 +538,7 @@ You can also specify a test directory or a custom configuration file:
 pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the six built-in system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
 
 ## Configure and manage a Test Project
 

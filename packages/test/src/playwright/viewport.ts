@@ -31,6 +31,7 @@ export const createSetViewportSizeNode = <TContext>(
     title: 'Set the browser viewport size',
     description:
       'Set the current Playwright Page viewport size in CSS pixels and return the effective size.',
+    stringInputKey: false,
     inputSchema: setViewportSizeInputSchema,
     async execute(ctx) {
       throwIfAborted(ctx.signal, 'setViewportSize');

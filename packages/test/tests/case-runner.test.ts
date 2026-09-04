@@ -65,7 +65,11 @@ describe('CaseRunner', () => {
             throw new Error('boom');
           },
         }),
-        defineNode({ name: 'next.node', execute: next }),
+        defineNode({
+          name: 'next.node',
+          stringInputKey: 'prompt',
+          execute: next,
+        }),
       ],
     });
 

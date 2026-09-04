@@ -5,8 +5,7 @@ import {
   normalizeNodeExecutionError,
 } from '../errors';
 import type { NodeDefinition, NodeResult } from '../node/types';
-import { validateCommonNodeInput } from '../parser/normalize';
-import type { CommonNodeInput, NormalizedStep } from '../parser/types';
+import type { NormalizedStep } from '../parser/types';
 import { assertJsonSerializable } from './history';
 import type {
   NodeCaseContext,
@@ -76,8 +75,6 @@ async function executeNode<TOutputData>(
   stepIndex: number,
   options: { parentSignal?: AbortSignal; defaultTimeoutMs?: number },
 ): Promise<StepRunResult<TOutputData>> {
-  validateCommonNodeInput(step.input, stepIndex);
-
   const startedAt = new Date();
   const abortController = new AbortController();
   const parentSignal = options.parentSignal;
@@ -161,16 +158,16 @@ type StepExecutionTarget =
 async function parseNodeInput<TInput, TData, TContext>(
   node: NodeDefinition<TInput, TData, TContext>,
   input: Record<string, unknown>,
-): Promise<TInput & CommonNodeInput> {
+): Promise<TInput> {
   if (!node.inputSchema) {
-    return input as TInput & CommonNodeInput;
+    return input as TInput;
   }
 
   const parsed = await node.inputSchema.safeParseAsync(input);
   if (!parsed.success) {
     throw NodeInputValidationError.fromZod(node.name, parsed.error);
   }
-  return parsed.data as TInput & CommonNodeInput;
+  return parsed.data as TInput;
 }
 
 export async function executeStep<

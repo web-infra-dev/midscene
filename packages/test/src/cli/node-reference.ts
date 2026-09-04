@@ -22,7 +22,7 @@ workflow:
         continue-on-error: false
 \`\`\`
 
-A string step value is shorthand for \`{ prompt: value }\`. Whether that input is valid depends on the node input schema.`;
+A Node may map a string step value to one declared input field. Each Node section states whether it supports this shorthand and names the target field.`;
 
 const sortJsonValue = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sortJsonValue);
@@ -90,6 +90,14 @@ const renderNode = (
     warnings.push(`node "${node.name}" has no description`);
     sections.push(
       `> Description not declared. Do not infer this node's behavior.`,
+    );
+  }
+
+  if (node.stringInputKey === false || node.stringInputKey === undefined) {
+    sections.push('**String shorthand:** Not supported by this Node.');
+  } else {
+    sections.push(
+      `**String shorthand:** Maps to \`{ ${node.stringInputKey}: value }\`.`,
     );
   }
 

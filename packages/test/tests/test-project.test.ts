@@ -235,7 +235,7 @@ describe('test project config', () => {
     [
       'unknown platform',
       `projects: [{ name: 'bad', platform: 'desktop' }]`,
-      'must be one of web, android, ios, computer',
+      'must be one of web, android, ios, harmony, computer',
     ],
     [
       'setup platform mismatch',

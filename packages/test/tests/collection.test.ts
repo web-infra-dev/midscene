@@ -30,9 +30,14 @@ const createDocument = (content: string) => {
 };
 
 describe('workflow document collection', () => {
-  const node = defineNode({ name: 'test.record', execute() {} });
+  const node = defineNode({
+    name: 'test.record',
+    stringInputKey: 'prompt',
+    execute() {},
+  });
   const documentNode = defineNode({
     name: 'test.document',
+    stringInputKey: 'prompt',
     execute() {},
   });
 

@@ -8,6 +8,7 @@ describe('renderNodeReference', () => {
       name: 'alpha.node',
       title: 'Alpha node',
       description: 'Runs the alpha action.',
+      stringInputKey: 'customerId',
       inputSchema: z.strictObject({
         customerId: z.string().describe('The customer ID.'),
         amount: z.number().positive().describe('The order amount.'),
@@ -17,6 +18,7 @@ describe('renderNodeReference', () => {
     const beta = defineNode({
       name: 'beta.node',
       description: 'Runs the beta action.',
+      stringInputKey: false,
       inputSchema: z.strictObject({ enabled: z.boolean().optional() }),
       execute() {},
     });
@@ -34,6 +36,12 @@ describe('renderNodeReference', () => {
       first.markdown.indexOf('## `beta.node`'),
     );
     expect(first.markdown).toContain('**Title:** Alpha node');
+    expect(first.markdown).toContain(
+      '**String shorthand:** Maps to `{ customerId: value }`.',
+    );
+    expect(first.markdown).toContain(
+      '**String shorthand:** Not supported by this Node.',
+    );
     expect(first.markdown).toContain('"additionalProperties": false');
     expect(first.markdown.indexOf('"amount"')).toBeLessThan(
       first.markdown.indexOf('"customerId"'),
@@ -52,6 +60,9 @@ describe('renderNodeReference', () => {
       'node "legacy.node" has no inputSchema',
     ]);
     expect(undocumented.markdown).toContain('Do not infer');
+    expect(undocumented.markdown).toContain(
+      '**String shorthand:** Not supported by this Node.',
+    );
     expect(undocumented.markdown).toContain('Do not invent input fields');
 
     const empty = renderNodeReference([]);

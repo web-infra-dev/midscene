@@ -1,53 +1,40 @@
-import { z } from 'zod/v4';
+import type { IOSAgent } from '@midscene/ios';
 import {
-  type DeviceLifecycleAgent,
-  createDeviceLifecycleNodes,
-} from '../device/lifecycle';
+  iosAgentTestRunnerNodeDefinitions,
+  launchInputSchema,
+  runWdaRequestInputSchema,
+  terminateInputSchema,
+  wdaRequestInputSchema,
+} from '@midscene/ios/test-runner';
 export type {
   LaunchNodeInput,
+  RunWdaRequestNodeInput,
   TerminateNodeInput,
-} from '../device/lifecycle';
-export { launchInputSchema, terminateInputSchema } from '../device/lifecycle';
+  WDAHttpMethod,
+} from '@midscene/ios/test-runner';
 import type { Awaitable } from '../engine/types';
-import { NodeDefinitionError, NodeExecutionError } from '../errors';
-import { defineNode } from '../node/define-node';
+import { NodeDefinitionError } from '../errors';
+import { createAgentTestRunnerNodes } from '../midscene';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
-const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
-/** HTTP methods supported by the WebDriverAgent request Node. */
-export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
+export {
+  launchInputSchema,
+  runWdaRequestInputSchema,
+  terminateInputSchema,
+  wdaRequestInputSchema,
+};
 
-type NodeContext<TContext> = NodeExecutionContext<unknown, TContext>;
+export type IOSRunnerAgent = Pick<
+  IOSAgent,
+  'launch' | 'terminate' | 'runWdaRequest' | 'home' | 'appSwitcher'
+>;
 
-/** Minimal iOS Agent capability required by the preset Node. */
-export interface IOSRunnerAgent extends DeviceLifecycleAgent {
-  /** Execute one WebDriverAgent request through the iOS Agent action API. */
-  runWdaRequest(input: RunWdaRequestNodeInput): Promise<unknown>;
-}
-
-/** Dependencies used by the iOS preset Nodes. */
 export interface CreateIOSNodesOptions<TContext> {
-  /** Return the iOS Agent associated with the current workflow. */
-  getAgent(ctx: NodeContext<TContext>): Awaitable<IOSRunnerAgent>;
+  getAgent(
+    ctx: NodeExecutionContext<unknown, TContext>,
+  ): Awaitable<IOSRunnerAgent>;
 }
 
-/** Input schema for the iOS runWdaRequest Node. */
-export const runWdaRequestInputSchema = z.strictObject({
-  method: z.enum(WDA_HTTP_METHODS).describe('The WebDriverAgent HTTP method.'),
-  endpoint: z
-    .string()
-    .regex(/^\/\S*$/, 'endpoint must start with / and contain no whitespace')
-    .describe('The WebDriverAgent API endpoint.'),
-  data: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe('An optional JSON request body.'),
-});
-
-/** Validated input accepted by the iOS runWdaRequest Node. */
-export type RunWdaRequestNodeInput = z.infer<typeof runWdaRequestInputSchema>;
-
-/** Create the P0 iOS preset Nodes for an injected iOS Agent. */
 export function createIOSNodes<TContext>(
   options: CreateIOSNodesOptions<TContext>,
 ): readonly NodeDefinition<any, any, TContext>[] {
@@ -60,37 +47,8 @@ export function createIOSNodes<TContext>(
     throw new NodeDefinitionError('createIOSNodes() requires getAgent().');
   }
 
-  return [
-    ...createDeviceLifecycleNodes(options.getAgent, 'an iOS Agent'),
-    defineNode<typeof runWdaRequestInputSchema, unknown, TContext>({
-      name: 'runWdaRequest',
-      title: 'Run a WebDriverAgent request',
-      description:
-        'Execute a WebDriverAgent HTTP request through the current iOS Agent and return its JSON-serializable response.',
-      inputSchema: runWdaRequestInputSchema,
-      async execute(ctx) {
-        if (ctx.signal.aborted) {
-          throw ctx.signal.reason ?? new Error('runWdaRequest aborted.');
-        }
-        const agent = await options.getAgent(ctx);
-        if (typeof agent?.runWdaRequest !== 'function') {
-          throw new NodeExecutionError(
-            'runWdaRequest',
-            new TypeError(
-              'getAgent() must return an iOS Agent with runWdaRequest().',
-            ),
-          );
-        }
-        const response = await agent.runWdaRequest(ctx.input);
-        return response === undefined
-          ? {
-              summary: `Executed WDA ${ctx.input.method} ${ctx.input.endpoint}`,
-            }
-          : {
-              summary: `Executed WDA ${ctx.input.method} ${ctx.input.endpoint}`,
-              data: response,
-            };
-      },
-    }),
-  ];
+  return createAgentTestRunnerNodes(
+    iosAgentTestRunnerNodeDefinitions,
+    options.getAgent,
+  );
 }

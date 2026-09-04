@@ -52,7 +52,7 @@ The runner executes Cases in their declared YAML order. If one Case fails, the r
 
 ### Write a Step
 
-Each Step can call only one Node. If a call only needs a `prompt` parameter, use the string shorthand:
+Each Step can call only one Node. A Node may declare one field as its string shorthand target. For example, `aiAct` maps a string to `prompt`:
 
 ```yaml
 steps:
@@ -74,6 +74,20 @@ steps:
   - order.create:
       sku: midscene-mug
       quantity: 2
+```
+
+Structured parameters keep the same nesting as the underlying API. A multimodal prompt is one `prompt` value, so its images remain inside `prompt`:
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: Match the page to the reference image
+        images:
+          - name: target state
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
 ```
 
 ### Configure timeouts and error handling

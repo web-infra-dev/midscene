@@ -93,6 +93,10 @@ import { markdownToAiActPrompt } from './run-markdown';
 import { TaskCache } from './task-cache';
 import { TaskExecutor, locatePlanForLocate, withFileChooser } from './tasks';
 import {
+  type AgentTestRunnerNodeDefinition,
+  commonAgentTestRunnerNodeDefinitions,
+} from './test-runner-nodes';
+import {
   UIObservationImpl,
   type UIObserver,
   UIObserverImpl,
@@ -148,6 +152,11 @@ type AgentInputOption = LocateOption & {
 export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   implements InsightAPI
 {
+  /** Nodes this Agent class intentionally exposes to Test Runner. */
+  static getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return commonAgentTestRunnerNodeDefinitions;
+  }
+
   interface: InterfaceType;
 
   service: Service;

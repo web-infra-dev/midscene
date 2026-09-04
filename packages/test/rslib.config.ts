@@ -35,6 +35,7 @@ export default defineConfig({
       'playwright/index': './src/playwright/index.ts',
       'android/index': './src/android/index.ts',
       'ios/index': './src/ios/index.ts',
+      'harmony/index': './src/harmony/index.ts',
     },
     tsconfigPath: 'tsconfig.build.json',
   },

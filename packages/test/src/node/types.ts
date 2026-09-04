@@ -5,7 +5,7 @@ import type {
   NodeHistoryEntry,
   NodeScopeTeardown,
 } from '../engine/types';
-import type { CommonNodeInput, NormalizedStepMeta } from '../parser/types';
+import type { NormalizedStepMeta } from '../parser/types';
 
 export interface NodeResult<TData = unknown> {
   /** Human-readable summary for reports and later agent context. */
@@ -16,8 +16,8 @@ export interface NodeResult<TData = unknown> {
 }
 
 interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
-  /** The node input without `$`, including the common `prompt` input. */
-  input: TInput & CommonNodeInput;
+  /** The validated node input without `$`. */
+  input: TInput;
 
   /** The normalized engine metadata for this step. */
   $: Readonly<NormalizedStepMeta>;
@@ -74,6 +74,8 @@ export interface DefineNodeOptions<
   name: string;
   title?: string;
   description?: string;
+  /** Object field populated by string shorthand. Omit or set false to disable it. */
+  stringInputKey?: string | false;
   inputSchema?: NodeInputSchema;
   execute(
     ctx: NodeExecutionContext<TInput, TContext>,

@@ -7,7 +7,7 @@ import type { Awaitable } from '../engine/types';
 import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
-export type TestPlatform = 'web' | 'android' | 'ios' | 'computer';
+export type TestPlatform = 'web' | 'android' | 'ios' | 'harmony' | 'computer';
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue =
@@ -325,12 +325,18 @@ const validateVariables = (
   return deepFreezeJson(value as Record<string, JsonValue>);
 };
 
-const platforms = new Set<TestPlatform>(['web', 'android', 'ios', 'computer']);
+const platforms = new Set<TestPlatform>([
+  'web',
+  'android',
+  'ios',
+  'harmony',
+  'computer',
+]);
 
 const validatePlatform = (value: unknown, label: string): TestPlatform => {
   if (typeof value !== 'string' || !platforms.has(value as TestPlatform)) {
     throw new TypeError(
-      `Midscene config ${label} must be one of web, android, ios, computer.`,
+      `Midscene config ${label} must be one of web, android, ios, harmony, computer.`,
     );
   }
   return value as TestPlatform;

@@ -12,6 +12,7 @@ export default defineTestProject({
   nodes: [
     defineNode({
       name: 'test.interrupt',
+      stringInputKey: 'prompt',
       execute() {
         log('interrupt');
         process.emit('SIGTERM');

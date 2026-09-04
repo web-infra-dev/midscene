@@ -1,5 +1,9 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
-import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import {
+  type AgentOpt,
+  type AgentTestRunnerNodeDefinition,
+  Agent as PageAgent,
+} from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
@@ -13,6 +17,7 @@ import {
   type DeviceActionRunAdbShell,
   type DeviceActionTerminate,
 } from './device';
+import { androidAgentTestRunnerNodeDefinitions } from './test-runner-nodes';
 import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
@@ -44,6 +49,13 @@ type WrappedAction<T extends DeviceAction> = (
 ) => Promise<ActionReturn<T>>;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...PageAgent.getTestRunnerNodeDefinitions(),
+      ...androidAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
   /**
    * Trigger the system back operation on Android devices
    */

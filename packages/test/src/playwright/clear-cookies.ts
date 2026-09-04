@@ -31,6 +31,7 @@ export const createClearCookiesNode = <TContext>(
     title: 'Clear browser cookies',
     description:
       'Clear all cookies from the current Playwright BrowserContext, or only cookies matching name, domain, or path.',
+    stringInputKey: false,
     inputSchema: clearCookiesInputSchema,
     async execute(ctx) {
       throwIfAborted(ctx.signal, 'clearCookies');

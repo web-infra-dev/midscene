@@ -44,6 +44,11 @@
       "types": "./dist/types/ios/index.d.ts",
       "import": "./dist/es/ios/index.mjs",
       "require": "./dist/lib/ios/index.js"
+    },
+    "./harmony": {
+      "types": "./dist/types/harmony/index.d.ts",
+      "import": "./dist/es/harmony/index.mjs",
+      "require": "./dist/lib/harmony/index.js"
     }
   },
   "files": ["dist", "bin"],
@@ -55,6 +60,7 @@
     "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
+    "@midscene/core": "workspace:*",
     "js-yaml": "4.1.0",
     "tinyglobby": "0.2.15",
     "tsx": "^4.19.2",
@@ -62,6 +68,7 @@
   },
   "devDependencies": {
     "@midscene/android": "workspace:*",
+    "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
@@ -72,9 +79,21 @@
     "vitest": "3.0.5"
   },
   "peerDependencies": {
+    "@midscene/android": "workspace:*",
+    "@midscene/harmony": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "playwright": "^1.45.0"
   },
   "peerDependenciesMeta": {
+    "@midscene/android": {
+      "optional": true
+    },
+    "@midscene/harmony": {
+      "optional": true
+    },
+    "@midscene/ios": {
+      "optional": true
+    },
     "playwright": {
       "optional": true
     }

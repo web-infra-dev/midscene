@@ -44,6 +44,7 @@ const validateDefinition = (options: {
   name: string;
   title?: unknown;
   description?: unknown;
+  stringInputKey?: unknown;
   inputSchema?: unknown;
   execute: unknown;
 }): void => {
@@ -57,7 +58,29 @@ const validateDefinition = (options: {
 
   validateOptionalText(options.title, 'title', options.name);
   validateOptionalText(options.description, 'description', options.name);
+  if (
+    options.stringInputKey !== undefined &&
+    options.stringInputKey !== false &&
+    (typeof options.stringInputKey !== 'string' ||
+      options.stringInputKey.trim().length === 0)
+  ) {
+    throw new NodeDefinitionError(
+      `Node "${options.name}" stringInputKey must be a non-empty string or false.`,
+      { node: options.name, field: 'stringInputKey' },
+    );
+  }
   validateInputSchema(options.inputSchema, options.name);
+
+  if (
+    typeof options.stringInputKey === 'string' &&
+    options.inputSchema instanceof z.ZodObject &&
+    !(options.stringInputKey in options.inputSchema.shape)
+  ) {
+    throw new NodeDefinitionError(
+      `Node "${options.name}" stringInputKey must reference a field in inputSchema.`,
+      { node: options.name, field: 'stringInputKey' },
+    );
+  }
 
   if (typeof options.execute !== 'function') {
     throw new NodeDefinitionError(
