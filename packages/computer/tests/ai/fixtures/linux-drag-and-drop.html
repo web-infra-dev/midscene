@@ -107,7 +107,11 @@
         }
       });
 
-      report('ready');
+      const viewportLeft = window.screenX + (window.outerWidth - window.innerWidth) / 2;
+      const viewportTop = window.screenY + window.outerHeight - window.innerHeight;
+      fetch(`/ready?left=${viewportLeft}&top=${viewportTop}`, {
+        method: 'POST',
+      }).catch(() => {});
     </script>
   </body>
 </html>

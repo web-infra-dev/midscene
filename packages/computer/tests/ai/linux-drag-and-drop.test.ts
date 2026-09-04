@@ -9,8 +9,8 @@ import { ComputerDevice } from '../../src';
 import { findLinuxBrowser, isHeadlessLinux } from './test-utils';
 
 const FIXTURE_PATH = path.join(__dirname, 'fixtures/linux-drag-and-drop.html');
-const SOURCE_CENTER = { x: 360, y: 400 };
-const TARGET_CENTER = { x: 360, y: 130 };
+const SOURCE_CENTER_IN_VIEWPORT = { x: 360, y: 400 };
+const TARGET_CENTER_IN_VIEWPORT = { x: 360, y: 130 };
 
 async function waitFor(
   predicate: () => boolean,
@@ -53,9 +53,19 @@ describe.runIf(isHeadlessLinux())('Linux drag and drop', () => {
 
   it('delivers a held-pointer motion after drag activation', async () => {
     const observedEvents = new Set<string>();
+    let viewportOrigin: { x: number; y: number } | undefined;
+    let browserStderr = '';
     const fixture = readFileSync(FIXTURE_PATH, 'utf8');
     server = createServer((request, response) => {
       const url = new URL(request.url || '/', 'http://127.0.0.1');
+      if (url.pathname === '/ready') {
+        viewportOrigin = {
+          x: Number(url.searchParams.get('left')),
+          y: Number(url.searchParams.get('top')),
+        };
+        response.writeHead(204).end();
+        return;
+      }
       if (url.pathname === '/event') {
         observedEvents.add(url.searchParams.get('name') || 'unknown');
         response.writeHead(204).end();
@@ -79,7 +89,7 @@ describe.runIf(isHeadlessLinux())('Linux drag and drop', () => {
       `midscene-linux-drag-${process.pid}-${Date.now()}`,
     );
     browser = spawn(
-      findLinuxBrowser(),
+      process.env.PUPPETEER_EXECUTABLE_PATH || findLinuxBrowser(),
       [
         '--no-sandbox',
         '--disable-gpu',
@@ -87,20 +97,35 @@ describe.runIf(isHeadlessLinux())('Linux drag and drop', () => {
         '--no-first-run',
         '--no-default-browser-check',
         '--disable-extensions',
-        '--kiosk',
         '--window-position=0,0',
         '--window-size=1920,1080',
+        '--start-maximized',
         `--user-data-dir=${browserProfile}`,
         `http://127.0.0.1:${address.port}`,
       ],
-      { env: process.env, stdio: 'ignore' },
+      { env: process.env, stdio: ['ignore', 'ignore', 'pipe'] },
     );
+    browser.stderr?.on('data', (chunk: Buffer) => {
+      browserStderr += chunk.toString();
+    });
 
-    await waitFor(() => observedEvents.has('ready'), 'browser fixture');
-    await device.inputPrimitives.pointer!.dragAndDrop(
-      SOURCE_CENTER,
-      TARGET_CENTER,
-    );
+    await waitFor(() => {
+      if (browser?.exitCode !== null) {
+        throw new Error(
+          `Browser exited before loading the fixture (code=${browser?.exitCode}): ${browserStderr}`,
+        );
+      }
+      return !!viewportOrigin;
+    }, 'browser fixture');
+    const source = {
+      x: viewportOrigin!.x + SOURCE_CENTER_IN_VIEWPORT.x,
+      y: viewportOrigin!.y + SOURCE_CENTER_IN_VIEWPORT.y,
+    };
+    const target = {
+      x: viewportOrigin!.x + TARGET_CENTER_IN_VIEWPORT.x,
+      y: viewportOrigin!.y + TARGET_CENTER_IN_VIEWPORT.y,
+    };
+    await device.inputPrimitives.pointer!.dragAndDrop(source, target);
     await waitFor(
       () => observedEvents.has('dropped') || observedEvents.has('drop-missed'),
       'drag result',
