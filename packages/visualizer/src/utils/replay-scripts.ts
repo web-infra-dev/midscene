@@ -1,6 +1,12 @@
 'use client';
 import { mousePointer } from '@/utils';
-import { paramStr, typeStr } from '@midscene/core/agent';
+import {
+  buildDeepAssertScreenshots,
+  deepAssertEvidence,
+  isCurrentScreenshotFallback,
+  paramStr,
+  typeStr,
+} from '@midscene/core/agent';
 import { getTaskSearchArea } from '@midscene/core/dump/task-service-dump';
 import {
   getCenterHighlightBox,
@@ -354,6 +360,44 @@ export const allScriptsFromDump = (
   };
 };
 
+const buildDeepAssertReplayScripts = (
+  task: ExecutionTask,
+  imageWidth: number,
+  imageHeight: number,
+): AnimationScript[] | null => {
+  const evidence = deepAssertEvidence(task);
+  if (evidence === undefined) {
+    return null;
+  }
+  const screenshots = buildDeepAssertScreenshots(task);
+  const images =
+    screenshots && screenshots.length > 0
+      ? screenshots
+      : isCurrentScreenshotFallback(task) && task.uiContext?.screenshot?.base64
+        ? [
+            {
+              screenshot: task.uiContext.screenshot.base64,
+              timing: '参考图1 / current screenshot',
+              screenshotTimestamp: task.uiContext.screenshot.capturedAt,
+            },
+          ]
+        : [];
+  if (images.length === 0) {
+    return [];
+  }
+  return images.map((image) => ({
+    type: 'img' as const,
+    img: image.screenshot,
+    duration: stillDuration,
+    camera: createFullPageCameraState(imageWidth, imageHeight),
+    title: typeStr(task),
+    subTitle: image.timing,
+    imageWidth,
+    imageHeight,
+    taskId: task.taskId,
+  }));
+};
+
 export const generateAnimationScripts = (
   execution: ExecutionDump | IExecutionDump | null,
   task: ExecutionTask | number,
@@ -364,6 +408,16 @@ export const generateAnimationScripts = (
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
     return null;
+  }
+
+  const selectedTask =
+    task !== -1 && typeof task !== 'number'
+      ? task
+      : typeof task === 'number' && task >= 0
+        ? execution.tasks[task]
+        : undefined;
+  if (selectedTask && deepAssertEvidence(selectedTask) !== undefined) {
+    return buildDeepAssertReplayScripts(selectedTask, imageWidth, imageHeight);
   }
 
   let tasksIncluded: ExecutionTask[] = [];
@@ -461,6 +515,18 @@ export const generateAnimationScripts = (
 
     if (index === 0) {
       initSubTitle = paramStr(task);
+    }
+
+    if (deepAssertEvidence(task) !== undefined) {
+      const evidenceScripts = buildDeepAssertReplayScripts(
+        task,
+        imageWidth,
+        imageHeight,
+      );
+      if (evidenceScripts?.length) {
+        scripts.push(...evidenceScripts);
+      }
+      return;
     }
 
     if (task.type === 'Planning') {

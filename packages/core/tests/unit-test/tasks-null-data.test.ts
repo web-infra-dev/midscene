@@ -246,7 +246,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         } as any),
       ).resolves.toMatchObject({
         output: false,
-        thought: 'Could not verify assertion',
+        thought: expect.stringContaining('Could not verify assertion'),
       });
 
       expect(queryTask.log).toMatchObject({
@@ -264,7 +264,10 @@ describe('TaskExecutor - Null Data Handling', () => {
             'Boolean, based on the current screenshot and its contents if provided, unless the user explicitly asks to compare with reference images, whether the following statement is true: Page title is correct',
         },
         getModelRuntime(mockModelConfig),
-        {},
+        expect.objectContaining({
+          deepAssert: true,
+          assertionEvidenceFallback: 'currentScreenshot',
+        }),
         '',
         undefined,
         expectEmptyUIContext(),

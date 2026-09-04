@@ -1,3 +1,9 @@
+import {
+  DEFAULT_AFTER_FRAMES,
+  DEFAULT_FRAME_INTERVAL_MS,
+  isActionSpaceTask,
+  nonNegative,
+} from '@/agent/assertion-evidence';
 import type { ScreenshotItem } from '@/screenshot-item';
 import { setTimingFieldOnce } from '@/task-timing';
 import {
@@ -13,6 +19,7 @@ import {
   type PlanningActionParamError,
   type UIContext,
 } from '@/types';
+import { sleep } from '@/utils';
 import {
   type SerializedError,
   serializeError,
@@ -95,6 +102,8 @@ export interface ExecutionReferenceImage {
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
   referenceImages?: readonly ExecutionReferenceImage[];
+  actionEvidenceAfterFrameCount?: number;
+  actionEvidenceFrameIntervalMs?: number;
   /**
    * Coarse "the execution snapshot changed" signal. Fires on any state change
    * (append, status flips, completion) with the whole runner, so consumers can
@@ -135,6 +144,10 @@ export class TaskRunner {
 
   private readonly referenceImageUrls = new Set<string>();
 
+  private readonly actionEvidenceAfterFrameCount: number;
+
+  private readonly actionEvidenceFrameIntervalMs: number;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -152,6 +165,14 @@ export class TaskRunner {
     this.onSnapshotChange = options?.onSnapshotChange;
     this.onTaskEvent = options?.onTaskEvent;
     this.executionLogTime = Date.now();
+    this.actionEvidenceAfterFrameCount = nonNegative(
+      options?.actionEvidenceAfterFrameCount,
+      DEFAULT_AFTER_FRAMES,
+    );
+    this.actionEvidenceFrameIntervalMs = nonNegative(
+      options?.actionEvidenceFrameIntervalMs,
+      DEFAULT_FRAME_INTERVAL_MS,
+    );
     for (const image of options?.referenceImages ?? []) {
       this.referenceImageUrls.add(image.url);
     }
@@ -229,7 +250,7 @@ export class TaskRunner {
   private attachRecorderItem(
     task: ExecutionTask,
     screenshot: ScreenshotItem | undefined,
-    phase: 'after-calling',
+    phase: string,
   ): void {
     if (!phase || !screenshot) {
       return;
@@ -247,6 +268,20 @@ export class TaskRunner {
       return;
     }
     task.recorder.push(recorderItem);
+  }
+
+  private async capturePostActionFrames(task: ExecutionTask): Promise<void> {
+    for (
+      let index = 0;
+      index < this.actionEvidenceAfterFrameCount;
+      index++
+    ) {
+      if (index > 0 && this.actionEvidenceFrameIntervalMs > 0) {
+        await sleep(this.actionEvidenceFrameIntervalMs);
+      }
+      const screenshot = await this.captureScreenshot();
+      this.attachRecorderItem(task, screenshot, `after-calling-${index + 1}`);
+    }
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -370,6 +405,9 @@ export class TaskRunner {
         setTimingFieldOnce(task.timing, 'getUiContextEnd');
 
         task.uiContext = uiContext;
+        if (isActionSpaceTask(task)) {
+          this.attachRecorderItem(task, uiContext?.screenshot, 'before-calling');
+        }
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
@@ -410,9 +448,15 @@ export class TaskRunner {
           returnValue = await task.executor(executorContext);
         }
 
+        if (isActionSpaceTask(task)) {
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
+          await this.capturePostActionFrames(task);
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
+        }
+
         const isLastTask = taskIndex === this.tasks.length - 1;
 
-        if (isLastTask) {
+        if (isLastTask && !isActionSpaceTask(task)) {
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after-calling');

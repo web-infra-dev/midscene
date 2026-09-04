@@ -125,6 +125,8 @@ export type AiActOptions = {
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
   context?: string;
+  AfterActPictures?: number;
+  Interval?: number;
 };
 
 type AiActInternalOptions = AiActOptions & {
@@ -400,6 +402,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       waitAfterAction: this.opts.waitAfterAction,
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
+      getAssertionExecutions: () => this.dump.executions,
       hooks: {
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
@@ -1234,6 +1237,10 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        {
+          AfterActPictures: opt?.AfterActPictures,
+          Interval: opt?.Interval,
+        },
       );
 
       // update cache
@@ -1399,7 +1406,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   async aiAssert(
     assertion: TUserPrompt,
-    msg?: string,
+    msg?: string | AssertOptions,
     opt?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
     return this.createInsight().aiAssert(assertion, msg, opt);

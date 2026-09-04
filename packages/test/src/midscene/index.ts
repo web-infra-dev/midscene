@@ -18,6 +18,8 @@ export interface MidsceneAiActOptions {
   deepLocate?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
+  AfterActPictures?: number;
+  Interval?: number;
 }
 
 export interface MidsceneAiAssertOptions {
@@ -26,6 +28,11 @@ export interface MidsceneAiAssertOptions {
   context?: string;
   abortSignal?: AbortSignal;
   keepRawResponse?: boolean;
+  deepAssert?: boolean;
+  AssertionContextBoundary?: 'lastAssert' | 'session';
+  BeforeExecutions?: number;
+  BeforeTasks?: number;
+  MaxPictures?: number;
 }
 
 export interface MidscenePromptImage {
@@ -144,6 +151,14 @@ const aiActOptionsInputSchema = z.strictObject({
     .string()
     .optional()
     .describe('Additional context supplied to the UI Agent.'),
+  AfterActPictures: z
+    .number()
+    .optional()
+    .describe('How many post-action screenshots to record.'),
+  Interval: z
+    .number()
+    .optional()
+    .describe('Interval in milliseconds between post-action screenshots.'),
 });
 
 export const aiActInputSchema = z.strictObject({
@@ -166,6 +181,26 @@ const aiAssertOptionsInputSchema = z.strictObject({
     .string()
     .optional()
     .describe('Additional context supplied to the UI Agent.'),
+  deepAssert: z
+    .boolean()
+    .optional()
+    .describe('Whether the assertion uses the action evidence chain.'),
+  AssertionContextBoundary: z
+    .enum(['lastAssert', 'session'])
+    .optional()
+    .describe('How far back the assertion looks for historical tasks.'),
+  BeforeExecutions: z
+    .number()
+    .optional()
+    .describe('How many previous executions are included.'),
+  BeforeTasks: z
+    .number()
+    .optional()
+    .describe('How many previous tasks are included.'),
+  MaxPictures: z
+    .number()
+    .optional()
+    .describe('Maximum number of evidence images sent to the model.'),
 });
 
 export const aiAssertInputSchema = z.strictObject({

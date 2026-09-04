@@ -300,10 +300,37 @@ export interface AgentWaitForOpt extends ServiceExtractOption {
   timeoutMs?: number;
 }
 
+export type AssertionBoundary = 'lastAssert' | 'session';
+
+export interface AssertionEvidenceImage {
+  name: string;
+  url: string;
+  capturedAt?: number;
+}
+
+export interface AssertionEvaluationContext {
+  summary: string;
+  executions: Array<{ executionId?: string; title: string }>;
+  tasks: Array<{
+    executionTitle: string;
+    taskId?: string;
+    type: string;
+    subType?: string;
+    prompt: string;
+    status: string;
+    failureReason?: string;
+  }>;
+}
+
 export interface AgentAssertOpt {
   keepRawResponse?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
+  deepAssert?: boolean;
+  AssertionContextBoundary?: AssertionBoundary;
+  BeforeExecutions?: number;
+  BeforeTasks?: number;
+  MaxPictures?: number;
 }
 
 export interface AgentAssertResult {
@@ -340,7 +367,7 @@ export interface InsightAPI<
   aiAsk(prompt: TUserPrompt, options?: QueryOpt): Promise<string>;
   aiAssert(
     assertion: TUserPrompt,
-    message?: string,
+    message?: string | AssertOpt,
     options?: AssertOpt,
   ): Promise<AgentAssertResult | undefined>;
 }
@@ -685,8 +712,17 @@ task - service-query
 */
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
+  assertion?: string;
   domIncluded?: boolean | 'visible-only';
   context?: string;
+  deepAssert?: boolean;
+  AssertionContextBoundary?: AssertionBoundary;
+  BeforeExecutions?: number;
+  BeforeTasks?: number;
+  MaxPictures?: number;
+  evaluationContext?: AssertionEvaluationContext;
+  assertionEvidenceFallback?: 'currentScreenshot';
+  assertionEvidenceImages?: AssertionEvidenceImage[];
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -708,6 +744,14 @@ task - assertion
 */
 export interface ExecutionTaskInsightAssertionParam {
   assertion: string;
+  deepAssert?: boolean;
+  AssertionContextBoundary?: AssertionBoundary;
+  BeforeExecutions?: number;
+  BeforeTasks?: number;
+  MaxPictures?: number;
+  evaluationContext?: AssertionEvaluationContext;
+  assertionEvidenceFallback?: 'currentScreenshot';
+  assertionEvidenceImages?: AssertionEvidenceImage[];
 }
 
 export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<

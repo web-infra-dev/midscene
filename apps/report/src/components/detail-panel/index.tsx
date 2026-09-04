@@ -17,6 +17,10 @@ import type {
 } from '@midscene/core';
 import { executionToMarkdown, getTaskSearchArea } from '@midscene/core';
 import {
+  buildDeepAssertScreenshots,
+  isCurrentScreenshotFallback,
+} from '@midscene/core/agent';
+import {
   Blackboard,
   Player,
   fullTimeStrWithMilliseconds,
@@ -253,7 +257,13 @@ const DetailPanel = ({
       activeTask.uiContext?.screenshot?.capturedAt,
     );
 
-    contextLocatorView = activeTask.uiContext ? (
+    const evidenceScreenshots = buildDeepAssertScreenshots(activeTask);
+    const allowCurrentScreenshot =
+      evidenceScreenshots === undefined ||
+      isCurrentScreenshotFallback(activeTask);
+
+    contextLocatorView =
+      allowCurrentScreenshot && activeTask.uiContext ? (
       <ScreenshotDisplay
         title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
       >
@@ -268,7 +278,16 @@ const DetailPanel = ({
       </ScreenshotDisplay>
     ) : null;
 
-    if (activeTask.recorder?.length) {
+    if (evidenceScreenshots && evidenceScreenshots.length > 0) {
+      for (const [index, item] of evidenceScreenshots.entries()) {
+        screenshotItems.push({
+          timestamp: item.screenshotTimestamp ?? index,
+          screenshotTimestamp: item.screenshotTimestamp,
+          screenshot: item.screenshot,
+          timing: item.timing,
+        });
+      }
+    } else if (evidenceScreenshots === undefined && activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
         const screenshot = item.screenshot?.base64;
         if (screenshot) {

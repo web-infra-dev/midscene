@@ -13,6 +13,8 @@ import type {
 type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
   referenceImages?: readonly ExecutionReferenceImage[];
+  actionEvidenceAfterFrameCount?: number;
+  actionEvidenceFrameIntervalMs?: number;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,

@@ -145,6 +145,44 @@ describe('insight extraction prompt assembly', () => {
     });
   });
 
+  it('sends evidence-chain images newest first instead of the current screenshot', async () => {
+    const context = createFakeContext();
+
+    await AiExtractElementInfo<{ result: boolean }>({
+      context,
+      dataQuery: {
+        StatementIsTruthy: 'Boolean, whether the form is submitted',
+      },
+      extractOption: {
+        deepAssert: true,
+        assertionEvidenceImages: [
+          {
+            name: 'Act / Tap / after-calling-1',
+            url: 'data:image/png;base64,after',
+            capturedAt: 2,
+          },
+          {
+            name: 'Act / Tap / before-calling',
+            url: 'data:image/png;base64,before',
+            capturedAt: 1,
+          },
+        ],
+      },
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    const msgs = rs.mocked(callAI).mock.calls[0]?.[0];
+    const userContent = msgs?.[1]?.content as Array<Record<string, any>>;
+    const imageUrls = userContent
+      .filter((item) => item.type === 'image_url')
+      .map((item) => item.image_url.url);
+    expect(imageUrls).toEqual([
+      'data:image/png;base64,after',
+      'data:image/png;base64,before',
+    ]);
+    expect(imageUrls).not.toContain(context.screenshot.base64);
+  });
+
   it('passes abortSignal to the AI caller', async () => {
     const abortController = new AbortController();
 

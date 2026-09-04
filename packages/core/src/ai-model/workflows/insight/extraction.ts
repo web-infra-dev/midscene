@@ -1,4 +1,8 @@
-import type { ServiceExtractOption, UIContext } from '@/types';
+import type {
+  AssertionEvidenceImage,
+  ServiceExtractOption,
+  UIContext,
+} from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   ChatCompletionSystemMessageParam,
@@ -36,10 +40,17 @@ export async function AiExtractElementInfo<T>(options: {
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelRuntime } =
     options;
+  const evidenceImages = Array.isArray(extractOption?.assertionEvidenceImages)
+    ? (extractOption.assertionEvidenceImages as AssertionEvidenceImage[])
+    : [];
+  const useEvidenceImages =
+    extractOption?.deepAssert !== false && evidenceImages.length > 0;
   const insightProtocol = modelRuntime.adapter.insight.protocol;
   const systemPrompt = buildInsightSystemPrompt({
-    screenshotIncluded: extractOption?.screenshotIncluded !== false,
-    referenceImagesIncluded: !!multimodalPrompt?.images?.length,
+    screenshotIncluded:
+      extractOption?.screenshotIncluded !== false && !useEvidenceImages,
+    referenceImagesIncluded:
+      !!multimodalPrompt?.images?.length || useEvidenceImages,
     insightProtocol,
   });
   const screenshotBase64 = context.screenshot.base64;
@@ -51,7 +62,25 @@ export async function AiExtractElementInfo<T>(options: {
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
-  if (extractOption?.screenshotIncluded !== false) {
+  if (useEvidenceImages) {
+    userContent.push({
+      type: 'text',
+      text: `The following ${evidenceImages.length} images are assertion evidence-chain screenshots, ordered newest first. Image names match assertionEvidenceImages. Use them as the primary visual evidence.`,
+    });
+    evidenceImages.forEach((image, index) => {
+      userContent.push({
+        type: 'text',
+        text: `Evidence ${index + 1}/${evidenceImages.length}: ${image.name}`,
+      });
+      userContent.push({
+        type: 'image_url',
+        image_url: {
+          url: image.url,
+          detail: 'high',
+        },
+      });
+    });
+  } else if (extractOption?.screenshotIncluded !== false) {
     const screenshotSequence = context.screenshotSequence;
     if (screenshotSequence && screenshotSequence.length > 1) {
       userContent.push({

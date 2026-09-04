@@ -22,14 +22,17 @@ import type {
   AiActEffort,
   AiActProgressData,
   AiActProgressPhase,
+  AssertionEvidenceImage,
   DetailedLocateParam,
   DeviceAction,
+  ExecutionDump,
   ExecutionRecorderItem,
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
+  IExecutionDump,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
@@ -42,6 +45,17 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  asEvaluationContext,
+  asEvidenceImages,
+  buildAssertionEvidenceModelContext,
+  buildEvaluationContext,
+  composeAssertThought,
+  normalizeActionEvidenceOptions,
+  normalizeAssertEvidenceOptions,
+  recentAssertionExecutions,
+  selectAssertionEvidenceImages,
+} from './assertion-evidence';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -122,6 +136,10 @@ export class TaskExecutor {
 
   useDeviceTime?: boolean;
 
+  private readonly getAssertionExecutions?: () => Array<
+    ExecutionDump | IExecutionDump
+  >;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -138,6 +156,7 @@ export class TaskExecutor {
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
+      getAssertionExecutions?: () => Array<ExecutionDump | IExecutionDump>;
     },
   ) {
     this.interface = interfaceInstance;
@@ -147,6 +166,7 @@ export class TaskExecutor {
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
+    this.getAssertionExecutions = opts.getAssertionExecutions;
     this.hooks = opts.hooks;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
@@ -164,6 +184,8 @@ export class TaskExecutor {
       tasks?: ExecutionTaskApply[];
       uiContext?: UIContext;
       referenceImages?: readonly ExecutionReferenceImage[];
+      actionEvidenceAfterFrameCount?: number;
+      actionEvidenceFrameIntervalMs?: number;
       onSnapshotChange?: (
         runner: TaskRunner,
         error?: TaskExecutionError,
@@ -181,6 +203,18 @@ export class TaskExecutor {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
         referenceImages: options?.referenceImages,
+        ...(options?.actionEvidenceAfterFrameCount === undefined
+          ? {}
+          : {
+              actionEvidenceAfterFrameCount:
+                options.actionEvidenceAfterFrameCount,
+            }),
+        ...(options?.actionEvidenceFrameIntervalMs === undefined
+          ? {}
+          : {
+              actionEvidenceFrameIntervalMs:
+                options.actionEvidenceFrameIntervalMs,
+            }),
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
           await options?.onSnapshotChange?.(runner, error);
@@ -380,6 +414,10 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    actionEvidence?: {
+      AfterActPictures?: number;
+      Interval?: number;
+    },
   ): Promise<
     ExecutionResult<
       | {
@@ -401,6 +439,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
+        actionEvidence,
       );
     });
   }
@@ -450,6 +489,10 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    actionEvidence?: {
+      AfterActPictures?: number;
+      Interval?: number;
+    },
   ): Promise<
     ExecutionResult<
       | {
@@ -462,6 +505,8 @@ export class TaskExecutor {
     const conversationHistory = new ConversationHistory();
     const promptDisplay =
       reportOptions?.prompt || userPromptToString(userPrompt);
+    const normalizedActionEvidence =
+      normalizeActionEvidenceOptions(actionEvidence);
 
     // Per-call reporter that maps the runner's native task events to aiAct
     // action progress for the action batch currently running. Kept local (not
@@ -475,6 +520,9 @@ export class TaskExecutor {
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
         referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
+        actionEvidenceAfterFrameCount:
+          normalizedActionEvidence.AfterActPictures,
+        actionEvidenceFrameIntervalMs: normalizedActionEvidence.Interval,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
         },
@@ -878,6 +926,14 @@ export class TaskExecutor {
       abortSignal?: AbortSignal;
     },
   ) {
+    const assertEvidence =
+      type === 'Assert' ? normalizeAssertEvidenceOptions(opt) : undefined;
+    const assertionText =
+      type === 'Assert'
+        ? typeof demand === 'string'
+          ? demand
+          : JSON.stringify(demand)
+        : undefined;
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
@@ -890,6 +946,36 @@ export class TaskExecutor {
               multimodalPrompt,
             } as never)
           : demand, // for user param presentation in report right sidebar
+        ...(type === 'Assert' && assertionText !== undefined && assertEvidence
+          ? {
+              assertion: assertionText,
+              deepAssert: assertEvidence.deepAssert,
+              AssertionContextBoundary:
+                assertEvidence.AssertionContextBoundary,
+              BeforeExecutions: assertEvidence.BeforeExecutions,
+              BeforeTasks: assertEvidence.BeforeTasks,
+              MaxPictures: assertEvidence.MaxPictures,
+              ...(asEvaluationContext(opt?.evaluationContext)
+                ? {
+                    evaluationContext: asEvaluationContext(
+                      opt?.evaluationContext,
+                    ),
+                  }
+                : {}),
+              ...(asEvidenceImages(opt?.assertionEvidenceImages)
+                ? {
+                    assertionEvidenceImages: asEvidenceImages(
+                      opt?.assertionEvidenceImages,
+                    ),
+                  }
+                : {}),
+              ...(opt?.assertionEvidenceFallback === 'currentScreenshot'
+                ? {
+                    assertionEvidenceFallback: 'currentScreenshot' as const,
+                  }
+                : {}),
+            }
+          : {}),
       },
       executor: async (taskContext) => {
         const { task } = taskContext;
@@ -942,11 +1028,63 @@ export class TaskExecutor {
           );
         }
 
+        let evidenceImages = Array.isArray(opt?.assertionEvidenceImages)
+          ? ([...opt.assertionEvidenceImages] as AssertionEvidenceImage[])
+          : [];
+        let evidenceFallback = opt?.assertionEvidenceFallback as
+          | 'currentScreenshot'
+          | undefined;
+        if (
+          type === 'Assert' &&
+          assertEvidence?.deepAssert &&
+          assertEvidence.MaxPictures !== 0 &&
+          evidenceImages.length === 0
+        ) {
+          evidenceFallback = 'currentScreenshot';
+          if (task.param) {
+            task.param.assertionEvidenceFallback = 'currentScreenshot';
+            task.param.assertionEvidenceImages = [];
+          }
+        } else if (
+          type === 'Assert' &&
+          assertEvidence?.deepAssert &&
+          task.param
+        ) {
+          task.param.assertionEvidenceImages = evidenceImages;
+        }
+
+        const extractOpt =
+          type === 'Assert' && assertEvidence?.deepAssert
+            ? {
+                ...opt,
+                deepAssert: true,
+                assertionEvidenceImages: evidenceImages,
+                assertionEvidenceFallback: evidenceFallback,
+                screenshotIncluded:
+                  evidenceFallback === 'currentScreenshot'
+                    ? opt?.screenshotIncluded
+                    : false,
+                context: [
+                  opt?.context,
+                  buildAssertionEvidenceModelContext({
+                    assertion: assertionText || String(demand),
+                    evaluationContext: task.param?.evaluationContext,
+                    evidenceImages,
+                  }),
+                ]
+                  .filter(
+                    (item): item is string =>
+                      typeof item === 'string' && item.trim().length > 0,
+                  )
+                  .join('\n\n'),
+              }
+            : opt;
+
         try {
           extractResult = await this.service.extract<any>(
             demandInput,
             modelRuntime,
-            opt,
+            extractOpt,
             extraPageDescription,
             multimodalPrompt,
             uiContext,
@@ -963,8 +1101,9 @@ export class TaskExecutor {
           recordAndReleaseScreenshotSequence(task, uiContext);
         }
 
-        const { data, thought, dump } = extractResult;
+        const { data, thought: rawThought, dump } = extractResult;
         applyDump(dump);
+        let thought = rawThought;
 
         let outputResult = data;
         if (ifTypeRestricted) {
@@ -995,6 +1134,18 @@ export class TaskExecutor {
         // the model dump before aiAssert turns the result into a thrown error.
         if (type === 'Assert') {
           outputResult = Boolean(outputResult);
+          if (assertEvidence?.deepAssert) {
+            thought = composeAssertThought({
+              modelThought: thought,
+              assertion: assertionText || String(demand),
+              passed: outputResult,
+              evaluationContext: task.param?.evaluationContext,
+              evidenceImages:
+                (task.param?.assertionEvidenceImages as
+                  | AssertionEvidenceImage[]
+                  | undefined) || evidenceImages,
+            });
+          }
         }
 
         return {
@@ -1018,6 +1169,50 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
+    const assertEvidence =
+      type === 'Assert' ? normalizeAssertEvidenceOptions(opt) : undefined;
+    const assertionText =
+      type === 'Assert'
+        ? typeof demand === 'string'
+          ? demand
+          : JSON.stringify(demand)
+        : undefined;
+    let assertOpt = opt;
+    if (type === 'Assert' && assertEvidence?.deepAssert) {
+      const selectedExecutions = recentAssertionExecutions(
+        this.getAssertionExecutions?.() ?? [],
+        assertEvidence.BeforeExecutions,
+        assertEvidence.AssertionContextBoundary,
+      );
+      const evaluationContext = buildEvaluationContext(
+        selectedExecutions,
+        assertEvidence.BeforeTasks,
+      );
+      const assertionEvidenceImages = selectAssertionEvidenceImages(
+        selectedExecutions,
+        assertEvidence.MaxPictures,
+      );
+      assertOpt = {
+        ...opt,
+        deepAssert: true,
+        AssertionContextBoundary: assertEvidence.AssertionContextBoundary,
+        BeforeExecutions: assertEvidence.BeforeExecutions,
+        BeforeTasks: assertEvidence.BeforeTasks,
+        MaxPictures: assertEvidence.MaxPictures,
+        evaluationContext,
+        assertionEvidenceImages,
+      };
+    } else if (type === 'Assert' && assertEvidence) {
+      assertOpt = {
+        ...opt,
+        deepAssert: false,
+        AssertionContextBoundary: assertEvidence.AssertionContextBoundary,
+        BeforeExecutions: assertEvidence.BeforeExecutions,
+        BeforeTasks: assertEvidence.BeforeTasks,
+        MaxPictures: assertEvidence.MaxPictures,
+      };
+    }
+
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1033,11 +1228,39 @@ export class TaskExecutor {
 
     const runner = session.getRunner();
     const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
+
+    if (
+      type === 'Assert' &&
+      assertEvidence?.deepAssert &&
+      assertEvidence.MaxPictures === 0
+    ) {
+      const failedAssertTask: ExecutionTaskInsightQueryApply = {
+        type: 'Insight',
+        subType: 'Assert',
+        param: {
+          assertion: assertionText,
+          dataDemand: demand,
+          deepAssert: true,
+          AssertionContextBoundary: assertEvidence.AssertionContextBoundary,
+          BeforeExecutions: assertEvidence.BeforeExecutions,
+          BeforeTasks: assertEvidence.BeforeTasks,
+          MaxPictures: 0,
+          evaluationContext: asEvaluationContext(assertOpt?.evaluationContext),
+          assertionEvidenceImages: [],
+        },
+        executor: async () => {
+          throw new Error('MaxPictures is 0');
+        },
+      };
+      await session.appendAndRun(failedAssertTask);
+      throw new Error('MaxPictures is 0');
+    }
+
     const queryTask = await this.createTypeQueryTask(
       type,
       demand,
       executionModelRuntime,
-      opt,
+      assertOpt,
       multimodalPrompt,
       executionOptions,
     );

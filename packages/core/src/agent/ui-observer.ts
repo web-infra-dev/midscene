@@ -156,7 +156,7 @@ export class UIObservationImpl implements UIObservation {
 
   async aiAssert(
     assertion: TUserPrompt,
-    message?: string,
+    message?: string | ObservationAssertOptions,
     options?: ObservationAssertOptions,
   ): Promise<AgentAssertResult | undefined> {
     this.ensureUsable();

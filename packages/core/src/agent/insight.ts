@@ -8,6 +8,7 @@ import type {
   ServiceExtractParam,
   UIContext,
 } from '@/types';
+import { resolveAssertCallArgs } from './assertion-evidence';
 import { TaskExecutionError, type TaskExecutor } from './tasks';
 import { parsePrompt } from './utils';
 
@@ -113,14 +114,37 @@ export class Insight implements InsightAPI {
 
   async aiAssert(
     assertion: TUserPrompt,
-    message?: string,
+    message?: string | AssertOptions,
     options?: AssertOptions,
   ): Promise<AgentAssertResult | undefined> {
+    const resolved = resolveAssertCallArgs(message, options);
+    const assertOptions = resolved.options as AssertOptions | undefined;
     const serviceOptions: QueryOptions = {
-      domIncluded: options?.domIncluded ?? defaultQueryOptions.domIncluded,
+      domIncluded:
+        assertOptions?.domIncluded ?? defaultQueryOptions.domIncluded,
       screenshotIncluded:
-        options?.screenshotIncluded ?? defaultQueryOptions.screenshotIncluded,
-      ...(options?.context !== undefined ? { context: options.context } : {}),
+        assertOptions?.screenshotIncluded ??
+        defaultQueryOptions.screenshotIncluded,
+      ...(assertOptions?.context !== undefined
+        ? { context: assertOptions.context }
+        : {}),
+      ...(assertOptions?.deepAssert === undefined
+        ? {}
+        : { deepAssert: assertOptions.deepAssert }),
+      ...(assertOptions?.AssertionContextBoundary === undefined
+        ? {}
+        : {
+            AssertionContextBoundary: assertOptions.AssertionContextBoundary,
+          }),
+      ...(assertOptions?.BeforeExecutions === undefined
+        ? {}
+        : { BeforeExecutions: assertOptions.BeforeExecutions }),
+      ...(assertOptions?.BeforeTasks === undefined
+        ? {}
+        : { BeforeTasks: assertOptions.BeforeTasks }),
+      ...(assertOptions?.MaxPictures === undefined
+        ? {}
+        : { MaxPictures: assertOptions.MaxPictures }),
     };
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
     const assertionText =
@@ -134,15 +158,15 @@ export class Insight implements InsightAPI {
           this.resolveModelRuntime(),
           serviceOptions,
           multimodalPrompt,
-          this.executionOptions(options, true),
+          this.executionOptions(assertOptions, true),
         );
 
       const pass = Boolean(output);
       const failureMessage = pass
         ? undefined
-        : `Assertion failed: ${message || assertionText}\nReason: ${thought || '(no_reason)'}`;
+        : `Assertion failed: ${resolved.message || assertionText}\nReason: ${thought || '(no_reason)'}`;
 
-      if (options?.keepRawResponse) {
+      if (assertOptions?.keepRawResponse) {
         return { pass, thought, message: failureMessage };
       }
       if (!pass) {
@@ -154,9 +178,9 @@ export class Insight implements InsightAPI {
         const diagnosticMessage =
           error.task?.errorMessage || error.cause.message;
         const reason = thought || diagnosticMessage || '(no_reason)';
-        const failureMessage = `Assertion failed: ${message || assertionText}\nReason: ${reason}`;
+        const failureMessage = `Assertion failed: ${resolved.message || assertionText}\nReason: ${reason}`;
 
-        if (options?.keepRawResponse) {
+        if (assertOptions?.keepRawResponse) {
           return { pass: false, thought, message: failureMessage };
         }
         throw new Error(failureMessage, { cause: error.cause });

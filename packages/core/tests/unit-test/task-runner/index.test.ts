@@ -667,5 +667,37 @@ describe(
       expect(caughtError?.task?.thought).toMatch(/… \[truncated\]$/);
       expect(caughtError?.task?.errorMessage).toMatch(/… \[truncated\]$/);
     });
+
+    it('records before and numbered post-action frames only for action tasks', async () => {
+      const actionTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        subType: 'Tap',
+        param: { description: 'submit' },
+        executor: rs.fn(),
+      };
+      const planningTask: ExecutionTaskApply = {
+        type: 'Planning',
+        subType: 'Plan',
+        param: { userInstruction: 'do it' },
+        executor: rs.fn(async () => ({
+          output: { actions: [{ type: 'Tap' }], shouldContinuePlanning: false },
+        })),
+      };
+      const runner = new TaskRunner('test', fakeUIContextBuilder, {
+        tasks: [planningTask, actionTask],
+        actionEvidenceAfterFrameCount: 2,
+        actionEvidenceFrameIntervalMs: 0,
+      });
+      await runner.flush();
+
+      expect(
+        runner.tasks[1].recorder?.map((item) => item.timing),
+      ).toEqual(['before-calling', 'after-calling-1', 'after-calling-2']);
+      expect(
+        runner.tasks[0].recorder?.some((item) =>
+          String(item.timing).startsWith('after-calling-'),
+        ),
+      ).toBeFalsy();
+    });
   },
 );

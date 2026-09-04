@@ -9,6 +9,9 @@ import { describe, expect, it, rs } from '@rstest/core';
 rs.mock('@midscene/core/agent', () => ({
   paramStr: () => '',
   typeStr: (task: { type: string }) => task.type,
+  deepAssertEvidence: () => undefined,
+  buildDeepAssertScreenshots: () => undefined,
+  isCurrentScreenshotFallback: () => false,
 }));
 
 import {
