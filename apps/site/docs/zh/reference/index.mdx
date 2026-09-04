@@ -1551,15 +1551,18 @@ context 是提供给 AI 的补充信息，例如业务事实、判断或操作�
 使用 `aiContexts.default` 为所有 AI API 提供共享的缺省回退值，使用 `aiContexts[apiName]` 配置某个 API，再使用单次调用的 `options.context` 配置某一次请求。如果配置了 `aiContexts.default`，只有两个更具体的层级都没有提供值时才会选用它；它不会与其他层级自动合并。
 
 ```typescript
-const defaultContext = '页面中的价格单位是美元。';
+const defaultContext =
+  '页面中划线价格表示原价，普通价格表示当前售价，所有价格单位均为美元。';
 const agent = new PlaywrightAgent(page, {
   aiContexts: {
     default: defaultContext,
     aiAct: '', // 显式不使用默认 context
-    aiQuery: '金额不返回货币符号。',
-    aiBoolean: `${defaultContext}\n\n只有明确可见的状态才判断为 true。`,
+    aiQuery: '提取金额时只返回数字，不包含货币符号。',
+    aiBoolean: `${defaultContext}\n\n仅当当前售价低于原价时，才判断商品正在促销。`,
   },
 });
+
+const isOnSale = await agent.aiBoolean('这个商品是否正在促销？');
 ```
 
 最终用户 context 为 `options.context ?? aiContexts[apiName] ?? aiContexts.default`。这些层级互相覆盖，不会自动合并。`''` 是一个已定义值，会清空低优先级用户 context；`undefined` 或未配置字段则继续使用下一个已配置的回退值。如需组合多个 context 片段，请像上例一样显式拼接字符串。

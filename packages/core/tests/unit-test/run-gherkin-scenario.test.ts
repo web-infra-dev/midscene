@@ -93,6 +93,40 @@ Then the list should be empty
     );
   });
 
+  it('forwards an empty context to every Gherkin step', async () => {
+    const agent = createAgentStub();
+    (agent as any).opts.aiContexts = {
+      default: 'Default context.',
+      aiAct: 'Action context.',
+      aiAssert: 'Assertion context.',
+    };
+
+    await agent.runGherkinScenario(
+      `
+Given the todo app is open
+When I add "Buy milk"
+Then the list should contain "Buy milk"
+`,
+      { context: '' },
+    );
+
+    expect(agent.aiAct).toHaveBeenNthCalledWith(
+      1,
+      'Set up this precondition: the todo app is open',
+      { context: '', cacheable: false },
+    );
+    expect(agent.aiAct).toHaveBeenNthCalledWith(
+      2,
+      'Perform this user action: I add "Buy milk"',
+      { context: '', cacheable: false },
+    );
+    expect(agent.aiAssert).toHaveBeenCalledWith(
+      'Verify that the list should contain "Buy milk"',
+      undefined,
+      { context: '', abortSignal: undefined },
+    );
+  });
+
   it('always disables aiAct cache inside a Gherkin scenario', async () => {
     const agent = createAgentStub();
 

@@ -1583,15 +1583,18 @@ A context is additional guidance for the AI, such as business facts, decision or
 Use `aiContexts.default` as the shared fallback for every AI-powered API, `aiContexts[apiName]` to configure one API, and the optional per-call `options.context` for one request. If configured, `aiContexts.default` is selected only when neither of the more specific levels provides a value; it is not automatically merged with them.
 
 ```typescript
-const defaultContext = 'Prices are displayed in USD.';
+const defaultContext =
+  'A struck-through price is the original price, a regular price is the current price, and all prices are in USD.';
 const agent = new PlaywrightAgent(page, {
   aiContexts: {
     default: defaultContext,
     aiAct: '', // Explicitly ignore the default context
-    aiQuery: 'Return monetary values without currency symbols.',
-    aiBoolean: `${defaultContext}\n\nOnly clearly visible states count as true.`,
+    aiQuery: 'When extracting an amount, return only the number without the currency symbol.',
+    aiBoolean: `${defaultContext}\n\nA product is on sale only when its current price is lower than its original price.`,
   },
 });
+
+const isOnSale = await agent.aiBoolean('Is this product on sale?');
 ```
 
 The effective user context is `options.context ?? aiContexts[apiName] ?? aiContexts.default`. These layers override one another; they are not automatically merged. `''` is a defined value and clears lower-priority user context, while `undefined` or an omitted key continues to the next configured fallback. To combine context fragments, concatenate the strings explicitly as shown above.

@@ -246,7 +246,7 @@ export const runGherkinScenario = async (
     try {
       if (action === 'aiAct') {
         await agent.aiAct(prompt, aiActOptions);
-      } else if (opt?.context || opt?.abortSignal) {
+      } else if (opt?.context !== undefined || opt?.abortSignal) {
         await agent.aiAssert(prompt, undefined, {
           context: opt.context,
           abortSignal: opt.abortSignal,
