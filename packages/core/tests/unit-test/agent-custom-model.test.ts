@@ -11,6 +11,7 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
+  globalModelConfigManager,
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -37,12 +38,22 @@ const createMockInterface = () =>
     actionSpace: () => [],
   }) as any;
 
+const stubModelEnv = (config: Record<string, string>) => {
+  for (const [key, value] of Object.entries(config)) {
+    rs.stubEnv(key, value);
+  }
+  globalModelConfigManager.clearModelConfigMap();
+};
+
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
     rs.mock('openai');
+    stubModelEnv(defaultModelConfig);
   });
 
   afterEach(() => {
+    rs.unstubAllEnvs();
+    globalModelConfigManager.clearModelConfigMap();
     rs.clearAllMocks();
   });
 
@@ -245,6 +256,84 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('constructor with createOpenAIClient', () => {
+    it('should expose createOpenAIClient on public modelConfigManager for factory-only agents', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const defaultConfig = agent.modelConfigManager.getModelConfig('default');
+      const insightConfig = agent.modelConfigManager.getModelConfig('insight');
+
+      expect(defaultConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
+      expect(insightConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should combine global model config with an agent-scoped createOpenAIClient', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const runtime = (agent as any).resolveModelRuntime('default');
+
+      expect(runtime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(runtime.config.openaiApiKey).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_API_KEY],
+      );
+      expect(runtime.config.openaiBaseURL).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_BASE_URL],
+      );
+      expect(runtime.config.createOpenAIClient).toBe(mockCreateClient);
+      expect(mockCreateClient).not.toHaveBeenCalled();
+    });
+
+    it('should isolate createOpenAIClient between agents sharing global config', () => {
+      const firstCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const secondCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const firstAgent = new Agent(createMockInterface(), {
+        createOpenAIClient: firstCreateClient,
+      });
+      const secondAgent = new Agent(createMockInterface(), {
+        createOpenAIClient: secondCreateClient,
+      });
+
+      const firstRuntime = (firstAgent as any).resolveModelRuntime('default');
+      const secondRuntime = (secondAgent as any).resolveModelRuntime('default');
+      const firstRuntimeAgain = (firstAgent as any).resolveModelRuntime(
+        'default',
+      );
+
+      expect(firstRuntime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(secondRuntime.config.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(firstRuntime.config).not.toBe(secondRuntime.config);
+      expect(firstRuntime.config.createOpenAIClient).toBe(firstCreateClient);
+      expect(secondRuntime.config.createOpenAIClient).toBe(secondCreateClient);
+      expect(firstRuntimeAgain.config.createOpenAIClient).toBe(
+        firstCreateClient,
+      );
+    });
+
     it('should accept createOpenAIClient in AgentOpt with modelConfig', () => {
       const mockCreateClient = rs.fn(async () => ({
         chat: { completions: { create: rs.fn() } },
