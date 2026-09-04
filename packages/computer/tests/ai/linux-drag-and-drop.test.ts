@@ -9,8 +9,18 @@ import { ComputerDevice } from '../../src';
 import { findLinuxBrowser, isHeadlessLinux } from './test-utils';
 
 const FIXTURE_PATH = path.join(__dirname, 'fixtures/linux-drag-and-drop.html');
-const SOURCE_CENTER_IN_VIEWPORT = { x: 360, y: 400 };
-const TARGET_CENTER_IN_VIEWPORT = { x: 360, y: 130 };
+
+interface BrowserGeometry {
+  source: { x: number; y: number };
+  target: { x: number; y: number };
+  viewport: { left: number; top: number };
+  window: {
+    innerWidth: number;
+    innerHeight: number;
+    outerWidth: number;
+    outerHeight: number;
+  };
+}
 
 async function waitFor(
   predicate: () => boolean,
@@ -52,22 +62,38 @@ describe.runIf(isHeadlessLinux())('Linux drag and drop', () => {
   });
 
   it('delivers a held-pointer motion after drag activation', async () => {
-    const observedEvents = new Set<string>();
-    let viewportOrigin: { x: number; y: number } | undefined;
+    const observedEvents: string[] = [];
+    let browserGeometry: BrowserGeometry | undefined;
     let browserStderr = '';
     const fixture = readFileSync(FIXTURE_PATH, 'utf8');
     server = createServer((request, response) => {
       const url = new URL(request.url || '/', 'http://127.0.0.1');
       if (url.pathname === '/ready') {
-        viewportOrigin = {
-          x: Number(url.searchParams.get('left')),
-          y: Number(url.searchParams.get('top')),
+        browserGeometry = {
+          source: {
+            x: Number(url.searchParams.get('sourceX')),
+            y: Number(url.searchParams.get('sourceY')),
+          },
+          target: {
+            x: Number(url.searchParams.get('targetX')),
+            y: Number(url.searchParams.get('targetY')),
+          },
+          viewport: {
+            left: Number(url.searchParams.get('left')),
+            top: Number(url.searchParams.get('top')),
+          },
+          window: {
+            innerWidth: Number(url.searchParams.get('innerWidth')),
+            innerHeight: Number(url.searchParams.get('innerHeight')),
+            outerWidth: Number(url.searchParams.get('outerWidth')),
+            outerHeight: Number(url.searchParams.get('outerHeight')),
+          },
         };
         response.writeHead(204).end();
         return;
       }
       if (url.pathname === '/event') {
-        observedEvents.add(url.searchParams.get('name') || 'unknown');
+        observedEvents.push(url.searchParams.toString());
         response.writeHead(204).end();
         return;
       }
@@ -115,25 +141,32 @@ describe.runIf(isHeadlessLinux())('Linux drag and drop', () => {
           `Browser exited before loading the fixture (code=${browser?.exitCode}): ${browserStderr}`,
         );
       }
-      return !!viewportOrigin;
+      return !!browserGeometry;
     }, 'browser fixture');
-    const source = {
-      x: viewportOrigin!.x + SOURCE_CENTER_IN_VIEWPORT.x,
-      y: viewportOrigin!.y + SOURCE_CENTER_IN_VIEWPORT.y,
-    };
-    const target = {
-      x: viewportOrigin!.x + TARGET_CENTER_IN_VIEWPORT.x,
-      y: viewportOrigin!.y + TARGET_CENTER_IN_VIEWPORT.y,
-    };
+    const { source, target } = browserGeometry!;
     await device.inputPrimitives.pointer!.dragAndDrop(source, target);
-    await waitFor(
-      () => observedEvents.has('dropped') || observedEvents.has('drop-missed'),
-      'drag result',
-    );
+    try {
+      await waitFor(
+        () =>
+          observedEvents.some(
+            (event) =>
+              event.startsWith('name=dropped') ||
+              event.startsWith('name=drop-missed'),
+          ),
+        'drag result',
+      );
+    } catch (error) {
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}; geometry=${JSON.stringify(browserGeometry)}; events=${JSON.stringify(observedEvents)}; browserStderr=${browserStderr}`,
+      );
+    }
 
-    expect([...observedEvents]).toContain('drag-started');
-    expect([...observedEvents]).toContain('target-observed');
-    expect([...observedEvents]).toContain('dropped');
-    expect([...observedEvents]).not.toContain('drop-missed');
+    const eventNames = observedEvents.map(
+      (event) => new URLSearchParams(event).get('name') || 'unknown',
+    );
+    expect(eventNames).toContain('drag-started');
+    expect(eventNames).toContain('target-observed');
+    expect(eventNames).toContain('dropped');
+    expect(eventNames).not.toContain('drop-missed');
   });
 });

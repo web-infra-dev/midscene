@@ -58,8 +58,15 @@
       let startX = 0;
       let startY = 0;
 
-      const report = (event) => {
-        fetch(`/event?name=${event}`, { method: 'POST' }).catch(() => {});
+      const report = (name, event) => {
+        const params = new URLSearchParams({ name });
+        if (event) {
+          params.set('x', event.clientX);
+          params.set('y', event.clientY);
+          params.set('buttons', event.buttons);
+          params.set('element', document.elementFromPoint(event.clientX, event.clientY)?.id || '');
+        }
+        fetch(`/event?${params}`, { method: 'POST' }).catch(() => {});
       };
 
       source.addEventListener('mousedown', (event) => {
@@ -67,7 +74,7 @@
         startX = event.clientX;
         startY = event.clientY;
         status.textContent = 'Pressed';
-        report('pressed');
+        report('pressed', event);
       });
 
       document.addEventListener('mousemove', (event) => {
@@ -79,7 +86,7 @@
           // enter drag mode. The drop target can only observe later motions.
           dragStarted = true;
           status.textContent = 'Dragging';
-          report('drag-started');
+          report('drag-started', event);
           return;
         }
 
@@ -87,7 +94,7 @@
           targetObservedAfterDragStart = true;
           target.style.background = '#4ade80';
           status.textContent = 'Target observed';
-          report('target-observed');
+          report('target-observed', event);
         }
       });
 
@@ -100,18 +107,39 @@
         );
         if (dragStarted && targetObservedAfterDragStart && releasedOnTarget) {
           status.textContent = 'Dropped';
-          report('dropped');
+          report('dropped', event);
         } else {
           status.textContent = 'Drop missed';
-          report('drop-missed');
+          report('drop-missed', event);
         }
       });
 
-      const viewportLeft = window.screenX + (window.outerWidth - window.innerWidth) / 2;
-      const viewportTop = window.screenY + window.outerHeight - window.innerHeight;
-      fetch(`/ready?left=${viewportLeft}&top=${viewportTop}`, {
-        method: 'POST',
-      }).catch(() => {});
+      for (const type of ['mousedown', 'mousemove', 'mouseup']) {
+        document.addEventListener(type, (event) => report(`raw-${type}`, event), true);
+      }
+
+      // Chromium can report its initial, pre-maximize window geometry during
+      // the first animation frames on Xvfb. Wait for the native window to
+      // settle, then send element centers in display coordinates to the test.
+      setTimeout(() => {
+        const viewportLeft = window.screenX + (window.outerWidth - window.innerWidth) / 2;
+        const viewportTop = window.screenY + window.outerHeight - window.innerHeight;
+        const sourceRect = source.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const params = new URLSearchParams({
+          left: viewportLeft,
+          top: viewportTop,
+          sourceX: viewportLeft + sourceRect.left + sourceRect.width / 2,
+          sourceY: viewportTop + sourceRect.top + sourceRect.height / 2,
+          targetX: viewportLeft + targetRect.left + targetRect.width / 2,
+          targetY: viewportTop + targetRect.top + targetRect.height / 2,
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          outerWidth: window.outerWidth,
+          outerHeight: window.outerHeight,
+        });
+        fetch(`/ready?${params}`, { method: 'POST' }).catch(() => {});
+      }, 1000);
     </script>
   </body>
 </html>
