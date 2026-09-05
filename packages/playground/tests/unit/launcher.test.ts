@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it, rs } from '@rstest/core';
+import cors, { type CorsOptions } from 'cors';
 import {
   playgroundForAgent,
   playgroundForAgentFactory,
@@ -18,6 +19,44 @@ function createMockAgent() {
 }
 
 const staticPath = path.resolve(process.cwd(), 'static');
+
+type CorsOriginResult =
+  | boolean
+  | string
+  | RegExp
+  | Array<boolean | string | RegExp>;
+
+function checkCorsOrigin(options: CorsOptions, origin: string) {
+  return new Promise<CorsOriginResult>((resolve, reject) => {
+    if (typeof options.origin !== 'function') {
+      reject(new Error('Expected a dynamic CORS origin policy'));
+      return;
+    }
+
+    options.origin(origin, (error, allowed) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      if (allowed === undefined) {
+        reject(new Error('Expected the CORS origin policy to return a value'));
+        return;
+      }
+
+      resolve(allowed);
+    });
+  });
+}
+
+function getConfiguredCorsOptions(): CorsOptions {
+  const corsMock = cors as unknown as ReturnType<typeof rs.fn>;
+  const options = corsMock.mock.calls[0]?.[0];
+  if (!options) {
+    throw new Error('Expected CORS middleware to be configured');
+  }
+  return options;
+}
 
 describe('playground launcher', () => {
   it('should build browser URLs for IPv4, hostnames, and IPv6 literals', () => {
@@ -86,6 +125,21 @@ describe('playground launcher', () => {
         process.env.MIDSCENE_PLAYGROUND_HOST = originalHost;
       }
     }
+  });
+
+  it('should allow file protocol reports when CORS is enabled', async () => {
+    const result = await playgroundForAgent(createMockAgent()).launch({
+      port: 5925,
+      openBrowser: false,
+      verbose: false,
+      staticPath,
+      enableCors: true,
+    });
+
+    const corsOptions = getConfiguredCorsOptions();
+    await expect(checkCorsOrigin(corsOptions, 'null')).resolves.toBe(true);
+
+    await result.close();
   });
 
   it('should launch from agent factory and allow server configuration', async () => {
