@@ -4,6 +4,7 @@ import type {
   ScreenshotRef,
   UIContext,
 } from '@midscene/core';
+import { ScreenshotItem } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   type InputPrimitives,
@@ -25,9 +26,12 @@ type SerializedStaticScreenshot = {
 
 type StaticPageUIContext = Omit<
   UIContext,
-  'deprecatedDpr' | 'screenshot'
+  'deprecatedDpr' | 'screenshot' | 'screenshotSequence'
 > & {
   screenshot: UIContext['screenshot'] | SerializedStaticScreenshot;
+  screenshotSequence?: Array<
+    UIContext['screenshot'] | SerializedStaticScreenshot
+  >;
 };
 
 function screenshotBase64FromContext(
@@ -50,10 +54,38 @@ function screenshotBase64FromContext(
   );
 }
 
+function screenshotItemFromContext(
+  screenshot: StaticPageUIContext['screenshot'],
+): ScreenshotItem {
+  if (screenshot instanceof ScreenshotItem) {
+    return screenshot;
+  }
+
+  const capturedAt =
+    typeof screenshot.capturedAt === 'number'
+      ? screenshot.capturedAt
+      : Date.now();
+  return ScreenshotItem.create(
+    screenshotBase64FromContext(screenshot),
+    capturedAt,
+  );
+}
+
+function normalizeUIContext(uiContext: StaticPageUIContext): UIContext {
+  return {
+    ...uiContext,
+    screenshot: screenshotItemFromContext(uiContext.screenshot),
+    screenshotSequence: uiContext.screenshotSequence?.map(
+      screenshotItemFromContext,
+    ),
+  };
+}
+
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
 
   private uiContext: StaticPageUIContext;
+  private normalizedUIContext?: UIContext;
   readonly inputPrimitives: InputPrimitives = {
     pointer: {
       tap: async () => ThrowNotImplemented('Tap'),
@@ -76,6 +108,11 @@ export default class StaticPage implements AbstractInterface {
 
   constructor(uiContext: StaticPageUIContext) {
     this.uiContext = uiContext;
+  }
+
+  getUIContext(): UIContext {
+    this.normalizedUIContext ??= normalizeUIContext(this.uiContext);
+    return this.normalizedUIContext;
   }
 
   actionSpace(): DeviceAction[] {
@@ -175,5 +212,6 @@ export default class StaticPage implements AbstractInterface {
 
   updateContext(newContext: StaticPageUIContext): void {
     this.uiContext = newContext;
+    this.normalizedUIContext = undefined;
   }
 }
