@@ -86,7 +86,7 @@ describe('service.describe', () => {
     expect(prompt).toContain('For inline text, links, or substrings');
     expect(prompt).toContain('For repeated rows, cards, or options');
     expect(prompt).toContain('Use selected, highlighted, hovered');
-    expect(prompt).toContain('if the callout endpoint/center is inside');
+    expect(prompt).toContain('if the marker center is inside');
     expect(prompt).toContain('empty region/gap');
     expect(prompt).toContain('Do not borrow the text, glyph, direction');
   });
@@ -247,7 +247,7 @@ describe('service.describe', () => {
       content.filter((item) => item.type === 'image_url')[0]?.image_url?.url,
     ).toBe('data:image/png;base64,boxed');
     expect(content.map((item) => item.text).filter(Boolean)).toEqual([
-      'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
+      'Use these images together to describe the real UI target marked by the temporary target marker. Do not describe the marker itself.',
       'Image 1: full screenshot overview with the target marker, for page position and ownership context.',
       'Image 2: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.',
     ]);
