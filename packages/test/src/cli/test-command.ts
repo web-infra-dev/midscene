@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { migrateLegacyYamlProject } from '../migration/legacy-yaml';
 import { renderNodeReference } from './node-reference';
 import { loadTestProject } from './test-project';
 import { discoverTestConfig, runTestProject } from './test-project-runner';
@@ -11,38 +12,52 @@ export interface TestCliIO {
 }
 
 interface ParsedTestArgs {
-  command?: 'describe-nodes';
+  command?: 'describe-nodes' | 'migrate';
   cwd: string;
   projectRoot?: string;
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
+  migrationSource?: string;
+  migrationOutputDir?: string;
 }
 
 export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
-  const command = args[0] === 'describe-nodes' ? args[0] : undefined;
+  const command =
+    args[0] === 'describe-nodes' || args[0] === 'migrate' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
+  let migrationOutputDir: string | undefined;
   const projectNames: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const arg = args[index];
     if (!arg.startsWith('-')) {
       if (projectRoot)
-        throw new Error('Only one test project directory is allowed.');
+        throw new Error(
+          command === 'migrate'
+            ? 'Only one legacy YAML source is allowed.'
+            : 'Only one test project directory is allowed.',
+        );
       projectRoot = resolve(cwd, arg);
       continue;
     }
-    if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
+    if (
+      arg === '--config' ||
+      arg === '--result-dir' ||
+      arg === '--project' ||
+      arg === '--output-dir'
+    ) {
       const value = args[index + 1];
       if (!value) throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
+      else if (arg === '--output-dir') migrationOutputDir = resolve(cwd, value);
       else projectNames.push(value);
       index += 1;
     } else {
@@ -55,6 +70,30 @@ export const parseTestCliArgs = (
   }
   if (command === 'describe-nodes' && projectNames.length > 0) {
     throw new Error('--project is not supported by describe-nodes.');
+  }
+  if (command !== 'migrate' && migrationOutputDir) {
+    throw new Error('--output-dir is only supported by migrate.');
+  }
+  if (command === 'migrate') {
+    if (!projectRoot) {
+      throw new Error(
+        'migrate requires a legacy YAML file or directory as its source.',
+      );
+    }
+    if (!migrationOutputDir) {
+      throw new Error('migrate requires --output-dir <directory>.');
+    }
+    if (configPath) throw new Error('--config is not supported by migrate.');
+    if (resultDir) throw new Error('--result-dir is not supported by migrate.');
+    if (projectNames.length > 0) {
+      throw new Error('--project is not supported by migrate.');
+    }
+    return {
+      command,
+      cwd,
+      migrationSource: projectRoot,
+      migrationOutputDir,
+    };
   }
 
   return {
@@ -115,6 +154,21 @@ export async function runTestCli(
     const options = parseTestCliArgs(args);
     if (options.command === 'describe-nodes') {
       await describeNodes(options, io);
+      return 0;
+    }
+    if (options.command === 'migrate') {
+      const result = migrateLegacyYamlProject({
+        source: options.migrationSource!,
+        outputDir: options.migrationOutputDir!,
+      });
+      io.log(
+        `midscene-test migrate: converted ${result.workflowPaths.length} legacy YAML file${result.workflowPaths.length === 1 ? '' : 's'}`,
+      );
+      io.log(`Config: ${result.configPath}`);
+      io.log(`Migration report: ${result.reportPath}`);
+      for (const warning of result.warnings) {
+        io.error(`midscene-test migrate: ${warning}`);
+      }
       return 0;
     }
     const result = await runTestProject({
