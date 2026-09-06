@@ -34,7 +34,7 @@ describe('ui-tars locate result codec', () => {
       locateResultCodec.toPixelResult(['123,100', '789 222'], {
         preparedSize: { width: 1000, height: 2000 },
       }).rect,
-    ).toEqual({ left: 123, top: 200, width: 666, height: 245 });
+    ).toEqual({ left: 123, top: 200, width: 667, height: 245 });
   });
 
   it('normalizes UI-TARS bbox arrays with numeric strings', () => {

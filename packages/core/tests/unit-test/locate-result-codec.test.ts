@@ -1,4 +1,8 @@
-import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
+import {
+  createCoordinateDistanceToPixels,
+  createLocateResultCodec,
+  resolveLocateResultCoordinates,
+} from '@/ai-model/shared/model-locate-result';
 import { locateResultExampleRegions } from '@/ai-model/shared/model-locate-result/prompt-spec';
 import { describe, expect, it } from '@rstest/core';
 
@@ -7,6 +11,143 @@ const locateCtx = (width: number, height: number) => ({
 });
 
 describe('createLocateResultCodec', () => {
+  it.each([undefined, 'invalid'])(
+    'rejects custom parser metadata without valid rounding: %s',
+    (rounding) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'point' },
+        parseRawLocateValue: () => ({
+          coordinates: [10, 20],
+          coordinatesMeta: {
+            shape: 'point',
+            order: 'xy',
+            rounding: rounding as any,
+          },
+        }),
+      });
+      expect(() => codec.toPixelResult(null, locateCtx(100, 80))).toThrow(
+        /invalid locate coordinate rounding/,
+      );
+    },
+  );
+  it('resolves default rounding before mapping positions and distances', () => {
+    const coordinates = resolveLocateResultCoordinates({
+      shape: 'point',
+      normalizedBy: 1000,
+    });
+    expect(coordinates.rounding).toBe('round');
+    const size = { width: 101, height: 81 };
+    expect(createCoordinateDistanceToPixels(size, coordinates)(375, 'x')).toBe(
+      38,
+    );
+    expect(
+      createLocateResultCodec({ coordinates }).toPixelResult([375, 500], {
+        preparedSize: size,
+      }).center,
+    ).toEqual([38, 41]);
+  });
+  it('maps normalized coordinates using the full image size before clamping', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'point', normalizedBy: 1000 },
+    });
+    expect(
+      codec.toPixelResult([999, 999], locateCtx(2000, 1000)).center,
+    ).toEqual([1998, 999]);
+    expect(
+      codec.toPixelResult([1000, 1000], locateCtx(2000, 1000)).center,
+    ).toEqual([1999, 999]);
+  });
+
+  it.each([
+    {
+      rounding: 'round',
+      center: [38, 41],
+      rect: { left: 13, top: 20, width: 51, height: 42 },
+    },
+    {
+      rounding: 'trunc',
+      center: [37, 40],
+      rect: { left: 12, top: 20, width: 52, height: 41 },
+    },
+    {
+      rounding: 'none',
+      center: [37.875, 40.5],
+      rect: { left: 12.625, top: 20.25, width: 51.5, height: 41.5 },
+    },
+  ] as const)(
+    'applies $rounding consistently to positions, bbox metadata and distances',
+    ({ rounding, center, rect }) => {
+      const coordinates = {
+        shape: 'point',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding,
+      } as const;
+      const size = { width: 101, height: 81 };
+      const pointCodec = createLocateResultCodec({ coordinates });
+      const bboxCodec = createLocateResultCodec({
+        coordinates: { ...coordinates, shape: 'bbox' },
+      });
+      const distanceToPixels = createCoordinateDistanceToPixels(
+        size,
+        coordinates,
+      );
+      expect(
+        pointCodec.toPixelResult([375, 500], { preparedSize: size }).center,
+      ).toEqual(center);
+      expect(
+        bboxCodec.toPixelResult([125, 250, 625, 750], { preparedSize: size }),
+      ).toEqual({ center, rect });
+      expect([distanceToPixels(-375, 'x'), distanceToPixels(500, 'y')]).toEqual(
+        center,
+      );
+      expect(
+        pointCodec.toPixelResult([1000, 1000], { preparedSize: size }).center,
+      ).toEqual([100, 80]);
+      expect([
+        distanceToPixels(1000, 'x'),
+        distanceToPixels(-1000, 'y'),
+      ]).toEqual([101, 81]);
+    },
+  );
+
+  it.each([
+    { rounding: 'trunc', center: [37, 40] },
+    { rounding: 'round', center: [38, 41] },
+    { rounding: 'none', center: [37.875, 40.5] },
+  ] as const)(
+    'uses the explicit $rounding policy from custom parser metadata',
+    ({ rounding, center }) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'bbox', normalizedBy: 1000, rounding: 'trunc' },
+        parseRawLocateValue: () => ({
+          coordinates: [0.375, 0.5],
+          coordinatesMeta: {
+            shape: 'point',
+            order: 'xy',
+            normalizedBy: 1,
+            rounding,
+          },
+        }),
+      });
+      expect(codec.toPixelResult(null, locateCtx(101, 81)).center).toEqual(
+        center,
+      );
+    },
+  );
+
+  it.each(['round', 'trunc', 'none'] as const)(
+    'preserves pixel input precision with rounding=%s',
+    (rounding) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'point', rounding },
+      });
+      expect(
+        codec.toPixelResult([10.75, 20.5], locateCtx(100, 80)).center,
+      ).toEqual([10.75, 20.5]);
+    },
+  );
+
   it('uses valid xyxy regions for built-in prompt examples', () => {
     for (const [xmin, ymin, xmax, ymax] of locateResultExampleRegions) {
       expect(xmin).toBeGreaterThanOrEqual(0);
@@ -155,7 +296,12 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
       parseRawLocateValue: () => ({
         coordinates: [652, '233; 713 251;'] as any,
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       }),
     });
 
@@ -250,7 +396,12 @@ describe('createLocateResultCodec', () => {
         coordinates: { shape: 'point' },
         parseRawLocateValue: () => ({
           coordinates: [10, 20],
-          coordinatesMeta: { shape: 'point', order: 'xy', normalizedBy },
+          coordinatesMeta: {
+            shape: 'point',
+            order: 'xy',
+            normalizedBy,
+            rounding: 'round' as const,
+          },
         }),
       });
       expect(() => codec.toPixelResult(null, locateCtx(100, 80))).toThrow(
@@ -264,7 +415,11 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point' },
       parseRawLocateValue: () => ({
         coordinates: [10, 20],
-        coordinatesMeta: { shape: 'point', order: 'invalid' as any },
+        coordinatesMeta: {
+          shape: 'point',
+          order: 'invalid' as any,
+          rounding: 'round' as const,
+        },
       }),
     });
     expect(() => codec.toPixelResult(null, locateCtx(100, 80))).toThrow(

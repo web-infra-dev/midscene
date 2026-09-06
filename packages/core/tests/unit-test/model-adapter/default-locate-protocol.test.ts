@@ -22,6 +22,7 @@ describe('default locate protocol', () => {
       shape: 'bbox',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     });
     const systemPrompt = buildElementLocateSystemPrompt({
       systemPromptIntroduction: elementProtocol.systemPromptIntroduction,
@@ -62,6 +63,7 @@ describe('default locate protocol', () => {
       shape: 'bbox',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     });
 
     expect(
@@ -101,6 +103,7 @@ describe('default locate protocol', () => {
       shape: 'bbox',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     });
 
     expect(() =>
@@ -137,6 +140,7 @@ describe('default locate protocol', () => {
       shape: 'bbox',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     });
 
     expect(
@@ -168,6 +172,7 @@ describe('default locate protocol', () => {
       shape: 'bbox',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     });
 
     expect(() =>
