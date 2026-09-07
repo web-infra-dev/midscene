@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
@@ -76,7 +77,7 @@ class FreeRdpSessionTransport final : public SessionTransport {
   void HookEndPaint(rdpUpdate* update);
   // Records that at least one paint has reached the local framebuffer and
   // wakes Connect().
-  void MarkFramePainted(std::optional<RawFrame> first_frame = std::nullopt);
+  void MarkFramePainted();
   // Records a framebuffer update even when it is too blank or uniform to count
   // as the first informative frame.
   void MarkFramebufferUpdated();
@@ -90,6 +91,7 @@ class FreeRdpSessionTransport final : public SessionTransport {
 
  private:
   friend struct MidsceneRdpContext;
+  friend struct RdpScreenshotTestPeer;
 
   freerdp* instance_ = nullptr;
   std::thread event_thread_;
@@ -110,8 +112,8 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::atomic<bool> session_active_{false};
   std::condition_variable frame_cv_;
   std::mutex frame_mutex_;
-  std::optional<RawFrame> first_frame_;
-  bool first_frame_consumed_ = false;
+  // Protected by frame_mutex_; use a monotonic clock for screenshot settling.
+  std::chrono::steady_clock::time_point last_frame_update_{};
   pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
