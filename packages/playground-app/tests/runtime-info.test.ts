@@ -90,7 +90,7 @@ describe('playground app runtime info helpers', () => {
       deviceId: 'SERIAL123',
       type: 'scrcpy',
       scrcpyPort: 6501,
-      scrcpyUrl: 'http://localhost:6501/',
+      scrcpyUrl: 'http://127.0.0.1:6501/',
     });
   });
 

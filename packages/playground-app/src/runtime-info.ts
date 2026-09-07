@@ -120,6 +120,8 @@ export function resolvePreviewConnectionInfo(
       resolvedScrcpyPort && resolvedServerUrl
         ? (() => {
             const url = new URL(resolvedServerUrl);
+            // Match the sidecar's IPv4 loopback default without DNS ambiguity.
+            if (url.hostname === 'localhost') url.hostname = '127.0.0.1';
             url.port = String(resolvedScrcpyPort);
             url.pathname = '/';
             url.search = '';

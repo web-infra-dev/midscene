@@ -169,3 +169,51 @@ describe('ScrcpyServer', () => {
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Scrcpy listen address', () => {
+  it.each([undefined, '0.0.0.0'])(
+    'binds to the default loopback or explicit host %s',
+    async (host) => {
+      const server = new ScrcpyServer({
+        host,
+        deviceListSource: {
+          getDevices: async () => [],
+          subscribe: () => () => {},
+        },
+      });
+      try {
+        await server.launch(0);
+        expect((server.httpServer.address() as any).address).toBe(
+          host ?? '127.0.0.1',
+        );
+        const response = await fetch(
+          `http://127.0.0.1:${server.port}/api/devices`,
+        );
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          devices: [],
+          currentDeviceId: null,
+        });
+      } finally {
+        server.close();
+      }
+    },
+  );
+  it('rejects an occupied port instead of hanging', async () => {
+    const options = {
+      deviceListSource: {
+        getDevices: async () => [],
+        subscribe: () => () => {},
+      },
+    };
+    const first = new ScrcpyServer(options);
+    const second = new ScrcpyServer(options);
+    try {
+      await first.launch(0);
+      await expect(second.launch(first.port!)).rejects.toThrow();
+    } finally {
+      first.close();
+      second.close();
+    }
+  });
+});
