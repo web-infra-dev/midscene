@@ -52,7 +52,14 @@ afterEach(() => {
 const linkDependencies = (root: string) => {
   const modules = join(root, 'node_modules');
   mkdirSync(join(modules, '@midscene'), { recursive: true });
-  for (const name of ['test', 'android', 'ios', 'web-integration']) {
+  for (const name of [
+    'test',
+    'android',
+    'ios',
+    'harmony',
+    'computer',
+    'web-integration',
+  ]) {
     symlinkSync(
       resolve(packageRoot, '..', name),
       join(modules, '@midscene', name === 'web-integration' ? 'web' : name),
@@ -100,8 +107,52 @@ describe('generated project integration', () => {
       const markdown = readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8');
       expect(markdown).toContain('## `aiAssert`');
       expect(markdown).toContain(
-        platform === 'web' ? '## `gotoUrl`' : '## `launch`',
+        platform === 'web'
+          ? '## `gotoUrl`'
+          : platform === 'computer'
+            ? '## `aiAsk`'
+            : '## `launch`',
       );
+      const manifest = JSON.parse(
+        readFileSync(join(cwd, 'package.json'), 'utf8'),
+      );
+      expect(manifest.devDependencies[`@midscene/${platform}`]).toBe(
+        manifest.devDependencies['@midscene/test'],
+      );
+      for (const other of createPlatforms.filter(
+        (candidate) => candidate !== platform,
+      )) {
+        expect(manifest.devDependencies[`@midscene/${other}`]).toBeUndefined();
+      }
+      if (platform === 'computer') {
+        expect(markdown).not.toContain('## `home`');
+        expect(readFileSync(join(cwd, '.env.example'), 'utf8')).toContain(
+          'COMPUTER_DISPLAY_ID=',
+        );
+      }
+      if (platform === 'harmony') {
+        expect(markdown).toContain('## `runHdcShell`');
+        expect(readFileSync(join(cwd, '.env.example'), 'utf8')).toContain(
+          'HARMONY_DEVICE_ID=',
+        );
+      }
+      const collected = await execFileAsync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `
+        import { collectWorkflowDocument } from '@midscene/test';
+        import { loadTestProject } from '@midscene/test/config';
+        import { resolve } from 'node:path';
+        const project = await loadTestProject(resolve('midscene.config.ts'));
+        const document = collectWorkflowDocument({ projectId: 'example', sourcePath: 'cases/example.yaml', absolutePath: resolve('cases/example.yaml') }, { resolveNode: name => project.resolveNode(name) });
+        console.log(String(document.cases.length));
+      `,
+        ],
+        { cwd },
+      );
+      expect(collected.stdout.trim()).toBe('1');
       expect(existsSync(join(cwd, 'midscene_run'))).toBe(false);
       await execFileAsync(process.execPath, [
         join(packageRoot, 'node_modules/typescript/bin/tsc'),
@@ -112,9 +163,14 @@ describe('generated project integration', () => {
     30000,
   );
 
-  it.each(['esm', 'cjs'])(
-    'includes an external %s package in the real Node reference',
-    async (format) => {
+  it.each([
+    ['web', 'esm'],
+    ['web', 'cjs'],
+    ['harmony', 'esm'],
+    ['computer', 'esm'],
+  ])(
+    'includes an external package in the %s Node reference (%s)',
+    async (platform, format) => {
       const cwd = temp();
       const runtime = services(cwd);
       runtime.runPnpm = async (args, root) => {
@@ -133,7 +189,7 @@ describe('generated project integration', () => {
           writeFileSync(
             join(pkg, format === 'esm' ? 'index.mjs' : 'index.cjs'),
             `${format === 'esm' ? 'export function createMidsceneTestNodes' : 'exports.createMidsceneTestNodes = function'}(options) {
-          if (options.platform !== 'web') throw new Error('Unsupported platform');
+          if (options.platform !== ${JSON.stringify(platform)}) throw new Error('Unsupported platform');
           return [{ name: 'team.inspect', description: 'Inspect the screen.', async execute(ctx) { return (await options.getAgent(ctx)).aiAsk('Describe the screen'); } }];
         }`,
           );
@@ -155,7 +211,7 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
         ).stdout;
       };
       await runCreateCommand(
-        ['.', '--platform', 'web', '--with', 'team-nodes@1.0.0'],
+        ['.', '--platform', platform, '--with', 'team-nodes@1.0.0'],
         io(),
         runtime,
       );

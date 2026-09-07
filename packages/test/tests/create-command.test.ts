@@ -51,6 +51,14 @@ afterEach(() => {
 });
 
 describe('create arguments', () => {
+  it.each(['web', 'android', 'ios', 'harmony', 'computer'])(
+    'accepts the documented %s platform',
+    (platform) => {
+      expect(
+        parseCreateArgs(['my-tests', '--platform', platform]).platform,
+      ).toBe(platform);
+    },
+  );
   it('keeps directory arguments distinct from repeatable package options', () => {
     expect(
       parseCreateArgs(['--with', 'team-nodes', '123', '--platform', 'web']),
@@ -88,7 +96,7 @@ describe('create arguments', () => {
 
   it.each([
     ['a', 'b'],
-    ['--platform', 'computer'],
+    ['--platform', 'unsupported'],
     ['--platform'],
     ['--with'],
     ['--with', 'nodes@1', '--with', 'nodes@2'],
@@ -149,6 +157,8 @@ describe('create project', () => {
           { name: 'Web (Playwright)', value: 'web' },
           { name: 'Android', value: 'android' },
           { name: 'iOS', value: 'ios' },
+          { name: 'HarmonyOS', value: 'harmony' },
+          { name: 'Desktop (Computer)', value: 'computer' },
         ],
       }),
     );

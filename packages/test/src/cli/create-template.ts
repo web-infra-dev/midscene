@@ -1,7 +1,21 @@
 import { version } from '../../package.json';
 
-export const createPlatforms = ['web', 'android', 'ios'] as const;
+export const createPlatforms = [
+  'web',
+  'android',
+  'ios',
+  'harmony',
+  'computer',
+] as const;
 export type CreatePlatform = (typeof createPlatforms)[number];
+
+export const createPlatformLabels: Record<CreatePlatform, string> = {
+  web: 'Web (Playwright)',
+  android: 'Android',
+  ios: 'iOS',
+  harmony: 'HarmonyOS',
+  computer: 'Desktop (Computer)',
+};
 
 export interface NodePackageSpec {
   name: string;
@@ -31,12 +45,16 @@ import { createPlaywrightNodes } from '@midscene/test/playwright';
 import { chromium, type Page } from 'playwright';`,
   android: `import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';`,
   ios: `import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';`,
+  harmony: `import { HarmonyAgent, agentFromHdcDevice } from '@midscene/harmony';`,
+  computer: `import { ComputerAgent, agentForComputer } from '@midscene/computer';`,
 };
 
 const agentClasses: Record<CreatePlatform, string> = {
   web: 'PlaywrightAgent',
   android: 'AndroidAgent',
   ios: 'IOSAgent',
+  harmony: 'HarmonyAgent',
+  computer: 'ComputerAgent',
 };
 
 const platformSetup: Record<CreatePlatform, string> = {
@@ -59,7 +77,50 @@ const platformSetup: Record<CreatePlatform, string> = {
     });
     onTeardown(() => agent.destroy());
     return { agent };`,
+  harmony: `    const agent = await agentFromHdcDevice(env.HARMONY_DEVICE_ID || undefined);
+    onTeardown(() => agent.destroy());
+    return { agent };`,
+  computer: `    const agent = await agentForComputer({
+      displayId: env.COMPUTER_DISPLAY_ID || undefined,
+    });
+    onTeardown(() => agent.destroy());
+    return { agent };`,
 };
+
+const platformEnv: Record<CreatePlatform, string> = {
+  web: 'HEADLESS=true\n',
+  android:
+    '# Optional: choose a device from adb devices.\nANDROID_DEVICE_ID=\n',
+  ios: 'WDA_HOST=localhost\nWDA_PORT=8100\n',
+  harmony:
+    '# Optional: choose a device from hdc list targets.\nHARMONY_DEVICE_ID=\n',
+  computer:
+    '# Optional: select a display; leave empty for the default display.\nCOMPUTER_DISPLAY_ID=\n# Enable Xvfb on headless Linux after installing its dependencies.\nMIDSCENE_COMPUTER_HEADLESS_LINUX=false\n',
+};
+
+const platformInstructions: Record<CreatePlatform, { en: string; zh: string }> =
+  {
+    web: {
+      en: 'Install Chromium before the first test: `pnpm exec playwright install chromium`.',
+      zh: '首次测试前，运行 `pnpm exec playwright install chromium` 安装 Chromium。',
+    },
+    android: {
+      en: 'Connect an Android device and verify it with `adb devices`. Set ANDROID_DEVICE_ID to select a device.',
+      zh: '连接 Android 设备并通过 `adb devices` 检查连接。可通过 ANDROID_DEVICE_ID 选择设备。',
+    },
+    ios: {
+      en: 'Start WebDriverAgent and set WDA_HOST and WDA_PORT for your iOS device.',
+      zh: '启动 WebDriverAgent，并通过 WDA_HOST 和 WDA_PORT 配置 iOS 设备连接。',
+    },
+    harmony: {
+      en: 'Connect a HarmonyOS device and verify it with `hdc list targets`. Set HARMONY_DEVICE_ID to select a device. Set HDC_HOME if hdc is not on PATH.',
+      zh: '连接 HarmonyOS 设备并通过 `hdc list targets` 检查连接。可通过 HARMONY_DEVICE_ID 选择设备。如果 PATH 中没有 hdc，请设置 HDC_HOME。',
+    },
+    computer: {
+      en: 'Prepare the local desktop using the [desktop setup guide](https://midscenejs.com/platforms/desktop.html), including system dependencies and permissions. Set COMPUTER_DISPLAY_ID to select a display. For headless Linux, install Xvfb and enable MIDSCENE_COMPUTER_HEADLESS_LINUX.',
+      zh: '按照[桌面端配置指南](https://midscenejs.com/zh/platforms/desktop.html)准备本机桌面环境，安装系统依赖并授予所需权限。可通过 COMPUTER_DISPLAY_ID 选择显示器。无界面 Linux 环境需安装 Xvfb，并启用 MIDSCENE_COMPUTER_HEADLESS_LINUX。',
+    },
+  };
 
 export function createProjectFiles(
   name: string,
@@ -122,7 +183,7 @@ ${extraNodes}
 `;
   const dependencies: Record<string, string> = {
     '@midscene/test': version,
-    [`@midscene/${platform === 'web' ? 'web' : platform}`]: version,
+    [`@midscene/${platform}`]: version,
     '@types/node': '^20.0.0',
     dotenv: '^16.4.5',
     typescript: '^5.8.3',
@@ -136,12 +197,7 @@ ${extraNodes}
     }
     dependencies[pkg.name] = pkg.version;
   }
-  const env =
-    platform === 'web'
-      ? 'HEADLESS=true\n'
-      : platform === 'android'
-        ? '# Optional: choose a device from adb devices.\nANDROID_DEVICE_ID=\n'
-        : 'WDA_HOST=localhost\nWDA_PORT=8100\n';
+  const env = platformEnv[platform];
   return {
     'package.json': `${JSON.stringify(
       {
@@ -178,10 +234,12 @@ ${extraNodes}
     'cases/example.yaml':
       platform === 'web'
         ? 'cases:\n  - name: Open example.com\n    steps:\n      - gotoUrl: https://example.com\n      - aiAssert: The page displays the heading Example Domain\n'
-        : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
+        : platform === 'computer'
+          ? 'cases:\n  - name: Inspect the desktop\n    steps:\n      - aiAsk: Describe the current desktop\n'
+          : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
     '.env.example': `# Copy this file to .env and configure your model before running tests.\n# See https://midscenejs.com/model-config.html\nMIDSCENE_MODEL_BASE_URL=\nMIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test Runner project for ${platform}.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${platform === 'web' ? 'Install Chromium before the first test: `pnpm exec playwright install chromium`.' : platform === 'android' ? 'Connect an Android device and verify it with `adb devices`. Set ANDROID_DEVICE_ID to select a device.' : 'Start WebDriverAgent and set WDA_HOST and WDA_PORT for your iOS device.'}\n\nRun tests with \`pnpm test\`. Read \`midscene-nodes.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`pnpm run describe-nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
-    'README.zh.md': `# ${name}\n\n面向 ${platform} 平台的 Midscene Test Runner 项目。\n\n将 \`.env.example\` 复制为 \`.env\`，填写[模型配置](https://midscenejs.com/zh/model-config.html)。\n\n${platform === 'web' ? '首次测试前，运行 `pnpm exec playwright install chromium` 安装 Chromium。' : platform === 'android' ? '连接 Android 设备并通过 `adb devices` 检查连接。可通过 ANDROID_DEVICE_ID 选择设备。' : '启动 WebDriverAgent，并通过 WDA_HOST 和 WDA_PORT 配置 iOS 设备连接。'}\n\n运行 \`pnpm test\` 执行测试。可用 Node 及其参数详见 \`midscene-nodes.md\`。\n\n修改 \`midscene.config.ts\` 中的 Node 注册配置后，运行 \`pnpm run describe-nodes\` 更新说明书。此过程会加载配置，但不会连接设备或执行测试。扩展工厂应在 Node 执行阶段获取运行时资源。\n\n${packages.length ? `已接入的 Node 包：${packages.map((pkg) => `\`${pkg.name}\``).join('、')}。配置文件显式导入了这些包的 \`createMidsceneTestNodes\` 工厂。\n\n` : ''}测试报告保存在 \`midscene_run/report/\`。\n`,
+    'README.md': `# ${name}\n\nA Midscene Test Runner project for ${platform}.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${platformInstructions[platform].en}\n\nRun tests with \`pnpm test\`. Read \`midscene-nodes.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`pnpm run describe-nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
+    'README.zh.md': `# ${name}\n\n面向 ${platform} 平台的 Midscene Test Runner 项目。\n\n将 \`.env.example\` 复制为 \`.env\`，填写[模型配置](https://midscenejs.com/zh/model-config.html)。\n\n${platformInstructions[platform].zh}\n\n运行 \`pnpm test\` 执行测试。可用 Node 及其参数详见 \`midscene-nodes.md\`。\n\n修改 \`midscene.config.ts\` 中的 Node 注册配置后，运行 \`pnpm run describe-nodes\` 更新说明书。此过程会加载配置，但不会连接设备或执行测试。扩展工厂应在 Node 执行阶段获取运行时资源。\n\n${packages.length ? `已接入的 Node 包：${packages.map((pkg) => `\`${pkg.name}\``).join('、')}。配置文件显式导入了这些包的 \`createMidsceneTestNodes\` 工厂。\n\n` : ''}测试报告保存在 \`midscene_run/report/\`。\n`,
   };
 }

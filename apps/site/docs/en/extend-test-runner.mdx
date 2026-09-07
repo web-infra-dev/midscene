@@ -18,12 +18,21 @@ The command requires pnpm and Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`. It ins
 | Argument | Description |
 | --- | --- |
 | `[directory]` | Destination directory; use `.` for the current directory. Prompts if omitted. |
-| `--platform <name>` | `web` (Playwright), `android`, or `ios`. Prompts if omitted. |
+| `--platform <name>` | `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). Prompts if omitted. |
 | `--with <package>` | Install and register a Node package. Accepts an optional version or tag; repeat for multiple packages. |
 | `-y`, `--yes` | Disable prompts. Both directory and platform must be supplied. |
 | `-h`, `--help` | Show usage and examples. |
 
 In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory and platform. In CI or other noninteractive environments, supply both. Existing destination files are never overwritten, including when `--yes` is set.
+
+`harmony` uses `@midscene/harmony` to connect to HarmonyOS devices through HDC. `computer` uses `@midscene/computer` to control the local Windows, macOS, or Linux desktop:
+
+```bash
+pnpm dlx @midscene/test create harmony-tests --platform harmony
+pnpm dlx @midscene/test create desktop-tests --platform computer
+```
+
+Both platforms also support `--with` to register external Node packages.
 
 The generated project contains:
 
@@ -42,6 +51,10 @@ my-tests/
 ```
 
 Copy `.env.example` to `.env` and fill in your [model configuration](./model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.
+
+For HarmonyOS, verify the connection with `hdc list targets` and optionally set `HARMONY_DEVICE_ID`. Set `HDC_HOME` if HDC is not on PATH. For desktop, follow the [desktop setup guide](./platforms/desktop) to install system dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID` to select a display. On headless Linux, install Xvfb and enable `MIDSCENE_COMPUTER_HEADLESS_LINUX`.
+
+The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`. Each generated configuration registers the Nodes provided by its platform Agent.
 
 Run `pnpm test` to execute the example. Creation and Node reference generation do not run project setup or tests, so they do not require a model API Key, an installed browser, or a connected device. After editing Node registrations, run `pnpm run describe-nodes` to refresh the reference.
 

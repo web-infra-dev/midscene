@@ -71,6 +71,7 @@
   },
   "devDependencies": {
     "@midscene/android": "workspace:*",
+    "@midscene/computer": "workspace:*",
     "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",

@@ -18,12 +18,21 @@ cd my-tests
 | 参数 | 说明 |
 | --- | --- |
 | `[directory]` | 项目目录，`.` 表示当前目录。省略时交互询问。 |
-| `--platform <name>` | 支持 `web`（Playwright）、`android` 和 `ios`。省略时交互选择。 |
+| `--platform <name>` | 支持 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）和 `computer`（桌面端）。省略时交互选择。 |
 | `--with <package>` | 安装并注册 Node 包。支持指定版本或标签，可重复传入多个包。 |
 | `-y`、`--yes` | 禁用交互，必须同时提供目录和平台。 |
 | `-h`、`--help` | 显示用法和示例。 |
 
 在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录和平台。在 CI 等非交互环境中，必须提供这两个参数。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
+
+`harmony` 使用 `@midscene/harmony`，通过 HDC 连接 HarmonyOS 设备。`computer` 使用 `@midscene/computer`，控制本机的 Windows、macOS 或 Linux 桌面：
+
+```bash
+pnpm dlx @midscene/test create harmony-tests --platform harmony
+pnpm dlx @midscene/test create desktop-tests --platform computer
+```
+
+这两个平台也支持通过 `--with` 注册外部 Node 包。
 
 生成的项目包含以下文件：
 
@@ -42,6 +51,10 @@ my-tests/
 ```
 
 将 `.env.example` 复制为 `.env`，填写[模型配置](./model-config)。Web 项目需要运行 `pnpm exec playwright install chromium` 安装 Chromium。Android 项目需要连接设备，可通过 `ANDROID_DEVICE_ID` 选择设备。iOS 项目需要启动 WebDriverAgent，并配置 `WDA_HOST` 和 `WDA_PORT`。
+
+HarmonyOS 项目需要通过 `hdc list targets` 检查连接，可通过 `HARMONY_DEVICE_ID` 选择设备。如果 PATH 中没有 HDC，请设置 `HDC_HOME`。桌面端项目需要按照[桌面端配置指南](./platforms/desktop)安装系统依赖并授予所需权限，可通过 `COMPUTER_DISPLAY_ID` 选择显示器。无界面 Linux 环境需安装 Xvfb，并启用 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。
+
+桌面端示例通过 `aiAsk` 查看当前屏幕；移动端示例先执行 `home`，再执行 `aiAsk`。生成的配置会注册对应平台 Agent 提供的 Node。
 
 运行 `pnpm test` 执行示例。创建项目和生成说明书时，不会执行项目 setup 或测试，因此不需要模型 API Key、已安装的浏览器或已连接的设备。修改 Node 注册配置后，运行 `pnpm run describe-nodes` 更新说明书。
 

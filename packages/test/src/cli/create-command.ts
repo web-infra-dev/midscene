@@ -6,6 +6,7 @@ import yargs from 'yargs/yargs';
 import {
   type CreatePlatform,
   type NodePackageSpec,
+  createPlatformLabels,
   createPlatforms,
   createProjectFiles,
   parseNodePackageSpec,
@@ -124,11 +125,10 @@ const promptDirectory = () =>
 const selectPlatform = () =>
   select<CreatePlatform>({
     message: 'Select a platform:',
-    choices: [
-      { name: 'Web (Playwright)', value: 'web' },
-      { name: 'Android', value: 'android' },
-      { name: 'iOS', value: 'ios' },
-    ],
+    choices: createPlatforms.map((platform) => ({
+      name: createPlatformLabels[platform],
+      value: platform,
+    })),
   });
 
 const runPnpm: CreateServices['runPnpm'] = async (
@@ -258,6 +258,6 @@ export async function runCreateCommand(
     );
   }
   io.log(
-    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-nodes.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? '\nInstall Chromium: pnpm exec playwright install chromium' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: pnpm test`,
+    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-nodes.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? '\nInstall Chromium: pnpm exec playwright install chromium' : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: pnpm test`,
   );
 }
