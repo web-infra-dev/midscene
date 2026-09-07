@@ -46,6 +46,26 @@ const buildGpt5ChatCompletionParams = (
   };
 };
 
+const buildGpt6ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { userConfig, expectedJsonObjectResponse } = input;
+  const { reasoningEnabled, reasoningEffort, responseFormat } = userConfig;
+
+  // Astra cannot disable reasoning; use its lowest effort when disabled.
+  const effectiveReasoningEffort =
+    reasoningEnabled === false ? 'low' : (reasoningEffort ?? 'low');
+
+  const config: Record<string, unknown> = {
+    reasoning_effort: effectiveReasoningEffort,
+  };
+  if (responseFormat !== 'none' && expectedJsonObjectResponse) {
+    config.response_format = { type: 'json_object' };
+  }
+
+  return { config };
+};
+
 export const gptAdapters = {
   'gpt-5': {
     chatCompletion: {
@@ -61,4 +81,21 @@ export const gptAdapters = {
       },
     },
   },
-} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'gpt-5'>;
+  'gpt-6': {
+    chatCompletion: {
+      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
+      buildChatCompletionParams: buildGpt6ChatCompletionParams,
+      resolveImageDetail: originalImageDetailForDefaultIntent,
+    },
+    locate: {
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'xy' },
+        },
+      },
+    },
+  },
+} satisfies Pick<
+  Record<TModelFamily, ModelAdapterDefinition>,
+  'gpt-5' | 'gpt-6'
+>;

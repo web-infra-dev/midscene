@@ -183,4 +183,26 @@ describe('GPT image detail handling', () => {
 
     expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
   });
+
+  it('sends GPT-6 screenshots through Chat Completions with compatible defaults', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'gpt-6',
+        modelName: 'gpt-6-astra',
+        temperature: 0.7,
+      }),
+      { semanticRetryAttempt: 1, expectedJsonObjectResponse: true },
+    );
+
+    const request = mockCreate.mock.calls[0][0];
+    expect(request).toMatchObject({
+      model: 'gpt-6-astra',
+      reasoning_effort: 'low',
+      response_format: { type: 'json_object' },
+    });
+    expect(request).not.toHaveProperty('temperature');
+    expect(request.messages[0].content[0].image_url.detail).toBe('original');
+  });
 });
