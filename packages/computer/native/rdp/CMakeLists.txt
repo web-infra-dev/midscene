@@ -92,6 +92,27 @@ if(BUILD_TESTING)
     NAME rdp-session-policy-test
     COMMAND rdp-session-policy-test
   )
+
+  add_executable(
+    rdp-screenshot-test
+    tests/screenshot_test.cpp
+    src/session.cpp
+  )
+  target_include_directories(
+    rdp-screenshot-test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${FREERDP_INCLUDE_DIRS}
+  )
+  target_link_libraries(
+    rdp-screenshot-test PRIVATE
+    ${FREERDP_LIBRARIES}
+    Threads::Threads
+  )
+  if(APPLE)
+    target_compile_definitions(rdp-screenshot-test PRIVATE _DARWIN_C_SOURCE)
+  endif()
+  add_test(NAME rdp-screenshot-test COMMAND rdp-screenshot-test)
+  set_tests_properties(rdp-screenshot-test PROPERTIES TIMEOUT 30)
 endif()
 
 if(APPLE)

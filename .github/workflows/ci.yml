@@ -22,6 +22,23 @@ permissions:
 
 
 jobs:
+  rdp-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - name: Install RDP build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake pkg-config freerdp3-dev
+    - name: Build RDP helper and native tests
+      run: |
+        cmake -S packages/computer/native/rdp -B /tmp/midscene-rdp-build \
+          -DBUILD_TESTING=ON -DRDP_HELPER_OUTPUT_DIR=/tmp/midscene-rdp-build/bin
+        cmake --build /tmp/midscene-rdp-build --parallel 2
+    - name: Test RDP capture and connection policies
+      run: ctest --test-dir /tmp/midscene-rdp-build --output-on-failure
+
   main:
     # The viewport e2e relies on the hosted image's Chrome window behavior.
     runs-on: ubuntu-22.04
