@@ -78,28 +78,26 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`�
 
 ## 🧰 Testing Kit
 
-### 编写与控制测试流程
+开箱即用：Midscene 提供可观测性、测试框架和集成 API，帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程。
 
-使用 `aiAct` 规划并执行流程，也可以通过 `aiTap`、`aiInput` 等 API 逐步编排操作。将自然语言指令与 JavaScript 逻辑结合，为测试的不同部分选择合适的控制粒度。
+### 内置可观测性
 
-### 断言、查询与等待
+交互式 HTML 报告展示截图、元素定位、AI 决策过程，以及操作和断言结果。在 Midscene Test 中，AI 步骤与自定义业务操作拥有统一的执行记录，包含输入、输出、耗时和状态。报告与运行日志为开发者和 AI Agent 提供排查失败所需的上下文。通过 [Playground](https://midscenejs.com/zh/quick-start#chrome-extension)，还可以直接在界面上试验和调整指令。
 
-使用 `aiAssert` 将视觉预期转为测试断言，通过 `aiQuery` 提取结构化数据并在测试代码中进一步校验，使用 `aiWaitFor` 等待预期界面状态。详见 [API 参考](https://midscenejs.com/zh/reference/#common)。
+### Midscene Test：面向 AI 时代的 E2E 测试框架
 
-### 回放与调试执行过程
+[Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`，Beta）将**声明式的测试意图与可编程的工程实现分离**。用 YAML 编写 UI 流程和预期结果，用可复用的 TypeScript 节点封装 API 调用、数据准备和清理操作。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 
-可视化 HTML 报告记录截图、操作与结果，帮助你逐步查看执行过程、排查失败原因。通过 [Playground](https://midscenejs.com/zh/quick-start#chrome-extension)，可以先在界面上试验指令，再将其加入测试。
+框架提供项目脚手架、平台预设、生命周期钩子、重试，以及执行项目之间的隔离与并发。它还会根据已注册的节点及其参数定义生成 Markdown 参考文档，让**人和 AI Agent 都能了解可用能力，共同编写和维护用例**。详见[创建与扩展测试项目](https://midscenejs.com/zh/midscene-test/extend)和[编写与运行用例](https://midscenejs.com/zh/midscene-test/use)。
 
-### 集成与扩展测试工程
+### 丰富的 API，融入现有测试体系
 
-将 Midscene 接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，在自己的测试工程中使用 JavaScript SDK，或通过 [YAML](https://midscenejs.com/zh/automate-with-scripts-in-yaml) 编写流程。[测试运行器](https://midscenejs.com/zh/test-runner-overview)提供生命周期钩子、并发控制与自定义 TypeScript 节点，用于测试数据准备和业务操作。
-
-AI 编程 Agent 也可以通过 [Midscene Skills](https://midscenejs.com/zh/skills) 调用 Midscene CLI 测试界面，包括在 OpenClaw 中使用。
+通过 `aiAct` 自主执行流程，通过 `aiTap`、`aiInput` 控制单步操作，通过 `aiAssert` 编写断言，通过 `aiQuery` 提取结构化数据。借助 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或 JavaScript SDK，你可以将这些 [Agent API](https://midscenejs.com/zh/reference/#common) 与已有代码、测试夹具和断言组合，在现有测试框架中引入视觉能力。AI 编程 Agent 也可以通过 [Midscene Skills](https://midscenejs.com/zh/skills) 操作界面。
 
 ## 🚀 开始使用
 
 - **在 Chrome 中体验一条指令**：按照[快速开始](https://midscenejs.com/zh/quick-start)配置模型并安装 Chrome Extension。
-- **通过 SDK 或 YAML 编写测试**：从 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[测试运行器](https://midscenejs.com/zh/use-test-runner)开始。
+- **通过 SDK 或 YAML 编写测试**：从 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[Midscene Test](https://midscenejs.com/zh/midscene-test/extend)开始。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 - **测试其他平台**：查看 [Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 或[桌面端](https://midscenejs.com/zh/platforms/desktop)指南。
 

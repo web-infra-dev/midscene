@@ -78,28 +78,26 @@ Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4
 
 ## 🧰 Testing Kit
 
-### Write and control test flows
+Batteries included: Midscene provides the observability, test framework, and integration APIs needed to turn GUI automation into a maintainable E2E test project.
 
-Use `aiAct` to plan and execute a flow, or compose individual steps with APIs such as `aiTap` and `aiInput`. Mix natural-language instructions with JavaScript logic to choose how much control each part of a test needs.
+### Built-in observability
 
-### Assertions, queries, and waits
+Interactive HTML reports show screenshots, element locations, the AI decision process, and action and assertion results. In Midscene Test, AI steps and custom business operations share execution records with inputs, outputs, timing, and status. Reports and runtime logs give both developers and AI Agents the context to investigate failures. Use the [Playground](https://midscenejs.com/quick-start#chrome-extension) to try and refine instructions against your interface.
 
-Use `aiAssert` to turn visual expectations into test assertions. Extract structured data with `aiQuery` for further checks in your test code, and wait for expected UI states with `aiWaitFor`. See the [API reference](https://midscenejs.com/reference/#common).
+### Midscene Test: an E2E framework for the AI era
 
-### Inspect and debug runs
+[Midscene Test](https://midscenejs.com/midscene-test/overview) (`@midscene/test`, Beta) separates **declarative test intent from programmable engineering**. Write UI flows and expectations in YAML, and wrap API calls, data preparation, and cleanup in reusable TypeScript Nodes. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
 
-Visual HTML reports capture screenshots, actions, and results so you can follow each step and investigate failures. Use the [Playground](https://midscenejs.com/quick-start#chrome-extension) to try instructions against your interface before adding them to a test.
+The framework includes project scaffolding, platform presets, lifecycle hooks, retries, and execution-project isolation and concurrency. It also generates a Markdown reference from registered Nodes and their parameter schemas, so **people and AI Agents can discover the same capabilities and co-maintain test cases**. See [Create and extend a project](https://midscenejs.com/midscene-test/extend) and [Write and run tests](https://midscenejs.com/midscene-test/use).
 
-### Integrate and extend
+### Rich APIs that fit your existing stack
 
-Add Midscene to [Playwright](https://midscenejs.com/integrate-with-playwright), use the JavaScript SDK in your own test setup, or write flows in [YAML](https://midscenejs.com/automate-with-scripts-in-yaml). The [test runner](https://midscenejs.com/test-runner-overview) provides lifecycle hooks, concurrency control, and custom TypeScript nodes for test data preparation and business-specific operations.
-
-AI coding agents can also use [Midscene Skills](https://midscenejs.com/skills) to test interfaces through Midscene's CLIs, including from OpenClaw.
+Use `aiAct` for autonomous flows, `aiTap` and `aiInput` for individual actions, `aiAssert` for assertions, and `aiQuery` for structured data extraction. Combine these [Agent APIs](https://midscenejs.com/reference/#common) with your existing code, fixtures, and assertions through [Playwright](https://midscenejs.com/integrate-with-playwright), [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), or the JavaScript SDK. You can adopt Midscene's visual capabilities within your current testing framework. AI coding agents can also operate interfaces through [Midscene Skills](https://midscenejs.com/skills).
 
 ## 🚀 Get started
 
 - **Try an instruction in Chrome** — configure a model and install the Chrome extension with the [Quick start](https://midscenejs.com/quick-start).
-- **Write tests with the SDK or YAML** — start with [Playwright](https://midscenejs.com/integrate-with-playwright), [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), or the [test runner](https://midscenejs.com/use-test-runner).
+- **Write tests with the SDK or YAML** — start with [Playwright](https://midscenejs.com/integrate-with-playwright), [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), or the [Midscene Test](https://midscenejs.com/midscene-test/extend).
 - **Let your AI agent operate the UI** — install [Midscene Skills](https://midscenejs.com/skills).
 - **Test on another platform** — follow the guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), or [desktop](https://midscenejs.com/platforms/desktop).
 
