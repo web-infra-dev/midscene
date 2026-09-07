@@ -1,0 +1,203 @@
+.test-runner-report {
+  .runner-overview-summary {
+    align-items: start;
+  }
+
+  .runner-overview-outcome {
+    min-height: 0;
+  }
+
+  .runner-overview-summary-footer {
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .runner-overview-summary-footer .runner-secondary-metrics {
+    margin: 0;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+
+  .runner-overview-summary-footer .runner-secondary-metrics > span {
+    white-space: nowrap;
+  }
+
+  .runner-overview-summary-footer .runner-overview-outcome-footer {
+    margin-top: 0;
+    padding-top: 8px;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .runner-overview-summary-footer .runner-overview-outcome-footer > button {
+    align-self: center;
+    padding-inline: 0;
+  }
+
+  .runner-status-badge.runner-status-pill {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    min-height: 22px;
+    align-items: center;
+    padding: 3px 8px;
+    gap: 5px;
+    border: 0;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 16px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .runner-status-badge.runner-status-pill > span {
+    display: inline;
+  }
+
+  .runner-row-action,
+  .runner-project-cases .runner-row-action,
+  .runner-project-tree-overview {
+    display: inline-flex;
+    height: 32px;
+    padding: 0 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: var(--runner-muted);
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .runner-project-tree-case:hover .runner-row-action,
+  .runner-project-tree-case:focus-visible .runner-row-action,
+  .runner-project-cases .runner-row-action:hover,
+  .runner-project-tree-overview:hover {
+    color: var(--runner-primary);
+    background: transparent;
+  }
+
+  .runner-project-tree-overview {
+    position: relative;
+    padding-left: 16px;
+  }
+
+  .runner-project-tree-overview::before {
+    position: absolute;
+    left: 0;
+    top: calc(50% - 6px);
+    height: 12px;
+    border-left: 1px solid var(--runner-border);
+    content: '';
+  }
+
+  .runner-overview-outcome-footer > button {
+    color: var(--runner-muted);
+    border: 0;
+    background: transparent;
+    font-weight: 600;
+  }
+
+  .runner-overview-outcome-footer > button:hover {
+    color: var(--runner-primary);
+    background: transparent;
+  }
+
+  .runner-detail-log-view p {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+
+  .runner-detail-log-view p > span {
+    grid-column: 1 / -1;
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-log-view time {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+    grid-template-columns: 12px minmax(0, 1.25fr) minmax(0, 1fr) 100px;
+    min-height: 112px;
+    padding-block: 12px;
+  }
+
+  .runner-project-tree-case-issue {
+    min-width: 0;
+    font-size: 10px;
+  }
+
+  .runner-case-evidence-preview {
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .runner-case-evidence-preview .runner-visual-timeline {
+    height: 84px;
+    border: 1px solid var(--runner-border);
+    border-radius: 8px;
+  }
+
+  .runner-project-filter-reset {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 860px) {
+  .test-runner-report {
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+      grid-template-columns: 12px minmax(0, 1fr) 100px;
+    }
+
+    .runner-case-evidence-preview {
+      grid-column: 2 / -1;
+      grid-row: 2;
+      padding: 10px 14px 0 10px;
+    }
+
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case-cta {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
+      display: flex;
+    }
+  }
+}
+
+@media (max-width: 620px) {
+  .test-runner-report {
+    .runner-row-action,
+    .runner-project-tree-overview {
+      min-height: 44px;
+    }
+
+    .runner-project-tree-case,
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+      grid-template-columns: 7px minmax(0, 1fr) 88px;
+    }
+
+    .runner-project-tree-case-title {
+      flex-wrap: wrap;
+      gap: 5px;
+      padding-block: 6px;
+    }
+
+    .runner-project-tree-case-title h3 {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+  }
+}

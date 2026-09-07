@@ -62,7 +62,9 @@ export const getDefaultExpandedProjectKeys = (
 ): Set<string> =>
   new Set(
     projects
-      .filter(({ item }) => item.failedCount > 0)
+      .filter(
+        ({ item }) => item.failedCount > 0 || item.project.status === 'failed',
+      )
       .map(({ item }) => item.key),
   );
 

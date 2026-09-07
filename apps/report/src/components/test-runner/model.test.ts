@@ -22,6 +22,7 @@ import {
   groupRunnerProjects,
   positionAttemptVisualFrames,
 } from './model';
+import { resolveRunnerNavigation } from './navigation';
 
 const at = (seconds: number): string =>
   new Date(Date.UTC(2026, 7, 21, 8, 0, seconds)).toISOString();
@@ -283,27 +284,113 @@ describe('Test Runner hybrid report model', () => {
     ]);
   });
 
-  it('expands only Projects containing final failures by default', () => {
+  it('expands every failed Project and collapses all-passed Projects by default', () => {
     const [failedProject] = groupRunnerProjects(dump);
     const retryPassedProject = {
       ...failedProject,
       key: 'retry-passed-project',
+      project: { ...failedProject.project, status: 'success' as const },
       failedCount: 0,
       retryPassedCount: 1,
     };
     const passedProject = {
       ...failedProject,
       key: 'passed-project',
+      project: { ...failedProject.project, status: 'success' as const },
       failedCount: 0,
       retryPassedCount: 0,
     };
-    const views = [failedProject, retryPassedProject, passedProject].map(
-      (item) => ({ item, cases: item.cases }),
-    );
+    const secondFailure = { ...failedProject, key: 'second-failure' };
+    const setupFailure = {
+      ...failedProject,
+      key: 'setup-failure',
+      failedCount: 0,
+    };
+    const views = [
+      failedProject,
+      retryPassedProject,
+      passedProject,
+      secondFailure,
+      setupFailure,
+    ].map((item) => ({ item, cases: item.cases }));
 
     expect([...getDefaultExpandedProjectKeys(views)]).toEqual([
       failedProject.key,
+      secondFailure.key,
+      setupFailure.key,
     ]);
+  });
+
+  it('opens a single-project single-case report directly in case detail', () => {
+    const cases = flattenRunnerCases(dump).slice(0, 1);
+    const projects = groupRunnerProjects(dump, cases);
+    expect(resolveRunnerNavigation('', cases, projects)).toMatchObject({
+      page: 'case',
+      selectedCaseKey: cases[0].key,
+      caseParent: 'overview',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-page=overview', cases, projects).page,
+    ).toBe('overview');
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=project&runner-project=web',
+        cases,
+        projects,
+      ).page,
+    ).toBe('project');
+    expect(
+      resolveRunnerNavigation('', flattenRunnerCases(dump), projects).page,
+    ).toBe('overview');
+    expect(
+      resolveRunnerNavigation('', cases, [
+        ...projects,
+        { ...projects[0], key: 'other' },
+      ]).page,
+    ).toBe('overview');
+    expect(resolveRunnerNavigation('', [], projects).page).toBe('overview');
+  });
+
+  it('preserves step deep links when choosing the initial page', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+    const target = cases.find((item) => item.finalAttempt?.steps.length);
+    if (!target?.finalAttempt) throw new Error('Fixture needs a step');
+    const stepId = target.finalAttempt.steps[0].id;
+    expect(
+      resolveRunnerNavigation(
+        `#runner-step=${encodeURIComponent(stepId)}`,
+        cases,
+        projects,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: target.key,
+      deepLinkedStepId: stepId,
+    });
+  });
+
+  it('uses the same filters within a single project without changing its health', () => {
+    const projects = groupRunnerProjects(dump, flattenRunnerCases(dump));
+    const selected = projects[0];
+    const originalCount = selected.cases.length;
+    const matches = filterAndSortRunnerProjectBreakdown([selected], {
+      query: 'NODE_EXECUTION_ERROR',
+      status: 'retry-passed',
+      sort: 'duration',
+    });
+    expect(matches[0].cases.map((item) => item.testCase.caseId)).toEqual([
+      'retried',
+    ]);
+    expect(matches[0].item).toBe(selected);
+    expect(selected.cases).toHaveLength(originalCount);
+    expect(
+      filterAndSortRunnerProjectBreakdown([selected], {
+        query: 'no-such-case',
+        status: 'all',
+        sort: 'name',
+      }),
+    ).toEqual([]);
   });
 
   it('builds a compact semantic story from the final Attempt', () => {

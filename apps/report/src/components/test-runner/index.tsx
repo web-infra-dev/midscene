@@ -3,25 +3,18 @@ import './index.less';
 import {
   ArrowLeftOutlined,
   BugOutlined,
-  CheckCircleFilled,
-  ClockCircleOutlined,
   CloseCircleFilled,
   CodeOutlined,
   CopyOutlined,
-  DashboardOutlined,
   DatabaseOutlined,
   DownOutlined,
   ExportOutlined,
   EyeOutlined,
-  InfoCircleOutlined,
-  LinkOutlined,
   MoonOutlined,
   PauseCircleOutlined,
   PictureOutlined,
   PlayCircleOutlined,
-  ReloadOutlined,
   RightOutlined,
-  SearchOutlined,
   SettingOutlined,
   SunOutlined,
   ThunderboltFilled,
@@ -32,7 +25,6 @@ import type {
   TestRunReportAttempt,
   TestRunReportDump,
   TestRunReportStep,
-  TestRunReportValue,
 } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
 import {
@@ -47,10 +39,6 @@ import {
   ConfigProvider,
   Drawer,
   Empty,
-  Input,
-  Segmented,
-  Select,
-  Tag,
   Tooltip,
   theme,
 } from 'antd';
@@ -61,8 +49,6 @@ import {
   type RunnerRoute,
   clearRunnerStepHash,
   runnerHashForRoute,
-  runnerRouteFromHash,
-  runnerStepIdFromHash,
   updateRunnerStepHash,
 } from '../../utils/test-run-report';
 import {
@@ -70,6 +56,13 @@ import {
   formatTimelineTime,
   pickNiceStep,
 } from '../timeline/timeline-scale';
+import { CaseDensitySwitch } from './case-density-switch';
+import { CaseFilters } from './case-filters';
+import {
+  CaseWorkspaceHeader,
+  type CopyLinkState,
+} from './case-workspace-header';
+import { EvidenceTabs, type RunnerInspectorTab } from './evidence-tabs';
 import {
   type RunnerBreakdownSort,
   type RunnerBreakdownStatus,
@@ -95,8 +88,21 @@ import {
   getStepForVisualFrame,
   groupRunnerProjects,
   positionAttemptVisualFrames,
-  statusSortWeight,
 } from './model';
+import {
+  type RunnerNavigationState,
+  resolveRunnerNavigation,
+} from './navigation';
+import { ProjectCaseEvidence } from './project-case-evidence';
+import { RunSummary } from './run-summary';
+import {
+  CaseStatus,
+  type RunnerCaseDisplayMode,
+  StepStatus,
+  caseStatusLabel,
+  formatDuration,
+  formatPercent,
+} from './view-primitives';
 
 interface TestRunnerReportProps {
   dump: TestRunReportDump;
@@ -104,98 +110,7 @@ interface TestRunnerReportProps {
   renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
 }
 
-type RunnerPage = RunnerRoute['page'];
 type RunnerCaseParent = 'overview' | 'project';
-type RunnerCaseDisplayMode = 'compact' | 'detailed';
-
-const formatDuration = (durationMs: number | undefined): string => {
-  if (durationMs === undefined) return '—';
-  if (durationMs < 1_000) return `${Math.round(durationMs)} ms`;
-  if (durationMs < 60_000) return `${(durationMs / 1_000).toFixed(2)} s`;
-  return `${Math.floor(durationMs / 60_000)}m ${Math.round(
-    (durationMs % 60_000) / 1_000,
-  )}s`;
-};
-
-const formatPercent = (value: number): string =>
-  `${Math.round(value * 1000) / 10}%`;
-
-const formatTimestamp = (value: string): string =>
-  new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(new Date(value));
-
-const statusMeta: Record<
-  RunnerCaseStatus,
-  { label: string; className: string; icon: ReactNode }
-> = {
-  passed: {
-    label: 'Passed',
-    className: 'is-success',
-    icon: <CheckCircleFilled />,
-  },
-  'retry-passed': {
-    label: 'Passed after retry',
-    className: 'is-warning',
-    icon: <ReloadOutlined />,
-  },
-  failed: {
-    label: 'Failed',
-    className: 'is-failed',
-    icon: <CloseCircleFilled />,
-  },
-  'not-run': {
-    label: 'Not run',
-    className: 'is-neutral',
-    icon: <ClockCircleOutlined />,
-  },
-};
-
-function CaseStatus({ status }: { status: RunnerCaseStatus }): JSX.Element {
-  const meta = statusMeta[status];
-  return (
-    <span className={`runner-status-pill ${meta.className}`}>
-      {meta.icon}
-      <span>{meta.label}</span>
-    </span>
-  );
-}
-
-function StepStatus({
-  status,
-}: {
-  status: TestRunReportStep['status'];
-}): JSX.Element {
-  return status === 'success' ? (
-    <CheckCircleFilled className="runner-step-status is-success" />
-  ) : (
-    <CloseCircleFilled className="runner-step-status is-failed" />
-  );
-}
-
-const reportValue = (value: TestRunReportValue | undefined): ReactNode => {
-  if (!value) return null;
-  return (
-    <div className="runner-json-block">
-      <pre>{JSON.stringify(value.value, null, 2)}</pre>
-      {value.redactedPaths?.length ? (
-        <div className="runner-data-note">
-          Redacted: {value.redactedPaths.join(', ')}
-        </div>
-      ) : null}
-      {value.truncatedPaths?.length ? (
-        <div className="runner-data-note">
-          Truncated: {value.truncatedPaths.join(', ')}
-        </div>
-      ) : null}
-    </div>
-  );
-};
 
 function StorySteps({ steps }: { steps: readonly string[] }): JSX.Element {
   if (!steps.length) {
@@ -412,25 +327,30 @@ function CasePreview({
             </Tooltip>
             <button
               type="button"
+              className="runner-row-action"
               aria-label={`Inspect failure in ${item.testCase.name}, project ${item.project.name}`}
               onClick={() => onOpen(item, failure.id)}
             >
               Inspect failure
+              <RightOutlined />
             </button>
           </div>
         ) : null}
-        <StorySteps steps={story} />
+        <ProjectCaseEvidence frameCount={frames.length}>
+          <StorySteps steps={story} />
+          <VisualTimeline
+            frames={frames}
+            durationMs={item.finalAttempt?.durationMs ?? item.durationMs}
+          />
+        </ProjectCaseEvidence>
       </div>
-      <VisualTimeline
-        frames={frames}
-        durationMs={item.finalAttempt?.durationMs ?? item.durationMs}
-      />
       <button
         type="button"
-        className="runner-case-open-button"
+        className="runner-case-open-button runner-row-action"
         onClick={() => onOpen(item)}
         aria-label={`Open ${item.testCase.name} in project ${item.project.name}`}
       >
+        <span>Inspect</span>
         <RightOutlined className="runner-case-chevron" />
       </button>
     </article>
@@ -445,24 +365,16 @@ const projectDisplayStatus = (item: RunnerProjectView): RunnerCaseStatus => {
 };
 
 function ProjectBreakdownCase({
+  visualIndex,
   item,
   displayMode,
-  visualIndex,
   onOpen,
 }: {
+  visualIndex: RunnerVisualIndex;
   item: RunnerCaseView;
   displayMode: RunnerCaseDisplayMode;
-  visualIndex: RunnerVisualIndex;
   onOpen(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
-  if (displayMode === 'detailed') {
-    return (
-      <li className="runner-project-tree-case-item is-detailed">
-        <CasePreview item={item} visualIndex={visualIndex} onOpen={onOpen} />
-      </li>
-    );
-  }
-
   const failure = getCaseFailure(item.testCase);
   const attemptCount = item.testCase.attempts.length;
   const issue = failure
@@ -477,7 +389,12 @@ function ProjectBreakdownCase({
         }
       : undefined;
   return (
-    <li className="runner-project-tree-case-item" data-case-key={item.key}>
+    <li
+      className={`runner-project-tree-case-item${
+        displayMode === 'detailed' ? ' is-detailed' : ''
+      }`}
+      data-case-key={item.key}
+    >
       <button
         type="button"
         className="runner-project-tree-case"
@@ -487,50 +404,67 @@ function ProjectBreakdownCase({
         }`}
       >
         <span className={`runner-project-tree-branch is-${item.status}`} />
-        <CaseStatus status={item.status} />
         <div className="runner-project-tree-case-main">
-          <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
-            <h3>{item.testCase.name}</h3>
-          </Tooltip>
-          <Tooltip title={item.document.sourcePath} mouseEnterDelay={0.25}>
-            <span>{item.document.sourcePath}</span>
-          </Tooltip>
-        </div>
-        <div
-          className={`runner-project-tree-case-issue${issue ? '' : ' is-empty'}`}
-        >
-          {issue ? (
-            <Tooltip title={issue.detail} mouseEnterDelay={0.25}>
-              <span>
-                <WarningFilled />
-                {issue.label}
-              </span>
+          <div className="runner-project-tree-case-title">
+            <CaseStatus status={item.status} quiet />
+            <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
+              <h3>{item.testCase.name}</h3>
             </Tooltip>
-          ) : null}
+          </div>
+          <div className="runner-project-tree-case-meta-row">
+            <Tooltip title={item.document.sourcePath} mouseEnterDelay={0.25}>
+              <span>{item.document.sourcePath}</span>
+            </Tooltip>
+            <span>
+              {attemptCount} {attemptCount === 1 ? 'attempt' : 'attempts'}
+            </span>
+            <time>{formatDuration(item.durationMs)}</time>
+          </div>
+          <div
+            className={`runner-project-tree-case-issue${issue ? '' : ' is-empty'}`}
+          >
+            {issue ? (
+              <Tooltip title={issue.detail} mouseEnterDelay={0.25}>
+                <span>
+                  <WarningFilled />
+                  {issue.label}
+                </span>
+              </Tooltip>
+            ) : null}
+          </div>
         </div>
-        <span className="runner-project-tree-case-attempts">
-          {attemptCount} {attemptCount === 1 ? 'attempt' : 'attempts'}
+        {displayMode === 'detailed' ? (
+          <div className="runner-case-evidence-preview">
+            <VisualTimeline
+              frames={getAllAttemptVisualFrames(item.finalAttempt, visualIndex)}
+              durationMs={item.finalAttempt?.durationMs}
+            />
+          </div>
+        ) : null}
+        <span className="runner-project-tree-case-cta">
+          <span className="runner-row-action">
+            Inspect
+            <RightOutlined className="runner-project-tree-case-chevron" />
+          </span>
         </span>
-        <time>{formatDuration(item.durationMs)}</time>
-        <RightOutlined className="runner-project-tree-case-chevron" />
       </button>
     </li>
   );
 }
 
 function ProjectBreakdownNode({
+  visualIndex,
   view,
   expanded,
   caseDisplayMode,
-  visualIndex,
   onToggle,
   onOpenProject,
   onOpenCase,
 }: {
+  visualIndex: RunnerVisualIndex;
   view: RunnerProjectBreakdownView;
   expanded: boolean;
   caseDisplayMode: RunnerCaseDisplayMode;
-  visualIndex: RunnerVisualIndex;
   onToggle(): void;
   onOpenProject(item: RunnerProjectView): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
@@ -555,7 +489,13 @@ function ProjectBreakdownNode({
             {expanded ? <DownOutlined /> : <RightOutlined />}
           </span>
           <span className="runner-project-tree-identity">
-            <CaseStatus status={projectDisplayStatus(item)} />
+            <span
+              className={`runner-project-status-dot is-${projectDisplayStatus(
+                item,
+              )}`}
+              role="img"
+              aria-label={caseStatusLabel(projectDisplayStatus(item))}
+            />
             <Tooltip title={item.project.name} mouseEnterDelay={0.25}>
               <span className="runner-project-tree-name">
                 {item.project.name}
@@ -607,7 +547,8 @@ function ProjectBreakdownNode({
             onClick={() => onOpenProject(item)}
             aria-label={`Open project overview ${item.project.name}`}
           >
-            <DashboardOutlined />
+            <span>Details</span>
+            <RightOutlined />
           </button>
         </Tooltip>
       </div>
@@ -619,10 +560,10 @@ function ProjectBreakdownNode({
           {cases.length ? (
             cases.map((caseItem) => (
               <ProjectBreakdownCase
+                visualIndex={visualIndex}
                 item={caseItem}
                 key={caseItem.key}
                 displayMode={caseDisplayMode}
-                visualIndex={visualIndex}
                 onOpen={onOpenCase}
               />
             ))
@@ -638,9 +579,9 @@ function ProjectBreakdownNode({
 }
 
 function ProjectBreakdownTree({
+  visualIndex,
   projects,
   caseDisplayMode,
-  visualIndex,
   expandedProjectKeys,
   onExpandedProjectKeysChange,
   hasActiveFilters,
@@ -648,9 +589,9 @@ function ProjectBreakdownTree({
   onOpenProject,
   onOpenCase,
 }: {
+  visualIndex: RunnerVisualIndex;
   projects: RunnerProjectBreakdownView[];
   caseDisplayMode: RunnerCaseDisplayMode;
-  visualIndex: RunnerVisualIndex;
   expandedProjectKeys: Set<string>;
   onExpandedProjectKeysChange(keys: Set<string>): void;
   hasActiveFilters: boolean;
@@ -721,11 +662,11 @@ function ProjectBreakdownTree({
       >
         {projects.map((view) => (
           <ProjectBreakdownNode
+            visualIndex={visualIndex}
             view={view}
             key={view.item.key}
             expanded={expandedProjectKeys.has(view.item.key)}
             caseDisplayMode={caseDisplayMode}
-            visualIndex={visualIndex}
             onToggle={() => toggleProject(view.item.key)}
             onOpenProject={onOpenProject}
             onOpenCase={onOpenCase}
@@ -748,15 +689,21 @@ function ProjectWorkspace({
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const [visibleLimit, setVisibleLimit] = useState(25);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<RunnerBreakdownStatus>('all');
+  const [sort, setSort] = useState<RunnerBreakdownSort>('attention');
   const cases = useMemo(
     () =>
-      [...item.cases].sort(
-        (a, b) =>
-          statusSortWeight[a.status] - statusSortWeight[b.status] ||
-          b.durationMs - a.durationMs,
-      ),
-    [item.cases],
+      filterAndSortRunnerProjectBreakdown([item], { query, status, sort })[0]
+        ?.cases ?? [],
+    [item, query, status, sort],
   );
+  const resetFilters = () => {
+    setQuery('');
+    setStatus('all');
+    setSort('attention');
+    setVisibleLimit(25);
+  };
   const visibleCases = cases.slice(0, visibleLimit);
 
   return (
@@ -765,60 +712,60 @@ function ProjectWorkspace({
         <ArrowLeftOutlined />
         Overview
       </button>
-      <div className="runner-case-workspace-heading">
-        <div>
-          <CaseStatus status={projectDisplayStatus(item)} />
-          <h1>{item.project.name}</h1>
-          <div className="runner-case-meta">
-            <span>{item.project.platform}</span>
-            <span>
-              {item.project.documents.length}{' '}
-              {item.project.documents.length === 1 ? 'document' : 'documents'}
-            </span>
-            <span>Retry limit {item.project.retry}</span>
+      <div className="runner-project-brief">
+        <div className="runner-case-workspace-heading">
+          <div>
+            <CaseStatus status={projectDisplayStatus(item)} />
+            <h1>{item.project.name}</h1>
+            <div className="runner-case-meta">
+              <span>{item.project.platform}</span>
+              <span>
+                {item.project.documents.length}{' '}
+                {item.project.documents.length === 1 ? 'document' : 'documents'}
+              </span>
+              <span>Retry limit {item.project.retry}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <section
-        className="runner-primary-metrics runner-project-metrics"
-        aria-label="Project health"
-      >
-        <MetricCard
-          label="Final pass rate"
-          value={formatPercent(item.health.finalPassRate)}
-          note={`${item.passedCount} of ${item.health.executed} executed cases`}
-          tone={item.failedCount ? 'danger' : 'success'}
-        />
-        <MetricCard
-          label="First-pass rate"
-          value={formatPercent(item.health.firstPassRate)}
-          note={`${item.health.firstPassCount} passed without retry`}
-          tone={item.retryPassedCount ? 'warning' : 'success'}
-        />
-        <MetricCard
-          label="Failed"
-          value={item.failedCount}
-          note="Final failures"
-          tone={item.failedCount ? 'danger' : undefined}
-        />
-        <MetricCard
-          label="Passed after retry"
-          value={item.retryPassedCount}
-          note="Potentially flaky"
-          tone={item.retryPassedCount ? 'warning' : undefined}
-        />
-        <MetricCard
-          label="Not run"
-          value={item.notRunCount}
-          note="Blocked or skipped"
-        />
-        <MetricCard
-          label="Project time"
-          value={formatDuration(item.durationMs)}
-          note="Setup through teardown"
-        />
-      </section>
+        <section
+          className="runner-primary-metrics runner-overview-primary-metrics runner-project-metrics"
+          aria-label="Project health"
+        >
+          <MetricCard
+            label="Final pass rate"
+            value={formatPercent(item.health.finalPassRate)}
+            note={`${item.passedCount} of ${item.health.executed} executed cases`}
+          />
+          <MetricCard
+            label="First-pass rate"
+            value={formatPercent(item.health.firstPassRate)}
+            note={`${item.health.firstPassCount} passed without retry`}
+          />
+          <MetricCard
+            label="Failed"
+            value={item.failedCount}
+            note="Final failures"
+            tone={item.failedCount ? 'danger' : undefined}
+          />
+          <MetricCard
+            label="Passed after retry"
+            value={item.retryPassedCount}
+            note="Potentially flaky"
+            tone={item.retryPassedCount ? 'warning' : undefined}
+          />
+          <MetricCard
+            label="Not run"
+            value={item.notRunCount}
+            note="Blocked or skipped"
+          />
+          <MetricCard
+            label="Project time"
+            value={formatDuration(item.durationMs)}
+            note="Setup through teardown"
+          />
+        </section>
+      </div>
 
       {item.project.lifecycle?.setupError ? (
         <Alert
@@ -840,14 +787,38 @@ function ProjectWorkspace({
         />
       ))}
 
-      <section className="runner-panel runner-project-cases">
+      <section className="runner-project-cases runner-breakdown-panel">
         <div className="runner-section-heading">
           <div>
-            <div className="runner-eyebrow">Project cases</div>
-            <h2>What happened in {item.project.name}</h2>
+            <h2>Cases</h2>
           </div>
-          <span className="runner-result-count">{cases.length} cases</span>
+          <span className="runner-result-count">
+            {cases.length} / {item.cases.length} cases
+          </span>
         </div>
+        <CaseFilters
+          cases={item.cases}
+          query={query}
+          status={status}
+          sort={sort}
+          onQueryChange={(value) => {
+            setQuery(value);
+            setVisibleLimit(25);
+          }}
+          onStatusChange={(value) => {
+            setStatus(value);
+            setVisibleLimit(25);
+          }}
+          onSortChange={(value) => {
+            setSort(value);
+            setVisibleLimit(25);
+          }}
+        />
+        {query || status !== 'all' || sort !== 'attention' ? (
+          <div className="runner-project-filter-reset">
+            <Button onClick={resetFilters}>Clear filters</Button>
+          </div>
+        ) : null}
         {visibleCases.length ? (
           <div className="runner-case-list">
             {visibleCases.map((caseItem) => (
@@ -870,7 +841,13 @@ function ProjectWorkspace({
           </div>
         ) : (
           <div className="runner-empty-results">
-            <Empty description="No cases were collected for this project" />
+            <Empty
+              description={
+                item.cases.length
+                  ? 'No cases match these filters'
+                  : 'No cases were collected for this project'
+              }
+            />
           </div>
         )}
       </section>
@@ -879,11 +856,11 @@ function ProjectWorkspace({
 }
 
 function RunOverview({
+  visualIndex,
   dump,
   cases,
   health,
   projects,
-  visualIndex,
   caseDisplayMode,
   onCaseDisplayModeChange,
   expandedProjectKeys,
@@ -891,11 +868,11 @@ function RunOverview({
   onOpenCase,
   onOpenProject,
 }: {
+  visualIndex: RunnerVisualIndex;
   dump: TestRunReportDump;
   cases: RunnerCaseView[];
   health: RunnerHealthStats;
   projects: RunnerProjectView[];
-  visualIndex: RunnerVisualIndex;
   caseDisplayMode: RunnerCaseDisplayMode;
   onCaseDisplayModeChange(mode: RunnerCaseDisplayMode): void;
   expandedProjectKeys: Set<string>;
@@ -903,23 +880,12 @@ function RunOverview({
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
   onOpenProject(item: RunnerProjectView): void;
 }): JSX.Element {
+  const breakdownRef = useRef<HTMLElement>(null);
   const [breakdownQuery, setBreakdownQuery] = useState('');
   const [breakdownStatus, setBreakdownStatus] =
     useState<RunnerBreakdownStatus>('all');
   const [breakdownSort, setBreakdownSort] =
     useState<RunnerBreakdownSort>('attention');
-  const breakdownStatusCounts = useMemo(
-    () => ({
-      all: cases.length,
-      attention: cases.filter((item) => item.status !== 'passed').length,
-      failed: cases.filter((item) => item.status === 'failed').length,
-      'retry-passed': cases.filter((item) => item.status === 'retry-passed')
-        .length,
-      passed: cases.filter((item) => item.status === 'passed').length,
-      'not-run': cases.filter((item) => item.status === 'not-run').length,
-    }),
-    [cases],
-  );
   const breakdownProjects = useMemo(
     () =>
       filterAndSortRunnerProjectBreakdown(projects, {
@@ -942,196 +908,76 @@ function RunOverview({
     dump.summary.failed === 0 &&
     dump.summary.notRun === 0 &&
     health.retryPassedCount > 0;
-  const healthLabel =
-    dump.status === 'failed'
-      ? 'Action required'
-      : successfulWithRetries
-        ? 'Passed with retries'
-        : 'All checks passed';
+  const totalCaseCount = Math.max(dump.summary.total, cases.length);
+  const affectedProjectCount = projects.filter(
+    (item) =>
+      item.failedCount > 0 ||
+      item.project.status === 'failed' ||
+      item.project.collectionErrors.length > 0 ||
+      Boolean(item.project.lifecycle?.setupError),
+  ).length;
+  const focusOutcomeCases = () => {
+    const nextStatus: RunnerBreakdownStatus =
+      dump.summary.failed > 0
+        ? 'failed'
+        : successfulWithRetries
+          ? 'retry-passed'
+          : 'all';
+    const relevantProjects = projects.filter((item) => {
+      if (nextStatus === 'failed') return item.failedCount > 0;
+      if (nextStatus === 'retry-passed') return item.retryPassedCount > 0;
+      return true;
+    });
+    setBreakdownStatus(nextStatus);
+    setBreakdownSort('attention');
+    onExpandedProjectKeysChange(
+      new Set(relevantProjects.map((item) => item.key)),
+    );
+    window.requestAnimationFrame(() => {
+      breakdownRef.current?.scrollIntoView({ block: 'start' });
+    });
+  };
 
   return (
     <div className="runner-page runner-overview">
-      <section className="runner-overview-hero">
-        <div>
-          <div className="runner-eyebrow">Test run</div>
-          <h1>{healthLabel}</h1>
-          <p>
-            {dump.runId} · {formatTimestamp(dump.startedAt)}
-          </p>
-        </div>
-        <div
-          className={`runner-health-mark ${
-            dump.status === 'failed'
-              ? 'is-failed'
-              : successfulWithRetries
-                ? 'is-warning'
-                : 'is-success'
-          }`}
-        >
-          {dump.status === 'failed' ? (
-            <CloseCircleFilled />
-          ) : successfulWithRetries ? (
-            <ReloadOutlined />
-          ) : (
-            <CheckCircleFilled />
-          )}
-        </div>
-      </section>
+      <RunSummary
+        dump={dump}
+        health={health}
+        totalCaseCount={totalCaseCount}
+        affectedProjectCount={affectedProjectCount}
+        onReviewOutcome={focusOutcomeCases}
+      />
 
-      <section className="runner-primary-metrics" aria-label="Run health">
-        <MetricCard
-          label="Final pass rate"
-          value={formatPercent(health.finalPassRate)}
-          note={`${dump.summary.passed} of ${health.executed} executed cases`}
-          tone={dump.summary.failed ? 'danger' : 'success'}
-        />
-        <MetricCard
-          label="First-pass rate"
-          value={formatPercent(health.firstPassRate)}
-          note={`${health.firstPassCount} passed without retry`}
-          tone={health.retryPassedCount ? 'warning' : 'success'}
-        />
-        <MetricCard
-          label="Failed"
-          value={dump.summary.failed}
-          note="Final failures"
-          tone={dump.summary.failed ? 'danger' : undefined}
-        />
-        <MetricCard
-          label="Passed after retry"
-          value={health.retryPassedCount}
-          note="Potentially flaky"
-          tone={health.retryPassedCount ? 'warning' : undefined}
-        />
-        <MetricCard
-          label="Not run"
-          value={dump.summary.notRun}
-          note="Blocked or skipped"
-        />
-        <MetricCard
-          label="Total runner time"
-          value={formatDuration(dump.durationMs)}
-          note="Wall-clock time from run start to final summary"
-        />
-      </section>
-
-      <section className="runner-secondary-metrics">
-        <span>
-          <strong>{dump.projects.length}</strong> projects
-        </span>
-        <span>
-          <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong> model time
-        </span>
-        <span>
-          <strong>{dump.metrics.modelCallCount}</strong> model calls
-        </span>
-        <span>
-          <strong>{dump.metrics.totalTokens.toLocaleString()}</strong> tokens
-        </span>
-        <small>
-          Runner time is wall-clock; model time is cumulative across calls and
-          may overlap when projects run in parallel.
-        </small>
-      </section>
-
-      <section className="runner-panel">
+      <section
+        ref={breakdownRef}
+        className="runner-panel runner-breakdown-panel"
+      >
         <div className="runner-section-heading">
           <div>
-            <div className="runner-eyebrow">Breakdown</div>
             <h2>Projects and cases</h2>
             <p className="runner-section-description">
-              Scan Project health, then choose how much Case evidence to show.
+              Failures stay expanded. Search or change the view without losing
+              the Project → Case relationship.
             </p>
           </div>
-          <div className="runner-breakdown-view-switch">
-            <span>Case rows</span>
-            <Segmented
-              aria-label="Case row detail"
-              size="small"
-              value={caseDisplayMode}
-              options={[
-                { label: 'Compact', value: 'compact' },
-                { label: 'Detailed', value: 'detailed' },
-              ]}
-              onChange={(value) =>
-                onCaseDisplayModeChange(value as RunnerCaseDisplayMode)
-              }
-            />
-          </div>
-        </div>
-        <div
-          className="runner-breakdown-toolbar"
-          aria-label="Filter and sort Project breakdown"
-        >
-          <Input
-            prefix={<SearchOutlined />}
-            suffix={
-              <button
-                type="button"
-                className={`runner-search-clear${
-                  breakdownQuery ? '' : ' is-hidden'
-                }`}
-                aria-label="Clear breakdown search"
-                aria-hidden={!breakdownQuery}
-                disabled={!breakdownQuery}
-                onClick={() => setBreakdownQuery('')}
-              >
-                <CloseCircleFilled />
-              </button>
-            }
-            placeholder="Search projects, cases, errors, IDs, or steps"
-            value={breakdownQuery}
-            onChange={(event) => setBreakdownQuery(event.target.value)}
-          />
-          <Select
-            aria-label="Filter breakdown by status"
-            value={breakdownStatus}
-            onChange={(value: RunnerBreakdownStatus) =>
-              setBreakdownStatus(value)
-            }
-            options={[
-              {
-                label: `All cases (${breakdownStatusCounts.all})`,
-                value: 'all',
-              },
-              {
-                label: `Needs attention (${breakdownStatusCounts.attention})`,
-                value: 'attention',
-              },
-              {
-                label: `Failed (${breakdownStatusCounts.failed})`,
-                value: 'failed',
-              },
-              {
-                label: `Passed after retry (${breakdownStatusCounts['retry-passed']})`,
-                value: 'retry-passed',
-              },
-              {
-                label: `Passed (${breakdownStatusCounts.passed})`,
-                value: 'passed',
-              },
-              {
-                label: `Not run (${breakdownStatusCounts['not-run']})`,
-                value: 'not-run',
-              },
-            ]}
-          />
-          <Select
-            aria-label="Sort Project breakdown"
-            value={breakdownSort}
-            onChange={(value: RunnerBreakdownSort) => setBreakdownSort(value)}
-            options={[
-              { label: 'Attention first', value: 'attention' },
-              { label: 'Most issues', value: 'issues' },
-              { label: 'Longest duration', value: 'duration' },
-              { label: 'Project / case name', value: 'name' },
-            ]}
+          <CaseDensitySwitch
+            value={caseDisplayMode}
+            onChange={onCaseDisplayModeChange}
           />
         </div>
+        <CaseFilters
+          cases={cases}
+          query={breakdownQuery}
+          status={breakdownStatus}
+          sort={breakdownSort}
+          onQueryChange={setBreakdownQuery}
+          onStatusChange={setBreakdownStatus}
+          onSortChange={setBreakdownSort}
+        />
         <ProjectBreakdownTree
+          visualIndex={visualIndex}
           projects={breakdownProjects}
           caseDisplayMode={caseDisplayMode}
-          visualIndex={visualIndex}
           expandedProjectKeys={expandedProjectKeys}
           onExpandedProjectKeysChange={onExpandedProjectKeysChange}
           hasActiveFilters={hasActiveBreakdownFilters}
@@ -1256,8 +1102,6 @@ function RunnerAgentTraceContent({
     </div>
   );
 }
-
-type RunnerInspectorTab = 'io' | 'logs';
 
 interface RunnerStepGroup {
   label: string;
@@ -1562,116 +1406,66 @@ function RunnerEvidenceInspector({
     }
   };
 
-  const renderInspectorTab = (): ReactNode => {
-    if (tab === 'io') {
-      return (
-        <div className="runner-detail-io-grid">
-          <section>
-            <h4>Input</h4>
-            {reportValue(step.input) ?? (
-              <span className="runner-muted">None</span>
-            )}
-          </section>
-          <section>
-            <h4>Output</h4>
-            {reportValue(step.output?.data) ?? (
-              <span className="runner-muted">None</span>
-            )}
-            {step.output?.summary ? <p>{step.output.summary}</p> : null}
-          </section>
-        </div>
-      );
-    }
-    if (tab === 'logs') {
-      return (
-        <div className="runner-detail-log-view">
-          <p>
-            <time>{formatTimestamp(step.startedAt)}</time>
-            <b>START</b>
-            <span>Step started: {step.node}</span>
-          </p>
-          {step.error ? (
-            <p className="is-error">
-              <time>{formatTimestamp(step.endedAt)}</time>
-              <b>ERROR</b>
-              <span>
-                {step.error.code || step.error.name}: {step.error.message}
-              </span>
-            </p>
-          ) : null}
-          <p>
-            <time>{formatTimestamp(step.endedAt)}</time>
-            <b>END</b>
-            <span>
-              Step ended with status {step.status} in{' '}
-              {formatDuration(step.durationMs)}
-            </span>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <section className="runner-detail-evidence-panel">
-      <header className="runner-detail-evidence-heading">
-        <div>
-          <div className="runner-eyebrow">
-            {step.phase} · Step {step.stepIndex + 1}
-          </div>
-          <h2>{step.node}</h2>
-          {step.title ? <p>{step.title}</p> : null}
-        </div>
-        <div className="runner-detail-evidence-actions">
-          {hasAgentTrace ? (
-            <div className="runner-detail-trace-actions">
-              <Button
-                type="primary"
-                size="middle"
-                icon={<ThunderboltFilled />}
-                className="runner-detail-trace-open"
-                aria-label="Inspect AI trace in side drawer"
-                onClick={() => onTraceDrawerOpenChange(true)}
-              >
-                Inspect AI trace
-              </Button>
-              <Button
-                size="middle"
-                icon={<ExportOutlined />}
-                className="runner-detail-trace-new-page"
-                aria-label="Open AI trace in new tab"
-                href={tracePageHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open AI trace in new tab
-              </Button>
+      <div className="runner-detail-evidence-main">
+        <header className="runner-detail-evidence-heading">
+          <div>
+            <div className="runner-eyebrow">
+              {step.phase} · Step {step.stepIndex + 1}
             </div>
-          ) : null}
-          <Tag color={step.status === 'success' ? 'success' : 'error'}>
-            {step.status === 'success' ? 'Passed' : 'Failed'}
-          </Tag>
-        </div>
-      </header>
-      {step.error ? (
-        <div className="runner-detail-failure-summary">
-          <CloseCircleFilled />
-          <span>
-            <strong>{step.error.code || step.error.name}</strong>
-            <small>{step.error.message}</small>
-          </span>
-          <button type="button" onClick={copyError}>
-            <CopyOutlined />
-            {copyState === 'copied'
-              ? 'Copied'
-              : copyState === 'failed'
-                ? 'Copy failed'
-                : 'Copy error'}
-          </button>
-        </div>
-      ) : null}
-      <div className="runner-detail-evidence-workspace">
+            <h2>{step.node}</h2>
+            {step.title ? <p>{step.title}</p> : null}
+          </div>
+          <div className="runner-detail-evidence-actions">
+            {hasAgentTrace ? (
+              <div className="runner-detail-trace-actions">
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<ThunderboltFilled />}
+                  className="runner-detail-trace-open"
+                  aria-label="Inspect AI trace in side drawer"
+                  onClick={() => onTraceDrawerOpenChange(true)}
+                >
+                  Inspect AI trace
+                </Button>
+                <Button
+                  size="middle"
+                  icon={<ExportOutlined />}
+                  className="runner-detail-trace-new-page"
+                  aria-label="Open AI trace in new tab"
+                  href={tracePageHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open AI trace in new tab
+                </Button>
+              </div>
+            ) : null}
+            <CaseStatus
+              status={step.status === 'success' ? 'passed' : 'failed'}
+              quiet
+            />
+          </div>
+        </header>
+        {step.error ? (
+          <div className="runner-detail-failure-summary">
+            <CloseCircleFilled />
+            <span>
+              <strong>{step.error.code || step.error.name}</strong>
+              <small>{step.error.message}</small>
+            </span>
+            <button type="button" onClick={copyError}>
+              <CopyOutlined />
+              {copyState === 'copied'
+                ? 'Copied'
+                : copyState === 'failed'
+                  ? 'Copy failed'
+                  : 'Copy error'}
+            </button>
+          </div>
+        ) : null}
         <section className="runner-detail-screenshot-stage">
           <div className="runner-detail-screenshot-toolbar">
             <span>
@@ -1704,66 +1498,47 @@ function RunnerEvidenceInspector({
             Step. Click a frame to lock it and jump to its owning Step.
           </div>
         </section>
-        <section className="runner-detail-inspector">
-          <div className="runner-detail-inspector-tabs" role="tablist">
-            {(
-              [
-                ['io', 'Input & output'],
-                ['logs', 'Events'],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === value}
-                className={tab === value ? 'is-selected' : ''}
-                key={value}
-                onClick={() => onTabChange(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="runner-detail-inspector-content">
-            {renderInspectorTab()}
-          </div>
-          <details className="runner-detail-raw-context">
-            <summary>
-              <CodeOutlined /> Stable IDs and raw context
-            </summary>
-            <dl>
-              <div>
-                <dt>Project ID</dt>
-                <dd title={item.project.projectId}>{item.project.projectId}</dd>
-              </div>
-              <div>
-                <dt>Case ID</dt>
-                <dd title={item.testCase.caseId}>{item.testCase.caseId}</dd>
-              </div>
-              <div>
-                <dt>Attempt ID</dt>
-                <dd title={attempt.attemptId}>{attempt.attemptId}</dd>
-              </div>
-              <div>
-                <dt>Step ID</dt>
-                <dd title={step.id}>{step.id}</dd>
-              </div>
-            </dl>
-          </details>
-        </section>
       </div>
+      <section className="runner-detail-inspector">
+        <EvidenceTabs step={step} tab={tab} onChange={onTabChange} />
+        <details className="runner-detail-raw-context">
+          <summary>
+            <CodeOutlined /> Stable IDs and raw context
+          </summary>
+          <dl>
+            <div>
+              <dt>Project ID</dt>
+              <dd title={item.project.projectId}>{item.project.projectId}</dd>
+            </div>
+            <div>
+              <dt>Case ID</dt>
+              <dd title={item.testCase.caseId}>{item.testCase.caseId}</dd>
+            </div>
+            <div>
+              <dt>Attempt ID</dt>
+              <dd title={attempt.attemptId}>{attempt.attemptId}</dd>
+            </div>
+            <div>
+              <dt>Step ID</dt>
+              <dd title={step.id}>{step.id}</dd>
+            </div>
+          </dl>
+        </details>
+      </section>
       {hasAgentTrace ? (
         <Drawer
           title={`AI trace · ${step.node}`}
           placement="right"
-          width="min(1680px, calc(100vw - 24px))"
+          width="min(1440px, 80vw)"
+          getContainer={false}
+          rootStyle={{ position: 'fixed' }}
           open={traceDrawerOpen}
           onClose={() => onTraceDrawerOpenChange(false)}
           destroyOnClose
           rootClassName="runner-detail-trace-drawer"
           extra={
             <Button
-              size="small"
+              className="runner-detail-trace-new-page"
               icon={<ExportOutlined />}
               aria-label="Open AI trace in new tab"
               href={tracePageHref}
@@ -1817,9 +1592,10 @@ function RunnerTracePage({
               {item.project.name} · {item.testCase.name}
             </p>
           </div>
-          <Tag color={step.status === 'success' ? 'success' : 'error'}>
-            {step.status === 'success' ? 'Passed' : 'Failed'}
-          </Tag>
+          <CaseStatus
+            status={step.status === 'success' ? 'passed' : 'failed'}
+            quiet
+          />
         </div>
       </section>
       <section className="runner-trace-page-content">
@@ -1878,9 +1654,7 @@ function CaseWorkspace({
   const [traceDrawerOpen, setTraceDrawerOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const playbackIndexRef = useRef(0);
-  const [copyLinkState, setCopyLinkState] = useState<
-    'idle' | 'copied' | 'failed'
-  >('idle');
+  const [copyLinkState, setCopyLinkState] = useState<CopyLinkState>('idle');
 
   useEffect(() => {
     const nextAttempt =
@@ -2051,76 +1825,15 @@ function CaseWorkspace({
 
   return (
     <div className="runner-page runner-case-workspace">
-      <section className="runner-detail-case-header">
-        <button type="button" className="runner-back-button" onClick={onBack}>
-          <ArrowLeftOutlined />
-          {backLabel}
-        </button>
-        <div className="runner-detail-heading-row">
-          <div>
-            <CaseStatus status={item.status} />
-            <h1>{item.testCase.name}</h1>
-            <div className="runner-case-meta">
-              <span>{item.project.name}</span>
-              <span>{item.project.platform}</span>
-              <span>{item.document.sourcePath}</span>
-              <span>{formatDuration(item.durationMs)} total</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="runner-detail-copy-link"
-            onClick={copyCaseLink}
-          >
-            <LinkOutlined />
-            {copyLinkState === 'copied'
-              ? 'Copied'
-              : copyLinkState === 'failed'
-                ? 'Copy failed'
-                : 'Copy case link'}
-          </button>
-        </div>
-        <section className="runner-attempt-switcher" aria-label="Attempts">
-          {item.testCase.attempts.map((attempt, index) => (
-            <button
-              type="button"
-              key={attempt.attemptId}
-              className={
-                selectedAttempt?.attemptId === attempt.attemptId
-                  ? 'is-selected'
-                  : ''
-              }
-              onClick={() => selectAttempt(attempt)}
-            >
-              <StepStatus status={attempt.status} />
-              <span>
-                <strong>Attempt {attempt.attemptIndex + 1}</strong>
-                <small>{formatDuration(attempt.durationMs)}</small>
-              </span>
-              <em>
-                {attempt.status === 'failed' && index === 0
-                  ? 'Original failure'
-                  : index === item.testCase.attempts.length - 1
-                    ? 'Final result'
-                    : attempt.status}
-              </em>
-            </button>
-          ))}
-          {item.testCase.attempts.length > 1 ? (
-            <div className="runner-detail-attempt-reading">
-              <InfoCircleOutlined />
-              Compare Attempts to see whether the retry changed behavior or only
-              timing.
-            </div>
-          ) : null}
-          {!item.testCase.attempts.length ? (
-            <div className="runner-not-run-message">
-              <ClockCircleOutlined />
-              {item.testCase.notRunReason || 'This case was not executed.'}
-            </div>
-          ) : null}
-        </section>
-      </section>
+      <CaseWorkspaceHeader
+        item={item}
+        selectedAttempt={selectedAttempt}
+        backLabel={backLabel}
+        copyLinkState={copyLinkState}
+        onBack={onBack}
+        onCopyLink={copyCaseLink}
+        onSelectAttempt={selectAttempt}
+      />
 
       {selectedAttempt ? (
         <>
@@ -2168,86 +1881,6 @@ function CaseWorkspace({
     </div>
   );
 }
-
-interface RunnerNavigationState {
-  page: RunnerPage;
-  selectedProjectId?: string;
-  selectedCaseKey?: string;
-  caseParent: RunnerCaseParent;
-  deepLinkedStepId?: string;
-}
-
-const caseContainsStep = (
-  item: RunnerCaseView,
-  stepId: string | undefined,
-): boolean =>
-  Boolean(
-    stepId &&
-      (item.document.beforeAll.some((step) => step.id === stepId) ||
-        item.document.afterAll.some((step) => step.id === stepId) ||
-        item.testCase.attempts.some((attempt) =>
-          flattenAttemptSteps(attempt).some((step) => step.id === stepId),
-        )),
-  );
-
-const resolveRunnerNavigation = (
-  hash: string,
-  cases: readonly RunnerCaseView[],
-  projects: readonly RunnerProjectView[],
-): RunnerNavigationState => {
-  const route = runnerRouteFromHash(hash);
-  const stepId = runnerStepIdFromHash(hash);
-
-  if (route.page === 'case') {
-    const selectedCase = cases.find(
-      (item) =>
-        item.key === route.caseKey &&
-        item.project.projectId === route.projectId,
-    );
-    if (selectedCase) {
-      return {
-        page: 'case',
-        selectedProjectId: selectedCase.project.projectId,
-        selectedCaseKey: selectedCase.key,
-        caseParent: route.parent,
-        deepLinkedStepId: caseContainsStep(selectedCase, stepId)
-          ? stepId
-          : undefined,
-      };
-    }
-  }
-
-  if (route.page === 'project') {
-    const selectedProject = projects.find(
-      (item) => item.project.projectId === route.projectId,
-    );
-    if (selectedProject) {
-      return {
-        page: 'project',
-        selectedProjectId: selectedProject.project.projectId,
-        caseParent: 'project',
-      };
-    }
-  }
-
-  const hasExplicitPage = new URLSearchParams(
-    hash.startsWith('#') ? hash.slice(1) : '',
-  ).has('runner-page');
-  if (!hasExplicitPage && stepId) {
-    const linkedCase = cases.find((item) => caseContainsStep(item, stepId));
-    if (linkedCase) {
-      return {
-        page: 'case',
-        selectedProjectId: linkedCase.project.projectId,
-        selectedCaseKey: linkedCase.key,
-        caseParent: 'overview',
-        deepLinkedStepId: stepId,
-      };
-    }
-  }
-
-  return { page: 'overview', caseParent: 'overview' };
-};
 
 export default function TestRunnerReport({
   dump,
@@ -2424,19 +2057,9 @@ export default function TestRunnerReport({
               <Logo />
               <div>
                 <strong>Test Runner Report</strong>
-                <span>{dump.runId}</span>
               </div>
             </div>
             <div className="runner-header-actions">
-              <div className="runner-header-result">
-                <span>{dump.summary.passed} passed</span>
-                {health.retryPassedCount ? (
-                  <span>{health.retryPassedCount} retried</span>
-                ) : null}
-                {dump.summary.failed ? (
-                  <span>{dump.summary.failed} failed</span>
-                ) : null}
-              </div>
               <button
                 type="button"
                 className="runner-theme-toggle"
@@ -2455,11 +2078,11 @@ export default function TestRunnerReport({
           >
             {page === 'overview' ? (
               <RunOverview
+                visualIndex={visualIndex}
                 dump={dump}
                 cases={cases}
                 health={health}
                 projects={projects}
-                visualIndex={visualIndex}
                 caseDisplayMode={caseDisplayMode}
                 onCaseDisplayModeChange={setCaseDisplayMode}
                 expandedProjectKeys={expandedProjectKeys}
@@ -2496,11 +2119,11 @@ export default function TestRunnerReport({
               />
             ) : (
               <RunOverview
+                visualIndex={visualIndex}
                 dump={dump}
                 cases={cases}
                 health={health}
                 projects={projects}
-                visualIndex={visualIndex}
                 caseDisplayMode={caseDisplayMode}
                 onCaseDisplayModeChange={setCaseDisplayMode}
                 expandedProjectKeys={expandedProjectKeys}

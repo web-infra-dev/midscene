@@ -1,0 +1,196 @@
+.test-runner-report {
+  .runner-project-workspace {
+    width: min(1424px, 100%);
+  }
+
+  .runner-project-brief {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.4fr);
+    align-items: center;
+    gap: 32px;
+    margin-top: 18px;
+  }
+
+  .runner-project-brief .runner-case-workspace-heading {
+    margin: 0;
+    min-width: 0;
+  }
+
+  .runner-project-brief h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-project-metrics {
+    margin: 0;
+  }
+
+  .runner-project-metrics .runner-metric-card {
+    min-height: 94px;
+  }
+
+  .runner-project-metrics .runner-metric-card > small {
+    margin-top: 0;
+    padding-top: 5px;
+    font-size: 10px;
+  }
+
+  .runner-project-cases {
+    margin-top: 32px;
+  }
+
+  .runner-project-cases .runner-section-heading h2 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-project-cases .runner-case-list {
+    margin: 16px 0 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-project-cases .runner-case-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 18px;
+    border-radius: 0;
+  }
+
+  .runner-project-cases .runner-case-row:first-child {
+    border-top: 0;
+  }
+
+  .runner-project-cases .runner-case-open-button {
+    display: inline-flex;
+    width: auto;
+    height: 32px;
+    padding: 0 10px;
+    gap: 7px;
+    border: 1px solid var(--runner-border);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .runner-project-case-evidence {
+    margin-top: 12px;
+  }
+
+  .runner-project-case-evidence > summary {
+    width: fit-content;
+    padding: 4px 0;
+    color: var(--runner-muted);
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .runner-project-case-evidence > summary:hover {
+    color: var(--runner-primary);
+  }
+
+  .runner-project-case-evidence > summary span {
+    margin-left: 8px;
+    color: var(--runner-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .runner-detail-evidence-heading {
+    flex-wrap: wrap;
+  }
+
+  .runner-detail-evidence-heading > div:first-child {
+    min-width: 0;
+    flex: 1 1 220px;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-evidence-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+  }
+
+  .runner-detail-case-header .runner-attempt-switcher > button {
+    flex-shrink: 0;
+  }
+
+  .runner-project-case-evidence .runner-story-steps {
+    margin-block: 8px;
+  }
+
+  .runner-project-case-evidence .runner-visual-timeline {
+    border: 1px solid var(--runner-border);
+    border-radius: 10px;
+  }
+
+  .runner-back-button {
+    min-height: 36px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 860px) {
+  .test-runner-report .runner-project-brief {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .runner-detail-trace-drawer {
+    .ant-drawer-body {
+      overflow: auto;
+    }
+
+    .runner-agent-trace-content {
+      min-width: 760px;
+    }
+  }
+}
+
+@media (max-width: 620px) {
+  .test-runner-report {
+    .runner-project-cases .runner-case-list {
+      padding-inline: 0;
+    }
+
+    .runner-project-cases .runner-case-row {
+      grid-template-columns: minmax(0, 1fr);
+      padding-inline: 12px;
+    }
+
+    .runner-project-cases .runner-case-open-button {
+      grid-column: 1;
+      grid-row: auto;
+      justify-self: end;
+    }
+
+    .runner-project-tree-overview,
+    .runner-project-cases .runner-case-open-button,
+    .runner-detail-trace-actions .ant-btn,
+    .runner-project-case-evidence > summary,
+    .runner-back-button {
+      min-height: 44px;
+    }
+
+    .runner-project-case-evidence > summary {
+      padding-block: 14px;
+    }
+
+    .runner-header-actions {
+      display: flex;
+    }
+
+    .runner-header-result {
+      display: none;
+    }
+
+    .runner-detail-trace-actions {
+      flex-wrap: wrap;
+    }
+  }
+}
