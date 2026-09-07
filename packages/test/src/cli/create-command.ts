@@ -1,6 +1,6 @@
-import { lstatSync, mkdirSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
-import { input, select } from '@inquirer/prompts';
+import { confirm, input, select } from '@inquirer/prompts';
 import { execa } from 'execa';
 import yargs from 'yargs/yargs';
 import {
@@ -53,7 +53,14 @@ const createParser = () =>
       type: 'boolean',
       alias: 'y',
       default: false,
-      description: 'Disable prompts; directory and platform must be supplied',
+      description:
+        'Disable prompts and install dependencies; directory and platform must be supplied',
+    })
+    .option('skip-install', {
+      type: 'boolean',
+      default: false,
+      description:
+        'Create files without installing dependencies or generating midscene-nodes.md',
     })
     .demandCommand(0, 1, '', 'Only one project directory is allowed.')
     .example('$0', 'Choose a directory and platform interactively')
@@ -63,7 +70,7 @@ const createParser = () =>
       'Include a Node package',
     )
     .epilogue(
-      'Installs dependencies with the selected package manager and generates midscene-nodes.md.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
+      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates midscene-nodes.md after installation.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
     )
     .help('help')
     .alias('help', 'h')
@@ -82,6 +89,7 @@ export interface CreateOptions {
   packageManager?: CreatePackageManager;
   packages: NodePackageSpec[];
   yes: boolean;
+  skipInstall: boolean;
   help: boolean;
 }
 
@@ -113,6 +121,7 @@ export function parseCreateArgs(
     packageManager: values['package-manager'],
     packages,
     yes: values.yes ?? false,
+    skipInstall: values['skip-install'] ?? false,
     help: values.help === true,
   };
 }
@@ -126,6 +135,7 @@ export interface CreateServices {
   selectPackageManager(
     defaultValue: CreatePackageManager,
   ): Promise<CreatePackageManager>;
+  confirmInstall(): Promise<boolean>;
   runPackageManager(
     packageManager: CreatePackageManager,
     args: string[],
@@ -220,6 +230,11 @@ export async function runCreateCommand(
     promptDirectory,
     selectPlatform,
     selectPackageManager,
+    confirmInstall: () =>
+      confirm({
+        message: 'Install dependencies and generate midscene-nodes.md now?',
+        default: true,
+      }),
     runPackageManager,
     ...overrides,
   };
@@ -278,28 +293,52 @@ export async function runCreateCommand(
     writeFileSync(path, content, { flag: 'wx' });
   }
   io.log(`Created ${platform} project files in ${root}`);
+  let install = !options.skipInstall;
+  if (install && services.interactive && !options.yes) {
+    try {
+      install = await services.confirmInstall();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ['ExitPromptError', 'AbortPromptError'].includes(error.name)
+      ) {
+        throw new Error(
+          `Project creation cancelled. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')} to install dependencies and generate midscene-nodes.md.`,
+        );
+      }
+      throw error;
+    }
+  }
+  if (!install) {
+    io.log(
+      `Project files ready: ${root}\nNext: run ${packageManager} ${commands.install.join(' ')} in the project directory. The postinstall script will generate midscene-nodes.md.\nThen follow README.md to configure your model and run tests.`,
+    );
+    return;
+  }
   io.log(`Installing dependencies with ${packageManager}...`);
   try {
     await services.runPackageManager(packageManager, commands.install, root);
   } catch (error) {
     throw new Error(
-      `Dependency installation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run describe-nodes.\n${error instanceof Error ? error.message : String(error)}`,
+      `Dependency installation or postinstall Node reference generation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run describe-nodes if lifecycle scripts are disabled.\nIf postinstall failed, check midscene.config.ts and the Node package factories, then run ${packageManager} run describe-nodes.\n${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  io.log('Generating Node reference...');
   try {
-    const markdown = await services.runPackageManager(
-      packageManager,
-      commands.describe,
-      root,
-      true,
-    );
+    const referencePath = resolve(root, 'midscene-nodes.md');
+    const generatedByPostinstall = Boolean(statIfPresent(referencePath));
+    // Fall back to explicit generation if lifecycle scripts were disabled.
+    if (!generatedByPostinstall) {
+      io.log('Generating Node reference...');
+      await services.runPackageManager(packageManager, commands.describe, root);
+    }
+    const markdown = readFileSync(referencePath, 'utf8');
     if (
       !markdown.startsWith('<!-- Generated by `midscene-test describe-nodes`.')
     ) {
-      throw new Error('describe-nodes did not return a valid Node reference.');
+      throw new Error(
+        'describe-nodes did not generate a valid Node reference.',
+      );
     }
-    writeFileSync(resolve(root, 'midscene-nodes.md'), markdown, { flag: 'wx' });
   } catch (error) {
     throw new Error(
       `Node reference generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run ${packageManager} run describe-nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,

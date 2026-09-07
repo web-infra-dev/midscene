@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -37,6 +38,7 @@ const io = () => ({ log: vi.fn(), error: vi.fn() });
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
+  confirmInstall: vi.fn(async () => true),
   userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
   selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
   promptDirectory: async () => {
@@ -120,6 +122,107 @@ const isolateWebDependency = (root: string) => {
 };
 
 describe('generated project integration', () => {
+  it.each(createPackageManagers)(
+    'generates and refreshes the reference on a manual %s install after skipping installation',
+    async (packageManager) => {
+      const cwd = temp();
+      const root = join(cwd, 'manual install');
+      const runtime = services(cwd);
+      await runCreateCommand(
+        [
+          root,
+          '--platform',
+          'web',
+          '--package-manager',
+          packageManager,
+          '--skip-install',
+        ],
+        io(),
+        runtime,
+      );
+      expect(existsSync(join(root, 'midscene-nodes.md'))).toBe(false);
+
+      // Install a local CLI launcher instead of registry dependencies. This
+      // exercises real npm/pnpm install lifecycles with the generated scripts
+      // and actual describe-nodes command, without network or runtime resources.
+      const launcher = join(cwd, 'cli-fixture');
+      mkdirSync(launcher);
+      writeFileSync(
+        join(launcher, 'package.json'),
+        JSON.stringify({
+          name: 'midscene-cli-fixture',
+          version: '1.0.0',
+          bin: { 'midscene-test': './cli.cjs' },
+        }),
+      );
+      writeFileSync(
+        join(launcher, 'cli.cjs'),
+        `#!/usr/bin/env node\nrequire(${JSON.stringify(join(packageRoot, 'bin/midscene-test'))});\n`,
+      );
+      chmodSync(join(launcher, 'cli.cjs'), 0o755);
+      const manifestPath = join(root, 'package.json');
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifest.devDependencies = {
+        'midscene-cli-fixture': 'file:../cli-fixture',
+      };
+      writeFileSync(manifestPath, JSON.stringify(manifest));
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `
+        import { defineTestProject } from ${JSON.stringify(pathToFileURL(join(packageRoot, 'dist/es/cli/index.mjs')).href)};
+        export default defineTestProject({
+          nodes: [{ name: 'install.inspect', description: 'Generated after installation.', execute() { throw new Error('Node execution is forbidden'); } }],
+          setup: { name: 'offline', platform: 'web', setup() { throw new Error('Setup execution is forbidden'); } },
+        });
+      `,
+      );
+      const args =
+        packageManager === 'npm'
+          ? [
+              'install',
+              '--workspaces=false',
+              '--offline',
+              '--ignore-scripts=false',
+              '--no-audit',
+              '--no-fund',
+            ]
+          : [
+              'install',
+              '--ignore-workspace',
+              '--offline',
+              '--ignore-scripts=false',
+            ];
+      const install = () =>
+        execFileAsync(packageManager, args, {
+          cwd: root,
+          env: { ...process.env, NODE_PATH: '' },
+        });
+      await install();
+      const referencePath = join(root, 'midscene-nodes.md');
+      expect(readFileSync(referencePath, 'utf8')).toContain(
+        '## `install.inspect`',
+      );
+      expect(
+        existsSync(
+          join(
+            root,
+            packageManager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml',
+          ),
+        ),
+      ).toBe(true);
+      writeFileSync(referencePath, 'outdated reference');
+      await install();
+      expect(readFileSync(referencePath, 'utf8')).toContain(
+        '## `install.inspect`',
+      );
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        "throw new Error('invalid postinstall config');",
+      );
+      await expect(install()).rejects.toThrow('invalid postinstall config');
+      expect(existsSync(join(root, 'midscene_run'))).toBe(false);
+    },
+  );
   it.each(
     createPlatforms.flatMap((platform) =>
       createPackageManagers.map((packageManager) => ({

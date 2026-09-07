@@ -1,8 +1,12 @@
-import { existsSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, statSync, writeFileSync } from 'node:fs';
+import { relative, resolve, sep } from 'node:path';
 import { renderNodeReference } from './node-reference';
 import { loadTestProject } from './test-project';
-import { discoverTestConfig, runTestProject } from './test-project-runner';
+import {
+  DEFAULT_TEST_FILE_SELECTION,
+  discoverTestConfig,
+  runTestProject,
+} from './test-project-runner';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -99,12 +103,33 @@ const describeNodes = async (
   }
 
   const project = await loadTestProject(configPath);
-  const document = renderNodeReference(project.nodes.definitions());
+  const nodes = [...project.nodes.definitions()].sort((left, right) =>
+    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+  );
+  const document = renderNodeReference(nodes, {
+    configPath: configPath
+      ? relative(configSearchRoot, configPath).split(sep).join('/')
+      : undefined,
+    projects: project.projects.map((executionProject) => ({
+      name: executionProject.name,
+      files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
+    })),
+  });
   for (const warning of document.warnings) {
     io.error(`midscene-test describe-nodes: ${warning}`);
   }
-  if (io.write) io.write(document.markdown);
-  else io.log(document.markdown.trimEnd());
+  const referencePath = resolve(configSearchRoot, 'midscene-nodes.md');
+  writeFileSync(referencePath, document.markdown);
+  io.log(`Registered Nodes (${nodes.length}):`);
+  if (nodes.length === 0) {
+    io.log('No nodes are registered by the current Test Project.');
+  }
+  for (const node of nodes) {
+    io.log(
+      `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
+    );
+  }
+  io.log(`\nNode reference generated: ${referencePath}`);
 };
 
 export async function runTestCli(

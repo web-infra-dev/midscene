@@ -6,14 +6,14 @@
 
 ## 创建项目
 
-使用 `create` 生成项目。项目包含平台 Agent、示例用例和 Node 说明书：
+使用 `create` 生成项目。项目包含平台 Agent 和示例用例，安装依赖后还会生成 Node 说明书：
 
 ```bash
 pnpm dlx @midscene/test create my-tests --platform web
 cd my-tests
 ```
 
-该命令需要 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，以及选定的包管理器（npm 或 pnpm）。它会安装依赖，再运行 `describe-nodes`，将说明书写入 `midscene-nodes.md`。
+该命令需要 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，以及选定的包管理器（npm 或 pnpm）。写入项目文件后，命令会询问是否安装依赖并生成 `midscene-nodes.md`，默认选择“是”。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -21,10 +21,34 @@ cd my-tests
 | `--platform <name>` | 支持 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）和 `computer`（桌面端）。省略时交互选择。 |
 | `--package-manager <name>` | 支持 `npm` 和 `pnpm`。在交互式终端中，省略时交互选择。 |
 | `--with <package>` | 安装并注册 Node 包。支持指定版本或标签，可重复传入多个包。 |
-| `-y`、`--yes` | 禁用交互，必须同时提供目录和平台。 |
+| `--skip-install` | 仅生成项目文件，跳过安装依赖和生成说明书。与 `--yes` 同时使用时也会跳过安装。 |
+| `-y`、`--yes` | 禁用交互并安装依赖，除非指定 `--skip-install`。必须同时提供目录和平台。 |
 | `-h`、`--help` | 显示用法和示例。 |
 
 在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录、平台和包管理器。在 CI 等非交互环境中，必须提供目录和平台。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
+
+最后一步会询问“Install dependencies and generate midscene-nodes.md now?”。选择“否”会保留项目文件，并提示稍后安装的命令。在这一步取消交互，也会保留文件。在非交互环境中，默认自动安装；指定 `--skip-install` 可跳过。
+
+如果想先创建文件，稍后再安装：
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web --skip-install
+cd my-tests
+pnpm install --ignore-workspace
+```
+
+生成的 `package.json` 包含 `postinstall` 脚本：
+
+```json
+{
+  "scripts": {
+    "postinstall": "midscene-test describe-nodes",
+    "describe-nodes": "midscene-test describe-nodes"
+  }
+}
+```
+
+手动执行 `npm install` 或 `pnpm install` 时，会自动运行此脚本。后续安装依赖也会刷新说明书。如果禁用了生命周期脚本，请手动执行 `npm run describe-nodes` 或 `pnpm run describe-nodes`。通过 `create` 安装时，命令会复用 `postinstall` 的生成结果；如果文件未生成，则单独执行一次 `describe-nodes`。生成失败会导致安装或创建命令报错退出。
 
 显式指定 `--package-manager` 时，命令直接采用该值，不再询问包管理器。省略时，交互选项默认选中启动命令所用的包管理器。命令通过 `npm_config_user_agent` 识别 npm 或 pnpm。在非交互环境中，或使用 `--yes` 时，直接采用识别结果。无法识别时默认使用 npm。
 
@@ -45,7 +69,7 @@ pnpm dlx @midscene/test create desktop-tests --platform computer
 
 这两个平台也支持通过 `--with` 注册外部 Node 包。
 
-使用 pnpm 时，生成的项目包含以下文件。使用 npm 时，锁文件为 `package-lock.json`，而非 `pnpm-lock.yaml`。README 文件只生成 `README.md`：
+通过 pnpm 完成安装后，项目包含以下文件。如果跳过安装，`midscene-nodes.md` 和锁文件会在稍后安装时生成。使用 npm 时，锁文件为 `package-lock.json`，而非 `pnpm-lock.yaml`。README 文件只生成 `README.md`：
 
 ```text
 my-tests/
@@ -625,8 +649,10 @@ HTTP response 语义。
 执行以下命令直接生成团队专属说明书：
 
 ```bash
-pnpm exec midscene-test describe-nodes > midscene-nodes.md
+pnpm exec midscene-test describe-nodes
 ```
+
+命令会将 `midscene-nodes.md` 写入指定的测试目录；未指定时写入当前目录。生成成功后，stdout 会列出当前注册的全部 Node 的名称和 description，最后显示说明书文件的绝对路径，无需重定向输出。
 
 或者指定测试目录或专属配置文件：
 
@@ -635,6 +661,8 @@ pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.t
 ```
 
 生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的系统内置 Node），按名称排序。运行器会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
+
+说明书会分别列出 `Case files`（每个 Execution Project 的 `files.include` / `files.exclude` glob 匹配规则）和 `Config file`。两者均相对于说明书所在目录，方便用例编写者定位 YAML 文件和配置文件。创建模板默认选择 `cases/**/*.{yaml,yml}`；未配置 `files` 时，运行器会在测试目录下递归查找 `**/*.{yaml,yml}`。
 
 ## 配置和管理 Test Project
 

@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { input, select } from '@inquirer/prompts';
+import { confirm, input, select } from '@inquirer/prompts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type CreateServices,
@@ -21,7 +21,11 @@ import { parseNodePackageSpec } from '../src/cli/create-template';
 import { renderNodeReference } from '../src/cli/node-reference';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
-vi.mock('@inquirer/prompts', () => ({ input: vi.fn(), select: vi.fn() }));
+vi.mock('@inquirer/prompts', () => ({
+  input: vi.fn(),
+  select: vi.fn(),
+  confirm: vi.fn(),
+}));
 
 const temporaryDirectories: string[] = [];
 const temp = () => {
@@ -34,6 +38,7 @@ const reference = renderNodeReference([]).markdown;
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
+  confirmInstall: vi.fn(async () => true),
   userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
   selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
   promptDirectory: vi.fn(async () => {
@@ -42,7 +47,12 @@ const services = (cwd: string): CreateServices => ({
   selectPlatform: vi.fn(async () => {
     throw new Error('Unexpected platform prompt');
   }),
-  runPackageManager: vi.fn(async () => reference),
+  runPackageManager: vi.fn(async (_manager, args, root) => {
+    if (args[0] !== 'install') {
+      writeFileSync(join(root, 'midscene-nodes.md'), reference);
+    }
+    return '';
+  }),
 });
 
 afterEach(() => {
@@ -53,6 +63,11 @@ afterEach(() => {
 });
 
 describe('create arguments', () => {
+  it('accepts --skip-install together with --yes', () => {
+    expect(
+      parseCreateArgs(['.', '--platform', 'web', '--skip-install', '--yes']),
+    ).toMatchObject({ skipInstall: true, yes: true });
+  });
   it.each(['npm', 'pnpm'])('accepts --package-manager %s', (packageManager) => {
     expect(
       parseCreateArgs([
@@ -100,6 +115,7 @@ describe('create arguments', () => {
         { name: 'other-nodes', version: 'latest' },
       ],
       yes: true,
+      skipInstall: false,
       help: false,
     });
     expect(parseNodePackageSpec('nodes@beta')).toEqual({
@@ -154,10 +170,156 @@ describe('create arguments', () => {
   });
 });
 
+describe('create installation confirmation and postinstall', () => {
+  it.each(['npm', 'pnpm'] as const)(
+    'can decline %s installation after creating files',
+    async (packageManager) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      runtime.interactive = true;
+      runtime.confirmInstall = vi.fn(async () => {
+        expect(existsSync(join(cwd, 'midscene.config.ts'))).toBe(true);
+        return false;
+      });
+      const output = io();
+      await runCreateCommand(
+        ['.', '--platform', 'web', '--package-manager', packageManager],
+        output,
+        runtime,
+      );
+      expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
+      expect(runtime.runPackageManager).not.toHaveBeenCalled();
+      expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
+      const manifest = JSON.parse(
+        readFileSync(join(cwd, 'package.json'), 'utf8'),
+      );
+      expect(manifest.scripts.postinstall).toBe('midscene-test describe-nodes');
+      expect(manifest.scripts['describe-nodes']).toBe(
+        manifest.scripts.postinstall,
+      );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(`Next: run ${packageManager} install`),
+      );
+      expect(output.log.mock.calls.flat().join('\n')).not.toContain(
+        'Project ready:',
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'skips installation without prompting when --skip-install is set (interactive: %s)',
+    async (interactive) => {
+      for (const yes of [false, true]) {
+        const cwd = temp();
+        const runtime = services(cwd);
+        runtime.interactive = interactive;
+        await runCreateCommand(
+          [
+            '.',
+            '--platform',
+            'web',
+            '--package-manager',
+            'pnpm',
+            '--skip-install',
+            ...(yes ? ['--yes'] : []),
+          ],
+          io(),
+          runtime,
+        );
+        expect(runtime.confirmInstall).not.toHaveBeenCalled();
+        expect(runtime.runPackageManager).not.toHaveBeenCalled();
+        expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+        expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
+      }
+    },
+  );
+
+  it.each([false, true])(
+    'installs without prompting in noninteractive mode or with --yes (interactive: %s)',
+    async (interactive) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      runtime.interactive = interactive;
+      await runCreateCommand(
+        ['.', '--platform', 'web', ...(interactive ? ['--yes'] : [])],
+        io(),
+        runtime,
+      );
+      expect(runtime.confirmInstall).not.toHaveBeenCalled();
+      expect(runtime.runPackageManager).toHaveBeenCalled();
+    },
+  );
+
+  it.each(['ExitPromptError', 'AbortPromptError'])(
+    'preserves project files when the last prompt is cancelled (%s)',
+    async (name) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      runtime.interactive = true;
+      const error = new Error('Cancelled');
+      error.name = name;
+      runtime.confirmInstall = vi.fn().mockRejectedValue(error);
+      await expect(
+        runCreateCommand(['.', '--platform', 'web'], io(), runtime),
+      ).rejects.toThrow('Project files are preserved');
+      expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+      expect(runtime.runPackageManager).not.toHaveBeenCalled();
+    },
+  );
+
+  it('uses the reference written by postinstall without generating twice', async () => {
+    const cwd = temp();
+    const runtime = services(cwd);
+    runtime.interactive = true;
+    runtime.runPackageManager = vi.fn(async () => {
+      writeFileSync(join(cwd, 'midscene-nodes.md'), reference);
+      return '';
+    });
+    const output = io();
+    await runCreateCommand(['.', '--platform', 'web'], output, runtime);
+    expect(runtime.confirmInstall).toHaveBeenCalledTimes(1);
+    expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
+    expect(readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8')).toBe(
+      reference,
+    );
+    expect(output.log).not.toHaveBeenCalledWith('Generating Node reference...');
+    expect(output.log).toHaveBeenLastCalledWith(
+      expect.stringContaining('Project ready:'),
+    );
+  });
+
+  it('falls back to explicit generation when lifecycle scripts did not run', async () => {
+    const cwd = temp();
+    const runtime = services(cwd);
+    await runCreateCommand(['.', '--platform', 'web'], io(), runtime);
+    expect(runtime.runPackageManager).toHaveBeenCalledTimes(2);
+    expect(readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8')).toBe(
+      reference,
+    );
+  });
+
+  it('rejects invalid output left by postinstall', async () => {
+    const cwd = temp();
+    const runtime = services(cwd);
+    runtime.runPackageManager = vi.fn(async () => {
+      writeFileSync(join(cwd, 'midscene-nodes.md'), 'invalid output');
+      return '';
+    });
+    await expect(
+      runCreateCommand(['.', '--platform', 'web'], io(), runtime),
+    ).rejects.toThrow('Node reference generation failed');
+    expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
+    expect(readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8')).toBe(
+      'invalid output',
+    );
+  });
+});
+
 describe('create project', () => {
   it('uses Inquirer input and selection prompts for missing choices', async () => {
     const cwd = temp();
     vi.mocked(input).mockResolvedValue('library-tests');
+    vi.mocked(confirm).mockResolvedValue(true);
     vi.mocked(select)
       .mockResolvedValueOnce('ios')
       .mockResolvedValueOnce('pnpm');
@@ -165,7 +327,11 @@ describe('create project', () => {
       cwd,
       interactive: true,
       userAgent: 'pnpm/9.15.0',
-      runPackageManager: vi.fn(async () => reference),
+      runPackageManager: services(cwd).runPackageManager,
+    });
+    expect(confirm).toHaveBeenCalledWith({
+      message: 'Install dependencies and generate midscene-nodes.md now?',
+      default: true,
     });
     expect(input).toHaveBeenCalledWith(
       expect.objectContaining({ default: 'my-tests' }),
@@ -235,7 +401,6 @@ describe('create project', () => {
       'pnpm',
       ['exec', 'midscene-test', 'describe-nodes'],
       root,
-      true,
     );
     expect(readFileSync(join(root, 'midscene-nodes.md'), 'utf8')).toBe(
       reference,
@@ -372,7 +537,7 @@ describe('create project', () => {
   });
 
   it.each(['', 'partial output'])(
-    'does not save invalid reference output %j',
+    'fails when the command returns %j without generating a reference',
     async (output) => {
       const cwd = temp();
       const runtime = services(cwd);
@@ -427,7 +592,6 @@ describe('create package manager selection', () => {
         packageManager,
         describe,
         cwd,
-        true,
       );
       const readme = readFileSync(join(cwd, 'README.md'), 'utf8');
       const chromium =
