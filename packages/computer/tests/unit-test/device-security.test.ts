@@ -250,7 +250,7 @@ describe('ComputerDevice AppleScript security', () => {
     ]);
   });
 
-  it('holds shortcut modifiers explicitly for VNC clients', async () => {
+  it('holds shortcut modifiers as explicit key state changes', async () => {
     await runKeyboardPress('Control+s', 'physical');
 
     expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [

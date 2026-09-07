@@ -722,11 +722,13 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
   /**
    * How the macOS AppleScript keyboard driver represents modifier keys.
    * `logical` keeps the default compact `keystroke ... using` behavior.
-   * `physical` emits explicit modifier key-down/key-up transitions for apps
-   * such as VNC clients that forward physical keyboard events. Physical mode
-   * assumes an en-US layout for shifted punctuation and may type base keys in
-   * native macOS applications. Text input must use sequential input or a
-   * positive `keyboardTypeDelay` to emit individual keys.
+   * `physical` emits explicit modifier key-down/key-up transitions for
+   * foreground apps that require separate modifier state changes, including
+   * some remote-control clients and virtual machine consoles. Both modes use
+   * AppleScript System Events; `physical` does not emit hardware events.
+   * Physical mode assumes an en-US layout for shifted punctuation and may type
+   * base keys in native macOS applications. Text input must use sequential
+   * input or a positive `keyboardTypeDelay` to emit individual keys.
    *
    * Ignored outside macOS and when `keyboardDriver` is `libnut`.
    * @default 'logical'
