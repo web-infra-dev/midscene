@@ -27,6 +27,7 @@ declare module '@computer-use/libnut/dist/import_libnut.js' {
     mouseToggle(state: ToggleState, button?: MouseButton): void;
     scrollMouse(x: number, y: number): void;
     keyTap(key: string, modifiers?: string[]): void;
+    keyToggle(key: string, state: ToggleState, modifiers?: string[]): void;
     typeString(text: string): void;
     getActiveWindow?(): number;
     getWindowRect?(handle: number): Rect;
@@ -65,6 +66,7 @@ declare module '@computer-use/libnut/dist/import_libnut' {
     mouseToggle(state: ToggleState, button?: MouseButton): void;
     scrollMouse(x: number, y: number): void;
     keyTap(key: string, modifiers?: string[]): void;
+    keyToggle(key: string, state: ToggleState, modifiers?: string[]): void;
     typeString(text: string): void;
     getActiveWindow?(): number;
     getWindowRect?(handle: number): Rect;

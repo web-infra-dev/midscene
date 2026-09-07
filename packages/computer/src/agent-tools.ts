@@ -62,6 +62,14 @@ const computerInitArgShape = {
     .describe(
       'Text input strategy. "legacy" (default) preserves current Computer behavior, "sequential" sends one Unicode code point at a time, and "bulk" uses one backend input operation. "bulk" requires keyboardTypeDelay to be omitted or set to 0.',
     ),
+  keyboardShortcutDelay: z
+    .number()
+    .finite()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Finite non-negative delay in milliseconds between modifier transitions and the main key for local libnut shortcuts. Positive values can improve compatibility with full-screen remote-control clients. Ignored in RDP mode and by the macOS AppleScript driver.',
+    ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.
   // All other RDP options below are silently ignored unless `host` is set.
@@ -116,7 +124,10 @@ const computerInitArgShape = {
 export type ComputerLocalInitArgs = {
   mode: 'local';
 } & Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
-  Pick<ComputerDeviceOpt, 'inputStrategy' | 'keyboardTypeDelay'> &
+  Pick<
+    ComputerDeviceOpt,
+    'inputStrategy' | 'keyboardTypeDelay' | 'keyboardShortcutDelay'
+  > &
   AgentBehaviorInitArgs;
 
 /** Init args for the RDP remote-desktop agent. */
@@ -136,7 +147,11 @@ export type ComputerInitArgs = ComputerLocalInitArgs | ComputerRDPInitArgs;
 type ExtractedComputerInitArgs = Partial<
   Pick<
     ComputerDeviceOpt,
-    'displayId' | 'headless' | 'inputStrategy' | 'keyboardTypeDelay'
+    | 'displayId'
+    | 'headless'
+    | 'inputStrategy'
+    | 'keyboardTypeDelay'
+    | 'keyboardShortcutDelay'
   > &
     RDPConnectionConfig &
     AgentBehaviorInitArgs
@@ -155,7 +170,12 @@ function adaptComputerInitArgs(
   }
   if (extracted.host) {
     // Drop local-only fields; they're meaningless in RDP mode.
-    const { displayId: _d, headless: _h, ...rdpFields } = extracted;
+    const {
+      displayId: _d,
+      headless: _h,
+      keyboardShortcutDelay: _s,
+      ...rdpFields
+    } = extracted;
     const host = normalizeRdpHost(extracted.host);
     return {
       mode: 'rdp',
@@ -169,6 +189,7 @@ function adaptComputerInitArgs(
     headless: extracted.headless,
     keyboardTypeDelay: extracted.keyboardTypeDelay,
     inputStrategy: extracted.inputStrategy,
+    keyboardShortcutDelay: extracted.keyboardShortcutDelay,
     ...(extractAgentBehaviorInitArgs(extracted) ?? {}),
   };
 }
@@ -263,12 +284,15 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
     const headless = opts?.mode === 'local' ? opts.headless : undefined;
     const keyboardTypeDelay = opts?.keyboardTypeDelay;
     const inputStrategy = opts?.inputStrategy;
+    const keyboardShortcutDelay =
+      opts?.mode === 'local' ? opts.keyboardShortcutDelay : undefined;
     debug('Creating Computer agent with displayId:', displayId || 'primary');
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
       ...(keyboardTypeDelay !== undefined ? { keyboardTypeDelay } : {}),
       ...(inputStrategy !== undefined ? { inputStrategy } : {}),
+      ...(keyboardShortcutDelay !== undefined ? { keyboardShortcutDelay } : {}),
       ...(this.options.keepXvfbAliveUntilProcessExit
         ? { keepXvfbAliveUntilProcessExit: true }
         : {}),

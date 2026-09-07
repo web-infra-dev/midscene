@@ -9,6 +9,7 @@ export interface LibNut {
   mouseToggle(state: 'up' | 'down', button?: MouseButton): void;
   scrollMouse(x: number, y: number): void;
   keyTap(key: string, modifiers?: string[]): void;
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void;
   typeString(text: string): void;
   getActiveWindow?(): number;
   focusWindow?(handle: number): void;
@@ -153,6 +154,46 @@ export class ComputerInputDriver {
     }
   }
 
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void {
+    const lib = this.getLibnutOrThrow('keyToggle');
+    if (modifiers !== undefined) {
+      lib.keyToggle(key, state, modifiers);
+    } else {
+      lib.keyToggle(key, state);
+    }
+  }
+
+  /**
+   * Keep modifiers pressed long enough for foreground clients with a separate
+   * keyboard-capture path to observe each state transition.
+   */
+  async keyTapWithExplicitModifiers(
+    key: string,
+    modifiers: string[],
+    delayMs: number,
+  ): Promise<void> {
+    const uniqueModifiers = [...new Set(modifiers)];
+    if (uniqueModifiers.length === 0) {
+      this.keyTap(key);
+      return;
+    }
+
+    const pressedModifiers: string[] = [];
+    try {
+      for (const modifier of uniqueModifiers) {
+        this.keyToggle(modifier, 'down');
+        pressedModifiers.push(modifier);
+      }
+      await this.delay(delayMs);
+      this.keyTap(key);
+      await this.delay(delayMs);
+    } finally {
+      for (const modifier of pressedModifiers.reverse()) {
+        this.releaseKey(modifier);
+      }
+    }
+  }
+
   typeString(text: string): void {
     this.getLibnutOrThrow('typeString').typeString(text);
   }
@@ -260,6 +301,16 @@ export class ComputerInputDriver {
       libnut.mouseToggle('up', button);
     } catch (error) {
       this.options.debug(`Failed to release mouse button ${button}: ${error}`);
+    }
+  }
+
+  private releaseKey(key: string): void {
+    try {
+      const libnut = this.options.getLibnut();
+      assert(libnut, 'libnut not initialized');
+      libnut.keyToggle(key, 'up');
+    } catch (error) {
+      this.options.debug(`Failed to release key ${key}: ${error}`);
     }
   }
 

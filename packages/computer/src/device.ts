@@ -824,6 +824,17 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    */
   keyboardDriver?: 'applescript' | 'libnut';
   /**
+   * Delay in milliseconds between explicit modifier transitions and the main
+   * key for local libnut shortcuts. A positive value changes modified
+   * shortcuts from one `keyTap` call into modifier-down, main-key, and
+   * modifier-up phases. This can help foreground clients whose full-screen
+   * keyboard capture misses rapidly synthesized modifier state changes.
+   *
+   * Ignored by the macOS AppleScript driver and RDP mode.
+   * @default 0
+   */
+  keyboardShortcutDelay?: number;
+  /**
    * Headless mode via Xvfb (Linux only).
    * - true: start Xvfb virtual display
    * - false/undefined: do not start Xvfb
@@ -1030,6 +1041,15 @@ export class ComputerDevice implements AbstractInterface {
   };
 
   constructor(options?: ComputerDeviceOpt) {
+    if (
+      options?.keyboardShortcutDelay !== undefined &&
+      (!Number.isFinite(options.keyboardShortcutDelay) ||
+        options.keyboardShortcutDelay < 0)
+    ) {
+      throw new Error(
+        'keyboardShortcutDelay must be a finite non-negative number',
+      );
+    }
     this.options = options;
     this.displayId = options?.displayId;
     this.useAppleScript =
@@ -1634,6 +1654,16 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       modifiers,
       driver: this.useAppleScript ? 'applescript' : 'libnut',
     });
+
+    const shortcutDelay = this.options?.keyboardShortcutDelay ?? 0;
+    if (!this.useAppleScript && modifiers.length > 0 && shortcutDelay > 0) {
+      await this.inputDriver.keyTapWithExplicitModifiers(
+        key,
+        modifiers,
+        shortcutDelay,
+      );
+      return;
+    }
 
     this.inputDriver.sendKey(key, modifiers);
   }
