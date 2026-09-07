@@ -18,15 +18,13 @@ export const EN_US = {
   completion: 'Completion',
 
   // Feature Sections - CLIENTS
-  clientsTitle: 'Platforms',
-  clientsHeading: `Web, PC, Mobile,
-and more`,
+  clientsTitle: 'GUI Agent',
+  clientsHeading: 'Act and verify\nlike a human',
   clientsDesc1:
-    'Test and automate with natural language across web, mobile, and desktop',
-  clientsDesc2:
-    'One unified API and test suite — the same way on every platform',
+    'Look at the screen, act on what you see, and check the visible result.',
+  clientsDesc2: 'Describe tasks and expected outcomes in natural language.',
   clientsDesc3:
-    'Reaches what selectors cannot — unlabeled elements, canvas, native apps, and cross-origin frames',
+    'One set of Agent APIs across web, mobile, desktop, and custom interfaces.',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -40,68 +38,66 @@ and more`,
   platformMobileDesc:
     'Test and automate Android, iOS, and HarmonyOS apps on real devices and simulators.',
   platformAnyInterfaceDesc:
-    'Automate any interface you can screenshot — beyond DOM and accessibility limits.',
-
-  // Feature Sections - MODELS
-  modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: 'Pure vision at the core',
-  modelsDesc1: 'Works from screenshots — no selectors or annotations',
-  modelsDesc2: 'Start with one model; add specialists for complex tasks',
-  modelsDesc3: 'Choose from supported models, including self-hosted options',
-
-  // Model Cards
-  modelSeedName: 'Doubao Seed',
-  modelSeedDesc:
-    'Strong visual grounding for reliable element location — a solid default for Midscene.',
-  modelSupportedName: 'Multiple model options',
-  modelSupportedDesc:
-    'Works with Qwen, GPT, Gemini, Kimi, and more — choose what fits your needs.',
-  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
-  modelDeepSeekDesc:
-    'Extremely fast visual grounding, but less reliable on complex interfaces.',
-  modelMultiModelName: 'Multi-model combo',
-  modelMultiModelDesc:
-    'Pair a planning model with a vision model to raise task completion rates.',
+    'Connect screenshot and action capabilities to automate your own interface.',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: 'TESTING TOOLKIT',
-  debuggingHeading: `Ready-to-use
-UI testing toolkit`,
-  debuggingDesc1: 'Practical APIs to script tests and control automation flows',
-  debuggingDesc2: 'Supports extending your own UI action agents',
-  debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
+  debuggingTitle: 'Testing Kit',
+  debuggingHeading: 'Batteries included\nfor E2E testing',
+  debuggingDesc1: 'Built-in observability to understand every run.',
+  debuggingDesc2: 'Midscene Test: an E2E framework for people and AI Agents.',
+  debuggingDesc3: 'Rich APIs that fit your existing testing stack.',
 
   // Feature Sections - BENCHMARKS
-  benchmarksTitle: 'EVALUATION',
-  benchmarksHeading: 'Benchmarks',
+  benchmarksTitle: 'GUI Agent · Performance',
+  benchmarksHeading: 'Execution results\nand model cost',
   benchmarksDesc:
-    "Explore Midscene's results on AndroidWorld, MobileWorld, and AppControlBench.",
+    'Reported runs with model configurations and task traces. Follow each report for evaluation conditions and adjustments.',
 
   // Feature Cards
-  featureRichAPIs: 'Rich APIs',
-  featureRichAPIsDesc:
-    'Auto-planning for whole flows, plus atomic APIs like aiTap and aiAssert for precise tests.',
-  featureSkills: 'Skills',
-  featureSkillsDesc:
-    'Drop-in Skills let AI coding agents test your UI through Midscene CLIs.',
-  featureReportsPlayground: 'Reports & Playground',
-  featureReportsPlaygroundDesc:
-    'Replay every step in a visual report, and try ideas fast in the playground.',
-  featureFlexibleIntegration: 'Flexible Integration',
-  featureFlexibleIntegrationDesc:
-    'Write tests in YAML with Midscene Test and extend them with custom TypeScript Nodes.',
-  featureRichAPIsLink: '/api',
-  featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
-  featureFlexibleIntegrationLink: '/midscene-test/overview',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
   featureAppControlBenchLink: '/app-control-bench-report',
 
-  // View All APIs
-  apiMoreLink: 'View All APIs',
-  apiMoreDesc:
-    'Explore the complete API documentation for more automation capabilities.',
+  // Visual capabilities, evidence, and onboarding
+  visualActionTitle: 'Act on what you see',
+  visualActionDesc:
+    'Locate controls by appearance and position, then click, type, and scroll — including icon-only buttons, canvas, and cross-origin frames.',
+  visualActionExample:
+    'Search for headphones, then filter the results to under $100',
+  visualAssertTitle: 'Verify what users see',
+  visualAssertDesc:
+    'Judge the rendered result from screenshots: colors, selection highlights, layout, and visual feedback, on web and native apps.',
+  visualAssertExample: 'The selected plan has a blue border and a checkmark',
+  costTitle: 'Model cost · 60 tasks',
+  costDetails: 'Doubao Seed 2.1 Turbo · 58/60 passed',
+  modelNote:
+    'Choose from supported models, including self-hosted options, or combine planning and vision models.',
+  modelLinkLabel: 'Explore model strategy',
+  observeTitle: 'Built-in observability',
+  observeDesc:
+    'Inspect screenshots, element locations, AI decisions, and results. Midscene Test records AI and business steps with inputs, outputs, timing, and status.',
+  testTitle: 'Midscene Test · Beta',
+  testDesc:
+    'Express test intent in YAML and extend business operations in TypeScript. Lifecycle hooks, retries, and generated Node references help people and AI Agents maintain tests together.',
+  integrateTitle: 'Fits your existing stack',
+  integrateDesc:
+    'Combine actions, assertions, and data extraction with your code, fixtures, and test runner through Playwright, Puppeteer, or the JavaScript SDK.',
+  startTitle: 'Get started',
+  startHeading: 'Choose your way in',
+  startDesc:
+    'Try an instruction, build a test project, or bring Midscene into the tools you already use.',
+  startPlayground: 'Playground',
+  startPlaygroundDesc:
+    'Try actions, queries, and visual assertions on web, mobile, or desktop.',
+  startTest: 'Midscene Test',
+  startTestDesc:
+    'Create a test project with platform presets and example YAML cases.',
+  startSDK: 'SDK integration',
+  startSDKDesc:
+    'Add visual actions and assertions to your existing Playwright tests.',
+  startSkills: 'Skills',
+  startSkillsDesc:
+    'Let an AI coding Agent operate and test interfaces through Midscene CLIs.',
 
   // Who is Using
   whoIsUsingEyebrow: 'USERS',
@@ -128,8 +124,8 @@ UI testing toolkit`,
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
-  platformWebLink: '/quick-start#chrome-extension',
-  platformPCLink: '/quick-start#chrome-extension',
+  platformWebLink: '/integrate-with-playwright',
+  platformPCLink: '/platforms/desktop',
   platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

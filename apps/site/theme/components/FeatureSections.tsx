@@ -9,7 +9,7 @@ interface FeatureSectionProps {
   eyebrow: string;
   heading: string;
   descriptions: string[];
-  variant: 'platforms' | 'models' | 'toolkit' | 'benchmarks';
+  variant: 'platforms' | 'toolkit' | 'benchmarks' | 'start';
   action?: {
     href: string;
     label: string;
@@ -157,6 +157,30 @@ export function FeatureSections() {
         descriptions={[t('clientsDesc1'), t('clientsDesc2'), t('clientsDesc3')]}
         variant="platforms"
       >
+        <div className="home-copy-grid home-copy-grid--two">
+          {(
+            [
+              {
+                title: 'visualActionTitle',
+                description: 'visualActionDesc',
+                example: 'visualActionExample',
+                method: 'aiAct',
+              },
+              {
+                title: 'visualAssertTitle',
+                description: 'visualAssertDesc',
+                example: 'visualAssertExample',
+                method: 'aiAssert',
+              },
+            ] as const
+          ).map(({ title, description, example, method }) => (
+            <article className="home-copy-card" key={title}>
+              <h3>{t(title)}</h3>
+              <p>{t(description)}</p>
+              <code>{`await agent.${method}(${JSON.stringify(t(example))});`}</code>
+            </article>
+          ))}
+        </div>
         <div className="home-feature-grid home-feature-grid--platforms">
           <FeatureCard
             href={tUrl(t('platformWebLink'))}
@@ -244,48 +268,41 @@ export function FeatureSections() {
       </FeatureSection>
 
       <SectionDivider className="home-feature__divider" />
-
       <FeatureSection
-        eyebrow={t('modelsTitle')}
-        heading={t('modelsHeading')}
-        descriptions={[t('modelsDesc1'), t('modelsDesc2'), t('modelsDesc3')]}
-        variant="models"
+        eyebrow={t('benchmarksTitle')}
+        heading={t('benchmarksHeading')}
+        descriptions={[t('benchmarksDesc'), t('modelNote')]}
+        variant="benchmarks"
+        action={{ href: tUrl('/model-strategy'), label: t('modelLinkLabel') }}
       >
-        <div className="home-feature-grid">
-          <FeatureCard
-            href={tUrl('/model-common-config#doubao-seed-model')}
-            title={t('modelSeedName')}
-            description={t('modelSeedDesc')}
-            lightBackground="/images/backgrounds/doubao.svg"
-            darkBackground="/images/backgrounds/doubao-dark.svg"
+        <div className="home-benchmark-grid">
+          <BenchmarkLinkCard
+            href={tUrl(t('featureBenchmarkLink'))}
+            score="93.1%"
+            title="AndroidWorld · Pass@1"
+            details="Gemini-3.5-Flash"
           />
-          <FeatureCard
-            href={tUrl('/model-common-config#deepseek')}
-            title={t('modelDeepSeekName')}
-            description={t('modelDeepSeekDesc')}
-            lightBackground="/images/models/deepseek-light.svg"
-            darkBackground="/images/models/deepseek-dark.svg"
-            visualClassName="home-feature-card__visual--deepseek"
+          <BenchmarkLinkCard
+            href={tUrl(t('featureMobileWorldBenchmarkLink'))}
+            score="78.6%"
+            title="MobileWorld · Pass@1"
+            details="Gemini-3.6-Flash"
           />
-          <FeatureCard
-            href={tUrl('/model-common-config')}
-            title={t('modelSupportedName')}
-            description={t('modelSupportedDesc')}
-            lightBackground="/images/models/supported-models-light.svg"
-            darkBackground="/images/models/supported-models-dark.svg"
+          <BenchmarkLinkCard
+            href={tUrl(t('featureAppControlBenchLink'))}
+            score="96.7%"
+            title="AppControlBench · Pass@1"
+            details="Doubao Seed 2.1 Turbo"
           />
-          <FeatureCard
-            href={tUrl(t('multiModelStrategyLink'))}
-            title={t('modelMultiModelName')}
-            description={t('modelMultiModelDesc')}
-            lightBackground="/images/models/multi-model-combo-light.svg"
-            darkBackground="/images/models/multi-model-combo-dark.svg"
+          <BenchmarkLinkCard
+            href={tUrl(t('featureAppControlBenchLink'))}
+            score="$0.59"
+            title={t('costTitle')}
+            details={t('costDetails')}
           />
         </div>
       </FeatureSection>
-
       <SectionDivider className="home-feature__divider" />
-
       <FeatureSection
         eyebrow={t('debuggingTitle')}
         heading={t('debuggingHeading')}
@@ -295,102 +312,83 @@ export function FeatureSections() {
           t('debuggingDesc3'),
         ]}
         variant="toolkit"
-        action={{
-          href: tUrl('/api'),
-          label: t('apiMoreLink'),
-          description: t('apiMoreDesc'),
-        }}
       >
-        <div className="home-feature-grid">
-          <FeatureCard
-            href={tUrl(t('featureRichAPIsLink'))}
-            title={t('featureRichAPIs')}
-            description={t('featureRichAPIsDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
+        <div className="home-copy-grid home-copy-grid--three">
+          {(
+            [
+              {
+                title: 'observeTitle',
+                description: 'observeDesc',
+                href: '/midscene-test/use',
+                asset: 'reports-playground',
+              },
+              {
+                title: 'testTitle',
+                description: 'testDesc',
+                href: '/midscene-test/overview',
+                asset: 'flexible-integration',
+              },
+              {
+                title: 'integrateTitle',
+                description: 'integrateDesc',
+                href: '/integrate-with-playwright',
+                asset: 'rich-apis',
+              },
+            ] as const
+          ).map(({ title, description, href, asset }) => (
+            <Link className="home-copy-card" href={tUrl(href)} key={title}>
               <img
-                src="/images/toolkit/rich-apis.svg"
+                className="home-copy-card__icon"
+                src={`/images/toolkit/${asset}.svg`}
                 alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
               />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureSkillsLink'))}
-            title={t('featureSkills')}
-            description={t('featureSkillsDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/skills.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureReportsPlaygroundLink'))}
-            title={t('featureReportsPlayground')}
-            description={t('featureReportsPlaygroundDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/reports-playground.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
-          <FeatureCard
-            href={tUrl(t('featureFlexibleIntegrationLink'))}
-            title={t('featureFlexibleIntegration')}
-            description={t('featureFlexibleIntegrationDesc')}
-            lightBackground="/images/backgrounds/grid-light.svg"
-            darkBackground="/images/backgrounds/grid-dark.svg"
-            lightContent={
-              <img
-                src="/images/toolkit/flexible-integration.svg"
-                alt=""
-                className="home-feature-card__asset home-feature-card__asset--tool"
-              />
-            }
-          />
+              <h3>{t(title)}</h3>
+              <p>{t(description)}</p>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+          ))}
         </div>
       </FeatureSection>
-
       <SectionDivider className="home-feature__divider" />
-
       <FeatureSection
-        eyebrow={t('benchmarksTitle')}
-        heading={t('benchmarksHeading')}
-        descriptions={[t('benchmarksDesc')]}
-        variant="benchmarks"
+        eyebrow={t('startTitle')}
+        heading={t('startHeading')}
+        descriptions={[t('startDesc')]}
+        variant="start"
       >
-        <div className="home-benchmark-grid">
-          <BenchmarkLinkCard
-            href={tUrl(t('featureBenchmarkLink'))}
-            score="93.1%"
-            title="AndroidWorld Benchmark"
-            details={`${t('benchmark')} 93.1% · Pass@3 97.4%`}
-          />
-          <BenchmarkLinkCard
-            href={tUrl(t('featureMobileWorldBenchmarkLink'))}
-            score="78.6%"
-            title="MobileWorld Benchmark"
-            details={`${t('benchmark')} 78.6% · 92/117`}
-          />
-          <BenchmarkLinkCard
-            href={tUrl(t('featureAppControlBenchLink'))}
-            score="96.7%"
-            title="AppControlBench Benchmark"
-            details="Pass@1 96.7% · 58 PASS"
-          />
+        <div className="home-copy-grid home-copy-grid--four">
+          {(
+            [
+              {
+                title: 'startPlayground',
+                description: 'startPlaygroundDesc',
+                href: '/quick-start',
+              },
+              {
+                title: 'startTest',
+                description: 'startTestDesc',
+                href: '/midscene-test/extend',
+              },
+              {
+                title: 'startSDK',
+                description: 'startSDKDesc',
+                href: '/integrate-with-playwright',
+              },
+              {
+                title: 'startSkills',
+                description: 'startSkillsDesc',
+                href: '/skills',
+              },
+            ] as const
+          ).map(({ title, description, href }) => (
+            <Link className="home-copy-card" href={tUrl(href)} key={title}>
+              <h3>{t(title)}</h3>
+              <p>{t(description)}</p>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+          ))}
         </div>
       </FeatureSection>
-
       <SectionDivider className="home-feature__divider" />
     </div>
   );
