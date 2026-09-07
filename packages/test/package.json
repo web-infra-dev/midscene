@@ -60,20 +60,25 @@
     "e2e": "pnpm run build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.8.6",
     "@midscene/core": "workspace:*",
+    "execa": "9.3.0",
     "js-yaml": "4.1.0",
     "tinyglobby": "0.2.15",
     "tsx": "^4.19.2",
+    "yargs": "17.7.2",
     "zod": "^3.25.1"
   },
   "devDependencies": {
     "@midscene/android": "workspace:*",
+    "@midscene/computer": "workspace:*",
     "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
+    "@types/yargs": "17.0.32",
     "playwright": "^1.45.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

@@ -5,7 +5,7 @@ const mockState = rs.hoisted(() => ({
   instances: [] as any[],
 }));
 
-rs.mock('@/playwright/index', () => {
+rs.mock('@/playwright/agent', () => {
   class MockPlaywrightAgent {
     reportFile?: string;
 

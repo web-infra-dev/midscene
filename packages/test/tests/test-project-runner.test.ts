@@ -1690,19 +1690,19 @@ afterAll:
     });
     expect(
       parseTestCliArgs(
-        ['describe-nodes', 'project', '--config', 'midscene.config.ts'],
+        ['nodes', 'project', '--config', 'midscene.config.ts'],
         '/workspace',
       ),
     ).toEqual({
-      command: 'describe-nodes',
+      command: 'nodes',
       cwd: '/workspace',
       projectRoot: '/workspace/project',
       configPath: 'midscene.config.ts',
       resultDir: undefined,
     });
     expect(() =>
-      parseTestCliArgs(['describe-nodes', '--result-dir', 'results']),
-    ).toThrow('--result-dir is not supported by describe-nodes');
+      parseTestCliArgs(['nodes', '--result-dir', 'results']),
+    ).toThrow('--result-dir is not supported by nodes');
     expect(
       parseTestCliArgs(
         ['project', '--project', 'ios', '--project', 'android'],
@@ -1715,8 +1715,8 @@ afterAll:
       resultDir: undefined,
       projectNames: ['ios', 'android'],
     });
-    expect(() =>
-      parseTestCliArgs(['describe-nodes', '--project', 'ios']),
-    ).toThrow('--project is not supported by describe-nodes');
+    expect(() => parseTestCliArgs(['nodes', '--project', 'ios'])).toThrow(
+      '--project is not supported by nodes',
+    );
   });
 });

@@ -33,7 +33,7 @@ To handle complex business scenarios, Midscene supports custom atomic nodes (cus
 Focusing on "What to test", expressing business test intent. At this layer, test authors can describe UI actions (such as `aiAct`) and assertions (such as `aiAssert`) in natural language, while calling and composing custom business capabilities provided by "Deterministic Engineering" (such as `order.prepare`). Test authors can focus on business flows without needing to worry about underlying details, which enhances authoring efficiency and long-term maintainability.
 
 ### Auto-Generating Agent-Friendly Markdown Documentation
-The framework provides the `describe-nodes` tool, which automatically compiles registered custom Nodes and their validation rules (Zod Schema) into standard Markdown documentation. This eliminates the cost of manually maintaining API manuals for your customized framework, allowing human authors and AI Agents to easily consult and consume these custom capabilities.
+The framework provides the `nodes` tool, which automatically compiles registered custom Nodes and their validation rules (Zod Schema) into standard Markdown documentation. This eliminates the cost of manually maintaining API manuals for your customized framework, allowing human authors and AI Agents to easily consult and consume these custom capabilities.
 
 ### Engineering Demands of E2E Projects
 In actual enterprise-level adoption, E2E testing projects are by no means one-time, AI-driven instant verifications. Instead, they must run continuously as long-term assets, facing real and rigorous engineering demands such as stability, speed, and maintainability. To address this, Midscene provides supporting engineering capabilities to ensure the stability and efficiency of E2E projects in production:
@@ -63,7 +63,7 @@ ecommerce-tests/
 
 #### 1. Auto-Generated Node Reference Example
 
-In this scenario, the custom Node `order.prepare` defined by engineering builders automatically compiles into the following Markdown reference using the `describe-nodes` tool:
+In this scenario, the custom Node `order.prepare` defined by engineering builders automatically compiles into the following Markdown reference using the `nodes` tool:
 
 ```markdown
 ## order.prepare

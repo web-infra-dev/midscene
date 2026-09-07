@@ -94,7 +94,6 @@ describe('createMidsceneNodes', () => {
       'aiAsk',
       'recordToReport',
       'wait',
-      'agent',
     ]);
     expect(getAgent).toHaveBeenCalledTimes(3);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
@@ -522,45 +521,15 @@ describe('createMidsceneNodes', () => {
     expect(releaseAgent.mock.calls).toEqual([['attempt-1'], ['attempt-2']]);
   });
 
-  it('delegates agent nodes without prior-step state', async () => {
-    const agentExecutor = {
-      execute: vi.fn(async () => ({ summary: 'agent completed' })),
-    };
+  it('does not register a built-in agent executor node', () => {
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () => commonAgent(),
         agentClass: testAgentClass,
-        agentExecutor,
       }),
     );
 
-    const result = await runCollectedCase(
-      collected([
-        {
-          node: 'wait',
-          input: { duration: 1, unit: 'ms' },
-          meta: { continueOnError: false },
-        },
-        {
-          node: 'agent',
-          input: { prompt: 'Inspect the current page with the allowed tools.' },
-          meta: { continueOnError: false },
-        },
-      ]),
-      {
-        resolveNode: registry.require.bind(registry),
-        context: { platform: 'ios' },
-        createRunId: () => 'agent-attempt',
-      },
-    );
-
-    expect(result.status).toBe('success');
-    expect(agentExecutor.execute).toHaveBeenCalledWith({
-      prompt: 'Inspect the current page with the allowed tools.',
-      context: { platform: 'ios' },
-      signal: expect.any(AbortSignal),
-      execution: { scope: 'case', runId: 'agent-attempt' },
-    });
+    expect(registry.get('agent')).toBeUndefined();
   });
 
   it('aborts a wait node through the active workflow signal', async () => {

@@ -1,8 +1,12 @@
-import { existsSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { renderNodeReference } from './node-reference';
+import { existsSync, statSync, writeFileSync } from 'node:fs';
+import { relative, resolve, sep } from 'node:path';
+import { renderNodeReference, sortNodesForReference } from './node-reference';
 import { loadTestProject } from './test-project';
-import { discoverTestConfig, runTestProject } from './test-project-runner';
+import {
+  DEFAULT_TEST_FILE_SELECTION,
+  discoverTestConfig,
+  runTestProject,
+} from './test-project-runner';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -11,7 +15,7 @@ export interface TestCliIO {
 }
 
 interface ParsedTestArgs {
-  command?: 'describe-nodes';
+  command?: 'nodes';
   cwd: string;
   projectRoot?: string;
   configPath?: string;
@@ -23,7 +27,7 @@ export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
-  const command = args[0] === 'describe-nodes' ? args[0] : undefined;
+  const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
@@ -50,11 +54,11 @@ export const parseTestCliArgs = (
     }
   }
 
-  if (command === 'describe-nodes' && resultDir) {
-    throw new Error('--result-dir is not supported by describe-nodes.');
+  if (command === 'nodes' && resultDir) {
+    throw new Error('--result-dir is not supported by nodes.');
   }
-  if (command === 'describe-nodes' && projectNames.length > 0) {
-    throw new Error('--project is not supported by describe-nodes.');
+  if (command === 'nodes' && projectNames.length > 0) {
+    throw new Error('--project is not supported by nodes.');
   }
 
   return {
@@ -79,7 +83,7 @@ const assertDirectory = (path: string, label: string): void => {
   }
 };
 
-const describeNodes = async (
+const runNodesCommand = async (
   options: ParsedTestArgs,
   io: TestCliIO,
 ): Promise<void> => {
@@ -99,12 +103,31 @@ const describeNodes = async (
   }
 
   const project = await loadTestProject(configPath);
-  const document = renderNodeReference(project.nodes.definitions());
+  const nodes = sortNodesForReference(project.nodes.definitions());
+  const document = renderNodeReference(nodes, {
+    configPath: configPath
+      ? relative(configSearchRoot, configPath).split(sep).join('/')
+      : undefined,
+    projects: project.projects.map((executionProject) => ({
+      name: executionProject.name,
+      files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
+    })),
+  });
   for (const warning of document.warnings) {
-    io.error(`midscene-test describe-nodes: ${warning}`);
+    io.error(`midscene-test nodes: ${warning}`);
   }
-  if (io.write) io.write(document.markdown);
-  else io.log(document.markdown.trimEnd());
+  const referencePath = resolve(configSearchRoot, 'midscene-node-reference.md');
+  writeFileSync(referencePath, document.markdown);
+  io.log(`Registered Nodes (${nodes.length}):`);
+  if (nodes.length === 0) {
+    io.log('No nodes are registered by the current Test Project.');
+  }
+  for (const node of nodes) {
+    io.log(
+      `- ${node.name}: ${node.description?.trim() || 'Description not declared.'}`,
+    );
+  }
+  io.log(`\nNode reference generated: ${referencePath}`);
 };
 
 export async function runTestCli(
@@ -112,9 +135,14 @@ export async function runTestCli(
   io: TestCliIO = defaultCliIO,
 ): Promise<number> {
   try {
+    if (args[0] === 'create') {
+      const { runCreateCommand } = await import('./create-command');
+      await runCreateCommand(args.slice(1), io);
+      return 0;
+    }
     const options = parseTestCliArgs(args);
-    if (options.command === 'describe-nodes') {
-      await describeNodes(options, io);
+    if (options.command === 'nodes') {
+      await runNodesCommand(options, io);
       return 0;
     }
     const result = await runTestProject({

@@ -1,7 +1,7 @@
 import { defineNode } from '@midscene/test';
 import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
-import { PlaywrightAgent } from '@midscene/web/playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
 import { type Browser, type Page, chromium } from 'playwright';
 
 const VIEWPORT = { width: 1280, height: 768 };

@@ -19,13 +19,9 @@ import {
 } from '@midscene/core/agent/test-runner';
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
-import { NodeDefinitionError, NodeExecutionError } from '../errors';
+import { NodeDefinitionError } from '../errors';
 import { defineNode } from '../node/define-node';
-import type {
-  NodeDefinition,
-  NodeExecutionContext,
-  NodeResult,
-} from '../node/types';
+import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
 export type MidsceneUIAgent = CommonAgentTestRunnerApi;
 
@@ -61,26 +57,6 @@ export interface AgentReleaseResult {
   reportPath?: string;
 }
 
-export interface AgentExecutorInput<TContext> {
-  prompt: string;
-  context: TContext;
-  signal: AbortSignal;
-  execution:
-    | { scope: 'case'; runId: string }
-    | { scope: 'document'; runId: string };
-}
-
-export interface AgentExecutor<TContext> {
-  // biome-ignore lint/suspicious/noConfusingVoidType: executors may perform side effects without returning a summary.
-  execute(input: AgentExecutorInput<TContext>): Awaitable<NodeResult | void>;
-}
-
-const nonBlankPrompt = (description: string) =>
-  z
-    .string()
-    .regex(/\S/, 'prompt must contain a non-whitespace character')
-    .describe(description);
-
 export const waitInputSchema = z.strictObject({
   duration: z.number().positive().describe('How long to wait.'),
   unit: z
@@ -89,19 +65,12 @@ export const waitInputSchema = z.strictObject({
     .describe('Duration unit: milliseconds, seconds, or minutes.'),
 });
 
-export const agentInputSchema = z.strictObject({
-  prompt: nonBlankPrompt(
-    'A self-contained task, including allowed tools and success conditions.',
-  ),
-});
-
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
 export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeInput = z.infer<typeof recordToReportInputSchema>;
 export type WaitNodeInput = z.infer<typeof waitInputSchema>;
-export type AgentNodeInput = z.infer<typeof agentInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
   getAgent?(
@@ -110,7 +79,6 @@ export interface CreateMidsceneNodesOptions<TContext> {
   agentProvider?: AgentProvider<TContext>;
   /** Agent class that declares the Agent-backed Nodes to register. */
   agentClass: AgentTestRunnerNodeProvider;
-  agentExecutor?: AgentExecutor<TContext>;
 }
 
 const waitFor = async (durationMs: number, signal: AbortSignal) => {
@@ -228,35 +196,6 @@ export function createMidsceneNodes<TContext>(
         const durationMs = ctx.input.duration * multiplier;
         await waitFor(durationMs, ctx.signal);
         return { summary: `Waited ${durationMs}ms` };
-      },
-    }),
-    defineNode<typeof agentInputSchema, unknown, TContext>({
-      name: 'agent',
-      description:
-        'Execute one self-contained natural-language task with an injected Agent executor.',
-      stringInputKey: 'prompt',
-      inputSchema: agentInputSchema,
-      async execute(ctx) {
-        if (!options.agentExecutor) {
-          throw new NodeExecutionError(
-            'agent',
-            new TypeError('createMidsceneNodes() requires an agentExecutor.'),
-          );
-        }
-        const execution =
-          ctx.scope === 'case'
-            ? { scope: 'case' as const, runId: ctx.case.runId }
-            : {
-                scope: 'document' as const,
-                runId: ctx.document.documentRunId,
-              };
-        const result = await options.agentExecutor.execute({
-          prompt: ctx.input.prompt,
-          context: ctx.context,
-          signal: ctx.signal,
-          execution,
-        });
-        return result ?? { summary: 'Agent task completed.' };
       },
     }),
   ];
