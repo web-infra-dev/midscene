@@ -87,22 +87,6 @@ npx --yes @midscene/android-playground
 
 ![](/android-set-env.png)
 
-#### Remote screen preview
-
-Scrcpy screen streaming now listens on `127.0.0.1` by default. To open Android Playground from another computer, explicitly allow remote access to both the Playground server and its Scrcpy sidecar. For example, on macOS or Linux:
-
-```bash
-MIDSCENE_PLAYGROUND_HOST=0.0.0.0 MIDSCENE_SCRCPY_HOST=0.0.0.0 pnpm dlx @midscene/android-playground
-```
-
-Open the Playground using the server computer's reachable IP address or hostname and the Playground port printed at startup. Allow access to both the Playground and Scrcpy ports. `0.0.0.0` is a listening address, not the address to enter in the browser.
-
-`MIDSCENE_SCRCPY_HOST` applies to the standalone Android Playground CLI. It can also be set to a specific local interface address, such as `192.168.1.100`; the automatically opened local page uses that address for its screen preview. Code that creates `ScrcpyServer` directly can pass the `host` constructor option instead. Studio continues to use local-only screen streaming.
-
-:::warning
-Scrcpy does not yet authenticate preview sessions. Enabling remote access exposes device information and screen streams to clients that can reach the port. Only enable it on a trusted network with access restricted to intended clients.
-:::
-
 ## Use the JavaScript SDK
 
 Once Playground works, move to a repeatable script with the JavaScript SDK.
@@ -329,6 +313,22 @@ midscene-android tap \
 ```
 
 Each CLI command is a separate process, so pass the option to every command that should override the default. For the JavaScript SDK or YAML, set `scrcpyConfig.videoBitRate` once on that device configuration. Changing the bitrate trades encoded bandwidth against screenshot detail. Tune it only when independent transport measurements show a need, then validate screenshot and recognition quality. See the [`AndroidDevice` scrcpy reference](../reference/index.mdx#scrcpy) for the default and related options.
+
+### Remote screen preview
+
+Scrcpy screen streaming now listens on `127.0.0.1` by default. To open Android Playground from another computer, explicitly allow remote access to both the Playground server and its Scrcpy sidecar. For example, on macOS or Linux:
+
+```bash
+MIDSCENE_PLAYGROUND_HOST=0.0.0.0 MIDSCENE_SCRCPY_HOST=0.0.0.0 pnpm dlx @midscene/android-playground
+```
+
+Open the Playground using the server computer's reachable IP address or hostname and the Playground port printed at startup. Allow access to both the Playground and Scrcpy ports. `0.0.0.0` is a listening address, not the address to enter in the browser.
+
+`MIDSCENE_SCRCPY_HOST` applies to the standalone Android Playground CLI. It can also be set to a specific local interface address, such as `192.168.1.100`; the automatically opened local page uses that address for its screen preview. Code that creates `ScrcpyServer` directly can pass the `host` constructor option instead. Studio continues to use local-only screen streaming.
+
+:::warning
+Scrcpy does not yet authenticate preview sessions. Enabling remote access exposes device information and screen streams to clients that can reach the port. Only enable it on a trusted network with access restricted to intended clients.
+:::
 
 ### How do I use a custom adb path or remote adb server?
 
