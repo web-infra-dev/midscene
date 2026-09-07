@@ -13,13 +13,13 @@ export const packageManagerCommands: Record<
       '--workspaces=false',
       '--',
       'midscene-test',
-      'describe-nodes',
+      'nodes',
     ],
     installChromium: 'npm exec -- playwright install chromium',
   },
   pnpm: {
     install: ['install', '--ignore-workspace'],
-    describe: ['exec', 'midscene-test', 'describe-nodes'],
+    describe: ['exec', 'midscene-test', 'nodes'],
     installChromium: 'pnpm exec playwright install chromium',
   },
 };

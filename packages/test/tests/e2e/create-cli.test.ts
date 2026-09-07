@@ -140,11 +140,11 @@ describe('generated project integration', () => {
         io(),
         runtime,
       );
-      expect(existsSync(join(root, 'midscene-nodes.md'))).toBe(false);
+      expect(existsSync(join(root, 'midscene-node-reference.md'))).toBe(false);
 
       // Install a local CLI launcher instead of registry dependencies. This
       // exercises real npm/pnpm install lifecycles with the generated scripts
-      // and actual describe-nodes command, without network or runtime resources.
+      // and actual nodes command, without network or runtime resources.
       const launcher = join(cwd, 'cli-fixture');
       mkdirSync(launcher);
       writeFileSync(
@@ -198,7 +198,7 @@ describe('generated project integration', () => {
           env: { ...process.env, NODE_PATH: '' },
         });
       await install();
-      const referencePath = join(root, 'midscene-nodes.md');
+      const referencePath = join(root, 'midscene-node-reference.md');
       expect(readFileSync(referencePath, 'utf8')).toContain(
         '## `install.inspect`',
       );
@@ -252,7 +252,10 @@ describe('generated project integration', () => {
         io(),
         runtime,
       );
-      const markdown = readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8');
+      const markdown = readFileSync(
+        join(cwd, 'midscene-node-reference.md'),
+        'utf8',
+      );
       expect(markdown).toContain('## `aiAssert`');
       expect(markdown).toContain(
         platform === 'web'
@@ -446,7 +449,7 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
         return (
           await execFileAsync(
             process.execPath,
-            [join(packageRoot, 'bin/midscene-test'), 'describe-nodes'],
+            [join(packageRoot, 'bin/midscene-test'), 'nodes'],
             { cwd: root },
           )
         ).stdout;
@@ -456,9 +459,9 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
         io(),
         runtime,
       );
-      expect(readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8')).toContain(
-        '## `team.inspect`',
-      );
+      expect(
+        readFileSync(join(cwd, 'midscene-node-reference.md'), 'utf8'),
+      ).toContain('## `team.inspect`');
       await execFileAsync(process.execPath, [
         join(packageRoot, 'node_modules/typescript/bin/tsc'),
         '-p',
@@ -502,7 +505,7 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
         return (
           await execFileAsync(
             process.execPath,
-            [join(packageRoot, 'bin/midscene-test'), 'describe-nodes'],
+            [join(packageRoot, 'bin/midscene-test'), 'nodes'],
             { cwd: root },
           )
         ).stdout;
@@ -516,7 +519,7 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
         ),
       ).rejects.toThrow('Node reference generation failed');
       expect(existsSync(join(cwd, 'midscene.config.ts'))).toBe(true);
-      expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
+      expect(existsSync(join(cwd, 'midscene-node-reference.md'))).toBe(false);
       expect(output.log.mock.calls.flat().join('\n')).not.toContain(
         'Project ready',
       );
@@ -568,9 +571,9 @@ process.exit(result.status ?? 1);
         },
       );
       expect(result.stdout).toContain('Project ready:');
-      expect(readFileSync(join(root, 'midscene-nodes.md'), 'utf8')).toContain(
-        '## `gotoUrl`',
-      );
+      expect(
+        readFileSync(join(root, 'midscene-node-reference.md'), 'utf8'),
+      ).toContain('## `gotoUrl`');
       expect(
         readFileSync(join(cwd, 'commands.log'), 'utf8')
           .trim()
@@ -580,7 +583,7 @@ process.exit(result.status ?? 1);
         packageManager === 'pnpm'
           ? [
               ['install', '--ignore-workspace'],
-              ['exec', 'midscene-test', 'describe-nodes'],
+              ['exec', 'midscene-test', 'nodes'],
             ]
           : [
               ['install', '--workspaces=false'],
@@ -590,13 +593,13 @@ process.exit(result.status ?? 1);
                 '--workspaces=false',
                 '--',
                 'midscene-test',
-                'describe-nodes',
+                'nodes',
               ],
             ],
       );
       const readme = readFileSync(join(root, 'README.md'), 'utf8');
       expect(readme).toContain(`${packageManager} test`);
-      expect(readme).toContain(`${packageManager} run describe-nodes`);
+      expect(readme).toContain(`${packageManager} run nodes`);
       expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
     },
   );

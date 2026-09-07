@@ -201,8 +201,8 @@ ${extraNodes}
         type: 'module',
         scripts: {
           test: 'midscene-test',
-          'describe-nodes': 'midscene-test describe-nodes',
-          postinstall: 'midscene-test describe-nodes',
+          nodes: 'midscene-test nodes',
+          postinstall: 'midscene-test nodes',
         },
         engines: { node: '^20.19.0 || ^22.12.0 || >=24.0.0' },
         devDependencies: dependencies,
@@ -235,6 +235,6 @@ ${extraNodes}
           : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
     '.env.example': `# Copy this file to .env and configure your model before running tests.\n# See https://midscenejs.com/model-config.html\nMIDSCENE_MODEL_BASE_URL=\nMIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test Runner project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-nodes.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run describe-nodes\` manually.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-nodes.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run describe-nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
+    'README.md': `# ${name}\n\nA Midscene Test Runner project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
   };
 }

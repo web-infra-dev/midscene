@@ -13,7 +13,7 @@ pnpm dlx @midscene/test create my-tests --platform web
 cd my-tests
 ```
 
-The command requires Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and the selected package manager (npm or pnpm). After writing the project files, it asks whether to install dependencies and generate `midscene-nodes.md`. The default is yes.
+The command requires Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and the selected package manager (npm or pnpm). After writing the project files, it asks whether to install dependencies and generate `midscene-node-reference.md`. The default is yes.
 
 | Argument | Description |
 | --- | --- |
@@ -27,7 +27,7 @@ The command requires Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and the selected
 
 In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory, platform, and package manager. In CI or other noninteractive environments, supply the directory and platform. Existing destination files are never overwritten, including when `--yes` is set.
 
-The final prompt is “Install dependencies and generate midscene-nodes.md now?”. Choosing no keeps the project files and prints the command to install later. Cancelling this final prompt also preserves the files. In noninteractive environments, installation runs automatically unless `--skip-install` is set.
+The final prompt is “Install dependencies and generate midscene-node-reference.md now?”. Choosing no keeps the project files and prints the command to install later. Cancelling this final prompt also preserves the files. In noninteractive environments, installation runs automatically unless `--skip-install` is set.
 
 To create files now and install later:
 
@@ -42,13 +42,13 @@ The generated `package.json` includes a `postinstall` script:
 ```json
 {
   "scripts": {
-    "postinstall": "midscene-test describe-nodes",
-    "describe-nodes": "midscene-test describe-nodes"
+    "postinstall": "midscene-test nodes",
+    "nodes": "midscene-test nodes"
   }
 }
 ```
 
-Manual `npm install` or `pnpm install` runs this script and refreshes the reference, including on later installations. If lifecycle scripts are disabled, run `npm run describe-nodes` or `pnpm run describe-nodes` manually. When `create` installs dependencies, it reuses the postinstall output; if the file was not generated, it runs `describe-nodes` once itself. A generation failure makes the installation or creation command fail.
+Manual `npm install` or `pnpm install` runs this script and refreshes the reference, including on later installations. If lifecycle scripts are disabled, run `npm run nodes` or `pnpm run nodes` manually. When `create` installs dependencies, it reuses the postinstall output; if the file was not generated, it runs `nodes` once itself. A generation failure makes the installation or creation command fail.
 
 An explicit `--package-manager` takes priority and skips the package manager prompt. Otherwise, the prompt defaults to the manager used to launch the command, detected from `npm_config_user_agent`. In noninteractive environments or with `--yes`, that detected manager is used directly. If npm or pnpm cannot be detected, the default is npm.
 
@@ -58,7 +58,7 @@ For example, use npm to create and install a project without pnpm:
 npx @midscene/test create my-tests --platform web --package-manager npm
 ```
 
-Dependency installation, Node reference generation, the generated README, and recovery instructions all use the selected manager. The examples below use pnpm. For npm projects, use `npm test`, `npm run describe-nodes`, and `npm exec -- playwright install chromium` instead.
+Dependency installation, Node reference generation, the generated README, and recovery instructions all use the selected manager. The examples below use pnpm. For npm projects, use `npm test`, `npm run nodes`, and `npm exec -- playwright install chromium` instead.
 
 `harmony` uses `@midscene/harmony` to connect to HarmonyOS devices through HDC. `computer` uses `@midscene/computer` to control the local Windows, macOS, or Linux desktop:
 
@@ -69,13 +69,13 @@ pnpm dlx @midscene/test create desktop-tests --platform computer
 
 Both platforms also support `--with` to register external Node packages.
 
-After installation with pnpm, the project contains the following files. If installation is skipped, `midscene-nodes.md` and the lockfile are created later during installation. npm creates `package-lock.json` instead of `pnpm-lock.yaml`. The README is generated only as `README.md`:
+After installation with pnpm, the project contains the following files. If installation is skipped, `midscene-node-reference.md` and the lockfile are created later during installation. npm creates `package-lock.json` instead of `pnpm-lock.yaml`. The README is generated only as `README.md`:
 
 ```text
 my-tests/
 ├── cases/example.yaml
 ├── midscene.config.ts
-├── midscene-nodes.md
+├── midscene-node-reference.md
 ├── package.json
 ├── pnpm-lock.yaml
 ├── tsconfig.json
@@ -90,7 +90,7 @@ For HarmonyOS, verify the connection with `hdc list targets` and optionally set 
 
 The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`. Each generated configuration registers the Nodes provided by its platform Agent.
 
-Run `pnpm test` to execute the example. Creation and Node reference generation do not run project setup or tests, so they do not require a model API Key, an installed browser, or a connected device. After editing Node registrations, run `pnpm run describe-nodes` to refresh the reference.
+Run `pnpm test` to execute the example. Creation and Node reference generation do not run project setup or tests, so they do not require a model API Key, an installed browser, or a connected device. After editing Node registrations, run `pnpm run nodes` to refresh the reference.
 
 If installation or reference generation fails, the command exits with an error and preserves the generated files. Follow the recovery commands in the error message; there is no need to rerun `create` over those files.
 
@@ -102,7 +102,7 @@ pnpm dlx @midscene/test create my-tests --platform web \
   --with @acme/order-nodes
 ```
 
-`--with` is only available on `create`. It adds the packages to `devDependencies` and writes explicit factory imports and Node registrations into `midscene.config.ts`. Subsequent test runs and `describe-nodes` load that configuration without additional CLI flags. The generated reference includes the external Nodes.
+`--with` is only available on `create`. It adds the packages to `devDependencies` and writes explicit factory imports and Node registrations into `midscene.config.ts`. Subsequent test runs and `nodes` load that configuration without additional CLI flags. The generated reference includes the external Nodes.
 
 Packages must expose a named, synchronous `createMidsceneTestNodes(options)` factory from their root entry point. Both ESM and CommonJS are supported. The factory receives `platform` and `getAgent`, and returns a Node array. `NodePackageOptions` is exported from `@midscene/test/config` for package authors:
 
@@ -654,23 +654,23 @@ semantics.
 
 ## Generate a Node reference
 
-The runner provides the `describe-nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
+The runner provides the `nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
 
 Run the following command to generate a reference for your team:
 
 ```bash
-pnpm exec midscene-test describe-nodes
+pnpm exec midscene-test nodes
 ```
 
-The command writes `midscene-nodes.md` in the specified test directory (or the current directory when omitted). After generation succeeds, stdout lists every registered Node by name and description, followed by the absolute path to the reference file. No output redirection is needed.
+The command writes `midscene-node-reference.md` in the specified test directory (or the current directory when omitted). After generation succeeds, stdout lists every registered Node by name and description, followed by the absolute path to the reference file. No output redirection is needed.
 
 You can also specify a test directory or a custom configuration file:
 
 ```bash
-pnpm exec midscene-test describe-nodes ./e2e --config ./config/midscene.config.ts
+pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`, sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`. It starts with an Available Nodes overview table, followed by usage conventions and a Node Details section containing each Node's description and input schema. Both the reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
 
 The reference lists `Case files` (each Execution Project's `files.include` / `files.exclude` glob patterns) and `Config file` separately. Both use paths relative to the reference file, so authors can locate their YAML files and configuration. Created projects select `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, the runner searches `**/*.{yaml,yml}` under the test directory.
 

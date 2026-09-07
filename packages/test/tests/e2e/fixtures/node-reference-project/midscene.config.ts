@@ -16,7 +16,7 @@ export default defineTestProject({
           .describe('The quantity to order.'),
       }),
       execute() {
-        throw new Error('describe-nodes must not execute Node handlers.');
+        throw new Error('nodes must not execute Node handlers.');
       },
     }),
   ],
@@ -24,7 +24,7 @@ export default defineTestProject({
     name: 'must-not-run',
     platform: 'web',
     setup() {
-      throw new Error('describe-nodes must not run Project setup.');
+      throw new Error('nodes must not run Project setup.');
     },
   },
 });

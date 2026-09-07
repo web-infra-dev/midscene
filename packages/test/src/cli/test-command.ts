@@ -1,6 +1,6 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
-import { renderNodeReference } from './node-reference';
+import { renderNodeReference, sortNodesForReference } from './node-reference';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
@@ -15,7 +15,7 @@ export interface TestCliIO {
 }
 
 interface ParsedTestArgs {
-  command?: 'describe-nodes';
+  command?: 'nodes';
   cwd: string;
   projectRoot?: string;
   configPath?: string;
@@ -27,7 +27,7 @@ export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
-  const command = args[0] === 'describe-nodes' ? args[0] : undefined;
+  const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
@@ -54,11 +54,11 @@ export const parseTestCliArgs = (
     }
   }
 
-  if (command === 'describe-nodes' && resultDir) {
-    throw new Error('--result-dir is not supported by describe-nodes.');
+  if (command === 'nodes' && resultDir) {
+    throw new Error('--result-dir is not supported by nodes.');
   }
-  if (command === 'describe-nodes' && projectNames.length > 0) {
-    throw new Error('--project is not supported by describe-nodes.');
+  if (command === 'nodes' && projectNames.length > 0) {
+    throw new Error('--project is not supported by nodes.');
   }
 
   return {
@@ -83,7 +83,7 @@ const assertDirectory = (path: string, label: string): void => {
   }
 };
 
-const describeNodes = async (
+const runNodesCommand = async (
   options: ParsedTestArgs,
   io: TestCliIO,
 ): Promise<void> => {
@@ -103,9 +103,7 @@ const describeNodes = async (
   }
 
   const project = await loadTestProject(configPath);
-  const nodes = [...project.nodes.definitions()].sort((left, right) =>
-    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
-  );
+  const nodes = sortNodesForReference(project.nodes.definitions());
   const document = renderNodeReference(nodes, {
     configPath: configPath
       ? relative(configSearchRoot, configPath).split(sep).join('/')
@@ -116,9 +114,9 @@ const describeNodes = async (
     })),
   });
   for (const warning of document.warnings) {
-    io.error(`midscene-test describe-nodes: ${warning}`);
+    io.error(`midscene-test nodes: ${warning}`);
   }
-  const referencePath = resolve(configSearchRoot, 'midscene-nodes.md');
+  const referencePath = resolve(configSearchRoot, 'midscene-node-reference.md');
   writeFileSync(referencePath, document.markdown);
   io.log(`Registered Nodes (${nodes.length}):`);
   if (nodes.length === 0) {
@@ -143,8 +141,8 @@ export async function runTestCli(
       return 0;
     }
     const options = parseTestCliArgs(args);
-    if (options.command === 'describe-nodes') {
-      await describeNodes(options, io);
+    if (options.command === 'nodes') {
+      await runNodesCommand(options, io);
       return 0;
     }
     const result = await runTestProject({
