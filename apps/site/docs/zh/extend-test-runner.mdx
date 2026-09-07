@@ -13,17 +13,28 @@ pnpm dlx @midscene/test create my-tests --platform web
 cd my-tests
 ```
 
-该命令需要 pnpm 和 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`。它会通过 pnpm 安装依赖，再运行 `describe-nodes`，将说明书写入 `midscene-nodes.md`。
+该命令需要 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，以及选定的包管理器（npm 或 pnpm）。它会安装依赖，再运行 `describe-nodes`，将说明书写入 `midscene-nodes.md`。
 
 | 参数 | 说明 |
 | --- | --- |
 | `[directory]` | 项目目录，`.` 表示当前目录。省略时交互询问。 |
 | `--platform <name>` | 支持 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）和 `computer`（桌面端）。省略时交互选择。 |
+| `--package-manager <name>` | 支持 `npm` 和 `pnpm`。在交互式终端中，省略时交互选择。 |
 | `--with <package>` | 安装并注册 Node 包。支持指定版本或标签，可重复传入多个包。 |
 | `-y`、`--yes` | 禁用交互，必须同时提供目录和平台。 |
 | `-h`、`--help` | 显示用法和示例。 |
 
-在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录和平台。在 CI 等非交互环境中，必须提供这两个参数。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
+在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录、平台和包管理器。在 CI 等非交互环境中，必须提供目录和平台。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
+
+显式指定 `--package-manager` 时，命令直接采用该值，不再询问包管理器。省略时，交互选项默认选中启动命令所用的包管理器。命令通过 `npm_config_user_agent` 识别 npm 或 pnpm。在非交互环境中，或使用 `--yes` 时，直接采用识别结果。无法识别时默认使用 npm。
+
+例如，使用 npm 创建并安装项目，无需安装 pnpm：
+
+```bash
+npx @midscene/test create my-tests --platform web --package-manager npm
+```
+
+安装依赖、生成说明书、生成的 README 和失败恢复提示均使用选定的包管理器。下方示例使用 pnpm。npm 项目对应的命令为 `npm test`、`npm run describe-nodes` 和 `npm exec -- playwright install chromium`。
 
 `harmony` 使用 `@midscene/harmony`，通过 HDC 连接 HarmonyOS 设备。`computer` 使用 `@midscene/computer`，控制本机的 Windows、macOS 或 Linux 桌面：
 
@@ -34,7 +45,7 @@ pnpm dlx @midscene/test create desktop-tests --platform computer
 
 这两个平台也支持通过 `--with` 注册外部 Node 包。
 
-生成的项目包含以下文件：
+使用 pnpm 时，生成的项目包含以下文件。使用 npm 时，锁文件为 `package-lock.json`，而非 `pnpm-lock.yaml`。README 文件只生成 `README.md`：
 
 ```text
 my-tests/
@@ -46,8 +57,7 @@ my-tests/
 ├── tsconfig.json
 ├── .env.example
 ├── .gitignore
-├── README.md
-└── README.zh.md
+└── README.md
 ```
 
 将 `.env.example` 复制为 `.env`，填写[模型配置](./model-config)。Web 项目需要运行 `pnpm exec playwright install chromium` 安装 Chromium。Android 项目需要连接设备，可通过 `ANDROID_DEVICE_ID` 选择设备。iOS 项目需要启动 WebDriverAgent，并配置 `WDA_HOST` 和 `WDA_PORT`。

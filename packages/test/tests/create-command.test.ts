@@ -34,13 +34,15 @@ const reference = renderNodeReference([]).markdown;
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
+  userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
+  selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
   promptDirectory: vi.fn(async () => {
     throw new Error('Unexpected prompt');
   }),
   selectPlatform: vi.fn(async () => {
     throw new Error('Unexpected platform prompt');
   }),
-  runPnpm: vi.fn(async () => reference),
+  runPackageManager: vi.fn(async () => reference),
 });
 
 afterEach(() => {
@@ -51,6 +53,17 @@ afterEach(() => {
 });
 
 describe('create arguments', () => {
+  it.each(['npm', 'pnpm'])('accepts --package-manager %s', (packageManager) => {
+    expect(
+      parseCreateArgs([
+        '.',
+        '--platform',
+        'web',
+        '--package-manager',
+        packageManager,
+      ]).packageManager,
+    ).toBe(packageManager);
+  });
   it.each(['web', 'android', 'ios', 'harmony', 'computer'])(
     'accepts the documented %s platform',
     (platform) => {
@@ -81,6 +94,7 @@ describe('create arguments', () => {
     ).toEqual({
       directory: 'my tests',
       platform: 'web',
+      packageManager: undefined,
       packages: [
         { name: '@acme/nodes', version: '^1.2.0' },
         { name: 'other-nodes', version: 'latest' },
@@ -98,6 +112,8 @@ describe('create arguments', () => {
     ['a', 'b'],
     ['--platform', 'unsupported'],
     ['--platform'],
+    ['--package-manager'],
+    ['--package-manager', 'yarn'],
     ['--with'],
     ['--with', 'nodes@1', '--with', 'nodes@2'],
     ['--config', 'file.ts'],
@@ -142,11 +158,14 @@ describe('create project', () => {
   it('uses Inquirer input and selection prompts for missing choices', async () => {
     const cwd = temp();
     vi.mocked(input).mockResolvedValue('library-tests');
-    vi.mocked(select).mockResolvedValue('ios');
+    vi.mocked(select)
+      .mockResolvedValueOnce('ios')
+      .mockResolvedValueOnce('pnpm');
     await runCreateCommand([], io(), {
       cwd,
       interactive: true,
-      runPnpm: vi.fn(async () => reference),
+      userAgent: 'pnpm/9.15.0',
+      runPackageManager: vi.fn(async () => reference),
     });
     expect(input).toHaveBeenCalledWith(
       expect.objectContaining({ default: 'my-tests' }),
@@ -162,6 +181,14 @@ describe('create project', () => {
         ],
       }),
     );
+    expect(select).toHaveBeenNthCalledWith(2, {
+      message: 'Select a package manager:',
+      choices: [
+        { name: 'npm', value: 'npm' },
+        { name: 'pnpm', value: 'pnpm' },
+      ],
+      default: 'pnpm',
+    });
     expect(
       readFileSync(join(cwd, 'library-tests', 'midscene.config.ts'), 'utf8'),
     ).toContain('agentClass: IOSAgent');
@@ -174,12 +201,16 @@ describe('create project', () => {
       const error = new Error('Prompt cancelled');
       error.name = name;
       vi.mocked(select).mockRejectedValue(error);
-      const runPnpm = vi.fn(async () => reference);
+      const runPackageManager = vi.fn(async () => reference);
       await expect(
-        runCreateCommand(['.'], io(), { cwd, interactive: true, runPnpm }),
+        runCreateCommand(['.'], io(), {
+          cwd,
+          interactive: true,
+          runPackageManager,
+        }),
       ).rejects.toThrow('Project creation cancelled.');
       expect(readdirSync(cwd)).toEqual([]);
-      expect(runPnpm).not.toHaveBeenCalled();
+      expect(runPackageManager).not.toHaveBeenCalled();
     },
   );
 
@@ -193,13 +224,15 @@ describe('create project', () => {
     );
     const root = join(cwd, 'my tests');
     expect(runtime.promptDirectory).not.toHaveBeenCalled();
-    expect(runtime.runPnpm).toHaveBeenNthCalledWith(
+    expect(runtime.runPackageManager).toHaveBeenNthCalledWith(
       1,
+      'pnpm',
       ['install', '--ignore-workspace'],
       root,
     );
-    expect(runtime.runPnpm).toHaveBeenNthCalledWith(
+    expect(runtime.runPackageManager).toHaveBeenNthCalledWith(
       2,
+      'pnpm',
       ['exec', 'midscene-test', 'describe-nodes'],
       root,
       true,
@@ -220,6 +253,8 @@ describe('create project', () => {
     expect(config).toContain('from "@acme/nodes"');
     expect(config).not.toContain('@acme/nodes@1.2.0');
     expect(existsSync(join(root, '.env'))).toBe(false);
+    expect(existsSync(join(root, 'README.md'))).toBe(true);
+    expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
   });
 
   it('prompts for a directory and selects a platform', async () => {
@@ -244,7 +279,7 @@ describe('create project', () => {
     const runtime = services(cwd);
     runtime.interactive = true;
     runtime.selectPlatform = vi.fn().mockResolvedValue('ios');
-    await runCreateCommand(['.'], io(), runtime);
+    await runCreateCommand(['.', '--package-manager', 'pnpm'], io(), runtime);
     expect(runtime.promptDirectory).not.toHaveBeenCalled();
     expect(runtime.selectPlatform).toHaveBeenCalledTimes(1);
     expect(existsSync(join(cwd, 'midscene.config.ts'))).toBe(true);
@@ -259,7 +294,7 @@ describe('create project', () => {
         'required without prompts',
       );
       expect(readdirSync(cwd)).toEqual([]);
-      expect(runtime.runPnpm).not.toHaveBeenCalled();
+      expect(runtime.runPackageManager).not.toHaveBeenCalled();
     },
   );
 
@@ -281,6 +316,8 @@ describe('create project', () => {
     'midscene.config.ts',
     'midscene-nodes.md',
     'pnpm-lock.yaml',
+    'package-lock.json',
+    'npm-shrinkwrap.json',
     '.gitignore',
     'cases/example.yaml',
   ])('checks every conflict before writing any files: %s', async (filename) => {
@@ -319,7 +356,7 @@ describe('create project', () => {
   it('preserves files and explains recovery after installation fails', async () => {
     const cwd = temp();
     const runtime = services(cwd);
-    runtime.runPnpm = vi
+    runtime.runPackageManager = vi
       .fn()
       .mockRejectedValue(new Error('registry unavailable'));
     await expect(
@@ -327,7 +364,7 @@ describe('create project', () => {
     ).rejects.toThrow(
       'pnpm install --ignore-workspace, then pnpm run describe-nodes',
     );
-    expect(runtime.runPnpm).toHaveBeenCalledTimes(1);
+    expect(runtime.runPackageManager).toHaveBeenCalledTimes(1);
     expect(existsSync(join(cwd, 'package.json'))).toBe(true);
     expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
   });
@@ -337,11 +374,196 @@ describe('create project', () => {
     async (output) => {
       const cwd = temp();
       const runtime = services(cwd);
-      runtime.runPnpm = vi.fn().mockResolvedValue(output);
+      runtime.runPackageManager = vi.fn().mockResolvedValue(output);
       await expect(
         runCreateCommand(['.', '--platform', 'web'], io(), runtime),
       ).rejects.toThrow('Node reference generation failed');
       expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
+    },
+  );
+});
+
+describe('create package manager selection', () => {
+  it.each(['npm', 'pnpm'] as const)(
+    'uses explicit %s for installation, reference generation, and instructions',
+    async (packageManager) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      runtime.interactive = true;
+      runtime.userAgent =
+        packageManager === 'npm' ? 'pnpm/9.15.0' : 'npm/10.0.0';
+      const output = io();
+      await runCreateCommand(
+        ['.', '--platform', 'web', '--package-manager', packageManager],
+        output,
+        runtime,
+      );
+      expect(runtime.selectPackageManager).not.toHaveBeenCalled();
+      const install =
+        packageManager === 'npm'
+          ? ['install', '--workspaces=false']
+          : ['install', '--ignore-workspace'];
+      const describe =
+        packageManager === 'npm'
+          ? [
+              'exec',
+              '--no',
+              '--workspaces=false',
+              '--',
+              'midscene-test',
+              'describe-nodes',
+            ]
+          : ['exec', 'midscene-test', 'describe-nodes'];
+      expect(runtime.runPackageManager).toHaveBeenNthCalledWith(
+        1,
+        packageManager,
+        install,
+        cwd,
+      );
+      expect(runtime.runPackageManager).toHaveBeenNthCalledWith(
+        2,
+        packageManager,
+        describe,
+        cwd,
+        true,
+      );
+      const readme = readFileSync(join(cwd, 'README.md'), 'utf8');
+      const chromium =
+        packageManager === 'npm'
+          ? 'npm exec -- playwright install chromium'
+          : 'pnpm exec playwright install chromium';
+      expect(readme).toContain(chromium);
+      expect(readme).toContain(`${packageManager} test`);
+      expect(readme).toContain(`${packageManager} run describe-nodes`);
+      expect(output.log).toHaveBeenCalledWith(
+        `Installing dependencies with ${packageManager}...`,
+      );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(`Install Chromium: ${chromium}`),
+      );
+      expect(output.log).toHaveBeenLastCalledWith(
+        expect.stringContaining(`${packageManager} test`),
+      );
+    },
+  );
+
+  it.each([
+    ['pnpm/9.15.0 npm/? node/v22.19.0', 'pnpm'],
+    ['npm/10.9.0 node/v22.19.0', 'npm'],
+    [undefined, 'npm'],
+    ['', 'npm'],
+    ['yarn/1.22.0 npm/? node/v22.19.0', 'npm'],
+    ['unknown pnpm/9.15.0', 'npm'],
+  ] as const)(
+    'detects %s as %s without prompts',
+    async (userAgent, expected) => {
+      for (const interactive of [false, true]) {
+        const cwd = temp();
+        const runtime = services(cwd);
+        runtime.userAgent = userAgent;
+        runtime.interactive = interactive;
+        await runCreateCommand(
+          ['.', '--platform', 'web', ...(interactive ? ['--yes'] : [])],
+          io(),
+          runtime,
+        );
+        expect(runtime.selectPackageManager).not.toHaveBeenCalled();
+        expect(runtime.runPackageManager).toHaveBeenCalledWith(
+          expected,
+          expect.any(Array),
+          cwd,
+        );
+      }
+    },
+  );
+
+  it.each(['npm', 'pnpm'] as const)(
+    'allows the interactive choice to override detected %s',
+    async (detected) => {
+      const cwd = temp();
+      const runtime = services(cwd);
+      runtime.interactive = true;
+      runtime.userAgent = `${detected}/10.0.0`;
+      const selected = detected === 'npm' ? 'pnpm' : 'npm';
+      runtime.selectPackageManager = vi.fn().mockResolvedValue(selected);
+      await runCreateCommand(['.', '--platform', 'web'], io(), runtime);
+      expect(runtime.selectPackageManager).toHaveBeenCalledWith(detected);
+      expect(runtime.runPackageManager).toHaveBeenCalledWith(
+        selected,
+        expect.any(Array),
+        cwd,
+      );
+    },
+  );
+
+  it('cancels package manager selection before writing files or installing', async () => {
+    const cwd = temp();
+    const runtime = services(cwd);
+    runtime.interactive = true;
+    const error = new Error('Cancelled');
+    error.name = 'ExitPromptError';
+    runtime.selectPackageManager = vi.fn().mockRejectedValue(error);
+    await expect(
+      runCreateCommand(['.', '--platform', 'web'], io(), runtime),
+    ).rejects.toThrow('Project creation cancelled.');
+    expect(readdirSync(cwd)).toEqual([]);
+    expect(runtime.runPackageManager).not.toHaveBeenCalled();
+  });
+
+  it.each(['npm', 'pnpm'] as const)(
+    'preserves existing lockfiles when selecting %s',
+    async (packageManager) => {
+      for (const lockfile of [
+        'package-lock.json',
+        'npm-shrinkwrap.json',
+        'pnpm-lock.yaml',
+      ]) {
+        const cwd = temp();
+        const runtime = services(cwd);
+        writeFileSync(join(cwd, lockfile), 'keep me');
+        await expect(
+          runCreateCommand(
+            ['.', '--platform', 'web', '--package-manager', packageManager],
+            io(),
+            runtime,
+          ),
+        ).rejects.toThrow('Cannot create project');
+        expect(readdirSync(cwd)).toEqual([lockfile]);
+        expect(readFileSync(join(cwd, lockfile), 'utf8')).toBe('keep me');
+        expect(runtime.runPackageManager).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each(['npm', 'pnpm'] as const)(
+    'uses %s in installation and reference failure recovery',
+    async (packageManager) => {
+      for (const failure of ['install', 'describe']) {
+        const cwd = temp();
+        const runtime = services(cwd);
+        runtime.runPackageManager = vi.fn(async (_manager, args) => {
+          if (failure === 'install' || args[0] === 'exec')
+            throw new Error('command failed');
+          return '';
+        });
+        const output = io();
+        const recovery =
+          failure === 'install'
+            ? `${packageManager} install ${packageManager === 'npm' ? '--workspaces=false' : '--ignore-workspace'}, then ${packageManager} run describe-nodes`
+            : `then run ${packageManager} run describe-nodes`;
+        await expect(
+          runCreateCommand(
+            ['.', '--platform', 'web', '--package-manager', packageManager],
+            output,
+            runtime,
+          ),
+        ).rejects.toThrow(recovery);
+        expect(existsSync(join(cwd, 'package.json'))).toBe(true);
+        expect(existsSync(join(cwd, 'midscene-nodes.md'))).toBe(false);
+        expect(output.log.mock.calls.flat().join('\n')).not.toContain(
+          'Project ready',
+        );
+      }
     },
   );
 });

@@ -13,17 +13,28 @@ pnpm dlx @midscene/test create my-tests --platform web
 cd my-tests
 ```
 
-The command requires pnpm and Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`. It installs dependencies with pnpm and runs `describe-nodes` to write `midscene-nodes.md`.
+The command requires Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and the selected package manager (npm or pnpm). It installs dependencies and runs `describe-nodes` to write `midscene-nodes.md`.
 
 | Argument | Description |
 | --- | --- |
 | `[directory]` | Destination directory; use `.` for the current directory. Prompts if omitted. |
 | `--platform <name>` | `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). Prompts if omitted. |
+| `--package-manager <name>` | `npm` or `pnpm`. Prompts if omitted in an interactive terminal. |
 | `--with <package>` | Install and register a Node package. Accepts an optional version or tag; repeat for multiple packages. |
 | `-y`, `--yes` | Disable prompts. Both directory and platform must be supplied. |
 | `-h`, `--help` | Show usage and examples. |
 
-In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory and platform. In CI or other noninteractive environments, supply both. Existing destination files are never overwritten, including when `--yes` is set.
+In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory, platform, and package manager. In CI or other noninteractive environments, supply the directory and platform. Existing destination files are never overwritten, including when `--yes` is set.
+
+An explicit `--package-manager` takes priority and skips the package manager prompt. Otherwise, the prompt defaults to the manager used to launch the command, detected from `npm_config_user_agent`. In noninteractive environments or with `--yes`, that detected manager is used directly. If npm or pnpm cannot be detected, the default is npm.
+
+For example, use npm to create and install a project without pnpm:
+
+```bash
+npx @midscene/test create my-tests --platform web --package-manager npm
+```
+
+Dependency installation, Node reference generation, the generated README, and recovery instructions all use the selected manager. The examples below use pnpm. For npm projects, use `npm test`, `npm run describe-nodes`, and `npm exec -- playwright install chromium` instead.
 
 `harmony` uses `@midscene/harmony` to connect to HarmonyOS devices through HDC. `computer` uses `@midscene/computer` to control the local Windows, macOS, or Linux desktop:
 
@@ -34,7 +45,7 @@ pnpm dlx @midscene/test create desktop-tests --platform computer
 
 Both platforms also support `--with` to register external Node packages.
 
-The generated project contains:
+The generated project contains the following files when using pnpm. npm creates `package-lock.json` instead of `pnpm-lock.yaml`. The README is generated only as `README.md`:
 
 ```text
 my-tests/
@@ -46,8 +57,7 @@ my-tests/
 ├── tsconfig.json
 ├── .env.example
 ├── .gitignore
-├── README.md
-└── README.zh.md
+└── README.md
 ```
 
 Copy `.env.example` to `.env` and fill in your [model configuration](./model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.

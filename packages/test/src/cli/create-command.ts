@@ -4,6 +4,12 @@ import { input, select } from '@inquirer/prompts';
 import { execa } from 'execa';
 import yargs from 'yargs/yargs';
 import {
+  type CreatePackageManager,
+  createPackageManagers,
+  detectPackageManager,
+  packageManagerCommands,
+} from './create-package-manager';
+import {
   type CreatePlatform,
   type NodePackageSpec,
   createPlatformLabels,
@@ -36,6 +42,13 @@ const createParser = () =>
       requiresArg: true,
       description: 'npm Node package, optionally versioned (repeatable)',
     })
+    .option('package-manager', {
+      type: 'string',
+      choices: createPackageManagers,
+      requiresArg: true,
+      description:
+        'Package manager (prompt if omitted; detect without prompts, falling back to npm)',
+    })
     .option('yes', {
       type: 'boolean',
       alias: 'y',
@@ -50,7 +63,7 @@ const createParser = () =>
       'Include a Node package',
     )
     .epilogue(
-      'Installs dependencies with pnpm and generates midscene-nodes.md.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
+      'Installs dependencies with the selected package manager and generates midscene-nodes.md.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
     )
     .help('help')
     .alias('help', 'h')
@@ -66,6 +79,7 @@ const createParser = () =>
 export interface CreateOptions {
   directory?: string;
   platform?: CreatePlatform;
+  packageManager?: CreatePackageManager;
   packages: NodePackageSpec[];
   yes: boolean;
   help: boolean;
@@ -96,6 +110,7 @@ export function parseCreateArgs(
   return {
     directory,
     platform: values.platform,
+    packageManager: values['package-manager'],
     packages,
     yes: values.yes ?? false,
     help: values.help === true,
@@ -105,9 +120,14 @@ export function parseCreateArgs(
 export interface CreateServices {
   cwd: string;
   interactive: boolean;
+  userAgent: string | undefined;
   promptDirectory(): Promise<string>;
   selectPlatform(): Promise<CreatePlatform>;
-  runPnpm(
+  selectPackageManager(
+    defaultValue: CreatePackageManager,
+  ): Promise<CreatePackageManager>;
+  runPackageManager(
+    packageManager: CreatePackageManager,
     args: string[],
     cwd: string,
     captureOutput?: boolean,
@@ -131,12 +151,22 @@ const selectPlatform = () =>
     })),
   });
 
-const runPnpm: CreateServices['runPnpm'] = async (
+const selectPackageManager: CreateServices['selectPackageManager'] = (
+  defaultValue,
+) =>
+  select<CreatePackageManager>({
+    message: 'Select a package manager:',
+    choices: createPackageManagers.map((value) => ({ name: value, value })),
+    default: defaultValue,
+  });
+
+const runPackageManager: CreateServices['runPackageManager'] = async (
+  packageManager,
   args,
   cwd,
   captureOutput = false,
 ) => {
-  const result = await execa('pnpm', args, {
+  const result = await execa(packageManager, args, {
     cwd,
     stdin: 'inherit',
     stdout: captureOutput ? 'pipe' : 'inherit',
@@ -186,9 +216,11 @@ export async function runCreateCommand(
   const services: CreateServices = {
     cwd: process.cwd(),
     interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    userAgent: process.env.npm_config_user_agent,
     promptDirectory,
     selectPlatform,
-    runPnpm,
+    selectPackageManager,
+    runPackageManager,
     ...overrides,
   };
   if (
@@ -201,9 +233,16 @@ export async function runCreateCommand(
   }
   let directory: string;
   let platform: CreatePlatform;
+  let packageManager: CreatePackageManager;
   try {
     directory = options.directory ?? (await services.promptDirectory()).trim();
     platform = options.platform ?? (await services.selectPlatform());
+    const defaultPackageManager = detectPackageManager(services.userAgent);
+    packageManager =
+      options.packageManager ??
+      (services.interactive && !options.yes
+        ? await services.selectPackageManager(defaultPackageManager)
+        : defaultPackageManager);
   } catch (error) {
     if (
       error instanceof Error &&
@@ -219,11 +258,19 @@ export async function runCreateCommand(
       .toLowerCase()
       .replace(/[^a-z0-9._-]/g, '-')
       .replace(/^[._-]+/, '') || 'midscene-tests';
-  const files = createProjectFiles(name, platform, options.packages);
+  const commands = packageManagerCommands[packageManager];
+  const files = createProjectFiles(
+    name,
+    platform,
+    options.packages,
+    packageManager,
+  );
   checkDestinations(root, [
     ...Object.keys(files),
     'midscene-nodes.md',
     'pnpm-lock.yaml',
+    'package-lock.json',
+    'npm-shrinkwrap.json',
   ]);
   for (const [filename, content] of Object.entries(files)) {
     const path = resolve(root, filename);
@@ -231,18 +278,19 @@ export async function runCreateCommand(
     writeFileSync(path, content, { flag: 'wx' });
   }
   io.log(`Created ${platform} project files in ${root}`);
-  io.log('Installing dependencies with pnpm...');
+  io.log(`Installing dependencies with ${packageManager}...`);
   try {
-    await services.runPnpm(['install', '--ignore-workspace'], root);
+    await services.runPackageManager(packageManager, commands.install, root);
   } catch (error) {
     throw new Error(
-      `Dependency installation failed. Project files are preserved in ${root}.\nIn that directory, run pnpm install --ignore-workspace, then pnpm run describe-nodes.\n${error instanceof Error ? error.message : String(error)}`,
+      `Dependency installation failed. Project files are preserved in ${root}.\nIn that directory, run ${packageManager} ${commands.install.join(' ')}, then ${packageManager} run describe-nodes.\n${error instanceof Error ? error.message : String(error)}`,
     );
   }
   io.log('Generating Node reference...');
   try {
-    const markdown = await services.runPnpm(
-      ['exec', 'midscene-test', 'describe-nodes'],
+    const markdown = await services.runPackageManager(
+      packageManager,
+      commands.describe,
       root,
       true,
     );
@@ -254,10 +302,10 @@ export async function runCreateCommand(
     writeFileSync(resolve(root, 'midscene-nodes.md'), markdown, { flag: 'wx' });
   } catch (error) {
     throw new Error(
-      `Node reference generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run pnpm run describe-nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,
+      `Node reference generation failed. Project files are preserved in ${root}.\nCheck that each Node package exports createMidsceneTestNodes(options), returns a Node array synchronously, and does not register duplicate names.\nFix midscene.config.ts, then run ${packageManager} run describe-nodes in the project directory.\n${error instanceof Error ? error.message : String(error)}`,
     );
   }
   io.log(
-    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-nodes.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? '\nInstall Chromium: pnpm exec playwright install chromium' : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: pnpm test`,
+    `Project ready: ${root}\nNode reference: ${resolve(root, 'midscene-nodes.md')}\nNext: copy .env.example to .env and configure your model.${platform === 'web' ? `\nInstall Chromium: ${commands.installChromium}` : platform === 'computer' ? '\nPrepare desktop dependencies and permissions as described in README.md.' : '\nConfigure your device connection in .env.'}\nRun tests from the project directory: ${packageManager} test`,
   );
 }

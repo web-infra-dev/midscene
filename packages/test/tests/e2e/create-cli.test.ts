@@ -17,6 +17,7 @@ import {
   type CreateServices,
   runCreateCommand,
 } from '../../src/cli/create-command';
+import { createPackageManagers } from '../../src/cli/create-package-manager';
 import { createPlatforms } from '../../src/cli/create-template';
 
 const execFileAsync = promisify(execFile);
@@ -31,14 +32,16 @@ const io = () => ({ log: vi.fn(), error: vi.fn() });
 const services = (cwd: string): CreateServices => ({
   cwd,
   interactive: false,
+  userAgent: 'pnpm/9.15.0 npm/? node/v22.19.0',
+  selectPackageManager: vi.fn(async (defaultValue) => defaultValue),
   promptDirectory: async () => {
     throw new Error('Unexpected prompt');
   },
   selectPlatform: vi.fn(async () => {
     throw new Error('Unexpected platform prompt');
   }),
-  runPnpm: async () => {
-    throw new Error('Unexpected pnpm invocation');
+  runPackageManager: async () => {
+    throw new Error('Unexpected package manager invocation');
   },
 });
 afterEach(() => {
@@ -86,24 +89,31 @@ const linkDependencies = (root: string) => {
 };
 
 describe('generated project integration', () => {
-  it.each(createPlatforms)(
-    'describes and type-checks the %s template without runtime resources',
-    async (platform) => {
+  it.each(
+    createPlatforms.flatMap((platform) =>
+      createPackageManagers.map((packageManager) => ({
+        platform,
+        packageManager,
+      })),
+    ),
+  )(
+    'describes and type-checks the $platform template using $packageManager without runtime resources',
+    async ({ platform, packageManager }) => {
       const cwd = temp();
       const runtime = services(cwd);
-      runtime.runPnpm = async (args, root) => {
+      runtime.runPackageManager = async (packageManager, args, root) => {
         if (args[0] === 'install') {
           linkDependencies(root);
           return '';
         }
-        const result = await execFileAsync(
-          'pnpm',
-          ['exec', 'midscene-test', 'describe-nodes'],
-          { cwd: root },
-        );
+        const result = await execFileAsync(packageManager, args, { cwd: root });
         return result.stdout;
       };
-      await runCreateCommand(['.', '--platform', platform], io(), runtime);
+      await runCreateCommand(
+        ['.', '--platform', platform, '--package-manager', packageManager],
+        io(),
+        runtime,
+      );
       const markdown = readFileSync(join(cwd, 'midscene-nodes.md'), 'utf8');
       expect(markdown).toContain('## `aiAssert`');
       expect(markdown).toContain(
@@ -173,7 +183,7 @@ describe('generated project integration', () => {
     async (platform, format) => {
       const cwd = temp();
       const runtime = services(cwd);
-      runtime.runPnpm = async (args, root) => {
+      runtime.runPackageManager = async (_packageManager, args, root) => {
         if (args[0] === 'install') {
           linkDependencies(root);
           const pkg = join(root, 'node_modules', 'team-nodes');
@@ -246,7 +256,7 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
     async (_, source) => {
       const cwd = temp();
       const runtime = services(cwd);
-      runtime.runPnpm = async (args, root) => {
+      runtime.runPackageManager = async (_packageManager, args, root) => {
         if (args[0] === 'install') {
           linkDependencies(root);
           const pkg = join(root, 'node_modules', 'broken-nodes');
@@ -282,16 +292,16 @@ export declare function createMidsceneTestNodes<TContext>(options: NodePackageOp
     },
   );
 
-  it.skipIf(process.platform === 'win32')(
-    'runs the built create command through pnpm installation and description',
-    async () => {
+  it.skipIf(process.platform === 'win32').each(createPackageManagers)(
+    'runs the built create command through %s installation and description',
+    async (packageManager) => {
       const cwd = temp();
       const root = join(cwd, 'project with spaces');
       linkDependencies(root);
       const bin = join(cwd, 'bin');
       mkdirSync(bin);
       // Substitute only package installation; description runs the actual built CLI.
-      const launcher = join(bin, 'pnpm');
+      const launcher = join(bin, packageManager);
       writeFileSync(
         launcher,
         `#!/usr/bin/env node
@@ -300,7 +310,7 @@ const { spawnSync } = require('node:child_process');
 const args = process.argv.slice(2);
 appendFileSync(${JSON.stringify(join(cwd, 'commands.log'))}, JSON.stringify(args) + '\\n');
 if (args[0] === 'install') process.exit(0);
-const result = spawnSync(process.execPath, [${JSON.stringify(join(packageRoot, 'bin/midscene-test'))}, ...args.slice(2)], { stdio: 'inherit' });
+const result = spawnSync(process.execPath, [${JSON.stringify(join(packageRoot, 'bin/midscene-test'))}, ...args.slice(args.indexOf('midscene-test') + 1)], { stdio: 'inherit' });
 process.exit(result.status ?? 1);
 `,
       );
@@ -313,10 +323,17 @@ process.exit(result.status ?? 1);
           root,
           '--platform',
           'web',
+          '--package-manager',
+          packageManager,
         ],
         {
           cwd,
-          env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+          env: {
+            ...process.env,
+            npm_config_user_agent:
+              packageManager === 'npm' ? 'pnpm/9.15.0' : 'npm/10.0.0',
+            PATH: `${bin}:${process.env.PATH}`,
+          },
         },
       );
       expect(result.stdout).toContain('Project ready:');
@@ -328,10 +345,28 @@ process.exit(result.status ?? 1);
           .trim()
           .split('\n')
           .map((line) => JSON.parse(line)),
-      ).toEqual([
-        ['install', '--ignore-workspace'],
-        ['exec', 'midscene-test', 'describe-nodes'],
-      ]);
+      ).toEqual(
+        packageManager === 'pnpm'
+          ? [
+              ['install', '--ignore-workspace'],
+              ['exec', 'midscene-test', 'describe-nodes'],
+            ]
+          : [
+              ['install', '--workspaces=false'],
+              [
+                'exec',
+                '--no',
+                '--workspaces=false',
+                '--',
+                'midscene-test',
+                'describe-nodes',
+              ],
+            ],
+      );
+      const readme = readFileSync(join(root, 'README.md'), 'utf8');
+      expect(readme).toContain(`${packageManager} test`);
+      expect(readme).toContain(`${packageManager} run describe-nodes`);
+      expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
     },
   );
 });
