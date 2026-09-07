@@ -130,6 +130,58 @@ describe('Input Strategy', () => {
     expect(typeString.mock.calls).toEqual([['A'], ['😀'], ['B']]);
   });
 
+  it('uses explicit modifier phases when shortcut delay is configured', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardShortcutDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithExplicitModifiers')
+      .mockResolvedValue(undefined);
+    const sendKey = rs
+      .spyOn(inputDriver, 'sendKey')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.keyboardPress('Control+Shift+s');
+
+    expect(explicitShortcut).toHaveBeenCalledWith(
+      's',
+      ['control', 'shift'],
+      50,
+    );
+    expect(sendKey).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing shortcut path when shortcut delay is zero', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardShortcutDelay: 0,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs.spyOn(
+      inputDriver,
+      'keyTapWithExplicitModifiers',
+    );
+    const sendKey = rs
+      .spyOn(inputDriver, 'sendKey')
+      .mockImplementation(() => {});
+
+    await device.inputPrimitives.keyboard!.keyboardPress('Control+s');
+
+    expect(sendKey).toHaveBeenCalledWith('s', ['control']);
+    expect(explicitShortcut).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid shortcut delays', () => {
+    expect(() => new ComputerDevice({ keyboardShortcutDelay: -1 })).toThrow(
+      'keyboardShortcutDelay must be a finite non-negative number',
+    );
+    expect(
+      () => new ComputerDevice({ keyboardShortcutDelay: Number.NaN }),
+    ).toThrow('keyboardShortcutDelay must be a finite non-negative number');
+  });
+
   it('rejects bulk input with a positive device delay', async () => {
     const device = new ComputerDevice({ keyboardTypeDelay: 80 });
     const clearInput = rs.spyOn(device as any, 'selectAllAndDelete');

@@ -33,6 +33,7 @@ function createLocalComputerDevice(
     inputStrategy: opts?.inputStrategy,
     keyboardDriver: opts?.keyboardDriver,
     keyboardEventMode: opts?.keyboardEventMode,
+    keyboardShortcutDelay: opts?.keyboardShortcutDelay,
     headless: opts?.headless,
     xvfbResolution: opts?.xvfbResolution,
     keepXvfbAliveUntilProcessExit: opts?.keepXvfbAliveUntilProcessExit,

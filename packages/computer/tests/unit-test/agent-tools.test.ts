@@ -67,6 +67,7 @@ describe('ComputerMidsceneTools', () => {
         'display-id': 'display-2',
         headless: true,
         'keyboard-type-delay': 80,
+        'keyboard-shortcut-delay': 50,
         'input-strategy': 'sequential',
         'keyboard-event-mode': 'physical',
       },
@@ -76,6 +77,7 @@ describe('ComputerMidsceneTools', () => {
       displayId: 'display-2',
       headless: true,
       keyboardTypeDelay: 80,
+      keyboardShortcutDelay: 50,
       inputStrategy: 'sequential',
       keyboardEventMode: 'physical',
     });
@@ -174,6 +176,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardEventMode': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardShortcutDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.replanningCycleLimit': expect.anything(),
         'computer.screenshotShrinkFactor': expect.anything(),
@@ -187,6 +190,7 @@ describe('ComputerMidsceneTools', () => {
         'computer.inputStrategy': expect.anything(),
         'computer.keyboardEventMode': expect.anything(),
         'computer.keyboardTypeDelay': expect.anything(),
+        'computer.keyboardShortcutDelay': expect.anything(),
         'computer.waitAfterAction': expect.anything(),
         'computer.port': expect.anything(),
         'computer.username': expect.anything(),
@@ -218,6 +222,7 @@ describe('ComputerMidsceneTools', () => {
       'input-strategy': 'sequential',
       'keyboard-type-delay': 80,
       'keyboard-event-mode': 'physical',
+      'keyboard-shortcut-delay': 50,
     });
 
     expect(agentForRDPComputer).toHaveBeenCalledWith(
@@ -235,6 +240,9 @@ describe('ComputerMidsceneTools', () => {
     );
     expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
       'keyboardEventMode',
+    );
+    expect(rs.mocked(agentForRDPComputer).mock.calls[0][0]).not.toHaveProperty(
+      'keyboardShortcutDelay',
     );
     expect(agentFromComputer).not.toHaveBeenCalled();
   });
