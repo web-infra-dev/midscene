@@ -142,15 +142,20 @@ const agent = await agentForComputer({
 await agent.aiAct('click the red button five times');
 ```
 
-## 通过 VNC 客户端控制远程桌面 {#vnc-keyboard}
+## 通过桌面客户端转发键盘输入 {#keyboard-event-mode}
 
-`@midscene/computer` 不会直接连接 VNC（Virtual Network Computing，虚拟网络计算）服务器。请在运行 Midscene 的电脑上打开 VNC 客户端，并通过客户端连接远程桌面。操作期间，VNC 客户端需要保持在前台。Midscene 会把它作为本地桌面应用进行控制。这个流程不限于 macOS。
+`@midscene/computer` 会控制 Midscene 所在电脑的前台应用。这个应用可以是 VNC、TeamViewer 等远程控制客户端，也可以是虚拟机控制台。请先打开客户端并建立连接，再让客户端保持在前台。Midscene 会把它作为本地桌面应用进行控制。Midscene 不会直接连接这些产品或协议。
 
-### 在 macOS 上转发修饰键
+### 选择 macOS 修饰键的发送方式
 
-部分 VNC 环境无法保留标准 macOS AppleScript `keystroke ... using` 形式中的修饰键。此时，大写字母会变成小写。包含 `Shift` 或 `Control` 的快捷键也可能失效。
+macOS AppleScript 键盘后端提供两种事件模式。两种模式都调用 AppleScript `System Events`。`physical` 表示显式的按键状态变化，不表示硬件级输入，也不会发送 HID 扫描码。
 
-现有证据只能确认兼容性问题。它没有包含 macOS 底层输入事件或 RFB 报文。因此，目前无法定位修饰键丢失的环节。
+| 模式 | AppleScript 形式 | 适用场景 |
+| --- | --- | --- |
+| `logical`（默认） | 一条 `keystroke ... using` 命令 | 原生应用，或者能够保留修饰键状态的客户端 |
+| `physical` | 分别发送 `key down`、主键和 `key up` 命令 | 需要分别观察修饰键状态变化的前台应用 |
+
+部分远程控制客户端和虚拟机控制台无法保留 `keystroke ... using` 形式中的修饰键。此时，大写字母会变成小写。包含 `Shift` 或 `Control` 的快捷键也可能失效。这个兼容性问题不限于 VNC。
 
 如果遇到这个问题，请将 `keyboardEventMode` 设置为 `physical`。Midscene 会为每个修饰键发送明确的按下和释放事件。文本也需要逐键输入。你可以将 `inputStrategy` 设置为 `sequential`，也可以在默认的 `legacy` 输入策略中设置正数 `keyboardTypeDelay`。
 
@@ -164,10 +169,10 @@ const agent = await agentForComputer({
 });
 ```
 
-`keyboardEventMode` 的默认值是 `logical`。这个模式保留标准的 AppleScript 行为，适合原生 macOS 应用。
+`keyboardEventMode` 的默认值是 `logical`。这个模式保留标准的 AppleScript 行为。
 
 :::warning
-`physical` 是针对兼容性问题的可选模式。请根据实际使用的 VNC 客户端、VNC 服务器和键盘布局进行验证。当前测试覆盖 AppleScript 生成结果和集成行为，没有覆盖真实 VNC 会话。
+`physical` 是可选的兼容模式。请根据前台应用、远程或虚拟系统和键盘布局进行验证。当前测试覆盖 AppleScript 生成结果和集成行为，没有覆盖所有远程控制产品和虚拟机控制台。
 
 仅当本地和远程系统使用相同的 en-US 键盘布局时，才使用 `physical`。这个模式会把 Shift 标点转换为基础键和 `Shift`。因此，原生 macOS 应用可能把 `!@#` 输入为 `123`。
 

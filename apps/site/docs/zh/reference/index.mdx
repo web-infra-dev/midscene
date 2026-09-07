@@ -2869,7 +2869,7 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
 - `customActions`（可选）：添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 - `keyboardDriver?: 'applescript' | 'libnut'`：macOS 的键盘事件后端。`'applescript'` 是兼容性更好的默认选项；目标应用支持时，也可以使用输入速度更快的 `'libnut'`。
-- `keyboardEventMode?: 'logical' | 'physical'`：控制 macOS AppleScript 键盘后端发送修饰键的方式。`'logical'` 使用标准 AppleScript 键盘事件，也是默认值。`'physical'` 是可选的 VNC 兼容模式，适用于标准事件无法保留修饰键的环境。这个模式会发送明确的按下和释放事件。它要求本地与远程系统使用相同的 en-US 键盘布局。文本输入还需要使用 `'sequential'`，或设置正数 `keyboardTypeDelay`。这个选项仅对 macOS AppleScript 键盘后端生效。详见[通过 VNC 客户端控制远程桌面](../platforms/desktop#vnc-keyboard)。
+- `keyboardEventMode?: 'logical' | 'physical'`：控制 macOS AppleScript 键盘后端发送修饰键的方式。`'logical'` 使用一条 `keystroke ... using` 命令，也是默认值。`'physical'` 是可选的兼容模式，适用于需要分别接收修饰键状态变化的前台应用。例如，部分远程控制客户端和虚拟机控制台需要这个模式。两种模式都使用 AppleScript，`'physical'` 不会发送硬件事件。这个模式要求本地与远程系统使用相同的 en-US 键盘布局。文本输入还需要使用 `'sequential'`，或设置正数 `keyboardTypeDelay`。这个选项仅对 macOS AppleScript 键盘后端生效。详见[通过桌面客户端转发键盘输入](../platforms/desktop#keyboard-event-mode)。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
 

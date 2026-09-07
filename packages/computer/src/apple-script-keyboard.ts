@@ -49,9 +49,11 @@ const APPLE_SCRIPT_MODIFIER_KEYS: Readonly<Partial<Record<string, string>>> = {
 /**
  * Modifier delivery mode for the macOS AppleScript keyboard backend.
  *
- * `logical` is the default for native macOS applications. `physical` emits
- * explicit modifier transitions for VNC clients and assumes an en-US mapping
- * for shifted punctuation; it should not be enabled for native applications.
+ * `logical` uses the compact `keystroke ... using` form. `physical` emits
+ * explicit modifier transitions for foreground applications that require
+ * separate key state changes. Both modes use AppleScript System Events;
+ * `physical` does not emit hardware events. It assumes an en-US mapping for
+ * shifted punctuation and should be enabled only when needed.
  */
 export type KeyboardEventMode = 'logical' | 'physical';
 

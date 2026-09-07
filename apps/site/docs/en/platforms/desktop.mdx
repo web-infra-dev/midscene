@@ -142,15 +142,20 @@ const agent = await agentForComputer({
 await agent.aiAct('click the red button five times');
 ```
 
-## Control a remote desktop through a VNC client {#vnc-keyboard}
+## Forward keyboard input through desktop clients {#keyboard-event-mode}
 
-`@midscene/computer` does not connect to a VNC server directly. Open a VNC client on the computer that runs Midscene, and use the client to connect to the remote desktop. Keep the VNC client in the foreground while Midscene controls it as a local desktop application. This workflow is not limited to macOS.
+`@midscene/computer` controls the foreground application on the computer that runs Midscene. The application can be a remote-control client, such as VNC or TeamViewer, or a virtual machine console. Open and connect the client first, then keep it in the foreground while Midscene controls it as a local desktop application. Midscene does not connect to these products or protocols directly.
 
-### Forward modifier keys on macOS
+### Choose how macOS sends modifier keys
 
-Some VNC environments do not preserve modifiers from the standard macOS AppleScript `keystroke ... using` form. Symptoms include uppercase letters becoming lowercase or shortcuts losing `Shift` and `Control`.
+The macOS AppleScript keyboard backend provides two event modes. Both modes call AppleScript `System Events`. The name `physical` describes the explicit key state transitions; it does not mean hardware-level input or HID scan codes.
 
-The available evidence confirms the compatibility issue, but it does not include low-level macOS input events or RFB packets. It cannot show where the modifier state is lost in the end-to-end input path.
+| Mode | AppleScript form | When to use it |
+| --- | --- | --- |
+| `logical` (default) | One compact `keystroke ... using` command | Native applications and clients that preserve modifier state |
+| `physical` | Separate `key down`, main-key, and `key up` commands | Foreground applications that require separately observable modifier transitions |
+
+Some remote-control clients and virtual machine consoles do not preserve modifiers from the compact `keystroke ... using` form. Symptoms include uppercase letters becoming lowercase or shortcuts losing `Shift` and `Control`. This compatibility issue is not specific to VNC.
 
 If you encounter this issue, set `keyboardEventMode` to `physical`. Midscene will send explicit key-down and key-up events for each modifier. Text input must also operate one key at a time. Set `inputStrategy` to `sequential`, as shown below, or set a positive `keyboardTypeDelay` when using the default `legacy` input strategy.
 
@@ -164,10 +169,10 @@ const agent = await agentForComputer({
 });
 ```
 
-The default value is `keyboardEventMode: 'logical'`. It keeps the standard AppleScript behavior for native macOS applications.
+The default value is `keyboardEventMode: 'logical'`. It keeps the standard AppleScript behavior.
 
 :::warning
-Treat `physical` as an opt-in compatibility mode for affected VNC environments. Test it with your VNC client, server, and keyboard layout. The current verification covers generated AppleScript and integration behavior, but not a real VNC session.
+Treat `physical` as an opt-in compatibility mode. Test it with the foreground application, the remote or virtualized system, and the keyboard layout. The current verification covers generated AppleScript and integration behavior. It does not cover every remote-control product or virtual machine console.
 
 Use `physical` only when the local and remote systems use matching en-US keyboard layouts. The mode converts shifted punctuation to a base key plus `Shift`. A native macOS application may therefore type `123` when the intended text is `!@#`.
 

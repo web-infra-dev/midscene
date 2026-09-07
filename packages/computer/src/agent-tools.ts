@@ -66,7 +66,7 @@ const computerInitArgShape = {
     .enum(['logical', 'physical'])
     .optional()
     .describe(
-      'macOS AppleScript keyboard event mode for local control. "logical" (default) targets native apps; "physical" is only for VNC clients, assumes an en-US layout for shifted punctuation, and requires sequential text input or a positive keyboardTypeDelay. Ignored in RDP mode and outside the macOS AppleScript driver.',
+      'macOS AppleScript keyboard event mode for local control. "logical" (default) uses a compact keystroke command; "physical" sends explicit modifier transitions for foreground apps that require separate key state changes. Both modes use AppleScript, and "physical" is not hardware input. It assumes an en-US layout for shifted punctuation and requires sequential text input or a positive keyboardTypeDelay. Ignored in RDP mode and outside the macOS AppleScript driver.',
     ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.
