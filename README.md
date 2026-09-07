@@ -5,10 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://midscenejs.com/">Website</a> · English / <a href="./README.zh.md">简体中文</a><br />
+  <a href="https://midscenejs.com/">Website</a> · English / <a href="./README.zh.md">简体中文</a>
+</p>
+
+<p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
+  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/Trendshift-Midscene-00a8f0?style=flat-square" alt="Midscene on Trendshift" /></a>
 </p>
 
 ## See it in action
