@@ -6,7 +6,7 @@
  * 2. Cross-origin kill signals are rejected (DoS prevention)
  *
  * Protection mechanism: Socket.IO middleware checks the Origin header on
- * every connection. Only trusted origins (no Origin = local process, or
+ * every connection. Only trusted origins (no Origin = native client, or
  * chrome-extension://) are allowed. Browser pages cannot forge or omit
  * the Origin header on WebSocket handshakes.
  *
@@ -40,7 +40,7 @@ function tryConnect(
   } = {},
 ): Promise<{ connected: boolean; gotConnectedEvent: boolean }> {
   return new Promise((resolve) => {
-    const client = ClientIO(`ws://localhost:${port}`, {
+    const client = ClientIO(`ws://127.0.0.1:${port}`, {
       extraHeaders: opts.origin ? { Origin: opts.origin } : undefined,
       query: { version: 'test', ...(opts.query || {}) },
       transports: ['websocket'],
@@ -115,7 +115,7 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     await server.listen();
 
     // Malicious client tries to connect first to hijack the session
-    const maliciousClient = ClientIO(`ws://localhost:${port}`, {
+    const maliciousClient = ClientIO(`ws://127.0.0.1:${port}`, {
       extraHeaders: { Origin: 'https://attacker.com' },
       query: { version: 'evil' },
       transports: ['websocket'],
@@ -158,8 +158,8 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
 
-    // Connect a legitimate client first (no Origin = local process)
-    const legitClient = ClientIO(`ws://localhost:${port}`, {
+    // Connect a legitimate client first (no Origin = native client)
+    const legitClient = ClientIO(`ws://127.0.0.1:${port}`, {
       query: { version: 'legit' },
       transports: ['websocket'],
       reconnection: false,
@@ -179,7 +179,7 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     });
 
     // Simulate malicious webpage sending kill signal
-    const maliciousClient = ClientIO(`ws://localhost:${port}`, {
+    const maliciousClient = ClientIO(`ws://127.0.0.1:${port}`, {
       extraHeaders: { Origin: 'https://evil.com' },
       query: { [BridgeSignalKill]: '1' },
       transports: ['websocket'],
@@ -212,8 +212,8 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     const server = new BridgeServer(DEFAULT_HOST, port);
     await server.listen();
 
-    // Connect a legitimate client (no Origin = local process)
-    const client = ClientIO(`ws://localhost:${port}`, {
+    // Connect a legitimate client (no Origin = native client)
+    const client = ClientIO(`ws://127.0.0.1:${port}`, {
       query: { version: 'test' },
       transports: ['websocket'],
       reconnection: false,
@@ -240,7 +240,7 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     await server.listen();
 
     let receivedMethod = '';
-    const client = ClientIO(`ws://localhost:${port}`, {
+    const client = ClientIO(`ws://127.0.0.1:${port}`, {
       query: { version: 'test' },
       transports: ['websocket'],
       reconnection: false,
@@ -295,7 +295,7 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     await server1.listen({ timeout: false });
 
     // Connect a client to server1 so we can verify it's alive
-    const client1 = ClientIO(`ws://localhost:${port}`, {
+    const client1 = ClientIO(`ws://127.0.0.1:${port}`, {
       query: { version: 'test' },
       transports: ['websocket'],
       reconnection: false,
@@ -337,4 +337,20 @@ describe('Bridge Server Security (GHSA-mrhp-4xj5-p96f)', () => {
     client1.close();
     await server2.close();
   }, 15000);
+});
+
+describe('Bridge listen address', () => {
+  it.each(['127.0.0.1', '0.0.0.0'])(
+    'honors configured host %s',
+    async (host) => {
+      const server = new BridgeServer(host, nextPort());
+      try {
+        await server.listen({ timeout: false });
+        expect((server as any).io.httpServer.address().address).toBe(host);
+        expect((await tryConnect(server.port)).connected).toBe(true);
+      } finally {
+        await server.close();
+      }
+    },
+  );
 });

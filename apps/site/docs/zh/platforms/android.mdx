@@ -317,6 +317,22 @@ midscene-android tap \
 
 每条 CLI 命令都是独立进程，因此每条需要覆盖默认码率的命令都要传入该参数。使用 JavaScript SDK 或 YAML 时，只需在对应设备配置中设置一次 `scrcpyConfig.videoBitRate`。调整码率是在编码带宽和截图细节之间取舍；只有独立的链路测量表明有需要时才应调优，并验证截图与识别质量。默认值和相关选项见 [`AndroidDevice` scrcpy 参考](../reference/index.mdx#scrcpy)。
 
+### 远程投屏预览
+
+Scrcpy 投屏服务现在默认只监听 `127.0.0.1`。如果需要从另一台电脑访问 Android Playground，必须显式开启 Playground 服务和 Scrcpy 投屏服务的远程访问。例如，在 macOS 或 Linux 上运行：
+
+```bash
+MIDSCENE_PLAYGROUND_HOST=0.0.0.0 MIDSCENE_SCRCPY_HOST=0.0.0.0 pnpm dlx @midscene/android-playground
+```
+
+在浏览器中使用服务端电脑实际可访问的 IP 地址或主机名，以及启动时输出的 Playground 端口。需要同时允许访问 Playground 和 Scrcpy 的端口。`0.0.0.0` 是监听地址，不是浏览器中应填写的访问地址。
+
+`MIDSCENE_SCRCPY_HOST` 适用于独立的 Android Playground CLI，也可以设置为具体的本机网卡地址，例如 `192.168.1.100`；自动打开的本机页面会使用该地址连接投屏服务。直接创建 `ScrcpyServer` 的代码可以传入 `host` 构造参数。Studio 仍保持仅本机投屏。
+
+:::warning
+Scrcpy 尚未提供投屏会话认证。开启远程访问后，能够连接该端口的客户端可以获取设备信息和屏幕流。仅应在可信网络中开启，并限制为预期客户端可访问。
+:::
+
 ### 如何使用自定义的 adb 路径或远程 adb 服务器？
 
 通过环境变量设置：

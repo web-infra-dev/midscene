@@ -120,6 +120,29 @@ export function resolvePreviewConnectionInfo(
       resolvedScrcpyPort && resolvedServerUrl
         ? (() => {
             const url = new URL(resolvedServerUrl);
+            // The CLI opens a local page even when the sidecar binds to a
+            // specific LAN interface. Use that bind host for local pages;
+            // remote pages keep their reachable hostname (e.g. behind NAT).
+            if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+              const bindHost =
+                typeof preview.custom?.scrcpyHost === 'string'
+                  ? preview.custom.scrcpyHost.trim()
+                  : '';
+              if (bindHost && bindHost !== '0.0.0.0' && bindHost !== '::') {
+                url.hostname =
+                  bindHost.includes(':') && !bindHost.startsWith('[')
+                    ? `[${bindHost}]`
+                    : bindHost;
+              } else if (bindHost === '::') {
+                url.hostname = '[::1]';
+              } else if (
+                bindHost === '0.0.0.0' ||
+                url.hostname === 'localhost'
+              ) {
+                // A wildcard is a listen address, never a connection address.
+                url.hostname = '127.0.0.1';
+              }
+            }
             url.port = String(resolvedScrcpyPort);
             url.pathname = '/';
             url.search = '';

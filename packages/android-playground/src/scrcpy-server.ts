@@ -93,6 +93,8 @@ export interface ScrcpyDeviceListSource {
 }
 
 export interface ScrcpyServerOptions {
+  /** Defaults to loopback. Set explicitly to expose previews remotely. */
+  host?: string;
   deviceListSource?: ScrcpyDeviceListSource;
 }
 
@@ -114,11 +116,14 @@ export default class ScrcpyServer {
   adbClient: AdbServerClient | null = null;
   currentDeviceId: string | null = null;
   devicePollInterval: NodeJS.Timeout | null = null;
+  readonly host: string;
   private deviceListSource?: ScrcpyDeviceListSource;
   private deviceListSourceUnsubscribe?: () => void;
   lastDeviceList = ''; // use for comparing changes
 
   constructor(options: ScrcpyServerOptions = {}) {
+    this.host = options.host ?? '127.0.0.1';
+    if (!this.host.trim()) throw new Error('Scrcpy host must not be empty');
     this.deviceListSource = options.deviceListSource;
     this.app = express();
     this.httpServer = createServer(this.app);
@@ -854,11 +859,18 @@ export default class ScrcpyServer {
 
   // launch server
   async launch(port?: number) {
-    this.port = port || this.defaultPort;
-    return new Promise<this>((resolve) => {
+    this.port = port ?? this.defaultPort;
+    return new Promise<this>((resolve, reject) => {
       const listenPort = this.port ?? this.defaultPort;
-      this.httpServer.listen(listenPort, '0.0.0.0', () => {
-        console.log(`Scrcpy server running at: http://0.0.0.0:${this.port}`);
+      const onError = (error: Error) => reject(error);
+      this.httpServer.once('error', onError);
+      this.httpServer.listen(listenPort, this.host, () => {
+        this.httpServer.off('error', onError);
+        const address = this.httpServer.address();
+        if (address && typeof address !== 'string') this.port = address.port;
+        console.log(
+          `Scrcpy server running at: http://${this.host}:${this.port}`,
+        );
         // start device monitoring
         this.startDeviceMonitoring();
         resolve(this);
