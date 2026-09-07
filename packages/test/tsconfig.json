@@ -12,6 +12,12 @@
       "path": "../android"
     },
     {
+      "path": "../core"
+    },
+    {
+      "path": "../harmony"
+    },
+    {
       "path": "../ios"
     }
   ]

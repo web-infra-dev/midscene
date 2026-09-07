@@ -116,16 +116,18 @@ export function collectWorkflowDocument(
         { phase },
       );
     }
-    return normalizeSteps(value).map((normalized, stepIndex) => {
-      const resolved = options.resolveNode(normalized.node);
-      if (!resolved) {
-        throw new WorkflowParseError(
-          `Workflow document ${phase} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
-          { phase, stepIndex, node: normalized.node },
-        );
-      }
-      return resolveStepVariables(normalized, phase, stepIndex);
-    });
+    return normalizeSteps(value, options.resolveNode).map(
+      (normalized, stepIndex) => {
+        const resolved = options.resolveNode(normalized.node);
+        if (!resolved) {
+          throw new WorkflowParseError(
+            `Workflow document ${phase} step ${stepIndex + 1} references unknown node "${normalized.node}".`,
+            { phase, stepIndex, node: normalized.node },
+          );
+        }
+        return resolveStepVariables(normalized, phase, stepIndex);
+      },
+    );
   };
   const lifecycle = {
     beforeAll: normalizeLifecycle('beforeAll'),
@@ -171,7 +173,7 @@ export function collectWorkflowDocument(
       );
     }
 
-    const steps = normalizeSteps(definition.steps).map(
+    const steps = normalizeSteps(definition.steps, options.resolveNode).map(
       (normalized, stepIndex) => {
         if (!options.resolveNode(normalized.node)) {
           throw new WorkflowParseError(

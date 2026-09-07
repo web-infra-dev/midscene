@@ -265,6 +265,7 @@ export const createSetCookiesNode = <TContext>(
     title: 'Set browser cookies',
     description:
       'Load cookies from an environment variable, configured profile, or Playwright storage-state file without persisting cookie values in workflow input or output.',
+    stringInputKey: false,
     inputSchema: setCookiesInputSchema,
     async execute(ctx) {
       throwIfAborted(ctx.signal, 'setCookies');

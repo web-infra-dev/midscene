@@ -1,5 +1,9 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
-import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import {
+  type AgentOpt,
+  type AgentTestRunnerNodeDefinition,
+  Agent as PageAgent,
+} from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
@@ -13,6 +17,7 @@ import {
   HarmonyDevice,
   type HarmonyDeviceOpt,
 } from './device';
+import { harmonyAgentTestRunnerNodeDefinitions } from './test-runner-nodes';
 import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('harmony:agent');
@@ -35,6 +40,13 @@ type WrappedAction<T extends DeviceAction> = (
 ) => Promise<ActionReturn<T>>;
 
 export class HarmonyAgent extends PageAgent<HarmonyDevice> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...PageAgent.getTestRunnerNodeDefinitions(),
+      ...harmonyAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
   back!: WrappedAction<DeviceActionHarmonyBackButton>;
   home!: WrappedAction<DeviceActionHarmonyHomeButton>;
   recentApps!: WrappedAction<DeviceActionHarmonyRecentAppsButton>;

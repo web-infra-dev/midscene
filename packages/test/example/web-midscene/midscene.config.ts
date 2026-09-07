@@ -108,11 +108,11 @@ const recordPageState = defineNode<unknown, PageState, ProjectContext>({
 });
 
 const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PlaywrightAgent,
   getAgent: ({ context }) => {
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-  includeLaunch: false,
 });
 
 const playwrightSetup = defineProjectSetup<ProjectContext>({

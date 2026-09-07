@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test-runner';
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -18,17 +19,38 @@ const collected = (
   definition: { name: 'midscene case', steps },
 });
 
+const commonAgent = (
+  overrides: Partial<MidsceneUIAgent> = {},
+): MidsceneUIAgent => ({
+  aiAct: vi.fn(async () => undefined),
+  aiTap: vi.fn(async () => undefined),
+  aiAssert: vi.fn(async () => undefined),
+  aiBoolean: vi.fn(async () => false),
+  aiNumber: vi.fn(async () => 0),
+  aiString: vi.fn(async () => ''),
+  aiAsk: vi.fn(async () => ''),
+  recordToReport: vi.fn(async () => undefined),
+  ...overrides,
+});
+
+const testAgentClass = {
+  getTestRunnerNodeDefinitions: () => commonAgentTestRunnerNodeDefinitions,
+};
+
 describe('createMidsceneNodes', () => {
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
     const recordToReport = vi.fn(async () => undefined);
-    const agent: MidsceneUIAgent = { aiAct, aiAssert, recordToReport };
+    const agent = commonAgent({ aiAct, aiAssert, recordToReport });
     const getAgent = vi.fn(
       ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
         context.uiAgent,
     );
-    const nodes = createMidsceneNodes({ getAgent });
+    const nodes = createMidsceneNodes({
+      getAgent,
+      agentClass: testAgentClass,
+    });
     const registry = new NodeRegistry(nodes);
 
     const result = await runCollectedCase(
@@ -49,7 +71,10 @@ describe('createMidsceneNodes', () => {
         },
         {
           node: 'recordToReport',
-          input: { title: 'Order created', content: 'order-1' },
+          input: {
+            title: 'Order created',
+            options: { content: 'order-1' },
+          },
           meta: { continueOnError: false },
         },
       ]),
@@ -61,9 +86,13 @@ describe('createMidsceneNodes', () => {
 
     expect(registry.names()).toEqual([
       'aiAct',
+      'aiTap',
       'aiAssert',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
       'recordToReport',
-      'launch',
       'wait',
       'agent',
     ]);
@@ -92,11 +121,11 @@ describe('createMidsceneNodes', () => {
 
   it('does not inject beforeEach results into aiAct context', async () => {
     const aiAct = vi.fn(async () => 'page reset');
-    const launch = vi.fn(async () => undefined);
-    const agent = { aiAct, launch } as unknown as MidsceneUIAgent;
+    const agent = commonAgent({ aiAct });
     const registry = new NodeRegistry(
       createMidsceneNodes<{ agent: MidsceneUIAgent }>({
         getAgent: ({ context }) => context.agent,
+        agentClass: testAgentClass,
       }),
     );
 
@@ -116,8 +145,8 @@ describe('createMidsceneNodes', () => {
         context: { agent },
         beforeEach: [
           {
-            node: 'launch',
-            input: { uri: 'com.example.app' },
+            node: 'wait',
+            input: { duration: 1, unit: 'ms' },
             meta: { continueOnError: false },
           },
         ],
@@ -125,18 +154,18 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(result.status).toBe('success');
-    expect(launch).toHaveBeenCalledWith('com.example.app');
     expect(aiAct).toHaveBeenCalledWith('Reset the page', {
       context: 'Use the app reset rules.',
       abortSignal: expect.any(AbortSignal),
     });
   });
 
-  it('supports recordToReport string shorthand without an AI call', async () => {
+  it('uses the canonical recordToReport input without an AI call', async () => {
     const recordToReport = vi.fn(async () => undefined);
     const agent = { recordToReport } as unknown as MidsceneUIAgent;
     const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
       getAgent: ({ context }) => context.agent,
+      agentClass: testAgentClass,
     });
     const registry = new NodeRegistry(nodes);
 
@@ -144,7 +173,7 @@ describe('createMidsceneNodes', () => {
       collected([
         {
           node: 'recordToReport',
-          input: { prompt: 'Checkpoint' },
+          input: { title: 'Checkpoint' },
           meta: { continueOnError: false },
         },
       ]),
@@ -155,7 +184,7 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(result.status).toBe('success');
-    expect(recordToReport).toHaveBeenCalledWith('Checkpoint', {});
+    expect(recordToReport).toHaveBeenCalledWith('Checkpoint', undefined);
   });
 
   it('forwards reference images to aiAct and aiAssert as multimodal prompts', async () => {
@@ -165,6 +194,7 @@ describe('createMidsceneNodes', () => {
     const registry = new NodeRegistry(
       createMidsceneNodes<{ agent: MidsceneUIAgent }>({
         getAgent: ({ context }) => context.agent,
+        agentClass: testAgentClass,
       }),
     );
     const capsule = {
@@ -181,18 +211,22 @@ describe('createMidsceneNodes', () => {
         {
           node: 'aiAct',
           input: {
-            prompt: '点击音乐胶囊进入编辑器',
-            images: [capsule, editor],
-            convertHttpImage2Base64: true,
+            prompt: {
+              prompt: '点击音乐胶囊进入编辑器',
+              images: [capsule, editor],
+              convertHttpImage2Base64: true,
+            },
           },
           meta: { continueOnError: false },
         },
         {
           node: 'aiAssert',
           input: {
-            prompt: '当前页面与全屏音乐编辑器参考图一致',
-            images: [editor],
-            convertHttpImage2Base64: true,
+            prompt: {
+              prompt: '当前页面与全屏音乐编辑器参考图一致',
+              images: [editor],
+              convertHttpImage2Base64: true,
+            },
             options: { screenshotIncluded: true },
           },
           meta: { continueOnError: false },
@@ -227,6 +261,116 @@ describe('createMidsceneNodes', () => {
     );
   });
 
+  it('forwards common Agent method options and preserves insight values', async () => {
+    const aiTap = vi.fn(async () => undefined);
+    const aiBoolean = vi.fn(async () => true);
+    const aiNumber = vi.fn(async () => 42);
+    const aiString = vi.fn(async () => 'ready');
+    const aiAsk = vi.fn(async () => 'details');
+    const aiAssert = vi.fn(async () => ({ pass: true }));
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () =>
+          commonAgent({
+            aiTap,
+            aiBoolean,
+            aiNumber,
+            aiString,
+            aiAsk,
+            aiAssert,
+          }),
+        agentClass: testAgentClass,
+      }),
+    );
+    const result = await runCollectedCase(
+      collected([
+        {
+          node: 'aiTap',
+          input: { prompt: 'Submit', options: { deepLocate: true } },
+          meta: { continueOnError: false },
+        },
+        ...(['aiBoolean', 'aiNumber', 'aiString', 'aiAsk'] as const).map(
+          (node) => ({
+            node,
+            input: { prompt: `Read with ${node}` },
+            meta: { continueOnError: false },
+          }),
+        ),
+        {
+          node: 'aiAssert',
+          input: {
+            prompt: 'The result is visible',
+            options: { keepRawResponse: true },
+          },
+          meta: { continueOnError: false },
+        },
+      ]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.status).toBe('success');
+    expect(aiTap).toHaveBeenCalledWith(
+      'Submit',
+      expect.objectContaining({ deepLocate: true }),
+    );
+    expect(result.steps.slice(1, 5).map((step) => step.output?.data)).toEqual([
+      { value: true },
+      { value: 42 },
+      { value: 'ready' },
+      { value: 'details' },
+    ]);
+    expect(aiAssert).toHaveBeenCalledWith(
+      'The result is visible',
+      undefined,
+      expect.objectContaining({
+        keepRawResponse: true,
+        abortSignal: expect.any(AbortSignal),
+      }),
+    );
+    expect(result.steps[5].output?.data).toEqual({ pass: true });
+  });
+
+  it.each(['The result is visible', '', undefined])(
+    'accepts successful raw assertions with undefined message and thought %s',
+    async (thought) => {
+      const aiAssert = vi.fn(async () => ({
+        pass: true,
+        thought,
+        message: undefined,
+      }));
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          getAgent: () => commonAgent({ aiAssert }),
+          agentClass: testAgentClass,
+        }),
+      );
+
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'aiAssert',
+            input: {
+              prompt: 'The result is visible',
+              options: { keepRawResponse: true },
+            },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+
+      expect(result.status).toBe('success');
+      expect(result.steps[0].status).toBe('success');
+      expect(result.steps[0].output).toStrictEqual({
+        summary: 'Assertion passed: The result is visible',
+        data: {
+          pass: true,
+          ...(thought === undefined ? {} : { thought }),
+        },
+      });
+    },
+  );
+
   it('does not inject an earlier Node result into aiAssert options', async () => {
     const stdout = 'x'.repeat(100_000);
     const aiAssert = vi.fn(async () => undefined);
@@ -238,8 +382,8 @@ describe('createMidsceneNodes', () => {
         },
       }),
       ...createMidsceneNodes({
-        getAgent: () => ({ aiAssert }) as unknown as MidsceneUIAgent,
-        includeLaunch: false,
+        getAgent: () => commonAgent({ aiAssert }),
+        agentClass: testAgentClass,
       }),
     ]);
 
@@ -268,6 +412,7 @@ describe('createMidsceneNodes', () => {
   it('rejects invalid node input and missing Agent methods clearly', async () => {
     const nodes = createMidsceneNodes<{ agent: MidsceneUIAgent }>({
       getAgent: ({ context }) => context.agent,
+      agentClass: testAgentClass,
     });
     const registry = new NodeRegistry(nodes);
     const run = (
@@ -287,11 +432,9 @@ describe('createMidsceneNodes', () => {
       'aiAssert',
       {
         prompt: 'Visible',
-        options: { keepRawResponse: true },
+        options: { abortSignal: true },
       },
-      {
-        aiAssert: vi.fn(async () => undefined),
-      } as unknown as MidsceneUIAgent,
+      commonAgent(),
     );
     expect(invalidOptions.steps[0].error).toMatchObject({
       code: 'NODE_INPUT_VALIDATION_ERROR',
@@ -314,20 +457,36 @@ describe('createMidsceneNodes', () => {
     expect(() => createMidsceneNodes({} as never)).toThrow(
       'createMidsceneNodes() requires getAgent or agentProvider.getAgent.',
     );
+    expect(() =>
+      createMidsceneNodes({ getAgent: () => commonAgent() } as never),
+    ).toThrow(
+      'createMidsceneNodes() requires agentClass.getTestRunnerNodeDefinitions().',
+    );
+    expect(() =>
+      createMidsceneNodes({
+        getAgent: () => commonAgent(),
+        agentClass: {},
+      } as never),
+    ).toThrow(
+      'createMidsceneNodes() requires agentClass.getTestRunnerNodeDefinitions().',
+    );
   });
 
   it('releases an AgentProvider scope exactly once after each case attempt', async () => {
-    const agent: MidsceneUIAgent = {
+    const agent = commonAgent({
       aiAct: vi.fn(async () => 'acted'),
       aiAssert: vi.fn(async () => undefined),
       recordToReport: vi.fn(async () => undefined),
-    };
+    });
     const getAgent = vi.fn(async (_runId: string) => agent);
     const releaseAgent = vi.fn(async (runId: string) => ({
       reportPath: resolve(`/tmp/${runId}.html`),
     }));
     const registry = new NodeRegistry(
-      createMidsceneNodes({ agentProvider: { getAgent, releaseAgent } }),
+      createMidsceneNodes({
+        agentProvider: { getAgent, releaseAgent },
+        agentClass: testAgentClass,
+      }),
     );
 
     for (const runId of ['attempt-1', 'attempt-2']) {
@@ -363,25 +522,20 @@ describe('createMidsceneNodes', () => {
     expect(releaseAgent.mock.calls).toEqual([['attempt-1'], ['attempt-2']]);
   });
 
-  it('delegates launch and agent nodes without prior-step state', async () => {
-    const launch = vi.fn(async () => undefined);
+  it('delegates agent nodes without prior-step state', async () => {
     const agentExecutor = {
       execute: vi.fn(async () => ({ summary: 'agent completed' })),
     };
     const registry = new NodeRegistry(
       createMidsceneNodes({
-        getAgent: () => ({ launch }) as unknown as MidsceneUIAgent,
+        getAgent: () => commonAgent(),
+        agentClass: testAgentClass,
         agentExecutor,
       }),
     );
 
     const result = await runCollectedCase(
       collected([
-        {
-          node: 'launch',
-          input: { uri: 'com.example.app' },
-          meta: { continueOnError: false },
-        },
         {
           node: 'wait',
           input: { duration: 1, unit: 'ms' },
@@ -401,7 +555,6 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(result.status).toBe('success');
-    expect(launch).toHaveBeenCalledWith('com.example.app');
     expect(agentExecutor.execute).toHaveBeenCalledWith({
       prompt: 'Inspect the current page with the allowed tools.',
       context: { platform: 'ios' },
@@ -412,7 +565,10 @@ describe('createMidsceneNodes', () => {
 
   it('aborts a wait node through the active workflow signal', async () => {
     const registry = new NodeRegistry(
-      createMidsceneNodes({ getAgent: () => ({}) as MidsceneUIAgent }),
+      createMidsceneNodes({
+        getAgent: () => ({}) as MidsceneUIAgent,
+        agentClass: testAgentClass,
+      }),
     );
     const controller = new AbortController();
     const pending = runCollectedCase(
@@ -455,6 +611,7 @@ describe('createMidsceneNodes', () => {
         expect('case' in ctx).toBe(false);
         return ctx.context.agent;
       },
+      agentClass: testAgentClass,
     });
     const registry = new NodeRegistry(nodes);
     const document: CollectedWorkflowDocument = {
@@ -465,7 +622,7 @@ describe('createMidsceneNodes', () => {
         beforeAll: [
           {
             node: 'recordToReport',
-            input: { prompt: 'Document started' },
+            input: { title: 'Document started' },
             meta: { continueOnError: false },
           },
         ],
@@ -485,14 +642,14 @@ describe('createMidsceneNodes', () => {
       phase: 'beforeAll',
       output: { summary: 'Recorded to report: Document started' },
     });
-    expect(recordToReport).toHaveBeenCalledWith('Document started', {});
+    expect(recordToReport).toHaveBeenCalledWith('Document started', undefined);
     await runtime.finish();
   });
 
-  it('can omit the legacy launch node for a Web or platform preset', () => {
+  it('does not register platform lifecycle nodes in the common preset', () => {
     const nodes = createMidsceneNodes({
-      getAgent: () => ({}) as MidsceneUIAgent,
-      includeLaunch: false,
+      getAgent: () => commonAgent(),
+      agentClass: testAgentClass,
     });
 
     expect(nodes.map((node) => node.name)).not.toContain('launch');

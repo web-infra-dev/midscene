@@ -70,5 +70,29 @@ describe('node definitions and registry', () => {
         execute() {},
       }),
     ).toThrow('must not declare "$"');
+
+    expect(
+      defineNode({
+        name: 'custom.shorthand',
+        stringInputKey: 'value',
+        inputSchema,
+        execute() {},
+      }).stringInputKey,
+    ).toBe('value');
+    expect(() =>
+      defineNode({
+        name: 'invalid.shorthand',
+        stringInputKey: 'missing',
+        inputSchema,
+        execute() {},
+      }),
+    ).toThrow('must reference a field in inputSchema');
+    expect(() =>
+      defineNode({
+        name: 'blank.shorthand',
+        stringInputKey: ' ',
+        execute() {},
+      }),
+    ).toThrow('must be a non-empty string or false');
   });
 });

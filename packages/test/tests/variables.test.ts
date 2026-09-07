@@ -155,7 +155,9 @@ cases:
         },
         {
           resolveNode: (name) =>
-            name === 'inspect' ? { name, execute() {} } : undefined,
+            name === 'inspect'
+              ? { name, stringInputKey: 'prompt', execute() {} }
+              : undefined,
           variables: {},
           env: {},
         },

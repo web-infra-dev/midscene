@@ -27,6 +27,11 @@
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
+    "./test-runner": {
+      "types": "./dist/types/test-runner.d.ts",
+      "import": "./dist/es/test-runner.mjs",
+      "require": "./dist/lib/test-runner.js"
+    },
     "./bin": {
       "types": "./dist/types/bin.d.ts",
       "import": "./dist/es/bin.mjs",
@@ -48,15 +53,15 @@
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@inquirer/prompts": "^7.8.6",
-    "open": "10.1.0"
+    "open": "10.1.0",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
     "@rstest/core": "0.11.5",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
-    "typescript": "^5.8.3",
-    "zod": "^3.25.1"
+    "typescript": "^5.8.3"
   },
   "license": "MIT"
 }

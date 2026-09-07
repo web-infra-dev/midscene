@@ -28,6 +28,27 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_FAMILY: 'doubao-vision',
 } as const;
 
+it('declares common and Harmony Test Runner Nodes', () => {
+  expect(
+    HarmonyAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
+  ).toEqual([
+    'aiAct',
+    'aiTap',
+    'aiAssert',
+    'aiBoolean',
+    'aiNumber',
+    'aiString',
+    'aiAsk',
+    'recordToReport',
+    'launch',
+    'terminate',
+    'runHdcShell',
+    'back',
+    'home',
+    'recentApps',
+  ]);
+});
+
 describe('HarmonyAgent', () => {
   beforeEach(() => {
     (HarmonyDevice as Mock).mockImplementation(() => {

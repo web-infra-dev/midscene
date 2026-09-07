@@ -27,6 +27,26 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_FAMILY: 'doubao-vision',
 } as const;
 
+it('declares common and iOS Test Runner Nodes', () => {
+  expect(
+    IOSAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
+  ).toEqual([
+    'aiAct',
+    'aiTap',
+    'aiAssert',
+    'aiBoolean',
+    'aiNumber',
+    'aiString',
+    'aiAsk',
+    'recordToReport',
+    'launch',
+    'terminate',
+    'runWdaRequest',
+    'home',
+    'appSwitcher',
+  ]);
+});
+
 describe('IOSAgent', () => {
   let mockDevice: Partial<IOSDevice>;
   let agent: IOSAgent;

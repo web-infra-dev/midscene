@@ -28,7 +28,7 @@ export class CaseRunner<TContext = undefined> {
       definition: {
         name: input.name ?? 'case',
         tags: input.tags ?? [],
-        steps: normalizeSteps(input.steps),
+        steps: normalizeSteps(input.steps, (name) => this.registry.get(name)),
       },
     };
     const result = await runCollectedCase(collectedCase, {

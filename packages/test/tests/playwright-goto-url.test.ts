@@ -15,7 +15,7 @@ describe('Playwright gotoUrl Node', () => {
     );
 
     const success = await runCollectedCase(
-      collected([step('gotoUrl', { prompt: '/orders' })]),
+      collected([step('gotoUrl', { url: '/orders' })]),
       { resolveNode: registry.require.bind(registry), context: undefined },
     );
     expect(success.steps[0].output?.data).toEqual({

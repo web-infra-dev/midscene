@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry } from '../src';
-import { createAndroidNodes } from '../src/android';
+import { type AndroidRunnerAgent, createAndroidNodes } from '../src/android';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import type { CollectedCase } from '../src/parser/types';
 
@@ -14,24 +14,42 @@ const collected = (
   definition: { name: 'android nodes', steps },
 });
 
+const androidAgent = (
+  overrides: Partial<AndroidRunnerAgent> = {},
+): AndroidRunnerAgent => ({
+  launch: vi.fn(async () => undefined),
+  terminate: vi.fn(async () => undefined),
+  runAdbShell: vi.fn(async () => ''),
+  back: vi.fn(async () => undefined),
+  home: vi.fn(async () => undefined),
+  recentApps: vi.fn(async () => undefined),
+  ...overrides,
+});
+
 describe('createAndroidNodes', () => {
-  it('runs ADB shell commands and maps timeoutMs to the Agent option', async () => {
+  it('preserves the Agent runAdbShell options object', async () => {
     const runAdbShell = vi.fn(async () => 'package:com.example.app');
     const registry = new NodeRegistry(
       createAndroidNodes({
-        getAgent: () => ({
-          launch: vi.fn(async () => undefined),
-          terminate: vi.fn(async () => undefined),
-          runAdbShell,
-        }),
+        getAgent: () => androidAgent({ runAdbShell }),
       }),
     );
-    expect(registry.names()).toEqual(['launch', 'terminate', 'runAdbShell']);
+    expect(registry.names()).toEqual([
+      'launch',
+      'terminate',
+      'runAdbShell',
+      'back',
+      'home',
+      'recentApps',
+    ]);
     const result = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { command: 'pm list packages', timeoutMs: 5_000 },
+          input: {
+            command: 'pm list packages',
+            options: { timeout: 5_000 },
+          },
           meta: { continueOnError: false },
         },
       ]),
@@ -47,35 +65,31 @@ describe('createAndroidNodes', () => {
     });
   });
 
-  it('supports string shorthand and rejects adb-prefixed commands', async () => {
+  it('accepts canonical command input and rejects adb-prefixed commands', async () => {
     const runAdbShell = vi.fn(async () => 'ok');
     const registry = new NodeRegistry(
       createAndroidNodes({
-        getAgent: () => ({
-          launch: vi.fn(async () => undefined),
-          terminate: vi.fn(async () => undefined),
-          runAdbShell,
-        }),
+        getAgent: () => androidAgent({ runAdbShell }),
       }),
     );
     const shorthand = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { prompt: 'dumpsys battery' },
+          input: { command: 'dumpsys battery' },
           meta: { continueOnError: false },
         },
       ]),
       { resolveNode: registry.require.bind(registry), context: undefined },
     );
     expect(shorthand.status).toBe('success');
-    expect(runAdbShell).toHaveBeenCalledWith('dumpsys battery', {});
+    expect(runAdbShell).toHaveBeenCalledWith('dumpsys battery', undefined);
 
     const prefixed = await runCollectedCase(
       collected([
         {
           node: 'runAdbShell',
-          input: { prompt: 'adb shell dumpsys battery' },
+          input: { command: 'adb shell dumpsys battery' },
           meta: { continueOnError: false },
         },
       ]),
@@ -91,11 +105,7 @@ describe('createAndroidNodes', () => {
     const terminate = vi.fn(async () => undefined);
     const registry = new NodeRegistry(
       createAndroidNodes({
-        getAgent: () => ({
-          launch,
-          terminate,
-          runAdbShell: vi.fn(async () => ''),
-        }),
+        getAgent: () => androidAgent({ launch, terminate }),
       }),
     );
     const result = await runCollectedCase(
@@ -107,7 +117,7 @@ describe('createAndroidNodes', () => {
         },
         {
           node: 'terminate',
-          input: { prompt: 'com.example.app' },
+          input: { uri: 'com.example.app' },
           meta: { continueOnError: false },
         },
       ]),

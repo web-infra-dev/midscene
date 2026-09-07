@@ -27,4 +27,5 @@ afterEach:
 afterAll:
   - recordToReport:
       title: Midscene 文档语言切换测试完成
-      content: 已验证文档页会根据 UA 语言显示英文或中文。
+      options:
+        content: 已验证文档页会根据 UA 语言显示英文或中文。

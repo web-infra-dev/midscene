@@ -33,6 +33,7 @@ export default defineConfig({
       index: './src/index.ts',
       bin: './src/bin.ts',
       cli: './src/cli.ts',
+      'test-runner': './src/test-runner-nodes.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

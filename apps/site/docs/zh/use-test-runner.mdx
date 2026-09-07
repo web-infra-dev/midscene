@@ -52,7 +52,8 @@ cases:
 
 ### 编写 Step
 
-每个 Step 只能调用一个 Node。如果调用时只需传入 `prompt` 参数，可以使用字符串简写。
+每个 Step 只能调用一个 Node。Node 可以声明一个字段用于接收字符串简写。例如，
+`aiAct` 会把字符串映射到 `prompt`：
 
 ```yaml
 steps:
@@ -74,6 +75,21 @@ steps:
   - order.create:
       sku: midscene-mug
       quantity: 2
+```
+
+结构化参数与底层 API 保持相同层级。多模态提示词整体是一个 `prompt` 值，因此
+`images` 仍放在 `prompt` 下面：
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: 按照参考图完成设置
+        images:
+          - name: 目标状态
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
 ```
 
 ### 设置超时和错误处理

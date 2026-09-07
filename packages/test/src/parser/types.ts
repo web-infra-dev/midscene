@@ -10,10 +10,6 @@ export interface NormalizedStepMeta {
   continueOnError: boolean;
 }
 
-export interface CommonNodeInput {
-  prompt?: string;
-}
-
 export type StepValue = string | Record<string, unknown>;
 
 export type StepInput = Record<string, unknown>;
@@ -40,7 +36,7 @@ export interface CaseDefinition<TStep = StepInput> {
 
 export interface NormalizedStep {
   node: string;
-  input: Record<string, unknown> & CommonNodeInput;
+  input: Record<string, unknown>;
   meta: NormalizedStepMeta;
 }
 

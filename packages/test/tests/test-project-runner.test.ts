@@ -215,7 +215,7 @@ describe('test project main-process runner', () => {
     writeFileSync(
       join(root, 'midscene.config.ts'),
       `export default {
-        nodes: [{ name: 'noop', execute() {} }],
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
       };`,
     );
     writeWorkflow(
@@ -311,7 +311,7 @@ describe('test project main-process runner', () => {
               exclude: ['**/*.draft.yaml'],
             },
           }],
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -367,7 +367,7 @@ describe('test project main-process runner', () => {
       join(cwd, 'midscene.config.ts'),
       `
         export default {
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -401,7 +401,7 @@ describe('test project main-process runner', () => {
     writeFileSync(
       join(root, 'midscene.config.ts'),
       `export default {
-        nodes: [{ name: 'noop', execute() {} }],
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
       };`,
     );
     writeWorkflow(
@@ -461,6 +461,7 @@ afterAll:
         state.configLoads += 1;
         const node = {
           name: 'test.record',
+          stringInputKey: 'value',
           async execute({ input, context }) {
             if (context !== state.contexts.project) {
               throw new Error('case did not receive its Project context');
@@ -668,6 +669,7 @@ cases:
           test: { maxConcurrency: 2 },
           nodes: [{
             name: 'test.record',
+            stringInputKey: 'value',
             async execute({ context }) {
               state.onCaseStart(context.projectName);
               try {
@@ -1030,6 +1032,7 @@ cases:
           test: { maxConcurrency: 2 },
           nodes: [{
             name: 'test.record',
+            stringInputKey: 'value',
             execute({ context }) {
               state.events.push('case:' + context.projectName);
             },
@@ -1287,7 +1290,7 @@ cases:
             { name: 'gamma', platform: 'web', setup },
           ],
           test: { maxConcurrency: 2 },
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -1356,7 +1359,7 @@ cases:
         };
         export default {
           projects: [{ name: 'web', platform: 'web', setup }],
-          nodes: [{ name: 'noop', execute() {} }],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
     );
@@ -1548,6 +1551,7 @@ cases:
         export default {
           nodes: [{
             name: 'report',
+            stringInputKey: 'prompt',
             execute({ case: caseContext, onTeardown }) {
               const reportPath = join(
                 state.resultDir,
@@ -1591,9 +1595,14 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         export default {
           nodes: [
-            { name: 'body', execute() { state.events.push('body'); } },
+            {
+              name: 'body',
+              stringInputKey: 'prompt',
+              execute() { state.events.push('body'); },
+            },
             {
               name: 'before.fail',
+              stringInputKey: 'prompt',
               execute({ onTeardown }) {
                 state.events.push('beforeAll');
                 onTeardown(() => state.events.push('node-teardown'));
@@ -1602,6 +1611,7 @@ cases:
             },
             {
               name: 'after',
+              stringInputKey: 'prompt',
               execute() { state.events.push('afterAll'); },
             },
           ],
