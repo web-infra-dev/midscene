@@ -142,6 +142,52 @@ const agent = await agentForComputer({
 await agent.aiAct('click the red button five times');
 ```
 
+## Control a remote desktop through a VNC client on macOS {#vnc-keyboard}
+
+`@midscene/computer` does not connect to a VNC server directly. Open a VNC client on the same Mac that runs Midscene, connect it to the remote desktop, and keep its window in the foreground. Midscene then controls the VNC client as a local desktop application.
+
+### Preserve modifier keys
+
+VNC clients may not forward modifiers from the default macOS AppleScript keyboard events. Symptoms include uppercase letters becoming lowercase or shortcuts losing `Shift` and `Control`.
+
+Set `keyboardEventMode` to `physical` so Midscene sends explicit key-down and key-up events for each modifier. Text input must also operate one key at a time. Set `inputStrategy` to `sequential`, as shown below, or set a positive `keyboardTypeDelay` when using the default `legacy` input strategy.
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  keyboardEventMode: 'physical',
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 80,
+});
+```
+
+The default value is `keyboardEventMode: 'logical'`. It keeps the standard AppleScript behavior for native macOS applications.
+
+:::warning
+Use `physical` only when the local and remote systems use matching en-US keyboard layouts. The mode converts shifted punctuation to a base key plus `Shift`. A native macOS application may therefore type `123` when the intended text is `!@#`.
+
+This option has no effect outside macOS or when `keyboardDriver` is `libnut`.
+:::
+
+### Send keyboard shortcuts
+
+Pass the shortcut through the `keyName` option. Join modifiers and the primary key with `+`, without surrounding spaces.
+
+```typescript
+// Send Control+S to the element that already has focus.
+await agent.aiKeyboardPress(undefined, {
+  keyName: 'Control+S',
+});
+
+// Locate the terminal first, then send Control+Shift+P.
+await agent.aiKeyboardPress('the terminal window', {
+  keyName: 'Control+Shift+P',
+});
+```
+
+Use `Control+S`, not `Control + S`. When the target already has focus, pass `undefined` as the first argument. This prevents an additional click from changing the current selection or caret position.
+
 ## Connect to a Remote Windows Desktop via RDP
 
 `@midscene/computer` can also drive a remote Windows desktop directly over the RDP protocol through the dedicated `agentForRDPComputer()` factory.
