@@ -178,7 +178,22 @@ export function CasePreview({
     providedFrames ?? getAllAttemptVisualFrames(item.finalAttempt, visualIndex);
   const failure = getCaseFailure(item.testCase);
   return (
-    <article className="runner-case-row" data-case-key={item.key}>
+    <article
+      className="runner-case-row"
+      data-case-key={item.key}
+      onClick={(event) => {
+        // Keep native controls independent; the title button also supports keyboard navigation.
+        if (
+          event.defaultPrevented ||
+          (event.target as Element).closest(
+            'button, a, details, [role="button"]',
+          )
+        ) {
+          return;
+        }
+        onOpen(item);
+      }}
+    >
       <div className="runner-case-main">
         <div className="runner-case-title-row">
           <CaseStatus status={item.status} />
@@ -223,15 +238,6 @@ export function CasePreview({
           />
         </ProjectCaseEvidence>
       </div>
-      <button
-        type="button"
-        className="runner-case-open-button runner-row-action"
-        onClick={() => onOpen(item)}
-        aria-label={`Open ${item.testCase.name} in project ${item.project.name}`}
-      >
-        <span>Inspect</span>
-        <RightOutlined className="runner-case-chevron" />
-      </button>
       {failure && (
         <button
           type="button"

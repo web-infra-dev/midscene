@@ -55,6 +55,7 @@
     gap: 8px 20px;
     padding: 18px;
     border-radius: 0;
+    cursor: pointer;
   }
 
   .runner-project-cases .runner-case-main {
@@ -82,6 +83,7 @@
     grid-column: 2;
     grid-row: 3;
     justify-self: end;
+    cursor: pointer;
   }
 
   .runner-project-cases .runner-project-case-evidence {
@@ -92,21 +94,6 @@
 
   .runner-project-cases .runner-case-row:first-child {
     border-top: 0;
-  }
-
-  .runner-project-cases .runner-case-open-button {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-    display: inline-flex;
-    width: auto;
-    height: 32px;
-    padding: 0 10px;
-    gap: 7px;
-    border: 1px solid var(--runner-border);
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
   }
 
   .runner-project-case-evidence {
@@ -189,31 +176,25 @@
       padding-inline: 12px;
     }
 
-    .runner-project-cases .runner-case-open-button {
-      grid-column: 1;
-      grid-row: 2;
-      justify-self: end;
-    }
-
     .runner-project-cases .runner-case-meta {
-      grid-row: 3;
+      grid-row: 2;
     }
 
     .runner-project-cases .runner-case-failure {
-      grid-row: 4;
+      grid-row: 3;
     }
 
     .runner-project-cases .runner-case-failure-action {
       grid-column: 1;
-      grid-row: 5;
+      grid-row: 4;
     }
 
     .runner-project-cases .runner-project-case-evidence {
-      grid-row: 6;
+      grid-row: 5;
     }
 
     .runner-project-tree-overview,
-    .runner-project-cases .runner-case-open-button,
+    .runner-project-cases .runner-case-failure-action,
     .runner-detail-trace-actions .ant-btn,
     .runner-project-case-evidence > summary,
     .runner-back-button {
