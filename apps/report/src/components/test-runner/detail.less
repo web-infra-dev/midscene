@@ -1,4 +1,47 @@
 .test-runner-report {
+  .runner-single-run-info {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 14px;
+    min-width: 0;
+  }
+
+  .runner-single-run-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    color: var(--runner-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .runner-single-run-metrics > span {
+    white-space: nowrap;
+  }
+
+  .runner-single-run-metrics strong {
+    color: var(--runner-text);
+    font-weight: 600;
+  }
+
+  .runner-single-run-diagnostics {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-single-run-diagnostics summary {
+    width: fit-content;
+    padding: 8px 0;
+    color: var(--runner-muted);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .runner-single-run-diagnostics .ant-alert + .ant-alert {
+    margin-top: 8px;
+  }
+
   .runner-case-workspace {
     width: min(1484px, 100%);
   }
@@ -61,12 +104,6 @@
     flex: 0 0 auto;
   }
 
-  .runner-detail-copy-link {
-    min-height: 34px;
-    padding: 0 12px;
-    background: color-mix(in srgb, var(--runner-surface) 90%, transparent);
-  }
-
   .runner-detail-case-header .runner-attempt-switcher {
     min-height: 70px;
     padding: 8px;
@@ -79,9 +116,9 @@
   }
 
   .runner-detail-case-header .runner-attempt-switcher > button {
-    grid-template-columns: 12px minmax(0, 1fr) auto;
-    width: 230px;
-    min-width: 230px;
+    grid-template-columns: 16px minmax(0, 1fr);
+    width: 180px;
+    min-width: 180px;
     min-height: 53px;
     padding: 0 14px;
     gap: 10px;
@@ -123,7 +160,7 @@
   }
 
   .runner-detail-step-panel {
-    width: 276px;
+    width: 100%;
     height: min(720px, calc(100vh - 250px));
     border-right: 1px solid var(--runner-border);
   }
@@ -138,7 +175,7 @@
 
   .runner-detail-step-group > button {
     grid-template-columns: 27px minmax(0, 1fr) auto;
-    min-height: 51px;
+    min-height: 64px;
     margin-bottom: 3px;
     padding: 6px 8px;
     border: 1px solid transparent;
@@ -189,7 +226,7 @@
 
   .runner-detail-failure-summary small {
     color: color-mix(in srgb, var(--runner-danger) 66%, var(--runner-text));
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-detail-failure-summary button {
@@ -213,7 +250,7 @@
   .runner-detail-screenshot-toolbar {
     min-height: 40px;
     padding: 0 12px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-detail-screenshot-canvas {
@@ -224,7 +261,7 @@
   .runner-detail-screenshot-caption {
     min-height: 40px;
     padding: 8px 12px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-detail-inspector-tabs {
@@ -236,7 +273,7 @@
   .runner-detail-inspector-tabs button {
     min-width: 112px;
     padding: 0 15px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-detail-inspector-tabs button::after {
@@ -273,14 +310,14 @@
       var(--runner-surface-muted) 55%,
       var(--runner-surface)
     );
-    font-size: 10.5px;
+    font-size: 14px;
   }
 
   .runner-detail-io-body {
     min-height: 46px;
     padding: 11px 12px;
     color: var(--runner-muted);
-    font-size: 10px;
+    font-size: 14px;
     line-height: 1.55;
   }
 
@@ -291,14 +328,14 @@
   .runner-detail-io-grid .runner-json-block pre {
     max-height: 190px;
     margin: 0;
-    font-size: 10px;
+    font-size: 14px;
     line-height: 1.55;
   }
 
   .runner-detail-log-view p {
     grid-template-columns: 142px 45px minmax(0, 1fr);
     padding: 10px 11px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-detail-raw-context {
@@ -309,10 +346,6 @@
 .test-runner-report[data-theme='dark'] {
   .runner-detail-case-header::after {
     opacity: 0.28;
-  }
-
-  .runner-detail-copy-link {
-    background: color-mix(in srgb, var(--runner-surface) 86%, transparent);
   }
 
   .runner-detail-case-header .runner-attempt-switcher > button.is-selected,

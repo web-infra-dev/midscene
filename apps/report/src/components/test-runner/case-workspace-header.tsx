@@ -1,37 +1,32 @@
-import {
-  ArrowLeftOutlined,
-  ClockCircleOutlined,
-  LinkOutlined,
-} from '@ant-design/icons';
-import type { TestRunReportAttempt } from '@midscene/core';
+import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
 import type { RunnerCaseView } from './model';
+import { SingleCaseRunInfo } from './single-case-run-info';
 import { CaseStatus, StepStatus, formatDuration } from './view-primitives';
-
-export type CopyLinkState = 'idle' | 'copied' | 'failed';
 
 export function CaseWorkspaceHeader({
   item,
   selectedAttempt,
   backLabel,
-  copyLinkState,
   onBack,
-  onCopyLink,
   onSelectAttempt,
+  standaloneRun,
 }: {
   item: RunnerCaseView;
   selectedAttempt?: TestRunReportAttempt;
   backLabel: string;
-  copyLinkState: CopyLinkState;
   onBack(): void;
-  onCopyLink(): void;
   onSelectAttempt(attempt: TestRunReportAttempt): void;
+  standaloneRun?: TestRunReportDump;
 }): JSX.Element {
   return (
     <section className="runner-detail-case-header">
-      <button type="button" className="runner-back-button" onClick={onBack}>
-        <ArrowLeftOutlined />
-        {backLabel}
-      </button>
+      {!standaloneRun && (
+        <button type="button" className="runner-back-button" onClick={onBack}>
+          <ArrowLeftOutlined />
+          {backLabel}
+        </button>
+      )}
       <div className="runner-detail-heading-row">
         <div>
           <div className="runner-detail-title-line">
@@ -49,25 +44,16 @@ export function CaseWorkspaceHeader({
             <span>{formatDuration(item.durationMs)} total</span>
           </div>
         </div>
-        <button
-          type="button"
-          className="runner-detail-copy-link"
-          onClick={onCopyLink}
-        >
-          <LinkOutlined />
-          {copyLinkState === 'copied'
-            ? 'Copied'
-            : copyLinkState === 'failed'
-              ? 'Copy failed'
-              : 'Copy case link'}
-        </button>
       </div>
+      {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       {item.testCase.attempts.length > 1 ? (
         <section className="runner-attempt-switcher" aria-label="Attempts">
-          {item.testCase.attempts.map((attempt, index) => (
+          {item.testCase.attempts.map((attempt) => (
             <button
               type="button"
               key={attempt.attemptId}
+              aria-label={`Attempt ${attempt.attemptIndex + 1}, ${attempt.status}, ${formatDuration(attempt.durationMs)}`}
+              aria-pressed={selectedAttempt?.attemptId === attempt.attemptId}
               className={
                 selectedAttempt?.attemptId === attempt.attemptId
                   ? 'is-selected'
@@ -78,17 +64,8 @@ export function CaseWorkspaceHeader({
               <StepStatus status={attempt.status} />
               <span>
                 <strong>Attempt {attempt.attemptIndex + 1}</strong>
-                <small>
-                  {formatDuration(attempt.durationMs)} · {attempt.status}
-                </small>
+                <small>{formatDuration(attempt.durationMs)}</small>
               </span>
-              <em>
-                {attempt.status === 'failed' && index === 0
-                  ? 'Original failure'
-                  : index === item.testCase.attempts.length - 1
-                    ? 'Final result'
-                    : attempt.status}
-              </em>
             </button>
           ))}
         </section>

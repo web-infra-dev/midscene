@@ -58,10 +58,7 @@ import {
 } from '../timeline/timeline-scale';
 import { CaseDensitySwitch } from './case-density-switch';
 import { CaseFilters } from './case-filters';
-import {
-  CaseWorkspaceHeader,
-  type CopyLinkState,
-} from './case-workspace-header';
+import { CaseWorkspaceHeader } from './case-workspace-header';
 import { EvidenceTabs, type RunnerInspectorTab } from './evidence-tabs';
 import {
   type RunnerBreakdownSort,
@@ -91,6 +88,7 @@ import {
 } from './model';
 import {
   type RunnerNavigationState,
+  isSingleCaseReport,
   resolveRunnerNavigation,
 } from './navigation';
 import { ProjectCaseEvidence } from './project-case-evidence';
@@ -257,19 +255,16 @@ function VisualTimeline({
 function MetricCard({
   label,
   value,
-  note,
   tone,
 }: {
   label: string;
   value: ReactNode;
-  note?: string;
   tone?: 'success' | 'warning' | 'danger';
 }): JSX.Element {
   return (
     <div className={`runner-metric-card${tone ? ` is-${tone}` : ''}`}>
       <span>{label}</span>
       <strong>{value}</strong>
-      {note ? <small>{note}</small> : null}
     </div>
   );
 }
@@ -325,15 +320,6 @@ function CasePreview({
                 {failure.node}: {failure.error?.message || 'Step failed'}
               </span>
             </Tooltip>
-            <button
-              type="button"
-              className="runner-row-action"
-              aria-label={`Inspect failure in ${item.testCase.name}, project ${item.project.name}`}
-              onClick={() => onOpen(item, failure.id)}
-            >
-              Inspect failure
-              <RightOutlined />
-            </button>
           </div>
         ) : null}
         <ProjectCaseEvidence frameCount={frames.length}>
@@ -353,6 +339,17 @@ function CasePreview({
         <span>Inspect</span>
         <RightOutlined className="runner-case-chevron" />
       </button>
+      {failure && (
+        <button
+          type="button"
+          className="runner-case-failure-action runner-row-action"
+          aria-label={`Inspect failure in ${item.testCase.name}, project ${item.project.name}`}
+          onClick={() => onOpen(item, failure.id)}
+        >
+          Inspect failure
+          <RightOutlined />
+        </button>
+      )}
     </article>
   );
 }
@@ -441,12 +438,6 @@ function ProjectBreakdownCase({
             />
           </div>
         ) : null}
-        <span className="runner-project-tree-case-cta">
-          <span className="runner-row-action">
-            Inspect
-            <RightOutlined className="runner-project-tree-case-chevron" />
-          </span>
-        </span>
       </button>
     </li>
   );
@@ -735,34 +726,25 @@ function ProjectWorkspace({
           <MetricCard
             label="Final pass rate"
             value={formatPercent(item.health.finalPassRate)}
-            note={`${item.passedCount} of ${item.health.executed} executed cases`}
           />
           <MetricCard
             label="First-pass rate"
             value={formatPercent(item.health.firstPassRate)}
-            note={`${item.health.firstPassCount} passed without retry`}
           />
           <MetricCard
             label="Failed"
             value={item.failedCount}
-            note="Final failures"
             tone={item.failedCount ? 'danger' : undefined}
           />
           <MetricCard
             label="Passed after retry"
             value={item.retryPassedCount}
-            note="Potentially flaky"
             tone={item.retryPassedCount ? 'warning' : undefined}
           />
-          <MetricCard
-            label="Not run"
-            value={item.notRunCount}
-            note="Blocked or skipped"
-          />
+          <MetricCard label="Not run" value={item.notRunCount} />
           <MetricCard
             label="Project time"
             value={formatDuration(item.durationMs)}
-            note="Setup through teardown"
           />
         </section>
       </div>
@@ -909,13 +891,6 @@ function RunOverview({
     dump.summary.notRun === 0 &&
     health.retryPassedCount > 0;
   const totalCaseCount = Math.max(dump.summary.total, cases.length);
-  const affectedProjectCount = projects.filter(
-    (item) =>
-      item.failedCount > 0 ||
-      item.project.status === 'failed' ||
-      item.project.collectionErrors.length > 0 ||
-      Boolean(item.project.lifecycle?.setupError),
-  ).length;
   const focusOutcomeCases = () => {
     const nextStatus: RunnerBreakdownStatus =
       dump.summary.failed > 0
@@ -944,7 +919,6 @@ function RunOverview({
         dump={dump}
         health={health}
         totalCaseCount={totalCaseCount}
-        affectedProjectCount={affectedProjectCount}
         onReviewOutcome={focusOutcomeCases}
       />
 
@@ -1409,7 +1383,6 @@ function RunnerEvidenceInspector({
               {step.phase} · Step {step.stepIndex + 1}
             </div>
             <h2>{step.node}</h2>
-            {step.title ? <p>{step.title}</p> : null}
           </div>
           <div className="runner-detail-evidence-actions">
             {hasAgentTrace ? (
@@ -1442,6 +1415,9 @@ function RunnerEvidenceInspector({
               quiet
             />
           </div>
+          {step.title ? (
+            <p className="runner-detail-step-description">{step.title}</p>
+          ) : null}
         </header>
         {step.error ? (
           <div className="runner-detail-failure-summary">
@@ -1605,6 +1581,7 @@ function RunnerTracePage({
 
 function CaseWorkspace({
   item,
+  standaloneRun,
   visualIndex,
   reports,
   initialStepId,
@@ -1615,6 +1592,7 @@ function CaseWorkspace({
   backLabel,
 }: {
   item: RunnerCaseView;
+  standaloneRun?: TestRunReportDump;
   visualIndex: RunnerVisualIndex;
   reports: PlaywrightTasks[];
   initialStepId?: string;
@@ -1648,7 +1626,6 @@ function CaseWorkspace({
   const [traceDrawerOpen, setTraceDrawerOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const playbackIndexRef = useRef(0);
-  const [copyLinkState, setCopyLinkState] = useState<CopyLinkState>('idle');
 
   useEffect(() => {
     const nextAttempt =
@@ -1672,7 +1649,6 @@ function CaseWorkspace({
     setInspectorTab('io');
     setTraceDrawerOpen(false);
     setIsPlaying(false);
-    setCopyLinkState('idle');
   }, [initialStepId, item.finalAttempt, item.key, item.testCase.attempts]);
 
   const selectedAttempt =
@@ -1795,14 +1771,6 @@ function CaseWorkspace({
     if (playbackIndexRef.current === 0) setLockedFrameKey(undefined);
     setIsPlaying(true);
   };
-  const copyCaseLink = async () => {
-    try {
-      await copyRunnerText(window.location.href);
-      setCopyLinkState('copied');
-    } catch {
-      setCopyLinkState('failed');
-    }
-  };
 
   if (tracePage && selectedAttempt && selectedStep?.agentDetails?.length) {
     return (
@@ -1821,11 +1789,10 @@ function CaseWorkspace({
     <div className="runner-page runner-case-workspace">
       <CaseWorkspaceHeader
         item={item}
+        standaloneRun={standaloneRun}
         selectedAttempt={selectedAttempt}
         backLabel={backLabel}
-        copyLinkState={copyLinkState}
         onBack={onBack}
-        onCopyLink={copyCaseLink}
         onSelectAttempt={selectAttempt}
       />
 
@@ -2103,6 +2070,7 @@ export default function TestRunnerReport({
                     : selectedProject?.project.name || 'Project'
                 }
                 item={selectedCase}
+                standaloneRun={isSingleCaseReport(projects) ? dump : undefined}
                 visualIndex={visualIndex}
                 reports={reports}
                 initialStepId={deepLinkedStepId}

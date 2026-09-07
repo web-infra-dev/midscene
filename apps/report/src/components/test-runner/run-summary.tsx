@@ -35,13 +35,11 @@ export function RunSummary({
   dump,
   health,
   totalCaseCount,
-  affectedProjectCount,
   onReviewOutcome,
 }: {
   dump: TestRunReportDump;
   health: RunnerHealthStats;
   totalCaseCount: number;
-  affectedProjectCount: number;
   onReviewOutcome(): void;
 }): JSX.Element {
   const successfulWithRetries =
@@ -60,26 +58,6 @@ export function RunSummary({
       : status === 'warning'
         ? 'Passed after retry'
         : 'Run passed';
-  const outcomeMessage =
-    totalCaseCount === 0
-      ? 'No cases were discovered for this run.'
-      : dump.summary.failed > 0
-        ? `${dump.summary.failed} final ${
-            dump.summary.failed === 1 ? 'failure' : 'failures'
-          } across ${affectedProjectCount} ${
-            affectedProjectCount === 1 ? 'project' : 'projects'
-          }. Review the affected cases below.`
-        : dump.status === 'failed'
-          ? 'Run-level setup or collection errors prevented a clean result.'
-          : successfulWithRetries
-            ? `${health.retryPassedCount} ${
-                health.retryPassedCount === 1
-                  ? 'case recovered'
-                  : 'cases recovered'
-              } on retry and may be flaky.`
-            : `All ${dump.summary.passed} ${
-                dump.summary.passed === 1 ? 'case passed' : 'cases passed'
-              } on the first attempt.`;
   const outcomeActionLabel =
     dump.summary.failed > 0
       ? `Review ${dump.summary.failed} failed ${
@@ -114,8 +92,15 @@ export function RunSummary({
             {dump.summary.passed} / {totalCaseCount}
           </strong>
           <span>cases passed</span>
+          <span
+            className="runner-overview-pass-percentage"
+            aria-label="Percentage of all cases passed"
+          >
+            {totalCaseCount
+              ? formatPercent(dump.summary.passed / totalCaseCount)
+              : '—'}
+          </span>
         </h1>
-        <p className="runner-overview-outcome-message">{outcomeMessage}</p>
         <div className="runner-overview-summary-footer">
           <div className="runner-secondary-metrics">
             <span>

@@ -4,7 +4,10 @@ import type {
   TestRunReportStep,
 } from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
+import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
   buildRunnerTimeline,
   buildRunnerVisualIndex,
@@ -22,7 +25,8 @@ import {
   groupRunnerProjects,
   positionAttemptVisualFrames,
 } from './model';
-import { resolveRunnerNavigation } from './navigation';
+import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
+import { RunSummary } from './run-summary';
 
 const at = (seconds: number): string =>
   new Date(Date.UTC(2026, 7, 21, 8, 0, seconds)).toISOString();
@@ -322,8 +326,12 @@ describe('Test Runner hybrid report model', () => {
   });
 
   it('opens a single-project single-case report directly in case detail', () => {
-    const cases = flattenRunnerCases(dump).slice(0, 1);
-    const projects = groupRunnerProjects(dump, cases);
+    const singleDump = structuredClone(dump);
+    singleDump.projects[0].documents[0].cases = [
+      singleDump.projects[0].documents[0].cases[0],
+    ];
+    const cases = flattenRunnerCases(singleDump);
+    const projects = groupRunnerProjects(singleDump, cases);
     expect(resolveRunnerNavigation('', cases, projects)).toMatchObject({
       page: 'case',
       selectedCaseKey: cases[0].key,
@@ -331,14 +339,14 @@ describe('Test Runner hybrid report model', () => {
     });
     expect(
       resolveRunnerNavigation('#runner-page=overview', cases, projects).page,
-    ).toBe('overview');
+    ).toBe('case');
     expect(
       resolveRunnerNavigation(
         '#runner-page=project&runner-project=web',
         cases,
         projects,
       ).page,
-    ).toBe('project');
+    ).toBe('case');
     expect(
       resolveRunnerNavigation('', flattenRunnerCases(dump), projects).page,
     ).toBe('overview');
@@ -349,6 +357,135 @@ describe('Test Runner hybrid report model', () => {
       ]).page,
     ).toBe('overview');
     expect(resolveRunnerNavigation('', [], projects).page).toBe('overview');
+  });
+
+  it('does not treat a filtered multi-case report as a standalone case', () => {
+    const filteredCases = flattenRunnerCases(dump).slice(0, 1);
+    const projects = groupRunnerProjects(dump, filteredCases);
+    expect(isSingleCaseReport(projects)).toBe(false);
+    expect(resolveRunnerNavigation('', filteredCases, projects).page).toBe(
+      'overview',
+    );
+  });
+
+  it('preserves single-case trace links and rejects unrelated step IDs', () => {
+    const singleDump = structuredClone(dump);
+    singleDump.projects[0].documents[0].cases = [
+      singleDump.projects[0].documents[0].cases[1],
+    ];
+    const cases = flattenRunnerCases(singleDump);
+    const projects = groupRunnerProjects(singleDump, cases);
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=demo.passOnRetry&runner-trace=page',
+        cases,
+        projects,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      deepLinkedStepId: 'demo.passOnRetry',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=overview&runner-step=missing',
+        cases,
+        projects,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      deepLinkedStepId: undefined,
+    });
+  });
+
+  it('hides standalone back navigation without losing run metrics or diagnostics', () => {
+    const item = flattenRunnerCases(dump)[0];
+    const props = {
+      item,
+      backLabel: 'Overview',
+      onBack() {},
+      onSelectAttempt() {},
+    };
+    const run = structuredClone(dump);
+    run.projects[0].lifecycle!.teardownErrors = [
+      { name: 'Error', message: 'Browser cleanup failed' },
+    ];
+    run.diagnostics = [
+      {
+        code: 'agent-detail-unavailable',
+        level: 'warning',
+        message: 'Trace unavailable',
+      },
+    ];
+    const standalone = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, { ...props, standaloneRun: run }),
+    );
+    expect(standalone).not.toContain('runner-back-button');
+    expect(standalone).not.toContain('Copy case link');
+    expect(standalone).not.toContain('runner-attempt-switcher');
+    expect(standalone).toContain('runner time');
+    expect(standalone).toContain('model calls');
+    expect(standalone).toContain('tokens');
+    expect(standalone).toContain('Run failed');
+    expect(standalone).toContain('Browser cleanup failed');
+    expect(standalone).toContain('Trace unavailable');
+    const regular = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, props),
+    );
+    expect(regular).toContain('runner-back-button');
+    expect(regular).not.toContain('Copy case link');
+    expect(regular).not.toContain('Run information');
+  });
+
+  it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
+    const markup = renderToStaticMarkup(
+      createElement(RunSummary, {
+        dump,
+        health: getRunnerHealth(flattenRunnerCases(dump)),
+        totalCaseCount: 4,
+        onReviewOutcome() {},
+      }),
+    );
+    expect(markup).toContain(
+      'aria-label="Percentage of all cases passed">50%</span>',
+    );
+    expect(markup).not.toContain('runner-overview-outcome-message');
+    expect(markup).toContain('Review 1 failed case');
+  });
+
+  it('does not invent a pass percentage for an empty run', () => {
+    const markup = renderToStaticMarkup(
+      createElement(RunSummary, {
+        dump: { ...dump, summary: { ...dump.summary, passed: 0, total: 0 } },
+        health: getRunnerHealth([]),
+        totalCaseCount: 0,
+        onReviewOutcome() {},
+      }),
+    );
+    expect(markup).toContain(
+      'aria-label="Percentage of all cases passed">—</span>',
+    );
+    expect(markup).not.toContain('NaN');
+  });
+
+  it('keeps attempt comparison in standalone reports with retries', () => {
+    const item = flattenRunnerCases(dump)[1];
+    const markup = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, {
+        item,
+        standaloneRun: dump,
+        selectedAttempt: item.finalAttempt,
+        backLabel: 'Overview',
+        onBack() {},
+        onSelectAttempt() {},
+      }),
+    );
+    expect(markup).not.toContain('runner-back-button');
+    expect(markup).toContain('Attempt 1');
+    expect(markup).toContain('Attempt 2');
+    expect(markup).not.toContain('Original failure');
+    expect(markup).not.toContain('Final result');
+    expect(markup).not.toContain('· failed');
+    expect(markup).toContain('aria-pressed="true"');
   });
 
   it('preserves step deep links when choosing the initial page', () => {

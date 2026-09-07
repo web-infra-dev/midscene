@@ -15,6 +15,16 @@
 
   .runner-overview-outcome h1 {
     margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .runner-overview-outcome h1 .runner-overview-pass-percentage {
+    padding-left: 12px;
+    border-left: 1px solid var(--runner-border-strong);
+    color: var(--runner-text);
+    font-size: 24px;
+    font-weight: 650;
+    line-height: 1;
   }
 
   .runner-overview-outcome h1 strong {
@@ -45,8 +55,8 @@
   }
 
   .runner-overview-primary-metrics .runner-metric-card {
-    min-height: 70px;
-    padding: 10px 15px;
+    min-height: 86px;
+    padding: 16px 15px;
     background: transparent;
   }
 
@@ -95,7 +105,7 @@
     border: 0;
     border-radius: 9px;
     background: transparent;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     transition:
@@ -220,7 +230,7 @@
     border: 1px solid var(--runner-border);
     border-radius: 8px;
     background: var(--runner-surface);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 600;
   }
 
@@ -272,7 +282,7 @@
   }
 
   .runner-project-tree-case {
-    grid-template-columns: 12px minmax(220px, 1fr) 120px;
+    grid-template-columns: 12px minmax(0, 1fr);
     min-height: 46px;
     padding: 0;
     gap: 0;
@@ -302,10 +312,10 @@
 
   .runner-status-pill.is-quiet {
     min-height: 22px;
-    padding: 3px 8px;
+    padding: 2px 10px;
     gap: 0;
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 650;
   }
 
@@ -314,8 +324,8 @@
   }
 
   .runner-project-tree-case > .runner-status-pill.is-quiet {
-    padding: 3px 8px;
-    font-size: 10px;
+    padding: 2px 10px;
+    font-size: 14px;
   }
 
   .runner-project-tree-case-main {
@@ -335,7 +345,7 @@
     min-width: 0;
     margin: 0;
     overflow: hidden;
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: 650;
     line-height: 1.35;
     text-overflow: ellipsis;
@@ -348,7 +358,7 @@
     align-items: center;
     gap: 6px;
     color: var(--runner-subtle);
-    font-size: 9.5px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
   }
 
@@ -369,23 +379,12 @@
     display: none;
   }
 
-  .runner-project-tree-case-cta {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 18px;
-    gap: 6px;
-    color: var(--runner-muted);
-    font-size: 9.5px;
-    white-space: nowrap;
-  }
-
   .runner-project-tree-case-main h3 {
-    font-size: 11.5px;
+    font-size: 14px;
   }
 
   .runner-project-tree-case-main > span {
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .runner-project-tree-case-item.is-detailed::after {
@@ -470,7 +469,7 @@
     }
 
     .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 12px minmax(0, 1fr) 120px;
+      grid-template-columns: 12px minmax(0, 1fr);
     }
 
     .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {

@@ -88,7 +88,8 @@ const TimelineWidget = (props: {
   const gridLineColor = isDarkMode ? 0x3d3d3d : 0xe5e5e5;
   const gridHighlightColor = isDarkMode ? 0x4d4d6d : 0xbfc4da;
   const highlightMaskAlpha = 0.6;
-  const timeContentFontSize = 20;
+  // Canvas backing pixels are scaled down to CSS pixels when displayed.
+  const timeContentFontSize = 12 * sizeRatio;
   const commonPadding = 12;
   const timeTextTop = commonPadding;
   const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;

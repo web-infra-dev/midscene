@@ -31,12 +31,6 @@
     min-height: 94px;
   }
 
-  .runner-project-metrics .runner-metric-card > small {
-    margin-top: 0;
-    padding-top: 5px;
-    font-size: 10px;
-  }
-
   .runner-project-cases {
     margin-top: 32px;
   }
@@ -57,9 +51,43 @@
 
   .runner-project-cases .runner-case-row {
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: center;
+    gap: 8px 20px;
     padding: 18px;
     border-radius: 0;
+  }
+
+  .runner-project-cases .runner-case-main {
+    display: contents;
+  }
+
+  .runner-project-cases .runner-case-title-row {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .runner-project-cases .runner-case-meta {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+  }
+
+  .runner-project-cases .runner-case-failure {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0;
+  }
+
+  .runner-project-cases .runner-case-failure-action {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
+  }
+
+  .runner-project-cases .runner-project-case-evidence {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 0;
   }
 
   .runner-project-cases .runner-case-row:first-child {
@@ -67,6 +95,9 @@
   }
 
   .runner-project-cases .runner-case-open-button {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
     display: inline-flex;
     width: auto;
     height: 32px;
@@ -74,7 +105,7 @@
     gap: 7px;
     border: 1px solid var(--runner-border);
     border-radius: 8px;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 600;
   }
 
@@ -86,7 +117,7 @@
     width: fit-content;
     padding: 4px 0;
     color: var(--runner-muted);
-    font-size: 11px;
+    font-size: 14px;
     cursor: pointer;
   }
 
@@ -165,8 +196,25 @@
 
     .runner-project-cases .runner-case-open-button {
       grid-column: 1;
-      grid-row: auto;
+      grid-row: 2;
       justify-self: end;
+    }
+
+    .runner-project-cases .runner-case-meta {
+      grid-row: 3;
+    }
+
+    .runner-project-cases .runner-case-failure {
+      grid-row: 4;
+    }
+
+    .runner-project-cases .runner-case-failure-action {
+      grid-column: 1;
+      grid-row: 5;
+    }
+
+    .runner-project-cases .runner-project-case-evidence {
+      grid-row: 6;
     }
 
     .runner-project-tree-overview,

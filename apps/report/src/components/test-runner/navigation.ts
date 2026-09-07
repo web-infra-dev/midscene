@@ -20,6 +20,15 @@ export interface RunnerNavigationState {
   deepLinkedStepId?: string;
 }
 
+export const isSingleCaseReport = (
+  projects: readonly RunnerProjectView[],
+): boolean =>
+  projects.length === 1 &&
+  projects[0].project.documents.reduce(
+    (count, document) => count + document.cases.length,
+    0,
+  ) === 1;
+
 const caseContainsStep = (
   item: RunnerCaseView,
   stepId: string | undefined,
@@ -40,6 +49,17 @@ export const resolveRunnerNavigation = (
 ): RunnerNavigationState => {
   const route = runnerRouteFromHash(hash);
   const stepId = runnerStepIdFromHash(hash);
+
+  if (isSingleCaseReport(projects) && cases.length === 1) {
+    const [onlyCase] = cases;
+    return {
+      page: 'case',
+      selectedProjectId: onlyCase.project.projectId,
+      selectedCaseKey: onlyCase.key,
+      caseParent: 'overview',
+      deepLinkedStepId: caseContainsStep(onlyCase, stepId) ? stepId : undefined,
+    };
+  }
 
   if (route.page === 'case') {
     const selectedCase = cases.find(
@@ -87,16 +107,6 @@ export const resolveRunnerNavigation = (
         deepLinkedStepId: stepId,
       };
     }
-  }
-
-  if (!hasExplicitPage && projects.length === 1 && cases.length === 1) {
-    const [onlyCase] = cases;
-    return {
-      page: 'case',
-      selectedProjectId: onlyCase.project.projectId,
-      selectedCaseKey: onlyCase.key,
-      caseParent: 'overview',
-    };
   }
 
   return { page: 'overview', caseParent: 'overview' };
