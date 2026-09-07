@@ -142,6 +142,52 @@ const agent = await agentForComputer({
 await agent.aiAct('click the red button five times');
 ```
 
+## 通过 macOS 上的 VNC 客户端控制远程桌面 {#vnc-keyboard}
+
+`@midscene/computer` 不会直接连接 VNC（Virtual Network Computing，虚拟网络计算）服务器。请在运行 Midscene 的 Mac 上打开 VNC 客户端，并连接远程桌面。操作期间，VNC 客户端窗口需要保持在前台。Midscene 会把它作为本地桌面应用进行控制。
+
+### 保留修饰键
+
+VNC 客户端可能无法转发默认的 macOS AppleScript 修饰键事件。此时，大写字母会变成小写。包含 `Shift` 或 `Control` 的快捷键也可能失效。
+
+请将 `keyboardEventMode` 设置为 `physical`。Midscene 会为每个修饰键发送明确的按下和释放事件。文本也需要逐键输入。你可以将 `inputStrategy` 设置为 `sequential`，也可以在默认的 `legacy` 输入策略中设置正数 `keyboardTypeDelay`。
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  keyboardEventMode: 'physical',
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 80,
+});
+```
+
+`keyboardEventMode` 的默认值是 `logical`。这个模式保留标准的 AppleScript 行为，适合原生 macOS 应用。
+
+:::warning
+仅当本地和远程系统使用相同的 en-US 键盘布局时，才使用 `physical`。这个模式会把 Shift 标点转换为基础键和 `Shift`。因此，原生 macOS 应用可能把 `!@#` 输入为 `123`。
+
+这个选项在非 macOS 系统中无效。使用 `keyboardDriver: 'libnut'` 时，它也不会生效。
+:::
+
+### 发送组合键
+
+通过 `keyName` 传入组合键。使用 `+` 连接修饰键和主键，并删除 `+` 两侧的空格。
+
+```typescript
+// 向当前获得焦点的元素发送 Control+S。
+await agent.aiKeyboardPress(undefined, {
+  keyName: 'Control+S',
+});
+
+// 先定位终端窗口，再发送 Control+Shift+P。
+await agent.aiKeyboardPress('终端窗口', {
+  keyName: 'Control+Shift+P',
+});
+```
+
+请使用 `Control+S`，不要使用 `Control + S`。如果目标已经获得焦点，请把第一个参数设置为 `undefined`。这样可以避免额外点击改变当前选区或光标位置。
+
 ## 通过 RDP 连接远程 Windows 桌面
 
 `@midscene/computer` 也可以通过专用的 `agentForRDPComputer()` 工厂，直接经由 RDP 协议控制远程 Windows 桌面。
