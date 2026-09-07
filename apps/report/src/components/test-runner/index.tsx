@@ -953,13 +953,7 @@ function RunOverview({
         className="runner-panel runner-breakdown-panel"
       >
         <div className="runner-section-heading">
-          <div>
-            <h2>Projects and cases</h2>
-            <p className="runner-section-description">
-              Failures stay expanded. Search or change the view without losing
-              the Project → Case relationship.
-            </p>
-          </div>
+          <h2>Projects and cases</h2>
           <CaseDensitySwitch
             value={caseDisplayMode}
             onChange={onCaseDisplayModeChange}
