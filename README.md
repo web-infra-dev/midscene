@@ -96,7 +96,7 @@ Use `aiAct` for autonomous flows, `aiTap` and `aiInput` for individual actions, 
 
 ## 🚀 Get started
 
-- **Try an instruction in Chrome** — configure a model and install the Chrome extension with the [Quick start](https://midscenejs.com/quick-start).
+- **Try Midscene in the Playground** — experiment with natural-language actions, data extraction, and visual assertions before writing scripts. Start with the [Chrome extension](https://midscenejs.com/quick-start), or launch a [Playground for mobile or desktop](https://midscenejs.com/quick-start#use-midscene-on-other-platforms).
 - **Write tests with the SDK or YAML** — start with [Playwright](https://midscenejs.com/integrate-with-playwright), [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), or the [Midscene Test](https://midscenejs.com/midscene-test/extend).
 - **Let your AI agent operate the UI** — install [Midscene Skills](https://midscenejs.com/skills).
 - **Test on another platform** — follow the guides for [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), or [desktop](https://midscenejs.com/platforms/desktop).

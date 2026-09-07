@@ -96,7 +96,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`�
 
 ## 🚀 开始使用
 
-- **在 Chrome 中体验一条指令**：按照[快速开始](https://midscenejs.com/zh/quick-start)配置模型并安装 Chrome Extension。
+- **在 Playground 中体验 Midscene**：编写脚本前，先交互式试验自然语言操作、数据提取和视觉断言。可以从 [Chrome 插件](https://midscenejs.com/zh/quick-start) 开始，也可以启动[移动端或桌面端 Playground](https://midscenejs.com/zh/quick-start#在其他平台使用-midscene)。
 - **通过 SDK 或 YAML 编写测试**：从 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[Midscene Test](https://midscenejs.com/zh/midscene-test/extend)开始。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
 - **测试其他平台**：查看 [Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 或[桌面端](https://midscenejs.com/zh/platforms/desktop)指南。

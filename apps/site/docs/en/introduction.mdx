@@ -2,35 +2,61 @@
 
 **AI-powered vision. Cross-platform. Batteries included.**
 
-Midscene is an open-source SDK for vision-driven UI testing and automation. You describe an operation goal in natural language, and Midscene drives a multimodal model to plan and operate the interface for you — across web, mobile, desktop, and even `<canvas>` surfaces.
+Midscene is an open-source GUI Agent and testing kit for UI testing and automation across web, mobile, and desktop apps.
 
-## Why Midscene
+## See it in action
 
-Most UI automation — including AI tools that read the DOM or the accessibility tree — depends on page structure. That structure is fragile and incomplete: selectors break on every refactor; elements without semantic markup (icon-only buttons, custom-rendered controls, `<canvas>`) are invisible to it; native apps and cross-origin iframes are out of reach; and it cannot tell whether something actually *looks* right.
+The same Agent APIs let you operate and verify interfaces across platforms. The Playwright example below shows a web test; configure a model and open your app in an existing Playwright `page` to get started:
 
-Midscene takes a different route: it **works from the screenshot alone**, using a multimodal model, and you describe operation goals and validation conditions in natural language — the way a human tester would. That changes what UI testing feels like:
+```typescript
+import { PlaywrightAgent } from '@midscene/web/playwright';
 
-- **Tests stop breaking on every refactor.** There are no selectors to chase when markup or styles change, so the maintenance cost of your suite drops sharply.
-- **Reach every element and every surface.** If a human can see it, Midscene can target it — even elements with no semantic annotations, `<canvas>`, native apps, and cross-origin iframes that structure-based tools cannot reach.
-- **Assert on what users actually see.** Verify visual results — colors, highlights, layout, rendered state — not just whether a node exists in the DOM.
-- **Two ways to test.** Add Midscene to your existing [Playwright](./integrate-with-playwright) or Vitest suite, or let an AI agent test your app autonomously through [Skills](./skills).
-- **Failures you can read.** Every run produces a visual report you can replay step by step.
+const agent = new PlaywrightAgent(page);
 
-> Midscene is built for UI testing first, but the same vision-driven engine handles any UI automation task — use it however fits your work.
+// Let the Agent carry out a flow, then verify the result.
+await agent.aiAct('Search for headphones, then filter the results to under $100');
+await agent.aiWaitFor('The filtered search results are displayed');
+await agent.aiAssert('Every product in the search results has a price below $100');
+```
 
-## What you can automate
+Open the generated HTML report to inspect screenshots, actions, and assertion results. Follow the [Playwright guide](./integrate-with-playwright) for model setup, a complete example, and test runner integration.
 
-Midscene works anywhere you can take a screenshot — web browsers, Android, iOS, HarmonyOS, desktop apps, and [any custom interface](./integrate-with-any-interface) — all through one API. Each platform has its own getting-started guide in the sidebar.
+## GUI Agent
 
-Write your automation with the JavaScript SDK or in YAML, and look up every method — `aiAct`, `aiQuery`, `aiAssert`, and more — in the [API reference](./reference/#common). To understand the role of each API and how to choose between `aiAct` and JavaScript orchestration, see [The Basics](./basics).
+Midscene models both UI actions and assertions on how people use software: **look at the screen, act on what you see, and check the visible result**. Describe the task and expected outcome in natural language; Midscene uses screenshots to decide where to interact and whether the interface meets your expectations.
 
-## Driven by Multimodal Models
+### Visual understanding and cross-platform actions
 
-Midscene supports many popular multimodal models with strong UI localization, so you can pick whichever is easiest to access — including open-source options you can self-host: `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`.
+Like a person finding a control on screen, Midscene locates elements by their appearance and position, then clicks, types, or scrolls to carry out your instructions. You can target icon-only buttons, custom controls, `<canvas>`, and elements inside cross-origin iframes without writing selectors or adding semantic annotations.
 
-See [Supported models and setup](./model-common-config) to choose a model and copy its configuration.
+The same Agent APIs work across [Web](./integrate-with-playwright), [Android](./platforms/android), [iOS](./platforms/ios), [HarmonyOS](./platforms/harmonyos), and [desktop apps](./platforms/desktop). You can also connect a [custom interface](./integrate-with-any-interface) by providing screenshot and action capabilities.
 
-## Showcases
+### Verify what users see
+
+Assertions follow the same visual approach: Midscene inspects the screen as a human tester would to judge whether the expected result is visible. Describe the expected appearance in natural language to check colors, selection highlights, layout, and visual feedback — including content drawn on `<canvas>` or displayed in native apps.
+
+```typescript
+await agent.aiAssert('The selected plan has a blue border and a checkmark');
+await agent.aiAssert('The error message is visible below the email field');
+```
+
+### Benchmark performance
+
+| Benchmark | Result | Evaluation setup | Full report |
+| --- | --- | --- | --- |
+| AndroidWorld | Pass@1 **93.10%**, Pass@2 **95.69%**, Pass@3 **97.41%** | Midscene 1.9.5, Gemini-3.5-Flash | [View report](./android-world-benchmark-report) |
+| MobileWorld | Pass@1 **78.63% (92/117)** | Midscene 1.10.3, Gemini-3.6-Flash | [View report](./mobile-world-benchmark-report) |
+| AppControlBench | Pass@1 **96.7% (58/60)** | Midscene 1.12.0, Doubao Seed 2.1 Turbo | [View report](./app-control-bench-report) |
+
+Each report includes the run configuration and task results; see AndroidWorld's report for its environment and validator adjustments.
+
+### Cost and model choice
+
+Screenshot-based UI actions avoid sending large DOM trees to the model. In the reported AppControlBench run, Midscene with Doubao Seed 2.1 Turbo completed the 60-task evaluation with **$0.59 in total model cost**, achieving 58 passes. The [report](./app-control-bench-report) provides per-task costs and comparisons across models.
+
+Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4.6V`, `gemini-3.5-flash`, and `UI-TARS`, including open-source options you can self-host. Start with one model, or combine planning and vision models for your workload. For data extraction and page understanding, you can opt in to include DOM. See [Model Strategy](./model-strategy) and [Supported models and setup](./model-common-config).
+
+### Showcases
 
 Register the GitHub form autonomously in a web browser and pass all field validations:
 
@@ -38,16 +64,30 @@ Register the GitHub form autonomously in a web browser and pass all field valida
 
 See more real-world examples across iOS, Android, desktop, and custom interfaces in [Showcases](./showcases).
 
-## Benchmark results
+## Testing Kit
 
-Midscene achieved the following results on two Android Agent benchmarks:
+Batteries included: Midscene provides the observability, test framework, and integration APIs needed to turn GUI automation into a maintainable E2E test project.
 
-| Benchmark | Result | Evaluation setup | Full report |
-| --- | --- | --- | --- |
-| AndroidWorld | Pass@1 **93.10%**, Pass@2 **95.69%**, Pass@3 **97.41%** | Midscene 1.9.5, Gemini-3.5-Flash | [View report](./android-world-benchmark-report) |
-| MobileWorld | Pass@1 **78.63% (92/117)** | Midscene 1.10.3, Gemini-3.6-Flash | [View report](./mobile-world-benchmark-report) |
+### Built-in observability
 
-The full reports include the run configuration, validation notes, and execution trace for each task.
+Interactive HTML reports show screenshots, element locations, the AI decision process, and action and assertion results. In Midscene Test, AI steps and custom business operations share execution records with inputs, outputs, timing, and status. Reports and runtime logs give both developers and AI Agents the context to investigate failures. Use the [Playground](./quick-start#chrome-extension) to try and refine instructions against your interface.
+
+### Midscene Test: an E2E framework for the AI era
+
+[Midscene Test](./midscene-test/overview) (`@midscene/test`, Beta) separates **declarative test intent from programmable engineering**. Write UI flows and expectations in YAML, and wrap API calls, data preparation, and cleanup in reusable TypeScript Nodes. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
+
+The framework includes project scaffolding, platform presets, lifecycle hooks, retries, and execution-project isolation and concurrency. It also generates a Markdown reference from registered Nodes and their parameter schemas, so **people and AI Agents can discover the same capabilities and co-maintain test cases**. See [Create and extend a project](./midscene-test/extend) and [Write and run tests](./midscene-test/use).
+
+### Rich APIs that fit your existing stack
+
+Use `aiAct` for autonomous flows, `aiTap` and `aiInput` for individual actions, `aiAssert` for assertions, and `aiQuery` for structured data extraction. Combine these [Agent APIs](./reference/#common) with your existing code, fixtures, and assertions through [Playwright](./integrate-with-playwright), [Puppeteer](./integrate-with-puppeteer), or the JavaScript SDK. You can adopt Midscene's visual capabilities within your current testing framework. See [The Basics](./basics) for how to choose between autonomous actions and JavaScript orchestration. AI coding agents can also operate interfaces through [Midscene Skills](./skills).
+
+## Get started
+
+- **Try Midscene in the Playground** — experiment with natural-language actions, data extraction, and visual assertions before writing scripts. Start with the [Chrome extension](./quick-start), or launch a [Playground for mobile or desktop](./quick-start#use-midscene-on-other-platforms).
+- **Write tests with the SDK or YAML** — start with [Playwright](./integrate-with-playwright), [Puppeteer](./integrate-with-puppeteer), or the [Midscene Test](./midscene-test/extend).
+- **Let your AI agent operate the UI** — install [Midscene Skills](./skills).
+- **Test on another platform** — follow the guides for [Android](./platforms/android), [iOS](./platforms/ios), [HarmonyOS](./platforms/harmonyos), or [desktop](./platforms/desktop).
 
 ## Resources & community
 
