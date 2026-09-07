@@ -37,26 +37,6 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-function hasValidRect(value: unknown): boolean {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const rect = value as {
-    left?: unknown;
-    top?: unknown;
-    width?: unknown;
-    height?: unknown;
-  };
-
-  return (
-    isFiniteNumber(rect.left) &&
-    isFiniteNumber(rect.top) &&
-    isFiniteNumber(rect.width) &&
-    isFiniteNumber(rect.height)
-  );
-}
-
 function hasValidCenter(value: unknown): boolean {
   return (
     Array.isArray(value) &&
@@ -211,16 +191,14 @@ async function runAiLocateConnectivityCheck(
       {},
       modelRuntime,
     );
-    const targetRect = locateResult.rect || locateResult.element?.rect;
     const center = locateResult.element?.center;
-    const passed = hasValidRect(targetRect) && hasValidCenter(center);
+    const passed = hasValidCenter(center);
     return buildCheckResult('aiLocate', modelRuntime, {
       passed,
       durationMs: Date.now() - startTime,
       message: passed
         ? ''
         : `Invalid locate result: ${JSON.stringify({
-            rect: targetRect,
             center,
           })}`,
     });

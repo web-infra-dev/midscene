@@ -12,7 +12,6 @@ interface GlobalWithMidscene {
     trimAttributes: unknown;
     webExtractNodeTreeAsString: unknown;
     webExtractTextWithPosition: unknown;
-    generateElementByRect: unknown;
     isNotContainerElement: unknown;
     getElementXpath: unknown;
     getElementInfoByXpath: unknown;
@@ -85,7 +84,6 @@ describe('IIFE bundle runtime behavior', () => {
         'webExtractNodeTreeAsString',
         // Used by shared node injection for text-position extraction.
         'webExtractTextWithPosition',
-        'generateElementByRect',
         // Not found in runtime calls; suspected removable from the IIFE surface.
         'isNotContainerElement',
         // Not found in runtime calls; suspected removable from the IIFE surface.

@@ -1,4 +1,3 @@
-import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TUserPrompt } from '../../../common';
@@ -9,8 +8,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
-import { pixelBboxToRect } from './locate-result-rect';
-import { mapSearchAreaPixelBboxToOriginalPixelBbox } from './search-area-mapping';
+import { mapSearchAreaResultToOriginalResult } from './search-area-mapping';
 import type {
   LocateModelResponse,
   LocateOptions,
@@ -49,7 +47,7 @@ export async function AiLocateElement(
     locateAdapter.kind === 'custom' ? locateAdapter.locateFn : genericLocate;
   const locateResponse = await locateFn(locateRequest);
   const {
-    locatedPixelBbox,
+    locatedPixelResult,
     rawResponse,
     rawChoiceMessage,
     usage,
@@ -63,9 +61,8 @@ export async function AiLocateElement(
     reasoning_content: reasoningContent,
   };
 
-  if (!locatedPixelBbox) {
+  if (!locatedPixelResult) {
     return {
-      rect: undefined,
       parseResult: {
         element: undefined,
         errors,
@@ -75,21 +72,18 @@ export async function AiLocateElement(
   }
 
   try {
-    const rect = pixelBboxToRect(
-      mapSearchAreaPixelBboxToOriginalPixelBbox(
-        locatedPixelBbox,
-        locateOptions.searchConfig?.mapping,
-      ),
+    const mappedResult = mapSearchAreaResultToOriginalResult(
+      locatedPixelResult,
+      locateOptions.searchConfig?.mapping,
     );
-    debugGrounding('resRect', rect);
+    debugGrounding('center', mappedResult.center);
 
     return {
-      rect,
       parseResult: {
-        element: generateElementByRect(
-          rect,
-          userPromptToString(targetElementDescription),
-        ),
+        element: {
+          ...mappedResult,
+          description: userPromptToString(targetElementDescription),
+        },
         errors: [],
       },
       ...baseLocateResult,
@@ -100,7 +94,6 @@ export async function AiLocateElement(
         ? `Failed to parse locate result: ${error.message}`
         : 'unknown error in locate';
     return {
-      rect: undefined,
       parseResult: {
         element: undefined,
         errors: errors.length > 0 ? [...errors, `(${msg})`] : [msg],
@@ -172,15 +165,12 @@ export async function genericLocate(
         }
 
         try {
-          const locatedPixelBbox = resultCodec.toPixelBbox(
-            parsedLocateResult.target,
-            {
-              preparedSize: preparedImage.preparedSize,
-              contentSize: preparedImage.contentSize,
-            },
-          );
+          const result = resultCodec.toPixelResult(parsedLocateResult.target, {
+            preparedSize: preparedImage.preparedSize,
+            contentSize: preparedImage.contentSize,
+          });
           return {
-            locatedPixelBbox,
+            locatedPixelResult: result,
             rawResponse,
             rawChoiceMessage: response.rawChoiceMessage,
             usage: response.usage,

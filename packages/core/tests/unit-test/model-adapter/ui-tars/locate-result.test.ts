@@ -20,70 +20,75 @@ describe('ui-tars locate result codec', () => {
   it('normalizes UI-TARS bbox coordinate strings', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
-    const result = locateResultCodec.toPixelBbox('100 200 300 400', {
+    const result = locateResultCodec.toPixelResult('100 200 300 400', {
       preparedSize: { width: 1000, height: 2000 },
-    });
+    }).rect;
 
-    expect(result).toEqual([100, 400, 300, 800]);
+    expect(result).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('normalizes UI-TARS bbox arrays with split coordinate strings', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
     expect(
-      locateResultCodec.toPixelBbox(['123,100', '789 222'], {
+      locateResultCodec.toPixelResult(['123,100', '789 222'], {
         preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([123, 200, 788, 444]);
+      }).rect,
+    ).toEqual({ left: 123, top: 200, width: 666, height: 245 });
   });
 
   it('normalizes UI-TARS bbox arrays with numeric strings', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
     expect(
-      locateResultCodec.toPixelBbox(['100', '200', '300', '400'], {
+      locateResultCodec.toPixelResult(['100', '200', '300', '400'], {
         preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([100, 400, 300, 800]);
+      }).rect,
+    ).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('normalizes UI-TARS point fallbacks from malformed bbox lists', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
     expect(
-      locateResultCodec.toPixelBbox([100, 200, 300, 400, 500, 600], {
+      locateResultCodec.toPixelResult([100, 200, 300, 400, 500, 600], {
         preparedSize: { width: 1000, height: 2000 },
       }),
-    ).toEqual([90, 380, 110, 420]);
+    ).toEqual({ center: [100, 400] });
   });
 
   it('normalizes UI-TARS polygon bbox coordinates', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
     expect(
-      locateResultCodec.toPixelBbox([100, 200, 300, 200, 300, 400, 100, 400], {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
-    ).toEqual([100, 400, 300, 800]);
+      locateResultCodec.toPixelResult(
+        [100, 200, 300, 200, 300, 400, 100, 400],
+        {
+          preparedSize: { width: 1000, height: 2000 },
+        },
+      ).rect,
+    ).toEqual({ left: 100, top: 400, width: 201, height: 401 });
   });
 
   it('throws on invalid UI-TARS bbox data', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
-    expect(() =>
-      locateResultCodec.toPixelBbox([100], {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
+    expect(
+      () =>
+        locateResultCodec.toPixelResult([100], {
+          preparedSize: { width: 1000, height: 2000 },
+        }).rect,
     ).toThrow(/invalid bbox data/);
   });
 
   it('throws on invalid UI-TARS bbox string data', () => {
     const locateResultCodec = getUiTarsLocateResultCodec();
 
-    expect(() =>
-      locateResultCodec.toPixelBbox('100 200 300', {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
+    expect(
+      () =>
+        locateResultCodec.toPixelResult('100 200 300', {
+          preparedSize: { width: 1000, height: 2000 },
+        }).rect,
     ).toThrow(/invalid bbox data string/);
   });
 });

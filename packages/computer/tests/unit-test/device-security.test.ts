@@ -485,7 +485,6 @@ describe('ComputerDevice pointer input', () => {
           direction: 'down',
           locate: {
             description: 'scroll target',
-            rect: { left: 390, top: 290, width: 20, height: 20 },
             center: [400, 300],
           },
         }),

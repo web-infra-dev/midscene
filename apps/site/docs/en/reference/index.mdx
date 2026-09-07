@@ -981,7 +981,7 @@ function aiLocate(
   - `rect` usually represents the matched element boundary.
   - Some models only support point grounding rather than boundary grounding. In those cases, such as AutoGLM, `rect` will be a small `8x8` box containing the element center instead of the true element boundary.
   - Because `rect` can vary significantly depending on model capability, it is not recommended to rely too heavily on this field for strict boundary semantics.
-  - If you need a stable click target, prefer the `center` field.
+  - `center` is the target point derived from the model’s localization result, expressed in the screenshot’s physical pixel coordinates. For a more stable click target, prefer the `center` field.
   - `dpr` is a Web-only compatibility field. It is the ratio between physical screenshot pixels and logical CSS pixels. Other Agent types do not guarantee this field.
 
 - Examples:

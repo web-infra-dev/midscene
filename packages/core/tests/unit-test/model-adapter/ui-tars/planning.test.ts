@@ -102,7 +102,7 @@ Action: click(start_box='(500,500)')`,
         param: {
           locate: {
             prompt: 'Click submit',
-            locatedPixelBbox: [490, 392, 509, 407],
+            locatedPixelResult: { center: [500, 400] },
           },
         },
       },

@@ -485,9 +485,9 @@ describe('plan XML parse retry', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(result.actions?.[0]?.param?.locate?.locatedPixelBbox).toEqual([
-      10, 20, 30, 40,
-    ]);
+    expect(
+      result.actions?.[0]?.param?.locate?.locatedPixelResult?.center,
+    ).toEqual([20, 30]);
     expect(yamlFlowInputs).toHaveLength(1);
     expect(yamlFlowInputs[0]).toEqual([
       {
@@ -495,7 +495,10 @@ describe('plan XML parse retry', () => {
         param: {
           locate: {
             prompt: 'submit',
-            locatedPixelBbox: [10, 20, 30, 40],
+            locatedPixelResult: {
+              center: [20, 30],
+              rect: { left: 10, top: 20, width: 21, height: 21 },
+            },
           },
         },
       },

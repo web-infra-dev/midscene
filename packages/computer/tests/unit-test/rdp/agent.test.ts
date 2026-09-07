@@ -82,12 +82,6 @@ function createLocate(
 ): LocateResultElement {
   return {
     description: content,
-    rect: {
-      left: center[0] - 10,
-      top: center[1] - 10,
-      width: 20,
-      height: 20,
-    },
     center,
   };
 }

@@ -1,13 +1,20 @@
 import { describe, expect, it } from '@rstest/core';
 
-import { mergePixelBboxesToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
-import { expandSearchArea } from '@/ai-model/workflows/grounding/search-area';
+import {
+  expandSearchArea,
+  mergeSearchAreaResults,
+} from '@/ai-model/workflows/grounding/search-area';
 
-it('mergePixelBboxesToRect', () => {
-  const result = mergePixelBboxesToRect([
-    [10, 10, 19, 509],
-    [100, 100, 199, 199],
-  ]);
+it('mergeSearchAreaResults', () => {
+  const result = mergeSearchAreaResults(
+    { center: [15, 260], rect: { left: 10, top: 10, width: 10, height: 500 } },
+    [
+      {
+        center: [150, 150],
+        rect: { left: 100, top: 100, width: 100, height: 100 },
+      },
+    ],
+  );
   expect(result).toMatchInlineSnapshot(`
       {
         "height": 500,
@@ -16,6 +23,55 @@ it('mergePixelBboxesToRect', () => {
         "width": 190,
       }
     `);
+});
+
+describe('mergeSearchAreaResults', () => {
+  it('accepts a point-only target without references', () => {
+    const target = { center: [10.25, 20.75] as [number, number] };
+    expect(mergeSearchAreaResults(target)).toEqual({
+      left: 10,
+      top: 21,
+      width: 1,
+      height: 1,
+    });
+    expect(target).not.toHaveProperty('rect');
+  });
+
+  it('preserves a target rect without deriving its bounds from center', () => {
+    expect(
+      mergeSearchAreaResults(
+        {
+          center: [900, 900],
+          rect: { left: 10.25, top: 20.5, width: 30.5, height: 40.25 },
+        },
+        [],
+      ),
+    ).toEqual({ left: 10.25, top: 20.5, width: 30.5, height: 40.25 });
+  });
+
+  it('merges a point-only target and mixed references', () => {
+    expect(
+      mergeSearchAreaResults({ center: [10.25, 20.75] }, [
+        {
+          center: [60, 65],
+          rect: { left: 50, top: 60, width: 20, height: 10 },
+        },
+        { center: [99.75, 5.25] },
+      ]),
+    ).toEqual({ left: 10, top: 5, width: 91, height: 65 });
+  });
+
+  it('merges a target rect and a point-only reference', () => {
+    expect(
+      mergeSearchAreaResults(
+        {
+          center: [20, 30],
+          rect: { left: 10, top: 20, width: 20, height: 20 },
+        },
+        [{ center: [50.25, 60.75] }],
+      ),
+    ).toEqual({ left: 10, top: 20, width: 41, height: 42 });
+  });
 });
 
 describe('expandSearchArea', () => {

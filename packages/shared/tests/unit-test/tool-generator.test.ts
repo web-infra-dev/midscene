@@ -1262,7 +1262,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         locate: {
           prompt: 'Submit button',
           bbox: [8, 18, 12, 22],
-          locatedPixelBbox: [80, 180, 120, 220],
+          locatedPixelResult: { center: [100, 200] },
         },
       },
     };

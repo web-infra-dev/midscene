@@ -63,13 +63,18 @@ describe('llm planning - doubao', () => {
       bbox_2d: [123, 123, 923, 923] as [number, number, number, number],
     };
 
-    const locatedPixelBbox = locateAdapter.element.resultCodec.toPixelBbox(
+    const locatedPoint = locateAdapter.element.resultCodec.toPixelResult(
       locate.bbox_2d,
       {
         preparedSize: { width: 1000, height: 1000 },
       },
-    );
-    expect(locatedPixelBbox).toEqual([123, 123, 922, 922]);
+    ).rect;
+    expect(locatedPoint).toEqual({
+      left: 123,
+      top: 123,
+      width: 800,
+      height: 800,
+    });
   });
 
   it('throws when adapting an undefined locate value', () => {
@@ -77,10 +82,11 @@ describe('llm planning - doubao', () => {
     if (locateAdapter.kind !== 'standard') {
       throw new Error('glm-v should use standard locate adapter');
     }
-    expect(() =>
-      locateAdapter.element.resultCodec.toPixelBbox(undefined, {
-        preparedSize: { width: 1000, height: 2000 },
-      }),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult(undefined, {
+          preparedSize: { width: 1000, height: 2000 },
+        }).rect,
     ).toThrow(/invalid bbox data/);
   });
 
@@ -95,14 +101,19 @@ describe('llm planning - doubao', () => {
       bbox: [100, 200, 1000, 1000] as [number, number, number, number],
     };
 
-    const locatedPixelBbox = locateAdapter.element.resultCodec.toPixelBbox(
+    const locatedPoint = locateAdapter.element.resultCodec.toPixelResult(
       locate.bbox,
       {
         preparedSize: { width: 1200, height: 1400 },
         contentSize: { width: 1000, height: 1000 },
       },
-    );
-    expect(locatedPixelBbox).toEqual([120, 280, 999, 999]);
+    ).rect;
+    expect(locatedPoint).toEqual({
+      left: 120,
+      top: 280,
+      width: 880,
+      height: 720,
+    });
   });
 });
 

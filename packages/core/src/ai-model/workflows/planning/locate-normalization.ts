@@ -72,7 +72,7 @@ export function normalizePlanningActionLocateFields(
             ? locateParameter.bbox_2d
             : undefined;
 
-      // The raw result field is replaced by locatedPixelBbox, so it should not
+      // The raw result field is replaced by locatedPixelResult, so it should not
       // remain in the normalized locate parameter.
       const rawCoordinateKeys = new Set([
         resultKey,
@@ -85,12 +85,13 @@ export function normalizePlanningActionLocateFields(
         ),
       );
 
+      const result = locateResultCodec.toPixelResult(
+        rawLocateValue,
+        locateResultContext,
+      );
       action.param[field] = {
         ...locateParamWithoutRawCoordinates,
-        locatedPixelBbox: locateResultCodec.toPixelBbox(
-          rawLocateValue,
-          locateResultContext,
-        ),
+        locatedPixelResult: result,
       };
     });
   });

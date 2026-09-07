@@ -246,7 +246,7 @@ export async function dispatchPointer(
           x !== undefined && y !== undefined
             ? {
                 center: [x, y],
-                rect: { left: x, top: y, width: 1, height: 1 },
+
                 description: 'manual scroll target',
               }
             : undefined,
@@ -267,7 +267,6 @@ export async function dispatchPointer(
         {
           locate: {
             center: [center.x, center.y],
-            rect: { left: center.x, top: center.y, width: 1, height: 1 },
             description: 'manual pinch target',
           },
           direction,

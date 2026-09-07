@@ -1,17 +1,40 @@
 import type { Rect, Size, UIContext } from '@/types';
 import { cropByRect, scaleImage } from '@midscene/shared/img';
+import type { PixelLocateResult } from '../../shared/model-locate-result';
 import type { SearchAreaConfig } from './types';
 
+/** Merge target and reference regions for DeepLocate; point-only results cover one pixel. */
+export function mergeSearchAreaResults(
+  target: PixelLocateResult,
+  references: PixelLocateResult[] = [],
+): Rect {
+  const bounds = [target, ...references].map(({ rect, center }) => {
+    const left = rect?.left ?? Math.round(center[0]);
+    const top = rect?.top ?? Math.round(center[1]);
+    return {
+      left,
+      top,
+      right: left + (rect?.width ?? 1),
+      bottom: top + (rect?.height ?? 1),
+    };
+  });
+  const left = Math.min(...bounds.map((bound) => bound.left));
+  const top = Math.min(...bounds.map((bound) => bound.top));
+  const right = Math.max(...bounds.map((bound) => bound.right));
+  const bottom = Math.max(...bounds.map((bound) => bound.bottom));
+  return { left, top, width: right - left, height: bottom - top };
+}
+
 /**
- * Expand the search area to at least 400 x 400 pixels
+ * Expand the search region toward a minimum area of 160,000 square pixels.
  *
  * Step 1: Extend 100px on each side (top, right, bottom, left)
  * - If the element is near a boundary, expansion on that side will be limited
  * - No compensation is made for boundary limitations (this is intentional)
  *
- * Step 2: Ensure the area is at least 400x400 pixels
+ * Step 2: Scale proportionally toward the minimum area.
  * - Scale up proportionally from the center if needed
- * - Final result is clamped to screen boundaries
+ * - Clamping to screen boundaries may leave the final area below this target.
  */
 export function expandSearchArea(rect: Rect, screenSize: Size): Rect {
   const minArea = 400 * 400;

@@ -1,7 +1,8 @@
-import type { AIUsageInfo, PixelBbox, Rect, UIContext } from '@/types';
+import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import type { LocateResultElement } from '@midscene/shared/types';
 import type { TUserPrompt } from '../../../common';
 import type { ModelRuntime } from '../../models';
+import type { PixelLocateResult } from '../../shared/model-locate-result';
 
 /** Maps coordinates from a prepared search-area image back to the screenshot. */
 export interface SearchAreaImageMapping {
@@ -44,7 +45,6 @@ export interface LocateResult {
     element?: LocateResultElement;
     errors?: string[];
   };
-  rect?: Rect;
   rawResponse: string;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;
@@ -52,7 +52,8 @@ export interface LocateResult {
 }
 
 export interface LocateModelResponse {
-  locatedPixelBbox?: PixelBbox;
+  /** Target center and optional original bbox in locate-image pixels, before crop mapping. */
+  locatedPixelResult?: PixelLocateResult;
   rawResponse: string;
   rawChoiceMessage?: unknown;
   usage?: AIUsageInfo;

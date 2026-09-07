@@ -112,9 +112,10 @@ export interface LocatorValidatorOption {
 
 export interface LocateValidatorResult {
   pass: boolean;
-  rect: Rect;
+  rect?: Rect;
   center: [number, number];
   centerDistance?: number;
+  /** Whether the expected point is inside the located rect; absent for point-only results. */
   includedInRect?: boolean;
 }
 
@@ -194,7 +195,6 @@ export type ElementCacheFeature = Record<string, unknown>;
 
 export interface LocateResult {
   element: LocateResultElement | null;
-  rect?: Rect;
 }
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
@@ -247,7 +247,6 @@ export interface ServiceDump extends DumpMeta {
     assertion?: TUserPrompt;
   };
   matchedElement?: LocateResultElement[];
-  matchedRect?: Rect;
   deepLocate?: boolean;
   data: any;
   assertionPass?: boolean;

@@ -126,7 +126,7 @@ describe('createAutoGlmPlanner', () => {
         type: 'Tap',
         param: {
           locate: {
-            locatedPixelBbox: [490, 392, 509, 407],
+            locatedPixelResult: { center: [500, 400] },
           },
         },
       },

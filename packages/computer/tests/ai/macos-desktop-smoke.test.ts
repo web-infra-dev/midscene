@@ -340,15 +340,14 @@ function screenshotBounds(bounds: Bounds, scale: number): Bounds {
 }
 
 function locate(bounds: Bounds, scale: number, prompt: string) {
-  const scaled = screenshotBounds(bounds, scale);
   return {
     prompt,
-    locatedPixelBbox: [
-      scaled.left,
-      scaled.top,
-      scaled.left + scaled.width,
-      scaled.top + scaled.height,
-    ] as [number, number, number, number],
+    locatedPixelResult: {
+      center: [
+        (bounds.left + bounds.width / 2) * scale,
+        (bounds.top + bounds.height / 2) * scale,
+      ] as [number, number],
+    },
   };
 }
 

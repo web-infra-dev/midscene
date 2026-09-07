@@ -259,19 +259,12 @@ function toDisplayLocalBounds(bounds: Bounds, screen: Bounds): Bounds {
   };
 }
 
-function locatedPixelBbox(bounds: Bounds, screen: Bounds) {
+function locatedPoint(bounds: Bounds, screen: Bounds) {
   const local = toDisplayLocalBounds(bounds, screen);
-  const inset = Math.min(
-    4,
-    Math.floor(local.width / 4),
-    Math.floor(local.height / 4),
-  );
-  return [
-    Math.round(local.left + inset),
-    Math.round(local.top + inset),
-    Math.round(local.left + local.width - inset),
-    Math.round(local.top + local.height - inset),
-  ] as [number, number, number, number];
+  return [local.left + local.width / 2, local.top + local.height / 2] as [
+    number,
+    number,
+  ];
 }
 
 function locateScreenshotTarget(
@@ -280,12 +273,14 @@ function locateScreenshotTarget(
 ) {
   return {
     prompt,
-    locatedPixelBbox: locatedPixelBbox(target.bounds, {
-      left: 0,
-      top: 0,
-      width: 0,
-      height: 0,
-    }),
+    locatedPixelResult: {
+      center: locatedPoint(target.bounds, {
+        left: 0,
+        top: 0,
+        width: 0,
+        height: 0,
+      }),
+    },
   };
 }
 

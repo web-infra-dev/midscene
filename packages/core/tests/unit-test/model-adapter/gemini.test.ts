@@ -316,17 +316,10 @@ describe('gemini model adapter', () => {
       throw new Error('gemini should use standard locate adapter');
     }
 
-    const result = locateAdapter.element.resultCodec.toPixelBbox(
+    const result = locateAdapter.element.resultCodec.toPixelResult(
       [100, 150, 200, 250],
       { preparedSize: { width: 2000, height: 2000 } },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        300,
-        200,
-        500,
-        400,
-      ]
-    `);
+    ).rect;
+    expect(result).toEqual({ left: 300, top: 200, width: 201, height: 201 });
   });
 });

@@ -32,6 +32,7 @@ import {
   type QueryOptions,
   type RecordToReportOptions,
   type RecordToReportScreenshot,
+  type Rect,
   ReportActionDump,
   type ReportMeta,
   type ScrollParam,
@@ -1361,16 +1362,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   /**
-   * Locate an element and return both its center point and an approximate rect.
-   *
-   * - In most locate flows, `rect` represents the matched element boundary.
-   * - Some models only support point grounding instead of boundary grounding.
-   *   In those cases (for example, AutoGLM), `rect` falls back to a small 8x8
-   *   box centered on the located point.
-   *
-   * Because `rect` may vary with the underlying model capability, avoid relying
-   * on it too heavily for strict boundary semantics. If you need a stable click
-   * target, prefer `center`.
+   * Locate a target in screenshot coordinates. Preserve the model-provided rect
+   * when available; otherwise, generate an approximate 8x8 compatibility box.
+   * Do not rely on rect for strict element boundaries. Prefer center for the target.
    */
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(prompt, opt);
@@ -1391,10 +1385,19 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const { element } = output;
 
     return {
-      rect: element?.rect,
+      rect: element
+        ? (element.rect ?? {
+            left: Math.max(element.center[0] - 3.5, 0),
+            top: Math.max(element.center[1] - 3.5, 0),
+            width: 8,
+            height: 8,
+          })
+        : undefined,
       center: element?.center,
       dpr: element?.dpr,
-    } as Pick<LocateResultElement, 'rect' | 'center' | 'dpr'>;
+    } as Pick<LocateResultElement, 'center' | 'dpr'> & {
+      rect: Rect;
+    };
   }
 
   async aiAssert(
