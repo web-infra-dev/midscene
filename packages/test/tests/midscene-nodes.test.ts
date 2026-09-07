@@ -330,6 +330,47 @@ describe('createMidsceneNodes', () => {
     expect(result.steps[5].output?.data).toEqual({ pass: true });
   });
 
+  it.each(['The result is visible', '', undefined])(
+    'accepts successful raw assertions with undefined message and thought %s',
+    async (thought) => {
+      const aiAssert = vi.fn(async () => ({
+        pass: true,
+        thought,
+        message: undefined,
+      }));
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          getAgent: () => commonAgent({ aiAssert }),
+          agentClass: testAgentClass,
+        }),
+      );
+
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'aiAssert',
+            input: {
+              prompt: 'The result is visible',
+              options: { keepRawResponse: true },
+            },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+
+      expect(result.status).toBe('success');
+      expect(result.steps[0].status).toBe('success');
+      expect(result.steps[0].output).toStrictEqual({
+        summary: 'Assertion passed: The result is visible',
+        data: {
+          pass: true,
+          ...(thought === undefined ? {} : { thought }),
+        },
+      });
+    },
+  );
+
   it('does not inject an earlier Node result into aiAssert options', async () => {
     const stdout = 'x'.repeat(100_000);
     const aiAssert = vi.fn(async () => undefined);

@@ -360,7 +360,19 @@ const aiAssertNode = defineCommonAgentNode({
   toResult(output, input) {
     return {
       summary: `Assertion passed: ${promptText(input.prompt)}`,
-      ...(output === undefined ? {} : { data: output }),
+      ...(output === undefined
+        ? {}
+        : {
+            data: {
+              pass: output.pass,
+              ...(output.thought === undefined
+                ? {}
+                : { thought: output.thought }),
+              ...(output.message === undefined
+                ? {}
+                : { message: output.message }),
+            },
+          }),
     };
   },
 });
