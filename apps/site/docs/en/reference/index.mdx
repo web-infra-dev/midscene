@@ -2988,6 +2988,12 @@ await agent.aiInput('the notes field', {
 - `securityProtocol?: 'auto' | 'tls' | 'nla' | 'rdp'` — RDP security protocol. Default: `'auto'`.
 - `desktopWidth?: number` / `desktopHeight?: number` — Requested remote desktop resolution. When omitted, the RDP client and server negotiate the session size.
 
+**RDP screenshot readiness**
+
+Every RDP screenshot reads the current framebuffer, including the first screenshot after connecting. Capture waits for a 300 ms interval without framebuffer updates, with a maximum settling wait of 3 seconds per screenshot. Continuously changing content, such as video, can use the full wait before returning the latest frame. If the framebuffer remains entirely black, capture throws an error after the timeout; a disconnected session interrupts the wait.
+
+This settling window reduces captures taken during partial updates. It does not guarantee that the page has finished loading or that Windows has logged in. Use `aiWaitFor()` to check the expected desktop or application before starting business actions. A complete Windows login screen is a valid screenshot and still requires authentication.
+
 :::info Example: Test an Electron app on headless Linux
 See the complete [Obsidian desktop automation demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo) for a CI example that uses `@midscene/computer`.
 :::

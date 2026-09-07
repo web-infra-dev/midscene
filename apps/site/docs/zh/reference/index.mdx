@@ -2943,6 +2943,12 @@ await agent.aiInput('备注输入框', {
 - `securityProtocol`：可选 `'auto'`、`'tls'`、`'nla'` 或 `'rdp'`。
 - `desktopWidth` / `desktopHeight`：请求指定远程桌面分辨率。
 
+**RDP 截图就绪检查**
+
+每次 RDP 截图都读取当前 framebuffer，包括连接后的首次截图。截图会等待连续 300ms 没有 framebuffer 更新，每次最多等待 3 秒。视频等持续变化的内容可能用满等待时间，然后返回最新画面。如果 framebuffer 始终为纯黑，截图会在超时后抛出错误；连接中断会结束等待。
+
+这个等待窗口可以减少在局部更新期间截取画面的情况，但不保证页面已加载完成，也不代表 Windows 已登录。开始业务操作前，请用 `aiWaitFor()` 检查预期的桌面或应用界面。完整的 Windows 登录页属于有效截图，仍需要完成身份认证。
+
 :::info 示例：在无头 Linux CI 中测试 Electron 应用
 使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
 :::

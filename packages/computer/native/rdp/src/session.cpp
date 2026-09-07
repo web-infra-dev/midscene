@@ -68,6 +68,8 @@ using FdSetSocket = int;
 // never paints within this window is treated as blank/locked and fails fast
 // instead of feeding an all-black screenshot to the caller.
 constexpr int kFirstFrameTimeoutMs = 20'000;
+constexpr auto kScreenshotQuietPeriod = std::chrono::milliseconds(300);
+constexpr auto kScreenshotTimeout = std::chrono::seconds(3);
 // The first frame should prove that real desktop pixels reached the primary
 // buffer without requiring a complex wallpaper or fully loaded app content.
 constexpr size_t kMinInformativeColorCount = 128;
@@ -436,11 +438,11 @@ bool HasPendingFramebufferInvalidation(rdpContext* context) {
   return hwnd->ninvalid > 0 && hwnd->invalid && !hwnd->invalid->null;
 }
 
-std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
+bool HasInformativeFramebuffer(rdpContext* context) {
   if (!context || !context->gdi || !context->gdi->primary_buffer ||
       context->gdi->width <= 0 || context->gdi->height <= 0 ||
       context->gdi->stride == 0) {
-    return std::nullopt;
+    return false;
   }
 
   rdpGdi* gdi = context->gdi;
@@ -448,7 +450,7 @@ std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
   const auto height = static_cast<size_t>(gdi->height);
   const auto stride = static_cast<size_t>(gdi->stride);
   if (stride < width * 4) {
-    return std::nullopt;
+    return false;
   }
 
   const BYTE* buffer = gdi->primary_buffer;
@@ -489,16 +491,37 @@ std::optional<RawFrame> CaptureInformativeFramebuffer(rdpContext* context) {
 
   if (colors.size() < kMinInformativeColorCount ||
       non_black_pixels < min_non_black_pixels) {
-    return std::nullopt;
+    return false;
+  }
+  return true;
+}
+
+// Called under the transport mutex so paints and resizes cannot race the copy.
+// A black image is a retryable transition, not a successful screenshot.
+std::optional<RawFrame> CaptureNonBlackFramebuffer(const rdpGdi& gdi) {
+  if (!gdi.primary_buffer || gdi.width <= 0 || gdi.height <= 0 ||
+      gdi.stride < static_cast<size_t>(gdi.width) * 4) {
+    throw std::runtime_error("Remote framebuffer is empty or invalid");
   }
 
-  RawFrame frame;
-  frame.size.width = gdi->width;
-  frame.size.height = gdi->height;
-  frame.stride = stride;
-  const size_t buffer_size = stride * height;
-  frame.bgra.assign(buffer, buffer + buffer_size);
-  return frame;
+  // Ignore alpha and row padding. Uniform non-black screens are valid; the
+  // first-paint color-diversity heuristic does not apply to later screenshots.
+  for (int y = 0; y < gdi.height; ++y) {
+    const BYTE* row = gdi.primary_buffer + static_cast<size_t>(y) * gdi.stride;
+    for (int x = 0; x < gdi.width; ++x) {
+      const BYTE* pixel = row + static_cast<size_t>(x) * 4;
+      if (pixel[0] || pixel[1] || pixel[2]) {
+        RawFrame frame;
+        frame.size.width = gdi.width;
+        frame.size.height = gdi.height;
+        frame.stride = static_cast<size_t>(gdi.stride);
+        const size_t buffer_size = frame.stride * static_cast<size_t>(gdi.height);
+        frame.bgra.assign(gdi.primary_buffer, gdi.primary_buffer + buffer_size);
+        return frame;
+      }
+    }
+  }
+  return std::nullopt;
 }
 
 // EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
@@ -516,9 +539,8 @@ BOOL MidsceneEndPaint(rdpContext* context) {
       typed_context->owner->MarkFramebufferUpdated();
       if (already_painted) {
         typed_context->owner->MarkFramePainted();
-      } else if (auto first_frame = CaptureInformativeFramebuffer(context);
-                 first_frame.has_value()) {
-        typed_context->owner->MarkFramePainted(std::move(first_frame));
+      } else if (HasInformativeFramebuffer(context)) {
+        typed_context->owner->MarkFramePainted();
       }
     }
   }
@@ -983,8 +1005,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
     framebuffer_updates_.store(0, std::memory_order_relaxed);
     {
       std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-      first_frame_.reset();
-      first_frame_consumed_ = false;
+      last_frame_update_ = {};
     }
     original_end_paint_ = nullptr;
     ClearSessionErrorLocked();
@@ -1083,36 +1104,46 @@ void FreeRdpSessionTransport::Disconnect() {
 }
 
 RawFrame FreeRdpSessionTransport::CaptureFrame() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!connected_ || !instance_ || !instance_->context || !instance_->context->gdi) {
-    throw std::runtime_error("No remote framebuffer is available");
-  }
-
-  if (frames_painted_.load(std::memory_order_relaxed) == 0) {
-    throw std::runtime_error(
-        "Remote framebuffer has not received its first paint yet");
-  }
-
-  {
-    std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-    if (!first_frame_consumed_ && first_frame_.has_value()) {
-      first_frame_consumed_ = true;
-      return *first_frame_;
+  const auto started = std::chrono::steady_clock::now();
+  const auto deadline = started + kScreenshotTimeout;
+  for (;;) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (!connected_ || !instance_ || !instance_->context ||
+        !instance_->context->gdi ||
+        !session_active_.load(std::memory_order_relaxed)) {
+      throw std::runtime_error(
+          last_error_ ? "RDP screenshot failed: " + last_error_->message
+                      : "No remote framebuffer is available");
     }
-  }
 
-  rdpGdi* gdi = instance_->context->gdi;
-  if (!gdi->primary_buffer || gdi->width <= 0 || gdi->height <= 0 || gdi->stride == 0) {
-    throw std::runtime_error("Remote framebuffer is empty");
-  }
+    if (frames_painted_.load(std::memory_order_relaxed) == 0) {
+      throw std::runtime_error(
+          "Remote framebuffer has not received its first paint yet");
+    }
 
-  RawFrame frame;
-  frame.size.width = gdi->width;
-  frame.size.height = gdi->height;
-  frame.stride = static_cast<size_t>(gdi->stride);
-  const size_t buffer_size = frame.stride * static_cast<size_t>(gdi->height);
-  frame.bgra.assign(gdi->primary_buffer, gdi->primary_buffer + buffer_size);
-  return frame;
+    std::unique_lock<std::mutex> frame_lock(frame_mutex_);
+    const auto now = std::chrono::steady_clock::now();
+    const auto quiet_until =
+        std::max(started, last_frame_update_) + kScreenshotQuietPeriod;
+    auto wake_at = std::min(quiet_until, deadline);
+    if (now >= wake_at) {
+      // Copy the live buffer even on the first screenshot; a cached first paint
+      // can be partial or stale by the time the caller requests a screenshot.
+      if (auto frame = CaptureNonBlackFramebuffer(*instance_->context->gdi)) {
+        return std::move(*frame);
+      }
+      if (now >= deadline) {
+        throw std::runtime_error(
+            "RDP screenshot was still black after waiting for framebuffer updates");
+      }
+      wake_at = deadline;
+    }
+
+    // Let the event loop process paints while waiting. Every screenshot gets a
+    // short settling window, but animations cannot extend the total deadline.
+    lock.unlock();
+    frame_cv_.wait_until(frame_lock, wake_at);
+  }
 }
 
 Size FreeRdpSessionTransport::GetSize() {
@@ -1360,8 +1391,7 @@ void FreeRdpSessionTransport::ResetStateLocked() {
   framebuffer_updates_.store(0, std::memory_order_relaxed);
   {
     std::lock_guard<std::mutex> frame_lock(frame_mutex_);
-    first_frame_.reset();
-    first_frame_consumed_ = false;
+    last_frame_update_ = {};
   }
   original_end_paint_ = nullptr;
   mouse_x_ = 0;
@@ -1388,23 +1418,21 @@ BOOL FreeRdpSessionTransport::CallOriginalEndPaint(rdpContext* context) {
   return TRUE;
 }
 
-void FreeRdpSessionTransport::MarkFramePainted(
-    std::optional<RawFrame> first_frame) {
+void FreeRdpSessionTransport::MarkFramePainted() {
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
-    if (first_frame.has_value() &&
-        frames_painted_.load(std::memory_order_relaxed) == 0 &&
-        !first_frame_.has_value()) {
-      first_frame_ = std::move(*first_frame);
-      first_frame_consumed_ = false;
-    }
     frames_painted_.fetch_add(1, std::memory_order_relaxed);
   }
   frame_cv_.notify_all();
 }
 
 void FreeRdpSessionTransport::MarkFramebufferUpdated() {
-  framebuffer_updates_.fetch_add(1, std::memory_order_relaxed);
+  {
+    std::lock_guard<std::mutex> lock(frame_mutex_);
+    framebuffer_updates_.fetch_add(1, std::memory_order_relaxed);
+    last_frame_update_ = std::chrono::steady_clock::now();
+  }
+  frame_cv_.notify_all();
 }
 
 bool FreeRdpSessionTransport::HasFramePainted() const {
