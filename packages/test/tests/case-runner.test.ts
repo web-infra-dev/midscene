@@ -16,10 +16,13 @@ afterEach(() => {
 describe('CaseRunner', () => {
   it('runs nodes sequentially with normalized input and metadata', async () => {
     const calls: string[] = [];
-    const first = defineNode<{ value: number }, { doubled: number }>({
+    const first = defineNode<
+      { prompt: string; value: number },
+      { doubled: number }
+    >({
       name: 'first.node',
       execute(ctx) {
-        calls.push(ctx.input.prompt ?? '');
+        calls.push(ctx.input.prompt);
         expect(ctx.input).toEqual({ prompt: 'run first', value: 2 });
         expect(ctx.$).toEqual({ continueOnError: false });
         expect(ctx.signal.aborted).toBe(false);
