@@ -11,14 +11,11 @@ import path from 'node:path';
 import { setMidsceneRunDir } from '@midscene/shared/common';
 import { setLogDirectoryResolver } from '@midscene/shared/logger';
 import {
-  type ChooseFileSavePathRequest,
   type ChooseReplayFileResult,
   type DiscoverDevicesRequest,
   IPC_CHANNELS,
   type OpenImagePreviewRequest,
   type PrepareRecorderMarkdownReplayRequest,
-  type WriteFileRequest,
-  type WriteReportFileRequest,
 } from '@shared/electron-contract';
 import type { NativeThemeMode } from '@shared/electron-contract';
 import { resolveExternalUrl } from '@shared/external-links';
@@ -37,6 +34,7 @@ import {
 import type { TitleBarOverlay } from 'electron';
 import { normalizeStudioAgentOptions } from '../shared/agent-options';
 import { MACOS_TRAFFIC_LIGHT_POSITION } from '../shared/titlebar-layout';
+import { registerFileExportHandlers } from './file-export';
 import { startStudioEventLoopWatchdog } from './performance-watchdog';
 import { requestPlaygroundBootstrap } from './playground/bootstrap-request';
 import { runConnectivityTest } from './playground/connectivity-test';
@@ -63,6 +61,10 @@ import {
   type WindowRevealController,
   registerWindowRevealHandlers,
 } from './window-reveal';
+import {
+  isStudioRendererUrl,
+  restrictStudioNavigation,
+} from './window-security';
 
 const shouldBootstrapStudio = acquireStudioSingleInstanceLock(app);
 
@@ -210,44 +212,6 @@ const getTitleBarOverlay = (): TitleBarOverlay => ({
   height: 56,
   symbolColor: '#17212b',
 });
-
-const DEFAULT_REPORT_FILE_NAME = 'midscene_report.html';
-const DEFAULT_EXPORT_FILE_NAME = 'midscene_export.json';
-
-const ensureHtmlFileName = (value: string) =>
-  value.toLowerCase().endsWith('.html') ? value : `${value}.html`;
-
-const resolveDefaultReportSavePath = (defaultFileName?: string) => {
-  const safeFileName = path.basename(
-    ensureHtmlFileName(defaultFileName?.trim() || DEFAULT_REPORT_FILE_NAME),
-  );
-  return path.join(app.getPath('downloads'), safeFileName);
-};
-
-const resolveDefaultFileSavePath = (defaultFileName?: string) => {
-  const safeFileName = path.basename(
-    defaultFileName?.trim() || DEFAULT_EXPORT_FILE_NAME,
-  );
-  return path.join(app.getPath('downloads'), safeFileName);
-};
-
-const ensureFileExtensionFromFilters = (
-  filePath: string,
-  filters?: ChooseFileSavePathRequest['filters'],
-) => {
-  if (path.extname(filePath)) {
-    return filePath;
-  }
-  const firstExtension = filters?.find((filter) => filter.extensions.length)
-    ?.extensions[0];
-  if (!firstExtension) {
-    return filePath;
-  }
-  if (firstExtension === '*') {
-    return filePath;
-  }
-  return `${filePath}.${firstExtension.replace(/^\./, '')}`;
-};
 
 const sanitizeImagePreviewFileName = (fileName?: string) => {
   const baseName = path.basename(fileName?.trim() || 'screenshot.png');
@@ -422,10 +386,13 @@ const createMainWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       preload: preloadEntryPath,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
+  restrictStudioNavigation(window.webContents, (url) =>
+    isStudioRendererUrl(url, rendererEntryPath, rendererDevUrl),
+  );
   mainWindow = window;
 
   const revealController = registerWindowRevealHandlers({
@@ -442,10 +409,26 @@ const createMainWindow = () => {
   if (isStudioSmokeTest || isStudioE2ETest) {
     window.webContents.once('did-finish-load', () => {
       if (isStudioSmokeTest) {
-        console.log(STUDIO_SMOKE_READY_MARKER);
-        setTimeout(() => {
-          app.exit(0);
-        }, 100);
+        // The page can load even when a sandboxed preload fails. Exercise the
+        // native bridge before declaring the startup smoke test successful.
+        void window.webContents
+          .executeJavaScript(`
+          (async () => {
+            if (typeof window.electronShell?.writeFile !== 'function' ||
+                typeof window.electronShell?.chooseReportSavePath !== 'function') {
+              throw new Error('Studio file export bridge is unavailable');
+            }
+            return window.studioUpdater.getVersion();
+          })()
+        `)
+          .then(() => {
+            console.log(STUDIO_SMOKE_READY_MARKER);
+            app.exit(0);
+          })
+          .catch((error) => {
+            console.error(STUDIO_SMOKE_FAILED_MARKER, error);
+            app.exit(1);
+          });
         return;
       }
 
@@ -547,6 +530,18 @@ const activateMainWindow = (): BrowserWindow | null => {
 };
 
 const registerIpcHandlers = () => {
+  registerFileExportHandlers({
+    ipcMain,
+    dialog,
+    getWindow: () => mainWindow,
+    getDownloadsPath: () => app.getPath('downloads'),
+    isTrustedUrl: (url) =>
+      isStudioRendererUrl(
+        url,
+        getRendererEntryPath(),
+        process.env.MIDSCENE_STUDIO_RENDERER_URL,
+      ),
+  });
   ipcMain.handle(IPC_CHANNELS.minimizeWindow, () => {
     mainWindow?.minimize();
   });
@@ -581,53 +576,6 @@ const registerIpcHandlers = () => {
       if (errorMessage) {
         throw new Error(errorMessage);
       }
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.chooseReportSavePath,
-    async (_event, defaultFileName?: string) => {
-      const dialogOptions = {
-        title: 'Save Midscene Report',
-        defaultPath: resolveDefaultReportSavePath(defaultFileName),
-        filters: [
-          {
-            name: 'HTML Report',
-            extensions: ['html'],
-          },
-        ],
-      };
-      const result = mainWindow
-        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
-        : await dialog.showSaveDialog(dialogOptions);
-
-      if (result.canceled || !result.filePath) {
-        return null;
-      }
-
-      return ensureHtmlFileName(result.filePath);
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.chooseFileSavePath,
-    async (_event, request?: ChooseFileSavePathRequest) => {
-      const filters =
-        request?.filters && request.filters.length > 0
-          ? request.filters
-          : [{ name: 'All Files', extensions: ['*'] }];
-      const dialogOptions = {
-        title: request?.title || 'Save Midscene Export',
-        defaultPath: resolveDefaultFileSavePath(request?.defaultFileName),
-        filters,
-      };
-      const result = mainWindow
-        ? await dialog.showSaveDialog(mainWindow, dialogOptions)
-        : await dialog.showSaveDialog(dialogOptions);
-
-      if (result.canceled || !result.filePath) {
-        return null;
-      }
-
-      return ensureFileExtensionFromFilters(result.filePath, filters);
     },
   );
   ipcMain.handle(
@@ -730,47 +678,6 @@ const registerIpcHandlers = () => {
       if (process.platform === 'darwin') {
         mainWindow.setVibrancy('sidebar');
       }
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.writeReportFile,
-    async (_event, request: WriteReportFileRequest) => {
-      const targetPath = request?.path?.trim();
-      if (!targetPath) {
-        throw new Error('writeReportFile: path is required');
-      }
-      if (typeof request.content !== 'string') {
-        throw new Error('writeReportFile: content must be a string');
-      }
-
-      await writeFileToDisk(
-        ensureHtmlFileName(targetPath),
-        request.content,
-        'utf-8',
-      );
-    },
-  );
-  ipcMain.handle(
-    IPC_CHANNELS.writeFile,
-    async (_event, request: WriteFileRequest) => {
-      const targetPath = request?.path?.trim();
-      if (!targetPath) {
-        throw new Error('writeFile: path is required');
-      }
-      if (typeof request.content !== 'string') {
-        throw new Error('writeFile: content must be a string');
-      }
-      if (request.encoding === 'base64') {
-        await writeFileToDisk(
-          targetPath,
-          Buffer.from(request.content, 'base64'),
-        );
-        return;
-      }
-      if (request.encoding && request.encoding !== 'utf-8') {
-        throw new Error(`writeFile: unsupported encoding ${request.encoding}`);
-      }
-      await writeFileToDisk(targetPath, request.content, 'utf-8');
     },
   );
   // Multi-platform playground — a single server for Android, iOS,
