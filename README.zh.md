@@ -31,11 +31,57 @@
   </a>
 </p>
 
-## 📣 Midscene Skills 已上线
+## 看看如何使用
 
-使用 [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) 搭配 [OpenClaw](https://github.com/OpenClaw/OpenClaw)，测试并自动化 Web、移动端和桌面端界面。
+Midscene 将视觉驱动的 GUI Agent 与编写、验证和调试 UI 测试所需的 Testing Kit 结合在一起。配置好模型，并在已有的 Playwright `page` 中打开你的应用后，就可以这样编写测试：
 
-## 案例
+```typescript
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const agent = new PlaywrightAgent(page);
+
+// 让 Agent 完成流程，再验证结果。
+await agent.aiAct('搜索耳机，然后将结果筛选为价格低于 100 美元');
+await agent.aiWaitFor('筛选后的搜索结果已显示');
+await agent.aiAssert('搜索结果中的每件商品价格都低于 100 美元');
+```
+
+打开生成的 HTML 报告，即可查看截图、操作与断言结果。[Playwright 集成指南](https://midscenejs.com/zh/integrate-with-playwright)提供模型配置、完整示例和测试运行器集成步骤。
+
+## 👁️ GUI Agent
+
+### 视觉理解与跨平台操作
+
+Midscene 根据截图定位元素，根据自然语言指令规划操作。无需编写选择器或添加语义化标注，就能定位纯图标按钮、自定义控件、`<canvas>` 和跨域 iframe 中的元素。
+
+同一套 Agent API 覆盖 [Web](https://midscenejs.com/zh/integrate-with-playwright)、[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 和[桌面应用](https://midscenejs.com/zh/platforms/desktop)。提供截图和操作能力后，你也可以接入[自定义界面](https://midscenejs.com/zh/integrate-with-any-interface)。
+
+### 验证用户真正看到的效果
+
+Midscene 直接根据截图判断界面实际呈现的效果。用自然语言描述预期外观，就能检查颜色、选中高亮、布局和视觉反馈，也适用于 `<canvas>` 绘制的内容和原生应用界面。
+
+```typescript
+await agent.aiAssert('选中的套餐带有蓝色边框和勾选标记');
+await agent.aiAssert('邮箱输入框下方显示了错误提示');
+```
+
+### Benchmark 表现
+
+| Benchmark | Pass@1 | 对应评测使用的模型 |
+| --- | --- | --- |
+| [AndroidWorld](https://midscenejs.com/zh/android-world-benchmark-report) | 93.1% | Gemini-3.5-Flash |
+| [MobileWorld](https://midscenejs.com/zh/mobile-world-benchmark-report) | 78.6% | Gemini-3.6-Flash |
+| [AppControlBench](https://midscenejs.com/zh/app-control-bench-report) | 96.7% | Doubao Seed 2.1 Turbo |
+
+各报告包含运行配置与任务结果；AndroidWorld 报告还说明了环境与校验器的调整。
+
+### 运行成本与模型选择
+
+基于截图的 UI 操作无需向模型发送庞大的 DOM 树。在上述 AppControlBench 评测中，Midscene 搭配 Doubao Seed 2.1 Turbo 完成了 60 个任务的评测，**模型调用总费用为 0.59 美元**，其中 58 个任务通过。[评测报告](https://midscenejs.com/zh/app-control-bench-report)提供了逐任务费用与不同模型的对比。
+
+Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等多模态模型，也包括可自托管的开源选项。你可以先使用单模型，再按场景组合规划模型与视觉模型。在数据提取与页面理解场景中，仍可按需选择携带 DOM。详见[模型策略](https://midscenejs.com/zh/model-strategy)。
+
+### 案例
 
 * [Web 自动化 - 在浏览器中自动注册 GitHub 表单并通过所有字段校验](https://midscenejs.com/zh/showcases#web)
 * [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
@@ -44,38 +90,32 @@
 * [Android 自动化 - 预订圣诞节酒店](https://midscenejs.com/zh/showcases#android)
 * [车机测试中的机械臂 + 视觉 + 语音方案](https://midscenejs.com/zh/showcases#community-showcases)
 
-## 💡 为什么选择 Midscene
+## 🧰 Testing Kit
 
-大多数 UI 自动化都依赖页面结构，包括读取 DOM 或无障碍树的 AI 工具。页面结构既脆弱又不完整：选择器一重构就失效；缺少语义化标注的元素，如纯图标按钮、自定义控件和 `<canvas>`，对它们是“看不见”的；原生应用与跨域 iframe 也难以触达；页面结构还无法判断界面实际看起来是否正确。
+### 编写与控制测试流程
 
-Midscene 仅凭截图工作。你只需用自然语言描述每一步：
+使用 `aiAct` 规划并执行流程，也可以通过 `aiTap`、`aiInput` 等 API 逐步编排操作。将自然语言指令与 JavaScript 逻辑结合，为测试的不同部分选择合适的控制粒度。
 
-- **更低的维护成本**：UI 变化时，无需再追着改选择器。
-- **触达每个元素与界面**：只要人眼能看到，Midscene 就能定位。即使元素没有语义化标注，或位于 `<canvas>`、原生应用、跨域 iframe 上，也可以定位。
-- **校验用户真正看到的效果**：验证颜色、高亮、布局与渲染状态，而不只是判断 DOM 节点是否存在。
-- **两种测试方式**：接入你的 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) / Vitest 测试，或让 AI Agent 通过 [Skills](https://midscenejs.com/zh/skills) 自主测试。
+### 断言、查询与等待
 
-Midscene 首先为 UI 测试而生，但同一套视觉驱动引擎也能胜任任意 UI 自动化任务。
+使用 `aiAssert` 将视觉预期转为测试断言，通过 `aiQuery` 提取结构化数据并在测试代码中进一步校验，使用 `aiWaitFor` 等待预期界面状态。详见 [API 参考](https://midscenejs.com/zh/reference/#common)。
 
-## 💡 能自动化什么
+### 回放与调试执行过程
 
-只要能截图，Midscene 就能工作。Web 浏览器、Android、iOS、HarmonyOS、桌面应用，以及[任意自定义界面](https://midscenejs.com/zh/integrate-with-any-interface)，全部通过同一套 API。
+可视化 HTML 报告记录截图、操作与结果，帮助你逐步查看执行过程、排查失败原因。通过 [Playground](https://midscenejs.com/zh/quick-start#chrome-extension)，可以先在界面上试验指令，再将其加入测试。
 
-你可以用 JavaScript SDK 或 YAML 编写自动化，也可以通过 [Skills](https://midscenejs.com/zh/skills) 交给 AI Agent。所有方法都可以在 [API 参考](https://midscenejs.com/zh/reference/#common) 中查阅，包括 `aiAct`、`aiQuery` 和 `aiAssert`。
+### 集成与扩展测试工程
+
+将 Midscene 接入 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)，在自己的测试工程中使用 JavaScript SDK，或通过 [YAML](https://midscenejs.com/zh/automate-with-scripts-in-yaml) 编写流程。[测试运行器](https://midscenejs.com/zh/test-runner-overview)提供生命周期钩子、并发控制与自定义 TypeScript 节点，用于测试数据准备和业务操作。
+
+AI 编程 Agent 也可以通过 [Midscene Skills](https://midscenejs.com/zh/skills) 调用 Midscene CLI 测试界面，包括在 OpenClaw 中使用。
 
 ## 🚀 开始使用
 
-- **在 Chrome 中体验 Midscene**：通过[快速开始](https://midscenejs.com/zh/quick-start)配置模型、安装 Chrome Extension，并运行第一条自然语言指令。
-- **编写第一个脚本**：按照 [Playwright](https://midscenejs.com/zh/integrate-with-playwright) 或 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 集成指南创建 Agent，并运行完整的浏览器脚本。
-- **其他平台**：[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 与[桌面端](https://midscenejs.com/zh/platforms/desktop) 的上手指南。
-
-## ✨ 多模态模型驱动
-
-Midscene 在 UI 操作上完全采用纯视觉路线：元素定位仅基于截图。它支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`、`UI-TARS` 等具备极强 UI 定位能力的多模态模型，也包括可自托管的开源选项。在数据提取与页面理解场景中，你仍可按需选择携带 DOM。
-
-阅读更多：[模型策略](https://midscenejs.com/zh/model-strategy)。
-
-
+- **在 Chrome 中体验一条指令**：按照[快速开始](https://midscenejs.com/zh/quick-start)配置模型并安装 Chrome Extension。
+- **通过 SDK 或 YAML 编写测试**：从 [Playwright](https://midscenejs.com/zh/integrate-with-playwright)、[Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer) 或[测试运行器](https://midscenejs.com/zh/use-test-runner)开始。
+- **让 AI Agent 操作界面**：安装 [Midscene Skills](https://midscenejs.com/zh/skills)。
+- **测试其他平台**：查看 [Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 或[桌面端](https://midscenejs.com/zh/platforms/desktop)指南。
 
 ## 📄 资源
 
