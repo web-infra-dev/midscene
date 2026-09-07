@@ -2,9 +2,9 @@
 
 After framework maintainers configure a Test Project, people or Agents can use its registered Nodes to write test cases. Before writing cases, we recommend running `nodes` to generate a Node reference and confirm the available capabilities and input parameters.
 
-To start a new project, use [`midscene-test create`](./extend-test-runner#create-a-project). It generates platform configuration, example cases, and `midscene-node-reference.md` in one command.
+To start a new project, use [`midscene-test create`](./extend#create-a-project). It generates platform configuration, example cases, and `midscene-node-reference.md` in one command.
 
-If you are not familiar with the overall design, start with [Test Runner overview](./test-runner-overview). If your project is not configured yet, see [Extend and maintain Test Runner](./extend-test-runner).
+If you are not familiar with the overall design, start with [Midscene Test overview](./overview). If your project is not configured yet, see [Extend and maintain test projects](./extend).
 
 ## Core concepts
 
@@ -50,7 +50,7 @@ cases:
       - aiAssert: The page shows "Order canceled"
 ```
 
-The runner executes Cases in their declared YAML order. If one Case fails, the runner records the failure and continues with subsequent Cases.
+Midscene Test executes Cases in their declared YAML order. If one Case fails, Midscene Test records the failure and continues with subsequent Cases.
 
 ### Write a Step
 
@@ -94,7 +94,7 @@ steps:
 
 ### Configure timeouts and error handling
 
-Use `$` for Step parameters controlled by the runner. The runner does not include these parameters in the Node's `input`.
+Use `$` for Step parameters controlled by Midscene Test. Midscene Test does not include these parameters in the Node's `input`.
 
 ```yaml
 steps:
@@ -108,13 +108,13 @@ steps:
 The following fields are supported:
 
 - `timeout`: Step timeout in milliseconds.
-- `continue-on-error`: when set to `true`, the runner continues with subsequent Steps in the current phase even if this Step fails. The default is `false`.
+- `continue-on-error`: when set to `true`, Midscene Test continues with subsequent Steps in the current phase even if this Step fails. The default is `false`.
 
 `continue-on-error` controls only whether execution continues. If any Step fails, the Case's final status is `failed`.
 
 ### Use Project variables and environment variables
 
-The runner recursively resolves Node input before execution:
+Midscene Test recursively resolves Node input before execution:
 
 ```yaml
 steps:
@@ -199,9 +199,9 @@ Each phase has the following responsibilities:
 
 `afterEach` still runs if the main body of a Case fails.
 
-If `beforeAll` fails, the runner marks the Cases in the current file as `not-run`, but it still runs `afterAll` and all registered Node cleanup.
+If `beforeAll` fails, Midscene Test marks the Cases in the current file as `not-run`, but it still runs `afterAll` and all registered Node cleanup.
 
-Project setup runs only once before the Project's Workflow Documents. Project teardown always runs in LIFO order. When the runner receives an interrupt signal, it cancels the current Step, while cleanup hooks and registered teardown functions receive a signal that still allows cleanup work to execute.
+Project setup runs only once before the Project's Workflow Documents. Project teardown always runs in LIFO order. When Midscene Test receives an interrupt signal, it cancels the current Step, while cleanup hooks and registered teardown functions receive a signal that still allows cleanup work to execute.
 
 ## Run tests
 
@@ -213,7 +213,7 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-By default, the runner recursively finds and executes all `.yaml` and `.yml` files under the project root, automatically ignoring `node_modules` and `.git`.
+By default, Midscene Test recursively finds and executes all `.yaml` and `.yml` files under the project root, automatically ignoring `node_modules` and `.git`.
 
 Pass a specific directory or test case file as an argument to run only that target:
 
@@ -241,11 +241,11 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 
 ## View test results
 
-After each test run, the console displays Case statuses and a brief summary. The runner also generates a visual test report locally.
+After each test run, the console displays Case statuses and a brief summary. Midscene Test also generates a visual test report locally.
 
 ### Midscene visual report
 
-The runner records detailed test Steps, UI screenshots, and the AI decision process in an interactive HTML report.
+Midscene Test records detailed test Steps, UI screenshots, and the AI decision process in an interactive HTML report.
 
 By default, reports are saved to:
 
@@ -259,11 +259,11 @@ Open an HTML file in this directory in a browser to inspect each `aiAct` and `ai
 
 ## Current limitations
 
-The current Test Runner has the following limitations:
+Midscene Test currently has the following limitations:
 
 - **No parallel execution within an Execution Project**: all Workflow Documents, Cases, attempts, and Steps within one Execution Project run sequentially. Case-level concurrency is not supported yet.
 - **No control flow**: DAGs, branches such as If-Else, and loops are not supported. Test cases run linearly in their declared order.
 - **No cross-document data dependencies**: Workflow Documents are fully isolated and cannot pass or share runtime data with one another.
-- **Local loading only**: the runner cannot load and execute YAML files directly from remote URLs, npm packages, or Git repositories yet.
+- **Local loading only**: Midscene Test cannot load and execute YAML files directly from remote URLs, npm packages, or Git repositories yet.
 
-The runner also statically collects and validates every YAML file before execution. If it finds an unknown top-level field, an unregistered Node, or an invalid Step, it immediately throws a Collection Error and stops the run instead of waiting until that Case begins.
+Midscene Test also statically collects and validates every YAML file before execution. If it finds an unknown top-level field, an unregistered Node, or an invalid Step, it immediately throws a Collection Error and stops the run instead of waiting until that Case begins.

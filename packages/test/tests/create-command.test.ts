@@ -597,6 +597,7 @@ describe('create package manager selection', () => {
           : 'pnpm exec playwright install chromium';
       expect(readme).toContain(chromium);
       expect(readme).toContain(`${packageManager} test`);
+      expect(readme).toContain('A Midscene Test project for web.');
       expect(readme).toContain(`${packageManager} run nodes`);
       expect(output.log).toHaveBeenCalledWith(
         `Installing dependencies with ${packageManager}...`,

@@ -52,7 +52,7 @@ const renderWorkflowLocations = (location?: NodeReferenceLocation): string => {
   const sections = [
     '## Where to use these Nodes',
     'Use these Nodes in Workflow Documents (`.yaml` or `.yml` files) selected by an Execution Project. Case file patterns and the config file path below are relative to this reference file. Case file patterns use glob syntax. A custom `--config` path does not change where case files are selected.',
-    'Projects created by `midscene-test create` select `cases/**/*.{yaml,yml}` by default, so you can write test cases in `cases/example.yaml` or subdirectories of `cases/`. If an Execution Project has no `files` configuration, the runner searches `**/*.{yaml,yml}` recursively instead. Check `projects[].files` in your configuration before choosing a file location.',
+    'Projects created by `midscene-test create` select `cases/**/*.{yaml,yml}` by default, so you can write test cases in `cases/example.yaml` or subdirectories of `cases/`. If an Execution Project has no `files` configuration, Midscene Test searches `**/*.{yaml,yml}` recursively instead. Check `projects[].files` in your configuration before choosing a file location.',
   ];
   if (location) {
     sections.push(
@@ -73,7 +73,7 @@ const renderWorkflowLocations = (location?: NodeReferenceLocation): string => {
     }
   }
   sections.push(
-    'Files matching `files.exclude` are not selected. The runner always ignores `.git/`, `.midscene/`, `midscene_run/`, and `node_modules/` directories, including nested ones.',
+    'Files matching `files.exclude` are not selected. Midscene Test always ignores `.git/`, `.midscene/`, `midscene_run/`, and `node_modules/` directories, including nested ones.',
     'Call a Node in `cases[].steps`, or in the Workflow Document lifecycle steps `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`. Node registrations are shared across the Test Project; each Execution Project supplies its own runtime environment.',
   );
   return sections.join('\n\n');

@@ -98,7 +98,7 @@ const waitFor = async (durationMs: number, signal: AbortSignal) => {
   });
 };
 
-/** Adapt Agent-owned descriptions to executable Test Runner Nodes. */
+/** Adapt Agent-owned descriptions to executable Midscene Test Nodes. */
 export const createAgentTestRunnerNodes = <TContext>(
   definitions: readonly AgentTestRunnerNodeDefinition[],
   getAgent: (

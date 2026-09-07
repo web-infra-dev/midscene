@@ -1,8 +1,8 @@
-# Extend and maintain Test Runner
+# Extend and maintain test projects
 
 `@midscene/test` supports registering business Nodes, managing runtime resources, and defining execution lifecycles. Framework maintainers can use these capabilities to integrate browsers, Agents, external tools, and business APIs into a customized testing foundation for their teams.
 
-For an overview of the design, see [Test Runner overview](./test-runner-overview).
+For an overview of the design, see [Midscene Test overview](./overview).
 
 ## Create a project
 
@@ -84,9 +84,9 @@ my-tests/
 └── README.md
 ```
 
-Copy `.env.example` to `.env` and fill in your [model configuration](./model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.
+Copy `.env.example` to `.env` and fill in your [model configuration](../model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.
 
-For HarmonyOS, verify the connection with `hdc list targets` and optionally set `HARMONY_DEVICE_ID`. Set `HDC_HOME` if HDC is not on PATH. For desktop, follow the [desktop setup guide](./platforms/desktop) to install system dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID` to select a display. On headless Linux, install Xvfb and enable `MIDSCENE_COMPUTER_HEADLESS_LINUX`.
+For HarmonyOS, verify the connection with `hdc list targets` and optionally set `HARMONY_DEVICE_ID`. Set `HDC_HOME` if HDC is not on PATH. For desktop, follow the [desktop setup guide](../platforms/desktop) to install system dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID` to select a display. On headless Linux, install Xvfb and enable `MIDSCENE_COMPUTER_HEADLESS_LINUX`.
 
 The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`. Each generated configuration registers the Nodes provided by its platform Agent.
 
@@ -140,20 +140,20 @@ The following example shows how to set up a simple test project that switches th
 
 ### 1. Install dependencies
 
-Create an empty project and install the Test Runner's core dependencies and driver tools:
+Create an empty project and install Midscene Test's core dependencies and driver tools:
 
 ```bash
 pnpm add -D @midscene/test @midscene/web playwright
 ```
 
-> **Note**: Before using a Midscene Agent, follow [Model configuration](./model-config) to set the required model environment variables, such as your API Key.
+> **Note**: Before using a Midscene Agent, follow [Model configuration](../model-config) to set the required model environment variables, such as your API Key.
 
 ### 2. Create the project files
 
 We recommend the following basic directory structure:
 
 ```text
-team-test-runner/
+team-tests/
 ├── cases/
 │   └── midscene.yaml
 └── midscene.config.ts
@@ -271,7 +271,7 @@ Run the test from the project root:
 pnpm exec midscene-test
 ```
 
-The runner automatically loads `midscene.config.ts`, finds matching test cases, and runs them.
+Midscene Test automatically loads `midscene.config.ts`, finds matching test cases, and runs them.
 
 ## Register custom business Nodes
 
@@ -344,8 +344,8 @@ cases:
 
 Although `inputSchema` is optional, we strongly recommend defining it.
 
-1. **Type inference and validation**: the runner validates the input with Zod before entering `execute()`. Invalid input immediately throws a `NodeInputValidationError`, while TypeScript provides compile-time type inference without a separate interface.
-2. **Unknown parameter rejection**: use `z.strictObject()` so the runner rejects unexpected fields in a test case.
+1. **Type inference and validation**: Midscene Test validates the input with Zod before entering `execute()`. Invalid input immediately throws a `NodeInputValidationError`, while TypeScript provides compile-time type inference without a separate interface.
+2. **Unknown parameter rejection**: use `z.strictObject()` so Midscene Test rejects unexpected fields in a test case.
 3. **Automatic reference generation**: information from each field's `.describe()` call is included in the generated Node reference for AI Agents and human test case authors.
 
 ```ts
@@ -370,7 +370,7 @@ const refundOrder = defineNode({
 The `ctx` passed to `execute(ctx)` contains these commonly used fields:
 
 - `input`: business parameters passed from YAML and validated by Zod.
-- `$`: general Step properties controlled by the runner, such as normalized `timeout` and `continue-on-error` values.
+- `$`: general Step properties controlled by Midscene Test, such as normalized `timeout` and `continue-on-error` values.
 - `signal`: an `AbortSignal` triggered by a timeout or cancellation. Use it in asynchronous requests or long-running tasks to exit early and cleanly.
 - `context`: Project-level runtime resources returned by `defineProjectSetup()` and shared within the Project.
 - `onTeardown()`: registers cleanup functions for resources created by the current Node. Cleanup can use attempt or Document scope and runs in LIFO order.
@@ -520,7 +520,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 
 ## Register platform preset Nodes
 
-The Test Runner publishes platform preset factories as separate entry points.
+Midscene Test publishes platform preset factories as separate entry points.
 Each factory receives getters instead of assuming property names in your
 Project Context.
 
@@ -544,7 +544,7 @@ const playwrightNodes = createPlaywrightNodes<ProjectContext>({
 });
 ```
 
-`setCookies` does not accept cookie values in YAML. Test Runner persists every
+`setCookies` does not accept cookie values in YAML. Midscene Test persists every
 Node input in the run result. An inline cookie would be copied into that
 record.
 
@@ -557,7 +557,7 @@ written to the run result.
 An environment variable may contain a Cookie header, a JSON cookie array, or
 Playwright storage-state JSON. Relative storage-state paths resolve from the
 current working directory by default; use `resolveStorageStatePath` when a
-project needs a different root. References prevent Test Runner from persisting
+project needs a different root. References prevent Midscene Test from persisting
 the cookies, but the environment variable, profile, or storage-state file must
 still be protected. Do not commit storage-state files containing real cookies.
 
@@ -642,7 +642,7 @@ steps:
 ```
 
 `runAdbShell`, `runWdaRequest`, and `runHdcShell` preserve their complete response in the Node
-result, but Test Runner does not automatically pass that response to later
+result, but Midscene Test does not automatically pass that response to later
 Nodes or Midscene Agent calls. Use command-side filtering when the complete
 output is not needed in the run result, or explicitly store only the value a
 later Node needs in the Project `context`.
@@ -654,7 +654,7 @@ semantics.
 
 ## Generate a Node reference
 
-The runner provides the `nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
+Midscene Test provides the `nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
 
 Run the following command to generate a reference for your team:
 
@@ -670,9 +670,9 @@ You can also specify a test directory or a custom configuration file:
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`. It starts with an Available Nodes overview table, followed by usage conventions and a Node Details section containing each Node's description and input schema. Both the reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes sorted by name. The runner automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`. It starts with an Available Nodes overview table, followed by usage conventions and a Node Details section containing each Node's description and input schema. Both the reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes sorted by name. Midscene Test automatically converts each Zod `inputSchema` to standard JSON Schema.
 
-The reference lists `Case files` (each Execution Project's `files.include` / `files.exclude` glob patterns) and `Config file` separately. Both use paths relative to the reference file, so authors can locate their YAML files and configuration. Created projects select `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, the runner searches `**/*.{yaml,yml}` under the test directory.
+The reference lists `Case files` (each Execution Project's `files.include` / `files.exclude` glob patterns) and `Config file` separately. Both use paths relative to the reference file, so authors can locate their YAML files and configuration. Created projects select `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test searches `**/*.{yaml,yml}` under the test directory.
 
 ## Configure and manage a Test Project
 
@@ -717,11 +717,11 @@ export default defineTestProject<ProjectContext>({
 
 ## Programmatic APIs
 
-Most teams only need the project configuration, YAML files, and CLI. To embed the runner in another tool, such as a local GUI test panel, use these exported programmatic APIs:
+Most teams only need the project configuration, YAML files, and CLI. To embed Midscene Test in another tool, such as a local GUI test panel, use these exported programmatic APIs:
 
-- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. The runner does not support synchronous loading.
+- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. Midscene Test does not support synchronous loading.
 - **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project. It is exported from `@midscene/test/config`.
 - **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
 - **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
 
-After configuring the project, continue to [Write and run test cases](./use-test-runner) for test case syntax and parameters.
+After configuring the project, continue to [Write and run test cases](./use) for test case syntax and parameters.

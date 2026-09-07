@@ -82,11 +82,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '在可视化报告中逐步回放，并在 Playground 里快速试验。',
   featureFlexibleIntegration: '灵活集成',
   featureFlexibleIntegrationDesc:
-    '用 YAML 编写流程，接入你的测试运行器，并自定义 Agent 执行策略。',
+    '使用 Midscene Test 编写 YAML 测试，并通过自定义 TypeScript Node 扩展。',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
   featureReportsPlaygroundLink: '/quick-start#chrome-extension',
-  featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
+  featureFlexibleIntegrationLink: '/midscene-test/overview',
   featureBenchmarkLink: '/android-world-benchmark-report',
   featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
   featureAppControlBenchLink: '/app-control-bench-report',
