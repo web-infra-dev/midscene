@@ -275,19 +275,19 @@ export default defineConfig(async () => {
             link: '/caching',
           },
           {
-            sectionHeaderText: 'Test Runner (Beta)',
+            sectionHeaderText: 'Midscene Test (Beta)',
           },
           {
-            text: 'Test Runner overview',
-            link: '/test-runner-overview',
+            text: 'Overview',
+            link: '/midscene-test/overview',
           },
           {
-            text: 'Extend and maintain Test Runner',
-            link: '/extend-test-runner',
+            text: 'Extend and maintain test projects',
+            link: '/midscene-test/extend',
           },
           {
             text: 'Write and run test cases',
-            link: '/use-test-runner',
+            link: '/midscene-test/use',
           },
           {
             sectionHeaderText: 'Resources',
@@ -443,19 +443,19 @@ export default defineConfig(async () => {
             link: '/zh/caching',
           },
           {
-            sectionHeaderText: 'Test Runner (Beta)',
+            sectionHeaderText: 'Midscene Test (Beta)',
           },
           {
-            text: 'Test Runner 概览',
-            link: '/zh/test-runner-overview',
+            text: '概览',
+            link: '/zh/midscene-test/overview',
           },
           {
-            text: '扩展和维护 Test Runner',
-            link: '/zh/extend-test-runner',
+            text: '扩展和维护测试项目',
+            link: '/zh/midscene-test/extend',
           },
           {
             text: '编写和运行测试用例',
-            link: '/zh/use-test-runner',
+            link: '/zh/midscene-test/use',
           },
           {
             sectionHeaderText: '资源',
@@ -568,6 +568,16 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          ...['', '/zh'].flatMap((locale) =>
+            [
+              ['test-runner-overview', 'overview'],
+              ['extend-test-runner', 'extend'],
+              ['use-test-runner', 'use'],
+            ].map(([previous, current]) => ({
+              from: `^${locale}/${previous}(?:\\.html)?/?$`,
+              to: `${locale}/midscene-test/${current}`,
+            })),
+          ),
           {
             from: '^/android-(?:introduction|getting-started)(?:\\.html)?/?$',
             to: '/platforms/android',

@@ -2,9 +2,9 @@
 
 框架维护者完成 Test Project 配置后，人类或 Agent 可以使用项目注册的 Node 编写测试用例。开始编写前，建议运行 `nodes` 生成 Node 说明书，确认项目提供的能力和输入参数。
 
-新项目可以使用 [`midscene-test create`](./extend-test-runner#创建项目) 初始化。该命令会生成平台配置、示例用例和 `midscene-node-reference.md`。
+新项目可以使用 [`midscene-test create`](./extend#创建项目) 初始化。该命令会生成平台配置、示例用例和 `midscene-node-reference.md`。
 
-如果你尚不了解整体设计，请先阅读 [Test Runner 概览](./test-runner-overview)。如果项目尚未配置，请阅读[扩展和维护 Test Runner](./extend-test-runner)。
+如果你尚不了解整体设计，请先阅读 [Midscene Test 概览](./overview)。如果项目尚未配置，请阅读[扩展和维护测试项目](./extend)。
 
 ## 核心概念
 
@@ -50,7 +50,7 @@ cases:
       - aiAssert: 页面显示“订单已取消”
 ```
 
-运行器按照 YAML 中的声明顺序执行 Case。一个 Case 失败后，运行器会记录失败结果，并继续执行后续 Case。
+Midscene Test 按照 YAML 中的声明顺序执行 Case。一个 Case 失败后，Midscene Test 会记录失败结果，并继续执行后续 Case。
 
 ### 编写 Step
 
@@ -96,7 +96,7 @@ steps:
 
 ### 设置超时和错误处理
 
-`$` 用于设置由运行器控制的 Step 参数。运行器不会将这些参数传入 Node 的 `input`。
+`$` 用于设置由 Midscene Test 控制的 Step 参数。Midscene Test 不会将这些参数传入 Node 的 `input`。
 
 ```yaml
 steps:
@@ -110,13 +110,13 @@ steps:
 支持以下两个字段：
 
 - `timeout`：Step 的超时时间，单位为毫秒。
-- `continue-on-error`：设为 `true` 后，即使 Step 失败，运行器也会继续执行当前阶段的后续 Step。默认值为 `false`。
+- `continue-on-error`：设为 `true` 后，即使 Step 失败，Midscene Test 也会继续执行当前阶段的后续 Step。默认值为 `false`。
 
-`continue-on-error` 只控制运行器是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
+`continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
 
 ### 使用 Project 变量与环境变量
 
-运行器会在执行前递归解析 Node input：
+Midscene Test 会在执行前递归解析 Node input：
 
 ```yaml
 steps:
@@ -201,7 +201,7 @@ Project teardown
 
 即使 Case 主体失败，`afterEach` 仍会执行。
 
-如果 `beforeAll` 失败，运行器会将当前文件中的 Case 标记为 `not-run`，但仍会执行 `afterAll` 和已经注册的 Node 清理。
+如果 `beforeAll` 失败，Midscene Test 会将当前文件中的 Case 标记为 `not-run`，但仍会执行 `afterAll` 和已经注册的 Node 清理。
 
 Project setup 在该 Project 的 Workflow Document 之前只执行一次，Project teardown 始终按 LIFO 顺序执行。收到中断信号时，当前 Step 会被取消，但 cleanup hook 与已注册 teardown 会使用可执行清理工作的 signal。
 
@@ -215,7 +215,7 @@ pnpm exec midscene-test
 
 ### 指定用例目录或文件
 
-默认情况下，运行器会递归查找并执行项目根目录下的所有 `.yaml` 和 `.yml` 文件（自动忽略 `node_modules` 和 `.git`）。
+默认情况下，Midscene Test 会递归查找并执行项目根目录下的所有 `.yaml` 和 `.yml` 文件（自动忽略 `node_modules` 和 `.git`）。
 
 如果你只想执行特定目录或特定用例文件，可以将其作为参数传入：
 
@@ -243,11 +243,11 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 
 ## 查看测试结果
 
-每次测试运行结束后，你可以在控制台直接看到用例的执行状态和简要汇总。同时，运行器会在本地生成可视化的测试报告。
+每次测试运行结束后，你可以在控制台直接看到用例的执行状态和简要汇总。同时，Midscene Test 会在本地生成可视化的测试报告。
 
 ### Midscene 可视化报告
 
-运行器会自动将详细的测试步骤、界面截图和 AI 决策过程记录到交互式 HTML 报告中。
+Midscene Test 会自动将详细的测试步骤、界面截图和 AI 决策过程记录到交互式 HTML 报告中。
 
 默认情况下，报告保存在：
 
@@ -261,11 +261,11 @@ midscene_run/report/
 
 ## 当前限制
 
-目前版本的测试运行器存在以下局限性，在编写用例时需予以注意：
+目前版本的 Midscene Test 存在以下局限性，在编写用例时需予以注意：
 
 * **无并行执行**：在单个 Execution Project 内部，所有的 Workflow Document、Case、attempt 和 Step 均为串行执行，暂不支持用例维度的并发。
 * **无控制流**：不支持 DAG（有向无环图）、分支（If-Else）或循环（Loop）等控制流，用例按照声明顺序线性执行。
 * **无用例间数据依赖**：不同的 Workflow Document 之间是完全隔离的，无法传递或共享执行中的数据。
 * **仅限本地加载**：暂不支持直接从远程 URL、npm 包或 Git 仓库加载并执行 YAML 文件。
 
-此外，运行器会在执行前对所有 YAML 文件进行静态收集和校验。若存在未知的顶层字段、未注册的 Node 或无效的 Step，运行器会立即抛出收集错误（Collection Error）并中断运行，不会等到执行该 Case 时才报错。
+此外，Midscene Test 会在执行前对所有 YAML 文件进行静态收集和校验。若存在未知的顶层字段、未注册的 Node 或无效的 Step，Midscene Test 会立即抛出收集错误（Collection Error）并中断运行，不会等到执行该 Case 时才报错。
