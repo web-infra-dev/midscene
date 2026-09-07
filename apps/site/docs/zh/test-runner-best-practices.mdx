@@ -96,24 +96,22 @@ Context 没有特殊格式，普通 Markdown 就可以。举个例子：
 运行时消费，可在创建 Agent 时读取并注入这份文件：[midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts)
 
 ```ts
-import { mergeAIContexts } from '@midscene/core';
-
 const pageNavigationContext = readFileSync(pageNavigationFile, 'utf8');
 const rankingComponentsContext = readFileSync(rankingComponentsFile, 'utf8');
-const rankingActionContext = mergeAIContexts(
+const rankingActionContext = [
   pageNavigationContext,
   rankingComponentsContext,
   rankingTimeContext,
-);
+].join('\n\n');
 
 await agentFromAdbDevice(deviceId, {
-  contexts: {
+  aiContexts: {
     aiAct: rankingActionContext,
   },
 });
 ```
 
-推荐先按页面、组件等职责维护 Context，再只合并当前 Workflow 需要的文件。页面跳转和组件交互属于动作知识，统一放在 `contexts.aiAct`；只对某个 Step 有用的信息，通过 `options.context` 单独传入。Test Runner 会另行附加只读的 workflow history，无需复制到 App Context 中。
+推荐先按页面、组件等职责维护 Context，并只组合当前测试任务需要的文件。本示例将页面跳转和组件交互知识作为 `aiAct` 的 Context 提供给 Midscene。
 
 生成 Agent 产出较上层的 Case：
 
@@ -126,7 +124,7 @@ await agentFromAdbDevice(deviceId, {
 
 这种方式的好处是 Case 简短，页面知识可以被多条 Case 复用；UI 变化但业务目标不变时，也可能只需更新 Context。
 
-但也有不足之处：知识持续积累后，Context 可能变成万字长文，容易在运行时稀释 Agent 注意力。Context 与 workflow history 分开传入后，超长 Context 本身的理解成本仍然需要解决。
+但也有不足之处：知识持续积累后，Context 可能变成万字长文，容易在运行时稀释 Agent 注意力。这部分理解成本仍需通过 Context 本身的组织来解决。
 
 可选的解决办法是**按需读取**：
 

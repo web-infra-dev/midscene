@@ -13,7 +13,7 @@
 
 生成产物是 [ranking-filtering.yaml](../../test-runner/ranking-filtering.yaml)。价格调整场景的截图、Context 定义和两种组织方式集中写在 [AI 测试最佳实践](https://midscenejs.com/zh/test-runner-best-practices)，这里不再重复。
 
-运行时，页面跳转、组件使用和当前年月作为 `aiAct` 的 API 级 Context；YAML 中的 `options.context` 只补充对应 Step。Test Runner 的 workflow history 是另行追加的只读框架信息，不会覆盖上述 App Context。
+运行时，页面跳转、组件使用和当前年月作为 `aiAct` 的 Context 提供给 Midscene。
 
 ## 真实运行结果
 

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
+import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 
@@ -53,7 +53,7 @@ const androidSetup = defineProjectSetup<DongchediProjectContext>({
   async setup({ onTeardown }) {
     const deviceId = process.env.ANDROID_DEVICE_ID?.trim() || undefined;
     const agent = await agentFromAdbDevice(deviceId, {
-      contexts: {
+      aiContexts: {
         aiAct: rankingActionContext,
       },
       screenshotShrinkFactor: 2,
@@ -68,6 +68,7 @@ const androidSetup = defineProjectSetup<DongchediProjectContext>({
 });
 
 const midsceneNodes = createMidsceneNodes<DongchediProjectContext>({
+  agentClass: AndroidAgent,
   getAgent: ({ context }) => context.agent,
 });
 

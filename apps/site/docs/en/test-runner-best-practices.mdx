@@ -96,24 +96,22 @@ There are two ways to decide when an Agent consumes this knowledge.
 Read the relevant files and inject them when creating the Agent, as shown in [midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts):
 
 ```ts
-import { mergeAIContexts } from '@midscene/core';
-
 const pageNavigationContext = readFileSync(pageNavigationFile, 'utf8');
 const rankingComponentsContext = readFileSync(rankingComponentsFile, 'utf8');
-const rankingActionContext = mergeAIContexts(
+const rankingActionContext = [
   pageNavigationContext,
   rankingComponentsContext,
   rankingTimeContext,
-);
+].join('\n\n');
 
 await agentFromAdbDevice(deviceId, {
-  contexts: {
+  aiContexts: {
     aiAct: rankingActionContext,
   },
 });
 ```
 
-Maintain Context by responsibility, such as page and component, and combine only the files required by the current Workflow. Page navigation and component interactions are action knowledge, so place them in `contexts.aiAct`. Pass information that applies to only one Step through `options.context`. Test Runner appends its read-only workflow history separately; do not copy that history into app Context.
+Maintain Context by responsibility, such as page and component, and combine only the files required by the current test task. This example provides page-navigation and component-interaction knowledge to Midscene as the `aiAct` Context.
 
 The case-generation Agent can now produce a higher-level Case:
 
@@ -126,7 +124,7 @@ At runtime, Midscene reads the current interface together with the relevant Cont
 
 This approach keeps Cases short and lets many Cases reuse page knowledge. When the UI changes but the business goal stays the same, updating Context may be sufficient.
 
-The trade-off appears as knowledge accumulates. Context can grow into a very long document that dilutes the Agent's attention at runtime. Separating Context from workflow history does not remove the comprehension cost of an oversized Context.
+The trade-off appears as knowledge accumulates. Context can grow into a very long document that dilutes the Agent's attention at runtime. Its structure must account for the comprehension cost of an oversized Context.
 
 Use on-demand loading to control that cost:
 

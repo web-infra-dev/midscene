@@ -17,11 +17,13 @@ workflow:
         continue-on-error: false
 ```
 
-A string step value is shorthand for `{ prompt: value }`. Whether that input is valid depends on the node input schema.
+A Node may map a string step value to one declared input field. Each Node section states whether it supports this shorthand and names the target field.
 
 ## `agent`
 
 Execute one self-contained natural-language task with an injected Agent executor.
+
+**String shorthand:** Maps to `{ prompt: value }`.
 
 ### Input Schema
 
@@ -46,6 +48,8 @@ Execute one self-contained natural-language task with an injected Agent executor
 
 Perform a natural-language task with a Midscene UI Agent.
 
+**String shorthand:** Maps to `{ prompt: value }`.
+
 ### Input Schema
 
 ```json
@@ -53,31 +57,6 @@ Perform a natural-language task with a Midscene UI Agent.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "convertHttpImage2Base64": {
-      "type": "boolean"
-    },
-    "images": {
-      "items": {
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "pattern": "\\S",
-            "type": "string"
-          },
-          "url": {
-            "pattern": "\\S",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "url"
-        ],
-        "type": "object"
-      },
-      "minItems": 1,
-      "type": "array"
-    },
     "options": {
       "additionalProperties": false,
       "properties": {
@@ -113,13 +92,58 @@ Perform a natural-language task with a Midscene UI Agent.
               "type": "array"
             }
           ]
+        },
+        "fileChooserAllowedDir": {
+          "type": "string"
         }
       },
       "type": "object"
     },
     "prompt": {
-      "pattern": "\\S",
-      "type": "string"
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
     }
   },
   "required": [
@@ -129,9 +153,11 @@ Perform a natural-language task with a Midscene UI Agent.
 }
 ```
 
-## `aiAssert`
+## `aiAsk`
 
-Assert a natural-language condition with a Midscene UI Agent.
+Run aiAsk with a Midscene UI Agent and store its value.
+
+**String shorthand:** Maps to `{ prompt: value }`.
 
 ### Input Schema
 
@@ -140,34 +166,6 @@ Assert a natural-language condition with a Midscene UI Agent.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "convertHttpImage2Base64": {
-      "type": "boolean"
-    },
-    "images": {
-      "items": {
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "pattern": "\\S",
-            "type": "string"
-          },
-          "url": {
-            "pattern": "\\S",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "url"
-        ],
-        "type": "object"
-      },
-      "minItems": 1,
-      "type": "array"
-    },
-    "message": {
-      "type": "string"
-    },
     "options": {
       "additionalProperties": false,
       "properties": {
@@ -192,8 +190,50 @@ Assert a natural-language condition with a Midscene UI Agent.
       "type": "object"
     },
     "prompt": {
-      "pattern": "\\S",
-      "type": "string"
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
     }
   },
   "required": [
@@ -203,9 +243,11 @@ Assert a natural-language condition with a Midscene UI Agent.
 }
 ```
 
-## `launch`
+## `aiAssert`
 
-Launch an app, URL, or URI through the current Midscene Agent. This Node does not install or manage applications.
+Assert a natural-language condition with a Midscene UI Agent.
+
+**String shorthand:** Maps to `{ prompt: value }`.
 
 ### Input Schema
 
@@ -214,15 +256,532 @@ Launch an app, URL, or URI through the current Midscene Agent. This Node does no
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "prompt": {
-      "pattern": "\\S",
+    "message": {
       "type": "string"
     },
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": "string"
+        },
+        "domIncluded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "visible-only",
+              "type": "string"
+            }
+          ]
+        },
+        "keepRawResponse": {
+          "type": "boolean"
+        },
+        "screenshotIncluded": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "prompt": {
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "type": "object"
+}
+```
+
+## `aiBoolean`
+
+Run aiBoolean with a Midscene UI Agent and store its value.
+
+**String shorthand:** Maps to `{ prompt: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": "string"
+        },
+        "domIncluded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "visible-only",
+              "type": "string"
+            }
+          ]
+        },
+        "screenshotIncluded": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "prompt": {
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "type": "object"
+}
+```
+
+## `aiNumber`
+
+Run aiNumber with a Midscene UI Agent and store its value.
+
+**String shorthand:** Maps to `{ prompt: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": "string"
+        },
+        "domIncluded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "visible-only",
+              "type": "string"
+            }
+          ]
+        },
+        "screenshotIncluded": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "prompt": {
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "type": "object"
+}
+```
+
+## `aiString`
+
+Run aiString with a Midscene UI Agent and store its value.
+
+**String shorthand:** Maps to `{ prompt: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "context": {
+          "type": "string"
+        },
+        "domIncluded": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "visible-only",
+              "type": "string"
+            }
+          ]
+        },
+        "screenshotIncluded": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "prompt": {
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "type": "object"
+}
+```
+
+## `aiTap`
+
+Locate and tap an element with a Midscene UI Agent.
+
+**String shorthand:** Maps to `{ prompt: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "cacheable": {
+          "type": "boolean"
+        },
+        "context": {
+          "type": "string"
+        },
+        "deepLocate": {
+          "type": "boolean"
+        },
+        "deepThink": {
+          "type": "boolean"
+        },
+        "fileChooserAccept": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "xpath": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "prompt": {
+      "anyOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "convertHttpImage2Base64": {
+              "type": "boolean"
+            },
+            "images": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  "url": {
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "prompt": {
+              "pattern": "\\S",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "type": "object"
+}
+```
+
+## `back`
+
+Trigger the Android system back operation.
+
+**String shorthand:** Not supported by this Node.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {},
+  "type": "object"
+}
+```
+
+## `home`
+
+Trigger the Android system home operation.
+
+**String shorthand:** Not supported by this Node.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {},
+  "type": "object"
+}
+```
+
+## `launch`
+
+Launch an application through the current Android Agent.
+
+**String shorthand:** Maps to `{ uri: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
     "uri": {
       "pattern": "\\S",
       "type": "string"
     }
   },
+  "required": [
+    "uri"
+  ],
+  "type": "object"
+}
+```
+
+## `recentApps`
+
+Trigger the Android system recent apps operation.
+
+**String shorthand:** Not supported by this Node.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {},
   "type": "object"
 }
 ```
@@ -231,6 +790,8 @@ Launch an app, URL, or URI through the current Midscene Agent. This Node does no
 
 Add text or screenshots to the current Midscene report.
 
+**String shorthand:** Maps to `{ title: value }`.
+
 ### Input Schema
 
 ```json
@@ -238,34 +799,37 @@ Add text or screenshots to the current Midscene report.
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "content": {
-      "type": "string"
-    },
-    "prompt": {
-      "type": "string"
-    },
-    "screenshotBase64": {
-      "type": "string"
-    },
-    "screenshots": {
-      "items": {
-        "additionalProperties": false,
-        "properties": {
-          "base64": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "string"
         },
-        "required": [
-          "base64"
-        ],
-        "type": "object"
+        "screenshotBase64": {
+          "type": "string"
+        },
+        "screenshots": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "base64": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "base64"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
       },
-      "minItems": 1,
-      "type": "array"
+      "type": "object"
     },
     "title": {
       "type": "string"
@@ -275,9 +839,74 @@ Add text or screenshots to the current Midscene report.
 }
 ```
 
+## `runAdbShell`
+
+**Title:** Run an ADB shell command
+
+Execute a shell command through the current Android Agent. Pass only the shell command, without the adb shell prefix.
+
+**String shorthand:** Maps to `{ command: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "command": {
+      "pattern": "\\S",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "type": "object"
+}
+```
+
+## `terminate`
+
+Terminate an application through the current Android Agent.
+
+**String shorthand:** Maps to `{ uri: value }`.
+
+### Input Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "uri": {
+      "pattern": "\\S",
+      "type": "string"
+    }
+  },
+  "required": [
+    "uri"
+  ],
+  "type": "object"
+}
+```
+
 ## `wait`
 
 Wait for a fixed duration while honoring cancellation.
+
+**String shorthand:** Not supported by this Node.
 
 ### Input Schema
 
