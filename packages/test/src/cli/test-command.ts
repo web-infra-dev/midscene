@@ -112,6 +112,11 @@ export async function runTestCli(
   io: TestCliIO = defaultCliIO,
 ): Promise<number> {
   try {
+    if (args[0] === 'create') {
+      const { runCreateCommand } = await import('./create-command');
+      await runCreateCommand(args.slice(1), io);
+      return 0;
+    }
     const options = parseTestCliArgs(args);
     if (options.command === 'describe-nodes') {
       await describeNodes(options, io);

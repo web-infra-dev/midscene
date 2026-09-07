@@ -4,7 +4,90 @@
 
 For an overview of the design, see [Test Runner overview](./test-runner-overview).
 
-## Quick start
+## Create a project
+
+Use `create` to generate a project with a platform Agent, example cases, and a Node reference:
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web
+cd my-tests
+```
+
+The command requires pnpm and Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`. It installs dependencies with pnpm and runs `describe-nodes` to write `midscene-nodes.md`.
+
+| Argument | Description |
+| --- | --- |
+| `[directory]` | Destination directory; use `.` for the current directory. Prompts if omitted. |
+| `--platform <name>` | `web` (Playwright), `android`, or `ios`. Prompts if omitted. |
+| `--with <package>` | Install and register a Node package. Accepts an optional version or tag; repeat for multiple packages. |
+| `-y`, `--yes` | Disable prompts. Both directory and platform must be supplied. |
+| `-h`, `--help` | Show usage and examples. |
+
+In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory and platform. In CI or other noninteractive environments, supply both. Existing destination files are never overwritten, including when `--yes` is set.
+
+The generated project contains:
+
+```text
+my-tests/
+├── cases/example.yaml
+├── midscene.config.ts
+├── midscene-nodes.md
+├── package.json
+├── pnpm-lock.yaml
+├── tsconfig.json
+├── .env.example
+├── .gitignore
+├── README.md
+└── README.zh.md
+```
+
+Copy `.env.example` to `.env` and fill in your [model configuration](./model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.
+
+Run `pnpm test` to execute the example. Creation and Node reference generation do not run project setup or tests, so they do not require a model API Key, an installed browser, or a connected device. After editing Node registrations, run `pnpm run describe-nodes` to refresh the reference.
+
+If installation or reference generation fails, the command exits with an error and preserves the generated files. Follow the recovery commands in the error message; there is no need to rerun `create` over those files.
+
+### Add Node packages during creation
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web \
+  --with @acme/test-nodes@1.2.0 \
+  --with @acme/order-nodes
+```
+
+`--with` is only available on `create`. It adds the packages to `devDependencies` and writes explicit factory imports and Node registrations into `midscene.config.ts`. Subsequent test runs and `describe-nodes` load that configuration without additional CLI flags. The generated reference includes the external Nodes.
+
+Packages must expose a named, synchronous `createMidsceneTestNodes(options)` factory from their root entry point. Both ESM and CommonJS are supported. The factory receives `platform` and `getAgent`, and returns a Node array. `NodePackageOptions` is exported from `@midscene/test/config` for package authors:
+
+```ts
+import { defineNode, z } from '@midscene/test';
+import type { NodePackageOptions } from '@midscene/test/config';
+
+const inputSchema = z.strictObject({
+  prompt: z.string().describe('What to inspect on the current screen.'),
+});
+
+export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptions<TContext>) {
+  return [
+    defineNode<typeof inputSchema, unknown, TContext>({
+      name: 'team.inspect',
+      description: 'Inspect the current screen with the project Agent.',
+      inputSchema,
+      async execute(ctx) {
+        const agent = await getAgent(ctx);
+        const data = await agent.aiAsk(ctx.input.prompt);
+        return { data };
+      },
+    }),
+  ];
+}
+```
+
+Declare `@midscene/test` as a peer dependency and publish the factory's TypeScript declarations. Access runtime resources through `getAgent` inside `execute`; package imports and factory calls must not connect to devices or require model credentials. A factory can validate `platform` and reject unsupported platforms. Additional business resources must be wired explicitly in the project configuration.
+
+Node names must be unique across built-in and external Nodes. Missing factories, invalid definitions, or duplicate Node names cause reference generation to fail. `--with` currently accepts registry package names with optional versions or tags; local paths, Git URLs, package subpaths, and repeated package names are not supported.
+
+## Configure a project manually
 
 The following example shows how to set up a simple test project that switches the browser's user-agent language.
 

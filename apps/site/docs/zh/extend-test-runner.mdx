@@ -4,7 +4,90 @@
 
 如果你想先了解整体设计，请阅读 [Test Runner 概览](./test-runner-overview)。
 
-## 快速开始
+## 创建项目
+
+使用 `create` 生成项目。项目包含平台 Agent、示例用例和 Node 说明书：
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web
+cd my-tests
+```
+
+该命令需要 pnpm 和 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`。它会通过 pnpm 安装依赖，再运行 `describe-nodes`，将说明书写入 `midscene-nodes.md`。
+
+| 参数 | 说明 |
+| --- | --- |
+| `[directory]` | 项目目录，`.` 表示当前目录。省略时交互询问。 |
+| `--platform <name>` | 支持 `web`（Playwright）、`android` 和 `ios`。省略时交互选择。 |
+| `--with <package>` | 安装并注册 Node 包。支持指定版本或标签，可重复传入多个包。 |
+| `-y`、`--yes` | 禁用交互，必须同时提供目录和平台。 |
+| `-h`、`--help` | 显示用法和示例。 |
+
+在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录和平台。在 CI 等非交互环境中，必须提供这两个参数。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
+
+生成的项目包含以下文件：
+
+```text
+my-tests/
+├── cases/example.yaml
+├── midscene.config.ts
+├── midscene-nodes.md
+├── package.json
+├── pnpm-lock.yaml
+├── tsconfig.json
+├── .env.example
+├── .gitignore
+├── README.md
+└── README.zh.md
+```
+
+将 `.env.example` 复制为 `.env`，填写[模型配置](./model-config)。Web 项目需要运行 `pnpm exec playwright install chromium` 安装 Chromium。Android 项目需要连接设备，可通过 `ANDROID_DEVICE_ID` 选择设备。iOS 项目需要启动 WebDriverAgent，并配置 `WDA_HOST` 和 `WDA_PORT`。
+
+运行 `pnpm test` 执行示例。创建项目和生成说明书时，不会执行项目 setup 或测试，因此不需要模型 API Key、已安装的浏览器或已连接的设备。修改 Node 注册配置后，运行 `pnpm run describe-nodes` 更新说明书。
+
+如果安装依赖或生成说明书失败，命令会报错退出并保留已生成的文件。按照错误信息中的命令恢复即可，无需在已有文件上重新运行 `create`。
+
+### 创建时接入 Node 包
+
+```bash
+pnpm dlx @midscene/test create my-tests --platform web \
+  --with @acme/test-nodes@1.2.0 \
+  --with @acme/order-nodes
+```
+
+`--with` 仅用于 `create`。它会将扩展包加入 `devDependencies`，并在 `midscene.config.ts` 中写入工厂导入和 Node 注册代码。后续运行测试或 `describe-nodes` 时，会直接加载该配置，无需额外的命令行参数。生成的说明书包含扩展包中的 Node。
+
+扩展包必须从根入口提供命名导出 `createMidsceneTestNodes(options)`，支持 ESM 和 CommonJS。该同步工厂接收 `platform` 和 `getAgent`，返回 Node 数组。包作者可以使用 `@midscene/test/config` 导出的 `NodePackageOptions` 类型：
+
+```ts
+import { defineNode, z } from '@midscene/test';
+import type { NodePackageOptions } from '@midscene/test/config';
+
+const inputSchema = z.strictObject({
+  prompt: z.string().describe('要查看的当前屏幕内容。'),
+});
+
+export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptions<TContext>) {
+  return [
+    defineNode<typeof inputSchema, unknown, TContext>({
+      name: 'team.inspect',
+      description: '通过项目 Agent 查看当前屏幕。',
+      inputSchema,
+      async execute(ctx) {
+        const agent = await getAgent(ctx);
+        const data = await agent.aiAsk(ctx.input.prompt);
+        return { data };
+      },
+    }),
+  ];
+}
+```
+
+扩展包应将 `@midscene/test` 声明为 peer dependency，并发布工厂的 TypeScript 类型声明。在 `execute` 中通过 `getAgent` 获取运行时资源；包导入和工厂调用阶段不得连接设备或要求模型凭据。工厂可以检查 `platform`，拒绝不支持的平台。额外的业务资源需要在项目配置中显式接入。
+
+内置和扩展 Node 的名称必须唯一。缺少工厂、Node 定义无效或名称重复，都会导致说明书生成失败。`--with` 当前仅接受 registry 包名及可选的版本或标签，不支持本地路径、Git URL、包子路径或重复指定同一个包。
+
+## 手动配置项目
 
 下面通过一个简单的示例项目，展示如何快速搭建一个测试项目，并在其中切换浏览器 UA 语言。
 
