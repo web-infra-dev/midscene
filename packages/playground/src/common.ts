@@ -8,7 +8,7 @@ import type {
   ValidationResult,
 } from './types';
 
-// APIs that should not generate replay scripts
+// APIs that return extracted data from the current interface.
 export const dataExtractionAPIs = [
   'aiQuery',
   'aiBoolean',
@@ -19,6 +19,7 @@ export const dataExtractionAPIs = [
 
 export const validationAPIs = ['aiAssert', 'aiWaitFor'];
 
+// APIs whose executions should not be rendered as replays by StandardPlayground.
 export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
 const agentPromptAPIs = [
