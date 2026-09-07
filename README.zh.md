@@ -12,7 +12,7 @@
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/Trendshift-Midscene-00a8f0?style=flat-square" alt="Midscene on Trendshift" /></a>
+  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
 ## 如何使用
@@ -34,15 +34,17 @@ await agent.aiAssert('搜索结果中的每件商品价格都低于 100 美元')
 
 ## 👁️ GUI Agent
 
+Midscene 的操作与断言都仿照人使用软件的方式：**观察屏幕，根据看到的内容操作，再检查界面呈现的结果**。你用自然语言描述任务和预期结果，Midscene 根据截图判断在哪里操作，以及界面是否符合预期。
+
 ### 视觉理解与跨平台操作
 
-Midscene 根据截图定位元素，根据自然语言指令规划操作。无需编写选择器或添加语义化标注，就能定位纯图标按钮、自定义控件、`<canvas>` 和跨域 iframe 中的元素。
+就像人从屏幕上找到控件一样，Midscene 根据元素的外观和位置进行定位，再通过点击、输入、滚动等操作完成你的指令。无需编写选择器或添加语义化标注，就能定位纯图标按钮、自定义控件、`<canvas>` 和跨域 iframe 中的元素。
 
 同一套 Agent API 覆盖 [Web](https://midscenejs.com/zh/integrate-with-playwright)、[Android](https://midscenejs.com/zh/platforms/android)、[iOS](https://midscenejs.com/zh/platforms/ios)、[HarmonyOS](https://midscenejs.com/zh/platforms/harmonyos) 和[桌面应用](https://midscenejs.com/zh/platforms/desktop)。提供截图和操作能力后，你也可以接入[自定义界面](https://midscenejs.com/zh/integrate-with-any-interface)。
 
 ### 验证用户真正看到的效果
 
-Midscene 直接根据截图判断界面实际呈现的效果。用自然语言描述预期外观，就能检查颜色、选中高亮、布局和视觉反馈，也适用于 `<canvas>` 绘制的内容和原生应用界面。
+断言也采用同样的视觉方式：Midscene 像人工测试时一样观察屏幕，判断预期结果是否呈现。用自然语言描述预期外观，就能检查颜色、选中高亮、布局和视觉反馈，也适用于 `<canvas>` 绘制的内容和原生应用界面。
 
 ```typescript
 await agent.aiAssert('选中的套餐带有蓝色边框和勾选标记');

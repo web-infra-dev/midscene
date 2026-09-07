@@ -12,7 +12,7 @@
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/Trendshift-Midscene-00a8f0?style=flat-square" alt="Midscene on Trendshift" /></a>
+  <a href="https://trendshift.io/repositories/12524"><img src="https://img.shields.io/badge/GitHub_Trending-featured-00a8f0?style=flat-square&logo=github" alt="Featured on GitHub Trending" /></a>
 </p>
 
 ## See it in action
@@ -34,15 +34,17 @@ Open the generated HTML report to inspect screenshots, actions, and assertion re
 
 ## 👁️ GUI Agent
 
+Midscene models both UI actions and assertions on how people use software: **look at the screen, act on what you see, and check the visible result**. Describe the task and expected outcome in natural language; Midscene uses screenshots to decide where to interact and whether the interface meets your expectations.
+
 ### Visual understanding and cross-platform actions
 
-Midscene locates elements from screenshots and plans actions from natural-language instructions. You can target icon-only buttons, custom controls, `<canvas>`, and elements inside cross-origin iframes without writing selectors or adding semantic annotations.
+Like a person finding a control on screen, Midscene locates elements by their appearance and position, then clicks, types, or scrolls to carry out your instructions. You can target icon-only buttons, custom controls, `<canvas>`, and elements inside cross-origin iframes without writing selectors or adding semantic annotations.
 
 The same Agent APIs work across [Web](https://midscenejs.com/integrate-with-playwright), [Android](https://midscenejs.com/platforms/android), [iOS](https://midscenejs.com/platforms/ios), [HarmonyOS](https://midscenejs.com/platforms/harmonyos), and [desktop apps](https://midscenejs.com/platforms/desktop). You can also connect a [custom interface](https://midscenejs.com/integrate-with-any-interface) by providing screenshot and action capabilities.
 
 ### Verify what users see
 
-Midscene judges the rendered interface directly from screenshots. Describe the expected appearance in natural language to check colors, selection highlights, layout, and visual feedback — including content drawn on `<canvas>` or displayed in native apps.
+Assertions follow the same visual approach: Midscene inspects the screen as a human tester would to judge whether the expected result is visible. Describe the expected appearance in natural language to check colors, selection highlights, layout, and visual feedback — including content drawn on `<canvas>` or displayed in native apps.
 
 ```typescript
 await agent.aiAssert('The selected plan has a blue border and a checkmark');
