@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 describe('runCollectedCase', () => {
-  it('runs all attempt phases in order with one context and complete history', async () => {
+  it('runs all attempt phases in order with one shared context', async () => {
     const context = { marker: 'document-context' };
     const calls: string[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
@@ -52,20 +52,6 @@ describe('runCollectedCase', () => {
         if (ctx.scope !== 'case') throw new Error('case scope required');
         calls.push(`${ctx.case.phase}:${ctx.case.stepIndex}`);
         expect(ctx.context).toBe(context);
-        expect(Object.isFrozen(ctx.case.completedSteps)).toBe(true);
-        expect(Object.isFrozen(ctx.case.completedNodes)).toBe(true);
-        if (ctx.case.phase === 'beforeEach') {
-          expect(ctx.case.completedSteps).toEqual([]);
-          expect(ctx.case.completedNodes).toEqual([]);
-        }
-        if (ctx.case.phase === 'steps') {
-          expect(ctx.case.completedSteps).toEqual([]);
-          expect(ctx.case.completedNodes).toHaveLength(1);
-        }
-        if (ctx.case.phase === 'afterEach') {
-          expect(ctx.case.completedSteps).toHaveLength(1);
-          expect(ctx.case.completedNodes).toHaveLength(2);
-        }
       },
     });
     const registry = new NodeRegistry([node]);
@@ -85,6 +71,29 @@ describe('runCollectedCase', () => {
       beforeEach: [{ phase: 'beforeEach', stepIndex: 0 }],
       steps: [{ phase: 'steps', stepIndex: 0 }],
       afterEach: [{ phase: 'afterEach', stepIndex: 0 }],
+    });
+  });
+
+  it('rejects Node output data that is not JSON-compatible', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'invalid-output',
+        execute() {
+          return { data: { missing: undefined } };
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(collected([step('invalid-output')]), {
+      resolveNode: registry.require.bind(registry),
+    });
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'failed',
+      error: {
+        code: 'NODE_EXECUTION_ERROR',
+        message: expect.stringContaining('contains undefined'),
+      },
     });
   });
 

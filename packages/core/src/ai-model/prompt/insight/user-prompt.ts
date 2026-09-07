@@ -29,9 +29,7 @@ export const extractDataQueryPrompt = (
       : JSON.stringify(dataQuery, null, 2);
 
   const trimmedContext = context?.trim();
-  const contextSection = trimmedContext
-    ? `\n<CONTEXT>\n${trimmedContext}\n</CONTEXT>\n`
-    : '';
+  const contextSection = trimmedContext ? `\n${trimmedContext}\n` : '';
 
   return `
 <PageDescription>

@@ -24,6 +24,28 @@ describe('Agent Test Runner Node definitions', () => {
     ]);
   });
 
+  it('preserves explicit empty context overrides for every AI node', async () => {
+    for (const definition of commonAgentTestRunnerNodeDefinitions) {
+      if (definition.name === 'recordToReport') continue;
+      const calls: unknown[][] = [];
+      const agent = {
+        [definition.name]: async (...args: unknown[]) => {
+          calls.push(args);
+          return undefined;
+        },
+      };
+      const input = definition.inputSchema.parse({
+        prompt: 'Inspect the page',
+        options: { context: '' },
+      });
+      await definition.execute(agent, input, {
+        signal: new AbortController().signal,
+      });
+      const options = calls[0][definition.name === 'aiAssert' ? 2 : 1];
+      expect(options).toEqual(expect.objectContaining({ context: '' }));
+    }
+  });
+
   it('keeps multimodal prompts and method options nested', () => {
     expect(
       commonAgentTestRunnerNodeDefinitions[0].inputSchema.safeParse({

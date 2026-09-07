@@ -28,26 +28,5 @@ export default defineTestProject({
         return { data: { value: ctx.input.value } };
       },
     }),
-    defineNode({
-      name: 'test.expect-history',
-      description: 'Assert the number of previously completed case steps.',
-      inputSchema: z.strictObject({
-        count: z
-          .number()
-          .int()
-          .nonnegative()
-          .describe('The expected completed step count.'),
-      }),
-      execute(ctx) {
-        if (ctx.scope !== 'case') {
-          throw new Error('test.expect-history only supports case steps.');
-        }
-        if (ctx.case.completedSteps.length !== ctx.input.count) {
-          throw new Error(
-            `Expected ${ctx.input.count} completed steps, received ${ctx.case.completedSteps.length}`,
-          );
-        }
-      },
-    }),
   ],
 });

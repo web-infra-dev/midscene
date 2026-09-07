@@ -163,6 +163,32 @@ describe('insight extraction prompt assembly', () => {
     });
   });
 
+  it('renders the selected context as one model prompt block', async () => {
+    await AiExtractElementInfo<{ result: boolean }>({
+      context: createFakeContext(),
+      dataQuery: {
+        StatementIsTruthy: 'Boolean, whether the success toast is visible',
+      },
+      extractOption: {
+        context: 'Only consider visible UI state.',
+      },
+      modelRuntime: getModelRuntime(modelConfig),
+    });
+
+    const userMessage = rs.mocked(callAI).mock.calls[0]?.[0]?.[1];
+    const demandMessage = Array.isArray(userMessage?.content)
+      ? userMessage.content.find(
+          (item) => item.type === 'text' && item.text.includes('<CONTEXT>'),
+        )
+      : undefined;
+    expect(demandMessage).toMatchObject({
+      type: 'text',
+      text: expect.stringContaining(
+        '<CONTEXT>\nOnly consider visible UI state.\n</CONTEXT>',
+      ),
+    });
+  });
+
   it('retries once when the insight XML response cannot be parsed', async () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({

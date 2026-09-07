@@ -193,9 +193,7 @@ export async function standardPlan(
   });
   const imagePayload = preparedImage.imageBase64;
 
-  const actionContext = opts.actionContext
-    ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
-    : '';
+  const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
 
   const referenceImageMessages = preparedReferenceImagesToChatMessages(
     userInstruction.referenceImages,

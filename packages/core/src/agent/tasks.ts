@@ -49,6 +49,7 @@ import {
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
+import { renderAIContext } from './prompt-context';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -613,7 +614,7 @@ export class TaskExecutor {
               setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(preparedUserPrompt, {
                 context: planningUiContext,
-                actionContext: aiActContext,
+                actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime: planningModel,
                 conversationHistory,

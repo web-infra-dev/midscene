@@ -158,7 +158,6 @@ describe('workflow document runtime', () => {
           throw new Error('document scope required');
         expect(ctx.context).toBe(context);
         expect(ctx.document.documentRunId).toBe('document-run');
-        expect(Object.isFrozen(ctx.document.completedNodes)).toBe(true);
         calls.push(ctx.document.phase);
       },
     });

@@ -19,16 +19,11 @@ import {
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 
-function appendHighPriorityKnowledge(
+function appendActionContext(
   systemPrompt: string,
   actionContext?: string,
 ): string {
-  return (
-    systemPrompt +
-    (actionContext
-      ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n`
-      : '')
-  );
+  return systemPrompt + (actionContext ? `${actionContext}\n` : '');
 }
 
 export function buildCustomPlanningMessages<TParsed>(
@@ -37,7 +32,7 @@ export function buildCustomPlanningMessages<TParsed>(
 ): ChatCompletionMessageParam[] {
   const { options } = input;
   const { conversationHistory, context, actionContext } = options;
-  const systemPrompt = appendHighPriorityKnowledge(
+  const systemPrompt = appendActionContext(
     config.buildSystemPrompt(),
     actionContext,
   );

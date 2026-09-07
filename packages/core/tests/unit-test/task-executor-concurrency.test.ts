@@ -173,6 +173,35 @@ describe('TaskExecutor concurrency isolation', () => {
     },
   );
 
+  it('stores raw aiAct context while rendering it for the planning model', async () => {
+    rs.mocked(standardPlan).mockResolvedValue({
+      actions: [],
+      yamlFlow: [],
+      shouldContinuePlanning: false,
+      log: '',
+      rawResponse: '',
+      finalizeSuccess: true,
+      finalizeMessage: 'done',
+    });
+
+    const result = await taskExecutor.action(
+      'prompt',
+      planningModel(),
+      defaultModel(),
+      'Use checkout rules.',
+    );
+
+    expect(standardPlan).toHaveBeenCalledWith(
+      { text: 'prompt', referenceImages: [] },
+      expect.objectContaining({
+        actionContext: '<CONTEXT>\nUse checkout rules.\n</CONTEXT>',
+      }),
+    );
+    expect(result.runner.tasks[0].param).toEqual(
+      expect.objectContaining({ aiActContext: 'Use checkout rules.' }),
+    );
+  });
+
   it('registers aiAct reference images when the execution is created', async () => {
     rs.mocked(standardPlan).mockResolvedValue({
       actions: [],

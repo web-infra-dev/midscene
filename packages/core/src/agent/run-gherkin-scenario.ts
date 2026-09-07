@@ -5,6 +5,7 @@ export type GherkinStepKeyword = 'Given' | 'When' | 'Then' | 'And' | 'But';
 type RunGherkinScenarioStepAction = 'aiAct' | 'aiAssert';
 
 export type RunGherkinScenarioOptions = AiActOptions & {
+  /** Additional AI guidance applied to every step in this scenario run. */
   context?: string;
 };
 
@@ -245,7 +246,7 @@ export const runGherkinScenario = async (
     try {
       if (action === 'aiAct') {
         await agent.aiAct(prompt, aiActOptions);
-      } else if (opt?.context || opt?.abortSignal) {
+      } else if (opt?.context !== undefined || opt?.abortSignal) {
         await agent.aiAssert(prompt, undefined, {
           context: opt.context,
           abortSignal: opt.abortSignal,

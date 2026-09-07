@@ -595,7 +595,7 @@ describe('extract element', () => {
     const prompt = extractDataQueryPrompt(
       'todo page',
       { foo: 'an array indicates the foo' },
-      'Only include active items.',
+      '<CONTEXT>\nOnly include active items.\n</CONTEXT>',
     );
 
     expect(prompt).toContain(

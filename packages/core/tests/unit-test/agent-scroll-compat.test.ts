@@ -3,6 +3,7 @@ import { describe, expect, it, rs } from '@rstest/core';
 
 const createAgentStub = () => {
   const agent = Object.create(Agent.prototype) as Agent<any>;
+  (agent as any).opts = {};
   (agent as any).callActionInActionSpace = rs.fn(async () => undefined);
   return agent;
 };

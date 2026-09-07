@@ -8,8 +8,6 @@ export interface AgentTestRunnerNodeResult<TData = unknown> {
 
 export interface AgentTestRunnerNodeExecutionContext {
   signal: AbortSignal;
-  /** A bounded, human-readable rendering of earlier Test Runner results. */
-  historyContext?: string;
 }
 
 /** Agent-owned Node description consumed by Test Runner adapters. */
@@ -169,7 +167,9 @@ export const aiActOptionsInputSchema = z.strictObject({
   context: z
     .string()
     .optional()
-    .describe('Additional context supplied to the UI Agent.'),
+    .describe(
+      'Additional facts, rules, constraints, or output requirements for this AI call. Overrides inherited aiContexts; an empty string disables inherited user context.',
+    ),
 });
 
 export const aiActInputSchema = z.strictObject({
@@ -189,7 +189,9 @@ export const insightOptionsInputSchema = z.strictObject({
   context: z
     .string()
     .optional()
-    .describe('Additional context supplied to the UI Agent.'),
+    .describe(
+      'Additional facts, rules, constraints, or output requirements for this AI call. Overrides inherited aiContexts; an empty string disables inherited user context.',
+    ),
 });
 
 export const aiAssertOptionsInputSchema = insightOptionsInputSchema.extend({
@@ -209,7 +211,9 @@ export const locateOptionsInputSchema = z.strictObject({
   context: z
     .string()
     .optional()
-    .describe('Additional context supplied to the UI Agent.'),
+    .describe(
+      'Additional facts, rules, constraints, or output requirements for this AI call. Overrides inherited aiContexts; an empty string disables inherited user context.',
+    ),
   deepLocate: z
     .boolean()
     .optional()
@@ -306,31 +310,6 @@ const defineCommonAgentNode =
 const promptText = (prompt: UserPromptNodeInput): string =>
   typeof prompt === 'string' ? prompt : prompt.prompt;
 
-const mergeContext = (
-  explicit: string | undefined,
-  historyContext: string | undefined,
-) => [explicit, historyContext].filter(Boolean).join('\n\n') || undefined;
-
-const withHistoryContext = <TOptions extends { context?: string }>(
-  options: TOptions | undefined,
-  historyContext: string | undefined,
-): TOptions | undefined => {
-  const context = mergeContext(options?.context, historyContext);
-  if (options === undefined && context === undefined) return undefined;
-  return {
-    ...options,
-    ...(context === undefined ? {} : { context }),
-  } as TOptions;
-};
-
-const contextOption = (
-  explicit: string | undefined,
-  historyContext: string | undefined,
-) => {
-  const context = mergeContext(explicit, historyContext);
-  return context === undefined ? {} : { context };
-};
-
 const aiActNode = defineCommonAgentNode({
   method: 'aiAct',
   description: 'Perform a natural-language task with a Midscene UI Agent.',
@@ -341,7 +320,6 @@ const aiActNode = defineCommonAgentNode({
       input.prompt,
       {
         ...input.options,
-        ...contextOption(input.options?.context, context.historyContext),
         abortSignal: context.signal,
       },
     ];
@@ -356,11 +334,8 @@ const aiTapNode = defineCommonAgentNode({
   description: 'Locate and tap an element with a Midscene UI Agent.',
   stringInputKey: 'prompt',
   inputSchema: aiTapInputSchema,
-  toArgs(input, context) {
-    return [
-      input.prompt,
-      withHistoryContext(input.options, context.historyContext),
-    ];
+  toArgs(input) {
+    return [input.prompt, input.options];
   },
   toResult(_output, input) {
     return { summary: `Tapped: ${promptText(input.prompt)}` };
@@ -378,7 +353,6 @@ const aiAssertNode = defineCommonAgentNode({
       input.message,
       {
         ...input.options,
-        ...contextOption(input.options?.context, context.historyContext),
         abortSignal: context.signal,
       },
     ];
@@ -400,10 +374,7 @@ const insightNode = (
       description: `Run ${method} with a Midscene UI Agent and store its value.`,
       stringInputKey: 'prompt',
       inputSchema: insightInputSchema,
-      toArgs: (input, context) => [
-        input.prompt,
-        withHistoryContext(input.options, context.historyContext),
-      ],
+      toArgs: (input) => [input.prompt, input.options],
       toResult: (value) => ({
         summary: `${method} returned ${value}`,
         data: { value },
@@ -416,10 +387,7 @@ const insightNode = (
       description: `Run ${method} with a Midscene UI Agent and store its value.`,
       stringInputKey: 'prompt',
       inputSchema: insightInputSchema,
-      toArgs: (input, context) => [
-        input.prompt,
-        withHistoryContext(input.options, context.historyContext),
-      ],
+      toArgs: (input) => [input.prompt, input.options],
       toResult: (value) => ({
         summary: `${method} returned ${value}`,
         data: { value },
@@ -432,10 +400,7 @@ const insightNode = (
       description: `Run ${method} with a Midscene UI Agent and store its value.`,
       stringInputKey: 'prompt',
       inputSchema: insightInputSchema,
-      toArgs: (input, context) => [
-        input.prompt,
-        withHistoryContext(input.options, context.historyContext),
-      ],
+      toArgs: (input) => [input.prompt, input.options],
       toResult: (value) => ({
         summary: `${method} returned ${JSON.stringify(value)}`,
         data: { value },
@@ -447,10 +412,7 @@ const insightNode = (
     description: `Run ${method} with a Midscene UI Agent and store its value.`,
     stringInputKey: 'prompt',
     inputSchema: insightInputSchema,
-    toArgs: (input, context) => [
-      input.prompt,
-      withHistoryContext(input.options, context.historyContext),
-    ],
+    toArgs: (input) => [input.prompt, input.options],
     toResult: (value) => ({
       summary: `${method} returned ${JSON.stringify(value)}`,
       data: { value },

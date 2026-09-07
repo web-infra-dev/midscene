@@ -153,7 +153,8 @@ Action: click(start_box='(500,500)')`,
         ],
       },
       createPlanOptions({
-        actionContext: 'prefer the primary submit button',
+        actionContext:
+          '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>',
         conversationHistory,
         abortSignal: abortController.signal,
       }),
@@ -170,7 +171,7 @@ Action: click(start_box='(500,500)')`,
     expect(messages[0]).toMatchObject({
       role: 'user',
       content: expect.stringContaining(
-        '<high_priority_knowledge>prefer the primary submit button</high_priority_knowledge>\n',
+        '<CONTEXT>\nprefer the primary submit button\n</CONTEXT>\n',
       ),
     });
     expect(messages).toEqual(
