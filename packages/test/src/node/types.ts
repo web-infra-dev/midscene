@@ -14,7 +14,7 @@ export interface NodeResult<TData = unknown> {
   data?: TData;
 }
 
-/** A stable reference from one Runner Step to report detail data. */
+/** A stable reference from one test Step to report detail data. */
 export interface NodeReportTrace {
   type: 'midscene-execution';
   executionId: string;

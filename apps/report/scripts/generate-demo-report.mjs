@@ -2,7 +2,7 @@
  * Run real Midscene YAML tests to generate reports, then create demo files:
  * - demo.html: single report (passed case)
  * - demo-merged.html: merged report with both passed and failed cases
- * - demo-test-runner.html: unified Runner hierarchy plus Agent details
+ * - demo-midscene-test.html: unified Midscene Test hierarchy plus Agent details
  *
  * Usage: node scripts/generate-demo-report.mjs
  * Reuse an existing Agent report while iterating on the UI:
@@ -184,7 +184,7 @@ const demoMergedPath = path.join(distDir, 'demo-merged.html');
 fs.copyFileSync(mergedPath, demoMergedPath);
 console.log('Copied merged report -> dist/demo-merged.html');
 
-// --- Build a deterministic Test Runner report around the same Agent dump ---
+// --- Build a deterministic Midscene Test report around the same Agent dump ---
 const timestamp = '2026-08-20T08:00:00.000Z';
 const setupCompletedTimestamp = '2026-08-20T08:00:02.000Z';
 const firstAttemptCompletedTimestamp = '2026-08-20T08:00:03.000Z';
@@ -203,9 +203,9 @@ const baseStep = (id, node, status, stepIndex, extra = {}) => ({
   durationMs: 8000,
   ...extra,
 });
-const testRunnerPath = new TestRunReportAssembler().assemble({
+const testReportPath = new TestRunReportAssembler().assemble({
   outputDir: distDir,
-  reportFileName: 'demo-test-runner',
+  reportFileName: 'demo-midscene-test',
   overwrite: true,
   sources: [{ scopeId: 'attempt-2', sourcePath: passedReport }],
   buildRunnerDump(index) {
@@ -213,7 +213,7 @@ const testRunnerPath = new TestRunReportAssembler().assemble({
     const executionId = report?.executionIds[0];
     if (!executionId) {
       throw new Error(
-        'The Test Runner demo source has no stable execution ID.',
+        'The Midscene Test demo source has no stable execution ID.',
       );
     }
     return {
@@ -395,4 +395,4 @@ const testRunnerPath = new TestRunReportAssembler().assemble({
     };
   },
 });
-console.log(`Created Test Runner demo -> ${testRunnerPath}`);
+console.log(`Created Midscene Test demo -> ${testReportPath}`);

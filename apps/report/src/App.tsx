@@ -672,11 +672,12 @@ export function App() {
         'script[type="midscene_test_run_dump"]',
       );
       if (runnerElements.length > 1) {
-        throw new Error('The report contains multiple Test Runner dumps.');
+        throw new Error('The report contains multiple Midscene Test dumps.');
       }
       if (runnerElements.length === 1) {
         const content = runnerElements[0].textContent;
-        if (!content) throw new Error('The Test Runner report dump is empty.');
+        if (!content)
+          throw new Error('The Midscene Test report dump is empty.');
         setRunnerDump(parseTestRunReportDump(content));
       } else {
         setRunnerDump(null);

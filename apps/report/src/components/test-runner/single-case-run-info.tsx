@@ -32,7 +32,7 @@ export function SingleCaseRunInfo({
       <div className="runner-single-run-metrics">
         <time dateTime={dump.startedAt}>{formatTimestamp(dump.startedAt)}</time>
         <span>
-          <strong>{formatDuration(dump.durationMs)}</strong> runner time
+          <strong>{formatDuration(dump.durationMs)}</strong> run time
         </span>
         <span>
           <strong>{formatDuration(dump.metrics.modelTimeMs)}</strong> model time

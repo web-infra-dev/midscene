@@ -16,7 +16,7 @@ const validDump = {
   projects: [],
 };
 
-describe('Test Runner report utilities', () => {
+describe('Midscene Test report utilities', () => {
   it('parses the independent Runner dump', () => {
     expect(parseTestRunReportDump(JSON.stringify(validDump))).toMatchObject({
       schemaVersion: 1,
@@ -30,7 +30,7 @@ describe('Test Runner report utilities', () => {
       parseTestRunReportDump(
         JSON.stringify({ ...validDump, schemaVersion: 2 }),
       ),
-    ).toThrow('Unsupported Test Runner report schema');
+    ).toThrow('Unsupported Midscene Test report schema');
   });
 
   it('reads a namespaced Step deep link', () => {

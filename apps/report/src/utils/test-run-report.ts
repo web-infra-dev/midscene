@@ -4,15 +4,15 @@ import { antiEscapeScriptTag } from '@midscene/shared/utils';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Parse and minimally validate the UI-facing Test Runner report snapshot. */
+/** Parse and minimally validate the UI-facing Midscene Test report snapshot. */
 export function parseTestRunReportDump(content: string): TestRunReportDump {
   const parsed: unknown = JSON.parse(antiEscapeScriptTag(content));
   if (!isRecord(parsed)) {
-    throw new Error('Test Runner report dump must be a JSON object.');
+    throw new Error('Midscene Test report dump must be a JSON object.');
   }
   if (parsed.schemaVersion !== 1 || parsed.kind !== 'test-runner') {
     throw new Error(
-      `Unsupported Test Runner report schema: ${String(parsed.schemaVersion)}.`,
+      `Unsupported Midscene Test report schema: ${String(parsed.schemaVersion)}.`,
     );
   }
   if (
@@ -22,7 +22,7 @@ export function parseTestRunReportDump(content: string): TestRunReportDump {
     !isRecord(parsed.summary) ||
     !isRecord(parsed.metrics)
   ) {
-    throw new Error('Test Runner report dump is missing required fields.');
+    throw new Error('Midscene Test report dump is missing required fields.');
   }
   return parsed as unknown as TestRunReportDump;
 }
@@ -55,7 +55,7 @@ const runnerRouteKeys = [
   'runner-sort',
 ] as const;
 
-/** Read the Test Runner page selection from a static-report-safe URL hash. */
+/** Read the Midscene Test page selection from a static-report-safe URL hash. */
 export function runnerRouteFromHash(hash: string): RunnerRoute {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : '');
   switch (params.get('runner-page')) {

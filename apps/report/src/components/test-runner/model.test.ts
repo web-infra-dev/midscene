@@ -187,7 +187,7 @@ const dump: TestRunReportDump = {
   ],
 };
 
-describe('Test Runner hybrid report model', () => {
+describe('Midscene Test hybrid report model', () => {
   it('separates final pass rate from first-pass stability', () => {
     const cases = flattenRunnerCases(dump);
     expect(cases.map((item) => item.status)).toEqual([
@@ -422,7 +422,7 @@ describe('Test Runner hybrid report model', () => {
     expect(standalone).not.toContain('runner-back-button');
     expect(standalone).not.toContain('Copy case link');
     expect(standalone).not.toContain('runner-attempt-switcher');
-    expect(standalone).toContain('runner time');
+    expect(standalone).toContain('run time');
     expect(standalone).toContain('model calls');
     expect(standalone).toContain('tokens');
     expect(standalone).toContain('Run failed');

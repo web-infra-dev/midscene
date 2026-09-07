@@ -2017,7 +2017,7 @@ export default function TestRunnerReport({
             <div className="runner-header-title">
               <Logo />
               <div>
-                <strong>Test Runner Report</strong>
+                <strong>Midscene Test Report</strong>
               </div>
             </div>
             <div className="runner-header-actions">
@@ -2035,7 +2035,7 @@ export default function TestRunnerReport({
             ref={mainRef}
             className="runner-main"
             tabIndex={-1}
-            aria-label="Test Runner report content"
+            aria-label="Midscene Test report content"
           >
             {page === 'overview' ? (
               <RunOverview

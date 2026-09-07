@@ -80,7 +80,7 @@ const buildStep = (
     const previousScope = context.tracedScopeByExecution.get(trace.executionId);
     if (previousScope && previousScope !== scopeId) {
       throw new Error(
-        `Agent execution ${trace.executionId} was traced by multiple Runner scopes (${previousScope}, ${scopeId}).`,
+        `Agent execution ${trace.executionId} was traced by multiple test scopes (${previousScope}, ${scopeId}).`,
       );
     }
     context.tracedScopeByExecution.set(trace.executionId, scopeId);
@@ -99,7 +99,7 @@ const buildStep = (
       addDiagnostic(context, {
         level: 'warning',
         code: 'agent-detail-unresolved',
-        message: `Agent detail could not be resolved for execution ${executionId} in Runner scope ${scopeId}.`,
+        message: `Agent detail could not be resolved for execution ${executionId} in test scope ${scopeId}.`,
         scopeId,
         executionId,
         ...(sources.length > 0
@@ -113,7 +113,7 @@ const buildStep = (
     addDiagnostic(context, {
       level: 'warning',
       code: 'agent-detail-unavailable',
-      message: `No stable Agent execution reference was captured for ${step.node} in Runner scope ${scopeId}.`,
+      message: `No stable Agent execution reference was captured for ${step.node} in test scope ${scopeId}.`,
       scopeId,
       ...(reportSourcesForScope(context, scopeId).length > 0
         ? {

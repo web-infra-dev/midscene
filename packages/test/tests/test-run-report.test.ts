@@ -133,7 +133,7 @@ const index: TestRunReportSourceIndex = {
   },
 };
 
-describe('Test Runner report manifest', () => {
+describe('Midscene Test report manifest', () => {
   it('redacts and truncates arbitrary display data', () => {
     const cyclic: Record<string, unknown> = {
       password: 'password',

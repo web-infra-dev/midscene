@@ -796,7 +796,7 @@ describe('createMidsceneNodes', () => {
     expect(listeners.size).toBe(0);
   });
 
-  it('rejects overlapping Test Runner scopes that share one Agent instance', async () => {
+  it('rejects overlapping Midscene Test scopes that share one Agent instance', async () => {
     let resolveEntered!: () => void;
     const entered = new Promise<void>((resolve) => {
       resolveEntered = resolve;

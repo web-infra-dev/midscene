@@ -10,7 +10,7 @@ export type TestRunReportStepPhase =
   | 'afterAll';
 
 /**
- * A JSON-safe value prepared for display in a Test Runner report.
+ * A JSON-safe value prepared for display in a Midscene Test report.
  *
  * Paths use JSONPath-like notation rooted at `$`. The path arrays are kept
  * beside the value so the UI never presents redacted or truncated data as if

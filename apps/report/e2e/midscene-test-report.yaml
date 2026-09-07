@@ -1,11 +1,11 @@
 target:
   serve: ./dist
-  url: demo-test-runner.html
+  url: demo-midscene-test.html
 tasks:
   - name: batch health is visible before debug details
     flow:
       - sleep: 3000
-      - aiAssert: The Test Runner overview says Passed with retries and clearly shows a 100% final pass rate, a 50% first-pass rate, one case passed after retry, two total passed cases, and an 8 second Total runner time.
+      - aiAssert: The Midscene Test overview says Passed with retries and clearly shows a 100% final pass rate, a 50% first-pass rate, one case passed after retry, two total passed cases, and an 8 second Total run time.
       - aiAssert: The report has one Overview page with no Overview/Cases tab bar and no View all cases action. Its Breakdown is one Project-to-Case tree with search, status filtering, sorting, and a Case rows control set to Compact by default. The Web regression root shows Project-level health at a glance and is collapsed by default because it passed after retry rather than containing a final failure. A separate icon action opens the Project overview.
 
   - name: project breakdown expands cases and opens the project overview

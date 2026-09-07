@@ -521,7 +521,7 @@ const validateTestRunReportFileName = (fileName: string): void => {
     fileName.endsWith('.html')
   ) {
     throw new Error(
-      `Test Run reportFileName must be one path segment without an extension: ${fileName}`,
+      `Midscene Test reportFileName must be one path segment without an extension: ${fileName}`,
     );
   }
 };
@@ -536,13 +536,13 @@ const uniqueTestRunReportSources = (
     const scopeId = source.scopeId.trim();
     const sourcePath = path.resolve(source.sourcePath);
     if (!scopeId) {
-      throw new Error('Test Run report source scopeId must not be empty.');
+      throw new Error('Midscene Test report source scopeId must not be empty.');
     }
 
     const previousScope = scopeBySourcePath.get(sourcePath);
     if (previousScope && previousScope !== scopeId) {
       throw new Error(
-        `Agent report source is shared by multiple Runner scopes (${previousScope}, ${scopeId}): ${sourcePath}`,
+        `Agent report source is shared by multiple test scopes (${previousScope}, ${scopeId}): ${sourcePath}`,
       );
     }
     scopeBySourcePath.set(sourcePath, scopeId);
@@ -579,7 +579,7 @@ const prepareTestRunReportSources = (
     ) {
       warnedMismatchedVersions.add(sourceVersion);
       logMsg(
-        `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Test Runner report.`,
+        `[@midscene/core] TestRunReportAssembler version mismatch: source report was written by @midscene/core@${sourceVersion} but the assembler is @midscene/core@${currentVersion}. Align the workspace package versions before generating the Midscene Test report.`,
       );
     }
 
@@ -594,7 +594,7 @@ const prepareTestRunReportSources = (
       const previousOwner = ownerByScopedExecution.get(scopedExecution);
       if (previousOwner && previousOwner !== reportId) {
         throw new Error(
-          `Agent execution ${execution.id} is present in multiple reports for Runner scope ${source.scopeId}: ${previousOwner}, ${reportId}`,
+          `Agent execution ${execution.id} is present in multiple reports for test scope ${source.scopeId}: ${previousOwner}, ${reportId}`,
         );
       }
       ownerByScopedExecution.set(scopedExecution, reportId);
@@ -645,10 +645,10 @@ const runnerDumpScript = (dump: TestRunReportDump): string => {
 };
 
 /**
- * Build a self-contained Test Runner report while preserving the existing
+ * Build a self-contained Midscene Test report while preserving the existing
  * Agent dump format consumed by the Report App.
  *
- * Runner hierarchy and status live in `midscene_test_run_dump`; Agent reports
+ * Test hierarchy and status live in `midscene_test_run_dump`; Agent reports
  * remain independent `midscene_web_dump` groups addressed by `data-report-id`.
  */
 export class TestRunReportAssembler {
@@ -672,7 +672,7 @@ export class TestRunReportAssembler {
     const runnerDump = options.buildRunnerDump(index);
     if (runnerDump.schemaVersion !== 1 || runnerDump.kind !== 'test-runner') {
       throw new Error(
-        'buildRunnerDump must return a Test Run report dump with schemaVersion 1 and kind "test-runner".',
+        'buildRunnerDump must return a Midscene Test report dump with schemaVersion 1 and kind "test-runner".',
       );
     }
     // Validate serializability before creating any output artifact.

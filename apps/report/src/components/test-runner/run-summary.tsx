@@ -156,10 +156,7 @@ export function RunSummary({
           value={dump.summary.notRun}
           tone={dump.summary.notRun ? 'warning' : undefined}
         />
-        <RunMetric
-          label="Runner time"
-          value={formatDuration(dump.durationMs)}
-        />
+        <RunMetric label="Run time" value={formatDuration(dump.durationMs)} />
       </div>
     </section>
   );

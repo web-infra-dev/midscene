@@ -7,7 +7,13 @@ const styles = readFileSync(
 );
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 
-describe('test runner layout', () => {
+describe('Midscene Test report layout', () => {
+  it('uses Midscene Test branding in the title and accessible page name', () => {
+    expect(source).toContain('<strong>Midscene Test Report</strong>');
+    expect(source).toContain('aria-label="Midscene Test report content"');
+    expect(source).not.toContain('Test Runner');
+  });
+
   it('shares two aligned columns between run metrics and the footer', () => {
     for (const selector of [
       'runner-secondary-metrics',

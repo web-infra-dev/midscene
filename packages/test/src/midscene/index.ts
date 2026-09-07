@@ -20,7 +20,7 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';
-import { NodeDefinitionError } from '../errors';
+import { NodeDefinitionError, NodeExecutionError } from '../errors';
 import { defineNode } from '../node/define-node';
 import type { NodeDefinition, NodeExecutionContext } from '../node/types';
 
@@ -132,7 +132,7 @@ export const createAgentTestRunnerNodes = <TContext>(
       throw new NodeExecutionError(
         node,
         new Error(
-          `The same Agent instance cannot execute overlapping Test Runner Steps. Active scope: ${activeCall.scopeId} (${activeCall.node}); requested scope: ${scopeId} (${node}).`,
+          `The same Agent instance cannot execute overlapping Midscene Test Steps. Active scope: ${activeCall.scopeId} (${activeCall.node}); requested scope: ${scopeId} (${node}).`,
         ),
       );
     }
