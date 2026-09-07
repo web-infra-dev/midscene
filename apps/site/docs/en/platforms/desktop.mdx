@@ -142,15 +142,17 @@ const agent = await agentForComputer({
 await agent.aiAct('click the red button five times');
 ```
 
-## Control a remote desktop through a VNC client on macOS {#vnc-keyboard}
+## Control a remote desktop through a VNC client {#vnc-keyboard}
 
-`@midscene/computer` does not connect to a VNC server directly. Open a VNC client on the same Mac that runs Midscene, connect it to the remote desktop, and keep its window in the foreground. Midscene then controls the VNC client as a local desktop application.
+`@midscene/computer` does not connect to a VNC server directly. Open a VNC client on the computer that runs Midscene, and use the client to connect to the remote desktop. Keep the VNC client in the foreground while Midscene controls it as a local desktop application. This workflow is not limited to macOS.
 
-### Preserve modifier keys
+### Forward modifier keys on macOS
 
-VNC clients may not forward modifiers from the default macOS AppleScript keyboard events. Symptoms include uppercase letters becoming lowercase or shortcuts losing `Shift` and `Control`.
+Some VNC environments do not preserve modifiers from the standard macOS AppleScript `keystroke ... using` form. Symptoms include uppercase letters becoming lowercase or shortcuts losing `Shift` and `Control`.
 
-Set `keyboardEventMode` to `physical` so Midscene sends explicit key-down and key-up events for each modifier. Text input must also operate one key at a time. Set `inputStrategy` to `sequential`, as shown below, or set a positive `keyboardTypeDelay` when using the default `legacy` input strategy.
+The available evidence confirms the compatibility issue, but it does not include low-level macOS input events or RFB packets. It cannot show where the modifier state is lost in the end-to-end input path.
+
+If you encounter this issue, set `keyboardEventMode` to `physical`. Midscene will send explicit key-down and key-up events for each modifier. Text input must also operate one key at a time. Set `inputStrategy` to `sequential`, as shown below, or set a positive `keyboardTypeDelay` when using the default `legacy` input strategy.
 
 ```typescript
 import { agentForComputer } from '@midscene/computer';
@@ -165,6 +167,8 @@ const agent = await agentForComputer({
 The default value is `keyboardEventMode: 'logical'`. It keeps the standard AppleScript behavior for native macOS applications.
 
 :::warning
+Treat `physical` as an opt-in compatibility mode for affected VNC environments. Test it with your VNC client, server, and keyboard layout. The current verification covers generated AppleScript and integration behavior, but not a real VNC session.
+
 Use `physical` only when the local and remote systems use matching en-US keyboard layouts. The mode converts shifted punctuation to a base key plus `Shift`. A native macOS application may therefore type `123` when the intended text is `!@#`.
 
 This option has no effect outside macOS or when `keyboardDriver` is `libnut`.
