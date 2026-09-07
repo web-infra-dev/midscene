@@ -93,6 +93,24 @@ export interface ChatCompletionCallContext {
 
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original';
 
+export interface CodexAppServerCallInput {
+  intent?: TIntent;
+  requiresOriginalImageDetail?: boolean;
+  userConfig?: ReasoningInput;
+}
+
+export interface CodexAppServerParamsResult {
+  config: {
+    effort?: string;
+  };
+  /** Applied to image input items rather than turn/start parameters. */
+  imageDetail?: ImageDetail;
+}
+
+export type BuildCodexAppServerParams = (
+  input: CodexAppServerCallInput,
+) => CodexAppServerParamsResult;
+
 export interface ContentAndReasoning {
   content: string;
   reasoning_content: string;
@@ -261,6 +279,7 @@ export type LocateDefinition =
 export interface ModelAdapter {
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  buildCodexAppServerParams: BuildCodexAppServerParams;
   acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
   insight: InsightAdapter;
@@ -288,6 +307,7 @@ export interface ModelRuntime {
 export interface ModelAdapterDefinition {
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  buildCodexAppServerParams?: BuildCodexAppServerParams;
   /**
    * Temporary compatibility for models that may occasionally return
    * `bbox_2d` instead of `bbox`. Currently enabled only by Qwen adapters and

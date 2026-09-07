@@ -3,13 +3,11 @@ import type {
   CodeGenerationChunk,
   StreamingCallback,
 } from '@/types';
-import type {
-  IModelConfig,
-  TModelReasoningEnabled,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type { CodexAppServerParamsResult } from '../model-adapter/types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
 const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -19,14 +17,6 @@ const CODEX_TEXT_INPUT_MAX_LENGTH = 256 * 1024;
 
 const debugCodex = getDebug('ai:call:codex');
 const warnCodex = getDebug('ai:call:codex', { console: true });
-
-type CodexReasoningEffort =
-  | 'none'
-  | 'minimal'
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'xhigh';
 
 type JsonRpcRequest = {
   id: string | number;
@@ -293,30 +283,6 @@ const extractImageInputs = (
   return inputs;
 };
 
-export const resolveCodexReasoningEffort = ({
-  reasoningEnabled,
-  modelConfig,
-}: {
-  reasoningEnabled?: TModelReasoningEnabled;
-  modelConfig: IModelConfig;
-}): CodexReasoningEffort | undefined => {
-  if (reasoningEnabled !== true) return 'none';
-
-  const normalized = modelConfig.reasoningEffort?.trim().toLowerCase();
-  if (
-    normalized === 'none' ||
-    normalized === 'minimal' ||
-    normalized === 'low' ||
-    normalized === 'medium' ||
-    normalized === 'high' ||
-    normalized === 'xhigh'
-  ) {
-    return normalized;
-  }
-
-  return 'medium';
-};
-
 export const buildCodexTurnPayloadFromMessages = (
   messages: ChatCompletionMessageParam[],
   imageDetailOverride?: CodexImageDetail,
@@ -431,7 +397,7 @@ class CodexAppServerConnection {
     modelConfig,
     stream,
     onChunk,
-    reasoningEnabled,
+    params,
     abortSignal,
     imageDetail,
     onRecordEvent,
@@ -440,7 +406,7 @@ class CodexAppServerConnection {
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: TModelReasoningEnabled;
+    params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
@@ -454,10 +420,6 @@ class CodexAppServerConnection {
       messages,
       imageDetail,
     );
-    const effort = resolveCodexReasoningEffort({
-      reasoningEnabled,
-      modelConfig,
-    });
 
     let threadId: string | undefined;
     let turnId: string | undefined;
@@ -528,9 +490,9 @@ class CodexAppServerConnection {
       }
 
       const turnStartParams = {
+        ...params,
         threadId,
         input,
-        effort,
       };
       onRecordEvent?.({
         type: 'request',
@@ -1026,7 +988,7 @@ class CodexAppServerConnectionManager {
     modelConfig,
     stream,
     onChunk,
-    reasoningEnabled,
+    params,
     abortSignal,
     imageDetail,
     onRecordEvent,
@@ -1035,7 +997,7 @@ class CodexAppServerConnectionManager {
     modelConfig: IModelConfig;
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: TModelReasoningEnabled;
+    params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
@@ -1048,7 +1010,7 @@ class CodexAppServerConnectionManager {
           modelConfig,
           stream,
           onChunk,
-          reasoningEnabled,
+          params,
           abortSignal,
           imageDetail,
           onRecordEvent,
@@ -1091,7 +1053,7 @@ export async function callAIWithCodexAppServer(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    reasoningEnabled?: TModelReasoningEnabled;
+    params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
     imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
@@ -1108,7 +1070,7 @@ export async function callAIWithCodexAppServer(
     modelConfig,
     stream: options?.stream,
     onChunk: options?.onChunk,
-    reasoningEnabled: options?.reasoningEnabled,
+    params: options?.params,
     abortSignal: options?.abortSignal,
     imageDetail: options?.imageDetail,
     onRecordEvent: options?.onRecordEvent,
