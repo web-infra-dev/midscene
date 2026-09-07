@@ -1,39 +1,19 @@
 <p align="center">
-  <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
-</p>
-
-<h1 align="center">Midscene.js</h1>
-
-<p align="center">
+  <img alt="Midscene.js" width="180" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4"><br />
   <strong>面向 E2E 测试的 GUI Agent</strong><br />
   AI 视觉驱动。全平台覆盖。开箱即用。
 </p>
 
-<div align="center">
-
-[English](./README.md) | 简体中文
-
-<strong>官网</strong>：<a href="https://midscenejs.com/">https://midscenejs.com/</a>
-
-<a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-</div>
-
 <p align="center">
+  <a href="https://midscenejs.com/zh/">官网</a> · <a href="./README.md">English</a> / 简体中文<br />
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" /></a>
-  <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
-  <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
-  <a href="https://deepwiki.com/web-infra-dev/midscene">
-    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;" />
-  </a>
 </p>
 
-## 看看如何使用
+## 如何使用
 
-Midscene 将视觉驱动的 GUI Agent 与编写、验证和调试 UI 测试所需的 Testing Kit 结合在一起。配置好模型，并在已有的 Playwright `page` 中打开你的应用后，就可以这样编写测试：
+Midscene 将视觉驱动的 GUI Agent 与编写、验证和调试 UI 测试所需的 Testing Kit 结合在一起，通过同一套 Agent API 覆盖 Web、移动端和桌面应用。下面以 Playwright 的 Web 测试为例：配置好模型，并在已有的 Playwright `page` 中打开你的应用后，就可以这样编写测试：
 
 ```typescript
 import { PlaywrightAgent } from '@midscene/web/playwright';
