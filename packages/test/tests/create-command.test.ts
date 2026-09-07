@@ -249,7 +249,9 @@ describe('create project', () => {
       manifest.devDependencies['@midscene/web'],
     );
     expect(manifest.devDependencies['@midscene/android']).toBeUndefined();
+    expect(manifest.devDependencies['@playwright/test']).toBeUndefined();
     const config = readFileSync(join(root, 'midscene.config.ts'), 'utf8');
+    expect(config).toContain("from '@midscene/web/playwright/agent'");
     expect(config).toContain('from "@acme/nodes"');
     expect(config).not.toContain('@acme/nodes@1.2.0');
     expect(existsSync(join(root, '.env'))).toBe(false);

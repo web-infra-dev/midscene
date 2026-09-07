@@ -55,6 +55,11 @@
       "require": "./dist/lib/playwright/index.js",
       "import": "./dist/es/playwright/index.mjs"
     },
+    "./playwright/agent": {
+      "types": "./dist/types/playwright/agent.d.ts",
+      "require": "./dist/lib/playwright/agent.js",
+      "import": "./dist/es/playwright/agent.mjs"
+    },
     "./playwright-report": {
       "types": "./dist/types/playwright/reporter/index.d.ts",
       "require": "./dist/lib/playwright/reporter/index.js",

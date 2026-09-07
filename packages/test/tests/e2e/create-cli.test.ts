@@ -1,12 +1,14 @@
 import { execFile } from 'node:child_process';
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,7 +20,10 @@ import {
   runCreateCommand,
 } from '../../src/cli/create-command';
 import { createPackageManagers } from '../../src/cli/create-package-manager';
-import { createPlatforms } from '../../src/cli/create-template';
+import {
+  createPlatforms,
+  createProjectFiles,
+} from '../../src/cli/create-template';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = resolve(__dirname, '../..');
@@ -88,6 +93,32 @@ const linkDependencies = (root: string) => {
   );
 };
 
+// Copy the Web package so its optional peers cannot resolve through the
+// workspace's devDependencies. Only the generated manifest supplies peers.
+const isolateWebDependency = (root: string) => {
+  const source = resolve(packageRoot, '../web-integration');
+  const destination = join(root, 'node_modules/@midscene/web');
+  const manifest = JSON.parse(
+    readFileSync(join(source, 'package.json'), 'utf8'),
+  );
+  const project = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  unlinkSync(destination);
+  mkdirSync(destination);
+  cpSync(join(source, 'package.json'), join(destination, 'package.json'));
+  cpSync(join(source, 'dist'), join(destination, 'dist'), { recursive: true });
+  const dependencies = new Set([
+    ...Object.keys(manifest.dependencies),
+    ...Object.keys(manifest.peerDependencies).filter(
+      (name) => project.devDependencies[name],
+    ),
+  ]);
+  for (const name of dependencies) {
+    const target = join(destination, 'node_modules', name);
+    mkdirSync(resolve(target, '..'), { recursive: true });
+    symlinkSync(join(source, 'node_modules', name), target, 'dir');
+  }
+};
+
 describe('generated project integration', () => {
   it.each(
     createPlatforms.flatMap((platform) =>
@@ -104,9 +135,13 @@ describe('generated project integration', () => {
       runtime.runPackageManager = async (packageManager, args, root) => {
         if (args[0] === 'install') {
           linkDependencies(root);
+          if (platform === 'web') isolateWebDependency(root);
           return '';
         }
-        const result = await execFileAsync(packageManager, args, { cwd: root });
+        const result = await execFileAsync(packageManager, args, {
+          cwd: root,
+          env: { ...process.env, NODE_PATH: '' },
+        });
         return result.stdout;
       };
       await runCreateCommand(
@@ -129,6 +164,7 @@ describe('generated project integration', () => {
       expect(manifest.devDependencies[`@midscene/${platform}`]).toBe(
         manifest.devDependencies['@midscene/test'],
       );
+      expect(manifest.devDependencies['@playwright/test']).toBeUndefined();
       for (const other of createPlatforms.filter(
         (candidate) => candidate !== platform,
       )) {
@@ -169,8 +205,100 @@ describe('generated project integration', () => {
         '-p',
         cwd,
       ]);
+      if (platform === 'web') {
+        const files = await execFileAsync(process.execPath, [
+          join(packageRoot, 'node_modules/typescript/bin/tsc'),
+          '-p',
+          cwd,
+          '--listFilesOnly',
+        ]);
+        expect(files.stdout).toContain('/playwright/agent.d.ts');
+        expect(files.stdout).not.toContain('/playwright/ai-fixture.d.ts');
+        expect(files.stdout).not.toContain('/@playwright/test/');
+      }
     },
     30000,
+  );
+
+  it.each(['module', 'commonjs'])(
+    'loads the built Agent entry without Playwright Test and preserves the original entry (%s)',
+    async (format) => {
+      const cwd = temp();
+      for (const [filename, content] of Object.entries(
+        createProjectFiles('agent-entry', 'web', [], 'pnpm'),
+      )) {
+        const path = join(cwd, filename);
+        mkdirSync(resolve(path, '..'), { recursive: true });
+        writeFileSync(path, content);
+      }
+      linkDependencies(cwd);
+      isolateWebDependency(cwd);
+      const load = (specifier: string) =>
+        format === 'module'
+          ? `await import('${specifier}')`
+          : `require('${specifier}')`;
+      const prelude =
+        format === 'module'
+          ? `import assert from 'node:assert/strict'; import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);`
+          : `const assert = require('node:assert/strict');`;
+      const missingPeer =
+        format === 'module'
+          ? `await assert.rejects(import('@midscene/web/playwright'), { message: new RegExp("Cannot find package '@playwright/test'") });`
+          : `assert.throws(() => require('@midscene/web/playwright'), { message: new RegExp("Cannot find module '@playwright/test'") });`;
+      // pnpm's Vitest launcher adds workspace packages to NODE_PATH. Clear it
+      // in these subprocesses so CommonJS cannot borrow optional peers.
+      await execFileAsync(
+        process.execPath,
+        [
+          '--input-type',
+          format,
+          '-e',
+          `${prelude}
+        const fromWeb = require('node:module').createRequire(require.resolve('@midscene/web/playwright/agent'));
+        assert.throws(() => fromWeb.resolve('@playwright/test'), { code: 'MODULE_NOT_FOUND' });
+        const agent = ${load('@midscene/web/playwright/agent')};
+        assert.equal(typeof agent.PlaywrightAgent, 'function');
+        assert.equal(agent.PlaywrightAgent, agent.PlaywrightPageAgent);
+        assert.equal(typeof agent.PlaywrightBrowserAgent, 'function');
+        assert.equal(typeof agent.PlaywrightAgent.getTestRunnerNodeDefinitions, 'function');
+        assert.equal('PlaywrightAiFixture' in agent, false);
+        ${missingPeer}
+        `,
+        ],
+        { cwd, env: { ...process.env, NODE_PATH: '' } },
+      );
+
+      const peer = join(
+        cwd,
+        'node_modules/@midscene/web/node_modules/@playwright',
+      );
+      mkdirSync(peer);
+      symlinkSync(
+        resolve(
+          packageRoot,
+          '../web-integration/node_modules/@playwright/test',
+        ),
+        join(peer, 'test'),
+        'dir',
+      );
+      await execFileAsync(
+        process.execPath,
+        [
+          '--input-type',
+          format,
+          '-e',
+          `${prelude}
+        const agent = ${load('@midscene/web/playwright/agent')};
+        const original = ${load('@midscene/web/playwright')};
+        for (const name of ['PlaywrightAgent', 'PlaywrightPageAgent', 'PlaywrightBrowserAgent', 'PlaywrightWebPage', 'overrideAIConfig']) {
+          assert.equal(original[name], agent[name]);
+        }
+        assert.equal(typeof original.PlaywrightAiFixture().aiAct, 'function');
+        `,
+        ],
+        { cwd, env: { ...process.env, NODE_PATH: '' } },
+      );
+    },
   );
 
   it.each([

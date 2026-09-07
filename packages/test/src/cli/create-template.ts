@@ -44,7 +44,7 @@ export function parseNodePackageSpec(spec: string): NodePackageSpec {
 }
 
 const platformImports: Record<CreatePlatform, string> = {
-  web: `import { PlaywrightAgent } from '@midscene/web/playwright';
+  web: `import { PlaywrightAgent } from '@midscene/web/playwright/agent';
 import { createPlaywrightNodes } from '@midscene/test/playwright';
 import { chromium, type Page } from 'playwright';`,
   android: `import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';`,
