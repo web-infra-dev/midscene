@@ -87,6 +87,22 @@ npx --yes @midscene/android-playground
 
 ![](/android-set-env.png)
 
+#### 远程投屏预览
+
+Scrcpy 投屏服务现在默认只监听 `127.0.0.1`。如果需要从另一台电脑访问 Android Playground，必须显式开启 Playground 服务和 Scrcpy 投屏服务的远程访问。例如，在 macOS 或 Linux 上运行：
+
+```bash
+MIDSCENE_PLAYGROUND_HOST=0.0.0.0 MIDSCENE_SCRCPY_HOST=0.0.0.0 pnpm dlx @midscene/android-playground
+```
+
+在浏览器中使用服务端电脑实际可访问的 IP 地址或主机名，以及启动时输出的 Playground 端口。需要同时允许访问 Playground 和 Scrcpy 的端口。`0.0.0.0` 是监听地址，不是浏览器中应填写的访问地址。
+
+`MIDSCENE_SCRCPY_HOST` 适用于独立的 Android Playground CLI，也可以设置为具体的本机网卡地址，例如 `192.168.1.100`；自动打开的本机页面会使用该地址连接投屏服务。直接创建 `ScrcpyServer` 的代码可以传入 `host` 构造参数。Studio 仍保持仅本机投屏。
+
+:::warning
+Scrcpy 尚未提供投屏会话认证。开启远程访问后，能够连接该端口的客户端可以获取设备信息和屏幕流。仅应在可信网络中开启，并限制为预期客户端可访问。
+:::
+
 ## 使用 JavaScript SDK
 
 当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
