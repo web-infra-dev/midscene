@@ -387,6 +387,36 @@ describe('ComputerDevice pointer input', () => {
     expect(mockState.libnut.getMousePos).toHaveBeenCalledTimes(2);
   });
 
+  it('emits intermediate held-pointer movements during drag and drop', async () => {
+    const device = await createConnectedDevice();
+    const inputDriver = (device as any).inputDriver;
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    mockState.libnut.moveMouse.mockClear();
+    mockState.libnut.mouseToggle.mockClear();
+
+    await device.inputPrimitives.pointer!.dragAndDrop(
+      { x: 100, y: 400 },
+      { x: 100, y: 100 },
+    );
+
+    const moves = mockState.libnut.moveMouse.mock.calls;
+    const moveOrders = mockState.libnut.moveMouse.mock.invocationCallOrder;
+    const [buttonDownOrder, buttonUpOrder] =
+      mockState.libnut.mouseToggle.mock.invocationCallOrder;
+
+    expect(moves).toHaveLength(21);
+    expect(moves[0]).toEqual([100, 400]);
+    expect(moves[1]).toEqual([100, 385]);
+    expect(moves.at(-1)).toEqual([100, 100]);
+    expect(moveOrders[0]).toBeLessThan(buttonDownOrder);
+    expect(moveOrders.slice(1).every((order) => order > buttonDownOrder)).toBe(
+      true,
+    );
+    expect(moveOrders.slice(1).every((order) => order < buttonUpOrder)).toBe(
+      true,
+    );
+  });
+
   it('does not trust a self-consistent libnut position outside screenshot space', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
 

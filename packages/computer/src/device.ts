@@ -116,8 +116,10 @@ export interface Point {
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
+const SMOOTH_MOVE_STEPS_DRAG = 20;
 const SMOOTH_MOVE_DELAY_TAP = 8;
 const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
+const SMOOTH_MOVE_DELAY_DRAG = 10;
 const MOUSE_MOVE_EFFECT_WAIT = 300;
 const CLICK_SETTLE_DELAY = 50;
 const CLICK_HOLD_DURATION = 100;
@@ -971,6 +973,14 @@ export class ComputerDevice implements AbstractInterface {
           await this.moveDisplayPointer(
             to,
             'Mouse did not reach the drag end target',
+            {
+              // Native desktop toolkits commonly use the first motion beyond
+              // their threshold to enter drag mode. Keep emitting held-button
+              // motions so the drop target can observe the active drag before
+              // the button is released.
+              smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
+              smoothDelay: SMOOTH_MOVE_DELAY_DRAG,
+            },
           );
           await this.inputDriver.delay(100);
         });
