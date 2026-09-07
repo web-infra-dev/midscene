@@ -141,7 +141,6 @@
   }
 
   .runner-detail-debug-workbench {
-    grid-template-columns: 276px minmax(0, 1fr);
     min-height: 672px;
     margin-top: 18px;
     gap: 0;
@@ -174,7 +173,6 @@
   }
 
   .runner-detail-step-group > button {
-    grid-template-columns: 27px minmax(0, 1fr) auto;
     min-height: 64px;
     margin-bottom: 3px;
     padding: 6px 8px;
@@ -333,7 +331,6 @@
   }
 
   .runner-detail-log-view p {
-    grid-template-columns: 142px 45px minmax(0, 1fr);
     padding: 10px 11px;
     font-size: 14px;
   }
@@ -374,12 +371,16 @@
 @media (max-width: 860px) {
   .test-runner-report {
     .runner-detail-debug-workbench {
-      grid-template-columns: minmax(0, 1fr);
       min-height: 0;
     }
 
     .runner-detail-step-panel {
       width: 100%;
+      height: auto;
+      min-height: 0;
+      max-height: 320px;
+      border-right: 0;
+      border-bottom: 1px solid var(--runner-border);
     }
   }
 }

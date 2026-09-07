@@ -9,13 +9,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
-  buildRunnerTimeline,
   buildRunnerVisualIndex,
   filterAndSortRunnerProjectBreakdown,
   flattenRunnerCases,
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
-  getAttemptVisualStory,
   getCaseSearchMatch,
   getCaseStory,
   getDefaultExpandedProjectKeys,
@@ -558,35 +556,6 @@ describe('Midscene Test hybrid report model', () => {
     expect(getCaseSearchMatch(retryCase, 'not-present')).toBeUndefined();
   });
 
-  it('keeps setup and teardown time visible around case execution', () => {
-    const [runnerLane, projectLane] = buildRunnerTimeline(dump);
-    expect(runnerLane.segments).toMatchObject([
-      { label: 'Preflight', durationMs: 1_000 },
-      { label: 'Projects running', durationMs: 8_000 },
-      { label: 'Finalize results', durationMs: 1_000 },
-    ]);
-    expect(projectLane.segments).toMatchObject([
-      {
-        kind: 'setup',
-        durationMs: 2_000,
-        offsetPercent: 10,
-        widthPercent: 20,
-      },
-      {
-        kind: 'test',
-        durationMs: 5_000,
-        offsetPercent: 30,
-        widthPercent: 50,
-      },
-      {
-        kind: 'teardown',
-        durationMs: 1_000,
-        offsetPercent: 80,
-        widthPercent: 10,
-      },
-    ]);
-  });
-
   it('indexes Agent screenshots as visual evidence for a Runner Attempt', () => {
     let reportReadCount = 0;
     const screenshots = Array.from({ length: 8 }, (_, index) => ({
@@ -644,20 +613,6 @@ describe('Midscene Test hybrid report model', () => {
     );
 
     expect(reportReadCount).toBe(1);
-    expect(getAttemptVisualStory(visualAttempt, visualIndex)).toMatchObject([
-      {
-        label: 'Prepare product data',
-        frame: undefined,
-      },
-      {
-        label: 'Search for the prepared product',
-        frame: {
-          reportId: 'report-1',
-          executionId: 'execution-1',
-          label: 'Planning',
-        },
-      },
-    ]);
     getAttemptVisualFrames(visualAttempt, visualIndex);
     expect(reportReadCount).toBe(1);
   });

@@ -1,8 +1,7 @@
 .test-runner-report {
   font-size: 14px;
   line-height: 1.5;
-
-  // Reserve the compact size for spatially constrained supporting information.
+  /* Reserve the compact size for spatially constrained supporting information. */
   .runner-detail-timeline-axis span,
   .runner-detail-timeline-frame > span,
   .runner-detail-timeline-preview-callout small,
@@ -150,25 +149,11 @@
     background: transparent;
   }
 
-  .runner-project-tree-overview {
-    position: relative;
-    padding-left: 16px;
-  }
-
   .runner-project-tree-case-title h3,
   .runner-project-tree-case .runner-status-pill,
   .runner-project-cases .runner-case-title-button h3,
   .runner-project-cases .runner-status-pill {
     font-weight: 400;
-  }
-
-  .runner-project-tree-overview::before {
-    position: absolute;
-    left: 0;
-    top: calc(50% - 6px);
-    height: 12px;
-    border-left: 1px solid var(--runner-border);
-    content: '';
   }
 
   .runner-overview-outcome-footer > button {

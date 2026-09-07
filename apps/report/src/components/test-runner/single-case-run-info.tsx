@@ -1,29 +1,14 @@
 import type { TestRunReportDump } from '@midscene/core';
 import { Alert } from 'antd';
+import { LifecycleErrors, getProjectLifecycleIssues } from './lifecycle-errors';
 import { formatDuration, formatTimestamp } from './view-primitives';
 
 export function SingleCaseRunInfo({
   dump,
 }: { dump: TestRunReportDump }): JSX.Element {
-  const errors = dump.projects.flatMap((project) => [
-    ...(project.lifecycle?.setupError
-      ? [{ label: 'Project setup failed', error: project.lifecycle.setupError }]
-      : []),
-    ...(project.lifecycle?.teardownErrors ?? []).map((error) => ({
-      label: 'Project teardown failed',
-      error,
-    })),
-    ...project.collectionErrors.map(({ sourcePath, error }) => ({
-      label: `Could not collect ${sourcePath}`,
-      error,
-    })),
-    ...project.documents.flatMap((document) =>
-      (document.teardownErrors ?? []).map((error) => ({
-        label: `Document teardown failed: ${document.sourcePath}`,
-        error,
-      })),
-    ),
-  ]);
+  const errors = dump.projects.flatMap((project) =>
+    getProjectLifecycleIssues(project, false),
+  );
   const diagnostics = dump.diagnostics ?? [];
   const issueCount = errors.length + diagnostics.length;
 
@@ -58,15 +43,7 @@ export function SingleCaseRunInfo({
           open={dump.status === 'failed'}
         >
           <summary>Run diagnostics ({issueCount})</summary>
-          {errors.map(({ label, error }, index) => (
-            <Alert
-              key={`${label}-${index}`}
-              type="error"
-              showIcon
-              message={label}
-              description={error.message}
-            />
-          ))}
+          <LifecycleErrors issues={errors} />
           {diagnostics.map((diagnostic, index) => (
             <Alert
               key={`${diagnostic.code}-${index}`}

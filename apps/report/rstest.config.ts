@@ -16,5 +16,5 @@ export default defineConfig({
       jsc: { transform: { react: { runtime: 'automatic' } } },
     },
   },
-  include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
+  include: ['tests/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
 });

@@ -6,8 +6,30 @@ const styles = readFileSync(
   'utf8',
 );
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
+const breakdown = readFileSync(
+  new URL('./project-breakdown.tsx', import.meta.url),
+  'utf8',
+);
+const inspector = readFileSync(
+  new URL('./evidence-inspector.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('Midscene Test report layout', () => {
+  it('keeps lifecycle hover rows square inside the rounded list', () => {
+    const baseStyles = readFileSync(
+      new URL('./index.less', import.meta.url),
+      'utf8',
+    );
+    expect(baseStyles).toMatch(
+      /\.runner-lifecycle-errors\s*\{[^}]*overflow: hidden;/,
+    );
+    expect(baseStyles).not.toMatch(
+      /\.runner-lifecycle-issue\s*\{\s*summary\s*\{[^}]*border-radius:/,
+    );
+    expect(styles).not.toContain('.runner-project-tree-overview::before');
+  });
+
   it('uses Midscene Test branding in the title and accessible page name', () => {
     expect(source).toContain('<strong>Midscene Test Report</strong>');
     expect(source).toContain('aria-label="Midscene Test report content"');
@@ -34,12 +56,19 @@ describe('Midscene Test report layout', () => {
   });
 
   it('keeps case rows clickable without a separate Inspect affordance', () => {
-    expect(source).not.toContain('runner-project-tree-case-cta');
-    expect(source).toContain('onClick={() => onOpen(item, failure?.id)}');
+    expect(breakdown).not.toContain('runner-project-tree-case-cta');
+    expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
+  });
+
+  it('uses an icon-only project overview control with an accessible name', () => {
+    expect(breakdown).not.toContain('<span>Details</span>');
+    expect(breakdown).toContain(
+      'aria-label={`Open project overview ${item.project.name}`}',
+    );
   });
 
   it('gives the step description its own full-width row after the actions', () => {
-    expect(source).toMatch(
+    expect(inspector).toMatch(
       /className="runner-detail-evidence-actions"[\s\S]*?<\/div>\s*\{step.title \? \(\s*<p className="runner-detail-step-description">/,
     );
     expect(styles).toMatch(

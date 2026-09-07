@@ -68,22 +68,6 @@ export const getDefaultExpandedProjectKeys = (
       .map(({ item }) => item.key),
   );
 
-export interface RunnerTimelineSegment {
-  key: string;
-  label: string;
-  kind: 'setup' | 'test' | 'teardown';
-  durationMs: number;
-  offsetPercent: number;
-  widthPercent: number;
-}
-
-export interface RunnerTimelineLane {
-  projectId: string;
-  projectName: string;
-  status: TestRunReportProject['status'];
-  segments: RunnerTimelineSegment[];
-}
-
 interface ScreenshotLike {
   base64: string;
   capturedAt?: number;
@@ -104,13 +88,6 @@ export interface RunnerPositionedVisualFrame {
   offsetMs: number;
   offsetPercent: number;
   stepId?: string;
-}
-
-export interface RunnerVisualStoryItem {
-  key: string;
-  step: TestRunReportStep;
-  label: string;
-  frame?: RunnerVisualFrame;
 }
 
 export interface RunnerVisualIndex {
@@ -477,175 +454,6 @@ const projectDisplayStatusForSort = (
   return 'passed';
 };
 
-const projectExecutionBounds = (
-  project: TestRunReportProject,
-): { start?: number; end?: number } => {
-  const starts: number[] = [];
-  const ends: number[] = [];
-  for (const document of project.documents) {
-    const documentStart = timestamp(document.startedAt);
-    const documentEnd = timestamp(document.endedAt);
-    if (documentStart !== undefined) starts.push(documentStart);
-    if (documentEnd !== undefined) ends.push(documentEnd);
-    for (const testCase of document.cases) {
-      for (const attempt of testCase.attempts) {
-        const attemptStart = timestamp(attempt.startedAt);
-        const attemptEnd = timestamp(attempt.endedAt);
-        if (attemptStart !== undefined) starts.push(attemptStart);
-        if (attemptEnd !== undefined) ends.push(attemptEnd);
-      }
-    }
-  }
-  return {
-    start: starts.length ? Math.min(...starts) : undefined,
-    end: ends.length ? Math.max(...ends) : undefined,
-  };
-};
-
-export const buildRunnerTimeline = (
-  dump: TestRunReportDump,
-): RunnerTimelineLane[] => {
-  const runStart = timestamp(dump.startedAt) ?? 0;
-  const runEnd = timestamp(dump.endedAt) ?? runStart + dump.durationMs;
-  const runDuration = Math.max(1, runEnd - runStart, dump.durationMs);
-  const makeSegment = (
-    projectId: string,
-    label: string,
-    kind: RunnerTimelineSegment['kind'],
-    start: number,
-    end: number,
-  ): RunnerTimelineSegment | undefined => {
-    if (end <= start) return undefined;
-    return {
-      key: `${projectId}:${kind}`,
-      label,
-      kind,
-      durationMs: end - start,
-      offsetPercent: Math.max(
-        0,
-        Math.min(100, ((start - runStart) / runDuration) * 100),
-      ),
-      widthPercent: Math.max(
-        0.8,
-        Math.min(100, ((end - start) / runDuration) * 100),
-      ),
-    };
-  };
-
-  const projectLanes = dump.projects.map((project) => {
-    const bounds = projectExecutionBounds(project);
-    const lifecycleStart =
-      timestamp(project.lifecycle?.startedAt) ?? bounds.start ?? runStart;
-    const lifecycleEnd =
-      timestamp(project.lifecycle?.endedAt) ?? bounds.end ?? lifecycleStart;
-    const executionStart = bounds.start;
-    const executionEnd = bounds.end;
-    const segments: RunnerTimelineSegment[] = [];
-    if (executionStart === undefined || executionEnd === undefined) {
-      const setup = makeSegment(
-        project.projectId,
-        'Setup / install',
-        'setup',
-        lifecycleStart,
-        lifecycleEnd,
-      );
-      if (setup) segments.push(setup);
-    } else {
-      const setup = makeSegment(
-        project.projectId,
-        'Setup / install',
-        'setup',
-        lifecycleStart,
-        executionStart,
-      );
-      const test = makeSegment(
-        project.projectId,
-        'Test cases',
-        'test',
-        executionStart,
-        executionEnd,
-      );
-      const teardown = makeSegment(
-        project.projectId,
-        'Teardown',
-        'teardown',
-        executionEnd,
-        lifecycleEnd,
-      );
-      if (setup) segments.push(setup);
-      if (test) segments.push(test);
-      if (teardown) segments.push(teardown);
-    }
-    return {
-      projectId: project.projectId,
-      projectName: project.name,
-      status: project.status,
-      segments,
-    };
-  });
-
-  const projectStarts = dump.projects
-    .map((project) => {
-      const bounds = projectExecutionBounds(project);
-      return timestamp(project.lifecycle?.startedAt) ?? bounds.start;
-    })
-    .filter((value): value is number => value !== undefined);
-  const projectEnds = dump.projects
-    .map((project) => {
-      const bounds = projectExecutionBounds(project);
-      return timestamp(project.lifecycle?.endedAt) ?? bounds.end;
-    })
-    .filter((value): value is number => value !== undefined);
-  const runnerSegments: RunnerTimelineSegment[] = [];
-  if (projectStarts.length && projectEnds.length) {
-    const projectsStart = Math.min(...projectStarts);
-    const projectsEnd = Math.max(...projectEnds);
-    const preflight = makeSegment(
-      'runner',
-      'Preflight',
-      'setup',
-      runStart,
-      projectsStart,
-    );
-    const execution = makeSegment(
-      'runner',
-      'Projects running',
-      'test',
-      projectsStart,
-      projectsEnd,
-    );
-    const finalize = makeSegment(
-      'runner',
-      'Finalize results',
-      'teardown',
-      projectsEnd,
-      runEnd,
-    );
-    if (preflight) runnerSegments.push(preflight);
-    if (execution) runnerSegments.push(execution);
-    if (finalize) runnerSegments.push(finalize);
-  } else {
-    const runner = makeSegment(
-      'runner',
-      'Runner lifecycle',
-      'test',
-      runStart,
-      runEnd,
-    );
-    if (runner) runnerSegments.push(runner);
-  }
-
-  return [
-    {
-      projectId: 'runner',
-      projectName: 'Runner lifecycle',
-      status: dump.status,
-      segments: runnerSegments,
-    },
-    ...projectLanes,
-  ];
-};
-
 const asScreenshot = (value: unknown): ScreenshotLike | undefined => {
   if (!value || typeof value !== 'object' || !('base64' in value)) {
     return undefined;
@@ -876,23 +684,6 @@ export const positionAttemptVisualFrames = (
     .map(
       ({ sourceIndex: _sourceIndex, ...positionedFrame }) => positionedFrame,
     );
-};
-
-export const getAttemptVisualStory = (
-  attempt: TestRunReportAttempt | undefined,
-  index: RunnerVisualIndex,
-  limit = 5,
-): RunnerVisualStoryItem[] => {
-  if (!attempt) return [];
-  const primarySteps = attempt.steps.length
-    ? attempt.steps
-    : flattenAttemptSteps(attempt);
-  return evenlySample(primarySteps, limit).map((step) => ({
-    key: step.id,
-    step,
-    label: getStepDisplayName(step),
-    frame: getVisualFrames(step.agentDetails, index, 1).at(-1),
-  }));
 };
 
 export const statusSortWeight: Record<RunnerCaseStatus, number> = {

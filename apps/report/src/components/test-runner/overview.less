@@ -9,7 +9,6 @@
   }
 
   .runner-overview-outcome {
-    min-height: 142px;
     padding: 7px 4px 5px;
   }
 
@@ -29,11 +28,6 @@
 
   .runner-overview-outcome h1 strong {
     font-size: clamp(38px, 4vw, 48px);
-  }
-
-  .runner-overview-outcome-message {
-    max-width: 430px;
-    margin-top: 6px;
   }
 
   .runner-overview-outcome-footer {
@@ -222,16 +216,7 @@
   }
 
   .runner-project-tree-overview {
-    display: inline-flex;
     width: auto;
-    height: 32px;
-    padding: 0 10px;
-    gap: 7px;
-    border: 1px solid var(--runner-border);
-    border-radius: 8px;
-    background: var(--runner-surface);
-    font-size: 14px;
-    font-weight: 600;
   }
 
   .runner-project-status-dot {
@@ -346,7 +331,6 @@
     margin: 0;
     overflow: hidden;
     font-size: 14px;
-    font-weight: 650;
     line-height: 1.35;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -389,11 +373,6 @@
 
   .runner-project-tree-case-item.is-detailed::after {
     content: none;
-  }
-
-  .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-    grid-template-columns: 12px minmax(360px, 1.39fr) minmax(260px, 1fr) 120px;
-    min-height: 68px;
   }
 
   .runner-project-tree-case-item.is-detailed .runner-project-tree-case-meta-row,
@@ -467,14 +446,6 @@
     .runner-breakdown-toolbar > .ant-input-affix-wrapper {
       grid-column: 1 / -1;
     }
-
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 12px minmax(0, 1fr);
-    }
-
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
-      display: none;
-    }
   }
 }
 
@@ -508,12 +479,7 @@
     }
 
     .runner-project-tree-case {
-      grid-template-columns: 7px minmax(0, 1fr) 70px;
       min-height: 48px;
-    }
-
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 7px minmax(0, 1fr) 70px;
     }
 
     .runner-project-tree-case-meta-row {
