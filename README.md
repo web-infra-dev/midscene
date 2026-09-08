@@ -78,17 +78,17 @@ Midscene supports multimodal models such as `Qwen3.x`, `Doubao-Seed-2.1`, `GLM-4
 
 ## 🧰 Testing Kit
 
-Batteries included: Midscene provides the observability, test framework, and integration APIs needed to turn GUI automation into a maintainable E2E test project.
-
-### Built-in observability
-
-Interactive HTML reports show screenshots, element locations, the AI decision process, and action and assertion results. In Midscene Test, AI steps and custom business operations share execution records with inputs, outputs, timing, and status. Reports and runtime logs give both developers and AI Agents the context to investigate failures. Use the [Playground](https://midscenejs.com/quick-start#chrome-extension) to try and refine instructions against your interface.
+Batteries included: Midscene provides the test framework, observability, and integration APIs needed to turn GUI automation into a maintainable E2E test project.
 
 ### Midscene Test: an E2E framework for the AI era
 
 [Midscene Test](https://midscenejs.com/midscene-test/overview) (`@midscene/test`, Beta) separates **declarative test intent from programmable engineering**. Write UI flows and expectations in YAML, and wrap API calls, data preparation, and cleanup in reusable TypeScript Nodes. A refund test can prepare an order through an API, request a refund through the UI, and verify the result in one workflow.
 
 The framework includes project scaffolding, platform presets, lifecycle hooks, retries, and execution-project isolation and concurrency. It also generates a Markdown reference from registered Nodes and their parameter schemas, so **people and AI Agents can discover the same capabilities and co-maintain test cases**. See [Create and extend a project](https://midscenejs.com/midscene-test/extend) and [Write and run tests](https://midscenejs.com/midscene-test/use).
+
+### Built-in observability
+
+Interactive HTML reports show screenshots, element locations, the AI decision process, and action and assertion results. Midscene Test records the inputs, outputs, duration, and status of each AI step and custom business operation. Reports and runtime logs give both developers and AI Agents the context to investigate failures. Use the [Playground](https://midscenejs.com/quick-start#chrome-extension) to try and refine instructions against your interface.
 
 ### Rich APIs that fit your existing stack
 
