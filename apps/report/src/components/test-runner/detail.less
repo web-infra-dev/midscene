@@ -415,3 +415,53 @@
     }
   }
 }
+.test-runner-report {
+  .runner-detail-evidence-heading > div:first-child {
+    min-width: 0;
+    flex: 1 1 220px;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-evidence-actions {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .runner-detail-case-header .runner-attempt-switcher > button {
+    flex-shrink: 0;
+  }
+
+  .runner-back-button {
+    min-height: 36px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 860px) {
+  .runner-detail-trace-drawer {
+    .ant-drawer-body {
+      overflow: auto;
+    }
+
+    .runner-agent-trace-content {
+      min-width: 760px;
+    }
+  }
+}
+
+@media (max-width: 620px) {
+  .test-runner-report {
+    .runner-detail-trace-actions .ant-btn,
+    .runner-back-button {
+      min-height: 44px;
+    }
+
+    .runner-header-actions {
+      display: flex;
+    }
+
+    .runner-detail-trace-actions {
+      flex-wrap: wrap;
+    }
+  }
+}

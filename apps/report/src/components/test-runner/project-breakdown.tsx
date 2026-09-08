@@ -1,7 +1,6 @@
 import { DownOutlined, RightOutlined, WarningFilled } from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
 import { useId } from 'react';
-import { VisualTimeline } from './case-preview';
 import {
   type RunnerCaseStatus,
   type RunnerCaseView,
@@ -17,6 +16,7 @@ import {
   caseStatusLabel,
   formatDuration,
 } from './view-primitives';
+import { VisualTimeline } from './visual-timeline';
 
 export const projectDisplayStatus = (
   item: RunnerProjectView,
@@ -115,7 +115,6 @@ function ProjectBreakdownNode({
   expanded,
   caseDisplayMode,
   onToggle,
-  onOpenProject,
   onOpenCase,
 }: {
   visualIndex: RunnerVisualIndex;
@@ -123,7 +122,6 @@ function ProjectBreakdownNode({
   expanded: boolean;
   caseDisplayMode: RunnerCaseDisplayMode;
   onToggle(): void;
-  onOpenProject(item: RunnerProjectView): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const childGroupId = useId();
@@ -197,16 +195,6 @@ function ProjectBreakdownNode({
             <small>duration</small>
           </span>
         </div>
-        <Tooltip title="Open project overview" mouseEnterDelay={0.25}>
-          <button
-            type="button"
-            className="runner-project-tree-overview"
-            onClick={() => onOpenProject(item)}
-            aria-label={`Open project overview ${item.project.name}`}
-          >
-            <RightOutlined aria-hidden />
-          </button>
-        </Tooltip>
       </div>
       {expanded ? (
         <ul
@@ -242,7 +230,6 @@ export function ProjectBreakdownTree({
   onExpandedProjectKeysChange,
   hasActiveFilters,
   onResetFilters,
-  onOpenProject,
   onOpenCase,
 }: {
   visualIndex: RunnerVisualIndex;
@@ -252,7 +239,6 @@ export function ProjectBreakdownTree({
   onExpandedProjectKeysChange(keys: Set<string>): void;
   hasActiveFilters: boolean;
   onResetFilters(): void;
-  onOpenProject(item: RunnerProjectView): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
   const visibleCaseCount = projects.reduce(
@@ -324,7 +310,6 @@ export function ProjectBreakdownTree({
             expanded={expandedProjectKeys.has(view.item.key)}
             caseDisplayMode={caseDisplayMode}
             onToggle={() => toggleProject(view.item.key)}
-            onOpenProject={onOpenProject}
             onOpenCase={onOpenCase}
           />
         ))}

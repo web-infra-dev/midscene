@@ -98,10 +98,10 @@ export function RunnerEvidenceInspector({
                   size="middle"
                   icon={<ThunderboltFilled />}
                   className="runner-detail-trace-open"
-                  aria-label="Inspect AI trace in side drawer"
+                  aria-label="Inspect GUI agent in side drawer"
                   onClick={() => onTraceDrawerOpenChange(true)}
                 >
-                  Inspect AI trace
+                  Inspect GUI agent
                 </Button>
                 <Button
                   size="middle"

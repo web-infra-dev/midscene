@@ -54,7 +54,7 @@ export function RunnerAttemptTimeline({
         <span>
           <PictureOutlined />
           <strong>Visual timeline</strong>
-          <small>Hover to preview · click to lock</small>
+          <small>Hover to preview</small>
         </span>
         <span>
           <small>{frames.length} captured frames</small>
@@ -128,9 +128,7 @@ export function RunnerAttemptTimeline({
                 }}
               >
                 <strong>{previewFrame.frame.label}</strong>
-                <small>
-                  {formatTimelineTime(previewFrame.offsetMs)} · click to lock
-                </small>
+                <small>{formatTimelineTime(previewFrame.offsetMs)}</small>
               </div>
             ) : null}
           </div>

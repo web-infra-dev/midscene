@@ -34,12 +34,10 @@ export function runnerStepIdFromHash(hash: string): string | undefined {
 
 export type RunnerRoute =
   | { page: 'overview' }
-  | { page: 'project'; projectId: string }
   | {
       page: 'case';
       caseKey: string;
       projectId: string;
-      parent: 'overview' | 'project';
       stepId?: string;
     };
 
@@ -59,10 +57,6 @@ const runnerRouteKeys = [
 export function runnerRouteFromHash(hash: string): RunnerRoute {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : '');
   switch (params.get('runner-page')) {
-    case 'project': {
-      const projectId = params.get('runner-project');
-      return projectId ? { page: 'project', projectId } : { page: 'overview' };
-    }
     case 'case': {
       const caseKey = params.get('runner-case');
       const projectId = params.get('runner-project');
@@ -71,8 +65,6 @@ export function runnerRouteFromHash(hash: string): RunnerRoute {
         page: 'case',
         caseKey,
         projectId,
-        parent:
-          params.get('runner-parent') === 'project' ? 'project' : 'overview',
       };
     }
     default:
@@ -93,12 +85,9 @@ export function runnerHashForRoute(
   params.delete('task');
 
   if (route.page !== 'overview') params.set('runner-page', route.page);
-  if (route.page === 'project' || route.page === 'case') {
-    params.set('runner-project', route.projectId);
-  }
   if (route.page === 'case') {
+    params.set('runner-project', route.projectId);
     params.set('runner-case', route.caseKey);
-    params.set('runner-parent', route.parent);
     if (route.stepId) params.set('runner-step', route.stepId);
   }
 

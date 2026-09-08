@@ -30,9 +30,11 @@ describe('Midscene Test report layout', () => {
     expect(styles).not.toContain('.runner-project-tree-overview::before');
   });
 
-  it('uses Midscene Test branding in the title and accessible page name', () => {
-    expect(source).toContain('<strong>Midscene Test Report</strong>');
-    expect(source).toContain('aria-label="Midscene Test report content"');
+  it('keeps the brand in the logo without repeating it in the report title', () => {
+    expect(source).toContain('<Logo />');
+    expect(source).toContain('<strong>Test Report</strong>');
+    expect(source).toContain('aria-label="Test report content"');
+    expect(source).not.toContain('Midscene Test Report');
     expect(source).not.toContain('Test Runner');
   });
 
@@ -60,11 +62,19 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
   });
 
-  it('uses an icon-only project overview control with an accessible name', () => {
-    expect(breakdown).not.toContain('<span>Details</span>');
-    expect(breakdown).toContain(
-      'aria-label={`Open project overview ${item.project.name}`}',
+  it('removes the intermediate project page while keeping expansion and case navigation', () => {
+    expect(breakdown).not.toContain('runner-project-tree-overview');
+    expect(source).not.toContain('ProjectWorkspace');
+    expect(breakdown).toContain('aria-expanded={expanded}');
+    expect(source).toContain('backLabel="Overview"');
+  });
+
+  it('names the primary agent inspection action consistently for sighted and screen-reader users', () => {
+    expect(inspector).toContain('Inspect GUI agent');
+    expect(inspector).toContain(
+      'aria-label="Inspect GUI agent in side drawer"',
     );
+    expect(inspector).not.toContain('Inspect AI trace');
   });
 
   it('gives the step description its own full-width row after the actions', () => {
@@ -74,5 +84,19 @@ describe('Midscene Test report layout', () => {
     expect(styles).toMatch(
       /\.runner-detail-evidence-heading \.runner-detail-step-description\s*\{[^}]*flex: 1 0 100%;/,
     );
+  });
+
+  it('keeps timeline preview hints concise without changing frame selection', () => {
+    const timeline = readFileSync(
+      new URL('./attempt-timeline.tsx', import.meta.url),
+      'utf8',
+    );
+    expect(timeline).toContain('<small>Hover to preview</small>');
+    expect(timeline).toContain(
+      '<small>{formatTimelineTime(previewFrame.offsetMs)}</small>',
+    );
+    expect(timeline).not.toContain('click to lock');
+    expect(timeline).toContain('onClick={() => onSelectFrame(item)}');
+    expect(timeline).toContain('aria-pressed={isLocked}');
   });
 });

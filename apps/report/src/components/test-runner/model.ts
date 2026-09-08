@@ -222,22 +222,6 @@ export const groupRunnerProjects = (
 export const getStepDisplayName = (step: TestRunReportStep): string =>
   step.title?.trim() || step.output?.summary?.trim() || step.node;
 
-export const getCaseStory = (
-  testCase: TestRunReportCase,
-  attempt = testCase.attempts.at(-1),
-): string[] => {
-  if (!attempt) return [];
-  const primarySteps = attempt.steps.length
-    ? attempt.steps
-    : flattenAttemptSteps(attempt);
-  const labels: string[] = [];
-  for (const step of primarySteps) {
-    const label = getStepDisplayName(step);
-    if (labels.at(-1) !== label) labels.push(label);
-  }
-  return labels.slice(0, 5);
-};
-
 export const getCaseFailure = (
   testCase: TestRunReportCase,
 ): TestRunReportStep | undefined => {

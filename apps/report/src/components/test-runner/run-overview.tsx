@@ -29,7 +29,6 @@ export function RunOverview({
   expandedProjectKeys,
   onExpandedProjectKeysChange,
   onOpenCase,
-  onOpenProject,
 }: {
   visualIndex: RunnerVisualIndex;
   dump: TestRunReportDump;
@@ -41,7 +40,6 @@ export function RunOverview({
   expandedProjectKeys: Set<string>;
   onExpandedProjectKeysChange(keys: Set<string>): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
-  onOpenProject(item: RunnerProjectView): void;
 }): JSX.Element {
   const breakdownRef = useRef<HTMLElement>(null);
   const [breakdownQuery, setBreakdownQuery] = useState('');
@@ -136,7 +134,6 @@ export function RunOverview({
           onExpandedProjectKeysChange={onExpandedProjectKeysChange}
           hasActiveFilters={hasActiveBreakdownFilters}
           onResetFilters={resetBreakdownFilters}
-          onOpenProject={onOpenProject}
           onOpenCase={onOpenCase}
         />
       </section>

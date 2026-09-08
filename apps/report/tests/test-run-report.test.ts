@@ -39,39 +39,37 @@ describe('Midscene Test report utilities', () => {
     ).toBe('attempt:steps:0');
   });
 
-  it('round-trips Project and Case routes through the report hash', () => {
-    const projectHash = runnerHashForRoute(
-      { page: 'project', projectId: 'android smoke' },
-      '#external=value&runner-step=old-step&task=old-task',
-    );
-    expect(projectHash).toBe(
-      '#external=value&runner-page=project&runner-project=android+smoke',
-    );
-    expect(runnerRouteFromHash(projectHash)).toEqual({
-      page: 'project',
-      projectId: 'android smoke',
-    });
-
+  it('round-trips Case and Overview routes without an intermediate project page', () => {
     const caseHash = runnerHashForRoute(
       {
         page: 'case',
         caseKey: 'project:document:case',
         projectId: 'project',
-        parent: 'overview',
         stepId: 'failed-step',
       },
-      projectHash,
+      '#external=value&runner-parent=project&runner-step=old-step&task=old-task',
     );
     expect(runnerRouteFromHash(caseHash)).toEqual({
       page: 'case',
       caseKey: 'project:document:case',
       projectId: 'project',
-      parent: 'overview',
     });
     expect(new URLSearchParams(caseHash.slice(1)).get('external')).toBe(
       'value',
     );
     expect(runnerStepIdFromHash(caseHash)).toBe('failed-step');
+    expect(caseHash).not.toContain('runner-parent');
+    expect(caseHash).not.toContain('old-step');
+    expect(caseHash).not.toContain('old-task');
+    expect(runnerHashForRoute({ page: 'overview' }, caseHash)).toBe(
+      '#external=value',
+    );
+  });
+
+  it('falls back to Overview for the removed project page', () => {
+    expect(
+      runnerRouteFromHash('#runner-page=project&runner-project=web'),
+    ).toEqual({ page: 'overview' });
   });
 
   it('folds the retired Cases route into Overview and clears its filters', () => {

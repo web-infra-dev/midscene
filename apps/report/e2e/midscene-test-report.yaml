@@ -24,15 +24,15 @@ tasks:
       - aiTap: the Compact view button
       - aiAssert: Compact is selected. Case rows show their names and status tags without screenshot timelines.
 
-  - name: project workspace and browser history
+  - name: direct case navigation and browser history
     flow:
-      - aiTap: the right-pointing chevron at the far right of the Web regression project header row, after its duration (not the expand chevron on the left)
-      - aiAssert: The Web regression project page shows health metrics and a Cases section containing Checkout with retry and Verify cart summary, with search and status filters.
+      - aiTap: the Verify cart summary case row under Web regression
+      - aiAssert: The Verify cart summary case detail has an Overview back link and an Execution panel with cart.verify selected. There is no Attempt selector for this single attempt.
       # Check history navigation through the route, then assert only visible UI with AI.
       - javascript: |
           new Promise((resolve, reject) => {
             const params = new URLSearchParams(location.hash.slice(1));
-            if (params.get('runner-page') !== 'project') throw new Error('Missing project route');
+            if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') throw new Error('Missing Verify cart summary case route');
             const timeout = setTimeout(() => {
               window.removeEventListener('hashchange', onRouteChange);
               reject(new Error('Browser Back did not navigate to the overview'));
@@ -46,26 +46,26 @@ tasks:
             window.addEventListener('hashchange', onRouteChange, { once: true });
             history.back();
           });
-        name: browserBackFromProject
+        name: browserBackFromCase
       - aiAssert: The overview shows the Projects and cases heading and the Compact and Detailed view controls.
       - javascript: |
           new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
               window.removeEventListener('hashchange', onRouteChange);
-              reject(new Error('Browser Forward did not navigate to the project'));
+              reject(new Error('Browser Forward did not navigate to the case'));
             }, 5000);
             function onRouteChange() {
               clearTimeout(timeout);
               const params = new URLSearchParams(location.hash.slice(1));
-              if (params.get('runner-page') !== 'project' || params.get('runner-project') !== 'web-demo') {
-                reject(new Error(`Expected Web regression project route, got ${location.hash}`));
+              if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') {
+                reject(new Error(`Expected Verify cart summary case route, got ${location.hash}`));
               } else resolve();
             }
             window.addEventListener('hashchange', onRouteChange, { once: true });
             history.forward();
           });
-        name: browserForwardToProject
-      - aiAssert: The project detail page has a Web regression heading, an Overview back link, health metrics, and a Cases section containing Checkout with retry and Verify cart summary.
+        name: browserForwardToCase
+      - aiAssert: The Verify cart summary case detail has an Overview back link, a Passed status, and an Execution panel showing cart.verify.
       - aiTap: the Overview back link
 
   - name: retry attempts and custom node errors
@@ -73,7 +73,7 @@ tasks:
       - aiTap: the Checkout with retry case row
       - aiAssert: The Checkout with retry case detail has Attempt 1 selected. The selected order.create step shows Inventory was not ready.
       - aiTap: the Attempt 2 selector
-      - aiAssert: Attempt 2 is selected. The visual timeline is above Execution and the evidence panel; aiAct is selected and an Inspect AI trace action is available.
+      - aiAssert: Attempt 2 is selected. The visual timeline is above Execution and the evidence panel; aiAct is selected and an Inspect GUI agent action is available.
       - aiHover: a screenshot in the full width Visual timeline
       - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
       - aiHover: the Checkout with retry case title at the top left, outside the Visual timeline and its floating preview
@@ -83,7 +83,7 @@ tasks:
   - name: AI trace and namespaced deep link
     flow:
       - aiTap: the Attempt 2 selector
-      - aiAssert: aiAct is selected, with Input & output and Events tabs and actions to Inspect AI trace and Open AI trace in new tab.
+      - aiAssert: aiAct is selected, with Input & output and Events tabs and actions to Inspect GUI agent and Open AI trace in new tab.
       - javascript: |
           const link = document.querySelector('.runner-detail-trace-new-page');
           if (!(link instanceof HTMLAnchorElement)) throw new Error('Missing trace link');
@@ -92,5 +92,5 @@ tasks:
             throw new Error('Trace link lost its namespaced step context');
           }
         name: assertTraceDeepLink
-      - aiTap: the Inspect AI trace button
+      - aiTap: the Inspect GUI agent button
       - aiAssert: A wide AI trace drawer overlays the Case workspace, with the recorded Agent task list and screenshot replay visible inside the drawer.

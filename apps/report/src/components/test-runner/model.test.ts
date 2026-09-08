@@ -15,7 +15,6 @@ import {
   getAllAttemptVisualFrames,
   getAttemptVisualFrames,
   getCaseSearchMatch,
-  getCaseStory,
   getDefaultExpandedProjectKeys,
   getDefaultVisualFrameForStep,
   getRunnerHealth,
@@ -333,7 +332,6 @@ describe('Midscene Test hybrid report model', () => {
     expect(resolveRunnerNavigation('', cases, projects)).toMatchObject({
       page: 'case',
       selectedCaseKey: cases[0].key,
-      caseParent: 'overview',
     });
     expect(
       resolveRunnerNavigation('#runner-page=overview', cases, projects).page,
@@ -364,6 +362,27 @@ describe('Midscene Test hybrid report model', () => {
     expect(resolveRunnerNavigation('', filteredCases, projects).page).toBe(
       'overview',
     );
+  });
+
+  it('routes multi-case reports between overview and case detail only', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=project&runner-project=web',
+        cases,
+        projects,
+      ),
+    ).toEqual({ page: 'overview' });
+    const target = cases[0];
+    const hash = `#runner-page=case&runner-project=${encodeURIComponent(target.project.projectId)}&runner-case=${encodeURIComponent(target.key)}`;
+    expect(resolveRunnerNavigation(hash, cases, projects)).toMatchObject({
+      page: 'case',
+      selectedCaseKey: target.key,
+    });
+    expect(resolveRunnerNavigation('#', cases, projects)).toEqual({
+      page: 'overview',
+    });
   });
 
   it('preserves single-case trace links and rejects unrelated step IDs', () => {
@@ -526,14 +545,6 @@ describe('Midscene Test hybrid report model', () => {
         sort: 'name',
       }),
     ).toEqual([]);
-  });
-
-  it('builds a compact semantic story from the final Attempt', () => {
-    const retryCase = dump.projects[0].documents[0].cases[1];
-    expect(getCaseStory(retryCase)).toEqual([
-      'Search for headphones',
-      'Verify the result list',
-    ]);
   });
 
   it('searches failed retries, errors, values, and trace identifiers', () => {

@@ -17,7 +17,6 @@ import {
 import { CaseWorkspace } from './case-workspace';
 import {
   type RunnerCaseView,
-  type RunnerProjectView,
   buildRunnerVisualIndex,
   flattenRunnerCases,
   getDefaultExpandedProjectKeys,
@@ -29,11 +28,8 @@ import {
   isSingleCaseReport,
   resolveRunnerNavigation,
 } from './navigation';
-import { ProjectWorkspace } from './project-workspace';
 import { RunOverview } from './run-overview';
 import type { RunnerCaseDisplayMode } from './view-primitives';
-
-type RunnerCaseParent = 'overview' | 'project';
 
 interface TestRunnerReportProps {
   dump: TestRunReportDump;
@@ -71,16 +67,7 @@ export default function TestRunnerReport({
     scrollTop: number;
     caseKey?: string;
   }>({ scrollTop: 0 });
-  const {
-    page,
-    selectedProjectId,
-    selectedCaseKey,
-    caseParent,
-    deepLinkedStepId,
-  } = navigation;
-  const selectedProject = projects.find(
-    (item) => item.project.projectId === selectedProjectId,
-  );
+  const { page, selectedCaseKey, deepLinkedStepId } = navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
   const tracePage =
     page === 'case' &&
@@ -129,7 +116,7 @@ export default function TestRunnerReport({
             ).find((row) => row.dataset.caseKey === focusCaseKey)
           : undefined;
         const focusTarget = caseRow?.querySelector(
-          '.runner-case-title-button, .runner-project-tree-case',
+          '.runner-project-tree-case',
         ) as HTMLElement | null | undefined;
         (focusTarget ?? main).focus({ preventScroll: true });
       });
@@ -146,47 +133,26 @@ export default function TestRunnerReport({
     setNavigation(resolveRunnerNavigation(nextHash, cases, projects));
     restoreView(viewState);
   };
-  const openProject = (item: RunnerProjectView) => {
-    navigate({ page: 'project', projectId: item.project.projectId });
-  };
-  const openCase = (
-    item: RunnerCaseView,
-    parent: RunnerCaseParent = 'overview',
-    stepId?: string,
-  ) => {
-    if (parent === 'overview') {
-      overviewReturnStateRef.current = {
-        scrollTop: mainRef.current?.scrollTop ?? 0,
-        caseKey: item.key,
-      };
-    }
+  const openCase = (item: RunnerCaseView, stepId?: string) => {
+    overviewReturnStateRef.current = {
+      scrollTop: mainRef.current?.scrollTop ?? 0,
+      caseKey: item.key,
+    };
     navigate({
       page: 'case',
       caseKey: item.key,
       projectId: item.project.projectId,
-      parent,
       stepId,
     });
   };
   const backFromCase = () => {
-    if (caseParent === 'overview') {
-      navigate(
-        { page: 'overview' },
-        {
-          scrollTop: overviewReturnStateRef.current.scrollTop,
-          focusCaseKey: overviewReturnStateRef.current.caseKey,
-        },
-      );
-    } else {
-      navigate(
-        selectedProject
-          ? {
-              page: 'project',
-              projectId: selectedProject.project.projectId,
-            }
-          : { page: 'overview' },
-      );
-    }
+    navigate(
+      { page: 'overview' },
+      {
+        scrollTop: overviewReturnStateRef.current.scrollTop,
+        focusCaseKey: overviewReturnStateRef.current.caseKey,
+      },
+    );
   };
   const closeTracePage = () => {
     if (!selectedCase) return;
@@ -194,7 +160,6 @@ export default function TestRunnerReport({
       page: 'case',
       caseKey: selectedCase.key,
       projectId: selectedCase.project.projectId,
-      parent: caseParent,
       stepId: deepLinkedStepId,
     });
   };
@@ -215,7 +180,7 @@ export default function TestRunnerReport({
             <div className="runner-header-title">
               <Logo />
               <div>
-                <strong>Midscene Test Report</strong>
+                <strong>Test Report</strong>
               </div>
             </div>
             <div className="runner-header-actions">
@@ -233,40 +198,12 @@ export default function TestRunnerReport({
             ref={mainRef}
             className="runner-main"
             tabIndex={-1}
-            aria-label="Midscene Test report content"
+            aria-label="Test report content"
           >
-            {page === 'overview' ? (
-              <RunOverview
-                visualIndex={visualIndex}
-                dump={dump}
-                cases={cases}
-                health={health}
-                projects={projects}
-                caseDisplayMode={caseDisplayMode}
-                onCaseDisplayModeChange={setCaseDisplayMode}
-                expandedProjectKeys={expandedProjectKeys}
-                onExpandedProjectKeysChange={setExpandedProjectKeys}
-                onOpenCase={(item, stepId) =>
-                  openCase(item, 'overview', stepId)
-                }
-                onOpenProject={openProject}
-              />
-            ) : page === 'project' && selectedProject ? (
-              <ProjectWorkspace
-                key={selectedProject.key}
-                item={selectedProject}
-                visualIndex={visualIndex}
-                onBack={() => navigate({ page: 'overview' })}
-                onOpenCase={(item, stepId) => openCase(item, 'project', stepId)}
-              />
-            ) : page === 'case' && selectedCase ? (
+            {page === 'case' && selectedCase ? (
               <CaseWorkspace
                 key={selectedCase.key}
-                backLabel={
-                  caseParent === 'overview'
-                    ? 'Overview'
-                    : selectedProject?.project.name || 'Project'
-                }
+                backLabel="Overview"
                 item={selectedCase}
                 standaloneRun={isSingleCaseReport(projects) ? dump : undefined}
                 visualIndex={visualIndex}
@@ -288,10 +225,7 @@ export default function TestRunnerReport({
                 onCaseDisplayModeChange={setCaseDisplayMode}
                 expandedProjectKeys={expandedProjectKeys}
                 onExpandedProjectKeysChange={setExpandedProjectKeys}
-                onOpenCase={(item, stepId) =>
-                  openCase(item, 'overview', stepId)
-                }
-                onOpenProject={openProject}
+                onOpenCase={openCase}
               />
             )}
           </main>

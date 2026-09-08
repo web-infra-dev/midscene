@@ -123,36 +123,8 @@
     display: inline;
   }
 
-  .runner-row-action,
-  .runner-project-cases .runner-row-action,
-  .runner-project-tree-overview {
-    display: inline-flex;
-    height: 32px;
-    padding: 0 10px;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    color: var(--runner-muted);
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    font-size: 14px;
-    font-weight: 400;
-    white-space: nowrap;
-  }
-
-  .runner-project-tree-case:hover .runner-row-action,
-  .runner-project-tree-case:focus-visible .runner-row-action,
-  .runner-project-cases .runner-row-action:hover,
-  .runner-project-tree-overview:hover {
-    color: var(--runner-primary);
-    background: transparent;
-  }
-
   .runner-project-tree-case-title h3,
-  .runner-project-tree-case .runner-status-pill,
-  .runner-project-cases .runner-case-title-button h3,
-  .runner-project-cases .runner-status-pill {
+  .runner-project-tree-case .runner-status-pill {
     font-weight: 400;
   }
 
@@ -240,11 +212,6 @@
 
 @media (max-width: 620px) {
   .test-runner-report {
-    .runner-row-action,
-    .runner-project-tree-overview {
-      min-height: 44px;
-    }
-
     .runner-project-tree-case,
     .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
       grid-template-columns: 7px minmax(0, 1fr);

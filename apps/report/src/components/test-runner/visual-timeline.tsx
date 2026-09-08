@@ -1,42 +1,12 @@
-import {
-  PictureOutlined,
-  RightOutlined,
-  WarningFilled,
-} from '@ant-design/icons';
+import { PictureOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import {
   DEFAULT_TIMELINE_MAX_TIME_MS,
   formatTimelineTime,
   pickNiceStep,
 } from '../timeline/timeline-scale';
-import {
-  type RunnerCaseView,
-  type RunnerVisualFrame,
-  type RunnerVisualIndex,
-  getAllAttemptVisualFrames,
-  getCaseFailure,
-  getCaseStory,
-} from './model';
-import { ProjectCaseEvidence } from './project-case-evidence';
-import { CaseStatus, formatDuration } from './view-primitives';
-
-function StorySteps({ steps }: { steps: readonly string[] }): JSX.Element {
-  if (!steps.length) {
-    return <span className="runner-muted">No executed steps</span>;
-  }
-  return (
-    <div className="runner-story-steps" aria-label="Case execution summary">
-      {steps.map((step, index) => (
-        <span className="runner-story-fragment" key={`${step}-${index}`}>
-          <Tooltip title={step} mouseEnterDelay={0.25}>
-            <span>{step}</span>
-          </Tooltip>
-          {index < steps.length - 1 ? <RightOutlined /> : null}
-        </span>
-      ))}
-    </div>
-  );
-}
+import type { RunnerVisualFrame } from './model';
+import { formatDuration } from './view-primitives';
 
 export function VisualTimeline({
   frames,
@@ -159,96 +129,5 @@ export function VisualTimeline({
         })}
       </ol>
     </div>
-  );
-}
-
-export function CasePreview({
-  item,
-  visualIndex,
-  frames: providedFrames,
-  onOpen,
-}: {
-  item: RunnerCaseView;
-  visualIndex: RunnerVisualIndex;
-  frames?: RunnerVisualFrame[];
-  onOpen(item: RunnerCaseView, stepId?: string): void;
-}): JSX.Element {
-  const story = getCaseStory(item.testCase);
-  const frames =
-    providedFrames ?? getAllAttemptVisualFrames(item.finalAttempt, visualIndex);
-  const failure = getCaseFailure(item.testCase);
-  return (
-    <article
-      className="runner-case-row"
-      data-case-key={item.key}
-      onClick={(event) => {
-        // Keep native controls independent; the title button also supports keyboard navigation.
-        if (
-          event.defaultPrevented ||
-          (event.target as Element).closest(
-            'button, a, details, [role="button"]',
-          )
-        ) {
-          return;
-        }
-        onOpen(item);
-      }}
-    >
-      <div className="runner-case-main">
-        <div className="runner-case-title-row">
-          <CaseStatus status={item.status} />
-          <button
-            type="button"
-            className="runner-case-title-button"
-            aria-label={`Open ${item.testCase.name} in project ${item.project.name}`}
-            onClick={() => onOpen(item)}
-          >
-            <h3>{item.testCase.name}</h3>
-          </button>
-        </div>
-        <div className="runner-case-meta">
-          <span>{item.project.name}</span>
-          <span>{item.project.platform}</span>
-          <span>{item.document.sourcePath}</span>
-          <span>{formatDuration(item.durationMs)}</span>
-          <span>
-            {item.testCase.attempts.length}{' '}
-            {item.testCase.attempts.length === 1 ? 'attempt' : 'attempts'}
-          </span>
-        </div>
-        {failure ? (
-          <div className="runner-case-failure">
-            <WarningFilled />
-            <Tooltip
-              title={`${failure.node}: ${
-                failure.error?.message || 'Step failed'
-              }`}
-            >
-              <span>
-                {failure.node}: {failure.error?.message || 'Step failed'}
-              </span>
-            </Tooltip>
-          </div>
-        ) : null}
-        <ProjectCaseEvidence frameCount={frames.length}>
-          <StorySteps steps={story} />
-          <VisualTimeline
-            frames={frames}
-            durationMs={item.finalAttempt?.durationMs ?? item.durationMs}
-          />
-        </ProjectCaseEvidence>
-      </div>
-      {failure && (
-        <button
-          type="button"
-          className="runner-case-failure-action runner-row-action"
-          aria-label={`Inspect failure in ${item.testCase.name}, project ${item.project.name}`}
-          onClick={() => onOpen(item, failure.id)}
-        >
-          Inspect failure
-          <RightOutlined />
-        </button>
-      )}
-    </article>
   );
 }

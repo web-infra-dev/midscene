@@ -644,7 +644,6 @@
   }
 
   .runner-project-tree-toggle,
-  .runner-project-tree-overview,
   .runner-project-tree-case {
     color: inherit;
     border: 0;
@@ -735,18 +734,6 @@
   .runner-project-tree-stats .is-warning strong,
   .runner-project-tree-stats .is-warning small {
     color: var(--runner-warning);
-  }
-
-  .runner-project-tree-overview {
-    place-items: center;
-  }
-
-  .runner-project-tree-overview svg {
-    font-size: 14px;
-  }
-
-  .runner-project-tree-overview:hover {
-    border-color: color-mix(in srgb, var(--runner-primary) 36%, transparent);
   }
 
   .runner-project-tree-children {
@@ -893,24 +880,6 @@
     border-top: 1px solid var(--runner-border-strong);
   }
 
-  .runner-project-tree-case-item.is-detailed .runner-case-row {
-    position: relative;
-    padding: 14px 10px;
-    gap: 16px;
-    border: 1px solid var(--runner-border);
-    border-radius: 9px;
-    background: var(--runner-surface);
-  }
-
-  .runner-project-tree-case-item.is-detailed .runner-case-row:hover {
-    border-color: color-mix(in srgb, var(--runner-primary) 35%, transparent);
-    background: color-mix(
-      in srgb,
-      var(--runner-primary-soft) 18%,
-      var(--runner-surface)
-    );
-  }
-
   .runner-project-tree-empty {
     position: relative;
     padding: 14px;
@@ -919,75 +888,6 @@
     border-radius: 9px;
     background: var(--runner-surface);
     font-size: 14px;
-  }
-
-  .runner-project-metrics {
-    margin-top: 26px;
-  }
-
-  .runner-project-alert {
-    margin-top: 14px;
-  }
-
-  .runner-case-list {
-    display: grid;
-    margin: 16px -10px -10px;
-  }
-
-  .runner-case-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 430px) 34px;
-    align-items: center;
-    width: 100%;
-    min-width: 0;
-    padding: 16px 10px;
-    gap: 18px;
-    border-top: 1px solid var(--runner-border);
-    background: transparent;
-    text-align: left;
-  }
-
-  .runner-case-row:first-child {
-    border-top: 0;
-  }
-
-  .runner-case-row:hover {
-    border-radius: 10px;
-    background: var(--runner-hover);
-  }
-
-  .runner-case-main {
-    min-width: 0;
-  }
-
-  .runner-case-title-row {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .runner-case-title-button {
-    min-width: 0;
-    padding: 2px 0;
-    color: inherit;
-    border: 0;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .runner-case-title-button:hover {
-    color: var(--runner-primary);
-  }
-
-  .runner-case-title-button h3 {
-    margin: 0;
-    overflow: hidden;
-    font-size: 14px;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .runner-status-pill {
@@ -1042,68 +942,6 @@
     margin: 0 7px;
     color: var(--runner-border-strong);
     content: '•';
-  }
-
-  .runner-story-steps {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    margin-top: 11px;
-    overflow: hidden;
-    gap: 7px;
-    color: var(--runner-muted);
-    font-size: 14px;
-  }
-
-  .runner-story-fragment {
-    display: inline-flex;
-    min-width: 0;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .runner-story-fragment > span {
-    overflow: hidden;
-    max-width: 180px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .runner-story-fragment > svg {
-    color: var(--runner-border-strong);
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .runner-case-failure {
-    display: flex;
-    align-items: center;
-    margin-top: 9px;
-    overflow: hidden;
-    gap: 6px;
-    color: var(--runner-danger);
-    font-size: 14px;
-  }
-
-  .runner-case-failure > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .runner-case-failure button {
-    padding: 2px 0;
-    color: var(--runner-primary);
-    border: 0;
-    background: transparent;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-
-  .runner-case-failure button {
-    margin-left: auto;
   }
 
   .runner-visual-timeline {
@@ -2397,10 +2235,6 @@
     .runner-project-tree-case-issue {
       display: none;
     }
-
-    .runner-case-row {
-      grid-template-columns: minmax(0, 1fr) 320px 34px;
-    }
   }
 }
 
@@ -2424,10 +2258,6 @@
       padding-left: 2px;
     }
 
-    .runner-case-row {
-      grid-template-columns: minmax(0, 1fr) 34px;
-    }
-
     .runner-project-tree-stats {
       grid-column: 1 / -1;
       grid-row: 2;
@@ -2436,23 +2266,12 @@
       border: 0;
     }
 
-    .runner-project-tree-overview {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
     .runner-project-tree-case {
       grid-template-columns: 10px 128px minmax(0, 1fr) 58px 10px;
     }
 
     .runner-project-tree-case-issue {
       display: none;
-    }
-
-    .runner-case-row > .runner-visual-timeline,
-    .runner-case-row > .runner-no-visual {
-      grid-column: 1 / -1;
-      grid-row: 2;
     }
 
     .runner-breakdown-toolbar {
@@ -2560,17 +2379,8 @@
     }
 
     .runner-project-tree-root {
-      grid-template-columns: minmax(0, 1fr) 36px;
+      grid-template-columns: minmax(0, 1fr);
       padding: 8px;
-    }
-
-    .runner-project-tree-overview {
-      width: 30px;
-    }
-
-    .runner-project-tree-overview svg {
-      font-size: 14px;
-      flex-shrink: 0;
     }
 
     .runner-project-tree-stats {
@@ -2641,23 +2451,6 @@
       gap: 8px;
     }
 
-    .runner-case-row {
-      padding: 14px 4px;
-      gap: 8px;
-    }
-
-    .runner-case-title-row {
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-
-    .runner-case-title-button h3 {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
-
     .runner-case-meta {
       flex-wrap: wrap;
       overflow: visible;
@@ -2668,31 +2461,6 @@
     .runner-case-meta span {
       max-width: 100%;
       overflow-wrap: anywhere;
-    }
-
-    .runner-case-failure {
-      align-items: flex-start;
-      overflow: visible;
-      flex-wrap: wrap;
-    }
-
-    .runner-case-failure > span {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
-
-    .runner-case-failure button {
-      margin-left: 20px;
-    }
-
-    .runner-story-steps {
-      overflow-x: auto;
-    }
-
-    .runner-story-fragment {
-      flex-shrink: 0;
     }
 
     .runner-json-block pre {
@@ -2771,5 +2539,4 @@
 
 @import './overview.less';
 @import './detail.less';
-@import './project.less';
 @import './refinements.less';

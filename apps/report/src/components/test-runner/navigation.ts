@@ -10,13 +10,10 @@ import {
 } from './model';
 
 type RunnerPage = RunnerRoute['page'];
-type RunnerCaseParent = 'overview' | 'project';
 
 export interface RunnerNavigationState {
   page: RunnerPage;
-  selectedProjectId?: string;
   selectedCaseKey?: string;
-  caseParent: RunnerCaseParent;
   deepLinkedStepId?: string;
 }
 
@@ -54,9 +51,7 @@ export const resolveRunnerNavigation = (
     const [onlyCase] = cases;
     return {
       page: 'case',
-      selectedProjectId: onlyCase.project.projectId,
       selectedCaseKey: onlyCase.key,
-      caseParent: 'overview',
       deepLinkedStepId: caseContainsStep(onlyCase, stepId) ? stepId : undefined,
     };
   }
@@ -70,25 +65,10 @@ export const resolveRunnerNavigation = (
     if (selectedCase) {
       return {
         page: 'case',
-        selectedProjectId: selectedCase.project.projectId,
         selectedCaseKey: selectedCase.key,
-        caseParent: route.parent,
         deepLinkedStepId: caseContainsStep(selectedCase, stepId)
           ? stepId
           : undefined,
-      };
-    }
-  }
-
-  if (route.page === 'project') {
-    const selectedProject = projects.find(
-      (item) => item.project.projectId === route.projectId,
-    );
-    if (selectedProject) {
-      return {
-        page: 'project',
-        selectedProjectId: selectedProject.project.projectId,
-        caseParent: 'project',
       };
     }
   }
@@ -101,13 +81,11 @@ export const resolveRunnerNavigation = (
     if (linkedCase) {
       return {
         page: 'case',
-        selectedProjectId: linkedCase.project.projectId,
         selectedCaseKey: linkedCase.key,
-        caseParent: 'overview',
         deepLinkedStepId: stepId,
       };
     }
   }
 
-  return { page: 'overview', caseParent: 'overview' };
+  return { page: 'overview' };
 };
