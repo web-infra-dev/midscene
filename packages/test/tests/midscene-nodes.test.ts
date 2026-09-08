@@ -642,6 +642,7 @@ describe('createMidsceneNodes', () => {
       },
       async aiAssert() {
         emit('execution-assert');
+        return undefined;
       },
       async recordToReport() {
         emit('execution-record');
@@ -707,7 +708,7 @@ describe('createMidsceneNodes', () => {
       NonNullable<MidsceneUIAgent['addDumpUpdateListener']>
     >[0];
     const listeners = new Set<DumpListener>();
-    const agent = {
+    const agent = commonAgent({
       async aiAct() {
         for (const listener of listeners) {
           listener('ignored', { id: 'execution-failed' });
@@ -718,7 +719,7 @@ describe('createMidsceneNodes', () => {
         listeners.add(listener);
         return () => listeners.delete(listener);
       },
-    } as MidsceneUIAgent;
+    });
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () => agent,
@@ -757,7 +758,7 @@ describe('createMidsceneNodes', () => {
     >[0];
     const listeners = new Set<DumpListener>();
     let signal: AbortSignal | undefined;
-    const agent = {
+    const agent = commonAgent({
       aiAct(
         _prompt: unknown,
         options?: { abortSignal?: AbortSignal },
@@ -769,7 +770,7 @@ describe('createMidsceneNodes', () => {
         listeners.add(listener);
         return () => listeners.delete(listener);
       },
-    } as MidsceneUIAgent;
+    });
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () => agent,
@@ -805,13 +806,13 @@ describe('createMidsceneNodes', () => {
     const release = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
-    const agent = {
+    const agent = commonAgent({
       async aiAct() {
         resolveEntered();
         await release;
         return 'done';
       },
-    } as MidsceneUIAgent;
+    });
     const registry = new NodeRegistry(
       createMidsceneNodes({
         getAgent: () => agent,
