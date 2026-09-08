@@ -1,15 +1,23 @@
 name: Report screenshots Linux
 
 on:
-  push:
-    branches: [fix/web-linux-report-screenshots-2970]
+  pull_request:
+    paths:
+      - '.github/workflows/report-screenshots-linux.yml'
+      - 'packages/web-integration/src/**'
+      - 'packages/web-integration/tests/integration/report-screenshots.mjs'
+      - 'packages/web-integration/package.json'
+      - 'packages/core/**'
+      - 'packages/shared/src/img/**'
+      - 'packages/visualizer/**'
+      - 'apps/report/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: report-screenshots-linux-${{ github.ref }}
+  group: report-screenshots-linux-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,7 +27,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.10.3', workspace]
+        # Manual runs also check the exact published environment from #2970.
+        version: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["1.10.3","workspace"]' || '["workspace"]') }}
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       MIDSCENE_REPORT_QUIET: 'true'
@@ -50,7 +59,7 @@ jobs:
       - name: Run workspace regression
         if: matrix.version == 'workspace'
         working-directory: packages/web-integration
-        run: node tests/integration/report-screenshots.mjs
+        run: pnpm exec nx run @midscene/web:test:report-screenshots
       - name: Upload screenshots and reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -98,6 +98,7 @@
     "build:watch": "rslib build --watch --no-clean",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "rstest",
+    "test:report-screenshots": "node tests/integration/report-screenshots.mjs",
     "test:u": "rstest -u",
     "test:ai": "AI_TEST_TYPE=web rstest",
     "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web rstest",
