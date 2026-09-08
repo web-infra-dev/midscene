@@ -226,11 +226,12 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 | 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
+| GPT-6 系列 | `gpt-6-astra` | `gpt-6` | |
 | GPT-5 系列 | `gpt-5.4`、`gpt-5.5`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-5.6-luna` | `gpt-5` | GPT-5.4 之前的模型不支持视觉定位，仅可用作 Planning 模型或 Insight 模型。在实际定位测试中，GPT-5.5 和 GPT-5.6 的定位效果明显优于 GPT-5.4，建议优先使用 GPT-5.5 或 GPT-5.6。 |
 
 </div>
 
-环境变量配置示例，以 `gpt-5.5` 为例：
+环境变量配置示例，以 `gpt-6-astra` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -238,8 +239,8 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-5.5"
-MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
@@ -248,8 +249,8 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-5.5"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
@@ -258,12 +259,24 @@ MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API 地址；或你的兼容服务地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.5"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
 </ModelConfigTabs>
+
+**Fast mode**
+
+GPT-5.6 Sol 和 GPT-6 Astra 均支持 Fast mode，可以追加 `service_tier` 请求体参数启用，以 GPT-5.6 Sol 为例：
+
+```bash
+MIDSCENE_MODEL_NAME="gpt-5.6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
+```
+
+按照 OpenAI 官方说明，Fast mode 可获得最高 2～2.5 倍的速度，费率为 Standard 费率的两倍。具体速度、价格和使用限制以[官方说明](https://developers.openai.com/api/docs/guides/fast-mode)为准。
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 

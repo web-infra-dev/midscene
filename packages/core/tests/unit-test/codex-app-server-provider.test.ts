@@ -1,13 +1,13 @@
 import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
   normalizeCodexLocalImagePath,
-  resolveCodexReasoningEffort,
 } from '@/ai-model/service-caller/codex-app-server';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
@@ -51,102 +51,26 @@ describe('codex app-server provider helper', () => {
     expect(isCodexAppServerProvider(undefined)).toBe(false);
   });
 
-  it('maps reasoningEnabled and reasoning effort to codex effort', () => {
+  it('preserves default Codex parameter handling for other model families', () => {
+    const adapter = new ResolvedModelAdapter({}, 'default');
+    expect(adapter.buildCodexAppServerParams({}).config).toEqual({
+      effort: 'none',
+    });
     expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: true,
-        modelConfig: baseModelConfig,
-      }),
-    ).toBe('medium');
-
+      adapter.buildCodexAppServerParams({
+        userConfig: { reasoningEnabled: true },
+      }).config,
+    ).toEqual({ effort: 'medium' });
     expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: false,
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'xhigh',
-        },
-      }),
-    ).toBe('none');
-
+      adapter.buildCodexAppServerParams({
+        userConfig: { reasoningEnabled: true, reasoningEffort: ' XHIGH ' },
+      }).config,
+    ).toEqual({ effort: 'xhigh' });
     expect(
-      resolveCodexReasoningEffort({
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'medium',
-        },
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'minimal',
-        },
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'none',
-        },
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'invalid-effort',
-        },
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        modelConfig: baseModelConfig,
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: true,
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'xhigh',
-        },
-      }),
-    ).toBe('xhigh');
-
-    expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: false,
-        modelConfig: baseModelConfig,
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: false,
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'medium',
-        },
-      }),
-    ).toBe('none');
-
-    expect(
-      resolveCodexReasoningEffort({
-        reasoningEnabled: 'default',
-        modelConfig: {
-          ...baseModelConfig,
-          reasoningEffort: 'medium',
-        },
-      }),
-    ).toBe('none');
+      adapter.buildCodexAppServerParams({
+        userConfig: { reasoningEnabled: true, reasoningEffort: 'invalid' },
+      }).config,
+    ).toEqual({ effort: 'medium' });
   });
 
   it('converts chat messages into codex turn payload', () => {
@@ -369,7 +293,10 @@ readline.on('line', (line) => {
     const result = await callAIWithCodexAppServer(
       [{ role: 'user', content: 'hello' }],
       baseModelConfig,
-      { onRecordEvent: (event) => events.push(event) },
+      {
+        params: { effort: 'max' },
+        onRecordEvent: (event) => events.push(event),
+      },
     );
 
     expect(result).toMatchObject({
@@ -389,7 +316,10 @@ readline.on('line', (line) => {
         }),
         expect.objectContaining({
           type: 'request',
-          protocol: expect.objectContaining({ method: 'turn/start' }),
+          protocol: expect.objectContaining({
+            method: 'turn/start',
+            params: expect.objectContaining({ effort: 'max' }),
+          }),
         }),
         expect.objectContaining({
           type: 'chunk',
