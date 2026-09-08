@@ -8,6 +8,7 @@ import { assert, uuid } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
+import type { CodexAppServerCallInput } from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
 import {
   type CodexAppServerRecordEvent,
@@ -50,6 +51,96 @@ export interface CallAIOptions {
    */
   semanticRetryAttempt?: number;
 }
+
+const callCodex = async ({
+  messages,
+  modelRuntime,
+  modelCallInput,
+  options,
+  internalCallId,
+  recordEvent,
+}: {
+  messages: ChatCompletionMessageParam[];
+  modelRuntime: ModelRuntime;
+  modelCallInput: CodexAppServerCallInput;
+  options?: CallAIOptions;
+  internalCallId: string;
+  recordEvent?: (event: Record<string, unknown>) => void;
+}) => {
+  const { config: modelConfig, adapter } = modelRuntime;
+  let protocolChunkSequence = 0;
+  const codexStartTime = Date.now();
+  const recordCodexEvent = recordEvent
+    ? (event: CodexAppServerRecordEvent) => {
+        if (event.type === 'chunk') {
+          protocolChunkSequence += 1;
+          recordEvent({
+            ...event,
+            attempt: 1,
+            sequence: protocolChunkSequence,
+            provider: 'codex-app-server',
+          });
+          return;
+        }
+
+        recordEvent({
+          ...event,
+          attempt: 1,
+          provider: 'codex-app-server',
+        });
+      }
+    : undefined;
+
+  try {
+    const { config, imageDetail } =
+      adapter.buildCodexAppServerParams(modelCallInput);
+    const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
+      stream: options?.stream,
+      onChunk: options?.onChunk,
+      params: config,
+      abortSignal: options?.abortSignal,
+      imageDetail,
+      onRecordEvent: recordCodexEvent,
+    });
+    const { protocolMetadata, ...response } = codexResult;
+    recordEvent?.({
+      type: 'response',
+      attempt: 1,
+      provider: 'codex-app-server',
+      final: {
+        content: response.content,
+        reasoningContent: response.reasoning_content,
+        usage: response.usage,
+        timeCost: Date.now() - codexStartTime,
+        protocol: protocolMetadata,
+      },
+    });
+    if (response.usage) {
+      (response.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
+      if (modelRuntime.onUsage) {
+        modelRuntime.onUsage(response.usage);
+      }
+    }
+    return {
+      ...response,
+    };
+  } catch (error) {
+    recordEvent?.({
+      type: 'error',
+      attempt: 1,
+      provider: 'codex-app-server',
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : String(error),
+    });
+    throw error;
+  }
+};
 
 export async function callAI(
   messages: ChatCompletionMessageParam[],
@@ -97,83 +188,16 @@ export async function callAI(
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
   };
+
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
-    let protocolChunkSequence = 0;
-    const codexStartTime = Date.now();
-    const recordCodexEvent = recordEvent
-      ? (event: CodexAppServerRecordEvent) => {
-          if (event.type === 'chunk') {
-            protocolChunkSequence += 1;
-            recordEvent({
-              ...event,
-              attempt: 1,
-              sequence: protocolChunkSequence,
-              provider: 'codex-app-server',
-            });
-            return;
-          }
-
-          recordEvent({
-            ...event,
-            attempt: 1,
-            provider: 'codex-app-server',
-          });
-        }
-      : undefined;
-
-    try {
-      const { config, imageDetail } =
-        adapter.buildCodexAppServerParams(modelCallInput);
-      const codexResult = await callAIWithCodexAppServer(
-        messages,
-        modelConfig,
-        {
-          stream: options?.stream,
-          onChunk: options?.onChunk,
-          params: config,
-          abortSignal: options?.abortSignal,
-          imageDetail,
-          onRecordEvent: recordCodexEvent,
-        },
-      );
-      const { protocolMetadata, ...response } = codexResult;
-      recordEvent?.({
-        type: 'response',
-        attempt: 1,
-        provider: 'codex-app-server',
-        final: {
-          content: response.content,
-          reasoningContent: response.reasoning_content,
-          usage: response.usage,
-          timeCost: Date.now() - codexStartTime,
-          protocol: protocolMetadata,
-        },
-      });
-      if (response.usage) {
-        (response.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
-        if (modelRuntime.onUsage) {
-          modelRuntime.onUsage(response.usage);
-        }
-      }
-      return {
-        ...response,
-      };
-    } catch (error) {
-      recordEvent?.({
-        type: 'error',
-        attempt: 1,
-        provider: 'codex-app-server',
-        error:
-          error instanceof Error
-            ? {
-                name: error.name,
-                message: error.message,
-                stack: error.stack,
-              }
-            : String(error),
-      });
-      throw error;
-    }
+    return callCodex({
+      messages,
+      modelRuntime,
+      modelCallInput,
+      options,
+      internalCallId,
+      recordEvent,
+    });
   }
 
   const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
