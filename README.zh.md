@@ -78,17 +78,17 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`�
 
 ## 🧰 Testing Kit
 
-开箱即用：Midscene 提供可观测性、测试框架和集成 API，帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程。
-
-### 内置可观测性
-
-交互式 HTML 报告展示截图、元素定位、AI 决策过程，以及操作和断言结果。在 Midscene Test 中，AI 步骤与自定义业务操作拥有统一的执行记录，包含输入、输出、耗时和状态。报告与运行日志为开发者和 AI Agent 提供排查失败所需的上下文。通过 [Playground](https://midscenejs.com/zh/quick-start#chrome-extension)，还可以直接在界面上试验和调整指令。
+开箱即用：Midscene 提供测试框架、可观测性和集成 API，帮助你将 GUI 自动化组织为可持续维护的 E2E 测试工程。
 
 ### Midscene Test：面向 AI 时代的 E2E 测试框架
 
 [Midscene Test](https://midscenejs.com/zh/midscene-test/overview)（`@midscene/test`，Beta）将**声明式的测试意图与可编程的工程实现分离**。用 YAML 编写 UI 流程和预期结果，用可复用的 TypeScript 节点封装 API 调用、数据准备和清理操作。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 
 框架提供项目脚手架、平台预设、生命周期钩子、重试，以及执行项目之间的隔离与并发。它还会根据已注册的节点及其参数定义生成 Markdown 参考文档，让**人和 AI Agent 都能了解可用能力，共同编写和维护用例**。详见[创建与扩展测试项目](https://midscenejs.com/zh/midscene-test/extend)和[编写与运行用例](https://midscenejs.com/zh/midscene-test/use)。
+
+### 内置可观测性
+
+交互式 HTML 报告展示截图、元素定位、AI 决策过程，以及操作和断言结果。Midscene Test 会记录每个 AI 步骤和自定义业务操作的输入、输出、耗时和状态。报告与运行日志为开发者和 AI Agent 提供排查失败所需的上下文。通过 [Playground](https://midscenejs.com/zh/quick-start#chrome-extension)，还可以直接在界面上试验和调整指令。
 
 ### 丰富的 API，融入现有测试体系
 
