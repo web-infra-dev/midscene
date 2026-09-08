@@ -190,7 +190,6 @@ describe('aiAction cacheable option propagation', () => {
       element: {
         description: 'element-id',
         center: [100, 100],
-        rect: { left: 90, top: 90, width: 20, height: 20 },
       },
     });
 

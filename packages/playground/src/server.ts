@@ -40,7 +40,6 @@ import {
   globalModelConfigManager,
   overrideAIConfig,
 } from '@midscene/shared/env';
-import { generateElementByPoint } from '@midscene/shared/extractor';
 import { annotateRects, imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type {
@@ -893,13 +892,13 @@ function locateFromPoint(
   fieldY: string,
   description: string,
 ) {
-  return generateElementByPoint(
-    [
+  return {
+    center: [
       Math.round(requireNumber(x, fieldX)),
       Math.round(requireNumber(y, fieldY)),
-    ],
-    description,
-  );
+    ] as [number, number],
+    description: description || '',
+  };
 }
 
 type InteractParamBuilder = (

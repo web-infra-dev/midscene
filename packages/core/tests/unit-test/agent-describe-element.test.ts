@@ -50,7 +50,7 @@ function createElementDescriberRuntime(agent: Agent): ElementDescriberRuntime {
 function mockServiceLocate(
   agent: Agent,
   element: {
-    rect: { left: number; top: number; width: number; height: number };
+    rect?: { left: number; top: number; width: number; height: number };
     center: [number, number];
     description?: string;
   },
@@ -60,7 +60,6 @@ function mockServiceLocate(
       ...element,
       description: element.description || 'mock element',
     },
-    rect: element.rect,
     dump: {} as any,
   });
 }
@@ -110,7 +109,6 @@ describe('element describer utils', () => {
       description: 'LocalSearch title',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10] as [number, number],
     });
 
@@ -121,10 +119,8 @@ describe('element describer utils', () => {
 
     expect(result.verifyResult).toEqual({
       pass: true,
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10],
       centerDistance: 10,
-      includedInRect: true,
     });
     expect(locate).toHaveBeenCalledWith(
       {
@@ -140,7 +136,7 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
-  it('passes by default when the located rect contains the target point without retrying', async () => {
+  it('accepts a distant center when the returned rect contains the target', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
@@ -219,7 +215,6 @@ describe('element describer utils', () => {
       description: 'Screenshot target',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 1, height: 1 },
       center: [0.5, 0.5] as [number, number],
     });
 
@@ -471,6 +466,38 @@ describe('element describer utils', () => {
       { uiContext },
     );
 
+    runPlans.mockResolvedValueOnce({
+      output: { element: { center: [2.5, 4] } },
+      runner: {},
+    } as any);
+    expect(await agent.aiLocate('Point-only target', { uiContext })).toEqual({
+      rect: { left: 0, top: 0.5, width: 8, height: 8 },
+      center: [2.5, 4],
+      dpr: undefined,
+    });
+
+    await agent.destroy();
+  });
+
+  it('rejects a distant center when no rect is returned', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    mockServiceLocate(agent, { center: [50, 50] });
+    const result = await verifyLocator(
+      createElementDescriberRuntime(agent),
+      'target element',
+      undefined,
+      [10, 10],
+    );
+    expect(result).toEqual({
+      pass: false,
+      center: [50, 50],
+      centerDistance: 57,
+    });
+    expect(result.rect).toBeUndefined();
+    expect(result.includedInRect).toBeUndefined();
     await agent.destroy();
   });
 

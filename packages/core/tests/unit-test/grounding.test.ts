@@ -1,6 +1,4 @@
 import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
-import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
-import { mapSearchAreaPixelBboxToOriginalPixelBbox } from '@/ai-model/workflows/grounding/search-area-mapping';
 import { describe, expect, it } from '@rstest/core';
 
 const actualPixelBboxAdapter = createLocateResultCodec({
@@ -14,48 +12,53 @@ function adaptElementLocateResultToRect(
     contentSize?: { width: number; height: number };
   },
 ) {
-  return pixelBboxToRect(actualPixelBboxAdapter.toPixelBbox(input, context));
+  return actualPixelBboxAdapter.toPixelResult(input, context).rect;
 }
 
-describe('toPixelBbox - boundary overflow cases', () => {
+describe('toPixelResult - boundary overflow cases', () => {
   it('throws on x1 overflow (negative left)', () => {
-    expect(() =>
-      actualPixelBboxAdapter.toPixelBbox([-100, 200, 300, 400], {
-        preparedSize: { width: 2000, height: 3000 },
-      }),
+    expect(
+      () =>
+        actualPixelBboxAdapter.toPixelResult([-100, 200, 300, 400], {
+          preparedSize: { width: 2000, height: 3000 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
   it('throws on y1 overflow (negative top)', () => {
-    expect(() =>
-      actualPixelBboxAdapter.toPixelBbox([200, -100, 400, 300], {
-        preparedSize: { width: 2000, height: 3000 },
-      }),
+    expect(
+      () =>
+        actualPixelBboxAdapter.toPixelResult([200, -100, 400, 300], {
+          preparedSize: { width: 2000, height: 3000 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
   it('throws on x2 overflow (right exceeds width)', () => {
-    expect(() =>
-      actualPixelBboxAdapter.toPixelBbox([1600, 200, 2200, 400], {
-        preparedSize: { width: 2000, height: 3000 },
-      }),
+    expect(
+      () =>
+        actualPixelBboxAdapter.toPixelResult([1600, 200, 2200, 400], {
+          preparedSize: { width: 2000, height: 3000 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
   it('throws on y2 overflow (bottom exceeds height)', () => {
-    expect(() =>
-      actualPixelBboxAdapter.toPixelBbox([200, 2600, 400, 3200], {
-        preparedSize: { width: 2000, height: 3000 },
-      }),
+    expect(
+      () =>
+        actualPixelBboxAdapter.toPixelResult([200, 2600, 400, 3200], {
+          preparedSize: { width: 2000, height: 3000 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
   it('throws before clamping to content size when bbox exceeds image size', () => {
-    expect(() =>
-      actualPixelBboxAdapter.toPixelBbox([25, 154, 153, 186], {
-        preparedSize: { width: 301, height: 164 },
-        contentSize: { width: 140, height: 160 },
-      }),
+    expect(
+      () =>
+        actualPixelBboxAdapter.toPixelResult([25, 154, 153, 186], {
+          preparedSize: { width: 301, height: 164 },
+          contentSize: { width: 140, height: 160 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
@@ -86,95 +89,6 @@ describe('toPixelBbox - boundary overflow cases', () => {
         "top": 999,
         "width": 101,
       }
-    `);
-  });
-});
-
-describe('mapSearchAreaPixelBboxToOriginalPixelBbox', () => {
-  it('works without explicit scale', () => {
-    const result = mapSearchAreaPixelBboxToOriginalPixelBbox([
-      100, 200, 300, 400,
-    ]);
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        200,
-        300,
-        400,
-      ]
-    `);
-  });
-
-  it('works with scale = 1', () => {
-    const result = mapSearchAreaPixelBboxToOriginalPixelBbox(
-      [100, 200, 300, 400],
-      {
-        offset: { x: 0, y: 0 },
-        scale: 1,
-      },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        200,
-        300,
-        400,
-      ]
-    `);
-  });
-
-  it('scales down by 2', () => {
-    const result = mapSearchAreaPixelBboxToOriginalPixelBbox(
-      [200, 400, 600, 800],
-      {
-        offset: { x: 0, y: 0 },
-        scale: 2,
-      },
-    );
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        200,
-        300,
-        400,
-      ]
-    `);
-  });
-
-  it('scales down by 1.5', () => {
-    const result = mapSearchAreaPixelBboxToOriginalPixelBbox(
-      [150, 300, 450, 600],
-      {
-        offset: { x: 0, y: 0 },
-        scale: 1.5,
-      },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        200,
-        300,
-        400,
-      ]
-    `);
-  });
-
-  it('applies offset after scaling', () => {
-    const result = mapSearchAreaPixelBboxToOriginalPixelBbox(
-      [200, 400, 600, 800],
-      {
-        offset: { x: 100, y: 150 },
-        scale: 2,
-      },
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        200,
-        350,
-        400,
-        550,
-      ]
     `);
   });
 });

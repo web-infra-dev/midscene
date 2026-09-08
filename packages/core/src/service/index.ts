@@ -11,6 +11,7 @@ import {
   AiLocateSection,
   buildSearchAreaConfig,
 } from '@/ai-model/workflows/grounding';
+import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
 import type {
@@ -145,7 +146,6 @@ export default class Service {
     const startTime = Date.now();
     const {
       parseResult,
-      rect,
       rawResponse,
       rawChoiceMessage,
       usage,
@@ -183,7 +183,6 @@ export default class Service {
       userQuery: {
         element: queryPrompt,
       },
-      matchedRect: rect,
       data: null,
       taskInfo,
       deepLocate: !!searchArea.trace.sourceRect,
@@ -205,17 +204,15 @@ export default class Service {
       return {
         element: {
           center: element.center,
-          rect: element.rect,
           description: element.description,
+          ...(element.rect ? { rect: element.rect } : {}),
         },
-        rect,
         dump,
       };
     }
 
     return {
       element: null,
-      rect,
       dump,
     };
   }
@@ -231,7 +228,7 @@ export default class Service {
     const { query, queryPrompt, opt, context, modelRuntime, abortSignal } =
       options;
     const { adapter } = modelRuntime;
-    const hasPlanLocatedElement = !!opt?.planLocatedElement?.rect;
+    const hasPlanLocatedElement = !!opt?.planLocatedElement?.center;
 
     if (!query.deepLocate) {
       return { trace: {} };
@@ -243,7 +240,7 @@ export default class Service {
     if (hasPlanLocatedElement) {
       const config = await buildSearchAreaConfig({
         context,
-        baseRect: opt.planLocatedElement!.rect,
+        baseRect: mergeSearchAreaResults(opt.planLocatedElement!),
       });
 
       return {
@@ -252,6 +249,7 @@ export default class Service {
           sourceRect: config.sourceRect,
           rawResponse: JSON.stringify({
             source: 'plan-located-element',
+            center: opt.planLocatedElement!.center,
             rect: opt.planLocatedElement!.rect,
           }),
         },
@@ -295,7 +293,7 @@ export default class Service {
       abortSignal,
     });
     assert(
-      firstPassLocateResult.rect,
+      firstPassLocateResult.parseResult.element?.center,
       `cannot find search area for "${queryPrompt}"${
         firstPassLocateResult.parseResult.errors?.length
           ? `: ${firstPassLocateResult.parseResult.errors.join('\n')}`
@@ -305,7 +303,9 @@ export default class Service {
 
     const config = await buildSearchAreaConfig({
       context,
-      baseRect: firstPassLocateResult.rect,
+      baseRect: mergeSearchAreaResults(
+        firstPassLocateResult.parseResult.element!,
+      ),
     });
 
     return {
@@ -314,7 +314,8 @@ export default class Service {
         sourceRect: config.sourceRect,
         rawResponse: JSON.stringify({
           source: 'deep-locate-first-pass',
-          rect: firstPassLocateResult.rect,
+          center: firstPassLocateResult.parseResult.element?.center,
+          rect: firstPassLocateResult.parseResult.element?.rect,
           rawResponse: firstPassLocateResult.rawResponse,
         }),
         rawChoiceMessage: firstPassLocateResult.rawChoiceMessage,

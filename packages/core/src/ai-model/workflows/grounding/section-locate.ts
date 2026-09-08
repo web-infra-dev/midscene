@@ -10,8 +10,11 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
-import { mergePixelBboxesToRect } from './locate-result-rect';
-import { buildSearchAreaConfig, expandSearchArea } from './search-area';
+import {
+  buildSearchAreaConfig,
+  expandSearchArea,
+  mergeSearchAreaResults,
+} from './search-area';
 import type { SearchAreaConfig } from './types';
 import { formatLocateModelContext, prepareLocateModelInput } from './utils';
 
@@ -107,17 +110,14 @@ export async function AiLocateSection(options: {
             preparedSize: preparedImage.preparedSize,
             contentSize: preparedImage.contentSize,
           };
-          const target = resultCodec.toPixelBbox(
+          const target = resultCodec.toPixelResult(
             parsedLocateResult.target,
             locateResultContext,
           );
           const references = parsedLocateResult.references?.map((reference) =>
-            resultCodec.toPixelBbox(reference, locateResultContext),
+            resultCodec.toPixelResult(reference, locateResultContext),
           );
-          const mergedRect = mergePixelBboxesToRect([
-            target,
-            ...(references ?? []),
-          ]);
+          const mergedRect = mergeSearchAreaResults(target, references);
           debugSection('mergedRect %j', mergedRect);
           return {
             result: response,

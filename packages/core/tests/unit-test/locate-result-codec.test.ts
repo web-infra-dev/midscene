@@ -1,6 +1,5 @@
 import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
 import { locateResultExampleRegions } from '@/ai-model/shared/model-locate-result/prompt-spec';
-import { pixelBboxToRect } from '@/ai-model/workflows/grounding/locate-result-rect';
 import { describe, expect, it } from '@rstest/core';
 
 const locateCtx = (width: number, height: number) => ({
@@ -23,8 +22,8 @@ describe('createLocateResultCodec', () => {
     });
 
     expect(
-      codec.toPixelBbox([100, 200, 300, 400], locateCtx(200, 100)),
-    ).toEqual([20, 20, 60, 40]);
+      codec.toPixelResult([100, 200, 300, 400], locateCtx(200, 100)).rect,
+    ).toEqual({ left: 20, top: 20, width: 41, height: 21 });
   });
 
   it('accepts normalized bbox boundary values', () => {
@@ -32,10 +31,33 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(codec.toPixelBbox([0, 0, 1000, 1000], locateCtx(200, 100))).toEqual([
-      0, 0, 199, 99,
-    ]);
+    expect(
+      codec.toPixelResult([0, 0, 1000, 1000], locateCtx(200, 100)).rect,
+    ).toEqual({ left: 0, top: 0, width: 200, height: 100 });
   });
+
+  it.each([1, 1000])(
+    'maps normalized point and bbox coordinates with consistent rounding (normalizedBy=%s)',
+    (normalizedBy) => {
+      const pointCodec = createLocateResultCodec({
+        coordinates: { shape: 'point', normalizedBy },
+      });
+      const bboxCodec = createLocateResultCodec({
+        coordinates: { shape: 'bbox', normalizedBy },
+      });
+      const half = normalizedBy / 2;
+      const context = locateCtx(100, 80);
+      expect(pointCodec.toPixelResult([half, half], context)).toEqual({
+        center: [50, 40],
+      });
+      expect(
+        bboxCodec.toPixelResult([half, half, half, half], context),
+      ).toEqual({
+        center: [50, 40],
+        rect: { left: 50, top: 40, width: 1, height: 1 },
+      });
+    },
+  );
 
   it('maps normalized 0-1 bbox values when normalizedBy is 1', () => {
     const codec = createLocateResultCodec({
@@ -43,11 +65,11 @@ describe('createLocateResultCodec', () => {
     });
 
     expect(
-      codec.toPixelBbox([0.1, 0.2, 0.3, 0.4], locateCtx(200, 100)),
-    ).toEqual([20, 20, 60, 40]);
+      codec.toPixelResult([0.1, 0.2, 0.3, 0.4], locateCtx(200, 100)).rect,
+    ).toEqual({ left: 20, top: 20, width: 41, height: 21 });
   });
 
-  it('supports normalized point responses with the default point fallback', () => {
+  it('supports normalized point responses without creating a rect', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
     });
@@ -55,31 +77,31 @@ describe('createLocateResultCodec', () => {
     expect(codec.promptSpec.resultValueDescription).toContain(
       'relative to the screenshot. Do NOT use pixel coordinates or screenshot width/height',
     );
-    expect(codec.toPixelBbox([500, 250], locateCtx(200, 100))).toEqual([
-      98, 24, 101, 26,
-    ]);
+    expect(codec.toPixelResult([500, 250], locateCtx(200, 100))).toEqual({
+      center: [100, 25],
+    });
     expect(codec.promptSpec.exampleValues[1]).toEqual([402, 463]);
   });
 
-  it('supports normalized yx point responses with the default point fallback', () => {
+  it('supports normalized yx point responses without creating a rect', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'point', order: 'yx', normalizedBy: 1000 },
     });
 
-    expect(codec.toPixelBbox([250, 500], locateCtx(200, 100))).toEqual([
-      98, 24, 101, 26,
-    ]);
+    expect(codec.toPixelResult([250, 500], locateCtx(200, 100))).toEqual({
+      center: [100, 25],
+    });
     expect(codec.promptSpec.exampleValues[1]).toEqual([463, 402]);
   });
 
-  it('supports actual pixel point responses with the default point fallback', () => {
+  it('supports actual pixel point responses without creating a rect', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'point', order: 'xy' },
     });
 
-    expect(codec.toPixelBbox([20, 30], locateCtx(100, 80))).toEqual([
-      10, 20, 30, 40,
-    ]);
+    expect(codec.toPixelResult([20, 30], locateCtx(100, 80))).toEqual({
+      center: [20, 30],
+    });
   });
 
   it('rejects actual pixel point coordinates outside image size', () => {
@@ -87,8 +109,10 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point', order: 'xy' },
     });
 
-    expect(() => codec.toPixelBbox([120, 30], locateCtx(100, 80))).toThrow(
-      /coordinates \[120,30\] exceed image size \[0, 100\]x\[0, 80\].*shape=point.*order=xy.*limits=\[100,80\]/,
+    expect(
+      () => codec.toPixelResult([120, 30], locateCtx(100, 80)).rect,
+    ).toThrow(
+      /coordinates \[120,30\] exceed image size \[0, 99\]x\[0, 79\].*shape=point.*order=xy.*limits=\[99,79\]/,
     );
   });
 
@@ -97,8 +121,10 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point', order: 'yx' },
     });
 
-    expect(() => codec.toPixelBbox([30, 120], locateCtx(100, 80))).toThrow(
-      /coordinates \[30,120\] exceed image size \[0, 100\]x\[0, 80\].*shape=point.*order=yx.*limits=\[80,100\]/,
+    expect(
+      () => codec.toPixelResult([30, 120], locateCtx(100, 80)).rect,
+    ).toThrow(
+      /coordinates \[30,120\] exceed image size \[0, 99\]x\[0, 79\].*shape=point.*order=yx.*limits=\[79,99\]/,
     );
   });
 
@@ -107,7 +133,7 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'yx', normalizedBy: 1000 },
     });
 
-    expect(() => codec.toPixelBbox([], locateCtx(640, 360))).toThrow(
+    expect(() => codec.toPixelResult([], locateCtx(640, 360)).rect).toThrow(
       /invalid bbox data/,
     );
   });
@@ -117,8 +143,10 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([100, Number.NaN, 300, 400], locateCtx(640, 360)),
+    expect(
+      () =>
+        codec.toPixelResult([100, Number.NaN, 300, 400], locateCtx(640, 360))
+          .rect,
     ).toThrow(/invalid bbox data/);
   });
 
@@ -131,8 +159,9 @@ describe('createLocateResultCodec', () => {
       }),
     });
 
-    expect(() =>
-      codec.toPixelBbox([652, '233; 713 251;'], locateCtx(640, 360)),
+    expect(
+      () =>
+        codec.toPixelResult([652, '233; 713 251;'], locateCtx(640, 360)).rect,
     ).toThrow(
       /invalid parsed locate result: bbox coordinates must be 4 finite numbers, got \[652,"233; 713 251;"\]/,
     );
@@ -143,7 +172,7 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() => codec.toPixelBbox(123, locateCtx(640, 360))).toThrow(
+    expect(() => codec.toPixelResult(123, locateCtx(640, 360)).rect).toThrow(
       /invalid bbox data/,
     );
   });
@@ -153,7 +182,7 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() => codec.toPixelBbox([500], locateCtx(640, 360))).toThrow(
+    expect(() => codec.toPixelResult([500], locateCtx(640, 360)).rect).toThrow(
       /invalid point data/,
     );
   });
@@ -171,8 +200,9 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([0, 500, 1080, 1000], locateCtx(720, 1600)),
+    expect(
+      () =>
+        codec.toPixelResult([0, 500, 1080, 1000], locateCtx(720, 1600)).rect,
     ).toThrowError(
       /coordinates \[0,500,1080,1000\] exceed normalized range \[0, 1000\].*shape=bbox.*order=xy.*normalizedBy=1000.*limits=\[1000,1000,1000,1000\]/,
     );
@@ -183,8 +213,8 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'yx', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([-1, 100, 200, 300], locateCtx(640, 360)),
+    expect(
+      () => codec.toPixelResult([-1, 100, 200, 300], locateCtx(640, 360)).rect,
     ).toThrow(/exceed normalized range \[0, 1000\]/);
   });
 
@@ -193,9 +223,80 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([300, 200, 100, 400], locateCtx(200, 100)),
-    ).toThrow(/invalid coordinate order/);
+    expect(
+      () => codec.toPixelResult([300, 200, 100, 400], locateCtx(200, 100)).rect,
+    ).toThrow(/invalid.*coordinate order/);
+  });
+
+  it.each(['xy', 'yx'] as const)(
+    'rejects reversed %s bbox corners with subpixel differences',
+    (order) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'bbox', order, normalizedBy: 1000 },
+      });
+      expect(() =>
+        codec.toPixelResult([100.2, 200, 100.1, 400], locateCtx(100, 80)),
+      ).toThrow(/invalid.*coordinate order/);
+      expect(() =>
+        codec.toPixelResult([100, 200.2, 300, 200.1], locateCtx(100, 80)),
+      ).toThrow(/invalid.*coordinate order/);
+    },
+  );
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid normalization from a custom parser: %s',
+    (normalizedBy) => {
+      const codec = createLocateResultCodec({
+        coordinates: { shape: 'point' },
+        parseRawLocateValue: () => ({
+          coordinates: [10, 20],
+          coordinatesMeta: { shape: 'point', order: 'xy', normalizedBy },
+        }),
+      });
+      expect(() => codec.toPixelResult(null, locateCtx(100, 80))).toThrow(
+        /normalizedBy must be positive and finite/,
+      );
+    },
+  );
+
+  it('rejects invalid axis order from a custom parser', () => {
+    const codec = createLocateResultCodec({
+      coordinates: { shape: 'point' },
+      parseRawLocateValue: () => ({
+        coordinates: [10, 20],
+        coordinatesMeta: { shape: 'point', order: 'invalid' as any },
+      }),
+    });
+    expect(() => codec.toPixelResult(null, locateCtx(100, 80))).toThrow(
+      /invalid locate coordinate order/,
+    );
+  });
+
+  it('clamps padding points and bbox metadata independently and permits equal corners', () => {
+    const context = {
+      preparedSize: { width: 100, height: 80 },
+      contentSize: { width: 70, height: 60 },
+    };
+    const pointCodec = createLocateResultCodec({
+      coordinates: { shape: 'point' },
+    });
+    expect(pointCodec.toPixelResult([90, 70], context)).toEqual({
+      center: [69, 59],
+    });
+    const bboxCodec = createLocateResultCodec({
+      coordinates: { shape: 'bbox' },
+    });
+    expect(bboxCodec.toPixelResult([40, 20, 90, 70], context)).toEqual({
+      center: [65, 45],
+      rect: { left: 40, top: 20, width: 30, height: 40 },
+    });
+    expect(bboxCodec.toPixelResult([90, 70, 90, 70], context)).toEqual({
+      center: [69, 59],
+      rect: { left: 69, top: 59, width: 1, height: 1 },
+    });
+    expect(() => pointCodec.toPixelResult([100, 70], context)).toThrow(
+      /exceed image size/,
+    );
   });
 
   it('rejects normalized point coordinates outside [0, 1000]', () => {
@@ -203,8 +304,8 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point', order: 'xy', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([1005, 500], locateCtx(200, 100)),
+    expect(
+      () => codec.toPixelResult([1005, 500], locateCtx(200, 100)).rect,
     ).toThrowError(
       /coordinates \[1005,500\] exceed normalized range \[0, 1000\].*shape=point.*order=xy.*normalizedBy=1000.*limits=\[1000,1000\]/,
     );
@@ -215,8 +316,8 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'point', order: 'yx', normalizedBy: 1000 },
     });
 
-    expect(() =>
-      codec.toPixelBbox([500, 1005], locateCtx(200, 100)),
+    expect(
+      () => codec.toPixelResult([500, 1005], locateCtx(200, 100)).rect,
     ).toThrowError(
       /coordinates \[500,1005\] exceed normalized range \[0, 1000\].*shape=point.*order=yx.*normalizedBy=1000.*limits=\[1000,1000\]/,
     );
@@ -228,9 +329,7 @@ describe('createLocateResultCodec', () => {
     });
 
     expect(
-      pixelBboxToRect(
-        codec.toPixelBbox([0, 500, 1080, 1920], locateCtx(1440, 2560)),
-      ),
+      codec.toPixelResult([0, 500, 1080, 1920], locateCtx(1440, 2560)).rect,
     ).toEqual({
       left: 0,
       top: 500,
@@ -244,10 +343,11 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'xy' },
     });
 
-    expect(() =>
-      codec.toPixelBbox([0, 500, 1080, 1920], locateCtx(720, 1600)),
+    expect(
+      () =>
+        codec.toPixelResult([0, 500, 1080, 1920], locateCtx(720, 1600)).rect,
     ).toThrow(
-      /coordinates \[0,500,1080,1920\] exceed image size \[0, 720\]x\[0, 1600\].*limits=\[720,1600,720,1600\]/,
+      /coordinates \[0,500,1080,1920\] exceed image size \[0, 719\]x\[0, 1599\].*limits=\[719,1599,719,1599\]/,
     );
   });
 
@@ -256,10 +356,11 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'yx' },
     });
 
-    expect(() =>
-      codec.toPixelBbox([500, 0, 1920, 1080], locateCtx(720, 1600)),
+    expect(
+      () =>
+        codec.toPixelResult([500, 0, 1920, 1080], locateCtx(720, 1600)).rect,
     ).toThrow(
-      /coordinates \[500,0,1920,1080\] exceed image size \[0, 720\]x\[0, 1600\].*order=yx.*limits=\[1600,720,1600,720\]/,
+      /coordinates \[500,0,1920,1080\] exceed image size \[0, 719\]x\[0, 1599\].*order=yx.*limits=\[1599,719,1599,719\]/,
     );
   });
 
@@ -268,30 +369,20 @@ describe('createLocateResultCodec', () => {
       coordinates: { shape: 'bbox', order: 'yx', normalizedBy: 1000 },
     });
 
-    expect(() => codec.toPixelBbox([], locateCtx(640, 360))).toThrow(
+    expect(() => codec.toPixelResult([], locateCtx(640, 360)).rect).toThrow(
       /invalid bbox data/,
     );
   });
 
-  it('rejects inverted pixel bbox returned by custom mapping', () => {
+  it('preserves fractional pixel bbox corners and center with yx coordinates', () => {
     const codec = createLocateResultCodec({
-      coordinates: { shape: 'bbox', order: 'xy' },
-      mapLocateResultToPixelBbox: () => [30, 20, 10, 40],
+      coordinates: { shape: 'bbox', order: 'yx' },
     });
-
-    expect(() =>
-      codec.toPixelBbox([10, 20, 30, 40], locateCtx(100, 80)),
-    ).toThrow(/invalid coordinate order/);
-  });
-
-  it('rejects non-finite pixel bbox returned by custom mapping', () => {
-    const codec = createLocateResultCodec({
-      coordinates: { shape: 'bbox', order: 'xy' },
-      mapLocateResultToPixelBbox: () => [10, Number.NaN, 30, 40],
+    expect(
+      codec.toPixelResult([20.5, 10.25, 41.25, 31.75], locateCtx(100, 80)),
+    ).toEqual({
+      center: [21, 30.875],
+      rect: { left: 10.25, top: 20.5, width: 22.5, height: 21.75 },
     });
-
-    expect(() =>
-      codec.toPixelBbox([10, 20, 30, 40], locateCtx(100, 80)),
-    ).toThrow(/invalid locate bbox data/);
   });
 });

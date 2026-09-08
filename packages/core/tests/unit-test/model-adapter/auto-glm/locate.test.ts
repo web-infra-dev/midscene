@@ -67,24 +67,30 @@ describe('Auto-GLM planning tap locator definition', () => {
     );
   });
 
-  it('extracts the located pixel bbox from the first Tap action only', () => {
+  it('extracts the complete pixel result from the first Tap action only', () => {
     const locator = createAutoGlmPlanningTapLocator(false);
 
     expect(
-      locator.getLocatedPixelBbox([
+      locator.getLocatedPixelResult([
         { type: 'Scroll', param: {} },
         {
           type: 'Tap',
           param: {
             locate: {
-              locatedPixelBbox: [10, 20, 30, 40],
+              locatedPixelResult: {
+                center: [20, 30],
+                rect: { left: 10, top: 20, width: 21, height: 21 },
+              },
             },
           },
         },
       ] as any),
-    ).toEqual([10, 20, 30, 40]);
+    ).toEqual({
+      center: [20, 30],
+      rect: { left: 10, top: 20, width: 21, height: 21 },
+    });
     expect(
-      locator.getLocatedPixelBbox([{ type: 'Scroll', param: {} }] as any),
+      locator.getLocatedPixelResult([{ type: 'Scroll', param: {} }] as any),
     ).toBeUndefined();
   });
 });
@@ -110,7 +116,7 @@ describe('Auto-GLM custom locate', () => {
     rs.mocked(callAIWithStringResponse).mockReset();
   });
 
-  it('runs Auto-GLM custom locate and maps normalized coordinates to a rect', async () => {
+  it('runs Auto-GLM custom locate and maps normalized coordinates to a point', async () => {
     expect(autoGlmAdapter.locate.kind).toBe('custom');
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
@@ -142,21 +148,14 @@ describe('Auto-GLM custom locate', () => {
       expect.any(Object),
       expect.any(Object),
     );
-    expect(result.rect).toEqual({
-      left: 490,
-      top: 392,
-      width: 20,
-      height: 16,
-    });
+    expect(result.parseResult.element?.center).toEqual([500, 400]);
     expect(result.parseResult.errors).toEqual([]);
-    expect(result.parseResult.element).toMatchObject({
-      rect: result.rect,
-    });
+    expect(result.parseResult.element).not.toHaveProperty('rect');
     expect(result.reasoning_content).toContain('Found submit');
     expect(result.usage).toEqual({ total_tokens: 8 });
   });
 
-  it('uses search area image size for planning and maps the rect back to the original screenshot', async () => {
+  it('uses search area image size for planning and maps the point back to the original screenshot', async () => {
     expect(autoGlmAdapter.locate.kind).toBe('custom');
     if (autoGlmAdapter.locate.kind !== 'custom') {
       throw new Error('Auto-GLM should use custom locate adapter');
@@ -207,12 +206,7 @@ describe('Auto-GLM custom locate', () => {
         }),
       ]),
     );
-    expect(result.rect).toEqual({
-      left: 347,
-      top: 198,
-      width: 6,
-      height: 4,
-    });
+    expect(result.parseResult.element?.center).toEqual([350, 200]);
   });
 
   it('returns parse errors from Auto-GLM custom locate responses', async () => {
@@ -229,10 +223,10 @@ describe('Auto-GLM custom locate', () => {
       targetElementDescription: 'submit button',
     });
 
-    expect(result.rect).toBeUndefined();
+    expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.element).toBeUndefined();
     expect(result.parseResult.errors).toEqual([
-      'No locatedPixelBbox found in planner response',
+      'No locatedPixelResult found in planner response',
     ]);
   });
 

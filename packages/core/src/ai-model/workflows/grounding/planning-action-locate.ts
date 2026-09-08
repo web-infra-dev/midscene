@@ -94,16 +94,16 @@ export function resolvePlanningTapLocator<TParsed>(
 
       debugGrounding('planning-tap-locator rawResponse:', rawResponse);
 
-      const locatedPixelBbox = definition.getLocatedPixelBbox(
+      const locatedPixelResult = definition.getLocatedPixelResult(
         planningResponse.actions ?? [],
       );
 
-      if (!locatedPixelBbox) {
-        throw new Error('No locatedPixelBbox found in planner response');
+      if (!locatedPixelResult) {
+        throw new Error('No locatedPixelResult found in planner response');
       }
 
       return {
-        locatedPixelBbox,
+        locatedPixelResult,
         rawResponse,
         rawChoiceMessage,
         usage,
