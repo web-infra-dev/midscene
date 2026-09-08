@@ -69,7 +69,7 @@ export interface LocateResultPromptSpec {
 }
 
 export interface PixelLocateResult {
-  /** Raw bbox midpoint (or raw point), mapped to the locate image; normalized coordinates are rounded to pixels. */
+  /** Raw bbox midpoint (or raw point), mapped to the locate image using the configured rounding. */
   center: LocateResultPoint;
   /**
    * Original bbox mapped to locate-image pixels and clipped to content bounds.
@@ -87,24 +87,31 @@ export interface LocateResultCodec {
   ): PixelLocateResult;
 }
 
+export type CoordinateRounding = 'round' | 'trunc' | 'none';
+
 export interface LocateResultCoordinates {
   shape: LocateResultShape;
   /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
   /** Normalization range, e.g. 1 or 1000. Omit for model-image pixel coordinates. */
   normalizedBy?: number;
+  /** Rounding after normalized-to-pixel mapping; defaults to round. Pixel inputs retain their precision. */
+  rounding?: CoordinateRounding;
 }
 
+/** Coordinate metadata with defaults resolved and an explicit rounding policy. */
 export type ResolvedLocateResultCoordinates =
   | {
       shape: 'point';
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      rounding: CoordinateRounding;
     }
   | {
       shape: 'bbox';
       order: 'xy' | 'yx';
       normalizedBy?: number;
+      rounding: CoordinateRounding;
     };
 
 export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
@@ -114,7 +121,8 @@ export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
  * The operation protocol extracts target/reference values from the response;
  * the codec parses each value once and maps it to `{ center, rect }` using the
  * parsed result's coordinatesMeta. Rect is undefined for actual point results.
- * Only raw-value parsing is customizable; coordinate mapping is shared.
+ * Raw-value parsing and normalized-coordinate rounding are configurable;
+ * coordinate mapping is shared.
  */
 export type LocateResultFormatDefinition = {
   /**
@@ -126,7 +134,8 @@ export type LocateResultFormatDefinition = {
    * Optional model-specific parser for nonstandard formats or point/bbox fallback.
    * Return `{ coordinates, coordinatesMeta }` describing the actual shape, axis
    * order, and normalization. Preserve coordinate precision; do not round or map
-   * to pixels here. Omit to parse numeric values according to `coordinates`.
+   * to pixels here. Include an explicit rounding policy in `coordinatesMeta`.
+   * Omit the parser to parse numeric values according to `coordinates`.
    */
   parseRawLocateValue?: RawLocateValueParser;
 };

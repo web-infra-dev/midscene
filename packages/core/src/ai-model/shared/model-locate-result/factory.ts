@@ -22,7 +22,6 @@ import {
 export function resolveLocateResultCoordinates(
   coordinates: LocateResultCoordinates,
 ): ResolvedLocateResultCoordinates {
-  const order = coordinates.order ?? 'xy';
   if (coordinates.normalizedBy !== undefined && coordinates.normalizedBy <= 0) {
     throw new Error(
       `locate result coordinates normalizedBy must be positive: ${coordinates.normalizedBy}`,
@@ -30,8 +29,9 @@ export function resolveLocateResultCoordinates(
   }
   return {
     shape: coordinates.shape,
-    order,
+    order: coordinates.order ?? 'xy',
     normalizedBy: coordinates.normalizedBy,
+    rounding: coordinates.rounding ?? 'round',
   };
 }
 

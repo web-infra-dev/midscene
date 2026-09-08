@@ -144,13 +144,18 @@ describe('section locate protocol', () => {
         return values.length === 4
           ? {
               coordinates: values as [number, number, number, number],
-              coordinatesMeta: { shape: 'bbox' as const, order: 'xy' as const },
+              coordinatesMeta: {
+                shape: 'bbox' as const,
+                order: 'xy' as const,
+                rounding: 'round' as const,
+              },
             }
           : {
               coordinates: values as [number, number],
               coordinatesMeta: {
                 shape: 'point' as const,
                 order: 'xy' as const,
+                rounding: 'round' as const,
               },
             };
       });

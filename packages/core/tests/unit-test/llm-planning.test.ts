@@ -72,8 +72,8 @@ describe('llm planning - doubao', () => {
     expect(locatedPoint).toEqual({
       left: 123,
       top: 123,
-      width: 800,
-      height: 800,
+      width: 801,
+      height: 801,
     });
   });
 

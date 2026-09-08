@@ -20,6 +20,7 @@ function createPlanner(): ResolvedCustomPlanningDefinition<null> {
       shape: 'point',
       order: 'xy',
       normalizedBy: 1000,
+      rounding: 'round',
     },
     coordinateNormalizer: {} as any,
     parseResponse: () => null,

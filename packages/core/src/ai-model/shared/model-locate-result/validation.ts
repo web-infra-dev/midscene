@@ -40,7 +40,10 @@ export function assertLocateResultStructure(result: LocateResultValue): void {
     );
   }
 
-  const { order, normalizedBy } = coordinatesMeta;
+  const { order, normalizedBy, rounding } = coordinatesMeta;
+  if (!['round', 'trunc', 'none'].includes(rounding)) {
+    throw new Error(`invalid locate coordinate rounding: ${rounding}`);
+  }
   if (order !== 'xy' && order !== 'yx') {
     throw new Error(
       `invalid locate coordinate order: ${JSON.stringify(order)}`,

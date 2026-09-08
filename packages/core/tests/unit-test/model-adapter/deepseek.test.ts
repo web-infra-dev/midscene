@@ -58,11 +58,13 @@ describe('deepseek model adapter', () => {
       shape: 'point',
       order: 'yx',
       normalizedBy: 2000,
+      rounding: 'round',
     });
     const bboxPromptSpec = createLocateResultPromptSpec({
       shape: 'bbox',
       order: 'yx',
       normalizedBy: 2000,
+      rounding: 'round',
     });
     const elementInstructions =
       deepSeekElementLocateProtocol.buildResponseInstructions(pointPromptSpec);
@@ -97,7 +99,7 @@ describe('deepseek model adapter', () => {
       locateAdapter.element.resultCodec.toPixelResult(rawResult.target, {
         preparedSize: { width: 1000, height: 1000 },
       }),
-    ).toEqual({ center: [927, 779] });
+    ).toEqual({ center: [928, 780] });
   });
 
   it('uses ref-box tokens and bbox coordinates for deepLocate search area', () => {
@@ -157,7 +159,7 @@ describe('deepseek model adapter', () => {
     const context = { preparedSize: { width: 1000, height: 1000 } };
     expect(
       searchAreaResultCodec.toPixelResult(rawResult.target, context).rect,
-    ).toEqual({ left: 844, top: 390, width: 31, height: 41 });
+    ).toEqual({ left: 845, top: 390, width: 31, height: 41 });
     expect(
       rawResult.references?.map(
         (reference) =>
@@ -249,7 +251,7 @@ describe('deepseek model adapter', () => {
       locateAdapter.resultCodec.toPixelResult(rawResult.target, {
         preparedSize: { width: 1000, height: 1000 },
       }),
-    ).toEqual({ center: [927, 779] });
+    ).toEqual({ center: [928, 780] });
   });
 
   it('maps DeepSeek reasoning controls and provider defaults', () => {
