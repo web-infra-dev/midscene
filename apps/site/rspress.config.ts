@@ -291,7 +291,7 @@ export default defineConfig(async () => {
           },
           {
             text: 'AI testing best practices',
-            link: '/test-runner-best-practices',
+            link: '/midscene-test/best-practices',
           },
           {
             sectionHeaderText: 'Resources',
@@ -463,7 +463,7 @@ export default defineConfig(async () => {
           },
           {
             text: 'AI 测试最佳实践',
-            link: '/zh/test-runner-best-practices',
+            link: '/zh/midscene-test/best-practices',
           },
           {
             sectionHeaderText: '资源',
@@ -581,6 +581,7 @@ export default defineConfig(async () => {
               ['test-runner-overview', 'overview'],
               ['extend-test-runner', 'extend'],
               ['use-test-runner', 'use'],
+              ['test-runner-best-practices', 'best-practices'],
             ].map(([previous, current]) => ({
               from: `^${locale}/${previous}(?:\\.html)?/?$`,
               to: `${locale}/midscene-test/${current}`,

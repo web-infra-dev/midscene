@@ -79,8 +79,8 @@ export default defineTestProject<DongchediProjectContext>({
       platform: 'android',
       setup: androidSetup,
       files: {
-        include: ['test-runner/**/*.{yaml,yml}'],
-        exclude: ['test-runner/**/*.draft.{yaml,yml}'],
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.{yaml,yml}'],
       },
       retry: 0,
       variables: {

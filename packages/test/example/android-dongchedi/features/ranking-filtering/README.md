@@ -11,7 +11,7 @@
 - [页面跳转 Context](../../app-context/page-navigation.md)：页面入口、层级和跨页面路径。
 - [排行榜组件 Context](../../app-context/ranking-components.md)：榜单、筛选和自定义价格组件的使用方式。
 
-生成产物是 [ranking-filtering.yaml](../../test-runner/ranking-filtering.yaml)。价格调整场景的截图、Context 定义和两种组织方式集中写在 [AI 测试最佳实践](https://midscenejs.com/zh/test-runner-best-practices)，这里不再重复。
+生成产物是 [ranking-filtering.yaml](../../cases/ranking-filtering.yaml)。价格调整场景的截图、Context 定义和两种组织方式集中写在 [AI 测试最佳实践](https://midscenejs.com/zh/midscene-test/best-practices)，这里不再重复。
 
 运行时，页面跳转、组件使用和当前年月作为 `aiAct` 的 Context 提供给 Midscene。
 
