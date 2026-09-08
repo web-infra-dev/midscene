@@ -14,6 +14,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   GroupedActionDump,
   type IReportActionDump,
+  type TestRunReportDump,
   dedupeExecutionsKeepLatest,
   reportToMarkdown,
   restoreImageReferences,
@@ -33,6 +34,7 @@ import { useMarkdownScrollSync } from './components/markdown-scroll-sync';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import { useTaskHashAnchor } from './components/store/use-task-hash-anchor';
+import TestRunnerReport from './components/test-runner';
 import Timeline from './components/timeline';
 import RecordVideocameraIcon from './icons/record-videocamera.svg?react';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
@@ -55,6 +57,7 @@ import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
+import { parseTestRunReportDump } from './utils/test-run-report';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
@@ -88,7 +91,7 @@ const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
 
 function Visualizer(props: VisualizerProps): JSX.Element {
-  const { dumps } = props;
+  const { dumps, embedded = false } = props;
 
   const executionDump = useExecutionDump((store: DumpStoreType) => store.dump);
   const executionDumpLoadId = useExecutionDump(
@@ -140,13 +143,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   // (nav, sidebar, timeline, detail side) and keeps just the Player; in that
   // mode `play-control=1` shows the control bar. `auto-play` is independent of
   // player-only and applies to every report player (on by default, `=0` off).
-  const { playerOnly, playControl, autoPlay } = useMemo(
-    () => getPlayerViewOptions(),
-    [],
-  );
+  const { playerOnly, playControl, autoPlay } = useMemo(() => {
+    const options = getPlayerViewOptions();
+    return { ...options, playerOnly: embedded ? false : options.playerOnly };
+  }, [embedded]);
 
   // Keep the URL hash in sync with the selected sidebar task (deep-linking).
-  useTaskHashAnchor();
+  useTaskHashAnchor({ namespaced: embedded });
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -421,6 +424,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
   const [containerHeight, setContainerHeight] = useState('100%');
   useEffect(() => {
+    if (embedded) {
+      setContainerHeight('100%');
+      return;
+    }
     const ifInRspressPage = document.querySelector('.rspress-nav');
 
     const navHeightKey = '--rp-nav-height';
@@ -442,7 +449,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         );
       }
     };
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
     return () => {
@@ -488,7 +495,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     >
       <AntdApp component={false}>
         <div
-          className={`page-container${playerOnly ? ' player-only' : ''}`}
+          className={`page-container${playerOnly ? ' player-only' : ''}${embedded ? ' embedded' : ''}`}
           key={`render-${globalRenderCount}`}
           style={{ height: containerHeight }}
           data-theme={isDarkMode ? 'dark' : 'light'}
@@ -497,27 +504,29 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             <div className="player-only-content">{playerOnlyContent}</div>
           ) : (
             <>
-              <div className="page-nav">
-                <div className="page-nav-left">
-                  <Logo />
-                  <div className="page-nav-title">Report</div>
-                </div>
-                <div className="page-nav-right">
-                  <div className="page-nav-version">
-                    {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
-                    {modelBriefText ? ` | ${modelBriefText}` : ''}
+              {!embedded && (
+                <div className="page-nav">
+                  <div className="page-nav-left">
+                    <Logo />
+                    <div className="page-nav-title">Report</div>
                   </div>
-                  <div className="theme-divider" />
-                  <button
-                    type="button"
-                    className="theme-toggle-button"
-                    onClick={() => setIsDarkMode(!isDarkMode)}
-                    aria-label="Toggle theme"
-                  >
-                    {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
-                  </button>
+                  <div className="page-nav-right">
+                    <div className="page-nav-version">
+                      {sdkVersion ? `v${sdkVersion}` : 'unknown version'}
+                      {modelBriefText ? ` | ${modelBriefText}` : ''}
+                    </div>
+                    <div className="theme-divider" />
+                    <button
+                      type="button"
+                      className="theme-toggle-button"
+                      onClick={() => setIsDarkMode(!isDarkMode)}
+                      aria-label="Toggle theme"
+                    >
+                      {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               {mainContent}
             </>
           )}
@@ -570,8 +579,12 @@ export function App() {
     const result: PlaywrightTasks[] = [];
 
     // Process grouped dump tags — merge into one PlaywrightTasks per group
-    for (const [, elements] of groupMap) {
+    for (const [groupId, elements] of groupMap) {
       const attributes = parseAttributesFromElement(elements[0]);
+      const reportIdAttribute = elements[0].getAttribute('data-report-id');
+      const runnerScopeAttribute = elements[0].getAttribute(
+        'data-runner-scope-id',
+      );
       let cachedJsonContent: GroupedActionDump | null = null;
       let isParsed = false;
 
@@ -609,6 +622,12 @@ export function App() {
           return cachedJsonContent!;
         },
         attributes,
+        reportId: reportIdAttribute
+          ? decodeURIComponent(reportIdAttribute)
+          : groupId,
+        ...(runnerScopeAttribute
+          ? { runnerScopeId: decodeURIComponent(runnerScopeAttribute) }
+          : {}),
       });
     }
 
@@ -616,6 +635,7 @@ export function App() {
   }
 
   const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);
+  const [runnerDump, setRunnerDump] = useState<TestRunReportDump | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const dumpsLoadedRef = useRef(false);
@@ -648,6 +668,20 @@ export function App() {
       setError(null);
       const dumpElements = getDumpElements();
       setReportDump(dumpElements);
+      const runnerElements = document.querySelectorAll(
+        'script[type="midscene_test_run_dump"]',
+      );
+      if (runnerElements.length > 1) {
+        throw new Error('The report contains multiple Midscene Test dumps.');
+      }
+      if (runnerElements.length === 1) {
+        const content = runnerElements[0].textContent;
+        if (!content)
+          throw new Error('The Midscene Test report dump is empty.');
+        setRunnerDump(parseTestRunReportDump(content));
+      } else {
+        setRunnerDump(null);
+      }
     };
 
     const loadDumps = async () => {
@@ -672,7 +706,11 @@ export function App() {
           error,
         );
       }
-      loadDumpElements();
+      try {
+        loadDumpElements();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : String(error));
+      }
       console.timeEnd('loading_dump');
     };
 
@@ -712,5 +750,15 @@ export function App() {
       </div>
     );
   }
-  return <Visualizer dumps={reportDump} />;
+  return runnerDump ? (
+    <TestRunnerReport
+      dump={runnerDump}
+      reports={reportDump}
+      renderAgentReport={(reports) => <Visualizer embedded dumps={reports} />}
+    />
+  ) : (
+    <Visualizer dumps={reportDump} />
+  );
 }
+
+export { Visualizer };

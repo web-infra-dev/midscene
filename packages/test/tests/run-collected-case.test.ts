@@ -538,4 +538,82 @@ describe('runCollectedCase', () => {
     });
     expect(execute).not.toHaveBeenCalled();
   });
+  it('collects and deduplicates report traces on successful and failed Steps', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'trace.success',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-success',
+          });
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-success',
+          });
+        },
+      }),
+      defineNode({
+        name: 'trace.failure',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: 'execution-failure',
+          });
+          throw new Error('failed after creating an execution');
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(
+      collected([step('trace.success'), step('trace.failure')]),
+      { resolveNode: registry.require.bind(registry) },
+    );
+
+    expect(result.steps[0].report?.traces).toEqual([
+      {
+        type: 'midscene-execution',
+        executionId: 'execution-success',
+      },
+    ]);
+    expect(Object.isFrozen(result.steps[0].report?.traces)).toBe(true);
+    expect(result.steps[1]).toMatchObject({
+      status: 'failed',
+      report: {
+        traces: [
+          {
+            type: 'midscene-execution',
+            executionId: 'execution-failure',
+          },
+        ],
+      },
+    });
+  });
+
+  it('fails a Step that registers an invalid report trace', async () => {
+    const registry = new NodeRegistry([
+      defineNode({
+        name: 'trace.invalid',
+        execute({ report }) {
+          report.addTrace({
+            type: 'midscene-execution',
+            executionId: '   ',
+          });
+        },
+      }),
+    ]);
+
+    const result = await runCollectedCase(collected([step('trace.invalid')]), {
+      resolveNode: registry.require.bind(registry),
+    });
+
+    expect(result.steps[0]).toMatchObject({
+      status: 'failed',
+      error: {
+        message: expect.stringContaining(
+          'Report trace executionId must be non-empty',
+        ),
+      },
+    });
+  });
 });

@@ -1,0 +1,17 @@
+target:
+  serve: ./dist
+  url: demo-midscene-test-lifecycle.html
+  viewportWidth: 1440
+  viewportHeight: 1200
+  # Keep screenshot coordinates consistent on Retina and CI machines.
+  deviceScaleFactor: 1
+tasks:
+  - name: lifecycle failures remain visible outside case attempts
+    flow:
+      - aiAssert: The overview reports a failed run and shows Project browser disposal failed, Document fixture disposal failed, Case session disposal failed, and Database connection refused. Web regression is expanded and includes Blocked by document setup.
+      - aiTap: the Blocked by document setup case row
+      - aiAssert: The not-run case has no Attempt selector. Its Execution panel shows the failed fixture.connect step under Document setup, and the evidence panel shows Database connection refused and the input host fixture-database.
+      - aiTap: the Overview back link
+      - aiAssert: The overview shows the Projects and cases section and all four error messages, including Project browser disposal failed and Database connection refused.
+      - aiTap: the Verify cart summary case row under Web regression in the Projects and cases section, not the similarly named lifecycle error summary above that section
+      - aiAssert: The Verify cart summary case detail has a Visual timeline and Execution panel. It shows Case session disposal failed, the cart.verify step has a green success indicator, and there is no Attempt selector.

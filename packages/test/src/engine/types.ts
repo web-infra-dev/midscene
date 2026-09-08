@@ -3,7 +3,11 @@ import type {
   ResolvedExecutionProject,
 } from '../cli/test-project';
 import type { WorkflowError } from '../errors';
-import type { NodeDefinition, NodeResult } from '../node/types';
+import type {
+  NodeDefinition,
+  NodeReportTrace,
+  NodeResult,
+} from '../node/types';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -38,6 +42,9 @@ export interface StepRunResult<TOutputData = unknown> {
   durationMs: number;
   output?: NodeResult<TOutputData>;
   error?: WorkflowError;
+  report?: {
+    traces: readonly NodeReportTrace[];
+  };
 }
 
 export interface CaseRunResult {

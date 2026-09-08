@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { generateTestReportFixtures } from '../e2e/fixtures/test-report.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -135,7 +136,7 @@ const corePath = path.join(
   'lib',
   'report.js',
 );
-const { ReportMergingTool } = await import(corePath);
+const { ReportMergingTool, TestRunReportAssembler } = await import(corePath);
 
 const merger = new ReportMergingTool();
 merger.append({
@@ -170,3 +171,11 @@ if (!mergedPath) {
 const demoMergedPath = path.join(distDir, 'demo-merged.html');
 fs.copyFileSync(mergedPath, demoMergedPath);
 console.log('Copied merged report -> dist/demo-merged.html');
+
+for (const file of generateTestReportFixtures(
+  TestRunReportAssembler,
+  passedReport,
+  distDir,
+)) {
+  console.log(`Created report E2E fixture -> ${file}`);
+}

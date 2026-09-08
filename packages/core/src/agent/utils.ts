@@ -16,7 +16,6 @@ import type {
 import { uploadTestInfoToServer } from '@/utils';
 import {
   MIDSCENE_REPORT_QUIET,
-  MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
 import {
@@ -25,11 +24,12 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
-import dayjs from 'dayjs';
+import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
 import { prepareRawScreenshot } from './screenshot-preparation';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
+
+export { getReportFileName } from './report-file-name';
 
 const agentDebug = getDebug('agent');
 const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
@@ -208,16 +208,6 @@ export async function createScreenshotBoundUIContext(
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };
-}
-
-export function getReportFileName(tag = 'web') {
-  const reportTagName = globalConfigManager.getEnvConfigValue(
-    MIDSCENE_REPORT_TAG_NAME,
-  );
-  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
-  // ensure uniqueness at the same time
-  const uniqueId = uuid().substring(0, 8);
-  return `${reportTagName || tag}-${dateTimeInFileName}-${uniqueId}`;
 }
 
 export function printReportMsg(filepath: string) {

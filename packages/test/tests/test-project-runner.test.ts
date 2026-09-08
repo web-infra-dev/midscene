@@ -268,7 +268,8 @@ describe('test project main-process runner', () => {
     expect(existsSync(join(resultDir, 'documents'))).toBe(false);
     expect(existsSync(join(firstRunDir, 'documents'))).toBe(false);
     expect(existsSync(join(firstRunDir, 'project-0', 'documents'))).toBe(true);
-    expect(existsSync(join(root, 'midscene_run'))).toBe(false);
+    expect(existsSync(first.reportPath!)).toBe(true);
+    expect(first.reportPath).toContain(join(root, 'midscene_run', 'report'));
 
     const second = await runTestProject({ projectRoot: root, resultDir });
     expect(second.runId).not.toBe(first.runId);
@@ -1560,7 +1561,17 @@ cases:
               );
               onTeardown(() => {
                 mkdirSync(dirname(reportPath), { recursive: true });
-                writeFileSync(reportPath, '<html>report</html>');
+                writeFileSync(
+                  reportPath,
+                  '<html><script type="midscene_web_dump" data-group-id="test">' +
+                    JSON.stringify({
+                      sdkVersion: 'test',
+                      groupName: 'test',
+                      modelBriefs: [],
+                      executions: [],
+                    }) +
+                    '</script></html>',
+                );
                 return { reportPaths: [reportPath] };
               });
             },

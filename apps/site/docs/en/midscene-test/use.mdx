@@ -241,21 +241,17 @@ The CLI exits with code `1` when a test case fails, a document cannot be parsed,
 
 ## View test results
 
-After each test run, the console displays Case statuses and a brief summary. Midscene Test also generates a visual test report locally.
+After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
 
-### Midscene visual report
-
-Midscene Test records detailed test Steps, UI screenshots, and the AI decision process in an interactive HTML report.
-
-By default, reports are saved to:
+Reports are saved to:
 
 ```text
-midscene_run/report/
+midscene_run/report/test-run-<runId>.html
 ```
 
-Open an HTML file in this directory in a browser to inspect each `aiAct` and `aiAssert` execution trace, element location result, and complete screenshot history.
+With external screenshot storage, the report is a directory containing `index.html` and `screenshots/`. Copy or upload the whole directory.
 
-> **Note**: To change the default report directory, set `output.reportDir` in `midscene.config.ts`.
+Set `output.reportDir` in `midscene.config.ts` to change the report directory.
 
 ## Current limitations
 
