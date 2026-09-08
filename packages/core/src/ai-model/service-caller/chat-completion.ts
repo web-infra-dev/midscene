@@ -239,7 +239,6 @@ const callChatCompletionStream = async ({
   startTime,
   internalCallId,
   recordEvent,
-  resolveContentWithReasoningFallback,
 }: {
   client: Awaited<ReturnType<typeof createChatClient>>;
   modelRuntime: ModelRuntime;
@@ -251,10 +250,6 @@ const callChatCompletionStream = async ({
   startTime: number;
   internalCallId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
-  resolveContentWithReasoningFallback: (
-    content: string | undefined,
-    reasoningContent: string,
-  ) => string | undefined;
 }) => {
   const { config: modelConfig, adapter } = modelRuntime;
   const {
@@ -341,10 +336,12 @@ const callChatCompletionStream = async ({
 
     timeCost = Date.now() - startTime;
 
-    const finalAccumulated = resolveContentWithReasoningFallback(
-      accumulated,
-      accumulatedReasoning,
-    );
+    const finalAccumulated = resolveContentWithReasoningFallback({
+      content: accumulated,
+      reasoningContent: accumulatedReasoning,
+      useReasoningAsContentFallback:
+        adapter.chatCompletion.useReasoningAsContentFallback,
+    });
     accumulated = finalAccumulated || '';
 
     // Send final chunk
@@ -390,6 +387,31 @@ const callChatCompletionStream = async ({
   };
 };
 
+const hasUsableText = (value: string | null | undefined): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+
+const resolveContentWithReasoningFallback = ({
+  content,
+  reasoningContent,
+  useReasoningAsContentFallback,
+}: {
+  content: string | undefined;
+  reasoningContent: string;
+  useReasoningAsContentFallback: boolean;
+}): string | undefined => {
+  if (
+    !hasUsableText(content) &&
+    useReasoningAsContentFallback &&
+    hasUsableText(reasoningContent)
+  ) {
+    const warnCall = getDebug('ai:call', { console: true });
+    warnCall('empty content from AI model, using reasoning content');
+    return reasoningContent;
+  }
+
+  return content;
+};
+
 const callChatCompletionNonStreaming = async ({
   client,
   modelRuntime,
@@ -399,8 +421,6 @@ const callChatCompletionNonStreaming = async ({
   abortSignal,
   startTime,
   internalCallId,
-  hasUsableText,
-  resolveContentWithReasoningFallback,
 }: {
   client: Awaited<ReturnType<typeof createChatClient>>;
   modelRuntime: ModelRuntime;
@@ -410,11 +430,6 @@ const callChatCompletionNonStreaming = async ({
   abortSignal?: AbortSignal;
   startTime: number;
   internalCallId: string;
-  hasUsableText: (value: string | null | undefined) => value is string;
-  resolveContentWithReasoningFallback: (
-    content: string | undefined,
-    reasoningContent: string,
-  ) => string | undefined;
 }) => {
   const { config: modelConfig, adapter } = modelRuntime;
   const {
@@ -484,10 +499,12 @@ const callChatCompletionNonStreaming = async ({
       usage = result.usage;
       responseModelName = result.model;
 
-      content = resolveContentWithReasoningFallback(
+      content = resolveContentWithReasoningFallback({
         content,
-        accumulatedReasoning,
-      );
+        reasoningContent: accumulatedReasoning,
+        useReasoningAsContentFallback:
+          adapter.chatCompletion.useReasoningAsContentFallback,
+      });
 
       if (!hasUsableText(content)) {
         const errorUsage = buildUsageInfo({
@@ -653,25 +670,6 @@ export async function callAI(
   // the streaming final-chunk handler), so the final return does not double-fire.
   let usageReported = false;
 
-  const hasUsableText = (value: string | null | undefined): value is string =>
-    typeof value === 'string' && value.trim().length > 0;
-
-  const resolveContentWithReasoningFallback = (
-    contentValue: string | undefined,
-    reasoningContent: string,
-  ) => {
-    if (
-      !hasUsableText(contentValue) &&
-      adapter.chatCompletion.useReasoningAsContentFallback &&
-      hasUsableText(reasoningContent)
-    ) {
-      warnCall('empty content from AI model, using reasoning content');
-      return reasoningContent;
-    }
-
-    return contentValue;
-  };
-
   const requestConfig = {
     ...adapterChatCompletionParams,
     ...(extraBody ?? {}),
@@ -712,7 +710,6 @@ export async function callAI(
         startTime,
         internalCallId,
         recordEvent,
-        resolveContentWithReasoningFallback,
       }));
     } else {
       ({
@@ -738,8 +735,6 @@ export async function callAI(
         abortSignal: options?.abortSignal,
         startTime,
         internalCallId,
-        hasUsableText,
-        resolveContentWithReasoningFallback,
       }));
     }
 
