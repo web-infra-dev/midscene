@@ -10,6 +10,11 @@ on:
         description: 'Release Branch(confirm release branch)'
         required: true
         default: 'main'
+      notify_stable_release:
+        description: 'Send IM notifications for a stable release'
+        required: true
+        type: boolean
+        default: true
 
 # Add permissions for creating releases.
 # `id-token: write` is required for npm Trusted Publishers (OIDC) and for
@@ -475,7 +480,7 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
@@ -659,7 +664,7 @@ jobs:
     needs:
     - release
     - package_studio
-    if: ${{ needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
+    if: ${{ inputs.notify_stable_release && needs.release.result == 'success' && needs.package_studio.result == 'success' && needs.release.outputs.is_prerelease != 'true' }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     permissions:
       contents: read
