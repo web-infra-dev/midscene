@@ -16,42 +16,27 @@ import {
 import { createProxyAgent } from './proxy';
 import { resolveEffectiveTimeoutMs } from './request-timeout';
 
-export async function createChatClient({
-  modelConfig,
+const createAndWrapClient = async ({
+  openaiBaseURL,
+  openaiApiKey,
+  openaiExtraConfig,
+  createOpenAIClient,
+  effectiveTimeoutMs,
+  proxyAgent,
   executionId,
-  recordEvent,
+  openAIErrorResponseContext,
 }: {
-  modelConfig: IModelConfig;
+  openaiBaseURL: IModelConfig['openaiBaseURL'];
+  openaiApiKey: IModelConfig['openaiApiKey'];
+  openaiExtraConfig: IModelConfig['openaiExtraConfig'];
+  createOpenAIClient: IModelConfig['createOpenAIClient'];
+  effectiveTimeoutMs: number | null;
+  proxyAgent: Awaited<ReturnType<typeof createProxyAgent>>;
   executionId: string;
-  recordEvent?: (event: Record<string, unknown>) => void;
-}): Promise<{
-  completion: OpenAI.Chat.Completions;
-  modelName: string;
-  modelDescription: string;
-  modelFamily: TModelFamily | undefined;
   openAIErrorResponseContext: OpenAIErrorResponseContext;
-}> {
-  const {
-    socksProxy,
-    httpProxy,
-    modelName,
-    openaiBaseURL,
-    openaiApiKey,
-    openaiExtraConfig,
-    modelDescription,
-    modelFamily,
-    createOpenAIClient,
-    timeout,
-  } = modelConfig;
-
-  const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
-
+}): Promise<OpenAI> => {
   const warnClient = getDebug('ai:call', { console: true });
 
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
-  const openAIErrorResponseContext: OpenAIErrorResponseContext = {
-    recordEvent,
-  };
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
@@ -122,6 +107,55 @@ export async function createChatClient({
       openai = wrappedClient as OpenAI;
     }
   }
+
+  return openai;
+};
+
+export async function createChatClient({
+  modelConfig,
+  executionId,
+  recordEvent,
+}: {
+  modelConfig: IModelConfig;
+  executionId: string;
+  recordEvent?: (event: Record<string, unknown>) => void;
+}): Promise<{
+  completion: OpenAI.Chat.Completions;
+  modelName: string;
+  modelDescription: string;
+  modelFamily: TModelFamily | undefined;
+  openAIErrorResponseContext: OpenAIErrorResponseContext;
+}> {
+  const {
+    socksProxy,
+    httpProxy,
+    modelName,
+    openaiBaseURL,
+    openaiApiKey,
+    openaiExtraConfig,
+    modelDescription,
+    modelFamily,
+    createOpenAIClient,
+    timeout,
+  } = modelConfig;
+
+  const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
+
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
+  const openAIErrorResponseContext: OpenAIErrorResponseContext = {
+    recordEvent,
+  };
+
+  const openai = await createAndWrapClient({
+    openaiBaseURL,
+    openaiApiKey,
+    openaiExtraConfig,
+    createOpenAIClient,
+    effectiveTimeoutMs,
+    proxyAgent,
+    executionId,
+    openAIErrorResponseContext,
+  });
 
   return {
     completion: openai.chat.completions,
