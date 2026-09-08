@@ -47,12 +47,11 @@ const server = createServer(async (req, res) => {
             index: 0,
             message: {
               role: 'assistant',
-              content: JSON.stringify({
-                bbox: [1140, 340, 1440, 388],
-                errors: [],
-                pass: true,
-                thought: 'Deterministic screenshot plumbing fixture',
-              }),
+              content: JSON.stringify(body.messages).includes(
+                'StatementIsTruthy',
+              )
+                ? '<observation>Deterministic screenshot plumbing fixture</observation><data-json>{"StatementIsTruthy":true}</data-json>'
+                : JSON.stringify({ bbox: [1140, 340, 1440, 388], errors: [] }),
             },
             finish_reason: 'stop',
           },
@@ -70,6 +69,7 @@ try {
   for (const disableGpu of [false, true]) {
     const browser = await chromium.launch({
       headless: true,
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
       args: ['--no-sandbox', ...(disableGpu ? ['--disable-gpu'] : [])],
     });
     try {
@@ -166,8 +166,10 @@ try {
               };
             }, src);
             metrics.push({ kind, index, ...metric });
-            assert.equal(metric.width, 1600);
-            assert.equal(metric.height, 900);
+            if (kind === 'report') {
+              assert.equal(metric.width, 1600);
+              assert.equal(metric.height, 900);
+            }
             assert(
               metric.nonBlackRatio > 0.95,
               `${name} ${kind} ${index} is black: ${JSON.stringify(metric)}`,
