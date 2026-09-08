@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseDumpScript, parseImageScripts } from '@midscene/core';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { chromium } from 'playwright';
@@ -109,10 +110,16 @@ try {
         assert(agent.reportFile, 'The agent must generate an HTML report');
         const html = await readFile(agent.reportFile, 'utf8');
         const dump = JSON.parse(parseDumpScript(html));
-        const inlineImages = Object.values(parseImageScripts(html));
+        const inlineImages = parseImageScripts(html);
+        const inlineIds = new Set();
         const externalPaths = new Set();
         const visit = (value) => {
           if (!value || typeof value !== 'object') return;
+          if (
+            value.type === 'midscene_screenshot_ref' &&
+            value.storage === 'inline'
+          )
+            inlineIds.add(value.id);
           if (
             value.type === 'midscene_screenshot_ref' &&
             value.storage === 'file'
@@ -121,7 +128,10 @@ try {
           for (const child of Object.values(value)) visit(child);
         };
         visit(dump);
-        const reportImages = [...inlineImages];
+        const reportImages = [...inlineIds].map((id) => {
+          assert(inlineImages[id], `Missing inline screenshot: ${id}`);
+          return inlineImages[id];
+        });
         for (const path of externalPaths) {
           reportImages.push(
             `data:image/jpeg;base64,${(await readFile(join(dirname(agent.reportFile), path))).toString('base64')}`,
@@ -182,6 +192,22 @@ try {
           reportFile: agent.reportFile,
           metrics,
         });
+        await page.goto(pathToFileURL(agent.reportFile).href);
+        try {
+          await page
+            .locator('.player-container img')
+            .first()
+            .waitFor({ state: 'visible', timeout: 20_000 });
+          await page.waitForFunction(() =>
+            [...document.querySelectorAll('.player-container img')].some(
+              (img) => img.complete && img.naturalWidth > 0,
+            ),
+          );
+        } finally {
+          await page.screenshot({
+            path: join(artifactDir, `${name}-viewer.png`),
+          });
+        }
         console.log(JSON.stringify(results.at(-1)));
         await page.close();
       }
