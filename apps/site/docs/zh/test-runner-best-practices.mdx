@@ -208,7 +208,7 @@ await agentFromAdbDevice(deviceId, {
 | AI 生成的测试用例 | [Test Runner YAML](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/test-runner/ranking-filtering.yaml) |
 | Android 真机运行结果 | 2026-08-28 运行 5 个 Case，全部通过且未发生重试 |
 
-完整 Demo 采用 Midscene [Test Runner](./test-runner-overview) 承载生成后的 YAML；[midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts)负责 Agent、Context、变量和资源生命周期。Android 环境准备见 [Android 平台文档](./platforms/android)，模型配置见[支持的模型与配置](./model-common-config)。
+完整 Demo 采用 [Midscene Test](./midscene-test/overview) 承载生成后的 YAML；[midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts)负责 Agent、Context、变量和资源生命周期。Android 环境准备见 [Android 平台文档](./platforms/android)，模型配置见[支持的模型与配置](./model-common-config)。
 
 ```bash
 cp packages/test/example/android-dongchedi/.env.example packages/test/example/android-dongchedi/.env
