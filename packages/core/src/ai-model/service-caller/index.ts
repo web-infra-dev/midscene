@@ -399,7 +399,7 @@ export async function callAI(
         });
       }
     : undefined;
-  const chatCompletionInput = {
+  const modelCallInput = {
     intent: modelConfig.intent,
     userConfig: {
       temperature: modelConfig.temperature,
@@ -412,9 +412,6 @@ export async function callAI(
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
   };
-  const imageDetail =
-    adapter.chatCompletion.resolveImageDetail(chatCompletionInput);
-
   if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
     let protocolChunkSequence = 0;
     const codexStartTime = Date.now();
@@ -440,13 +437,15 @@ export async function callAI(
       : undefined;
 
     try {
+      const { config, imageDetail } =
+        adapter.buildCodexAppServerParams(modelCallInput);
       const codexResult = await callAIWithCodexAppServer(
         messages,
         modelConfig,
         {
           stream: options?.stream,
           onChunk: options?.onChunk,
-          reasoningEnabled: modelConfig.reasoningEnabled,
+          params: config,
           abortSignal: options?.abortSignal,
           imageDetail,
           onRecordEvent: recordCodexEvent,
@@ -492,6 +491,8 @@ export async function callAI(
     }
   }
 
+  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
+
   const {
     completion,
     modelName,
@@ -516,7 +517,7 @@ export async function callAI(
 
   const isStreaming = options?.stream && options?.onChunk;
   const { config: adapterChatCompletionParams } =
-    adapter.chatCompletion.buildChatCompletionParams(chatCompletionInput);
+    adapter.chatCompletion.buildChatCompletionParams(modelCallInput);
   debugCall(
     `adapter chat completion params: ${stringifyForDebug({
       config: adapterChatCompletionParams,

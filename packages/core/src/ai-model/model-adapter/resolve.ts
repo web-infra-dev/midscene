@@ -1,10 +1,12 @@
 import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
+import { buildDefaultCodexAppServerParams } from './codex-app-server';
 import { resolveInsight } from './insight';
 import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
 import type {
+  BuildCodexAppServerParams,
   ChatCompletionAdapter,
   ImagePreprocessPolicy,
   JsonParser,
@@ -39,6 +41,7 @@ function resolveImagePreprocess(
 export class ResolvedModelAdapter implements ModelAdapter {
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly buildCodexAppServerParams: BuildCodexAppServerParams;
   readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
   readonly insight: InsightAdapter;
@@ -48,6 +51,8 @@ export class ResolvedModelAdapter implements ModelAdapter {
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.buildCodexAppServerParams =
+      config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
     this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
     this.insight = resolveInsight(config.insight, {

@@ -226,11 +226,12 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gemini"
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
+| GPT-6 series | `gpt-6-astra` | `gpt-6` | |
 | GPT-5 series | `gpt-5.4`, `gpt-5.5`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | `gpt-5` | Models before GPT-5.4 do not support visual localization and can only be used as Planning or Insight models. In practical localization tests, GPT-5.5 and GPT-5.6 perform noticeably better than GPT-5.4; we recommend using GPT-5.5 or GPT-5.6 first. |
 
 </div>
 
-Environment variable configuration example, using `gpt-5.5`:
+Environment variable configuration example, using `gpt-6-astra`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -238,8 +239,8 @@ Environment variable configuration example, using `gpt-5.5`:
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_MODEL_API_KEY="sk-..."
-MIDSCENE_MODEL_NAME="gpt-5.5"
-MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
@@ -248,8 +249,8 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
-MIDSCENE_PLANNING_MODEL_NAME="gpt-5.5"
-MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
@@ -258,12 +259,24 @@ MIDSCENE_PLANNING_MODEL_FAMILY="gpt-5"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
-MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.5"
-MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-5"
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
 </ModelConfigTabs>
+
+**Fast mode**
+
+Both GPT-5.6 Sol and GPT-6 Astra support Fast mode. Add the `service_tier` request body parameter to enable it. For example, with GPT-5.6 Sol:
+
+```bash
+MIDSCENE_MODEL_NAME="gpt-5.6-sol"
+MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_EXTRA_BODY_JSON='{"service_tier":"fast"}'
+```
+
+According to OpenAI, Fast mode can deliver up to 2–2.5× the speed at twice the Standard rate. Refer to the [official documentation](https://developers.openai.com/api/docs/guides/fast-mode) for current speed, pricing, and usage restrictions.
 
 <span id="use-codex-app-server-oauth-no-api-key" />
 

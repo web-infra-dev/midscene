@@ -4,6 +4,12 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const mockCreate = rs.fn();
+const mockCodexCall = rs.hoisted(() => rs.fn());
+
+rs.mock('@/ai-model/service-caller/codex-app-server', () => ({
+  isCodexAppServerProvider: (url?: string) => url === 'codex://app-server',
+  callAIWithCodexAppServer: mockCodexCall,
+}));
 
 rs.mock('openai', () => ({
   default: rs.fn().mockImplementation(() => ({
@@ -46,6 +52,8 @@ const imageMessage = [
 
 describe('GPT image detail handling', () => {
   beforeEach(() => {
+    mockCodexCall.mockReset();
+    mockCodexCall.mockResolvedValue({ content: 'ok', isStreamed: false });
     mockCreate.mockReset();
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'ok' } }],
@@ -56,6 +64,75 @@ describe('GPT image detail handling', () => {
       },
     });
   });
+
+  it.each([undefined, 'max'])(
+    'passes resolved GPT-6 effort to Codex for %s',
+    async (reasoningEffort) => {
+      await callAI(
+        imageMessage,
+        getModelRuntime({
+          ...baseModelConfig,
+          modelName: 'gpt-6-astra',
+          modelFamily: 'gpt-6',
+          openaiBaseURL: 'codex://app-server',
+          reasoningEnabled: true,
+          reasoningEffort,
+        }),
+      );
+      expect(mockCodexCall).toHaveBeenCalledWith(
+        imageMessage,
+        expect.anything(),
+        expect.objectContaining({
+          params: { effort: reasoningEffort ?? 'medium' },
+          imageDetail: 'original',
+        }),
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      intent: 'default',
+      requiresOriginalImageDetail: false,
+      expected: 'original',
+    },
+    {
+      intent: 'planning',
+      requiresOriginalImageDetail: false,
+      expected: undefined,
+    },
+    {
+      intent: 'planning',
+      requiresOriginalImageDetail: true,
+      expected: 'original',
+    },
+  ] as const)(
+    'resolves Codex image detail independently for %j',
+    async ({ intent, requiresOriginalImageDetail, expected }) => {
+      for (const modelFamily of ['gpt-5', 'gpt-6'] as const) {
+        const runtime = getModelRuntime({
+          ...baseModelConfig,
+          modelFamily,
+          intent,
+          openaiBaseURL: 'codex://app-server',
+        });
+        const chatDetailSpy = rs.spyOn(
+          runtime.adapter.chatCompletion,
+          'resolveImageDetail',
+        );
+        try {
+          await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
+          expect(mockCodexCall.mock.calls.at(-1)?.[2].imageDetail).toBe(
+            expected,
+          );
+          expect(chatDetailSpy).not.toHaveBeenCalled();
+        } finally {
+          chatDetailSpy.mockRestore();
+        }
+      }
+    },
+  );
 
   it('overrides image detail to original for gpt-5 default intent requests', async () => {
     await callAI(imageMessage, getModelRuntime(baseModelConfig));
@@ -182,5 +259,29 @@ describe('GPT image detail handling', () => {
     );
 
     expect(mockCreate.mock.calls[0][0]).toHaveProperty('temperature', 0.7);
+  });
+
+  it('sends GPT-6 screenshots through Chat Completions with compatible defaults', async () => {
+    await callAI(
+      imageMessage,
+      getModelRuntime({
+        ...baseModelConfig,
+        modelFamily: 'gpt-6',
+        modelName: 'gpt-6-astra',
+        temperature: 0.7,
+      }),
+      { semanticRetryAttempt: 1, expectedJsonObjectResponse: true },
+    );
+
+    const request = mockCreate.mock.calls[0][0];
+    expect(request).toMatchObject({
+      model: 'gpt-6-astra',
+      reasoning_effort: 'low',
+      response_format: { type: 'json_object' },
+    });
+    expect(JSON.parse(JSON.stringify(request))).not.toHaveProperty(
+      'temperature',
+    );
+    expect(request.messages[0].content[0].image_url.detail).toBe('original');
   });
 });
