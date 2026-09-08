@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
+import { platform, release } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseDumpScript, parseImageScripts } from '@midscene/core';
@@ -18,10 +20,40 @@ form { position: absolute; left: 1100px; top: 240px; padding: 40px;
   width: 300px; background: white; border-radius: 20px; }
 input, button { box-sizing: border-box; display: block; width: 300px;
   height: 48px; margin: 16px 0; font-size: 20px; }
+#account { position: fixed; left: 1140px; top: 324px; }
 </style></head><body><form onsubmit="event.preventDefault()">
 <h1>Login</h1><input id="account" aria-label="Account" />
 <input type="password" aria-label="Password" /><button>Login</button>
 </form></body></html>`;
+async function measureImage(page, src) {
+  return page.evaluate(async (src) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 90;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0, 160, 90);
+    const pixels = ctx.getImageData(0, 0, 160, 90).data;
+    let colored = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 40) colored++;
+    }
+    return {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      nonBlackRatio: colored / (160 * 90),
+    };
+  }, src);
+}
+const require = createRequire(import.meta.url);
+const environment = {
+  os: `${platform()} ${release()}`,
+  node: process.version,
+  playwright: require('playwright/package.json').version,
+};
+console.log(JSON.stringify(environment));
 const artifactDir = resolve(
   process.env.SCREENSHOT_ARTIFACT_DIR || 'midscene_run/screenshot-regression',
 );
@@ -80,14 +112,6 @@ try {
           viewport: { width: 1600, height: 900 },
         });
         await page.setContent(fixture);
-        const inputBox = await page.locator('#account').boundingBox();
-        // Keep the target under the stub's fixed center even if fonts differ.
-        await page.locator('#account').evaluate((input) => {
-          input.style.position = 'fixed';
-          input.style.left = '1140px';
-          input.style.top = '324px';
-        });
-        assert(inputBox);
         inferenceImages = [];
         const agent = new PlaywrightAgent(page, {
           outputFormat,
@@ -154,27 +178,7 @@ try {
               join(artifactDir, `${name}-${kind}-${index}.jpeg`),
               Buffer.from(src.split(',')[1], 'base64'),
             );
-            const metric = await page.evaluate(async (src) => {
-              const image = new Image();
-              image.src = src;
-              await image.decode();
-              const canvas = document.createElement('canvas');
-              canvas.width = 160;
-              canvas.height = 90;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(image, 0, 0, 160, 90);
-              const pixels = ctx.getImageData(0, 0, 160, 90).data;
-              let colored = 0;
-              for (let i = 0; i < pixels.length; i += 4) {
-                if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 40)
-                  colored++;
-              }
-              return {
-                width: image.naturalWidth,
-                height: image.naturalHeight,
-                nonBlackRatio: colored / (160 * 90),
-              };
-            }, src);
+            const metric = await measureImage(page, src);
             metrics.push({ kind, index, ...metric });
             if (kind === 'report') {
               assert.equal(metric.width, 1600);
@@ -190,6 +194,8 @@ try {
           name,
           browser: browser.version(),
           reportFile: agent.reportFile,
+          sdkVersion: dump.sdkVersion,
+          environment,
           metrics,
         });
         await page.goto(pathToFileURL(agent.reportFile).href);
@@ -208,6 +214,18 @@ try {
             path: join(artifactDir, `${name}-viewer.png`),
           });
         }
+        const rendered = await page
+          .locator('.player-container .canvas-container')
+          .screenshot();
+        const renderedMetric = await measureImage(
+          page,
+          `data:image/png;base64,${rendered.toString('base64')}`,
+        );
+        metrics.push({ kind: 'viewer', ...renderedMetric });
+        assert(
+          renderedMetric.nonBlackRatio > 0.7,
+          `${name} viewer is black: ${JSON.stringify(renderedMetric)}`,
+        );
         console.log(JSON.stringify(results.at(-1)));
         await page.close();
       }
