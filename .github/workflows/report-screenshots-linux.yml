@@ -1,0 +1,57 @@
+name: Report screenshots Linux
+
+on:
+  push:
+    branches: [fix/web-linux-report-screenshots-2970]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.10.3', workspace]
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      MIDSCENE_REPORT_QUIET: 'true'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: '22.23.1'
+      - name: Prepare published baseline
+        if: matrix.version != 'workspace'
+        run: |
+          mkdir -p "$RUNNER_TEMP/report-screenshots"
+          cp packages/web-integration/tests/integration/report-screenshots.mjs "$RUNNER_TEMP/report-screenshots/"
+          cd "$RUNNER_TEMP/report-screenshots"
+          echo '{"private":true}' > package.json
+          pnpm add @midscene/web@1.10.3 @midscene/core@1.10.3 playwright@1.48.0
+          pnpm exec playwright install --with-deps chromium
+      - name: Prepare workspace
+        if: matrix.version == 'workspace'
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm exec nx run-many --target=build --projects=@midscene/web,@midscene/report
+          pnpm --filter @midscene/web exec playwright install --with-deps chromium
+      - name: Run published baseline
+        if: matrix.version != 'workspace'
+        working-directory: ${{ runner.temp }}/report-screenshots
+        run: node report-screenshots.mjs
+      - name: Run workspace regression
+        if: matrix.version == 'workspace'
+        working-directory: packages/web-integration
+        run: node tests/integration/report-screenshots.mjs
+      - name: Upload screenshots and reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: report-screenshots-${{ matrix.version }}
+          path: |
+            ${{ runner.temp }}/report-screenshots/midscene_run
+            packages/web-integration/midscene_run
