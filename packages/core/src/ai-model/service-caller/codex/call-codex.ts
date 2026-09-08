@@ -8,7 +8,6 @@ import {
 export const callCodex = async ({
   messages,
   modelRuntime,
-  modelCallInput,
   options,
   internalCallId,
   recordEvent,
@@ -38,8 +37,15 @@ export const callCodex = async ({
     : undefined;
 
   try {
-    const { config, imageDetail } =
-      adapter.buildCodexAppServerParams(modelCallInput);
+    const { config, imageDetail } = adapter.buildCodexAppServerParams({
+      intent: modelConfig.intent,
+      userConfig: {
+        reasoningEnabled: modelConfig.reasoningEnabled,
+        reasoningEffort: modelConfig.reasoningEffort,
+        reasoningBudget: modelConfig.reasoningBudget,
+      },
+      requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    });
     const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
       stream: options?.stream,
       onChunk: options?.onChunk,

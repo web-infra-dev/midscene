@@ -52,19 +52,6 @@ export async function callAI(
   const context: ModelCallContext = {
     messages,
     modelRuntime,
-    modelCallInput: {
-      intent: modelConfig.intent,
-      userConfig: {
-        temperature: modelConfig.temperature,
-        reasoningEnabled: modelConfig.reasoningEnabled,
-        reasoningEffort: modelConfig.reasoningEffort,
-        reasoningBudget: modelConfig.reasoningBudget,
-        responseFormat: modelConfig.responseFormat,
-      },
-      semanticRetryAttempt: options?.semanticRetryAttempt,
-      requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
-      expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
-    },
     options,
     executionId,
     internalCallId,

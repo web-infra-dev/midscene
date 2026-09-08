@@ -1,5 +1,6 @@
 import { getDebug } from '@midscene/shared/logger';
 import type OpenAI from 'openai';
+import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
 import { formatOpenAIAPIErrorDetails } from '../openai-error';
 import { resolveEffectiveTimeoutMs } from '../request-timeout';
@@ -16,43 +17,45 @@ import { applyImageDetail, buildUsageInfo } from './utils';
 export const chat = async ({
   messages,
   modelRuntime,
-  modelCallInput,
   options,
   executionId,
   internalCallId,
   recordEvent,
 }: ModelCallContext): Promise<AICallResult> => {
-  const { config: modelConfig, adapter } = modelRuntime;
-  const isStreaming = options?.stream === true;
-  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
-
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    modelFamily,
-    openAIErrorResponseContext,
-  } = await createChatClient({
-    modelConfig,
-    executionId,
-    recordEvent,
-  });
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
-
-  const extraBody = modelConfig.extraBody;
-
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
 
+  const { config: modelConfig, adapter } = modelRuntime;
+
+  const isStreaming = options?.stream === true;
+
   const startTime = Date.now();
+
+  const modelCallInput: ChatCompletionCallInput = {
+    intent: modelConfig.intent,
+    userConfig: {
+      temperature: modelConfig.temperature,
+      reasoningEnabled: modelConfig.reasoningEnabled,
+      reasoningEffort: modelConfig.reasoningEffort,
+      reasoningBudget: modelConfig.reasoningBudget,
+      responseFormat: modelConfig.responseFormat,
+    },
+    semanticRetryAttempt: options?.semanticRetryAttempt,
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
+  };
+
+  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
 
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(modelCallInput);
+
   debugCall(
     `adapter chat completion params: ${stringifyForDebug({
       config: adapterChatCompletionParams,
     })}`,
   );
+
   let content: string | undefined;
   let accumulatedReasoning = '';
   let rawChoiceMessage: unknown;
@@ -66,12 +69,26 @@ export const chat = async ({
 
   const requestConfig = {
     ...adapterChatCompletionParams,
-    ...(extraBody ?? {}),
+    ...(modelConfig.extraBody ?? {}),
   };
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.
   const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
+
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
+
+  const {
+    completion,
+    modelName,
+    modelDescription,
+    modelFamily,
+    openAIErrorResponseContext,
+  } = await createChatClient({
+    modelConfig,
+    executionId,
+    recordEvent,
+  });
 
   try {
     debugCall(

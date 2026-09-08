@@ -1,6 +1,5 @@
 import type { AIUsageInfo, StreamingCallback } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { ChatCompletionCallInput } from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
 
 export type AIArgs = ChatCompletionMessageParam[];
@@ -29,7 +28,6 @@ export type AICallResult = {
 export type ModelCallContext = {
   messages: ChatCompletionMessageParam[];
   modelRuntime: ModelRuntime;
-  modelCallInput: ChatCompletionCallInput;
   options?: CallAIOptions;
   executionId: string;
   internalCallId: string;
