@@ -282,12 +282,16 @@ export default defineConfig(async () => {
             link: '/midscene-test/overview',
           },
           {
-            text: 'Extend and maintain test projects',
+            text: 'Create and use test projects',
+            link: '/midscene-test/use',
+          },
+          {
+            text: 'Develop custom Nodes',
             link: '/midscene-test/extend',
           },
           {
-            text: 'Write and run test cases',
-            link: '/midscene-test/use',
+            text: 'Configure test projects',
+            link: '/midscene-test/configuration',
           },
           {
             sectionHeaderText: 'Resources',
@@ -450,12 +454,16 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/overview',
           },
           {
-            text: '扩展和维护测试项目',
+            text: '创建和使用测试项目',
+            link: '/zh/midscene-test/use',
+          },
+          {
+            text: '编写自定义 Node',
             link: '/zh/midscene-test/extend',
           },
           {
-            text: '编写和运行测试用例',
-            link: '/zh/midscene-test/use',
+            text: '配置测试项目',
+            link: '/zh/midscene-test/configuration',
           },
           {
             sectionHeaderText: '资源',

@@ -1,85 +1,159 @@
-# Write and run test cases
+# Create and use test projects
 
-After framework maintainers configure a Test Project, people or Agents can use its registered Nodes to write test cases. Before writing cases, we recommend running `nodes` to generate a Node reference and confirm the available capabilities and input parameters.
+This guide starts with project creation, then covers running an example, learning the available test operations, writing YAML cases, and inspecting results. If you already have a project, start with [Understand available test operations](#understand-available-test-operations).
 
-To start a new project, use [`midscene-test create`](./extend#create-a-project). It generates platform configuration, example cases, and `midscene-node-reference.md` in one command.
+For the overall design, see [Midscene Test overview](./overview). To implement business operations, see [Develop custom Nodes](./extend). For runtime environments and execution settings, see [Configure test projects](./configuration).
 
-If you are not familiar with the overall design, start with [Midscene Test overview](./overview). If your project is not configured yet, see [Extend and maintain test projects](./extend).
+## Create a project
 
-## Core concepts
+### 1. Generate the project and install dependencies
 
-`@midscene/test` uses the following concepts to describe a test project:
-
-```text
-Test Project configuration
-└── Execution Project (Web / Android / iOS / computer)
-    └── Workflow Document
-        ├── Lifecycle Step
-        └── Case
-            └── Step
-                └── Node
-```
-
-- **Test Project**: the top-level configuration defined by `midscene.config.ts`. It registers shared Nodes and configures the default execution target or a `projects` array.
-- **Execution Project**: an entry within a Test Project that describes one execution target, including its platform, Project setup, local Nodes, file and tag filters, variables, and retry strategy. It is not a peer of the Test Project.
-- **Workflow Document**: a YAML file selected by an Execution Project. It contains lifecycle hooks and one or more Cases.
-- **Lifecycle Step**: a Step declared in a Workflow Document's `beforeAll`, `beforeEach`, `afterEach`, or `afterAll` hook. Use these Steps for supporting operations such as data preparation, state reset, and resource cleanup.
-- **Case**: a named test case composed of multiple Steps.
-- **Step**: one call to a Node in YAML.
-- **Node**: an execution capability registered by a platform developer, such as `aiAssert` or `order.create`.
-
-Nodes define the execution capabilities available to a team. YAML defines how each test case combines those capabilities.
-
-Each Execution Project inherits the top-level `nodes` and can add or override definitions in `projects[].nodes`. A local Node replaces a global Node with the same name only in that Project; duplicate names within one layer are errors. Top-level `nodes` may be omitted and default to `[]`. A shared YAML file is validated and executed against each selected Project's effective Nodes, so the same `launch` step can use Android and iOS implementations in one configuration.
-
-Before writing platform-specific Steps, inspect the target Project:
+Prepare Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and pnpm, then create a Web test project:
 
 ```bash
-pnpm exec midscene-test nodes --project android-smoke
+pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
+cd my-tests
 ```
 
-`nodes` writes a Markdown reference for the selected Project. Without `--project`, it generates a shared reference only when every Project has the same effective Node set; otherwise it reports an error asking you to select one Project. See [project configuration](./extend#configure-and-manage-a-test-project) for a mixed-platform example.
+Follow the prompt to install dependencies. The command generates platform configuration, an example case, and a Node reference. The main files are:
+
+```text
+my-tests/
+├── cases/example.yaml          # Example case
+├── midscene.config.ts          # Platform configuration and Node registration
+├── midscene-node-reference.md  # Node reference generated after installation
+├── package.json
+├── tsconfig.json
+├── .env.example
+└── README.md
+```
+
+Creation and reference generation do not run tests, so this step does not require a model API Key, browser, or device. For all arguments, run `pnpm dlx @midscene/test create --help`.
+
+:::info Installation recovery
+If installation was skipped or failed, enter the project directory and run `pnpm install`. To regenerate the Node reference, run `pnpm run nodes`.
+:::
+
+### 2. Configure the model and runtime environment
+
+Copy `.env.example` to `.env` and follow [Model configuration](../model-config) to set your model name, service URL, and API Key.
+
+For Web, also install Chromium:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+For other platforms, change `--platform` when creating the project and complete the corresponding setup:
+
+| Platform | Argument value | Runtime prerequisites | Environment setup guide |
+| --- | --- | --- | --- |
+| Android | `android` | Connect a device. Optionally select it with `ANDROID_DEVICE_ID`. | [Setup guide](../platforms/android) |
+| iOS | `ios` | Start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`. | [Setup guide](../platforms/ios) |
+| HarmonyOS | `harmony` | Check the connection with `hdc list targets`. Optionally set `HARMONY_DEVICE_ID`; set `HDC_HOME` if HDC is not on PATH. | [Setup guide](../platforms/harmonyos) |
+| Desktop | `computer` | Install dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID`. Headless Linux also requires Xvfb and `MIDSCENE_COMPUTER_HEADLESS_LINUX`. | [Setup guide](../platforms/desktop) |
+
+### 3. Run the generated example
+
+```bash
+pnpm test
+```
+
+The Web example opens `example.com` and checks the page heading. The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`.
+
+After the run finishes, view the test run report to inspect the results of each case and step. Then edit `cases/example.yaml` to write your own cases.
+
+## Understand available test operations
+
+### Built-in operations and extensions
+
+Midscene Test calls each capability you can invoke from YAML a **Node**.
+
+Nodes can be called from case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
+
+All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `wait` pauses for a specified duration.
+
+Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
+
+- **Web**: `gotoUrl` opens a page, `setCookies` sets cookies, and `setViewportSize` adjusts the browser viewport.
+- **Android**: `launch` starts an app, `back` goes back, `home` returns to the home screen, and `runAdbShell` executes an ADB shell command.
+
+The project scaffold registers the Nodes for your selected platform. Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
+
+### Read the project operation reference
+
+Open the project's `midscene-node-reference.md` to see the available Nodes, what they do, and how to specify their inputs. This reference is generated during installation so both people and AI Agents can use it to write YAML cases.
+
+After changing Node registrations, regenerate the reference:
+
+```bash
+pnpm run nodes
+```
 
 ## Write YAML test cases
 
-Every Workflow Document must contain a non-empty `cases` array. Every Case must contain a `name` and a non-empty `steps` array.
+### A typical YAML file
 
-```yaml
+A YAML file can contain multiple test cases and setup or cleanup steps. This example tests a store search: open the home page before each case, search for a product, and check the results. Replace the URL and product name with your application details.
+
+```yaml filename=cases/search.yaml
+beforeEach:
+  - gotoUrl: https://your-shop.example
+
 cases:
-  - name: Create an order
+  - name: Search for a product
     steps:
-      - order.create:
-          sku: midscene-mug
-          quantity: 1
-      - aiAssert: The page shows "Order placed"
-
-  - name: Cancel an order
-    steps:
-      - order.cancel:
-          orderId: example-order-id
-      - aiAssert: The page shows "Order canceled"
+      - aiAct: Enter "mug" in the search box and click the Search button
+      - aiAssert: The search results include mugs
 ```
 
-Midscene Test executes Cases in their declared YAML order. If one Case fails, Midscene Test records the failure and continues with subsequent Cases.
+The file has these parts:
 
-### Write a Step
+- `beforeEach`: optional steps that run before each case, such as opening a page or resetting state. See [execution lifecycle](#define-the-execution-lifecycle) for other hooks.
+- `cases`: a list with at least one test case. Add another entry with `name` and `steps` to define another case.
+- `name`: the case name, used to identify it in the results.
+- `steps`: an ordered list with at least one step. Each step calls one Node, with its input after the colon.
 
-Each Step can call only one Node. A Node may declare one field as its string shorthand target. For example, `aiAct` maps a string to `prompt`:
+This documentation calls the whole YAML file a Workflow Document, an individual test a Case, and one Node invocation a Step.
+
+The example uses string shorthand: text after `gotoUrl` becomes `url`, while text after `aiAct` and `aiAssert` becomes `prompt`. To supply additional parameters, use the object form shown below. Check the project Node reference for shorthand support.
+
+### Key Nodes: actions and assertions
+
+Most cases use `aiAct` to describe actions and `aiAssert` to check their results:
+
+| Node | Purpose | What to write |
+| --- | --- | --- |
+| `aiAct` | Perform interface operations from natural language, including multiple actions. | Describe what to do, such as "Search for mugs and add the first product to the cart". |
+| `aiAssert` | Check whether the interface matches an expectation; fail the step if it does not. | Describe an observable result, such as "The cart contains one mug". |
+| `aiTap` | Click a specific target. | Describe the element, such as "The cart icon at the top right of the page". |
+
+Completing an action does not establish that the test passed. Use `aiAssert` to check the expected result explicitly. To provide a custom assertion failure message, expand the parameters:
 
 ```yaml
 steps:
-  - aiAct: Click the Submit order button
+  - aiAct: Search for mugs and add the first product to the cart
+  - aiTap: The cart icon at the top right of the page
+  - aiAssert:
+      prompt: The cart contains one mug
+      message: The cart contents do not match the expected result
 ```
 
-The previous form is equivalent to:
+### Calling other Nodes
+
+Platform operations and custom business Nodes use the same structure: **put parameters beneath the Node name**. These examples show calls with multiple parameters and with no parameters. Place the snippets inside a case's `steps`:
 
 ```yaml
 steps:
-  - aiAct:
-      prompt: Click the Submit order button
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - clearCookies: {}
 ```
 
-Business Nodes can accept custom parameters:
+`setViewportSize` takes a parameter object; `clearCookies` takes no parameters, so use `{}`. Both Nodes are provided by Web projects. Consult your project's reference for available mobile, desktop, and custom Nodes and their inputs.
+
+For example, if your team registers an `order.create` Node, you can call it as follows. This is a business extension example that must be implemented and registered in your project before use:
 
 ```yaml
 steps:
@@ -88,7 +162,7 @@ steps:
       quantity: 2
 ```
 
-Structured parameters keep the same nesting as the underlying API. A multimodal prompt is one `prompt` value, so its images remain inside `prompt`:
+Parameters can also contain nested objects or arrays. When passing a reference image to `aiAct`, the text and images form one `prompt` value, while `options` is a separate field:
 
 ```yaml
 steps:
@@ -110,6 +184,7 @@ Use `$` for Step parameters controlled by Midscene Test. Midscene Test does not 
 steps:
   - order.create:
       sku: midscene-mug
+      quantity: 1
       $:
         timeout: 30000
         continue-on-error: true
@@ -157,61 +232,67 @@ Framework maintainers configure `tags.include` and `tags.exclude` for each Execu
 
 ## Define the execution lifecycle
 
-A Workflow Document can declare lifecycle Steps around `cases`:
+### Setup and cleanup steps
 
-```yaml
+Lifecycle hooks prepare the environment, reset state, or clean up data around test cases. All four hooks are optional and appear at the same level as `cases`. Their steps use the same Node call syntax as case `steps`.
+
+| Hook | When it runs | Common uses |
+| --- | --- | --- |
+| `beforeAll` | Once before all cases in the current YAML file | Prepare data shared by the file's cases |
+| `beforeEach` | Before every execution of a case, including retries | Open a page or reset case state |
+| `afterEach` | After every execution of a case, including failures and retries | Clean up data created during that execution |
+| `afterAll` | Once after all cases in the current YAML file | Clean up data shared by the file's cases |
+
+This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are built-in Nodes. Replace the example URL and product names with your application details.
+
+```yaml filename=cases/search.yaml
 beforeAll:
-  - data.prepare: Prepare the test data required by this file
+  - data.prepare: Prepare mug and kettle test products
 
 beforeEach:
-  - browser.reset: Reset the page to its initial state
+  - gotoUrl: https://your-shop.example
 
 cases:
-  - name: Create an order
+  - name: Search for mugs
     steps:
-      - aiAct: Create an order
-      - aiAssert: The page shows "Order placed"
+      - aiAct: Search for mugs
+      - aiAssert: The search results include mugs
 
-  - name: Cancel an order
+  - name: Search for kettles
     steps:
-      - aiAct: Cancel the latest order
-      - aiAssert: The page shows "Order canceled"
+      - aiAct: Search for kettles
+      - aiAssert: The search results include kettles
 
 afterEach:
-  - report.save: Save execution information for the current Case
+  - clearCookies: {}
 
 afterAll:
-  - data.cleanup: Delete the test data created by this file
+  - data.cleanup: Delete the test products prepared for this file
 ```
 
-An Execution Project follows this complete execution sequence:
+### Execution order and retries
+
+Without failures or retries, the file runs in this order:
 
 ```text
-Project setup
-  Workflow Document 1
-    beforeAll
-      Case 1 attempt 1: beforeEach → steps → afterEach
-      Case 1 retry:     beforeEach → steps → afterEach
-      Case 2 attempt 1: beforeEach → steps → afterEach
-    afterAll
-    Document-scoped Node cleanup
-  Workflow Document 2
-    ...
-Project teardown
+beforeAll
+  Case 1: beforeEach → steps → afterEach
+  Case 2: beforeEach → steps → afterEach
+afterAll
 ```
 
-Each phase has the following responsibilities:
+When retries are configured, a failed case reruns `beforeEach → steps → afterEach` within the retry limit before execution continues to subsequent cases. A retry does not rerun `beforeAll`; `afterAll` still runs once at the end of the file.
 
-- `beforeAll` and `afterAll` run once for each YAML file and handle document-level business setup and cleanup.
-- `beforeEach` and `afterEach` run once for every Case attempt.
-- A retry reruns the entire Case with a new run ID, Agent scope, and cache scope, but it does not rerun `beforeAll`.
-- A Node can register internal cleanup at attempt or Document scope, such as destroying an Agent or generating a report. Each cleanup runs when its scope ends.
+### Handling failures
 
-`afterEach` still runs if the main body of a Case fails.
+- If `beforeEach` fails, the current case's `steps` are skipped, but `afterEach` still runs.
+- If the case's `steps` fail, `afterEach` still runs.
+- If `beforeAll` fails, the file's cases are marked `not-run`, but `afterAll` still runs.
+- Failures in `afterEach` or `afterAll` are recorded as failures; cleanup errors are not ignored.
 
-If `beforeAll` fails, Midscene Test marks the Cases in the current file as `not-run`, but it still runs `afterAll` and all registered Node cleanup.
+By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
 
-Project setup runs only once before the Project's Workflow Documents. Project teardown always runs in LIFO order. When Midscene Test receives an interrupt signal, it cancels the current Step, while cleanup hooks and registered teardown functions receive a signal that still allows cleanup work to execute.
+Project setup manages browser and Agent resources; see [Manage project resources](./configuration#manage-project-resources). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
 
 ## Run tests
 
@@ -223,7 +304,7 @@ pnpm exec midscene-test
 
 ### Specify a test case directory or file
 
-By default, Midscene Test recursively finds and executes all `.yaml` and `.yml` files under the project root, automatically ignoring `node_modules` and `.git`.
+Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
 
 Pass a specific directory or test case file as an argument to run only that target:
 
@@ -247,33 +328,40 @@ pnpm exec midscene-test --project android-smoke --project ios-regression
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
+To generate the operation reference for a specific Execution Project, also use `--project`:
 
-## View test results
-
-After each test run, the console displays Case statuses and a brief summary. Midscene Test also generates a visual test report locally.
-
-### Midscene visual report
-
-Midscene Test records detailed test Steps, UI screenshots, and the AI decision process in an interactive HTML report.
-
-By default, reports are saved to:
-
-```text
-midscene_run/report/
+```bash
+pnpm exec midscene-test nodes --project android-smoke
 ```
 
-Open an HTML file in this directory in a browser to inspect each `aiAct` and `aiAssert` execution trace, element location result, and complete screenshot history.
+The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
 
-> **Note**: To change the default report directory, set `output.reportDir` in `midscene.config.ts`.
+## Test case design conventions
 
-## Current limitations
+Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:
 
-Midscene Test currently has the following limitations:
+- **Execute in declaration order**: YAML describes a linear sequence of test steps, without DAG, branch, or loop syntax. For scenarios that require complex orchestration, we recommend building YAML script generation at a higher layer. That layer resolves the orchestration into an explicit sequence of steps for Midscene Test to execute.
+- **Each Node is stateless**: each Node invocation relies on its declared inputs and the context explicitly provided by the project, without automatically inheriting outputs from previous Steps. YAML provides no syntax for referencing outputs across steps or cases; when business state needs to be shared, implement the corresponding business logic in custom Nodes that read and update the project `context`.
 
-- **No parallel execution within an Execution Project**: all Workflow Documents, Cases, attempts, and Steps within one Execution Project run sequentially. Case-level concurrency is not supported yet.
-- **No control flow**: DAGs, branches such as If-Else, and loops are not supported. Test cases run linearly in their declared order.
-- **No cross-document data dependencies**: Workflow Documents are fully isolated and cannot pass or share runtime data with one another.
-- **Local loading only**: Midscene Test cannot load and execute YAML files directly from remote URLs, npm packages, or Git repositories yet.
+For example, the following assertion incorrectly refers to "the icon from the previous step", relying on the previous instruction to identify its target:
 
-Midscene Test also statically collects and validates every YAML file before execution. If it finds an unknown top-level field, an unregistered Node, or an invalid Step, it immediately throws a Collection Error and stops the run instead of waiting until that Case begins.
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  # Incorrect: the assertion does not inherit the previous instruction's context, so "the icon from the previous step" does not identify its target.
+  - aiAssert: The icon from the previous step is active
+```
+
+Name the target and its expected state explicitly so the assertion expresses the complete check on its own:
+
+```yaml
+steps:
+  - aiAct: Click the favorite star on the product details page to activate it
+  - aiAssert: The favorite star on the product details page is active
+```
+
+The interface retains the effects of previous actions, but each Node's instruction should describe its target independently, without references such as "the previous step" or "that item".
+
+## Next steps
+
+To add business Nodes or share runtime data, read [Develop custom Nodes](./extend). For platform integration and multiple execution projects, read [Configure test projects](./configuration).

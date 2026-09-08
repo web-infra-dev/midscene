@@ -72,7 +72,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`�
 
 [Midscene Test](./midscene-test/overview)（`@midscene/test`，Beta）将**声明式的测试意图与可编程的工程实现分离**。用 YAML 编写 UI 流程和预期结果，用可复用的 TypeScript 节点封装 API 调用、数据准备和清理操作。例如，一条退款用例可以先通过 API 准备订单，再通过 UI 申请退款并验证结果。
 
-框架提供项目脚手架、平台预设、生命周期钩子、重试，以及执行项目之间的隔离与并发。它还会根据已注册的节点及其参数定义生成 Markdown 参考文档，让**人和 AI Agent 都能了解可用能力，共同编写和维护用例**。详见[创建与扩展测试项目](./midscene-test/extend)和[编写与运行用例](./midscene-test/use)。
+框架提供项目脚手架、平台预设、生命周期钩子、重试，以及执行项目之间的隔离与并发。它还会根据已注册的节点及其参数定义生成 Markdown 参考文档，让**人和 AI Agent 都能了解可用能力，共同编写和维护用例**。详见[创建和使用测试项目](./midscene-test/use)、[编写自定义 Node](./midscene-test/extend)和[配置测试项目](./midscene-test/configuration)。
 
 ### 内置可观测性
 
@@ -85,7 +85,7 @@ Midscene 支持 `Qwen3.x`、`Doubao-Seed-2.1`、`GLM-4.6V`、`gemini-3.5-flash`�
 ## 开始使用
 
 - **在 Playground 中体验 Midscene**：编写脚本前，先交互式试验自然语言操作、数据提取和视觉断言。可以从 [Chrome 插件](./quick-start) 开始，也可以启动[移动端或桌面端 Playground](./quick-start#在其他平台使用-midscene)。
-- **通过 SDK 或 YAML 编写测试**：从 [Playwright](./integrate-with-playwright)、[Puppeteer](./integrate-with-puppeteer) 或[Midscene Test](./midscene-test/extend)开始。
+- **通过 SDK 或 YAML 编写测试**：从 [Playwright](./integrate-with-playwright)、[Puppeteer](./integrate-with-puppeteer) 或[Midscene Test](./midscene-test/use)开始。
 - **让 AI Agent 操作界面**：安装 [Midscene Skills](./skills)。
 - **测试其他平台**：查看 [Android](./platforms/android)、[iOS](./platforms/ios)、[HarmonyOS](./platforms/harmonyos) 或[桌面端](./platforms/desktop)指南。
 
