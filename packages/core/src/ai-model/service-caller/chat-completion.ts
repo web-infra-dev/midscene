@@ -142,6 +142,53 @@ const callCodex = async ({
   }
 };
 
+const buildUsageInfo = ({
+  usageData,
+  requestId,
+  timeCost,
+  modelName,
+  modelDescription,
+  responseModelName,
+  slot,
+  internalCallId,
+}: {
+  usageData?: OpenAI.CompletionUsage;
+  requestId?: string | null;
+  timeCost?: number;
+  modelName: string;
+  modelDescription: string;
+  responseModelName?: string;
+  slot: ModelRuntime['config']['slot'];
+  internalCallId: string;
+}): AIUsageInfo | undefined => {
+  if (!usageData) return undefined;
+
+  const cachedInputTokens = (
+    usageData as { prompt_tokens_details?: { cached_tokens?: number } }
+  )?.prompt_tokens_details?.cached_tokens;
+
+  return {
+    ...usageData,
+    prompt_tokens: usageData.prompt_tokens ?? 0,
+    completion_tokens: usageData.completion_tokens ?? 0,
+    total_tokens: usageData.total_tokens ?? 0,
+    cached_input: cachedInputTokens ?? 0,
+    time_cost: timeCost ?? 0,
+    model_name: modelName,
+    model_description: modelDescription,
+    response_model_name: responseModelName,
+    slot,
+    // Left undefined at the raw call layer. The agent's onUsage callback
+    // fills it from modelConfig.slot for metrics collection, and task
+    // layers use withUsageIntent() to stamp a more specific semantic
+    // intent (e.g. 'planning', 'insight') when attaching usage to tasks.
+    intent: undefined,
+    request_id: requestId ?? undefined,
+    // Internal stable ID for cross-path dedup when request_id is absent.
+    [INTERNAL_CALL_ID_FIELD]: internalCallId,
+  } satisfies AIUsageInfo;
+};
+
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   modelRuntime: ModelRuntime,
@@ -261,38 +308,6 @@ export async function callAI(
     }
 
     return contentValue;
-  };
-
-  const buildUsageInfo = (
-    usageData?: OpenAI.CompletionUsage,
-    requestId?: string | null,
-  ) => {
-    if (!usageData) return undefined;
-
-    const cachedInputTokens = (
-      usageData as { prompt_tokens_details?: { cached_tokens?: number } }
-    )?.prompt_tokens_details?.cached_tokens;
-
-    return {
-      ...usageData,
-      prompt_tokens: usageData.prompt_tokens ?? 0,
-      completion_tokens: usageData.completion_tokens ?? 0,
-      total_tokens: usageData.total_tokens ?? 0,
-      cached_input: cachedInputTokens ?? 0,
-      time_cost: timeCost ?? 0,
-      model_name: modelName,
-      model_description: modelDescription,
-      response_model_name: responseModelName,
-      slot: modelConfig.slot,
-      // Left undefined at the raw call layer. The agent's onUsage callback
-      // fills it from modelConfig.slot for metrics collection, and task
-      // layers use withUsageIntent() to stamp a more specific semantic
-      // intent (e.g. 'planning', 'insight') when attaching usage to tasks.
-      intent: undefined,
-      request_id: requestId ?? undefined,
-      // Internal stable ID for cross-path dedup when request_id is absent.
-      [INTERNAL_CALL_ID_FIELD]: internalCallId,
-    } satisfies AIUsageInfo;
   };
 
   const requestConfig = {
@@ -416,7 +431,16 @@ export async function callAI(
         accumulated = finalAccumulated || '';
 
         // Send final chunk
-        const finalUsage = buildUsageInfo(usage, requestId);
+        const finalUsage = buildUsageInfo({
+          usageData: usage,
+          requestId,
+          timeCost,
+          modelName,
+          modelDescription,
+          responseModelName,
+          slot: modelConfig.slot,
+          internalCallId,
+        });
         if (finalUsage && modelRuntime.onUsage) {
           modelRuntime.onUsage(finalUsage);
           usageReported = true;
@@ -496,7 +520,16 @@ export async function callAI(
           );
 
           if (!hasUsableText(content)) {
-            const errorUsage = buildUsageInfo(usage, requestId);
+            const errorUsage = buildUsageInfo({
+              usageData: usage,
+              requestId,
+              timeCost,
+              modelName,
+              modelDescription,
+              responseModelName,
+              slot: modelConfig.slot,
+              internalCallId,
+            });
             if (errorUsage && modelRuntime.onUsage) {
               modelRuntime.onUsage(errorUsage);
             }
@@ -549,7 +582,16 @@ export async function callAI(
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
 
-    const finalUsage = buildUsageInfo(usage, requestId);
+    const finalUsage = buildUsageInfo({
+      usageData: usage,
+      requestId,
+      timeCost,
+      modelName,
+      modelDescription,
+      responseModelName,
+      slot: modelConfig.slot,
+      internalCallId,
+    });
     // Report usage to the runtime-level collector if not already reported
     // (e.g. from the streaming final-chunk handler).
     if (!usageReported && finalUsage && modelRuntime.onUsage) {
