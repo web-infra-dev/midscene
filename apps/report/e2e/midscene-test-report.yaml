@@ -3,10 +3,12 @@ target:
   url: demo-midscene-test.html
   viewportWidth: 1440
   viewportHeight: 1200
+  # Keep screenshot coordinates consistent on Retina and CI machines.
+  deviceScaleFactor: 1
 tasks:
   - name: batch health and compact project tree
     flow:
-      - aiAssert: The overview shows 2 of 2 cases passed, a 100% final pass rate, a 50% first-pass rate, one case passed after retry, and an 8 second Runner time. Compact is selected. The Web regression project is collapsed.
+      - aiAssert: The overview shows 2 of 2 cases passed, a 100% final pass rate, a 50% first-pass rate, one case passed after retry, and an 8 second Run time. Compact is selected. The Web regression project is collapsed.
       - aiTap: the expand chevron to the left of Web regression
       - aiAssert: Checkout with retry and Verify cart summary appear as compact connected child rows under Web regression. Case names and status tags are readable and there are no separate Inspect buttons in these rows.
       - aiTap: the status filter showing All statuses
@@ -18,39 +20,70 @@ tasks:
       - aiAssert: Both cases are visible. Detailed rows show their source file, attempt count and duration. Checkout with retry has a numbered screenshot timeline on the right, while Verify cart summary has no screenshot evidence.
       - aiHover: a screenshot thumbnail in the Checkout with retry timeline
       - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
+      - aiHover: the Projects and cases heading on the left, outside the screenshot timeline and its floating preview
       - aiTap: the Compact view button
-      - aiAssert: Case rows are compact again and screenshot timelines are hidden.
+      - aiAssert: Compact is selected. Case rows show their names and status tags without screenshot timelines.
 
   - name: project workspace and browser history
     flow:
-      - aiTap: the Details action on the Web regression project row
+      - aiTap: the right-pointing chevron at the far right of the Web regression project header row, after its duration (not the expand chevron on the left)
       - aiAssert: The Web regression project page shows health metrics and a Cases section containing Checkout with retry and Verify cart summary, with search and status filters.
+      # Check history navigation through the route, then assert only visible UI with AI.
       - javascript: |
-          const params = new URLSearchParams(location.hash.slice(1));
-          if (params.get('runner-page') !== 'project') throw new Error('Missing project route');
-          history.back();
+          new Promise((resolve, reject) => {
+            const params = new URLSearchParams(location.hash.slice(1));
+            if (params.get('runner-page') !== 'project') throw new Error('Missing project route');
+            const timeout = setTimeout(() => {
+              window.removeEventListener('hashchange', onRouteChange);
+              reject(new Error('Browser Back did not navigate to the overview'));
+            }, 5000);
+            function onRouteChange() {
+              clearTimeout(timeout);
+              const page = new URLSearchParams(location.hash.slice(1)).get('runner-page');
+              if (page && page !== 'overview') reject(new Error(`Expected overview route, got ${location.hash}`));
+              else resolve();
+            }
+            window.addEventListener('hashchange', onRouteChange, { once: true });
+            history.back();
+          });
         name: browserBackFromProject
-      - aiAssert: The Overview is restored, with the Projects and cases section visible.
-      - javascript: history.forward()
+      - aiAssert: The overview shows the Projects and cases heading and the Compact and Detailed view controls.
+      - javascript: |
+          new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              window.removeEventListener('hashchange', onRouteChange);
+              reject(new Error('Browser Forward did not navigate to the project'));
+            }, 5000);
+            function onRouteChange() {
+              clearTimeout(timeout);
+              const params = new URLSearchParams(location.hash.slice(1));
+              if (params.get('runner-page') !== 'project' || params.get('runner-project') !== 'web-demo') {
+                reject(new Error(`Expected Web regression project route, got ${location.hash}`));
+              } else resolve();
+            }
+            window.addEventListener('hashchange', onRouteChange, { once: true });
+            history.forward();
+          });
         name: browserForwardToProject
-      - aiAssert: Browser Forward restores the Web regression project page and its Cases section.
+      - aiAssert: The project detail page has a Web regression heading, an Overview back link, health metrics, and a Cases section containing Checkout with retry and Verify cart summary.
       - aiTap: the Overview back link
 
   - name: retry attempts and custom node errors
     flow:
       - aiTap: the Checkout with retry case row
-      - aiAssert: The case opens at the failed order.create step in Attempt 1, showing Inventory was not ready.
+      - aiAssert: The Checkout with retry case detail has Attempt 1 selected. The selected order.create step shows Inventory was not ready.
       - aiTap: the Attempt 2 selector
-      - aiAssert: The case detail opens on Attempt 2. The visual timeline is above Execution and the evidence panel; aiAct is selected and an Inspect AI trace action is available.
+      - aiAssert: Attempt 2 is selected. The visual timeline is above Execution and the evidence panel; aiAct is selected and an Inspect AI trace action is available.
       - aiHover: a screenshot in the full width Visual timeline
-      - aiAssert: A screenshot preview is displayed while aiAct remains the selected execution step.
+      - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
+      - aiHover: the Checkout with retry case title at the top left, outside the Visual timeline and its floating preview
       - aiTap: the Attempt 1 selector
       - aiAssert: Attempt 1 is selected. The selected order.create step shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output includes the redacted apiKey. This custom step offers no AI trace action.
 
   - name: AI trace and namespaced deep link
     flow:
       - aiTap: the Attempt 2 selector
-      - aiAssert: aiAct is selected again, with Input & output and Events tabs and actions to Inspect AI trace and Open AI trace in new tab.
+      - aiAssert: aiAct is selected, with Input & output and Events tabs and actions to Inspect AI trace and Open AI trace in new tab.
       - javascript: |
           const link = document.querySelector('.runner-detail-trace-new-page');
           if (!(link instanceof HTMLAnchorElement)) throw new Error('Missing trace link');
@@ -60,4 +93,4 @@ tasks:
           }
         name: assertTraceDeepLink
       - aiTap: the Inspect AI trace button
-      - aiAssert: A wide AI trace drawer is open with the recorded Agent task list and screenshot replay. The Case workspace remains behind it rather than being pushed down the page.
+      - aiAssert: A wide AI trace drawer overlays the Case workspace, with the recorded Agent task list and screenshot replay visible inside the drawer.
