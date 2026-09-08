@@ -91,7 +91,7 @@ describe('point-based grounding', () => {
     const codec = createLocateResultCodec({
       coordinates: { shape: 'bbox', normalizedBy: 1000 },
     });
-    expect(codec.toPixelResult([0, 0, 10, 0], context)).toEqual({
+    expect(codec.toPixelResult([0, 0, 9, 0], context)).toEqual({
       center: [0, 0],
       rect: { left: 0, top: 0, width: 2, height: 1 },
     });
@@ -102,7 +102,11 @@ describe('point-based grounding', () => {
       coordinates: { shape: 'bbox' },
       parseRawLocateValue: () => ({
         coordinates: [0.25, 0.5],
-        coordinatesMeta: { shape: 'point', order: 'xy' },
+        coordinatesMeta: {
+          shape: 'point',
+          order: 'xy',
+          rounding: 'round' as const,
+        },
       }),
     });
     expect(codec.toPixelResult('fallback point', context).center).toEqual([

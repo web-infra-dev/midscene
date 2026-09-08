@@ -263,13 +263,18 @@ describe('doubao model adapter', () => {
       locateAdapter.element.resultCodec.toPixelResult('[336, 163, 717, 200]', {
         preparedSize: { width: 1000, height: 2000 },
       }).rect,
-    ).toEqual({ left: 336, top: 326, width: 381, height: 75 });
+    ).toEqual({ left: 336, top: 326, width: 382, height: 75 });
   });
 
   it('parses valid raw Doubao locate values directly', () => {
     expect(parseDoubaoRawLocateValue([100, 200, 300, 400])).toEqual({
       coordinates: [100, 200, 300, 400],
-      coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      coordinatesMeta: {
+        shape: 'bbox',
+        order: 'xy',
+        normalizedBy: 1000,
+        rounding: 'round' as const,
+      },
     });
   });
 
@@ -279,7 +284,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300 400',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -287,7 +297,12 @@ describe('doubao model adapter', () => {
       input: ['100', '200', '300', '400'],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -295,7 +310,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300 400 ',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -303,7 +323,12 @@ describe('doubao model adapter', () => {
       input: '[336, 163, 717, 200]',
       result: {
         coordinates: [336, 163, 717, 200],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -311,7 +336,12 @@ describe('doubao model adapter', () => {
       input: '336,163,717,200',
       result: {
         coordinates: [336, 163, 717, 200],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -319,7 +349,12 @@ describe('doubao model adapter', () => {
       input: [653, '277; 664 291;'],
       result: {
         coordinates: [653, 277, 664, 291],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -327,7 +362,12 @@ describe('doubao model adapter', () => {
       input: [653, '277, 664, 291,'],
       result: {
         coordinates: [653, 277, 664, 291],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -335,7 +375,12 @@ describe('doubao model adapter', () => {
       input: ['bbox', [782, 541, 815, 559]],
       result: {
         coordinates: [782, 541, 815, 559],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -343,7 +388,12 @@ describe('doubao model adapter', () => {
       input: ['bbox', '782, 541, 815, 559'],
       result: {
         coordinates: [782, 541, 815, 559],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -351,7 +401,12 @@ describe('doubao model adapter', () => {
       input: [410, 295, 885, '345<', '/bbox>,\n  "error": ""\n}'],
       result: {
         coordinates: [410, 295, 885, 345],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -359,7 +414,12 @@ describe('doubao model adapter', () => {
       input: ['bbox_859_773_923_808'],
       result: {
         coordinates: [859, 773, 923, 808],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -367,7 +427,12 @@ describe('doubao model adapter', () => {
       input: 'bbox_859_773_923_808',
       result: {
         coordinates: [859, 773, 923, 808],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -375,7 +440,12 @@ describe('doubao model adapter', () => {
       input: ['bbox_2d', [650, 700, 710, 730]],
       result: {
         coordinates: [650, 700, 710, 730],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -383,7 +453,12 @@ describe('doubao model adapter', () => {
       input: ['-100', 200, 300, 400],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -391,7 +466,12 @@ describe('doubao model adapter', () => {
       input: ['100.5', 200, 300, 400],
       result: {
         coordinates: [100, 5, 200, 300],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -399,7 +479,12 @@ describe('doubao model adapter', () => {
       input: 'error: 500, 503; bbox_100_200_300_400',
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -410,7 +495,12 @@ describe('doubao model adapter', () => {
       ],
       result: {
         coordinates: [100, 200, 300, 400],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -418,7 +508,12 @@ describe('doubao model adapter', () => {
       input: '100 200 300',
       result: {
         coordinates: [100, 200],
-        coordinatesMeta: { shape: 'point', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'point',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
     {
@@ -426,7 +521,12 @@ describe('doubao model adapter', () => {
       input: '1 2 3 4 5 6 7 8',
       result: {
         coordinates: [1, 2, 5, 6],
-        coordinatesMeta: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        coordinatesMeta: {
+          shape: 'bbox',
+          order: 'xy',
+          normalizedBy: 1000,
+          rounding: 'round' as const,
+        },
       },
     },
   ])('parses malformed raw Doubao locate value: $name', ({ input, result }) => {
@@ -498,7 +598,7 @@ describe('doubao model adapter', () => {
       ['123 100', '789 222'],
       { preparedSize: { width: 1000, height: 2000 } },
     ).rect;
-    expect(result).toEqual({ left: 123, top: 200, width: 666, height: 245 });
+    expect(result).toEqual({ left: 123, top: 200, width: 667, height: 245 });
   });
 
   it('normalizes doubao bbox with comma-separated point strings', () => {
@@ -512,7 +612,7 @@ describe('doubao model adapter', () => {
       ['123,100', '789, 222'],
       { preparedSize: { width: 1000, height: 2000 } },
     ).rect;
-    expect(result).toEqual({ left: 123, top: 200, width: 666, height: 245 });
+    expect(result).toEqual({ left: 123, top: 200, width: 667, height: 245 });
   });
 
   it('flattens single nested doubao bbox', () => {

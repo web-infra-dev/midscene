@@ -13,15 +13,18 @@ import {
 const qwen25BboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
+  rounding: 'round',
 } as const;
 const qwen25PointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
+  rounding: 'round',
 } as const;
 const qwen3BboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 function parseQwen25RawLocateValue(input: unknown): LocateResultValue {

@@ -214,11 +214,19 @@ it.each(['bbox', 'point'] as const)(
       shape === 'bbox'
         ? {
             coordinates: [10, 20, 31, 41] as [number, number, number, number],
-            coordinatesMeta: { shape: 'bbox' as const, order: 'xy' as const },
+            coordinatesMeta: {
+              shape: 'bbox' as const,
+              order: 'xy' as const,
+              rounding: 'round' as const,
+            },
           }
         : {
             coordinates: [20.5, 30.5] as [number, number],
-            coordinatesMeta: { shape: 'point' as const, order: 'xy' as const },
+            coordinatesMeta: {
+              shape: 'point' as const,
+              order: 'xy' as const,
+              rounding: 'round' as const,
+            },
           },
     );
     // A bbox-configured model may still return a native point for this response.

@@ -2,6 +2,7 @@ import type { Rect } from '@/types';
 import { isBboxLocateResultValue } from './types';
 import type {
   BboxLocateResultValue,
+  CoordinateRounding,
   LocateResultPoint,
   LocateResultValue,
   PixelBbox,
@@ -19,8 +20,19 @@ export function normalizedCoordinateToPixel(
   value: number,
   normalizedBy: number,
   size: number,
+  rounding: CoordinateRounding,
 ) {
-  return Math.round((value * maxPixelCoordinate(size)) / normalizedBy);
+  const pixel = (value * size) / normalizedBy;
+  switch (rounding) {
+    case 'round':
+      return Math.round(pixel);
+    case 'trunc':
+      return Math.trunc(pixel);
+    case 'none':
+      return pixel;
+    default:
+      throw new Error(`Invalid coordinate rounding: ${rounding}`);
+  }
 }
 
 /** Restrict an already mapped point to the effective content area. */
@@ -59,17 +71,17 @@ export function mapLocateResultToPixelBbox(
   result: BboxLocateResultValue,
   { width, height }: { width: number; height: number },
 ): PixelBbox {
-  const { normalizedBy, order } = result.coordinatesMeta;
+  const { normalizedBy, order, rounding } = result.coordinatesMeta;
   const [first, second, third, fourth] = result.coordinates;
   const xyBbox: PixelBbox =
     order === 'yx' ? [second, first, fourth, third] : result.coordinates;
   return normalizedBy === undefined
     ? xyBbox
     : [
-        normalizedCoordinateToPixel(xyBbox[0], normalizedBy, width),
-        normalizedCoordinateToPixel(xyBbox[1], normalizedBy, height),
-        normalizedCoordinateToPixel(xyBbox[2], normalizedBy, width),
-        normalizedCoordinateToPixel(xyBbox[3], normalizedBy, height),
+        normalizedCoordinateToPixel(xyBbox[0], normalizedBy, width, rounding),
+        normalizedCoordinateToPixel(xyBbox[1], normalizedBy, height, rounding),
+        normalizedCoordinateToPixel(xyBbox[2], normalizedBy, width, rounding),
+        normalizedCoordinateToPixel(xyBbox[3], normalizedBy, height, rounding),
       ];
 }
 
@@ -78,7 +90,7 @@ export function mapLocateResultToPixelPoint(
   result: LocateResultValue,
   { width, height }: { width: number; height: number },
 ): LocateResultPoint {
-  const { order, normalizedBy } = result.coordinatesMeta;
+  const { order, normalizedBy, rounding } = result.coordinatesMeta;
   const [first, second] = isBboxLocateResultValue(result)
     ? [
         (result.coordinates[0] + result.coordinates[2]) / 2,
@@ -89,7 +101,7 @@ export function mapLocateResultToPixelPoint(
   return normalizedBy === undefined
     ? [x, y]
     : [
-        normalizedCoordinateToPixel(x, normalizedBy, width),
-        normalizedCoordinateToPixel(y, normalizedBy, height),
+        normalizedCoordinateToPixel(x, normalizedBy, width, rounding),
+        normalizedCoordinateToPixel(y, normalizedBy, height, rounding),
       ];
 }
