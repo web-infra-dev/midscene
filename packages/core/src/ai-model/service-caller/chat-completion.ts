@@ -228,6 +228,34 @@ const applyImageDetail = ({
   });
 };
 
+type ChatCompletionCallOptions = {
+  client: Awaited<ReturnType<typeof createChatClient>>;
+  modelRuntime: ModelRuntime;
+  messages: ChatCompletionMessageParam[];
+  requestConfig: Record<string, unknown>;
+  effectiveTimeoutMs: number | null;
+  abortSignal?: AbortSignal;
+  startTime: number;
+  internalCallId: string;
+};
+
+type StreamingChatCompletionCallOptions = ChatCompletionCallOptions & {
+  onChunk: StreamingCallback;
+  recordEvent?: (event: Record<string, unknown>) => void;
+};
+
+type ChatCompletionCallResult = {
+  content: string;
+  accumulatedReasoning: string;
+  rawChoiceMessage?: unknown;
+  usage?: OpenAI.CompletionUsage;
+  timeCost?: number;
+  requestId?: string | null;
+  responseModelName?: string;
+  /** Whether usage for the final returned result has already been reported. */
+  usageReported: boolean;
+};
+
 const callChatCompletionStream = async ({
   client,
   modelRuntime,
@@ -239,18 +267,7 @@ const callChatCompletionStream = async ({
   startTime,
   internalCallId,
   recordEvent,
-}: {
-  client: Awaited<ReturnType<typeof createChatClient>>;
-  modelRuntime: ModelRuntime;
-  messages: ChatCompletionMessageParam[];
-  requestConfig: Record<string, unknown>;
-  effectiveTimeoutMs: number | null;
-  abortSignal?: AbortSignal;
-  onChunk: StreamingCallback;
-  startTime: number;
-  internalCallId: string;
-  recordEvent?: (event: Record<string, unknown>) => void;
-}) => {
+}: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
   const {
     completion,
@@ -421,16 +438,7 @@ const callChatCompletionNonStreaming = async ({
   abortSignal,
   startTime,
   internalCallId,
-}: {
-  client: Awaited<ReturnType<typeof createChatClient>>;
-  modelRuntime: ModelRuntime;
-  messages: ChatCompletionMessageParam[];
-  requestConfig: Record<string, unknown>;
-  effectiveTimeoutMs: number | null;
-  abortSignal?: AbortSignal;
-  startTime: number;
-  internalCallId: string;
-}) => {
+}: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
   const {
     completion,
@@ -568,6 +576,7 @@ const callChatCompletionNonStreaming = async ({
     timeCost,
     requestId,
     responseModelName,
+    usageReported: false,
   };
 };
 
