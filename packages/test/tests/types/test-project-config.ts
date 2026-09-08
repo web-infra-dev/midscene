@@ -96,7 +96,7 @@ defineTestProject<ProjectContext>({
       name: 'web',
       platform: 'web',
       setup: webSetup,
-      nodes: [projectNode],
+      nodes: [requestNode],
       files: {
         include: ['cases/**/*.yaml'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -104,6 +104,23 @@ defineTestProject<ProjectContext>({
       tags: { include: ['smoke'], exclude: ['manual'] },
       retry: 1,
       variables: { locale: 'en-US' },
+    },
+    {
+      name: 'web-override',
+      platform: 'web',
+      setup: webSetup,
+      files: { include: ['override/**/*.yaml'] },
+      nodes: [
+        {
+          name: 'project.read',
+          execute({ context }) {
+            context.baseURL satisfies string;
+            // @ts-expect-error The second Project preserves the configured context.
+            context.token;
+            return { summary: context.baseURL };
+          },
+        },
+      ],
     },
   ],
   test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
@@ -267,22 +284,43 @@ interface PlatformContext {
   };
 }
 
-createPlaywrightNodes<PlatformContext>({
-  getPage: ({ context }) => context.page,
-  getBaseUrl: ({ context }) => context.baseUrl,
-  getCookieProfile: ({ context }) => context.page.context().cookies(),
-});
-
-createAndroidNodes<PlatformContext>({
-  getAgent: ({ context }) => context.android,
-});
-
-createIOSNodes<PlatformContext>({
-  getAgent: ({ context }) => context.ios,
-});
-
-createHarmonyNodes<PlatformContext>({
-  getAgent: ({ context }) => context.harmony,
+defineTestProject<PlatformContext>({
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: { include: ['web/**/*.yaml'] },
+      nodes: createPlaywrightNodes<PlatformContext>({
+        getPage: ({ context }) => context.page,
+        getBaseUrl: ({ context }) => context.baseUrl,
+        getCookieProfile: ({ context }) => context.page.context().cookies(),
+      }),
+    },
+    {
+      name: 'android',
+      platform: 'android',
+      files: { include: ['android/**/*.yaml'] },
+      nodes: createAndroidNodes<PlatformContext>({
+        getAgent: ({ context }) => context.android,
+      }),
+    },
+    {
+      name: 'ios',
+      platform: 'ios',
+      files: { include: ['ios/**/*.yaml'] },
+      nodes: createIOSNodes<PlatformContext>({
+        getAgent: ({ context }) => context.ios,
+      }),
+    },
+    {
+      name: 'harmony',
+      platform: 'harmony',
+      files: { include: ['harmony/**/*.yaml'] },
+      nodes: createHarmonyNodes<PlatformContext>({
+        getAgent: ({ context }) => context.harmony,
+      }),
+    },
+  ],
 });
 
 declare const androidAgent: AndroidAgent;
