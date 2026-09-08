@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 const mockCreate = rs.fn();
 const mockCodexCall = rs.hoisted(() => rs.fn());
 
-rs.mock('@/ai-model/service-caller/codex-app-server', () => ({
+rs.mock('@/ai-model/service-caller/codex/codex-app-server', () => ({
   isCodexAppServerProvider: (url?: string) => url === 'codex://app-server',
   callAIWithCodexAppServer: mockCodexCall,
 }));

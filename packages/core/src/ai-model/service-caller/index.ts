@@ -4,7 +4,7 @@ export {
   callAIWithStringResponse,
   parseAIObjectResponse,
 } from './call-ai';
-export { callAI } from './chat-completion';
+export { callAI } from './call';
 export { createChatClient } from './openai-client';
 export { AIResponseParseError, INTERNAL_CALL_ID_FIELD } from './utils';
 export {

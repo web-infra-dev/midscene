@@ -8,7 +8,7 @@ import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
   normalizeCodexLocalImagePath,
-} from '@/ai-model/service-caller/codex-app-server';
+} from '@/ai-model/service-caller/codex/codex-app-server';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';

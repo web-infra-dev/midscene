@@ -3,11 +3,12 @@ import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 import { type JsonParserSource, assertJsonObject } from '../shared/json';
-import { type CallAIOptions, callAI } from './chat-completion';
+import { callAI } from './call';
 import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from './semantic-retry';
+import type { CallAIOptions } from './types';
 import type { AIArgs } from './types';
 import { AIResponseParseError } from './utils';
 

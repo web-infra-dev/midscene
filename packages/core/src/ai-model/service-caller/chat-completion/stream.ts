@@ -1,0 +1,166 @@
+import type { CodeGenerationChunk } from '@/types';
+import { getDebug } from '@midscene/shared/logger';
+import type OpenAI from 'openai';
+import type { Stream } from 'openai/streaming';
+import {
+  buildRequestAbortSignal,
+  restoreHardTimeoutError,
+} from '../request-timeout';
+import {
+  getLatestResponseAttempt,
+  getLatestSuccessfulResponseRequestId,
+  toError,
+} from '../utils';
+import type {
+  ChatCompletionCallResult,
+  StreamingChatCompletionCallOptions,
+} from './types';
+import { buildUsageInfo, resolveContentWithReasoningFallback } from './utils';
+
+export const callChatCompletionStream = async ({
+  client,
+  modelRuntime,
+  messages,
+  requestConfig,
+  effectiveTimeoutMs,
+  abortSignal,
+  onChunk,
+  startTime,
+  internalCallId,
+  recordEvent,
+}: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
+  const { config: modelConfig, adapter } = modelRuntime;
+  const {
+    completion,
+    modelName,
+    modelDescription,
+    modelFamily,
+    openAIErrorResponseContext,
+  } = client;
+  const debugProfileStats = getDebug('ai:profile:stats');
+  const temperature = requestConfig.temperature;
+  let accumulated = '';
+  let accumulatedReasoning = '';
+  let usage: OpenAI.CompletionUsage | undefined;
+  let timeCost: number | undefined;
+  let requestId: string | null | undefined;
+  let responseModelName: string | undefined;
+  let usageReported = false;
+  const { signal: streamSignal, cleanup: cleanupStreamSignal } =
+    buildRequestAbortSignal(effectiveTimeoutMs, abortSignal);
+  try {
+    const stream = (await completion.create(
+      {
+        model: modelName,
+        messages,
+        ...requestConfig,
+        stream: true,
+        stream_options: {
+          ...(requestConfig.stream_options as
+            | Record<string, unknown>
+            | undefined),
+          include_usage: true,
+        },
+      },
+      {
+        stream: true,
+        signal: streamSignal,
+      },
+    )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+      _request_id?: string | null;
+    };
+
+    requestId =
+      getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
+      stream._request_id;
+    const streamAttempt = getLatestResponseAttempt(openAIErrorResponseContext);
+
+    let chunkSequence = 0;
+    for await (const chunk of stream) {
+      chunkSequence += 1;
+      recordEvent?.({
+        type: 'chunk',
+        attempt: streamAttempt,
+        sequence: chunkSequence,
+        chunk,
+      });
+      const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
+        chunk.choices?.[0]?.delta,
+      );
+      const content = parsedChunk.content || '';
+      const reasoning_content = parsedChunk.reasoning_content || '';
+
+      // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+      if (chunk.usage) {
+        usage = chunk.usage;
+      }
+      if (chunk.model) {
+        responseModelName = chunk.model;
+      }
+
+      if (content || reasoning_content) {
+        accumulated += content;
+        accumulatedReasoning += reasoning_content;
+        const chunkData: CodeGenerationChunk = {
+          content,
+          reasoning_content,
+          accumulated,
+          isComplete: false,
+          usage: undefined,
+        };
+        onChunk(chunkData);
+      }
+    }
+
+    timeCost = Date.now() - startTime;
+
+    const finalAccumulated = resolveContentWithReasoningFallback({
+      content: accumulated,
+      reasoningContent: accumulatedReasoning,
+      useReasoningAsContentFallback:
+        adapter.chatCompletion.useReasoningAsContentFallback,
+    });
+    accumulated = finalAccumulated || '';
+
+    // Send final chunk
+    const finalUsage = buildUsageInfo({
+      usageData: usage,
+      requestId,
+      timeCost,
+      modelName,
+      modelDescription,
+      responseModelName,
+      slot: modelConfig.slot,
+      internalCallId,
+    });
+    if (finalUsage && modelRuntime.onUsage) {
+      modelRuntime.onUsage(finalUsage);
+      usageReported = true;
+    }
+    const finalChunk: CodeGenerationChunk = {
+      content: '',
+      accumulated,
+      reasoning_content: '',
+      isComplete: true,
+      usage: finalUsage,
+    };
+    onChunk(finalChunk);
+  } catch (error) {
+    throw restoreHardTimeoutError(toError(error), streamSignal);
+  } finally {
+    cleanupStreamSignal();
+  }
+  debugProfileStats(
+    `streaming model, ${modelName}, mode, ${modelFamily || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
+  );
+  return {
+    content: accumulated,
+    accumulatedReasoning,
+    rawChoiceMessage: undefined,
+    usage,
+    timeCost,
+    requestId,
+    responseModelName,
+    usageReported,
+  };
+};

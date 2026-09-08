@@ -7,7 +7,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { CodexAppServerParamsResult } from '../model-adapter/types';
+import type { CodexAppServerParamsResult } from '../../model-adapter/types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
 const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
