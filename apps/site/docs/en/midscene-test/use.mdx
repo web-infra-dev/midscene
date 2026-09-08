@@ -21,7 +21,7 @@ Test Project configuration
 ```
 
 - **Test Project**: the top-level configuration defined by `midscene.config.ts`. It registers shared Nodes and configures the default execution target or a `projects` array.
-- **Execution Project**: an entry within a Test Project that describes one execution target, including its platform, Project setup, file and tag filters, variables, and retry strategy. It is not a peer of the Test Project.
+- **Execution Project**: an entry within a Test Project that describes one execution target, including its platform, Project setup, local Nodes, file and tag filters, variables, and retry strategy. It is not a peer of the Test Project.
 - **Workflow Document**: a YAML file selected by an Execution Project. It contains lifecycle hooks and one or more Cases.
 - **Lifecycle Step**: a Step declared in a Workflow Document's `beforeAll`, `beforeEach`, `afterEach`, or `afterAll` hook. Use these Steps for supporting operations such as data preparation, state reset, and resource cleanup.
 - **Case**: a named test case composed of multiple Steps.
@@ -29,6 +29,16 @@ Test Project configuration
 - **Node**: an execution capability registered by a platform developer, such as `aiAssert` or `order.create`.
 
 Nodes define the execution capabilities available to a team. YAML defines how each test case combines those capabilities.
+
+Each Execution Project inherits the top-level `nodes` and can add or override definitions in `projects[].nodes`. A local Node replaces a global Node with the same name only in that Project; duplicate names within one layer are errors. Top-level `nodes` may be omitted and default to `[]`. A shared YAML file is validated and executed against each selected Project's effective Nodes, so the same `launch` step can use Android and iOS implementations in one configuration.
+
+Before writing platform-specific Steps, inspect the target Project:
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+`nodes` writes a Markdown reference for the selected Project. Without `--project`, it generates a shared reference only when every Project has the same effective Node set; otherwise it reports an error asking you to select one Project. See [project configuration](./extend#configure-and-manage-a-test-project) for a mixed-platform example.
 
 ## Write YAML test cases
 

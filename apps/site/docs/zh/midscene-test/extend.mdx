@@ -132,7 +132,7 @@ export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptio
 
 扩展包应将 `@midscene/test` 声明为 peer dependency，并发布工厂的 TypeScript 类型声明。在 `execute` 中通过 `getAgent` 获取运行时资源；包导入和工厂调用阶段不得连接设备或要求模型凭据。工厂可以检查 `platform`，拒绝不支持的平台。额外的业务资源需要在项目配置中显式接入。
 
-内置和扩展 Node 的名称必须唯一。缺少工厂、Node 定义无效或名称重复，都会导致说明书生成失败。`--with` 当前仅接受 registry 包名及可选的版本或标签，不支持本地路径、Git URL、包子路径或重复指定同一个包。
+同一注册层内的 Node 名称必须唯一：顶层 `nodes` 数组或某个 Project 的 `nodes` 数组都不能包含重复名称。Project 局部 Node 可以覆盖同名全局 Node。缺少工厂、Node 定义无效或同层名称重复，都会导致说明书生成失败。`--with` 当前仅接受 registry 包名及可选的版本或标签，不支持本地路径、Git URL、包子路径或重复指定同一个包。
 
 ## 手动配置项目
 
@@ -660,21 +660,45 @@ pnpm exec midscene-test nodes
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的系统内置 Node）。文档先通过 Available Nodes 总览表列出全部节点，再说明调用约定，最后在 Node Details 章节展开各 Node 的描述和输入 schema。说明书和 stdout 均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。Midscene Test 会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
+生成的说明书展示全局与 Project 局部注册合并后的有效 Node。通过 `--project` 选择一个 Execution Project：
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+未指定 Project 时，只有全部 Project 的有效 Node 集相同才会生成共享说明书；如果不同，命令会报错并要求用 `--project` 选择，不合并可能存在歧义的同名定义。说明书包含 Available Nodes 总览和 Node Details 描述、输入 schema。说明书与 stdout 均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。Midscene Test 将 Zod `inputSchema` 转换为标准 JSON Schema。
 
 说明书会分别列出 `Case files`（每个 Execution Project 的 `files.include` / `files.exclude` glob 匹配规则）和 `Config file`。两者均相对于说明书所在目录，方便用例编写者定位 YAML 文件和配置文件。创建模板默认选择 `cases/**/*.{yaml,yml}`；未配置 `files` 时，Midscene Test 会在测试目录下递归查找 `**/*.{yaml,yml}`。
 
 ## 配置和管理 Test Project
 
-`defineTestProject()` 是测试底座的核心配置入口，支持声明一个或多个 Execution Project：
+`defineTestProject()` 支持在同一配置中声明一个或多个 Execution Project。顶层 `nodes` 对所有 Project 生效，省略时默认为 `[]`。`projects[].nodes` 与 `setup`、`files` 平级，仅在该 Project 生效。同名局部 Node 会整体覆盖全局定义，其余全局 Node 继续继承；同一注册层内出现重复名称仍然报错。
+
+Android/iOS 混合配置应在各 Project 中注册对应平台 Agent 的官方 Node。下例假设 `./setup` 导出两个独立 setup，分别返回 `{ agent }`，`./nodes` 导出共享业务 Node；每个 setup 管理自己的 Agent 和资源：
 
 ```ts filename=midscene.config.ts
+import { AndroidAgent } from '@midscene/android';
+import { IOSAgent } from '@midscene/ios';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes, type MidsceneUIAgent } from '@midscene/test/midscene';
+import { sharedNodes } from './nodes';
+import { androidSetup, iosSetup } from './setup';
+
+interface ProjectContext {
+  agent: MidsceneUIAgent;
+}
+
 export default defineTestProject<ProjectContext>({
+  nodes: sharedNodes,
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
-      setup: doraAndroidSetup,
+      setup: androidSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: AndroidAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -682,6 +706,17 @@ export default defineTestProject<ProjectContext>({
       tags: { include: ['smoke'], exclude: ['manual'] },
       retry: 1,
       variables: { appUri: 'com.example.app' },
+    },
+    {
+      name: 'ios-smoke',
+      platform: 'ios',
+      setup: iosSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: IOSAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+      variables: { appUri: 'com.example.ios' },
     },
   ],
   test: {
@@ -692,9 +727,10 @@ export default defineTestProject<ProjectContext>({
   output: {
     reportDir: './midscene_run/report',
   },
-  nodes: [createOrder, ...midsceneNodes],
 });
 ```
+
+两个 Project 可以共用 YAML；`launch` 等平台 Node 在收集、输入校验和执行时均使用当前 Project 的有效定义，局部 Node 不会暴露给其他 Project。
 
 ### 关键配置策略
 

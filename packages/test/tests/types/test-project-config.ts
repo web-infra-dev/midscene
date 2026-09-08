@@ -8,6 +8,7 @@ import {
   runAdbShellInputSchema,
 } from '@midscene/test/android';
 import {
+  type LoadedExecutionProject,
   type TestProjectDefinition,
   defineProjectSetup,
   defineTestProject,
@@ -95,6 +96,7 @@ defineTestProject<ProjectContext>({
       name: 'web',
       platform: 'web',
       setup: webSetup,
+      nodes: [projectNode],
       files: {
         include: ['cases/**/*.yaml'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -106,6 +108,70 @@ defineTestProject<ProjectContext>({
   ],
   test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
+});
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'project-only',
+      platform: 'web',
+      setup: webSetup,
+      nodes: [
+        requestNode,
+        {
+          name: 'project.context',
+          execute({ context }) {
+            context.baseURL satisfies string;
+            // @ts-expect-error Local Nodes share the configured ProjectContext.
+            context.token;
+          },
+        },
+      ],
+    },
+  ],
+});
+
+defineTestProject({});
+defineTestProject({ projects: [{ name: 'empty', platform: 'web' }] });
+
+declare const loadedExecutionProject: LoadedExecutionProject<ProjectContext>;
+loadedExecutionProject.nodes.names() satisfies string[];
+loadTestProject<ProjectContext>().then((loaded) => {
+  loaded.projects[0] satisfies LoadedExecutionProject<ProjectContext>;
+  loaded.projects[0].nodes.names() satisfies string[];
+});
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'invalid-nodes',
+      platform: 'web',
+      // @ts-expect-error Project-local Nodes must be an array.
+      nodes: requestNode,
+    },
+  ],
+});
+
+const incompatibleContextNode = defineNode<unknown, unknown, { token: string }>(
+  {
+    name: 'token.context',
+    execute({ context }) {
+      return { summary: context.token };
+    },
+  },
+);
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'invalid-context',
+      platform: 'web',
+      nodes: [
+        // @ts-expect-error Local Nodes must accept the Project's configured context.
+        incompatibleContextNode,
+      ],
+    },
+  ],
 });
 
 const schemaInput = z.strictObject({

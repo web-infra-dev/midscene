@@ -132,7 +132,7 @@ export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptio
 
 Declare `@midscene/test` as a peer dependency and publish the factory's TypeScript declarations. Access runtime resources through `getAgent` inside `execute`; package imports and factory calls must not connect to devices or require model credentials. A factory can validate `platform` and reject unsupported platforms. Additional business resources must be wired explicitly in the project configuration.
 
-Node names must be unique across built-in and external Nodes. Missing factories, invalid definitions, or duplicate Node names cause reference generation to fail. `--with` currently accepts registry package names with optional versions or tags; local paths, Git URLs, package subpaths, and repeated package names are not supported.
+Node names must be unique within each registration layer: the top-level `nodes` array or one Project's `nodes` array. A Project-local Node can override a global Node of the same name. Missing factories, invalid definitions, or duplicate names within a layer cause reference generation to fail. `--with` currently accepts registry package names with optional versions or tags; local paths, Git URLs, package subpaths, and repeated package names are not supported.
 
 ## Configure a project manually
 
@@ -670,21 +670,45 @@ You can also specify a test directory or a custom configuration file:
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 ```
 
-The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`. It starts with an Available Nodes overview table, followed by usage conventions and a Node Details section containing each Node's description and input schema. Both the reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes sorted by name. Midscene Test automatically converts each Zod `inputSchema` to standard JSON Schema.
+The generated reference includes the effective Nodes after combining global and Project-local registrations. Select one Execution Project with `--project`:
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+Without a selector, `nodes` generates a shared reference only when every Project has the same effective Node set. If the sets differ, it reports an error asking you to select a Project instead of merging potentially different definitions with the same name. The reference includes an Available Nodes overview and Node Details with descriptions and input schemas. The reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes by name. Midscene Test converts each Zod `inputSchema` to standard JSON Schema.
 
 The reference lists `Case files` (each Execution Project's `files.include` / `files.exclude` glob patterns) and `Config file` separately. Both use paths relative to the reference file, so authors can locate their YAML files and configuration. Created projects select `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test searches `**/*.{yaml,yml}` under the test directory.
 
 ## Configure and manage a Test Project
 
-`defineTestProject()` is the main configuration entry point for the testing foundation and supports one or more Execution Projects:
+`defineTestProject()` supports one or more Execution Projects in the same configuration. Top-level `nodes` apply to every Project and default to `[]` when omitted. `projects[].nodes`, alongside `setup` and `files`, apply only to that Project. A local Node replaces the entire global definition with the same name; other global Nodes are inherited. Duplicate names within either registration layer remain errors.
+
+For a mixed Android/iOS configuration, register each platform Agent's official Nodes locally. The example assumes `./setup` exports independent setups that each return `{ agent }`, and `./nodes` exports shared business Nodes. Each setup owns its Agent and resources:
 
 ```ts filename=midscene.config.ts
+import { AndroidAgent } from '@midscene/android';
+import { IOSAgent } from '@midscene/ios';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes, type MidsceneUIAgent } from '@midscene/test/midscene';
+import { sharedNodes } from './nodes';
+import { androidSetup, iosSetup } from './setup';
+
+interface ProjectContext {
+  agent: MidsceneUIAgent;
+}
+
 export default defineTestProject<ProjectContext>({
+  nodes: sharedNodes,
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
-      setup: doraAndroidSetup,
+      setup: androidSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: AndroidAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -692,6 +716,17 @@ export default defineTestProject<ProjectContext>({
       tags: { include: ['smoke'], exclude: ['manual'] },
       retry: 1,
       variables: { appUri: 'com.example.app' },
+    },
+    {
+      name: 'ios-smoke',
+      platform: 'ios',
+      setup: iosSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: IOSAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+      variables: { appUri: 'com.example.ios' },
     },
   ],
   test: {
@@ -702,9 +737,10 @@ export default defineTestProject<ProjectContext>({
   output: {
     reportDir: './midscene_run/report',
   },
-  nodes: [createOrder, ...midsceneNodes],
 });
 ```
+
+Both Projects can use the same YAML: `launch` and other platform Nodes resolve through the current Project's catalog, including during collection and input validation. Local Nodes do not become available to other Projects.
 
 ### Key configuration strategies
 
