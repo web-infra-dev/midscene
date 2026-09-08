@@ -419,7 +419,24 @@ describe('create project', () => {
     expect(config).toContain('from "@acme/nodes"');
     expect(config).not.toContain('@acme/nodes@1.2.0');
     expect(existsSync(join(root, '.env'))).toBe(false);
-    expect(existsSync(join(root, 'README.md'))).toBe(true);
+    const exampleEnv = readFileSync(join(root, '.env.example'), 'utf8');
+    expect(exampleEnv).toContain(
+      'https://midscenejs.com/model-common-config.html',
+    );
+    expect(exampleEnv).toContain('https://midscenejs.com/model-config.html');
+    expect(exampleEnv).toContain('MIDSCENE_MODEL_BASE_URL=');
+    expect(exampleEnv).toContain('MIDSCENE_MODEL_API_KEY=');
+    expect(exampleEnv).toContain('MIDSCENE_MODEL_NAME=');
+    expect(exampleEnv).toContain('MIDSCENE_MODEL_FAMILY=');
+    expect(exampleEnv).toContain('Do not commit .env to your repository');
+    expect(exampleEnv).toContain(
+      'In CI, inject these values as environment variables instead',
+    );
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    expect(readme).toContain('Do not commit `.env` to your repository');
+    expect(readme).toContain(
+      'inject the model configuration as environment variables in CI',
+    );
     expect(existsSync(join(root, 'README.zh.md'))).toBe(false);
   });
 
