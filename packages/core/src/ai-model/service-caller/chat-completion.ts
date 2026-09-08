@@ -8,7 +8,10 @@ import { assert, uuid } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import type { CodexAppServerCallInput } from '../model-adapter/types';
+import type {
+  CodexAppServerCallInput,
+  ImageDetail,
+} from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
 import {
   type CodexAppServerRecordEvent,
@@ -189,6 +192,42 @@ const buildUsageInfo = ({
   } satisfies AIUsageInfo;
 };
 
+const applyImageDetail = ({
+  imageDetail,
+  messages,
+}: {
+  imageDetail?: ImageDetail;
+  messages: ChatCompletionMessageParam[];
+}): ChatCompletionMessageParam[] => {
+  if (!imageDetail) {
+    return messages;
+  }
+
+  return messages.map((msg) => {
+    if (!Array.isArray(msg.content)) {
+      return msg;
+    }
+
+    const content = msg.content.map((part) => {
+      if (part && part.type === 'image_url' && part.image_url?.url) {
+        return {
+          ...part,
+          image_url: {
+            ...part.image_url,
+            detail: imageDetail,
+          },
+        };
+      }
+      return part;
+    });
+
+    return {
+      ...msg,
+      content,
+    } as ChatCompletionMessageParam;
+  });
+};
+
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   modelRuntime: ModelRuntime,
@@ -318,35 +357,7 @@ export async function callAI(
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.
-  const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (!imageDetail) {
-      return messages;
-    }
-
-    return messages.map((msg) => {
-      if (!Array.isArray(msg.content)) {
-        return msg;
-      }
-
-      const content = msg.content.map((part) => {
-        if (part && part.type === 'image_url' && part.image_url?.url) {
-          return {
-            ...part,
-            image_url: {
-              ...part.image_url,
-              detail: imageDetail,
-            },
-          };
-        }
-        return part;
-      });
-
-      return {
-        ...msg,
-        content,
-      } as ChatCompletionMessageParam;
-    });
-  })();
+  const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
 
   try {
     debugCall(
