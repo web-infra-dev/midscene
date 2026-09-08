@@ -582,6 +582,14 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  const isStreaming = options?.stream === true;
+  if (isStreaming) {
+    assert(
+      typeof options?.onChunk === 'function',
+      'onChunk is required when stream is true',
+    );
+  }
+
   const { config: modelConfig, adapter } = modelRuntime;
   // Low-level callers without a TaskRunner still need a stable ID for the
   // lifetime of this model call (including its network retries).
@@ -651,7 +659,6 @@ export async function callAI(
 
   const startTime = Date.now();
 
-  const isStreaming = options?.stream && options?.onChunk;
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(modelCallInput);
   debugCall(
@@ -706,7 +713,7 @@ export async function callAI(
         requestConfig,
         effectiveTimeoutMs,
         abortSignal: options?.abortSignal,
-        onChunk: isStreaming,
+        onChunk: options!.onChunk!,
         startTime,
         internalCallId,
         recordEvent,

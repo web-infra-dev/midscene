@@ -289,27 +289,5 @@ describe(
         expect(result.usage.time_cost).toBeGreaterThan(0);
       }
     });
-
-    it('should fallback to non-streaming when onChunk is missing', async () => {
-      const result = await callAI(
-        [
-          {
-            role: 'user',
-            content: 'What is programming?',
-          },
-        ],
-        defaultModelRuntime(),
-        {
-          stream: true,
-          // onChunk is intentionally omitted
-        },
-      );
-
-      // Should fallback to non-streaming mode
-      expect(result.isStreamed).toBe(false);
-      expect(result.content).toBeDefined();
-      expect(result.content.length).toBeGreaterThan(0);
-      expect(result.usage).toBeDefined();
-    });
   },
 );
