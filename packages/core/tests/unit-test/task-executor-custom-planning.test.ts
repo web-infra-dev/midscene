@@ -179,7 +179,7 @@ describe('TaskExecutor custom planning adapters', () => {
     );
     expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
     expect(
-      convertSpy.mock.calls[0][0][0].param.locate.locatedPixelBbox,
-    ).toHaveLength(4);
+      convertSpy.mock.calls[0][0][0].param.locate.locatedPixelResult.center,
+    ).toHaveLength(2);
   });
 });

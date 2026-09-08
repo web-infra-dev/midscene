@@ -57,7 +57,7 @@ describe('model adapter registry', () => {
       }
       if (adapter.locate.kind === 'standard') {
         expect(adapter.locate.element.resultCodec.promptSpec).toBeTruthy();
-        expect(adapter.locate.element.resultCodec.toPixelBbox).toBeTruthy();
+        expect(adapter.locate.element.resultCodec.toPixelResult).toBeTruthy();
         expect(adapter.locate.element.protocol).toBeTruthy();
         if (adapter.locate.searchArea?.protocol) {
           expect(adapter.locate.searchArea?.resultCodec).toBeTruthy();
@@ -256,7 +256,7 @@ describe('ResolvedModelAdapter', () => {
           kind: 'custom',
           planningTapLocator: {
             buildSystemPrompt: () => 'locate system prompt',
-            getLocatedPixelBbox: () => [1, 2, 3, 4],
+            getLocatedPixelResult: () => ({ center: [2, 3] }),
           },
         },
       },
@@ -287,7 +287,7 @@ describe('ResolvedModelAdapter', () => {
               kind: 'custom',
               planningTapLocator: {
                 buildSystemPrompt: () => 'locate system prompt',
-                getLocatedPixelBbox: () => [1, 2, 3, 4],
+                getLocatedPixelResult: () => ({ center: [2, 3] }),
               },
             },
           },

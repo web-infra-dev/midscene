@@ -17,6 +17,7 @@ export {
 export type {
   LocateResultBbox,
   PixelBbox,
+  PixelLocateResult,
   RawLocateValue,
   LocateResultCodec,
   LocateResultFormatDefinition,

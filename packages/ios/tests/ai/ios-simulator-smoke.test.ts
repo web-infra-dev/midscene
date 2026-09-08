@@ -94,12 +94,12 @@ function screenshotBuffer(base64: string): Buffer {
 function locate(rect: WdaRect, screenshotScale: number, prompt: string) {
   return {
     prompt,
-    locatedPixelBbox: [
-      Math.round(rect.x * screenshotScale),
-      Math.round(rect.y * screenshotScale),
-      Math.round((rect.x + rect.width) * screenshotScale),
-      Math.round((rect.y + rect.height) * screenshotScale),
-    ] as [number, number, number, number],
+    locatedPixelResult: {
+      center: [
+        (rect.x + rect.width / 2) * screenshotScale,
+        (rect.y + rect.height / 2) * screenshotScale,
+      ] as [number, number],
+    },
   };
 }
 

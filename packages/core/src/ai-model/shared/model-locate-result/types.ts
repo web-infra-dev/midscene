@@ -1,3 +1,4 @@
+import type { Rect } from '@midscene/shared/types';
 import type { Bbox } from '../../../types';
 
 export type { Bbox };
@@ -67,14 +68,30 @@ export interface LocateResultPromptSpec {
   exampleValues: NonEmptyArray<unknown>;
 }
 
+export interface PixelLocateResult {
+  /** Raw bbox midpoint (or raw point), mapped to the locate image; normalized coordinates are rounded to pixels. */
+  center: LocateResultPoint;
+  /**
+   * Original bbox mapped to locate-image pixels and clipped to content bounds.
+   * Undefined for point results; never derive center or click coordinates from it.
+   */
+  rect?: Rect;
+}
+
 export interface LocateResultCodec {
   promptSpec: LocateResultPromptSpec;
-  toPixelBbox(input: RawLocateValue, ctx: LocateResultContext): PixelBbox;
+  /** Parse once and independently map the center and optional original bbox. */
+  toPixelResult(
+    input: RawLocateValue,
+    ctx: LocateResultContext,
+  ): PixelLocateResult;
 }
 
 export interface LocateResultCoordinates {
   shape: LocateResultShape;
+  /** Axis order in the raw coordinates; defaults to xy. */
   order?: 'xy' | 'yx';
+  /** Normalization range, e.g. 1 or 1000. Omit for model-image pixel coordinates. */
   normalizedBy?: number;
 }
 
@@ -91,87 +108,25 @@ export type ResolvedLocateResultCoordinates =
     };
 
 export type RawLocateValueParser = (input: RawLocateValue) => LocateResultValue;
-export type LocateResultPixelBboxMapper = (
-  result: LocateResultValue,
-  ctx: LocateResultContext,
-) => PixelBbox;
 
 /**
- * Declarative config for the standard locate workflow.
- *
- * The standard workflow has three steps:
- * 1. `coordinates` is expanded into prompt wording, a default
- *    raw result parser, and a default pixel bbox mapper.
- * 2. `parseRawLocateValue` converts that raw result value into Midscene's
- *    internal `LocateResultValue` shape:
- *    `{ coordinates, coordinatesMeta }`. Omit it when the model returns a
- *    plain numeric bbox/point matching `coordinates`; provide it when the
- *    model needs repair, fallback handling, or per-result coordinate metadata.
- * 3. `mapLocateResultToPixelBbox` converts the parsed result into a pixel bbox
- *    `[left, top, right, bottom]`. Omit it when `coordinates` is enough to describe
- *    the coordinate system and order; provide it only for model-specific
- *    conversion rules.
- *
- * This format only describes one raw coordinate value. The operation protocol
- * owns the response envelope and identifies target/reference values before the
- * runtime codec converts each value independently.
- *
- * Example 1: a GLM-like model that directly matches the standard coordinates.
- *
- * ```ts
- * resultFormat: {
- *   coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
- * }
- * ```
- *
- * Example 2: Qwen 2.5 returns pixel coordinates, but may return a point-like
- * value that needs custom parsing/fallback. The default pixel bbox mapper is
- * bypassed only if custom fallback sizing is required.
- *
- * ```ts
- * resultFormat: {
- *   coordinates: { shape: 'bbox', order: 'xy' },
- *   parseRawLocateValue: parseQwen25RawLocateValue,
- *   mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
- * }
- * ```
- *
- * Example 3: a model with a custom raw value shape can keep the standard
- * workflow while replacing parsing and mapping.
- *
- * ```ts
- * resultFormat: {
- *   coordinates: { shape: 'bbox', order: 'xy' },
- *   parseRawLocateValue: (raw) => ({
- *     coordinates: [
- *       Number((raw as any).left),
- *       Number((raw as any).top),
- *       Number((raw as any).right),
- *       Number((raw as any).bottom),
- *     ],
- *     coordinatesMeta: { shape: 'bbox', order: 'xy' },
- *   }),
- *   mapLocateResultToPixelBbox: (result) => result.coordinates,
- * }
- * ```
+ * Format of one model coordinate value, shared by element and search-area locate.
+ * The operation protocol extracts target/reference values from the response;
+ * the codec parses each value once and maps it to `{ center, rect }` using the
+ * parsed result's coordinatesMeta. Rect is undefined for actual point results.
+ * Only raw-value parsing is customizable; coordinate mapping is shared.
  */
 export type LocateResultFormatDefinition = {
   /**
-   * Common locate result coordinates shorthand. This is the preferred config surface
-   * for normal models because it keeps result type, coordinate system, and
-   * coordinate order in one orthogonal field.
+   * Expected shape, axis order, and normalization used by the prompt and default
+   * parser. A custom parser may return different metadata for an actual response.
    */
   coordinates: LocateResultCoordinates;
   /**
-   * Parses one raw coordinate value into a `LocateResultValue`. This function
-   * should handle response repair, bbox-vs-point fallback, and the coordinate
-   * metadata that describes the parsed coordinates.
+   * Optional model-specific parser for nonstandard formats or point/bbox fallback.
+   * Return `{ coordinates, coordinatesMeta }` describing the actual shape, axis
+   * order, and normalization. Preserve coordinate precision; do not round or map
+   * to pixels here. Omit to parse numeric values according to `coordinates`.
    */
   parseRawLocateValue?: RawLocateValueParser;
-  /**
-   * Maps the parsed result into a pixel bbox. Most models should omit this
-   * and let `coordinates` drive the default conversion. Provide it only when point
-   * fallback size, clipping, or coordinate semantics are model-specific.
-   */
-  mapLocateResultToPixelBbox?: LocateResultPixelBboxMapper;
 };

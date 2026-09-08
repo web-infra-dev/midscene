@@ -117,4 +117,75 @@ describe('section locate protocol', () => {
     );
     expect(result.searchAreaConfig).toBeDefined();
   });
+  it.each([
+    {
+      name: 'wide bbox and point reference',
+      target: [200, 200, 1199, 299],
+      references: [[1500.25, 400.75]],
+      sourceRect: { left: 100, top: 100, width: 1501, height: 402 },
+    },
+    {
+      name: 'point target and tall bbox reference',
+      target: [0.25, 0.5],
+      references: [[400, 100, 499, 849]],
+      sourceRect: { left: 0, top: 0, width: 600, height: 950 },
+    },
+    {
+      name: 'point-only target',
+      target: [500.25, 500.75],
+      references: [],
+      sourceRect: { left: 301, top: 302, width: 400, height: 400 },
+    },
+  ])(
+    'merges $name through the unified codec result',
+    async ({ target, references, sourceRect }) => {
+      const parseRawLocateValue = rs.fn((raw: unknown) => {
+        const values = raw as number[];
+        return values.length === 4
+          ? {
+              coordinates: values as [number, number, number, number],
+              coordinatesMeta: { shape: 'bbox' as const, order: 'xy' as const },
+            }
+          : {
+              coordinates: values as [number, number],
+              coordinatesMeta: {
+                shape: 'point' as const,
+                order: 'xy' as const,
+              },
+            };
+      });
+      const adapter = new ResolvedModelAdapter(
+        {
+          locate: {
+            searchArea: {
+              resultFormat: {
+                coordinates: { shape: 'bbox' },
+                parseRawLocateValue,
+              },
+              protocol: {
+                systemPromptIntroduction: 'Locate the search area',
+                buildResponseInstructions: () => 'Return target and references',
+                buildUserPrompt: (description: string) => description,
+                expectedJsonObjectResponse: false,
+                parseRawResponse: () => ({
+                  kind: 'located',
+                  target,
+                  references,
+                }),
+              },
+            },
+          },
+        },
+        'mixed-search-regions',
+      );
+      const result = await AiLocateSection({
+        context: createFakeContext(),
+        sectionDescription: 'target with reference',
+        modelRuntime: { config: modelConfig, adapter },
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.searchAreaConfig?.sourceRect).toEqual(sourceRect);
+      expect(parseRawLocateValue).toHaveBeenCalledTimes(1 + references.length);
+    },
+  );
 });

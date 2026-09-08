@@ -108,7 +108,7 @@ async function callAndParsePlanningResponse(
         parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
       });
       // dumpActionParam keeps only the locator prompt, so runtime-only
-      // locatedPixelBbox fields added during normalization are not serialized.
+      // locatedPixelResult fields added during normalization are not serialized.
       const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
       return { response, planFromAI, actions, yamlFlow };
     },

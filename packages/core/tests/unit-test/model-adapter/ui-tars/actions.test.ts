@@ -64,7 +64,7 @@ describe('transformUiTarsActions', () => {
         },
       },
     });
-    expect(action.param.locate).not.toHaveProperty('locatedPixelBbox');
+    expect(action.param.locate).not.toHaveProperty('locatedPixelResult');
   });
 
   it('transforms drag coordinates into planning points', () => {
@@ -93,8 +93,8 @@ describe('transformUiTarsActions', () => {
         },
       },
     });
-    expect(action.param.from).not.toHaveProperty('locatedPixelBbox');
-    expect(action.param.to).not.toHaveProperty('locatedPixelBbox');
+    expect(action.param.from).not.toHaveProperty('locatedPixelResult');
+    expect(action.param.to).not.toHaveProperty('locatedPixelResult');
   });
 
   it('transforms right and double click actions', () => {

@@ -63,7 +63,7 @@ describe('grounding locate not-found parsing', () => {
       'Missing required coordinate field "bbox"',
     );
     expect(retryFeedback?.content).toContain('Expected "bbox":');
-    expect(result.rect).toBeDefined();
+    expect(result.parseResult.element?.center).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
 
@@ -78,7 +78,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);
-    expect(result.rect).toBeUndefined();
+    expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.errors?.[0]).toContain(
       'Missing required coordinate field "bbox"',
     );
@@ -101,7 +101,7 @@ describe('grounding locate not-found parsing', () => {
     });
 
     expect(callAI).toHaveBeenCalledTimes(1);
-    expect(result.rect).toBeUndefined();
+    expect(result).not.toHaveProperty('rect');
     expect(result.parseResult).toEqual({
       element: undefined,
       errors: ['target element is not found'],
@@ -136,7 +136,7 @@ describe('grounding locate not-found parsing', () => {
     expect(retryFeedback?.content).toEqual(
       expect.stringContaining('coordinate parsing error'),
     );
-    expect(result.rect).toBeDefined();
+    expect(result.parseResult.element?.center).toBeDefined();
     expect(result.parseResult.errors).toEqual([]);
   });
 
@@ -153,7 +153,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime({ ...modelConfig, retryCount: 0 }),
     });
 
-    expect(result.rect).toBeUndefined();
+    expect(result).not.toHaveProperty('rect');
     expect(result.parseResult.errors?.[0]).toContain(
       'model returned invalid coordinates',
     );
@@ -179,7 +179,7 @@ describe('grounding locate not-found parsing', () => {
       modelRuntime: getModelRuntime(modelConfig),
     });
 
-    expect(result.rect).toBeDefined();
+    expect(result.parseResult.element?.center).toBeDefined();
     expect(callAI).toHaveBeenCalledTimes(2);
   });
 
@@ -211,7 +211,10 @@ describe('grounding locate not-found parsing', () => {
 
   it('passes locate request context to custom locate and maps its bbox result', async () => {
     const locateFn = rs.fn<LocateFn>().mockResolvedValue({
-      locatedPixelBbox: [100, 50, 130, 70],
+      locatedPixelResult: {
+        center: [115, 60],
+        rect: { left: 100, top: 50, width: 31, height: 21 },
+      },
       rawResponse: 'custom locate response',
       usage: { total_tokens: 12 } as any,
       reasoningContent: 'custom reasoning',
@@ -254,7 +257,7 @@ describe('grounding locate not-found parsing', () => {
             x: 200,
             y: 100,
           },
-          scale: 1,
+          scale: 2,
         },
       },
     });
@@ -270,11 +273,12 @@ describe('grounding locate not-found parsing', () => {
         options: expect.any(Object),
       }),
     );
-    expect(result.rect).toEqual({
-      left: 300,
-      top: 150,
-      width: 31,
-      height: 21,
+    expect(result.parseResult.element?.center).toEqual([257.5, 130]);
+    expect(result.parseResult.element?.rect).toEqual({
+      left: 250,
+      top: 125,
+      width: 16,
+      height: 11,
     });
     expect(result.parseResult.errors).toEqual([]);
     expect(result.rawResponse).toBe('custom locate response');

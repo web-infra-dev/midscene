@@ -1,5 +1,6 @@
 import type { ResolvedCustomPlanningDefinition } from '@/ai-model/model-adapter/custom-planning-types';
 import { AIResponseParseError } from '@/ai-model/service-caller';
+import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import { resolvePlanningTapLocator } from '@/ai-model/workflows/grounding/planning-action-locate';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -72,7 +73,7 @@ describe('resolvePlanningTapLocator', () => {
     rs.mocked(runCustomPlanning).mockReset();
   });
 
-  it('runs the resolved planner once with tap locate options and returns the configured bbox', async () => {
+  it('runs the resolved planner once with tap locate options and returns the complete configured pixel result', async () => {
     const actions = [{ type: 'Tap', param: {} }];
     rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions,
@@ -83,13 +84,15 @@ describe('resolvePlanningTapLocator', () => {
       log: 'planner reasoning',
     });
 
-    const getLocatedPixelBbox = rs.fn((): [number, number, number, number] => [
-      1, 2, 3, 4,
-    ]);
+    const locatedPixelResult: PixelLocateResult = {
+      center: [2, 3],
+      rect: { left: 1, top: 2, width: 3, height: 3 },
+    };
+    const getLocatedPixelResult = rs.fn(() => locatedPixelResult);
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox,
+        getLocatedPixelResult,
       },
       createPlanner(),
     );
@@ -117,9 +120,9 @@ describe('resolvePlanningTapLocator', () => {
     expect(
       locatorPlanner.messages.buildUserInstruction?.('submit button'),
     ).toBe('Tap: submit button');
-    expect(getLocatedPixelBbox).toHaveBeenCalledWith(actions);
+    expect(getLocatedPixelResult).toHaveBeenCalledWith(actions);
     expect(result).toEqual({
-      locatedPixelBbox: [1, 2, 3, 4],
+      locatedPixelResult,
       rawResponse: 'raw planning response',
       rawChoiceMessage: { role: 'assistant' },
       usage: { total_tokens: 3 },
@@ -127,7 +130,7 @@ describe('resolvePlanningTapLocator', () => {
     });
   });
 
-  it('returns an error when the planner actions do not contain a tap bbox', async () => {
+  it('returns an error when the planner actions do not contain a tap point', async () => {
     rs.mocked(runCustomPlanning).mockResolvedValueOnce({
       actions: [{ type: 'Scroll', param: {} }],
       shouldContinuePlanning: false,
@@ -138,7 +141,7 @@ describe('resolvePlanningTapLocator', () => {
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox: () => undefined,
+        getLocatedPixelResult: () => undefined,
       },
       createPlanner(),
     );
@@ -150,7 +153,7 @@ describe('resolvePlanningTapLocator', () => {
       rawChoiceMessage: undefined,
       usage: undefined,
       reasoningContent: 'planner reasoning',
-      errors: ['No locatedPixelBbox found in planner response'],
+      errors: ['No locatedPixelResult found in planner response'],
     });
   });
 
@@ -169,7 +172,7 @@ describe('resolvePlanningTapLocator', () => {
     const locate = resolvePlanningTapLocator(
       {
         buildSystemPrompt: () => 'locate system prompt',
-        getLocatedPixelBbox: () => undefined,
+        getLocatedPixelResult: () => undefined,
       },
       createPlanner(),
     );

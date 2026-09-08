@@ -315,11 +315,9 @@ export const parseActionParam = (
     let value = locateFieldValues[fieldName];
     if (
       ratio !== undefined &&
-      ratio !== 1 &&
       value &&
       typeof value === 'object' &&
-      value.center &&
-      value.rect
+      value.center
     ) {
       value = {
         ...value,
@@ -327,13 +325,6 @@ export const parseActionParam = (
           Math.round(value.center[0] / ratio),
           Math.round(value.center[1] / ratio),
         ],
-        rect: {
-          ...value.rect,
-          left: Math.round(value.rect.left / ratio),
-          top: Math.round(value.rect.top / ratio),
-          width: Math.round(value.rect.width / ratio),
-          height: Math.round(value.rect.height / ratio),
-        },
       };
     }
     validated[fieldName] = value;

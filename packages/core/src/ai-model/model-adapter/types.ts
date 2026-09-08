@@ -1,4 +1,4 @@
-import type { PixelBbox, PlanningAction } from '@/types';
+import type { PlanningAction } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
@@ -15,6 +15,7 @@ import type {
 import type {
   LocateResultCodec,
   LocateResultFormatDefinition,
+  PixelLocateResult,
   ResolvedLocateResultCoordinates,
 } from '../shared/model-locate-result/types';
 import type { LocateFn } from '../workflows/grounding/types';
@@ -238,7 +239,9 @@ interface LocateOperationDefinition {
 
 export interface PlanningTapLocatorDefinition {
   buildSystemPrompt(): string;
-  getLocatedPixelBbox(actions: PlanningAction[]): PixelBbox | undefined;
+  getLocatedPixelResult(
+    actions: PlanningAction[],
+  ): PixelLocateResult | undefined;
 }
 
 type CustomLocateDefinition = {

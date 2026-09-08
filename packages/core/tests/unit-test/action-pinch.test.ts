@@ -82,7 +82,6 @@ describe('Pinch Action Parameter Validation', () => {
           direction: 'out',
           locate: {
             center: [400, 600] as [number, number],
-            rect: { left: 300, top: 500, width: 200, height: 200 },
           },
         },
         ActionPinchParamSchema,
@@ -90,7 +89,6 @@ describe('Pinch Action Parameter Validation', () => {
       );
       expect(parsed!.locate).toEqual({
         center: [200, 300],
-        rect: { left: 150, top: 250, width: 100, height: 100 },
       });
       expect(parsed!.direction).toBe('out');
     });
