@@ -100,12 +100,20 @@ describe('createScrcpyVideoStream', () => {
     const stream = createScrcpyVideoStream(socket);
     const collected = collectStream(stream);
 
-    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1, 2, 3]) });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1, 2, 3]),
+      keyFrame: true,
+    });
     socket.dispatchVideoData({
       type: 'configuration',
       data: new Uint8Array([9]),
     });
-    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([4, 5, 6]) });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([4, 5, 6]),
+      keyFrame: false,
+    });
     socket.dispatchDisconnect();
 
     const packets = await collected;
@@ -128,13 +136,21 @@ describe('createScrcpyVideoStream', () => {
     const stream = createScrcpyVideoStream(socket, { onFirstDataPacket });
     const collected = collectStream(stream);
 
-    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1]) });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: true,
+    });
     expect(onFirstDataPacket).not.toHaveBeenCalled();
     socket.dispatchVideoData({
       type: 'configuration',
       data: new Uint8Array([9]),
     });
-    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([2]) });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: false,
+    });
     socket.dispatchDisconnect();
     await collected;
 
@@ -150,6 +166,7 @@ describe('createScrcpyVideoStream', () => {
       socket.dispatchVideoData({
         type: 'data',
         data: new Uint8Array([index]),
+        keyFrame: index === 8,
       });
     }
     socket.dispatchVideoData({
@@ -165,7 +182,65 @@ describe('createScrcpyVideoStream', () => {
       packets
         .filter((packet) => packet.type === 'data')
         .map((packet) => packet.data[0]),
-    ).toEqual([0, 1]);
+    ).toEqual([8, 9]);
+  });
+
+  test('drops post-configuration deltas until a keyframe arrives', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: false,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: true,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([3]),
+      keyFrame: false,
+    });
+    socket.dispatchDisconnect();
+
+    const packets = await collected;
+    expect(
+      packets.map((packet) => ({
+        type: packet.type,
+        data: Array.from(packet.data),
+      })),
+    ).toEqual([
+      { type: 'configuration', data: [9] },
+      { type: 'data', data: [2] },
+      { type: 'data', data: [3] },
+    ]);
+  });
+
+  test('rejects data packets without keyframe metadata', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const collected = collectStream(stream);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+    });
+
+    await expect(collected).rejects.toThrow(
+      'Scrcpy video data packet is missing keyFrame metadata',
+    );
   });
 
   test('propagates keyFrame flag from raw packet as keyframe', async () => {
@@ -235,7 +310,11 @@ describe('createScrcpyVideoStream', () => {
       type: 'configuration',
       data: new Uint8Array([0]),
     });
-    socket.dispatchVideoData({ type: 'data', data: new Uint8Array([1]) });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: true,
+    });
     socket.dispatchDisconnect();
 
     const packets = await collected;

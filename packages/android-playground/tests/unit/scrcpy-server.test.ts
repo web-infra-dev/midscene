@@ -1,7 +1,9 @@
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
+  buildScrcpyVideoPacket,
   resolveRequestedDeviceId,
+  shouldReliablyEmitScrcpyVideoPacket,
 } from '../../src/scrcpy-server';
 
 const {
@@ -119,6 +121,31 @@ describe('ScrcpyServer', () => {
       'pushing-server',
       'starting-service',
     ]);
+  });
+
+  it('maps keyframe metadata and selects reliable transport', () => {
+    const packet = {
+      type: 'data' as const,
+      data: new Uint8Array([1, 2, 3]),
+      keyframe: true,
+    };
+
+    expect(buildScrcpyVideoPacket(packet, 123)).toEqual({
+      data: packet.data,
+      type: 'data',
+      timestamp: 123,
+      keyFrame: true,
+    });
+    expect(shouldReliablyEmitScrcpyVideoPacket(packet)).toBe(true);
+    expect(
+      shouldReliablyEmitScrcpyVideoPacket({ ...packet, keyframe: false }),
+    ).toBe(false);
+    expect(
+      shouldReliablyEmitScrcpyVideoPacket({
+        type: 'configuration',
+        data: new Uint8Array([9]),
+      }),
+    ).toBe(true);
   });
 
   it('can consume device list updates from an external discovery source', async () => {

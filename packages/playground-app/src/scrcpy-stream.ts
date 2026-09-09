@@ -31,28 +31,41 @@ interface ScrcpyVideoStreamOptions {
   onFirstDataPacket?: () => void;
 }
 
+type DecoderState =
+  | 'waiting-for-configuration'
+  | 'waiting-for-keyframe'
+  | 'ready';
+
 export function createScrcpyVideoStream(
   socket: ScrcpyVideoSocketLike,
   options: ScrcpyVideoStreamOptions = {},
 ): ReadableStream<ScrcpyMediaStreamPacket> {
-  let configurationPacketSent = false;
+  let decoderState: DecoderState = 'waiting-for-configuration';
   let firstDataPacketReported = false;
   let pendingDataPackets: ScrcpyMediaStreamPacket[] = [];
   let cleanupListeners: (() => void) | undefined;
   let pendingKeyframe: ScrcpyMediaStreamPacket | undefined;
+  const reportFirstDataPacket = () => {
+    if (!firstDataPacketReported) {
+      firstDataPacketReported = true;
+      options.onFirstDataPacket?.();
+    }
+  };
   const readable = new ReadableStream<ScrcpyMediaStreamPacket>(
     {
       start(controller) {
         const canEnqueue = () =>
           controller.desiredSize === null || controller.desiredSize > 0;
-        const reportFirstDataPacket = () => {
-          if (!firstDataPacketReported) {
-            firstDataPacketReported = true;
-            options.onFirstDataPacket?.();
-          }
-        };
         const handleVideoData = (data: RawScrcpyVideoPacket) => {
           try {
+            if (
+              data.type !== 'configuration' &&
+              typeof data.keyFrame !== 'boolean'
+            ) {
+              throw new Error(
+                'Scrcpy video data packet is missing keyFrame metadata',
+              );
+            }
             const payload = toUint8Array(data.data);
             const packet: ScrcpyMediaStreamPacket =
               data.type === 'configuration'
@@ -66,30 +79,45 @@ export function createScrcpyVideoStream(
                     keyframe: data.keyFrame,
                   };
             if (packet.type === 'configuration') {
-              configurationPacketSent = true;
+              decoderState = 'waiting-for-keyframe';
+              pendingKeyframe = undefined;
               // This small, bounded initial burst is required by WebCodecs:
               // it must receive configuration before any retained frame.
               controller.enqueue(packet);
               if (pendingDataPackets.length > 0) {
+                decoderState = 'ready';
                 reportFirstDataPacket();
+                pendingDataPackets.forEach((queuedPacket) =>
+                  controller.enqueue(queuedPacket),
+                );
               }
-              pendingDataPackets.forEach((queuedPacket) =>
-                controller.enqueue(queuedPacket),
-              );
               pendingDataPackets = [];
               return;
             }
 
-            if (!configurationPacketSent) {
+            if (decoderState === 'waiting-for-configuration') {
               // Socket.IO cannot apply Web Streams backpressure to scrcpy.
-              // Keep a tiny pre-configuration buffer instead of retaining
-              // every frame while the renderer initializes its decoder.
+              // Retain only a keyframe and one following delta while the
+              // renderer initializes its decoder. Deltas before a keyframe
+              // can never be decoded and are discarded.
               if (packet.keyframe) {
                 pendingDataPackets = [packet];
-              } else if (pendingDataPackets.length < 2) {
+              } else if (
+                pendingDataPackets.length > 0 &&
+                pendingDataPackets.length < 2
+              ) {
                 pendingDataPackets.push(packet);
               }
               return;
+            }
+
+            if (decoderState === 'waiting-for-keyframe') {
+              // Drop delta frames until a keyframe arrives so the decoder
+              // never starts mid-GOP.
+              if (!packet.keyframe) {
+                return;
+              }
+              decoderState = 'ready';
             }
 
             if (canEnqueue()) {
@@ -101,12 +129,19 @@ export function createScrcpyVideoStream(
               pendingKeyframe = packet;
             }
           } catch (error) {
+            cleanupListeners?.();
             controller.error(error);
           }
         };
 
-        const handleDisconnect = () => controller.close();
-        const handleError = (error: Error) => controller.error(error);
+        const handleDisconnect = () => {
+          cleanupListeners?.();
+          controller.close();
+        };
+        const handleError = (error: Error) => {
+          cleanupListeners?.();
+          controller.error(error);
+        };
 
         cleanupListeners = () => {
           socket.off('video-data', handleVideoData);
@@ -133,6 +168,7 @@ export function createScrcpyVideoStream(
         cleanupListeners?.();
         pendingKeyframe = undefined;
         pendingDataPackets = [];
+        decoderState = 'waiting-for-configuration';
       },
     },
     { highWaterMark: 4 },
