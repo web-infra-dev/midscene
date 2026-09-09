@@ -446,7 +446,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         msNumber && msNumber > 0,
         `ms for sleep must be greater than 0, but got ${ms}`,
       );
-      await new Promise((resolve) => setTimeout(resolve, msNumber));
+      await agent.sleep(msNumber);
     } else if ('javascript' in flowItem) {
       const evaluateJavaScriptTask =
         flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;

@@ -682,7 +682,8 @@ tasks:
             When I add a todo item named "Buy milk"
             Then the todo list should contain "Buy milk"
 
-      # Wait for a specified amount of time.
+      # Wait for a positive duration in milliseconds. Records a Sleep step with its
+      # requested and elapsed duration, without calling a model or taking screenshots.
       - sleep: <ms>
 
       # Execute a piece of JavaScript code in the web page context.
