@@ -96,6 +96,7 @@ describe('service-caller empty content handling', () => {
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(onUsage).toHaveBeenCalledTimes(1);
     expect(onUsage).toHaveBeenCalledWith(result.usage);
+    expect(result.reasoning_content).toBe('');
     expect(result.usage).toMatchObject({
       total_tokens: 12,
       request_id: 'successful-request',

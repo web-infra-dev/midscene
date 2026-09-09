@@ -1,4 +1,5 @@
 import type { CodeGenerationChunk } from '@/types';
+import { assert } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
 import {
@@ -11,8 +12,8 @@ import {
   toError,
 } from '../utils';
 import type {
+  ChatCompletionCallOptions,
   ChatCompletionCallResult,
-  StreamingChatCompletionCallOptions,
 } from './types';
 import { resolveContentWithReasoningFallback } from './utils';
 
@@ -27,7 +28,11 @@ export const callChatCompletionStream = async ({
   abortSignal,
   onChunk,
   recordEvent,
-}: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
+}: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
+  assert(
+    typeof onChunk === 'function',
+    'onChunk is required when stream is true',
+  );
   const { adapter } = modelRuntime;
   let accumulated = '';
   let accumulatedReasoning = '';
@@ -124,9 +129,9 @@ export const callChatCompletionStream = async ({
   }
   return {
     content: accumulated,
-    accumulatedReasoning,
+    reasoningContent: accumulatedReasoning,
     rawChoiceMessage: undefined,
-    usage,
+    rawUsage: usage,
     requestId,
     responseModelName,
   };

@@ -123,6 +123,7 @@ describe('service-caller streaming usage', () => {
         include_usage: true,
       });
       expect(result.content).toBe('Hello');
+      expect(result.reasoning_content).toBe('');
       expect(result.usage).toBeUndefined();
       expect(onUsage).not.toHaveBeenCalled();
       expect(onChunk.mock.calls.at(-1)?.[0]).toMatchObject({

@@ -32,7 +32,7 @@ export const callChatCompletionNonStreaming = async ({
   const { config: modelConfig, adapter } = modelRuntime;
   const warnCall = getDebug('ai:call', { console: true });
   let content: string | undefined;
-  let accumulatedReasoning = '';
+  let reasoningContent = '';
   let rawChoiceMessage: unknown;
   let usage: OpenAI.CompletionUsage | undefined;
   let requestId: string | null | undefined;
@@ -75,13 +75,13 @@ export const callChatCompletionNonStreaming = async ({
         result.choices[0].message,
       );
       content = parsedMessage.content;
-      accumulatedReasoning = parsedMessage.reasoning_content;
+      reasoningContent = parsedMessage.reasoning_content;
       usage = result.usage;
       responseModelName = result.model;
 
       content = resolveContentWithReasoningFallback({
         content,
-        reasoningContent: accumulatedReasoning,
+        reasoningContent,
         useReasoningAsContentFallback:
           adapter.chatCompletion.useReasoningAsContentFallback,
       });
@@ -129,9 +129,9 @@ export const callChatCompletionNonStreaming = async ({
   }
   return {
     content,
-    accumulatedReasoning,
+    reasoningContent,
     rawChoiceMessage,
-    usage,
+    rawUsage: usage,
     requestId,
     responseModelName,
   };

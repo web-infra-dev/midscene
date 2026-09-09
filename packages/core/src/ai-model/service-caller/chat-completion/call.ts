@@ -1,5 +1,4 @@
 import { getDebug } from '@midscene/shared/logger';
-import type OpenAI from 'openai';
 import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
 import { formatOpenAIAPIErrorDetails } from '../openai-error';
@@ -28,8 +27,6 @@ export const chat = async ({
 
   const isStreaming = options?.stream === true;
 
-  const startTime = Date.now();
-
   const modelCallInput: ChatCompletionCallInput = {
     intent: modelConfig.intent,
     userConfig: {
@@ -44,8 +41,6 @@ export const chat = async ({
     expectedJsonObjectResponse: options?.expectedJsonObjectResponse,
   };
 
-  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
-
   const { config: adapterChatCompletionParams } =
     adapter.chatCompletion.buildChatCompletionParams(modelCallInput);
 
@@ -55,16 +50,12 @@ export const chat = async ({
     })}`,
   );
 
-  let content: string | undefined;
-  let accumulatedReasoning = '';
-  let rawChoiceMessage: unknown;
-  let usage: OpenAI.CompletionUsage | undefined;
-  let requestId: string | null | undefined;
-  let responseModelName: string | undefined;
   const requestConfig = {
     ...adapterChatCompletionParams,
     ...(modelConfig.extraBody ?? {}),
   };
+
+  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.
@@ -79,70 +70,65 @@ export const chat = async ({
       recordEvent,
     });
 
-  try {
-    debugCall(
-      `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
-    );
+  debugCall(
+    `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
+  );
 
-    if (isStreaming) {
-      ({ content, accumulatedReasoning, usage, requestId, responseModelName } =
-        await callChatCompletionStream({
-          completion,
-          modelName,
-          openAIErrorResponseContext,
-          modelRuntime,
-          messages: messagesWithImageDetail,
-          requestConfig,
-          effectiveTimeoutMs,
-          abortSignal: options?.abortSignal,
-          onChunk: options!.onChunk!,
-          recordEvent,
-        }));
-    } else {
-      ({
-        content,
-        accumulatedReasoning,
-        rawChoiceMessage,
-        usage,
-        requestId,
-        responseModelName,
-      } = await callChatCompletionNonStreaming({
-        completion,
-        modelName,
-        openAIErrorResponseContext,
-        modelRuntime,
-        messages: messagesWithImageDetail,
-        requestConfig,
-        effectiveTimeoutMs,
-        abortSignal: options?.abortSignal,
-      }));
-    }
+  const callChatCompletion = isStreaming
+    ? callChatCompletionStream
+    : callChatCompletionNonStreaming;
+
+  try {
+    const startTime = Date.now();
+
+    const {
+      content,
+      reasoningContent,
+      rawChoiceMessage,
+      rawUsage,
+      requestId,
+      responseModelName,
+    } = await callChatCompletion({
+      completion,
+      modelName,
+      openAIErrorResponseContext,
+      modelRuntime,
+      messages: messagesWithImageDetail,
+      requestConfig,
+      effectiveTimeoutMs,
+      abortSignal: options?.abortSignal,
+      onChunk: options?.onChunk,
+      recordEvent,
+    });
 
     const timeCost = Date.now() - startTime;
-    debugCall(`response reasoning content: ${accumulatedReasoning}`);
+    debugCall(`response reasoning content: ${reasoningContent}`);
     debugCall(`response content: ${content}`);
 
-    const response = {
-      content: content || '',
-      reasoning_content: accumulatedReasoning || undefined,
-      rawChoiceMessage,
-      rawUsage: usage,
-      isStreamed: !!isStreaming,
-    };
     recordEvent?.({
       type: 'response',
       attempt: getLatestResponseAttempt(openAIErrorResponseContext),
       http: openAIErrorResponseContext.httpResponses?.at(-1),
       final: {
-        content: response.content,
-        reasoningContent: response.reasoning_content,
-        usage: response.rawUsage,
+        content,
+        reasoningContent,
+        usage: rawUsage,
         requestId,
         timeCost,
         responseModelName,
       },
     });
-    return { ...response, timeCost, requestId, responseModelName };
+
+    return {
+      content,
+      reasoning_content: reasoningContent,
+      rawChoiceMessage,
+      rawUsage,
+      isStreamed: isStreaming,
+      timeCost,
+      requestId,
+      responseModelName,
+    };
   } catch (e: any) {
     warnCall('call AI error', e);
 

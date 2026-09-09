@@ -13,18 +13,15 @@ export type ChatCompletionCallOptions = {
   requestConfig: Record<string, unknown>;
   effectiveTimeoutMs: number | null;
   abortSignal?: AbortSignal;
-};
-
-export type StreamingChatCompletionCallOptions = ChatCompletionCallOptions & {
-  onChunk: StreamingCallback;
+  onChunk?: StreamingCallback;
   recordEvent?: (event: Record<string, unknown>) => void;
 };
 
 export type ChatCompletionCallResult = {
   content: string;
-  accumulatedReasoning: string;
+  reasoningContent: string;
   rawChoiceMessage?: unknown;
-  usage?: OpenAI.CompletionUsage;
+  rawUsage?: OpenAI.CompletionUsage;
   requestId?: string | null;
   responseModelName?: string;
 };
