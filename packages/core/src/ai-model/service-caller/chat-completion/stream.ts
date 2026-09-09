@@ -15,7 +15,7 @@ import type {
   ChatCompletionCallResult,
   StreamingChatCompletionCallOptions,
 } from './types';
-import { buildUsageInfo, resolveContentWithReasoningFallback } from './utils';
+import { resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionStream = async ({
   client,
@@ -26,17 +26,11 @@ export const callChatCompletionStream = async ({
   abortSignal,
   onChunk,
   startTime,
-  internalCallId,
   recordEvent,
 }: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
-  const { config: modelConfig, adapter } = modelRuntime;
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    modelFamily,
-    openAIErrorResponseContext,
-  } = client;
+  const { adapter } = modelRuntime;
+  const { completion, modelName, modelFamily, openAIErrorResponseContext } =
+    client;
   const debugProfileStats = getDebug('ai:profile:stats');
   const temperature = requestConfig.temperature;
   let accumulated = '';
@@ -45,7 +39,6 @@ export const callChatCompletionStream = async ({
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
-  let usageReported = false;
   const { signal: streamSignal, cleanup: cleanupStreamSignal } =
     buildRequestAbortSignal(effectiveTimeoutMs, abortSignal);
   try {
@@ -123,26 +116,12 @@ export const callChatCompletionStream = async ({
     accumulated = finalAccumulated || '';
 
     // Send final chunk
-    const finalUsage = buildUsageInfo({
-      usageData: usage,
-      requestId,
-      timeCost,
-      modelName,
-      modelDescription,
-      responseModelName,
-      slot: modelConfig.slot,
-      internalCallId,
-    });
-    if (finalUsage && modelRuntime.onUsage) {
-      modelRuntime.onUsage(finalUsage);
-      usageReported = true;
-    }
     const finalChunk: CodeGenerationChunk = {
       content: '',
       accumulated,
       reasoning_content: '',
       isComplete: true,
-      usage: finalUsage,
+      usage,
     };
     onChunk(finalChunk);
   } catch (error) {
@@ -161,6 +140,5 @@ export const callChatCompletionStream = async ({
     timeCost,
     requestId,
     responseModelName,
-    usageReported,
   };
 };

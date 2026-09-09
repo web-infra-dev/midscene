@@ -9,6 +9,7 @@ import {
 import {
   AIResponseParseError,
   appendAIRequestFailureSummary,
+  buildUsageInfo,
   getLatestSuccessfulResponseRequestId,
   normalizeRetryCount,
   toError,
@@ -17,11 +18,7 @@ import type {
   ChatCompletionCallOptions,
   ChatCompletionCallResult,
 } from './types';
-import {
-  buildUsageInfo,
-  hasUsableText,
-  resolveContentWithReasoningFallback,
-} from './utils';
+import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionNonStreaming = async ({
   client,
@@ -170,6 +167,5 @@ export const callChatCompletionNonStreaming = async ({
     timeCost,
     requestId,
     responseModelName,
-    usageReported: false,
   };
 };

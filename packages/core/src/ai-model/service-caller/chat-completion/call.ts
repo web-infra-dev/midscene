@@ -7,12 +7,13 @@ import { resolveEffectiveTimeoutMs } from '../request-timeout';
 import type { AICallResult, ModelCallContext } from '../types';
 import {
   AIResponseParseError,
+  buildUsageInfo,
   getLatestResponseAttempt,
   stringifyForDebug,
 } from '../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
-import { applyImageDetail, buildUsageInfo } from './utils';
+import { applyImageDetail } from './utils';
 
 export const chat = async ({
   messages,
@@ -63,10 +64,6 @@ export const chat = async ({
   let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
-  // Tracks whether onUsage has already been fired for this call (e.g. from
-  // the streaming final-chunk handler), so the final return does not double-fire.
-  let usageReported = false;
-
   const requestConfig = {
     ...adapterChatCompletionParams,
     ...(modelConfig.extraBody ?? {}),
@@ -103,12 +100,10 @@ export const chat = async ({
         timeCost,
         requestId,
         responseModelName,
-        usageReported,
       } = await callChatCompletionStream({
         client: {
           completion,
           modelName,
-          modelDescription,
           modelFamily,
           openAIErrorResponseContext,
         },
@@ -119,7 +114,6 @@ export const chat = async ({
         abortSignal: options?.abortSignal,
         onChunk: options!.onChunk!,
         startTime,
-        internalCallId,
         recordEvent,
       }));
     } else {
@@ -162,9 +156,8 @@ export const chat = async ({
       slot: modelConfig.slot,
       internalCallId,
     });
-    // Report usage to the runtime-level collector if not already reported
-    // (e.g. from the streaming final-chunk handler).
-    if (!usageReported && finalUsage && modelRuntime.onUsage) {
+    // Report usage for the final result.
+    if (finalUsage && modelRuntime.onUsage) {
       modelRuntime.onUsage(finalUsage);
     }
 

@@ -15,7 +15,11 @@ export type ChatCompletionCallOptions = {
   internalCallId: string;
 };
 
-export type StreamingChatCompletionCallOptions = ChatCompletionCallOptions & {
+export type StreamingChatCompletionCallOptions = Omit<
+  ChatCompletionCallOptions,
+  'internalCallId' | 'client'
+> & {
+  client: Omit<ChatCompletionCallOptions['client'], 'modelDescription'>;
   onChunk: StreamingCallback;
   recordEvent?: (event: Record<string, unknown>) => void;
 };
@@ -28,6 +32,4 @@ export type ChatCompletionCallResult = {
   timeCost?: number;
   requestId?: string | null;
   responseModelName?: string;
-  /** Whether usage for the final returned result has already been reported. */
-  usageReported: boolean;
 };

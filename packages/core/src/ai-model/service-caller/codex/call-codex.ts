@@ -1,5 +1,5 @@
 import type { AICallResult, ModelCallContext } from '../types';
-import { INTERNAL_CALL_ID_FIELD } from '../utils';
+import { buildUsageInfo } from '../utils';
 import {
   type CodexAppServerRecordEvent,
   callAIWithCodexAppServer,
@@ -55,6 +55,16 @@ export const callCodex = async ({
       onRecordEvent: recordCodexEvent,
     });
     const { protocolMetadata, ...response } = codexResult;
+    const timeCost = Date.now() - codexStartTime;
+    const usage = buildUsageInfo({
+      usageData: response.usage,
+      requestId: protocolMetadata.turnId,
+      timeCost,
+      modelName: modelConfig.modelName,
+      modelDescription: modelConfig.modelDescription,
+      slot: modelConfig.slot,
+      internalCallId,
+    });
     recordEvent?.({
       type: 'response',
       attempt: 1,
@@ -62,19 +72,17 @@ export const callCodex = async ({
       final: {
         content: response.content,
         reasoningContent: response.reasoning_content,
-        usage: response.usage,
-        timeCost: Date.now() - codexStartTime,
+        usage,
+        timeCost,
         protocol: protocolMetadata,
       },
     });
-    if (response.usage) {
-      (response.usage as any)[INTERNAL_CALL_ID_FIELD] = internalCallId;
-      if (modelRuntime.onUsage) {
-        modelRuntime.onUsage(response.usage);
-      }
+    if (usage && modelRuntime.onUsage) {
+      modelRuntime.onUsage(usage);
     }
     return {
       ...response,
+      usage,
     };
   } catch (error) {
     recordEvent?.({

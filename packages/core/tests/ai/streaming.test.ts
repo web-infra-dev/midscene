@@ -269,13 +269,6 @@ describe(
               firstChunkTime = currentTime;
             }
             lastChunkTime = currentTime;
-
-            if (chunk.isComplete && chunk.usage) {
-              expect(chunk.usage.time_cost).toBeGreaterThan(0);
-              expect(chunk.usage.time_cost).toBeLessThanOrEqual(
-                currentTime - startTime + 1000,
-              ); // Allow some buffer
-            }
           },
         },
       );
@@ -287,6 +280,9 @@ describe(
 
       if (result.usage) {
         expect(result.usage.time_cost).toBeGreaterThan(0);
+        expect(result.usage.time_cost).toBeLessThanOrEqual(
+          Date.now() - startTime + 1000,
+        ); // Allow some buffer
       }
     });
   },
