@@ -114,6 +114,8 @@ class FreeRdpSessionTransport final : public SessionTransport {
   std::mutex frame_mutex_;
   // Protected by frame_mutex_; use a monotonic clock for screenshot settling.
   std::chrono::steady_clock::time_point last_frame_update_{};
+  // Protected by mutex_; reset for each new connection.
+  bool first_screenshot_pending_ = true;
   pEndPaint original_end_paint_ = nullptr;
   uint16_t mouse_x_ = 0;
   uint16_t mouse_y_ = 0;
