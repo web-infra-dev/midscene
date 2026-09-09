@@ -2990,7 +2990,7 @@ await agent.aiInput('the notes field', {
 
 **RDP screenshot readiness**
 
-Every RDP screenshot reads the current framebuffer, including the first screenshot after connecting. Capture waits for a 300 ms interval without framebuffer updates, with a maximum settling wait of 3 seconds per screenshot. Continuously changing content, such as video, can use the full wait before returning the latest frame. If the framebuffer remains entirely black, capture throws an error after the timeout; a disconnected session interrupts the wait.
+Every RDP screenshot reads the current framebuffer, including the first screenshot after connecting. Only the first screenshot of each connection waits for a 300 ms interval without framebuffer updates, capped at 3 seconds. Continuously changing content can use the full initial wait. Subsequent screenshots copy the latest framebuffer without a settling delay. Black pixels are valid screenshot content and do not cause a capture error. A disconnected session interrupts the initial wait; invalid framebuffer data still throws an error.
 
 This settling window reduces captures taken during partial updates. It does not guarantee that the page has finished loading or that Windows has logged in. Use `aiWaitFor()` to check the expected desktop or application before starting business actions. A complete Windows login screen is a valid screenshot and still requires authentication.
 
