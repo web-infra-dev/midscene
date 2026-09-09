@@ -639,6 +639,12 @@ export async function callAI(
             messages: messagesWithImageDetail,
             ...requestConfig,
             stream: true,
+            stream_options: {
+              ...(requestConfig.stream_options as
+                | Record<string, unknown>
+                | undefined),
+              include_usage: true,
+            },
           },
           {
             stream: true,
@@ -690,48 +696,30 @@ export async function callAI(
             };
             options.onChunk!(chunkData);
           }
-
-          // Check if stream is complete
-          if (chunk.choices?.[0]?.finish_reason) {
-            timeCost = Date.now() - startTime;
-
-            // If usage is not available from the stream, provide a basic usage info
-            if (!usage) {
-              // Estimate token counts based on content length (rough approximation)
-              const estimatedTokens = Math.max(
-                1,
-                Math.floor(accumulated.length / 4),
-              );
-              usage = {
-                prompt_tokens: estimatedTokens,
-                completion_tokens: estimatedTokens,
-                total_tokens: estimatedTokens * 2,
-              };
-            }
-
-            const finalAccumulated = resolveContentWithReasoningFallback(
-              accumulated,
-              accumulatedReasoning,
-            );
-            accumulated = finalAccumulated || '';
-
-            // Send final chunk
-            const finalUsage = buildUsageInfo(usage, requestId);
-            if (finalUsage && modelRuntime.onUsage) {
-              modelRuntime.onUsage(finalUsage);
-              usageReported = true;
-            }
-            const finalChunk: CodeGenerationChunk = {
-              content: '',
-              accumulated,
-              reasoning_content: '',
-              isComplete: true,
-              usage: finalUsage,
-            };
-            options.onChunk!(finalChunk);
-            break;
-          }
         }
+
+        timeCost = Date.now() - startTime;
+
+        const finalAccumulated = resolveContentWithReasoningFallback(
+          accumulated,
+          accumulatedReasoning,
+        );
+        accumulated = finalAccumulated || '';
+
+        // Send final chunk
+        const finalUsage = buildUsageInfo(usage, requestId);
+        if (finalUsage && modelRuntime.onUsage) {
+          modelRuntime.onUsage(finalUsage);
+          usageReported = true;
+        }
+        const finalChunk: CodeGenerationChunk = {
+          content: '',
+          accumulated,
+          reasoning_content: '',
+          isComplete: true,
+          usage: finalUsage,
+        };
+        options.onChunk!(finalChunk);
       } catch (error) {
         throw restoreHardTimeoutError(toError(error), streamSignal);
       } finally {
@@ -851,20 +839,6 @@ export async function callAI(
 
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
-
-    // Ensure we always have usage info for streaming responses
-    if (isStreaming && !usage) {
-      // Estimate token counts based on content length (rough approximation)
-      const estimatedTokens = Math.max(
-        1,
-        Math.floor((content || '').length / 4),
-      );
-      usage = {
-        prompt_tokens: estimatedTokens,
-        completion_tokens: estimatedTokens,
-        total_tokens: estimatedTokens * 2,
-      } as OpenAI.CompletionUsage;
-    }
 
     const finalUsage = buildUsageInfo(usage, requestId);
     // Report usage to the runtime-level collector if not already reported
