@@ -102,8 +102,8 @@ interface BuildOptions {
 
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
-  planningModel: ModelRuntime;
-  defaultModel: ModelRuntime;
+  planningModel: ModelRuntime | (() => ModelRuntime);
+  defaultModel: ModelRuntime | (() => ModelRuntime);
   cacheable?: boolean;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -136,8 +136,8 @@ export class TaskBuilder {
 
   public async build(
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    planningModel: ModelRuntime | (() => ModelRuntime),
+    defaultModel: ModelRuntime | (() => ModelRuntime),
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -211,6 +211,43 @@ export class TaskBuilder {
     const param = plan.param;
 
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
+
+    if (action.executionMode === 'standalone') {
+      assert(
+        locateFields.length === 0,
+        `Standalone action ${planType} cannot declare locator fields`,
+      );
+      context.tasks.push({
+        type: 'Action Space',
+        subType: planType,
+        thought: plan.thought,
+        param,
+        requiresUIContext: false,
+        executor: async (taskContext) => {
+          const parsedParam = action.paramSchema
+            ? action.paramSchema.parse(param)
+            : param;
+          setTimingFieldOnce(taskContext.task.timing, 'callActionStart');
+          const output = await action.call.call(
+            this.interface,
+            parsedParam,
+            taskContext,
+          );
+          setTimingFieldOnce(taskContext.task.timing, 'callActionEnd');
+          return { output };
+        },
+      });
+      return;
+    }
+
+    // Device actions keep model validation before UI capture and device hooks.
+    // Standalone actions return above and never resolve either model.
+    if (typeof context.defaultModel === 'function') {
+      context.defaultModel = context.defaultModel();
+    }
+    if (typeof context.planningModel === 'function') {
+      context.planningModel = context.planningModel();
+    }
 
     const requiredLocateFields = findAllMidsceneLocatorField(
       action.paramSchema,
@@ -382,7 +419,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
+    const { cacheable, deepLocate, abortSignal } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
 
@@ -406,6 +443,10 @@ export class TaskBuilder {
       param: locateParam,
       thought: plan.thought,
       executor: async (taskContext) => {
+        const defaultModel =
+          typeof context.defaultModel === 'function'
+            ? context.defaultModel()
+            : context.defaultModel;
         const { task } = taskContext;
         let { uiContext } = taskContext;
         const paramWithLocatedPixelResult = ifLocateParamHasLocatedPixelResult(

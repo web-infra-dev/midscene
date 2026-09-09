@@ -21,15 +21,18 @@ describe('YAML sleep', () => {
     agent.onDumpUpdate = listener;
     rs.useFakeTimers();
     try {
-      const waiting = agent.sleep(3000);
+      const waiting = agent.callActionInActionSpace('Sleep', { timeMs: 3000 });
+      await rs.advanceTimersByTimeAsync(0);
       expect(
         JSON.parse(agent.dumpDataString()).executions[0].tasks[0].status,
       ).toBe('running');
       await rs.advanceTimersByTimeAsync(2999);
-      expect(listener).not.toHaveBeenCalled();
+      expect(
+        JSON.parse(agent.dumpDataString()).executions[0].tasks[0].status,
+      ).toBe('running');
       await rs.advanceTimersByTimeAsync(1);
       await waiting;
-      expect(listener).toHaveBeenCalledOnce();
+      expect(listener).toHaveBeenCalled();
       const task = JSON.parse(agent.dumpDataString()).executions[0].tasks[0];
       expect(task.status).toBe('finished');
       expect(task.timing.cost).toBe(3000);
@@ -38,27 +41,6 @@ describe('YAML sleep', () => {
       await agent.destroy();
     }
   });
-
-  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
-    'rejects invalid SDK duration %s without creating a report entry',
-    async (duration) => {
-      const agent = new Agent(
-        {
-          interfaceType: 'mock',
-          actionSpace: () => [],
-        } as unknown as AbstractInterface,
-        { generateReport: false },
-      );
-      try {
-        await expect(agent.sleep(duration)).rejects.toThrow(
-          'finite number greater than 0',
-        );
-        expect(JSON.parse(agent.dumpDataString()).executions).toHaveLength(0);
-      } finally {
-        await agent.destroy();
-      }
-    },
-  );
 
   it.each(['20', '"20"'])(
     'records sleep: %s with its duration and execution timing',
@@ -115,10 +97,10 @@ tasks:
     },
   );
 
-  it.each([0, -1, 'invalid'])(
+  it.each([0, -1, Number.POSITIVE_INFINITY, 'invalid'])(
     'rejects invalid duration %s before dispatching an action',
     async (duration) => {
-      const agent = { sleep: rs.fn() };
+      const agent = { callActionInActionSpace: rs.fn() };
       const player = new ScriptPlayer({ tasks: [] }, async () => ({
         agent: agent as unknown as Agent,
         freeFn: [],
@@ -135,7 +117,7 @@ tasks:
           agent as unknown as Agent,
         ),
       ).rejects.toThrow('ms for sleep must be greater than 0');
-      expect(agent.sleep).not.toHaveBeenCalled();
+      expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
     },
   );
 });

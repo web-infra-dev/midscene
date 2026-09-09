@@ -1,6 +1,7 @@
 import { Agent } from '@/agent';
 import { parseActionParam } from '@/ai-model';
 import {
+  type AbstractInterface,
   actionKeyboardPressParamSchema,
   defineActionKeyboardPress,
 } from '@/device';
@@ -50,17 +51,30 @@ describe('KeyboardPress Action', () => {
   });
 
   it('validates model configuration before a targetless keyboard action', async () => {
-    const agent = Object.create(Agent.prototype) as Agent<any>;
-    (agent as any).opts = {};
-    (agent as any).modelConfigManager = new ModelConfigManager({});
-
-    await expect(
-      agent.callActionInActionSpace('KeyboardPress', {
-        keyName: 'Control+X',
-      }),
-    ).rejects.toThrow(
-      'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required',
+    const keyboardPress = rs.fn();
+    const screenshotBase64 = rs.fn();
+    const agent = new Agent(
+      {
+        interfaceType: 'puppeteer',
+        actionSpace: () => [defineActionKeyboardPress(keyboardPress)],
+        screenshotBase64,
+      } as unknown as AbstractInterface,
+      { generateReport: false },
     );
+    (agent as any).modelConfigManager = new ModelConfigManager({});
+    try {
+      await expect(
+        agent.callActionInActionSpace('KeyboardPress', {
+          keyName: 'Control+X',
+        }),
+      ).rejects.toThrow(
+        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required',
+      );
+      expect(keyboardPress).not.toHaveBeenCalled();
+      expect(screenshotBase64).not.toHaveBeenCalled();
+    } finally {
+      await agent.destroy();
+    }
   });
 
   it('keeps the legacy key-only signature working', async () => {

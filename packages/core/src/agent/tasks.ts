@@ -280,8 +280,8 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    planningModel: ModelRuntime | (() => ModelRuntime),
+    defaultModel: ModelRuntime | (() => ModelRuntime),
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
@@ -348,14 +348,22 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    planningModel: ModelRuntime,
-    defaultModel: ModelRuntime,
+    planningModel: ModelRuntime | (() => ModelRuntime),
+    defaultModel: ModelRuntime | (() => ModelRuntime),
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
-    const executionPlanningModel = { ...planningModel, executionId: runner.id };
-    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
+    const executionPlanningModel = () => ({
+      ...(typeof planningModel === 'function'
+        ? planningModel()
+        : planningModel),
+      executionId: runner.id,
+    });
+    const executionDefaultModel = () => ({
+      ...(typeof defaultModel === 'function' ? defaultModel() : defaultModel),
+      executionId: runner.id,
+    });
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
