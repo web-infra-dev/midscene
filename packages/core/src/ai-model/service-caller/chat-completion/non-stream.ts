@@ -22,25 +22,19 @@ import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
 export const callChatCompletionNonStreaming = async ({
   completion,
   modelName,
-  modelFamily,
   openAIErrorResponseContext,
   modelRuntime,
   messages,
   requestConfig,
   effectiveTimeoutMs,
   abortSignal,
-  startTime,
 }: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
   const warnCall = getDebug('ai:call', { console: true });
-  const debugProfileStats = getDebug('ai:profile:stats');
-  const debugProfileDetail = getDebug('ai:profile:detail');
-  const temperature = requestConfig.temperature;
   let content: string | undefined;
   let accumulatedReasoning = '';
   let rawChoiceMessage: unknown;
   let usage: OpenAI.CompletionUsage | undefined;
-  let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
 
@@ -66,16 +60,9 @@ export const callChatCompletionNonStreaming = async ({
         { signal: attemptSignal },
       );
 
-      timeCost = Date.now() - startTime;
       requestId =
         getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
         result._request_id;
-
-      debugProfileStats(
-        `model, ${modelName}, mode, ${modelFamily || 'default'}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${requestId || ''}, temperature, ${temperature ?? ''}`,
-      );
-
-      debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
 
       if (!result.choices) {
         throw new Error(
@@ -145,7 +132,6 @@ export const callChatCompletionNonStreaming = async ({
     accumulatedReasoning,
     rawChoiceMessage,
     usage,
-    timeCost,
     requestId,
     responseModelName,
   };

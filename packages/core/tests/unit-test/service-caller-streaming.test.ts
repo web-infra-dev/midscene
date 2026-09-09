@@ -83,6 +83,28 @@ describe('service-caller streaming usage', () => {
     });
   });
 
+  it('includes the completion callback in the total call duration', async () => {
+    const now = rs.spyOn(Date, 'now').mockReturnValue(1000);
+    try {
+      mockCreate.mockResolvedValue(
+        (async function* () {
+          yield contentChunk;
+          yield { choices: [], usage };
+          now.mockReturnValue(2000);
+        })(),
+      );
+      const result = await callAI(messages, getModelRuntime(modelConfig), {
+        stream: true,
+        onChunk: (chunk) => {
+          if (chunk.isComplete) now.mockReturnValue(3000);
+        },
+      });
+      expect(result.usage?.time_cost).toBe(2000);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it.each([true, false])(
     'does not estimate missing usage (finish_reason present: %s)',
     async (withFinish) => {

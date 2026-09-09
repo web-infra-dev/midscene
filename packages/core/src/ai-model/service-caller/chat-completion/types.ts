@@ -7,14 +7,12 @@ import type { OpenAIErrorResponseContext } from '../openai-error';
 export type ChatCompletionCallOptions = {
   completion: OpenAI.Chat.Completions;
   modelName: string;
-  modelFamily: ModelRuntime['config']['modelFamily'];
   openAIErrorResponseContext: OpenAIErrorResponseContext;
   modelRuntime: ModelRuntime;
   messages: ChatCompletionMessageParam[];
   requestConfig: Record<string, unknown>;
   effectiveTimeoutMs: number | null;
   abortSignal?: AbortSignal;
-  startTime: number;
 };
 
 export type StreamingChatCompletionCallOptions = ChatCompletionCallOptions & {
@@ -27,7 +25,6 @@ export type ChatCompletionCallResult = {
   accumulatedReasoning: string;
   rawChoiceMessage?: unknown;
   usage?: OpenAI.CompletionUsage;
-  timeCost?: number;
   requestId?: string | null;
   responseModelName?: string;
 };

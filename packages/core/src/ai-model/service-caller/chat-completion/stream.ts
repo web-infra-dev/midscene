@@ -1,5 +1,4 @@
 import type { CodeGenerationChunk } from '@/types';
-import { getDebug } from '@midscene/shared/logger';
 import type OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
 import {
@@ -20,7 +19,6 @@ import { resolveContentWithReasoningFallback } from './utils';
 export const callChatCompletionStream = async ({
   completion,
   modelName,
-  modelFamily,
   openAIErrorResponseContext,
   modelRuntime,
   messages,
@@ -28,16 +26,12 @@ export const callChatCompletionStream = async ({
   effectiveTimeoutMs,
   abortSignal,
   onChunk,
-  startTime,
   recordEvent,
 }: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { adapter } = modelRuntime;
-  const debugProfileStats = getDebug('ai:profile:stats');
-  const temperature = requestConfig.temperature;
   let accumulated = '';
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
-  let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
   const { signal: streamSignal, cleanup: cleanupStreamSignal } =
@@ -106,8 +100,6 @@ export const callChatCompletionStream = async ({
       }
     }
 
-    timeCost = Date.now() - startTime;
-
     const finalAccumulated = resolveContentWithReasoningFallback({
       content: accumulated,
       reasoningContent: accumulatedReasoning,
@@ -130,15 +122,11 @@ export const callChatCompletionStream = async ({
   } finally {
     cleanupStreamSignal();
   }
-  debugProfileStats(
-    `streaming model, ${modelName}, mode, ${modelFamily || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
-  );
   return {
     content: accumulated,
     accumulatedReasoning,
     rawChoiceMessage: undefined,
     usage,
-    timeCost,
     requestId,
     responseModelName,
   };

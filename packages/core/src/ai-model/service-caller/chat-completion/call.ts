@@ -59,7 +59,6 @@ export const chat = async ({
   let accumulatedReasoning = '';
   let rawChoiceMessage: unknown;
   let usage: OpenAI.CompletionUsage | undefined;
-  let timeCost: number | undefined;
   let requestId: string | null | undefined;
   let responseModelName: string | undefined;
   const requestConfig = {
@@ -73,7 +72,7 @@ export const chat = async ({
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
-  const { completion, modelName, modelFamily, openAIErrorResponseContext } =
+  const { completion, modelName, openAIErrorResponseContext } =
     await createChatClient({
       modelConfig,
       executionId,
@@ -86,50 +85,40 @@ export const chat = async ({
     );
 
     if (isStreaming) {
-      ({
-        content,
-        accumulatedReasoning,
-        usage,
-        timeCost,
-        requestId,
-        responseModelName,
-      } = await callChatCompletionStream({
-        completion,
-        modelName,
-        modelFamily,
-        openAIErrorResponseContext,
-        modelRuntime,
-        messages: messagesWithImageDetail,
-        requestConfig,
-        effectiveTimeoutMs,
-        abortSignal: options?.abortSignal,
-        onChunk: options!.onChunk!,
-        startTime,
-        recordEvent,
-      }));
+      ({ content, accumulatedReasoning, usage, requestId, responseModelName } =
+        await callChatCompletionStream({
+          completion,
+          modelName,
+          openAIErrorResponseContext,
+          modelRuntime,
+          messages: messagesWithImageDetail,
+          requestConfig,
+          effectiveTimeoutMs,
+          abortSignal: options?.abortSignal,
+          onChunk: options!.onChunk!,
+          recordEvent,
+        }));
     } else {
       ({
         content,
         accumulatedReasoning,
         rawChoiceMessage,
         usage,
-        timeCost,
         requestId,
         responseModelName,
       } = await callChatCompletionNonStreaming({
         completion,
         modelName,
-        modelFamily,
         openAIErrorResponseContext,
         modelRuntime,
         messages: messagesWithImageDetail,
         requestConfig,
         effectiveTimeoutMs,
         abortSignal: options?.abortSignal,
-        startTime,
       }));
     }
 
+    const timeCost = Date.now() - startTime;
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
 

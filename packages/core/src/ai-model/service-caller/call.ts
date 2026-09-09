@@ -1,3 +1,4 @@
+import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
@@ -60,8 +61,10 @@ export async function callAI(
   const result = await (isCodexAppServerProvider(modelConfig.openaiBaseURL)
     ? callCodex(context)
     : chat(context));
+
   const { rawUsage, timeCost, requestId, responseModelName, ...response } =
     result;
+
   const usage = buildUsageInfo({
     usageData: rawUsage,
     timeCost,
@@ -72,6 +75,14 @@ export async function callAI(
     slot: modelConfig.slot,
     internalCallId,
   });
+
+  const debugProfileStats = getDebug('ai:profile:stats');
+  const debugProfileDetail = getDebug('ai:profile:detail');
+  debugProfileStats(
+    `model, ${modelConfig.modelName}, mode, ${modelConfig.modelFamily || 'default'}, streaming, ${response.isStreamed}, prompt-tokens, ${usage?.prompt_tokens ?? ''}, completion-tokens, ${usage?.completion_tokens ?? ''}, total-tokens, ${usage?.total_tokens ?? ''}, cached-input, ${usage?.cached_input ?? ''}, cost-ms, ${timeCost ?? ''}, requestId, ${requestId ?? ''}, slot, ${modelConfig.slot}, configured-temperature, ${modelConfig.temperature ?? ''}`,
+  );
+  debugProfileDetail(`model usage detail: ${JSON.stringify(usage)}`);
+
   if (usage && modelRuntime.onUsage) {
     modelRuntime.onUsage(usage);
   }
