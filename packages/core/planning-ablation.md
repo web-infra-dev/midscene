@@ -17,7 +17,7 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals
 export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 ```
 
-Choose a setting and run the existing benchmark command. Names are case-sensitive CSV entries; whitespace and duplicates are accepted. Unknown names throw. Each `aiAct` reads and freezes its settings at entry; environment changes cannot affect an ongoing call.
+Choose a setting and run the existing benchmark command. Only the component names listed below are accepted, separated by commas. Names are case-sensitive; whitespace and duplicates are accepted. Unknown names throw. Each `aiAct` reads and freezes its settings at entry; environment changes cannot affect an ongoing call.
 
 ## Components
 
@@ -48,20 +48,11 @@ Choose a setting and run the existing benchmark command. Names are case-sensitiv
 | `actionExamples` | Action samples and standalone Tap/error examples |
 | `multiTurnExample` | The entire multi-turn form example |
 
-Groups are shorthand for these components:
-
-| Group | Components |
-| --- | --- |
-| `taskSemantics` | `taskScope,durableCompletion,processEvidence` |
-| `uiCases` | `scrollableOptions,inputVerification,assertionTiming` |
-| `actionStrategies` | `recoveryGuidance,adbPreference,sliderSwipe,incrementalEdit,crossPageNavigation` |
-| `examples` | `ruleExamples,actionExamples,multiTurnExample` |
-
 ## Ownership of capability examples
 
 `subGoalExample` has been removed. `subGoals` owns the instructions, dedicated sub-goal example, sub-goal content in the multi-turn example, state and replay. Owned examples of memory, log, planningText, taskScope, recoveryGuidance, sliderSwipe and incrementalEdit also disappear with their capability. Shared examples retain content for other enabled capabilities.
 
-General example switches still support experiments on whether examples help: an example appears only when both its owner and its general example switch are enabled. `examples` removes examples without disabling capabilities. An action preference is distinct from the action itself: disabling `sliderSwipe` removes slider advice and its slider example, while retaining generic Swipe and non-slider samples.
+General example switches still support experiments on whether examples help: an example appears only when both its owner and its general example switch are enabled. `ruleExamples,actionExamples,multiTurnExample` removes examples without disabling capabilities. An action preference is distinct from the action itself: disabling `sliderSwipe` removes slider advice and its slider example, while retaining generic Swipe and non-slider samples.
 
 ## Replacing the old mode and experimental boundaries
 
@@ -81,6 +72,6 @@ Component experiments require the standard Midscene Planning protocol. Custom pl
 
 Disable caches in every arm. An explicit Agent cache object can override MIDSCENE_CACHE=false and causes active experiments to throw. Remove that cache in the common entry point or consistently use cacheable: false.
 
-Planning task parameters record includeSubGoals, includeLocateInPlanning, imagesIncludeCount and expanded disabledPlanningParts (omitted when empty). Use MIDSCENE_RECORD_MODEL_CALL=1 to audit actual model-requests under the run directory, rather than checking environment variables alone.
+Planning task parameters record includeSubGoals, includeLocateInPlanning, imagesIncludeCount and disabledPlanningParts (omitted when empty). Use MIDSCENE_RECORD_MODEL_CALL=1 to audit actual model-requests under the run directory, rather than checking environment variables alone.
 
 Start with the complete baseline and individual removals, then test combinations with useful signals. Match tasks and repetitions; record success, model calls, tokens, latency, invalid output and infrastructure failures. Individual ablation measures a component's contribution in the complete system; it does not identify every interaction or constitute an orthogonal design.

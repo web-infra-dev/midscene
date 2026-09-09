@@ -36,30 +36,15 @@ export const PLANNING_ABLATION_PARTS = [
 export type PlanningAblationPart = (typeof PLANNING_ABLATION_PARTS)[number];
 export type PlanningAblation = readonly PlanningAblationPart[];
 
-const PLANNING_ABLATION_GROUPS: Record<string, PlanningAblation> = {
-  taskSemantics: ['taskScope', 'durableCompletion', 'processEvidence'],
-  uiCases: ['scrollableOptions', 'inputVerification', 'assertionTiming'],
-  actionStrategies: [
-    'recoveryGuidance',
-    'adbPreference',
-    'sliderSwipe',
-    'incrementalEdit',
-    'crossPageNavigation',
-  ],
-  examples: ['ruleExamples', 'actionExamples', 'multiTurnExample'],
-};
-
 export function parsePlanningAblation(value?: string): PlanningAblation {
   const disabled = new Set<string>();
   for (const name of (value ?? '').split(',').map((part) => part.trim())) {
     if (!name) continue;
-    if (Object.hasOwn(PLANNING_ABLATION_GROUPS, name)) {
-      for (const part of PLANNING_ABLATION_GROUPS[name]) disabled.add(part);
-    } else if (PLANNING_ABLATION_PARTS.some((part) => part === name)) {
+    if (PLANNING_ABLATION_PARTS.some((part) => part === name)) {
       disabled.add(name);
     } else {
       throw new Error(
-        `Unknown ${MIDSCENE_PLANNING_DISABLE_PARTS} part: "${name}". Supported parts: ${PLANNING_ABLATION_PARTS.join(', ')}. Groups: ${Object.keys(PLANNING_ABLATION_GROUPS).join(', ')}.`,
+        `Unknown ${MIDSCENE_PLANNING_DISABLE_PARTS} part: "${name}". Supported parts: ${PLANNING_ABLATION_PARTS.join(', ')}.`,
       );
     }
   }

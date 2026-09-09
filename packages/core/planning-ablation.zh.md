@@ -17,7 +17,7 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals
 export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 ```
 
-选择一项设置后运行原来的 benchmark 命令。组件名区分大小写，允许空白与重复项，未知名称报错。每次 `aiAct` 在入口读取并冻结配置；运行期间修改环境不会影响已经开始的调用。
+选择一项设置后运行原来的 benchmark 命令。只接受下表列出的组件名，多项以逗号分隔。组件名区分大小写，允许空白与重复项，未知名称报错。每次 `aiAct` 在入口读取并冻结配置；运行期间修改环境不会影响已经开始的调用。
 
 ## 组件
 
@@ -48,20 +48,11 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 | `actionExamples` | 动作样例及独立 Tap/error 示例 |
 | `multiTurnExample` | 整个多轮表单示例 |
 
-分组是以下组件的简写：
-
-| 分组 | 组件 |
-| --- | --- |
-| `taskSemantics` | `taskScope,durableCompletion,processEvidence` |
-| `uiCases` | `scrollableOptions,inputVerification,assertionTiming` |
-| `actionStrategies` | `recoveryGuidance,adbPreference,sliderSwipe,incrementalEdit,crossPageNavigation` |
-| `examples` | `ruleExamples,actionExamples,multiTurnExample` |
-
 ## 能力与示例的归属
 
 `subGoalExample` 已删除，不能再单独配置。`subGoals` 一项覆盖提示、独立子目标示例、多轮示例中的子目标及状态回放。memory、log、planningText、taskScope、recoveryGuidance、sliderSwipe、incrementalEdit 的所属示例也随能力关闭。共享示例保留其他仍启用能力的内容。
 
-通用示例开关仍可用于测试“是否给示例”：示例只有在所属能力和对应通用示例开关都开启时才出现。`examples` 仅移除示例，不会关闭能力。动作偏好不是动作本身，例如关闭 `sliderSwipe` 会删除滑块建议与滑块示例，但仍保留通用 Swipe 能力及其非滑块样例。
+通用示例开关仍可用于测试“是否给示例”：示例只有在所属能力和对应通用示例开关都开启时才出现。`ruleExamples,actionExamples,multiTurnExample` 仅移除示例，不会关闭能力。动作偏好不是动作本身，例如关闭 `sliderSwipe` 会删除滑块建议与滑块示例，但仍保留通用 Swipe 能力及其非滑块样例。
 
 ## 替代旧模式与实验边界
 
@@ -81,6 +72,6 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory,observationGuidance,scree
 
 所有组都应禁用缓存。Agent 显式 cache 对象可能覆盖 `MIDSCENE_CACHE=false`，此时组件实验会报错；应在公共入口关闭该配置，或各组统一使用 `cacheable: false`。
 
-报告 Planning 参数记录 `includeSubGoals`、`includeLocateInPlanning`、`imagesIncludeCount` 和实际展开的 `disabledPlanningParts`（为空时省略）。用 `MIDSCENE_RECORD_MODEL_CALL=1` 核查 runDir 下的 `model-requests`，不要只检查环境变量。
+报告 Planning 参数记录 `includeSubGoals`、`includeLocateInPlanning`、`imagesIncludeCount` 和禁用组件列表 `disabledPlanningParts`（为空时省略）。用 `MIDSCENE_RECORD_MODEL_CALL=1` 核查 runDir 下的 `model-requests`，不要只检查环境变量。
 
 先做完整基准和单项消融，再测试有信号的组合。固定任务与重复次数，记录成功率、模型调用数、token、耗时、无效输出及基础设施失败。单项消融只能估计组件在完整系统中的贡献，不能单独识别所有交互效应，也不能直接称为正交试验。

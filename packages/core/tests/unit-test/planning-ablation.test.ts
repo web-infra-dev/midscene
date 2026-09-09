@@ -25,11 +25,11 @@ afterEach(() => {
 });
 
 describe('Planning ablation configuration', () => {
-  it('keeps the empty baseline and expands, trims, deduplicates and freezes CSV parts', () => {
+  it('keeps the empty baseline and trims, deduplicates and freezes CSV parts', () => {
     expect(parsePlanningAblation()).toEqual([]);
     expect(parsePlanningAblation(' , ')).toEqual([]);
     const parts = parsePlanningAblation(
-      ' memory, examples,subGoals,memory,ruleExamples ',
+      ' memory,actionExamples,multiTurnExample,subGoals,memory,ruleExamples ',
     );
     expect(parts).toEqual([
       'subGoals',
@@ -40,24 +40,19 @@ describe('Planning ablation configuration', () => {
     ]);
     expect(Object.isFrozen(parts)).toBe(true);
     expect(
-      parsePlanningAblation('taskSemantics,uiCases,actionStrategies'),
-    ).toEqual([
-      'taskScope',
-      'durableCompletion',
-      'processEvidence',
-      'scrollableOptions',
-      'inputVerification',
-      'assertionTiming',
-      'recoveryGuidance',
-      'adbPreference',
-      'sliderSwipe',
-      'incrementalEdit',
-      'crossPageNavigation',
-    ]);
-    expect(
       parsePlanningAblation(PLANNING_ABLATION_PARTS.join(',')),
     ).toHaveLength(24);
   });
+
+  it.each(['taskSemantics', 'uiCases', 'actionStrategies', 'examples'])(
+    'rejects the removed %s group in the environment configuration',
+    (group) => {
+      rs.stubEnv(MIDSCENE_PLANNING_DISABLE_PARTS, `memory,${group}`);
+      expect(() => readPlanningAblation()).toThrow(
+        `Unknown MIDSCENE_PLANNING_DISABLE_PARTS part: "${group}"`,
+      );
+    },
+  );
 
   it('reads the registered environment key and rejects typos', () => {
     rs.stubEnv(MIDSCENE_PLANNING_DISABLE_PARTS, 'memory,log');
