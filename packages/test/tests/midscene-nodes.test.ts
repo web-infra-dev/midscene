@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test-runner';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';

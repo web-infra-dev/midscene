@@ -1,14 +1,34 @@
 import type { BrowserContext, Page } from 'playwright';
-import type { Awaitable } from '../engine/types';
-import type { NodeExecutionContext } from '../node/types';
+import type { z } from 'zod/v4';
+
+type Awaitable<T> = T | Promise<T>;
 
 export type PlaywrightCookie = Parameters<
   BrowserContext['addCookies']
 >[0][number];
-export type PlaywrightNodeContext<TContext> = NodeExecutionContext<
-  unknown,
-  TContext
->;
+/** Runtime resources supplied by the test runner to Playwright Nodes. */
+export interface PlaywrightNodeContext<TContext> {
+  input: unknown;
+  context: TContext;
+  signal: AbortSignal;
+}
+
+/** Structurally compatible with Midscene Test Nodes without importing the runner. */
+export interface PlaywrightNodeDefinition<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> {
+  name: string;
+  title?: string;
+  description?: string;
+  stringInputKey?: string | false;
+  inputSchema: z.ZodObject;
+  execute(ctx: PlaywrightNodeContext<TContext> & { input: TInput }): Promise<{
+    summary?: string;
+    data?: TData;
+  }>;
+}
 
 /** Context passed to a configured Playwright cookie profile resolver. */
 export interface PlaywrightCookieProfileContext<TContext> {

@@ -5,12 +5,12 @@ import {
   runAdbShellInputSchema,
   runAdbShellOptionsInputSchema,
   terminateInputSchema,
-} from '@midscene/android/test-runner';
+} from '@midscene/android/test';
 export type {
   LaunchNodeInput,
   RunAdbShellNodeInput,
   TerminateNodeInput,
-} from '@midscene/android/test-runner';
+} from '@midscene/android/test';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError } from '../errors';
 import { createAgentTestRunnerNodes } from '../midscene';

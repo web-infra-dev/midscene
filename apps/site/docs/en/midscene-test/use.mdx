@@ -90,6 +90,16 @@ After changing Node registrations, regenerate the reference:
 pnpm run nodes
 ```
 
+You can also specify a test directory or a custom configuration file:
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+```
+
+The reference has two sections: Available Nodes lists the Nodes you can use, and Node Details provides their descriptions and input schemas. Both the reference and terminal output list `aiAct` and `aiAssert` first, followed by the remaining Nodes in name order. Input schemas are converted from Zod `inputSchema` to standard JSON Schema.
+
+The reference also lists case file patterns (`Case files`) and the configuration file path (`Config file`) to help case authors locate their files. `Case files` corresponds to each execution project's `files.include` and `files.exclude`. Both sets of paths are relative to the reference file's directory.
+
 ## Write YAML test cases
 
 ### A typical YAML file
@@ -232,6 +242,8 @@ Framework maintainers configure `tags.include` and `tags.exclude` for each Execu
 
 ## Define the execution lifecycle
 
+This section covers the lifecycle of a single YAML file. For the full relationship between project `setup`, file hooks, cases, and cleanup, see [Project, file, and case lifecycle](./configuration#project-file-and-case-lifecycle).
+
 ### Setup and cleanup steps
 
 Lifecycle hooks prepare the environment, reset state, or clean up data around test cases. All four hooks are optional and appear at the same level as `cases`. Their steps use the same Node call syntax as case `steps`.
@@ -292,7 +304,7 @@ When retries are configured, a failed case reruns `beforeEach → steps → afte
 
 By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
 
-Project setup manages browser and Agent resources; see [Manage project resources](./configuration#manage-project-resources). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
+Project setup manages browser and Agent resources; see [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
 
 ## Run tests
 

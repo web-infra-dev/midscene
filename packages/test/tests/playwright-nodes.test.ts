@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
 import {
   clearCookiesInputSchema,
   createPlaywrightNodes,
   gotoUrlInputSchema,
   setCookiesInputSchema,
   setViewportSizeInputSchema,
-} from '../src/playwright';
+} from '@midscene/web/playwright/test';
+import { describe, expect, it } from 'vitest';
 import { createPage } from './playwright-node-helpers';
 
 describe('createPlaywrightNodes', () => {

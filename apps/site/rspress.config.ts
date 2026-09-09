@@ -286,12 +286,12 @@ export default defineConfig(async () => {
             link: '/midscene-test/use',
           },
           {
-            text: 'Develop custom Nodes',
-            link: '/midscene-test/extend',
-          },
-          {
             text: 'Configure test projects',
             link: '/midscene-test/configuration',
+          },
+          {
+            text: 'Develop custom Nodes',
+            link: '/midscene-test/extend',
           },
           {
             sectionHeaderText: 'Resources',
@@ -458,12 +458,12 @@ export default defineConfig(async () => {
             link: '/zh/midscene-test/use',
           },
           {
-            text: '编写自定义 Node',
-            link: '/zh/midscene-test/extend',
-          },
-          {
             text: '配置测试项目',
             link: '/zh/midscene-test/configuration',
+          },
+          {
+            text: '编写自定义 Node',
+            link: '/zh/midscene-test/extend',
           },
           {
             sectionHeaderText: '资源',

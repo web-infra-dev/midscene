@@ -1,7 +1,8 @@
 import { z } from 'zod/v4';
-import { defineNode } from '../node/define-node';
-import type { NodeDefinition } from '../node/types';
-import type { CreatePlaywrightNodesOptions } from './types';
+import type {
+  CreatePlaywrightNodesOptions,
+  PlaywrightNodeDefinition,
+} from './types';
 import { resolveWebUrl, throwIfAborted } from './utils';
 
 const DEFAULT_NAVIGATION_TIMEOUT_MS = 60_000;
@@ -39,29 +40,32 @@ export interface GotoUrlNodeResult {
 
 export const createGotoUrlNode = <TContext>(
   options: CreatePlaywrightNodesOptions<TContext>,
-): NodeDefinition<any, any, TContext> =>
-  defineNode<typeof gotoUrlInputSchema, GotoUrlNodeResult, TContext>({
-    name: 'gotoUrl',
-    title: 'Open a Web URL',
-    description:
-      'Navigate the current Playwright Page to an absolute HTTP(S) URL or a path relative to the configured baseUrl.',
-    stringInputKey: 'url',
-    inputSchema: gotoUrlInputSchema,
-    async execute(ctx) {
-      throwIfAborted(ctx.signal, 'gotoUrl');
-      const page = await options.getPage(ctx);
-      const baseUrl = await options.getBaseUrl?.(ctx);
-      const url = resolveWebUrl(ctx.input.url, baseUrl, 'gotoUrl.url');
-      const response = await page.goto(url, {
-        waitUntil: ctx.input.waitUntil,
-        timeout: ctx.input.timeoutMs,
-      });
-      const status = response?.status() ?? null;
-      const result = {
-        url: page.url(),
-        status,
-        title: await page.title(),
-      };
-      return { summary: `Navigated to ${result.url}`, data: result };
-    },
-  });
+): PlaywrightNodeDefinition<
+  z.output<typeof gotoUrlInputSchema>,
+  GotoUrlNodeResult,
+  TContext
+> => ({
+  name: 'gotoUrl',
+  title: 'Open a Web URL',
+  description:
+    'Navigate the current Playwright Page to an absolute HTTP(S) URL or a path relative to the configured baseUrl.',
+  stringInputKey: 'url',
+  inputSchema: gotoUrlInputSchema,
+  async execute(ctx) {
+    throwIfAborted(ctx.signal, 'gotoUrl');
+    const page = await options.getPage(ctx);
+    const baseUrl = await options.getBaseUrl?.(ctx);
+    const url = resolveWebUrl(ctx.input.url, baseUrl, 'gotoUrl.url');
+    const response = await page.goto(url, {
+      waitUntil: ctx.input.waitUntil,
+      timeout: ctx.input.timeoutMs,
+    });
+    const status = response?.status() ?? null;
+    const result = {
+      url: page.url(),
+      status,
+      title: await page.title(),
+    };
+    return { summary: `Navigated to ${result.url}`, data: result };
+  },
+});

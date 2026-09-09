@@ -27,7 +27,7 @@
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
-    "./test-runner": {
+    "./test": {
       "types": "./dist/types/test-runner.d.ts",
       "import": "./dist/es/test-runner.mjs",
       "require": "./dist/lib/test-runner.js"

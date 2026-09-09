@@ -1,12 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { z } from 'zod/v4';
-import { defineNode } from '../node/define-node';
-import type { NodeDefinition } from '../node/types';
 import type {
   CreatePlaywrightNodesOptions,
   PlaywrightCookie,
   PlaywrightNodeContext,
+  PlaywrightNodeDefinition,
 } from './types';
 import { resolveWebUrl, throwIfAborted } from './utils';
 
@@ -259,47 +258,50 @@ const normalizeCookies = (
 
 export const createSetCookiesNode = <TContext>(
   options: CreatePlaywrightNodesOptions<TContext>,
-): NodeDefinition<any, any, TContext> =>
-  defineNode<typeof setCookiesInputSchema, SetCookiesNodeResult, TContext>({
-    name: 'setCookies',
-    title: 'Set browser cookies',
-    description:
-      'Load cookies from an environment variable, configured profile, or Playwright storage-state file without persisting cookie values in workflow input or output.',
-    stringInputKey: false,
-    inputSchema: setCookiesInputSchema,
-    async execute(ctx) {
-      throwIfAborted(ctx.signal, 'setCookies');
-      const page = await options.getPage(ctx);
-      const defaultUrl =
-        ctx.input.url === undefined
-          ? undefined
-          : resolveWebUrl(ctx.input.url, undefined, 'setCookies.url');
-      const reference = toCookieSourceReference(ctx.input);
-      const resolved = await resolveCookieSource(
-        reference,
-        defaultUrl,
-        ctx,
-        options,
+): PlaywrightNodeDefinition<
+  z.output<typeof setCookiesInputSchema>,
+  SetCookiesNodeResult,
+  TContext
+> => ({
+  name: 'setCookies',
+  title: 'Set browser cookies',
+  description:
+    'Load cookies from an environment variable, configured profile, or Playwright storage-state file without persisting cookie values in workflow input or output.',
+  stringInputKey: false,
+  inputSchema: setCookiesInputSchema,
+  async execute(ctx) {
+    throwIfAborted(ctx.signal, 'setCookies');
+    const page = await options.getPage(ctx);
+    const defaultUrl =
+      ctx.input.url === undefined
+        ? undefined
+        : resolveWebUrl(ctx.input.url, undefined, 'setCookies.url');
+    const reference = toCookieSourceReference(ctx.input);
+    const resolved = await resolveCookieSource(
+      reference,
+      defaultUrl,
+      ctx,
+      options,
+    );
+    const cookies = normalizeCookies(resolved.cookies, defaultUrl);
+
+    throwIfAborted(ctx.signal, 'setCookies');
+    try {
+      await page.context().addCookies(cookies);
+    } catch {
+      throw new Error(
+        `Failed to set ${cookies.length} browser cookie(s); the browser error was redacted because it may contain cookie values.`,
       );
-      const cookies = normalizeCookies(resolved.cookies, defaultUrl);
+    }
 
-      throwIfAborted(ctx.signal, 'setCookies');
-      try {
-        await page.context().addCookies(cookies);
-      } catch {
-        throw new Error(
-          `Failed to set ${cookies.length} browser cookie(s); the browser error was redacted because it may contain cookie values.`,
-        );
-      }
-
-      const result: SetCookiesNodeResult = {
-        source: resolved.reference.kind,
-        sourceName: resolved.reference.name,
-        count: cookies.length,
-      };
-      return {
-        summary: `Set ${result.count} browser cookie(s) from ${result.source} source ${result.sourceName}`,
-        data: result,
-      };
-    },
-  });
+    const result: SetCookiesNodeResult = {
+      source: resolved.reference.kind,
+      sourceName: resolved.reference.name,
+      count: cookies.length,
+    };
+    return {
+      summary: `Set ${result.count} browser cookie(s) from ${result.source} source ${result.sourceName}`,
+      data: result,
+    };
+  },
+});

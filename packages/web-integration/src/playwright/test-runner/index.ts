@@ -1,9 +1,10 @@
-import { NodeDefinitionError } from '../errors';
-import type { NodeDefinition } from '../node/types';
 import { createClearCookiesNode } from './clear-cookies';
 import { createSetCookiesNode } from './cookies';
 import { createGotoUrlNode } from './goto-url';
-import type { CreatePlaywrightNodesOptions } from './types';
+import type {
+  CreatePlaywrightNodesOptions,
+  PlaywrightNodeDefinition,
+} from './types';
 import { createSetViewportSizeNode } from './viewport';
 
 export { clearCookiesInputSchema } from './clear-cookies';
@@ -18,6 +19,8 @@ export type { GotoUrlNodeInput, GotoUrlNodeResult } from './goto-url';
 export type {
   CreatePlaywrightNodesOptions,
   PlaywrightCookieProfileContext,
+  PlaywrightNodeContext,
+  PlaywrightNodeDefinition,
 } from './types';
 export { setViewportSizeInputSchema } from './viewport';
 export type { SetViewportSizeNodeInput } from './viewport';
@@ -26,14 +29,10 @@ const requireOptions = <TContext>(
   options: CreatePlaywrightNodesOptions<TContext>,
 ) => {
   if (!options || typeof options !== 'object') {
-    throw new NodeDefinitionError(
-      'createPlaywrightNodes() options must be an object.',
-    );
+    throw new TypeError('createPlaywrightNodes() options must be an object.');
   }
   if (typeof options.getPage !== 'function') {
-    throw new NodeDefinitionError(
-      'createPlaywrightNodes() requires getPage().',
-    );
+    throw new TypeError('createPlaywrightNodes() requires getPage().');
   }
 };
 
@@ -44,7 +43,7 @@ const requireOptions = <TContext>(
  */
 export function createPlaywrightNodes<TContext>(
   options: CreatePlaywrightNodesOptions<TContext>,
-): readonly NodeDefinition<any, any, TContext>[] {
+): readonly PlaywrightNodeDefinition<any, any, TContext>[] {
   requireOptions(options);
   return [
     createGotoUrlNode(options),

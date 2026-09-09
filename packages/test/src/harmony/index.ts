@@ -4,12 +4,12 @@ import {
   launchInputSchema,
   runHdcShellInputSchema,
   terminateInputSchema,
-} from '@midscene/harmony/test-runner';
+} from '@midscene/harmony/test';
 export type {
   LaunchNodeInput,
   RunHdcShellNodeInput,
   TerminateNodeInput,
-} from '@midscene/harmony/test-runner';
+} from '@midscene/harmony/test';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError } from '../errors';
 import { createAgentTestRunnerNodes } from '../midscene';

@@ -5,13 +5,13 @@ import {
   runWdaRequestInputSchema,
   terminateInputSchema,
   wdaRequestInputSchema,
-} from '@midscene/ios/test-runner';
+} from '@midscene/ios/test';
 export type {
   LaunchNodeInput,
   RunWdaRequestNodeInput,
   TerminateNodeInput,
   WDAHttpMethod,
-} from '@midscene/ios/test-runner';
+} from '@midscene/ios/test';
 import type { Awaitable } from '../engine/types';
 import { NodeDefinitionError } from '../errors';
 import { createAgentTestRunnerNodes } from '../midscene';

@@ -1,10 +1,10 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createPlaywrightNodes } from '@midscene/web/playwright/test';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { createPlaywrightNodes } from '../src/playwright';
 import {
   collected,
   createPage,

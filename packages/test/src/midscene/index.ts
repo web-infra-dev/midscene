@@ -16,7 +16,7 @@ import {
   reportScreenshotInputSchema,
   structuredUserPromptInputSchema,
   userPromptInputSchema,
-} from '@midscene/core/agent/test-runner';
+} from '@midscene/core/agent/test';
 import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod/v4';
 import type { Awaitable } from '../engine/types';

@@ -1,5 +1,5 @@
 import { appendFileSync } from 'node:fs';
-import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test-runner';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { defineNode } from '@midscene/test';
 import { defineTestProject } from '@midscene/test/config';
 import {

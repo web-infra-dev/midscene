@@ -31,7 +31,7 @@ import {
   gotoUrlInputSchema,
   setCookiesInputSchema,
   setViewportSizeInputSchema,
-} from '@midscene/test/playwright';
+} from '@midscene/web/playwright/test';
 import type { Page } from 'playwright';
 
 interface ProjectContext {

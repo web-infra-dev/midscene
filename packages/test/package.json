@@ -30,11 +30,6 @@
       "import": "./dist/es/midscene/index.mjs",
       "require": "./dist/lib/midscene/index.js"
     },
-    "./playwright": {
-      "types": "./dist/types/playwright/index.d.ts",
-      "import": "./dist/es/playwright/index.mjs",
-      "require": "./dist/lib/playwright/index.js"
-    },
     "./android": {
       "types": "./dist/types/android/index.d.ts",
       "import": "./dist/es/android/index.mjs",
@@ -87,8 +82,7 @@
   "peerDependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/harmony": "workspace:*",
-    "@midscene/ios": "workspace:*",
-    "playwright": "^1.45.0"
+    "@midscene/ios": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@midscene/android": {
@@ -98,9 +92,6 @@
       "optional": true
     },
     "@midscene/ios": {
-      "optional": true
-    },
-    "playwright": {
       "optional": true
     }
   },
