@@ -9,6 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { z } from 'zod/v4';
 import {
   createTestRunId,
   discoverTestConfig,
@@ -590,6 +591,176 @@ cases:
         },
       ],
     });
+  });
+
+  it('uses each Project schema and string shorthand throughout shared YAML lifecycles', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = Object.assign(setRunnerState(resultDir), {
+      schemas: {
+        android: z.strictObject({
+          androidText: z.string(),
+          owner: z.literal('android').default('android'),
+        }),
+        ios: z.strictObject({
+          iosText: z.string(),
+          owner: z.literal('ios').default('ios'),
+        }),
+      },
+    });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'shared-mobile',
+          platform: ['android', 'ios'],
+          async setup({ project, onTeardown }) {
+            state.active += 1;
+            state.maxActive = Math.max(state.maxActive, state.active);
+            state.events.push('setup:' + project.name);
+            onTeardown(() => {
+              state.active -= 1;
+              state.events.push('teardown:' + project.name);
+            });
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            return { owner: project.name };
+          },
+        };
+        const localNode = (owner, key) => ({
+          name: 'test.local',
+          stringInputKey: key,
+          inputSchema: state.schemas[owner],
+          execute({ context, input, scope, case: caseContext, document }) {
+            if (context.owner !== owner || input.owner !== owner) {
+              throw new Error('Project Node or schema leaked into another Project');
+            }
+            const phase = scope === 'case' ? caseContext.phase : document.phase;
+            state.events.push(owner + ':' + phase + ':' + input[key]);
+          },
+        });
+        export default {
+          projects: [
+            { name: 'android', platform: 'android', setup, nodes: [localNode('android', 'androidText')] },
+            { name: 'ios', platform: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
+          ],
+          nodes: [
+            {
+              name: 'test.local',
+              stringInputKey: false,
+              execute() { throw new Error('Global override must not execute'); },
+            },
+            {
+              name: 'test.shared',
+              execute({ context }) { state.events.push(context.owner + ':inherited'); },
+            },
+          ],
+          test: { maxConcurrency: 2 },
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'shared.yaml',
+      `
+beforeAll:
+  - test.local: beforeAll
+beforeEach:
+  - test.local: beforeEach
+afterEach:
+  - test.local: afterEach
+afterAll:
+  - test.local: afterAll
+cases:
+  - name: shared case
+    steps:
+      - test.local: steps
+      - test.shared: {}
+`,
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result).toMatchObject({
+      status: 'success',
+      exitCode: 0,
+      summary: { total: 2, passed: 2, collectionErrors: 0 },
+    });
+    expect(state.active).toBe(0);
+    expect(state.maxActive).toBe(2);
+    for (const owner of ['android', 'ios']) {
+      expect(
+        state.events.filter((event) => event.startsWith(`${owner}:`)),
+      ).toEqual([
+        `${owner}:beforeAll:beforeAll`,
+        `${owner}:beforeEach:beforeEach`,
+        `${owner}:steps:steps`,
+        `${owner}:inherited`,
+        `${owner}:afterEach:afterEach`,
+        `${owner}:afterAll:afterAll`,
+      ]);
+      expect(state.events).toContain(`setup:${owner}`);
+      expect(state.events).toContain(`teardown:${owner}`);
+    }
+  });
+
+  it('preflights Project-only Nodes without leaking them into sibling Projects', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'isolated',
+          platform: 'web',
+          setup({ project }) {
+            state.events.push('setup:' + project.name);
+            return { projectName: project.name };
+          },
+        };
+        export default {
+          projects: [
+            {
+              name: 'with-node', platform: 'web', setup,
+              nodes: [{
+                name: 'project.only', stringInputKey: 'value',
+                execute({ context, input }) {
+                  state.events.push(context.projectName + ':' + input.value);
+                },
+              }],
+            },
+            { name: 'without-node', platform: 'web', setup },
+          ],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'shared.yaml',
+      'cases: [{ name: shared, steps: [{ project.only: run }] }]',
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.projects[0]).toMatchObject({
+      name: 'with-node',
+      status: 'success',
+      cases: [{ status: 'success' }],
+    });
+    expect(result.projects[1]).toMatchObject({
+      name: 'without-node',
+      status: 'failed',
+      collectionErrors: [
+        {
+          error: {
+            message: expect.stringContaining('unknown node "project.only"'),
+          },
+        },
+      ],
+    });
+    expect(state.events).toEqual(['setup:with-node', 'with-node:run']);
   });
 
   it('limits concurrent Project runtimes, keeps each Project serial, and preserves result order', async () => {
@@ -1726,8 +1897,12 @@ afterAll:
       resultDir: undefined,
       projectNames: ['ios', 'android'],
     });
-    expect(() => parseTestCliArgs(['nodes', '--project', 'ios'])).toThrow(
-      '--project is not supported by nodes',
-    );
+    expect(parseTestCliArgs(['nodes', '--project', 'ios'])).toMatchObject({
+      command: 'nodes',
+      projectNames: ['ios'],
+    });
+    expect(() =>
+      parseTestCliArgs(['nodes', '--project', 'ios', '--project', 'android']),
+    ).toThrow('nodes accepts only one --project name');
   });
 });

@@ -57,8 +57,8 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && resultDir) {
     throw new Error('--result-dir is not supported by nodes.');
   }
-  if (command === 'nodes' && projectNames.length > 0) {
-    throw new Error('--project is not supported by nodes.');
+  if (command === 'nodes' && projectNames.length > 1) {
+    throw new Error('nodes accepts only one --project name.');
   }
 
   return {
@@ -103,12 +103,33 @@ const runNodesCommand = async (
   }
 
   const project = await loadTestProject(configPath);
-  const nodes = sortNodesForReference(project.nodes.definitions());
+  const projectName = options.projectNames?.[0];
+  const selectedProjects = projectName
+    ? project.projects.filter((candidate) => candidate.name === projectName)
+    : project.projects;
+  if (selectedProjects.length === 0) {
+    throw new Error(`Unknown Midscene project: ${projectName}`);
+  }
+  const registry = selectedProjects[0].nodes;
+  if (
+    selectedProjects.some(
+      (candidate) =>
+        candidate.nodes.names().length !== registry.names().length ||
+        candidate.nodes
+          .definitions()
+          .some((node) => registry.get(node.name) !== node),
+    )
+  ) {
+    throw new Error(
+      'Projects have different Nodes. Use nodes --project <name> to select one.',
+    );
+  }
+  const nodes = sortNodesForReference(registry.definitions());
   const document = renderNodeReference(nodes, {
     configPath: configPath
       ? relative(configSearchRoot, configPath).split(sep).join('/')
       : undefined,
-    projects: project.projects.map((executionProject) => ({
+    projects: selectedProjects.map((executionProject) => ({
       name: executionProject.name,
       files: executionProject.files ?? DEFAULT_TEST_FILE_SELECTION,
     })),
@@ -118,6 +139,7 @@ const runNodesCommand = async (
   }
   const referencePath = resolve(configSearchRoot, 'midscene-node-reference.md');
   writeFileSync(referencePath, document.markdown);
+  if (projectName) io.log(`Execution Project: ${projectName}`);
   io.log(`Registered Nodes (${nodes.length}):`);
   if (nodes.length === 0) {
     io.log('No nodes are registered by the current Test Project.');

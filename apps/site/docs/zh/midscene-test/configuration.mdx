@@ -1,0 +1,438 @@
+# 配置测试项目
+
+`midscene.config.ts` 是 Midscene Test 的项目配置文件。你可以在其中配置浏览器或设备的初始化方式、注册用例可调用的 Node，并设置并发数、超时等运行参数。本文介绍手动配置、Agent 与平台接入、多执行项目管理，以及编程式调用。
+
+## 配置文件结构
+
+通过 `defineTestProject()` 导出项目配置。Execution Project（执行项目）负责选择用例并提供运行环境。
+
+| 字段 | 用途 |
+| --- | --- |
+| `setup` | 为隐式的默认执行项目创建共享资源。 |
+| `nodes` | 注册所有执行项目共享的 Node。 |
+| `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各 Project 中，不再配置顶层 setup。 |
+| `test` | 设置并发数、失败阈值和默认步骤超时。 |
+| `output` | 设置报告输出目录。 |
+
+下面的示例显式声明一个执行项目。多项目与局部 Node 注册规则见[配置和管理 Test Project](#配置和管理-test-project)。
+
+## 手动配置项目
+
+脚手架已生成平台配置。需要自行管理浏览器和 Agent 资源时，可以参考下面的完整 Playwright 配置。它注册内置导航与 AI Node，并验证一个示例页面。
+
+### 1. 安装依赖
+
+创建一个空项目，并安装 Midscene Test 的核心依赖及驱动工具：
+
+```bash
+pnpm add -D @midscene/test @midscene/web playwright
+pnpm exec playwright install chromium
+```
+
+:::info
+使用 Midscene Agent 前，请参考[模型配置](../model-config)，设置 API Key 等环境变量。
+:::
+
+### 2. 创建项目文件
+
+建议采用以下基本目录结构：
+
+```text
+team-tests/
+├── cases/
+│   └── midscene.yaml
+└── midscene.config.ts
+```
+
+### 3. 配置 Test Project 与注册 Node
+
+在项目根目录下创建 `midscene.config.ts`，这个配置文件负责注册可复用的 Node，并定义执行环境（Project）：
+
+```ts filename=midscene.config.ts
+import {
+  defineProjectSetup,
+  defineTestProject,
+} from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { createPlaywrightNodes } from '@midscene/test/playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import { chromium, type Browser, type Page } from 'playwright';
+
+interface ProjectContext {
+  browser: Browser;
+  page: Page;
+  agent?: PlaywrightAgent;
+}
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PlaywrightAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
+});
+
+// 声明浏览器环境的启动与清理
+const playwrightSetup = defineProjectSetup<ProjectContext>({
+  name: 'playwright',
+  platform: 'web',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch({ headless: true });
+    onTeardown(() => browser.close());
+    const browserContext = await browser.newContext();
+    const page = await browserContext.newPage();
+    const context: ProjectContext = { browser, page };
+    onTeardown(async () => { await context.agent?.destroy(); });
+    return context;
+  },
+});
+
+// 导出项目配置
+export default defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'chromium',
+      platform: 'web',
+      setup: playwrightSetup,
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+    },
+  ],
+  nodes: [...midsceneNodes, ...playwrightNodes],
+});
+```
+
+### 4. 编写测试用例并运行
+
+创建 `cases/midscene.yaml` 文件：
+
+```yaml filename=cases/midscene.yaml
+cases:
+  - name: 打开示例页面
+    tags: [smoke]
+    steps:
+      - gotoUrl:
+          url: https://example.com
+      - aiAssert:
+          prompt: 页面显示标题“Example Domain”
+```
+
+在项目根目录下执行测试：
+
+```bash
+pnpm exec midscene-test
+```
+
+Midscene Test 会自动加载 `midscene.config.ts`，查找满足条件的测试用例并执行。
+
+## 管理项目资源
+
+Project setup 在当前执行项目的 YAML 文件之前运行一次。它返回的 `context` 在这些文件之间共享，因此用例专属状态需要显式重置。Node 注册的清理有各自的[执行范围](./extend#资源的生命周期与清理)。
+
+获取资源后，及时调用 `onTeardown()` 注册项目清理函数。框架在项目结束时尝试执行这些函数，包括 setup 或执行失败的情况。清理函数按注册顺序的逆序执行。在 Playwright 示例中，Agent 先销毁，然后关闭浏览器。
+
+每个 Device 实例只归属于一个 Agent，`Agent.destroy()` 也会销毁对应 Device。每个执行项目应创建独立的资源，不要在 Agent 销毁后复用它的 Device。
+
+## 集成 Midscene Agent
+
+`@midscene/test/midscene` 中的 `createMidsceneNodes()` 注册通用 Node：`aiAct`、`aiTap`、
+`aiAssert`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、
+`recordToReport`、`wait` 和 `agent`。
+
+调用 `createMidsceneNodes()` 时，需要传入声明 Node 的 Agent 类，以及在执行时提供 Agent 实例的 `getAgent` 回调：
+
+```ts
+import { createMidsceneNodes } from '@midscene/test/midscene';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PlaywrightAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PlaywrightAgent(context.page);
+    return context.agent;
+  },
+});
+```
+
+由 Agent 驱动的 Node 输入与 Agent 方法参数保持对应。位置参数会变成有名称的顶层字段。结构化参数则保留原有层级。例如，`recordToReport(title, options)` 使用 `title` 和 `options` 两个字段，多模态 `TUserPrompt` 也完整保留在 `prompt` 下面：
+
+```yaml
+steps:
+  - aiAct:
+      prompt:
+        prompt: 按照参考图完成设置
+        images:
+          - name: 目标状态
+            url: ./fixtures/target.png
+      options:
+        deepLocate: true
+  - recordToReport:
+      title: 执行完成
+      options:
+        content: 视觉检查已经完成。
+```
+
+`agentClass` 是 Agent Node 定义的唯一来源。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入平台 Agent 类时，会同时注册通用 Node 定义和平台 Node 定义。基础 Agent 或 Web Agent 不会注册平台生命周期 Node。你也可以组合下文的平台专用工厂。
+
+Android/iOS 的注册示例见[配置和管理 Test Project](#配置和管理-test-project)。平台 Agent 工厂已包含相应的平台定义，注册时应避免重复添加同名 Node。
+
+## 注册平台预置 Node
+
+Midscene Test 通过独立入口提供各平台的预置 Node 工厂。工厂通过回调获取运行时资源，不要求 `context` 使用固定字段名。
+
+### Playwright
+
+Playwright 工厂注册 `gotoUrl`、`setCookies`、`clearCookies` 和
+`setViewportSize`。`playwright` 是 `@midscene/test` 的 optional peer
+dependency，使用该预置能力的项目需要安装它：
+
+```bash
+pnpm add -D playwright
+```
+
+以下示例沿用上文手动配置中的 Playwright `ProjectContext`。将返回的 Node 加入项目的 `nodes` 数组：
+
+```ts
+import { createPlaywrightNodes } from '@midscene/test/playwright';
+
+const playwrightNodes = createPlaywrightNodes<ProjectContext>({
+  getPage: ({ context }) => context.page,
+  getBaseUrl: () => 'https://example.com',
+  getEnv: () => process.env,
+});
+```
+
+`setCookies` 不允许在 YAML 中直接填写 Cookie value。Midscene Test 会把 Node 输入保存到
+运行结果。如果直接填写 Cookie，这些敏感信息也会被保存。
+
+请使用 `cookiesEnv`、`profile` 或 `storageStatePath` 引用 Cookie，三者必须选择一个。
+Node 只在执行时读取实际的 Cookie，并将它直接传给 Playwright BrowserContext。Node
+结果只记录引用名称和 Cookie 数量，不会记录 Cookie 的名称、value 和作用域。因此，
+Cookie 不会进入 Midscene Test 的运行结果。
+
+环境变量可以包含 Cookie header、Cookie JSON 数组或 Playwright storage-state JSON。
+相对的 storage-state 路径默认从当前工作目录解析。如果项目需要使用其他根目录，请配置
+`resolveStorageStatePath`。引用方式只能避免 Cookie 进入 Midscene Test 的持久化数据；
+环境变量、profile 和 storage-state 文件本身仍需妥善保管。请勿将包含真实 Cookie 的
+storage-state 文件提交到代码仓库。
+
+```yaml
+beforeEach:
+  - clearCookies: {}
+  - setCookies:
+      cookiesEnv: E2E_COOKIES
+      url: https://example.com
+  - setViewportSize:
+      width: 1440
+      height: 900
+  - gotoUrl:
+      url: /chat
+      waitUntil: domcontentloaded
+```
+
+`gotoUrl` 遵循 Playwright 的导航语义。只要导航完成，HTTP 4xx 和 5xx response
+也会作为成功的 Node 结果返回，并保留状态码，后续步骤可以继续检查错误页面。网络错误和
+导航超时仍会让 Node 失败。
+
+### Android
+
+以下设备平台示例各自独立：在 `ProjectContext` 中声明对应平台类型的 `agent`，由 setup 返回该实例，再选择所需平台的工厂注册 Node。
+
+Android 平台预置会注册 `launch`、`terminate`、`runAdbShell`、`back`、
+`home` 和 `recentApps`，并要求 Agent 提供对应方法：
+
+```ts
+import { createAndroidNodes } from '@midscene/test/android';
+
+const androidNodes = createAndroidNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+beforeEach:
+  - runAdbShell:
+      command: pm clear com.example.app
+      options:
+        timeout: 5000
+  - launch:
+      uri: com.example.app
+```
+
+### iOS
+
+iOS 平台预置会注册 `launch`、`terminate`、`runWdaRequest`、`home` 和 `appSwitcher`：
+
+```ts
+import { createIOSNodes } from '@midscene/test/ios';
+
+const iosNodes = createIOSNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - launch:
+      uri: com.example.app
+  - runWdaRequest:
+      request:
+        method: GET
+        endpoint: /status
+  - terminate:
+      uri: com.example.app
+```
+
+### HarmonyOS
+
+HarmonyOS 平台预置会注册 `launch`、`terminate`、`runHdcShell`、`back`、 `home` 和 `recentApps`：
+
+```ts
+import { createHarmonyNodes } from '@midscene/test/harmony';
+
+const harmonyNodes = createHarmonyNodes<ProjectContext>({
+  getAgent: ({ context }) => context.agent,
+});
+```
+
+```yaml
+steps:
+  - runHdcShell:
+      command: bm dump -a
+  - home: {}
+```
+
+### 平台操作的结果
+
+`runAdbShell`、`runWdaRequest` 和 `runHdcShell` 会在 Node 结果中保留完整 response，但 Midscene Test
+不会自动把该 response 传给后续 Node 或 Midscene Agent 调用。如果运行结果不需要完整
+输出，请直接在命令中进行过滤；如果后续 Node 需要其中某个值，请只将该值显式写入项目
+`context`。
+
+`launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
+`gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和
+HTTP response 语义。
+
+## 配置和管理 Test Project
+
+`defineTestProject()` 支持在同一配置中声明一个或多个 Execution Project。顶层 `nodes` 对所有 Project 生效，省略时默认为 `[]`。`projects[].nodes` 与 `setup`、`files` 平级，仅在该 Project 生效。同名局部 Node 会整体覆盖全局定义，其余全局 Node 继续继承；同一注册层内出现重复名称仍然报错。
+
+Android/iOS 混合配置应在各 Project 中注册对应平台 Agent 的官方 Node。下例假设 `./setup` 导出两个独立 setup，分别返回 `{ agent }`，`./nodes` 导出共享业务 Node；每个 setup 管理自己的 Agent 和资源：
+
+```ts filename=midscene.config.ts
+import { AndroidAgent } from '@midscene/android';
+import { IOSAgent } from '@midscene/ios';
+import { defineTestProject } from '@midscene/test/config';
+import { createMidsceneNodes, type MidsceneUIAgent } from '@midscene/test/midscene';
+import { sharedNodes } from './nodes';
+import { androidSetup, iosSetup } from './setup';
+
+interface ProjectContext {
+  agent: MidsceneUIAgent;
+}
+
+export default defineTestProject<ProjectContext>({
+  nodes: sharedNodes,
+  projects: [
+    {
+      name: 'android-smoke',
+      platform: 'android',
+      setup: androidSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: AndroidAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['manual'] },
+      retry: 1,
+      variables: { appUri: 'com.example.app' },
+    },
+    {
+      name: 'ios-smoke',
+      platform: 'ios',
+      setup: iosSetup,
+      nodes: createMidsceneNodes<ProjectContext>({
+        agentClass: IOSAgent,
+        getAgent: ({ context }) => context.agent,
+      }),
+      files: { include: ['cases/**/*.{yaml,yml}'] },
+      variables: { appUri: 'com.example.ios' },
+    },
+  ],
+  test: {
+    maxConcurrency: 1, // 控制 active 的 Execution Project 的最大并发数
+    bail: 0,           // 失败阈值拦截。配置为 > 0 时，达到失败用例数会自动停止新任务调度
+    testTimeout: 120_000,
+  },
+  output: {
+    reportDir: './midscene_run/report',
+  },
+});
+```
+
+两个 Project 可以共用 YAML；`launch` 等平台 Node 在收集、输入校验和执行时均使用当前 Project 的有效定义，局部 Node 不会暴露给其他 Project。
+
+### 选择用例与控制执行
+
+| 配置项 | 含义 |
+| --- | --- |
+| `projects[].files` | `include` 选择 YAML 文件，`exclude` 排除匹配文件。匹配规则相对于测试目录。 |
+| `projects[].tags` | 根据标签包含或排除用例。 |
+| `projects[].variables` | 为 YAML 中的 `${variable}` 引用提供值。 |
+| `projects[].retry` | 用例失败后的重试次数，默认为 `0`。 |
+| `test.testTimeout` | 每个步骤的默认超时时间，单位为毫秒，默认为 `120000`。步骤中的 `$` 超时配置可覆盖此值。 |
+| `test.bail` | 达到失败用例数阈值后停止调度新任务，`0` 表示不启用阈值。 |
+| `output.reportDir` | 报告输出目录，默认为 `./midscene_run/report`。 |
+
+CLI 的项目选择和配置文件选项见[运行测试](./use#运行测试)。步骤级覆盖方式见[设置超时和错误处理](./use#设置超时和错误处理)。
+
+### 并发与资源隔离
+
+每个 Execution Project 有独立的 setup 和资源。`test.maxConcurrency` 控制同时活跃的 Project 数量，默认值为 `1`。一个 Project 从 setup 开始到 teardown 完成，始终占用一个并发名额。
+
+单个 Project 内的 YAML 文件、用例和步骤按顺序执行。需要同时驱动多个设备或浏览器时，为它们分别声明 Project，并增大 `maxConcurrency`。每个 setup 应创建和清理自己的资源。
+
+### 为各 Project 生成 Markdown 说明书
+
+生成的 Markdown 说明书展示全局与 Project 局部注册合并后的有效 Node。通过 `--project` 选择一个 Execution Project：
+
+```bash
+pnpm exec midscene-test nodes --project android-smoke
+```
+
+未指定 Project 时，只有全部 Project 的有效 Node 集相同才会生成共享说明书；如果不同，命令会报错并要求用 `--project` 选择，不合并可能存在歧义的同名定义。
+
+也可以指定测试目录和配置文件：
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+```
+
+说明书包含 Available Nodes 总览和 Node Details 描述、输入 schema。说明书与 stdout 均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。Midscene Test 将 Zod `inputSchema` 转换为标准 JSON Schema。
+
+说明书会分别列出 `Case files`（每个 Execution Project 的 `files.include` / `files.exclude` glob 匹配规则）和 `Config file`。两者均相对于说明书所在目录，方便用例编写者定位 YAML 文件和配置文件。创建模板默认选择 `cases/**/*.{yaml,yml}`；未配置 `files` 时，Midscene Test 会在测试目录下递归查找 `**/*.{yaml,yml}`。
+
+## 超时与取消机制
+
+步骤超时会取消该步骤的 `signal`。通过 CLI 运行测试时，收到 `SIGINT`（例如按下 Ctrl+C）或 `SIGTERM` 会取消运行，并将取消信号传递给当前执行的步骤。
+
+取消通过 `AbortSignal` 通知 Node，不会强制终止 Node 内部的异步操作。自定义 Node 需要将 `signal` 传给支持取消的 API，或主动检查取消状态，具体用法见[异步操作、错误与取消](./extend#异步操作错误与取消)。
+
+运行被中断后，框架仍会尝试执行 `afterEach`、`afterAll` 和通过 `onTeardown()` 注册的清理函数。执行 `afterEach` 和 `afterAll` 中的 Node 时，如果运行的 `signal` 已被取消，框架会换用新的、尚未取消的 `signal`，使清理操作能够继续执行。这些清理步骤仍受步骤超时配置约束。
+
+通过 `onTeardown()` 注册的清理函数不会收到新的 `signal`。不要在这些函数中复用原步骤的 `signal`：它可能已因超时或运行中断而被取消，导致清理请求立即失败。
+
+## 编程式 API
+
+大多数团队只需使用项目配置、YAML 和 CLI。如果需要将 Midscene Test 嵌入其他工具（如开发一个本地的 GUI 运行面板），可以使用以下导出的编程式 API：
+
+* **`loadTestProject()`**：异步加载 `midscene.config.ts` 中的 TypeScript 项目配置（Midscene Test 不支持同步加载）。
+* **`runTestProject()`**：异步发现、运行并汇总整个项目（从 `@midscene/test/config` 导出）。
+* **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
+* **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。
