@@ -497,31 +497,18 @@ bool HasInformativeFramebuffer(rdpContext* context) {
 }
 
 // Called under the transport mutex so paints and resizes cannot race the copy.
-// A black image is a retryable transition, not a successful screenshot.
-std::optional<RawFrame> CaptureNonBlackFramebuffer(const rdpGdi& gdi) {
+RawFrame CopyFramebuffer(const rdpGdi& gdi) {
   if (!gdi.primary_buffer || gdi.width <= 0 || gdi.height <= 0 ||
       gdi.stride < static_cast<size_t>(gdi.width) * 4) {
     throw std::runtime_error("Remote framebuffer is empty or invalid");
   }
-
-  // Ignore alpha and row padding. Uniform non-black screens are valid; the
-  // first-paint color-diversity heuristic does not apply to later screenshots.
-  for (int y = 0; y < gdi.height; ++y) {
-    const BYTE* row = gdi.primary_buffer + static_cast<size_t>(y) * gdi.stride;
-    for (int x = 0; x < gdi.width; ++x) {
-      const BYTE* pixel = row + static_cast<size_t>(x) * 4;
-      if (pixel[0] || pixel[1] || pixel[2]) {
-        RawFrame frame;
-        frame.size.width = gdi.width;
-        frame.size.height = gdi.height;
-        frame.stride = static_cast<size_t>(gdi.stride);
-        const size_t buffer_size = frame.stride * static_cast<size_t>(gdi.height);
-        frame.bgra.assign(gdi.primary_buffer, gdi.primary_buffer + buffer_size);
-        return frame;
-      }
-    }
-  }
-  return std::nullopt;
+  RawFrame frame;
+  frame.size.width = gdi.width;
+  frame.size.height = gdi.height;
+  frame.stride = static_cast<size_t>(gdi.stride);
+  const size_t buffer_size = frame.stride * static_cast<size_t>(gdi.height);
+  frame.bgra.assign(gdi.primary_buffer, gdi.primary_buffer + buffer_size);
+  return frame;
 }
 
 // EndPaint hook chained onto FreeRDP's update pipeline. FreeRDP invokes this
@@ -1007,6 +994,7 @@ ConnectionInfo FreeRdpSessionTransport::Connect(const ConnectionConfig& config) 
       std::lock_guard<std::mutex> frame_lock(frame_mutex_);
       last_frame_update_ = {};
     }
+    first_screenshot_pending_ = true;
     original_end_paint_ = nullptr;
     ClearSessionErrorLocked();
   }
@@ -1121,26 +1109,23 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
           "Remote framebuffer has not received its first paint yet");
     }
 
+    if (!first_screenshot_pending_) {
+      return CopyFramebuffer(*instance_->context->gdi);
+    }
+
     std::unique_lock<std::mutex> frame_lock(frame_mutex_);
     const auto now = std::chrono::steady_clock::now();
     const auto quiet_until =
         std::max(started, last_frame_update_) + kScreenshotQuietPeriod;
-    auto wake_at = std::min(quiet_until, deadline);
+    const auto wake_at = std::min(quiet_until, deadline);
     if (now >= wake_at) {
-      // Copy the live buffer even on the first screenshot; a cached first paint
-      // can be partial or stale by the time the caller requests a screenshot.
-      if (auto frame = CaptureNonBlackFramebuffer(*instance_->context->gdi)) {
-        return std::move(*frame);
-      }
-      if (now >= deadline) {
-        throw std::runtime_error(
-            "RDP screenshot was still black after waiting for framebuffer updates");
-      }
-      wake_at = deadline;
+      auto frame = CopyFramebuffer(*instance_->context->gdi);
+      first_screenshot_pending_ = false;
+      return frame;
     }
 
-    // Let the event loop process paints while waiting. Every screenshot gets a
-    // short settling window, but animations cannot extend the total deadline.
+    // Only the first screenshot settles. Release the event-loop mutex so
+    // paints can continue; animations cannot extend the fixed deadline.
     lock.unlock();
     frame_cv_.wait_until(frame_lock, wake_at);
   }
@@ -1393,6 +1378,7 @@ void FreeRdpSessionTransport::ResetStateLocked() {
     std::lock_guard<std::mutex> frame_lock(frame_mutex_);
     last_frame_update_ = {};
   }
+  first_screenshot_pending_ = true;
   original_end_paint_ = nullptr;
   mouse_x_ = 0;
   mouse_y_ = 0;

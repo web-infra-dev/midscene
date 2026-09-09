@@ -24,7 +24,7 @@ struct RdpScreenshotTestPeer {
   RdpScreenshotTestPeer() : pixels(36 * 8, 255) {
     gdi.width = 8;
     gdi.height = 8;
-    gdi.stride = 36;  // Non-black padding must not affect black detection.
+    gdi.stride = 36;  // Exercise row padding as well as pixel data.
     gdi.primary_buffer = pixels.data();
     context.gdi = &gdi;
     instance.context = &context;
@@ -49,6 +49,15 @@ struct RdpScreenshotTestPeer {
     }
     transport.MarkFramebufferUpdated();
     transport.MarkFramePainted();
+  }
+
+  void ResetConnection() {
+    std::lock_guard<std::mutex> lock(transport.mutex_);
+    transport.ResetStateLocked();
+    transport.instance_ = &instance;
+    transport.connected_ = true;
+    transport.running_ = true;
+    transport.session_active_.store(true);
   }
 
   void LoseSession() {
@@ -107,20 +116,18 @@ void TestPartialFirstPaint() {
   Expect(HasColor(frame, 192), "first screenshot returned a partial old paint");
 }
 
-void TestLaterScreenshotAndBlackRecovery() {
+void TestLaterScreenshotsDoNotWait() {
   RdpScreenshotTestPeer peer;
   peer.Paint(64);
-  Expect(HasColor(peer.transport.CaptureFrame(), 64),
-         "uniform non-black screen should be accepted");
-  peer.Paint(0);
-  auto painting = std::async(std::launch::async, [&] {
-    // Stay black beyond the quiet period; the screenshot must await recovery.
-    std::this_thread::sleep_for(500ms);
-    peer.Paint(128);
-  });
-  const auto frame = peer.transport.CaptureFrame();
-  painting.get();
-  Expect(HasColor(frame, 128), "later screenshot returned a black or cached frame");
+  peer.transport.CaptureFrame();
+  for (const uint8_t color : {0, 128}) {
+    peer.Paint(color);
+    auto capture = std::async(std::launch::async,
+                             [&] { return peer.transport.CaptureFrame(); });
+    Expect(capture.wait_for(200ms) == std::future_status::ready,
+           "later screenshot unnecessarily waited for settling");
+    Expect(HasColor(capture.get(), color), "later screenshot returned stale pixels");
+  }
 }
 
 void TestContinuousUpdatesHaveDeadline() {
@@ -143,26 +150,24 @@ void TestContinuousUpdatesHaveDeadline() {
   Expect(HasColor(capture.get(), 128), "deadline did not return the live frame");
 }
 
-void TestBlackTimeout() {
+void TestBlackFirstScreenshot() {
   RdpScreenshotTestPeer peer;
   peer.Paint(0);
-  auto capture = std::async(std::launch::async, [&] {
-    try {
-      peer.transport.CaptureFrame();
-      return std::string();
-    } catch (const std::exception& error) {
-      return std::string(error.what());
-    }
-  });
-  Expect(capture.wait_for(500ms) == std::future_status::timeout,
-         "black framebuffer was not given time to recover");
-  const auto status = capture.wait_for(5s);
-  if (status != std::future_status::ready) {
-    peer.LoseSession();
-  }
-  Expect(status == std::future_status::ready, "black screenshot never timed out");
-  Expect(capture.get().find("still black") != std::string::npos,
-         "black framebuffer (with opaque alpha and padding) was not rejected");
+  Expect(HasColor(peer.transport.CaptureFrame(), 0),
+         "black current framebuffer should be returned after initial settling");
+}
+
+void TestReconnectResetsSettling() {
+  RdpScreenshotTestPeer peer;
+  peer.Paint(64);
+  peer.transport.CaptureFrame();
+  peer.ResetConnection();
+  peer.Paint(128);
+  auto capture = std::async(std::launch::async,
+                           [&] { return peer.transport.CaptureFrame(); });
+  Expect(capture.wait_for(50ms) == std::future_status::timeout,
+         "new connection did not restore first-screenshot settling");
+  Expect(HasColor(capture.get(), 128), "new connection returned old pixels");
 }
 
 void TestDisconnectWakesScreenshot(uint8_t color) {
@@ -211,9 +216,10 @@ void TestInvalidFramebuffer() {
 int main() {
   try {
     TestPartialFirstPaint();
-    TestLaterScreenshotAndBlackRecovery();
+    TestLaterScreenshotsDoNotWait();
     TestContinuousUpdatesHaveDeadline();
-    TestBlackTimeout();
+    TestBlackFirstScreenshot();
+    TestReconnectResetsSettling();
     TestDisconnectWakesScreenshot(0);
     TestDisconnectWakesScreenshot(64);
     TestInvalidFramebuffer();
