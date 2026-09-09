@@ -1,10 +1,7 @@
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import type { BrowserContext } from 'playwright';
 import { z } from 'zod/v4';
-import type {
-  CreatePlaywrightNodesOptions,
-  PlaywrightNodeDefinition,
-} from './types';
-import { throwIfAborted } from './utils';
+import { requirePlaywrightAgent, throwIfAborted } from './utils';
 
 type CookieClearOptions = NonNullable<
   Parameters<BrowserContext['clearCookies']>[0]
@@ -20,22 +17,24 @@ export const clearCookiesInputSchema = z.strictObject({
 /** Validated input accepted by the Playwright clearCookies Node. */
 export type ClearCookiesNodeInput = z.infer<typeof clearCookiesInputSchema>;
 
-export const createClearCookiesNode = <TContext>(
-  options: CreatePlaywrightNodesOptions<TContext>,
-): PlaywrightNodeDefinition<
+export const clearCookiesNode: AgentTestRunnerNodeDefinition<
   z.output<typeof clearCookiesInputSchema>,
-  { filters: CookieClearOptions },
-  TContext
-> => ({
+  { filters: CookieClearOptions }
+> = {
   name: 'clearCookies',
   title: 'Clear browser cookies',
   description:
     'Clear all cookies from the current Playwright BrowserContext, or only cookies matching name, domain, or path.',
   stringInputKey: false,
   inputSchema: clearCookiesInputSchema,
-  async execute(ctx) {
+  async execute(agent, input, executionContext) {
+    const ctx = {
+      ...executionContext,
+      input,
+      context: requirePlaywrightAgent(agent),
+    };
     throwIfAborted(ctx.signal, 'clearCookies');
-    const page = await options.getPage(ctx);
+    const page = ctx.context.interface.underlyingPage;
     const filters: CookieClearOptions = {
       ...(ctx.input.name === undefined ? {} : { name: ctx.input.name }),
       ...(ctx.input.domain === undefined ? {} : { domain: ctx.input.domain }),
@@ -51,4 +50,4 @@ export const createClearCookiesNode = <TContext>(
       data: { filters },
     };
   },
-});
+};

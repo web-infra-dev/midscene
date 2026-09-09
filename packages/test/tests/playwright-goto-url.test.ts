@@ -1,16 +1,23 @@
-import { createPlaywrightNodes } from '@midscene/web/playwright/test';
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+const { PlaywrightAgent } = createRequire(import.meta.url)(
+  '@midscene/web/playwright/agent',
+);
 import { describe, expect, it } from 'vitest';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
+
 import { collected, createPage, step } from './playwright-node-helpers';
 
 describe('Playwright gotoUrl Node', () => {
   it('navigates relative URLs and returns the main-resource status', async () => {
     const { page, pageMock } = createPage();
     const registry = new NodeRegistry(
-      createPlaywrightNodes({
-        getPage: () => page,
-        getBaseUrl: () => 'https://example.com/root/',
+      createMidsceneNodes({
+        agentClass: PlaywrightAgent,
+        getAgent: () => ({
+          interface: { underlyingPage: page },
+        }),
       }),
     );
 
@@ -43,15 +50,123 @@ describe('Playwright gotoUrl Node', () => {
     }
   });
 
-  it('rejects relative navigation without baseUrl', async () => {
-    const { page } = createPage();
-    const registry = new NodeRegistry(
-      createPlaywrightNodes({ getPage: () => page }),
-    );
-    const result = await runCollectedCase(
-      collected([step('gotoUrl', { url: '/relative' })]),
-      { resolveNode: registry.require.bind(registry), context: undefined },
-    );
-    expect(result.steps[0].error?.message).toContain('must be an absolute URL');
-  });
+  it.each([
+    [
+      '/login',
+      'https://example.com/orders/1',
+      undefined,
+      'https://example.com/login',
+    ],
+    [
+      'login',
+      'https://example.com/orders/1',
+      undefined,
+      'https://example.com/orders/login',
+    ],
+    [
+      '../login',
+      'https://example.com/orders/1',
+      undefined,
+      'https://example.com/login',
+    ],
+    [
+      '?page=2',
+      'https://example.com/orders/1',
+      undefined,
+      'https://example.com/orders/1?page=2',
+    ],
+    [
+      '/login',
+      'https://current.example/orders',
+      'https://configured.example/root/',
+      'https://configured.example/login',
+    ],
+    [
+      'login',
+      'about:blank',
+      'https://configured.example/root/',
+      'https://configured.example/root/login',
+    ],
+    [
+      'https://other.example/login',
+      'about:blank',
+      undefined,
+      'https://other.example/login',
+    ],
+    [
+      'https://other.example/login',
+      'about:blank',
+      'invalid',
+      'https://other.example/login',
+    ],
+  ])(
+    'resolves %s from %s with configured base %s',
+    async (url, currentUrl, baseURL, expected) => {
+      const { page, pageMock, browserContext } = createPage();
+      pageMock.url.mockReturnValue(currentUrl);
+      Object.assign(browserContext, { _options: { baseURL } });
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          agentClass: PlaywrightAgent,
+          getAgent: () => ({ interface: { underlyingPage: page } }),
+        }),
+      );
+      const result = await runCollectedCase(
+        collected([step('gotoUrl', { url })]),
+        {
+          resolveNode: registry.require.bind(registry),
+          context: undefined,
+        },
+      );
+      expect(result.status).toBe('success');
+      expect(pageMock.goto).toHaveBeenCalledWith(expected, expect.any(Object));
+    },
+  );
+
+  it.each(['about:blank', 'data:text/html,hello', 'file:///tmp/page.html'])(
+    'rejects relative navigation from %s',
+    async (currentUrl) => {
+      const { page, pageMock } = createPage();
+      pageMock.url.mockReturnValue(currentUrl);
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          agentClass: PlaywrightAgent,
+          getAgent: () => ({ interface: { underlyingPage: page } }),
+        }),
+      );
+      const result = await runCollectedCase(
+        collected([step('gotoUrl', { url: '/relative' })]),
+        {
+          resolveNode: registry.require.bind(registry),
+          context: undefined,
+        },
+      );
+      expect(result.steps[0].error?.message).toContain(
+        'Use an absolute HTTP(S) URL for the first navigation',
+      );
+      expect(pageMock.goto).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['javascript:alert(1)', 'data:text/html,hello', '   '])(
+    'rejects invalid navigation %s',
+    async (url) => {
+      const { page, pageMock } = createPage();
+      const registry = new NodeRegistry(
+        createMidsceneNodes({
+          agentClass: PlaywrightAgent,
+          getAgent: () => ({ interface: { underlyingPage: page } }),
+        }),
+      );
+      const result = await runCollectedCase(
+        collected([step('gotoUrl', { url })]),
+        {
+          resolveNode: registry.require.bind(registry),
+          context: undefined,
+        },
+      );
+      expect(result.status).toBe('failed');
+      expect(pageMock.goto).not.toHaveBeenCalled();
+    },
+  );
 });

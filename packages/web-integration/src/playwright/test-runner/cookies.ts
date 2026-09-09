@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { z } from 'zod/v4';
 import type {
-  CreatePlaywrightNodesOptions,
   PlaywrightCookie,
   PlaywrightNodeContext,
-  PlaywrightNodeDefinition,
+  PlaywrightTestRunnerAgent,
+  PlaywrightTestRunnerOptions,
 } from './types';
-import { resolveWebUrl, throwIfAborted } from './utils';
+import { requirePlaywrightAgent, resolveWebUrl, throwIfAborted } from './utils';
 
 type CookieSourceReference =
   | { kind: 'env'; name: string }
@@ -129,11 +130,11 @@ const parseCookieJson = (raw: string): unknown => {
   }
 };
 
-const resolveCookieSource = async <TContext>(
+const resolveCookieSource = async (
   reference: CookieSourceReference,
   defaultUrl: string | undefined,
-  ctx: PlaywrightNodeContext<TContext>,
-  options: CreatePlaywrightNodesOptions<TContext>,
+  ctx: PlaywrightNodeContext<PlaywrightTestRunnerAgent>,
+  options: PlaywrightTestRunnerOptions,
 ): Promise<ResolvedCookieSource> => {
   switch (reference.kind) {
     case 'env': {
@@ -162,7 +163,7 @@ const resolveCookieSource = async <TContext>(
     case 'profile': {
       if (!options.getCookieProfile) {
         throw new Error(
-          'setCookies.profile requires createPlaywrightNodes({ getCookieProfile }).',
+          'setCookies.profile requires a configured getCookieProfile callback.',
         );
       }
       try {
@@ -256,22 +257,24 @@ const normalizeCookies = (
   );
 };
 
-export const createSetCookiesNode = <TContext>(
-  options: CreatePlaywrightNodesOptions<TContext>,
-): PlaywrightNodeDefinition<
+export const setCookiesNode: AgentTestRunnerNodeDefinition<
   z.output<typeof setCookiesInputSchema>,
-  SetCookiesNodeResult,
-  TContext
-> => ({
+  SetCookiesNodeResult
+> = {
   name: 'setCookies',
   title: 'Set browser cookies',
   description:
     'Load cookies from an environment variable, configured profile, or Playwright storage-state file without persisting cookie values in workflow input or output.',
   stringInputKey: false,
   inputSchema: setCookiesInputSchema,
-  async execute(ctx) {
+  async execute(agent, input, executionContext) {
+    const ctx = {
+      ...executionContext,
+      input,
+      context: requirePlaywrightAgent(agent),
+    };
     throwIfAborted(ctx.signal, 'setCookies');
-    const page = await options.getPage(ctx);
+    const page = ctx.context.interface.underlyingPage;
     const defaultUrl =
       ctx.input.url === undefined
         ? undefined
@@ -281,7 +284,7 @@ export const createSetCookiesNode = <TContext>(
       reference,
       defaultUrl,
       ctx,
-      options,
+      ctx.context.testRunner ?? {},
     );
     const cookies = normalizeCookies(resolved.cookies, defaultUrl);
 
@@ -304,4 +307,4 @@ export const createSetCookiesNode = <TContext>(
       data: result,
     };
   },
-});
+};

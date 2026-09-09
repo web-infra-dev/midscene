@@ -1,12 +1,13 @@
-import type { AndroidAgent } from '@midscene/android';
-import type { HarmonyAgent } from '@midscene/harmony';
-import type { IOSAgent } from '@midscene/ios';
-import { defineNode, z } from '@midscene/test';
+import { AndroidAgent } from '@midscene/android';
+import { runAdbShellInputSchema } from '@midscene/android/test';
+import { HarmonyAgent } from '@midscene/harmony';
+import { runHdcShellInputSchema } from '@midscene/harmony/test';
+import { IOSAgent } from '@midscene/ios';
 import {
-  type AndroidRunnerAgent,
-  createAndroidNodes,
-  runAdbShellInputSchema,
-} from '@midscene/test/android';
+  type RunWdaRequestNodeInput,
+  runWdaRequestInputSchema,
+} from '@midscene/ios/test';
+import { defineNode, z } from '@midscene/test';
 import {
   type LoadedExecutionProject,
   type TestProjectDefinition,
@@ -14,25 +15,17 @@ import {
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 import {
-  type HarmonyRunnerAgent,
-  createHarmonyNodes,
-  runHdcShellInputSchema,
-} from '@midscene/test/harmony';
-import {
-  type IOSRunnerAgent,
-  type RunWdaRequestNodeInput,
-  createIOSNodes,
-  runWdaRequestInputSchema,
-} from '@midscene/test/ios';
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+} from '@midscene/web/playwright/agent';
 import {
   clearCookiesInputSchema,
-  createPlaywrightNodes,
   gotoUrlInputSchema,
   setCookiesInputSchema,
   setViewportSizeInputSchema,
 } from '@midscene/web/playwright/test';
-import type { Page } from 'playwright';
 
 interface ProjectContext {
   baseURL: string;
@@ -250,38 +243,10 @@ void defineWorkflowProject;
 void loadTestProjectSync;
 
 interface PlatformContext {
-  page: Page;
-  baseUrl: string;
-  android: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runAdbShell(
-      command: string,
-      options?: { timeout?: number },
-    ): Promise<string>;
-    back(): Promise<void>;
-    home(): Promise<void>;
-    recentApps(): Promise<void>;
-  };
-  ios: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runWdaRequest(input: {
-      method: 'GET' | 'POST' | 'DELETE' | 'PUT';
-      endpoint: string;
-      data?: Record<string, unknown>;
-    }): Promise<unknown>;
-    home(): Promise<void>;
-    appSwitcher(): Promise<void>;
-  };
-  harmony: {
-    launch(uri: string): Promise<void>;
-    terminate(uri: string): Promise<void>;
-    runHdcShell(command: string): Promise<string>;
-    back(): Promise<void>;
-    home(): Promise<void>;
-    recentApps(): Promise<void>;
-  };
+  playwright: PlaywrightAgent;
+  android: AndroidAgent;
+  ios: IOSAgent;
+  harmony: HarmonyAgent;
 }
 
 defineTestProject<PlatformContext>({
@@ -290,17 +255,17 @@ defineTestProject<PlatformContext>({
       name: 'web',
       platform: 'web',
       files: { include: ['web/**/*.yaml'] },
-      nodes: createPlaywrightNodes<PlatformContext>({
-        getPage: ({ context }) => context.page,
-        getBaseUrl: ({ context }) => context.baseUrl,
-        getCookieProfile: ({ context }) => context.page.context().cookies(),
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: PlaywrightAgent,
+        getAgent: ({ context }) => context.playwright,
       }),
     },
     {
       name: 'android',
       platform: 'android',
       files: { include: ['android/**/*.yaml'] },
-      nodes: createAndroidNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: AndroidAgent,
         getAgent: ({ context }) => context.android,
       }),
     },
@@ -308,7 +273,8 @@ defineTestProject<PlatformContext>({
       name: 'ios',
       platform: 'ios',
       files: { include: ['ios/**/*.yaml'] },
-      nodes: createIOSNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: IOSAgent,
         getAgent: ({ context }) => context.ios,
       }),
     },
@@ -316,7 +282,8 @@ defineTestProject<PlatformContext>({
       name: 'harmony',
       platform: 'harmony',
       files: { include: ['harmony/**/*.yaml'] },
-      nodes: createHarmonyNodes<PlatformContext>({
+      nodes: createMidsceneNodes<PlatformContext>({
+        agentClass: HarmonyAgent,
         getAgent: ({ context }) => context.harmony,
       }),
     },
@@ -326,21 +293,12 @@ defineTestProject<PlatformContext>({
 declare const androidAgent: AndroidAgent;
 declare const iosAgent: IOSAgent;
 declare const harmonyAgent: HarmonyAgent;
-declare const androidRunnerAgent: AndroidRunnerAgent;
-declare const iosRunnerAgent: IOSRunnerAgent;
-declare const harmonyRunnerAgent: HarmonyRunnerAgent;
 declare const iosAgentInput: Parameters<IOSAgent['runWdaRequest']>[0];
 declare const iosRunnerInput: RunWdaRequestNodeInput;
 
-createAndroidNodes({ getAgent: () => androidAgent });
-createIOSNodes({ getAgent: () => iosAgent });
-createHarmonyNodes({ getAgent: () => harmonyAgent });
-androidAgent satisfies AndroidRunnerAgent;
-iosAgent satisfies IOSRunnerAgent;
-harmonyAgent satisfies HarmonyRunnerAgent;
-androidRunnerAgent.runAdbShell satisfies AndroidAgent['runAdbShell'];
-iosRunnerAgent.runWdaRequest satisfies IOSAgent['runWdaRequest'];
-harmonyRunnerAgent.runHdcShell satisfies HarmonyAgent['runHdcShell'];
+createMidsceneNodes({ agentClass: AndroidAgent, getAgent: () => androidAgent });
+createMidsceneNodes({ agentClass: IOSAgent, getAgent: () => iosAgent });
+createMidsceneNodes({ agentClass: HarmonyAgent, getAgent: () => harmonyAgent });
 iosAgentInput satisfies RunWdaRequestNodeInput['request'];
 iosRunnerInput.request satisfies Parameters<IOSAgent['runWdaRequest']>[0];
 
@@ -351,3 +309,15 @@ void setViewportSizeInputSchema;
 void runAdbShellInputSchema;
 void runWdaRequestInputSchema;
 void runHdcShellInputSchema;
+
+// Both supported Playwright Agent classes use the common registration entry.
+declare const playwrightPageAgent: PlaywrightAgent;
+declare const playwrightBrowserAgent: PlaywrightBrowserAgent;
+createMidsceneNodes({
+  agentClass: PlaywrightAgent,
+  getAgent: () => playwrightPageAgent,
+});
+createMidsceneNodes({
+  agentClass: PlaywrightBrowserAgent,
+  getAgent: () => playwrightBrowserAgent,
+});
