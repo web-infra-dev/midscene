@@ -192,7 +192,7 @@ describe('test project config', () => {
     expect(loaded.projects[0].nodes.names()).toEqual(['launch']);
   });
 
-  it('overrides global Nodes by name and isolates each Project registry', async () => {
+  it('replaces the global Node list and isolates each Project registry', async () => {
     const { path } = createConfig(`export default {
       nodes: [
         { name: 'shared', execute() {} },
@@ -220,9 +220,9 @@ describe('test project config', () => {
     expect(android.nodes.get('launch')?.description).toBe('android');
     expect(ios.nodes.get('launch')?.description).toBe('ios');
     expect(web.nodes.get('launch')).toBe(loaded.resolveNode('launch'));
-    for (const project of loaded.projects) {
-      expect(project.nodes.get('shared')).toBe(loaded.resolveNode('shared'));
-    }
+    expect(android.nodes.has('shared')).toBe(false);
+    expect(ios.nodes.has('shared')).toBe(false);
+    expect(web.nodes.get('shared')).toBe(loaded.resolveNode('shared'));
     expect(ios.nodes.has('android.only')).toBe(false);
     expect(web.nodes.has('android.only')).toBe(false);
     expect(loaded.resolveNode('android.only')).toBeUndefined();
@@ -231,6 +231,21 @@ describe('test project config', () => {
     expect(ios.nodes.has('android.later')).toBe(false);
     expect(web.nodes.has('android.later')).toBe(false);
     expect(loaded.nodes.has('android.later')).toBe(false);
+  });
+
+  it('uses an empty Project Node list instead of inheriting global Nodes', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [{ name: 'shared', execute() {} }],
+      projects: [
+        { name: 'empty', platform: 'web', nodes: [] },
+        { name: 'inherited', platform: 'web' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    expect(loaded.projects[0].nodes.names()).toEqual([]);
+    expect(loaded.projects[1].nodes.names()).toEqual(['shared']);
+    expect(loaded.nodes.names()).toEqual(['shared']);
   });
 
   it.each(['global', 'Project'])(

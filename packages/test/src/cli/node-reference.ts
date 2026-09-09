@@ -74,7 +74,7 @@ const renderWorkflowLocations = (location?: NodeReferenceLocation): string => {
   }
   sections.push(
     'Files matching `files.exclude` are not selected. Midscene Test always ignores `.git/`, `.midscene/`, `midscene_run/`, and `node_modules/` directories, including nested ones.',
-    'Call a Node in `cases[].steps`, or in the Workflow Document lifecycle steps `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`. Root Nodes are shared defaults; `projects[].nodes` adds local Nodes and overrides same-named root Nodes only within that Execution Project. Each Execution Project supplies its own runtime environment.',
+    'Call a Node in `cases[].steps`, or in the Workflow Document lifecycle steps `beforeAll`, `beforeEach`, `afterEach`, and `afterAll`. Root Nodes are shared defaults. An Execution Project inherits them when `nodes` is omitted; setting `projects[].nodes` replaces the entire list, and `nodes: []` disables all Nodes for that Project. Each Execution Project supplies its own runtime environment.',
   );
   return sections.join('\n\n');
 };

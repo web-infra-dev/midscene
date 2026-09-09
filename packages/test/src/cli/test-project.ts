@@ -49,7 +49,7 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   name: string;
   platform: TestPlatform;
   setup?: ProjectSetupDefinition<TProjectContext>;
-  /** Project-local Nodes override global Nodes with the same name. */
+  /** Project Nodes replace the global list; omitted Nodes inherit it, and [] disables all Nodes. */
   nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
   files?: TestFileSelection;
   tags?: TestTagSelection;
@@ -70,7 +70,7 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
 
 export interface LoadedExecutionProject<TProjectContext = unknown>
   extends ResolvedExecutionProject<TProjectContext> {
-  /** Effective Nodes: globals plus project-local overrides. */
+  /** Effective Nodes: the Project list when provided, otherwise the global list. */
   readonly nodes: NodeRegistry;
 }
 
@@ -503,14 +503,11 @@ const validateExecutionProjects = <TProjectContext>(
     if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
       throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
     }
-    // Validate each scope before merging so duplicates within one scope still fail.
-    const localNodes = new NodeRegistry(
-      candidate.nodes as NodeDefinition[] | undefined,
+    const nodes = new NodeRegistry(
+      candidate.nodes === undefined
+        ? globalNodes.definitions()
+        : (candidate.nodes as NodeDefinition[]),
     );
-    const nodes = new NodeRegistry([
-      ...globalNodes.definitions().filter((node) => !localNodes.has(node.name)),
-      ...localNodes.definitions(),
-    ]);
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,

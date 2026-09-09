@@ -65,7 +65,7 @@ describe('Project-scoped Node references', () => {
         'utf8',
       );
       expect(markdown).toContain(`Execution Project: ${name}`);
-      expect(markdown).toContain('Shared global Node');
+      expect(markdown).not.toContain('Shared global Node');
       expect(markdown).toContain(
         name === 'android' ? 'Android launch' : 'iOS launch',
       );
@@ -93,7 +93,7 @@ describe('Project-scoped Node references', () => {
   it('keeps the shared reference when all Projects inherit the same Nodes', async () => {
     const root = createConfig(`export default {
       nodes: [{ name: 'shared', description: 'Shared global Node', execute() {} }],
-      projects: [{ name: 'android', platform: 'android' }, { name: 'ios', platform: 'ios', nodes: [] }],
+      projects: [{ name: 'android', platform: 'android' }, { name: 'ios', platform: 'ios' }],
     };`);
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     const markdown = readFileSync(

@@ -639,10 +639,14 @@ cases:
             state.events.push(owner + ':' + phase + ':' + input[key]);
           },
         });
+        const sharedNodes = [{
+          name: 'test.shared',
+          execute({ context }) { state.events.push(context.owner + ':shared'); },
+        }];
         export default {
           projects: [
-            { name: 'android', platform: 'android', setup, nodes: [localNode('android', 'androidText')] },
-            { name: 'ios', platform: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
+            { name: 'android', platform: 'android', setup, nodes: [...sharedNodes, localNode('android', 'androidText')] },
+            { name: 'ios', platform: 'ios', setup, nodes: [...sharedNodes, localNode('ios', 'iosText')] },
           ],
           nodes: [
             {
@@ -652,7 +656,7 @@ cases:
             },
             {
               name: 'test.shared',
-              execute({ context }) { state.events.push(context.owner + ':inherited'); },
+              execute() { throw new Error('Global Node must not execute'); },
             },
           ],
           test: { maxConcurrency: 2 },
@@ -695,7 +699,7 @@ cases:
         `${owner}:beforeAll:beforeAll`,
         `${owner}:beforeEach:beforeEach`,
         `${owner}:steps:steps`,
-        `${owner}:inherited`,
+        `${owner}:shared`,
         `${owner}:afterEach:afterEach`,
         `${owner}:afterAll:afterAll`,
       ]);
