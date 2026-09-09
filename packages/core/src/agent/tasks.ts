@@ -4,6 +4,12 @@ import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import {
+  type PlanningAblation,
+  planningPartEnabled,
+  readPlanningAblation,
+  validatePlanningAblation,
+} from '@/ai-model/workflows/planning/ablation';
+import {
   type TMultimodalPrompt,
   type TUserPrompt,
   getReadableTimeString,
@@ -285,6 +291,7 @@ export class TaskExecutor {
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
+      disableGroundingGuidance?: boolean;
       abortSignal?: AbortSignal;
     },
   ) {
@@ -381,6 +388,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    ablation: PlanningAblation = readPlanningAblation(),
   ): Promise<
     ExecutionResult<
       | {
@@ -390,6 +398,12 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    validatePlanningAblation(ablation, planningModel, defaultModel);
+    if (ablation.length && this.taskCache && cacheable !== false) {
+      throw new Error(
+        'Planning ablation requires caches to be disabled in every experiment arm.',
+      );
+    }
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
@@ -402,6 +416,7 @@ export class TaskExecutor {
         deepLocate,
         abortSignal,
         reportOptions,
+        ablation,
       );
     });
   }
@@ -451,6 +466,7 @@ export class TaskExecutor {
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
+    ablation: PlanningAblation = readPlanningAblation(),
   ): Promise<
     ExecutionResult<
       | {
@@ -576,6 +592,7 @@ export class TaskExecutor {
             aiActContext,
             imagesIncludeCount,
             effort,
+            ...(ablation.length ? { disabledPlanningParts: ablation } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
@@ -621,6 +638,7 @@ export class TaskExecutor {
                 includeLocateInPlanning,
                 imagesIncludeCount,
                 effort,
+                ablation,
                 abortSignal,
               });
             } catch (planError) {
@@ -746,6 +764,9 @@ export class TaskExecutor {
           {
             cacheable,
             deepLocate,
+            ...(planningPartEnabled(ablation, 'groundingGuidance')
+              ? {}
+              : { disableGroundingGuidance: true }),
             abortSignal,
           },
         );

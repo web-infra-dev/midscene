@@ -1,6 +1,10 @@
 import type { PlanningActionOutputProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import {
+  type PlanningAblation,
+  planningPartEnabled,
+} from '../../workflows/planning/ablation';
+import {
   buildActionOutputExample,
   createSampleInputAction,
   createSampleTapAction,
@@ -25,6 +29,8 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
   includeThought,
   includeLog,
+  includeMemory = includeSubGoals,
+  ablation = [],
   locatePromptSpec,
   actionOutputProtocol,
   prefix,
@@ -32,10 +38,16 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals: boolean;
   includeThought: boolean;
   includeLog: boolean;
+  includeMemory?: boolean;
+  ablation?: PlanningAblation;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;
   prefix?: string;
 }) => {
+  const renderSubGoals = (goals: Parameters<typeof buildSubGoalsText>[0]) =>
+    buildSubGoalsText(
+      includeLog ? goals : goals.map(({ logs: _logs, ...goal }) => goal),
+    );
   const buildActionOutput = actionOutputProtocol.buildActionOutput;
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     includeSubGoals ? content : fallbackContent;
@@ -86,7 +98,7 @@ ${buildPlanningResponseExample({
     ? `The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. ${renderSubGoalsContent(
         "I'll break this down into sub-goals and start with the Name field.",
         'I should start by clicking on the Name field.',
-      )} Note: The instruction is to fill the form only (not submit), and return the email at the end.`
+      )}${planningPartEnabled(ablation, 'taskScope') ? ' Note: The instruction is to fill the form only (not submit), and return the email at the end.' : ''}`
     : undefined,
   updateSubGoals: includeSubGoals
     ? [
@@ -116,7 +128,7 @@ ${buildPlanningResponseExample({
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 ${renderSubGoalsContent(
-  buildSubGoalsText([
+  renderSubGoals([
     {
       ...sampleNameSubGoal,
       status: 'running',
@@ -149,7 +161,7 @@ ${buildPlanningResponseExample({
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 ${renderSubGoalsContent(
-  buildSubGoalsText([
+  renderSubGoals([
     {
       ...sampleNameSubGoal,
       status: 'running',
@@ -176,9 +188,7 @@ ${buildPlanningResponseExample({
       )}`
     : undefined,
   markSubGoalsDone: includeSubGoals ? [1] : undefined,
-  memory: includeSubGoals
-    ? "Name field has been filled with 'John'"
-    : undefined,
+  memory: includeMemory ? "Name field has been filled with 'John'" : undefined,
   log: includeLog ? 'Moving to the Email field' : undefined,
   actionOutputExample: tapEmailFieldActionOutputExample,
 })}
@@ -189,7 +199,7 @@ ${buildPlanningResponseExample({
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 ${renderSubGoalsContent(
-  buildSubGoalsText([
+  renderSubGoals([
     { ...sampleNameSubGoal, status: 'finished' },
     {
       ...sampleEmailSubGoal,
@@ -222,7 +232,7 @@ ${buildPlanningResponseExample({
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 ${renderSubGoalsContent(
-  buildSubGoalsText([
+  renderSubGoals([
     { ...sampleNameSubGoal, status: 'finished' },
     {
       ...sampleEmailSubGoal,

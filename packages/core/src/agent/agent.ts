@@ -1,5 +1,9 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
+import {
+  readPlanningAblation,
+  validatePlanningAblation,
+} from '@/ai-model/workflows/planning/ablation';
 import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
@@ -1278,6 +1282,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
+      const ablation = readPlanningAblation();
+      validatePlanningAblation(ablation, planningModel, defaultModel);
+      if (ablation.length && this.taskCache && opt?.cacheable !== false) {
+        throw new Error(
+          'Planning ablation requires caches to be disabled in every experiment arm (MIDSCENE_CACHE=false, without an explicit cache configuration).',
+        );
+      }
       const aiActContext = this.resolveUserContext('aiAct', opt?.context);
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
       // Resolve the public planning controls at the API boundary. Internal
@@ -1375,6 +1386,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        ablation,
       );
 
       // update cache

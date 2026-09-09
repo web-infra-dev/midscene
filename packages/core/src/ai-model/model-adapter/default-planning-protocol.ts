@@ -28,7 +28,7 @@ type ActionParamDescription = {
 
 type ActionDescription = {
   type: string;
-  description: string;
+  description?: string;
   param?: Record<string, ActionParamDescription> | ActionParamDescription;
   sample?: string;
 };
@@ -37,10 +37,18 @@ export const buildActionDescription = ({
   action,
   locateFieldDescription,
   actionOutputExample,
+  includeDescriptions = true,
+  projectDescription = (description) => description,
 }: PlanningActionDescriptionBuildInput) => {
   const actionDescription: ActionDescription = {
     type: action.name,
-    description: action.description || 'No description provided',
+    ...(includeDescriptions
+      ? {
+          description: projectDescription(
+            action.description || 'No description provided',
+          ),
+        }
+      : {}),
   };
 
   if (action.paramSchema) {
@@ -75,8 +83,8 @@ export const buildActionDescription = ({
           if (isOptional) {
             paramDescription.optional = true;
           }
-          if (description) {
-            paramDescription.description = description;
+          if (includeDescriptions && description) {
+            paramDescription.description = projectDescription(description);
           }
           if (hasDefault) {
             paramDescription.default = defaultValue;
@@ -96,8 +104,8 @@ export const buildActionDescription = ({
         type: typeName,
         instruction: 'Pass the value directly, not as an object.',
       };
-      if (description) {
-        paramDescription.description = description;
+      if (includeDescriptions && description) {
+        paramDescription.description = projectDescription(description);
       }
       actionDescription.param = paramDescription;
     }
@@ -207,6 +215,9 @@ export const createMidscenePlanningActionOutputParser =
     };
   };
 
+export const actionSampleGuidance =
+  ' If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.';
+
 export const createDefaultMidscenePlanningProtocol: StandardPlanningProtocolFactory =
   ({ jsonParser }) => {
     const parseActionOutput =
@@ -225,7 +236,7 @@ export const createDefaultMidscenePlanningProtocol: StandardPlanningProtocolFact
         actionOutputRules: [
           '- Use the <action-type> and <action-param-json> tags to output the action to be executed.',
           "- The value inside <action-type> MUST exactly match the 'type' field of one action in the Supporting actions list. 'complete' is NOT a valid action-type.",
-          '- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If the selected action provides a "sample" field, use the XML structure shown in that sample as the exact format for the action output.',
+          `- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields.${actionSampleGuidance}`,
         ].join('\n'),
         actionOutputPlaceholder: [
           '<action-type>...</action-type>',

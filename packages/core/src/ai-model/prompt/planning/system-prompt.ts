@@ -1,8 +1,14 @@
 import type { DeviceAction } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
+import { actionSampleGuidance } from '../../model-adapter/default-planning-protocol';
 import type { StandardPlanningProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
+import {
+  type PlanningAblation,
+  type PlanningAblationPart,
+  planningPartEnabled,
+} from '../../workflows/planning/ablation';
 import { locateGroundingRules } from '../locate';
 import {
   buildActionOutputExample,
@@ -17,6 +23,7 @@ type BuildStandardPlanningSystemPromptInput = {
   includeThought?: boolean;
   includeLog?: boolean;
   planningProtocol: StandardPlanningProtocol;
+  ablation?: PlanningAblation;
 } & (
   | {
       includeLocateInPlanning: true;
@@ -36,8 +43,9 @@ export async function buildStandardPlanningSystemPrompt(
     includeLocateInPlanning,
     locatePromptSpec,
     includeSubGoals,
-    includeThought = true,
-    includeLog = true,
+    includeThought: originalIncludeThought = true,
+    includeLog: originalIncludeLog = true,
+    ablation = [],
     planningProtocol,
   } = input;
   const actionOutputProtocol = planningProtocol.actionOutputProtocol;
@@ -51,6 +59,7 @@ export async function buildStandardPlanningSystemPrompt(
     actionSpace,
     locatePromptSpec,
     planningProtocol,
+    ablation,
   });
   const hasRunAdbShell = actionSpace.some(
     (action) => action.name === 'RunAdbShell',
@@ -59,7 +68,20 @@ export async function buildStandardPlanningSystemPrompt(
     .map((tagName) => `<${tagName}>`)
     .join(', ');
 
-  const shouldIncludeSubGoals = includeSubGoals ?? false;
+  const renderPart = (
+    part: PlanningAblationPart,
+    content: string,
+    fallback = '',
+  ) => (planningPartEnabled(ablation, part) ? content : fallback);
+  const includeThought =
+    originalIncludeThought && planningPartEnabled(ablation, 'planningText');
+  const includeLog = originalIncludeLog && planningPartEnabled(ablation, 'log');
+  const shouldIncludeSubGoals =
+    !!includeSubGoals && planningPartEnabled(ablation, 'subGoals');
+  const includeMemory =
+    !!includeSubGoals && planningPartEnabled(ablation, 'memory');
+  const renderMemoryContent = (content: string) =>
+    includeMemory ? content : '';
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
     shouldIncludeSubGoals ? content : fallbackContent;
   const renderThoughtContent = (content: string, fallbackContent = '') =>
@@ -67,28 +89,33 @@ export async function buildStandardPlanningSystemPrompt(
   const renderLogContent = (content: string, fallbackContent = '') =>
     includeLog ? content : fallbackContent;
 
-  // Step numbering adjusts based on whether sub-goals are included
-  // When includeSubGoals=false, memory step is skipped
-  const completionCheckStepNumber = shouldIncludeSubGoals ? 3 : 2;
+  const completionCheckStepNumber = includeMemory ? 3 : 2;
   const actionStepNumber = completionCheckStepNumber + 1;
 
   return `
-Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
+Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge${renderPart('log', ' and previous logs indicating what have been done')}. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
 ## Step 1: ${renderSubGoalsContent(
-    'Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)',
+    `Observe and Plan (related tags: ${renderThoughtContent('<planning>, ')}<update-plan-content>, <mark-sub-goal-done>)`,
     renderThoughtContent('Observe (related tags: <planning>)', 'Observe'),
   )}
 
-First, observe the current screenshot and previous logs${renderSubGoalsContent(
+First, observe the current screenshot${renderPart('log', ' and previous logs')}${renderSubGoalsContent(
     ", then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.",
     ' to understand the current state.',
   )}
 
-${renderSubGoalsContent(`### Observation Guidelines
+${
+  includeSubGoals
+    ? renderPart(
+        'observationGuidance',
+        `### Observation Guidelines
 
 - Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
-- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.`)}
+- If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.`,
+      )
+    : ''
+}
 
 ${renderThoughtContent(`### <planning> tag (REQUIRED)
 
@@ -99,9 +126,16 @@ Write the content of the <planning> tag in ${preferredLanguage}.
 Include your planning details in the <planning> tag. It should answer: ${renderSubGoalsContent(
   "What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action?",
   'What is the current state based on the screenshot? What should be the next action?',
-)} Write it naturally without numbering or section headers.
+)} Write it naturally without numbering or section headers.`)}${
+  originalIncludeThought
+    ? renderPart(
+        'taskScope',
+        `
 
-CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}
+CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. ${renderPart('ruleExamples', `For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}`,
+      )
+    : ''
+}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
@@ -127,11 +161,13 @@ IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed 
 
 During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
 
-### Example
+${renderPart(
+  'subGoalExample',
+  `### Example
 
 If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
 
-<planning>...</planning>
+${renderThoughtContent('<planning>...</planning>')}
 <update-plan-content>
   <sub-goal index="1" status="pending">Log in to the system</sub-goal>
   <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
@@ -156,9 +192,10 @@ After some time, when the last sub-goal is also completed, you can mark it as do
 
 <mark-sub-goal-done>
   <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>`)}
+</mark-sub-goal-done>`,
+)}`)}
 
-${renderSubGoalsContent(`## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
+${renderMemoryContent(`## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
 Use <memory> to record clear, task-relevant information from the current screenshot that may be needed in later steps. The current screenshot will not be available later, so memory should preserve enough detail for future reasoning, verification, or action.
 
@@ -167,10 +204,13 @@ Use <memory> to record clear, task-relevant information from the current screens
 - Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
 - After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
 
-Examples:
+${renderPart(
+  'ruleExamples',
+  `Examples:
 - If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
 - If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
-- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.`,
+)}
 
 Don't use this tag if no information needs to be preserved.`)}
 
@@ -181,73 +221,98 @@ Don't use this tag if no information needs to be preserved.`)}
 
 Determine if the entire task is completed${renderSubGoalsContent(' based on the current screenshot and the status of all sub-goals')}.
 
-### CRITICAL: The User's Instruction is the Supreme Authority
+${renderPart(
+  'taskScope',
+  `### CRITICAL: The User's Instruction is the Supreme Authority
 
 The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
 
 **Explicit instructions vs. High-level goals:**
-- If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
-- If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
+- If the user gives you **explicit operation steps** ${renderPart('ruleExamples', '(e.g., "click X", "type Y", "fill out the form")')}, treat them as exact commands. Execute ONLY those steps, nothing more.
+- If the user gives you a **high-level goal** ${renderPart('ruleExamples', '(e.g., "log in to the system", "complete the purchase")')}, you may determine the necessary steps to achieve it.
 
 **What "${renderSubGoalsContent('goal accomplished', 'instruction fulfilled')}" means:**
 - The ${renderSubGoalsContent('goal is accomplished', 'instruction is fulfilled')} when you have done EXACTLY what the user asked - no extra steps, no assumptions.
 - Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
 
-**Examples - Explicit instructions (execute exactly, no extra steps):**
+${renderPart(
+  'ruleExamples',
+  `**Examples - Explicit instructions (execute exactly, no extra steps):**
 - "fill out the form" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when all fields are filled. Do NOT submit the form.
 - "click the login button" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when 'hello' is typed. Do NOT press Enter or trigger search.
-- "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.
+- "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.`,
+)}`,
+)}
 
-**Change completion:**
+${renderPart(
+  'durableCompletion',
+  `**Change completion:**
 - If the requested outcome is a durable change, such as create, edit, update, delete, save, send, submit, apply, or publish, do not stop at an unsaved draft, open editor, temporary input, transient selection, or staged value. Continue through the app/page's normal completion control such as Save, Done, Confirm, OK, Submit, Apply, Send, or Publish before completing, so the result remains after leaving the screen.
-- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.
+${renderPart('taskScope', '- If the user only asks for an intermediate UI state, such as typing text, selecting an option, filling fields, or opening a screen without saving/submitting/applying, stop once that exact state is reached.')}`,
+)}
 
-**Special case - Scrollable option lists and dropdowns:**
+${renderPart(
+  'scrollableOptions',
+  `**Special case - Scrollable option lists and dropdowns:**
 - When choosing an item from a scrollable select, dropdown, listbox, menu, or similar option list, first open the control if it is closed. Once the list is open, interact with the list itself, not the page.
 - If the target option is visible in the open list, Tap that exact option immediately.
 - If the list is open but the target option is not visible, try to find it by scrolling the open list/dropdown before giving up or interacting with other elements.
 - For an open dropdown/list, prefer small incremental Scroll actions with an explicit distance (typically 50-120 pixels) and a locate target describing the open list/dropdown. Do NOT omit distance while searching within a list, because the default scroll distance can skip over relevant options and cause oscillation.
 - While searching within an open dropdown/list, use short scrolls so intermediate options are not skipped.
-- After selecting the target, if the trigger text or result text shows the requested option, treat the current selection step as fulfilled and continue evaluating the remaining user instruction.
+- After selecting the target, if the trigger text or result text shows the requested option, treat the current selection step as fulfilled and continue evaluating the remaining user instruction.`,
+)}
 
-**Special case - Text hidden by a narrow input field:**
+${renderPart(
+  'inputVerification',
+  `**Special case - Text hidden by a narrow input field:**
 - CRITICAL PRIORITY OVERRIDE - Input verification after an input action:
 - This rule overrides the general requirement to verify the exact target text from the screenshot.
 - If the previous step already executed an input action, and the current input field is not empty, you MUST directly treat that input as successful.
 - In this situation, do NOT use the visible text in the screenshot to decide that the input is incomplete, incorrect, missing characters, out of order, or needs correction.
 - Do NOT perform ClearInput, another Input, KeyboardPress, or any other action intended to "fix the input content" just because the visible text looks different from the target text, has abnormal character order, missing characters, abnormal spacing, suspicious visual recognition results, or appears to have selected/highlighted text.
-- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.
+${renderPart('taskScope', '- The general rule "do EXACTLY what the user asked" still applies to the intended input value you execute, but it MUST NOT be enforced by re-validating the visible text in the screenshot after the input action.', '- Do not re-validate the visible text in the screenshot after the input action.')}
 - Differences in visible text must be assumed to be caused by clipping, horizontal scrolling, narrow input fields, text selection, caret position, or visual recognition errors rather than input failure.
-- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.
+- Retry input only when the input field is clearly still empty, or when the page shows an explicit error message.`,
+)}
 
-**Special case - Assertion instructions:**
-- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${renderSubGoalsContent('the goal', 'it')} as failed (success="false").
-- If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
+${renderPart(
+  'assertionTiming',
+  `**Special case - Assertion instructions:**
+- If the user's instruction includes an assertion ${renderPart('ruleExamples', '(e.g., "verify that...", "check that...", "assert...")')}, and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${renderSubGoalsContent('the goal', 'it')} as failed (success="false").
+- If the page is still loading ${renderPart('ruleExamples', '(e.g., you see a loading spinner, skeleton screen, or progress bar)')}, do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.`,
+)}
 
-### Completion Criteria for Process-required Instructions
+${renderPart(
+  'processEvidence',
+  `### Completion Criteria for Process-required Instructions
 
 If the user's instruction includes explicit operation steps, ordering requirements, or action requirements, it is a process-required instruction.
 
 For process-required instructions, do NOT treat the task as complete only because the current screenshot already shows the final expected state. Do NOT infer that earlier steps were executed from the final UI state.
 
-You may output <complete success="true"> only when the current execution history, previous logs, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
+You may output <complete success="true"> only when the current execution history${renderPart('log', ', previous logs')}, or the screenshot after the most recent action proves that every explicit step required by the user has been completed, and the final check condition is also satisfied.
 
-If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.
-
-${renderSubGoalsContent(
-  '',
-  `**Page navigation restriction:**
-- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`,
+If any explicit step lacks completion evidence in the current execution history, continue with the next missing step instead of outputting <complete>, even if the current screenshot appears to satisfy the final condition.`,
 )}
+
+${
+  !includeSubGoals
+    ? renderPart(
+        'navigationRestriction',
+        `**Page navigation restriction:**
+- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
+- Do NOT navigate away from the current page on your own initiative ${renderPart('ruleExamples', '(e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs)')}.
+- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`,
+      )
+    : ''
+}
 
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. ${renderSubGoalsContent('It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. ')}No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state. If the ${renderSubGoalsContent('expected goal is not accomplished and cannot be accomplished', 'instruction is not fulfilled and cannot be fulfilled')}, set success="false".
+  - the 'success' attribute is required. ${renderPart('processEvidence', `${renderSubGoalsContent('It means whether the expected goal is accomplished based on what you observe in the current screenshot and the current execution history. ')}No matter what errors occurred during execution, set success="true" only when the current execution history shows that all steps required by the user have been completed and the final state satisfies the requirement. If the user asks for explicit operation steps or an ordered workflow, do not treat those steps as completed only because the current screenshot already shows the final expected state.`)} If the ${renderSubGoalsContent('expected goal is not accomplished and cannot be accomplished', 'instruction is not fulfilled and cannot be fulfilled')}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete>, do NOT output ${actionOutputTagsText}. The task ends here.
 
@@ -255,24 +320,27 @@ ${renderSubGoalsContent(
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${renderSubGoalsContent(' and the plan')}.
 
-- Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
-- Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
-- Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
+${renderPart('taskScope', `- Don't give extra actions or plans beyond the instruction${renderPart('subGoals', ' or the plan')}. ${renderPart('ruleExamples', "For example, don't try to submit the form if the instruction is only to fill something.")}`)}
+- Consider the current screenshot and give the action that is most likely to accomplish the instruction. ${renderPart('ruleExamples', "For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.")}
+${renderPart('recoveryGuidance', '- Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.')}
 - Give just the next ONE action you should do (if any)
-- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+${renderPart('recoveryGuidance', '- If there are some error messages reported by the previous actions, don\'t give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.')}
 
 ### Action Guidelines
 
 ${
-  hasRunAdbShell
+  hasRunAdbShell && planningPartEnabled(ablation, 'adbPreference')
     ? "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action."
     : ''
 }
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
-- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
-- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+${renderPart('sliderSwipe', '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.')}
+${renderPart(
+  'incrementalEdit',
+  `- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.`,
+)}
 
-${includeLocateInPlanning ? locateGroundingRules() : ''}
+${includeLocateInPlanning ? renderPart('groundingGuidance', locateGroundingRules()) : ''}
 
 ### ${planningProtocol.actionSpaceProtocol.title}
 
@@ -280,24 +348,29 @@ ${actionSpaceDescription}
 
 ${renderLogContent(`### Log to give user feedback (preamble message)
 
-The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
+The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles${renderPart('ruleExamples', ' and examples')}:
 
 - **Use ${preferredLanguage}**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
 - **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
 
-**Examples:**
+${renderPart(
+  'ruleExamples',
+  `**Examples:**
 - <log>Click the login button</log>
 - <log>Scroll to find the 'Yes' button in popup</log>
-- <log>Previous actions failed to find the 'Yes' button, i will try again</log>
-- <log>Go back to find the login button</log>`)}
+${renderPart('recoveryGuidance', "- <log>Previous actions failed to find the 'Yes' button, i will try again</log>")}
+- <log>Go back to find the login button</log>`,
+)}`)}
 
 ### If there is some action to do ...
 
-${actionOutputProtocol.actionOutputRules}
+${planningPartEnabled(ablation, 'actionExamples') ? actionOutputProtocol.actionOutputRules : actionOutputProtocol.actionOutputRules.replace(actionSampleGuidance, '')}
 
-For example:
+${renderPart(
+  'actionExamples',
+  `For example:
 ${buildActionOutputExample(
   createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
   {
@@ -305,20 +378,26 @@ ${buildActionOutputExample(
     locateResultExampleIndex: 1,
     buildActionOutput: actionOutputProtocol.buildActionOutput,
   },
+)}`,
 )}
 
 ### If you think there is an error ...
 
 - Use the <error> tag to output the error message.
 
-For example:
-<error>Unable to find the required element on the page</error>
+${renderPart(
+  'actionExamples',
+  `For example:
+<error>Unable to find the required element on the page</error>`,
+)}
 
 ### If there is no action to do ...
 
 - Don't output ${actionOutputTagsText} if there is no action to do.
 
-## Return Format
+${renderPart(
+  'returnFormatReminder',
+  `## Return Format
 
 Return in XML format following this decision flow:
 
@@ -333,7 +412,7 @@ ${renderSubGoalsContent(`<!-- required when no update-plan-content is provided i
 <!-- required when any sub-goal is completed -->
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
+</mark-sub-goal-done>`)}${renderMemoryContent(`
 
 <!-- Step 2: Memory data from current screenshot if needed -->
 <memory>...</memory>`)}
@@ -349,14 +428,22 @@ ${renderLogContent('<log>...</log>')}
 ${actionOutputProtocol.actionOutputPlaceholder}
 
 <!-- OR if there's an error -->
-<error>...</error>
+<error>...</error>`,
+  planningProtocol.responsePrefix ?? '',
+)}
 
-${buildPlanningMultiTurnExample({
-  includeSubGoals: shouldIncludeSubGoals,
-  includeThought,
-  includeLog,
-  locatePromptSpec,
-  actionOutputProtocol,
-  prefix: planningProtocol.responsePrefix,
-})}`;
+${
+  planningPartEnabled(ablation, 'multiTurnExample')
+    ? buildPlanningMultiTurnExample({
+        includeSubGoals: shouldIncludeSubGoals,
+        includeThought,
+        includeLog,
+        includeMemory,
+        ablation,
+        locatePromptSpec,
+        actionOutputProtocol,
+        prefix: planningProtocol.responsePrefix,
+      })
+    : ''
+}`;
 }

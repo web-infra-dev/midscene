@@ -768,6 +768,8 @@ export interface ExecutionTaskPlanningParam {
   effort?: AiActEffort;
   subGoalStatus?: string;
   memoriesStatus?: string;
+  /** Expanded environment-controlled ablation parts used for this execution. */
+  disabledPlanningParts?: readonly string[];
 }
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<

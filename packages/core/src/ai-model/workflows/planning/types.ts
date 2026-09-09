@@ -6,6 +6,7 @@ import type {
 } from '@/types';
 import type { ModelRuntime } from '../../models';
 import type { PreparedUserPrompt } from '../../shared/multimodal-prompt';
+import type { PlanningAblation } from './ablation';
 import type { ConversationHistory } from './conversation-history';
 
 export interface PlanOptions {
@@ -18,6 +19,8 @@ export interface PlanOptions {
   imagesIncludeCount?: number;
   // Controls aiAct planning prompt shape and state updates, such as sub-goals.
   effort: AiActEffort;
+  // Immutable experiment settings captured at the aiAct boundary.
+  ablation?: PlanningAblation;
   abortSignal?: AbortSignal;
 }
 

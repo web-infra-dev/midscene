@@ -52,6 +52,7 @@ import {
 export interface LocateOpts {
   context?: UIContext;
   planLocatedElement?: LocateResultElement;
+  disableGroundingGuidance?: boolean;
 }
 
 export type AnyValue<T> = {
@@ -153,6 +154,9 @@ export default class Service {
     } = await AiLocateElement({
       context,
       targetElementDescription: queryPrompt,
+      ...(opt.disableGroundingGuidance
+        ? { disableGroundingGuidance: true }
+        : {}),
       searchConfig: searchArea.config,
       modelRuntime,
       abortSignal,
@@ -289,6 +293,9 @@ export default class Service {
     const firstPassLocateResult = await AiLocateElement({
       context,
       targetElementDescription: queryPrompt,
+      ...(opt.disableGroundingGuidance
+        ? { disableGroundingGuidance: true }
+        : {}),
       modelRuntime,
       abortSignal,
     });

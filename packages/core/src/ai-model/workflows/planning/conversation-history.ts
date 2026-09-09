@@ -1,6 +1,7 @@
 import type { SubGoal } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildSubGoalsText } from '../../prompt/planning/sub-goals-text';
+import type { PlanningAblation } from './ablation';
 
 export interface ConversationHistoryOptions {
   initialMessages?: ChatCompletionMessageParam[];
@@ -11,6 +12,7 @@ export class ConversationHistory {
   private subGoals: SubGoal[] = [];
   private memories: string[] = [];
   private historicalLogs: string[] = [];
+  private ablation?: PlanningAblation;
 
   public pendingFeedbackMessage: string;
 
@@ -19,6 +21,29 @@ export class ConversationHistory {
       this.seed(options.initialMessages);
     }
     this.pendingFeedbackMessage = '';
+  }
+
+  configurePlanningAblation(ablation: PlanningAblation) {
+    if (this.ablation) {
+      if (this.ablation.join(',') !== ablation.join(',')) {
+        throw new Error(
+          'Planning ablation cannot change within an existing conversation. Start a new aiAct execution.',
+        );
+      }
+      return;
+    }
+    if (
+      ablation.length &&
+      (this.messages.length ||
+        this.memories.length ||
+        this.subGoals.length ||
+        this.historicalLogs.length)
+    ) {
+      throw new Error(
+        'Planning ablation requires a fresh conversation without seeded history or state.',
+      );
+    }
+    this.ablation = Object.freeze([...ablation]);
   }
 
   resetPendingFeedbackMessageIfExists() {
@@ -39,6 +64,7 @@ export class ConversationHistory {
   }
 
   reset() {
+    this.ablation = undefined;
     this.messages.length = 0;
     this.memories.length = 0;
     this.subGoals.length = 0;
@@ -333,7 +359,7 @@ export class ConversationHistory {
     // Keep only the last `keepCount` messages
     const recentMessages = this.messages.slice(-keepCount);
 
-    // Reset and rebuild with placeholder + recent messages
+    // Rebuild messages while retaining this execution's experiment settings.
     this.messages.length = 0;
     this.messages.push(omittedPlaceholder);
     for (const msg of recentMessages) {
