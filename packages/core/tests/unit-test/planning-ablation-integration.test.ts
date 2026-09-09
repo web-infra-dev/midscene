@@ -7,6 +7,7 @@ import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type PlanningAblationPart,
   parsePlanningAblation,
+  resolvePlanningFeatures,
 } from '@/ai-model/workflows/planning/ablation';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
@@ -55,8 +56,8 @@ const options = (disabled: string): PlanOptions => ({
   }),
   conversationHistory: new ConversationHistory(),
   includeLocateInPlanning: false,
-  imagesIncludeCount: 2,
-  effort: 'deepThink',
+  imagesIncludeCount: resolvePlanningFeatures(parsePlanningAblation(disabled))
+    .imagesIncludeCount,
   ablation: parsePlanningAblation(disabled),
 });
 const run = async (opts: PlanOptions) =>
@@ -105,8 +106,11 @@ describe('Planning ablation across model calls', () => {
       expect(
         opts.conversationHistory.subGoalsToText().includes('GOAL_SENTINEL'),
       ).toBe(!disabled.includes('subGoals'));
-      // Do not replace deepThink sub-goal logs with balance's flat history.
-      expect(opts.conversationHistory.historicalLogsToText()).toBe('');
+      expect(opts.conversationHistory.historicalLogsToText()).toBe(
+        disabled.includes('subGoals') && !disabled.includes('log')
+          ? 'Here are the steps that have been executed:\n- LOG_SENTINEL'
+          : '',
+      );
       if (disabled.includes('log'))
         expect(opts.conversationHistory.subGoalsToText()).not.toContain(
           'LOG_SENTINEL',
@@ -138,6 +142,24 @@ describe('Planning ablation across model calls', () => {
       expect(images).toHaveLength(2);
     });
   }
+
+  it.each([
+    { disabled: '', count: 2 },
+    { disabled: 'screenshotHistory', count: 1 },
+  ])(
+    'sends only the enabled screenshot history to the model: $disabled',
+    async ({ disabled, count }) => {
+      const opts = options(disabled);
+      for (let round = 0; round < 3; round++) await run(opts);
+      const messages = rs.mocked(callAI).mock.calls.at(-1)![0];
+      const images = messages.flatMap((message) =>
+        Array.isArray(message.content)
+          ? message.content.filter((item) => item.type === 'image_url')
+          : [],
+      );
+      expect(images).toHaveLength(count);
+    },
+  );
 
   it('removes grounding guidance from independent Locate calls while keeping standalone Locate unchanged', async () => {
     const modelRuntime = getModelRuntime({
@@ -197,16 +219,6 @@ describe('Planning ablation across model calls', () => {
     expect(result.rawResponse).toBe(response);
     expect(result.memory).toBeUndefined();
     expect(result.log).toBe('');
-  });
-
-  it('suppresses action-derived logs in fast mode only when log is explicitly disabled', async () => {
-    const baseline = options('');
-    baseline.effort = 'fast';
-    expect((await run(baseline)).log).toContain('Input');
-    const ablated = options('log');
-    ablated.effort = 'fast';
-    expect((await run(ablated)).log).toBe('');
-    expect(ablated.conversationHistory.historicalLogsToText()).toBe('');
   });
 
   it('removes the process-evidence reminder without removing actual execution feedback', async () => {

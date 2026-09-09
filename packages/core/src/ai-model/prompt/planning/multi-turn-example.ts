@@ -29,7 +29,7 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals,
   includeThought,
   includeLog,
-  includeMemory = includeSubGoals,
+  includeMemory,
   ablation = [],
   locatePromptSpec,
   actionOutputProtocol,
@@ -38,7 +38,7 @@ export const buildPlanningMultiTurnExample = ({
   includeSubGoals: boolean;
   includeThought: boolean;
   includeLog: boolean;
-  includeMemory?: boolean;
+  includeMemory: boolean;
   ablation?: PlanningAblation;
   locatePromptSpec?: LocateResultPromptSpec;
   actionOutputProtocol: PlanningActionOutputProtocol;

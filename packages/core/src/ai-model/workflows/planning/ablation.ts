@@ -1,4 +1,3 @@
-import type { AiActEffort } from '@/types';
 import { MIDSCENE_PLANNING_DISABLE_PARTS } from '@midscene/shared/env';
 import { getBasicEnvValue } from '@midscene/shared/env/basic';
 import {
@@ -16,6 +15,8 @@ export const PLANNING_ABLATION_PARTS = [
   'subGoals',
   'memory',
   'log',
+  'screenshotHistory',
+  'separateLocate',
   'scrollableOptions',
   'inputVerification',
   'assertionTiming',
@@ -23,12 +24,11 @@ export const PLANNING_ABLATION_PARTS = [
   'adbPreference',
   'sliderSwipe',
   'incrementalEdit',
-  'navigationRestriction',
+  'crossPageNavigation',
   'actionDescriptions',
   'groundingGuidance',
   'returnFormatReminder',
   'ruleExamples',
-  'subGoalExample',
   'actionExamples',
   'multiTurnExample',
 ] as const;
@@ -44,14 +44,9 @@ const PLANNING_ABLATION_GROUPS: Record<string, PlanningAblation> = {
     'adbPreference',
     'sliderSwipe',
     'incrementalEdit',
-    'navigationRestriction',
+    'crossPageNavigation',
   ],
-  examples: [
-    'ruleExamples',
-    'subGoalExample',
-    'actionExamples',
-    'multiTurnExample',
-  ],
+  examples: ['ruleExamples', 'actionExamples', 'multiTurnExample'],
 };
 
 export function parsePlanningAblation(value?: string): PlanningAblation {
@@ -86,25 +81,19 @@ export function planningPartEnabled(
   return !ablation?.includes(part);
 }
 
-/** Preserve the original effort profile before applying independent removals. */
-export function resolvePlanningFeatures(
-  effort: AiActEffort,
-  ablation: PlanningAblation,
-) {
-  const subGoalsInProfile = effort === 'deepThink';
+/** Each component owns its prompt, examples and runtime behavior. */
+export function resolvePlanningFeatures(ablation: PlanningAblation) {
   return {
-    includeSubGoals:
-      subGoalsInProfile && planningPartEnabled(ablation, 'subGoals'),
+    includeSubGoals: planningPartEnabled(ablation, 'subGoals'),
     includeMemory: planningPartEnabled(ablation, 'memory'),
-    includeThought:
-      effort !== 'fast' && planningPartEnabled(ablation, 'planningText'),
-    logSource: !planningPartEnabled(ablation, 'log')
-      ? ('none' as const)
-      : effort === 'fast'
-        ? ('action' as const)
-        : ('model' as const),
-    // Never replace sub-goal history with balance's flat log history.
-    useSubGoalHistory: subGoalsInProfile,
+    includeThought: planningPartEnabled(ablation, 'planningText'),
+    logSource: planningPartEnabled(ablation, 'log')
+      ? ('model' as const)
+      : ('none' as const),
+    imagesIncludeCount: planningPartEnabled(ablation, 'screenshotHistory')
+      ? 2
+      : 1,
+    separateLocate: planningPartEnabled(ablation, 'separateLocate'),
   };
 }
 

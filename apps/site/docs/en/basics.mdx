@@ -46,15 +46,15 @@ agent.setAIContext(
 );
 ```
 
+Standard Planning enables all components by default. Use `MIDSCENE_PLANNING_DISABLE_PARTS` for individual ablation: `subGoals,memory` removes both capabilities and their owned examples. The `deepThink` and `effort` mode options have been removed.
+
 `aiAct` provides the following per-call options:
 
-- `deepThink`: focuses more on task decomposition and uses separate model calls for planning and element localization. It can make complex tasks more stable, but increases model calls and latency.
 - `deepLocate`: uses an additional model call to improve element localization accuracy. Enable it when a target is small or difficult to distinguish from nearby elements.
 - `context`: provides additional AI guidance for this call only, such as business facts, rules, constraints, or output requirements. It overrides `aiContexts.aiAct`, which overrides the shared fallback in `aiContexts.default`. An explicitly empty string disables inherited user context for this call.
 
 ```typescript
 await agent.aiAct('Complete the checkout form and stop before placing the order', {
-  deepThink: true,
   deepLocate: true,
   context: 'If an address confirmation dialog appears, select the default shipping address.',
 });

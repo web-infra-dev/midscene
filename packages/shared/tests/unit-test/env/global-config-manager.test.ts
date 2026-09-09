@@ -356,7 +356,6 @@ describe('getEnvConfigValueAsNumber', () => {
     expect(
       globalConfigManager.getEnvConfigValueAsNumber(
         MIDSCENE_PREFERRED_LANGUAGE,
-        MIDSCENE_PLANNING_DISABLE_PARTS,
       ),
     ).toBeUndefined();
   });

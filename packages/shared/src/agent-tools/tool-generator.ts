@@ -711,12 +711,6 @@ export function generateCommonTools(
           .describe(
             'Use deep locate for every element this action targets. Improves precision for small or ambiguous targets at the cost of speed. Defaults to the server --deep-locate setting.',
           ),
-        deepThink: z
-          .boolean()
-          .optional()
-          .describe(
-            'Plan this action with deep thinking (richer context and sub-goal decomposition). Helps with complex multi-step instructions at the cost of speed. Defaults to the server --deep-think setting.',
-          ),
         fileChooserAllowedDir: z
           .string()
           .optional()
@@ -732,6 +726,11 @@ export function generateCommonTools(
       ): Promise<ToolResult> => {
         const prompt = args.prompt as string;
         try {
+          if ('deepThink' in args || 'deep-think' in args || 'effort' in args) {
+            throw new Error(
+              'deepThink and effort have been removed. Configure Planning components with MIDSCENE_PLANNING_DISABLE_PARTS instead.',
+            );
+          }
           const agent = await getAgent(args);
           emitCliVerboseEvent({
             event: 'agent_ready',
@@ -744,17 +743,12 @@ export function generateCommonTools(
             toolName: 'act',
           });
           try {
-            // Start from the act defaults (deepThink off), overlay the server
-            // tool defaults, then let explicit per-call args win.
+            // Per-call options override server tool defaults.
             const actOptions: Record<string, unknown> = {
-              deepThink: false,
               ...toolDefaults.act,
             };
             if (args.deepLocate !== undefined) {
               actOptions.deepLocate = args.deepLocate;
-            }
-            if (args.deepThink !== undefined) {
-              actOptions.deepThink = args.deepThink;
             }
             if (args.fileChooserAllowedDir !== undefined) {
               actOptions.fileChooserAllowedDir = args.fileChooserAllowedDir;

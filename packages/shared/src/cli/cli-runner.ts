@@ -207,7 +207,13 @@ export async function runToolsCLI(
     format: verboseFormat,
   } = stripVerboseFlag(inputArgs);
 
-  // Global behavior flags (e.g. `--deep-locate` / `--deep-think`) apply
+  if (inputArgs.some((arg) => /^--deep-?think(?:=|$)/i.test(arg))) {
+    throw new CLIError(
+      '--deep-think has been removed. Configure Planning components with MIDSCENE_PLANNING_DISABLE_PARTS instead.',
+    );
+  }
+
+  // Global behavior flags (e.g. `--deep-locate`) apply
   // regardless of which command runs. `stripBehaviorFlags` is the single place
   // that knows how they look on the command line: it resolves their defaults
   // and returns the remaining args so the per-command parser never sees them.

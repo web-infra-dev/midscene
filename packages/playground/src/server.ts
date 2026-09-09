@@ -3421,12 +3421,18 @@ class PlaygroundServer {
         params,
         requestId,
         deepLocate,
-        deepThink,
         screenshotIncluded,
         domIncluded,
         deviceOptions,
         reportDisplay,
       } = req.body;
+
+      if ('deepThink' in req.body || 'effort' in req.body) {
+        return res.status(400).json({
+          error:
+            'deepThink and effort have been removed. Configure Planning components with MIDSCENE_PLANNING_DISABLE_PARTS instead.',
+        });
+      }
 
       if (!type) {
         return res.status(400).json({
@@ -3524,7 +3530,6 @@ class PlaygroundServer {
         response.result = await executeAction(agent, type, actionSpace, value, {
           requestId,
           deepLocate,
-          deepThink,
           screenshotIncluded,
           domIncluded,
           abortSignal: abortController?.signal,

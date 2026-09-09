@@ -1,74 +1,86 @@
-# Planning component ablation
+# Planning component experiments
 
 [中文](./planning-ablation.zh.md)
 
-Use one environment variable to ablate standard Planning components. No YAML changes or new `aiAct` options are required.
+Standard Planning no longer accepts the `deepThink` or `effort` mode options. Components are enabled by default and independently disabled with `MIDSCENE_PLANNING_DISABLE_PARTS`. SDK, MCP/CLI and Playground use the same mechanism; no new YAML configuration structure is needed.
 
 ```bash
-# Keep these settings identical in every arm; run each arm in its own process.
+# Separate process per arm; identical cache and recording settings in every arm.
 export MIDSCENE_CACHE=false
 export MIDSCENE_RECORD_MODEL_CALL=1
 
-# Full baseline: unset or empty preserves existing behavior.
+# Complete baseline
 export MIDSCENE_PLANNING_DISABLE_PARTS=
-
-# Remove memory, combine components, or remove all examples.
-export MIDSCENE_PLANNING_DISABLE_PARTS=memory
-export MIDSCENE_PLANNING_DISABLE_PARTS=memory,subGoals
-export MIDSCENE_PLANNING_DISABLE_PARTS=examples
+# Remove sub-goals, their dedicated example and their content in shared examples.
+export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals
+# Combined removal
+export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 ```
 
-Choose one setting, then run the existing benchmark command. Names are case-sensitive CSV entries; whitespace and duplicates are accepted. Unknown names throw. Each `aiAct` reads and freezes its configuration at entry; changes to the environment affect subsequent calls only.
+Choose a setting and run the existing benchmark command. Names are case-sensitive CSV entries; whitespace and duplicates are accepted. Unknown names throw. Each `aiAct` reads and freezes its settings at entry; environment changes cannot affect an ongoing call.
 
 ## Components
 
-| Name | Removed content |
+| Name | Effect of disabling |
 | --- | --- |
-| `taskScope` | Strict task-scope instructions and examples, including matching Input parameter guidance |
-| `durableCompletion` | Guidance for completing durable changes through save/submit/apply controls |
-| `processEvidence` | Instructions requiring execution evidence, including the first-call no-history reminder |
-| `observationGuidance` | Detailed observation advice for thumbnails, partial views and precise details |
-| `planningText` | `<planning>` instructions, examples, effective output and replay |
-| `subGoals` | Decomposition, updates, completion markers, examples and sub-goal history organization |
-| `memory` | Memory instructions, examples, effective output, writes, summaries and replay |
-| `log` | Model preambles, action-derived logs, sub-goal/flat log summaries and replay |
-| `scrollableOptions` | Dropdown search, incremental scrolling and selection strategy |
-| `inputVerification` | The special rule against rechecking typed text through the screenshot |
-| `assertionTiming` | Assertion failure and wait-for-loading guidance |
-| `recoveryGuidance` | General retry/recovery advice and recovery log examples |
-| `adbPreference` | Preference for RunAdbShell; the action remains available |
-| `sliderSwipe` | Swipe preference for sliders, including the slider example in the Swipe description |
-| `incrementalEdit` | Minimal text edits, cursor strategy and its specific recovery guidance, including Input.mode advice |
-| `navigationRestriction` | Instructions restricting execution to the current page |
-| `actionDescriptions` | Action and parameter prose; names, types, defaults, optionality, coordinate contracts and implementations remain |
-| `groundingGuidance` | The seven shared element-locating rules throughout the same aiAct: inline Planning, independent Locate and applicable fallback calls |
-| `returnFormatReminder` | The final repeated Return Format section; earlier output protocol rules remain |
-| `ruleExamples` | Short explanatory rule examples, memory examples and log examples |
-| `subGoalExample` | The long login/todo/registration sub-goal example |
-| `actionExamples` | Action-list samples and standalone Tap/error examples |
-| `multiTurnExample` | The complete five-turn form example |
+| `taskScope` | Strict task scope, its examples and Input parameter guidance |
+| `durableCompletion` | Save/submit/apply completion guidance |
+| `processEvidence` | Execution-evidence rules and the initial no-history reminder |
+| `observationGuidance` | Detailed observation advice for partial views |
+| `planningText` | Planning text, its examples, parsed output and replay |
+| `subGoals` | Sub-goal instructions, all owned examples, updates, completion markers, state, grouped logs and replay; enabled logs become flat history when this is off |
+| `memory` | Memory instructions, all owned examples, output, writes, summaries and replay |
+| `log` | Model log instructions, all owned examples, output, grouped/flat summaries and replay |
+| `screenshotHistory` | The previous screenshot: keep only the latest screenshot instead of two |
+| `separateLocate` | Separate Planning/Locate calls: merge localization into Planning when using the default model; an explicitly configured Planning model remains separate |
+| `scrollableOptions` | Dropdown search and incremental-scrolling guidance |
+| `inputVerification` | The special rule against rechecking typed text through screenshots |
+| `assertionTiming` | Assertion failure and loading-wait guidance |
+| `recoveryGuidance` | Retry/recovery advice and owned recovery examples |
+| `adbPreference` | RunAdbShell preference; the action itself stays available |
+| `sliderSwipe` | Slider Swipe preference and the slider example in the Swipe description |
+| `incrementalEdit` | Minimal edits, cursor strategy, specific recovery and Input.mode guidance |
+| `crossPageNavigation` | Autonomous cross-page navigation: disabling adds the current-page restriction and its examples; navigation explicitly requested by the user remains allowed |
+| `actionDescriptions` | Action/parameter prose; retain executable schemas and implementations |
+| `groundingGuidance` | Shared locating rules in Planning, independent Locate and applicable fallbacks of this aiAct |
+| `returnFormatReminder` | The final repeated Return Format section |
+| `ruleExamples` | Short rule examples, including examples owned by subGoals, memory and log |
+| `actionExamples` | Action samples and standalone Tap/error examples |
+| `multiTurnExample` | The entire multi-turn form example |
 
-Group aliases expand into concrete components in the report:
+Groups are shorthand for these components:
 
-| Alias | Components |
+| Group | Components |
 | --- | --- |
 | `taskSemantics` | `taskScope,durableCompletion,processEvidence` |
 | `uiCases` | `scrollableOptions,inputVerification,assertionTiming` |
-| `actionStrategies` | `recoveryGuidance,adbPreference,sliderSwipe,incrementalEdit,navigationRestriction` |
-| `examples` | `ruleExamples,subGoalExample,actionExamples,multiTurnExample` |
+| `actionStrategies` | `recoveryGuidance,adbPreference,sliderSwipe,incrementalEdit,crossPageNavigation` |
+| `examples` | `ruleExamples,actionExamples,multiTurnExample` |
 
-## Experimental boundaries
+## Ownership of capability examples
 
-Disabled output fields cannot update effective state or enter subsequent framework replay, even if the model still emits them. Reports retain original `rawResponse`/`rawChoiceMessage` for auditing. User values inside action JSON and terminal complete/error text are preserved rather than deleted by keyword. Malformed responses with ambiguous action-JSON boundaries enter the existing parse-error/retry path to avoid corrupting user data or leaking disabled fields.
+`subGoalExample` has been removed. `subGoals` owns the instructions, dedicated sub-goal example, sub-goal content in the multi-turn example, state and replay. Owned examples of memory, log, planningText, taskScope, recoveryGuidance, sliderSwipe and incrementalEdit also disappear with their capability. Shared examples retain content for other enabled capabilities.
 
-Keep the original instruction, user context, execution feedback, action capabilities, coordinate protocol, model routing, images and preprocessing, step limits, and history compression fixed. Removing `<planning>` does not disable provider reasoning. Removing memory does not erase information available in retained actions, screenshots or ordinary text: the treatment is removal of the explicit memory mechanism.
+General example switches still support experiments on whether examples help: an example appears only when both its owner and its general example switch are enabled. `examples` removes examples without disabling capabilities. An action preference is distinct from the action itself: disabling `sliderSwipe` removes slider advice and its slider example, while retaining generic Swipe and non-slider samples.
 
-Resolve the original effort profile before removing components. Use an existing deepThink baseline to test prompted memory, sub-goals or observation guidance, and keep effort fixed across arms. Removing sub-goals does not switch to balance or enable flat history as compensation; retained logs still replay through their original assistant field. Nested examples disappear with their parent component, even if the corresponding example switch remains enabled.
+## Replacing the old mode and experimental boundaries
 
-This experiment supports the standard Midscene Planning protocol. Custom Planning and standard protocols with replaced core builders are rejected. Adapters requiring verbatim assistant-message replay reject `memory/subGoals/planningText/log` ablation. Custom Locate rejects `groundingGuidance`. These checks happen before inference.
+The complete baseline enables sub-goals, memory, observation guidance, two screenshots, separate localization and cross-page navigation. This combination covers the mechanism choices previously selected by `deepThink=false`, without another mode switch:
 
-Disable caches in all arms so existing plans cannot skip Planning and cached coordinates cannot bypass Grounding. An explicit Agent cache object can override `MIDSCENE_CACHE=false`; active ablation then throws. Disable that configuration in the common experiment entry point, or consistently use the existing `cacheable: false` option. Keep effort, models, temperature, tasks, step limits and judges identical across arms as well.
+```bash
+export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory,observationGuidance,screenshotHistory,separateLocate,crossPageNavigation
+```
 
-Planning task parameters record expanded `disabledPlanningParts`; the empty baseline adds no field. In Node, use `MIDSCENE_RECORD_MODEL_CALL=1` to audit actual requests under the run directory's `model-requests`, and verify that files were written.
+It uses flat logs, one screenshot and inline localization when no dedicated Planning model is configured. This is a mapping of mechanisms, not byte equivalence with the old release: the old mode could accept spontaneous memory output even without prompting for it. Disabling memory now removes effective output, state and replay together.
 
-Start with a full baseline and one-component removals, then test combinations with meaningful signals. Use matched tasks and repetitions; record success, model calls, input/output tokens, latency, invalid output and infrastructure failures. Each removal estimates its contribution within the current complete system. This alone does not identify all interactions or constitute an orthogonal design.
+Disabled fields cannot update state or enter framework replay even if the model emits them. Reports retain original `rawResponse`/`rawChoiceMessage`. User values in action JSON and complete/error text are preserved; malformed output with ambiguous action-JSON boundaries enters the existing parse-error/retry path.
+
+Apart from each arm's selected components, hold instructions/context, real execution feedback, actions, model/temperature, image preprocessing, step limits, history compression and evaluators fixed. Disabling planning text does not control provider thinking. Memory removal tests the explicit mechanism; retained actions, screenshots and text can still convey past information.
+
+Component experiments require the standard Midscene Planning protocol. Custom planners retain their own protocol with no overrides; explicit removals fail before inference. Standard protocols with replaced core builders also reject experiments. Adapters requiring verbatim assistant replay reject field ablation; custom Locate rejects groundingGuidance ablation.
+
+Disable caches in every arm. An explicit Agent cache object can override MIDSCENE_CACHE=false and causes active experiments to throw. Remove that cache in the common entry point or consistently use cacheable: false.
+
+Planning task parameters record includeSubGoals, includeLocateInPlanning, imagesIncludeCount and expanded disabledPlanningParts (omitted when empty). Use MIDSCENE_RECORD_MODEL_CALL=1 to audit actual model-requests under the run directory, rather than checking environment variables alone.
+
+Start with the complete baseline and individual removals, then test combinations with useful signals. Match tasks and repetitions; record success, model calls, tokens, latency, invalid output and infrastructure failures. Individual ablation measures a component's contribution in the complete system; it does not identify every interaction or constitute an orthogonal design.

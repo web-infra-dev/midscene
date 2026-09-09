@@ -7,6 +7,7 @@ import {
   type PlanningAblation,
   planningPartEnabled,
   readPlanningAblation,
+  resolvePlanningFeatures,
   validatePlanningAblation,
 } from '@/ai-model/workflows/planning/ablation';
 import {
@@ -25,7 +26,6 @@ import type {
 } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  AiActEffort,
   AiActProgressData,
   AiActProgressPhase,
   DetailedLocateParam,
@@ -383,7 +383,6 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort = 'balance',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -412,7 +411,6 @@ export class TaskExecutor {
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
-        effort,
         deepLocate,
         abortSignal,
         reportOptions,
@@ -462,7 +460,6 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort = 'balance',
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
@@ -502,12 +499,21 @@ export class TaskExecutor {
     defaultModel = { ...defaultModel, executionId: runner.id };
 
     const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const features = resolvePlanningFeatures(ablation);
+    const isStandardPlanning =
+      planningModel.adapter.planning.kind === 'standard';
+    // Custom planners keep their own protocol; component overrides are rejected
+    // by validatePlanningAblation before execution.
     const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
-    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+      (!isStandardPlanning || !features.separateLocate) &&
+      noIndividualLocateModel;
+    const imagesIncludeCount = isStandardPlanning
+      ? features.imagesIncludeCount
+      : 1;
+    const includeSubGoals = isStandardPlanning && features.includeSubGoals;
 
     debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
-      effort,
+      separateLocate: features.separateLocate,
       noIndividualLocateModel,
     });
 
@@ -591,7 +597,8 @@ export class TaskExecutor {
             replanningCycleLimit,
             aiActContext,
             imagesIncludeCount,
-            effort,
+            includeSubGoals,
+            includeLocateInPlanning,
             ...(ablation.length ? { disabledPlanningParts: ablation } : {}),
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
@@ -637,7 +644,6 @@ export class TaskExecutor {
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,
-                effort,
                 ablation,
                 abortSignal,
               });

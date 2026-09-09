@@ -8,6 +8,7 @@ import {
   type PlanningAblation,
   type PlanningAblationPart,
   planningPartEnabled,
+  resolvePlanningFeatures,
 } from '../../workflows/planning/ablation';
 import { locateGroundingRules } from '../locate';
 import {
@@ -19,9 +20,6 @@ import { buildPlanningMultiTurnExample } from './multi-turn-example';
 
 type BuildStandardPlanningSystemPromptInput = {
   actionSpace: DeviceAction<any>[];
-  includeSubGoals?: boolean;
-  includeThought?: boolean;
-  includeLog?: boolean;
   planningProtocol: StandardPlanningProtocol;
   ablation?: PlanningAblation;
 } & (
@@ -42,9 +40,6 @@ export async function buildStandardPlanningSystemPrompt(
     actionSpace,
     includeLocateInPlanning,
     locatePromptSpec,
-    includeSubGoals,
-    includeThought: originalIncludeThought = true,
-    includeLog: originalIncludeLog = true,
     ablation = [],
     planningProtocol,
   } = input;
@@ -73,17 +68,13 @@ export async function buildStandardPlanningSystemPrompt(
     content: string,
     fallback = '',
   ) => (planningPartEnabled(ablation, part) ? content : fallback);
-  const includeThought =
-    originalIncludeThought && planningPartEnabled(ablation, 'planningText');
-  const includeLog = originalIncludeLog && planningPartEnabled(ablation, 'log');
-  const shouldIncludeSubGoals =
-    !!includeSubGoals && planningPartEnabled(ablation, 'subGoals');
-  const includeMemory =
-    !!includeSubGoals && planningPartEnabled(ablation, 'memory');
+  const { includeThought, includeSubGoals, includeMemory, logSource } =
+    resolvePlanningFeatures(ablation);
+  const includeLog = logSource !== 'none';
   const renderMemoryContent = (content: string) =>
     includeMemory ? content : '';
   const renderSubGoalsContent = (content: string, fallbackContent = '') =>
-    shouldIncludeSubGoals ? content : fallbackContent;
+    includeSubGoals ? content : fallbackContent;
   const renderThoughtContent = (content: string, fallbackContent = '') =>
     includeThought ? content : fallbackContent;
   const renderLogContent = (content: string, fallbackContent = '') =>
@@ -105,17 +96,13 @@ First, observe the current screenshot${renderPart('log', ' and previous logs')}$
     ' to understand the current state.',
   )}
 
-${
-  includeSubGoals
-    ? renderPart(
-        'observationGuidance',
-        `### Observation Guidelines
+${renderPart(
+  'observationGuidance',
+  `### Observation Guidelines
 
 - Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
 - If the current view does not provide enough information to decide safely, use available UI affordances such as opening details, expanding content, previewing, enlarging, zooming, or scrolling before acting.`,
-      )
-    : ''
-}
+)}
 
 ${renderThoughtContent(`### <planning> tag (REQUIRED)
 
@@ -126,16 +113,12 @@ Write the content of the <planning> tag in ${preferredLanguage}.
 Include your planning details in the <planning> tag. It should answer: ${renderSubGoalsContent(
   "What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action?",
   'What is the current state based on the screenshot? What should be the next action?',
-)} Write it naturally without numbering or section headers.`)}${
-  originalIncludeThought
-    ? renderPart(
-        'taskScope',
-        `
+)} Write it naturally without numbering or section headers.`)}${renderPart(
+  'taskScope',
+  `
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. ${renderPart('ruleExamples', `For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}`,
-      )
-    : ''
-}
+)}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
 
@@ -162,7 +145,7 @@ IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed 
 During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
 
 ${renderPart(
-  'subGoalExample',
+  'ruleExamples',
   `### Example
 
 If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
@@ -297,14 +280,11 @@ If any explicit step lacks completion evidence in the current execution history,
 )}
 
 ${
-  !includeSubGoals
-    ? renderPart(
-        'navigationRestriction',
-        `**Page navigation restriction:**
+  !planningPartEnabled(ablation, 'crossPageNavigation')
+    ? `**Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative ${renderPart('ruleExamples', '(e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs)')}.
-- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`,
-      )
+- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`
     : ''
 }
 
@@ -435,7 +415,7 @@ ${actionOutputProtocol.actionOutputPlaceholder}
 ${
   planningPartEnabled(ablation, 'multiTurnExample')
     ? buildPlanningMultiTurnExample({
-        includeSubGoals: shouldIncludeSubGoals,
+        includeSubGoals,
         includeThought,
         includeLog,
         includeMemory,

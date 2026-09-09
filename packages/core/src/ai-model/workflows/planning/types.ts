@@ -1,9 +1,4 @@
-import type {
-  AiActEffort,
-  DeviceAction,
-  PlanningAIResponse,
-  UIContext,
-} from '@/types';
+import type { DeviceAction, PlanningAIResponse, UIContext } from '@/types';
 import type { ModelRuntime } from '../../models';
 import type { PreparedUserPrompt } from '../../shared/multimodal-prompt';
 import type { PlanningAblation } from './ablation';
@@ -17,8 +12,6 @@ export interface PlanOptions {
   conversationHistory: ConversationHistory;
   includeLocateInPlanning: boolean;
   imagesIncludeCount?: number;
-  // Controls aiAct planning prompt shape and state updates, such as sub-goals.
-  effort: AiActEffort;
   // Immutable experiment settings captured at the aiAct boundary.
   ablation?: PlanningAblation;
   abortSignal?: AbortSignal;

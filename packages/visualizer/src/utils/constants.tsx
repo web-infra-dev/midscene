@@ -6,9 +6,6 @@ export const trackingTip = 'Limit popup to current tab';
 // deep locate tip
 export const deepLocateTip = 'Deep Locate';
 
-// deep think tip (for aiAct planning)
-export const deepThinkTip = 'Deep Think';
-
 // screenshot included tip
 export const screenshotIncludedTip = 'Include screenshot in request';
 

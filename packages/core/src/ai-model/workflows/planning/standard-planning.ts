@@ -181,13 +181,8 @@ export async function standardPlan(
   const ablation = opts.ablation ?? readPlanningAblation();
   validatePlanningAblation(ablation, modelRuntime);
   conversationHistory.configurePlanningAblation(ablation);
-  const {
-    includeSubGoals,
-    includeMemory,
-    includeThought,
-    logSource,
-    useSubGoalHistory,
-  } = resolvePlanningFeatures(opts.effort, ablation);
+  const { includeSubGoals, includeMemory, includeThought, logSource } =
+    resolvePlanningFeatures(ablation);
 
   if (opts.includeLocateInPlanning && !locateResultCodec) {
     throw new Error(
@@ -197,9 +192,6 @@ export async function standardPlan(
 
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
-    includeThought: opts.effort !== 'fast',
-    includeLog: opts.effort !== 'fast',
-    includeSubGoals: opts.effort === 'deepThink',
     ablation,
     planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultCodec
@@ -239,12 +231,9 @@ export async function standardPlan(
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
   // Build sub-goal status text to include in the message
-  // In planning deep-think mode: show full sub-goals with logs
-  // Otherwise: show historical execution logs
-  const executionProgressText = useSubGoalHistory
-    ? includeSubGoals
-      ? conversationHistory.subGoalsToText()
-      : ''
+  // Sub-goals own grouped history; without them, log remains a flat history.
+  const executionProgressText = includeSubGoals
+    ? conversationHistory.subGoalsToText()
     : logSource !== 'none'
       ? conversationHistory.historicalLogsToText()
       : '';
@@ -335,7 +324,7 @@ export async function standardPlan(
     ablation,
     includeThought,
     includeMemory,
-    includeSubGoals: planningPartEnabled(ablation, 'subGoals'),
+    includeSubGoals,
     logSource,
   });
 
@@ -345,7 +334,7 @@ export async function standardPlan(
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('task completed via <complete> tag, stop planning');
     shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
+    // Mark all enabled sub-goals as finished when the goal is completed.
     if (includeSubGoals) {
       conversationHistory.markAllSubGoalsFinished();
     }
@@ -367,7 +356,7 @@ export async function standardPlan(
   // TODO: The plan log is recorded before its action has executed, so a failed
   // action may still appear in the next round as an action already performed.
   // Move this write to the successful action execution path in TaskExecutor.action.
-  // Update sub-goals in conversation history only in planning deep-think mode.
+  // The sub-goals component owns state updates and grouped execution logs.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {
       conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
@@ -381,8 +370,8 @@ export async function standardPlan(
     if (planFromAI.log) {
       conversationHistory.appendSubGoalLog(planFromAI.log);
     }
-  } else if (!useSubGoalHistory) {
-    // Without planning deep-think mode, accumulate logs as historical execution steps.
+  } else {
+    // With sub-goals disabled, retain enabled logs as flat execution steps.
     if (planFromAI.log) {
       conversationHistory.appendHistoricalLog(planFromAI.log);
     }

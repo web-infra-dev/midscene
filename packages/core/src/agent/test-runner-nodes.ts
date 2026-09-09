@@ -156,10 +156,6 @@ export const aiActOptionsInputSchema = z.strictObject({
     .string()
     .optional()
     .describe('Directory allowed for prompt-driven file uploads.'),
-  deepThink: z
-    .union([z.literal('unset'), z.boolean()])
-    .optional()
-    .describe('Whether to enable deep thinking for this action.'),
   deepLocate: z
     .boolean()
     .optional()

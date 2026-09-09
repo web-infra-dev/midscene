@@ -277,11 +277,11 @@ export class ConversationHistory {
     return buildSubGoalsText(this.subGoals);
   }
 
-  // Historical log management methods (used in non-deepThink mode)
+  // Flat log history (used when the sub-goals component is disabled)
 
   /**
    * Append a log entry to the historical logs list.
-   * Used in non-deepThink mode to track executed steps across planning rounds.
+   * Used without sub-goals to track executed steps across planning rounds.
    */
   appendHistoricalLog(log: string): void {
     if (log) {

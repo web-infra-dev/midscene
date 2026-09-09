@@ -126,9 +126,7 @@ describe('CLI report session', () => {
 
     expect(actionTools.createdReportFileNames).toEqual([firstReportFileName]);
     expect(actionTools.createdReportGroupIds).toEqual([firstReportFileName]);
-    expect(actionTools.aiAction).toHaveBeenCalledWith('click the button', {
-      deepThink: false,
-    });
+    expect(actionTools.aiAction).toHaveBeenCalledWith('click the button', {});
   });
 
   it('reuses report session for assert with a realistic UI verification prompt', async () => {

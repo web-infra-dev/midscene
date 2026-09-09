@@ -35,7 +35,6 @@ describe('Planning ablation configuration', () => {
       'subGoals',
       'memory',
       'ruleExamples',
-      'subGoalExample',
       'actionExamples',
       'multiTurnExample',
     ]);
@@ -53,11 +52,11 @@ describe('Planning ablation configuration', () => {
       'adbPreference',
       'sliderSwipe',
       'incrementalEdit',
-      'navigationRestriction',
+      'crossPageNavigation',
     ]);
     expect(
       parsePlanningAblation(PLANNING_ABLATION_PARTS.join(',')),
-    ).toHaveLength(23);
+    ).toHaveLength(24);
   });
 
   it('reads the registered environment key and rejects typos', () => {
@@ -69,21 +68,29 @@ describe('Planning ablation configuration', () => {
     expect(() => parsePlanningAblation('toString')).toThrow('Unknown');
   });
 
-  it('keeps memory and thought independent of sub-goals and distinguishes fast logs from no logs', () => {
-    expect(resolvePlanningFeatures('deepThink', ['subGoals'])).toMatchObject({
+  it('resolves independent components without a mode preset', () => {
+    expect(resolvePlanningFeatures([])).toEqual({
+      includeSubGoals: true,
+      includeMemory: true,
+      includeThought: true,
+      logSource: 'model',
+      imagesIncludeCount: 2,
+      separateLocate: true,
+    });
+    expect(resolvePlanningFeatures(['subGoals', 'screenshotHistory'])).toEqual({
       includeSubGoals: false,
       includeMemory: true,
       includeThought: true,
       logSource: 'model',
-      useSubGoalHistory: true,
+      imagesIncludeCount: 1,
+      separateLocate: true,
     });
-    expect(resolvePlanningFeatures('fast', [])).toMatchObject({
-      includeThought: false,
-      logSource: 'action',
-    });
-    expect(resolvePlanningFeatures('fast', ['log'])).toMatchObject({
+    expect(resolvePlanningFeatures(['log', 'separateLocate'])).toMatchObject({
+      includeSubGoals: true,
       logSource: 'none',
+      separateLocate: false,
     });
+    expect(() => parsePlanningAblation('subGoalExample')).toThrow('Unknown');
   });
 
   it('rejects unfilterable adapters only for active experiments', () => {

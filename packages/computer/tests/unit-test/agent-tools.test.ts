@@ -149,9 +149,7 @@ describe('ComputerMidsceneTools', () => {
     expect(agentFromComputer).toHaveBeenCalledWith({
       displayId: 'display-3',
     });
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open browser', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open browser', {});
   });
 
   it('exposes computer init args on action and common tool schemas', async () => {

@@ -117,7 +117,7 @@ export function StandardPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepLocate, deepThink, screenshotIncluded, domIncluded } =
+  const { config, deepLocate, screenshotIncluded, domIncluded } =
     useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
@@ -322,21 +322,8 @@ export function StandardPlayground({
         );
       }
 
-      // During deepThink -> deepLocate migration:
-      // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
-      if (actionType !== 'aiAct' && deepThink) {
-        console.warn(
-          '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
-          {
-            actionType,
-            requestId: thisRunningId,
-          },
-        );
-      }
-      const resolvedDeepThink = deepThink === 'unset' ? undefined : deepThink;
       const baseExecutionOptions = {
         deepLocate,
-        ...(actionType === 'aiAct' ? { deepThink: resolvedDeepThink } : {}),
         screenshotIncluded,
         domIncluded,
         requestId: thisRunningId,
@@ -493,7 +480,6 @@ export function StandardPlayground({
     getAgent,
     serviceMode,
     deepLocate,
-    deepThink,
     actionSpace,
     actionSpaceLoading,
   ]);

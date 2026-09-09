@@ -189,10 +189,6 @@ interface CancelExecutionOptions {
   appendStopMessage?: boolean;
 }
 
-function shouldForwardDeepThink(actionType: string) {
-  return actionType === 'aiAct' || actionType === 'runMarkdown';
-}
-
 /**
  * Hook for handling playground execution logic
  */
@@ -214,7 +210,6 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
   // Get execution options from environment config
   const {
     deepLocate,
-    deepThink,
     screenshotIncluded,
     domIncluded,
     imeStrategy,
@@ -326,28 +321,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           );
         }
 
-        // During deepThink -> deepLocate migration:
-        // keep deepThink only for aiAct-like planning APIs, and avoid passing it
-        // to script runners such as runYaml.
-        if (!shouldForwardDeepThink(actionType) && deepThink === true) {
-          console.warn(
-            '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct and runMarkdown.',
-            {
-              actionType,
-              requestId: thisRunningId.toString(),
-            },
-          );
-        }
-        // Only pass deepThink when it's explicitly set (true/false), not when 'unset'
-        // so that model-level reasoningEnabled from env config is respected
-        const resolvedDeepThink = deepThink === 'unset' ? undefined : deepThink;
         const executionOptions = {
           requestId: thisRunningId.toString(),
           deepLocate,
-          ...(shouldForwardDeepThink(actionType) &&
-          resolvedDeepThink !== undefined
-            ? { deepThink: resolvedDeepThink }
-            : {}),
           screenshotIncluded,
           domIncluded,
           deviceOptions: {
@@ -474,7 +450,6 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       currentRunningIdRef,
       interruptedFlagRef,
       deepLocate,
-      deepThink,
       screenshotIncluded,
       domIncluded,
       deviceType,

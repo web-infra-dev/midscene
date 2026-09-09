@@ -40,12 +40,9 @@ const actions = [
     call: rs.fn(),
   },
 ];
-const prompt = (disabled: string, deep = true) =>
+const prompt = (disabled: string) =>
   buildStandardPlanningSystemPrompt({
     actionSpace: actions,
-    includeSubGoals: deep,
-    includeThought: true,
-    includeLog: true,
     includeLocateInPlanning: true,
     locatePromptSpec,
     planningProtocol,
@@ -53,7 +50,7 @@ const prompt = (disabled: string, deep = true) =>
   });
 
 // Each entry includes an observable instruction or example, not merely its title.
-const removedFragments: Record<PlanningAblationPart, string[]> = {
+const removedFragments: Partial<Record<PlanningAblationPart, string[]>> = {
   taskScope: [
     'CRITICAL - Following Explicit Instructions',
     'Do NOT perform any action beyond the explicit instruction',
@@ -75,6 +72,8 @@ const removedFragments: Record<PlanningAblationPart, string[]> = {
     '<mark-sub-goal-done>',
     'sub-goals',
     'sub-goal',
+    'If the user wants to "log in to a system',
+    'After logging in and seeing the to-do items',
   ],
   memory: ['<memory>', '</memory>', 'memory should preserve'],
   log: [
@@ -107,7 +106,6 @@ const removedFragments: Record<PlanningAblationPart, string[]> = {
     'should be set explicitly for incremental edits',
     'do not switch to replace as a fallback',
   ],
-  navigationRestriction: ['MUST complete the task on the current page only'],
   actionDescriptions: [
     'Input the value into the element',
     'Delay in milliseconds between keystrokes',
@@ -126,10 +124,6 @@ const removedFragments: Record<PlanningAblationPart, string[]> = {
     'such as status, price, date, owner',
     'For example: "fill out the form"',
   ],
-  subGoalExample: [
-    'If the user wants to "log in to a system',
-    'After logging in and seeing the to-do items',
-  ],
   actionExamples: [
     'sample: |',
     'If the selected action provides a "sample"',
@@ -145,9 +139,8 @@ const removedFragments: Record<PlanningAblationPart, string[]> = {
 describe('independent Planning prompt parts', () => {
   for (const [part, fragments] of Object.entries(removedFragments)) {
     it(`removes ${part} throughout the generated prompt`, async () => {
-      const deep = part !== 'navigationRestriction';
-      const before = await prompt('', deep);
-      const after = await prompt(part, deep);
+      const before = await prompt('');
+      const after = await prompt(part);
       for (const fragment of fragments) {
         expect(before).toContain(fragment);
         expect(after).not.toContain(fragment);
@@ -159,7 +152,7 @@ describe('independent Planning prompt parts', () => {
     });
   }
 
-  it('keeps the remaining deepThink profile when memory, plan or reasoning is removed', async () => {
+  it('keeps the other enabled components when memory, plan or reasoning is removed', async () => {
     const withoutGoals = await prompt('subGoals');
     expect(withoutGoals).toContain('<memory>');
     expect(withoutGoals).toContain('### Observation Guidelines');
@@ -171,6 +164,39 @@ describe('independent Planning prompt parts', () => {
       'CRITICAL - Following Explicit Instructions',
     );
     expect(withoutThought).toContain('<update-plan-content>');
+  });
+
+  it('controls the current-page restriction independently', async () => {
+    expect(await prompt('')).not.toContain('Page navigation restriction');
+    expect(await prompt('crossPageNavigation')).toContain(
+      'Page navigation restriction',
+    );
+    expect(await prompt('subGoals')).not.toContain(
+      'Page navigation restriction',
+    );
+  });
+
+  it('ties every capability example to its owner even when example switches remain on', async () => {
+    for (const [part, fragments] of Object.entries({
+      subGoals: [
+        'sub-goal',
+        '<update-plan-content>',
+        'After logging in and seeing the to-do items',
+      ],
+      memory: ['<memory>', 'memory should preserve'],
+      log: ['<log>', 'Actions performed for current sub-goal:'],
+      planningText: ['<planning>', 'related tags: <planning>'],
+      taskScope: ['Note: The instruction is to fill the form only'],
+      recoveryGuidance: ["Previous actions failed to find the 'Yes' button"],
+    })) {
+      const result = await prompt(part);
+      for (const fragment of fragments) expect(result).not.toContain(fragment);
+      expect(result).toContain('## Multi-turn Conversation Example');
+    }
+    expect(await prompt('examples')).not.toContain(
+      'After logging in and seeing the to-do items',
+    );
+    expect(await prompt('examples')).toContain('<update-plan-content>');
   });
 
   it('projects descriptions without changing action schemas, defaults or action implementations', () => {
