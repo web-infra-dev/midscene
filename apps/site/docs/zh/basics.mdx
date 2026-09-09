@@ -46,15 +46,15 @@ agent.setAIContext(
 );
 ```
 
+标准 Planning 默认开启全部组件。通过 `MIDSCENE_PLANNING_DISABLE_PARTS` 做分项消融，例如 `subGoals,memory` 会同时屏蔽对应能力及其示例。`deepThink` 和 `effort` 总模式参数已移除。
+
 `aiAct` 提供以下单次调用配置：
 
-- `deepThink`：加强任务拆解，并通过不同的模型调用分别完成规划和元素定位。该选项可以提高复杂任务的稳定性，但会增加模型调用次数和延迟。
 - `deepLocate`：增加一次模型调用，提高元素定位的准确性。当目标元素较小或容易与周围元素混淆时，可以启用该选项。
 - `context`：仅为本次调用提供补充信息，例如业务事实、规则、约束或输出要求。它会覆盖 `aiContexts.aiAct`，后者又会覆盖 `aiContexts.default` 这个共享回退值。显式传入空字符串会让本次调用不使用继承的用户 context。
 
 ```typescript
 await agent.aiAct('完成结账表单，在下单前停止', {
-  deepThink: true,
   deepLocate: true,
   context: '如果出现地址确认弹窗，请选择默认收货地址。',
 });

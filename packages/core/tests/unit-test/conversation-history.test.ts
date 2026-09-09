@@ -565,7 +565,7 @@ describe('ConversationHistory', () => {
     `);
   });
 
-  // Historical log management tests (non-deepThink mode)
+  // Historical log management tests (sub-goals disabled)
 
   it('initializes with empty historical logs', () => {
     const history = new ConversationHistory();
@@ -613,13 +613,13 @@ describe('ConversationHistory', () => {
   it('historical logs are independent from sub-goal logs', () => {
     const history = new ConversationHistory();
 
-    // Set up sub-goals (deepThink mode scenario)
+    // Set up sub-goals (sub-goals enabled)
     history.setSubGoals([
       { index: 1, status: 'pending', description: 'Task 1' },
     ]);
     history.appendSubGoalLog('Sub-goal log entry');
 
-    // Also add historical logs (non-deepThink mode scenario)
+    // Also add historical logs (sub-goals disabled)
     history.appendHistoricalLog('Historical log entry');
 
     // Both should be independently tracked

@@ -43,6 +43,11 @@ export async function AiLocateElement(
   };
 
   const locateAdapter = options.modelRuntime.adapter.locate;
+  if (options.disableGroundingGuidance && locateAdapter.kind === 'custom') {
+    throw new Error(
+      'Grounding guidance ablation is not supported by a custom locate adapter.',
+    );
+  }
   const locateFn =
     locateAdapter.kind === 'custom' ? locateAdapter.locateFn : genericLocate;
   const locateResponse = await locateFn(locateRequest);
@@ -117,6 +122,7 @@ export async function genericLocate(
 
   const systemPrompt = buildElementLocateSystemPrompt({
     systemPromptIntroduction: protocol.systemPromptIntroduction,
+    includeGroundingGuidance: !options.disableGroundingGuidance,
     responseInstructions: protocol.buildResponseInstructions(
       resultCodec.promptSpec,
     ),

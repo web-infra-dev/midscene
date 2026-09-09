@@ -231,7 +231,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     const optionalFields = [
       { key: 'requestId', value: options.requestId },
       { key: 'deepLocate', value: options.deepLocate },
-      { key: 'deepThink', value: options.deepThink },
       { key: 'screenshotIncluded', value: options.screenshotIncluded },
       { key: 'domIncluded', value: options.domIncluded },
       { key: 'deviceOptions', value: options.deviceOptions },

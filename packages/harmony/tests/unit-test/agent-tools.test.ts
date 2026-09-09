@@ -75,9 +75,7 @@ describe('HarmonyMidsceneTools', () => {
     expect(agentFromHdcDevice).toHaveBeenCalledWith('act-harmony-device', {
       autoDismissKeyboard: false,
     });
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {});
   });
 
   it('passes common agent behavior args to agent creation', async () => {

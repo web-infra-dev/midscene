@@ -160,7 +160,6 @@ describe('TaskExecutor custom planning adapters', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       true,
     );
 

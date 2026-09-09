@@ -130,7 +130,6 @@ const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_LOCATE_KEY = 'midscene-deep-locate';
-const DEEP_THINK_KEY = 'midscene-deep-think';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
 
@@ -198,8 +197,6 @@ export const useEnvConfig = create<{
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   deepLocate: boolean;
   setDeepLocate: (deepLocate: boolean) => void;
-  deepThink: boolean | 'unset';
-  setDeepThink: (deepThink: boolean | 'unset') => void;
   screenshotIncluded: boolean;
   setScreenshotIncluded: (screenshotIncluded: boolean) => void;
   domIncluded: boolean | 'visible-only';
@@ -229,13 +226,6 @@ export const useEnvConfig = create<{
   const savedForceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   const savedDeepLocate = localStorage.getItem(DEEP_LOCATE_KEY) === 'true';
-  const savedDeepThinkRaw = localStorage.getItem(DEEP_THINK_KEY);
-  const savedDeepThink: boolean | 'unset' =
-    savedDeepThinkRaw === 'true'
-      ? true
-      : savedDeepThinkRaw === 'false'
-        ? false
-        : 'unset';
   const savedScreenshotIncluded =
     localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
   const savedDomIncluded = localStorage.getItem(DOM_INCLUDED_KEY) || 'false';
@@ -290,11 +280,6 @@ export const useEnvConfig = create<{
     setDeepLocate: (deepLocate: boolean) => {
       set({ deepLocate });
       localStorage.setItem(DEEP_LOCATE_KEY, deepLocate.toString());
-    },
-    deepThink: savedDeepThink,
-    setDeepThink: (deepThink: boolean | 'unset') => {
-      set({ deepThink });
-      localStorage.setItem(DEEP_THINK_KEY, deepThink.toString());
     },
     screenshotIncluded: savedScreenshotIncluded,
     setScreenshotIncluded: (screenshotIncluded: boolean) => {

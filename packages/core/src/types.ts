@@ -205,10 +205,6 @@ export interface LocateResult {
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
 
-export type AiActEffort = 'fast' | 'balance' | 'deepThink';
-
-export type DeepThinkOption = 'unset' | true | false;
-
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: unknown;
@@ -765,9 +761,12 @@ export interface ExecutionTaskPlanningParam {
   replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
-  effort?: AiActEffort;
+  includeSubGoals?: boolean;
+  includeLocateInPlanning?: boolean;
   subGoalStatus?: string;
   memoriesStatus?: string;
+  /** Expanded environment-controlled ablation parts used for this execution. */
+  disabledPlanningParts?: readonly string[];
 }
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<

@@ -369,7 +369,6 @@ describe('generateToolsFromActionSpace', () => {
     expect(aiAction).toHaveBeenCalledWith(
       'return the first Google result heading for Midscene',
       {
-        deepThink: false,
         fileChooserAllowedDir: './fixtures',
       },
     );
@@ -984,9 +983,7 @@ describe('generateCommonTools — act image prompts', () => {
     const act = tools.find((t) => t.name === 'act')!;
     await act.handler({ prompt: 'click the login button' });
 
-    expect(aiAction).toHaveBeenCalledWith('click the login button', {
-      deepThink: false,
-    });
+    expect(aiAction).toHaveBeenCalledWith('click the login button', {});
   });
 
   it('forwards images to aiAction as a TUserPrompt-style object', async () => {
@@ -1009,7 +1006,7 @@ describe('generateCommonTools — act image prompts', () => {
         prompt: 'tap the icon that matches the reference image',
         images: [{ name: 'target', url: 'https://example.com/icon.png' }],
       },
-      { deepThink: false },
+      {},
     );
   });
 
@@ -1035,7 +1032,7 @@ describe('generateCommonTools — act image prompts', () => {
         images: [{ name: 'icon', url: './fixtures/icon.png' }],
         convertHttpImage2Base64: true,
       },
-      { deepThink: false },
+      {},
     );
   });
 });
@@ -1152,7 +1149,6 @@ describe('toolDefaults (deep locate / deep think)', () => {
     await actTool?.handler({ prompt: 'open settings' });
 
     expect(aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
       deepLocate: true,
     });
   });
@@ -1916,51 +1912,30 @@ describe('toolDefaults (deep locate / deep think)', () => {
     await actTool?.handler({ prompt: 'open settings', deepLocate: false });
 
     expect(aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
       deepLocate: false,
     });
   });
 
-  it('plans the act tool with deepThink when enabled', async () => {
-    const aiAction = rs.fn().mockResolvedValue('done');
-    const commonTools = generateCommonTools(
-      async () => ({
-        aiAction,
-        getActionSpace: rs.fn().mockResolvedValue([]),
-        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
-      }),
-      undefined,
-      undefined,
-      { act: { deepThink: true } },
-    );
-    const actTool = commonTools.find((tool) => tool.name === 'act');
-
-    await actTool?.handler({ prompt: 'open settings' });
-
-    expect(aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: true,
-    });
+  it('does not expose the removed deepThink option on the act tool', () => {
+    const tools = generateCommonTools(async () => ({
+      getActionSpace: async () => [],
+    }));
+    const act = tools.find((tool) => tool.name === 'act');
+    expect(act?.schema).not.toHaveProperty('deepThink');
   });
 
-  it('lets an explicit act deepThink arg override the server default', async () => {
-    const aiAction = rs.fn().mockResolvedValue('done');
-    const commonTools = generateCommonTools(
-      async () => ({
-        aiAction,
-        getActionSpace: rs.fn().mockResolvedValue([]),
-        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
-      }),
-      undefined,
-      undefined,
-      { act: { deepThink: true } },
-    );
-    const actTool = commonTools.find((tool) => tool.name === 'act');
-
-    await actTool?.handler({ prompt: 'open settings', deepThink: false });
-
-    expect(aiAction).toHaveBeenCalledWith('open settings', {
+  it('rejects obsolete act mode arguments before creating an agent', async () => {
+    const getAgent = rs.fn();
+    const act = generateCommonTools(getAgent).find(
+      (tool) => tool.name === 'act',
+    )!;
+    const result = await act.handler({
+      prompt: 'open settings',
       deepThink: false,
     });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result)).toContain('MIDSCENE_PLANNING_DISABLE_PARTS');
+    expect(getAgent).not.toHaveBeenCalled();
   });
 
   it('applies both locate and act defaults together', async () => {
@@ -1975,7 +1950,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
       undefined,
       {
         locate: { deepLocate: true },
-        act: { deepLocate: true, deepThink: true },
+        act: { deepLocate: true },
       },
     );
     const actTool = commonTools.find((tool) => tool.name === 'act');
@@ -1983,7 +1958,6 @@ describe('toolDefaults (deep locate / deep think)', () => {
     await actTool?.handler({ prompt: 'open settings' });
 
     expect(aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: true,
       deepLocate: true,
     });
   });

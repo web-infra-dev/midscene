@@ -81,6 +81,38 @@ describe('service.locate deepLocate routing', () => {
     });
   });
 
+  it('forwards grounding ablation to ordinary Locate and both element fallback passes', async () => {
+    const service = new Service(createFakeContext());
+    await service.locate(
+      { prompt: 'target' },
+      { disableGroundingGuidance: true },
+      modelRuntime,
+    );
+    expect(
+      rs.mocked(AiLocateElement).mock.calls[0][0].disableGroundingGuidance,
+    ).toBe(true);
+    rs.mocked(AiLocateElement).mockClear();
+    if (modelRuntime.adapter.locate.kind !== 'standard')
+      throw new Error('Expected standard Locate');
+    const withoutSearchArea = {
+      ...modelRuntime,
+      adapter: {
+        ...modelRuntime.adapter,
+        locate: { ...modelRuntime.adapter.locate, searchArea: undefined },
+      },
+    };
+    await service.locate(
+      { prompt: 'target', deepLocate: true },
+      { disableGroundingGuidance: true },
+      withoutSearchArea,
+    );
+    expect(AiLocateElement).toHaveBeenCalledTimes(2);
+    expect(AiLocateSection).not.toHaveBeenCalled();
+    for (const [options] of rs.mocked(AiLocateElement).mock.calls) {
+      expect(options.disableGroundingGuidance).toBe(true);
+    }
+  });
+
   it('uses planLocatedElement and skips first-pass locate when provided', async () => {
     const service = new Service(createFakeContext());
     const planLocatedElement = {

@@ -70,7 +70,6 @@ Then the list should be empty
         context: 'Use the current user as a logged-in buyer.',
         abortSignal: abortController.signal,
         cacheable: false,
-        deepThink: true,
       },
     );
 
@@ -80,7 +79,6 @@ Then the list should be empty
         context: 'Use the current user as a logged-in buyer.',
         abortSignal: abortController.signal,
         cacheable: false,
-        deepThink: true,
       },
     );
     expect(agent.aiAssert).toHaveBeenCalledWith(

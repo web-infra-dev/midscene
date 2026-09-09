@@ -23,7 +23,15 @@ import {
   type PreparedUserPrompt,
   preparedReferenceImagesToChatMessages,
 } from '../../shared/multimodal-prompt';
+import {
+  type PlanningAblation,
+  planningPartEnabled,
+  readPlanningAblation,
+  resolvePlanningFeatures,
+  validatePlanningAblation,
+} from './ablation';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
+import { filterPlanningReplay } from './planning-replay';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
 
@@ -42,8 +50,11 @@ type CallAndParsePlanningResponseOptions = {
   actionSpace: PlanOptions['actionSpace'];
   locateResultCodec?: LocateResultCodec;
   locateResultContext: LocateResultContext;
+  ablation: PlanningAblation;
   includeThought: boolean;
-  includeLog: boolean;
+  includeMemory: boolean;
+  includeSubGoals: boolean;
+  logSource: 'model' | 'action' | 'none';
 };
 
 async function callAndParsePlanningResponse(
@@ -63,7 +74,9 @@ async function callAndParsePlanningResponse(
     locateResultCodec,
     locateResultContext,
     includeThought,
-    includeLog,
+    includeMemory,
+    includeSubGoals,
+    logSource,
   } = options;
   assert(
     modelRuntime.adapter.planning.kind === 'standard',
@@ -84,12 +97,17 @@ async function callAndParsePlanningResponse(
         },
       ),
     parseResponse: (response) => {
-      const planFromAI = parseStandardPlanningResponse(response.content, {
-        includeThought,
-        actionOutputProtocol,
-        actionSpace,
-        logSource: includeLog ? 'model' : 'action',
-      });
+      const planFromAI = parseStandardPlanningResponse(
+        filterPlanningReplay(response.content, options.ablation),
+        {
+          includeThought,
+          actionOutputProtocol,
+          actionSpace,
+          includeMemory,
+          includeSubGoals,
+          logSource,
+        },
+      );
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
@@ -160,10 +178,11 @@ export async function standardPlan(
     ? adapter.planning.locateResultCodec
     : undefined;
 
-  // Only enable sub-goals when aiAct is in deep-thinking planning mode.
-  const includeSubGoals = opts.effort === 'deepThink';
-  const includeThought = opts.effort !== 'fast';
-  const includeLog = opts.effort !== 'fast';
+  const ablation = opts.ablation ?? readPlanningAblation();
+  validatePlanningAblation(ablation, modelRuntime);
+  conversationHistory.configurePlanningAblation(ablation);
+  const { includeSubGoals, includeMemory, includeThought, logSource } =
+    resolvePlanningFeatures(ablation);
 
   if (opts.includeLocateInPlanning && !locateResultCodec) {
     throw new Error(
@@ -173,9 +192,7 @@ export async function standardPlan(
 
   const systemPrompt = await buildStandardPlanningSystemPrompt({
     actionSpace: opts.actionSpace,
-    includeThought,
-    includeLog,
-    includeSubGoals,
+    ablation,
     planningProtocol,
     ...(opts.includeLocateInPlanning && locateResultCodec
       ? {
@@ -214,19 +231,23 @@ export async function standardPlan(
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
   // Build sub-goal status text to include in the message
-  // In planning deep-think mode: show full sub-goals with logs
-  // Otherwise: show historical execution logs
+  // Sub-goals own grouped history; without them, log remains a flat history.
   const executionProgressText = includeSubGoals
     ? conversationHistory.subGoalsToText()
-    : conversationHistory.historicalLogsToText();
+    : logSource !== 'none'
+      ? conversationHistory.historicalLogsToText()
+      : '';
   const executionProgressSection = executionProgressText
     ? `\n\n${executionProgressText}`
-    : conversationHistory.pendingFeedbackMessage
+    : conversationHistory.pendingFeedbackMessage ||
+        !planningPartEnabled(ablation, 'processEvidence')
       ? ''
       : `\n\n${noPreviousActionsText}`;
 
   // Build memories text to include in the message
-  const memoriesText = conversationHistory.memoriesToText();
+  const memoriesText = includeMemory
+    ? conversationHistory.memoriesToText()
+    : '';
   const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
   if (conversationHistory.pendingFeedbackMessage) {
@@ -300,8 +321,11 @@ export async function standardPlan(
       preparedSize: preparedImage.preparedSize,
       contentSize: preparedImage.contentSize,
     },
+    ablation,
     includeThought,
-    includeLog,
+    includeMemory,
+    includeSubGoals,
+    logSource,
   });
 
   let shouldContinuePlanning = true;
@@ -310,7 +334,7 @@ export async function standardPlan(
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('task completed via <complete> tag, stop planning');
     shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed in planning deep-think mode.
+    // Mark all enabled sub-goals as finished when the goal is completed.
     if (includeSubGoals) {
       conversationHistory.markAllSubGoalsFinished();
     }
@@ -332,7 +356,7 @@ export async function standardPlan(
   // TODO: The plan log is recorded before its action has executed, so a failed
   // action may still appear in the next round as an action already performed.
   // Move this write to the successful action execution path in TaskExecutor.action.
-  // Update sub-goals in conversation history only in planning deep-think mode.
+  // The sub-goals component owns state updates and grouped execution logs.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {
       conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
@@ -347,14 +371,14 @@ export async function standardPlan(
       conversationHistory.appendSubGoalLog(planFromAI.log);
     }
   } else {
-    // Without planning deep-think mode, accumulate logs as historical execution steps.
+    // With sub-goals disabled, retain enabled logs as flat execution steps.
     if (planFromAI.log) {
       conversationHistory.appendHistoricalLog(planFromAI.log);
     }
   }
 
   // Append memory to conversation history if present
-  if (planFromAI.memory) {
+  if (includeMemory && planFromAI.memory) {
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
@@ -372,7 +396,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: rawResponse,
+          text: filterPlanningReplay(rawResponse, ablation),
         },
       ],
     });

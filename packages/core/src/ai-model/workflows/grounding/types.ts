@@ -26,6 +26,7 @@ export interface SearchAreaConfig {
 export interface LocateOptions {
   context: UIContext;
   searchConfig?: SearchAreaConfig;
+  disableGroundingGuidance?: boolean;
   modelRuntime: ModelRuntime;
   abortSignal?: AbortSignal;
 }

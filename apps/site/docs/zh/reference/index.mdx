@@ -133,7 +133,6 @@ function aiAct(
   prompt: string | object,
   options?: {
     cacheable?: boolean;
-    deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
@@ -149,7 +148,6 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
   - `prompt: string | object` - 用自然语言描述的操作目标和断言条件，或[使用图片作为提示词](#使用图片作为提示词)。断言条件不是必填项。
   - `options?: object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
@@ -184,20 +182,19 @@ await agent.aiAct('填写表单并提交', {
   abortSignal: controller.signal,
 });
 
-// 对于复杂任务，可以启用 deepThink 参数
-await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容', { deepThink: true });
+await agent.aiAct('完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容');
 ```
 
-##### `deepThink` 规划模式 {#aiact-deepthink}
+##### Planning 组件 {#planning-components}
 
-`deepThink` 控制 `aiAct` 的规划实现：
+标准 Planning 默认开启子目标、memory、观察建议、截图历史及独立定位。旧的 `deepThink` 和实验性 `effort` 总模式参数已移除，改用环境变量独立控制组件。
 
-- 默认情况下，`aiAct` 会在同一次规划请求中完成下一步规划和目标元素定位。
-- 设置为 `true` 后，`aiAct` 会更注重任务拆解，并将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
+```bash
+MIDSCENE_CACHE=false
+MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
+```
 
-`deepThink` 支持 `'unset' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
-
-`deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
+关闭能力时会一起移除它的提示、示例、有效输出、状态及回放。`subGoals` 包含子目标示例，无需另设示例开关。`screenshotHistory` 和 `separateLocate` 分别控制上一张截图与独立定位，其他组应保持它们固定。模型原生思考仍由[模型配置](../model-config#model-native-reasoning)控制。
 
 ##### 在 `aiAct` 提示词中上传文件
 
@@ -1188,7 +1185,6 @@ function runGherkinScenario(
   options?: {
     context?: string;
     abortSignal?: AbortSignal;
-    deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
   },
 ): Promise<void>;
@@ -1200,7 +1196,6 @@ function runGherkinScenario(
   - `options?: object` - 可选的运行选项
     - `context?: string` - 应用于本次运行每个步骤的 AI 补充信息。对于每个映射后的 API 调用，它会覆盖 Agent 的 API 级 context 和 `aiContexts.default`
     - `abortSignal?: AbortSignal` - 用于中止本次运行的可选信号
-    - `deepThink?: 'unset' | true | false` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
     - `deepLocate?: boolean` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
 
 - 返回值：
@@ -1586,17 +1581,10 @@ const isOnSale = await agent.aiBoolean('这个商品是否正在促销？');
 await agent.aiTap('右上角购物车图标', { deepLocate: true });
 ```
 
-:::note
+:::info
 
-历史上，`deepThink` 这个名字在不同 API 中承担过两种含义：
+`deepLocate` 控制增强元素定位。`aiAct` 的 `deepThink` 总模式已移除，请使用 [Planning 组件](#planning-components)。单步动作仍兼容旧的 `deepThink` 定位别名，其含义等同于 `deepLocate`。
 
-- 在 `aiAct()` 中，`deepThink` 从一开始就表示**规划模式**，用于引导任务拆解和专注规划的思考过程。详情请参考 [`deepThink` 规划模式](#aiact-deepthink)。
-- 在 `aiTap`、`aiHover` 等单步操作方法中，旧的 `deepThink` 表示**定位增强**，等同于现在的 `deepLocate`。
-
-为了区分这两种语义，自 v1.5.1 起，`deepThink` 只用于表示规划模式，定位增强统一命名为 `deepLocate`。
-
-- 对于 `aiAct()`，可以同时使用 `deepThink` 和 `deepLocate`：`deepThink` 控制规划模式，`deepLocate` 控制本节描述的深度定位。
-- 对于 `aiTap`、`aiHover` 等单步操作方法，如果需要提升定位精确度，推荐使用语义更清晰的 `deepLocate` 参数；旧的 `deepThink` 参数仍然兼容，语义等同于 `deepLocate`。
 :::
 
 <a id="prompting-with-images"></a>

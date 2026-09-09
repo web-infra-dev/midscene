@@ -68,6 +68,44 @@ describe('TaskBuilder', () => {
     expect(plan.param).not.toHaveProperty('deepThink');
   });
 
+  it('carries grounding ablation only into Locate tasks built for that aiAct', async () => {
+    const mockAction: DeviceAction = {
+      name: 'Tap',
+      paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+      call: rs.fn(),
+    };
+    const mockInterface = new MockInterface([mockAction]);
+    const locate = rs.fn(async () => ({
+      element: { center: [50, 50], description: 'target' },
+      dump: { taskInfo: {}, matchedElement: [] },
+    }));
+    const taskBuilder = new TaskBuilder({
+      interfaceInstance: mockInterface,
+      service: { locate } as unknown as Service,
+      actionSpace: [mockAction],
+    });
+    for (const disabled of [true, false]) {
+      const { tasks } = await taskBuilder.build(
+        [{ type: 'Tap', param: { locate: { prompt: 'target' } } }],
+        mockModelRuntime,
+        mockModelRuntime,
+        disabled ? { disableGroundingGuidance: true } : undefined,
+      );
+      await tasks[0].executor({
+        task: { timing: {} },
+        uiContext: { shrunkShotToLogicalRatio: 1, deprecatedDpr: 1 },
+      } as any);
+      expect(
+        (
+          locate.mock.calls.at(-1) as unknown as [
+            unknown,
+            { disableGroundingGuidance?: boolean },
+          ]
+        )[1].disableGroundingGuidance,
+      ).toBe(disabled ? true : undefined);
+    }
+  });
+
   it('dispatches plans using handler registry', async () => {
     const actionSchema = z.object({
       locate: getMidsceneLocationSchema().describe('element to locate'),

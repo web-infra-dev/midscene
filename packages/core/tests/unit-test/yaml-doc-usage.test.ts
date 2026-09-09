@@ -161,7 +161,6 @@ tasks:
     flow:
       - ai: Search for "weather today"
         cacheable: false
-        deepThink: true
         deepLocate: true
       - aiAct: Click the search button
         cacheable: true

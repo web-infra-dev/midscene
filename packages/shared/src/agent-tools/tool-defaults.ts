@@ -22,7 +22,7 @@ export interface ToolDefaults {
   locate?: Record<string, unknown>;
   /**
    * Merged into the `aiAction` options used by the `act` tool.
-   * e.g. `{ deepLocate: true, deepThink: true }`.
+   * e.g. `{ deepLocate: true }`.
    */
   act?: Record<string, unknown>;
 }
@@ -46,12 +46,6 @@ export const TOOL_BEHAVIOR_FLAGS: readonly ToolBehaviorFlag[] = [
     description:
       'Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).',
     defaults: { locate: { deepLocate: true }, act: { deepLocate: true } },
-  },
-  {
-    cli: 'deep-think',
-    description:
-      'Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).',
-    defaults: { act: { deepThink: true } },
   },
 ];
 

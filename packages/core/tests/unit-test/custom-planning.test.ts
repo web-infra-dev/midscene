@@ -28,7 +28,6 @@ function createPlanOptions(
     } as any,
     conversationHistory,
     includeLocateInPlanning: true,
-    effort: 'balance',
   };
 }
 

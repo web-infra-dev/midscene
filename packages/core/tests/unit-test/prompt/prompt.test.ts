@@ -271,22 +271,26 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - includeSubGoals true', async () => {
+  it('planning - all components enabled', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: true,
     });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
+  it('planning - components disabled should not contain sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     // Should not contain sub-goal related tags and content
@@ -297,7 +301,7 @@ describe('system prompts', () => {
     // Should still contain planning tag
     expect(prompt).toContain('<planning>');
 
-    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    // Observation guidance is independently controlled by its component.
     expect(prompt).not.toContain('### Observation Guidelines');
 
     // Should have simplified Step 1 title
@@ -307,14 +311,19 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - fast output omits planning reasoning', async () => {
+  it('planning - planningText and log disabled omits planning reasoning', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+        'planningText',
+        'log',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeThought: false,
-      includeLog: false,
-      includeSubGoals: false,
     });
 
     expect(prompt).not.toContain('<planning>');
@@ -328,12 +337,11 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - includeSubGoals true should contain sub-goal tags', async () => {
+  it('planning - all components enabled should contain sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: true,
     });
 
     // Should contain sub-goal related tags and content
@@ -344,7 +352,7 @@ describe('system prompts', () => {
     // Should still contain planning tag
     expect(prompt).toContain('<planning>');
 
-    // Observation Guidelines are only available in deepThink (sub-goals) mode
+    // Observation guidance is independently controlled by its component.
     expect(prompt).toContain('### Observation Guidelines');
 
     // Should have full Step 1 title with sub-goal tags
@@ -353,12 +361,11 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - includeSubGoals true should include sub-goal examples', async () => {
+  it('planning - all components enabled should include sub-goal examples', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: true,
     });
 
     // Should contain sub-goal example content
@@ -368,12 +375,17 @@ describe('system prompts', () => {
     expect(prompt).toContain('status="finished|pending"');
   });
 
-  it('planning - includeSubGoals false should not include sub-goal examples', async () => {
+  it('planning - subGoals disabled should not include sub-goal examples', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     // Should not contain sub-goal example content
@@ -384,10 +396,15 @@ describe('system prompts', () => {
 
   it('planning should include priority override guidance for input verification', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     expect(prompt).toContain(
@@ -406,10 +423,15 @@ describe('system prompts', () => {
 
   it('planning should include dropdown scrolling guidance', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     expect(prompt).toContain('Scrollable option lists and dropdowns');
@@ -432,10 +454,15 @@ describe('system prompts', () => {
 
   it('planning should include durable change completion guidance', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     expect(prompt).toContain('Change completion');
@@ -448,12 +475,11 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
+  it('planning - multi-turn example with all components enabled should have sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: true,
     });
 
     // Multi-turn example should contain sub-goal related content
@@ -470,12 +496,17 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
+  it('planning - multi-turn example with subGoals disabled should not have sub-goal tags', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should exist but without sub-goal tags
@@ -493,11 +524,16 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeLocateInPlanning true should have bbox in locate', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       locatePromptSpec: locatePromptSpecFor('qwen3-vl'),
       includeLocateInPlanning: true,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should contain bbox in locate examples
@@ -508,10 +544,15 @@ describe('system prompts', () => {
 
   it('planning - multi-turn example with includeLocateInPlanning false should not have bbox in locate', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
+      ablation: [
+        'subGoals',
+        'memory',
+        'observationGuidance',
+        'crossPageNavigation',
+      ],
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
       includeLocateInPlanning: false,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should not contain bbox

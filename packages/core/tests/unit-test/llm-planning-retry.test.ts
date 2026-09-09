@@ -97,7 +97,7 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
-  it('uses the action-only XML protocol for fast effort', async () => {
+  it('uses the action-only XML protocol when text and log components are disabled', async () => {
     rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>
 <action-param-json>{}</action-param-json>`),
@@ -109,7 +109,7 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      effort: 'fast',
+      ablation: ['planningText', 'log', 'subGoals', 'memory'],
     });
 
     const systemPrompt = rs.mocked(callAI).mock.calls[0]?.[0]?.[0]?.content;
@@ -117,7 +117,7 @@ describe('plan XML parse retry', () => {
     expect(systemPrompt).not.toEqual(expect.stringContaining('</planning>'));
     expect(systemPrompt).not.toEqual(expect.stringContaining('<log>'));
     expect(result.thought).toBeUndefined();
-    expect(result.log).toBe('{"type":"Tap","param":{}}');
+    expect(result.log).toBe('');
     expect(result.actions).toEqual([{ type: 'Tap', param: {} }]);
   });
 
@@ -143,7 +143,6 @@ describe('plan XML parse retry', () => {
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: false,
-        effort: 'fast',
       },
     );
 
@@ -191,7 +190,6 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(3);
@@ -229,7 +227,6 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig('kimi3')),
       conversationHistory,
       includeLocateInPlanning: false,
-      effort: 'balance',
     } as const;
 
     await standardPlan('tap the button', options);
@@ -263,7 +260,6 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory,
       includeLocateInPlanning: false,
-      effort: 'balance',
     } as const;
 
     await standardPlan('tap the button', options);
@@ -293,7 +289,6 @@ describe('plan XML parse retry', () => {
         modelRuntime: getModelRuntime(mockModelConfig()),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: false,
-        effort: 'balance',
       }),
     ).rejects.toBe(requestError);
 
@@ -312,7 +307,6 @@ describe('plan XML parse retry', () => {
       modelRuntime: getModelRuntime(mockModelConfig()),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      effort: 'balance',
     });
 
     const messages = rs.mocked(callAI).mock.calls[0]?.[0];
@@ -345,7 +339,6 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      effort: 'balance',
     });
 
     expect(latestImageDetail()).toBe('high');
@@ -397,7 +390,6 @@ describe('plan XML parse retry', () => {
       },
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      effort: 'balance',
     });
 
     expect(latestSystemPrompt()).toContain('### Custom tools');
@@ -425,7 +417,6 @@ describe('plan XML parse retry', () => {
       },
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: false,
-      effort: 'balance',
     });
 
     expect(jsonParser).toHaveBeenCalledWith('{custom syntax}', {
@@ -481,7 +472,6 @@ describe('plan XML parse retry', () => {
       }),
       conversationHistory: new ConversationHistory(),
       includeLocateInPlanning: true,
-      effort: 'balance',
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);

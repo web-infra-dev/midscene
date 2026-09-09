@@ -7,16 +7,29 @@ import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_PLANNING_DISABLE_PARTS,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '../../../src/env';
+import { getBasicEnvValue } from '../../../src/env/basic';
 import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 
 describe('overrideAIConfig', () => {
   afterEach(() => {
     rs.unstubAllEnvs();
+  });
+
+  it('registers Planning ablation as a basic environment setting', () => {
+    rs.stubEnv(MIDSCENE_PLANNING_DISABLE_PARTS, 'memory,subGoals');
+    const manager = new GlobalConfigManager();
+    expect(manager.getAllEnvConfig()[MIDSCENE_PLANNING_DISABLE_PARTS]).toBe(
+      'memory,subGoals',
+    );
+    expect(getBasicEnvValue(MIDSCENE_PLANNING_DISABLE_PARTS)).toBe(
+      'memory,subGoals',
+    );
   });
 
   it('should throw if called with invalid key', () => {
