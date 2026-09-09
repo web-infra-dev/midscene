@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { expect } from '@playwright/test';
 import { test } from './fixture';
 
-test('fast aiAct handles an advertisement popup during login', async ({
+test('aiAct handles an advertisement popup during login', async ({
   agentForPage,
   page,
 }) => {
@@ -13,7 +13,7 @@ test('fast aiAct handles an advertisement popup during login', async ({
   const agent = await agentForPage(page);
   await agent.aiAct(
     'Log in with username "demo-user" and password "demo-password".',
-    { effort: 'fast', cacheable: false },
+    { cacheable: false },
   );
 
   await expect(page.locator('body')).toHaveAttribute(
