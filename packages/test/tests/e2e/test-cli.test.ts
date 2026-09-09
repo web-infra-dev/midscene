@@ -159,6 +159,12 @@ describe('midscene-test CLI', () => {
     const projectResult = JSON.parse(
       readFileSync(summaryPathFor(resultDir), 'utf8'),
     );
+    const reportPath = resolve(
+      join(summaryPathFor(resultDir), '..'),
+      projectResult.report,
+    );
+    expect(existsSync(reportPath)).toBe(true);
+    expect(execution.stdout).toContain(`Report: ${reportPath}`);
     expect(projectResult).toMatchObject({
       schemaVersion: 3,
       runId: basename(runDir),

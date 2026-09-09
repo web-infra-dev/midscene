@@ -336,6 +336,20 @@ pnpm exec midscene-test nodes --project android-smoke
 
 The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
 
+## View test results
+
+After each run, the CLI prints the results and a `Report:` path. Open the HTML report to inspect Projects, Cases, retry attempts, screenshots, Step input/output, errors, and associated Agent traces.
+
+Reports are saved to:
+
+```text
+midscene_run/report/test-run-<runId>.html
+```
+
+With external screenshot storage, the report is a directory containing `index.html` and `screenshots/`. Copy or upload the whole directory.
+
+Set `output.reportDir` in `midscene.config.ts` to change the report directory.
+
 ## Test case design conventions
 
 Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:

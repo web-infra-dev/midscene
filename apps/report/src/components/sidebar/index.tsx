@@ -477,7 +477,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           {hasTaskTimestamps
             ? 'Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps.'
             : timing.wallTimeSource === 'fallback'
-              ? 'Total elapsed duration reported by the enclosing test runner because task timestamps were unavailable.'
+              ? 'Total elapsed duration reported by the test framework because task timestamps were unavailable.'
               : 'The total elapsed span is unavailable because the report has no recorded task timestamps.'}
         </span>
         {hasTaskTimestamps && (

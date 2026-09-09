@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { setMaxListeners } from 'node:events';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
+import { TestRunReportAssembler } from '@midscene/core/report';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
@@ -22,6 +23,10 @@ import type {
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
 } from '../parser/types';
+import {
+  buildTestRunReportDump,
+  collectTestRunReportSources,
+} from '../report/test-run-report';
 import {
   writeCaseAttemptResult,
   writeCollectionError,
@@ -743,5 +748,17 @@ export async function runTestProject(
     ...(configPath ? { configPath } : {}),
     result,
   });
-  return result;
+  const reportPath = new TestRunReportAssembler().assemble({
+    outputDir: reportDir,
+    reportFileName: `test-run-${runId}`,
+    sources: collectTestRunReportSources(result),
+    buildRunnerDump: (index) => buildTestRunReportDump(result, index),
+  });
+  const completedResult: TestProjectRunResult = { ...result, reportPath };
+  writeTestProjectRunResult({
+    projectRoot,
+    ...(configPath ? { configPath } : {}),
+    result: completedResult,
+  });
+  return completedResult;
 }

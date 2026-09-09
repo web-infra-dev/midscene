@@ -118,6 +118,9 @@ export const writeTestProjectRunResult = (
     ...(options.configPath ? { configPath: options.configPath } : {}),
     factsRoot: '.',
     reportDir: relativeToSummary(result.summaryPath, result.reportDir),
+    ...(result.reportPath
+      ? { report: relativeToSummary(result.summaryPath, result.reportPath) }
+      : {}),
     summary: result.summary,
     projects: result.projects.map((project) => ({
       projectId: project.projectId,

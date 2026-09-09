@@ -114,9 +114,12 @@ export { ReportGenerator, nullReportGenerator } from './report-generator';
 export {
   collectDedupedExecutions,
   ReportMergingTool,
+  TestRunReportAssembler,
   dedupeExecutionsKeepLatest,
   splitReportHtmlByExecution,
 } from './report';
+export type * from './test-run-report';
+export { TEST_RUN_REPORT_SCRIPT_TYPE } from './test-run-report';
 export {
   createReportCliCommands,
   reportFileToMarkdown,

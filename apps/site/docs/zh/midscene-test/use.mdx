@@ -336,6 +336,20 @@ pnpm exec midscene-test nodes --project android-smoke
 
 当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
 
+## 查看测试结果
+
+每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看 Project、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
+
+报告默认保存在：
+
+```text
+midscene_run/report/test-run-<runId>.html
+```
+
+使用外置截图时，报告是包含 `index.html` 和 `screenshots/` 的目录，复制或上传时需保留整个目录。
+
+通过 `midscene.config.ts` 中的 `output.reportDir` 可以修改报告目录。
+
 ## 用例设计约定
 
 Midscene Test 通过顺序执行和显式共享状态，让每个 Node 的输入、执行上下文和依赖关系更清晰。YAML 用例遵循以下设计：
