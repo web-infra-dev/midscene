@@ -51,7 +51,12 @@ import {
   ReportGenerator,
   assertReportGenerationOptions,
 } from '@/report-generator';
-import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
+import {
+  getVersion,
+  processCacheConfig,
+  reportHTMLContent,
+  sleep,
+} from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -1710,6 +1715,51 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     if (interfaceDestroyError) {
       throw interfaceDestroyError;
     }
+  }
+
+  /**
+   * Wait for a positive, finite duration in milliseconds and record the wait
+   * in the report. Does not use a model, capture screenshots, or invoke device
+   * action hooks. The report records both the requested and elapsed duration.
+   */
+  async sleep(ms: number): Promise<void> {
+    assert(
+      Number.isFinite(ms) && ms > 0,
+      `ms for sleep must be a finite number greater than 0, but got ${ms}`,
+    );
+    const start = Date.now();
+    const task: ExecutionTask = {
+      taskId: uuid(),
+      type: 'Action Space',
+      subType: 'Sleep',
+      status: 'running',
+      param: { timeMs: ms },
+      timing: { start, callActionStart: start },
+      executor: async () => {},
+    };
+    const executionDump = new ExecutionDump({
+      id: uuid(),
+      logTime: start,
+      name: 'Sleep',
+      tasks: [task],
+    });
+    this.appendExecutionDump(executionDump);
+    this.writeOutActionDumps(executionDump);
+
+    await sleep(ms);
+
+    const end = Date.now();
+    task.status = 'finished';
+    task.timing = {
+      start,
+      callActionStart: start,
+      callActionEnd: end,
+      end,
+      cost: end - start,
+    };
+    this.writeOutActionDumps(executionDump);
+    await this.reportGenerator.flush();
+    this.notifyDumpUpdateListeners(executionDump);
   }
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
