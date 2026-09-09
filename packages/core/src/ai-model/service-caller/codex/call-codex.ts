@@ -1,5 +1,4 @@
-import type { AICallResult, ModelCallContext } from '../types';
-import { buildUsageInfo } from '../utils';
+import type { ModelCallContext, ModelCallResult } from '../types';
 import {
   type CodexAppServerRecordEvent,
   callAIWithCodexAppServer,
@@ -9,9 +8,8 @@ export const callCodex = async ({
   messages,
   modelRuntime,
   options,
-  internalCallId,
   recordEvent,
-}: ModelCallContext): Promise<AICallResult> => {
+}: ModelCallContext): Promise<ModelCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
   let protocolChunkSequence = 0;
   const codexStartTime = Date.now();
@@ -54,17 +52,8 @@ export const callCodex = async ({
       imageDetail,
       onRecordEvent: recordCodexEvent,
     });
-    const { protocolMetadata, ...response } = codexResult;
+    const { protocolMetadata, usage: rawUsage, ...response } = codexResult;
     const timeCost = Date.now() - codexStartTime;
-    const usage = buildUsageInfo({
-      usageData: response.usage,
-      requestId: protocolMetadata.turnId,
-      timeCost,
-      modelName: modelConfig.modelName,
-      modelDescription: modelConfig.modelDescription,
-      slot: modelConfig.slot,
-      internalCallId,
-    });
     recordEvent?.({
       type: 'response',
       attempt: 1,
@@ -72,17 +61,16 @@ export const callCodex = async ({
       final: {
         content: response.content,
         reasoningContent: response.reasoning_content,
-        usage,
+        usage: rawUsage,
         timeCost,
         protocol: protocolMetadata,
       },
     });
-    if (usage && modelRuntime.onUsage) {
-      modelRuntime.onUsage(usage);
-    }
     return {
       ...response,
-      usage,
+      rawUsage,
+      timeCost,
+      requestId: protocolMetadata.turnId,
     };
   } catch (error) {
     recordEvent?.({

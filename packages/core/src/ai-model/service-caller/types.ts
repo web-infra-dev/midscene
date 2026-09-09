@@ -1,4 +1,5 @@
 import type { AIUsageInfo, StreamingCallback } from '@/types';
+import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 
@@ -25,11 +26,17 @@ export type AICallResult = {
   isStreamed: boolean;
 };
 
+export type ModelCallResult = Omit<AICallResult, 'usage'> & {
+  rawUsage?: OpenAI.CompletionUsage;
+  timeCost?: number;
+  requestId?: string | null;
+  responseModelName?: string;
+};
+
 export type ModelCallContext = {
   messages: ChatCompletionMessageParam[];
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
-  internalCallId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 };

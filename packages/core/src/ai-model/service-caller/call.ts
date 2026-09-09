@@ -9,7 +9,7 @@ import {
   recordModelCallEvent,
 } from './model-call-recorder';
 import type { AICallResult, CallAIOptions, ModelCallContext } from './types';
-import { nextInternalCallId } from './utils';
+import { buildUsageInfo, nextInternalCallId } from './utils';
 
 export async function callAI(
   messages: ChatCompletionMessageParam[],
@@ -54,11 +54,26 @@ export async function callAI(
     modelRuntime,
     options,
     executionId,
-    internalCallId,
     recordEvent,
   };
 
-  return isCodexAppServerProvider(modelConfig.openaiBaseURL)
+  const result = await (isCodexAppServerProvider(modelConfig.openaiBaseURL)
     ? callCodex(context)
-    : chat(context);
+    : chat(context));
+  const { rawUsage, timeCost, requestId, responseModelName, ...response } =
+    result;
+  const usage = buildUsageInfo({
+    usageData: rawUsage,
+    timeCost,
+    requestId,
+    responseModelName,
+    modelName: modelConfig.modelName,
+    modelDescription: modelConfig.modelDescription,
+    slot: modelConfig.slot,
+    internalCallId,
+  });
+  if (usage && modelRuntime.onUsage) {
+    modelRuntime.onUsage(usage);
+  }
+  return { ...response, usage };
 }

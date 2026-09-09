@@ -4,10 +4,9 @@ import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
 import { formatOpenAIAPIErrorDetails } from '../openai-error';
 import { resolveEffectiveTimeoutMs } from '../request-timeout';
-import type { AICallResult, ModelCallContext } from '../types';
+import type { ModelCallContext, ModelCallResult } from '../types';
 import {
   AIResponseParseError,
-  buildUsageInfo,
   getLatestResponseAttempt,
   stringifyForDebug,
 } from '../utils';
@@ -20,9 +19,8 @@ export const chat = async ({
   modelRuntime,
   options,
   executionId,
-  internalCallId,
   recordEvent,
-}: ModelCallContext): Promise<AICallResult> => {
+}: ModelCallContext): Promise<ModelCallResult> => {
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
 
@@ -75,17 +73,12 @@ export const chat = async ({
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    modelFamily,
-    openAIErrorResponseContext,
-  } = await createChatClient({
-    modelConfig,
-    executionId,
-    recordEvent,
-  });
+  const { completion, modelName, modelFamily, openAIErrorResponseContext } =
+    await createChatClient({
+      modelConfig,
+      executionId,
+      recordEvent,
+    });
 
   try {
     debugCall(
@@ -101,12 +94,10 @@ export const chat = async ({
         requestId,
         responseModelName,
       } = await callChatCompletionStream({
-        client: {
-          completion,
-          modelName,
-          modelFamily,
-          openAIErrorResponseContext,
-        },
+        completion,
+        modelName,
+        modelFamily,
+        openAIErrorResponseContext,
         modelRuntime,
         messages: messagesWithImageDetail,
         requestConfig,
@@ -126,46 +117,27 @@ export const chat = async ({
         requestId,
         responseModelName,
       } = await callChatCompletionNonStreaming({
-        client: {
-          completion,
-          modelName,
-          modelDescription,
-          modelFamily,
-          openAIErrorResponseContext,
-        },
+        completion,
+        modelName,
+        modelFamily,
+        openAIErrorResponseContext,
         modelRuntime,
         messages: messagesWithImageDetail,
         requestConfig,
         effectiveTimeoutMs,
         abortSignal: options?.abortSignal,
         startTime,
-        internalCallId,
       }));
     }
 
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
 
-    const finalUsage = buildUsageInfo({
-      usageData: usage,
-      requestId,
-      timeCost,
-      modelName,
-      modelDescription,
-      responseModelName,
-      slot: modelConfig.slot,
-      internalCallId,
-    });
-    // Report usage for the final result.
-    if (finalUsage && modelRuntime.onUsage) {
-      modelRuntime.onUsage(finalUsage);
-    }
-
     const response = {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
       rawChoiceMessage,
-      usage: finalUsage,
+      rawUsage: usage,
       isStreamed: !!isStreaming,
     };
     recordEvent?.({
@@ -175,13 +147,13 @@ export const chat = async ({
       final: {
         content: response.content,
         reasoningContent: response.reasoning_content,
-        usage: response.usage,
+        usage: response.rawUsage,
         requestId,
         timeCost,
         responseModelName,
       },
     });
-    return response;
+    return { ...response, timeCost, requestId, responseModelName };
   } catch (e: any) {
     warnCall('call AI error', e);
 

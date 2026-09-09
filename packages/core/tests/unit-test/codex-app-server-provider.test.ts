@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
-import { callCodex } from '@/ai-model/service-caller/codex/call-codex';
+import { callAI } from '@/ai-model/service-caller';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -316,17 +316,18 @@ readline.on('line', (line) => {
       completion_tokens_details: { reasoning_tokens: 2 },
     };
     expect(result.usage).toEqual(expectedUsage);
-    const runtime = getModelRuntime(baseModelConfig);
+    const runtime = getModelRuntime({
+      ...baseModelConfig,
+      openaiBaseURL: 'codex://app-server',
+    });
     const onUsage = rs.fn();
     runtime.onUsage = onUsage;
     const chunks: CodeGenerationChunk[] = [];
-    const enriched = await callCodex({
-      messages: [{ role: 'user', content: 'hello' }],
-      modelRuntime: runtime,
-      options: { stream: true, onChunk: (chunk) => chunks.push(chunk) },
-      internalCallId: 'codex-test-call',
-      executionId: 'codex-test-execution',
-    });
+    const enriched = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      runtime,
+      { stream: true, onChunk: (chunk) => chunks.push(chunk) },
+    );
     expect(chunks.at(-1)?.usage).toEqual(expectedUsage);
     expect(enriched.usage).toMatchObject({
       ...expectedUsage,
@@ -335,7 +336,7 @@ readline.on('line', (line) => {
       model_description: 'codex',
       slot: 'default',
       request_id: 'turn-1',
-      _midscene_call_id: 'codex-test-call',
+      _midscene_call_id: expect.any(String),
       time_cost: expect.any(Number),
     });
     expect(onUsage).toHaveBeenCalledTimes(1);

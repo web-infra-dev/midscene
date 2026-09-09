@@ -18,7 +18,10 @@ import type {
 import { resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionStream = async ({
-  client,
+  completion,
+  modelName,
+  modelFamily,
+  openAIErrorResponseContext,
   modelRuntime,
   messages,
   requestConfig,
@@ -29,8 +32,6 @@ export const callChatCompletionStream = async ({
   recordEvent,
 }: StreamingChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { adapter } = modelRuntime;
-  const { completion, modelName, modelFamily, openAIErrorResponseContext } =
-    client;
   const debugProfileStats = getDebug('ai:profile:stats');
   const temperature = requestConfig.temperature;
   let accumulated = '';

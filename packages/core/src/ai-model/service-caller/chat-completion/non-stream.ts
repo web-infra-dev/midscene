@@ -9,7 +9,6 @@ import {
 import {
   AIResponseParseError,
   appendAIRequestFailureSummary,
-  buildUsageInfo,
   getLatestSuccessfulResponseRequestId,
   normalizeRetryCount,
   toError,
@@ -21,23 +20,18 @@ import type {
 import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionNonStreaming = async ({
-  client,
+  completion,
+  modelName,
+  modelFamily,
+  openAIErrorResponseContext,
   modelRuntime,
   messages,
   requestConfig,
   effectiveTimeoutMs,
   abortSignal,
   startTime,
-  internalCallId,
 }: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
-  const {
-    completion,
-    modelName,
-    modelDescription,
-    modelFamily,
-    openAIErrorResponseContext,
-  } = client;
   const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -106,23 +100,10 @@ export const callChatCompletionNonStreaming = async ({
       });
 
       if (!hasUsableText(content)) {
-        const errorUsage = buildUsageInfo({
-          usageData: usage,
-          requestId,
-          timeCost,
-          modelName,
-          modelDescription,
-          responseModelName,
-          slot: modelConfig.slot,
-          internalCallId,
-        });
-        if (errorUsage && modelRuntime.onUsage) {
-          modelRuntime.onUsage(errorUsage);
-        }
         throw new AIResponseParseError(
           'empty content from AI model',
           content || '',
-          errorUsage,
+          undefined,
           rawChoiceMessage,
         );
       }
