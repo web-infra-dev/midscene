@@ -130,6 +130,51 @@ describe('Input Strategy', () => {
     expect(typeString.mock.calls).toEqual([['A'], ['😀'], ['B']]);
   });
 
+  it('paces implicit Shift for uppercase and punctuation in sequential input', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      inputStrategy: 'sequential',
+      keyboardShortcutDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const typeString = rs
+      .spyOn(inputDriver, 'typeString')
+      .mockImplementation(() => {});
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithExplicitModifiers')
+      .mockResolvedValue(undefined);
+
+    await device.inputPrimitives.keyboard!.typeText('A!b😀');
+
+    expect(explicitShortcut.mock.calls).toEqual([
+      ['a', ['shift'], 50],
+      ['1', ['shift'], 50],
+    ]);
+    expect(typeString.mock.calls).toEqual([['b'], ['😀']]);
+  });
+
+  it('paces the select-all shortcut used before replacing input', async () => {
+    const device = new ComputerDevice({
+      keyboardDriver: 'libnut',
+      keyboardShortcutDelay: 50,
+    });
+    const inputDriver = (device as any).inputDriver;
+    const explicitShortcut = rs
+      .spyOn(inputDriver, 'keyTapWithExplicitModifiers')
+      .mockResolvedValue(undefined);
+    const keyTap = rs.spyOn(inputDriver, 'keyTap').mockImplementation(() => {});
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+
+    await (device as any).selectAllAndDelete();
+
+    expect(explicitShortcut).toHaveBeenCalledWith(
+      'a',
+      [process.platform === 'darwin' ? 'command' : 'control'],
+      50,
+    );
+    expect(keyTap).toHaveBeenCalledWith('backspace');
+  });
+
   it('uses explicit modifier phases when shortcut delay is configured', async () => {
     const device = new ComputerDevice({
       keyboardDriver: 'libnut',

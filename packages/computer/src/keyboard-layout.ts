@@ -29,3 +29,16 @@ export const US_SHIFTED_CHARACTER_KEYS: ReadonlyMap<string, string> = new Map([
   ['>', '.'],
   ['?', '/'],
 ]);
+
+/**
+ * Resolve a character that requires Shift on an en-US keyboard to its
+ * unshifted base key. Returns undefined when the character does not require
+ * Shift or cannot be represented by this small layout-specific map.
+ */
+export function resolveUSShiftedKey(character: string): string | undefined {
+  if (/^[A-Z]$/.test(character)) {
+    return character.toLowerCase();
+  }
+
+  return US_SHIFTED_CHARACTER_KEYS.get(character);
+}

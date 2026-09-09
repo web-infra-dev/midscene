@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { getDebug } from '@midscene/shared/logger';
-import { US_SHIFTED_CHARACTER_KEYS } from './keyboard-layout';
+import { resolveUSShiftedKey } from './keyboard-layout';
 
 const debugKeyboard = getDebug('computer:keyboard');
 
@@ -88,12 +88,8 @@ function resolvePhysicalKey(
   modifiers: string[],
 ): { key: string; modifiers: string[] } {
   const resolvedModifiers = [...modifiers];
-  const shiftedBaseKey = US_SHIFTED_CHARACTER_KEYS.get(key);
+  const shiftedBaseKey = resolveUSShiftedKey(key);
 
-  if (/^[A-Z]$/.test(key)) {
-    resolvedModifiers.push('shift');
-    return { key: key.toLowerCase(), modifiers: resolvedModifiers };
-  }
   if (shiftedBaseKey !== undefined) {
     resolvedModifiers.push('shift');
     return { key: shiftedBaseKey, modifiers: resolvedModifiers };

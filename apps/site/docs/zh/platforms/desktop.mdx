@@ -146,6 +146,35 @@ await agent.aiAct('click the red button five times');
 
 `@midscene/computer` 会控制 Midscene 所在电脑的前台应用。这个应用可以是 VNC、TeamViewer 等远程控制客户端，也可以是虚拟机控制台。请先打开客户端并建立连接，再让客户端保持在前台。Midscene 会把它作为本地桌面应用进行控制。Midscene 不会直接连接这些产品或协议。
 
+### 调整本机 libnut 的修饰键时序
+
+Windows 和 Linux 的本机桌面控制使用 libnut 键盘驱动。macOS 设置 `keyboardDriver: 'libnut'` 后，也会进入这条输入路径。
+
+部分远程控制客户端在全屏模式下会单独读取修饰键状态。紧凑的 `Control+S` 事件可能只剩下 `s`。文本输入也可能出现相同问题。例如，大写 `K` 丢失隐含的 `Shift` 后会变成 `k`，`!` 则会变成 `1`。
+
+请设置正数 `keyboardShortcutDelay`，让 Midscene 分阶段发送修饰键。发送顺序是：按下修饰键、等待、发送主键、等待、释放修饰键。逐键输入文本时，大写字母和 en-US 键盘中的 Shift 标点也会使用这套时序。
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 80,
+  keyboardShortcutDelay: 50,
+});
+```
+
+这两个延迟控制不同的间隔：
+
+- `keyboardTypeDelay` 控制相邻文本字符之间的等待时间。
+- `keyboardShortcutDelay` 控制修饰键状态变化前后的等待时间。它也会作用于 `Control+S` 等组合键。
+
+`keyboardShortcutDelay` 的默认值是 `0`。此时，libnut 会沿用原来的一次调用方式。只有当前台应用丢失修饰键时，才建议从 `50` 开始测试。这个选项只对本机 libnut 驱动生效。直接使用 RDP 或 macOS AppleScript 驱动时，它不会生效。
+
+:::warning
+Shift 标点的转换以 en-US 键盘布局为准。使用其他布局时，请分别验证本机和远端系统中的大写字母与标点。
+:::
+
 ### 选择 macOS 修饰键的发送方式
 
 macOS AppleScript 键盘后端提供两种事件模式。两种模式都调用 AppleScript `System Events`。`physical` 表示显式的按键状态变化，不表示硬件级输入，也不会发送 HID 扫描码。
@@ -170,6 +199,8 @@ const agent = await agentForComputer({
 ```
 
 `keyboardEventMode` 的默认值是 `logical`。这个模式保留标准的 AppleScript 行为。
+
+`keyboardShortcutDelay` 不影响 AppleScript 输入路径。如果 AppleScript 控制的前台应用需要显式的修饰键状态变化，请使用 `keyboardEventMode: 'physical'`。
 
 :::warning
 `physical` 是可选的兼容模式。请根据前台应用、远程或虚拟系统和键盘布局进行验证。当前测试覆盖 AppleScript 生成结果和集成行为，没有覆盖所有远程控制产品和虚拟机控制台。

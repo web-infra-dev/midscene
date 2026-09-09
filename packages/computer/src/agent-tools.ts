@@ -74,7 +74,7 @@ const computerInitArgShape = {
     .nonnegative()
     .optional()
     .describe(
-      'Finite non-negative delay in milliseconds between modifier transitions and the main key for local libnut shortcuts. Positive values can improve compatibility with full-screen remote-control clients. Ignored in RDP mode and by the macOS AppleScript driver.',
+      'Finite non-negative delay in milliseconds around modifier transitions for local libnut keyboard events. Positive values pace shortcuts and the implicit Shift used by uppercase or en-US punctuation during sequential input. Ignored in RDP mode and by the macOS AppleScript driver.',
     ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.

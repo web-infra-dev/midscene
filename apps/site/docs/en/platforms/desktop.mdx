@@ -146,6 +146,35 @@ await agent.aiAct('click the red button five times');
 
 `@midscene/computer` controls the foreground application on the computer that runs Midscene. The application can be a remote-control client, such as VNC or TeamViewer, or a virtual machine console. Open and connect the client first, then keep it in the foreground while Midscene controls it as a local desktop application. Midscene does not connect to these products or protocols directly.
 
+### Pace modifier keys with the local libnut driver
+
+Local desktop control uses the libnut keyboard driver on Windows and Linux. macOS also uses this path when you set `keyboardDriver: 'libnut'`.
+
+Some full-screen remote-control clients observe modifier state separately from the primary key. A compact `Control+S` event can then arrive as plain `s`. Text can have the same problem: uppercase `K` loses its implicit `Shift` and becomes `k`, while `!` becomes `1`.
+
+Set a positive `keyboardShortcutDelay` to send modified keys in separate phases. The sequence is modifier-down, wait, primary key, wait, and modifier-up. During sequential text input, Midscene uses the same sequence for uppercase letters and shifted en-US punctuation.
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 80,
+  keyboardShortcutDelay: 50,
+});
+```
+
+These options control different intervals:
+
+- `keyboardTypeDelay` waits between consecutive text characters.
+- `keyboardShortcutDelay` waits around modifier transitions. It also applies to shortcuts such as `Control+S`.
+
+The default value of `keyboardShortcutDelay` is `0`, which preserves the existing one-call libnut behavior. Start with `50` only when the foreground application drops modifiers. This option applies only to the local libnut driver. It has no effect on direct RDP input or the macOS AppleScript driver.
+
+:::warning
+The shifted-character mapping assumes an en-US keyboard layout. For another layout, verify uppercase letters and punctuation on both the local and remote systems.
+:::
+
 ### Choose how macOS sends modifier keys
 
 The macOS AppleScript keyboard backend provides two event modes. Both modes call AppleScript `System Events`. The name `physical` describes the explicit key state transitions; it does not mean hardware-level input or HID scan codes.
@@ -170,6 +199,8 @@ const agent = await agentForComputer({
 ```
 
 The default value is `keyboardEventMode: 'logical'`. It keeps the standard AppleScript behavior.
+
+`keyboardShortcutDelay` does not affect this AppleScript path. Use `keyboardEventMode: 'physical'` when an AppleScript-controlled foreground application needs explicit modifier transitions.
 
 :::warning
 Treat `physical` as an opt-in compatibility mode. Test it with the foreground application, the remote or virtualized system, and the keyboard layout. The current verification covers generated AppleScript and integration behavior. It does not cover every remote-control product or virtual machine console.

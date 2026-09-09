@@ -35,7 +35,10 @@ import {
   type LibNut,
   type ScrollDirection,
 } from './input-driver';
-import { US_SHIFTED_CHARACTER_KEYS } from './keyboard-layout';
+import {
+  US_SHIFTED_CHARACTER_KEYS,
+  resolveUSShiftedKey,
+} from './keyboard-layout';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -735,9 +738,9 @@ export interface ComputerDeviceOpt extends ComputerDeviceInputOpt {
    */
   keyboardEventMode?: KeyboardEventMode;
   /**
-   * Delay in milliseconds between explicit modifier transitions and the main
-   * key for local libnut shortcuts. A positive value changes modified
-   * shortcuts from one `keyTap` call into modifier-down, main-key, and
+   * Delay in milliseconds around explicit modifier transitions for local
+   * libnut keyboard events. A positive value changes modified shortcuts and
+   * shifted en-US text characters into modifier-down, main-key, and
    * modifier-up phases. This can help foreground clients whose full-screen
    * keyboard capture misses rapidly synthesized modifier state changes.
    *
@@ -1482,7 +1485,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
         this.inputDriver.sendKeyViaAppleScript('v', ['command']);
       } else {
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        this.inputDriver.keyTap('v', [modifier]);
+        await this.sendLocalModifiedKey('v', [modifier]);
       }
       await this.inputDriver.delay(100);
     } finally {
@@ -1520,10 +1523,15 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     await sendTextSequentially(
       text.replace(/\r\n?/g, '\n'),
       {
-        sendCharacter: (character) => {
+        sendCharacter: async (character) => {
           const linuxShiftedKey =
             process.platform === 'linux'
               ? US_SHIFTED_CHARACTER_KEYS.get(character)
+              : undefined;
+          const pacedShiftedKey =
+            !this.useAppleScript &&
+            (this.options?.keyboardShortcutDelay ?? 0) > 0
+              ? resolveUSShiftedKey(character)
               : undefined;
           if (character === '\n') {
             this.inputDriver.sendKey('return');
@@ -1533,6 +1541,8 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
             this.inputDriver.sendKey('space');
           } else if (this.useAppleScript) {
             this.inputDriver.sendKeyViaAppleScript(character);
+          } else if (pacedShiftedKey !== undefined) {
+            await this.sendLocalModifiedKey(pacedShiftedKey, ['shift']);
           } else if (linuxShiftedKey !== undefined) {
             this.inputDriver.keyTap(linuxShiftedKey, ['shift']);
           } else {
@@ -1554,9 +1564,26 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
     }
 
     const modifier = process.platform === 'darwin' ? 'command' : 'control';
-    this.inputDriver.keyTap('a', [modifier]);
+    await this.sendLocalModifiedKey('a', [modifier]);
     await this.inputDriver.delay(50);
     this.inputDriver.keyTap('backspace');
+  }
+
+  private async sendLocalModifiedKey(
+    key: string,
+    modifiers: string[],
+  ): Promise<void> {
+    const shortcutDelay = this.options?.keyboardShortcutDelay ?? 0;
+    if (modifiers.length > 0 && shortcutDelay > 0) {
+      await this.inputDriver.keyTapWithExplicitModifiers(
+        key,
+        modifiers,
+        shortcutDelay,
+      );
+      return;
+    }
+
+    this.inputDriver.keyTap(key, modifiers);
   }
 
   private async pressKeyboardShortcut(keyName: string): Promise<void> {
@@ -1571,13 +1598,12 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
       driver: this.useAppleScript ? 'applescript' : 'libnut',
     });
 
-    const shortcutDelay = this.options?.keyboardShortcutDelay ?? 0;
-    if (!this.useAppleScript && modifiers.length > 0 && shortcutDelay > 0) {
-      await this.inputDriver.keyTapWithExplicitModifiers(
-        key,
-        modifiers,
-        shortcutDelay,
-      );
+    if (
+      !this.useAppleScript &&
+      modifiers.length > 0 &&
+      (this.options?.keyboardShortcutDelay ?? 0) > 0
+    ) {
+      await this.sendLocalModifiedKey(key, modifiers);
       return;
     }
 
