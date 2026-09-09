@@ -443,10 +443,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         msNumber = Number.parseInt(ms, 10);
       }
       assert(
-        msNumber && msNumber > 0,
+        Number.isFinite(msNumber) && msNumber > 0,
         `ms for sleep must be greater than 0, but got ${ms}`,
       );
-      await agent.sleep(msNumber);
+      await agent.callActionInActionSpace('Sleep', { timeMs: msNumber });
     } else if ('javascript' in flowItem) {
       const evaluateJavaScriptTask =
         flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;

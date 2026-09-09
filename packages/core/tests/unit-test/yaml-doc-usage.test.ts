@@ -30,7 +30,6 @@ const createDocAgent = (overrides: Record<string, any> = {}) => {
     })),
     evaluateJavaScript: rs.fn(async () => 'js-result'),
     recordToReport: rs.fn(async () => undefined),
-    sleep: rs.fn(async () => undefined),
     recordErrorToReport: rs.fn(async () => undefined),
     runAdbShell: rs.fn(async () => 'adb-result'),
     callActionInActionSpace: rs.fn(async () => 'action-result'),
