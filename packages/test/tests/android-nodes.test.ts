@@ -1,8 +1,11 @@
 import type { AndroidAgent as PlatformAgent } from '@midscene/android';
-type AndroidRunnerAgent = Pick<
-  PlatformAgent,
-  'launch' | 'terminate' | 'runAdbShell' | 'back' | 'home' | 'recentApps'
->;
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type AndroidRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runAdbShell' | 'back' | 'home' | 'recentApps'
+  >;
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { AndroidAgent } = createRequire(import.meta.url)('@midscene/android');
@@ -25,6 +28,7 @@ const collected = (
 const androidAgent = (
   overrides: Partial<AndroidRunnerAgent> = {},
 ): AndroidRunnerAgent => ({
+  ...createMockMidsceneAgent(),
   launch: vi.fn(async () => undefined),
   terminate: vi.fn(async () => undefined),
   runAdbShell: vi.fn(async () => ''),

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
 const { PlaywrightAgent } = createRequire(import.meta.url)(
   '@midscene/web/playwright/agent',
 );
@@ -34,6 +35,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getEnv: () => ({
@@ -77,6 +79,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getCookieProfile: () => [
@@ -115,6 +118,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getEnv: () => {
@@ -148,6 +152,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getEnv: () => ({
@@ -185,7 +190,10 @@ describe('Playwright cookie Nodes', () => {
     const registry = new NodeRegistry(
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
-        getAgent: () => ({ interface: { underlyingPage: page } }),
+        getAgent: () => ({
+          ...createMockMidsceneAgent(),
+          interface: { underlyingPage: page },
+        }),
       }),
     );
 
@@ -212,6 +220,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getEnv: () => ({
@@ -250,6 +259,7 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getCookieProfile: () => {
@@ -298,10 +308,11 @@ describe('Playwright cookie Nodes', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
           testRunner: {
             getEnv: () => ({ COOKIE_HEADER: 'a=1; b=two; ' }),
-            getCookieProfile: ({ profile }) => [
+            getCookieProfile: ({ profile }: { profile: string }) => [
               {
                 name: profile,
                 value: 'profile-secret',
@@ -309,7 +320,7 @@ describe('Playwright cookie Nodes', () => {
                 path: '/',
               },
             ],
-            resolveStorageStatePath: (path) =>
+            resolveStorageStatePath: (path: string) =>
               path === 'state.json' ? storageStatePath : path,
           },
         }),

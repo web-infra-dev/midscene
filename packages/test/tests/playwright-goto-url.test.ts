@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
 const { PlaywrightAgent } = createRequire(import.meta.url)(
   '@midscene/web/playwright/agent',
 );
@@ -16,6 +17,7 @@ describe('Playwright gotoUrl Node', () => {
       createMidsceneNodes({
         agentClass: PlaywrightAgent,
         getAgent: () => ({
+          ...createMockMidsceneAgent(),
           interface: { underlyingPage: page },
         }),
       }),
@@ -108,7 +110,10 @@ describe('Playwright gotoUrl Node', () => {
       const registry = new NodeRegistry(
         createMidsceneNodes({
           agentClass: PlaywrightAgent,
-          getAgent: () => ({ interface: { underlyingPage: page } }),
+          getAgent: () => ({
+            ...createMockMidsceneAgent(),
+            interface: { underlyingPage: page },
+          }),
         }),
       );
       const result = await runCollectedCase(
@@ -131,7 +136,10 @@ describe('Playwright gotoUrl Node', () => {
       const registry = new NodeRegistry(
         createMidsceneNodes({
           agentClass: PlaywrightAgent,
-          getAgent: () => ({ interface: { underlyingPage: page } }),
+          getAgent: () => ({
+            ...createMockMidsceneAgent(),
+            interface: { underlyingPage: page },
+          }),
         }),
       );
       const result = await runCollectedCase(
@@ -155,7 +163,10 @@ describe('Playwright gotoUrl Node', () => {
       const registry = new NodeRegistry(
         createMidsceneNodes({
           agentClass: PlaywrightAgent,
-          getAgent: () => ({ interface: { underlyingPage: page } }),
+          getAgent: () => ({
+            ...createMockMidsceneAgent(),
+            interface: { underlyingPage: page },
+          }),
         }),
       );
       const result = await runCollectedCase(

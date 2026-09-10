@@ -1,8 +1,11 @@
 import type { HarmonyAgent as PlatformAgent } from '@midscene/harmony';
-type HarmonyRunnerAgent = Pick<
-  PlatformAgent,
-  'launch' | 'terminate' | 'runHdcShell' | 'back' | 'home' | 'recentApps'
->;
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type HarmonyRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runHdcShell' | 'back' | 'home' | 'recentApps'
+  >;
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { HarmonyAgent } = createRequire(import.meta.url)('@midscene/harmony');
@@ -25,6 +28,7 @@ const collected = (
 const harmonyAgent = (
   overrides: Partial<HarmonyRunnerAgent> = {},
 ): HarmonyRunnerAgent => ({
+  ...createMockMidsceneAgent(),
   launch: vi.fn(async () => undefined),
   terminate: vi.fn(async () => undefined),
   runHdcShell: vi.fn(async () => ''),
