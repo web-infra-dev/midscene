@@ -102,6 +102,18 @@ const platformEnv: Record<CreatePlatform, string> = {
     '# Optional: select a display; leave empty for the default display.\nCOMPUTER_DISPLAY_ID=\n# Enable Xvfb on headless Linux after installing its dependencies.\nMIDSCENE_COMPUTER_HEADLESS_LINUX=false\n',
 };
 
+const modelEnv = `# Copy this file to .env before running tests.
+# Do not commit .env to your repository. In CI, inject these values as environment variables instead.
+# Choose a supported model and copy its four configuration values from:
+# https://midscenejs.com/model-common-config.html
+# For the complete environment variable reference, see:
+# https://midscenejs.com/model-config.html
+MIDSCENE_MODEL_BASE_URL=
+MIDSCENE_MODEL_API_KEY=
+MIDSCENE_MODEL_NAME=
+MIDSCENE_MODEL_FAMILY=
+`;
+
 const platformInstructions: Record<Exclude<CreatePlatform, 'web'>, string> = {
   android:
     'Connect an Android device and verify it with `adb devices`. Set ANDROID_DEVICE_ID to select a device.',
@@ -233,8 +245,8 @@ ${extraNodes}
         : platform === 'computer'
           ? 'cases:\n  - name: Inspect the desktop\n    steps:\n      - aiAsk: Describe the current desktop\n'
           : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
-    '.env.example': `# Copy this file to .env and configure your model before running tests.\n# See https://midscenejs.com/model-config.html\nMIDSCENE_MODEL_BASE_URL=\nMIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n\n${env}`,
+    '.env.example': `${modelEnv}\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
+    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\`, then choose and configure a model using the [supported models and setup guide](https://midscenejs.com/model-common-config.html). Do not commit \`.env\` to your repository; inject the model configuration as environment variables in CI.\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
   };
 }
