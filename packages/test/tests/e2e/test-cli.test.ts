@@ -183,7 +183,6 @@ describe('midscene-test CLI', () => {
         {
           projectId: 'project-0',
           name: 'web',
-          platform: 'web',
           cases: [
             { status: 'success', attempts: [{ attemptIndex: 0 }] },
             { status: 'success', attempts: [{ attemptIndex: 0 }] },

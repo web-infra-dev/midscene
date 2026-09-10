@@ -12,7 +12,6 @@ export default defineTestProject({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: { include: ['flows/**/*.{yaml,yml}'] },
     },
   ],
@@ -23,9 +22,9 @@ export default defineTestProject({
       inputSchema: z.strictObject({
         value: z.string().describe('The value appended to the log.'),
       }),
-      execute(ctx) {
-        log(ctx.input.value);
-        return { data: { value: ctx.input.value } };
+      execute(execution) {
+        log(execution.input.value);
+        return { data: { value: execution.input.value } };
       },
     }),
   ],

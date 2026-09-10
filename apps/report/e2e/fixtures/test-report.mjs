@@ -64,7 +64,6 @@ export function createTestReportFixture(index) {
       {
         projectId: 'web-demo',
         name: 'Web regression',
-        platform: 'web',
         status: 'success',
         retry: 1,
         lifecycle: { status: 'success', ...timing(0, 8) },

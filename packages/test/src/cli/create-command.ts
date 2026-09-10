@@ -11,11 +11,9 @@ import {
 } from './create-package-manager';
 import {
   type CreatePlatform,
-  type NodePackageSpec,
   createPlatformLabels,
   createPlatforms,
   createProjectFiles,
-  parseNodePackageSpec,
 } from './create-template';
 import type { TestCliIO } from './test-command';
 
@@ -34,13 +32,6 @@ const createParser = () =>
       choices: createPlatforms,
       requiresArg: true,
       description: 'Platform preset (prompt if omitted)',
-    })
-    .option('with', {
-      type: 'array',
-      string: true,
-      nargs: 1,
-      requiresArg: true,
-      description: 'npm Node package, optionally versioned (repeatable)',
     })
     .option('package-manager', {
       type: 'string',
@@ -65,12 +56,8 @@ const createParser = () =>
     .demandCommand(0, 1, '', 'Only one project directory is allowed.')
     .example('$0', 'Choose a directory and platform interactively')
     .example('$0 my-tests --platform web', 'Create a Web project')
-    .example(
-      '$0 . --platform android --with @acme/test-nodes@1.2.0',
-      'Include a Node package',
-    )
     .epilogue(
-      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates midscene-node-reference.md after installation.\nNode packages must export a synchronous createMidsceneTestNodes(options) factory.\nExisting files are never overwritten. Setup and tests are not run during creation.',
+      'Optionally installs dependencies with the selected package manager. The generated postinstall script creates midscene-node-reference.md after installation.\nExisting files are never overwritten. Setup and tests are not run during creation.',
     )
     .help('help')
     .alias('help', 'h')
@@ -87,7 +74,6 @@ export interface CreateOptions {
   directory?: string;
   platform?: CreatePlatform;
   packageManager?: CreatePackageManager;
-  packages: NodePackageSpec[];
   yes: boolean;
   skipInstall: boolean;
   help: boolean;
@@ -105,21 +91,10 @@ export function parseCreateArgs(
   if (directory !== undefined && !directory.trim()) {
     throw new Error('Project directory must not be empty.');
   }
-  const packages = (values.with ?? []).map(parseNodePackageSpec);
-  const seen = new Set<string>();
-  for (const pkg of packages) {
-    if (seen.has(pkg.name)) {
-      throw new Error(
-        `Node package "${pkg.name}" was specified more than once.`,
-      );
-    }
-    seen.add(pkg.name);
-  }
   return {
     directory,
     platform: values.platform,
     packageManager: values['package-manager'],
-    packages,
     yes: values.yes ?? false,
     skipInstall: values['skip-install'] ?? false,
     help: values.help === true,
@@ -275,12 +250,7 @@ export async function runCreateCommand(
       .replace(/[^a-z0-9._-]/g, '-')
       .replace(/^[._-]+/, '') || 'midscene-tests';
   const commands = packageManagerCommands[packageManager];
-  const files = createProjectFiles(
-    name,
-    platform,
-    options.packages,
-    packageManager,
-  );
+  const files = createProjectFiles(name, platform, packageManager);
   checkDestinations(root, [
     ...Object.keys(files),
     'midscene-node-reference.md',

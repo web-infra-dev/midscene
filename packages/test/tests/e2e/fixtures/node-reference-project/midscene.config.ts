@@ -22,7 +22,6 @@ export default defineTestProject({
   ],
   setup: {
     name: 'must-not-run',
-    platform: 'web',
     setup() {
       throw new Error('nodes must not run Project setup.');
     },

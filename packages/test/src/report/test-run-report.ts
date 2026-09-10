@@ -267,7 +267,6 @@ const buildProject = (
   return {
     projectId: project.projectId,
     name: project.name,
-    platform: project.platform,
     status: project.status,
     retry: project.retry,
     ...(project.lifecycle

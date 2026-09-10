@@ -38,7 +38,6 @@ export function createDocumentRuntime<TContext = undefined>(
     Object.freeze({
       projectId: document.projectId,
       name: document.projectId,
-      platform: 'web' as const,
       tags: Object.freeze({ include: [], exclude: [] }),
       retry: 0,
       variables: Object.freeze({}),

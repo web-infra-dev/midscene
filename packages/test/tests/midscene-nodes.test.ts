@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test-runner';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
@@ -573,12 +573,12 @@ describe('createMidsceneNodes', () => {
     const nodes = createMidsceneNodes<{
       agent: MidsceneUIAgent;
     }>({
-      getAgent(ctx) {
-        if (ctx.scope !== 'document')
+      getAgent(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        expect(ctx.document.phase).toBe('beforeAll');
-        expect('case' in ctx).toBe(false);
-        return ctx.context.agent;
+        expect(execution.document.phase).toBe('beforeAll');
+        expect('case' in execution).toBe(false);
+        return execution.context.agent;
       },
       agentClass: testAgentClass,
     });

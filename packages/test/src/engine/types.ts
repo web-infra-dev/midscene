@@ -216,7 +216,6 @@ export interface ProjectRuntimeOptions<TProjectContext = unknown> {
 
 export interface ProjectRuntimeResult<TProjectContext = unknown> {
   projectName: string;
-  platform: string;
   status: 'success' | 'failed';
   setupError?: WorkflowError;
   teardownErrors?: readonly WorkflowError[];

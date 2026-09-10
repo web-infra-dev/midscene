@@ -88,7 +88,7 @@ export interface DefineNodeOptions<
   stringInputKey?: string | false;
   inputSchema?: NodeInputSchema;
   execute(
-    ctx: NodeExecutionContext<TInput, TContext>,
+    execution: NodeExecutionContext<TInput, TContext>,
   ): NodeExecutionReturn<TData>;
 }
 

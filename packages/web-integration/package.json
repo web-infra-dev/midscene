@@ -89,6 +89,11 @@
       "types": "./dist/types/static/index.d.ts",
       "require": "./dist/lib/static/index.js",
       "import": "./dist/es/static/index.mjs"
+    },
+    "./playwright/test": {
+      "types": "./dist/types/playwright/test-runner/index.d.ts",
+      "require": "./dist/lib/playwright/test-runner/index.js",
+      "import": "./dist/es/playwright/test-runner/index.mjs"
     }
   },
   "scripts": {
@@ -123,7 +128,8 @@
     "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",

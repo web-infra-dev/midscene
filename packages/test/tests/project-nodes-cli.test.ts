@@ -30,8 +30,8 @@ const scopedConfig = `
   export default {
     nodes: [node('shared', 'Shared global Node'), node('launch', 'Global launch')],
     projects: [
-      { name: 'android', platform: 'android', nodes: [node('launch', 'Android launch')] },
-      { name: 'ios', platform: 'ios', nodes: [node('launch', 'iOS launch'), node('ios.only', 'iOS only')] },
+      { name: 'android', nodes: [node('launch', 'Android launch')] },
+      { name: 'ios', nodes: [node('launch', 'iOS launch'), node('ios.only', 'iOS only')] },
     ],
   };
 `;
@@ -93,7 +93,7 @@ describe('Project-scoped Node references', () => {
   it('keeps the shared reference when all Projects inherit the same Nodes', async () => {
     const root = createConfig(`export default {
       nodes: [{ name: 'shared', description: 'Shared global Node', execute() {} }],
-      projects: [{ name: 'android', platform: 'android' }, { name: 'ios', platform: 'ios', nodes: [] }],
+      projects: [{ name: 'android' }, { name: 'ios', nodes: [] }],
     };`);
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     const markdown = readFileSync(
@@ -107,7 +107,7 @@ describe('Project-scoped Node references', () => {
 
   it('describes a single Project with only local Nodes without a selector', async () => {
     const root = createConfig(`export default {
-      projects: [{ name: 'android', platform: 'android', nodes: [{ name: 'local', execute() {} }] }],
+      projects: [{ name: 'android', nodes: [{ name: 'local', execute() {} }] }],
     };`);
     expect(await runTestCli(['nodes', root], { log() {}, error() {} })).toBe(0);
     expect(

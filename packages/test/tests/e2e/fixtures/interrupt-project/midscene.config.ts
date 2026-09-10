@@ -27,7 +27,6 @@ export default defineTestProject({
   ],
   setup: {
     name: 'fixture',
-    platform: 'web',
     setup({ project, onTeardown }) {
       log(`setup:${project.name}`);
       onTeardown(() => log(`teardown:${project.name}`));

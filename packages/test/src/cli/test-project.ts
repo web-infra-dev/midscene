@@ -7,8 +7,6 @@ import type { Awaitable } from '../engine/types';
 import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
-export type TestPlatform = 'web' | 'android' | 'ios' | 'harmony' | 'computer';
-
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue =
   | JsonPrimitive
@@ -47,7 +45,6 @@ export interface ResolvedTestOutputDefinition {
 
 export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   name: string;
-  platform: TestPlatform;
   setup?: ProjectSetupDefinition<TProjectContext>;
   /** Project-local Nodes override global Nodes with the same name. */
   nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
@@ -60,7 +57,6 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
 export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly projectId: string;
   readonly name: string;
-  readonly platform: TestPlatform;
   readonly setup?: ProjectSetupDefinition<TProjectContext>;
   readonly files?: TestFileSelection;
   readonly tags: Readonly<Required<TestTagSelection>>;
@@ -96,7 +92,6 @@ export type ProjectTeardown<TProjectContext = unknown> = (
 
 export interface ProjectSetupDefinition<TProjectContext = unknown> {
   name: string;
-  platform?: TestPlatform | readonly TestPlatform[];
   setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
 }
 
@@ -333,50 +328,20 @@ const validateVariables = (
   return deepFreezeJson(value as Record<string, JsonValue>);
 };
 
-const platforms = new Set<TestPlatform>([
-  'web',
-  'android',
-  'ios',
-  'harmony',
-  'computer',
-]);
-
-const validatePlatform = (value: unknown, label: string): TestPlatform => {
-  if (typeof value !== 'string' || !platforms.has(value as TestPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} must be one of web, android, ios, harmony, computer.`,
-    );
-  }
-  return value as TestPlatform;
-};
-
 const validateProjectSetup = <TProjectContext>(
   value: unknown,
-  projectPlatform: TestPlatform,
   label: string,
 ): ProjectSetupDefinition<TProjectContext> | undefined => {
   if (value === undefined) return undefined;
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['name', 'setup'], label);
   if (typeof value.name !== 'string' || value.name.trim().length === 0) {
     throw new TypeError(`Midscene config ${label}.name must be non-empty.`);
   }
   if (typeof value.setup !== 'function') {
     throw new TypeError(`Midscene config ${label}.setup must be a function.`);
-  }
-  const supported =
-    value.platform === undefined
-      ? undefined
-      : Array.isArray(value.platform)
-        ? value.platform.map((item, index) =>
-            validatePlatform(item, `${label}.platform[${index}]`),
-          )
-        : [validatePlatform(value.platform, `${label}.platform`)];
-  if (supported && !supported.includes(projectPlatform)) {
-    throw new TypeError(
-      `Midscene config ${label} does not support project platform "${projectPlatform}".`,
-    );
   }
   return value as unknown as ProjectSetupDefinition<TProjectContext>;
 };
@@ -416,37 +381,13 @@ const validateExecutionProjects = <TProjectContext>(
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
-    let platform: TestPlatform = 'web';
-    if (defaultSetup !== undefined) {
-      if (!isRecord(defaultSetup)) {
-        throw new TypeError('Midscene config setup must be an object.');
-      }
-      if (Array.isArray(defaultSetup.platform)) {
-        if (defaultSetup.platform.length !== 1) {
-          throw new TypeError(
-            'Midscene config setup.platform must select exactly one platform when projects is omitted.',
-          );
-        }
-        platform = validatePlatform(
-          defaultSetup.platform[0],
-          'setup.platform[0]',
-        );
-      } else if (defaultSetup.platform !== undefined) {
-        platform = validatePlatform(defaultSetup.platform, 'setup.platform');
-      }
-    }
-    const setup = validateProjectSetup<TProjectContext>(
-      defaultSetup,
-      platform,
-      'setup',
-    );
+    const setup = validateProjectSetup<TProjectContext>(defaultSetup, 'setup');
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
         Object.freeze({
           projectId: projectIdFromIndex(0),
           name: 'default',
-          platform,
           ...(setup ? { setup } : {}),
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
@@ -474,16 +415,7 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      [
-        'name',
-        'platform',
-        'setup',
-        'nodes',
-        'files',
-        'tags',
-        'retry',
-        'variables',
-      ],
+      ['name', 'setup', 'nodes', 'files', 'tags', 'retry', 'variables'],
       label,
     );
     if (
@@ -498,7 +430,6 @@ const validateExecutionProjects = <TProjectContext>(
       );
     }
     names.add(candidate.name);
-    const platform = validatePlatform(candidate.platform, `${label}.platform`);
     const files = validateTestFileSelection(candidate.files, `${label}.files`);
     if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
       throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
@@ -514,7 +445,6 @@ const validateExecutionProjects = <TProjectContext>(
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
-      platform,
       nodes,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
@@ -525,7 +455,6 @@ const validateExecutionProjects = <TProjectContext>(
         : {
             setup: validateProjectSetup<TProjectContext>(
               candidate.setup,
-              platform,
               `${label}.setup`,
             )!,
           }),

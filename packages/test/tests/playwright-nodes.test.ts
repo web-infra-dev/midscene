@@ -1,25 +1,37 @@
-import { describe, expect, it } from 'vitest';
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+const { PlaywrightAgent } = createRequire(import.meta.url)(
+  '@midscene/web/playwright/agent',
+);
 import {
   clearCookiesInputSchema,
-  createPlaywrightNodes,
   gotoUrlInputSchema,
   setCookiesInputSchema,
   setViewportSizeInputSchema,
-} from '../src/playwright';
+} from '@midscene/web/playwright/test';
+import { describe, expect, it } from 'vitest';
 import { createPage } from './playwright-node-helpers';
 
-describe('createPlaywrightNodes', () => {
-  it('registers the P0 Playwright nodes and validates factory options', () => {
+describe('PlaywrightAgent Nodes', () => {
+  it('registers common and Playwright Nodes and exports input schemas', () => {
     const { page } = createPage();
-    const nodes = createPlaywrightNodes({ getPage: () => page });
-    expect(nodes.map((node) => node.name)).toEqual([
-      'gotoUrl',
-      'setCookies',
-      'clearCookies',
-      'setViewportSize',
-    ]);
-    expect(() => createPlaywrightNodes({} as never)).toThrow(
-      'createPlaywrightNodes() requires getPage()',
+    const nodes = createMidsceneNodes({
+      agentClass: PlaywrightAgent,
+      getAgent: () => ({
+        ...createMockMidsceneAgent(),
+        interface: { underlyingPage: page },
+      }),
+    });
+    expect(nodes.map((node) => node.name)).toEqual(
+      expect.arrayContaining([
+        'aiAct',
+        'wait',
+        'gotoUrl',
+        'setCookies',
+        'clearCookies',
+        'setViewportSize',
+      ]),
     );
     expect(gotoUrlInputSchema.parse({ url: 'https://example.com' })).toEqual({
       url: 'https://example.com',

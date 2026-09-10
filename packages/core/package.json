@@ -61,7 +61,7 @@
       "import": "./dist/es/agent/index.mjs",
       "require": "./dist/lib/agent/index.js"
     },
-    "./agent/test-runner": {
+    "./agent/test": {
       "types": "./dist/types/agent/test-runner-nodes.d.ts",
       "import": "./dist/es/agent/test-runner-nodes.mjs",
       "require": "./dist/lib/agent/test-runner-nodes.js"
@@ -98,7 +98,7 @@
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
       "report-stats": ["./dist/types/report-stats.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
-      "agent/test-runner": ["./dist/types/agent/test-runner-nodes.d.ts"],
+      "agent/test": ["./dist/types/agent/test-runner-nodes.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
       "skill": ["./dist/types/skill/index.d.ts"]
     }

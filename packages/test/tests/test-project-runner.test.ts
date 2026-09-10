@@ -151,7 +151,6 @@ describe('test project main-process runner', () => {
       `export default {
         projects: [{
           name: 'default',
-          platform: 'web',
           files: { include: ['missing/**/*.yaml'] },
         }],
         nodes: [],
@@ -307,7 +306,6 @@ describe('test project main-process runner', () => {
         export default {
           projects: [{
             name: 'web',
-            platform: 'web',
             files: {
               include: ['selected/**/*.yaml'],
               exclude: ['**/*.draft.yaml'],
@@ -433,7 +431,7 @@ afterAll:
 
     expect(progress).toEqual([
       'midscene-test: preflighted 1 projects, 1 documents, 1 cases, 0 collection errors',
-      '[project 1/1] default (web)',
+      '[project 1/1] default',
       '  [document 1/1] progress.yaml',
       '    → beforeAll 1/1: noop',
       expect.stringMatching(/^ {4}✓ beforeAll 1\/1: noop \(\d+ ms\)$/),
@@ -480,7 +478,6 @@ afterAll:
           nodes: [node],
           setup: {
             name: 'fixture',
-            platform: 'web',
             setup({ project, onTeardown }) {
               state.collectionCompletedBeforeSetup.push(
                 existsSync(join(state.resultDir, 'collection-errors')),
@@ -614,7 +611,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'shared-mobile',
-          platform: ['android', 'ios'],
           async setup({ project, onTeardown }) {
             state.active += 1;
             state.maxActive = Math.max(state.maxActive, state.active);
@@ -641,8 +637,8 @@ cases:
         });
         export default {
           projects: [
-            { name: 'android', platform: 'android', setup, nodes: [localNode('android', 'androidText')] },
-            { name: 'ios', platform: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
+            { name: 'android', setup, nodes: [localNode('android', 'androidText')] },
+            { name: 'ios', setup, nodes: [localNode('ios', 'iosText')] },
           ],
           nodes: [
             {
@@ -714,7 +710,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'isolated',
-          platform: 'web',
           setup({ project }) {
             state.events.push('setup:' + project.name);
             return { projectName: project.name };
@@ -723,7 +718,7 @@ cases:
         export default {
           projects: [
             {
-              name: 'with-node', platform: 'web', setup,
+              name: 'with-node', setup,
               nodes: [{
                 name: 'project.only', stringInputKey: 'value',
                 execute({ context, input }) {
@@ -731,7 +726,7 @@ cases:
                 },
               }],
             },
-            { name: 'without-node', platform: 'web', setup },
+            { name: 'without-node', setup },
           ],
         };
       `,
@@ -824,7 +819,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'concurrent-project',
-          platform: 'web',
           async setup({ project, onTeardown }) {
             state.onProjectStart(project.name);
             onTeardown(() => state.onProjectFinish(project.name));
@@ -834,9 +828,9 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
+            { name: 'gamma', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [{
@@ -977,7 +971,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'bail-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.onProjectFinish(project.name));
@@ -986,9 +979,9 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
+            { name: 'gamma', setup },
           ],
           test: { maxConcurrency: 2, bail: 1 },
           nodes: [{
@@ -1084,7 +1077,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'interrupt-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1093,9 +1085,9 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
+            { name: 'gamma', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [{
@@ -1186,7 +1178,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'setup-failure-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1198,8 +1189,8 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [{
@@ -1272,7 +1263,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'fatal-device-project',
-          platform: 'web',
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1281,9 +1271,9 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
+            { name: 'gamma', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [{
@@ -1353,15 +1343,14 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'document-fatal-project',
-          platform: 'web',
           setup({ project }) {
             return { projectName: project.name };
           },
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [
@@ -1442,7 +1431,6 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'drain-project',
-          platform: 'web',
           async setup({ project, signal, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
@@ -1457,9 +1445,9 @@ cases:
         };
         export default {
           projects: [
-            { name: 'alpha', platform: 'web', setup },
-            { name: 'beta', platform: 'web', setup },
-            { name: 'gamma', platform: 'web', setup },
+            { name: 'alpha', setup },
+            { name: 'beta', setup },
+            { name: 'gamma', setup },
           ],
           test: { maxConcurrency: 2 },
           nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
@@ -1523,14 +1511,13 @@ cases:
         const state = globalThis.__testProjectRunnerState;
         const setup = {
           name: 'web-setup',
-          platform: 'web',
           setup() {
             state.events.push('project-setup');
             return {};
           },
         };
         export default {
-          projects: [{ name: 'web', platform: 'web', setup }],
+          projects: [{ name: 'web', setup }],
           nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
         };
       `,
@@ -1566,29 +1553,26 @@ cases:
       join(root, 'midscene.config.ts'),
       `
         const state = globalThis.__testProjectRunnerState;
-        const createSetup = (name, platform) => ({
+        const createSetup = (name) => ({
           name: 'setup-' + name,
-          platform,
           setup({ project, onTeardown }) {
             state.events.push('project-setup:' + project.name);
             onTeardown(() => state.events.push('project-teardown:' + project.name));
-            return { projectName: project.name, platform };
+            return { projectName: project.name };
           },
         });
         export default {
           projects: [
             {
               name: 'android-smoke',
-              platform: 'android',
-              setup: createSetup('android', 'android'),
+              setup: createSetup('android'),
               tags: { include: ['android'], exclude: [] },
               retry: 1,
               variables: { value: 'android-value' },
             },
             {
               name: 'ios-regression',
-              platform: 'ios',
-              setup: createSetup('ios', 'ios'),
+              setup: createSetup('ios'),
               tags: { include: ['ios'], exclude: [] },
               retry: 0,
               variables: { value: 'ios-value' },

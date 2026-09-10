@@ -4,11 +4,7 @@ import type {
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
-import type {
-  TestFileSelection,
-  TestPlatform,
-  TestTagSelection,
-} from './test-project';
+import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
   documentId: string;
@@ -35,7 +31,6 @@ export interface TestProjectRunSummary {
 export interface TestExecutionProjectRunResult {
   projectId: string;
   name: string;
-  platform: TestPlatform;
   status: 'success' | 'failed';
   retry: number;
   fileSelection: TestFileSelection;

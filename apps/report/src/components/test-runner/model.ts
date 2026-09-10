@@ -272,7 +272,6 @@ export const getCaseSearchMatch = (
     ['Not-run reason', item.testCase.notRunReason ?? ''],
     ['Project', item.project.name],
     ['Project ID', item.project.projectId],
-    ['Platform', item.project.platform],
     ['Source file', item.document.sourcePath],
     ['Document ID', item.document.documentId],
   ];
@@ -370,7 +369,7 @@ export const filterAndSortRunnerProjectBreakdown = (
   const result = projects
     .map((item) => {
       const projectMatches = normalizedQuery
-        ? [item.project.name, item.project.projectId, item.project.platform]
+        ? [item.project.name, item.project.projectId]
             .join(' ')
             .toLocaleLowerCase()
             .includes(normalizedQuery)

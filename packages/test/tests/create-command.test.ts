@@ -17,7 +17,6 @@ import {
   parseCreateArgs,
   runCreateCommand,
 } from '../src/cli/create-command';
-import { parseNodePackageSpec } from '../src/cli/create-template';
 import { renderNodeReference } from '../src/cli/node-reference';
 import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
@@ -87,42 +86,6 @@ describe('create arguments', () => {
       ).toBe(platform);
     },
   );
-  it('keeps directory arguments distinct from repeatable package options', () => {
-    expect(
-      parseCreateArgs(['--with', 'team-nodes', '123', '--platform', 'web']),
-    ).toMatchObject({
-      directory: '123',
-      packages: [{ name: 'team-nodes', version: 'latest' }],
-    });
-  });
-  it('parses a directory, platform, and repeatable versioned packages', () => {
-    expect(
-      parseCreateArgs([
-        'my tests',
-        '--platform=web',
-        '--with',
-        '@acme/nodes@^1.2.0',
-        '--with',
-        'other-nodes',
-        '-y',
-      ]),
-    ).toEqual({
-      directory: 'my tests',
-      platform: 'web',
-      packageManager: undefined,
-      packages: [
-        { name: '@acme/nodes', version: '^1.2.0' },
-        { name: 'other-nodes', version: 'latest' },
-      ],
-      yes: true,
-      skipInstall: false,
-      help: false,
-    });
-    expect(parseNodePackageSpec('nodes@beta')).toEqual({
-      name: 'nodes',
-      version: 'beta',
-    });
-  });
 
   it.each([
     ['a', 'b'],
@@ -130,28 +93,17 @@ describe('create arguments', () => {
     ['--platform'],
     ['--package-manager'],
     ['--package-manager', 'yarn'],
-    ['--with'],
-    ['--with', 'nodes@1', '--with', 'nodes@2'],
+    ['--with', 'nodes'],
     ['--config', 'file.ts'],
     [''],
   ])('rejects invalid arguments %j', (...args) => {
     expect(() => parseCreateArgs(args)).toThrow();
   });
 
-  it.each([
-    './nodes',
-    'https://example.com/nodes',
-    '@scope',
-    'name@',
-    'name;command',
-    'name@file:../nodes',
-    '@scope/name/subpath',
-    '__proto__',
-  ])('rejects unsupported package spec %s', (spec) => {
-    expect(() => parseNodePackageSpec(spec)).toThrow('Invalid Node package');
-  });
-
-  it('keeps --with unavailable for running tests and describing nodes', () => {
+  it('keeps --with unavailable for all commands', () => {
+    expect(() => parseCreateArgs(['--with', 'nodes'])).toThrow(
+      'Unknown argument',
+    );
     expect(() => parseTestCliArgs(['--with', 'nodes'])).toThrow(
       'Unknown option',
     );
@@ -379,14 +331,10 @@ describe('create project', () => {
     },
   );
 
-  it('installs before describing, writes the reference, and persists package imports', async () => {
+  it('installs before describing and writes the generated project', async () => {
     const cwd = temp();
     const runtime = services(cwd);
-    await runCreateCommand(
-      ['my tests', '--platform', 'web', '--with', '@acme/nodes@1.2.0'],
-      io(),
-      runtime,
-    );
+    await runCreateCommand(['my tests', '--platform', 'web'], io(), runtime);
     const root = join(cwd, 'my tests');
     expect(runtime.promptDirectory).not.toHaveBeenCalled();
     expect(runtime.runPackageManager).toHaveBeenNthCalledWith(
@@ -408,7 +356,6 @@ describe('create project', () => {
       readFileSync(join(root, 'package.json'), 'utf8'),
     );
     expect(manifest.name).toBe('my-tests');
-    expect(manifest.devDependencies['@acme/nodes']).toBe('1.2.0');
     expect(manifest.devDependencies['@midscene/test']).toBe(
       manifest.devDependencies['@midscene/web'],
     );
@@ -416,8 +363,9 @@ describe('create project', () => {
     expect(manifest.devDependencies['@playwright/test']).toBeUndefined();
     const config = readFileSync(join(root, 'midscene.config.ts'), 'utf8');
     expect(config).toContain("from '@midscene/web/playwright/agent'");
-    expect(config).toContain('from "@acme/nodes"');
-    expect(config).not.toContain('@acme/nodes@1.2.0');
+    expect(config).not.toContain("from '@midscene/web/playwright/test'");
+    expect(config).not.toContain('createPlaywrightNodes');
+    expect(config).not.toContain('@midscene/test/playwright');
     expect(existsSync(join(root, '.env'))).toBe(false);
     const exampleEnv = readFileSync(join(root, '.env.example'), 'utf8');
     expect(exampleEnv).toContain(
@@ -522,18 +470,6 @@ describe('create project', () => {
       runCreateCommand(['.', '--platform', 'web'], io(), services(cwd)),
     ).rejects.toThrow('Cannot create project');
     expect(readdirSync(cwd)).toEqual(['package.json']);
-  });
-
-  it('rejects extension packages that replace generated dependencies', async () => {
-    const cwd = temp();
-    await expect(
-      runCreateCommand(
-        ['.', '--platform', 'web', '--with', '@midscene/test'],
-        io(),
-        services(cwd),
-      ),
-    ).rejects.toThrow('conflicts with a generated project dependency');
-    expect(readdirSync(cwd)).toEqual([]);
   });
 
   it('preserves files and explains recovery after installation fails', async () => {

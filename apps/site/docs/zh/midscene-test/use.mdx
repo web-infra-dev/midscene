@@ -90,6 +90,16 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 pnpm run nodes
 ```
 
+也可以指定测试目录和配置文件：
+
+```bash
+pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+```
+
+说明书包含两个部分：Available Nodes 列出可用 Node，Node Details 展示各 Node 的描述和输入结构。说明书和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。
+
+说明书还会列出用例文件的匹配规则（`Case files`）和配置文件路径（`Config file`），方便用例编写者定位文件。`Case files` 对应各执行项目的 `files.include` 和 `files.exclude`。这两类路径均相对于说明书所在目录。
+
 ## 编写 YAML 测试用例
 
 ### 一个典型的 YAML 文件
@@ -232,6 +242,8 @@ cases:
 
 ## 定义执行生命周期
 
+本节介绍单个 YAML 文件的生命周期。项目 `setup`、文件钩子、用例和清理之间的完整关系，见[项目、文件与用例的生命周期](./configuration#项目文件与用例的生命周期)。
+
 ### 准备与清理步骤
 
 生命周期钩子用于在用例执行前后准备环境、重置状态或清理数据。四个钩子都是可选的，与 `cases` 同级；其中的步骤和用例 `steps` 使用相同的 Node 调用写法。
@@ -292,7 +304,7 @@ afterAll
 
 默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
 
-项目 setup 管理浏览器和 Agent 等资源，详见[管理项目资源](./configuration#管理项目资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
+项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
 ## 运行测试
 

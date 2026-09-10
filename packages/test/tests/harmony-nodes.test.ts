@@ -1,7 +1,18 @@
+import type { HarmonyAgent as PlatformAgent } from '@midscene/harmony';
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type HarmonyRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runHdcShell' | 'back' | 'home' | 'recentApps'
+  >;
+import { createRequire } from 'node:module';
+import { createMidsceneNodes } from '../src/midscene';
+const { HarmonyAgent } = createRequire(import.meta.url)('@midscene/harmony');
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
-import { type HarmonyRunnerAgent, createHarmonyNodes } from '../src/harmony';
+
 import type { CollectedCase } from '../src/parser/types';
 
 const collected = (
@@ -17,6 +28,7 @@ const collected = (
 const harmonyAgent = (
   overrides: Partial<HarmonyRunnerAgent> = {},
 ): HarmonyRunnerAgent => ({
+  ...createMockMidsceneAgent(),
   launch: vi.fn(async () => undefined),
   terminate: vi.fn(async () => undefined),
   runHdcShell: vi.fn(async () => ''),
@@ -26,25 +38,30 @@ const harmonyAgent = (
   ...overrides,
 });
 
-describe('createHarmonyNodes', () => {
+describe('HarmonyAgent Nodes', () => {
   it('preserves Agent method contracts and platform operations', async () => {
     const launch = vi.fn(async () => undefined);
     const runHdcShell = vi.fn(async () => 'bundleName:com.example.app');
     const back = vi.fn(async () => undefined);
     const registry = new NodeRegistry(
-      createHarmonyNodes({
+      createMidsceneNodes({
+        agentClass: HarmonyAgent,
         getAgent: () => harmonyAgent({ launch, runHdcShell, back }),
       }),
     );
 
-    expect(registry.names()).toEqual([
-      'launch',
-      'terminate',
-      'runHdcShell',
-      'back',
-      'home',
-      'recentApps',
-    ]);
+    expect(registry.names()).toEqual(
+      expect.arrayContaining([
+        'aiAct',
+        'wait',
+        'launch',
+        'terminate',
+        'runHdcShell',
+        'back',
+        'home',
+        'recentApps',
+      ]),
+    );
     const result = await runCollectedCase(
       collected([
         {
@@ -77,7 +94,10 @@ describe('createHarmonyNodes', () => {
 
   it('rejects prefixed commands and missing Agent capabilities', async () => {
     const prefixedRegistry = new NodeRegistry(
-      createHarmonyNodes({ getAgent: () => harmonyAgent() }),
+      createMidsceneNodes({
+        agentClass: HarmonyAgent,
+        getAgent: () => harmonyAgent(),
+      }),
     );
     const prefixed = await runCollectedCase(
       collected([
@@ -97,7 +117,10 @@ describe('createHarmonyNodes', () => {
     );
 
     const missingRegistry = new NodeRegistry(
-      createHarmonyNodes({ getAgent: () => ({}) as never }),
+      createMidsceneNodes({
+        agentClass: HarmonyAgent,
+        getAgent: () => ({}) as never,
+      }),
     );
     const missing = await runCollectedCase(
       collected([
@@ -114,12 +137,6 @@ describe('createHarmonyNodes', () => {
     );
     expect(missing.steps[0].error?.message).toContain(
       'Harmony Agent with launch()',
-    );
-  });
-
-  it('validates factory options', () => {
-    expect(() => createHarmonyNodes({} as never)).toThrow(
-      'createHarmonyNodes() requires getAgent()',
     );
   });
 });
