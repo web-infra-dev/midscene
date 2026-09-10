@@ -1,13 +1,10 @@
-import type {
-  AIUsageInfo,
-  CodeGenerationChunk,
-  StreamingCallback,
-} from '@/types';
+import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
+import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type { CodexAppServerParamsResult } from '../model-adapter/types';
+import type { CodexAppServerParamsResult } from '../../model-adapter/types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
 const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -75,7 +72,7 @@ export type CodexAppServerRecordEvent = {
 type CodexTurnResult = {
   content: string;
   reasoning_content?: string;
-  usage?: AIUsageInfo;
+  usage?: OpenAI.CompletionUsage;
   isStreamed: boolean;
   protocolMetadata: {
     transport: 'json-rpc';
@@ -411,7 +408,6 @@ class CodexAppServerConnection {
     imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
-    const startTime = Date.now();
     const timeoutMs = modelConfig.timeout || CODEX_DEFAULT_TIMEOUT_MS;
     const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
@@ -426,7 +422,7 @@ class CodexAppServerConnection {
     let latestErrorMessage: string | undefined;
     let accumulatedText = '';
     let accumulatedReasoning = '';
-    let latestUsage: AIUsageInfo | undefined;
+    let latestUsage: OpenAI.CompletionUsage | undefined;
 
     const emitChunk = ({
       content,
@@ -437,7 +433,7 @@ class CodexAppServerConnection {
       content: string;
       reasoning: string;
       isComplete: boolean;
-      usage?: AIUsageInfo;
+      usage?: OpenAI.CompletionUsage;
     }) => {
       if (!isStreaming || !onChunk) return;
       const chunk: CodeGenerationChunk = {
@@ -615,12 +611,7 @@ class CodexAppServerConnection {
           params.threadId === threadId &&
           params.turnId === turnId
         ) {
-          latestUsage = this.mapUsage({
-            usage: params as CodexUsageNotification,
-            modelConfig,
-            turnId,
-            startTime,
-          });
+          latestUsage = this.mapUsage(params as CodexUsageNotification);
           continue;
         }
 
@@ -766,35 +757,22 @@ class CodexAppServerConnection {
     });
   }
 
-  private mapUsage({
-    usage,
-    modelConfig,
-    turnId,
-    startTime,
-  }: {
-    usage: CodexUsageNotification;
-    modelConfig: IModelConfig;
-    turnId: string;
-    startTime: number;
-  }): AIUsageInfo | undefined {
+  private mapUsage(
+    usage: CodexUsageNotification,
+  ): OpenAI.CompletionUsage | undefined {
     const tokenUsage = usage.tokenUsage;
     const picked = tokenUsage?.last || tokenUsage?.total;
     if (!picked) return undefined;
 
     return {
-      ...picked,
       prompt_tokens: picked.inputTokens ?? 0,
       completion_tokens: picked.outputTokens ?? 0,
       total_tokens: picked.totalTokens ?? 0,
-      cached_input: picked.cachedInputTokens ?? 0,
-      time_cost: Date.now() - startTime,
-      model_name: modelConfig.modelName,
-      model_description: modelConfig.modelDescription,
-      response_model_name: undefined,
-      slot: modelConfig.slot,
-      intent: undefined,
-      request_id: turnId,
-    } satisfies AIUsageInfo;
+      prompt_tokens_details: { cached_tokens: picked.cachedInputTokens ?? 0 },
+      completion_tokens_details: {
+        reasoning_tokens: picked.reasoningOutputTokens ?? 0,
+      },
+    } satisfies OpenAI.CompletionUsage;
   }
 
   private isRequestMessage(message: JsonRpcMessage): message is JsonRpcRequest {

@@ -10,6 +10,7 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
+import type OpenAI from 'openai';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
@@ -880,8 +881,8 @@ export interface CodeGenerationChunk {
   accumulated: string;
   /** Whether this is the final chunk */
   isComplete: boolean;
-  /** Token usage information if available */
-  usage?: AIUsageInfo;
+  /** Provider token usage, without guaranteed Midscene metadata. See the final response for AIUsageInfo. */
+  usage?: OpenAI.CompletionUsage;
 }
 
 export interface StreamingAIResponse {

@@ -63,15 +63,46 @@ describe('service-caller streaming usage', () => {
       include_usage: true,
       include_obfuscation: false,
     });
-    expect(events).toEqual(['stream-end', 'usage', 'complete']);
+    expect(events).toEqual(['stream-end', 'complete', 'usage']);
     expect(onUsage).toHaveBeenCalledTimes(1);
     expect(result.usage).toMatchObject(usage);
+    expect(onUsage).toHaveBeenCalledWith(result.usage);
+    expect(result.usage).toMatchObject({
+      slot: 'default',
+      model_description: 'test',
+    });
+    expect(result.usage?.time_cost).toEqual(expect.any(Number));
+    expect(result.usage?._midscene_call_id).toEqual(expect.any(String));
+    expect(chunks.at(-1)?.usage).toEqual(usage);
+
     expect(chunks.filter((chunk) => chunk.isComplete)).toHaveLength(1);
     expect(chunks.at(-1)).toMatchObject({
       accumulated: 'Hello',
       usage,
       isComplete: true,
     });
+  });
+
+  it('includes the completion callback in the total call duration', async () => {
+    const now = rs.spyOn(Date, 'now').mockReturnValue(1000);
+    try {
+      mockCreate.mockResolvedValue(
+        (async function* () {
+          yield contentChunk;
+          yield { choices: [], usage };
+          now.mockReturnValue(2000);
+        })(),
+      );
+      const result = await callAI(messages, getModelRuntime(modelConfig), {
+        stream: true,
+        onChunk: (chunk) => {
+          if (chunk.isComplete) now.mockReturnValue(3000);
+        },
+      });
+      expect(result.usage?.time_cost).toBe(2000);
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it.each([true, false])(
@@ -92,6 +123,7 @@ describe('service-caller streaming usage', () => {
         include_usage: true,
       });
       expect(result.content).toBe('Hello');
+      expect(result.reasoning_content).toBe('');
       expect(result.usage).toBeUndefined();
       expect(onUsage).not.toHaveBeenCalled();
       expect(onChunk.mock.calls.at(-1)?.[0]).toMatchObject({
@@ -100,6 +132,27 @@ describe('service-caller streaming usage', () => {
       });
     },
   );
+
+  it('propagates a completion callback error without reporting usage', async () => {
+    mockCreate.mockResolvedValue(
+      (async function* () {
+        yield contentChunk;
+        yield { choices: [], usage };
+      })(),
+    );
+    const runtime = getModelRuntime(modelConfig);
+    const onUsage = rs.fn();
+    runtime.onUsage = onUsage;
+    await expect(
+      callAI(messages, runtime, {
+        stream: true,
+        onChunk: (chunk) => {
+          if (chunk.isComplete) throw new Error('completion callback failed');
+        },
+      }),
+    ).rejects.toThrow('completion callback failed');
+    expect(onUsage).not.toHaveBeenCalled();
+  });
 
   it('propagates a stream error after finish_reason without sending completion', async () => {
     mockCreate.mockResolvedValue(

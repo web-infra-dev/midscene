@@ -262,9 +262,7 @@ describe('Agent usage via ModelRuntime.onUsage (real lifecycle)', () => {
     const runtime = (agent as any).resolveModelRuntime('default');
     const u = usage({ total_tokens: 42, request_id: 'req-dedup-1' });
 
-    // Simulate the same model call being reported twice (e.g. streaming
-    // final-chunk + final-return both fire onUsage — guarded by
-    // usageReported flag in callAI, but test the dedup directly).
+    // Simulate the same model call being reported twice to test deduplication.
     runtime.onUsage(u);
     runtime.onUsage(u);
 
