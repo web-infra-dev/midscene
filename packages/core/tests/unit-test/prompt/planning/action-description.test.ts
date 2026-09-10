@@ -502,18 +502,32 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
       'Use Scroll when the goal is to browse content outside the current viewport.',
     );
     expect(action.description).toContain('For direct gesture interactions');
-    expect(action.param.direction.description).toContain(
-      'The direction toward the off-screen content to reveal.',
-    );
-    expect(action.param.direction.description).toContain(
-      '"down" reveals content below the current viewport',
-    );
-    expect(action.param.direction.description).toContain(
-      'This does not describe the movement direction of the content currently visible on the screen.',
-    );
-    expect(action.param.distance.description).toContain(
-      'Positive requested scroll amount in screen-coordinate units.',
-    );
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          'The direction toward the off-screen content to reveal.',
+        ),
+      },
+      distance: {
+        description: expect.stringContaining(
+          'Positive requested scroll amount in screen-coordinate units.',
+        ),
+      },
+    });
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          '"down" reveals content below the current viewport',
+        ),
+      },
+    });
+    expect(action.param).toMatchObject({
+      direction: {
+        description: expect.stringContaining(
+          'This does not describe the movement direction of the content currently visible on the screen.',
+        ),
+      },
+    });
   });
 
   it('swipe action explains direct gesture controls', () => {
