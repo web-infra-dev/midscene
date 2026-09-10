@@ -63,28 +63,19 @@ export const buildPlanningActionSpaceDescription = ({
     return result;
   };
   const actionDescriptions = actionSpace.map((action) => {
-    const actionOutputExample =
-      planningProtocol.actionSpaceProtocol.includeActionOutputExample &&
-      planningPartEnabled(ablation, 'actionExamples')
-        ? buildActionOutputExample(action, {
-            locatePromptSpec,
-            buildActionOutput:
-              planningProtocol.actionOutputProtocol.buildActionOutput,
-          })
-        : undefined;
+    const actionOutputExample = planningProtocol.actionSpaceProtocol
+      .includeActionOutputExample
+      ? buildActionOutputExample(action, {
+          locatePromptSpec,
+          buildActionOutput:
+            planningProtocol.actionOutputProtocol.buildActionOutput,
+        })
+      : undefined;
     return planningProtocol.actionSpaceProtocol.buildActionDescription({
       action,
       locateFieldDescription,
       actionOutputExample,
-      ...(ablation.length
-        ? {
-            includeDescriptions: planningPartEnabled(
-              ablation,
-              'actionDescriptions',
-            ),
-            projectDescription,
-          }
-        : {}),
+      ...(ablation.length ? { projectDescription } : {}),
     });
   });
 

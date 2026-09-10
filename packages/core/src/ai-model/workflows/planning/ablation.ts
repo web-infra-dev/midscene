@@ -25,11 +25,8 @@ export const PLANNING_ABLATION_PARTS = [
   'sliderSwipe',
   'incrementalEdit',
   'crossPageNavigation',
-  'actionDescriptions',
   'groundingGuidance',
   'returnFormatReminder',
-  'ruleExamples',
-  'actionExamples',
   'multiTurnExample',
 ] as const;
 

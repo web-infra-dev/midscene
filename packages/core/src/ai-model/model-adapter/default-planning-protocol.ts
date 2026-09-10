@@ -28,7 +28,7 @@ type ActionParamDescription = {
 
 type ActionDescription = {
   type: string;
-  description?: string;
+  description: string;
   param?: Record<string, ActionParamDescription> | ActionParamDescription;
   sample?: string;
 };
@@ -37,18 +37,13 @@ export const buildActionDescription = ({
   action,
   locateFieldDescription,
   actionOutputExample,
-  includeDescriptions = true,
   projectDescription = (description) => description,
 }: PlanningActionDescriptionBuildInput) => {
   const actionDescription: ActionDescription = {
     type: action.name,
-    ...(includeDescriptions
-      ? {
-          description: projectDescription(
-            action.description || 'No description provided',
-          ),
-        }
-      : {}),
+    description: projectDescription(
+      action.description || 'No description provided',
+    ),
   };
 
   if (action.paramSchema) {
@@ -83,7 +78,7 @@ export const buildActionDescription = ({
           if (isOptional) {
             paramDescription.optional = true;
           }
-          if (includeDescriptions && description) {
+          if (description) {
             paramDescription.description = projectDescription(description);
           }
           if (hasDefault) {
@@ -104,7 +99,7 @@ export const buildActionDescription = ({
         type: typeName,
         instruction: 'Pass the value directly, not as an object.',
       };
-      if (includeDescriptions && description) {
+      if (description) {
         paramDescription.description = projectDescription(description);
       }
       actionDescription.param = paramDescription;

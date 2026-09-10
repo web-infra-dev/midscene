@@ -35,7 +35,6 @@ export type PlanningActionDescriptionBuildInput = {
   action: DeviceAction<any>;
   locateFieldDescription: string;
   actionOutputExample?: string;
-  includeDescriptions?: boolean;
   projectDescription?: (description: string) => string;
 };
 

@@ -1,6 +1,5 @@
 import type { DeviceAction } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
-import { actionSampleGuidance } from '../../model-adapter/default-planning-protocol';
 import type { StandardPlanningProtocol } from '../../model-adapter/planning-protocol';
 import type { LocateResultPromptSpec } from '../../shared/model-locate-result';
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
@@ -117,7 +116,7 @@ Include your planning details in the <planning> tag. It should answer: ${renderS
   'taskScope',
   `
 
-CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. ${renderPart('ruleExamples', `For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`)}`,
+CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`,
 )}
 
 ${renderSubGoalsContent(`### <update-plan-content> tag
@@ -144,9 +143,7 @@ IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed 
 
 During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
 
-${renderPart(
-  'ruleExamples',
-  `### Example
+### Example
 
 If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
 
@@ -175,8 +172,7 @@ After some time, when the last sub-goal is also completed, you can mark it as do
 
 <mark-sub-goal-done>
   <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>`,
-)}`)}
+</mark-sub-goal-done>`)}
 
 ${renderMemoryContent(`## Step 2: Memory Data from Current Screenshot (related tags: <memory>)
 
@@ -187,13 +183,10 @@ Use <memory> to record clear, task-relevant information from the current screens
 - Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
 - After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
 
-${renderPart(
-  'ruleExamples',
-  `Examples:
+Examples:
 - If you need to find an item and later assert its details, record the item name and the exact details needed for the assertion, such as status, price, date, owner, description, or other visible fields.
 - If you need to compare multiple similar results, record each candidate separately with its exact distinguishing details and visible context.
-- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.`,
-)}
+- If you need to copy information from one place to another, record the exact source value and the target field or UI cue it should be mapped to.
 
 Don't use this tag if no information needs to be preserved.`)}
 
@@ -211,21 +204,18 @@ ${renderPart(
 The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
 
 **Explicit instructions vs. High-level goals:**
-- If the user gives you **explicit operation steps** ${renderPart('ruleExamples', '(e.g., "click X", "type Y", "fill out the form")')}, treat them as exact commands. Execute ONLY those steps, nothing more.
-- If the user gives you a **high-level goal** ${renderPart('ruleExamples', '(e.g., "log in to the system", "complete the purchase")')}, you may determine the necessary steps to achieve it.
+- If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
+- If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
 
 **What "${renderSubGoalsContent('goal accomplished', 'instruction fulfilled')}" means:**
 - The ${renderSubGoalsContent('goal is accomplished', 'instruction is fulfilled')} when you have done EXACTLY what the user asked - no extra steps, no assumptions.
 - Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
 
-${renderPart(
-  'ruleExamples',
-  `**Examples - Explicit instructions (execute exactly, no extra steps):**
+**Examples - Explicit instructions (execute exactly, no extra steps):**
 - "fill out the form" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when all fields are filled. Do NOT submit the form.
 - "click the login button" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} once clicked. Do NOT wait for page load or verify login success.
 - "type 'hello' in the search box" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when 'hello' is typed. Do NOT press Enter or trigger search.
 - "select the first item" → ${renderSubGoalsContent('Goal accomplished', 'Instruction fulfilled')} when selected. Do NOT proceed to checkout.`,
-)}`,
 )}
 
 ${renderPart(
@@ -262,8 +252,8 @@ ${renderPart('taskScope', '- The general rule "do EXACTLY what the user asked" s
 ${renderPart(
   'assertionTiming',
   `**Special case - Assertion instructions:**
-- If the user's instruction includes an assertion ${renderPart('ruleExamples', '(e.g., "verify that...", "check that...", "assert...")')}, and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${renderSubGoalsContent('the goal', 'it')} as failed (success="false").
-- If the page is still loading ${renderPart('ruleExamples', '(e.g., you see a loading spinner, skeleton screen, or progress bar)')}, do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.`,
+- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${renderSubGoalsContent('the goal', 'it')} as failed (success="false").
+- If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.`,
 )}
 
 ${renderPart(
@@ -283,7 +273,7 @@ ${
   !planningPartEnabled(ablation, 'crossPageNavigation')
     ? `**Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
-- Do NOT navigate away from the current page on your own initiative ${renderPart('ruleExamples', '(e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs)')}.
+- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
 - If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.`
     : ''
 }
@@ -300,8 +290,8 @@ ${
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot${renderSubGoalsContent(' and the plan')}.
 
-${renderPart('taskScope', `- Don't give extra actions or plans beyond the instruction${renderPart('subGoals', ' or the plan')}. ${renderPart('ruleExamples', "For example, don't try to submit the form if the instruction is only to fill something.")}`)}
-- Consider the current screenshot and give the action that is most likely to accomplish the instruction. ${renderPart('ruleExamples', "For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.")}
+${renderPart('taskScope', `- Don't give extra actions or plans beyond the instruction${renderPart('subGoals', ' or the plan')}. For example, don't try to submit the form if the instruction is only to fill something.`)}
+- Consider the current screenshot and give the action that is most likely to accomplish the instruction.${renderPart('observationGuidance', " For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.")}
 ${renderPart('recoveryGuidance', '- Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.')}
 - Give just the next ONE action you should do (if any)
 ${renderPart('recoveryGuidance', '- If there are some error messages reported by the previous actions, don\'t give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.')}
@@ -328,29 +318,23 @@ ${actionSpaceDescription}
 
 ${renderLogContent(`### Log to give user feedback (preamble message)
 
-The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles${renderPart('ruleExamples', ' and examples')}:
+The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
 - **Use ${preferredLanguage}**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
 - **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
 
-${renderPart(
-  'ruleExamples',
-  `**Examples:**
+**Examples:**
 - <log>Click the login button</log>
 - <log>Scroll to find the 'Yes' button in popup</log>
-${renderPart('recoveryGuidance', "- <log>Previous actions failed to find the 'Yes' button, i will try again</log>")}
-- <log>Go back to find the login button</log>`,
-)}`)}
+`)}${renderPart('recoveryGuidance', `- ${renderLogContent('<log>')}Previous actions failed to find the 'Yes' button, i will try again${renderLogContent('</log>')}\n`)}${renderLogContent('- <log>Go back to find the login button</log>')}
 
 ### If there is some action to do ...
 
-${planningPartEnabled(ablation, 'actionExamples') ? actionOutputProtocol.actionOutputRules : actionOutputProtocol.actionOutputRules.replace(actionSampleGuidance, '')}
+${actionOutputProtocol.actionOutputRules}
 
-${renderPart(
-  'actionExamples',
-  `For example:
+For example:
 ${buildActionOutputExample(
   createSampleTapAction('Add to cart button for Sauce Labs Backpack'),
   {
@@ -358,18 +342,14 @@ ${buildActionOutputExample(
     locateResultExampleIndex: 1,
     buildActionOutput: actionOutputProtocol.buildActionOutput,
   },
-)}`,
 )}
 
 ### If you think there is an error ...
 
 - Use the <error> tag to output the error message.
 
-${renderPart(
-  'actionExamples',
-  `For example:
-<error>Unable to find the required element on the page</error>`,
-)}
+For example:
+<error>Unable to find the required element on the page</error>
 
 ### If there is no action to do ...
 

@@ -29,20 +29,24 @@ describe('Planning ablation configuration', () => {
     expect(parsePlanningAblation()).toEqual([]);
     expect(parsePlanningAblation(' , ')).toEqual([]);
     const parts = parsePlanningAblation(
-      ' memory,actionExamples,multiTurnExample,subGoals,memory,ruleExamples ',
+      ' memory,multiTurnExample,subGoals,memory ',
     );
-    expect(parts).toEqual([
-      'subGoals',
-      'memory',
-      'ruleExamples',
-      'actionExamples',
-      'multiTurnExample',
-    ]);
+    expect(parts).toEqual(['subGoals', 'memory', 'multiTurnExample']);
     expect(Object.isFrozen(parts)).toBe(true);
     expect(
       parsePlanningAblation(PLANNING_ABLATION_PARTS.join(',')),
-    ).toHaveLength(24);
+    ).toHaveLength(21);
   });
+
+  it.each(['actionExamples', 'ruleExamples', 'actionDescriptions'])(
+    'rejects the removed %s switch in the environment configuration',
+    (part) => {
+      rs.stubEnv(MIDSCENE_PLANNING_DISABLE_PARTS, `memory,${part}`);
+      expect(() => readPlanningAblation()).toThrow(
+        `Unknown MIDSCENE_PLANNING_DISABLE_PARTS part: "${part}"`,
+      );
+    },
+  );
 
   it.each(['taskSemantics', 'uiCases', 'actionStrategies', 'examples'])(
     'rejects the removed %s group in the environment configuration',

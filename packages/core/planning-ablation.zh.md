@@ -26,7 +26,7 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 | `taskScope` | 任务范围限制及其示例、Input 参数提示 |
 | `durableCompletion` | 保存、提交、应用等持久化完成要求 |
 | `processEvidence` | 执行证据要求及首次规划的无历史提醒 |
-| `observationGuidance` | 局部视图、缩略图等详细观察建议 |
+| `observationGuidance` | 局部视图、缩略图等详细观察建议，以及目标不可见时先寻找的示例 |
 | `planningText` | 规划文本及其示例、解析结果、回放 |
 | `subGoals` | 子目标提示、全部所属示例、更新、完成标记、状态、日志分组与回放；关闭后仍启用的 log 使用平铺历史 |
 | `memory` | memory 提示、全部所属示例、输出、写入、摘要与回放 |
@@ -35,24 +35,29 @@ export MIDSCENE_PLANNING_DISABLE_PARTS=subGoals,memory
 | `separateLocate` | Planning/Locate 分开调用：使用默认模型时合并定位；显式配置独立 Planning 模型时仍保持分开 |
 | `scrollableOptions` | 下拉选项搜索及渐进滚动建议 |
 | `inputVerification` | 不通过截图重复检查输入结果的特殊规则 |
-| `assertionTiming` | 断言失败及等待加载规则 |
+| `assertionTiming` | 断言失败及等待加载规则和示例 |
 | `recoveryGuidance` | 重试、恢复建议及所属示例 |
 | `adbPreference` | 优先使用 RunAdbShell 的建议，保留动作本身 |
 | `sliderSwipe` | 滑块优先 Swipe 的建议及 Swipe 描述中的滑块示例 |
 | `incrementalEdit` | 最小编辑、光标策略、对应恢复及 Input.mode 提示 |
 | `crossPageNavigation` | 自主跨页导航：关闭后加入当前页限制及对应示例；用户明确要求的导航仍允许 |
-| `actionDescriptions` | 动作及参数说明，保留可执行 schema 和实现 |
 | `groundingGuidance` | 本次 aiAct 的 Planning、独立 Locate 及适用回退中的共享定位规则 |
 | `returnFormatReminder` | 末尾重复的 Return Format 说明 |
-| `ruleExamples` | 规则示例，包括 subGoals、memory、log 下的示例 |
-| `actionExamples` | 动作样例及独立 Tap/error 示例 |
 | `multiTurnExample` | 整个多轮表单示例 |
 
 ## 能力与示例的归属
 
 `subGoalExample` 已删除，不能再单独配置。`subGoals` 一项覆盖提示、独立子目标示例、多轮示例中的子目标及状态回放。memory、log、planningText、taskScope、recoveryGuidance、sliderSwipe、incrementalEdit 的所属示例也随能力关闭。共享示例保留其他仍启用能力的内容。
 
-通用示例开关仍可用于测试“是否给示例”：示例只有在所属能力和对应通用示例开关都开启时才出现。`ruleExamples,actionExamples,multiTurnExample` 仅移除示例，不会关闭能力。动作偏好不是动作本身，例如关闭 `sliderSwipe` 会删除滑块建议与滑块示例，但仍保留通用 Swipe 能力及其非滑块样例。
+`ruleExamples` 已删除。规则示例分别归属 `taskScope`、`subGoals`、`memory`、`log`、`observationGuidance`、`assertionTiming`、`recoveryGuidance`，随所属组件一起开关。目标不可见时先寻找的示例归属 `observationGuidance`；恢复示例归属 `recoveryGuidance`，关闭 `log` 时只去掉其 XML 标签，保留原始示例文字。当前页限制及其示例在 `crossPageNavigation` 关闭时一起出现。
+
+`actionDescriptions` 和 `actionExamples` 不再是可配置组件。标准 Planning 提示词始终保留动作及参数的基础说明、动作样例、样例格式提示和独立 Tap/error 示例，即使关闭所有可选组件也不会移除。说明中的策略句仍由所属组件 `taskScope`、`incrementalEdit`、`sliderSwipe` 控制。
+
+已有 `MIDSCENE_PLANNING_DISABLE_PARTS` 配置需要删掉 `actionDescriptions`、`actionExamples` 和 `ruleExamples`，否则会按未知组件报错。
+
+`multiTurnExample` 控制整个多轮表单示例，其中每个组件的内容仍随所属组件关闭。关闭多轮示例不会移除各组件的独立示例。动作偏好不是动作本身，例如关闭 `sliderSwipe` 会删除滑块建议与滑块示例，但仍保留通用 Swipe 能力及其非滑块样例。
+
+默认全开基准保持现有 Planning 提示词的原文和顺序。组件划分与开关不改写规则、示例、日志措辞或执行反馈；关闭组件只移除该组件所属的内容和行为。
 
 ## 替代旧模式与实验边界
 

@@ -26,7 +26,7 @@ Choose a setting and run the existing benchmark command. Only the component name
 | `taskScope` | Strict task scope, its examples and Input parameter guidance |
 | `durableCompletion` | Save/submit/apply completion guidance |
 | `processEvidence` | Execution-evidence rules and the initial no-history reminder |
-| `observationGuidance` | Detailed observation advice for partial views |
+| `observationGuidance` | Detailed observation advice for partial views and the example of finding a target before clicking it |
 | `planningText` | Planning text, its examples, parsed output and replay |
 | `subGoals` | Sub-goal instructions, all owned examples, updates, completion markers, state, grouped logs and replay; enabled logs become flat history when this is off |
 | `memory` | Memory instructions, all owned examples, output, writes, summaries and replay |
@@ -35,24 +35,29 @@ Choose a setting and run the existing benchmark command. Only the component name
 | `separateLocate` | Separate Planning/Locate calls: merge localization into Planning when using the default model; an explicitly configured Planning model remains separate |
 | `scrollableOptions` | Dropdown search and incremental-scrolling guidance |
 | `inputVerification` | The special rule against rechecking typed text through screenshots |
-| `assertionTiming` | Assertion failure and loading-wait guidance |
+| `assertionTiming` | Assertion failure and loading-wait guidance and examples |
 | `recoveryGuidance` | Retry/recovery advice and owned recovery examples |
 | `adbPreference` | RunAdbShell preference; the action itself stays available |
 | `sliderSwipe` | Slider Swipe preference and the slider example in the Swipe description |
 | `incrementalEdit` | Minimal edits, cursor strategy, specific recovery and Input.mode guidance |
 | `crossPageNavigation` | Autonomous cross-page navigation: disabling adds the current-page restriction and its examples; navigation explicitly requested by the user remains allowed |
-| `actionDescriptions` | Action/parameter prose; retain executable schemas and implementations |
 | `groundingGuidance` | Shared locating rules in Planning, independent Locate and applicable fallbacks of this aiAct |
 | `returnFormatReminder` | The final repeated Return Format section |
-| `ruleExamples` | Short rule examples, including examples owned by subGoals, memory and log |
-| `actionExamples` | Action samples and standalone Tap/error examples |
 | `multiTurnExample` | The entire multi-turn form example |
 
 ## Ownership of capability examples
 
 `subGoalExample` has been removed. `subGoals` owns the instructions, dedicated sub-goal example, sub-goal content in the multi-turn example, state and replay. Owned examples of memory, log, planningText, taskScope, recoveryGuidance, sliderSwipe and incrementalEdit also disappear with their capability. Shared examples retain content for other enabled capabilities.
 
-General example switches still support experiments on whether examples help: an example appears only when both its owner and its general example switch are enabled. `ruleExamples,actionExamples,multiTurnExample` removes examples without disabling capabilities. An action preference is distinct from the action itself: disabling `sliderSwipe` removes slider advice and its slider example, while retaining generic Swipe and non-slider samples.
+`ruleExamples` has been removed. Rule examples belong to `taskScope`, `subGoals`, `memory`, `log`, `observationGuidance`, `assertionTiming` or `recoveryGuidance` and are enabled or disabled with their owner. The example of finding a target before clicking it belongs to `observationGuidance`. The recovery example belongs to `recoveryGuidance`; disabling `log` removes its XML wrapper while retaining the original example text. Current-page restrictions and their examples appear together when `crossPageNavigation` is disabled.
+
+`actionDescriptions` and `actionExamples` are no longer configurable components. Basic action and parameter descriptions, action samples, their format guidance and standalone Tap/error examples are always retained in the standard Planning prompt, including when all optional components are disabled. Strategy-specific prose inside descriptions still follows its owner: `taskScope`, `incrementalEdit` or `sliderSwipe`.
+
+Remove `actionDescriptions`, `actionExamples` and `ruleExamples` from existing `MIDSCENE_PLANNING_DISABLE_PARTS` values; they are now rejected as unknown components.
+
+`multiTurnExample` controls the entire multi-turn form example, whose component-specific content still disappears when its owner is disabled. Disabling the multi-turn example does not remove standalone component examples. An action preference is distinct from the action itself: disabling `sliderSwipe` removes slider advice and its slider example, while retaining generic Swipe and non-slider samples.
+
+The all-enabled baseline preserves the existing Planning prompt text and order. Component boundaries and switches do not rewrite rules, examples, log wording or execution feedback; disabling a component only removes its owned content and behavior.
 
 ## Replacing the old mode and experimental boundaries
 
