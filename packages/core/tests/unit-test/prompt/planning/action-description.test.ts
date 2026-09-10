@@ -511,6 +511,9 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.param.direction.description).toContain(
       'This does not describe the movement direction of the content currently visible on the screen.',
     );
+    expect(action.param.distance.description).toContain(
+      'Positive requested scroll amount in screen-coordinate units.',
+    );
   });
 
   it('swipe action explains direct gesture controls', () => {

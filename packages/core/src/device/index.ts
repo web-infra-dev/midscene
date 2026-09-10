@@ -638,9 +638,12 @@ export const actionScrollParamSchema = z.object({
     ),
   distance: z
     .number()
+    .positive()
     .nullable()
     .optional()
-    .describe('The distance in pixels to scroll'),
+    .describe(
+      'Positive requested scroll amount in screen-coordinate units. On touch platforms, it controls the length of the swipe gesture used to scroll; on web and desktop platforms, it controls or approximates the wheel scroll delta. Only effective when scrollType is "singleAction".',
+    ),
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(
