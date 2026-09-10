@@ -255,6 +255,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced guides',
           },
           {
+            text: 'From application knowledge to test cases',
+            link: '/from-application-knowledge-to-test-cases',
+          },
+          {
             text: 'Model debugging & observability',
             link: '/model-debugging-observability',
           },
@@ -292,10 +296,6 @@ export default defineConfig(async () => {
           {
             text: 'Configure test projects',
             link: '/midscene-test/configuration',
-          },
-          {
-            text: 'AI testing best practices',
-            link: '/midscene-test/best-practices',
           },
           {
             sectionHeaderText: 'Resources',
@@ -431,6 +431,10 @@ export default defineConfig(async () => {
             sectionHeaderText: '进阶指南',
           },
           {
+            text: '从应用知识到测试用例',
+            link: '/zh/from-application-knowledge-to-test-cases',
+          },
+          {
             text: '模型调试与可观测性',
             link: '/zh/model-debugging-observability',
           },
@@ -468,10 +472,6 @@ export default defineConfig(async () => {
           {
             text: '配置测试项目',
             link: '/zh/midscene-test/configuration',
-          },
-          {
-            text: 'AI 测试最佳实践',
-            link: '/zh/midscene-test/best-practices',
           },
           {
             sectionHeaderText: '资源',
@@ -589,7 +589,6 @@ export default defineConfig(async () => {
               ['test-runner-overview', 'overview'],
               ['extend-test-runner', 'extend'],
               ['use-test-runner', 'use'],
-              ['test-runner-best-practices', 'best-practices'],
             ].map(([previous, current]) => ({
               from: `^${locale}/${previous}(?:\\.html)?/?$`,
               to: `${locale}/midscene-test/${current}`,

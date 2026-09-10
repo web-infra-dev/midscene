@@ -1,4 +1,4 @@
-# AI testing best practices
+# From application knowledge to test cases
 
 Midscene is the GUI Agent responsible for execution: it interprets the task it receives, understands the current interface, plans, and performs the required actions. What the business needs to test, what visible result counts as correct, and knowledge that cannot be inferred reliably from the current interface—such as page entry points and component behavior—should be provided explicitly instead of left for Midscene to guess.
 
@@ -208,7 +208,7 @@ Many steps are not necessarily a problem. The important distinction is whether e
 | AI-generated test Cases | [Midscene Test YAML](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/cases/ranking-filtering.yaml) |
 | Android device run | Five Cases passed without retries on August 28, 2026 |
 
-The complete demo uses [Midscene Test](./overview) for the generated YAML. Its [midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts) manages the Agent, Context, variables, and resource lifecycle. See the [Android guide](../platforms/android) for device setup and [Supported models and configuration](../model-common-config) for model configuration.
+The complete demo uses [Midscene Test](./midscene-test/overview) for the generated YAML. Its [midscene.config.ts](https://github.com/web-infra-dev/midscene/blob/main/packages/test/example/android-dongchedi/midscene.config.ts) manages the Agent, Context, variables, and resource lifecycle. See the [Android guide](./platforms/android) for device setup and [Supported models and configuration](./model-common-config) for model configuration.
 
 ```bash
 cp packages/test/example/android-dongchedi/.env.example packages/test/example/android-dongchedi/.env
