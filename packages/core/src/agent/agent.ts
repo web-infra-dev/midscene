@@ -140,19 +140,6 @@ class AgentScopedModelConfigManager extends ModelConfigManager {
       createOpenAIClient: this.createOpenAIClient,
     };
   }
-
-  override getUploadTestServerUrl(): string | undefined {
-    return this.baseManager.getUploadTestServerUrl();
-  }
-
-  override throwErrorIfNonVLModel() {
-    const modelConfig = this.getModelConfig('default');
-    if (!modelConfig.modelFamily) {
-      throw new Error(
-        'MIDSCENE_MODEL_FAMILY is not set to a multimodal model with UI localization, so element localization cannot be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
-      );
-    }
-  }
 }
 
 export type AiActOptions = {
@@ -368,10 +355,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   private resolveModelRuntime(intent: TIntent): ModelRuntime {
-    const modelConfig: IModelConfig = {
-      ...this.modelConfigManager.getModelConfig(intent),
-    };
-    const runtime = getModelRuntime(modelConfig);
+    const runtime = getModelRuntime(
+      this.modelConfigManager.getModelConfig(intent),
+    );
     return {
       ...runtime,
       onUsage: (usage) => {
