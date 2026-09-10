@@ -9,7 +9,7 @@
 | 字段 | 用途 |
 | --- | --- |
 | `setup` | 为隐式的默认执行项目创建共享资源。 |
-| `nodes` | 注册所有执行项目共享的 Node。 |
+| `nodes` | 注册默认 Node 列表，仅在执行项目未配置 `nodes` 时继承。 |
 | `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各 Project 中，不再配置顶层 setup。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
 | `output` | 设置报告输出目录。 |
@@ -313,7 +313,7 @@ steps:
 
 如果需要在不同浏览器或设备上运行测试，可以通过 `defineTestProject()` 配置多个 Execution Project。
 
-顶层 `nodes` 注册的 Node 对所有 Project 生效，省略时默认为 `[]`。在单个 Project 中，也可以通过与 `setup`、`files` 平级的 `nodes` 字段注册局部 Node。局部 Node 仅对当前 Project 生效，并整体覆盖同名的全局定义；其余全局 Node 仍可使用。同一注册层内出现重复名称时，框架会报错。
+顶层 `nodes` 提供默认 Node 列表，省略时默认为 `[]`。Project 只有在未配置 `nodes` 时才继承全局列表。一旦配置，Project 的 `nodes` 就会完整替换全局列表；`nodes: []` 表示该 Project 不使用任何 Node。需要复用共享 Node 时，应显式写入列表，例如 `nodes: [...sharedNodes, ...platformNodes]`。顶层列表或任一 Project 列表内出现重复名称时，框架会报错。
 
 同时配置 Android 和 iOS 项目时，应在各 Project 中注册对应平台 Agent 的官方 Node。下面的示例从 `./setup` 导入两个独立的 setup，各自管理资源并返回 `{ agent }`，从 `./nodes` 导入共享业务 Node：
 
@@ -330,16 +330,18 @@ interface ProjectContext {
 }
 
 export default defineTestProject<ProjectContext>({
-  nodes: sharedNodes,
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
       setup: androidSetup,
-      nodes: createMidsceneNodes<ProjectContext>({
-        agentClass: AndroidAgent,
-        getAgent: ({ context }) => context.agent,
-      }),
+      nodes: [
+        ...sharedNodes,
+        ...createMidsceneNodes<ProjectContext>({
+          agentClass: AndroidAgent,
+          getAgent: ({ context }) => context.agent,
+        }),
+      ],
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -352,10 +354,13 @@ export default defineTestProject<ProjectContext>({
       name: 'ios-smoke',
       platform: 'ios',
       setup: iosSetup,
-      nodes: createMidsceneNodes<ProjectContext>({
-        agentClass: IOSAgent,
-        getAgent: ({ context }) => context.agent,
-      }),
+      nodes: [
+        ...sharedNodes,
+        ...createMidsceneNodes<ProjectContext>({
+          agentClass: IOSAgent,
+          getAgent: ({ context }) => context.agent,
+        }),
+      ],
       files: { include: ['cases/**/*.{yaml,yml}'] },
       variables: { appUri: 'com.example.ios' },
     },
@@ -406,7 +411,7 @@ export default defineTestProject<ProjectContext>({
 
 ### 为各 Project 生成 Markdown 说明书
 
-运行 `midscene-test nodes` 可以生成 Markdown 说明书，查看项目中可用的 Node。使用 `--project` 指定执行项目后，说明书会列出该项目合并全局和局部注册后实际生效的 Node：
+运行 `midscene-test nodes` 可以生成 Markdown 说明书，查看项目中可用的 Node。使用 `--project` 指定执行项目后，说明书会列出该项目实际生效的 Node：
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke

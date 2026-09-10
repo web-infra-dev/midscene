@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
 const { PlaywrightAgent } = createRequire(import.meta.url)(
   '@midscene/web/playwright/agent',
 );
@@ -17,7 +18,10 @@ describe('PlaywrightAgent Nodes', () => {
     const { page } = createPage();
     const nodes = createMidsceneNodes({
       agentClass: PlaywrightAgent,
-      getAgent: () => ({ interface: { underlyingPage: page } }),
+      getAgent: () => ({
+        ...createMockMidsceneAgent(),
+        interface: { underlyingPage: page },
+      }),
     });
     expect(nodes.map((node) => node.name)).toEqual(
       expect.arrayContaining([

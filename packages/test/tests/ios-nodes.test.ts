@@ -1,8 +1,11 @@
 import type { IOSAgent as PlatformAgent } from '@midscene/ios';
-type IOSRunnerAgent = Pick<
-  PlatformAgent,
-  'launch' | 'terminate' | 'runWdaRequest' | 'home' | 'appSwitcher'
->;
+import type { MidsceneUIAgent } from '../src/midscene';
+import { createMockMidsceneAgent } from './mock-midscene-agent';
+type IOSRunnerAgent = MidsceneUIAgent &
+  Pick<
+    PlatformAgent,
+    'launch' | 'terminate' | 'runWdaRequest' | 'home' | 'appSwitcher'
+  >;
 import { createRequire } from 'node:module';
 import { createMidsceneNodes } from '../src/midscene';
 const { IOSAgent } = createRequire(import.meta.url)('@midscene/ios');
@@ -23,6 +26,7 @@ const collected = (
 });
 
 const iosAgent = (overrides: Partial<IOSRunnerAgent> = {}): IOSRunnerAgent => ({
+  ...createMockMidsceneAgent(),
   launch: vi.fn(async () => undefined),
   terminate: vi.fn(async () => undefined),
   runWdaRequest: vi.fn(async () => undefined),

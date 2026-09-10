@@ -9,7 +9,7 @@ In `midscene.config.ts`, use `defineTestProject()` to define and export your pro
 | Field | Purpose |
 | --- | --- |
 | `setup` | Creates shared resources for the implicit default project. |
-| `nodes` | Registers Nodes shared by all execution projects. |
+| `nodes` | Registers the default Node list, inherited only when an execution project's `nodes` field is omitted. |
 | `projects` | Declares named execution projects, each with its own setup and case selection. When using this field, place setup in each project instead of at the top level. |
 | `test` | Sets concurrency, the failure threshold, and the default step timeout. |
 | `output` | Sets the report output directory. |
@@ -319,7 +319,7 @@ The scaffold generates a configuration that selects `cases/**/*.{yaml,yml}` by d
 
 To run tests across different browsers or devices, configure multiple Execution Projects with `defineTestProject()`.
 
-Nodes registered in the top-level `nodes` field apply to every Project; the field defaults to `[]` when omitted. Within an individual Project, you can also register local Nodes using the `nodes` field alongside `setup` and `files`. A local Node applies only to that Project and replaces the entire global definition with the same name. Other global Nodes remain available. Duplicate names within the same registration layer cause an error.
+The top-level `nodes` field supplies the default Node list and defaults to `[]` when omitted. A Project inherits this list only when its own `nodes` field is omitted. Setting a Project's `nodes` replaces the entire global list for that Project; `nodes: []` makes no Nodes available. To reuse shared Nodes, include them explicitly with `nodes: [...sharedNodes, ...platformNodes]`. Duplicate names within the top-level list or any individual Project list cause an error.
 
 When configuring both Android and iOS projects, register each platform Agent's official Nodes within its Project. The example below imports two independent setups from `./setup`, each managing its own resources and returning `{ agent }`. It imports shared business Nodes from `./nodes`:
 
@@ -336,16 +336,18 @@ interface ProjectContext {
 }
 
 export default defineTestProject<ProjectContext>({
-  nodes: sharedNodes,
   projects: [
     {
       name: 'android-smoke',
       platform: 'android',
       setup: androidSetup,
-      nodes: createMidsceneNodes<ProjectContext>({
-        agentClass: AndroidAgent,
-        getAgent: ({ context }) => context.agent,
-      }),
+      nodes: [
+        ...sharedNodes,
+        ...createMidsceneNodes<ProjectContext>({
+          agentClass: AndroidAgent,
+          getAgent: ({ context }) => context.agent,
+        }),
+      ],
       files: {
         include: ['cases/**/*.{yaml,yml}'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -358,10 +360,13 @@ export default defineTestProject<ProjectContext>({
       name: 'ios-smoke',
       platform: 'ios',
       setup: iosSetup,
-      nodes: createMidsceneNodes<ProjectContext>({
-        agentClass: IOSAgent,
-        getAgent: ({ context }) => context.agent,
-      }),
+      nodes: [
+        ...sharedNodes,
+        ...createMidsceneNodes<ProjectContext>({
+          agentClass: IOSAgent,
+          getAgent: ({ context }) => context.agent,
+        }),
+      ],
       files: { include: ['cases/**/*.{yaml,yml}'] },
       variables: { appUri: 'com.example.ios' },
     },
@@ -412,7 +417,7 @@ A project occupies a concurrency slot from initialization through cleanup. Once 
 
 ### Generate a Markdown reference for each Project
 
-Run `midscene-test nodes` to generate a Markdown reference of the available Nodes. Use `--project` to select an execution project and list the Nodes available after combining its global and local registrations:
+Run `midscene-test nodes` to generate a Markdown reference of the available Nodes. Use `--project` to select an execution project and list its effective Nodes:
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
