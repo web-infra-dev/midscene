@@ -21,7 +21,7 @@ describe('YAML sleep', () => {
     agent.onDumpUpdate = listener;
     rs.useFakeTimers();
     try {
-      const waiting = agent.callActionInActionSpace('Sleep', { timeMs: 3000 });
+      const waiting = agent.sleep(3000);
       await rs.advanceTimersByTimeAsync(0);
       expect(
         JSON.parse(agent.dumpDataString()).executions[0].tasks[0].status,
@@ -41,6 +41,33 @@ describe('YAML sleep', () => {
       await agent.destroy();
     }
   });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'records invalid SDK duration %s as a failed task',
+    async (duration) => {
+      const agent = new Agent(
+        {
+          interfaceType: 'mock',
+          actionSpace: () => [],
+        } as unknown as AbstractInterface,
+        { generateReport: false },
+      );
+      try {
+        await expect(agent.sleep(duration)).rejects.toThrow(
+          'finite number greater than 0',
+        );
+        const dump = JSON.parse(agent.dumpDataString());
+        expect(dump.executions).toHaveLength(1);
+        expect(dump.executions[0].tasks[0]).toMatchObject({
+          status: 'failed',
+          subType: 'Sleep',
+          errorMessage: expect.stringContaining('finite number greater than 0'),
+        });
+      } finally {
+        await agent.destroy();
+      }
+    },
+  );
 
   it.each(['20', '"20"'])(
     'records sleep: %s with its duration and execution timing',
@@ -100,7 +127,7 @@ tasks:
   it.each([0, -1, Number.POSITIVE_INFINITY, 'invalid'])(
     'rejects invalid duration %s before dispatching an action',
     async (duration) => {
-      const agent = { callActionInActionSpace: rs.fn() };
+      const agent = { sleep: rs.fn() };
       const player = new ScriptPlayer({ tasks: [] }, async () => ({
         agent: agent as unknown as Agent,
         freeFn: [],
@@ -117,7 +144,7 @@ tasks:
           agent as unknown as Agent,
         ),
       ).rejects.toThrow('ms for sleep must be greater than 0');
-      expect(agent.callActionInActionSpace).not.toHaveBeenCalled();
+      expect(agent.sleep).not.toHaveBeenCalled();
     },
   );
 });

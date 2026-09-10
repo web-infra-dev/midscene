@@ -10,7 +10,7 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import type {
   ExecutionReferenceImage,
@@ -280,8 +280,8 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    planningModel: ModelRuntime | (() => ModelRuntime),
-    defaultModel: ModelRuntime | (() => ModelRuntime),
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
@@ -345,25 +345,40 @@ export class TaskExecutor {
     };
   }
 
+  async sleep(ms: number): Promise<void> {
+    const session = this.createExecutionSession('Sleep');
+    const action = defineActionSleep();
+    await session.appendAndRun({
+      type: 'Action Space',
+      subType: action.name,
+      param: { timeMs: ms },
+      requiresUIContext: false,
+      executor: async ({ task }) => {
+        assert(
+          Number.isFinite(ms) && ms > 0,
+          `ms for sleep must be a finite number greater than 0, but got ${ms}`,
+        );
+        setTimingFieldOnce(task.timing, 'callActionStart');
+        try {
+          await action.call({ timeMs: ms });
+        } finally {
+          setTimingFieldOnce(task.timing, 'callActionEnd');
+        }
+      },
+    });
+  }
+
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    planningModel: ModelRuntime | (() => ModelRuntime),
-    defaultModel: ModelRuntime | (() => ModelRuntime),
+    planningModel: ModelRuntime,
+    defaultModel: ModelRuntime,
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
-    const executionPlanningModel = () => ({
-      ...(typeof planningModel === 'function'
-        ? planningModel()
-        : planningModel),
-      executionId: runner.id,
-    });
-    const executionDefaultModel = () => ({
-      ...(typeof defaultModel === 'function' ? defaultModel() : defaultModel),
-      executionId: runner.id,
-    });
+    const executionPlanningModel = { ...planningModel, executionId: runner.id };
+    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
       executionPlanningModel,
