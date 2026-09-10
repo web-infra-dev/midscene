@@ -132,11 +132,11 @@ Midscene supports DeepSeek starting from v1.12.0.
 
 | Model version | Commonly used model names | `MIDSCENE_MODEL_FAMILY` | Notes |
 | --- | --- | --- | --- |
-| DeepSeek V4 series | `deepseek-v4-flash-vision-exp` | `deepseek` | Currently, only `deepseek-v4-flash-vision-exp` supports the multimodal visual input required by Midscene. Other DeepSeek V4 models, including `deepseek-v4-pro` and `deepseek-v4-flash`, are not suitable for use with Midscene. |
+| DeepSeek V4 series | `deepseek-flash` | `deepseek` | `deepseek-flash` natively supports the multimodal visual input required by Midscene. `deepseek-v4-pro` does not currently support multimodal visual input and is not suitable for use with Midscene. See [DeepSeek model details](https://api-docs.deepseek.com/quick_start/pricing/). |
 
 </div>
 
-Environment variable configuration example, using `deepseek-v4-flash-vision-exp`:
+Environment variable configuration example, using `deepseek-flash`:
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -144,7 +144,7 @@ Environment variable configuration example, using `deepseek-v4-flash-vision-exp`
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_MODEL_NAME="deepseek-flash"
 MIDSCENE_MODEL_FAMILY="deepseek"
 ```
 
@@ -154,7 +154,7 @@ MIDSCENE_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
 MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```
 
@@ -164,7 +164,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API endpoint
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
 MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 ```
 

@@ -122,7 +122,7 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="qwen3" # 如果你使用了其他版本的 Qwen�
   </ModelConfigTab>
 </ModelConfigTabs>
 
-### DeepSeek 系列 {#deepseek}
+### 深度求索 deepseek 系列 {#deepseek}
 
 Midscene 从 v1.12.0 开始支持 DeepSeek。
 
@@ -132,11 +132,11 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 
 | 模型版本 | 常用模型名称 | `MIDSCENE_MODEL_FAMILY` | 备注 |
 | --- | --- | --- | --- |
-| DeepSeek V4 系列 | `deepseek-v4-flash-vision-exp` | `deepseek` | 目前只有 `deepseek-v4-flash-vision-exp` 支持 Midscene 所需的多模态视觉输入。包括 `deepseek-v4-pro` 和普通 `deepseek-v4-flash` 在内的其他 DeepSeek V4 模型均不适用于 Midscene。 |
+| DeepSeek V4 系列 | `deepseek-flash` | `deepseek` | `deepseek-flash` 已原生支持 Midscene 所需的多模态视觉输入。`deepseek-v4-pro` 目前尚不支持多模态视觉输入，不适用于 Midscene。详见 [DeepSeek 模型说明](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)。 |
 
 </div>
 
-环境变量配置示例，以 `deepseek-v4-flash-vision-exp` 为例：
+环境变量配置示例，以 `deepseek-flash` 为例：
 
 <ModelConfigTabs>
   <ModelConfigTab type="default">
@@ -144,7 +144,7 @@ Midscene 从 v1.12.0 开始支持 DeepSeek。
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
 MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_MODEL_NAME="deepseek-flash"
 MIDSCENE_MODEL_FAMILY="deepseek"
 ```
 
@@ -154,7 +154,7 @@ MIDSCENE_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
 MIDSCENE_PLANNING_MODEL_API_KEY="......"
-MIDSCENE_PLANNING_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_PLANNING_MODEL_NAME="deepseek-flash"
 MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```
 
@@ -164,7 +164,7 @@ MIDSCENE_PLANNING_MODEL_FAMILY="deepseek"
 ```bash
 MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.deepseek.com" # DeepSeek API 地址
 MIDSCENE_INSIGHT_MODEL_API_KEY="......"
-MIDSCENE_INSIGHT_MODEL_NAME="deepseek-v4-flash-vision-exp"
+MIDSCENE_INSIGHT_MODEL_NAME="deepseek-flash"
 MIDSCENE_INSIGHT_MODEL_FAMILY="deepseek"
 ```
 
