@@ -88,6 +88,7 @@ export const gotoUrlNode: AgentTestRunnerNodeDefinition<
       waitUntil: ctx.input.waitUntil,
       timeout: ctx.input.timeoutMs,
     });
+    throwIfAborted(ctx.signal, 'gotoUrl');
     const status = response?.status() ?? null;
     const result = {
       url: page.url(),

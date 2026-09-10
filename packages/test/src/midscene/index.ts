@@ -125,6 +125,7 @@ export const createAgentTestRunnerNodes = <TContext>(
     call: () => Promise<T>,
     captureExecutions = true,
   ): Promise<T> => {
+    execution.signal.throwIfAborted();
     const scopeId =
       execution.scope === 'case'
         ? execution.case.runId
@@ -139,7 +140,14 @@ export const createAgentTestRunnerNodes = <TContext>(
       );
     }
 
-    activeAgentCalls.set(agent, { scopeId, node });
+    const currentCall = { scopeId, node };
+    activeAgentCalls.set(agent, currentCall);
+    const releaseCall = () => {
+      // An aborted call may finish after another Step has acquired this Agent.
+      if (activeAgentCalls.get(agent) === currentCall) {
+        activeAgentCalls.delete(agent);
+      }
+    };
     let removeListener: (() => void) | undefined;
     let sawExecutionWithoutId = false;
     const stopListening = () => {
@@ -147,7 +155,16 @@ export const createAgentTestRunnerNodes = <TContext>(
       removeListener = undefined;
       remove?.();
     };
-    const stopListeningOnAbort = () => stopListening();
+    const stopListeningOnAbort = () => {
+      try {
+        stopListening();
+      } finally {
+        releaseCall();
+      }
+    };
+    execution.signal.addEventListener('abort', stopListeningOnAbort, {
+      once: true,
+    });
     try {
       if (captureExecutions && agent.addDumpUpdateListener) {
         removeListener = agent.addDumpUpdateListener((_dump, executionRef) => {
@@ -162,11 +179,6 @@ export const createAgentTestRunnerNodes = <TContext>(
           });
         });
         if (execution.signal.aborted) stopListening();
-        else {
-          execution.signal.addEventListener('abort', stopListeningOnAbort, {
-            once: true,
-          });
-        }
       }
       return await call();
     } finally {
@@ -174,7 +186,7 @@ export const createAgentTestRunnerNodes = <TContext>(
       try {
         stopListening();
       } finally {
-        activeAgentCalls.delete(agent);
+        releaseCall();
       }
       if (sawExecutionWithoutId) {
         warnReportTrace(
