@@ -18,7 +18,7 @@ describe('service-caller empty content handling', () => {
     rs.clearAllMocks();
   });
 
-  it('should preserve usage when model returns empty content', async () => {
+  it('does not report or attach usage when all attempts return empty content', async () => {
     const { callAI, AIResponseParseError } = await import(
       '@/ai-model/service-caller'
     );
@@ -45,12 +45,14 @@ describe('service-caller empty content handling', () => {
       modelDescription: 'test model',
       intent: 'default',
       slot: 'default',
+      retryCount: 1,
+      retryInterval: 0,
     };
 
-    const promise = callAI(
-      [{ role: 'user', content: 'hello' }],
-      getModelRuntime(modelConfig),
-    );
+    const runtime = getModelRuntime(modelConfig);
+    const onUsage = rs.fn();
+    runtime.onUsage = onUsage;
+    const promise = callAI([{ role: 'user', content: 'hello' }], runtime);
 
     await expect(promise).rejects.toBeInstanceOf(AIResponseParseError);
 
@@ -58,23 +60,50 @@ describe('service-caller empty content handling', () => {
       await promise;
     } catch (error) {
       const typedError = error as InstanceType<typeof AIResponseParseError>;
-      expect(typedError.usage).toMatchObject({
-        prompt_tokens: 12,
-        completion_tokens: 0,
-        total_tokens: 12,
-        cached_input: 7,
-        prompt_tokens_details: {
-          cached_tokens: 7,
-        },
-        model_name: 'gpt-4o',
-        model_description: 'test model',
-        response_model_name: 'gpt-4o-2024-08-06',
-        slot: 'default',
-        request_id: 'req_test_123',
-      });
-      expect(typedError.usage?.intent).toBeUndefined();
+      expect(typedError.usage).toBeUndefined();
+      expect(onUsage).not.toHaveBeenCalled();
+      expect(mockCreate).toHaveBeenCalledTimes(2);
       expect(typedError.rawResponse).toBe('');
       expect(typedError.rawChoiceMessage).toEqual({ content: '' });
     }
+  });
+  it('reports only the successful attempt usage after an empty response', async () => {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: '' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 0, total_tokens: 100 },
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'hello' } }],
+        usage: { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 },
+        _request_id: 'successful-request',
+        model: 'response-model',
+      });
+    const runtime = getModelRuntime({
+      modelName: 'gpt-4o',
+      modelDescription: 'test model',
+      openaiApiKey: 'test-key',
+      intent: 'default',
+      slot: 'default',
+      retryCount: 1,
+      retryInterval: 0,
+    });
+    const onUsage = rs.fn();
+    runtime.onUsage = onUsage;
+    const result = await callAI([{ role: 'user', content: 'hello' }], runtime);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(onUsage).toHaveBeenCalledTimes(1);
+    expect(onUsage).toHaveBeenCalledWith(result.usage);
+    expect(result.reasoning_content).toBe('');
+    expect(result.usage).toMatchObject({
+      total_tokens: 12,
+      request_id: 'successful-request',
+      response_model_name: 'response-model',
+      model_description: 'test model',
+      slot: 'default',
+      time_cost: expect.any(Number),
+    });
   });
 });

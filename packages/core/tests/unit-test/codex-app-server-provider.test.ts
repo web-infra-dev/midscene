@@ -2,13 +2,16 @@ import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
+import { getModelRuntime } from '@/ai-model/models';
+import { callAI } from '@/ai-model/service-caller';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
   normalizeCodexLocalImagePath,
-} from '@/ai-model/service-caller/codex-app-server';
+} from '@/ai-model/service-caller/codex/codex-app-server';
+import type { CodeGenerationChunk } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -249,6 +252,12 @@ readline.on('line', (line) => {
       params: { threadId: 'thread-1', turnId: 'turn-1', delta: 'hello' },
     });
     send({
+      method: 'thread/tokenUsage/updated',
+      params: { threadId: 'thread-1', turnId: 'turn-1', tokenUsage: {
+        last: { inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedInputTokens: 3, reasoningOutputTokens: 2 },
+      } },
+    });
+    send({
       method: 'turn/completed',
       params: {
         threadId: 'thread-1',
@@ -298,6 +307,40 @@ readline.on('line', (line) => {
         onRecordEvent: (event) => events.push(event),
       },
     );
+
+    const expectedUsage = {
+      prompt_tokens: 10,
+      completion_tokens: 5,
+      total_tokens: 15,
+      prompt_tokens_details: { cached_tokens: 3 },
+      completion_tokens_details: { reasoning_tokens: 2 },
+    };
+    expect(result.usage).toEqual(expectedUsage);
+    const runtime = getModelRuntime({
+      ...baseModelConfig,
+      openaiBaseURL: 'codex://app-server',
+    });
+    const onUsage = rs.fn();
+    runtime.onUsage = onUsage;
+    const chunks: CodeGenerationChunk[] = [];
+    const enriched = await callAI(
+      [{ role: 'user', content: 'hello' }],
+      runtime,
+      { stream: true, onChunk: (chunk) => chunks.push(chunk) },
+    );
+    expect(chunks.at(-1)?.usage).toEqual(expectedUsage);
+    expect(enriched.usage).toMatchObject({
+      ...expectedUsage,
+      cached_input: 3,
+      model_name: baseModelConfig.modelName,
+      model_description: 'codex',
+      slot: 'default',
+      request_id: 'turn-1',
+      _midscene_call_id: expect.any(String),
+      time_cost: expect.any(Number),
+    });
+    expect(onUsage).toHaveBeenCalledTimes(1);
+    expect(onUsage).toHaveBeenCalledWith(enriched.usage);
 
     expect(result).toMatchObject({
       content: 'hello',

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 const mockCreate = rs.fn();
 const mockCodexCall = rs.hoisted(() => rs.fn());
 
-rs.mock('@/ai-model/service-caller/codex-app-server', () => ({
+rs.mock('@/ai-model/service-caller/codex/codex-app-server', () => ({
   isCodexAppServerProvider: (url?: string) => url === 'codex://app-server',
   callAIWithCodexAppServer: mockCodexCall,
 }));
@@ -53,7 +53,16 @@ const imageMessage = [
 describe('GPT image detail handling', () => {
   beforeEach(() => {
     mockCodexCall.mockReset();
-    mockCodexCall.mockResolvedValue({ content: 'ok', isStreamed: false });
+    mockCodexCall.mockResolvedValue({
+      content: 'ok',
+      isStreamed: false,
+      protocolMetadata: {
+        transport: 'json-rpc',
+        threadId: 'thread-test',
+        turnId: 'turn-test',
+        turnStatus: 'completed',
+      },
+    });
     mockCreate.mockReset();
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'ok' } }],
@@ -64,6 +73,39 @@ describe('GPT image detail handling', () => {
       },
     });
   });
+
+  it.each(['https://api.openai.com/v1', 'codex://app-server'])(
+    'rejects streaming without onChunk before calling %s',
+    async (openaiBaseURL) => {
+      await expect(
+        callAI(
+          imageMessage,
+          getModelRuntime({ ...baseModelConfig, openaiBaseURL }),
+          { stream: true },
+        ),
+      ).rejects.toThrow('onChunk is required when stream is true');
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(mockCodexCall).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, undefined])(
+    'keeps the request non-streaming when stream is %s even with onChunk',
+    async (stream) => {
+      const onChunk = rs.fn();
+      const response = await callAI(
+        imageMessage,
+        getModelRuntime(baseModelConfig),
+        { stream, onChunk },
+      );
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ stream: false }),
+        expect.anything(),
+      );
+      expect(response.isStreamed).toBe(false);
+      expect(onChunk).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([undefined, 'max'])(
     'passes resolved GPT-6 effort to Codex for %s',
