@@ -276,6 +276,9 @@ describe('createScrcpyVideoStream', () => {
     for (let index = 0; index < 5; index += 1) {
       const result = await reader.read();
       expect(result.done).toBe(false);
+      if (result.done) {
+        throw new Error('Scrcpy stream ended before the retained keyframe');
+      }
       packets.push(result.value);
     }
 
@@ -289,6 +292,9 @@ describe('createScrcpyVideoStream', () => {
     socket.dispatchDisconnect();
     const finalPacket = await reader.read();
     expect(finalPacket.done).toBe(false);
+    if (finalPacket.done) {
+      throw new Error('Scrcpy stream ended before the resumed delta frame');
+    }
     packets.push(finalPacket.value);
     expect((await reader.read()).done).toBe(true);
 
