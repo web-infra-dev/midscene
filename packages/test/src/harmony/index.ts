@@ -24,7 +24,7 @@ export type HarmonyRunnerAgent = Pick<
 
 export interface CreateHarmonyNodesOptions<TContext> {
   getAgent(
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<HarmonyRunnerAgent>;
 }
 

@@ -433,8 +433,7 @@ describe('generated project integration', () => {
           writeFileSync(
             join(pkg, format === 'esm' ? 'index.mjs' : 'index.cjs'),
             `${format === 'esm' ? 'export function createMidsceneTestNodes' : 'exports.createMidsceneTestNodes = function'}(options) {
-          if (options.platform !== ${JSON.stringify(platform)}) throw new Error('Unsupported platform');
-          return [{ name: 'team.inspect', description: 'Inspect the screen.', async execute(ctx) { return (await options.getAgent(ctx)).aiAsk('Describe the screen'); } }];
+          return [{ name: 'team.inspect', description: 'Inspect the screen.', async execute(execution) { return (await options.getAgent(execution)).aiAsk('Describe the screen'); } }];
         }`,
           );
           writeFileSync(

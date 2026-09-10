@@ -132,7 +132,7 @@ export function createProjectFiles(
   const extraNodes = packages
     .map(
       (_, index) =>
-        `    ...createPackageNodes${index}<ProjectContext>({ platform: '${platform}', getAgent }),`,
+        `    ...createPackageNodes${index}<ProjectContext>({ getAgent }),`,
     )
     .join('\n');
   const config = `import { fileURLToPath } from 'node:url';

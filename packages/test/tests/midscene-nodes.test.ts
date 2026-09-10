@@ -573,12 +573,12 @@ describe('createMidsceneNodes', () => {
     const nodes = createMidsceneNodes<{
       agent: MidsceneUIAgent;
     }>({
-      getAgent(ctx) {
-        if (ctx.scope !== 'document')
+      getAgent(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        expect(ctx.document.phase).toBe('beforeAll');
-        expect('case' in ctx).toBe(false);
-        return ctx.context.agent;
+        expect(execution.document.phase).toBe('beforeAll');
+        expect('case' in execution).toBe(false);
+        return execution.context.agent;
       },
       agentClass: testAgentClass,
     });
