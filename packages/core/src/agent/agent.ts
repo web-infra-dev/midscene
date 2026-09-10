@@ -70,6 +70,7 @@ import {
   observationArtifactAdapterSymbol,
 } from '@midscene/shared/agent-tools/observation-artifact';
 import {
+  type CreateOpenAIClientFn,
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
@@ -124,6 +125,22 @@ import {
 
 const debug = getDebug('agent');
 const warn = getDebug('agent', { console: true });
+
+class AgentScopedModelConfigManager extends ModelConfigManager {
+  constructor(
+    private readonly baseManager: ModelConfigManager,
+    private readonly createOpenAIClient?: CreateOpenAIClientFn,
+  ) {
+    super();
+  }
+
+  override getModelConfig(intent: TIntent): IModelConfig {
+    return {
+      ...this.baseManager.getModelConfig(intent),
+      createOpenAIClient: this.createOpenAIClient,
+    };
+  }
+}
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -432,12 +449,16 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
-    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
-    // Otherwise, use the global config manager
-    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
-    this.modelConfigManager = hasCustomConfig
-      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
-      : globalModelConfigManager;
+    // Explicit modelConfig is isolated from global configuration.
+    // A custom client factory alone still uses the global model values.
+    this.modelConfigManager = opts?.modelConfig
+      ? new ModelConfigManager(opts.modelConfig, opts.createOpenAIClient)
+      : opts?.createOpenAIClient
+        ? new AgentScopedModelConfigManager(
+            globalModelConfigManager,
+            opts.createOpenAIClient,
+          )
+        : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
