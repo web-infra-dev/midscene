@@ -28,24 +28,24 @@ log(`config:${process.pid}`);
 const documentLifecycle = defineNode<unknown, unknown, FixtureContext>({
   name: 'document.lifecycle',
   stringInputKey: 'prompt',
-  execute(ctx) {
-    if (ctx.scope !== 'document') {
+  execute(execution) {
+    if (execution.scope !== 'document') {
       throw new Error('document.lifecycle only supports document hooks.');
     }
-    log(`${ctx.document.phase}:${ctx.context.id}:${process.pid}`);
+    log(`${execution.document.phase}:${execution.context.id}:${process.pid}`);
   },
 });
 
 const startAttempt = defineNode<unknown, unknown, FixtureContext>({
   name: 'attempt.start',
   stringInputKey: 'prompt',
-  execute(ctx) {
-    if (ctx.scope !== 'case') {
+  execute(execution) {
+    if (execution.scope !== 'case') {
       throw new Error('attempt.start only supports case hooks.');
     }
-    ctx.context.attempt += 1;
+    execution.context.attempt += 1;
     log(
-      `beforeEach:${ctx.context.id}:${ctx.context.attempt}:${ctx.case.runId}:${process.pid}`,
+      `beforeEach:${execution.context.id}:${execution.context.attempt}:${execution.case.runId}:${process.pid}`,
     );
   },
 });

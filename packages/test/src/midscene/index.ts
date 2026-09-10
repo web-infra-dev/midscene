@@ -54,7 +54,7 @@ export interface MidsceneExecutionRef {
 export interface AgentProvider<TContext> {
   getAgent(
     runId: string,
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
   // biome-ignore lint/suspicious/noConfusingVoidType: providers without a report intentionally return void.
   releaseAgent?(runId: string): Awaitable<AgentReleaseResult | void>;
@@ -83,7 +83,7 @@ export type WaitNodeInput = z.infer<typeof waitInputSchema>;
 
 export interface CreateMidsceneNodesOptions<TContext> {
   getAgent?(
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<MidsceneUIAgent>;
   agentProvider?: AgentProvider<TContext>;
   /** Agent class that declares the Agent-backed Nodes to register. */
@@ -111,7 +111,7 @@ const waitFor = async (durationMs: number, signal: AbortSignal) => {
 export const createAgentTestRunnerNodes = <TContext>(
   definitions: readonly AgentTestRunnerNodeDefinition[],
   getAgent: (
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ) => Awaitable<unknown>,
 ): readonly NodeDefinition<any, any, TContext>[] => {
   const activeAgentCalls = new WeakMap<
@@ -120,13 +120,15 @@ export const createAgentTestRunnerNodes = <TContext>(
   >();
   const runAgentCall = async <T>(
     node: string,
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
     agent: MidsceneUIAgent,
     call: () => Promise<T>,
     captureExecutions = true,
   ): Promise<T> => {
     const scopeId =
-      ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+      execution.scope === 'case'
+        ? execution.case.runId
+        : execution.document.documentRunId;
     const activeCall = activeAgentCalls.get(agent);
     if (activeCall) {
       throw new NodeExecutionError(
@@ -148,27 +150,27 @@ export const createAgentTestRunnerNodes = <TContext>(
     const stopListeningOnAbort = () => stopListening();
     try {
       if (captureExecutions && agent.addDumpUpdateListener) {
-        removeListener = agent.addDumpUpdateListener((_dump, execution) => {
-          if (!execution) return;
-          if (!execution.id) {
+        removeListener = agent.addDumpUpdateListener((_dump, executionRef) => {
+          if (!executionRef) return;
+          if (!executionRef.id) {
             sawExecutionWithoutId = true;
             return;
           }
-          ctx.report.addTrace({
+          execution.report.addTrace({
             type: 'midscene-execution',
-            executionId: execution.id,
+            executionId: executionRef.id,
           });
         });
-        if (ctx.signal.aborted) stopListening();
+        if (execution.signal.aborted) stopListening();
         else {
-          ctx.signal.addEventListener('abort', stopListeningOnAbort, {
+          execution.signal.addEventListener('abort', stopListeningOnAbort, {
             once: true,
           });
         }
       }
       return await call();
     } finally {
-      ctx.signal.removeEventListener('abort', stopListeningOnAbort);
+      execution.signal.removeEventListener('abort', stopListeningOnAbort);
       try {
         stopListening();
       } finally {
@@ -193,14 +195,16 @@ export const createAgentTestRunnerNodes = <TContext>(
         ? {}
         : { stringInputKey: definition.stringInputKey }),
       inputSchema: definition.inputSchema,
-      async execute(ctx) {
-        const agent = await getAgent(ctx);
+      async execute(execution) {
+        const agent = await getAgent(execution);
         const call = async () =>
-          definition.execute(agent, ctx.input, { signal: ctx.signal });
+          definition.execute(agent, execution.input, {
+            signal: execution.signal,
+          });
         if (typeof agent !== 'object' || agent === null) return call();
         return runAgentCall(
           definition.name,
-          ctx,
+          execution,
           agent as MidsceneUIAgent,
           call,
         );
@@ -239,19 +243,23 @@ export function createMidsceneNodes<TContext>(
   }
 
   const registeredAgentScopes = new Set<string>();
-  const getExecutionId = (ctx: NodeExecutionContext<unknown, TContext>) =>
-    ctx.scope === 'case' ? ctx.case.runId : ctx.document.documentRunId;
+  const getExecutionId = (
+    execution: NodeExecutionContext<unknown, TContext>,
+  ) =>
+    execution.scope === 'case'
+      ? execution.case.runId
+      : execution.document.documentRunId;
   const getAgent = async (
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Promise<MidsceneUIAgent> => {
-    if (!options.agentProvider) return options.getAgent!(ctx);
-    const runId = getExecutionId(ctx);
+    if (!options.agentProvider) return options.getAgent!(execution);
+    const runId = getExecutionId(execution);
     if (
       options.agentProvider.releaseAgent &&
       !registeredAgentScopes.has(runId)
     ) {
       registeredAgentScopes.add(runId);
-      ctx.onTeardown(async () => {
+      execution.onTeardown(async () => {
         try {
           const released = await options.agentProvider!.releaseAgent!(runId);
           return released?.reportPath
@@ -262,7 +270,7 @@ export function createMidsceneNodes<TContext>(
         }
       });
     }
-    return options.agentProvider.getAgent(runId, ctx);
+    return options.agentProvider.getAgent(runId, execution);
   };
 
   const agentDefinitions = options.agentClass.getTestRunnerNodeDefinitions();
@@ -274,15 +282,15 @@ export function createMidsceneNodes<TContext>(
       description: 'Wait for a fixed duration while honoring cancellation.',
       stringInputKey: false,
       inputSchema: waitInputSchema,
-      async execute(ctx) {
+      async execute(execution) {
         const multiplier =
-          ctx.input.unit === 'min'
+          execution.input.unit === 'min'
             ? 60_000
-            : ctx.input.unit === 's'
+            : execution.input.unit === 's'
               ? 1_000
               : 1;
-        const durationMs = ctx.input.duration * multiplier;
-        await waitFor(durationMs, ctx.signal);
+        const durationMs = execution.input.duration * multiplier;
+        await waitFor(durationMs, execution.signal);
         return { summary: `Waited ${durationMs}ms` };
       },
     }),

@@ -331,7 +331,7 @@ describe('generated project integration', () => {
     async (format) => {
       const cwd = temp();
       for (const [filename, content] of Object.entries(
-        createProjectFiles('agent-entry', 'web', [], 'pnpm'),
+        createProjectFiles('agent-entry', 'web', 'pnpm'),
       )) {
         const path = join(cwd, filename);
         mkdirSync(resolve(path, '..'), { recursive: true });
@@ -403,125 +403,6 @@ describe('generated project integration', () => {
         `,
         ],
         { cwd, env: { ...process.env, NODE_PATH: '' } },
-      );
-    },
-  );
-
-  it.each([
-    ['web', 'esm'],
-    ['web', 'cjs'],
-    ['harmony', 'esm'],
-    ['computer', 'esm'],
-  ])(
-    'includes an external package in the %s Node reference (%s)',
-    async (platform, format) => {
-      const cwd = temp();
-      const runtime = services(cwd);
-      runtime.runPackageManager = async (_packageManager, args, root) => {
-        if (args[0] === 'install') {
-          linkDependencies(root);
-          const pkg = join(root, 'node_modules', 'team-nodes');
-          mkdirSync(pkg);
-          writeFileSync(
-            join(pkg, 'package.json'),
-            JSON.stringify({
-              name: 'team-nodes',
-              main: format === 'esm' ? 'index.mjs' : 'index.cjs',
-              types: 'index.d.ts',
-            }),
-          );
-          writeFileSync(
-            join(pkg, format === 'esm' ? 'index.mjs' : 'index.cjs'),
-            `${format === 'esm' ? 'export function createMidsceneTestNodes' : 'exports.createMidsceneTestNodes = function'}(options) {
-          if (options.platform !== ${JSON.stringify(platform)}) throw new Error('Unsupported platform');
-          return [{ name: 'team.inspect', description: 'Inspect the screen.', async execute(ctx) { return (await options.getAgent(ctx)).aiAsk('Describe the screen'); } }];
-        }`,
-          );
-          writeFileSync(
-            join(pkg, 'index.d.ts'),
-            `import type { NodeDefinition } from '@midscene/test';
-import type { NodePackageOptions } from '@midscene/test/config';
-export declare function createMidsceneTestNodes<TContext>(options: NodePackageOptions<TContext>): NodeDefinition<unknown, unknown, TContext>[];
-`,
-          );
-          return '';
-        }
-        return (
-          await execFileAsync(
-            process.execPath,
-            [join(packageRoot, 'bin/midscene-test'), 'nodes'],
-            { cwd: root },
-          )
-        ).stdout;
-      };
-      await runCreateCommand(
-        ['.', '--platform', platform, '--with', 'team-nodes@1.0.0'],
-        io(),
-        runtime,
-      );
-      expect(
-        readFileSync(join(cwd, 'midscene-node-reference.md'), 'utf8'),
-      ).toContain('## `team.inspect`');
-      await execFileAsync(process.execPath, [
-        join(packageRoot, 'node_modules/typescript/bin/tsc'),
-        '-p',
-        cwd,
-      ]);
-    },
-    30000,
-  );
-
-  it.each([
-    ['missing factory', 'export const nodes = [];'],
-    [
-      'async factory',
-      'export async function createMidsceneTestNodes() { return []; }',
-    ],
-    [
-      'duplicate Node',
-      "export function createMidsceneTestNodes() { return [{ name: 'aiAsk', execute() {} }]; }",
-    ],
-    [
-      'invalid Node',
-      "export function createMidsceneTestNodes() { return [{ name: 'team.invalid' }]; }",
-    ],
-  ])(
-    'reports an external package with %s and preserves the project',
-    async (_, source) => {
-      const cwd = temp();
-      const runtime = services(cwd);
-      runtime.runPackageManager = async (_packageManager, args, root) => {
-        if (args[0] === 'install') {
-          linkDependencies(root);
-          const pkg = join(root, 'node_modules', 'broken-nodes');
-          mkdirSync(pkg);
-          writeFileSync(
-            join(pkg, 'package.json'),
-            JSON.stringify({ name: 'broken-nodes', main: 'index.mjs' }),
-          );
-          writeFileSync(join(pkg, 'index.mjs'), source);
-          return '';
-        }
-        return (
-          await execFileAsync(
-            process.execPath,
-            [join(packageRoot, 'bin/midscene-test'), 'nodes'],
-            { cwd: root },
-          )
-        ).stdout;
-      };
-      const output = io();
-      await expect(
-        runCreateCommand(
-          ['.', '--platform', 'web', '--with', 'broken-nodes'],
-          output,
-          runtime,
-        ),
-      ).rejects.toThrow('Node reference generation failed');
-      expect(existsSync(join(cwd, 'midscene.config.ts'))).toBe(true);
-      expect(existsSync(join(cwd, 'midscene-node-reference.md'))).toBe(false);
-      expect(output.log.mock.calls.flat().join('\n')).not.toContain(
-        'Project ready',
       );
     },
   );

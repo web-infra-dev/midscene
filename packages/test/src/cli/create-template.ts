@@ -21,28 +21,6 @@ export const createPlatformLabels: Record<CreatePlatform, string> = {
   computer: 'Desktop (Computer)',
 };
 
-export interface NodePackageSpec {
-  name: string;
-  version: string;
-}
-
-/** Registry packages only: keep the install spec separate from the import name. */
-export function parseNodePackageSpec(spec: string): NodePackageSpec {
-  const match =
-    /^(?:(@[a-z0-9][a-z0-9._-]*)\/)?([a-z0-9][a-z0-9._-]*)(?:@([a-zA-Z0-9^~*>=<|. +_-]+))?$/.exec(
-      spec,
-    );
-  if (!match || (match[3] !== undefined && !match[3].trim())) {
-    throw new Error(
-      `Invalid Node package "${spec}". Use an npm package name with an optional version, such as @acme/test-nodes@1.2.0.`,
-    );
-  }
-  return {
-    name: `${match[1] ? `${match[1]}/` : ''}${match[2]}`,
-    version: match[3] ?? 'latest',
-  };
-}
-
 const platformImports: Record<CreatePlatform, string> = {
   web: `import { PlaywrightAgent } from '@midscene/web/playwright/agent';
 import { chromium, type Page } from 'playwright';`,
@@ -114,7 +92,6 @@ const platformInstructions: Record<Exclude<CreatePlatform, 'web'>, string> = {
 export function createProjectFiles(
   name: string,
   platform: CreatePlatform,
-  packages: readonly NodePackageSpec[],
   packageManager: CreatePackageManager,
 ): Record<string, string> {
   const instructions =
@@ -122,25 +99,12 @@ export function createProjectFiles(
       ? `Install Chromium before the first test: \`${packageManagerCommands[packageManager].installChromium}\`.`
       : platformInstructions[platform];
   const agentClass = agentClasses[platform];
-  const imports = packages
-    .map(
-      (pkg, index) =>
-        `import { createMidsceneTestNodes as createPackageNodes${index} } from ${JSON.stringify(pkg.name)};`,
-    )
-    .join('\n');
-  const extraNodes = packages
-    .map(
-      (_, index) =>
-        `    ...createPackageNodes${index}<ProjectContext>({ platform: '${platform}', getAgent }),`,
-    )
-    .join('\n');
   const config = `import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv';
 import type { NodeExecutionContext } from '@midscene/test';
 import { defineProjectSetup, defineTestProject } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
 ${platformImports[platform]}
-${imports}
 
 loadEnv({ path: fileURLToPath(new URL('.env', import.meta.url)) });
 
@@ -170,7 +134,6 @@ export default defineTestProject<ProjectContext>({
   }],
   nodes: [
     ...createMidsceneNodes<ProjectContext>({ agentClass: ${agentClass}, getAgent }),
-${extraNodes}
   ],
 });
 `;
@@ -182,14 +145,6 @@ ${extraNodes}
     typescript: '^5.8.3',
     ...(platform === 'web' ? { playwright: '^1.45.0' } : {}),
   };
-  for (const pkg of packages) {
-    if (Object.hasOwn(dependencies, pkg.name)) {
-      throw new Error(
-        `Node package "${pkg.name}" conflicts with a generated project dependency.`,
-      );
-    }
-    dependencies[pkg.name] = pkg.version;
-  }
   const env = platformEnv[platform];
   return {
     'package.json': `${JSON.stringify(
@@ -233,6 +188,6 @@ ${extraNodes}
           : 'cases:\n  - name: Inspect the home screen\n    steps:\n      - home: {}\n      - aiAsk: Describe the current screen\n',
     '.env.example': `# Copy this file to .env and configure your model before running tests.\n# See https://midscenejs.com/model-config.html\nMIDSCENE_MODEL_BASE_URL=\nMIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n\n${env}`,
     '.gitignore': 'node_modules/\n.env\nmidscene_run/\n',
-    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\n${packages.length ? `Node packages: ${packages.map((pkg) => `\`${pkg.name}\``).join(', ')}. Their \`createMidsceneTestNodes\` factories are imported in the configuration.\n\n` : ''}Reports are written to \`midscene_run/report/\`.\n`,
+    'README.md': `# ${name}\n\nA Midscene Test project for ${platform}.\n\nIf you skipped installation during creation, run \`${packageManager} ${packageManagerCommands[packageManager].install.join(' ')}\`. The \`postinstall\` script automatically generates \`midscene-node-reference.md\` after each dependency installation. If lifecycle scripts are disabled, run \`${packageManager} run nodes\` manually.\n\nCopy \`.env.example\` to \`.env\` and fill in your [model configuration](https://midscenejs.com/model-config.html).\n\n${instructions}\n\nRun tests with \`${packageManager} test\`. Read \`midscene-node-reference.md\` for the available Nodes and their inputs.\n\nAfter changing Node registrations in \`midscene.config.ts\`, run \`${packageManager} run nodes\` to refresh the reference. This loads the configuration without connecting to a device or running tests. Extension factories must only acquire runtime resources inside Node execution.\n\nReports are written to \`midscene_run/report/\`.\n`,
   };
 }
