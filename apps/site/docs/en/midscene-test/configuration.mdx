@@ -9,7 +9,7 @@ In `midscene.config.ts`, use `defineTestProject()` to define and export your pro
 | Field | Purpose |
 | --- | --- |
 | `setup` | Creates shared resources for the implicit default project. |
-| `nodes` | Registers Nodes shared by all execution projects. |
+| `nodes` | Registers the default Node list, inherited only when an execution project's `nodes` field is omitted. |
 | `projects` | Declares named execution projects, each with its own setup and case selection. When using this field, place setup in each project instead of at the top level. |
 | `test` | Sets concurrency, the failure threshold, and the default step timeout. |
 | `output` | Sets the report output directory. |
