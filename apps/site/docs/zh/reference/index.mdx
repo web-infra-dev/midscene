@@ -53,7 +53,8 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`；更早的名称 `aiActionContext` 也已废弃，仅为兼容而保留。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
-- `waitAfterAction: number`: 每次动作执行后的等待时间（毫秒）。这让 UI 有时间稳定，然后再执行下一个动作。默认值为 300 毫秒。
+- `waitForInitialPageReady: WaitForInitialPageReadyOptions`：配置仅执行一次的首次页面就绪 `handler` 和可选的 `timeoutMs`，见[首次页面就绪](#initial-page-ready)。
+- `waitAfterAction: number`：[默认等待策略](#default-waiting-strategy)中的固定延时，默认为 `300` 毫秒。配置首次页面就绪 hook 后仍然生效。
 - `useDeviceTime: boolean`：是否使用目标设备的本地时间记录任务时间。目标接口必须实现 `getDeviceLocalTimeString`。如果未实现，Midscene 会输出警告并改用运行环境的系统时间。默认值为 `false`。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`：可选的 OpenAI 客户端包装函数，可用于接入可观测性工具或自定义中间件。详细示例见下文。
@@ -82,7 +83,66 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 
 :::
 
-设备 CLI 可以按单次调用传入这些 Agent 行为参数。把 API 的 camelCase 参数名转换成不带平台前缀的 kebab-case flag，例如 `waitAfterAction` -> `--wait-after-action`。各平台 CLI 入口请参考 [Skills](../skills)。
+设备 CLI 可以按单次调用传入可序列化的 Agent 行为参数。`waitForInitialPageReady.handler` 等包含函数的配置需要通过 JavaScript/TypeScript SDK 传入。把 API 的 camelCase 参数名转换成不带平台前缀的 kebab-case flag，例如 `waitAfterAction` -> `--wait-after-action`。各平台 CLI 入口请参考 [Skills](../skills)。
+
+<a id="initial-page-ready"></a>
+
+**首次页面就绪**
+
+配置 `waitForInitialPageReady`，由应用决定初始页面何时就绪。Agent 会在首次截图、查询、断言或动作之前等待它完成，每个 Agent 只执行一次。后续调用和 `aiAct` 内部动作不会再次调用 handler。
+
+- `handler: (context: InitialPageReadyContext) => Promise<void>`：必填，初始页面就绪时 resolve。context 只包含 `signal`。
+- `timeoutMs?: number`：本次初始化的超时时间，默认为 `10000` 毫秒。必须是 `1` 到 `2147483647` 之间的整数。
+
+```ts
+import { setTimeout as delay } from 'node:timers/promises';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+// 应用在首屏数据和渲染就绪后，在 <html> 上设置 data-app-ready="true"。
+// `page` 是你的 Playwright 页面。
+const agent = new PlaywrightAgent(page, {
+  waitForInitialPageReady: {
+    timeoutMs: 10_000,
+    handler: async ({ signal }) => {
+      while (true) {
+        signal.throwIfAborted();
+        const ready = await page.evaluate(
+          () => document.documentElement.dataset.appReady === 'true',
+        );
+        if (ready) return;
+        await delay(50, undefined, { signal });
+      }
+    },
+  },
+});
+
+await page.goto('https://example.com');
+await agent.aiTap('登录'); // 先等待初始化，再定位和点击。
+await agent.aiAssert('登录表单已经显示'); // 不再调用 hook。
+```
+
+构造器只保存 handler，不立即执行。首次使用 Agent 前，应先打开初始页面或启动目标 App。Android、iOS、HarmonyOS、桌面和自定义接口 Agent 支持相同配置，可通过闭包使用底层设备或应用 API 检查就绪状态。
+
+- 等待结果属于一个 Agent 实例。并发的首次调用共享一个 Promise。刷新、跳转、切换标签页，以及在同一 Agent 上开始新任务都不会重置它。新建 Agent 才会有独立的初始化过程。
+- 首次等待也覆盖 `aiQuery`、`aiAssert`、`aiWaitFor`、缓存回放、`runYaml`、`startObserving` 和 `freezePageContext`。reject 或超时会阻止执行；失败结果会保留，后续调用直接失败，不会重试 handler 或回退到 AI 规划。
+- 超时或调用 `agent.destroy()` 时会中止 signal。回调应据此停止轮询、移除监听；Midscene 无法强制停止忽略 signal 的回调工作。取消某一次动作不会取消其他调用共享的初始化。
+- handler 在 SDK 进程中执行，应使用底层 page/device API。同一个 Agent 的 UI API 会等待自身初始化，在 handler 中调用会造成相互等待。应检查已有的就绪状态，避免错过订阅前已发出的一次性事件。
+- 使用 JavaScript 的 `puppeteerAgentForTarget` 启动器时，可在第二个参数中传入此配置。启动器先导航，再等待 hook，替换初始加载阶段的网络空闲等待，然后返回就绪的 Agent；首次 Agent 操作复用同一结果。直接构造 Agent 时，在首次使用时等待，不改变外部 `page.goto()` 的行为。
+- 未配置时保留现有行为。此 hook 不替换 `waitAfterAction`、动作后的导航和网络空闲检查、设备动作延时或 `afterInvokeAction` hook。
+
+<a id="default-waiting-strategy"></a>
+
+**默认等待策略（高级配置）**
+
+以下既有参数用于调整 Midscene 内置等待行为，在首次页面就绪后仍然生效。
+
+| 参数 | 行为 |
+| --- | --- |
+| `waitAfterAction` | 动作后的固定延时，默认为 `300` 毫秒。设备动作显式声明的延时优先。 |
+| `waitForNavigationTimeout`（Web） | 内置检查页面 `<html>` 元素可用的超时时间，默认为 `5000` 毫秒，设为 `0` 跳过。它不保证导航或应用渲染已经完成。 |
+| `waitForNetworkIdleTimeout`（Puppeteer） | 动作后网络空闲检查的超时时间，默认为 `2000` 毫秒；检查要求连续 `200` 毫秒最多只有两个进行中的请求，设为 `0` 跳过。Playwright 会跳过此检查，该参数在 Playwright 下不生效。 |
+
+Web 内置检查超时后会记录警告并继续执行。首次页面就绪 hook 有独立的超时设置，reject 或超时会使初始化失败，不改变这些动作后的检查。
 
 **自定义模型**
 
@@ -1034,6 +1094,16 @@ expect(onesieItem.price).toBe(7.99);
 
 ### 观察与等待 {#observation-waiting}
 
+按等待在流程中的用途选择入口：
+
+| 需求 | 入口 | 执行时机 |
+| --- | --- | --- |
+| 等待自然语言描述的可见结果 | [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | 在脚本调用处等待，每次检查会调用 AI 模型。 |
+| 捕获新打开的页面 | [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | 先注册监听，再执行 `action`，然后返回新页面。Playwright 和 Puppeteer BrowserAgent 均支持。 |
+| 自定义首次页面就绪判断 | [`waitForInitialPageReady: { handler, timeoutMs }`](#initial-page-ready) | 每个 Agent 只执行一次，在首次读取或操作页面之前等待。 |
+
+某个步骤需要等待其他事件或业务操作时，直接 `await` 应用的 Promise 或底层浏览器、设备 API；等待一次性事件应先订阅再触发。[默认等待参数](#default-waiting-strategy)用于调整自动等待的时长，不会增加脚本需要调用的等待方法。
+
 #### `startObserving()` {#agentstartobserving}
 
 `startObserving()` 会持续记录屏幕。它适合检查短暂出现的 UI，例如 toast、横幅和页面切换。
@@ -1121,7 +1191,7 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 
 :::info
 
-考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
+`aiWaitFor()` 每次检查都会调用 AI 模型，消耗时间和 token，适合等待自然语言描述的可见条件。某个步骤有明确的应用信号时，可以直接等待该信号；需要定制首次页面就绪判断时，配置 [`waitForInitialPageReady`](#initial-page-ready)。
 
 :::
 
@@ -1931,8 +2001,7 @@ const agent = new PuppeteerPageAgent(page, {
 除了通用 Agent 参数，Puppeteer 还提供：
 
 - `forceSameTabNavigation: boolean` —— 限制始终在当前标签页内导航，默认 `true`。
-- `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
-- `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `waitForNavigationTimeout`、`waitForNetworkIdleTimeout` —— [默认等待策略](#default-waiting-strategy)的高级配置。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，Puppeteer 的 `page.keyboard.type` 负责处理正数延迟。默认值为 `undefined`。此时，Midscene 不传该选项，而是使用 Puppeteer 自身的默认值。通常无须配置。只有受控输入框在快速输入时丢字，才需要调大该值，例如 `80`。
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。使用 `'bulk'` 可以一次插入完整字符串。使用 `'sequential'` 可以强制逐个 Unicode 码点输入。`'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
@@ -1948,6 +2017,8 @@ const agent = new PuppeteerPageAgent(page, {
 - 更多交互方法请参考 [API 参考（通用）](#interaction-methods)。
 
 :::
+
+<a id="puppeteer-browser-agent"></a>
 
 ### PuppeteerBrowserAgent
 
@@ -1968,7 +2039,7 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `pages()` —— 列出绑定 browser 中的页面。
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Puppeteer 页面。
-- `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
+- `waitForNewPage(action?, options?)` —— 先注册监听，再执行 `action`，然后返回新页面，不会隐式切换 active page。可传入 `{ timeout: 毫秒数 }` 覆盖本次调用的 `newPageTimeout`。
 
 <a id="web-快速上手"></a>
 <a id="web-连接远程-puppeteer-浏览器"></a>
@@ -2000,8 +2071,7 @@ const agent = new PlaywrightPageAgent(page, {
 **浏览器特有选项**
 
 - `forceSameTabNavigation: boolean` —— 强制在当前标签页内执行，默认 `true`。
-- `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
-- `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `waitForNavigationTimeout`、`waitForNetworkIdleTimeout` —— [默认等待策略](#default-waiting-strategy)的高级配置。
 - `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `keyboardTypeDelay: number` —— 按键间延迟，单位为毫秒。取值必须是有限的非负数。在 `'legacy'` 模式下，Playwright 的 `page.keyboard.type` 负责处理正数延迟。默认值为 `undefined`。此时，Midscene 不传该选项，而是使用 Playwright 自身的默认值。通常无须配置。只有受控输入框在快速输入时丢字，才需要调大该值，例如 `80`。
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` —— `Input` 动作的默认文本输入策略。使用 `'bulk'` 可以一次插入完整字符串。使用 `'sequential'` 可以强制逐个 Unicode 码点输入。`'bulk'` 要求不设置 `keyboardTypeDelay` 或将其设为 `0`。如需延迟输入，请使用 `'sequential'`。默认值为 `'legacy'`。
@@ -2017,6 +2087,8 @@ const agent = new PlaywrightPageAgent(page, {
 - 更多交互方法请参考 [API 参考（通用）](#interaction-methods)。
 
 :::
+
+<a id="playwright-browser-agent"></a>
 
 ### PlaywrightBrowserAgent
 
@@ -2037,7 +2109,7 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `pages()` —— 列出绑定 browser context 中的页面。
 - `newPage()` —— 创建新页面并将其设为 active page。
 - `setActivePage(page: Page)` —— 显式指定 Browser Agent 接下来控制哪个 Playwright 页面。
-- `waitForNewPage(action?, options?)` —— 等待新打开的页面，但不会隐式切换 active page。
+- `waitForNewPage(action?, options?)` —— 先注册监听，再执行 `action`，然后返回新页面，不会隐式切换 active page。可传入 `{ timeout: 毫秒数 }` 覆盖本次调用的 `newPageTimeout`。
 
 <a id="web-playwright-快速上手"></a>
 <a id="web-使用-midscene-fixture-扩展-playwright-测试"></a>

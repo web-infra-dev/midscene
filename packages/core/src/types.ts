@@ -959,6 +959,18 @@ export type Cache =
   | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
 
+export interface InitialPageReadyContext {
+  /** Aborted on timeout or Agent destruction. Use it to stop polling and clean up listeners. */
+  signal: AbortSignal;
+}
+
+export interface WaitForInitialPageReadyOptions {
+  /** Resolves when the initial page is ready for the Agent to read or operate. */
+  handler: (context: InitialPageReadyContext) => Promise<void>;
+  /** Timeout in milliseconds. Integer from 1 to 2147483647. Default: 10000. */
+  timeoutMs?: number;
+}
+
 export interface AgentOpt {
   // @deprecated Use `reportFileName` and `cache.id` instead.
   testId?: string;
@@ -1031,6 +1043,15 @@ export interface AgentOpt {
    * Defaults to 300ms when not provided.
    */
   waitAfterAction?: number;
+
+  /**
+   * Wait once before this Agent first reads or operates on the initial page.
+   * The constructor only stores the handler; open the page or app before using
+   * the Agent. Concurrent calls share the same result, including failure.
+   * Navigation, reloads and page switches do not reset it. Post-action waiting
+   * is unchanged. Use raw page/device APIs inside the handler to avoid recursion.
+   */
+  waitForInitialPageReady?: WaitForInitialPageReadyOptions;
 
   /**
    * When set to true, Midscene will use the target device's formatted local

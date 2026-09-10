@@ -65,6 +65,8 @@ export type {
   AgentAIContextKey,
   AgentAIContexts,
   AgentOpt,
+  InitialPageReadyContext,
+  WaitForInitialPageReadyOptions,
   AiApiName,
 } from '../types';
 export type { RecordToReportOptions, RecordToReportScreenshot } from '../types';

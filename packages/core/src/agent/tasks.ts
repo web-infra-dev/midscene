@@ -66,6 +66,8 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
+  /** Await Agent initialization before starting a workflow, outside task retries. */
+  beforeExecution?: () => Promise<void>;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -296,6 +298,7 @@ export class TaskExecutor {
     yamlString: string,
     reportOptions?: ActionReportOptions,
   ) {
+    await this.hooks?.beforeExecution?.();
     const session = this.createExecutionSession(
       taskTitleStr(
         reportOptions?.type || 'Act',
@@ -352,6 +355,7 @@ export class TaskExecutor {
     defaultModel: ModelRuntime,
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
+    await this.hooks?.beforeExecution?.();
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
@@ -390,6 +394,8 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    await this.hooks?.beforeExecution?.();
+    abortSignal?.throwIfAborted();
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
         userPrompt,
@@ -1019,6 +1025,8 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
+    await this.hooks?.beforeExecution?.();
+    executionOptions?.abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
         type,
@@ -1065,6 +1073,7 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
+    await this.hooks?.beforeExecution?.();
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;

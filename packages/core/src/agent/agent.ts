@@ -86,6 +86,7 @@ import {
 } from '../device';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
+import { InitialPageReady } from './initial-page-ready';
 import { Insight } from './insight';
 import { MetricsCollector, type MidsceneUsageMetrics } from './metrics';
 import { AgentProgressBus } from './progress';
@@ -244,6 +245,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   destroyed = false;
 
+  private readonly initialPageReady?: InitialPageReady;
+
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -398,6 +401,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       opts || {},
     );
     assertReportGenerationOptions(this.opts);
+    if (this.opts.waitForInitialPageReady !== undefined) {
+      this.initialPageReady = new InitialPageReady(
+        this.opts.waitForInitialPageReady,
+      );
+    }
 
     if (
       this.opts.aiContexts !== undefined &&
@@ -516,6 +524,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
+        beforeExecution: () => this._ensureInitialPageReady(),
         onSnapshotChange: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
@@ -581,6 +590,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.fullActionSpace;
   }
 
+  /** @internal Shared by UI operations and launchers after initial navigation. */
+  _ensureInitialPageReady(): Promise<void> {
+    return this.initialPageReady?.wait() ?? Promise.resolve();
+  }
+
   private static readonly CONTEXT_RETRY_MAX = 3;
   private static readonly CONTEXT_RETRY_DELAY_MS = 1500;
 
@@ -594,6 +608,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
+    await this._ensureInitialPageReady();
     // Some non-web flows, such as Android, need an Agent instance before they
     // can call device methods via ADB, so defer missing modelFamily errors
     // until UI context is actually requested.
@@ -653,6 +668,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    await this._ensureInitialPageReady();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -1296,6 +1312,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       );
     }
 
+    // Await outside cache fallback and planning retries: readiness failure
+    // must not start model calls or execute a cached workflow.
+    await this._ensureInitialPageReady();
+    abortSignal?.throwIfAborted();
+
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
@@ -1593,6 +1614,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async runYaml(yamlScriptContent: string): Promise<{
     result: Record<string, any>;
   }> {
+    await this._ensureInitialPageReady();
     const script = parseYamlScript(yamlScriptContent, 'yaml');
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
@@ -1615,6 +1637,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async evaluateJavaScript(script: string) {
+    await this._ensureInitialPageReady();
     assert(
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
@@ -1701,6 +1724,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     this.destroyed = true;
+    this.initialPageReady?.abort();
 
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {

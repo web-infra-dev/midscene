@@ -53,7 +53,8 @@ All agents share these base options:
 - `aiActContext: string` (deprecated) — Compatibility option for `aiContexts.aiAct`. `aiContexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `aiContexts.aiAct`. Use `aiContexts.aiAct` in new code. The older `aiActionContext` name is also deprecated and remains available only for compatibility.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
-- `waitAfterAction: number` — Delay in milliseconds after each action. This gives the UI time to settle before the next action. Default: `300`.
+- `waitForInitialPageReady: WaitForInitialPageReadyOptions` — Configure a one-time initial-page readiness `handler` and its optional `timeoutMs`. See [Initial page readiness](#initial-page-ready).
+- `waitAfterAction: number` — Fixed delay in the [default waiting strategy](#default-waiting-strategy). Default: `300` ms. Also applies when initial-page readiness is configured.
 - `useDeviceTime: boolean` — Whether task timestamps use the target device's local time. The target interface must implement `getDeviceLocalTimeString`; otherwise, Midscene logs a warning and uses the runtime system time. Default: `false`.
 - `onTaskStartTip: (tip: string) => void | Promise<void>` — Optional hook called before each task begins. It receives a human-readable task summary. Default: `undefined`.
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` — Optional factory for wrapping the OpenAI client with observability or custom middleware. See the detailed example below.
@@ -84,7 +85,66 @@ All agents share these base options:
 
 :::
 
-The device CLIs expose the same Agent behavior options for individual calls. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
+The device CLIs expose serializable Agent behavior options for individual calls. Options containing functions, such as `waitForInitialPageReady.handler`, must be configured through the JavaScript/TypeScript SDK. Convert camelCase option names to kebab-case flags; for example, `waitAfterAction` becomes `--wait-after-action`. See [Skills](../skills) for platform-specific CLI entry points.
+
+<a id="initial-page-ready"></a>
+
+**Initial page readiness**
+
+Configure `waitForInitialPageReady` to let your application decide when its initial page is ready. The Agent awaits it once, before its first screenshot, query, assertion, or action. Later calls and actions inside `aiAct` do not invoke the handler again.
+
+- `handler: (context: InitialPageReadyContext) => Promise<void>` — Required. Resolves when the initial page is ready. The context contains only `signal`.
+- `timeoutMs?: number` — Timeout for this initialization. Default: `10000` ms. Must be an integer from `1` to `2147483647`.
+
+```ts
+import { setTimeout as delay } from 'node:timers/promises';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+// The application sets data-app-ready="true" on <html> after its initial
+// data and rendering are ready. `page` is your Playwright page.
+const agent = new PlaywrightAgent(page, {
+  waitForInitialPageReady: {
+    timeoutMs: 10_000,
+    handler: async ({ signal }) => {
+      while (true) {
+        signal.throwIfAborted();
+        const ready = await page.evaluate(
+          () => document.documentElement.dataset.appReady === 'true',
+        );
+        if (ready) return;
+        await delay(50, undefined, { signal });
+      }
+    },
+  },
+});
+
+await page.goto('https://example.com');
+await agent.aiTap('Log in'); // Wait for initialization, then locate and tap.
+await agent.aiAssert('The login form is visible'); // No second hook invocation.
+```
+
+The constructor stores the handler without running it. Open the initial page or launch the target app before using the Agent. The same option is available on Android, iOS, HarmonyOS, desktop, and custom-interface Agents; use raw device or application APIs through a closure to check readiness.
+
+- The result belongs to one Agent instance. Concurrent first calls share one Promise. Reloading, navigating, switching tabs, and starting another task on that Agent do not reset it. A new Agent has its own initialization.
+- First-use waiting also covers `aiQuery`, `aiAssert`, `aiWaitFor`, cached actions, `runYaml`, `startObserving`, and `freezePageContext`. A rejection or timeout prevents execution. The failed result is retained, so later calls fail without retrying the handler or falling back to AI planning.
+- The signal aborts on timeout or `agent.destroy()`. Use it to stop polling and remove listeners; Midscene cannot forcibly stop work inside a callback that ignores the signal. Cancelling one individual action does not cancel the shared initialization for other calls.
+- The handler runs in the SDK process. Use the underlying page/device APIs inside it. Calling the same Agent's UI APIs from the handler would wait on its own initialization. Check an existing readiness state; an event emitted before the handler subscribes can be missed.
+- When using the JavaScript `puppeteerAgentForTarget` launcher, pass this option in its second argument. The launcher navigates first, then awaits the hook instead of its initial network-idle wait, and returns the ready Agent. The first Agent operation reuses that result. Direct SDK construction waits lazily on first use and does not change an external `page.goto()` call.
+- Unconfigured Agents keep the existing behavior. This hook does not replace `waitAfterAction`, post-action navigation/network-idle checks, device-action delays, or `afterInvokeAction` hooks.
+
+<a id="default-waiting-strategy"></a>
+
+**Default waiting strategy (advanced)**
+
+These existing options tune Midscene's built-in waiting behavior. They remain in effect after initial-page readiness has completed.
+
+| Option | Behavior |
+| --- | --- |
+| `waitAfterAction` | Fixed delay after an action, default `300` ms. Explicit device-action delays take precedence. |
+| `waitForNavigationTimeout` (Web) | Timeout for the built-in check that the page's `<html>` element is available, default `5000` ms. Set to `0` to skip. It does not guarantee navigation or application rendering has finished. |
+| `waitForNetworkIdleTimeout` (Puppeteer) | Timeout for the post-action network-idle check, default `2000` ms. The check requires at most two in-flight requests for `200` ms. Set to `0` to skip. Playwright skips this check; this option has no effect there. |
+
+The built-in Web checks log a warning and continue on timeout. The initial-page hook has its own timeout and fails initialization on rejection or timeout; it does not change these post-action checks.
 
 **Custom model configuration**
 
@@ -1046,6 +1106,16 @@ expect(onesieItem.price).toBe(7.99);
 
 ### Observation and waiting {#observation-waiting}
 
+Choose the waiting entry point by its role in your workflow:
+
+| Need | Entry point | When it runs |
+| --- | --- | --- |
+| Wait for a visible result described in natural language | [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | At the script step where you call it; each check uses an AI model. |
+| Capture a newly opened page | [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | Registers a listener before running `action`, then returns the new page. Available on Playwright and Puppeteer BrowserAgents. |
+| Customize initial page readiness | [`waitForInitialPageReady: { handler, timeoutMs }`](#initial-page-ready) | Runs once per Agent, before it first reads or operates on the page. |
+
+For another event or business operation needed at a particular step, use the application's Promise or the underlying browser/device API with `await`. Subscribe before triggering a one-time event. The [default waiting options](#default-waiting-strategy) tune automatic timing; they do not add more script-level waiting methods.
+
 #### `startObserving()` {#agentstartobserving}
 
 `startObserving()` records the screen continuously. Use it to check transient UI, such as toasts, banners, and page transitions.
@@ -1137,7 +1207,7 @@ await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
 
 :::info
 
-Because each check calls an AI model, `.aiWaitFor()` can be slower and more expensive than a fixed delay. Use a simple sleep when you only need to wait for a known amount of time.
+Each `aiWaitFor()` check calls an AI model and consumes time and tokens. Use it for visible conditions described in natural language. For a known application signal at one script step, await that signal directly; for initial page readiness, configure [`waitForInitialPageReady`](#initial-page-ready).
 
 :::
 
@@ -1971,8 +2041,7 @@ const agent = new PuppeteerPageAgent(page, {
 In addition to the base agent options, Puppeteer exposes:
 
 - `forceSameTabNavigation: boolean` — Whether to keep navigation in the current tab. Default: `true`.
-- `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait when an action triggers navigation. Set to `0` to skip the wait. Default: `5000`.
-- `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
+- `waitForNavigationTimeout`, `waitForNetworkIdleTimeout` — Advanced options for the [default waiting strategy](#default-waiting-strategy).
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Puppeteer's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Puppeteer's default.
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
@@ -1988,6 +2057,8 @@ In addition to the base agent options, Puppeteer exposes:
 - For the full list of interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 :::
+
+<a id="puppeteer-browser-agent"></a>
 
 ### PuppeteerBrowserAgent
 
@@ -2008,7 +2079,7 @@ const agent = new PuppeteerBrowserAgent(browser, page, {
 - `pages()` — List pages from the bound browser.
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Puppeteer page the Browser Agent controls next.
-- `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- `waitForNewPage(action?, options?)` — Registers a listener before running `action`, then returns the new page without implicitly switching the active page. Pass `{ timeout: milliseconds }` to override `newPageTimeout` for this call.
 
 <a id="web-quick-start"></a>
 <a id="web-connect-to-a-remote-puppeteer-browser"></a>
@@ -2040,8 +2111,7 @@ const agent = new PlaywrightPageAgent(page, {
 **Browser-specific options**
 
 - `forceSameTabNavigation: boolean` — Whether to keep navigation in the current tab. Default: `true`.
-- `waitForNavigationTimeout: number` — Maximum time in milliseconds to wait for navigation. Set to `0` to skip the wait. Default: `5000`.
-- `waitForNetworkIdleTimeout: number` — Maximum time in milliseconds to wait for network idle between actions. Set to `0` to skip the wait. Default: `2000`.
+- `waitForNavigationTimeout`, `waitForNetworkIdleTimeout` — Advanced options for the [default waiting strategy](#default-waiting-strategy).
 - `enableTouchEventsInActionSpace: boolean` — Whether to add touch gestures such as swipe to the action space. Default: `false`.
 - `keyboardTypeDelay: number` — Finite non-negative per-character delay in milliseconds. In `'legacy'` mode, Playwright's `page.keyboard.type` handles a positive delay. Increase this value only when a controlled input drops characters during fast input. Default: `undefined`, which uses Playwright's default.
 - `inputStrategy: 'legacy' | 'sequential' | 'bulk'` — Default text input strategy for `Input` actions. Use `'bulk'` to insert the complete value in one operation or `'sequential'` to force code-point-by-code-point input. `'bulk'` requires `keyboardTypeDelay` to be omitted or set to `0`; use `'sequential'` for delayed input. Default: `'legacy'`.
@@ -2057,6 +2127,8 @@ const agent = new PlaywrightPageAgent(page, {
 - For the full list of interaction methods, see [Shared Agent APIs](#interaction-methods).
 
 :::
+
+<a id="playwright-browser-agent"></a>
 
 ### PlaywrightBrowserAgent
 
@@ -2077,7 +2149,7 @@ const agent = new PlaywrightBrowserAgent(context, page, {
 - `pages()` — List pages from the bound browser context.
 - `newPage()` — Create a new page and make it active.
 - `setActivePage(page: Page)` — Explicitly set which Playwright page the Browser Agent controls next.
-- `waitForNewPage(action?, options?)` — Wait for a newly opened page without implicitly switching the active page.
+- `waitForNewPage(action?, options?)` — Registers a listener before running `action`, then returns the new page without implicitly switching the active page. Pass `{ timeout: milliseconds }` to override `newPageTimeout` for this call.
 
 <a id="web-playwright-quick-start"></a>
 <a id="web-extend-playwright-tests-with-midscene-fixtures"></a>
