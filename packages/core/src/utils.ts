@@ -8,11 +8,7 @@ import {
   defaultRunDirName,
   getMidsceneRunSubDir,
 } from '@midscene/shared/common';
-import {
-  MIDSCENE_CACHE,
-  MIDSCENE_DEBUG_MODE,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import { MIDSCENE_CACHE, globalConfigManager } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/node';
 import { assert, logMsg } from '@midscene/shared/utils';
 import {
@@ -422,15 +418,6 @@ export function getVersion() {
   return __VERSION__;
 }
 
-function debugLog(...message: any[]) {
-  // always read from process.env, and cannot be override by modelConfig, overrideAIConfig, etc.
-  // also avoid circular dependency
-  const debugMode = process.env[MIDSCENE_DEBUG_MODE];
-  if (debugMode) {
-    console.log('[Midscene]', ...message);
-  }
-}
-
 let gitInfoPromise: Promise<{ repoUrl: string; userEmail: string }> | null =
   null;
 
@@ -453,46 +440,38 @@ function getGitInfoAsync(): Promise<{ repoUrl: string; userEmail: string }> {
   return gitInfoPromise;
 }
 
-let lastReportedRepoUrl = '';
+/** Upload one completed Agent report to the configured test-info endpoint. */
 export async function uploadTestInfoToServer({
   testUrl,
   serverUrl,
-}: { testUrl: string; serverUrl?: string }) {
+  reportFileName,
+  reportHtml,
+}: {
+  testUrl: string;
+  serverUrl?: string;
+  reportFileName: string;
+  reportHtml: string;
+}) {
   if (!serverUrl) return;
 
   const { repoUrl, userEmail } = await getGitInfoAsync();
-
-  // Only upload test info if:
-  // 1. Server URL is configured AND
-  // 2. Either:
-  //    - We have a repo URL that's different from last reported one (to avoid duplicate reports)
-  //    - OR we don't have a repo URL but have a test URL (for non-git environments)
-  if (repoUrl ? repoUrl !== lastReportedRepoUrl : !!testUrl) {
-    debugLog('Uploading test info to server', {
-      serverUrl,
-      repoUrl,
-      testUrl,
-      userEmail,
-    });
-
-    fetch(serverUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        repo_url: repoUrl,
-        test_url: testUrl,
-        user_email: userEmail,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        debugLog('Successfully uploaded test info to server:', data);
-      })
-      .catch((error) =>
-        debugLog('Failed to upload test info to server:', error),
-      );
-    lastReportedRepoUrl = repoUrl;
+  const response = await fetch(serverUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      repo_url: repoUrl,
+      test_url: testUrl,
+      user_email: userEmail,
+      report_file_name: reportFileName,
+      report_html: reportHtml,
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Report upload failed: HTTP ${response.status}`);
   }
+  // The endpoint may return an empty response (including HTTP 204).
+  await response.body?.cancel();
 }

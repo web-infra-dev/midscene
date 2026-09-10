@@ -51,7 +51,12 @@ import {
   ReportGenerator,
   assertReportGenerationOptions,
 } from '@/report-generator';
-import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
+import {
+  getVersion,
+  processCacheConfig,
+  reportHTMLContent,
+  uploadTestInfoToServer,
+} from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -176,6 +181,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   reportFile?: string | null;
 
   reportFileName?: string;
+  private reportTestUrl = '';
 
   taskExecutor: TaskExecutor;
 
@@ -587,8 +593,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const maxRetries = Agent.CONTEXT_RETRY_MAX;
     for (let attempt = 0; ; attempt++) {
       try {
+        this.reportTestUrl = this.interface.describe?.() || '';
         return await commonContextParser(this.interface, {
-          uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
           screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
         });
       } catch (error) {
@@ -1681,6 +1687,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     this.destroyed = true;
 
+    // Capture the description before device cleanup makes it unavailable.
+    try {
+      this.reportTestUrl = this.interface.describe?.() || this.reportTestUrl;
+    } catch (error) {
+      debug(
+        `Unable to read interface description before report upload: ${error}`,
+      );
+    }
+
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {
       try {
@@ -1704,6 +1719,31 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const finalPath = await this.reportGenerator.finalize();
     this.reportFile = finalPath;
+
+    if (finalPath) {
+      try {
+        const uploadServerUrl =
+          this.modelConfigManager.getUploadTestServerUrl();
+        if (uploadServerUrl) {
+          // External screenshot reports also need a self-contained upload.
+          const reportHtml =
+            this.opts.outputFormat === 'html-and-external-assets'
+              ? this.reportHTMLString({ inlineScreenshots: true })
+              : await readFile(finalPath, 'utf-8');
+          await uploadTestInfoToServer({
+            serverUrl: uploadServerUrl,
+            testUrl: this.reportTestUrl,
+            reportFileName:
+              this.opts.outputFormat === 'html-and-external-assets'
+                ? `${this.reportFileName}.html`
+                : basename(finalPath),
+            reportHtml,
+          });
+        }
+      } catch (error) {
+        warn(`Failed to upload report ${finalPath}: ${error}`);
+      }
+    }
 
     this.resetDump(); // reset dump to release memory
 

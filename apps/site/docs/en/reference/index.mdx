@@ -1560,6 +1560,36 @@ exact behavior.
 
 :::
 
+#### Uploading completed reports
+
+Set `REPORT_SERVER_URL` in the model initialization JSON to upload each Agent's
+report when `await agent.destroy()` finishes its local report. This replaces the
+previous test-info request during UI context collection. It uploads individual
+Agent reports, not a test runner's merged suite report.
+
+```dotenv
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"REPORT_SERVER_URL":"https://your-server/upload"}'
+```
+
+The legacy `MIDSCENE_OPENAI_INIT_CONFIG_JSON` configuration is also supported.
+The endpoint must accept a JSON POST with `repo_url`, `user_email`, `test_url`,
+`report_file_name`, and `report_html`. The first three fields retain their existing
+meaning: Git origin URL, Git user email, and page URL or device description. They
+can be empty. `report_html` contains the complete report, including screenshots;
+external screenshot reports are converted to self-contained HTML for uploading.
+Local report files keep their configured format.
+
+Each Agent uploads once, including when another Agent uses the same repository.
+No request is sent without a server URL or a generated report. Always await
+`agent.destroy()` in a `finally` block so failed tests also upload their evidence.
+The Playwright AI fixture already awaits this method during teardown.
+
+`destroy()` waits for the upload with a 30-second HTTP timeout. The server can
+return any successful HTTP status, including `204` with an empty body. Upload
+failures produce a warning and preserve the local report; they do not replace a
+test or device cleanup error. The server must implement storage for the report
+fields; Midscene does not infer a hosted report URL from its response.
+
 <a id="properties"></a>
 
 #### `.reportFile`

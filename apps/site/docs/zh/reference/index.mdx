@@ -1531,6 +1531,31 @@ function destroy(): Promise<void>;
 
 :::
 
+#### 上传已完成的报告
+
+在模型初始化 JSON 中设置 `REPORT_SERVER_URL` 后，`await agent.destroy()` 会在
+本地报告完成收尾后上传当前 Agent 的报告。这会替代原先在采集界面上下文时发送的
+测试信息请求。上传的是各个 Agent 的报告，不是测试运行器合并后的整批汇总报告。
+
+```dotenv
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"REPORT_SERVER_URL":"https://your-server/upload"}'
+```
+
+也兼容旧的 `MIDSCENE_OPENAI_INIT_CONFIG_JSON` 配置。
+接口需要接收 JSON POST，字段为 `repo_url`、`user_email`、`test_url`、
+`report_file_name` 和 `report_html`。前三个字段仍分别表示 Git 仓库 origin 地址、
+Git 用户邮箱、页面 URL 或设备描述，允许为空。`report_html` 包含完整报告和截图；
+使用外置截图时，上传内容会转换成包含截图的单个 HTML。本地报告仍保留配置的格式。
+
+每个 Agent 上传一次，同一仓库的其他 Agent 也会分别上传。未配置服务地址或没有
+生成报告时不发送请求。请在 `finally` 中调用并等待 `agent.destroy()`，确保测试
+失败时也能上传报告。Playwright AI fixture 已在清理阶段等待该方法完成。
+
+`destroy()` 会等待上传，HTTP 超时为 30 秒。服务端可以返回任意成功 HTTP 状态，
+包括响应体为空的 `204`。上传失败会记录警告并保留本地报告，不会替换测试失败或
+设备清理错误。服务端需要实现这些报告字段的存储；Midscene 不会从响应中推断
+报告的托管地址。
+
 **属性**
 
 #### `.reportFile` {#agentreportfile}

@@ -20,6 +20,10 @@ rs.mock('node:fs', () => ({
   readFileSync: rs.fn(),
 }));
 
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: () => rs.fn(),
+}));
+
 rs.mock('http-server', () => ({
   createServer: rs.fn(),
 }));
@@ -74,7 +78,7 @@ rs.mock('puppeteer', () => ({
 }));
 
 import { agentFromAdbDevice } from '@midscene/android';
-import { getReportFileName } from '@midscene/core/agent';
+import { createAgent, getReportFileName } from '@midscene/core/agent';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromHdcDevice } from '@midscene/harmony';
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -136,6 +140,46 @@ describe('create-yaml-player', () => {
   });
 
   describe('createYamlPlayer', () => {
+    test('returns the general interface destroy promise so cleanup waits for report upload', async () => {
+      let finishDestroy!: () => void;
+      const completion = new Promise<void>((resolve) => {
+        finishDestroy = resolve;
+      });
+      const mockAgent = { destroy: rs.fn(() => completion) };
+      rs.mocked(createAgent).mockReturnValue(
+        mockAgent as unknown as ReturnType<typeof createAgent>,
+      );
+      rs.mocked(AgentOverChromeBridge).mockImplementation(
+        () => ({}) as AgentOverChromeBridge,
+      );
+      let setup!: (
+        platform: MidsceneYamlScriptEnv,
+      ) => Promise<{ freeFn: FreeFn[] }>;
+      rs.mocked(ScriptPlayer).mockImplementation((_script, setupFn) => {
+        setup = setupFn;
+        return {
+          addCleanup: rs.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+      await createYamlPlayer(mockFilePath, {
+        interface: {
+          module: '@midscene/web/bridge-mode',
+          export: 'AgentOverChromeBridge',
+        },
+        tasks: [],
+      });
+      const { freeFn } = await setup({});
+      const cleanup = freeFn.find(
+        ({ name }) => name === 'destroy_general_interface_agent',
+      );
+      expect(cleanup).toBeDefined();
+      const pending = cleanup!.fn();
+      expect(pending).toBe(completion);
+      finishDestroy();
+      await pending;
+      expect(mockAgent.destroy).toHaveBeenCalledTimes(1);
+    });
+
     test('should create player with web target', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {

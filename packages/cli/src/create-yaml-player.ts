@@ -527,9 +527,7 @@ export async function createYamlPlayer(
 
           freeFn.push({
             name: 'destroy_general_interface_agent',
-            fn: () => {
-              agent.destroy();
-            },
+            fn: () => agent.destroy(),
           });
 
           return { agent, freeFn };

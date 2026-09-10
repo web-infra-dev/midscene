@@ -13,7 +13,6 @@ import type {
   Size,
   UIContext,
 } from '@/types';
-import { uploadTestInfoToServer } from '@/utils';
 import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
@@ -80,24 +79,12 @@ export const normalizeScrollType = (
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
   _opt: {
-    uploadServerUrl?: string;
     screenshotShrinkFactor?: number;
   },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
 
   assert(interfaceInstance, 'interfaceInstance is required');
-
-  debug('Getting interface description');
-  const description = interfaceInstance.describe?.() || '';
-  debug('Interface description end');
-
-  debug('Uploading test info to server');
-  uploadTestInfoToServer({
-    testUrl: description,
-    serverUrl: _opt.uploadServerUrl,
-  });
-  debug('UploadTestInfoToServer end');
 
   debug('will get size');
   const interfaceSize = await interfaceInstance.size();
