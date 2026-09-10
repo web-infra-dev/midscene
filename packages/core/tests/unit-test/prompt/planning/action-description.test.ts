@@ -525,29 +525,31 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.description).toContain(
       'adjust a continuous control such as a slider or wheel picker',
     );
+    expect(action.description).toContain('Choose exactly one movement form:');
     expect(action.description).toContain(
-      'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+      'relative swipe — provide "direction" and a positive "distance"',
     );
+    expect(action.description).toContain('endpoint swipe — provide "end"');
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Swipe
-        description: Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.
+        description: 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         param:
           start:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Starting point of the swipe gesture, if not specified, the center of the page will be used
+            description: Optional starting point of the finger movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.
           direction:
             type: enum('up', 'down', 'left', 'right')
             optional: true
-            description: The direction to swipe (required when using distance). The direction means the direction of the finger swipe.
+            description: Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.
           distance:
             type: number
             optional: true
-            description: The distance in pixels to swipe (mutually exclusive with end)
+            description: Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.
           end:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Ending point of the swipe gesture (mutually exclusive with distance)
+            description: Endpoint of the finger movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.
           duration:
             type: number
             optional: true
