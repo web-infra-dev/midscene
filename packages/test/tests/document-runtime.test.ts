@@ -54,14 +54,14 @@ describe('workflow document runtime', () => {
     const calls: string[] = [];
     const sharedNode = defineNode({
       name: 'shared.record',
-      execute(ctx) {
-        calls.push(ctx.scope);
-        if (ctx.scope === 'document') {
-          expect('case' in ctx).toBe(false);
-          calls.push(ctx.document.phase);
+      execute(execution) {
+        calls.push(execution.scope);
+        if (execution.scope === 'document') {
+          expect('case' in execution).toBe(false);
+          calls.push(execution.document.phase);
         } else {
-          expect('document' in ctx).toBe(false);
-          calls.push(ctx.case.phase);
+          expect('document' in execution).toBe(false);
+          calls.push(execution.case.phase);
         }
       },
     });
@@ -91,17 +91,17 @@ describe('workflow document runtime', () => {
     let stopped = false;
     const documentNode = defineNode({
       name: 'document.record',
-      execute(ctx) {
-        if (ctx.scope !== 'document')
+      execute(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        calls.push(ctx.document.phase);
+        calls.push(execution.document.phase);
       },
     });
     const caseNode = defineNode({
       name: 'case.record',
-      execute(ctx) {
-        if (ctx.scope !== 'case') throw new Error('case scope required');
-        calls.push(`${ctx.case.name}:${ctx.case.phase}`);
+      execute(execution) {
+        if (execution.scope !== 'case') throw new Error('case scope required');
+        calls.push(`${execution.case.name}:${execution.case.phase}`);
         stopped = true;
       },
     });
@@ -153,20 +153,20 @@ describe('workflow document runtime', () => {
     const context = { marker: 'shared' };
     const documentNode = defineNode<unknown, unknown, typeof context>({
       name: 'document.record',
-      execute(ctx) {
-        if (ctx.scope !== 'document')
+      execute(execution) {
+        if (execution.scope !== 'document')
           throw new Error('document scope required');
-        expect(ctx.context).toBe(context);
-        expect(ctx.document.documentRunId).toBe('document-run');
-        calls.push(ctx.document.phase);
+        expect(execution.context).toBe(context);
+        expect(execution.document.documentRunId).toBe('document-run');
+        calls.push(execution.document.phase);
       },
     });
     const caseNode = defineNode<unknown, unknown, typeof context>({
       name: 'case.record',
-      execute(ctx) {
-        if (ctx.scope !== 'case') throw new Error('case scope required');
-        expect(ctx.context).toBe(context);
-        calls.push(ctx.case.phase);
+      execute(execution) {
+        if (execution.scope !== 'case') throw new Error('case scope required');
+        expect(execution.context).toBe(context);
+        calls.push(execution.case.phase);
       },
     });
     const document = collectedDocument({
@@ -206,9 +206,9 @@ describe('workflow document runtime', () => {
     const seen: unknown[] = [];
     const node = defineNode<unknown, unknown, typeof context>({
       name: 'read.context',
-      async execute(ctx) {
+      async execute(execution) {
         await Promise.resolve();
-        seen.push(ctx.context);
+        seen.push(execution.context);
       },
     });
     const document = collectedDocument();
@@ -364,18 +364,20 @@ describe('workflow document runtime', () => {
     const controller = new AbortController();
     const abort = defineNode({
       name: 'abort.workflow',
-      execute(ctx) {
-        calls.push(`body:${ctx.signal.aborted}`);
+      execute(execution) {
+        calls.push(`body:${execution.signal.aborted}`);
         controller.abort(new Error('interrupted'));
       },
     });
     const cleanup = defineNode({
       name: 'cleanup.workflow',
-      execute(ctx) {
+      execute(execution) {
         const phase =
-          ctx.scope === 'case' ? ctx.case.phase : ctx.document.phase;
-        calls.push(`${phase}:${ctx.signal.aborted}`);
-        expect(ctx.signal.aborted).toBe(false);
+          execution.scope === 'case'
+            ? execution.case.phase
+            : execution.document.phase;
+        calls.push(`${phase}:${execution.signal.aborted}`);
+        expect(execution.signal.aborted).toBe(false);
       },
     });
     const document = collectedDocument({

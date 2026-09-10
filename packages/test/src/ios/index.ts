@@ -31,7 +31,7 @@ export type IOSRunnerAgent = Pick<
 
 export interface CreateIOSNodesOptions<TContext> {
   getAgent(
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<IOSRunnerAgent>;
 }
 

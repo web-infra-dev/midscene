@@ -21,12 +21,15 @@ describe('CaseRunner', () => {
       { doubled: number }
     >({
       name: 'first.node',
-      execute(ctx) {
-        calls.push(ctx.input.prompt);
-        expect(ctx.input).toEqual({ prompt: 'run first', value: 2 });
-        expect(ctx.$).toEqual({ continueOnError: false });
-        expect(ctx.signal.aborted).toBe(false);
-        return { summary: 'done', data: { doubled: ctx.input.value * 2 } };
+      execute(execution) {
+        calls.push(execution.input.prompt);
+        expect(execution.input).toEqual({ prompt: 'run first', value: 2 });
+        expect(execution.$).toEqual({ continueOnError: false });
+        expect(execution.signal.aborted).toBe(false);
+        return {
+          summary: 'done',
+          data: { doubled: execution.input.value * 2 },
+        };
       },
     });
     const second = defineNode({
@@ -152,8 +155,8 @@ describe('CaseRunner', () => {
     const node = defineNode({
       name: 'schema.node',
       inputSchema,
-      execute(ctx) {
-        execute(ctx.input);
+      execute(execution) {
+        execute(execution.input);
       },
     });
     const runner = new CaseRunner({ nodes: [node] });
@@ -223,8 +226,8 @@ describe('CaseRunner', () => {
     let signal: AbortSignal | undefined;
     const node = defineNode({
       name: 'slow.node',
-      execute(ctx) {
-        signal = ctx.signal;
+      execute(execution) {
+        signal = execution.signal;
         return new Promise<void>(() => {});
       },
     });
@@ -267,8 +270,8 @@ describe('CaseRunner', () => {
       nodes: [
         defineNode<unknown, unknown, { value: string }>({
           name: 'context.node',
-          execute(ctx) {
-            calls.push(`node:${ctx.context.value}`);
+          execute(execution) {
+            calls.push(`node:${execution.context.value}`);
           },
         }),
       ],

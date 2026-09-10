@@ -30,7 +30,7 @@ export type AndroidRunnerAgent = Pick<
 
 export interface CreateAndroidNodesOptions<TContext> {
   getAgent(
-    ctx: NodeExecutionContext<unknown, TContext>,
+    execution: NodeExecutionContext<unknown, TContext>,
   ): Awaitable<AndroidRunnerAgent>;
 }
 
