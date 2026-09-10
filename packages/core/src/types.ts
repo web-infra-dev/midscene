@@ -904,10 +904,6 @@ export interface DeviceAction<TParam = any, TReturn = any> {
     param: TParam,
     context?: ExecutorContext,
   ) => Promise<TReturn> | TReturn;
-  /** Standalone actions run without UI context, device hooks or settling delays.
-   * They cannot declare locator fields. Defaults to device execution.
-   */
-  executionMode?: 'device' | 'standalone';
   delayBeforeRunner?: number;
   delayAfterRunner?: number;
   /**

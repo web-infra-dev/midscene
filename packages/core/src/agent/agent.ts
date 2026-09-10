@@ -902,8 +902,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const defaultModel = () => this.resolveModelRuntime('default');
-    const planningModel = () => this.resolveModelRuntime('planning');
+    // assume all operation in action space is related to locating
+    const defaultModel = this.resolveModelRuntime('default');
+    const planningModel = this.resolveModelRuntime('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -1709,6 +1710,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     if (interfaceDestroyError) {
       throw interfaceDestroyError;
     }
+  }
+
+  /**
+   * Wait for a finite, positive duration in milliseconds and record it as a
+   * Sleep task. Does not require model configuration, screenshots or device
+   * action hooks. Actual elapsed time is recorded by the task runner.
+   */
+  async sleep(ms: number): Promise<void> {
+    await this.taskExecutor.sleep(ms);
   }
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {

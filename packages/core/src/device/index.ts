@@ -1195,7 +1195,6 @@ export type ActionSleepParam = {
 export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
   return defineAction<typeof ActionSleepParamSchema, ActionSleepParam>({
     name: 'Sleep',
-    executionMode: 'standalone',
     description:
       'Wait for a specified duration before continuing. Defaults to 1 second (1000ms) if not specified.',
     paramSchema: ActionSleepParamSchema,
