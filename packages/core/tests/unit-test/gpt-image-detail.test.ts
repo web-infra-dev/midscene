@@ -53,7 +53,16 @@ const imageMessage = [
 describe('GPT image detail handling', () => {
   beforeEach(() => {
     mockCodexCall.mockReset();
-    mockCodexCall.mockResolvedValue({ content: 'ok', isStreamed: false });
+    mockCodexCall.mockResolvedValue({
+      content: 'ok',
+      isStreamed: false,
+      protocolMetadata: {
+        transport: 'json-rpc',
+        threadId: 'thread-test',
+        turnId: 'turn-test',
+        turnStatus: 'completed',
+      },
+    });
     mockCreate.mockReset();
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'ok' } }],

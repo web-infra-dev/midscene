@@ -89,7 +89,9 @@ describe(
       const finalChunk = chunks[chunks.length - 1];
       expect(finalChunk.isComplete).toBe(true);
       expect(finalChunk.accumulated).toBe(result.content);
-      expect(finalChunk.usage).toEqual(result.usage);
+      expect(finalChunk.usage).toBeDefined();
+      // The result adds Midscene metadata to the raw usage from the final chunk.
+      expect(result.usage).toMatchObject(finalChunk.usage!);
     });
 
     it('should handle streaming with image input', async () => {
