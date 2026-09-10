@@ -1383,7 +1383,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           );
 
           debug('matched cache, will call .runYaml to run the action');
-          await this.runYaml(yaml, { abortSignal });
+          if (abortSignal) await this.runYaml(yaml, { abortSignal });
+          else await this.runYaml(yaml);
           return;
         } catch (error) {
           if (abortSignal?.aborted || isActionReadinessError(error))
