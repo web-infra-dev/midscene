@@ -4,7 +4,12 @@ import {
   StepTimeoutError,
   normalizeNodeExecutionError,
 } from '../errors';
-import type { NodeDefinition, NodeResult } from '../node/types';
+import type {
+  NodeDefinition,
+  NodeReportCollector,
+  NodeReportTrace,
+  NodeResult,
+} from '../node/types';
 import type { NormalizedStep } from '../parser/types';
 import type {
   NodeCaseContext,
@@ -208,6 +213,57 @@ type StepExecutionTarget =
   | { scope: 'case'; case: NodeCaseContext }
   | { scope: 'document'; document: NodeDocumentContext };
 
+function createNodeReportCollector(node: string): {
+  collector: NodeReportCollector;
+  close(): readonly NodeReportTrace[];
+} {
+  const traces = new Map<string, NodeReportTrace>();
+  let accepting = true;
+
+  return {
+    collector: Object.freeze({
+      addTrace(trace: NodeReportTrace): void {
+        if (!accepting) {
+          throw new NodeExecutionError(
+            node,
+            new Error(
+              'Report traces can only be added while the current Step is running.',
+            ),
+          );
+        }
+        if (
+          !trace ||
+          typeof trace !== 'object' ||
+          (trace as { type?: unknown }).type !== 'midscene-execution'
+        ) {
+          throw new NodeExecutionError(
+            node,
+            new TypeError('Report trace type must be "midscene-execution".'),
+          );
+        }
+        if (
+          typeof trace.executionId !== 'string' ||
+          trace.executionId.trim().length === 0
+        ) {
+          throw new NodeExecutionError(
+            node,
+            new TypeError('Report trace executionId must be non-empty.'),
+          );
+        }
+        const normalized = Object.freeze({
+          type: 'midscene-execution' as const,
+          executionId: trace.executionId,
+        });
+        traces.set(`${normalized.type}:${normalized.executionId}`, normalized);
+      },
+    }),
+    close(): readonly NodeReportTrace[] {
+      accepting = false;
+      return Object.freeze([...traces.values()]);
+    },
+  };
+}
+
 async function parseNodeInput<TInput, TData, TContext>(
   node: NodeDefinition<TInput, TData, TContext>,
   input: Record<string, unknown>,
@@ -243,41 +299,60 @@ export async function executeStep<
   const stepIndex =
     target.scope === 'case' ? target.case.stepIndex : target.document.stepIndex;
 
-  return executeNode<TOutputData>(
-    step,
-    async (signal) => {
-      const input = await parseNodeInput(node, step.input);
-      signal.throwIfAborted();
-      const common = {
-        input,
-        $: step.meta,
-        signal,
-        context,
-        onTeardown: (teardown: NodeScopeTeardown) => {
-          if (!execution.onTeardown) {
-            throw new NodeExecutionError(
-              step.node,
-              new Error(
-                'The current execution scope cannot register teardown.',
-              ),
-            );
-          }
-          execution.onTeardown(step.node, teardown);
-        },
-      };
-      return target.scope === 'case'
-        ? node.execute({ ...common, scope: 'case', case: target.case })
-        : node.execute({
-            ...common,
-            scope: 'document',
-            document: target.document,
-          });
-    },
-    phase,
-    stepIndex,
-    {
-      parentSignal: execution.signal,
-      defaultTimeoutMs: execution.defaultTimeoutMs,
-    },
-  );
+  const reportCollector = createNodeReportCollector(step.node);
+  let result: StepRunResult<TOutputData> | undefined;
+
+  try {
+    result = await executeNode<TOutputData>(
+      step,
+      async (signal) => {
+        const input = await parseNodeInput(node, step.input);
+        signal.throwIfAborted();
+        const common = {
+          input,
+          $: step.meta,
+          signal,
+          context,
+          report: reportCollector.collector,
+          onTeardown: (teardown: NodeScopeTeardown) => {
+            if (!execution.onTeardown) {
+              throw new NodeExecutionError(
+                step.node,
+                new Error(
+                  'The current execution scope cannot register teardown.',
+                ),
+              );
+            }
+            execution.onTeardown(step.node, teardown);
+          },
+        };
+        return target.scope === 'case'
+          ? node.execute({ ...common, scope: 'case', case: target.case })
+          : node.execute({
+              ...common,
+              scope: 'document',
+              document: target.document,
+            });
+      },
+      phase,
+      stepIndex,
+      {
+        parentSignal: execution.signal,
+        defaultTimeoutMs: execution.defaultTimeoutMs,
+      },
+    );
+  } finally {
+    const traces = reportCollector.close();
+    if (traces.length > 0 && result) {
+      result = { ...result, report: { traces } };
+    }
+  }
+
+  if (!result) {
+    throw new NodeExecutionError(
+      step.node,
+      new Error('Step execution completed without a result.'),
+    );
+  }
+  return result;
 }

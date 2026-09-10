@@ -1,397 +1,150 @@
-# 扩展和维护测试项目
+# 编写自定义 Node
 
-`@midscene/test` 支持注册业务 Node（节点）、管理运行资源和定义执行生命周期。框架维护者可以使用这些能力，接入浏览器、Agent、外部工具和业务接口，打造面向团队的定制化测试底座。
+自定义 Node 将业务操作封装为用例作者可以在 YAML 中调用的步骤。本文介绍输入定义与校验、跨 Node 数据共享，以及执行与清理。
 
-如果你想先了解整体设计，请阅读 [Midscene Test 概览](./overview)。
+尚未创建测试项目时，请先阅读[创建和使用测试项目](./use)。平台环境、Agent 接入和运行参数见[配置测试项目](./configuration)。
 
-## 创建项目
-
-使用 `create` 生成项目。项目包含平台 Agent 和示例用例，安装依赖后还会生成 Node 说明书：
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web
-cd my-tests
-```
-
-该命令需要 Node.js `^20.19.0 || ^22.12.0 || >=24.0.0`，以及选定的包管理器（npm 或 pnpm）。写入项目文件后，命令会询问是否安装依赖并生成 `midscene-node-reference.md`，默认选择“是”。
-
-| 参数 | 说明 |
-| --- | --- |
-| `[directory]` | 项目目录，`.` 表示当前目录。省略时交互询问。 |
-| `--platform <name>` | 支持 `web`（Playwright）、`android`、`ios`、`harmony`（HarmonyOS）和 `computer`（桌面端）。省略时交互选择。 |
-| `--package-manager <name>` | 支持 `npm` 和 `pnpm`。在交互式终端中，省略时交互选择。 |
-| `--with <package>` | 安装并注册 Node 包。支持指定版本或标签，可重复传入多个包。 |
-| `--skip-install` | 仅生成项目文件，跳过安装依赖和生成说明书。与 `--yes` 同时使用时也会跳过安装。 |
-| `-y`、`--yes` | 禁用交互并安装依赖，除非指定 `--skip-install`。必须同时提供目录和平台。 |
-| `-h`、`--help` | 显示用法和示例。 |
-
-在交互式终端中，`pnpm dlx @midscene/test create` 会询问目录、平台和包管理器。在 CI 等非交互环境中，必须提供目录和平台。命令不会覆盖已有的目标文件，`--yes` 也不代表允许覆盖。
-
-最后一步会询问“Install dependencies and generate midscene-node-reference.md now?”。选择“否”会保留项目文件，并提示稍后安装的命令。在这一步取消交互，也会保留文件。在非交互环境中，默认自动安装；指定 `--skip-install` 可跳过。
-
-如果想先创建文件，稍后再安装：
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web --skip-install
-cd my-tests
-pnpm install --ignore-workspace
-```
-
-生成的 `package.json` 包含 `postinstall` 脚本：
-
-```json
-{
-  "scripts": {
-    "postinstall": "midscene-test nodes",
-    "nodes": "midscene-test nodes"
-  }
-}
-```
-
-手动执行 `npm install` 或 `pnpm install` 时，会自动运行此脚本。后续安装依赖也会刷新说明书。如果禁用了生命周期脚本，请手动执行 `npm run nodes` 或 `pnpm run nodes`。通过 `create` 安装时，命令会复用 `postinstall` 的生成结果；如果文件未生成，则单独执行一次 `nodes`。生成失败会导致安装或创建命令报错退出。
-
-显式指定 `--package-manager` 时，命令直接采用该值，不再询问包管理器。省略时，交互选项默认选中启动命令所用的包管理器。命令通过 `npm_config_user_agent` 识别 npm 或 pnpm。在非交互环境中，或使用 `--yes` 时，直接采用识别结果。无法识别时默认使用 npm。
-
-例如，使用 npm 创建并安装项目，无需安装 pnpm：
-
-```bash
-npx @midscene/test create my-tests --platform web --package-manager npm
-```
-
-安装依赖、生成说明书、生成的 README 和失败恢复提示均使用选定的包管理器。下方示例使用 pnpm。npm 项目对应的命令为 `npm test`、`npm run nodes` 和 `npm exec -- playwright install chromium`。
-
-`harmony` 使用 `@midscene/harmony`，通过 HDC 连接 HarmonyOS 设备。`computer` 使用 `@midscene/computer`，控制本机的 Windows、macOS 或 Linux 桌面：
-
-```bash
-pnpm dlx @midscene/test create harmony-tests --platform harmony
-pnpm dlx @midscene/test create desktop-tests --platform computer
-```
-
-这两个平台也支持通过 `--with` 注册外部 Node 包。
-
-通过 pnpm 完成安装后，项目包含以下文件。如果跳过安装，`midscene-node-reference.md` 和锁文件会在稍后安装时生成。使用 npm 时，锁文件为 `package-lock.json`，而非 `pnpm-lock.yaml`。README 文件只生成 `README.md`：
-
-```text
-my-tests/
-├── cases/example.yaml
-├── midscene.config.ts
-├── midscene-node-reference.md
-├── package.json
-├── pnpm-lock.yaml
-├── tsconfig.json
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-将 `.env.example` 复制为 `.env`，填写[模型配置](../model-config)。Web 项目需要运行 `pnpm exec playwright install chromium` 安装 Chromium。Android 项目需要连接设备，可通过 `ANDROID_DEVICE_ID` 选择设备。iOS 项目需要启动 WebDriverAgent，并配置 `WDA_HOST` 和 `WDA_PORT`。
-
-HarmonyOS 项目需要通过 `hdc list targets` 检查连接，可通过 `HARMONY_DEVICE_ID` 选择设备。如果 PATH 中没有 HDC，请设置 `HDC_HOME`。桌面端项目需要按照[桌面端配置指南](../platforms/desktop)安装系统依赖并授予所需权限，可通过 `COMPUTER_DISPLAY_ID` 选择显示器。无界面 Linux 环境需安装 Xvfb，并启用 `MIDSCENE_COMPUTER_HEADLESS_LINUX`。
-
-桌面端示例通过 `aiAsk` 查看当前屏幕；移动端示例先执行 `home`，再执行 `aiAsk`。生成的配置会注册对应平台 Agent 提供的 Node。
-
-运行 `pnpm test` 执行示例。创建项目和生成说明书时，不会执行项目 setup 或测试，因此不需要模型 API Key、已安装的浏览器或已连接的设备。修改 Node 注册配置后，运行 `pnpm run nodes` 更新说明书。
-
-如果安装依赖或生成说明书失败，命令会报错退出并保留已生成的文件。按照错误信息中的命令恢复即可，无需在已有文件上重新运行 `create`。
-
-### 创建时接入 Node 包
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web \
-  --with @acme/test-nodes@1.2.0 \
-  --with @acme/order-nodes
-```
-
-`--with` 仅用于 `create`。它会将扩展包加入 `devDependencies`，并在 `midscene.config.ts` 中写入工厂导入和 Node 注册代码。后续运行测试或 `nodes` 时，会直接加载该配置，无需额外的命令行参数。生成的说明书包含扩展包中的 Node。
-
-扩展包必须从根入口提供命名导出 `createMidsceneTestNodes(options)`，支持 ESM 和 CommonJS。该同步工厂接收 `platform` 和 `getAgent`，返回 Node 数组。包作者可以使用 `@midscene/test/config` 导出的 `NodePackageOptions` 类型：
-
-```ts
-import { defineNode, z } from '@midscene/test';
-import type { NodePackageOptions } from '@midscene/test/config';
-
-const inputSchema = z.strictObject({
-  prompt: z.string().describe('要查看的当前屏幕内容。'),
-});
-
-export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptions<TContext>) {
-  return [
-    defineNode<typeof inputSchema, unknown, TContext>({
-      name: 'team.inspect',
-      description: '通过项目 Agent 查看当前屏幕。',
-      inputSchema,
-      async execute(ctx) {
-        const agent = await getAgent(ctx);
-        const data = await agent.aiAsk(ctx.input.prompt);
-        return { data };
-      },
-    }),
-  ];
-}
-```
-
-扩展包应将 `@midscene/test` 声明为 peer dependency，并发布工厂的 TypeScript 类型声明。在 `execute` 中通过 `getAgent` 获取运行时资源；包导入和工厂调用阶段不得连接设备或要求模型凭据。工厂可以检查 `platform`，拒绝不支持的平台。额外的业务资源需要在项目配置中显式接入。
-
-内置和扩展 Node 的名称必须唯一。缺少工厂、Node 定义无效或名称重复，都会导致说明书生成失败。`--with` 当前仅接受 registry 包名及可选的版本或标签，不支持本地路径、Git URL、包子路径或重复指定同一个包。
-
-## 手动配置项目
-
-下面通过一个简单的示例项目，展示如何快速搭建一个测试项目，并在其中切换浏览器 UA 语言。
-
-### 1. 安装依赖
-
-创建一个空项目，并安装 Midscene Test 的核心依赖及驱动工具：
-
-```bash
-pnpm add -D @midscene/test @midscene/web playwright
-```
-
-> **注意**：在使用 Midscene Agent 之前，请先参考 [模型配置](../model-config) 妥善设置相应的模型环境变量（如 API Key）。
-
-### 2. 创建项目文件
-
-建议采用以下基本目录结构：
-
-```text
-team-tests/
-├── cases/
-│   └── midscene.yaml
-└── midscene.config.ts
-```
-
-### 3. 配置 Test Project 与注册 Node
-
-在项目根目录下创建 `midscene.config.ts`，这个配置文件负责注册可复用的 Node，并定义执行环境（Project）：
-
-```ts filename=midscene.config.ts
-import { defineNode, z } from '@midscene/test';
-import {
-  defineProjectSetup,
-  defineTestProject,
-} from '@midscene/test/config';
-import { createMidsceneNodes } from '@midscene/test/midscene';
-import { createPlaywrightNodes } from '@midscene/test/playwright';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-import { chromium, type Browser, type Page } from 'playwright';
-
-interface ProjectContext {
-  browser: Browser;
-  page: Page;
-  agent?: PlaywrightAgent;
-}
-
-const geoInputSchema = z.strictObject({
-  latitude: z.number().describe('模拟位置的纬度。'),
-  longitude: z.number().describe('模拟位置的经度。'),
-});
-
-// 1. 注册自定义 Node：模拟地理位置 (GPS 定位)
-const mockLocation = defineNode<
-  typeof geoInputSchema,
-  unknown,
-  ProjectContext
->({
-  name: 'browser.mockLocation',
-  title: '模拟地理位置',
-  description: '伪造浏览器的 GPS 地理位置定位。',
-  inputSchema: geoInputSchema,
-  async execute({ input, context }) {
-    const browserContext = context.page.context();
-    // 注入地理位置模拟权限并设置经纬度
-    await browserContext.grantPermissions(['geolocation']);
-    await browserContext.setGeolocation({
-      latitude: input.latitude,
-      longitude: input.longitude,
-    });
-  },
-});
-
-// 集成 Midscene 内置的 AI 能力节点（如 aiAct, aiAssert 等）
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  agentClass: PlaywrightAgent,
-  getAgent: ({ context }) => {
-    context.agent ??= new PlaywrightAgent(context.page);
-    return context.agent;
-  },
-});
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
-});
-
-// 2. 声明浏览器环境的启动与清理
-const playwrightSetup = defineProjectSetup<ProjectContext>({
-  name: 'playwright',
-  platform: 'web',
-  async setup({ onTeardown }) {
-    const browser = await chromium.launch({ headless: true });
-    onTeardown(() => browser.close());
-    const browserContext = await browser.newContext();
-    const page = await browserContext.newPage();
-    return { browser, page };
-  },
-});
-
-// 3. 导出项目配置
-export default defineTestProject<ProjectContext>({
-  projects: [
-    {
-      name: 'chromium',
-      platform: 'web',
-      setup: playwrightSetup,
-      files: { include: ['cases/**/*.{yaml,yml}'] },
-    },
-  ],
-  nodes: [mockLocation, ...midsceneNodes, ...playwrightNodes],
-});
-```
-
-### 4. 编写测试用例并运行
-
-创建 `cases/midscene.yaml` 文件：
-
-```yaml filename=cases/midscene.yaml
-cases:
-  - name: 模拟地理位置并展示特定地区门店
-    tags: [smoke]
-    steps:
-      - browser.mockLocation:
-          latitude: 35.6762
-          longitude: 139.6503   # 模拟在东京 (Tokyo)
-      - gotoUrl:
-          url: https://yoursite.com/stores
-      - aiAssert:
-          prompt: 页面上成功加载并展示了“东京”或其临近区域的门店推荐列表
-          message: 地理位置 Mock 未能正确生效
-```
-
-在项目根目录下执行测试：
-
-```bash
-pnpm exec midscene-test
-```
-
-Midscene Test 会自动加载 `midscene.config.ts`，查找满足条件的测试用例并执行。
+- [注册 Node](#注册自定义业务-node)：定义操作、在 YAML 中调用，并通过生成 Markdown 说明书验证注册。
+- [Node 执行参数](#node-执行参数)：区分业务参数与框架的步骤配置。
+- [跨 Node 共享上下文](#跨-node-共享上下文)：创建、读取和重置共享测试数据。
+- [进阶用法](#进阶用法)：返回结果、处理错误与取消，以及清理资源。
 
 ## 注册自定义业务 Node
 
-通过 `defineNode()`，你可以将复杂的接口调用、数据库操作、清理任务或特定的浏览器交互封装为具名 Node。封装后，用例作者可以直接在测试用例中调用它们。
+自定义 Node 从 YAML 接收参数并执行操作。下面以创建测试用户数据为例，将用户信息写入 JSON 文件，供测试服务或数据导入步骤加载。
 
-### 基本业务 Node 示例
+### 1. 定义并注册 Node
 
-以下示例展示了如何封装一个通过 HTTP 接口创建测试订单的 Node：
+创建 `midscene.config.ts`：
 
 ```ts filename=midscene.config.ts
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { defineNode, z } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
 
-const orderInputSchema = z.strictObject({
-  sku: z.string().min(1).describe('要下单的商品 SKU。'),
-  quantity: z.number().int().positive().describe('购买数量。'),
+const createUser = defineNode({
+  name: 'user.create',
+  description: '创建测试用户数据文件。',
+  inputSchema: z.strictObject({
+    name: z.string().min(1).describe('测试用户姓名。'),
+    email: z.string().email().describe('测试用户邮箱。'),
+  }),
+  async execute({ input }) {
+    const user = { id: randomUUID(), name: input.name, email: input.email };
+    const filePath = `fixtures/users/${user.id}.json`;
+    await mkdir('fixtures/users', { recursive: true });
+    await writeFile(filePath, JSON.stringify(user, null, 2));
+  },
 });
 
-interface ProjectContext {
-  apiBaseUrl: string;
-}
-
-const createOrder = defineNode<
-  typeof orderInputSchema,
-  { id: string },
-  ProjectContext
->({
-  name: 'order.create',
-  title: '创建订单',
-  description: '通过测试接口创建一个商品订单。',
-  inputSchema: orderInputSchema,
-
-  async execute({ input, context, signal }) {
-    const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        sku: input.sku,
-        quantity: input.quantity,
-      }),
-      signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`创建订单失败：HTTP ${response.status}`);
-    }
-
-    const order = (await response.json()) as { id: string };
-    return {
-      summary: `已创建订单 ${order.id}`,
-      data: order,
-    };
-  },
+export default defineTestProject({
+  nodes: [createUser],
 });
 ```
 
-把 Node 加入到配置文件中的 `nodes` 数组后，用例作者就可以在用例中直接消费它：
+`name` 是 YAML 中使用的操作名称。`inputSchema` 定义参数，`execute({ input })` 接收校验后的参数值。将 Node 加入 `nodes` 数组后，用例就可以调用它。扩展已有项目时，将它追加到原有的 `nodes` 数组即可。
+
+`inputSchema` 是可选字段，但定义后，Midscene Test 会在调用 `execute()` 前校验参数。示例中的 `z.string().min(1)` 要求姓名非空，`.email()` 校验邮箱格式，`z.strictObject()` 拒绝未知字段。输入不符合要求时，会抛出 `NodeInputValidationError`。
+
+TypeScript 根据 schema 推导 `input` 的类型。`.describe()` 中的字段说明会出现在生成的 Node 说明书中。
+
+### 2. 在 YAML 中调用
+
+创建 `cases/user.yaml`：
+
+```yaml filename=cases/user.yaml
+cases:
+  - name: 创建测试用户数据
+    steps:
+      - user.create:
+          name: Alice
+          email: alice@example.com
+```
+
+Midscene Test 读取 YAML，找到名为 `user.create` 的 Node，并调用它的 `execute()`。此时 `input` 为 `{ name: "Alice", email: "alice@example.com" }`，Node 无需自行解析 YAML 文件。
+
+示例使用 `async execute({ input })` 和 `await` 等待文件写入。写入失败时会抛出错误，使 Node 执行失败。这里创建的是本地测试数据文件；需要在业务系统中创建用户时，将文件写入替换为测试数据接口或数据库调用即可。
+
+### 3. 生成 Markdown 说明书，验证注册
+
+保存配置后，生成 Markdown 格式的 Node 说明书：
+
+```bash
+pnpm exec midscene-test nodes
+```
+
+命令加载项目配置，并在当前目录生成 `midscene-node-reference.md`。检查说明书是否包含：
+
+- 可用 Node 列表中的 `user.create`。
+- “创建测试用户数据文件。”这一操作说明。
+- `name`、`email` 两个输入字段及其描述。
+
+这一步验证 Node 是否已注册、输入 schema 是否可以导出，不会执行 Node 或创建用户数据。修改 Node 定义或注册配置后，可以重新生成说明书，供用例作者和 AI Agent 查阅。
+
+## Node 执行参数
+
+Midscene Test 调用 `execute()` 时，会传入包含本次执行参数和运行信息的对象。可以通过 `execute({ input, $, context })` 这样的解构写法，直接取出需要的字段。
+
+### 业务参数与步骤配置
+
+`input` 包含 Node 的 `inputSchema` 定义的业务参数。`$` 包含框架处理的步骤配置，例如超时时间和发生错误后是否继续执行。
+
+例如，为前面的 `user.create` 调用添加步骤配置：
 
 ```yaml
-cases:
-  - name: 下单流程测试
-    steps:
-      - order.create:
-          sku: midscene-mug
-          quantity: 1
+steps:
+  - user.create:
+      name: Alice
+      email: alice@example.com
+      $:
+        timeout: 30000
+        continue-on-error: true
 ```
 
-### 使用 Zod 声明输入与强校验
-
-`inputSchema` 是可选字段，我们强烈建议你声明此字段。
-
-1. **类型推导与校验**：声明后，Midscene Test 会在进入 `execute()` 前自动执行 Zod 校验。若输入不匹配，将直接抛出 `NodeInputValidationError` 异常，并在编译期提供强类型推导（无需额外声明 TypeScript 接口）。
-2. **拒绝未知参数**：推荐使用 `z.strictObject()`。若用例传入了多余的未知字段，Midscene Test 会及时拦截并报错。
-3. **说明书自动集成**：字段上的 `.describe()` 信息会直接编译进自动生成的 Node 说明书，作为 AI Agent 或人类用例编写者的参考手册。
+框架将 `$` 与业务参数分开，并规范化其中的字段名。在 `execute({ input, $ })` 中，可以读取到：
 
 ```ts
-const refundInputSchema = z.strictObject({
-  orderId: z.string().min(1).describe('需要退款的订单 ID。'),
-  reason: z.string().optional().describe('退款原因。'),
-});
-
-const refundOrder = defineNode({
-  name: 'order.refund',
-  description: '为已有订单发起退款。',
-  inputSchema: refundInputSchema,
-  async execute({ input }) {
-    // input 会被推导为 { orderId: string; reason?: string }
-    await refund(input.orderId, input.reason);
-  },
-});
+input.name; // 'Alice'
+input.email; // 'alice@example.com'
+$.timeoutMs; // 30000
+$.continueOnError; // true
 ```
 
-### Node 执行上下文环境
+`inputSchema` 只需声明 `name` 和 `email`，`input` 中不包含 `$`。超时和出错后是否继续执行由框架控制。`continue-on-error` 允许当前阶段的后续步骤在失败后继续执行，但失败的步骤仍会使整个用例失败。
 
-`execute(ctx)` 接收的 `ctx` 包含以下常用字段：
+### 可用的执行字段
+
+`execute()` 接收的参数对象包含以下常用字段：
 
 * `input`：从 YAML 传入并经过 Zod 校验后的业务参数。
-* `$`：由 Midscene Test 控制的通用 Step 属性（如规范化后的 `timeout` 和 `continue-on-error`）。
-* `signal`：超时或运行取消时触发的 `AbortSignal`，建议在内部异步请求或长耗时任务中使用它以实现提前优雅退出。
+* `$`：由 Midscene Test 控制的通用 Step 属性（如规范化后的 `timeoutMs` 和 `continueOnError`）。
+* `signal`：超时或运行取消时触发的 `AbortSignal`，在异步请求或长耗时任务中使用它以响应取消。
 * `context`：在 `defineProjectSetup()` 中返回并共享的项目级运行时资源。
 * `onTeardown()`：注册当前 Node 所创建资源的清理函数，支持 attempt 级别或 Document 级，按 LIFO（后进先出）顺序执行。
 * `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
 * `case` 或 `document`：当前执行位置的详细运行信息。
 
-Node 不会自动收到前序 Node 的结果。如果后续 Node 需要某个值，请按下文所述将它显式写入项目 `context`。
+其中，`context` 用于访问项目共享的资源与状态。下一节介绍如何通过它在多个 Node 之间共享数据。
 
-## 多节点协作与状态共享
+## 跨 Node 共享上下文
 
-在实际业务测试中，多个 Node 常常需要共享上下文状态。例如，订单退款用例需要在 `beforeEach` 中创建订单并记录订单 ID，在 `steps` 中访问该 ID 进行退款，最后在 `afterEach` 中进行数据清理。
+Node 的每次执行都是独立调用，框架不会自动将上一次执行的结果传入下一次调用。当一个业务流程由多个 Node 完成时，它们可能需要使用同一份测试数据。例如，订单退款用例先创建订单，再打开该订单的退款页面，最后删除测试订单。下面沿着这份数据的使用过程，说明 Node 如何协作。
 
-通过在自定义 `ProjectContext` 中定义状态属性，可以轻松实现这种协作：
+### 创建共享上下文
 
-```ts filename=midscene.config.ts
-import { defineNode, z } from '@midscene/test';
-import type { PlaywrightAgent } from '@midscene/web/playwright';
-import type { Page } from 'playwright';
+Midscene Test 提供了项目级上下文机制。同一个执行项目中的 Node 可以通过共享的 `context` 对象访问运行资源、传递测试数据。这个对象由项目的 `setup` 创建并返回，框架在执行各 Node 时，将它传入 `execute()`。
 
-interface ProjectContext {
-  agent: PlaywrightAgent;
+对于上面的订单退款流程，setup 可以提供浏览器页面、应用地址和订单服务，订单 ID 则在 Node 创建订单后写入。下面的 `setup.ts` 展示了这个共享对象的创建方式：`ProjectContext` 描述它的类型，`setup` 负责创建并返回实际的对象。
+
+导入的 `orderService` 是你自己的测试数据服务，需要实现 `create` 和 `remove` 方法。应用地址也需替换为测试环境地址。
+
+```ts filename=setup.ts
+import { defineProjectSetup } from '@midscene/test/config';
+import { chromium, type Page } from 'playwright';
+import { orderService } from './order-service';
+
+export interface ProjectContext {
   appBaseUrl: string;
   page: Page;
   orderId?: string; // 用于在 Node 之间共享测试状态
@@ -401,17 +154,37 @@ interface ProjectContext {
   };
 }
 
+export const setup = defineProjectSetup<ProjectContext>({
+  name: 'refund',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    const page = await browser.newPage();
+
+    const context: ProjectContext = {
+      page,
+      appBaseUrl: 'https://yoursite.com',
+      orderService,
+    };
+    return context;
+  },
+});
+```
+
+setup 返回的 `context` 是当前执行项目共享的同一个对象。在 `execute({ input, context })` 中，`input` 来自当前 YAML 步骤，`context` 则是这里创建的对象，此时 `orderId` 尚未赋值。
+
+### 在 Node 中写入数据
+
+接着创建 `nodes.ts`。`order.prepare` 使用 `context` 中的订单服务创建订单，再将 ID 写入 `context.orderId`，供后续 Node 使用：
+
+```ts filename=nodes.ts
+import { defineNode, z } from '@midscene/test';
+import type { ProjectContext } from './setup';
+
 const emptyInputSchema = z.strictObject({});
 const prepareOrderInputSchema = z.strictObject({
   status: z.literal('paid').describe('待创建订单的状态。'),
 });
-
-const getOrderId = (context: ProjectContext) => {
-  if (!context.orderId) {
-    throw new Error('测试订单尚未创建。');
-  }
-  return context.orderId;
-};
 
 // 1. 准备订单环境
 const prepareOrder = defineNode<
@@ -422,15 +195,36 @@ const prepareOrder = defineNode<
   name: 'order.prepare',
   description: '调用订单服务创建测试订单。',
   inputSchema: prepareOrderInputSchema,
-  async execute({ input, context }) {
+  async execute({ input, context, onTeardown }) {
     const order = await context.orderService.create(input);
     context.orderId = order.id; // 将 ID 保存至上下文
+    onTeardown(async () => {
+      await context.orderService.remove(order.id);
+      delete context.orderId;
+    });
     return {
       summary: `已创建测试订单 ${order.id}`,
       data: { orderId: order.id },
     };
   },
 });
+```
+
+`context.orderId = order.id` 修改共享对象，使后续 Node 可以读取这个 ID。返回 `data` 不会自动将它写入 `context`。
+
+创建订单后，`onTeardown()` 注册清理函数，在清理时删除本次创建的订单并清除保存的 ID。回调直接使用本次调用的 `order.id`，因此创建与清理封装在同一个 Node 中，YAML 无需额外调用清理步骤。
+
+### 在后续 Node 中读取数据
+
+`browser.openRefundPage` 读取保存的 ID，打开退款页面。如果订单 ID 不存在，这个 Node 会报错。
+
+```ts filename=nodes.ts
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('测试订单尚未创建。');
+  }
+  return context.orderId;
+};
 
 // 2. 访问已保存的订单状态
 const openRefundPage = defineNode<
@@ -447,271 +241,63 @@ const openRefundPage = defineNode<
   },
 });
 
-// 3. 业务环境清理
-const cleanupOrder = defineNode<
-  typeof emptyInputSchema,
-  unknown,
-  ProjectContext
->({
-  name: 'order.cleanup',
-  description: '删除当前测试订单。',
-  inputSchema: emptyInputSchema,
-  async execute({ context }) {
-    const orderId = getOrderId(context);
-    await context.orderService.remove(orderId);
-    delete context.orderId; // 恢复上下文干净状态
-  },
-});
-
-export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
+export const refundNodes = [prepareOrder, openRefundPage];
 ```
 
-## 集成 Midscene Agent
-
-`@midscene/test/midscene` 导出通用的 Node：`aiAct`、`aiTap`、
-`aiAssert`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、
-`recordToReport`、`wait` 和 `agent`。
-
-调用 `createMidsceneNodes()` 时，需要传入声明 Node 的 Agent class，以及在执行时提供 Agent 实例的 `getAgent` 回调：
-
-```ts
-import { createMidsceneNodes } from '@midscene/test/midscene';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  agentClass: PlaywrightAgent,
-  getAgent: ({ context }) => {
-    context.agent ??= new PlaywrightAgent(context.page);
-    return context.agent;
-  },
-});
-```
-
-由 Agent 驱动的 Node 输入与 Agent 方法参数保持对应。位置参数会变成有名称的顶层字段。结构化参数则保留原有层级。例如，`recordToReport(title, options)` 使用 `title` 和 `options` 两个字段，多模态 `TUserPrompt` 也完整保留在 `prompt` 下面：
-
-```yaml
-steps:
-  - aiAct:
-      prompt:
-        prompt: 按照参考图完成设置
-        images:
-          - name: 目标状态
-            url: ./fixtures/target.png
-      options:
-        deepLocate: true
-  - recordToReport:
-      title: 执行完成
-      options:
-        content: 视觉检查已经完成。
-```
-
-`agentClass` 是 Agent Node 定义的唯一来源。如果该 class 没有提供 `getTestRunnerNodeDefinitions()`，factory 会在注册阶段抛出异常。传入平台 Agent class 时，会同时注册通用 Node 定义和平台 Node 定义。基础 Agent 或 Web Agent 不会注册平台生命周期 Node。你也可以组合下文的平台专用 factory。
-
-```ts
-import { AndroidAgent } from '@midscene/android';
-
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-  agentClass: AndroidAgent,
-});
-```
-
-## 注册平台预置 Node
-
-Midscene Test 通过独立入口发布各平台的预置 Node factory。Factory 使用 getter 获取
-运行时资源，不要求 Project Context 使用固定字段名。
-
-Playwright factory 注册 `gotoUrl`、`setCookies`、`clearCookies` 和
-`setViewportSize`。`playwright` 是 `@midscene/test` 的 optional peer
-dependency，使用该预置能力的项目需要安装它：
-
-```bash
-pnpm add -D playwright
-```
-
-然后创建预置 Node：
-
-```ts
-import { createPlaywrightNodes } from '@midscene/test/playwright';
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
-  getBaseUrl: ({ context }) => context.baseUrl,
-  getEnv: () => process.env,
-});
-```
-
-`setCookies` 不允许在 YAML 中直接填写 Cookie value。Midscene Test 会把 Node 输入保存到
-运行结果。如果直接填写 Cookie，这些敏感信息也会被保存。
-
-请使用 `cookiesEnv`、`profile` 或 `storageStatePath` 引用 Cookie，三者必须选择一个。
-Node 只在执行时读取实际的 Cookie，并将它直接传给 Playwright BrowserContext。Node
-结果只记录引用名称和 Cookie 数量，不会记录 Cookie 的名称、value 和作用域。因此，
-Cookie 不会进入 Midscene Test 的运行结果。
-
-环境变量可以包含 Cookie header、Cookie JSON 数组或 Playwright storage-state JSON。
-相对的 storage-state 路径默认从当前工作目录解析。如果项目需要使用其他根目录，请配置
-`resolveStorageStatePath`。引用方式只能避免 Cookie 进入 Midscene Test 的持久化数据；
-环境变量、profile 和 storage-state 文件本身仍需妥善保管。请勿将包含真实 Cookie 的
-storage-state 文件提交到代码仓库。
-
-```yaml
-beforeEach:
-  - clearCookies: {}
-  - setCookies:
-      cookiesEnv: E2E_COOKIES
-      url: https://example.com
-  - setViewportSize:
-      width: 1440
-      height: 900
-  - gotoUrl:
-      url: /chat
-      waitUntil: domcontentloaded
-```
-
-`gotoUrl` 遵循 Playwright 的导航语义。只要导航完成，HTTP 4xx 和 5xx response
-也会作为成功的 Node 结果返回，并保留状态码，后续步骤可以继续检查错误页面。网络错误和
-导航超时仍会让 Node 失败。
-
-Android 平台预置会注册 `launch`、`terminate`、`runAdbShell`、`back`、
-`home` 和 `recentApps`，并要求 Agent 提供对应方法：
-
-```ts
-import { createAndroidNodes } from '@midscene/test/android';
-
-const androidNodes = createAndroidNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-beforeEach:
-  - runAdbShell:
-      command: pm clear com.example.app
-      options:
-        timeout: 5000
-  - launch:
-      uri: com.example.app
-```
-
-iOS 平台预置会注册 `launch`、`terminate`、`runWdaRequest`、`home` 和 `appSwitcher`：
-
-```ts
-import { createIOSNodes } from '@midscene/test/ios';
-
-const iosNodes = createIOSNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-steps:
-  - launch:
-      uri: com.example.app
-  - runWdaRequest:
-      request:
-        method: GET
-        endpoint: /status
-  - terminate:
-      uri: com.example.app
-```
-
-HarmonyOS 平台预置会注册 `launch`、`terminate`、`runHdcShell`、`back`、 `home` 和 `recentApps`：
-
-```ts
-import { createHarmonyNodes } from '@midscene/test/harmony';
-
-const harmonyNodes = createHarmonyNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-steps:
-  - runHdcShell:
-      command: bm dump -a
-  - home: {}
-```
-
-`runAdbShell`、`runWdaRequest` 和 `runHdcShell` 会在 Node 结果中保留完整 response，但 Midscene Test
-不会自动把该 response 传给后续 Node 或 Midscene Agent 调用。如果运行结果不需要完整
-输出，请直接在命令中进行过滤；如果后续 Node 需要其中某个值，请只将该值显式写入项目
-`context`。
-
-`launch` 和 `gotoUrl` 不互为 alias。`launch` 通过设备 Agent 启动 App、URL 或 URI；
-`gotoUrl` 在当前 Playwright Page 中导航，并提供 Web 专属的 `baseUrl`、生命周期和
-HTTP response 语义。
-
-## 一键生成 Node 说明书
-
-运行 `midscene-test nodes` 可以查看当前项目注册的 Node，并生成 Markdown 说明书，供测试用例编写者和 AI Agent 查阅。说明书包含各 Node 的 `title`、`description` 和 Zod `inputSchema`。
-
-执行以下命令直接生成团队专属说明书：
-
-```bash
-pnpm exec midscene-test nodes
-```
-
-命令会将 `midscene-node-reference.md` 写入指定的测试目录；未指定时写入当前目录。生成成功后，stdout 会列出当前注册的全部 Node 的名称和 description，最后显示说明书文件的绝对路径，无需重定向输出。
-
-或者指定测试目录或专属配置文件：
-
-```bash
-pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
-```
-
-生成的说明书包含当前 Test Project 实际注册的全部 Node（包含 `createMidsceneNodes()` 返回的系统内置 Node）。文档先通过 Available Nodes 总览表列出全部节点，再说明调用约定，最后在 Node Details 章节展开各 Node 的描述和输入 schema。说明书和 stdout 均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。Midscene Test 会自动将 Zod `inputSchema` 转换为标准的 JSON Schema。
-
-说明书会分别列出 `Case files`（每个 Execution Project 的 `files.include` / `files.exclude` glob 匹配规则）和 `Config file`。两者均相对于说明书所在目录，方便用例编写者定位 YAML 文件和配置文件。创建模板默认选择 `cases/**/*.{yaml,yml}`；未配置 `files` 时，Midscene Test 会在测试目录下递归查找 `**/*.{yaml,yml}`。
-
-## 配置和管理 Test Project
-
-`defineTestProject()` 是测试底座的核心配置入口，支持声明一个或多个 Execution Project：
+将 setup 和 Node 一起注册，框架就会把 setup 返回的对象传给各 Node：
 
 ```ts filename=midscene.config.ts
+import { defineTestProject } from '@midscene/test/config';
+import { refundNodes } from './nodes';
+import { setup, type ProjectContext } from './setup';
+
 export default defineTestProject<ProjectContext>({
-  projects: [
-    {
-      name: 'android-smoke',
-      platform: 'android',
-      setup: doraAndroidSetup,
-      files: {
-        include: ['cases/**/*.{yaml,yml}'],
-        exclude: ['cases/**/*.draft.yaml'],
-      },
-      tags: { include: ['smoke'], exclude: ['manual'] },
-      retry: 1,
-      variables: { appUri: 'com.example.app' },
-    },
-  ],
-  test: {
-    maxConcurrency: 1, // 控制 active 的 Execution Project 的最大并发数
-    bail: 0,           // 失败阈值拦截。配置为 > 0 时，达到失败用例数会自动停止新任务调度
-    testTimeout: 120_000,
-  },
-  output: {
-    reportDir: './midscene_run/report',
-  },
-  nodes: [createOrder, ...midsceneNodes],
+  setup,
+  nodes: refundNodes,
 });
 ```
 
-### 关键配置策略
+在 YAML 中，通过 `beforeEach` 调用 `order.prepare`，然后在用例步骤中使用保存的订单 ID：
 
-1. **环境与资源隔离**：每个 Execution Project 有其独立的 `setup` 运行环境（如启动单独的浏览器或绑定特定测试设备）。
-2. **多 Project 并发与生命周期槽**：`test.maxConcurrency` 参数控制同时活跃（Active）的 Project 数量（默认值为 `1`）。
-   * 一个并发槽（slot）覆盖从 Project setup 开始到 teardown 完成的完整生命周期。
-   * 单个 Project 内部，所有的工作流文档（Workflow Documents）、用例（Cases）和步骤（Steps）依然**严格串行**执行，以保证测试的确定性。
-   * 当你需要同时驱动多台手机设备或多个浏览器实例时，应当创建多个不同的 `projects` 声明并增大并发数。
-3. **生命周期清理**：使用 `defineProjectSetup()` 声明环境准备动作。利用 `onTeardown()` 注册销毁钩子，确保即便测试意外中断或运行中途出错，已获取的长生命周期资源也能按照后进先出的逆序被安全释放。
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+cases:
+  - name: 打开退款页面
+    steps:
+      - browser.openRefundPage: {}
+```
 
-## 编程式 API
+已注册的清理函数在本次用例的 `afterEach` 阶段之后执行，即使 YAML 没有声明 `afterEach` 步骤也会执行。后续准备步骤或用例步骤失败时，框架仍会执行已注册的清理。每次重试有独立的清理范围；如果创建订单失败、尚未注册回调，则本次调用没有对应的清理函数。
 
-大多数团队只需使用项目配置、YAML 和 CLI。如果需要将 Midscene Test 嵌入其他工具（如开发一个本地的 GUI 运行面板），可以使用以下导出的编程式 API：
+Agent 接入和平台资源配置见[配置测试项目](./configuration)。
 
-* **`loadTestProject()`**：异步加载 `midscene.config.ts` 中的 TypeScript 项目配置（Midscene Test 不支持同步加载）。
-* **`runTestProject()`**：异步发现、运行并汇总整个项目（从 `@midscene/test/config` 导出）。
-* **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
-* **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。
+## 进阶用法
 
-配置完成后，请继续阅读 [编写和运行测试用例](./use)，熟悉具体的用例语法与参数。
+以下介绍 Node 内部的执行结果、错误处理、取消和资源清理。
+
+### 记录执行结果
+
+上面的订单准备 Node 还返回了 `summary` 和 `data`。`summary` 是供报告展示的执行摘要，`data` 保存结构化输出。两者均为可选字段，Node 也可以不返回结果。这些值保存在运行结果中，与共享的 `context` 相互独立。
+
+### 异步操作、错误与取消
+
+异步操作使用 `async execute()`，并通过 `await` 等待完成。操作失败时应抛出错误。
+
+Midscene Test 在执行 Node 时通过 `signal` 提供 `AbortSignal`。调用支持取消的 API 时，将它传入，例如 `fetch(url, { signal })`。长时间运行的循环可以在每次迭代之间调用 `signal.throwIfAborted()`，以响应步骤超时或运行取消。
+
+### 资源的生命周期与清理
+
+Node 创建资源后，可以通过 `onTeardown()` 注册清理函数。清理时机取决于 Node 所在的执行阶段。
+
+资源清理分为以下范围：
+
+- 在 `beforeEach`、用例 `steps` 或 `afterEach` 的 Node 中注册的清理，在本次用例执行的 `afterEach` 之后运行。每次重试有独立的清理范围。
+- 在 `beforeAll` 或 `afterAll` 的 Node 中注册的清理，在当前文件的 `afterAll` 之后运行。
+
+每个范围内的清理函数按注册顺序的逆序执行，即 LIFO（后进先出）。Node 可以借此释放自己创建的资源，或完成报告生成。注册清理不会自动创建新的 Agent 或重置缓存；这些行为取决于项目实现。
+
+测试运行被中断时，框架仍会尝试执行 `afterEach`、`afterAll` 和通过 `onTeardown()` 注册的清理函数。取消机制的详细说明见[超时与取消机制](./configuration#超时与取消机制)。
+
+项目级浏览器和 Agent 的清理见[管理项目资源](./configuration#管理项目资源)。

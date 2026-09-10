@@ -1571,7 +1571,7 @@ const isOnSale = await agent.aiBoolean('这个商品是否正在促销？');
 
 <a id="深度定位deeplocate"></a>
 
-### 共享类型 {#shared-types}
+## 共享类型 {#shared-types}
 
 **定位选项：深度定位（`deepLocate`）**
 
@@ -1597,13 +1597,14 @@ await agent.aiTap('右上角购物车图标', { deepLocate: true });
 
 - 对于 `aiAct()`，可以同时使用 `deepThink` 和 `deepLocate`：`deepThink` 控制规划模式，`deepLocate` 控制本节描述的深度定位。
 - 对于 `aiTap`、`aiHover` 等单步操作方法，如果需要提升定位精确度，推荐使用语义更清晰的 `deepLocate` 参数；旧的 `deepThink` 参数仍然兼容，语义等同于 `deepLocate`。
+
 :::
 
 <a id="prompting-with-images"></a>
 <a id="使用图片作为提示词"></a>
 <a id="通过图像提示"></a>
 
-**使用图片的提示词输入**
+## 使用图片的提示词输入
 
 你可以在提示词中使用图片作为补充，来描述无法通过自然语言表达的内容。
 
@@ -1671,7 +1672,7 @@ await agent.aiAct({
 
 请遵守模型提供商对图片体积和尺寸的限制。过大或过小的图片都可能被拒绝，准确限制请以模型提供商的文档为准。
 
-### 报告工具 {#reporting-utilities}
+## 报告工具 {#reporting-utilities}
 
 **`ReportMergingTool`**
 

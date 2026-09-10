@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { setMaxListeners } from 'node:events';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
+import { TestRunReportAssembler } from '@midscene/core/report';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
@@ -23,12 +24,17 @@ import type {
   WorkflowDocumentSource,
 } from '../parser/types';
 import {
+  buildTestRunReportDump,
+  collectTestRunReportSources,
+} from '../report/test-run-report';
+import {
   writeCaseAttemptResult,
   writeCollectionError,
   writeTestProjectRunResult,
   writeWorkflowDocumentResult,
 } from './result-store';
 import {
+  type LoadedExecutionProject,
   type ResolvedExecutionProject,
   type TestFileSelection,
   loadTestProject,
@@ -71,7 +77,7 @@ export interface TestProjectRunOptions {
 }
 
 interface PreparedExecutionProject<TProjectContext = unknown> {
-  project: ResolvedExecutionProject<TProjectContext>;
+  project: LoadedExecutionProject<TProjectContext>;
   fileSelection: TestFileSelection;
   sources: readonly WorkflowDocumentSource[];
   documents: readonly CollectedWorkflowDocument[];
@@ -271,9 +277,9 @@ const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
   ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
 
 const selectProjects = <TProjectContext>(
-  projects: readonly ResolvedExecutionProject<TProjectContext>[],
+  projects: readonly LoadedExecutionProject<TProjectContext>[],
   names: readonly string[] | undefined,
-): readonly ResolvedExecutionProject<TProjectContext>[] => {
+): readonly LoadedExecutionProject<TProjectContext>[] => {
   if (!names || names.length === 0) return projects;
   const requested = new Set(names);
   if (requested.size !== names.length) {
@@ -286,9 +292,8 @@ const selectProjects = <TProjectContext>(
 };
 
 const prepareProject = <TProjectContext>(
-  project: ResolvedExecutionProject<TProjectContext>,
+  project: LoadedExecutionProject<TProjectContext>,
   projectRoot: string,
-  resolveNode: Parameters<typeof collectWorkflowDocument>[1]['resolveNode'],
   runDir: string,
 ): PreparedExecutionProject<TProjectContext> => {
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
@@ -320,7 +325,7 @@ const prepareProject = <TProjectContext>(
   for (const source of sources) {
     try {
       const collected = collectWorkflowDocument(source, {
-        resolveNode,
+        resolveNode: project.nodes.get.bind(project.nodes),
         variables: project.variables,
         env: process.env,
       });
@@ -398,7 +403,7 @@ export async function runTestProject(
     options.projectNames,
   );
   const preparedProjects = selectedProjects.map((project) =>
-    prepareProject(project, projectRoot, definition.resolveNode, runDir),
+    prepareProject(project, projectRoot, runDir),
   );
   const progress = options.onProgress ?? (() => {});
   const totalDocuments = preparedProjects.reduce(
@@ -567,7 +572,7 @@ export async function runTestProject(
               `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
             );
             const execution = await runWorkflowDocument(document, {
-              resolveNode: definition.nodes.require.bind(definition.nodes),
+              resolveNode: project.nodes.require.bind(project.nodes),
               project,
               projectContext: runtime.context,
               retry: project.retry,
@@ -743,5 +748,17 @@ export async function runTestProject(
     ...(configPath ? { configPath } : {}),
     result,
   });
-  return result;
+  const reportPath = new TestRunReportAssembler().assemble({
+    outputDir: reportDir,
+    reportFileName: `test-run-${runId}`,
+    sources: collectTestRunReportSources(result),
+    buildRunnerDump: (index) => buildTestRunReportDump(result, index),
+  });
+  const completedResult: TestProjectRunResult = { ...result, reportPath };
+  writeTestProjectRunResult({
+    projectRoot,
+    ...(configPath ? { configPath } : {}),
+    result: completedResult,
+  });
+  return completedResult;
 }

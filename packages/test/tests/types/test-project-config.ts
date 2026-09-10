@@ -8,6 +8,7 @@ import {
   runAdbShellInputSchema,
 } from '@midscene/test/android';
 import {
+  type LoadedExecutionProject,
   type TestProjectDefinition,
   defineProjectSetup,
   defineTestProject,
@@ -95,6 +96,7 @@ defineTestProject<ProjectContext>({
       name: 'web',
       platform: 'web',
       setup: webSetup,
+      nodes: [requestNode],
       files: {
         include: ['cases/**/*.yaml'],
         exclude: ['cases/**/*.draft.yaml'],
@@ -103,9 +105,90 @@ defineTestProject<ProjectContext>({
       retry: 1,
       variables: { locale: 'en-US' },
     },
+    {
+      name: 'web-override',
+      platform: 'web',
+      setup: webSetup,
+      files: { include: ['override/**/*.yaml'] },
+      nodes: [
+        {
+          name: 'project.read',
+          execute({ context }) {
+            context.baseURL satisfies string;
+            // @ts-expect-error The second Project preserves the configured context.
+            context.token;
+            return { summary: context.baseURL };
+          },
+        },
+      ],
+    },
   ],
   test: { maxConcurrency: 2, bail: 1, testTimeout: 30_000 },
   nodes: [projectNode],
+});
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'project-only',
+      platform: 'web',
+      setup: webSetup,
+      nodes: [
+        requestNode,
+        {
+          name: 'project.context',
+          execute({ context }) {
+            context.baseURL satisfies string;
+            // @ts-expect-error Local Nodes share the configured ProjectContext.
+            context.token;
+          },
+        },
+      ],
+    },
+  ],
+});
+
+defineTestProject({});
+defineTestProject({ projects: [{ name: 'empty', platform: 'web' }] });
+
+declare const loadedExecutionProject: LoadedExecutionProject<ProjectContext>;
+loadedExecutionProject.nodes.names() satisfies string[];
+loadTestProject<ProjectContext>().then((loaded) => {
+  loaded.projects[0] satisfies LoadedExecutionProject<ProjectContext>;
+  loaded.projects[0].nodes.names() satisfies string[];
+});
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'invalid-nodes',
+      platform: 'web',
+      // @ts-expect-error Project-local Nodes must be an array.
+      nodes: requestNode,
+    },
+  ],
+});
+
+const incompatibleContextNode = defineNode<unknown, unknown, { token: string }>(
+  {
+    name: 'token.context',
+    execute({ context }) {
+      return { summary: context.token };
+    },
+  },
+);
+
+defineTestProject<ProjectContext>({
+  projects: [
+    {
+      name: 'invalid-context',
+      platform: 'web',
+      nodes: [
+        // @ts-expect-error Local Nodes must accept the Project's configured context.
+        incompatibleContextNode,
+      ],
+    },
+  ],
 });
 
 const schemaInput = z.strictObject({
@@ -201,22 +284,43 @@ interface PlatformContext {
   };
 }
 
-createPlaywrightNodes<PlatformContext>({
-  getPage: ({ context }) => context.page,
-  getBaseUrl: ({ context }) => context.baseUrl,
-  getCookieProfile: ({ context }) => context.page.context().cookies(),
-});
-
-createAndroidNodes<PlatformContext>({
-  getAgent: ({ context }) => context.android,
-});
-
-createIOSNodes<PlatformContext>({
-  getAgent: ({ context }) => context.ios,
-});
-
-createHarmonyNodes<PlatformContext>({
-  getAgent: ({ context }) => context.harmony,
+defineTestProject<PlatformContext>({
+  projects: [
+    {
+      name: 'web',
+      platform: 'web',
+      files: { include: ['web/**/*.yaml'] },
+      nodes: createPlaywrightNodes<PlatformContext>({
+        getPage: ({ context }) => context.page,
+        getBaseUrl: ({ context }) => context.baseUrl,
+        getCookieProfile: ({ context }) => context.page.context().cookies(),
+      }),
+    },
+    {
+      name: 'android',
+      platform: 'android',
+      files: { include: ['android/**/*.yaml'] },
+      nodes: createAndroidNodes<PlatformContext>({
+        getAgent: ({ context }) => context.android,
+      }),
+    },
+    {
+      name: 'ios',
+      platform: 'ios',
+      files: { include: ['ios/**/*.yaml'] },
+      nodes: createIOSNodes<PlatformContext>({
+        getAgent: ({ context }) => context.ios,
+      }),
+    },
+    {
+      name: 'harmony',
+      platform: 'harmony',
+      files: { include: ['harmony/**/*.yaml'] },
+      nodes: createHarmonyNodes<PlatformContext>({
+        getAgent: ({ context }) => context.harmony,
+      }),
+    },
+  ],
 });
 
 declare const androidAgent: AndroidAgent;

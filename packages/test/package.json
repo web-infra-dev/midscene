@@ -1,7 +1,7 @@
 {
   "name": "@midscene/test",
   "description": "Midscene Test: an extensible YAML testing framework and Node SDK.",
-  "version": "1.12.4",
+  "version": "1.12.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -62,6 +62,7 @@
   "dependencies": {
     "@inquirer/prompts": "^7.8.6",
     "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "execa": "9.3.0",
     "js-yaml": "4.1.0",
     "tinyglobby": "0.2.15",

@@ -11,5 +11,10 @@ export default defineConfig({
   },
   coverage: createCoverageConfig(__dirname),
   testEnvironment: 'node',
-  include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
+  tools: {
+    swc: {
+      jsc: { transform: { react: { runtime: 'automatic' } } },
+    },
+  },
+  include: ['tests/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
 });

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadTestProject } from '../src/cli/test-project';
+import { NodeRegistry } from '../src/engine/registry';
 
 const directories: string[] = [];
 
@@ -119,7 +120,7 @@ describe('test project config', () => {
     const { path } = createConfig('export const config = { nodes: [] };');
 
     await expect(loadTestProject(path)).rejects.toThrow(
-      /must (?:have a default export|default export an object with a nodes array)/,
+      /must have a default export|root\.config is not supported/,
     );
   });
 
@@ -137,10 +138,142 @@ describe('test project config', () => {
         tags: { include: [], exclude: [] },
         retry: 0,
         variables: {},
+        nodes: expect.any(NodeRegistry),
       },
     ]);
     expect(loaded.test.maxConcurrency).toBe(1);
   });
+
+  it('defaults omitted global and Project Nodes to empty registries', async () => {
+    const implicit = createConfig('export default {};');
+    const explicit = createConfig(`export default {
+      projects: [{ name: 'web', platform: 'web' }],
+    };`);
+
+    for (const { path } of [implicit, explicit]) {
+      const loaded = await loadTestProject(path);
+      expect(loaded.nodes.names()).toEqual([]);
+      expect(loaded.projects[0].nodes.names()).toEqual([]);
+      expect(loaded.resolveNode('missing')).toBeUndefined();
+    }
+  });
+
+  it('inherits root-only Nodes without changing the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [{ name: 'shared', execute() {} }],
+      projects: [
+        { name: 'android', platform: 'android' },
+        { name: 'ios', platform: 'ios' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const shared = loaded.resolveNode('shared');
+    expect(shared).toBeDefined();
+    expect(loaded.nodes.get('shared')).toBe(shared);
+    for (const project of loaded.projects) {
+      expect(project.nodes.names()).toEqual(['shared']);
+      expect(project.nodes.get('shared')).toBe(shared);
+    }
+  });
+
+  it('supports Project-only Nodes without adding them to the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      projects: [{
+        name: 'android',
+        platform: 'android',
+        nodes: [{ name: 'launch', execute() {} }],
+      }],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    expect(loaded.nodes.names()).toEqual([]);
+    expect(loaded.resolveNode('launch')).toBeUndefined();
+    expect(loaded.projects[0].nodes.names()).toEqual(['launch']);
+  });
+
+  it('overrides global Nodes by name and isolates each Project registry', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [
+        { name: 'shared', execute() {} },
+        { name: 'launch', description: 'global', execute() {} },
+      ],
+      projects: [
+        {
+          name: 'android', platform: 'android',
+          nodes: [
+            { name: 'launch', description: 'android', execute() {} },
+            { name: 'android.only', execute() {} },
+          ],
+        },
+        {
+          name: 'ios', platform: 'ios',
+          nodes: [{ name: 'launch', description: 'ios', execute() {} }],
+        },
+        { name: 'web', platform: 'web' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const [android, ios, web] = loaded.projects;
+    expect(loaded.resolveNode('launch')?.description).toBe('global');
+    expect(android.nodes.get('launch')?.description).toBe('android');
+    expect(ios.nodes.get('launch')?.description).toBe('ios');
+    expect(web.nodes.get('launch')).toBe(loaded.resolveNode('launch'));
+    for (const project of loaded.projects) {
+      expect(project.nodes.get('shared')).toBe(loaded.resolveNode('shared'));
+    }
+    expect(ios.nodes.has('android.only')).toBe(false);
+    expect(web.nodes.has('android.only')).toBe(false);
+    expect(loaded.resolveNode('android.only')).toBeUndefined();
+
+    android.nodes.register({ name: 'android.later', execute() {} });
+    expect(ios.nodes.has('android.later')).toBe(false);
+    expect(web.nodes.has('android.later')).toBe(false);
+    expect(loaded.nodes.has('android.later')).toBe(false);
+  });
+
+  it.each(['global', 'Project'])(
+    'rejects duplicate Node names within the %s layer',
+    async (layer) => {
+      const duplicateNodes = `[
+        { name: 'duplicate', execute() {} },
+        { name: 'duplicate', execute() {} },
+      ]`;
+      const { path } = createConfig(
+        layer === 'global'
+          ? `export default {
+              nodes: ${duplicateNodes},
+              projects: [{ name: 'web', platform: 'web', nodes: [{ name: 'duplicate', execute() {} }] }],
+            };`
+          : `export default {
+              nodes: [{ name: 'duplicate', execute() {} }],
+              projects: [{ name: 'web', platform: 'web', nodes: ${duplicateNodes} }],
+            };`,
+      );
+
+      await expect(loadTestProject(path)).rejects.toThrow(
+        'Node "duplicate" is already registered.',
+      );
+    },
+  );
+
+  it.each(['null', '{}', '"invalid"'])(
+    'rejects non-array global and Project Nodes: %s',
+    async (value) => {
+      const root = createConfig(`export default { nodes: ${value} };`);
+      const project = createConfig(`export default {
+        projects: [{ name: 'web', platform: 'web', nodes: ${value} }],
+      };`);
+
+      await expect(loadTestProject(root.path)).rejects.toThrow(
+        'nodes must be an array',
+      );
+      await expect(loadTestProject(project.path)).rejects.toThrow(
+        'projects[0].nodes must be an array',
+      );
+    },
+  );
 
   it('resolves Project selectors, setup binding, test options, and output', async () => {
     const setupMarker = vi.fn();

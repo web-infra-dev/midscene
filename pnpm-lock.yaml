@@ -1383,6 +1383,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
       execa:
         specifier: 9.3.0
         version: 9.3.0

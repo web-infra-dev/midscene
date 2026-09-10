@@ -1,397 +1,150 @@
-# Extend and maintain test projects
+# Develop custom Nodes
 
-`@midscene/test` supports registering business Nodes, managing runtime resources, and defining execution lifecycles. Framework maintainers can use these capabilities to integrate browsers, Agents, external tools, and business APIs into a customized testing foundation for their teams.
+Custom Nodes turn business operations into steps that test authors can call from YAML. This guide covers defining and validating inputs, sharing data between Nodes, and handling execution and cleanup.
 
-For an overview of the design, see [Midscene Test overview](./overview).
+Start with [Create and use test projects](./use) if you do not have a test project yet. For platform setup, Agent integration, and execution settings, see [Configure test projects](./configuration).
 
-## Create a project
-
-Use `create` to generate a project with a platform Agent and example cases. Installing dependencies also generates a Node reference:
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web
-cd my-tests
-```
-
-The command requires Node.js `^20.19.0 || ^22.12.0 || >=24.0.0` and the selected package manager (npm or pnpm). After writing the project files, it asks whether to install dependencies and generate `midscene-node-reference.md`. The default is yes.
-
-| Argument | Description |
-| --- | --- |
-| `[directory]` | Destination directory; use `.` for the current directory. Prompts if omitted. |
-| `--platform <name>` | `web` (Playwright), `android`, `ios`, `harmony` (HarmonyOS), or `computer` (desktop). Prompts if omitted. |
-| `--package-manager <name>` | `npm` or `pnpm`. Prompts if omitted in an interactive terminal. |
-| `--with <package>` | Install and register a Node package. Accepts an optional version or tag; repeat for multiple packages. |
-| `--skip-install` | Generate project files only. Skip installation and Node reference generation, including with `--yes`. |
-| `-y`, `--yes` | Disable prompts and install dependencies unless `--skip-install` is set. Both directory and platform must be supplied. |
-| `-h`, `--help` | Show usage and examples. |
-
-In an interactive terminal, `pnpm dlx @midscene/test create` asks for the directory, platform, and package manager. In CI or other noninteractive environments, supply the directory and platform. Existing destination files are never overwritten, including when `--yes` is set.
-
-The final prompt is “Install dependencies and generate midscene-node-reference.md now?”. Choosing no keeps the project files and prints the command to install later. Cancelling this final prompt also preserves the files. In noninteractive environments, installation runs automatically unless `--skip-install` is set.
-
-To create files now and install later:
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web --skip-install
-cd my-tests
-pnpm install --ignore-workspace
-```
-
-The generated `package.json` includes a `postinstall` script:
-
-```json
-{
-  "scripts": {
-    "postinstall": "midscene-test nodes",
-    "nodes": "midscene-test nodes"
-  }
-}
-```
-
-Manual `npm install` or `pnpm install` runs this script and refreshes the reference, including on later installations. If lifecycle scripts are disabled, run `npm run nodes` or `pnpm run nodes` manually. When `create` installs dependencies, it reuses the postinstall output; if the file was not generated, it runs `nodes` once itself. A generation failure makes the installation or creation command fail.
-
-An explicit `--package-manager` takes priority and skips the package manager prompt. Otherwise, the prompt defaults to the manager used to launch the command, detected from `npm_config_user_agent`. In noninteractive environments or with `--yes`, that detected manager is used directly. If npm or pnpm cannot be detected, the default is npm.
-
-For example, use npm to create and install a project without pnpm:
-
-```bash
-npx @midscene/test create my-tests --platform web --package-manager npm
-```
-
-Dependency installation, Node reference generation, the generated README, and recovery instructions all use the selected manager. The examples below use pnpm. For npm projects, use `npm test`, `npm run nodes`, and `npm exec -- playwright install chromium` instead.
-
-`harmony` uses `@midscene/harmony` to connect to HarmonyOS devices through HDC. `computer` uses `@midscene/computer` to control the local Windows, macOS, or Linux desktop:
-
-```bash
-pnpm dlx @midscene/test create harmony-tests --platform harmony
-pnpm dlx @midscene/test create desktop-tests --platform computer
-```
-
-Both platforms also support `--with` to register external Node packages.
-
-After installation with pnpm, the project contains the following files. If installation is skipped, `midscene-node-reference.md` and the lockfile are created later during installation. npm creates `package-lock.json` instead of `pnpm-lock.yaml`. The README is generated only as `README.md`:
-
-```text
-my-tests/
-├── cases/example.yaml
-├── midscene.config.ts
-├── midscene-node-reference.md
-├── package.json
-├── pnpm-lock.yaml
-├── tsconfig.json
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-Copy `.env.example` to `.env` and fill in your [model configuration](../model-config). For Web, install Chromium with `pnpm exec playwright install chromium`. For Android, connect a device and optionally set `ANDROID_DEVICE_ID`. For iOS, start WebDriverAgent and configure `WDA_HOST` and `WDA_PORT`.
-
-For HarmonyOS, verify the connection with `hdc list targets` and optionally set `HARMONY_DEVICE_ID`. Set `HDC_HOME` if HDC is not on PATH. For desktop, follow the [desktop setup guide](../platforms/desktop) to install system dependencies and grant permissions. Optionally set `COMPUTER_DISPLAY_ID` to select a display. On headless Linux, install Xvfb and enable `MIDSCENE_COMPUTER_HEADLESS_LINUX`.
-
-The desktop example inspects the current screen with `aiAsk`; mobile examples use `home` followed by `aiAsk`. Each generated configuration registers the Nodes provided by its platform Agent.
-
-Run `pnpm test` to execute the example. Creation and Node reference generation do not run project setup or tests, so they do not require a model API Key, an installed browser, or a connected device. After editing Node registrations, run `pnpm run nodes` to refresh the reference.
-
-If installation or reference generation fails, the command exits with an error and preserves the generated files. Follow the recovery commands in the error message; there is no need to rerun `create` over those files.
-
-### Add Node packages during creation
-
-```bash
-pnpm dlx @midscene/test create my-tests --platform web \
-  --with @acme/test-nodes@1.2.0 \
-  --with @acme/order-nodes
-```
-
-`--with` is only available on `create`. It adds the packages to `devDependencies` and writes explicit factory imports and Node registrations into `midscene.config.ts`. Subsequent test runs and `nodes` load that configuration without additional CLI flags. The generated reference includes the external Nodes.
-
-Packages must expose a named, synchronous `createMidsceneTestNodes(options)` factory from their root entry point. Both ESM and CommonJS are supported. The factory receives `platform` and `getAgent`, and returns a Node array. `NodePackageOptions` is exported from `@midscene/test/config` for package authors:
-
-```ts
-import { defineNode, z } from '@midscene/test';
-import type { NodePackageOptions } from '@midscene/test/config';
-
-const inputSchema = z.strictObject({
-  prompt: z.string().describe('What to inspect on the current screen.'),
-});
-
-export function createMidsceneTestNodes<TContext>({ getAgent }: NodePackageOptions<TContext>) {
-  return [
-    defineNode<typeof inputSchema, unknown, TContext>({
-      name: 'team.inspect',
-      description: 'Inspect the current screen with the project Agent.',
-      inputSchema,
-      async execute(ctx) {
-        const agent = await getAgent(ctx);
-        const data = await agent.aiAsk(ctx.input.prompt);
-        return { data };
-      },
-    }),
-  ];
-}
-```
-
-Declare `@midscene/test` as a peer dependency and publish the factory's TypeScript declarations. Access runtime resources through `getAgent` inside `execute`; package imports and factory calls must not connect to devices or require model credentials. A factory can validate `platform` and reject unsupported platforms. Additional business resources must be wired explicitly in the project configuration.
-
-Node names must be unique across built-in and external Nodes. Missing factories, invalid definitions, or duplicate Node names cause reference generation to fail. `--with` currently accepts registry package names with optional versions or tags; local paths, Git URLs, package subpaths, and repeated package names are not supported.
-
-## Configure a project manually
-
-The following example shows how to set up a simple test project that switches the browser's user-agent language.
-
-### 1. Install dependencies
-
-Create an empty project and install Midscene Test's core dependencies and driver tools:
-
-```bash
-pnpm add -D @midscene/test @midscene/web playwright
-```
-
-> **Note**: Before using a Midscene Agent, follow [Model configuration](../model-config) to set the required model environment variables, such as your API Key.
-
-### 2. Create the project files
-
-We recommend the following basic directory structure:
-
-```text
-team-tests/
-├── cases/
-│   └── midscene.yaml
-└── midscene.config.ts
-```
-
-### 3. Configure the Test Project and register Nodes
-
-Create `midscene.config.ts` in the project root. This file registers reusable Nodes and defines the execution environment (Project):
-
-```ts filename=midscene.config.ts
-import { defineNode, z } from '@midscene/test';
-import {
-  defineProjectSetup,
-  defineTestProject,
-} from '@midscene/test/config';
-import { createMidsceneNodes } from '@midscene/test/midscene';
-import { createPlaywrightNodes } from '@midscene/test/playwright';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-import { chromium, type Browser, type Page } from 'playwright';
-
-interface ProjectContext {
-  browser: Browser;
-  page: Page;
-  agent?: PlaywrightAgent;
-}
-
-const geoInputSchema = z.strictObject({
-  latitude: z.number().describe('Latitude of the mocked location.'),
-  longitude: z.number().describe('Longitude of the mocked location.'),
-});
-
-// 1. Register a custom Node that mocks a GPS location
-const mockLocation = defineNode<
-  typeof geoInputSchema,
-  unknown,
-  ProjectContext
->({
-  name: 'browser.mockLocation',
-  title: 'Mock location',
-  description: "Mock the browser's GPS location.",
-  inputSchema: geoInputSchema,
-  async execute({ input, context }) {
-    const browserContext = context.page.context();
-    // Grant geolocation permission and set the coordinates
-    await browserContext.grantPermissions(['geolocation']);
-    await browserContext.setGeolocation({
-      latitude: input.latitude,
-      longitude: input.longitude,
-    });
-  },
-});
-
-// Integrate Midscene's built-in AI Nodes, such as aiAct and aiAssert
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  agentClass: PlaywrightAgent,
-  getAgent: ({ context }) => {
-    context.agent ??= new PlaywrightAgent(context.page);
-    return context.agent;
-  },
-});
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
-});
-
-// 2. Define browser environment setup and cleanup
-const playwrightSetup = defineProjectSetup<ProjectContext>({
-  name: 'playwright',
-  platform: 'web',
-  async setup({ onTeardown }) {
-    const browser = await chromium.launch({ headless: true });
-    onTeardown(() => browser.close());
-    const browserContext = await browser.newContext();
-    const page = await browserContext.newPage();
-    return { browser, page };
-  },
-});
-
-// 3. Export the project configuration
-export default defineTestProject<ProjectContext>({
-  projects: [
-    {
-      name: 'chromium',
-      platform: 'web',
-      setup: playwrightSetup,
-      files: { include: ['cases/**/*.{yaml,yml}'] },
-    },
-  ],
-  nodes: [mockLocation, ...midsceneNodes, ...playwrightNodes],
-});
-```
-
-### 4. Write and run a test case
-
-Create `cases/midscene.yaml`:
-
-```yaml filename=cases/midscene.yaml
-cases:
-  - name: Mock a location and show stores in that area
-    tags: [smoke]
-    steps:
-      - browser.mockLocation:
-          latitude: 35.6762
-          longitude: 139.6503 # Mock a location in Tokyo
-      - gotoUrl:
-          url: https://yoursite.com/stores
-      - aiAssert:
-          prompt: The page successfully loads and displays recommended stores in Tokyo or nearby areas
-          message: The mocked location did not take effect
-```
-
-Run the test from the project root:
-
-```bash
-pnpm exec midscene-test
-```
-
-Midscene Test automatically loads `midscene.config.ts`, finds matching test cases, and runs them.
+- [Register a Node](#register-custom-business-nodes): define an operation, call it from YAML, and verify registration through the generated Markdown reference.
+- [Node execution arguments](#node-execution-arguments): distinguish business inputs from framework step settings.
+- [Share context across Nodes](#share-context-across-nodes): create, read, and reset shared test data.
+- [Advanced usage](#advanced-usage): return results, handle errors and cancellation, and clean up resources.
 
 ## Register custom business Nodes
 
-Use `defineNode()` to encapsulate complex API calls, database operations, cleanup tasks, or specialized browser interactions as named Nodes. Test case authors can then call these Nodes directly from their test cases.
+A custom Node receives parameters from YAML and performs an operation. This example creates a test user fixture and saves it as a JSON file for a test service or data import step to load.
 
-### Basic business Node example
+### 1. Define and register the Node
 
-The following example wraps an HTTP API that creates a test order:
+Create `midscene.config.ts`:
 
 ```ts filename=midscene.config.ts
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { defineNode, z } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
 
-const orderInputSchema = z.strictObject({
-  sku: z.string().min(1).describe('SKU of the product to order.'),
-  quantity: z.number().int().positive().describe('Quantity to order.'),
+const createUser = defineNode({
+  name: 'user.create',
+  description: 'Create a test user fixture.',
+  inputSchema: z.strictObject({
+    name: z.string().min(1).describe('Test user name.'),
+    email: z.string().email().describe('Test user email.'),
+  }),
+  async execute({ input }) {
+    const user = { id: randomUUID(), name: input.name, email: input.email };
+    const filePath = `fixtures/users/${user.id}.json`;
+    await mkdir('fixtures/users', { recursive: true });
+    await writeFile(filePath, JSON.stringify(user, null, 2));
+  },
 });
 
-interface ProjectContext {
-  apiBaseUrl: string;
-}
-
-const createOrder = defineNode<
-  typeof orderInputSchema,
-  { id: string },
-  ProjectContext
->({
-  name: 'order.create',
-  title: 'Create order',
-  description: 'Create a product order through the test API.',
-  inputSchema: orderInputSchema,
-
-  async execute({ input, context, signal }) {
-    const response = await fetch(`${context.apiBaseUrl}/test/orders`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        sku: input.sku,
-        quantity: input.quantity,
-      }),
-      signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create order: HTTP ${response.status}`);
-    }
-
-    const order = (await response.json()) as { id: string };
-    return {
-      summary: `Created order ${order.id}`,
-      data: order,
-    };
-  },
+export default defineTestProject({
+  nodes: [createUser],
 });
 ```
 
-After adding the Node to the configuration's `nodes` array, test case authors can use it directly:
+`name` is the operation name used in YAML. `inputSchema` defines its parameters, and `execute({ input })` receives the validated values. Add the Node to `nodes` to make it available to test cases. In an existing project, append it to the existing `nodes` array.
+
+`inputSchema` is optional, but defining it lets Midscene Test validate parameters before calling `execute()`. In this example, `z.string().min(1)` requires a non-empty name, `.email()` validates the email format, and `z.strictObject()` rejects unknown fields. Invalid input produces a `NodeInputValidationError`.
+
+TypeScript infers the type of `input` from the schema. Field descriptions written with `.describe()` appear in the generated Node reference.
+
+### 2. Call the Node from YAML
+
+Create `cases/user.yaml`:
+
+```yaml filename=cases/user.yaml
+cases:
+  - name: Create test user data
+    steps:
+      - user.create:
+          name: Alice
+          email: alice@example.com
+```
+
+Midscene Test reads the YAML, finds the Node named `user.create`, and calls its `execute()` with `input` set to `{ name: "Alice", email: "alice@example.com" }`. The Node does not need to parse the YAML itself.
+
+The example uses `async execute({ input })` and `await` to wait for the file write. A failed write throws an error and fails the Node. This creates a local fixture; to create a user in your application, replace the file write with your test data API or database call.
+
+### 3. Generate a Markdown reference to verify registration
+
+After saving the configuration, generate the Node reference in Markdown:
+
+```bash
+pnpm exec midscene-test nodes
+```
+
+The command loads the project configuration and writes `midscene-node-reference.md` to the current directory. Check that it includes:
+
+- `user.create` in the available Nodes.
+- The description “Create a test user fixture.”
+- The `name` and `email` input fields and their descriptions.
+
+This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the reference for case authors and AI Agents to consult.
+
+## Node execution arguments
+
+Midscene Test calls `execute()` with an object containing the parameters and runtime information for the current invocation. Use destructuring, such as `execute({ input, $, context })`, to access the fields you need.
+
+### Business inputs and step settings
+
+`input` contains the business parameters defined by the Node's `inputSchema`. `$` contains step settings handled by the framework, such as timeout and whether to continue after an error.
+
+For example, add step settings to the `user.create` invocation above:
 
 ```yaml
-cases:
-  - name: Order workflow test
-    steps:
-      - order.create:
-          sku: midscene-mug
-          quantity: 1
+steps:
+  - user.create:
+      name: Alice
+      email: alice@example.com
+      $:
+        timeout: 30000
+        continue-on-error: true
 ```
 
-### Define and strictly validate input with Zod
-
-Although `inputSchema` is optional, we strongly recommend defining it.
-
-1. **Type inference and validation**: Midscene Test validates the input with Zod before entering `execute()`. Invalid input immediately throws a `NodeInputValidationError`, while TypeScript provides compile-time type inference without a separate interface.
-2. **Unknown parameter rejection**: use `z.strictObject()` so Midscene Test rejects unexpected fields in a test case.
-3. **Automatic reference generation**: information from each field's `.describe()` call is included in the generated Node reference for AI Agents and human test case authors.
+The framework separates `$` from the business inputs and normalizes its field names. Inside `execute({ input, $ })`, the fields have these values:
 
 ```ts
-const refundInputSchema = z.strictObject({
-  orderId: z.string().min(1).describe('ID of the order to refund.'),
-  reason: z.string().optional().describe('Reason for the refund.'),
-});
-
-const refundOrder = defineNode({
-  name: 'order.refund',
-  description: 'Request a refund for an existing order.',
-  inputSchema: refundInputSchema,
-  async execute({ input }) {
-    // input is inferred as { orderId: string; reason?: string }
-    await refund(input.orderId, input.reason);
-  },
-});
+input.name; // 'Alice'
+input.email; // 'alice@example.com'
+$.timeoutMs; // 30000
+$.continueOnError; // true
 ```
 
-### Node execution context
+`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, but the failed step still makes the case fail.
 
-The `ctx` passed to `execute(ctx)` contains these commonly used fields:
+### Available execution fields
+
+The argument object passed to `execute()` contains these commonly used fields:
 
 - `input`: business parameters passed from YAML and validated by Zod.
-- `$`: general Step properties controlled by Midscene Test, such as normalized `timeout` and `continue-on-error` values.
+- `$`: general Step properties controlled by Midscene Test, such as `timeoutMs` and `continueOnError`.
 - `signal`: an `AbortSignal` triggered by a timeout or cancellation. Use it in asynchronous requests or long-running tasks to exit early and cleanly.
 - `context`: Project-level runtime resources returned by `defineProjectSetup()` and shared within the Project.
 - `onTeardown()`: registers cleanup functions for resources created by the current Node. Cleanup can use attempt or Document scope and runs in LIFO order.
 - `scope`: identifies the current Node execution boundary as either `case` or `document`.
 - `case` or `document`: detailed runtime information for the current execution position.
 
-Nodes do not receive previous Node results automatically. When later Nodes need a value, store it explicitly in the Project `context` as described below.
+The `context` field provides access to the project's shared resources and state. The next section explains how to use it to share data between Nodes.
 
-## Share state across Nodes
+## Share context across Nodes
 
-In real-world tests, multiple Nodes often need to share state. For example, an order refund test can create an order and store its ID in `beforeEach`, access the ID from `steps`, and clean up the data in `afterEach`.
+Each Node execution is a separate invocation; the framework does not automatically pass the result of one invocation to the next. When a workflow spans several Nodes, they may need to use the same test data. An order refund test, for example, creates an order, opens its refund page, and deletes the order after the case finishes. The following example follows that data through the workflow.
 
-Define state properties in a custom `ProjectContext` to enable this coordination:
+### Create the shared context
 
-```ts filename=midscene.config.ts
-import { defineNode, z } from '@midscene/test';
-import type { PlaywrightAgent } from '@midscene/web/playwright';
-import type { Page } from 'playwright';
+Midscene Test provides a project-level context mechanism. Nodes in the same execution project can access runtime resources and pass test data through a shared `context` object. The project's `setup` creates and returns this object, and the framework passes it to each Node's `execute()`.
 
-interface ProjectContext {
-  agent: PlaywrightAgent;
+For the order refund workflow above, setup can provide a browser page, an application URL, and an order service. A Node adds the order ID after creating an order. The following `setup.ts` shows how to create this shared object: `ProjectContext` describes its type, and `setup` creates and returns the actual object.
+
+The imported `orderService` is your own test data service implementing `create` and `remove`. Replace the application URL with your test environment URL.
+
+```ts filename=setup.ts
+import { defineProjectSetup } from '@midscene/test/config';
+import { chromium, type Page } from 'playwright';
+import { orderService } from './order-service';
+
+export interface ProjectContext {
   appBaseUrl: string;
   page: Page;
   orderId?: string; // Share test state across Nodes
@@ -401,17 +154,37 @@ interface ProjectContext {
   };
 }
 
+export const setup = defineProjectSetup<ProjectContext>({
+  name: 'refund',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    const page = await browser.newPage();
+
+    const context: ProjectContext = {
+      page,
+      appBaseUrl: 'https://yoursite.com',
+      orderService,
+    };
+    return context;
+  },
+});
+```
+
+The returned `context` is one shared object for this execution project. In `execute({ input, context })`, `input` comes from the current YAML step, while `context` is the object created here. Its `orderId` is initially absent.
+
+### Write data to the context
+
+Next, create `nodes.ts`. `order.prepare` uses the order service in `context` to create an order, then writes its ID to `context.orderId` for later Nodes:
+
+```ts filename=nodes.ts
+import { defineNode, z } from '@midscene/test';
+import type { ProjectContext } from './setup';
+
 const emptyInputSchema = z.strictObject({});
 const prepareOrderInputSchema = z.strictObject({
   status: z.literal('paid').describe('Status of the order to create.'),
 });
-
-const getOrderId = (context: ProjectContext) => {
-  if (!context.orderId) {
-    throw new Error('The test order has not been created.');
-  }
-  return context.orderId;
-};
 
 // 1. Prepare the order environment
 const prepareOrder = defineNode<
@@ -422,15 +195,36 @@ const prepareOrder = defineNode<
   name: 'order.prepare',
   description: 'Call the order service to create a test order.',
   inputSchema: prepareOrderInputSchema,
-  async execute({ input, context }) {
+  async execute({ input, context, onTeardown }) {
     const order = await context.orderService.create(input);
     context.orderId = order.id; // Save the ID in the context
+    onTeardown(async () => {
+      await context.orderService.remove(order.id);
+      delete context.orderId;
+    });
     return {
       summary: `Created test order ${order.id}`,
       data: { orderId: order.id },
     };
   },
 });
+```
+
+`context.orderId = order.id` updates the shared object so later Nodes can read the ID. Returning `data` does not write it to `context` automatically.
+
+After creating the order, `onTeardown()` registers a callback that deletes this order and clears the saved ID. The callback captures `order.id`, so it cleans up the order created by this invocation. Creation and cleanup stay in the same Node; YAML does not need a separate cleanup step.
+
+### Read data in a later Node
+
+`browser.openRefundPage` reads the saved ID to navigate to the refund page. It reports an error if the order ID is missing.
+
+```ts filename=nodes.ts
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('The test order has not been created.');
+  }
+  return context.orderId;
+};
 
 // 2. Access the saved order state
 const openRefundPage = defineNode<
@@ -447,281 +241,63 @@ const openRefundPage = defineNode<
   },
 });
 
-// 3. Clean up the business environment
-const cleanupOrder = defineNode<
-  typeof emptyInputSchema,
-  unknown,
-  ProjectContext
->({
-  name: 'order.cleanup',
-  description: 'Delete the current test order.',
-  inputSchema: emptyInputSchema,
-  async execute({ context }) {
-    const orderId = getOrderId(context);
-    await context.orderService.remove(orderId);
-    delete context.orderId; // Restore a clean context
-  },
-});
-
-export const refundNodes = [prepareOrder, openRefundPage, cleanupOrder];
+export const refundNodes = [prepareOrder, openRefundPage];
 ```
 
-## Integrate a Midscene Agent
-
-`@midscene/test/midscene` exports common system Nodes: `aiAct`, `aiTap`,
-`aiAssert`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `recordToReport`,
-`wait`, and `agent`.
-
-Call `createMidsceneNodes()` with the Agent class that declares the Nodes and a `getAgent` callback that supplies the Agent instance at execution time:
-
-```ts
-import { createMidsceneNodes } from '@midscene/test/midscene';
-import { PlaywrightAgent } from '@midscene/web/playwright';
-
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  agentClass: PlaywrightAgent,
-  getAgent: ({ context }) => {
-    context.agent ??= new PlaywrightAgent(context.page);
-    return context.agent;
-  },
-});
-```
-
-Agent-backed Node inputs mirror the Agent method parameters. Positional
-parameters become named top-level fields, while structured parameters keep their original nesting. For example, `recordToReport(title, options)` uses `title` and `options`, and a multimodal `TUserPrompt` stays entirely inside `prompt`:
-
-```yaml
-steps:
-  - aiAct:
-      prompt:
-        prompt: Match the page to the reference image
-        images:
-          - name: target state
-            url: ./fixtures/target.png
-      options:
-        deepLocate: true
-  - recordToReport:
-      title: Finished
-      options:
-        content: The visual check completed.
-```
-
-`agentClass` is the sole source of Agent-backed Node definitions. The factory throws during registration if the class does not expose
-`getTestRunnerNodeDefinitions()`. A platform Agent class registers its common and platform Node definitions together. The base or web Agent registers no platform lifecycle Nodes. You can also compose the platform-only factories described below.
-
-```ts
-import { AndroidAgent } from '@midscene/android';
-
-const midsceneNodes = createMidsceneNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-  agentClass: AndroidAgent,
-});
-```
-
-## Register platform preset Nodes
-
-Midscene Test publishes platform preset factories as separate entry points.
-Each factory receives getters instead of assuming property names in your
-Project Context.
-
-For Playwright, register `gotoUrl`, `setCookies`, `clearCookies`, and
-`setViewportSize`. The `playwright` package is an optional peer dependency of
-`@midscene/test`; install it in projects that use this preset:
-
-```bash
-pnpm add -D playwright
-```
-
-Then create the preset Nodes:
-
-```ts
-import { createPlaywrightNodes } from '@midscene/test/playwright';
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
-  getBaseUrl: ({ context }) => context.baseUrl,
-  getEnv: () => process.env,
-});
-```
-
-`setCookies` does not accept cookie values in YAML. Midscene Test persists every
-Node input in the run result. An inline cookie would be copied into that
-record.
-
-Use exactly one of `cookiesEnv`, `profile`, or `storageStatePath` as a cookie
-reference. The Node resolves the actual cookies only at execution time and
-passes them directly to the Playwright BrowserContext. Its result contains only
-the reference name and cookie count. Cookie names, values, and scopes are not
-written to the run result.
-
-An environment variable may contain a Cookie header, a JSON cookie array, or
-Playwright storage-state JSON. Relative storage-state paths resolve from the
-current working directory by default; use `resolveStorageStatePath` when a
-project needs a different root. References prevent Midscene Test from persisting
-the cookies, but the environment variable, profile, or storage-state file must
-still be protected. Do not commit storage-state files containing real cookies.
-
-```yaml
-beforeEach:
-  - clearCookies: {}
-  - setCookies:
-      cookiesEnv: E2E_COOKIES
-      url: https://example.com
-  - setViewportSize:
-      width: 1440
-      height: 900
-  - gotoUrl:
-      url: /chat
-      waitUntil: domcontentloaded
-```
-
-`gotoUrl` follows Playwright's navigation semantics. When navigation completes,
-HTTP 4xx and 5xx responses are returned as successful Node results with their
-status code, so later steps can assert the error page. Network errors and
-navigation timeouts still fail the Node.
-
-For Android, the platform preset registers `launch`, `terminate`, `runAdbShell`, `back`, `home`, and `recentApps`. Its Agent contract requires the corresponding Agent methods:
-
-```ts
-import { createAndroidNodes } from '@midscene/test/android';
-
-const androidNodes = createAndroidNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-beforeEach:
-  - runAdbShell:
-      command: pm clear com.example.app
-      options:
-        timeout: 5000
-  - launch:
-      uri: com.example.app
-```
-
-For iOS, the platform preset registers `launch`, `terminate`,
-`runWdaRequest`, `home`, and `appSwitcher`:
-
-```ts
-import { createIOSNodes } from '@midscene/test/ios';
-
-const iosNodes = createIOSNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-steps:
-  - launch:
-      uri: com.example.app
-  - runWdaRequest:
-      request:
-        method: GET
-        endpoint: /status
-  - terminate:
-      uri: com.example.app
-```
-
-For HarmonyOS, the platform preset registers `launch`, `terminate`,
-`runHdcShell`, `back`, `home`, and `recentApps`:
-
-```ts
-import { createHarmonyNodes } from '@midscene/test/harmony';
-
-const harmonyNodes = createHarmonyNodes<ProjectContext>({
-  getAgent: ({ context }) => context.agent,
-});
-```
-
-```yaml
-steps:
-  - runHdcShell:
-      command: bm dump -a
-  - home: {}
-```
-
-`runAdbShell`, `runWdaRequest`, and `runHdcShell` preserve their complete response in the Node
-result, but Midscene Test does not automatically pass that response to later
-Nodes or Midscene Agent calls. Use command-side filtering when the complete
-output is not needed in the run result, or explicitly store only the value a
-later Node needs in the Project `context`.
-
-`launch` and `gotoUrl` are intentionally not aliases. `launch` manages an app,
-URL, or URI through a device Agent. `gotoUrl` navigates the current Playwright
-Page and supports Web-specific `baseUrl`, lifecycle, and HTTP response
-semantics.
-
-## Generate a Node reference
-
-Midscene Test provides the `nodes` tool so test case authors, including AI Agents, can clearly discover the registered Nodes and their parameter schemas. It compiles each Node's `title`, `description`, and Zod `inputSchema` into a standard Markdown reference.
-
-Run the following command to generate a reference for your team:
-
-```bash
-pnpm exec midscene-test nodes
-```
-
-The command writes `midscene-node-reference.md` in the specified test directory (or the current directory when omitted). After generation succeeds, stdout lists every registered Node by name and description, followed by the absolute path to the reference file. No output redirection is needed.
-
-You can also specify a test directory or a custom configuration file:
-
-```bash
-pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
-```
-
-The generated reference includes every Node registered in the active Test Project, including the system Nodes returned by `createMidsceneNodes()`. It starts with an Available Nodes overview table, followed by usage conventions and a Node Details section containing each Node's description and input schema. Both the reference and stdout list `aiAct` and `aiAssert` first, then the remaining Nodes sorted by name. Midscene Test automatically converts each Zod `inputSchema` to standard JSON Schema.
-
-The reference lists `Case files` (each Execution Project's `files.include` / `files.exclude` glob patterns) and `Config file` separately. Both use paths relative to the reference file, so authors can locate their YAML files and configuration. Created projects select `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test searches `**/*.{yaml,yml}` under the test directory.
-
-## Configure and manage a Test Project
-
-`defineTestProject()` is the main configuration entry point for the testing foundation and supports one or more Execution Projects:
+Register the setup and Nodes together so the framework passes the setup result to each Node:
 
 ```ts filename=midscene.config.ts
+import { defineTestProject } from '@midscene/test/config';
+import { refundNodes } from './nodes';
+import { setup, type ProjectContext } from './setup';
+
 export default defineTestProject<ProjectContext>({
-  projects: [
-    {
-      name: 'android-smoke',
-      platform: 'android',
-      setup: doraAndroidSetup,
-      files: {
-        include: ['cases/**/*.{yaml,yml}'],
-        exclude: ['cases/**/*.draft.yaml'],
-      },
-      tags: { include: ['smoke'], exclude: ['manual'] },
-      retry: 1,
-      variables: { appUri: 'com.example.app' },
-    },
-  ],
-  test: {
-    maxConcurrency: 1, // Maximum number of active Execution Projects
-    bail: 0, // Stop scheduling new tasks after this many failed cases when > 0
-    testTimeout: 120_000,
-  },
-  output: {
-    reportDir: './midscene_run/report',
-  },
-  nodes: [createOrder, ...midsceneNodes],
+  setup,
+  nodes: refundNodes,
 });
 ```
 
-### Key configuration strategies
+In YAML, call `order.prepare` from `beforeEach`, then use the saved order ID in the case steps:
 
-1. **Environment and resource isolation**: each Execution Project has an independent `setup` environment, such as a separate browser or a specific test device.
-2. **Multi-Project concurrency and lifecycle slots**: `test.maxConcurrency` controls the number of active Projects. The default is `1`.
-   - One concurrency slot covers the entire lifecycle from Project setup through teardown.
-   - Within a single Project, all Workflow Documents, Cases, and Steps still run **strictly in sequence** to ensure deterministic tests.
-   - To drive multiple mobile devices or browser instances at the same time, declare multiple entries in `projects` and increase the concurrency value.
-3. **Lifecycle cleanup**: use `defineProjectSetup()` to define environment preparation. Register cleanup hooks with `onTeardown()` so that long-lived resources are safely released in reverse LIFO order even if a test is interrupted or fails partway through.
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+cases:
+  - name: Open the refund page
+    steps:
+      - browser.openRefundPage: {}
+```
 
-## Programmatic APIs
+The registered callback runs after the case's `afterEach` phase, even when no `afterEach` steps are declared. If a later preparation step or case step fails, the framework still runs the registered cleanup. Each retry has its own cleanup scope. If order creation fails before the callback is registered, there is no cleanup callback for that invocation.
 
-Most teams only need the project configuration, YAML files, and CLI. To embed Midscene Test in another tool, such as a local GUI test panel, use these exported programmatic APIs:
+For Agent integration and platform resources, see [Configure test projects](./configuration).
 
-- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. Midscene Test does not support synchronous loading.
-- **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project. It is exported from `@midscene/test/config`.
-- **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
-- **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
+## Advanced usage
 
-After configuring the project, continue to [Write and run test cases](./use) for test case syntax and parameters.
+This section covers execution results, errors, cancellation, and cleanup within a Node.
+
+### Record execution results
+
+The order preparation Node also returns `summary` and `data`. `summary` describes the operation for the report, while `data` holds structured output. Both are optional; a Node can finish without returning a result. These values are saved in the run result, independently of the shared `context`.
+
+### Asynchronous operations, errors, and cancellation
+
+Use `async execute()` and `await` for asynchronous work. Throw an error when an operation fails.
+
+Midscene Test passes an `AbortSignal` as `signal` when executing a Node. Pass it to APIs that support cancellation, such as `fetch(url, { signal })`. For long-running loops, check `signal.throwIfAborted()` between iterations. This lets the operation stop when the step times out or the run is cancelled.
+
+### Resource lifecycle and cleanup
+
+When a Node creates a resource, register its cleanup with `onTeardown()`. The execution phase determines when that cleanup runs.
+
+Cleanup has these lifetimes:
+
+- Cleanup registered by Nodes in `beforeEach`, case `steps`, or `afterEach` runs after that execution's `afterEach`. Each retry has its own cleanup scope.
+- Cleanup registered by Nodes in `beforeAll` or `afterAll` runs after the current file's `afterAll`.
+
+Within each scope, cleanup functions run in reverse registration order, or LIFO (last in, first out). Nodes can use them to release resources they created or finalize reports. Registering cleanup does not automatically create a new Agent or reset caches; those behaviors depend on the project implementation.
+
+When a test run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for details.
+
+Project-level browser and Agent cleanup is covered in [Manage project resources](./configuration#manage-project-resources).

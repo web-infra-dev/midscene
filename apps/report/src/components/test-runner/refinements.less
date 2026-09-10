@@ -1,0 +1,231 @@
+.test-runner-report {
+  font-size: 14px;
+  line-height: 1.5;
+  /* Reserve the compact size for spatially constrained supporting information. */
+  .runner-detail-timeline-axis span,
+  .runner-detail-timeline-frame > span,
+  .runner-detail-timeline-preview-callout small,
+  .runner-detail-step-tail time {
+    font-size: 12px;
+  }
+
+  .runner-detail-timeline-frame > span {
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
+  }
+
+  .runner-detail-debug-workbench {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+
+  .runner-detail-step-group > button {
+    grid-template-columns: 27px minmax(0, 1fr) 52px;
+  }
+
+  .runner-detail-step-tail time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .runner-detail-evidence-heading,
+  .runner-detail-evidence-actions,
+  .runner-detail-timeline-toolbar,
+  .runner-detail-timeline-toolbar > span {
+    flex-wrap: wrap;
+  }
+
+  .runner-detail-timeline-toolbar {
+    gap: 8px;
+    padding-block: 10px;
+  }
+
+  .runner-overview-summary {
+    align-items: stretch;
+  }
+
+  .runner-overview-outcome {
+    min-height: 0;
+    padding-block: 0;
+  }
+
+  .runner-overview-summary-footer {
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .runner-overview-summary-footer .runner-secondary-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    gap: 8px 18px;
+  }
+
+  .runner-overview-summary-footer .runner-secondary-metrics > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-overview-summary-footer .runner-overview-outcome-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+    margin-top: 0;
+    padding-top: 8px;
+    align-items: center;
+  }
+
+  .runner-overview-summary-footer .runner-overview-outcome-footer > button {
+    align-self: center;
+    justify-self: start;
+    justify-content: flex-start;
+    padding-inline: 0;
+    min-width: 0;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .runner-overview-summary-footer .runner-overview-run-meta span {
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-evidence-heading .runner-detail-step-description {
+    flex: 1 0 100%;
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-evidence-heading {
+    row-gap: 10px;
+  }
+
+  .runner-status-badge.runner-status-pill {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    min-height: 22px;
+    align-items: center;
+    padding: 2px 10px;
+    gap: 5px;
+    border: 0;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .runner-status-badge.runner-status-pill > span {
+    display: inline;
+  }
+
+  .runner-project-tree-case-title h3,
+  .runner-project-tree-case .runner-status-pill {
+    font-weight: 400;
+  }
+
+  .runner-overview-outcome-footer > button {
+    color: var(--runner-muted);
+    border: 0;
+    background: transparent;
+    font-weight: 600;
+  }
+
+  .runner-overview-outcome-footer > button:hover {
+    color: var(--runner-primary);
+    background: transparent;
+  }
+
+  .runner-detail-log-view p {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+
+  .runner-detail-log-view p > span {
+    grid-column: 1 / -1;
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-log-view time {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+    grid-template-columns: 12px minmax(0, 1.25fr) minmax(0, 1fr);
+    min-height: 112px;
+    padding-block: 12px;
+  }
+
+  .runner-project-tree-case-issue {
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .runner-case-evidence-preview {
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .runner-case-evidence-preview .runner-visual-timeline {
+    height: 84px;
+    border: 1px solid var(--runner-border);
+    border-radius: 8px;
+  }
+
+  .runner-project-filter-reset {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 860px) {
+  .test-runner-report {
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+      grid-template-columns: 12px minmax(0, 1fr);
+    }
+
+    .runner-case-evidence-preview {
+      grid-column: 2 / -1;
+      grid-row: 2;
+      padding: 10px 14px 0 10px;
+    }
+
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
+      display: flex;
+    }
+  }
+}
+
+@media (max-width: 860px) {
+  .test-runner-report .runner-detail-debug-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .test-runner-report {
+    .runner-project-tree-case,
+    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
+      grid-template-columns: 7px minmax(0, 1fr);
+    }
+
+    .runner-project-tree-case-title {
+      flex-wrap: wrap;
+      gap: 5px;
+      padding-block: 6px;
+    }
+
+    .runner-project-tree-case-title h3 {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+  }
+}

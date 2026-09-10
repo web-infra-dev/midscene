@@ -49,6 +49,8 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   name: string;
   platform: TestPlatform;
   setup?: ProjectSetupDefinition<TProjectContext>;
+  /** Project-local Nodes override global Nodes with the same name. */
+  nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
   files?: TestFileSelection;
   tags?: TestTagSelection;
   retry?: number;
@@ -64,6 +66,12 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly tags: Readonly<Required<TestTagSelection>>;
   readonly retry: number;
   readonly variables: Readonly<Record<string, JsonValue>>;
+}
+
+export interface LoadedExecutionProject<TProjectContext = unknown>
+  extends ResolvedExecutionProject<TProjectContext> {
+  /** Effective Nodes: globals plus project-local overrides. */
+  readonly nodes: NodeRegistry;
 }
 
 const projectIdFromIndex = (index: number): string => `project-${index}`;
@@ -97,11 +105,11 @@ export interface TestProjectDefinition<TContext = undefined> {
   projects?: readonly ExecutionProjectDefinition<TContext>[];
   test?: TestOptions;
   output?: TestOutputDefinition;
-  nodes: readonly NodeDefinition<any, any, TContext>[];
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
 }
 
 export interface LoadedTestProject<TContext = undefined> {
-  projects: readonly ResolvedExecutionProject<TContext>[];
+  projects: readonly LoadedExecutionProject<TContext>[];
   hasExplicitProjects: boolean;
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
@@ -402,8 +410,9 @@ const validateNonNegativeInteger = (
 const validateExecutionProjects = <TProjectContext>(
   value: unknown,
   defaultSetup: unknown,
+  globalNodes: NodeRegistry,
 ): {
-  projects: readonly ResolvedExecutionProject<TProjectContext>[];
+  projects: readonly LoadedExecutionProject<TProjectContext>[];
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
@@ -442,6 +451,7 @@ const validateExecutionProjects = <TProjectContext>(
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
           variables: Object.freeze({}),
+          nodes: new NodeRegistry(globalNodes.definitions()),
         }),
       ]),
     };
@@ -464,7 +474,16 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      ['name', 'platform', 'setup', 'files', 'tags', 'retry', 'variables'],
+      [
+        'name',
+        'platform',
+        'setup',
+        'nodes',
+        'files',
+        'tags',
+        'retry',
+        'variables',
+      ],
       label,
     );
     if (
@@ -481,10 +500,22 @@ const validateExecutionProjects = <TProjectContext>(
     names.add(candidate.name);
     const platform = validatePlatform(candidate.platform, `${label}.platform`);
     const files = validateTestFileSelection(candidate.files, `${label}.files`);
+    if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
+      throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
+    }
+    // Validate each scope before merging so duplicates within one scope still fail.
+    const localNodes = new NodeRegistry(
+      candidate.nodes as NodeDefinition[] | undefined,
+    );
+    const nodes = new NodeRegistry([
+      ...globalNodes.definitions().filter((node) => !localNodes.has(node.name)),
+      ...localNodes.definitions(),
+    ]);
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
       platform,
+      nodes,
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
@@ -557,14 +588,11 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
 const validateTestProjectDefinition = <TContext>(
   definition: unknown,
 ): LoadedTestProject<TContext> => {
-  if (
-    !isRecord(definition) ||
-    !('nodes' in definition) ||
-    !Array.isArray(definition.nodes)
-  ) {
-    throw new TypeError(
-      'Midscene config must default export an object with a nodes array.',
-    );
+  if (!isRecord(definition)) {
+    throw new TypeError('Midscene config must default export an object.');
+  }
+  if (definition.nodes !== undefined && !Array.isArray(definition.nodes)) {
+    throw new TypeError('Midscene config nodes must be an array.');
   }
   if ('setupWorkflow' in definition) {
     throw new TypeError(
@@ -596,11 +624,14 @@ const validateTestProjectDefinition = <TContext>(
     ['setup', 'projects', 'test', 'output', 'nodes'],
     'root',
   );
+  const nodes = new NodeRegistry(
+    definition.nodes as NodeDefinition[] | undefined,
+  );
   const resolvedProjects = validateExecutionProjects<TContext>(
     definition.projects,
     definition.setup,
+    nodes,
   );
-  const nodes = new NodeRegistry(definition.nodes as NodeDefinition[]);
   return {
     ...resolvedProjects,
     test: validateTestOptions(definition.test),
