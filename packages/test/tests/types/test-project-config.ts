@@ -48,7 +48,6 @@ const project: TestProjectDefinition<ProjectContext> =
     nodes: [requestNode],
     setup: defineProjectSetup<ProjectContext>({
       name: 'default-web',
-      platform: 'web',
       setup({ env }) {
         return { baseURL: env.TEST_BASE_URL ?? 'https://example.com' };
       },
@@ -60,15 +59,8 @@ void loadTestProject<ProjectContext>();
 
 const webSetup = defineProjectSetup<ProjectContext>({
   name: 'web',
-  platform: 'web',
   setup({ project, onTeardown }) {
     project.projectId satisfies string;
-    project.platform satisfies
-      | 'web'
-      | 'android'
-      | 'ios'
-      | 'harmony'
-      | 'computer';
     onTeardown(({ context }) => {
       context?.baseURL satisfies string | undefined;
     });
@@ -87,7 +79,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       setup: webSetup,
       nodes: [requestNode],
       files: {
@@ -100,7 +91,6 @@ defineTestProject<ProjectContext>({
     },
     {
       name: 'web-override',
-      platform: 'web',
       setup: webSetup,
       files: { include: ['override/**/*.yaml'] },
       nodes: [
@@ -124,7 +114,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'project-only',
-      platform: 'web',
       setup: webSetup,
       nodes: [
         requestNode,
@@ -142,7 +131,7 @@ defineTestProject<ProjectContext>({
 });
 
 defineTestProject({});
-defineTestProject({ projects: [{ name: 'empty', platform: 'web' }] });
+defineTestProject({ projects: [{ name: 'empty' }] });
 
 declare const loadedExecutionProject: LoadedExecutionProject<ProjectContext>;
 loadedExecutionProject.nodes.names() satisfies string[];
@@ -155,7 +144,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'invalid-nodes',
-      platform: 'web',
       // @ts-expect-error Project-local Nodes must be an array.
       nodes: requestNode,
     },
@@ -175,7 +163,6 @@ defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'invalid-context',
-      platform: 'web',
       nodes: [
         // @ts-expect-error Local Nodes must accept the Project's configured context.
         incompatibleContextNode,
@@ -217,7 +204,6 @@ defineTestProject({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: {
         // @ts-expect-error files.include must be an array.
         include: 'workflows/*.yaml',
@@ -253,7 +239,6 @@ defineTestProject<PlatformContext>({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: { include: ['web/**/*.yaml'] },
       nodes: createMidsceneNodes<PlatformContext>({
         agentClass: PlaywrightAgent,
@@ -262,7 +247,6 @@ defineTestProject<PlatformContext>({
     },
     {
       name: 'android',
-      platform: 'android',
       files: { include: ['android/**/*.yaml'] },
       nodes: createMidsceneNodes<PlatformContext>({
         agentClass: AndroidAgent,
@@ -271,7 +255,6 @@ defineTestProject<PlatformContext>({
     },
     {
       name: 'ios',
-      platform: 'ios',
       files: { include: ['ios/**/*.yaml'] },
       nodes: createMidsceneNodes<PlatformContext>({
         agentClass: IOSAgent,
@@ -280,7 +263,6 @@ defineTestProject<PlatformContext>({
     },
     {
       name: 'harmony',
-      platform: 'harmony',
       files: { include: ['harmony/**/*.yaml'] },
       nodes: createMidsceneNodes<PlatformContext>({
         agentClass: HarmonyAgent,
@@ -320,4 +302,22 @@ createMidsceneNodes({
 createMidsceneNodes({
   agentClass: PlaywrightBrowserAgent,
   getAgent: () => playwrightBrowserAgent,
+});
+
+// Platform capabilities come from setup resources and registered Nodes.
+defineTestProject({ projects: [{ name: 'checkout', setup: webSetup }] });
+defineTestProject({
+  projects: [
+    {
+      name: 'checkout',
+      // @ts-expect-error Projects no longer declare a platform.
+      platform: 'web',
+    },
+  ],
+});
+defineProjectSetup({
+  name: 'browser',
+  // @ts-expect-error Setups no longer declare supported platforms.
+  platform: 'web',
+  setup() {},
 });

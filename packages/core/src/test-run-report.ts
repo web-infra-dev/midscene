@@ -133,7 +133,6 @@ export interface TestRunReportProjectLifecycle {
 export interface TestRunReportProject {
   projectId: string;
   name: string;
-  platform: 'web' | 'android' | 'ios' | 'computer' | 'harmony';
   status: TestRunReportRunStatus;
   retry: number;
   lifecycle?: TestRunReportProjectLifecycle;

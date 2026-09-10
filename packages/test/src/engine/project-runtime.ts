@@ -38,7 +38,6 @@ export const createProjectRuntime = <TProjectContext = unknown>(
     const endedAt = new Date();
     return {
       projectName: options.project.name,
-      platform: options.project.platform,
       status:
         requestedStatus === 'failed' || setupError || teardownErrors.length > 0
           ? 'failed'

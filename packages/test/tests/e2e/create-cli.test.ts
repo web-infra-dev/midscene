@@ -172,7 +172,7 @@ describe('generated project integration', () => {
         import { defineTestProject } from ${JSON.stringify(pathToFileURL(join(packageRoot, 'dist/es/cli/index.mjs')).href)};
         export default defineTestProject({
           nodes: [{ name: 'install.inspect', description: 'Generated after installation.', execute() { throw new Error('Node execution is forbidden'); } }],
-          setup: { name: 'offline', platform: 'web', setup() { throw new Error('Setup execution is forbidden'); } },
+          setup: { name: 'offline', setup() { throw new Error('Setup execution is forbidden'); } },
         });
       `,
       );

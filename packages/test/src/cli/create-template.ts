@@ -131,7 +131,6 @@ ${platform === 'web' ? '  context.agent ??= new PlaywrightAgent(context.page);' 
 
 const setup = defineProjectSetup<ProjectContext>({
   name: '${platform}',
-  platform: '${platform}',
   async setup({ env, onTeardown }) {
 ${platformSetup[platform]}
   },
@@ -140,7 +139,6 @@ ${platformSetup[platform]}
 export default defineTestProject<ProjectContext>({
   projects: [{
     name: '${platform}',
-    platform: '${platform}',
     setup,
     files: { include: ['cases/**/*.{yaml,yml}'] },
   }],

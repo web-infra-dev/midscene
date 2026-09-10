@@ -6,6 +6,8 @@
 
 In `midscene.config.ts`, use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
 
+Create browser or device resources in `setup` and register the corresponding Agent Nodes through `nodes`. These determine the capabilities available to each execution project.
+
 | Field | Purpose |
 | --- | --- |
 | `setup` | Creates shared resources for the implicit default project. |
@@ -50,7 +52,6 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 // Define browser environment setup and cleanup
 const playwrightSetup = defineProjectSetup<ProjectContext>({
   name: 'playwright',
-  platform: 'web',
   async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
@@ -67,7 +68,6 @@ export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'chromium',
-      platform: 'web',
       setup: playwrightSetup,
       files: { include: ['cases/**/*.{yaml,yml}'] },
     },
@@ -340,7 +340,6 @@ export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'android-smoke',
-      platform: 'android',
       setup: androidSetup,
       nodes: createMidsceneNodes<ProjectContext>({
         agentClass: AndroidAgent,
@@ -356,7 +355,6 @@ export default defineTestProject<ProjectContext>({
     },
     {
       name: 'ios-smoke',
-      platform: 'ios',
       setup: iosSetup,
       nodes: createMidsceneNodes<ProjectContext>({
         agentClass: IOSAgent,

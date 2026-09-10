@@ -109,11 +109,11 @@ describe('nodes', () => {
       `export default {
         nodes: [],
         projects: [
-          { name: 'web', platform: 'web', files: {
+          { name: 'web', files: {
             include: ['web/cases/**/*.yaml', 'shared/**/*.yml'],
             exclude: ['web/cases/**/*.draft.yaml'],
           } },
-          { name: 'android', platform: 'android', files: {
+          { name: 'android', files: {
             include: ['mobile/**/*.yaml'],
           } },
         ],

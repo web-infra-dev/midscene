@@ -6,6 +6,8 @@
 
 在 `midscene.config.ts` 中，使用 `defineTestProject()` 定义并导出项目配置。Execution Project（执行项目）负责选择用例并提供运行环境。
 
+在 `setup` 中创建浏览器或设备资源，并通过 `nodes` 注册对应 Agent 的 Node。这些资源和 Node 决定各执行项目可用的能力。
+
 | 字段 | 用途 |
 | --- | --- |
 | `setup` | 为隐式的默认执行项目创建共享资源。 |
@@ -50,7 +52,6 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 // 声明浏览器环境的启动与清理
 const playwrightSetup = defineProjectSetup<ProjectContext>({
   name: 'playwright',
-  platform: 'web',
   async setup({ onTeardown }) {
     const browser = await chromium.launch({ headless: true });
     onTeardown(() => browser.close());
@@ -67,7 +68,6 @@ export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'chromium',
-      platform: 'web',
       setup: playwrightSetup,
       files: { include: ['cases/**/*.{yaml,yml}'] },
     },
@@ -334,7 +334,6 @@ export default defineTestProject<ProjectContext>({
   projects: [
     {
       name: 'android-smoke',
-      platform: 'android',
       setup: androidSetup,
       nodes: createMidsceneNodes<ProjectContext>({
         agentClass: AndroidAgent,
@@ -350,7 +349,6 @@ export default defineTestProject<ProjectContext>({
     },
     {
       name: 'ios-smoke',
-      platform: 'ios',
       setup: iosSetup,
       nodes: createMidsceneNodes<ProjectContext>({
         agentClass: IOSAgent,

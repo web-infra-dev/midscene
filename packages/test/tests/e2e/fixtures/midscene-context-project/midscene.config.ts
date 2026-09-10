@@ -58,7 +58,6 @@ export default defineTestProject<FixtureContext>({
   nodes: [documentLifecycle, startAttempt, ...midsceneNodes],
   setup: {
     name: 'fixture',
-    platform: 'web',
     async setup({ onTeardown }) {
       const context: FixtureContext = {
         id: 1,

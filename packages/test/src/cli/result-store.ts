@@ -125,7 +125,6 @@ export const writeTestProjectRunResult = (
     projects: result.projects.map((project) => ({
       projectId: project.projectId,
       name: project.name,
-      platform: project.platform,
       status: project.status,
       retry: project.retry,
       fileSelection: project.fileSelection,

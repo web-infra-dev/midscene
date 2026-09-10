@@ -463,7 +463,7 @@ export async function runTestProject(
     const { project } = prepared;
     runInfrastructureCallback(() =>
       progress(
-        `[project ${projectIndex + 1}/${preparedProjects.length}] ${project.name} (${project.platform})`,
+        `[project ${projectIndex + 1}/${preparedProjects.length}] ${project.name}`,
       ),
     );
   };
@@ -482,7 +482,6 @@ export async function runTestProject(
     return {
       projectId: project.projectId,
       name: project.name,
-      platform: project.platform,
       status: projectFailed ? 'failed' : 'success',
       retry: project.retry,
       fileSelection: prepared.fileSelection,

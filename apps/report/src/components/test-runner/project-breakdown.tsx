@@ -157,8 +157,7 @@ function ProjectBreakdownNode({
               </span>
             </Tooltip>
             <span className="runner-project-tree-meta">
-              {item.project.platform} · {item.cases.length}{' '}
-              {item.cases.length === 1 ? 'case' : 'cases'}
+              {item.cases.length} {item.cases.length === 1 ? 'case' : 'cases'}
             </span>
           </span>
         </button>

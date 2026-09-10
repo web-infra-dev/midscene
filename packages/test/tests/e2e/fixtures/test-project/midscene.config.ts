@@ -12,7 +12,6 @@ export default defineTestProject({
   projects: [
     {
       name: 'web',
-      platform: 'web',
       files: { include: ['flows/**/*.{yaml,yml}'] },
     },
   ],

@@ -35,7 +35,6 @@ export function CaseWorkspaceHeader({
           </div>
           <div className="runner-case-meta">
             <span>{item.project.name}</span>
-            <span>{item.project.platform}</span>
             <span>{item.document.sourcePath}</span>
             <span>
               {item.testCase.attempts.length}{' '}
