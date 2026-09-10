@@ -11,7 +11,7 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
-  overrideAIConfig,
+  globalModelConfigManager,
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
@@ -38,14 +38,22 @@ const createMockInterface = () =>
     actionSpace: () => [],
   }) as any;
 
+const stubModelEnv = (config: Record<string, string>) => {
+  for (const [key, value] of Object.entries(config)) {
+    rs.stubEnv(key, value);
+  }
+  globalModelConfigManager.clearModelConfigMap();
+};
+
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
     rs.mock('openai');
-    overrideAIConfig(defaultModelConfig);
+    stubModelEnv(defaultModelConfig);
   });
 
   afterEach(() => {
-    overrideAIConfig({});
+    rs.unstubAllEnvs();
+    globalModelConfigManager.clearModelConfigMap();
     rs.clearAllMocks();
   });
 
@@ -248,6 +256,27 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('constructor with createOpenAIClient', () => {
+    it('should expose createOpenAIClient on public modelConfigManager for factory-only agents', () => {
+      const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
+        chat: { completions: { create: rs.fn() } },
+      }));
+      const agent = new Agent(createMockInterface(), {
+        createOpenAIClient: mockCreateClient,
+      });
+
+      const defaultConfig = agent.modelConfigManager.getModelConfig('default');
+      const insightConfig = agent.modelConfigManager.getModelConfig('insight');
+
+      expect(defaultConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
+      expect(insightConfig.modelName).toBe(
+        defaultModelConfig[MIDSCENE_MODEL_NAME],
+      );
+      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
+    });
+
     it('should combine global model config with an agent-scoped createOpenAIClient', () => {
       const mockCreateClient: CreateOpenAIClientFn = rs.fn(async () => ({
         chat: { completions: { create: rs.fn() } },
