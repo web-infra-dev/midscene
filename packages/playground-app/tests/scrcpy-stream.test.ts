@@ -224,6 +224,89 @@ describe('createScrcpyVideoStream', () => {
     ]);
   });
 
+  test('drops the rest of a GOP after backpressure and resumes at a keyframe', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([9]),
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([0]),
+      keyFrame: true,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([1]),
+      keyFrame: false,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([2]),
+      keyFrame: false,
+    });
+
+    // The queue is now full. Once one delta is dropped, every remaining
+    // packet in that GOP must be dropped as well.
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([3]),
+      keyFrame: false,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([4]),
+      keyFrame: false,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([10]),
+      keyFrame: true,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([11]),
+      keyFrame: false,
+    });
+
+    const reader = stream.getReader();
+    const packets: ScrcpyMediaStreamPacket[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      const result = await reader.read();
+      expect(result.done).toBe(false);
+      packets.push(result.value);
+    }
+
+    // The retained keyframe has now entered the stream, so its following
+    // delta frame is safe to forward.
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([12]),
+      keyFrame: false,
+    });
+    socket.dispatchDisconnect();
+    const finalPacket = await reader.read();
+    expect(finalPacket.done).toBe(false);
+    packets.push(finalPacket.value);
+    expect((await reader.read()).done).toBe(true);
+
+    expect(
+      packets.map((packet) => ({
+        type: packet.type,
+        data: packet.data[0],
+      })),
+    ).toEqual([
+      { type: 'configuration', data: 9 },
+      { type: 'data', data: 0 },
+      { type: 'data', data: 1 },
+      { type: 'data', data: 2 },
+      { type: 'data', data: 10 },
+      { type: 'data', data: 12 },
+    ]);
+  });
+
   test('rejects data packets without keyframe metadata', async () => {
     const socket = new MockScrcpySocket();
     const stream = createScrcpyVideoStream(socket);

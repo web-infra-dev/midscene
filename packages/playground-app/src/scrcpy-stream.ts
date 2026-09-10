@@ -112,22 +112,32 @@ export function createScrcpyVideoStream(
             }
 
             if (decoderState === 'waiting-for-keyframe') {
-              // Drop delta frames until a keyframe arrives so the decoder
-              // never starts mid-GOP.
+              // Drop the rest of the damaged GOP. Resume only after a
+              // keyframe has actually entered the bounded stream queue.
               if (!packet.keyframe) {
                 return;
               }
-              decoderState = 'ready';
+              if (canEnqueue()) {
+                decoderState = 'ready';
+                reportFirstDataPacket();
+                controller.enqueue(packet);
+              } else {
+                pendingKeyframe = packet;
+              }
+              return;
             }
 
             if (canEnqueue()) {
               reportFirstDataPacket();
               controller.enqueue(packet);
-            } else if (packet.keyframe) {
-              // Discard delta frames while the decoder is behind. The newest
-              // keyframe lets it resume without accumulating stale frames.
-              pendingKeyframe = packet;
+              return;
             }
+
+            // Dropping one predictive frame invalidates all dependent frames
+            // in the same GOP. Enter recovery mode instead of forwarding a
+            // broken prediction chain to WebCodecs.
+            decoderState = 'waiting-for-keyframe';
+            pendingKeyframe = packet.keyframe ? packet : undefined;
           } catch (error) {
             cleanupListeners?.();
             controller.error(error);
@@ -154,14 +164,14 @@ export function createScrcpyVideoStream(
         socket.on('error', handleError);
       },
       pull(controller) {
-        if (controller.desiredSize === null || controller.desiredSize > 0) {
-          if (
-            pendingKeyframe &&
-            (controller.desiredSize === null || controller.desiredSize > 0)
-          ) {
-            controller.enqueue(pendingKeyframe);
-            pendingKeyframe = undefined;
-          }
+        if (
+          pendingKeyframe &&
+          (controller.desiredSize === null || controller.desiredSize > 0)
+        ) {
+          reportFirstDataPacket();
+          controller.enqueue(pendingKeyframe);
+          pendingKeyframe = undefined;
+          decoderState = 'ready';
         }
       },
       cancel() {

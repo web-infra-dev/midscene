@@ -53,12 +53,6 @@ export function buildScrcpyVideoPacket(
   };
 }
 
-export function shouldReliablyEmitScrcpyVideoPacket(
-  packet: ScrcpyMediaStreamPacket,
-) {
-  return packet.type === 'configuration' || packet.keyframe === true;
-}
-
 export function appendBoundedScrcpyOutput(
   outputLines: string[],
   line: string,
@@ -760,19 +754,13 @@ export default class ScrcpyServer {
                       // byte to a boxed JS Number, blowing the V8 old space on
                       // low-memory hosts (e.g. 8GB Windows) after a few seconds
                       // of a 2 Mbps stream.
-                      // Delta frames are disposable. `volatile` prevents
-                      // Socket.IO from retaining an unbounded write buffer when
-                      // the renderer is busy decoding or has stopped responding.
-                      // However, configuration and keyframe packets must arrive
-                      // reliably: the WebCodecs decoder cannot start mid-GOP
-                      // without them, which causes garbled previews on cold
-                      // connections. Send those via reliable transport.
+                      // H.264/H.265 delta frames form a prediction chain. Losing
+                      // any packet can corrupt the remainder of the GOP, so the
+                      // complete stream must use Socket.IO's reliable transport.
+                      // The renderer bounds its own queue and, when overloaded,
+                      // drops the rest of the GOP before resuming at a keyframe.
                       const videoPacket = buildScrcpyVideoPacket(value);
-                      if (shouldReliablyEmitScrcpyVideoPacket(value)) {
-                        socket.emit('video-data', videoPacket);
-                      } else {
-                        socket.volatile.emit('video-data', videoPacket);
-                      }
+                      socket.emit('video-data', videoPacket);
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);
