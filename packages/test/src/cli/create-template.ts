@@ -23,7 +23,6 @@ export const createPlatformLabels: Record<CreatePlatform, string> = {
 
 const platformImports: Record<CreatePlatform, string> = {
   web: `import { PlaywrightAgent } from '@midscene/web/playwright/agent';
-import { createPlaywrightNodes } from '@midscene/web/playwright/test';
 import { chromium, type Page } from 'playwright';`,
   android: `import { AndroidAgent, agentFromAdbDevice } from '@midscene/android';`,
   ios: `import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';`,
@@ -135,7 +134,6 @@ export default defineTestProject<ProjectContext>({
   }],
   nodes: [
     ...createMidsceneNodes<ProjectContext>({ agentClass: ${agentClass}, getAgent }),
-${platform === 'web' ? '    ...createPlaywrightNodes<ProjectContext>({ getPage: ({ context }) => context.page }),' : ''}
   ],
 });
 `;

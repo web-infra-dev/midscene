@@ -30,8 +30,7 @@ import {
   defineTestProject,
 } from '@midscene/test/config';
 import { createMidsceneNodes } from '@midscene/test/midscene';
-import { createPlaywrightNodes } from '@midscene/web/playwright/test';
-import { PlaywrightAgent } from '@midscene/web/playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
 import { chromium, type Browser, type Page } from 'playwright';
 
 interface ProjectContext {
@@ -46,10 +45,6 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
     context.agent ??= new PlaywrightAgent(context.page);
     return context.agent;
   },
-});
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
 });
 
 // Define browser environment setup and cleanup
@@ -77,14 +72,14 @@ export default defineTestProject<ProjectContext>({
       files: { include: ['cases/**/*.{yaml,yml}'] },
     },
   ],
-  nodes: [...midsceneNodes, ...playwrightNodes],
+  nodes: midsceneNodes,
 });
 ```
 
 The configuration connects these parts:
 
 - `setup` creates the browser and page and registers cleanup functions through `onTeardown()`.
-- `context` holds runtime resources. Nodes access the page through callbacks. When an Agent is first needed, `getAgent` creates an instance and stores it in `context.agent` for subsequent calls.
+- `context` holds runtime resources. Nodes obtain the Agent through `getAgent`, which creates an instance on first use and stores it in `context.agent` for subsequent calls. Playwright Nodes use that Agent’s page.
 - `nodes` registers common AI operations and Playwright operations for YAML cases to call.
 - `projects` declares an execution project named `chromium`, connecting its `setup` to the YAML files under `cases/`.
 
@@ -92,7 +87,7 @@ You can now [write YAML test cases](./use#write-yaml-test-cases) and [run tests]
 
 ### Create and clean up shared resources with setup
 
-Each execution project runs `setup` once before executing its YAML files. All Nodes in the project share the returned `context`. In the example above, the context holds the browser and page, and Nodes access the resources they need through callbacks such as `getPage` and `getAgent`.
+Each execution project runs `setup` once before executing its YAML files. All Nodes in the project share the returned `context`. In the example above, the context holds the browser and page, and Nodes access the resources they need through the `getAgent` callback.
 
 Shared resources are not automatically recreated before each case. To reset pages, cookies, or business state, call the appropriate Nodes through YAML [lifecycle hooks](./use#define-the-execution-lifecycle). For reading and updating shared data in custom Nodes, see [Share context across Nodes](./extend#share-context-across-nodes).
 
@@ -148,13 +143,13 @@ Each execution project calls its own `setup`. Even if projects reference the sam
 
 Use `createMidsceneNodes()` from `@midscene/test/midscene` to register the following common Nodes: `aiAct`, `aiTap`,
 `aiAssert`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `recordToReport`,
-`wait`, and `agent`.
+and `wait`.
 
 When calling `createMidsceneNodes()`, use `agentClass` to specify the Agent class and a `getAgent` callback to supply the Agent instance at runtime:
 
 ```ts
 import { createMidsceneNodes } from '@midscene/test/midscene';
-import { PlaywrightAgent } from '@midscene/web/playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright/agent';
 
 const midsceneNodes = createMidsceneNodes<ProjectContext>({
   agentClass: PlaywrightAgent,
@@ -166,35 +161,25 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 ```
 
 `agentClass` is the sole source of Agent-backed Node definitions. The factory throws during registration if the class does not expose
-`getTestRunnerNodeDefinitions()`. A platform Agent class registers its common and platform Node definitions together. The base or web Agent registers no platform lifecycle Nodes. You can also compose the platform-only factories described below.
+`getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent register their common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
 
-For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects). Register each platform Node once: a platform Agent factory already includes its platform definitions.
+For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
 When integrating an Agent on device platforms such as Android or iOS, observe resource ownership. Each device instance belongs to one Agent. `Agent.destroy()` also destroys its device. Create separate resources for each execution project, and do not reuse a device after its Agent is destroyed.
 
-Import each platform's preset Node factory from its corresponding entry point. These functions use callbacks to access runtime resources such as pages or Agents, so you can choose your own field names for `context`.
+Register each platform through `createMidsceneNodes()`: specify its Agent class with `agentClass` and supply the instance through `getAgent`. You can choose your own field names for the project `context`.
 
 Once registered, these Nodes can be called from YAML. See [Calling other Nodes](./use#calling-other-nodes) for parameter syntax, and consult the project-generated Node reference for specific fields.
 
 ### Playwright
 
-Use `createPlaywrightNodes()` to register `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize`. Before using these Nodes, install `playwright` in your project. It is a peer dependency of `@midscene/web`:
+Use `createMidsceneNodes({ agentClass: PlaywrightAgent, getAgent })` to automatically register `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize`. Before using these Nodes, install `playwright` in your project. It is a peer dependency of `@midscene/web`:
 
 ```bash
 pnpm add -D playwright
 ```
 
-The following example uses `ProjectContext` from the Playwright configuration example above. Add the returned Nodes to the project’s `nodes` array:
-
-```ts
-import { createPlaywrightNodes } from '@midscene/web/playwright/test';
-
-const playwrightNodes = createPlaywrightNodes<ProjectContext>({
-  getPage: ({ context }) => context.page,
-  getBaseUrl: () => 'https://example.com',
-  getEnv: () => process.env,
-});
-```
+Cookies are read from `process.env` by default. Only configure Agent `testRunner` options such as `getEnv`, `getCookieProfile`, or `resolveStorageStatePath` when you need custom cookie sources. The `context` in these callbacks is the current Agent.
 
 `setCookies` does not accept cookie values in YAML. Midscene Test persists every
 Node input in the run result. An inline cookie would be copied into that
@@ -223,22 +208,24 @@ beforeEach:
       width: 1440
       height: 900
   - gotoUrl:
-      url: /chat
+      url: https://example.com/chat
       waitUntil: domcontentloaded
 ```
 
-Like Playwright, `gotoUrl` succeeds when navigation completes. Even if the server returns an HTTP 4xx or 5xx response, the Node succeeds and returns the status code, allowing later steps to check the error page. Network errors and navigation timeouts still fail the Node.
+For navigation parameters and URL resolution, see [Navigate with gotoUrl](./use#navigate-with-gotourl).
 
 ### Android
 
 To use the device presets below, declare an `agent` of the corresponding platform type in `ProjectContext` and include that instance in the object returned by `setup`. Each platform example is independent; choose the one you need.
 
-Use `createAndroidNodes()` to register `launch`, `terminate`, `runAdbShell`, `back`, `home`, and `recentApps`. The supplied Agent must provide the methods these Nodes call:
+Use `createMidsceneNodes({ agentClass: AndroidAgent, getAgent })` to register `launch`, `terminate`, `runAdbShell`, `back`, `home`, and `recentApps`. The supplied Agent must provide the methods these Nodes call:
 
 ```ts
-import { createAndroidNodes } from '@midscene/test/android';
+import { AndroidAgent } from '@midscene/android';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
-const androidNodes = createAndroidNodes<ProjectContext>({
+const androidNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: AndroidAgent,
   getAgent: ({ context }) => context.agent,
 });
 ```
@@ -257,13 +244,15 @@ The complete response from `runAdbShell` is saved in the Node result.
 
 ### iOS
 
-Use `createIOSNodes()` to register `launch`, `terminate`,
+Use `createMidsceneNodes({ agentClass: IOSAgent, getAgent })` to register `launch`, `terminate`,
 `runWdaRequest`, `home`, and `appSwitcher`:
 
 ```ts
-import { createIOSNodes } from '@midscene/test/ios';
+import { IOSAgent } from '@midscene/ios';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
-const iosNodes = createIOSNodes<ProjectContext>({
+const iosNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: IOSAgent,
   getAgent: ({ context }) => context.agent,
 });
 ```
@@ -284,13 +273,15 @@ The complete response from `runWdaRequest` is saved in the Node result.
 
 ### HarmonyOS
 
-Use `createHarmonyNodes()` to register `launch`, `terminate`,
+Use `createMidsceneNodes({ agentClass: HarmonyAgent, getAgent })` to register `launch`, `terminate`,
 `runHdcShell`, `back`, `home`, and `recentApps`:
 
 ```ts
-import { createHarmonyNodes } from '@midscene/test/harmony';
+import { HarmonyAgent } from '@midscene/harmony';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
-const harmonyNodes = createHarmonyNodes<ProjectContext>({
+const harmonyNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: HarmonyAgent,
   getAgent: ({ context }) => context.agent,
 });
 ```
@@ -396,7 +387,7 @@ To run different cases concurrently, assign them to multiple projects using dire
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
-  nodes: [...midsceneNodes, ...playwrightNodes],
+  nodes: midsceneNodes,
   projects: [
     {
       name: 'checkout',

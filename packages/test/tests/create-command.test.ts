@@ -363,7 +363,8 @@ describe('create project', () => {
     expect(manifest.devDependencies['@playwright/test']).toBeUndefined();
     const config = readFileSync(join(root, 'midscene.config.ts'), 'utf8');
     expect(config).toContain("from '@midscene/web/playwright/agent'");
-    expect(config).toContain("from '@midscene/web/playwright/test'");
+    expect(config).not.toContain("from '@midscene/web/playwright/test'");
+    expect(config).not.toContain('createPlaywrightNodes');
     expect(config).not.toContain('@midscene/test/playwright');
     expect(existsSync(join(root, '.env'))).toBe(false);
     expect(existsSync(join(root, 'README.md'))).toBe(true);

@@ -1,9 +1,6 @@
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { z } from 'zod/v4';
-import type {
-  CreatePlaywrightNodesOptions,
-  PlaywrightNodeDefinition,
-} from './types';
-import { throwIfAborted } from './utils';
+import { requirePlaywrightAgent, throwIfAborted } from './utils';
 
 /** Input schema for the Playwright setViewportSize Node. */
 export const setViewportSizeInputSchema = z.strictObject({
@@ -20,22 +17,24 @@ export type SetViewportSizeNodeInput = z.infer<
   typeof setViewportSizeInputSchema
 >;
 
-export const createSetViewportSizeNode = <TContext>(
-  options: CreatePlaywrightNodesOptions<TContext>,
-): PlaywrightNodeDefinition<
+export const setViewportSizeNode: AgentTestRunnerNodeDefinition<
   z.output<typeof setViewportSizeInputSchema>,
-  { width: number; height: number },
-  TContext
-> => ({
+  { width: number; height: number }
+> = {
   name: 'setViewportSize',
   title: 'Set the browser viewport size',
   description:
     'Set the current Playwright Page viewport size in CSS pixels and return the effective size.',
   stringInputKey: false,
   inputSchema: setViewportSizeInputSchema,
-  async execute(ctx) {
+  async execute(agent, input, executionContext) {
+    const ctx = {
+      ...executionContext,
+      input,
+      context: requirePlaywrightAgent(agent),
+    };
     throwIfAborted(ctx.signal, 'setViewportSize');
-    const page = await options.getPage(ctx);
+    const page = ctx.context.interface.underlyingPage;
     await page.setViewportSize({
       width: ctx.input.width,
       height: ctx.input.height,
@@ -49,4 +48,4 @@ export const createSetViewportSizeNode = <TContext>(
       data: viewport,
     };
   },
-});
+};
