@@ -255,6 +255,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced guides',
           },
           {
+            text: 'From application knowledge to test cases',
+            link: '/from-application-knowledge-to-test-cases',
+          },
+          {
             text: 'Model debugging & observability',
             link: '/model-debugging-observability',
           },
@@ -425,6 +429,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '从应用知识到测试用例',
+            link: '/zh/from-application-knowledge-to-test-cases',
           },
           {
             text: '模型调试与可观测性',
