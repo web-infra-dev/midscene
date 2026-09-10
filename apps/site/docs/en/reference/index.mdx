@@ -125,7 +125,8 @@ await agent.aiAssert('The login form is visible'); // No second hook invocation.
 - Runs once per Agent. Concurrent calls share the result; navigation, reloads, and tab switches do not reset it.
 - Rejection or timeout blocks execution, including cached workflows. Later calls reuse the failure without retrying.
 - `signal` aborts on timeout or `agent.destroy()`; use it to stop polling and clean up listeners. Cancelling one action leaves shared initialization running.
-- Use underlying page/device APIs inside the handler. Calling the same Agent's UI APIs would wait on its own initialization. Prefer checking readiness state to avoid missing an earlier event.
+- Use underlying page/device APIs inside the handler. The same Agent's UI APIs also await the handler, so calling them creates a circular wait until timeout.
+- Check a readiness flag such as `data-app-ready`. A one-time `ready` event may fire before the handler starts and be missed.
 
 All Agent platforms support this option. Existing post-action waits and behavior without the hook remain unchanged.
 

@@ -123,7 +123,8 @@ await agent.aiAssert('登录表单已经显示'); // 不再调用 hook。
 - 每个 Agent 只执行一次，并发调用共享结果；跳转、刷新和切换标签页不会重置。
 - reject 或超时会阻止执行，包括缓存回放。后续调用复用失败结果，不会重试。
 - 超时或 `agent.destroy()` 会中止 `signal`，回调应据此停止轮询、清理监听。取消单次动作不会中止共享初始化。
-- handler 内应使用底层 page/device API；调用同一 Agent 的 UI API 会等待自身初始化。建议检查就绪状态，避免错过已发出的事件。
+- handler 内请使用底层 page/device API。同一 Agent 的 UI API 也要等 handler 完成，调用它们会相互等待直到超时。
+- 请检查 `data-app-ready` 等就绪状态。一次性的 `ready` 事件可能在 handler 开始前已发出，后续监听会错过。
 
 所有平台的 Agent 均支持此配置。动作后的等待策略及未配置 hook 时的行为保持不变。
 
