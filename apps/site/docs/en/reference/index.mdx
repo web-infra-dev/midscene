@@ -53,8 +53,8 @@ All agents share these base options:
 - `aiActContext: string` (deprecated) — Compatibility option for `aiContexts.aiAct`. `aiContexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `aiContexts.aiAct`. Use `aiContexts.aiAct` in new code. The older `aiActionContext` name is also deprecated and remains available only for compatibility.
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
-- `waitForInitialPageReady: WaitForInitialPageReadyOptions` — Configure a one-time initial-page readiness `handler` and its optional `timeoutMs`. See [Initial page readiness](#initial-page-ready).
-- `waitAfterAction: number` — Fixed delay in the [default waiting strategy](#default-waiting-strategy). Default: `300` ms. Also applies when initial-page readiness is configured.
+- `waitForInitialPageReady: WaitForInitialPageReadyOptions` — Customize [initial page readiness](#initial-page-ready).
+- `waitAfterAction: number` — Fixed delay after each action, default `300` ms. See [Default waiting strategy](#default-waiting-strategy).
 - `useDeviceTime: boolean` — Whether task timestamps use the target device's local time. The target interface must implement `getDeviceLocalTimeString`; otherwise, Midscene logs a warning and uses the runtime system time. Default: `false`.
 - `onTaskStartTip: (tip: string) => void | Promise<void>` — Optional hook called before each task begins. It receives a human-readable task summary. Default: `undefined`.
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` — Optional factory for wrapping the OpenAI client with observability or custom middleware. See the detailed example below.
@@ -91,17 +91,16 @@ The device CLIs expose serializable Agent behavior options for individual calls.
 
 **Initial page readiness**
 
-Configure `waitForInitialPageReady` to let your application decide when its initial page is ready. The Agent awaits it once, before its first screenshot, query, assertion, or action. Later calls and actions inside `aiAct` do not invoke the handler again.
+Configure `waitForInitialPageReady` to wait for application readiness before the Agent's first screenshot, query, assertion, or action. The constructor only stores the handler; open the page or app before using the Agent.
 
-- `handler: (context: InitialPageReadyContext) => Promise<void>` — Required. Resolves when the initial page is ready. The context contains only `signal`.
-- `timeoutMs?: number` — Timeout for this initialization. Default: `10000` ms. Must be an integer from `1` to `2147483647`.
+- `handler: ({ signal }: InitialPageReadyContext) => Promise<void>` — Required. Resolves when the initial page is ready.
+- `timeoutMs?: number` — Timeout in milliseconds, default `10000`. Integer from `1` to `2147483647`.
 
 ```ts
 import { setTimeout as delay } from 'node:timers/promises';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
-// The application sets data-app-ready="true" on <html> after its initial
-// data and rendering are ready. `page` is your Playwright page.
+// The application sets data-app-ready="true" on <html> when ready.
 const agent = new PlaywrightAgent(page, {
   waitForInitialPageReady: {
     timeoutMs: 10_000,
@@ -123,28 +122,28 @@ await agent.aiTap('Log in'); // Wait for initialization, then locate and tap.
 await agent.aiAssert('The login form is visible'); // No second hook invocation.
 ```
 
-The constructor stores the handler without running it. Open the initial page or launch the target app before using the Agent. The same option is available on Android, iOS, HarmonyOS, desktop, and custom-interface Agents; use raw device or application APIs through a closure to check readiness.
+- Runs once per Agent. Concurrent calls share the result; navigation, reloads, and tab switches do not reset it.
+- Rejection or timeout blocks execution, including cached workflows. Later calls reuse the failure without retrying.
+- `signal` aborts on timeout or `agent.destroy()`; use it to stop polling and clean up listeners. Cancelling one action leaves shared initialization running.
+- Use underlying page/device APIs inside the handler. Calling the same Agent's UI APIs would wait on its own initialization. Prefer checking readiness state to avoid missing an earlier event.
 
-- The result belongs to one Agent instance. Concurrent first calls share one Promise. Reloading, navigating, switching tabs, and starting another task on that Agent do not reset it. A new Agent has its own initialization.
-- First-use waiting also covers `aiQuery`, `aiAssert`, `aiWaitFor`, cached actions, `runYaml`, `startObserving`, and `freezePageContext`. A rejection or timeout prevents execution. The failed result is retained, so later calls fail without retrying the handler or falling back to AI planning.
-- The signal aborts on timeout or `agent.destroy()`. Use it to stop polling and remove listeners; Midscene cannot forcibly stop work inside a callback that ignores the signal. Cancelling one individual action does not cancel the shared initialization for other calls.
-- The handler runs in the SDK process. Use the underlying page/device APIs inside it. Calling the same Agent's UI APIs from the handler would wait on its own initialization. Check an existing readiness state; an event emitted before the handler subscribes can be missed.
-- When using the JavaScript `puppeteerAgentForTarget` launcher, pass this option in its second argument. The launcher navigates first, then awaits the hook instead of its initial network-idle wait, and returns the ready Agent. The first Agent operation reuses that result. Direct SDK construction waits lazily on first use and does not change an external `page.goto()` call.
-- Unconfigured Agents keep the existing behavior. This hook does not replace `waitAfterAction`, post-action navigation/network-idle checks, device-action delays, or `afterInvokeAction` hooks.
+All Agent platforms support this option. Existing post-action waits and behavior without the hook remain unchanged.
+
+For `puppeteerAgentForTarget`, pass the option in its second argument. The launcher navigates, awaits the hook instead of the initial network-idle check, then returns the ready Agent.
 
 <a id="default-waiting-strategy"></a>
 
 **Default waiting strategy (advanced)**
 
-These existing options tune Midscene's built-in waiting behavior. They remain in effect after initial-page readiness has completed.
+These options continue to apply after initial-page readiness:
 
 | Option | Behavior |
 | --- | --- |
 | `waitAfterAction` | Fixed delay after an action, default `300` ms. Explicit device-action delays take precedence. |
-| `waitForNavigationTimeout` (Web) | Timeout for the built-in check that the page's `<html>` element is available, default `5000` ms. Set to `0` to skip. It does not guarantee navigation or application rendering has finished. |
-| `waitForNetworkIdleTimeout` (Puppeteer) | Timeout for the post-action network-idle check, default `2000` ms. The check requires at most two in-flight requests for `200` ms. Set to `0` to skip. Playwright skips this check; this option has no effect there. |
+| `waitForNavigationTimeout` (Web) | Wait for `<html>` to be available, default `5000` ms. This does not guarantee navigation or rendering is complete. |
+| `waitForNetworkIdleTimeout` (Puppeteer only) | Post-action network-idle timeout, default `2000` ms. Requires at most two in-flight requests for `200` ms. |
 
-The built-in Web checks log a warning and continue on timeout. The initial-page hook has its own timeout and fails initialization on rejection or timeout; it does not change these post-action checks.
+Set either Web timeout to `0` to skip its check. These checks warn and continue on timeout.
 
 **Custom model configuration**
 
@@ -1106,15 +1105,13 @@ expect(onesieItem.price).toBe(7.99);
 
 ### Observation and waiting {#observation-waiting}
 
-Choose the waiting entry point by its role in your workflow:
+| Entry point | Purpose |
+| --- | --- |
+| [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | Wait for a visible condition using AI at a script step. |
+| [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | Listen before running `action`, then return the new page (Playwright/Puppeteer). |
+| [`waitForInitialPageReady`](#initial-page-ready) | Customize readiness once per Agent, before its first UI operation. |
 
-| Need | Entry point | When it runs |
-| --- | --- | --- |
-| Wait for a visible result described in natural language | [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | At the script step where you call it; each check uses an AI model. |
-| Capture a newly opened page | [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | Registers a listener before running `action`, then returns the new page. Available on Playwright and Puppeteer BrowserAgents. |
-| Customize initial page readiness | [`waitForInitialPageReady: { handler, timeoutMs }`](#initial-page-ready) | Runs once per Agent, before it first reads or operates on the page. |
-
-For another event or business operation needed at a particular step, use the application's Promise or the underlying browser/device API with `await`. Subscribe before triggering a one-time event. The [default waiting options](#default-waiting-strategy) tune automatic timing; they do not add more script-level waiting methods.
+For other events, `await` the application's Promise or a browser/device API. Subscribe before triggering one-time events.
 
 #### `startObserving()` {#agentstartobserving}
 
@@ -1207,7 +1204,7 @@ await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
 
 :::info
 
-Each `aiWaitFor()` check calls an AI model and consumes time and tokens. Use it for visible conditions described in natural language. For a known application signal at one script step, await that signal directly; for initial page readiness, configure [`waitForInitialPageReady`](#initial-page-ready).
+Each `aiWaitFor()` check consumes model time and tokens. If the application exposes a readiness signal, await it directly.
 
 :::
 

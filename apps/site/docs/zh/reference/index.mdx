@@ -53,8 +53,8 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`；更早的名称 `aiActionContext` 也已废弃，仅为兼容而保留。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
-- `waitForInitialPageReady: WaitForInitialPageReadyOptions`：配置仅执行一次的首次页面就绪 `handler` 和可选的 `timeoutMs`，见[首次页面就绪](#initial-page-ready)。
-- `waitAfterAction: number`：[默认等待策略](#default-waiting-strategy)中的固定延时，默认为 `300` 毫秒。配置首次页面就绪 hook 后仍然生效。
+- `waitForInitialPageReady: WaitForInitialPageReadyOptions`：自定义[首次页面就绪](#initial-page-ready)判断。
+- `waitAfterAction: number`：每次动作后的固定延时，默认为 `300` 毫秒，见[默认等待策略](#default-waiting-strategy)。
 - `useDeviceTime: boolean`：是否使用目标设备的本地时间记录任务时间。目标接口必须实现 `getDeviceLocalTimeString`。如果未实现，Midscene 会输出警告并改用运行环境的系统时间。默认值为 `false`。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`：可选的 OpenAI 客户端包装函数，可用于接入可观测性工具或自定义中间件。详细示例见下文。
@@ -89,17 +89,16 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 
 **首次页面就绪**
 
-配置 `waitForInitialPageReady`，由应用决定初始页面何时就绪。Agent 会在首次截图、查询、断言或动作之前等待它完成，每个 Agent 只执行一次。后续调用和 `aiAct` 内部动作不会再次调用 handler。
+配置 `waitForInitialPageReady`，让 Agent 在首次截图、查询、断言或动作前等待应用就绪。构造器只保存 handler；首次使用 Agent 前，应先打开页面或启动 App。
 
-- `handler: (context: InitialPageReadyContext) => Promise<void>`：必填，初始页面就绪时 resolve。context 只包含 `signal`。
-- `timeoutMs?: number`：本次初始化的超时时间，默认为 `10000` 毫秒。必须是 `1` 到 `2147483647` 之间的整数。
+- `handler: ({ signal }: InitialPageReadyContext) => Promise<void>`：必填，初始页面就绪时 resolve。
+- `timeoutMs?: number`：超时时间，默认为 `10000` 毫秒，取值为 `1` 到 `2147483647` 之间的整数。
 
 ```ts
 import { setTimeout as delay } from 'node:timers/promises';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
-// 应用在首屏数据和渲染就绪后，在 <html> 上设置 data-app-ready="true"。
-// `page` 是你的 Playwright 页面。
+// 应用就绪后，在 <html> 上设置 data-app-ready="true"。
 const agent = new PlaywrightAgent(page, {
   waitForInitialPageReady: {
     timeoutMs: 10_000,
@@ -121,28 +120,28 @@ await agent.aiTap('登录'); // 先等待初始化，再定位和点击。
 await agent.aiAssert('登录表单已经显示'); // 不再调用 hook。
 ```
 
-构造器只保存 handler，不立即执行。首次使用 Agent 前，应先打开初始页面或启动目标 App。Android、iOS、HarmonyOS、桌面和自定义接口 Agent 支持相同配置，可通过闭包使用底层设备或应用 API 检查就绪状态。
+- 每个 Agent 只执行一次，并发调用共享结果；跳转、刷新和切换标签页不会重置。
+- reject 或超时会阻止执行，包括缓存回放。后续调用复用失败结果，不会重试。
+- 超时或 `agent.destroy()` 会中止 `signal`，回调应据此停止轮询、清理监听。取消单次动作不会中止共享初始化。
+- handler 内应使用底层 page/device API；调用同一 Agent 的 UI API 会等待自身初始化。建议检查就绪状态，避免错过已发出的事件。
 
-- 等待结果属于一个 Agent 实例。并发的首次调用共享一个 Promise。刷新、跳转、切换标签页，以及在同一 Agent 上开始新任务都不会重置它。新建 Agent 才会有独立的初始化过程。
-- 首次等待也覆盖 `aiQuery`、`aiAssert`、`aiWaitFor`、缓存回放、`runYaml`、`startObserving` 和 `freezePageContext`。reject 或超时会阻止执行；失败结果会保留，后续调用直接失败，不会重试 handler 或回退到 AI 规划。
-- 超时或调用 `agent.destroy()` 时会中止 signal。回调应据此停止轮询、移除监听；Midscene 无法强制停止忽略 signal 的回调工作。取消某一次动作不会取消其他调用共享的初始化。
-- handler 在 SDK 进程中执行，应使用底层 page/device API。同一个 Agent 的 UI API 会等待自身初始化，在 handler 中调用会造成相互等待。应检查已有的就绪状态，避免错过订阅前已发出的一次性事件。
-- 使用 JavaScript 的 `puppeteerAgentForTarget` 启动器时，可在第二个参数中传入此配置。启动器先导航，再等待 hook，替换初始加载阶段的网络空闲等待，然后返回就绪的 Agent；首次 Agent 操作复用同一结果。直接构造 Agent 时，在首次使用时等待，不改变外部 `page.goto()` 的行为。
-- 未配置时保留现有行为。此 hook 不替换 `waitAfterAction`、动作后的导航和网络空闲检查、设备动作延时或 `afterInvokeAction` hook。
+所有平台的 Agent 均支持此配置。动作后的等待策略及未配置 hook 时的行为保持不变。
+
+使用 `puppeteerAgentForTarget` 时，在第二个参数中传入配置。启动器先导航，再等待 hook（替换初始网络空闲检查），然后返回就绪的 Agent。
 
 <a id="default-waiting-strategy"></a>
 
 **默认等待策略（高级配置）**
 
-以下既有参数用于调整 Midscene 内置等待行为，在首次页面就绪后仍然生效。
+以下参数在首次页面就绪后仍然生效：
 
 | 参数 | 行为 |
 | --- | --- |
 | `waitAfterAction` | 动作后的固定延时，默认为 `300` 毫秒。设备动作显式声明的延时优先。 |
-| `waitForNavigationTimeout`（Web） | 内置检查页面 `<html>` 元素可用的超时时间，默认为 `5000` 毫秒，设为 `0` 跳过。它不保证导航或应用渲染已经完成。 |
-| `waitForNetworkIdleTimeout`（Puppeteer） | 动作后网络空闲检查的超时时间，默认为 `2000` 毫秒；检查要求连续 `200` 毫秒最多只有两个进行中的请求，设为 `0` 跳过。Playwright 会跳过此检查，该参数在 Playwright 下不生效。 |
+| `waitForNavigationTimeout`（Web） | 等待 `<html>` 元素可用，超时默认为 `5000` 毫秒，不保证导航或渲染已完成。 |
+| `waitForNetworkIdleTimeout`（仅 Puppeteer） | 动作后网络空闲检查，超时默认为 `2000` 毫秒；要求连续 `200` 毫秒最多只有两个进行中的请求。 |
 
-Web 内置检查超时后会记录警告并继续执行。首次页面就绪 hook 有独立的超时设置，reject 或超时会使初始化失败，不改变这些动作后的检查。
+两项 Web 超时参数均可设为 `0` 跳过检查；检查超时会记录警告并继续执行。
 
 **自定义模型**
 
@@ -1094,15 +1093,13 @@ expect(onesieItem.price).toBe(7.99);
 
 ### 观察与等待 {#observation-waiting}
 
-按等待在流程中的用途选择入口：
+| 入口 | 用途 |
+| --- | --- |
+| [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | 在脚本步骤中通过 AI 等待可见条件。 |
+| [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | 先监听，再执行 `action`，然后返回新页面（Playwright/Puppeteer）。 |
+| [`waitForInitialPageReady`](#initial-page-ready) | 自定义首次就绪判断，每个 Agent 在首次读取或操作页面前执行一次。 |
 
-| 需求 | 入口 | 执行时机 |
-| --- | --- | --- |
-| 等待自然语言描述的可见结果 | [`agent.aiWaitFor(condition)`](#agentaiwaitfor) | 在脚本调用处等待，每次检查会调用 AI 模型。 |
-| 捕获新打开的页面 | [`browserAgent.waitForNewPage(action)`](#playwright-browser-agent) | 先注册监听，再执行 `action`，然后返回新页面。Playwright 和 Puppeteer BrowserAgent 均支持。 |
-| 自定义首次页面就绪判断 | [`waitForInitialPageReady: { handler, timeoutMs }`](#initial-page-ready) | 每个 Agent 只执行一次，在首次读取或操作页面之前等待。 |
-
-某个步骤需要等待其他事件或业务操作时，直接 `await` 应用的 Promise 或底层浏览器、设备 API；等待一次性事件应先订阅再触发。[默认等待参数](#default-waiting-strategy)用于调整自动等待的时长，不会增加脚本需要调用的等待方法。
+其他事件直接 `await` 应用的 Promise 或浏览器、设备 API；一次性事件应先订阅再触发。
 
 #### `startObserving()` {#agentstartobserving}
 
@@ -1191,7 +1188,7 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 
 :::info
 
-`aiWaitFor()` 每次检查都会调用 AI 模型，消耗时间和 token，适合等待自然语言描述的可见条件。某个步骤有明确的应用信号时，可以直接等待该信号；需要定制首次页面就绪判断时，配置 [`waitForInitialPageReady`](#initial-page-ready)。
+`aiWaitFor()` 每次检查都会消耗模型调用时间和 token。应用提供就绪信号时，可直接等待该信号。
 
 :::
 
