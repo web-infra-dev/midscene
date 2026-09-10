@@ -45,8 +45,8 @@ describe('PlaywrightAiFixture option forwarding', () => {
     }) as any;
 
   it('should forward fixture-level AgentOpt and WebPageOpt to the first agent creation', async () => {
-    const waitForInitialPageReady = {
-      handler: rs.fn(async () => {}),
+    const waitForActionReady = {
+      createWaiter: rs.fn(() => 'skip' as const),
       timeoutMs: 1500,
     };
     const fixture = PlaywrightAiFixture({
@@ -54,7 +54,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
-      waitForInitialPageReady,
+      waitForActionReady,
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,
@@ -69,7 +69,7 @@ describe('PlaywrightAiFixture option forwarding', () => {
       outputFormat: 'html-and-external-assets',
       replanningCycleLimit: 9,
       waitAfterAction: 120,
-      waitForInitialPageReady,
+      waitForActionReady,
       aiActContext: 'fixture-level-context',
       useDeviceTime: true,
       enableTouchEventsInActionSpace: true,

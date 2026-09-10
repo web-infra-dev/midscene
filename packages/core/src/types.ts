@@ -573,6 +573,8 @@ export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
   uiContext?: UIContext;
+  /** Custom readiness owns optional post-action settling, not input/gesture timing. */
+  skipDefaultWait?: boolean;
 }
 
 export interface ExecutionTaskApply<
@@ -623,6 +625,8 @@ export type ExecutionTask<
   > & {
     taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
+    /** Readiness strategy selected for this atomic action execution. */
+    actionReadiness?: 'skip' | 'default' | 'custom';
     /**
      * Optional feedback produced by a task for the next planning round.
      * This is execution metadata, not part of the action return value.
@@ -644,10 +648,14 @@ export type ExecutionTask<
       callAiEnd?: number;
       beforeInvokeActionHookStart?: number;
       beforeInvokeActionHookEnd?: number;
+      createActionWaiterStart?: number;
+      createActionWaiterEnd?: number;
       callActionStart?: number;
       callActionEnd?: number;
       afterInvokeActionHookStart?: number;
       afterInvokeActionHookEnd?: number;
+      waitForActionReadyStart?: number;
+      waitForActionReadyEnd?: number;
       captureAfterCallingSnapshotStart?: number;
       captureAfterCallingSnapshotEnd?: number;
       end?: number;
@@ -959,15 +967,33 @@ export type Cache =
   | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
 
-export interface InitialPageReadyContext {
-  /** Aborted on timeout or Agent destruction. Use it to stop polling and clean up listeners. */
+export interface ActionReadyContext {
+  /** A new identity for each executed atomic action, including cache replay. */
+  action: {
+    readonly id: string;
+    readonly name: string;
+    /** Resolved action parameters. Treat them as read-only. */
+    readonly param: unknown;
+  };
+  /** Aborted on cancellation, timeout, or Agent destruction. */
   signal: AbortSignal;
 }
 
-export interface WaitForInitialPageReadyOptions {
-  /** Resolves when the initial page is ready for the Agent to read or operate. */
-  handler: (context: InitialPageReadyContext) => Promise<void>;
-  /** Timeout in milliseconds. Integer from 1 to 2147483647. Default: 10000. */
+export interface ActionReadyWaiter {
+  /** Called after the action returns. Resolve when the next step can begin. */
+  wait: () => Promise<void>;
+  /** Release listeners on success, failure, cancellation, or timeout. */
+  dispose?: () => void | Promise<void>;
+}
+
+export type ActionReadyPlan = 'skip' | 'default' | ActionReadyWaiter;
+
+export interface WaitForActionReadyOptions {
+  /** Register observation before each atomic action; do not wait for its result here. */
+  createWaiter: (
+    context: ActionReadyContext,
+  ) => ActionReadyPlan | Promise<ActionReadyPlan>;
+  /** Separate timeout for createWaiter, wait, and dispose. Default: 10000 ms. */
   timeoutMs?: number;
 }
 
@@ -1045,13 +1071,12 @@ export interface AgentOpt {
   waitAfterAction?: number;
 
   /**
-   * Wait once before this Agent first reads or operates on the initial page.
-   * The constructor only stores the handler; open the page or app before using
-   * the Agent. Concurrent calls share the same result, including failure.
-   * Navigation, reloads and page switches do not reset it. Post-action waiting
-   * is unchanged. Use raw page/device APIs inside the handler to avoid recursion.
+   * Customize readiness after each atomic action, including aiAct steps and
+   * cache replay. createWaiter runs before the action; its wait runs afterward.
+   * 'skip' and custom waiters replace automatic action delays and platform
+   * readiness checks. 'default' keeps them. Use raw page/device APIs in callbacks.
    */
-  waitForInitialPageReady?: WaitForInitialPageReadyOptions;
+  waitForActionReady?: WaitForActionReadyOptions;
 
   /**
    * When set to true, Midscene will use the target device's formatted local

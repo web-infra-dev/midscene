@@ -42,6 +42,10 @@ import type {
 import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import {
+  type ActionReadiness,
+  isActionReadinessError,
+} from './action-readiness';
 import { ExecutionSession } from './execution-session';
 import { withFileChooser } from './file-chooser';
 import {
@@ -66,8 +70,6 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
-  /** Await Agent initialization before starting a workflow, outside task retries. */
-  beforeExecution?: () => Promise<void>;
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
@@ -114,6 +116,7 @@ export class TaskExecutor {
   private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
+  private readonly actionReadiness?: ActionReadiness;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
@@ -138,6 +141,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
+      actionReadiness?: ActionReadiness;
       useDeviceTime?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
@@ -151,6 +155,7 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTime = opts.useDeviceTime;
     this.hooks = opts.hooks;
+    this.actionReadiness = opts.actionReadiness;
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -158,6 +163,7 @@ export class TaskExecutor {
       taskCache: opts.taskCache,
       actionSpace: this.getActionSpace(),
       waitAfterAction: opts.waitAfterAction,
+      actionReadiness: opts.actionReadiness,
     });
   }
 
@@ -174,6 +180,7 @@ export class TaskExecutor {
       onTaskEvent?: (event: TaskRunnerEvent) => Promise<void> | void;
     },
   ) {
+    this.actionReadiness?.assertCanUseAgent();
     return new ExecutionSession(
       title,
       () =>
@@ -298,7 +305,6 @@ export class TaskExecutor {
     yamlString: string,
     reportOptions?: ActionReportOptions,
   ) {
-    await this.hooks?.beforeExecution?.();
     const session = this.createExecutionSession(
       taskTitleStr(
         reportOptions?.type || 'Act',
@@ -353,9 +359,8 @@ export class TaskExecutor {
     plans: PlanningAction[],
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    options?: { uiContext?: UIContext },
+    options?: { uiContext?: UIContext; abortSignal?: AbortSignal },
   ): Promise<ExecutionResult> {
-    await this.hooks?.beforeExecution?.();
     const session = this.createExecutionSession(title, options);
     const runner = session.getRunner();
     const executionPlanningModel = { ...planningModel, executionId: runner.id };
@@ -364,6 +369,7 @@ export class TaskExecutor {
       plans,
       executionPlanningModel,
       executionDefaultModel,
+      { abortSignal: options?.abortSignal },
     );
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -394,7 +400,6 @@ export class TaskExecutor {
       | undefined
     >
   > {
-    await this.hooks?.beforeExecution?.();
     abortSignal?.throwIfAborted();
     return withFileChooser(this.interface, fileChooserAccept, async () => {
       return this.runAction(
@@ -790,6 +795,8 @@ export class TaskExecutor {
           this.collectPlanningFeedback(runner.tasks.slice(taskCountBeforeRun)),
         );
       } catch (error: any) {
+        // A completed action must not be replayed because readiness failed.
+        if (isActionReadinessError(error)) throw error;
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();
@@ -1025,7 +1032,6 @@ export class TaskExecutor {
       uiContext?: UIContext;
     },
   ): Promise<ExecutionResult<T>> {
-    await this.hooks?.beforeExecution?.();
     executionOptions?.abortSignal?.throwIfAborted();
     const session = this.createExecutionSession(
       taskTitleStr(
@@ -1073,7 +1079,6 @@ export class TaskExecutor {
     opt: PlanningActionParamWaitFor,
     modelRuntime: ModelRuntime,
   ): Promise<ExecutionResult<void>> {
-    await this.hooks?.beforeExecution?.();
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;

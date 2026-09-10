@@ -389,91 +389,31 @@ describe('launchPuppeteerPage', () => {
   });
 
   it.each(['page', 'browser'] as const)(
-    'awaits initial readiness after navigation in %s mode and preserves later network waits',
+    'forwards action readiness in %s mode without running it during launch',
     async (mode) => {
-      const events: string[] = [];
-      let finish!: () => void;
-      let started!: () => void;
-      const hookStarted = new Promise<void>((resolve) => {
-        started = resolve;
-      });
-      pageMock.goto.mockImplementationOnce(async () => {
-        events.push('goto');
-      });
-      const handler = rs.fn(async () => {
-        events.push('ready');
-        started();
-        await new Promise<void>((resolve) => {
-          finish = resolve;
-        });
-      });
-      let returned = false;
-      const pending = puppeteerAgentForTarget(
+      const createWaiter = rs.fn(() => 'skip' as const);
+      const { agent } = await puppeteerAgentForTarget(
         {
           url: 'https://example.com',
           mode,
           waitForNetworkIdle: { timeout: 4321 },
         },
-        { generateReport: false, waitForInitialPageReady: { handler } },
-      ).then((result) => {
-        returned = true;
-        return result;
+        { generateReport: false, waitForActionReady: { createWaiter } },
+      );
+      expect(agent.opts.waitForActionReady?.createWaiter).toBe(createWaiter);
+      expect(createWaiter).not.toHaveBeenCalled();
+      expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith({
+        timeout: 4321,
       });
-      await Promise.race([hookStarted, pending]);
-      expect(events).toEqual(['goto', 'ready']);
-      expect(returned).toBe(false);
-      expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
-      finish();
-      const { agent } = await pending;
-      await agent._ensureInitialPageReady();
-      expect(handler).toHaveBeenCalledOnce();
-      await agent.page.afterInvokeAction('Tap', {});
+      await agent.page.defaultActionWait('Tap', {});
       expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith(
         expect.objectContaining({ timeout: 4321 }),
       );
-      expect(handler).toHaveBeenCalledOnce();
-      if ('setActivePage' in agent) {
-        const nextPage = createPageMock();
-        await agent.setActivePage(nextPage as unknown as Page);
-        await agent.evaluateJavaScript('document.title');
-        expect(handler).toHaveBeenCalledOnce();
-      }
       await agent.destroy();
     },
   );
 
-  it('does not invoke initial readiness when navigation fails', async () => {
-    const handler = rs.fn(async () => {});
-    pageMock.goto.mockRejectedValueOnce(new Error('navigation failed'));
-    await expect(
-      puppeteerAgentForTarget(
-        { url: 'https://example.invalid' },
-        { generateReport: false, waitForInitialPageReady: { handler } },
-      ),
-    ).rejects.toThrow('navigation failed');
-    expect(handler).not.toHaveBeenCalled();
-    expect(browserMock.close).toHaveBeenCalledOnce();
-  });
-
-  it('fails startup and cleans up when initial readiness fails, regardless of network error policy', async () => {
-    const handler = rs.fn(async () => {
-      throw new Error('bootstrap failed');
-    });
-    await expect(
-      puppeteerAgentForTarget(
-        {
-          url: 'https://example.com',
-          waitForNetworkIdle: { continueOnNetworkIdleError: true },
-        },
-        { generateReport: false, waitForInitialPageReady: { handler } },
-      ),
-    ).rejects.toThrow('waitForInitialPageReady failed: bootstrap failed');
-    expect(handler).toHaveBeenCalledOnce();
-    expect(pageMock.waitForNetworkIdle).not.toHaveBeenCalled();
-    expect(browserMock.close).toHaveBeenCalledOnce();
-  });
-
-  it('keeps the initial network-idle wait without a custom hook', async () => {
+  it('keeps the launcher initial network-idle wait', async () => {
     const { agent } = await puppeteerAgentForTarget(
       { url: 'https://example.com', waitForNetworkIdle: { timeout: 1234 } },
       { generateReport: false },

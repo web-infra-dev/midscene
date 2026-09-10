@@ -369,7 +369,6 @@ async function preparePuppeteerPage(
 async function navigatePuppeteerPage(
   page: Page,
   target: MidsceneYamlScriptWebEnv,
-  ensureInitialPageReady?: () => Promise<void>,
 ): Promise<void> {
   const waitForNetworkIdleTimeout =
     typeof target.waitForNetworkIdle?.timeout === 'number'
@@ -378,11 +377,6 @@ async function navigatePuppeteerPage(
 
   launcherDebug('goto', target.url);
   await page.goto(target.url);
-
-  if (ensureInitialPageReady) {
-    await ensureInitialPageReady();
-    return;
-  }
 
   if (waitForNetworkIdleTimeout <= 0) {
     return;
@@ -450,7 +444,7 @@ export async function puppeteerAgentForTarget(
       | 'replanningCycleLimit'
       | 'cache'
       | 'aiActionContext'
-      | 'waitForInitialPageReady'
+      | 'waitForActionReady'
     >
   >,
   browser?: Browser,
@@ -525,13 +519,7 @@ export async function puppeteerAgentForTarget(
       });
     }
 
-    await navigatePuppeteerPage(
-      page,
-      target,
-      preference?.waitForInitialPageReady
-        ? () => agent!._ensureInitialPageReady()
-        : undefined,
-    );
+    await navigatePuppeteerPage(page, target);
   } catch (error) {
     const failedLaunchCleanup = pageOwnership
       ? [

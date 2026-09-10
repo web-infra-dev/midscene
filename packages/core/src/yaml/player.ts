@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { isActionReadinessError } from '@/agent/action-readiness';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import { type ZodTypeAny, z } from 'zod';
 
@@ -164,6 +165,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }>,
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
     scriptPath?: string,
+    private readonly abortSignal?: AbortSignal,
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
@@ -289,6 +291,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     assert(flow, 'missing flow in task');
 
     for (const flowItemIndex in flow) {
+      this.abortSignal?.throwIfAborted();
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
       const flowItem = flow[flowItemIndex] as RuntimeYamlFlowItem;
@@ -316,6 +319,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       executionCountBefore,
     );
     return deriveCaseStatus(executions) === 'failed';
+  }
+
+  private callAction(agent: Agent, name: string, param: any) {
+    return this.abortSignal
+      ? agent.callActionInActionSpace(name, param, this.abortSignal)
+      : agent.callActionInActionSpace(name, param);
   }
 
   private async playFlowItem(
@@ -367,7 +376,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
 
       assert(promptForAI, 'missing prompt for ai (aiAct)');
-      await agent.aiAct(promptForAI, actionOptions);
+      await agent.aiAct(promptForAI, {
+        ...actionOptions,
+        ...(this.abortSignal ? { abortSignal: this.abortSignal } : {}),
+      });
     } else if (
       'runGherkinScenario' in
       (flowItem as MidsceneYamlFlowItemRunGherkinScenario)
@@ -490,7 +502,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
 
       // Convert value to string for Input action
-      await agent.callActionInActionSpace('Input', {
+      await this.callAction(agent, 'Input', {
         ...inputTask,
         ...(value !== undefined ? { value: String(value) } : {}),
         ...(locatePrompt
@@ -519,7 +531,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         keyName = aiKeyboardPress as string;
       }
 
-      await agent.callActionInActionSpace('KeyboardPress', {
+      await this.callAction(agent, 'KeyboardPress', {
         ...keyboardPressTask,
         ...(keyName ? { keyName } : {}),
         ...(locatePrompt
@@ -667,7 +679,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `matchedAction: ${matchedAction.name}`,
           `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
         );
-        const result = await agent.callActionInActionSpace(
+        const result = await this.callAction(
+          agent,
           matchedAction.name,
           specialActionParamToCall,
         );
@@ -701,7 +714,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(stringParamToCall)}`,
           );
-          const result = await agent.callActionInActionSpace(
+          const result = await this.callAction(
+            agent,
             matchedAction.name,
             stringParamToCall,
           );
@@ -744,7 +758,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `matchedAction: ${matchedAction.name}`,
           `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
         );
-        const result = await agent.callActionInActionSpace(
+        const result = await this.callAction(
+          agent,
           matchedAction.name,
           flowParams,
         );
@@ -835,7 +850,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           }
         }
 
-        if (taskStatus.continueOnError) {
+        if (
+          taskStatus.continueOnError &&
+          !this.abortSignal?.aborted &&
+          !isActionReadinessError(e)
+        ) {
           // nothing more to do
         } else {
           this.reportFile = agent.reportFile;

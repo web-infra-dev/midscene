@@ -1,4 +1,6 @@
 import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+import type { ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
@@ -67,6 +69,32 @@ describe('HarmonyDevice', () => {
   afterEach(async () => {
     if (device) {
       await device.destroy();
+    }
+  });
+
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
     }
   });
 
