@@ -535,7 +535,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           repeat:
             type: number
             optional: true
-            description: The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)
+            description: The number of times to repeat the swipe gesture. 1 for default, 0 for continuous mode capped at 10 repeats
         sample: |-
           <action-type>Swipe</action-type>
           <action-param-json>
