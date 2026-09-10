@@ -22,6 +22,9 @@
     },
     {
       "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
     }
   ]
 }
