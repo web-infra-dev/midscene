@@ -634,7 +634,7 @@ export const actionScrollParamSchema = z.object({
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
     .describe(
-      'The direction to scroll. Only effective when scrollType is "singleAction".',
+      'The direction toward the off-screen content to reveal. "down" reveals content below the current viewport, "up" reveals content above, "right" reveals content to the right, and "left" reveals content to the left. This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()
@@ -654,7 +654,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
+      'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     sample: {
@@ -855,7 +855,7 @@ export const defineActionSwipe = (config: {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+      'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },

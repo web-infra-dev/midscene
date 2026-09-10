@@ -11,6 +11,7 @@ import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-resu
 import {
   defineActionInput,
   defineActionKeyboardPress,
+  defineActionScroll,
   defineActionSwipe,
 } from '@/device';
 import { getMidsceneLocationSchema } from '@/index';
@@ -492,7 +493,27 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     `);
   });
 
-  it('swipe action explains touch slider use', () => {
+  it('scroll action defines direction by the content to reveal', () => {
+    const { actionDescription: action } = buildActionDescriptions(
+      defineActionScroll(async () => {}),
+    );
+
+    expect(action.description).toContain(
+      'Use Scroll when the goal is to browse content outside the current viewport.',
+    );
+    expect(action.description).toContain('For direct gesture interactions');
+    expect(action.param.direction.description).toContain(
+      'The direction toward the off-screen content to reveal.',
+    );
+    expect(action.param.direction.description).toContain(
+      '"down" reveals content below the current viewport',
+    );
+    expect(action.param.direction.description).toContain(
+      'This does not describe the movement direction of the content currently visible on the screen.',
+    );
+  });
+
+  it('swipe action explains direct gesture controls', () => {
     const { actionDescription: action, actionSpaceDescription } =
       buildActionDescriptions(
         defineActionSwipe({
@@ -502,14 +523,14 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
       );
 
     expect(action.description).toContain(
-      'adjust a continuous control such as a slider',
+      'adjust a continuous control such as a slider or wheel picker',
     );
     expect(action.description).toContain(
       'Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
     );
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Swipe
-        description: Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.
+        description: Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.
         param:
           start:
             type: '{ prompt: string /* description of the target element */ }'
