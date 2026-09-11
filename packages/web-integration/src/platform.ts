@@ -46,7 +46,10 @@ export const webPlaygroundPlatform = definePlaygroundPlatform<
       title: options?.title || 'Midscene Web Playground',
       agent: agent || (!agentFactory ? createDefaultWebAgent() : undefined),
       agentFactory,
-      launchOptions: options?.launchOptions,
+      launchOptions: {
+        enableCors: true,
+        ...options?.launchOptions,
+      },
       preview:
         options?.preview ||
         createMjpegPreviewDescriptor({
