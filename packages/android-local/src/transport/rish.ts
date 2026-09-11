@@ -12,7 +12,11 @@ import {
   joinShellCommand,
   quoteShellArg,
 } from './command-runner';
-import { AndroidTransportError, toAndroidTransportError } from './errors';
+import {
+  AndroidTransportError,
+  isAndroidTransportError,
+  toAndroidTransportError,
+} from './errors';
 import { findDisplay, parseDisplays } from './parsers/display';
 import { Semaphore } from './semaphore';
 import type {
@@ -72,27 +76,34 @@ export const DEFAULT_UNSET_ENV = ['LD_LIBRARY_PATH', 'LD_PRELOAD'];
  */
 export const CAPABILITY_PROBE_ATTEMPTS = 2;
 
-/** Directory used for the on-device file channel. */
-export const DEFAULT_FILE_CHANNEL_DIR = '/data/local/tmp';
+/**
+ * Directory used for the on-device file channel.
+ *
+ * Created by the shell uid with mode 0755 (the agent only needs to read it).
+ * Phase 2 replaces this with an app-private directory or fd passing through the
+ * Shizuku UserService.
+ */
+export const DEFAULT_FILE_CHANNEL_DIR = '/data/local/tmp/midscene-channel';
+
+/** Fixed channel file names: one in-flight file per purpose, no leftovers. */
+const SCREENSHOT_CHANNEL_FILE = 'shot.png';
+const TEXT_CHANNEL_FILE = 'shell.txt';
 
 /**
  * Filesystem seam for the on-device file channel. Tests inject a fake so the
  * transport stays device-free.
+ *
+ * There is deliberately no `remove`: SELinux forbids the app uid from writing
+ * or deleting anything under `/data/local/tmp` (measured — a 0777 directory is
+ * not enough, `touch`/`rm` both fail with EACCES while reads succeed), so the
+ * shell removes its own file inside the same command that writes it.
  */
 export interface ShellFileIo {
   read(filePath: string): Promise<Buffer>;
-  remove(filePath: string): Promise<void>;
 }
 
 const nodeFileIo: ShellFileIo = {
   read: (filePath) => fs.promises.readFile(filePath),
-  remove: async (filePath) => {
-    try {
-      await fs.promises.unlink(filePath);
-    } catch {
-      // Best effort: a leaked transient file must never fail a screenshot.
-    }
-  },
 };
 
 /**
@@ -172,6 +183,12 @@ export class RishTransport implements AndroidTransport {
   private readonly unsetEnv: string[];
   private readonly fileChannelDir: string;
   private readonly fileIo: ShellFileIo;
+  private channelDirPromise?: Promise<void>;
+  /**
+   * The file channel uses one fixed path per purpose, so only one operation may
+   * use it at a time; the shell replaces the file on every call.
+   */
+  private readonly fileChannelLock = new Semaphore(1);
 
   private capabilities?: AndroidCapabilities;
   private capabilitiesPromise?: Promise<AndroidCapabilities>;
@@ -418,7 +435,7 @@ export class RishTransport implements AndroidTransport {
     try {
       const result = await this.runToFile(`screencap -p${displayArg}`, {
         timeoutMs,
-        suffix: '.png',
+        fileName: SCREENSHOT_CHANNEL_FILE,
         writeMode: 'argument',
       });
 
@@ -784,6 +801,40 @@ export class RishTransport implements AndroidTransport {
   }
 
   /**
+   * Create the channel directory once, world-writable so the shell uid can
+   * write into it and this process can delete from it.
+   */
+  private async ensureChannelDir(): Promise<void> {
+    if (!this.channelDirPromise) {
+      this.channelDirPromise = (async () => {
+        const outcome = await this.execute(
+          `mkdir -p ${quoteShellArg(this.fileChannelDir)} && chmod 0755 ${quoteShellArg(this.fileChannelDir)}`,
+          { timeoutMs: this.defaultTimeoutMs },
+        );
+
+        if (outcome.exitCode !== 0) {
+          throw new AndroidTransportError(
+            `Unable to prepare the file channel directory ${this.fileChannelDir}`,
+            {
+              code: 'CommandFailed',
+              backend: this.backend,
+              command: `mkdir -p ${this.fileChannelDir}`,
+              exitCode: outcome.exitCode,
+              stderr: combinedOutputText(outcome).trim(),
+            },
+          );
+        }
+      })().catch((error) => {
+        // Allow a later call to retry after a transient failure.
+        this.channelDirPromise = undefined;
+        throw error;
+      });
+    }
+
+    await this.channelDirPromise;
+  }
+
+  /**
    * Run a command whose stdout must survive intact by writing it to an
    * on-device file and reading that file from this (on-device) process.
    *
@@ -795,44 +846,57 @@ export class RishTransport implements AndroidTransport {
     command: string,
     options: {
       timeoutMs?: number;
-      suffix?: string;
+      fileName: string;
       writeMode: 'argument' | 'redirect';
     },
   ): Promise<{ filePath: string; buffer: Buffer }> {
-    const filePath = path.posix.join(
-      this.fileChannelDir,
-      `midscene-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${options.suffix ?? '.out'}`,
-    );
-    const fullCommand =
+    await this.ensureChannelDir();
+
+    const filePath = path.posix.join(this.fileChannelDir, options.fileName);
+    const writeCommand =
       options.writeMode === 'argument'
         ? `${command} ${quoteShellArg(filePath)}`
         : `${command} > ${quoteShellArg(filePath)}`;
+    // `rm -f` first, inside the same shell command: the shell may delete its own
+    // file, this keeps exactly one file per purpose, and a failed write can
+    // never be mistaken for the previous frame (the file would be absent).
+    const fullCommand = `rm -f ${quoteShellArg(filePath)} && ${writeCommand}`;
 
-    try {
-      const outcome = await this.execute(fullCommand, {
-        timeoutMs: options.timeoutMs,
-      });
+    return await this.fileChannelLock.run(async () => {
+      try {
+        const outcome = await this.execute(fullCommand, {
+          timeoutMs: options.timeoutMs,
+        });
 
-      if (outcome.exitCode !== 0) {
-        const detail = combinedOutputText(outcome).trim();
-        throw new AndroidTransportError(
-          `Command failed while writing to the file channel (exit ${outcome.exitCode})${
-            detail ? `: ${detail}` : ''
-          }`,
-          {
-            code: 'CommandFailed',
-            backend: this.backend,
-            command: fullCommand,
-            exitCode: outcome.exitCode,
-            stderr: detail,
-          },
-        );
+        if (outcome.exitCode !== 0) {
+          const detail = combinedOutputText(outcome).trim();
+          throw new AndroidTransportError(
+            `Command failed while writing to the file channel (exit ${outcome.exitCode})${
+              detail ? `: ${detail}` : ''
+            }`,
+            {
+              code: 'CommandFailed',
+              backend: this.backend,
+              command: fullCommand,
+              exitCode: outcome.exitCode,
+              stderr: detail,
+            },
+          );
+        }
+
+        return { filePath, buffer: await this.fileIo.read(filePath) };
+      } catch (error) {
+        if (isAndroidTransportError(error)) {
+          throw error;
+        }
+        throw toAndroidTransportError(error, {
+          code: 'CommandFailed',
+          backend: this.backend,
+          message: 'Unable to read the file channel payload',
+          command: fullCommand,
+        });
       }
-
-      return { filePath, buffer: await this.fileIo.read(filePath) };
-    } finally {
-      await this.fileIo.remove(filePath);
-    }
+    });
   }
 
   /**
@@ -845,7 +909,7 @@ export class RishTransport implements AndroidTransport {
   ): Promise<string> {
     const { buffer } = await this.runToFile(command, {
       timeoutMs: options.timeoutMs,
-      suffix: '.txt',
+      fileName: TEXT_CHANNEL_FILE,
       writeMode: 'redirect',
     });
 

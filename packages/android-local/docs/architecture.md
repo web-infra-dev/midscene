@@ -155,7 +155,8 @@ type AndroidTransportErrorCode =
 | --- | --- |
 | 启动方式 | 默认 `spawn('sh', [rishPath, '-c', cmd])`（`useShLauncher: true`）；Shizuku 13.6.0 的 rish 只需 `rish` + `rish_shizuku.dex` 同目录，Android 14+ 需 dex 非可写（chmod 400） |
 | **环境净化** | 子进程剥离 `LD_LIBRARY_PATH` / `LD_PRELOAD`（默认 `DEFAULT_UNSET_ENV`）。Termux 注入的前缀 lib 会让 `app_process` 链接失败：`cannot locate symbol "Xzs_Construct" referenced by /system/lib64/libunwindstack.so` |
-| **大 payload 通道** | **文件通道**：shell 写 `/data/local/tmp/midscene-<pid>-<ts>.png/.txt`，本机 Node 直接 `fs.readFile` 后立即删除。原因：rish 会把大输出拆到 stdout+stderr 两条管道（674KB PNG → 346KB + 328KB），任何管道方案都会截断 |
+| **大 payload 通道** | **文件通道**：shell 写 `<fileChannelDir>/shot.png` 或 `shell.txt`，本机 Node 直接 `fs.readFile`。原因：rish 会把大输出拆到 stdout+stderr 两条管道（674KB PNG → 346KB + 328KB），任何管道方案都会截断 |
+| **通道清理** | 由 shell 在同一条命令内完成：`rm -f <file> && <写入命令>`（SELinux 禁止 app uid 写/删 `/data/local/tmp`，即使目录 0777；实测 `touch`/`rm` 均 EACCES、读取正常）。固定文件名 + 进程内锁 ⇒ 无残留、不会读到陈旧帧、零额外 spawn |
 | **小输出读取** | `combinedOutputText()`：stdout 优先、为空则取 stderr（实测 `id -u` 曾整段跑到 stderr），并暴露为 `runShell().stdout` |
 | 截图 | `screencap -p [-d <displayId>] <file>` → 读取 → PNG/JPEG magic 校验 → 删除；失败时回退到 base64 管道（best-effort） |
 | 显示信息 | `dumpsys display > <file>`（约 21KB，必须走文件通道）+ `wm size` / `wm density`（小输出） |

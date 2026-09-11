@@ -34,6 +34,8 @@ function deviceResponses(): FakeCommandResponse[] {
     { match: ['wm size'], stdout: wmSize },
     { match: ['wm density'], stdout: wmDensity },
     { match: ['screencap'], stdout: '' },
+    { match: ['mkdir -p'], stdout: '' },
+    { match: ['rm -f'], stdout: '' },
     { match: ['date +'], stdout: '2026-09-11T22:55:00\n' },
     { match: [], stdout: '' },
   ];
@@ -49,9 +51,6 @@ function createFixtureFileIo(image: Buffer = PNG_BYTES) {
       return filePath.endsWith('.txt')
         ? Buffer.from(dumpsysDisplay, 'utf8')
         : Buffer.from(image);
-    },
-    async remove() {
-      return undefined;
     },
   };
 }

@@ -30,7 +30,7 @@
 | P0-3 ✅ | 设备侧 Node（POC 形态）：Termux `nodejs-lts` = Node v24.18.0 | 取证：`process.platform=android`、`process.arch=arm64`；`npm install @midscene/core@1.12.6` 在设备内完成（69 包 / 76MB） | ✅ 已达成，见 §9.2 C1 |
 | P0-4 ✅ | Shizuku + rish 部署（13.6.0 直接执行 `libshizuku.so`，rish 从 APK assets 提取） | 见 §9.1；已记录 LD_* 净化、`sh rish` vs 直接执行、Termux 授权步骤 | ✅ `rish -c 'id -u'` = 2000（以 Termux uid 调用），见 §9.2 C7 |
 | P0-5 ✅ | `RishTransport` 真机验证（设备本机 Node + rish）：截图走**设备本地文件通道**、`input`、`dumpsys display` 解析 | 见 §9.2 C5/C6/C9/C10 | ✅ 连续 5 次截图全部成功、P50 2155ms（100 次连测留待 Phase 1） |
-| P0-6 | 端到端闭环：`packages/android-local/examples/closed-loop.mjs` + YAML（打开固定应用 → `aiTap` → screenshot → `aiAssert`），用 core `Agent` 包 `LocalAndroidDevice` | 样例脚本 + 运行录像/日志 + 指标 | 无外部 ADB Host 依赖（Shizuku 已启动的前提下）完成闭环 |
+| P0-6 ✅ | 端到端 AI 闭环（见 §9.2 C11）：设备本机 Node 上 `Agent(LocalAndroidDevice)` 完成感知→动作→断言 | 步骤与耗时：4.2s / 7.0s / 4.0s / 5.8s，共 21.9s | ✅ 控制路径无 adb；样例脚本待整理进 `examples/`（Phase 1） |
 | P0-7 | Gate 结论回填 | 更新本文档 §7 状态表与 README 进度 | G0/G1 明确「通过 / 未通过 + 证据」 |
 
 ### 2.3 指标记录模板（P0-5/P0-6）
@@ -93,7 +93,7 @@
 | Gate | 通过条件 | 未通过时的决策 | 状态 |
 | --- | --- | --- | --- |
 | G0 Core Runtime | 设备侧 Node 22/24 能启动 Midscene Core，基础依赖完整（含图片后端回退） | 定位不可用依赖；评估 bundle/patch；必要时建立 Android 精简入口 | **通过**：Node v24.18.0 + Core 各入口 import 成功 + wasm sharp 覆盖图像链路（§9.2 C1–C3） |
-| G1 Device Closed Loop | 截图 + 输入 + AI 动作闭环稳定 | 对比 Accessibility / MediaProjection 或目标设备 OEM 权限 | **设备侧已验证**（截图+输入+13 动作，§9.2 C10）；AI 闭环（P0-6）进行中 |
+| G1 Device Closed Loop | 截图 + 输入 + AI 动作闭环稳定 | 对比 Accessibility / MediaProjection 或目标设备 OEM 权限 | **通过**：设备本机完成 `screenshot → aiAssert → aiTap → aiAssert`（复现 2 次，§9.2 C11）；长稳与车机验证待补（C13） |
 | G2 Embedded Node | APK 内 Node runtime 可稳定启动 / 停止 / 恢复 | 评估 sidecar / system daemon；不影响 Transport 接口 | 未开始 |
 | G3 Privilege Model | 确定 Shizuku 是否满足部署与重启要求 | 切换 OEM privileged / system app 路线 | 未开始 |
 
@@ -133,15 +133,18 @@
 | C3 | **sharp 官方 WASM 实现可用（P0-2 的解法）** | `npm install --cpu=wasm32 sharp@0.34.3` → `@img/sharp-wasm32` 8.9MB；metadata/jpeg/resize/extract/extend 全部通过；`@midscene/shared` 四个图像函数全绿（crop 56ms / resize 386ms / pad 241ms / jpeg 1365ms），**无需修改任何调用点** |
 | C4 | **photon 不能作为 Node 回退** | `@silvia-odwyer/photon@0.3.3` 只有 `module` 字段、没有 `main`/`exports`，纯 Node 解析失败；且 `getPhoton()` 在 Node 下被显式拒绝（browser/worker only） |
 | C5 | **rish 不能承载大 payload** | 674KB PNG 被拆到两条管道（stdout 346KB + stderr 328KB）；base64 同理（445KB + 454KB）；小输出也可能整段跑到 stderr（`id -u` → stdout 空、stderr `2000`） |
-| C6 | **设备本地文件通道是可靠替代** | `screencap -p <file>` → **674263B 完整 PNG**；`dumpsys display > <file>` → 21196B 完整（含 2 条 `DisplayDeviceInfo`）；文件 `shell:shell -rw-rw-r--`，Termux uid 可读 → 本机化相对 ADB 的独有优势 |
+| C6 | **设备本地文件通道是可靠替代** | `screencap -p <file>` → **674263B 完整 PNG**；`dumpsys display > <file>` → 21196B 完整（含 2 条 `DisplayDeviceInfo`）→ 本机化相对 ADB 的独有优势 |
+| C14 | **SELinux 禁止 app 写/删 `/data/local/tmp`** | 目录即使 `chmod 0777`，Termux uid 的 `touch`/`rm` 仍 `Permission denied`（**读可以**）；因此清理必须由 shell 完成 → 通道改为**固定文件名 + 同一条命令内 `rm -f <file> && <写入>`**（零额外 spawn、无残留、写失败时文件不存在所以不会读到陈旧帧），并用进程内锁串行化 |
 | C7 | **Termux 的 `LD_LIBRARY_PATH` 会破坏 rish** | 子进程继承后 `app_process` 去链 Termux 的 lib：`cannot locate symbol "Xzs_Construct" referenced by /system/lib64/libunwindstack.so` → transport 必须净化环境 |
 | C8 | **并发 rish spawn 会造成瞬时失败** | 6 个并发 app_process 下 `command -v input` 返回非零（单独执行 445ms 成功）→ 探测必须串行 + 重试一次：串行化后动作空间 13 个动作全部就绪 |
-| C9 | **性能基线（2 核模拟器）** | 单次 rish spawn `id -u` 1.6–1.8s；`command -v` 0.4–1.0s；`dumpsys display` 0.4s；截图（文件通道 + 读取）**P50 2155ms**（2087–2276，5 次稳定，673KB）；输入（keyevent）470ms；healthCheck 3.75s |
+| C9 | **性能基线（2 核模拟器，负载相关）** | 单次 rish spawn：空载 `healthCheck`(id -u) **130ms**、探测期 0.4–1.8s（设备繁忙时显著变慢）；截图（文件通道）**P50 463–464ms**（两次复测一致，674KB PNG，含 spawn+写盘+读取）；输入 keyevent 470ms；`dumpsys display` 约 0.4s。**结论：spawn 成本受设备负载影响极大，Phase 1 仍需减少 spawn 次数** |
 | C10 | **本机闭环成立** | 设备本机 Node（Termux uid 10149）→ rish → shell(2000)：能力探测全绿、`LocalAndroidDevice` 13 个动作、连续 5 次截图全部成功且校验为合法 PNG → **P0-5 通过** |
+| C11 | **AI 闭环成立（G1 通过，复现 2 次）** | 设备本机 Node 上 `Agent(LocalAndroidDevice)` 完成：`startActivity(Settings)` → `aiAssert(Settings 已打开)` ✅ → `aiTap(Battery 条目)` ✅ → `aiAssert(电池页面)` ✅。两次运行分别 **21.9s / 59.6s**（模型延迟波动主导：单步 4–7s vs 12–19s），全程控制路径无 adb |
+| C12 | **AI 往返分解** | 单步 = 截图 0.46s（文件通道）+ wasm sharp 缩放 + 模型往返（主导，4–19s 波动）；端到端已可用，模型延迟与截图流是 Phase 3 的优化重点 |
+| C13 | **资源裕度不足会掉到 FallbackHome** | 2GB 内存的模拟器在 Node + Termux + 多次 app_process 并发后，display 0 会回到 `com.android.settings/.FallbackHome`（"Pixel is starting…"）；AI 断言如实失败（模型判断正确），说明**稳定性风险真实存在**，需在车机上做长稳测试 |
 
 ### 9.3 待补项
 
 - P0-1 依赖审计：把「可用 / 需回退 / 阻塞」三分类整理成表（本轮已覆盖图像链路，其余依赖待补）。
-- P0-6：接入模型跑 `screenshot → aiTap → aiAssert`（G1）。
 - Android 14+ 的 rish/DEX 限制、多 Display 车机场景、车机网络/证书策略，均需目标设备补充验证。
 - 临时文件：POC 的截图/大文本走 `/data/local/tmp` 瞬时文件（读完即删），Phase 2 用 Shizuku UserService + FD/LocalSocket 消除。

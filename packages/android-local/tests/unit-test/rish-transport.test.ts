@@ -32,6 +32,8 @@ function deviceResponses(): FakeCommandResponse[] {
     { match: ['dumpsys display'], stdout: dumpsysDisplay },
     { match: ['wm size'], stdout: wmSize },
     { match: ['wm density'], stdout: wmDensity },
+    { match: ['mkdir -p'], stdout: '' },
+    { match: ['rm -f'], stdout: '' },
   ];
 }
 
@@ -46,11 +48,9 @@ function createFixtureFileIo(options: { image?: Buffer; text?: string } = {}) {
   const image = options.image ?? PNG_BYTES;
   const text = options.text ?? dumpsysDisplay;
   const reads: string[] = [];
-  const removals: string[] = [];
 
   return {
     reads,
-    removals,
     io: {
       async read(filePath: string) {
         reads.push(filePath);
@@ -58,25 +58,23 @@ function createFixtureFileIo(options: { image?: Buffer; text?: string } = {}) {
           ? Buffer.from(text, 'utf8')
           : Buffer.from(image);
       },
-      async remove(filePath: string) {
-        removals.push(filePath);
-      },
     },
   };
 }
 
-/** Responses for the file-channel path: screencap succeeds, bytes come from the fake FS. */
+/** Responses for the file-channel path: mkdir + screencap succeed, bytes come from the fake FS. */
 function screenResponses(): FakeCommandResponse[] {
-  return [{ match: ['screencap'], stdout: '' }];
+  return [
+    { match: ['mkdir -p'], stdout: '' },
+    { match: ['rm -f'], stdout: '' },
+    { match: ['screencap'], stdout: '' },
+  ];
 }
 
 interface CreateTransportOptions {
   displayId?: number;
   displayCacheTtlMs?: number;
-  fileIo?: {
-    read(filePath: string): Promise<Buffer>;
-    remove(filePath: string): Promise<void>;
-  };
+  fileIo?: { read(filePath: string): Promise<Buffer> };
   unsetEnv?: string[];
 }
 
@@ -344,23 +342,29 @@ describe('RishTransport screenshot', () => {
     const buffer = await transport.screenshot();
 
     expect(buffer.equals(PNG_BYTES)).toBe(true);
-    const command = runner.calls[0]?.argv[3] ?? '';
-    expect(command).toMatch(
-      /^screencap -p '\/data\/local\/tmp\/midscene-.*\.png'$/,
+    expect(runner.commands[0]).toContain('mkdir -p');
+    expect(runner.commands[0]).toContain('/data/local/tmp/midscene-channel');
+    // Fixed path per purpose, removed by the shell inside the same command.
+    expect(runner.calls[1]?.argv[3]).toBe(
+      "rm -f '/data/local/tmp/midscene-channel/shot.png' && screencap -p '/data/local/tmp/midscene-channel/shot.png'",
     );
-    // The transient file is read exactly once and then removed.
-    expect(fileIo.reads).toHaveLength(1);
-    expect(fileIo.removals).toEqual(fileIo.reads);
+    expect(fileIo.reads).toEqual(['/data/local/tmp/midscene-channel/shot.png']);
   });
 
-  test('does not pipe pixels through rish on the happy path', async () => {
+  test('does not pipe pixels through rish on the happy path and prepares the channel once', async () => {
     const { runner, transport } = createTransport(screenResponses());
 
     await transport.screenshot();
+    await transport.screenshot();
 
-    expect(runner.calls).toHaveLength(1);
-    expect(runner.commands[0]).not.toContain('base64');
-    expect(runner.commands[0]).not.toContain('|');
+    const mkdirCalls = runner.commands.filter((command) =>
+      command.includes('mkdir -p'),
+    );
+    expect(mkdirCalls).toHaveLength(1);
+    for (const command of runner.commands) {
+      expect(command).not.toContain('base64');
+      expect(command).not.toContain('|');
+    }
   });
 
   test('targets the requested display', async () => {
@@ -368,7 +372,8 @@ describe('RishTransport screenshot', () => {
 
     await transport.screenshot({ displayId: 10 });
 
-    expect(runner.calls[0]?.argv[3]).toContain("screencap -p -d 10 '");
+    expect(runner.calls[1]?.argv[3]).toContain("screencap -p -d 10 '");
+    expect(runner.calls[1]?.argv[3]).toContain('/midscene-channel/shot.png');
   });
 
   test('uses the transport default display when the caller omits it', async () => {
@@ -378,7 +383,7 @@ describe('RishTransport screenshot', () => {
 
     await transport.screenshot();
 
-    expect(runner.calls[0]?.argv[3]).toContain('screencap -p -d 1');
+    expect(runner.calls[1]?.argv[3]).toContain('screencap -p -d 1');
   });
 
   test('accepts a JPEG payload', async () => {
@@ -400,6 +405,7 @@ describe('RishTransport screenshot', () => {
     };
     const { runner, transport } = createTransport(
       [
+        { match: ['mkdir -p'], stdout: '' },
         { match: ['| base64 -w0'], stdout: PNG_BYTES.toString('base64') },
         { match: ['screencap'], stdout: '' },
       ],
@@ -409,9 +415,9 @@ describe('RishTransport screenshot', () => {
     const buffer = await transport.screenshot();
 
     expect(buffer.equals(PNG_BYTES)).toBe(true);
-    expect(fileIo.removals).toHaveLength(1);
-    expect(runner.calls).toHaveLength(2);
-    expect(runner.commands[1]).toContain('base64');
+    // mkdir + (rm -f && screencap) + the base64 pipe fallback
+    expect(runner.commands).toHaveLength(3);
+    expect(runner.commands.at(-1)).toContain('base64');
   });
 
   test('fails with ScreenshotFailed when every channel fails', async () => {
@@ -419,6 +425,7 @@ describe('RishTransport screenshot', () => {
     fileIo.io.read = async () => Buffer.from('not an image');
     const { transport } = createTransport(
       [
+        { match: ['mkdir -p'], stdout: '' },
         { match: ['| base64 -w0'], stdout: 'still-not-an-image' },
         { match: ['screencap'], stdout: '' },
       ],
@@ -435,6 +442,7 @@ describe('RishTransport screenshot', () => {
 
   test('surfaces a timeout instead of falling back blindly', async () => {
     const { runner, transport } = createTransport([
+      { match: ['mkdir -p'], stdout: '' },
       { match: ['screencap'], failure: { kind: 'timeout' } },
     ]);
 
@@ -443,13 +451,15 @@ describe('RishTransport screenshot', () => {
       .catch((caught: unknown) => caught);
 
     expect((error as { code?: string }).code).toBe('Timeout');
-    expect(runner.calls).toHaveLength(1);
+    // mkdir + (rm -f && screencap); the pipe fallback is skipped by design.
+    expect(runner.commands).toHaveLength(2);
   });
 
   test('reports a non-zero screencap as a failure', async () => {
     const { transport } = createTransport([
-      { match: ['screencap'], exitCode: 1, stderr: 'permission denied' },
+      { match: ['mkdir -p'], stdout: '' },
       { match: ['| base64 -w0'], exitCode: 1, stderr: 'permission denied' },
+      { match: ['screencap'], exitCode: 1, stderr: 'permission denied' },
     ]);
 
     const error = await transport
@@ -521,6 +531,7 @@ describe('RishTransport display information', () => {
 
   test('reports CommandFailed when dumpsys itself fails', async () => {
     const { transport } = createTransport([
+      { match: ['mkdir -p'], stdout: '' },
       { match: ['dumpsys display'], exitCode: 1, stderr: 'died' },
       { match: ['wm size'], stdout: wmSize },
       { match: ['wm density'], stdout: wmDensity },
