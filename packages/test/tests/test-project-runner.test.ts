@@ -1771,7 +1771,7 @@ cases:
               stringInputKey: 'prompt',
               execute({ onTeardown }) {
                 state.events.push('beforeAll');
-                onTeardown(() => state.events.push('node-teardown'));
+                onTeardown(() => { state.events.push('node-teardown'); });
                 throw new Error('beforeAll failed');
               },
             },
@@ -1832,12 +1832,7 @@ afterAll:
   });
 
   it('rejects scheduling options that are not supported as CLI overrides', () => {
-    for (const option of [
-      '--parallel',
-      '--max-concurrency',
-      '--retry',
-      '--bail',
-    ]) {
+    for (const option of ['--parallel', '--max-concurrency', '--bail']) {
       expect(() => parseTestCliArgs([option], '/workspace')).toThrow(
         `Unknown option: ${option}`,
       );

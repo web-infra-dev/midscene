@@ -1,3 +1,5 @@
+import type { MidsceneYamlConfigResult } from '@midscene/core';
+import type { WorkflowExecutionRecord } from '@midscene/core/internal/test-runner';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
@@ -8,6 +10,7 @@ import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
   documentId: string;
+  documentRunId?: string;
 };
 
 export interface TestProjectCollectionError {
@@ -31,6 +34,7 @@ export interface TestProjectRunSummary {
 export interface TestExecutionProjectRunResult {
   projectId: string;
   name: string;
+  platform: string;
   status: 'success' | 'failed';
   retry: number;
   fileSelection: TestFileSelection;
@@ -42,6 +46,8 @@ export interface TestExecutionProjectRunResult {
   cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
+  /** Complete legacy invocations remain available even when their sidecars fail. */
+  executionRecords?: readonly WorkflowExecutionRecord[];
 }
 
 export interface TestProjectRunResult {
@@ -62,4 +68,8 @@ export interface TestProjectRunResult {
   cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
+  /** Infrastructure/publication failures; completed Case results stay intact. */
+  errors?: readonly WorkflowError[];
+  /** Public old-CLI view, projected from the same document attempts. */
+  legacyResults?: readonly MidsceneYamlConfigResult[];
 }

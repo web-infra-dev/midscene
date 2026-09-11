@@ -41,17 +41,32 @@ export const createCaseId = (
   projectId: string,
   sourcePath: string,
   caseIndex: number,
+  invocationIndex = 0,
 ): string =>
   createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath, caseIndex]))
+    .update(
+      JSON.stringify([
+        projectId,
+        sourcePath,
+        caseIndex,
+        ...(invocationIndex ? [invocationIndex] : []),
+      ]),
+    )
     .digest('hex');
 
 export const createWorkflowDocumentId = (
   projectId: string,
   sourcePath: string,
+  invocationIndex = 0,
 ): string =>
   createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath]))
+    .update(
+      JSON.stringify([
+        projectId,
+        sourcePath,
+        ...(invocationIndex ? [invocationIndex] : []),
+      ]),
+    )
     .digest('hex');
 
 export function collectWorkflowDocument(
@@ -144,9 +159,19 @@ export function collectWorkflowDocument(
     }
     rejectUnknownKeys(
       definition,
-      ['name', 'tags', 'steps'],
+      ['name', 'tags', 'steps', 'onFailure'],
       `Case ${caseIndex + 1}`,
     );
+    if (
+      definition.onFailure !== undefined &&
+      definition.onFailure !== 'continue' &&
+      definition.onFailure !== 'stop-document'
+    ) {
+      throw new WorkflowParseError(
+        `Case ${caseIndex + 1} onFailure must be continue or stop-document.`,
+        { caseIndex },
+      );
+    }
     if (
       typeof definition.name !== 'string' ||
       definition.name.trim().length === 0
@@ -184,7 +209,12 @@ export function collectWorkflowDocument(
         return resolveStepVariables(normalized, 'steps', stepIndex, caseIndex);
       },
     );
-    const caseId = createCaseId(source.projectId, sourcePath, caseIndex);
+    const caseId = createCaseId(
+      source.projectId,
+      sourcePath,
+      caseIndex,
+      source.invocationIndex,
+    );
     if (ids.has(caseId)) {
       throw new WorkflowParseError(`Case id collision: ${caseId}.`, {
         caseId,
@@ -200,13 +230,22 @@ export function collectWorkflowDocument(
       definition: {
         name: definition.name,
         tags: tags as string[],
+        ...(definition.onFailure === undefined
+          ? {}
+          : {
+              onFailure: definition.onFailure as 'continue' | 'stop-document',
+            }),
         steps,
       },
     };
   });
 
   return {
-    documentId: createWorkflowDocumentId(source.projectId, sourcePath),
+    documentId: createWorkflowDocumentId(
+      source.projectId,
+      sourcePath,
+      source.invocationIndex,
+    ),
     projectId: source.projectId,
     sourcePath,
     lifecycle,

@@ -26,6 +26,17 @@ const createConfig = (
 };
 
 describe('test project config', () => {
+  it.each([
+    '{}',
+    '{ getOptions: 42 }',
+    '{ getOptions() {}, unsupported: true }',
+  ])('rejects an invalid legacy host adapter: %s', async (legacy) => {
+    const { path } = createConfig(
+      `export default { nodes: [], legacy: ${legacy} };`,
+    );
+    await expect(loadTestProject(path)).rejects.toThrow(/legacy/);
+  });
+
   it('loads TypeScript syntax and Project file selection', async () => {
     const { path } = createConfig(`
       interface Config {
