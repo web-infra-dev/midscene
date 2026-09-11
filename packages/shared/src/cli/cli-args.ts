@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import type { ToolCliOption, ToolDefinition } from '../agent-tools/types';
 import { getKeyAliases } from '../key-alias-utils';
-import { getZodTypeName } from '../zod-schema-utils';
+import { getZodValueKinds } from '../zod-schema-utils';
 import { CLIError } from './cli-error';
+
+const cliNumberPattern = /^-?\d+(\.\d+)?$/;
 
 export function parseValue(raw: string): unknown {
   if (raw.startsWith('{') || raw.startsWith('[')) {
@@ -13,7 +15,7 @@ export function parseValue(raw: string): unknown {
     }
   }
 
-  if (/^-?\d+(\.\d+)?$/.test(raw)) {
+  if (cliNumberPattern.test(raw)) {
     return Number(raw);
   }
 
@@ -23,7 +25,7 @@ export function parseValue(raw: string): unknown {
 function walkCliArgs(
   args: string[],
   setArgValue: (key: string, value: unknown) => void,
-  def?: ToolDefinition,
+  fieldByCliName?: ReadonlyMap<string, z.ZodTypeAny>,
 ): void {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -34,45 +36,69 @@ function walkCliArgs(
 
     if (eqIdx >= 0) {
       const key = body.slice(0, eqIdx);
-      setArgValue(key, parseValueForCliField(body.slice(eqIdx + 1), key, def));
+      setArgValue(
+        key,
+        parseCliValue(body.slice(eqIdx + 1), fieldByCliName?.get(key)),
+      );
     } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
       i++;
-      setArgValue(body, parseValueForCliField(args[i], body, def));
+      setArgValue(body, parseCliValue(args[i], fieldByCliName?.get(body)));
     } else {
       setArgValue(body, true);
     }
   }
 }
 
-function findCliSchemaField(
+function buildCliFieldIndex(
   def: ToolDefinition,
-  cliKey: string,
-): z.ZodTypeAny | undefined {
+): ReadonlyMap<string, z.ZodTypeAny> {
+  const fieldByCliName = new Map<string, z.ZodTypeAny>();
+
   for (const [schemaKey, field] of Object.entries(def.schema)) {
-    if (
-      getAcceptedCliOptionNames(
-        schemaKey,
-        def.cli?.options?.[schemaKey],
-      ).includes(cliKey)
-    ) {
-      return field;
+    for (const cliName of getAcceptedCliOptionNames(
+      schemaKey,
+      def.cli?.options?.[schemaKey],
+    )) {
+      fieldByCliName.set(cliName, field);
     }
   }
 
-  return undefined;
+  return fieldByCliName;
 }
 
-function parseValueForCliField(
-  raw: string,
-  cliKey: string,
-  def?: ToolDefinition,
-): unknown {
-  const field = def ? findCliSchemaField(def, cliKey) : undefined;
-  if (field && getZodTypeName(field) === 'string') {
+function parseJsonValue(raw: string): unknown {
+  if (!raw.startsWith('{') && !raw.startsWith('[')) return raw;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
     return raw;
   }
+}
 
-  return parseValue(raw);
+function parseCliValue(raw: string, field?: z.ZodTypeAny): unknown {
+  if (!field) return parseValue(raw);
+
+  const kinds = getZodValueKinds(field);
+  if (kinds.has('object') || kinds.has('array')) {
+    const parsedJson = parseJsonValue(raw);
+    if (parsedJson !== raw) return parsedJson;
+  }
+
+  // CLI input cannot distinguish a numeric-looking identifier from a number.
+  // Prefer the lossless representation whenever the schema accepts strings.
+  if (kinds.has('string')) return raw;
+
+  if (kinds.has('number') && cliNumberPattern.test(raw)) {
+    return Number(raw);
+  }
+
+  if (kinds.has('boolean')) {
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+  }
+
+  return kinds.has('unknown') ? parseValue(raw) : raw;
 }
 
 export function parseCliArgs(
@@ -80,6 +106,7 @@ export function parseCliArgs(
   def?: ToolDefinition,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  const fieldByCliName = def ? buildCliFieldIndex(def) : undefined;
 
   walkCliArgs(
     args,
@@ -98,7 +125,7 @@ export function parseCliArgs(
 
       result[key] = [existing, value];
     },
-    def,
+    fieldByCliName,
   );
 
   return result;

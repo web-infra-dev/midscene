@@ -1,6 +1,7 @@
 import {
   getZodDescription,
   getZodTypeName,
+  getZodValueKinds,
   isMidsceneLocatorField,
   unwrapZodField,
 } from '@/zod-schema-utils';
@@ -121,6 +122,33 @@ describe('zod-schema-utils', () => {
       );
       expect(getZodTypeName(schema)).toBe(
         "enum('replace', 'clear', 'typeOnly')",
+      );
+    });
+  });
+
+  describe('getZodValueKinds', () => {
+    it('unwraps fields and identifies scalar kinds', () => {
+      expect(getZodValueKinds(z.string().optional())).toEqual(
+        new Set(['string']),
+      );
+      expect(getZodValueKinds(z.literal(3))).toEqual(new Set(['number']));
+      expect(getZodValueKinds(z.enum(['123', 'safe']))).toEqual(
+        new Set(['string']),
+      );
+    });
+
+    it('collects every kind accepted by a union', () => {
+      expect(
+        getZodValueKinds(
+          z.union([z.string(), z.number(), z.object({ prompt: z.string() })]),
+        ),
+      ).toEqual(new Set(['string', 'number', 'object']));
+    });
+
+    it('distinguishes structured schemas', () => {
+      expect(getZodValueKinds(z.array(z.string()))).toEqual(new Set(['array']));
+      expect(getZodValueKinds(z.record(z.string()))).toEqual(
+        new Set(['object']),
       );
     });
   });
