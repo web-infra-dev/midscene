@@ -143,7 +143,8 @@ export const getCaseStatus = (
 ): RunnerCaseStatus => {
   if (testCase.status === 'not-run') return 'not-run';
   if (testCase.status === 'failed') return 'failed';
-  return testCase.attempts.length > 1 ||
+  return (testCase.attempts.at(-1)?.attemptIndex ?? 0) > 0 ||
+    testCase.attempts.length > 1 ||
     testCase.attempts[0]?.status === 'failed'
     ? 'retry-passed'
     : 'passed';
@@ -183,7 +184,12 @@ export const flattenRunnerCases = (
           status,
           durationMs: getCaseDuration(testCase),
           firstPass: status === 'passed',
-          retryCount: Math.max(0, testCase.attempts.length - 1),
+          retryCount: Math.max(
+            0,
+            testCase.attempts.length - 1,
+            testCase.attempts.at(-1)?.attemptIndex ?? 0,
+            document.attemptIndex ?? 0,
+          ),
           finalAttempt: testCase.attempts.at(-1),
         });
       }
@@ -195,11 +201,15 @@ export const flattenRunnerCases = (
 export const getRunnerCaseStepTargets = (
   item: RunnerCaseView,
 ): RunnerStepTarget[] => [
-  ...item.document.beforeAll.map((step) => ({ item, step })),
+  ...(item.document.attempts ?? [item.document]).flatMap((document) =>
+    document.beforeAll.map((step) => ({ item, step })),
+  ),
   ...item.testCase.attempts.flatMap((attempt) =>
     flattenAttemptSteps(attempt).map((step) => ({ item, step })),
   ),
-  ...item.document.afterAll.map((step) => ({ item, step })),
+  ...(item.document.attempts ?? [item.document]).flatMap((document) =>
+    document.afterAll.map((step) => ({ item, step })),
+  ),
 ];
 
 /** Build the report-wide Step index while preserving each Step's display owner. */
@@ -222,7 +232,9 @@ export const buildRunnerStepIndex = (
       if (!firstCase || !lastCase) continue;
 
       result.push(
-        ...document.beforeAll.map((step) => ({ item: firstCase, step })),
+        ...(document.attempts ?? [document]).flatMap((attempt) =>
+          attempt.beforeAll.map((step) => ({ item: firstCase, step })),
+        ),
       );
       for (const item of documentCases) {
         result.push(
@@ -232,7 +244,9 @@ export const buildRunnerStepIndex = (
         );
       }
       result.push(
-        ...document.afterAll.map((step) => ({ item: lastCase, step })),
+        ...(document.attempts ?? [document]).flatMap((attempt) =>
+          attempt.afterAll.map((step) => ({ item: lastCase, step })),
+        ),
       );
     }
   }
@@ -374,9 +388,11 @@ export const getCaseSearchMatch = (
     ['Document ID', item.document.documentId],
   ];
   const documentSteps = [
-    ...item.document.beforeAll,
+    ...(item.document.attempts ?? [item.document]).flatMap((document) => [
+      ...document.beforeAll,
+      ...document.afterAll,
+    ]),
     ...item.testCase.attempts.flatMap(flattenAttemptSteps),
-    ...item.document.afterAll,
   ];
 
   for (const attempt of item.testCase.attempts) {
