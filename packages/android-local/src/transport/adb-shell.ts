@@ -10,6 +10,7 @@ import { AndroidTransportError, toAndroidTransportError } from './errors';
 import { findDisplay, parseDisplays } from './parsers/display';
 import { combinedOutputText, isAsciiPrintable, isImageBuffer } from './payload';
 import { Semaphore } from './semaphore';
+import { DEFAULT_YADB_PATH, sendTextInput } from './text-input';
 import type {
   ActivityTarget,
   AndroidCapabilities,
@@ -60,6 +61,12 @@ export interface AdbShellTransportOptions {
   maxConcurrentCommands?: number;
   /** TTL of the `dumpsys display` cache; 0 disables caching. */
   displayCacheTtlMs?: number;
+  /**
+   * Path of the yadb dex used for non-ASCII (CJK, emoji) text input. Defaults
+   * to {@link DEFAULT_YADB_PATH}; the capability probe reports `textInput:
+   * 'ascii-only'` when the file is missing.
+   */
+  yadbPath?: string;
 }
 
 interface AdbOutcome {
@@ -89,6 +96,8 @@ export class AdbShellTransport implements AndroidTransport {
   private readonly screenshotTimeoutMs: number;
   private readonly defaultDisplayId: number | undefined;
   private readonly displayCacheTtlMs: number;
+  private readonly yadbPath: string;
+  private yadbAvailable?: boolean;
 
   private capabilities?: AndroidCapabilities;
   private capabilitiesPromise?: Promise<AndroidCapabilities>;
@@ -106,6 +115,7 @@ export class AdbShellTransport implements AndroidTransport {
     this.defaultDisplayId = options.displayId;
     this.displayCacheTtlMs =
       options.displayCacheTtlMs ?? DEFAULT_ADB_DISPLAY_CACHE_TTL_MS;
+    this.yadbPath = options.yadbPath ?? DEFAULT_YADB_PATH;
     this.semaphore = new Semaphore(
       options.maxConcurrentCommands ?? DEFAULT_ADB_MAX_CONCURRENT_COMMANDS,
     );
@@ -139,6 +149,8 @@ export class AdbShellTransport implements AndroidTransport {
     const screenshot = await this.probeCommand('screencap');
     const input = await this.probeCommand('input');
     const appManagement = await this.probeCommand('am');
+    const yadbAvailable = await this.probeFile(this.yadbPath);
+    this.yadbAvailable = yadbAvailable;
 
     let multiDisplay = false;
     try {
@@ -158,7 +170,7 @@ export class AdbShellTransport implements AndroidTransport {
       input,
       appManagement,
       multiDisplay,
-      textInput: 'ascii-only',
+      textInput: yadbAvailable ? 'full' : 'ascii-only',
       privileged: uid === SHELL_UID || uid === ROOT_UID,
       uid,
     };
@@ -198,6 +210,25 @@ export class AdbShellTransport implements AndroidTransport {
       'Unable to determine the uid of the adb shell channel',
       { code: 'ServiceUnavailable', backend: this.backend, command: 'id -u' },
     );
+  }
+
+  /** True when a file exists on the device (used for optional helpers). */
+  private async probeFile(filePath: string): Promise<boolean> {
+    try {
+      const outcome = await this.executeShell(
+        `test -f ${quoteShellArg(filePath)} && echo yes`,
+      );
+      return (
+        outcome.exitCode === 0 && combinedOutputText(outcome).includes('yes')
+      );
+    } catch (error) {
+      debugAdb(
+        `file probe for "${filePath}" failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return false;
+    }
   }
 
   private async probeCommand(name: string): Promise<boolean> {
@@ -470,40 +501,36 @@ export class AdbShellTransport implements AndroidTransport {
     );
   }
 
+  /**
+   * Type text into the focused field.
+   *
+   * Printable ASCII uses `input text`; anything else goes through yadb when it
+   * is provisioned on the device (see {@link AdbShellTransportOptions.yadbPath}).
+   */
   async inputText(text: string, options: TextInputOptions = {}): Promise<void> {
     this.assertOpen();
     assertNonEmptyString(text, 'text', this.backend);
     assertDisplayId(options.displayId, this.backend);
 
+    // The yadb probe costs a shell round trip, so only pay it when the payload
+    // actually needs yadb (`input text` covers printable ASCII on its own).
+    const yadbAvailable = isAsciiPrintable(text)
+      ? false
+      : (this.yadbAvailable ?? (await this.probeFile(this.yadbPath)));
     if (!isAsciiPrintable(text)) {
-      throw new AndroidTransportError(
-        'input text can only deliver printable ASCII; non-ASCII input needs a dedicated IME/input service',
-        {
-          code: 'NotSupported',
-          backend: this.backend,
-          command: `input${this.displayArg(options.displayId)} text <non-ascii>`,
-        },
-      );
+      this.yadbAvailable = yadbAvailable;
     }
 
-    const timeoutMs = options.timeoutMs ?? this.defaultTimeoutMs;
-    const displayArg = this.displayArg(options.displayId);
-    const segments = text.split('\n');
-
-    for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index] as string;
-      if (segment.length > 0) {
-        await this.runOrThrow(
-          `input${displayArg} text ${quoteShellArg(segment)}`,
-          'input text',
-          timeoutMs,
-        );
-      }
-
-      if (index < segments.length - 1) {
-        await this.keyEvent(66, options);
-      }
-    }
+    await sendTextInput(text, {
+      backend: this.backend,
+      displayArg: this.displayArg(options.displayId),
+      timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+      yadbAvailable,
+      yadbPath: this.yadbPath,
+      run: async (command, label, timeoutMs) => {
+        await this.runOrThrow(command, label, timeoutMs);
+      },
+    });
   }
 
   async startActivity(target: ActivityTarget): Promise<void> {

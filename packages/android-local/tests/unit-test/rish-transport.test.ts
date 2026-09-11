@@ -614,8 +614,11 @@ describe('RishTransport input commands', () => {
     expectRishCommand(runner, 2, "input text 'line2'");
   });
 
-  test('refuses non-ASCII text instead of typing nothing', async () => {
-    const { runner, transport } = createTransport([{ match: [], stdout: '' }]);
+  test('refuses non-ASCII text when the yadb helper is absent', async () => {
+    // No response for the yadb probe: the helper is treated as missing.
+    const { runner, transport } = createTransport([
+      { match: ['test -f'], stdout: '' },
+    ]);
 
     for (const value of ['中文', 'café', '🙂']) {
       const error = await transport
@@ -624,7 +627,23 @@ describe('RishTransport input commands', () => {
       expect((error as { code?: string }).code).toBe('NotSupported');
     }
 
-    expect(runner.commands).toHaveLength(0);
+    // Nothing was typed: only the capability probes ran.
+    expect(
+      runner.commands.some((command) => command.includes(' input text')),
+    ).toBe(false);
+  });
+
+  test('routes non-ASCII text through yadb when it is provisioned', async () => {
+    const { runner, transport } = createTransport([
+      { match: ['test -f'], stdout: 'yes\n' },
+      { match: ['app_process'], stdout: '' },
+    ]);
+
+    await transport.inputText('中文输入测试 hello');
+
+    const yadbCommand = runner.calls.at(-1)?.argv[3] ?? '';
+    expect(yadbCommand).toContain('com.ysbing.yadb.Main');
+    expect(yadbCommand).toContain("'中文输入测试 hello'");
   });
 
   test('reports a failed input command with the command that failed', async () => {

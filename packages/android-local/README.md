@@ -39,10 +39,18 @@ Phase 1 additions: `AdbShellTransport` (host/USB backend, binary-safe
 that every backend must pass, `Launch`/`Terminate` app actions with
 `appNameMapping`, and a measured [`docs/baseline.md`](./docs/baseline.md).
 
+Text input: printable ASCII goes through `input text`; **non-ASCII (Chinese,
+emoji) goes through yadb** when the helper is present, and the capability probe
+reports `textInput: 'full'`. Provision it once:
+
+```bash
+adb push packages/android/bin/yadb /data/local/tmp/yadb   # from the midscene repo
+```
+
 Not implemented yet: Shizuku UserService + AIDL, embedded Node runtime, Kotlin
-host app, UI tree extraction, multi-touch (pinch), **non-ASCII text input**
-(the main gap for Chinese phone usage), YAML regression parity against the ADB
-path. See `docs/roadmap.md`.
+host app, UI tree extraction, multi-touch (pinch), YAML regression parity
+against the ADB path, and portrait/rotation validation on a real phone.
+See `docs/roadmap.md`.
 
 ## Usage
 

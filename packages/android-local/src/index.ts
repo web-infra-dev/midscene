@@ -56,6 +56,14 @@ export {
   isImageBuffer,
 } from './transport/payload';
 
+export {
+  DEFAULT_YADB_PATH,
+  buildYadbCommand,
+  sendTextInput,
+  yadbDirectory,
+} from './transport/text-input';
+export type { TextInputOptionsResolved } from './transport/text-input';
+
 export { Semaphore } from './transport/semaphore';
 
 export {

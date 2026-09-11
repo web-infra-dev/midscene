@@ -160,7 +160,8 @@ type AndroidTransportErrorCode =
 | **小输出读取** | `combinedOutputText()`：stdout 优先、为空则取 stderr（实测 `id -u` 曾整段跑到 stderr），并暴露为 `runShell().stdout` |
 | 截图 | `screencap -p [-d <displayId>] <file>` → 读取 → PNG/JPEG magic 校验 → 删除；失败时回退到 base64 管道（best-effort） |
 | 显示信息 | `dumpsys display > <file>`（约 21KB，必须走文件通道）+ `wm size` / `wm density`（小输出） |
-| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；`input text` 仅 ASCII，非 ASCII 显式抛 `NotSupported` |
+| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；ASCII 文本走 `input text`；**非 ASCII（中文/emoji）走 yadb**（`app_process … com.ysbing.yadb.Main -keyboard '<text>'`），yadb 缺失时抛 `NotSupported` 并给出 provisioning 提示（`adb push packages/android/bin/yadb /data/local/tmp/yadb`） |
+| 文本能力探测 | `test -f <yadbPath>` → `textInput: 'full' | 'ascii-only'`；ASCII 路径不探测，避免热路径多一次 spawn |
 | 应用管理 | `am start -W -n pkg/activity`、`-a android.intent.action.VIEW -d <uri>`、无 activity 时 `monkey -p <pkg> -c android.intent.category.LAUNCHER 1`、`am force-stop <pkg>` |
 | **能力探测** | **串行**执行 + 每次探测重试一次。每个 rish 调用都会新建 app_process（实测 0.4–1.8s）；并发探测出现过瞬时失败，被误判为「不支持」并导致动作空间为空 |
 | 依赖注入 | `CommandRunner`（`NodeCommandRunner` / `FakeCommandRunner`）+ `ShellFileIo`（文件通道 seam），使全部单测无需设备 |

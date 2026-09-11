@@ -51,7 +51,7 @@
 | 编号 | 任务 | 验收 |
 | --- | --- | --- |
 | P1-1 ✅ | 契约冻结 + `tests/unit-test/transport-contract.ts`（一份契约跑全部后端） | ✅ rish 与 adb 两个后端通过同一套 12 项契约测试 |
-| P1-2 🔄 | `Launch`/`Terminate` + `appNameMapping`（手机 YAML 平价）已完成；余：竖屏/旋转语义与截图坐标一致性需真机验证 | 与 ADB 路径在相同任务上的坐标/尺寸行为一致 |
+| P1-2 🔄 | `Launch`/`Terminate` + `appNameMapping`（手机 YAML 平价）、**非 ASCII（中文）输入通道（yadb）** 已完成；余：竖屏/旋转语义与截图坐标一致性需真机验证 | 与 ADB 路径在相同任务上的坐标/尺寸行为一致 |
 | P1-3 ✅ | `AdbShellTransport`（host/USB 后端，`exec-out` 直读截图，无临时文件） | ✅ 真机实测通过（截图 P50 1.14s / 输入 90ms，13 个动作）；CI 接入见 P1-6 |
 | P1-4 | 同一 YAML 任务双路径对照（ADB `AndroidDevice` vs rish `LocalAndroidDevice`） | 结果一致性对照报告 |
 | P1-5 ✅ | 性能基线：screenshot/action/AI 往返（两后端对比 + 优化线索） | `packages/android-local/docs/baseline.md` |
@@ -136,6 +136,7 @@
 | C4 | **photon 不能作为 Node 回退** | `@silvia-odwyer/photon@0.3.3` 只有 `module` 字段、没有 `main`/`exports`，纯 Node 解析失败；且 `getPhoton()` 在 Node 下被显式拒绝（browser/worker only） |
 | C5 | **rish 不能承载大 payload** | 674KB PNG 被拆到两条管道（stdout 346KB + stderr 328KB）；base64 同理（445KB + 454KB）；小输出也可能整段跑到 stderr（`id -u` → stdout 空、stderr `2000`） |
 | C6 | **设备本地文件通道是可靠替代** | `screencap -p <file>` → **674263B 完整 PNG**；`dumpsys display > <file>` → 21196B 完整（含 2 条 `DisplayDeviceInfo`）→ 本机化相对 ADB 的独有优势 |
+| C15 | **Unicode（中文）输入可行但要付 ART 启动成本** | `cmd clipboard` 在 Android 12 未实现、设备无广播式 IME；改用 ADB 路径同款 **yadb**：`app_process -Djava.class.path=<yadb> /data/local/tmp com.ysbing.yadb.Main -keyboard '中文输入测试 hello'` 实测成功（设备截图确认搜索框内容），首次耗时 **9.95s**；能力探测自动返回 `textInput: 'full'` |
 | C14 | **SELinux 禁止 app 写/删 `/data/local/tmp`** | 目录即使 `chmod 0777`，Termux uid 的 `touch`/`rm` 仍 `Permission denied`（**读可以**）；因此清理必须由 shell 完成 → 通道改为**固定文件名 + 同一条命令内 `rm -f <file> && <写入>`**（零额外 spawn、无残留、写失败时文件不存在所以不会读到陈旧帧），并用进程内锁串行化 |
 | C7 | **Termux 的 `LD_LIBRARY_PATH` 会破坏 rish** | 子进程继承后 `app_process` 去链 Termux 的 lib：`cannot locate symbol "Xzs_Construct" referenced by /system/lib64/libunwindstack.so` → transport 必须净化环境 |
 | C8 | **并发 rish spawn 会造成瞬时失败** | 6 个并发 app_process 下 `command -v input` 返回非零（单独执行 445ms 成功）→ 探测必须串行 + 重试一次：串行化后动作空间 13 个动作全部就绪 |

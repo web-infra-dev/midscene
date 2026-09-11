@@ -20,6 +20,7 @@ import {
 import { findDisplay, parseDisplays } from './parsers/display';
 import { combinedOutputText, isAsciiPrintable, isImageBuffer } from './payload';
 import { Semaphore } from './semaphore';
+import { DEFAULT_YADB_PATH, sendTextInput } from './text-input';
 import type {
   ActivityTarget,
   AndroidCapabilities,
@@ -137,6 +138,12 @@ export interface RishTransportOptions {
    * Defaults to {@link DEFAULT_FILE_CHANNEL_DIR}.
    */
   fileChannelDir?: string;
+  /**
+   * Path of the yadb dex used for non-ASCII (CJK, emoji) text input. Defaults
+   * to {@link DEFAULT_YADB_PATH}; the capability probe reports `textInput:
+   * 'ascii-only'` when the file is missing.
+   */
+  yadbPath?: string;
   /** Filesystem seam; tests inject a fake. */
   fileIo?: ShellFileIo;
 }
@@ -164,6 +171,8 @@ export class RishTransport implements AndroidTransport {
   private readonly displayCacheTtlMs: number;
   private readonly unsetEnv: string[];
   private readonly fileChannelDir: string;
+  private readonly yadbPath: string;
+  private yadbAvailable?: boolean;
   private readonly fileIo: ShellFileIo;
   private channelDirPromise?: Promise<void>;
   /**
@@ -192,6 +201,7 @@ export class RishTransport implements AndroidTransport {
       options.displayCacheTtlMs ?? DEFAULT_DISPLAY_CACHE_TTL_MS;
     this.unsetEnv = options.unsetEnv ?? DEFAULT_UNSET_ENV;
     this.fileChannelDir = options.fileChannelDir ?? DEFAULT_FILE_CHANNEL_DIR;
+    this.yadbPath = options.yadbPath ?? DEFAULT_YADB_PATH;
     this.fileIo = options.fileIo ?? nodeFileIo;
     this.semaphore = new Semaphore(
       options.maxConcurrentCommands ?? DEFAULT_MAX_CONCURRENT_COMMANDS,
@@ -235,6 +245,8 @@ export class RishTransport implements AndroidTransport {
     const screenshot = await this.probeCommand('screencap');
     const input = await this.probeCommand('input');
     const appManagement = await this.probeCommand('am');
+    const yadbAvailable = await this.probeFile(this.yadbPath);
+    this.yadbAvailable = yadbAvailable;
 
     let multiDisplay = false;
     try {
@@ -254,7 +266,7 @@ export class RishTransport implements AndroidTransport {
       input,
       appManagement,
       multiDisplay,
-      textInput: 'ascii-only',
+      textInput: yadbAvailable ? 'full' : 'ascii-only',
       privileged: uid === SHELL_UID || uid === ROOT_UID,
       uid,
     };
@@ -311,6 +323,26 @@ export class RishTransport implements AndroidTransport {
         cause: lastError,
       },
     );
+  }
+
+  /** True when a file exists on the device (used for optional helpers). */
+  private async probeFile(filePath: string): Promise<boolean> {
+    try {
+      const outcome = await this.execute(
+        `test -f ${quoteShellArg(filePath)} && echo yes`,
+        { timeoutMs: this.defaultTimeoutMs },
+      );
+      return (
+        outcome.exitCode === 0 && combinedOutputText(outcome).includes('yes')
+      );
+    } catch (error) {
+      debugRish(
+        `file probe for "${filePath}" failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return false;
+    }
   }
 
   private async probeCommand(name: string): Promise<boolean> {
@@ -631,41 +663,36 @@ export class RishTransport implements AndroidTransport {
     );
   }
 
+  /**
+   * Type text into the focused field.
+   *
+   * Printable ASCII uses `input text`; anything else goes through yadb when it
+   * is provisioned on the device (see {@link RishTransportOptions.yadbPath}).
+   */
   async inputText(text: string, options: TextInputOptions = {}): Promise<void> {
     this.assertOpen();
     assertNonEmptyString(text, 'text', this.backend);
     assertDisplayId(options.displayId, this.backend);
 
+    // The yadb probe costs a shell round trip, so only pay it when the payload
+    // actually needs yadb (`input text` covers printable ASCII on its own).
+    const yadbAvailable = isAsciiPrintable(text)
+      ? false
+      : (this.yadbAvailable ?? (await this.probeFile(this.yadbPath)));
     if (!isAsciiPrintable(text)) {
-      throw new AndroidTransportError(
-        'input text can only deliver printable ASCII; non-ASCII input needs a dedicated IME/input service',
-        {
-          code: 'NotSupported',
-          backend: this.backend,
-          command: `input${this.displayArg(options.displayId)} text <non-ascii>`,
-        },
-      );
+      this.yadbAvailable = yadbAvailable;
     }
 
-    const timeoutMs = options.timeoutMs ?? this.defaultTimeoutMs;
-    const displayArg = this.displayArg(options.displayId);
-    const segments = text.split('\n');
-
-    for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index] as string;
-      if (segment.length > 0) {
-        await this.runOrThrow(
-          `input${displayArg} text ${quoteShellArg(segment)}`,
-          'input text',
-          timeoutMs,
-        );
-      }
-
-      if (index < segments.length - 1) {
-        // `input text` cannot type a newline; commit the line with ENTER.
-        await this.keyEvent(66, options);
-      }
-    }
+    await sendTextInput(text, {
+      backend: this.backend,
+      displayArg: this.displayArg(options.displayId),
+      timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+      yadbAvailable,
+      yadbPath: this.yadbPath,
+      run: async (command, label, timeoutMs) => {
+        await this.runOrThrow(command, label, timeoutMs);
+      },
+    });
   }
 
   async startActivity(target: ActivityTarget): Promise<void> {

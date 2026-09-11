@@ -41,12 +41,22 @@
 | `extract`（crop） | 66 ms（shared 路径 56 ms） |
 | `extend`（padding） | 338 ms（shared 路径 241 ms） |
 
+## 3.5 Unicode（中文）输入通道
+
+| 路径 | 耗时 | 说明 |
+| --- | --- | --- |
+| ASCII `input text` | ~470 ms | 走 rish，单次 spawn |
+| 非 ASCII（yadb，含 CJK/emoji） | **9.95 s（首次）** | `app_process -Djava.class.path=<yadb> ... -keyboard '<text>'`，包含 ART 启动 + yadb 内部剪贴板粘贴；可用但偏慢 |
+
+设备实测（Android 12）：Settings 搜索框成功输入 `中文输入测试 hello`，能力探测返回 `textInput: "full"`。
+
 ## 4. 优化线索（Phase 1/3）
 
 1. **减少 rish spawn 次数**：每次 `input` 一次 spawn（470 ms）。可合并连续输入（例如 `input keyevent a b c` 已支持批量），或 Phase 2 用 Shizuku UserService 常驻连接。
 2. **截图**：设备本机 463 ms 已可用；进一步优化走 UserService + FD/LocalSocket（消除文件通道）。
 3. **模型往返**：控制图片尺寸（`screenshotShrinkFactor`）、减少每步的上下文、必要时用更快的模型；这是端到端时延的绝对大头。
 4. **adb 后端**：输入快、截图慢，适合"PC + USB 手机"调试与回归；CI 里用它当参照实现。
+5. **Unicode 输入**：yadb 每次输入都要启动一次 ART（约 10s）。Phase 2 可改为常驻 UserService / 专用 IME（广播式），把中文输入降到百毫秒级。
 
 ## 5. 复测方法
 
