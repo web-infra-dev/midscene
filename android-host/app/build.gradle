@@ -48,6 +48,8 @@ android {
 
     buildFeatures {
         viewBinding false
+        // The Shizuku user service is reached over AIDL.
+        aidl true
     }
 
     compileOptions {

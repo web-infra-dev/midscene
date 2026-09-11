@@ -139,6 +139,24 @@ public final class Provisioner {
      */
     public static String installYadb(Context context, LogSink log) throws IOException {
         File staged = stageYadb(context, log);
+
+        ShizukuExecBridge.ensureBound(context);
+        if (ShizukuExecBridge.waitUntilReady(20_000)) {
+            String command = String.format(
+                    "cp '%s' %s && chmod 644 %s && ls -l %s",
+                    staged.getAbsolutePath(), YADB_TARGET, YADB_TARGET, YADB_TARGET);
+            ShizukuExecBridge.Result result = ShizukuExecBridge.exec(command, 30_000);
+            log.log("shizuku user service: " + result.stdout.trim()
+                    + (result.stderr.isEmpty() ? "" : " stderr=" + result.stderr.trim()));
+            if (!result.ok()) {
+                throw new IOException("yadb install failed (exit " + result.exitCode + ")"
+                        + (result.stderr.isEmpty() ? "" : ": " + result.stderr.trim()));
+            }
+            return YADB_TARGET;
+        }
+        log.log("user service not ready (" + ShizukuExecBridge.lastError()
+                + "); falling back to rish");
+
         String command = String.format(
                 "cp '%s' %s && chmod 644 %s && test -f %s && echo yadb-installed",
                 staged.getAbsolutePath(), YADB_TARGET, YADB_TARGET, YADB_TARGET);

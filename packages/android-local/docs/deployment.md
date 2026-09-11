@@ -160,7 +160,15 @@ tasks:
 | A14-6 | `Shizuku.newProcess` 在 API 13.1.5 中是 **private**；公开的提权执行路径只有 **`Shizuku.bindUserService` + UserService**（即本路线图的 Phase 2 方案） |
 | A14-7 | 客户端崩溃修复：手机布局不能用抽象类 `NavigationBarView`（平板用的 `NavigationRailView` 是具体类，问题只在手机暴露），须用 `BottomNavigationView` |
 
-**由此确定的执行器方案（替换 rish，不再有文件通道）：**
+**执行器方案已落地（A14-8 起为实测结果）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-8 | ✅ **Shizuku UserService 方案在 Android 14 上验证通过**：`Shizuku.bindUserService` + AIDL（`IExecService.exec/execBinary/uid`）成功绑定，服务进程以 shell(2000) 执行命令；yadb 经该通道安装成功：`shizuku user service: -rw-r--r-- 1 shell shell 14431 /data/local/tmp/yadb` |
+| A14-9 | 绑定实现的坑：`Shizuku.addBinderReceivedListenerSticky` 在 binder 已就绪时**同步回调**，守卫若在注册之后设置会无限递归（`StackOverflowError`）；必须先置 `binding` 再注册，并在回调里复位后重入 |
+| A14-10 | Android 14 禁止**从后台启动前台服务**：`am start-foreground-service` 需先让 App 到前台（或已有电池优化豁免），否则服务动作静默不执行 |
+
+原始设计（已完成 1–4 步，第 5 步待接）：
 
 ```text
 Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
