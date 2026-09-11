@@ -145,6 +145,5 @@
 
 ### 9.3 待补项
 
-- P0-1 依赖审计：把「可用 / 需回退 / 阻塞」三分类整理成表（本轮已覆盖图像链路，其余依赖待补）。
 - Android 14+ 的 rish/DEX 限制、多 Display 车机场景、车机网络/证书策略，均需目标设备补充验证。
 - 临时文件：POC 的截图/大文本走 `/data/local/tmp` 瞬时文件（读完即删），Phase 2 用 Shizuku UserService + FD/LocalSocket 消除。

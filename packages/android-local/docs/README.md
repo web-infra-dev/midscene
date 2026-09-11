@@ -6,7 +6,8 @@
 | --- | --- |
 | [research-v0.1.md](./research-v0.1.md) | 前期调研原文（v0.1，逐字归档，含技术依据 R1–R7） |
 | [architecture.md](./architecture.md) | 分层、`AndroidTransport` 契约、错误码、模块边界、与 ADB 路径的收敛策略 |
-| [roadmap.md](./roadmap.md) | Phase 0–3 任务表、Gate G0–G3、Phase 0 执行手册、风险表、验收矩阵 |
+| [roadmap.md](./roadmap.md) | Phase 0–3 任务表、Gate G0–G3、Phase 0 执行手册与**实测结论**、风险表、验收矩阵 |
+| [dependency-audit.md](./dependency-audit.md) | P0-1 依赖/运行时审计（设备实测版）：可用 / 需回退 / 阻塞 三分类 + 部署约束 |
 
 ## 目标
 
@@ -38,7 +39,7 @@
 - [x] 勘察本仓库现状并形成证据表（见 `architecture.md` §2）
 - [x] 归档调研原文（`research-v0.1.md`，sha256 `0bed707e…`）
 - [x] `packages/android-local` 骨架：transport 契约、`RishTransport`、`LocalAndroidDevice`、离线单元测试
-- [ ] **P0-1** 依赖/运行时审计（图像链路已完成，其余依赖待补）
+- [x] **P0-1** 依赖/运行时审计（设备实测版）：`dependency-audit.md`，设备侧 70 包 0 原生 addon
 - [x] **P0-2** 图片链路：原生 sharp 在 android-arm64 不可用 → 改用 sharp 官方 WASM（`--cpu=wasm32`），`@midscene/shared` 图像函数全绿且**无需改调用点**
 - [x] **P0-3** 设备侧 Node 运行时：Termux `nodejs-lts` = Node **v24.18.0**（`process.platform=android`）
 - [x] **P0-4** Shizuku + rish 部署：Termux uid(10149) → rish → shell(**2000**) 验证通过
