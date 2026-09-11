@@ -41,7 +41,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records non-2xx raw response body without changing the response', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai-request-context'
     );
     const context = {};
     const responseBody = JSON.stringify({
@@ -75,7 +75,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('does not record successful response bodies', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai-request-context'
     );
     const context = {};
     const response = new Response(JSON.stringify({ ok: true }), {
@@ -92,7 +92,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('does not include request headers in model record events', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai-request-context'
     );
     const events: Array<Record<string, unknown>> = [];
     const context = {
@@ -187,7 +187,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('keeps raw response bodies from multiple failed requests', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-error'
+      '@/ai-model/service-caller/openai-request-context'
     );
     const context = {};
     globalThis.fetch = rs
@@ -218,7 +218,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records and reports original fetch errors before rethrowing them', async () => {
     const { formatOpenAIAPIErrorDetails, wrapOpenAICompatibleFetch } =
-      await import('@/ai-model/service-caller/openai-error');
+      await import('@/ai-model/service-caller/openai-request-context');
     const context = {};
     const cause = Object.assign(
       new Error(

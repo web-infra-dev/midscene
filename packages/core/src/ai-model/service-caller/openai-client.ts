@@ -10,9 +10,9 @@ import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
 import { getVersion } from '../../utils';
 import {
-  type OpenAIErrorResponseContext,
+  type OpenAIRequestContext,
   wrapOpenAICompatibleFetch,
-} from './openai-error';
+} from './openai-request-context';
 import { createProxyAgent } from './proxy';
 import { resolveEffectiveTimeoutMs } from './request-timeout';
 
@@ -24,7 +24,7 @@ const createAndWrapClient = async ({
   effectiveTimeoutMs,
   proxyAgent,
   executionId,
-  openAIErrorResponseContext,
+  openAIRequestContext,
 }: {
   openaiBaseURL: IModelConfig['openaiBaseURL'];
   openaiApiKey: IModelConfig['openaiApiKey'];
@@ -33,7 +33,7 @@ const createAndWrapClient = async ({
   effectiveTimeoutMs: number | null;
   proxyAgent: Awaited<ReturnType<typeof createProxyAgent>>;
   executionId: string;
-  openAIErrorResponseContext: OpenAIErrorResponseContext;
+  openAIRequestContext: OpenAIRequestContext;
 }): Promise<OpenAI> => {
   const warnClient = getDebug('ai:call', { console: true });
 
@@ -56,7 +56,7 @@ const createAndWrapClient = async ({
       'x-midscene-version': getVersion(),
       'x-midscene-execution-id': executionId,
     },
-    fetch: wrapOpenAICompatibleFetch(openAIErrorResponseContext),
+    fetch: wrapOpenAICompatibleFetch(openAIRequestContext),
     // Midscene already handles retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
@@ -124,7 +124,7 @@ export async function createChatClient({
   modelName: string;
   modelDescription: string;
   modelFamily: TModelFamily | undefined;
-  openAIErrorResponseContext: OpenAIErrorResponseContext;
+  openAIRequestContext: OpenAIRequestContext;
 }> {
   const {
     socksProxy,
@@ -142,7 +142,7 @@ export async function createChatClient({
   const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
-  const openAIErrorResponseContext: OpenAIErrorResponseContext = {
+  const openAIRequestContext: OpenAIRequestContext = {
     recordEvent,
   };
 
@@ -154,7 +154,7 @@ export async function createChatClient({
     effectiveTimeoutMs,
     proxyAgent,
     executionId,
-    openAIErrorResponseContext,
+    openAIRequestContext,
   });
 
   return {
@@ -162,6 +162,6 @@ export async function createChatClient({
     modelName,
     modelDescription,
     modelFamily,
-    openAIErrorResponseContext,
+    openAIRequestContext,
   };
 }

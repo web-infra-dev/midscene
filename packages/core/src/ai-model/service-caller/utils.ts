@@ -1,7 +1,7 @@
 import type { AIUsageInfo } from '@/types';
 import type OpenAI from 'openai';
 import type { ModelRuntime } from '../models';
-import type { OpenAIErrorResponseContext } from './openai-error';
+import type { OpenAIRequestContext } from './openai-request-context';
 
 // Error class that preserves usage and rawResponse when AI call parsing fails
 export class AIResponseParseError extends Error {
@@ -51,7 +51,7 @@ export function stringifyForDebug(value: unknown): string {
 }
 
 export function getLatestSuccessfulResponseRequestId(
-  context: OpenAIErrorResponseContext,
+  context: OpenAIRequestContext,
 ): string | undefined {
   return context.responseRequestIds?.reduce<string | undefined>(
     (latestRequestId, response) =>
@@ -60,7 +60,7 @@ export function getLatestSuccessfulResponseRequestId(
   );
 }
 
-export function getLatestResponseAttempt(context: OpenAIErrorResponseContext) {
+export function getLatestResponseAttempt(context: OpenAIRequestContext) {
   return context.httpResponses?.at(-1)?.attempt ?? 1;
 }
 

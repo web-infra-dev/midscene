@@ -5,7 +5,7 @@ const MAX_FETCH_ERROR_LENGTH = 4000;
 
 const debugOpenAIFetch = getDebug('ai:call');
 
-export interface OpenAIErrorResponseContext {
+export interface OpenAIRequestContext {
   recordEvent?: (event: Record<string, unknown>) => void;
   responseRequestIds?: Array<{
     attempt: number;
@@ -97,7 +97,7 @@ function getDefaultFetch(): typeof fetch {
 }
 
 export function wrapOpenAICompatibleFetch(
-  context: OpenAIErrorResponseContext,
+  context: OpenAIRequestContext,
 ): typeof fetch {
   const baseFetch = getDefaultFetch();
   let attempt = 0;
@@ -202,7 +202,7 @@ export function wrapOpenAICompatibleFetch(
 
 export function formatOpenAIAPIErrorDetails(
   _error: unknown,
-  context: OpenAIErrorResponseContext,
+  context: OpenAIRequestContext,
 ): string {
   const details: string[] = [];
 

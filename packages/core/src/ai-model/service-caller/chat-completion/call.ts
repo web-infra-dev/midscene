@@ -1,7 +1,7 @@
 import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
-import { formatOpenAIAPIErrorDetails } from '../openai-error';
+import { formatOpenAIAPIErrorDetails } from '../openai-request-context';
 import { resolveEffectiveTimeoutMs } from '../request-timeout';
 import type { ModelCallContext, ModelCallResult } from '../types';
 import {
@@ -63,7 +63,7 @@ export const chat = async ({
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
-  const { completion, modelName, openAIErrorResponseContext } =
+  const { completion, modelName, openAIRequestContext } =
     await createChatClient({
       modelConfig,
       executionId,
@@ -91,7 +91,7 @@ export const chat = async ({
     } = await callChatCompletion({
       completion,
       modelName,
-      openAIErrorResponseContext,
+      openAIRequestContext,
       modelRuntime,
       messages: messagesWithImageDetail,
       requestConfig,
@@ -107,8 +107,8 @@ export const chat = async ({
 
     recordEvent?.({
       type: 'response',
-      attempt: getLatestResponseAttempt(openAIErrorResponseContext),
-      http: openAIErrorResponseContext.httpResponses?.at(-1),
+      attempt: getLatestResponseAttempt(openAIRequestContext),
+      http: openAIRequestContext.httpResponses?.at(-1),
       final: {
         content,
         reasoningContent,
@@ -137,7 +137,7 @@ export const chat = async ({
     }
 
     const newError = new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}${formatOpenAIAPIErrorDetails(e, openAIErrorResponseContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}${formatOpenAIAPIErrorDetails(e, openAIRequestContext)}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
         cause: e,
       },

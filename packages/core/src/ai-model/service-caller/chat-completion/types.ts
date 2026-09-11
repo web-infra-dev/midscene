@@ -2,12 +2,12 @@ import type { StreamingCallback } from '@/types';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../../models';
-import type { OpenAIErrorResponseContext } from '../openai-error';
+import type { OpenAIRequestContext } from '../openai-request-context';
 
 export type ChatCompletionCallOptions = {
   completion: OpenAI.Chat.Completions;
   modelName: string;
-  openAIErrorResponseContext: OpenAIErrorResponseContext;
+  openAIRequestContext: OpenAIRequestContext;
   modelRuntime: ModelRuntime;
   messages: ChatCompletionMessageParam[];
   requestConfig: Record<string, unknown>;

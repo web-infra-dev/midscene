@@ -22,7 +22,7 @@ import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
 export const callChatCompletionNonStreaming = async ({
   completion,
   modelName,
-  openAIErrorResponseContext,
+  openAIRequestContext,
   modelRuntime,
   messages,
   requestConfig,
@@ -61,7 +61,7 @@ export const callChatCompletionNonStreaming = async ({
       );
 
       requestId =
-        getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
+        getLatestSuccessfulResponseRequestId(openAIRequestContext) ??
         result._request_id;
 
       if (!result.choices) {

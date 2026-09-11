@@ -20,7 +20,7 @@ import { resolveContentWithReasoningFallback } from './utils';
 export const callChatCompletionStream = async ({
   completion,
   modelName,
-  openAIErrorResponseContext,
+  openAIRequestContext,
   modelRuntime,
   messages,
   requestConfig,
@@ -64,9 +64,9 @@ export const callChatCompletionStream = async ({
     };
 
     requestId =
-      getLatestSuccessfulResponseRequestId(openAIErrorResponseContext) ??
+      getLatestSuccessfulResponseRequestId(openAIRequestContext) ??
       stream._request_id;
-    const streamAttempt = getLatestResponseAttempt(openAIErrorResponseContext);
+    const streamAttempt = getLatestResponseAttempt(openAIRequestContext);
 
     let chunkSequence = 0;
     for await (const chunk of stream) {
