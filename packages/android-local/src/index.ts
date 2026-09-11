@@ -27,6 +27,16 @@ export type {
   FakeCommandResponse,
 } from './transport/command-runner';
 
+export {
+  DEFAULT_DISPLAY_CACHE_TTL_MS,
+  DEFAULT_MAX_CONCURRENT_COMMANDS,
+  DEFAULT_RISH_PATH,
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
+  DEFAULT_TIMEOUT_MS,
+  RishTransport,
+} from './transport/rish';
+export type { RishTransportOptions } from './transport/rish';
+
 export { Semaphore } from './transport/semaphore';
 
 export {
@@ -65,3 +75,38 @@ export type {
   TransportBackend,
   TransportHealth,
 } from './transport/types';
+
+export {
+  ANDROID_KEY_CODES,
+  ANDROID_SYSTEM_KEY_CODES,
+  KEYCODE_BACKSPACE,
+  KEYCODE_ENTER,
+  KEYCODE_FORWARD_DELETE,
+  KEYCODE_MOVE_END,
+  isKeyCombination,
+  normalizeKeyName,
+  resolveKeyCode,
+} from './keycodes';
+
+export {
+  CLEAR_INPUT_KEY_REPEAT_COUNT,
+  buildClearInputKeyCodes,
+  createTransportInputPrimitives,
+} from './input-primitives';
+export type { TransportInputPrimitivesOptions } from './input-primitives';
+
+export {
+  DEFAULT_SCROLL_DURATION_MS,
+  DEFAULT_SCROLL_SETTLE_MS,
+  DEFAULT_SCROLL_UNTIL_TIMES,
+  FAST_SCROLL_DURATION_MS,
+  SCROLL_DIVISIONS,
+  computeDragEndPoint,
+  computeScrollGesture,
+  computeScrollRequest,
+  scrollUntilDelta,
+} from './scroll-math';
+export type { ScreenSize, ScrollRequest } from './scroll-math';
+
+export { LocalAndroidDevice } from './device';
+export type { LocalAndroidDeviceOpt } from './device';
