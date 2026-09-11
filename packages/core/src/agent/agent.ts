@@ -3,8 +3,12 @@ import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
 import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
+import { generateTestRunReportScriptTag } from '../dump/html-utils';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
+import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
+import { buildAgentTestRunReportDump } from '../test-runner/reporting/agent-report';
+import { executionRecordsToReportInput } from '../test-runner/reporting/execution-record';
 // Import types and values directly from their source files to avoid circular dependency
 // DO NOT import from '../index' as it creates a circular dependency:
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
@@ -45,6 +49,12 @@ import {
   type UIContext,
 } from '../types';
 import type { MidsceneYamlScript } from '../yaml';
+import {
+  YamlExecutionOwnershipError,
+  enterYamlAction,
+  enterYamlExecution,
+  runInYamlExecutionContext,
+} from '../yaml/execution-session';
 
 import type { IReportGenerator } from '@/report-generator';
 import {
@@ -193,6 +203,82 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   reportFile?: string | null;
 
   reportFileName?: string;
+  private readonly yamlReportScopeId = uuid();
+  private readonly yamlExecutionRecords: WorkflowExecutionRecord[] = [];
+
+  /** @internal Runner snapshots retain immutable data and shared image files. */
+  _prepareForTestRunner(): void {
+    this.reportGenerator.enableSourceSnapshots?.();
+  }
+  async _createReportSource(scopeId: string) {
+    return this.reportGenerator.createSourceSnapshot?.(scopeId);
+  }
+
+  /** @internal The Agent owns one report stream across root YAML invocations. */
+  async _writeYamlExecutionReport(
+    record: WorkflowExecutionRecord,
+  ): Promise<string | undefined> {
+    const existingIndex = this.yamlExecutionRecords.findIndex(
+      (entry) => entry.runId === record.runId,
+    );
+    const recordIndex =
+      existingIndex < 0 ? this.yamlExecutionRecords.length : existingIndex;
+    this.yamlExecutionRecords[recordIndex] = record;
+    try {
+      const path = await this.reportGenerator.writeRunnerReport?.(
+        this.buildYamlReportInput(),
+        this.yamlReportScopeId,
+        this.getReportMeta(),
+      );
+      this.reportFile = path ?? this.reportFile;
+      return path;
+    } catch (error) {
+      this.yamlExecutionRecords[recordIndex] = Object.freeze({
+        ...record,
+        status: 'failed',
+        reportError: error,
+      });
+      throw error;
+    }
+  }
+
+  private buildYamlReportInput() {
+    const scopedRecords = this.yamlExecutionRecords.map((entry) => ({
+      ...entry,
+      ...(entry.execution
+        ? {
+            execution: {
+              document: {
+                ...entry.execution.document,
+                reportScopeId: this.yamlReportScopeId,
+              },
+              cases: entry.execution.cases.map((outcome) => ({
+                ...outcome,
+                ...(outcome.run
+                  ? {
+                      run: {
+                        ...outcome.run,
+                        reportScopeId: this.yamlReportScopeId,
+                      },
+                    }
+                  : {}),
+                ...(outcome.attempts
+                  ? {
+                      attempts: outcome.attempts.map((attempt) => ({
+                        ...attempt,
+                        reportScopeId: this.yamlReportScopeId,
+                      })),
+                    }
+                  : {}),
+              })),
+            },
+          }
+        : {}),
+    }));
+    return executionRecordsToReportInput(scopedRecords, {
+      runId: this.yamlReportScopeId,
+    });
+  }
 
   taskExecutor: TaskExecutor;
 
@@ -856,7 +942,25 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     // dumpDataString() handles browser environment with inline screenshots
-    return reportHTMLContent(this.dumpDataString(opt));
+    const dumpString = this.dumpDataString(opt);
+    if (!this.yamlExecutionRecords.length) return reportHTMLContent(dumpString);
+
+    // Browser exports have no file writer, so the execution record must own
+    // the hierarchy independently of whether file report generation is enabled.
+    const reportId = this.yamlReportScopeId;
+    const runnerDump = buildAgentTestRunReportDump(
+      this.buildYamlReportInput(),
+      this.dump,
+      {
+        reportId,
+        scopeId: this.yamlReportScopeId,
+        sourcePath: this.reportFile ?? '<inline-agent-report>',
+      },
+    );
+    return `${reportHTMLContent({
+      dumpString,
+      attributes: { 'data-group-id': reportId, 'data-report-id': reportId },
+    })}\n${generateTestRunReportScriptTag(runnerDump)}`;
   }
 
   private lastExecutionDump?: ExecutionDump;
@@ -872,6 +976,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       );
     }
     this.reportFile = this.reportGenerator.getReportPath();
+  }
+
+  /** Persist current report data without disposing this Agent or its device. */
+  async flushReport(): Promise<string | undefined> {
+    this.writeOutActionDumps();
+    await this.reportGenerator.flush();
+    return this.lastExecutionDump ? (this.reportFile ?? undefined) : undefined;
   }
 
   private getReportMeta(): ReportMeta {
@@ -909,7 +1020,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: (opt as any) || {},
+      // Planning resolves locate/from/to in place. Keep the caller's inputs
+      // intact so YAML and Test execution facts retain the original prompts.
+      param: (opt && typeof opt === 'object' && !Array.isArray(opt)
+        ? { ...opt }
+        : opt || {}) as any,
       thought: '',
     };
     debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
@@ -1371,9 +1486,22 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           );
 
           debug('matched cache, will call .runYaml to run the action');
-          await this.runYaml(yaml);
+          await runInYamlExecutionContext(async () => {
+            const replay = enterYamlExecution(this);
+            const leaveAction = abortSignal
+              ? enterYamlAction(this, abortSignal)
+              : undefined;
+            try {
+              await this.runYaml(yaml);
+            } finally {
+              leaveAction?.();
+              replay.finish();
+            }
+          });
           return;
         } catch (error) {
+          if (error instanceof YamlExecutionOwnershipError) throw error;
+          abortSignal?.throwIfAborted();
           cachedYamlFailed = true;
           warn(
             `cached aiAct plan failed, will replan and disable the stale cache: ${
@@ -1593,6 +1721,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async runYaml(yamlScriptContent: string): Promise<{
     result: Record<string, any>;
   }> {
+    if (this.destroyed)
+      throw new Error('Cannot run YAML using a destroyed Agent.');
     const script = parseYamlScript(yamlScriptContent, 'yaml');
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };

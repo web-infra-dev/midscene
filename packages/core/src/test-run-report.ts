@@ -29,12 +29,24 @@ export interface TestRunReportError {
   details?: TestRunReportValue;
 }
 
+export interface TestRunReportHostError {
+  phase:
+    | 'setup'
+    | 'execution'
+    | 'cleanup'
+    | 'report'
+    | 'publication'
+    | 'observer';
+  error: TestRunReportError;
+}
+
 export interface TestRunReportDiagnostic {
   level: 'warning' | 'error';
   code:
     | 'agent-detail-unresolved'
     | 'agent-detail-unavailable'
     | 'large-report'
+    | 'run-infrastructure-error'
     | 'source-without-executions';
   message: string;
   scopeId?: string;
@@ -88,6 +100,7 @@ export interface TestRunReportAttempt {
   steps: TestRunReportStep[];
   afterEach: TestRunReportStep[];
   teardownErrors?: TestRunReportError[];
+  hostErrors?: TestRunReportHostError[];
   /** Report groups available for scope-level fallback browsing. */
   scopeReportIds?: string[];
 }
@@ -103,6 +116,10 @@ export interface TestRunReportCase {
 
 export interface TestRunReportDocument {
   documentId: string;
+  /** Logical file identity when separate invocations need distinct UI IDs. */
+  logicalDocumentId?: string;
+  documentRunId?: string;
+  attemptIndex?: number;
   sourcePath: string;
   status: TestRunReportRunStatus;
   startedAt?: string;
@@ -112,8 +129,11 @@ export interface TestRunReportDocument {
   cases: TestRunReportCase[];
   afterAll: TestRunReportStep[];
   teardownErrors?: TestRunReportError[];
+  hostErrors?: TestRunReportHostError[];
   /** Report groups available for scope-level fallback browsing. */
   scopeReportIds?: string[];
+  /** Whole-file invocation history; Cases aggregate their own attempts. */
+  attempts?: Omit<TestRunReportDocument, 'cases' | 'attempts'>[];
 }
 
 export interface TestRunReportCollectionError {
@@ -133,6 +153,8 @@ export interface TestRunReportProjectLifecycle {
 export interface TestRunReportProject {
   projectId: string;
   name: string;
+  /** Display identity, also supports legacy custom interface adapters. */
+  platform: string;
   status: TestRunReportRunStatus;
   retry: number;
   lifecycle?: TestRunReportProjectLifecycle;
@@ -166,10 +188,12 @@ export interface TestRunReportDump {
 }
 
 export interface TestRunReportSource {
-  /** Runner Attempt runId or Document documentRunId. */
+  /** Resource/report scope that owns this finalized Midscene Agent report. */
   scopeId: string;
   /** Absolute path to a finalized Midscene Agent report. */
   sourcePath: string;
+  /** Current Agent dump JSON; when present, HTML is not parsed for execution data. */
+  dumpPath?: string;
 }
 
 export interface IndexedTestRunReportSource {

@@ -1,145 +1,53 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
-import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
-import { type ZodTypeAny, z } from 'zod';
-
-// previous defined yaml flow, as a helper
-interface MidsceneYamlFlowItemAIInput extends LocateOption {
-  // previous version
-  // aiInput: string; // value to input
-  // locate: TUserPrompt; // where to input
-  aiInput: TUserPrompt | undefined; // where to input
-  value: string | number; // value to input
-  mode?: 'replace' | 'clear' | 'typeOnly';
-  autoDismissKeyboard?: boolean;
-  keyboardTypeDelay?: number;
-  inputStrategy?: InputStrategy;
-}
-
-interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
-  // previous version
-  // aiKeyboardPress: string;
-  // locate?: TUserPrompt; // where to press, optional
-  aiKeyboardPress: TUserPrompt | undefined; // where to press
-  keyName: string; // key to press
-}
-
-interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
-  // previous version
-  // aiScroll: null;
-  // locate?: TUserPrompt; // which area to scroll, optional
-  aiScroll: TUserPrompt | undefined; // which area to scroll
-}
-
-type RuntimeYamlFlowItem =
-  | MidsceneYamlFlowItem
-  | MidsceneYamlFlowItemAIInput
-  | MidsceneYamlFlowItemAIKeyboardPress
-  | MidsceneYamlFlowItemAIScroll;
-
 import type { Agent } from '@/agent/agent';
-import type { TUserPrompt } from '@/common';
-import type { InputStrategy } from '@/device';
-import { deriveCaseStatus } from '@/dump/task-status';
 import type {
   DeviceAction,
   FreeFn,
-  LocateOption,
-  MidsceneYamlFlowItem,
-  MidsceneYamlFlowItemAIAction,
-  MidsceneYamlFlowItemAIAssert,
-  MidsceneYamlFlowItemAIWaitFor,
-  MidsceneYamlFlowItemEvaluateJavaScript,
-  MidsceneYamlFlowItemLogScreenshot,
-  MidsceneYamlFlowItemRunGherkinScenario,
-  MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
-  ScrollParam,
 } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { assert, ifInBrowser, ifInWorker, uuid } from '@midscene/shared/utils';
+import type {
+  CollectedWorkflowDocument,
+  WorkflowDocumentExecutionResult,
+  WorkflowExecutionProject,
+  WorkflowExecutionRecord,
+} from '../test-runner';
+import {
+  WorkflowExecutionFailure,
+  WorkflowPublicationError,
+} from '../test-runner/engine/execution-failure';
+import { cleanupResources } from '../test-runner/engine/resource-operations';
 import { runFreeFnCleanup } from './cleanup';
 import {
-  buildDetailedLocateParam,
-  buildDetailedLocateParamAndRestParams,
-} from './utils';
+  YamlExecutionOwnershipError,
+  currentYamlSignal,
+  enterYamlExecution,
+  runInYamlExecutionContext,
+} from './execution-session';
+import { createLegacyYamlExecutionRecord } from './legacy-yaml-execution-record';
+import { publishLegacyYamlReport } from './legacy-yaml-report';
+import {
+  createLegacyYamlRuntime,
+  legacyYamlOutcomeError,
+} from './legacy-yaml-runtime';
+import { collectLegacyYamlDocument } from './test-runner-compat';
+import { resolveWebTarget, resolveYamlOutputConfig } from './utils';
 
 const debug = getDebug('yaml-player');
 
-const aiTaskHandlerMap = {
-  aiQuery: 'aiQuery',
-  aiNumber: 'aiNumber',
-  aiString: 'aiString',
-  aiBoolean: 'aiBoolean',
-  aiAsk: 'aiAsk',
-  aiLocate: 'aiLocate',
-} as const;
-
-type AISimpleTaskKey = keyof typeof aiTaskHandlerMap;
-
-const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
-  if (!schema) {
-    return false;
-  }
-
-  const schemaDef = (schema as any)?._def;
-  if (!schemaDef?.typeName) {
-    return false;
-  }
-
-  switch (schemaDef.typeName) {
-    case z.ZodFirstPartyTypeKind.ZodString:
-    case z.ZodFirstPartyTypeKind.ZodEnum:
-    case z.ZodFirstPartyTypeKind.ZodNativeEnum:
-      return true;
-    case z.ZodFirstPartyTypeKind.ZodLiteral:
-      return typeof schemaDef.value === 'string';
-    case z.ZodFirstPartyTypeKind.ZodOptional:
-    case z.ZodFirstPartyTypeKind.ZodNullable:
-    case z.ZodFirstPartyTypeKind.ZodDefault:
-      return isStringParamSchema(schemaDef.innerType);
-    case z.ZodFirstPartyTypeKind.ZodEffects:
-      return isStringParamSchema(schemaDef.schema);
-    case z.ZodFirstPartyTypeKind.ZodPipeline:
-      return isStringParamSchema(schemaDef.out);
-    case z.ZodFirstPartyTypeKind.ZodUnion: {
-      const options = schemaDef.options as ZodTypeAny[] | undefined;
-      return Array.isArray(options)
-        ? options.every((option) => isStringParamSchema(option))
-        : false;
-    }
-    default:
-      return false;
-  }
-};
-
-const buildShortcutActionParam = (
-  actionName: string,
-  interfaceAlias: string | undefined,
-  value: string,
-) => {
-  if (actionName === 'Launch' || interfaceAlias === 'launch') {
-    return { uri: value };
-  }
-
-  if (actionName === 'Terminate' || interfaceAlias === 'terminate') {
-    return { uri: value };
-  }
-
-  if (
-    actionName === 'RunAdbShell' ||
-    interfaceAlias === 'runAdbShell' ||
-    actionName === 'RunHdcShell' ||
-    interfaceAlias === 'runHdcShell'
-  ) {
-    return { command: value };
-  }
-
-  return undefined;
-};
+/**
+ * Compatibility facade for the legacy YAML API.
+ *
+ * Execution is delegated to the shared Runner kernel through
+ * createLegacyYamlRuntime(). This class keeps the mutable status, result,
+ * progress, output, and setup/cleanup behavior exposed by the old API.
+ */
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -147,15 +55,22 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public reportFile?: string | null;
   public result: Record<string, any>;
   private unnamedResultIndex = 0;
+  private publicationErrors: WorkflowPublicationError[] = [];
   public output?: string | null;
   public unstableLogContent?: string | null;
   public errorInSetup?: Error;
+  /** @internal Runner result backing this compatibility facade. */
+  public executionResult?: WorkflowDocumentExecutionResult;
+  /** @internal Complete invocation, including setup and cleanup failures. */
+  public executionRecord?: WorkflowExecutionRecord;
+  /** @internal Host-resolved name, also used when setup fails before an Agent exists. */
+  public fallbackReportFileName?: string;
   private interfaceAgent: Agent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
   private actionSpace: DeviceAction[] = [];
   private scriptPath?: string;
-  private failedReportExecutionInCurrentStep = false;
+
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (platform: T) => Promise<{
@@ -166,21 +81,24 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     scriptPath?: string,
   ) {
     this.scriptPath = scriptPath;
+    // Invalid input fails before any owned resources are acquired.
+    collectLegacyYamlDocument(script, scriptPath);
     this.result = {};
 
     this.target =
-      script.target ||
-      script.web ||
+      resolveWebTarget(script)?.target ||
       script.android ||
       script.ios ||
+      script.harmony ||
       script.computer ||
       script.config;
+    const outputConfig = resolveYamlOutputConfig(script);
 
     if (ifInBrowser || ifInWorker) {
       this.output = undefined;
       debug('output is undefined in browser or worker');
-    } else if (this.target?.output) {
-      this.output = resolve(process.cwd(), this.target.output);
+    } else if (outputConfig.output) {
+      this.output = resolve(process.cwd(), outputConfig.output);
       debug('setting output by config.output', this.output);
     } else {
       const scriptName = this.scriptPath
@@ -188,19 +106,19 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         : 'script';
       this.output = join(
         getMidsceneRunSubDir('output'),
-        `${scriptName}-${Date.now()}.json`,
+        `${scriptName}-${uuid()}.json`,
       );
       debug('setting output by script path', this.output);
     }
 
     if (ifInBrowser || ifInWorker) {
       this.unstableLogContent = undefined;
-    } else if (typeof this.target?.unstableLogContent === 'string') {
+    } else if (typeof outputConfig.unstableLogContent === 'string') {
       this.unstableLogContent = resolve(
         process.cwd(),
-        this.target.unstableLogContent,
+        outputConfig.unstableLogContent,
       );
-    } else if (this.target?.unstableLogContent === true) {
+    } else if (outputConfig.unstableLogContent === true) {
       this.unstableLogContent = join(
         getMidsceneRunSubDir('output'),
         'unstableLogContent.json',
@@ -218,7 +136,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   private setResult(key: string | undefined, value: any) {
     const keyToUse = key || this.unnamedResultIndex++;
     if (this.result[keyToUse]) {
-      console.warn(`result key ${keyToUse} already exists, will overwrite`);
+      getDebug('yaml-player', { console: true })(
+        `result key ${keyToUse} already exists, will overwrite`,
+      );
     }
     this.result[keyToUse] = value;
 
@@ -234,14 +154,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     const taskIndexToNotify =
       typeof taskIndex === 'number' ? taskIndex : this.currentTaskIndex;
 
-    if (typeof taskIndexToNotify !== 'number') {
-      return;
-    }
+    if (typeof taskIndexToNotify !== 'number') return;
 
     const taskStatus = this.taskStatusList[taskIndexToNotify];
-    if (this.onTaskStatusChange) {
-      this.onTaskStatusChange(taskStatus);
-    }
+    this.onTaskStatusChange?.(taskStatus);
   }
 
   private async setTaskStatus(
@@ -250,10 +166,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     error?: Error,
   ) {
     this.taskStatusList[index].status = statusValue;
-    if (error) {
-      this.taskStatusList[index].error = error;
-    }
-
+    if (error) this.taskStatusList[index].error = error;
     this.notifyCurrentTaskStatusChange(index);
   }
 
@@ -261,506 +174,115 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     this.currentTaskIndex = taskIndex;
   }
 
-  private flushResult() {
+  private async flushResult() {
     if (this.output) {
       const output = resolve(process.cwd(), this.output);
-      const outputDir = dirname(output);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
-      }
-      writeFileSync(output, JSON.stringify(this.result || {}, undefined, 2));
+      await this.publish(output, async () => {
+        const outputDir = dirname(output);
+        await mkdir(outputDir, { recursive: true });
+        await writeFile(
+          output,
+          JSON.stringify(this.result || {}, undefined, 2),
+        );
+      });
     }
   }
 
-  private flushUnstableLogContent() {
+  private async flushUnstableLogContent() {
     if (this.unstableLogContent) {
       const content = this.interfaceAgent?._unstableLogContent();
       const filePath = resolve(process.cwd(), this.unstableLogContent);
-      const outputDir = dirname(filePath);
-      if (!existsSync(outputDir)) {
-        mkdirSync(outputDir, { recursive: true });
-      }
-      writeFileSync(filePath, JSON.stringify(content, null, 2));
+      await this.publish(filePath, async () => {
+        const outputDir = dirname(filePath);
+        await mkdir(outputDir, { recursive: true });
+        await writeFile(filePath, JSON.stringify(content, null, 2));
+      });
     }
+  }
+
+  private async publish(path: string, write: () => Promise<void>) {
+    try {
+      await write();
+    } catch (cause) {
+      const error = new WorkflowPublicationError('write-result', path, cause);
+      this.publicationErrors.push(error);
+      throw error;
+    }
+  }
+
+  private createRuntime(agent: Agent) {
+    return createLegacyYamlRuntime({
+      agent,
+      actionSpace: this.actionSpace,
+      sourcePath: this.scriptPath,
+      setResult: (key, value) => this.setResult(key, value),
+    });
   }
 
   async playTask(taskStatus: ScriptPlayerTaskStatus, agent: Agent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
-
-    for (const flowItemIndex in flow) {
-      const currentStep = Number.parseInt(flowItemIndex, 10);
-      taskStatus.currentStep = currentStep;
-      const flowItem = flow[flowItemIndex] as RuntimeYamlFlowItem;
-      const flowItemRecord = flowItem as Record<string, unknown>;
-      const executionCountBeforeStep = agent.dump?.executions?.length ?? 0;
-      this.failedReportExecutionInCurrentStep = false;
-
-      try {
-        await this.playFlowItem(agent, flowItem, flowItemRecord, flowItemIndex);
-      } catch (error) {
-        this.failedReportExecutionInCurrentStep =
-          this.hasFailedReportExecutionSince(agent, executionCountBeforeStep);
-        throw error;
+    const statusIndex = this.taskStatusList.indexOf(taskStatus);
+    const declaredIndex = (
+      taskStatus as ScriptPlayerTaskStatus & {
+        index?: unknown;
       }
+    ).index;
+    const taskIndex =
+      statusIndex >= 0
+        ? statusIndex
+        : typeof declaredIndex === 'number' && Number.isInteger(declaredIndex)
+          ? declaredIndex
+          : 0;
+
+    this.executionResult = await this.createRuntime(agent).runTask(
+      taskStatus,
+      taskIndex,
+      {
+        onStepStart: (info) => {
+          if (info.scope === 'case' && info.case.phase === 'steps') {
+            taskStatus.currentStep = info.case.stepIndex;
+          }
+        },
+      },
+    );
+
+    const outcome = this.executionResult.cases[0];
+    if (!outcome || outcome.status === 'not-run') {
+      throw new Error(`Task "${taskStatus.name}" did not run.`);
     }
+    if (outcome.status === 'failed') throw legacyYamlOutcomeError(outcome);
+
     this.reportFile = agent.reportFile;
     await this.flushUnstableLogContent();
   }
 
-  private hasFailedReportExecutionSince(
-    agent: Agent,
-    executionCountBefore: number,
+  async run(
+    options: {
+      signal?: AbortSignal;
+      defaultTimeoutMs?: number;
+      attemptIndex?: number;
+      document?: CollectedWorkflowDocument;
+      project?: WorkflowExecutionProject;
+    } = {},
   ) {
-    const executions = (agent.dump?.executions ?? []).slice(
-      executionCountBefore,
-    );
-    return deriveCaseStatus(executions) === 'failed';
+    return runInYamlExecutionContext(() => this.runInContext(options));
   }
 
-  private async playFlowItem(
-    agent: Agent,
-    flowItem: RuntimeYamlFlowItem,
-    flowItemRecord: Record<string, unknown>,
-    flowItemIndex: string,
-  ) {
-    // Skip Finalize action from cache - it's a planning-only marker
-    if ('Finalize' in flowItemRecord) {
-      return;
-    }
-
-    debug(
-      `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
-    );
-    const simpleAIKey = (
-      Object.keys(aiTaskHandlerMap) as AISimpleTaskKey[]
-    ).find((key) => Object.prototype.hasOwnProperty.call(flowItemRecord, key));
-    if (
-      'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
-      'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
-      'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
-    ) {
-      const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-      const { aiAct, aiAction, ai, instruction, ...actionOptions } =
-        actionTask as any;
-      const actionPrompt = aiAct ?? aiAction ?? ai;
-      let promptForAI: TUserPrompt | undefined;
-
-      if (typeof instruction === 'string' && instruction) {
-        promptForAI = instruction;
-      } else if (
-        instruction &&
-        typeof instruction === 'object' &&
-        typeof (instruction as { prompt?: unknown }).prompt === 'string' &&
-        (instruction as { prompt?: string }).prompt
-      ) {
-        promptForAI = instruction as TUserPrompt;
-      } else if (
-        actionPrompt &&
-        typeof actionPrompt === 'object' &&
-        typeof (actionPrompt as { prompt?: unknown }).prompt === 'string' &&
-        (actionPrompt as { prompt?: string }).prompt
-      ) {
-        promptForAI = actionPrompt as TUserPrompt;
-      } else if (typeof actionPrompt === 'string' && actionPrompt) {
-        promptForAI = actionPrompt;
-      }
-
-      assert(promptForAI, 'missing prompt for ai (aiAct)');
-      await agent.aiAct(promptForAI, actionOptions);
-    } else if (
-      'runGherkinScenario' in
-      (flowItem as MidsceneYamlFlowItemRunGherkinScenario)
-    ) {
-      const gherkinScenarioTask =
-        flowItem as MidsceneYamlFlowItemRunGherkinScenario;
-      const { runGherkinScenario } = gherkinScenarioTask;
-      assert(runGherkinScenario, 'missing scenario for runGherkinScenario');
-      await agent.runGherkinScenario(runGherkinScenario, {
-        cacheable: false,
-      });
-    } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
-      const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
-      const {
-        aiAssert: prompt,
-        errorMessage: msg,
-        name,
-        ...restOpts
-      } = assertTask;
-      assert(prompt, 'missing prompt for aiAssert');
-      assert(
-        !Object.prototype.hasOwnProperty.call(assertTask, 'observe'),
-        '`observe` is not supported in YAML aiAssert. Use agent.startObserving() from code instead.',
-      );
-
-      const result = await agent.aiAssert(prompt, msg, {
-        ...restOpts,
-        keepRawResponse: true,
-      });
-      const pass = result?.pass;
-      const thought = result?.thought;
-      const message = result?.message;
-
-      this.setResult(name, { pass, thought, message });
-
-      if (!pass) {
-        throw new Error(message);
-      }
-    } else if (simpleAIKey) {
-      const {
-        [simpleAIKey]: prompt,
-        name,
-        ...options
-      } = flowItem as Record<string, any>;
-      assert(prompt, `missing prompt for ${simpleAIKey}`);
-      assert(
-        !Object.prototype.hasOwnProperty.call(flowItem, 'observe'),
-        '`observe` is not supported in YAML flow items. Use agent.startObserving() from code instead.',
-      );
-
-      const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
-      assert(
-        typeof agentMethod === 'function',
-        `missing agent method for ${simpleAIKey}`,
-      );
-      const aiResult = await agentMethod.call(agent, prompt, options);
-      this.setResult(name, aiResult);
-    } else if ('aiWaitFor' in (flowItem as MidsceneYamlFlowItemAIWaitFor)) {
-      const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
-      const { aiWaitFor, timeout, ...restWaitForOpts } = waitForTask;
-      const prompt = aiWaitFor;
-      assert(prompt, 'missing prompt for aiWaitFor');
-      const waitForOptions = {
-        ...restWaitForOpts,
-        ...(timeout !== undefined ? { timeout, timeoutMs: timeout } : {}),
-      };
-      await agent.aiWaitFor(prompt, waitForOptions);
-    } else if ('sleep' in flowItem) {
-      const sleepTask = flowItem as unknown as MidsceneYamlFlowItemSleep;
-      const ms = sleepTask.sleep;
-      let msNumber = ms;
-      if (typeof ms === 'string') {
-        msNumber = Number.parseInt(ms, 10);
-      }
-      assert(
-        Number.isFinite(msNumber) && msNumber > 0,
-        `ms for sleep must be greater than 0, but got ${ms}`,
-      );
-      await agent.sleep(msNumber);
-    } else if ('javascript' in flowItem) {
-      const evaluateJavaScriptTask =
-        flowItem as unknown as MidsceneYamlFlowItemEvaluateJavaScript;
-
-      const result = await agent.evaluateJavaScript(
-        evaluateJavaScriptTask.javascript,
-      );
-      this.setResult(evaluateJavaScriptTask.name, result);
-    } else if (
-      'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot) ||
-      'recordToReport' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
-    ) {
-      const recordTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
-      const title =
-        recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
-      const content = recordTask.content || '';
-      await agent.recordToReport(title, { content });
-    } else if ('aiInput' in flowItem) {
-      // may be input empty string ''
-      const {
-        aiInput,
-        value: rawValue,
-        ...inputTask
-      } = flowItem as unknown as MidsceneYamlFlowItemAIInput;
-
-      // Compatibility with previous version:
-      // Old format: { aiInput: string (value), locate: TUserPrompt }
-      // New format - 1: { aiInput: TUserPrompt, value: string | number }
-      // New format - 2: { aiInput: undefined, locate: TUserPrompt, value: string | number }
-      let locatePrompt: TUserPrompt | undefined;
-      let value: string | number | undefined;
-      if ((inputTask as any).locate) {
-        // Old format - aiInput is the value, locate is the prompt
-        // Keep backward compatibility: empty string is treated as no value
-        value = (aiInput as string | number) || rawValue;
-        locatePrompt = (inputTask as any).locate;
-      } else {
-        // New format - aiInput is the prompt, value is the value
-        locatePrompt = aiInput || '';
-        value = rawValue;
-      }
-
-      // Convert value to string for Input action
-      await agent.callActionInActionSpace('Input', {
-        ...inputTask,
-        ...(value !== undefined ? { value: String(value) } : {}),
-        ...(locatePrompt
-          ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
-          : {}),
-      });
-    } else if ('aiKeyboardPress' in flowItem) {
-      const { aiKeyboardPress, ...keyboardPressTask } =
-        flowItem as unknown as MidsceneYamlFlowItemAIKeyboardPress;
-
-      // Compatibility with previous version:
-      // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
-      // New format - 1: { aiKeyboardPress: TUserPrompt, keyName: string }
-      // New format - 2: { aiKeyboardPress: , locate?: TUserPrompt, keyName: string }
-      let locatePrompt: TUserPrompt | undefined;
-      let keyName: string | undefined;
-      if ((keyboardPressTask as any).locate) {
-        // Old format - aiKeyboardPress is the key, locate is the prompt
-        keyName = aiKeyboardPress as string;
-        locatePrompt = (keyboardPressTask as any).locate;
-      } else if (keyboardPressTask.keyName) {
-        // New format - aiKeyboardPress is the prompt, key is the key
-        keyName = keyboardPressTask.keyName;
-        locatePrompt = aiKeyboardPress;
-      } else {
-        keyName = aiKeyboardPress as string;
-      }
-
-      await agent.callActionInActionSpace('KeyboardPress', {
-        ...keyboardPressTask,
-        ...(keyName ? { keyName } : {}),
-        ...(locatePrompt
-          ? {
-              locate: buildDetailedLocateParam(locatePrompt, keyboardPressTask),
-            }
-          : {}),
-      });
-    } else if ('aiScroll' in flowItem) {
-      const { aiScroll, ...scrollTask } =
-        flowItem as unknown as MidsceneYamlFlowItemAIScroll;
-
-      // Compatibility with previous version:
-      // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
-      // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
-      // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
-      const { locate, ...scrollOptions } = scrollTask as any;
-      const locatePrompt: TUserPrompt | undefined =
-        locate ?? aiScroll ?? undefined;
-
-      await agent.aiScroll(locatePrompt, scrollOptions);
-    } else if ('aiTap' in flowItem) {
-      const { aiTap, prompt, locate, ...tapOptions } = flowItem as any;
-
-      let locatePrompt: TUserPrompt;
-      let opts = tapOptions;
-      // Support both formats:
-      // 1. { aiTap: null, locate: { prompt, images, ... } }  (locate as sibling key)
-      // 2. { aiTap: { locate: { prompt, images, ... } } }    (locate nested in aiTap)
-      const locateObj =
-        locate ??
-        (typeof aiTap === 'object' && aiTap !== null
-          ? aiTap.locate
-          : undefined);
-
-      if (typeof aiTap === 'string' && aiTap) {
-        // User YAML: aiTap: 'search input box'
-        locatePrompt = aiTap;
-      } else if (typeof locateObj === 'object' && locateObj?.prompt) {
-        // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepLocate, cacheable } }
-        const { prompt: lp, ...locateOpts } = locateObj;
-        locatePrompt = lp;
-        opts = { ...locateOpts, ...tapOptions };
-      } else {
-        // User YAML: aiTap: { prompt: '...' } or aiTap: null + prompt: '...'
-        locatePrompt = aiTap?.prompt || prompt || locateObj;
-      }
-
-      assert(locatePrompt, 'missing prompt for aiTap');
-      await agent.aiTap(locatePrompt, opts);
-    } else {
-      // generic action, find the action in actionSpace
-
-      /* for aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
-
-        - aiRightClick: 'search input box'
-        - aiRightClick: 'search input box'
-          deepLocate: true
-          cacheable: false
-        - aiRightClick:
-          prompt: 'search input box'
-        - aiRightClick:
-          prompt: 'search input box'
-          deepLocate: true
-          cacheable: false
-        */
-
-      const actionSpace = this.actionSpace;
-      let locatePromptShortcut: string | undefined;
-      let actionParamForMatchedAction: unknown;
-      const matchedAction = actionSpace.find((action) => {
-        const actionInterfaceAlias = action.interfaceAlias;
-        if (
-          actionInterfaceAlias &&
-          Object.prototype.hasOwnProperty.call(flowItem, actionInterfaceAlias)
-        ) {
-          actionParamForMatchedAction =
-            flowItem[actionInterfaceAlias as keyof typeof flowItem];
-          if (typeof actionParamForMatchedAction === 'string') {
-            locatePromptShortcut = actionParamForMatchedAction;
-          }
-          return true;
-        }
-
-        const keyOfActionInActionSpace = action.name;
-        if (
-          Object.prototype.hasOwnProperty.call(
-            flowItem,
-            keyOfActionInActionSpace,
-          )
-        ) {
-          actionParamForMatchedAction =
-            flowItem[keyOfActionInActionSpace as keyof typeof flowItem];
-          if (typeof actionParamForMatchedAction === 'string') {
-            locatePromptShortcut = actionParamForMatchedAction;
-          }
-          return true;
-        }
-
-        return false;
-      });
-
-      assert(
-        matchedAction,
-        `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
-      );
-
-      const schemaIsStringParam = isStringParamSchema(
-        matchedAction.paramSchema,
-      );
-      let stringParamToCall: string | undefined;
-      const resultName = (flowItem as any).name;
-      const timeout = (flowItem as any).timeout;
-      const hasRunAdbShellAlias = Object.prototype.hasOwnProperty.call(
-        flowItem,
-        'runAdbShell',
-      );
-
-      if (
-        hasRunAdbShellAlias &&
-        typeof actionParamForMatchedAction === 'string' &&
-        typeof timeout === 'number' &&
-        typeof (agent as any).runAdbShell === 'function'
-      ) {
-        const result = await (agent as any).runAdbShell(
-          actionParamForMatchedAction,
-          { timeout },
-        );
-        if (result !== undefined) {
-          this.setResult(resultName, result);
-        }
-        return;
-      }
-
-      const specialActionParamToCall =
-        typeof actionParamForMatchedAction === 'string'
-          ? buildShortcutActionParam(
-              matchedAction.name,
-              matchedAction.interfaceAlias,
-              actionParamForMatchedAction,
-            )
-          : undefined;
-      if (specialActionParamToCall) {
-        debug(
-          `matchedAction: ${matchedAction.name}`,
-          `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
-        );
-        const result = await agent.callActionInActionSpace(
-          matchedAction.name,
-          specialActionParamToCall,
-        );
-
-        if (result !== undefined) {
-          this.setResult(resultName, result);
-        }
-      } else if (
-        typeof actionParamForMatchedAction === 'string' &&
-        schemaIsStringParam
-      ) {
-        if (matchedAction.paramSchema) {
-          const parseResult = matchedAction.paramSchema.safeParse(
-            actionParamForMatchedAction,
-          );
-          if (parseResult.success && typeof parseResult.data === 'string') {
-            stringParamToCall = parseResult.data;
-          } else if (!parseResult.success) {
-            debug(
-              `parse failed for action ${matchedAction.name} with string param`,
-              parseResult.error,
-            );
-            stringParamToCall = actionParamForMatchedAction;
-          }
-        } else {
-          stringParamToCall = actionParamForMatchedAction;
-        }
-
-        if (stringParamToCall !== undefined) {
-          debug(
-            `matchedAction: ${matchedAction.name}`,
-            `flowParams: ${JSON.stringify(stringParamToCall)}`,
-          );
-          const result = await agent.callActionInActionSpace(
-            matchedAction.name,
-            stringParamToCall,
-          );
-
-          // Store result if there's a name property in flowItem
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        }
-      } else {
-        // Determine the source for parameter extraction:
-        // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
-        // - Otherwise, use actionParamForMatchedAction (for actions like runWdaRequest with structured params)
-        const sourceForParams =
-          locatePromptShortcut &&
-          typeof actionParamForMatchedAction === 'string'
-            ? { ...flowItem, prompt: locatePromptShortcut }
-            : typeof actionParamForMatchedAction === 'object' &&
-                actionParamForMatchedAction !== null
-              ? actionParamForMatchedAction
-              : flowItem;
-
-        const { locateParam, restParams } =
-          buildDetailedLocateParamAndRestParams(
-            locatePromptShortcut || '',
-            sourceForParams as LocateOption,
-            [
-              matchedAction.name,
-              matchedAction.interfaceAlias || '_never_mind_',
-            ],
-          );
-
-        const flowParams = {
-          ...restParams,
-          locate: locateParam,
-        };
-
-        debug(
-          `matchedAction: ${matchedAction.name}`,
-          `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
-        );
-        const result = await agent.callActionInActionSpace(
-          matchedAction.name,
-          flowParams,
-        );
-
-        // Store result if there's a name property in flowItem
-        const resultName = (flowItem as any).name;
-        if (result !== undefined) {
-          this.setResult(resultName, result);
-        }
-      }
-    }
-  }
-
-  async run() {
-    const { target, web, android, ios, harmony, computer, tasks } = this.script;
-    const webEnv = web || target;
+  private async runInContext(options: {
+    signal?: AbortSignal;
+    defaultTimeoutMs?: number;
+    attemptIndex?: number;
+    document?: CollectedWorkflowDocument;
+    project?: WorkflowExecutionProject;
+  }) {
+    const startedAt = new Date();
+    const runId = uuid();
+    this.executionResult = undefined;
+    this.executionRecord = undefined;
+    this.publicationErrors = [];
+    const { android, ios, harmony, computer } = this.script;
+    const webEnv = resolveWebTarget(this.script)?.target;
     const androidEnv = android;
     const iosEnv = ios;
     const harmonyEnv = harmony;
@@ -772,88 +294,200 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
     let agent: Agent | null = null;
     let freeFn: FreeFn[] = [];
+    let setupError: unknown;
+    let executionError: unknown;
+    let cleanupError: unknown;
+    let signal = options.signal;
+    let session: ReturnType<typeof enterYamlExecution> | undefined;
     try {
+      options.signal?.throwIfAborted();
       const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(
         platform as T,
       );
-      this.actionSpace = await newAgent.getActionSpace();
+      // Register ownership immediately: discovering actions can fail too.
       agent = newAgent;
+      agent._prepareForTestRunner?.();
+      freeFn = [...(newFreeFn || [])];
+      session = enterYamlExecution(agent);
+      signal ??= currentYamlSignal(agent);
+      signal?.throwIfAborted();
+      this.actionSpace = await agent.getActionSpace();
       const originalOnTaskStartTip = agent.onTaskStartTip;
       agent.onTaskStartTip = (tip) => {
-        if (this.status === 'running') {
-          this.agentStatusTip = tip;
-        }
+        if (this.status === 'running') this.agentStatusTip = tip;
         originalOnTaskStartTip?.(tip);
       };
-      freeFn = [
-        ...(newFreeFn || []),
-        {
-          name: 'restore-agent-onTaskStartTip',
-          fn: () => {
-            if (agent) {
-              agent.onTaskStartTip = originalOnTaskStartTip;
-            }
-          },
+      freeFn.push({
+        name: 'restore-agent-onTaskStartTip',
+        fn: () => {
+          if (agent) agent.onTaskStartTip = originalOnTaskStartTip;
         },
-      ];
-    } catch (e) {
-      this.setPlayerStatus('error', e as Error);
-      return;
+      });
+    } catch (error) {
+      // A rejected borrower must not close or publish into another run's Agent.
+      if (error instanceof YamlExecutionOwnershipError) throw error;
+      setupError = error;
+      this.setPlayerStatus('error', error as Error);
     }
     this.interfaceAgent = agent;
 
-    let taskIndex = 0;
-    this.setPlayerStatus('running');
-    let errorFlag = false;
-    while (taskIndex < tasks.length) {
-      const taskStatus = this.taskStatusList[taskIndex];
-      this.setTaskStatus(taskIndex, 'running' as any);
-      this.setTaskIndex(taskIndex);
-      this.failedReportExecutionInCurrentStep = false;
+    const document = collectLegacyYamlDocument(
+      this.script,
+      options.document?.sourcePath ?? this.scriptPath ?? '<inline-yaml>',
+      this.actionSpace,
+      options.document,
+    );
+    const runtime =
+      agent && !setupError ? this.createRuntime(agent) : undefined;
+    try {
+      if (runtime && agent) {
+        this.executionResult = await runtime.runScript(this.script, {
+          document,
+          project: options.project,
+          documentAttemptIndex: options.attemptIndex,
+          signal,
+          defaultTimeoutMs: options.defaultTimeoutMs,
+          createDocumentRunId: () => runId,
+          onCaseStart: (collectedCase) => {
+            const taskIndex = collectedCase.caseIndex;
+            this.setTaskIndex(taskIndex);
+            return this.setTaskStatus(taskIndex, 'running');
+          },
+          onStepStart: (info) => {
+            if (info.scope !== 'case' || info.case.phase !== 'steps') return;
+            const taskStatus = this.taskStatusList[info.case.caseIndex];
+            if (taskStatus) taskStatus.currentStep = info.case.stepIndex;
+          },
+          onCaseOutcome: async (outcome) => {
+            if (outcome.status === 'not-run') return;
+            const taskIndex = outcome.caseIndex;
+            const taskStatus = this.taskStatusList[taskIndex];
+            assert(taskStatus, `missing YAML task at index ${taskIndex}`);
 
-      try {
-        await this.playTask(taskStatus, this.interfaceAgent);
-        this.setTaskStatus(taskIndex, 'done' as any);
-      } catch (e) {
-        this.setTaskStatus(taskIndex, 'error' as any, e as Error);
-        const recordErrorToReport = (agent as any).recordErrorToReport;
-        if (
-          !this.failedReportExecutionInCurrentStep &&
-          typeof recordErrorToReport === 'function'
-        ) {
-          try {
-            await recordErrorToReport.call(
-              agent,
-              `YAML task failed - ${taskStatus.name}`,
-              {
-                error: e as Error,
-                content: `Step ${taskStatus.currentStep ?? 0} failed while running YAML task "${taskStatus.name}".`,
-              },
-            );
-          } catch (reportError) {
-            debug('failed to record yaml error to report', reportError);
-          }
-        }
+            this.reportFile = agent?.reportFile;
+            if (outcome.status === 'success') {
+              await this.setTaskStatus(taskIndex, 'done');
+              await this.flushUnstableLogContent();
+              return;
+            }
 
-        if (taskStatus.continueOnError) {
-          // nothing more to do
-        } else {
-          this.reportFile = agent.reportFile;
-          errorFlag = true;
-          break;
-        }
+            const error = legacyYamlOutcomeError(outcome);
+            await this.setTaskStatus(taskIndex, 'error', error);
+          },
+        });
+        const stoppedOnFailure = this.executionResult.cases.some(
+          (outcome) =>
+            outcome.status === 'failed' &&
+            !this.taskStatusList[outcome.caseIndex]?.continueOnError,
+        );
+        this.setPlayerStatus(
+          stoppedOnFailure || signal?.aborted ? 'error' : 'done',
+        );
       }
-      this.reportFile = agent?.reportFile;
-      taskIndex++;
+    } catch (error) {
+      executionError = error;
+      if (error instanceof WorkflowExecutionFailure)
+        this.executionResult = error.result as WorkflowDocumentExecutionResult;
+      this.setPlayerStatus('error', error as Error);
     }
 
-    if (errorFlag) {
-      this.setPlayerStatus('error');
-    } else {
-      this.setPlayerStatus('done');
-    }
+    this.reportFile = agent?.reportFile;
     this.agentStatusTip = '';
 
-    await runFreeFnCleanup(freeFn);
+    try {
+      // A timeout settles the Runner before an uncooperative device action.
+      // Never dispose its Agent while that action is still using it.
+      if (session?.isRoot && agent) {
+        await cleanupResources([agent], () => runFreeFnCleanup(freeFn), {
+          owner: this,
+          signal,
+          onDeferredError: (error) =>
+            getDebug('yaml-player', { console: true })(
+              `Deferred YAML cleanup failed: ${String(error)}`,
+            ),
+        });
+      } else await runFreeFnCleanup(freeFn);
+    } catch (error) {
+      cleanupError = error;
+      this.setPlayerStatus(
+        'error',
+        (setupError ?? executionError ?? error) as Error,
+      );
+    }
+
+    const endedAt = new Date();
+    const cleanupErrors =
+      cleanupError instanceof AggregateError
+        ? cleanupError.errors
+        : cleanupError === undefined
+          ? []
+          : [cleanupError];
+    this.executionRecord = createLegacyYamlExecutionRecord({
+      runId,
+      attemptIndex: options.attemptIndex ?? 0,
+      projectName: options.project?.name,
+      script: this.script,
+      document,
+      startedAt,
+      endedAt,
+      execution: this.executionResult,
+      setupError,
+      executionError,
+      cleanupErrors,
+      aborted: signal?.aborted ?? false,
+      publicationErrors: this.publicationErrors,
+      outputs: this.result,
+      reportFile: agent?.reportFile,
+      children: session?.children,
+    });
+    let reportError: unknown;
+    if (!session || session.isRoot) {
+      try {
+        const published = await publishLegacyYamlReport({
+          agent,
+          record: this.executionRecord,
+          runId,
+          script: this.script,
+          scriptPath: this.scriptPath,
+          fallbackReportFileName: this.fallbackReportFileName,
+        });
+        this.reportFile = published.reportFile;
+        this.executionRecord = published.record;
+      } catch (error) {
+        reportError = error;
+        this.setPlayerStatus(
+          'error',
+          (setupError ?? executionError ?? cleanupError ?? error) as Error,
+        );
+        this.executionRecord = Object.freeze({
+          ...this.executionRecord,
+          status: 'failed',
+          reportError: error,
+        });
+      }
+    }
+    session?.finish(this.executionRecord);
+    if (reportError) {
+      const errors = [
+        setupError,
+        executionError,
+        ...cleanupErrors,
+        reportError,
+      ].filter((error) => error !== undefined);
+      throw errors.length === 1
+        ? reportError
+        : new AggregateError(
+            errors,
+            'YAML execution/report finalization failed',
+          );
+    }
+    if (executionError && cleanupError) {
+      throw new AggregateError(
+        [executionError, ...cleanupErrors],
+        'YAML execution and cleanup failed',
+      );
+    }
+    if (executionError) throw executionError;
+    if (cleanupError) throw cleanupError;
   }
 }
