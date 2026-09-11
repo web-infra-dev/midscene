@@ -1,5 +1,4 @@
 import type { MidsceneYamlConfigResult } from '@midscene/core';
-import type { WorkflowExecutionRecord } from '@midscene/core/internal/test-runner';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
@@ -46,8 +45,6 @@ export interface TestExecutionProjectRunResult {
   cases: readonly TestProjectCaseRunResult[];
   documents: readonly WorkflowDocumentRunResult[];
   collectionErrors: readonly TestProjectCollectionError[];
-  /** Complete legacy invocations remain available even when their sidecars fail. */
-  executionRecords?: readonly WorkflowExecutionRecord[];
 }
 
 export interface TestProjectRunResult {

@@ -785,9 +785,6 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
-      '@midscene/computer':
-        specifier: workspace:*
-        version: link:../computer
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
@@ -800,6 +797,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      '@midscene/test':
+        specifier: workspace:*
+        version: link:../test
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration

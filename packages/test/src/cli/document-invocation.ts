@@ -1,8 +1,8 @@
 import {
   WorkflowExecutionFailure,
-  type WorkflowExecutionRecord,
   runDocumentAttempts,
 } from '@midscene/core/internal/test-runner';
+import { NodeRegistry } from '../engine/registry';
 import { runWorkflowDocument } from '../engine/run-workflow-document';
 import type {
   CaseRunOutcome,
@@ -14,13 +14,13 @@ import type {
 import { isFatalDeviceError } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
 import type { CreateYamlPlayerOptions } from '../runtime/create-yaml-player';
-import type { YamlBatchBrowserSession } from '../runtime/legacy-browser';
+import type { YamlSharedBrowserContext } from '../runtime/legacy-browser';
 import type { LegacyTestRunPlan } from '../runtime/legacy-config';
 import {
-  type LegacyWorkflow,
-  type LegacyWorkflowExecutionResult,
-  runLegacyWorkflow,
-} from './legacy-workflow';
+  type LegacyYamlDocumentArtifact,
+  createLegacyYamlDocumentHost,
+} from '../runtime/legacy-document-host';
+import type { LegacyWorkflow } from './legacy-adapter';
 import {
   writeCaseAttemptResult,
   writeWorkflowDocumentResult,
@@ -28,7 +28,7 @@ import {
 import type { LoadedExecutionProject, LoadedTestProject } from './test-project';
 import type { TestProjectCaseRunResult } from './types';
 
-/** Parser-specific data attached before the scheduler starts. */
+/** Parser-specific data is consumed before the common document runner starts. */
 export type PreparedDocumentInvocation =
   | {
       kind: 'native';
@@ -40,13 +40,11 @@ export type PreparedDocumentInvocation =
       workflow: LegacyWorkflow;
     };
 
-export type LegacyInvocationArtifacts =
-  LegacyWorkflowExecutionResult['artifacts'];
+export type LegacyInvocationArtifacts = readonly LegacyYamlDocumentArtifact[];
 
 interface DocumentInvocationSinks {
   cases: TestProjectCaseRunResult[];
   documents: WorkflowDocumentRunResult[];
-  executionRecords: WorkflowExecutionRecord[];
   legacyArtifacts: Map<string, LegacyInvocationArtifacts>;
 }
 
@@ -62,7 +60,6 @@ interface ExecuteDocumentInvocationOptions {
   signal: AbortSignal;
   rootSignal: AbortSignal;
   legacyPlan?: LegacyTestRunPlan;
-  batchBrowser?: YamlBatchBrowserSession;
   getLegacyPlayerOptions?():
     | CreateYamlPlayerOptions
     | Promise<CreateYamlPlayerOptions>;
@@ -108,128 +105,45 @@ const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
     (step) => step.error && isFatalDeviceError(step.error),
   ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
 
-const latestById = <T>(items: readonly T[], id: (item: T) => string): T[] => [
-  ...new Map(items.map((item) => [id(item), item])).values(),
-];
-
-async function executeLegacyInvocation(
-  options: ExecuteDocumentInvocationOptions & {
-    invocation: Extract<PreparedDocumentInvocation, { kind: 'legacy' }>;
-  },
+/** Execute native and adapted YAML documents through the same retry boundary. */
+export async function executeDocumentInvocation(
+  options: ExecuteDocumentInvocationOptions,
 ): Promise<void> {
   const { invocation, project, sinks } = options;
-  const { document, workflow } = invocation;
-  const legacyErrors: unknown[] = [];
-  const playerOptions = options.legacyPlan
-    ? {
-        headed: options.legacyPlan.headed,
-        keepWindow: options.legacyPlan.keepWindow,
-        ...options.batchBrowser?.options,
-      }
-    : await options.getLegacyPlayerOptions?.();
-  const execution = await runLegacyWorkflow(workflow, {
-    playerOptions,
-    ...(options.legacyPlan?.setup === workflow.source.absolutePath
-      ? {
-          beforeAttempt: async (attemptIndex: number) => {
-            if (attemptIndex > 0) await options.batchBrowser?.reset();
-            return {
-              headed: options.legacyPlan!.headed,
-              keepWindow: options.legacyPlan!.keepWindow,
-              ...options.batchBrowser?.options,
-            };
-          },
-        }
-      : {}),
-    project,
-    runDir: options.runDir,
-    signal: options.signal,
-    defaultTimeoutMs: options.definition.hasExplicitTestTimeout
-      ? options.definition.test.testTimeout
-      : undefined,
-    // Legacy batch bail stops admitting new files. A dispatched file owns its
-    // full retry sequence; native projects stop their document retry loop.
-    shouldStop: () =>
-      (!options.legacyPlan && options.shouldBail()) || options.isProjectFatal(),
-    onProgress: options.onProgress,
-    onDocumentResult: options.onDocumentResult,
-  }).catch((error: unknown) => {
-    if (error instanceof WorkflowExecutionFailure) {
-      const partial = error.result as LegacyWorkflowExecutionResult;
-      legacyErrors.push(...error.errors);
-      return partial;
-    }
-    throw error;
-  });
-
-  if (!execution) {
-    sinks.cases.push(
-      ...document.cases.map((item) => ({
-        documentId: document.documentId,
-        caseId: item.caseId,
-        projectName: project.name,
-        name: item.definition.name,
-        sourcePath: item.sourcePath,
-        caseIndex: item.caseIndex,
-        status: 'not-run' as const,
-        notRunReason: 'interrupted' as const,
-      })),
-    );
-    return;
-  }
-
-  sinks.cases.push(...execution.cases);
-  sinks.documents.push(...execution.documents);
-  sinks.executionRecords.push(...execution.records);
-  sinks.legacyArtifacts.set(document.documentId, execution.artifacts);
-  for (const outcome of execution.cases) {
-    for (const attempt of outcome.attempts ?? []) {
-      try {
-        await writeCaseAttemptResult(
-          options.runDir,
-          project.projectId,
-          document.documentId,
-          attempt,
-        );
-      } catch (error) {
-        legacyErrors.push(error);
-      }
-    }
-  }
-  for (const result of execution.documents) {
-    try {
-      await writeWorkflowDocumentResult(options.runDir, result);
-    } catch (error) {
-      legacyErrors.push(error);
-    }
-  }
-  if (legacyErrors.length)
-    throw new WorkflowExecutionFailure(execution, legacyErrors);
-
-  const finalCases = latestById(execution.cases, (item) => item.caseId);
-  const failedCases = finalCases.filter(
-    (item) => item.status === 'failed',
-  ).length;
-  options.addFailedCases(
-    options.legacyPlan && execution.documents.at(-1)?.status === 'failed'
-      ? Math.max(1, failedCases)
-      : failedCases,
-  );
-  if (
-    finalCases.some(caseHasFatalError) ||
-    documentHasFatalError(execution.documents.at(-1)!)
-  )
-    options.markProjectFatal();
-}
-
-async function executeNativeInvocation(
-  options: ExecuteDocumentInvocationOptions & {
-    invocation: Extract<PreparedDocumentInvocation, { kind: 'native' }>;
-  },
-): Promise<void> {
-  const { document } = options.invocation;
-  const { project, sinks } = options;
+  const { document } = invocation;
   const documentRetry = project.retryScope === 'document';
+  const artifacts: LegacyYamlDocumentArtifact[] = [];
+  const legacyHost =
+    invocation.kind === 'legacy'
+      ? createLegacyYamlDocumentHost({
+          file: invocation.workflow.source.absolutePath,
+          script: invocation.workflow.script,
+          options: async (context) => {
+            const sharedBrowser = (
+              context.projectContext as YamlSharedBrowserContext | undefined
+            )?.yamlBrowser;
+            if (
+              options.legacyPlan?.setup ===
+                invocation.workflow.source.absolutePath &&
+              context.document.attemptIndex > 0
+            )
+              await sharedBrowser?.reset();
+            if (options.legacyPlan)
+              return {
+                headed: options.legacyPlan.headed,
+                keepWindow: options.legacyPlan.keepWindow,
+                ...sharedBrowser?.options,
+              };
+            return options.getLegacyPlayerOptions?.();
+          },
+          onArtifact: (artifact) => artifacts.push(artifact),
+        })
+      : undefined;
+  const legacyNodes = legacyHost
+    ? new NodeRegistry(legacyHost.nodes)
+    : undefined;
+  const attempts: WorkflowDocumentExecutionResult[] = [];
+
   await runDocumentAttempts(
     {
       retry: documentRetry ? project.retry : 0,
@@ -237,15 +151,25 @@ async function executeNativeInvocation(
       shouldStop: () => options.shouldBail() || options.isProjectFatal(),
     },
     async (documentAttemptIndex) => {
+      if (documentRetry)
+        options.onProgress(
+          `    file attempt ${documentAttemptIndex + 1}/${project.retry + 1}: ${document.sourcePath}`,
+        );
       const execution = await runWorkflowDocument(document, {
         documentAttemptIndex: documentRetry ? documentAttemptIndex : undefined,
-        resolveNode: project.nodes.require.bind(project.nodes),
+        resolveNode: legacyNodes
+          ? legacyNodes.require.bind(legacyNodes)
+          : project.nodes.require.bind(project.nodes),
         project,
         projectContext: options.projectContext,
-        documentSetup: project.documentSetup,
+        documentSetup: legacyHost?.documentSetup ?? project.documentSetup,
         retry: documentRetry ? 0 : project.retry,
         signal: options.signal,
-        defaultTimeoutMs: options.definition.test.testTimeout,
+        defaultTimeoutMs:
+          invocation.kind === 'legacy' &&
+          !options.definition.hasExplicitTestTimeout
+            ? undefined
+            : options.definition.test.testTimeout,
         shouldStop: () =>
           options.rootSignal.aborted ||
           options.shouldBail() ||
@@ -279,18 +203,28 @@ async function executeNativeInvocation(
             attempt,
           );
           options.onProgress(
-            `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
+            `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${documentRetry ? 1 : project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
           );
         },
         onCaseOutcome: (outcome) => {
+          if (caseHasFatalError(outcome)) options.markProjectFatal();
           if (!documentRetry && outcome.status === 'failed')
             options.addFailedCases(1);
-          if (caseHasFatalError(outcome)) options.markProjectFatal();
         },
         onDocumentResult: options.onDocumentResult,
+        ...(legacyHost
+          ? {
+              resolveCaseReportScopeId: (
+                _case: unknown,
+                _attempt: number,
+                documentRunId: string,
+              ) => documentRunId,
+            }
+          : {}),
       }).catch(async (error: unknown) => {
         if (error instanceof WorkflowExecutionFailure) {
           const partial = error.result as WorkflowDocumentExecutionResult;
+          attempts.push(partial);
           sinks.documents.push(partial.document);
           sinks.cases.push(
             ...partial.cases.map((outcome) => ({
@@ -311,6 +245,7 @@ async function executeNativeInvocation(
         throw error;
       });
 
+      attempts.push(execution);
       sinks.cases.push(
         ...execution.cases.map((outcome) => ({
           ...outcome,
@@ -318,9 +253,9 @@ async function executeNativeInvocation(
           documentRunId: execution.document.documentRunId,
         })),
       );
-      if (documentHasFatalError(execution.document)) options.markProjectFatal();
       sinks.documents.push(execution.document);
       await writeWorkflowDocumentResult(options.runDir, execution.document);
+      if (documentHasFatalError(execution.document)) options.markProjectFatal();
       const cleanupErrors = [
         ...(execution.document.teardownErrors ?? []),
         ...execution.cases.flatMap((outcome) =>
@@ -334,31 +269,18 @@ async function executeNativeInvocation(
       const failed =
         execution.document.status === 'failed' ||
         execution.cases.some((item) => item.status !== 'success');
-      if (
-        documentRetry &&
-        (documentAttemptIndex === project.retry || options.isProjectFatal())
-      ) {
-        options.addFailedCases(
-          execution.cases.filter((item) => item.status === 'failed').length +
-            (execution.document.status === 'failed' ? 1 : 0),
-        );
-      }
       return failed ? 'failed' : 'success';
     },
   );
-}
 
-/** Execute one prepared document through a parser-neutral scheduler boundary. */
-export async function executeDocumentInvocation(
-  options: ExecuteDocumentInvocationOptions,
-): Promise<void> {
-  if (options.invocation.kind === 'legacy')
-    return executeLegacyInvocation({
-      ...options,
-      invocation: options.invocation,
-    });
-  return executeNativeInvocation({
-    ...options,
-    invocation: options.invocation,
-  });
+  if (invocation.kind === 'legacy')
+    sinks.legacyArtifacts.set(document.documentId, artifacts);
+  const final = attempts.at(-1);
+  if (!final) return;
+  const failedCases = final.cases.filter(
+    (item) => item.status === 'failed',
+  ).length;
+  if (documentRetry && failedCases) options.addFailedCases(failedCases);
+  else if (final.document.status === 'failed' && failedCases === 0)
+    options.addFailedCases(Math.max(1, failedCases));
 }

@@ -81,6 +81,55 @@ describe('legacy YAML Test Runner compatibility', () => {
     ]);
   });
 
+  test('keeps runtime ActionSpace aliases on public Nodes without acquiring an Agent', () => {
+    const document = collectLegacyYamlDocument({
+      tasks: [
+        {
+          name: 'platform actions',
+          flow: [
+            { launch: 'com.example.app' },
+            { customAction: '', value: 7 } as any,
+            {
+              runAdbShell: 'dumpsys activity',
+              timeout: 60_000,
+              name: 'shell',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(document.cases[0].definition.steps).toEqual([
+      {
+        node: 'action',
+        input: { name: 'launch', params: 'com.example.app' },
+        meta: {
+          continueOnError: false,
+          captureResult: true,
+          resultName: '0',
+        },
+      },
+      {
+        node: 'action',
+        input: { name: 'customAction', params: { value: 7 } },
+        meta: {
+          continueOnError: false,
+          captureResult: true,
+          resultName: '1',
+        },
+      },
+      {
+        node: 'runAdbShell',
+        input: { command: 'dumpsys activity', timeout: 60_000 },
+        meta: {
+          continueOnError: false,
+          captureResult: true,
+          resultName: 'shell',
+        },
+      },
+    ]);
+  });
+
   test('keeps task continueOnError behavior while exposing Runner outcomes', async () => {
     const failure = new Error('first task failed');
     const agent = {

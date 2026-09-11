@@ -187,6 +187,8 @@ export interface CaseRunOutcome {
   name: string;
   sourcePath: string;
   caseIndex: number;
+  /** Final failure policy compiled from the source document. */
+  onFailure?: 'continue' | 'stop-document';
   status: CaseRunStatus;
   run?: CaseRunResult;
   attempts?: readonly CaseRunResult[];

@@ -111,7 +111,9 @@ export function compileLegacyFlowItem(
       ...(captureResult
         ? {
             captureResult: true,
-            ...(typeof name === 'string' ? { resultName: name } : {}),
+            ...(typeof name === 'string' && name.length > 0
+              ? { resultName: name }
+              : {}),
           }
         : {}),
     },
@@ -276,17 +278,24 @@ export function compileLegacyFlowItem(
       ? action.interfaceAlias
       : (action?.name ?? Object.keys(flow)[0]);
   const value = flow[key];
-  if (!action) return step('action', { name: key, params: value }, true);
+  if (key === 'runAdbShell' && typeof flow.timeout === 'number') {
+    // The helper-only timeout can be mapped without acquiring an Android
+    // Agent. Other aliases stay on the public action Node and are resolved by
+    // the Agent's ActionSpace when the Node executes.
+    return step('runAdbShell', { command: value, timeout: flow.timeout }, true);
+  }
+  if (!action) {
+    const siblingParams = Object.fromEntries(
+      Object.entries(flow).filter(([item]) => item !== key),
+    );
+    const params =
+      (value === '' || value === undefined) &&
+      Object.keys(siblingParams).length > 0
+        ? siblingParams
+        : value;
+    return step('action', { name: key, params }, true);
+  }
   if (typeof value === 'string') {
-    if (key === 'runAdbShell' && typeof flow.timeout === 'number') {
-      // This lowercase YAML shorthand historically called the Android Agent
-      // helper directly so it could pass the helper-only timeout option.
-      return step(
-        'runAdbShell',
-        { command: value, timeout: flow.timeout },
-        true,
-      );
-    }
     const shortcut = buildShortcutActionParam(
       action.name,
       action.interfaceAlias,
@@ -350,6 +359,28 @@ export const collectLegacyYamlTask = (
   };
 };
 
+const assignLegacyResultNames = (
+  cases: readonly CollectedCase[],
+): CollectedCase[] => {
+  let unnamedResultIndex = 0;
+  return cases.map((collectedCase) => ({
+    ...collectedCase,
+    definition: {
+      ...collectedCase.definition,
+      steps: collectedCase.definition.steps.map((step) => {
+        if (!step.meta.captureResult) return step;
+        return {
+          ...step,
+          meta: {
+            ...step.meta,
+            resultName: step.meta.resultName ?? String(unnamedResultIndex++),
+          },
+        };
+      }),
+    },
+  }));
+};
+
 const legacyYamlDocument = (
   sourcePath: string,
   cases: CollectedCase[],
@@ -363,7 +394,7 @@ const legacyYamlDocument = (
     afterEach: [],
     afterAll: [],
   },
-  cases,
+  cases: assignLegacyResultNames(cases),
 });
 
 /** Compile one legacy task into a one-Case Runner document. */

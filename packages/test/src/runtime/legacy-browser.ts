@@ -2,6 +2,7 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlTargetConfig,
 } from '@midscene/core';
+import type { ProjectSetupDefinition } from '@midscene/core/internal/test-runner';
 import { resolveWebTarget } from '@midscene/core/yaml';
 import type { Browser, BrowserContext } from 'puppeteer';
 import type { CreateYamlPlayerOptions } from './create-yaml-player';
@@ -33,7 +34,7 @@ const batchRuntimeTargetLabel: Record<BatchRuntimeTarget, string> = {
 
 /**
  * Resolve a target only when the script has one unambiguous target family.
- * Structural target errors remain owned by createYamlPlayer, which provides
+ * Structural target errors remain owned by createYamlAgent, which provides
  * the canonical validation messages for missing or conflicting targets.
  */
 const resolveBatchRuntimeTarget = (
@@ -108,6 +109,29 @@ export interface YamlBatchBrowserSession {
   readonly options: CreateYamlPlayerOptions;
   reset(): Promise<void>;
   close(): Promise<void>;
+}
+
+export interface YamlSharedBrowserContext {
+  yamlBrowser: YamlBatchBrowserSession;
+}
+
+/** Public Test Project setup for documents that share one browser context. */
+export function createYamlSharedBrowserProjectSetup(
+  options: {
+    globalConfig?: MidsceneYamlTargetConfig;
+    headed: boolean;
+    keepWindow: boolean;
+  },
+  createSession = createYamlBatchBrowser,
+): ProjectSetupDefinition<YamlSharedBrowserContext> {
+  return {
+    name: 'yaml shared browser',
+    async setup(ctx) {
+      const yamlBrowser = await createSession(options);
+      ctx.onTeardown(() => yamlBrowser.close());
+      return { yamlBrowser };
+    },
+  };
 }
 
 // Legacy setup shares browser state, not an Agent. Each file must retain its

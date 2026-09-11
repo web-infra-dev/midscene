@@ -25,6 +25,9 @@ const asNotRun = (
   name: collectedCase.definition.name,
   sourcePath: collectedCase.sourcePath,
   caseIndex: collectedCase.caseIndex,
+  ...(collectedCase.definition.onFailure
+    ? { onFailure: collectedCase.definition.onFailure }
+    : {}),
   status: 'not-run',
   notRunReason: reason,
 });
@@ -188,6 +191,9 @@ export async function runWorkflowDocument<TContext = undefined>(
               name: collectedCase.definition.name,
               sourcePath: collectedCase.sourcePath,
               caseIndex: collectedCase.caseIndex,
+              ...(collectedCase.definition.onFailure
+                ? { onFailure: collectedCase.definition.onFailure }
+                : {}),
               status: 'failed',
               run,
               attempts,
@@ -213,6 +219,9 @@ export async function runWorkflowDocument<TContext = undefined>(
           name: collectedCase.definition.name,
           sourcePath: collectedCase.sourcePath,
           caseIndex: collectedCase.caseIndex,
+          ...(collectedCase.definition.onFailure
+            ? { onFailure: collectedCase.definition.onFailure }
+            : {}),
           status: run.status,
           run,
           attempts,

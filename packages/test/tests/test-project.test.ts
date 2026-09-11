@@ -302,6 +302,9 @@ describe('test project config', () => {
             },
             tags: { include: ['smoke'], exclude: ['ios-only'] },
             retry: 1,
+            retryScope: 'document',
+            fileConcurrency: 2,
+            setupFile: 'cases/setup.yaml',
             variables: {
               appName: 'Aweme',
               launch: { reinstall: false },
@@ -313,7 +316,14 @@ describe('test project config', () => {
           },
         ],
         test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
-        output: { reportDir: './out/report' },
+        output: {
+          reportDir: './out/report',
+          report: {
+            enabled: true,
+            fileName: 'custom-report',
+            overwrite: false,
+          },
+        },
         nodes: [],
       };
     `);
@@ -331,6 +341,9 @@ describe('test project config', () => {
       },
       tags: { include: ['smoke'], exclude: ['ios-only'] },
       retry: 1,
+      retryScope: 'document',
+      fileConcurrency: 2,
+      setupFile: 'cases/setup.yaml',
       variables: {
         appName: 'Aweme',
         launch: { reinstall: false },
@@ -353,7 +366,14 @@ describe('test project config', () => {
       bail: 2,
       testTimeout: 30000,
     });
-    expect(loaded.output).toEqual({ reportDir: './out/report' });
+    expect(loaded.output).toEqual({
+      reportDir: './out/report',
+      report: {
+        enabled: true,
+        fileName: 'custom-report',
+        overwrite: false,
+      },
+    });
   });
 
   it.each([
@@ -413,6 +433,16 @@ describe('test project config', () => {
       'removed output summary',
       `output: { summary: './out/summary.json' }`,
       'output.summary is not supported',
+    ],
+    [
+      'invalid report switch',
+      `output: { report: { enabled: 'yes' } }`,
+      'output.report.enabled must be boolean',
+    ],
+    [
+      'invalid report file name',
+      `output: { report: { fileName: '' } }`,
+      'output.report.fileName must be non-empty',
     ],
     [
       'negative retry',
