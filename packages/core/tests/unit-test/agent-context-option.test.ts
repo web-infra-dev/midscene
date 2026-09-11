@@ -88,6 +88,29 @@ describe('Agent per-call context option', () => {
       value: 'headphones',
     });
   });
+  it('resolves YAML aliases and their string shortcuts in the common action path', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).fullActionSpace = [
+      { name: 'Launch', interfaceAlias: 'launch' },
+      { name: 'CustomAction', interfaceAlias: 'customAction' },
+    ];
+
+    await agent.callActionInActionSpace('launch', 'com.example.app');
+    await agent.callActionInActionSpace('customAction', { value: 7 });
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({
+        type: 'Launch',
+        param: { uri: 'com.example.app' },
+      }),
+    ]);
+    expect(taskExecutor.runPlans.mock.calls[1][1]).toEqual([
+      expect.objectContaining({
+        type: 'CustomAction',
+        param: { value: 7 },
+      }),
+    ]);
+  });
   it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {
     const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
     try {

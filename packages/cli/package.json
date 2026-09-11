@@ -34,11 +34,11 @@
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
-    "@midscene/computer": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/harmony": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@midscene/test": "workspace:*",
     "@midscene/web": "workspace:*",
     "@rstest/core": "0.11.5",
     "http-server": "14.1.1",

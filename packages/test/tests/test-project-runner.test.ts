@@ -281,6 +281,78 @@ describe('test project main-process runner', () => {
     );
   });
 
+  it('can disable final report publication through the public output strategy', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const reportDir = join(root, 'reports');
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        output: {
+          reportDir: './reports',
+          report: { enabled: false, fileName: 'disabled-report' },
+        },
+        nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'example.yaml',
+      'cases: [{ name: example, steps: [{ noop: run }] }]',
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.status).toBe('success');
+    expect(result.reportPath).toBeUndefined();
+    expect(existsSync(join(reportDir, 'disabled-report.html'))).toBe(false);
+  });
+
+  it('runs a public setupFile before admitting regular documents', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `const state = globalThis.__testProjectRunnerState;
+       export default {
+         projects: [{
+           name: 'with-setup',
+           setupFile: '00-setup.yaml',
+           fileConcurrency: 2,
+         }],
+         nodes: [{
+           name: 'record',
+           stringInputKey: 'value',
+           execute({ input }) { state.events.push(input.value); },
+         }],
+       };`,
+    );
+    writeWorkflow(
+      root,
+      '00-setup.yaml',
+      'cases: [{ name: setup, steps: [{ record: setup }] }]',
+    );
+    writeWorkflow(
+      root,
+      '01-first.yaml',
+      'cases: [{ name: first, steps: [{ record: first }] }]',
+    );
+    writeWorkflow(
+      root,
+      '02-second.yaml',
+      'cases: [{ name: second, steps: [{ record: second }] }]',
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.status).toBe('success');
+    expect(state.events[0]).toBe('setup');
+    expect(new Set(state.events.slice(1))).toEqual(
+      new Set(['first', 'second']),
+    );
+  });
+
   it('rejects the removed config root field', async () => {
     const cwd = createProject();
     writeFileSync(
