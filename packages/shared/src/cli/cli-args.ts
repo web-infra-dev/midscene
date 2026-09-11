@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolCliOption, ToolDefinition } from '../agent-tools/types';
 import { getKeyAliases } from '../key-alias-utils';
+import { getZodTypeName } from '../zod-schema-utils';
 import { CLIError } from './cli-error';
 
 export function parseValue(raw: string): unknown {
@@ -22,6 +23,7 @@ export function parseValue(raw: string): unknown {
 function walkCliArgs(
   args: string[],
   setArgValue: (key: string, value: unknown) => void,
+  def?: ToolDefinition,
 ): void {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -31,34 +33,73 @@ function walkCliArgs(
     const eqIdx = body.indexOf('=');
 
     if (eqIdx >= 0) {
-      setArgValue(body.slice(0, eqIdx), parseValue(body.slice(eqIdx + 1)));
+      const key = body.slice(0, eqIdx);
+      setArgValue(key, parseValueForCliField(body.slice(eqIdx + 1), key, def));
     } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
       i++;
-      setArgValue(body, parseValue(args[i]));
+      setArgValue(body, parseValueForCliField(args[i], body, def));
     } else {
       setArgValue(body, true);
     }
   }
 }
 
-export function parseCliArgs(args: string[]): Record<string, unknown> {
+function findCliSchemaField(
+  def: ToolDefinition,
+  cliKey: string,
+): z.ZodTypeAny | undefined {
+  for (const [schemaKey, field] of Object.entries(def.schema)) {
+    if (
+      getAcceptedCliOptionNames(
+        schemaKey,
+        def.cli?.options?.[schemaKey],
+      ).includes(cliKey)
+    ) {
+      return field;
+    }
+  }
+
+  return undefined;
+}
+
+function parseValueForCliField(
+  raw: string,
+  cliKey: string,
+  def?: ToolDefinition,
+): unknown {
+  const field = def ? findCliSchemaField(def, cliKey) : undefined;
+  if (field && getZodTypeName(field) === 'string') {
+    return raw;
+  }
+
+  return parseValue(raw);
+}
+
+export function parseCliArgs(
+  args: string[],
+  def?: ToolDefinition,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
-  walkCliArgs(args, (key, value) => {
-    const existing = result[key];
-    if (existing === undefined) {
-      result[key] = value;
-      return;
-    }
+  walkCliArgs(
+    args,
+    (key, value) => {
+      const existing = result[key];
+      if (existing === undefined) {
+        result[key] = value;
+        return;
+      }
 
-    if (Array.isArray(existing)) {
-      existing.push(value);
-      result[key] = existing;
-      return;
-    }
+      if (Array.isArray(existing)) {
+        existing.push(value);
+        result[key] = existing;
+        return;
+      }
 
-    result[key] = [existing, value];
-  });
+      result[key] = [existing, value];
+    },
+    def,
+  );
 
   return result;
 }

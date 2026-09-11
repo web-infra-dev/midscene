@@ -211,6 +211,30 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('preserves numeric-looking string fields without running schema effects', () => {
+    const refinement = rs.fn(() => true);
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema: {
+        deviceId: z.string().refine(refinement),
+      },
+      cli: {
+        options: {
+          deviceId: {
+            preferredName: 'device-id',
+          },
+        },
+      },
+      handler: rs.fn(),
+    };
+
+    expect(parseCliArgs(['--device-id', '0009007199254740993'], def)).toEqual({
+      'device-id': '0009007199254740993',
+    });
+    expect(refinement).not.toHaveBeenCalled();
+  });
+
   it('accumulates repeated flags into an array', () => {
     expect(
       parseCliArgs([
@@ -1048,7 +1072,7 @@ describe('runToolsCLI', () => {
     rs.restoreAllMocks();
   });
 
-  it('canonicalizes preferredName/aliases for namespaced fields', async () => {
+  it('canonicalizes aliases while preserving numeric-looking strings', async () => {
     const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
       isError: false,
@@ -1077,11 +1101,11 @@ describe('runToolsCLI', () => {
 
     await runToolsCLI(tools, 'midscene-android', {
       stripPrefix: 'android_',
-      argv: ['connect', '--device-id', 'emulator-5554'],
+      argv: ['connect', '--deviceId', '320336557157'],
     });
 
     expect(handler).toHaveBeenCalledWith({
-      'android.deviceId': 'emulator-5554',
+      'android.deviceId': '320336557157',
     });
     rs.restoreAllMocks();
   });
