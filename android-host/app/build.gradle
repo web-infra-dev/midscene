@@ -3,6 +3,11 @@ plugins {
 }
 
 dependencies {
+    // Official Shizuku API: requestPermission() is what makes Shizuku raise its
+    // authorization activity for this app; a rish call cannot trigger it.
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+
     // Material 3 provides the design system primitives (toolbar, cards, buttons,
     // navigation bar/rail) that mirror the desktop studio's antd token palette.
     implementation 'com.google.android.material:material:1.12.0'

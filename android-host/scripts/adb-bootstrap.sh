@@ -100,6 +100,14 @@ fi
 say "permissions"
 sh_ "dumpsys deviceidle whitelist +${PKG}" | tail -1
 sh_ "pm grant ${PKG} android.permission.POST_NOTIFICATIONS" 2>/dev/null || true
+# Authorize Shizuku without a human: the API_V23 permission is what Shizuku
+# checks for API clients, and granting it over adb is the unattended equivalent
+# of answering its prompt.
+if sh_ "pm grant ${PKG} moe.shizuku.manager.permission.API_V23" 2>/dev/null; then
+  echo "Shizuku API permission granted over adb"
+else
+  echo "warning: could not grant the Shizuku permission; tap 'Authorize Shizuku' in Setup" >&2
+fi
 
 say "provision runtime (bundle + yadb) through the service"
 sh_ "am start-foreground-service -n ${PKG}/.AgentService -a ${PKG}.PROVISION" | tail -1

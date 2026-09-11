@@ -60,6 +60,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity implements AgentService.LogListener {
 
     private static final int REQUEST_NOTIFICATIONS = 42;
+    private static final int SHIZUKU_REQUEST_CODE = 4210;
     private static final String THEME_PREFS = "midscene-theme";
     private static final String THEME_KEY = "mode";
 
@@ -416,6 +417,11 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
         LinearLayout accessRow = buttonRow(runtimeBody);
         accessRow.addView(primaryButton("Battery exemption", view -> requestBatteryExemption()));
         accessRow.addView(primaryButton("Open Shizuku", view -> openShizuku()));
+        // Shizuku only shows its per-app prompt when the request comes from a
+        // foreground activity, so authorization needs an explicit trigger rather
+        // than happening implicitly on the first background rish call.
+        LinearLayout authRow = buttonRow(runtimeBody);
+        authRow.addView(filledButton("Authorize Shizuku", view -> authorizeShizuku()));
 
         MaterialCardView theme = card(page, "APPEARANCE");
         LinearLayout themeBody = cardBody(theme);
@@ -473,6 +479,82 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
         AgentService.start(this, AgentService.ACTION_RUN_CONFIG,
                 new Intent().putExtra(AgentService.EXTRA_CONFIG_PATH,
                         new File(getFilesDir(), "doctor.yaml").getAbsolutePath()));
+    }
+
+    /**
+     * Ask Shizuku to authorize this app through its official API.
+     *
+     * Only Shizuku itself can raise the authorization activity, and it does so
+     * from `Shizuku.requestPermission()`; a rish call from a background service
+     * is aborted instead, which is why provisioning alone never finished yadb.
+     * The result listener then finishes the job: create the shell channel, install
+     * yadb and refresh the status pills.
+     */
+    private void authorizeShizuku() {
+        if (!rikka.shizuku.Shizuku.isPreV11() && rikka.shizuku.Shizuku.checkSelfPermission()
+                == PackageManager.PERMISSION_GRANTED) {
+            appendLog("shizuku already authorized for " + getPackageName());
+            installYadb();
+            return;
+        }
+
+        appendLog("requesting Shizuku authorization (binder available: "
+                + rikka.shizuku.Shizuku.pingBinder() + ")");
+        toast("Requesting Shizuku authorization…");
+
+        rikka.shizuku.Shizuku.addRequestPermissionResultListener(
+                new rikka.shizuku.Shizuku.OnRequestPermissionResultListener() {
+                    @Override
+                    public void onRequestPermissionResult(int requestCode, int grantResult) {
+                        if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                            appendLog("shizuku permission granted");
+                            installYadb();
+                        } else {
+                            appendLog("shizuku permission denied (result " + grantResult + ")");
+                            toast("Shizuku permission denied");
+                        }
+                        refreshStatus();
+                    }
+                });
+
+        try {
+            rikka.shizuku.Shizuku.requestPermission(SHIZUKU_REQUEST_CODE);
+        } catch (Exception error) {
+            appendLog("requestPermission failed: " + error
+                    + " (is Shizuku running and up to date?)");
+            toast("Shizuku request failed: " + error.getMessage());
+            return;
+        }
+
+        // The listener fires asynchronously; also confirm the channel works and
+        // record what the shell reports, which is the part the checklist needs.
+        new Thread(() -> {
+            try {
+                String uid = ShellRunner.rish(this, "id -u", this::logFromWorker, 90_000);
+                ui.post(() -> appendLog("shell channel uid: " + uid.trim()));
+            } catch (IOException error) {
+                ui.post(() -> appendLog("shell channel not ready yet: " + error.getMessage()));
+            }
+        }, "shizuku-verify").start();
+    }
+
+    private void logFromWorker(String line) {
+        ui.post(() -> appendLog(line));
+    }
+
+    /** Install yadb through the newly authorized shell channel. */
+    private void installYadb() {
+        new Thread(() -> {
+            try {
+                String target = Provisioner.installYadb(this, this::logFromWorker);
+                ui.post(() -> {
+                    toast("yadb installed at " + target);
+                    refreshStatus();
+                });
+            } catch (IOException error) {
+                ui.post(() -> appendLog("yadb install failed: " + error.getMessage()));
+            }
+        }, "yadb-install").start();
     }
 
     // --------------------------------------------------------------- config

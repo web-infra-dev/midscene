@@ -9,6 +9,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!--
+      Shizuku API permission. Declaring it lets an unattended install authorize
+      the app with `adb shell pm grant <pkg> moe.shizuku.manager.permission.API_V23`
+      instead of requiring a human to answer Shizuku's prompt.
+    -->
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <application
         android:allowBackup="false"
@@ -33,6 +39,15 @@
             android:name=".ReportViewerActivity"
             android:exported="false"
             android:label="Run artefact" />
+
+        <!-- Required by the Shizuku API to receive its binder. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <!--
           Owns agent runs so they survive the UI being reclaimed by the system.
