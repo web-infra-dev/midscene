@@ -10,7 +10,11 @@ import { AndroidTransportError, toAndroidTransportError } from './errors';
 import { findDisplay, parseDisplays } from './parsers/display';
 import { combinedOutputText, isAsciiPrintable, isImageBuffer } from './payload';
 import { Semaphore } from './semaphore';
-import { DEFAULT_YADB_PATH, sendTextInput } from './text-input';
+import {
+  DEFAULT_YADB_PATH,
+  buildYadbPinchCommand,
+  sendTextInput,
+} from './text-input';
 import type {
   ActivityTarget,
   AndroidCapabilities,
@@ -170,6 +174,7 @@ export class AdbShellTransport implements AndroidTransport {
       input,
       appManagement,
       multiDisplay,
+      gestures: yadbAvailable,
       textInput: yadbAvailable ? 'full' : 'ascii-only',
       privileged: uid === SHELL_UID || uid === ROOT_UID,
       uid,
@@ -531,6 +536,46 @@ export class AdbShellTransport implements AndroidTransport {
         await this.runOrThrow(command, label, timeoutMs);
       },
     });
+  }
+
+  /**
+   * Two-finger pinch through yadb. Fails loudly when the helper is missing:
+   * the device layer only advertises Pinch when `capabilities.gestures` is set.
+   */
+  async pinch(
+    center: Point,
+    options: {
+      startDistance: number;
+      endDistance: number;
+      duration: number;
+      displayId?: number;
+    },
+  ): Promise<void> {
+    this.assertOpen();
+    assertPoint(center, 'center', this.backend);
+    assertFiniteNumber(options.startDistance, 'startDistance', this.backend);
+    assertFiniteNumber(options.endDistance, 'endDistance', this.backend);
+    assertFiniteNumber(options.duration, 'duration', this.backend);
+
+    const yadbAvailable =
+      this.yadbAvailable ?? (await this.probeFile(this.yadbPath));
+    this.yadbAvailable = yadbAvailable;
+
+    if (!yadbAvailable) {
+      throw new AndroidTransportError(
+        `Pinch needs the yadb helper at ${this.yadbPath}; push it once, e.g. \`adb push <midscene>/packages/android/bin/yadb ${this.yadbPath}\``,
+        {
+          code: 'NotSupported',
+          backend: this.backend,
+          command: 'app_process ... com.ysbing.yadb.Main -pinch',
+        },
+      );
+    }
+
+    await this.runOrThrow(
+      buildYadbPinchCommand(this.yadbPath, center, options),
+      'pinch',
+    );
   }
 
   async startActivity(target: ActivityTarget): Promise<void> {

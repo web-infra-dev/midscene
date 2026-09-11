@@ -58,6 +58,17 @@
 | P1-6 | CI 接入：`android-emulator.yml` 增加 android-local 单测与可选 Shizuku 冒烟 job | PR 可见结果 |
 | P1-7 | 收敛：`packages/android` 单向消费 android-local 的纯逻辑（display 解析、坐标/滚动数学） | 无反向依赖，`check:references` 通过 |
 
+## 3.5 部署与配置（新增工作流，见 `deployment.md`）
+
+| 编号 | 任务 | 状态 |
+| --- | --- | --- |
+| D1 | `midscene-local doctor`：能力/健康/显示/截图耗时体检 | ✅ |
+| D2 | `midscene-local run <config>`：配置 → 传输 → 设备 → Agent → 任务 → 结果文件 | ✅ |
+| D3 | 配置 schema（zod，YAML/JSON）+ 内联/文件 YAML 脚本解析 | ✅ |
+| D4 | 结果 JSON（每任务 状态/耗时/错误）+ 退出码约定 | ✅ |
+| D5 | 配置导入导出、结果汇总、失败重试策略 | 计划（M2） |
+| D6 | APK + 内嵌 Node + 配置/脚本/运行/日志 UI | 计划（M3，Phase 2 主体） |
+
 ## 4. Phase 2：Native Host
 
 - Node 22/24 for Android 自编译（NDK + `libnode.so`），JNI 启动，避免「下载 binary → chmod +x → exec」（Android 10+ W^X）。

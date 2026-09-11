@@ -50,6 +50,21 @@
 
 设备实测（Android 12）：Settings 搜索框成功输入 `中文输入测试 hello`，能力探测返回 `textInput: "full"`。
 
+## 3.6 设备本机 CLI（配置驱动）实测
+
+`midscene-local doctor`（设备本机，rish）：capabilities 全绿 + 截图 125KB / **1.77s**。
+
+`midscene-local run phone-cli-smoke.yaml`（3 个任务，模拟器 2 核）：
+
+| 任务 | 类型 | 耗时 |
+| --- | --- | --- |
+| open-settings | aiAct | 112.4 s |
+| settings-visible | aiAssert | 25.1 s |
+| script-search-flow | yaml（ai+sleep+aiAssert） | 92.0 s |
+| 合计 | — | **237 s**，`ok: true` |
+
+> 模拟器上单步 AI 耗时被放大到 100s 量级（模型往返 + 2 核负载）；真机（手机）需复测以确立可用阈值。
+
 ## 4. 优化线索（Phase 1/3）
 
 1. **减少 rish spawn 次数**：每次 `input` 一次 spawn（470 ms）。可合并连续输入（例如 `input keyevent a b c` 已支持批量），或 Phase 2 用 Shizuku UserService 常驻连接。

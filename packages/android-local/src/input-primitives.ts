@@ -237,6 +237,20 @@ export function createTransportInputPrimitives(
     keyboard,
     touch: {
       swipe,
+      // Multi-touch needs a gesture injector; without one the Pinch action is
+      // simply not registered (it must never degrade into two swipes).
+      ...(transport.pinch
+        ? {
+            pinch: async (center, opts) => {
+              await transport.pinch?.(center, {
+                startDistance: opts.startDistance,
+                endDistance: opts.endDistance,
+                duration: opts.duration,
+                displayId: options.displayId,
+              });
+            },
+          }
+        : {}),
     },
     scroll: {
       scroll,

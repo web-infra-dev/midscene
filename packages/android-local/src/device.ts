@@ -37,6 +37,14 @@ export interface LocalAndroidDeviceOpt extends AndroidDeviceInputOpt {
   /** Label used in reports and diagnostics. */
   description?: string;
   /**
+   * Whether the model-visible `RunAdbShell` action is registered. The name
+   * matches the ADB path on purpose: YAML scripts stay portable between the
+   * USB and the on-device backends.
+   *
+   * @default true
+   */
+  exposeRunAdbShellAction?: boolean;
+  /**
    * Friendly app name → package name mapping (keys are normalized, so
    * `WeChat`, `wechat` and `We Chat` all resolve). The upstream Android path
    * ships a large default table; callers that want it pass it in — moving that
@@ -53,6 +61,16 @@ const launchParamSchema = z.object({
     ),
 });
 
+const runShellParamSchema = z.object({
+  command: z.string().describe('Shell command to execute on the device'),
+  timeout: z
+    .number()
+    .optional()
+    .describe(
+      'Command execution timeout in milliseconds. Only include this parameter when the user explicitly requests a timeout; otherwise, omit it.',
+    ),
+});
+
 const terminateParamSchema = z.object({
   uri: z
     .string()
@@ -63,6 +81,7 @@ const terminateParamSchema = z.object({
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 type TerminateParam = z.infer<typeof terminateParamSchema>;
+type RunShellParam = z.infer<typeof runShellParamSchema>;
 
 /**
  * Device-local Android interface.
@@ -202,6 +221,21 @@ export class LocalAndroidDevice implements AbstractInterface {
     return this.inputPrimitivesCache;
   }
 
+  /**
+   * Input primitives with multi-touch removed when the backend has no gesture
+   * injector, so `createDefaultMobileActions` cannot register a Pinch action
+   * that would fail at runtime.
+   */
+  private pinchCapableInputPrimitives(): MobileInputPrimitives {
+    const primitives = this.inputPrimitives;
+    if (this.capabilities?.gestures || !primitives.touch?.pinch) {
+      return primitives;
+    }
+
+    const { pinch: _pinch, ...touchWithoutPinch } = primitives.touch;
+    return { ...primitives, touch: touchWithoutPinch };
+  }
+
   actionSpace(): DeviceAction<any>[] {
     const capabilities = this.capabilities;
     if (!capabilities) {
@@ -218,7 +252,7 @@ export class LocalAndroidDevice implements AbstractInterface {
     }
 
     const mobileActionContext = {
-      input: this.inputPrimitives,
+      input: this.pinchCapableInputPrimitives(),
       size: () => this.size(),
       sleep: async (timeMs: number) => {
         await new Promise((resolve) => setTimeout(resolve, timeMs));
@@ -271,9 +305,41 @@ export class LocalAndroidDevice implements AbstractInterface {
         ]
       : [];
 
+    const shellActions =
+      capabilities.shell && this.options.exposeRunAdbShellAction !== false
+        ? [
+            defineAction<typeof runShellParamSchema, RunShellParam, string>({
+              name: 'RunAdbShell',
+              description:
+                'Run a shell command on the device and return its output. Use it for diagnostics and for capabilities the other actions do not cover.',
+              paramSchema: runShellParamSchema,
+              call: async (param) => {
+                if (!param?.command) {
+                  throw new Error(
+                    'RunAdbShell requires a non-empty command parameter',
+                  );
+                }
+
+                if (!this.transport.runShell) {
+                  throw new Error(
+                    `The ${this.transport.backend} transport cannot run shell commands`,
+                  );
+                }
+
+                const result = await this.transport.runShell(param.command, {
+                  timeoutMs: param.timeout,
+                });
+
+                return result.stdout;
+              },
+            }),
+          ]
+        : [];
+
     return [
       ...createDefaultMobileActions(mobileActionContext),
       ...appActions,
+      ...shellActions,
       ...(this.options.customActions ?? []),
     ];
   }

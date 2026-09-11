@@ -135,5 +135,28 @@ export {
 } from './scroll-math';
 export type { ScreenSize, ScrollRequest } from './scroll-math';
 
+export {
+  loadLocalAgentConfig,
+  localAgentConfigSchema,
+  localAgentDeviceSchema,
+  localAgentTaskSchema,
+  resolveTaskScript,
+} from './config/schema';
+export type {
+  LocalAgentConfig,
+  LocalAgentDeviceConfig,
+  LocalAgentTask,
+} from './config/schema';
+
+export {
+  runLocalAgentConfig,
+  runLocalAgentConfigFile,
+} from './runner/run';
+export type {
+  LocalAgentRunResult,
+  LocalAgentTaskResult,
+  RunLocalAgentOptions,
+} from './runner/run';
+
 export { LocalAndroidDevice } from './device';
 export type { LocalAndroidDeviceOpt } from './device';

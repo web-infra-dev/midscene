@@ -52,6 +52,18 @@ host app, UI tree extraction, multi-touch (pinch), YAML regression parity
 against the ADB path, and portrait/rotation validation on a real phone.
 See `docs/roadmap.md`.
 
+## CLI (deployment shell)
+
+```bash
+midscene-local doctor --backend rish              # capabilities, health, displays, timing
+midscene-local run examples/local-agent.config.yaml
+```
+
+A config drives a run end to end (device backend, model, tasks, result file);
+tasks can be prompts or standard Midscene YAML scripts. See
+[`docs/deployment.md`](./docs/deployment.md) for the deployment models — the same
+entry point is what an embedded-Node Android app will call in Phase 2.
+
 ## Usage
 
 ```ts

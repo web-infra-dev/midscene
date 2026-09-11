@@ -721,6 +721,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      js-yaml:
+        specifier: 4.1.0
+        version: 4.1.0
       zod:
         specifier: ^3.25.1
         version: 3.25.76
@@ -731,6 +734,9 @@ importers:
       '@rstest/core':
         specifier: 0.11.5
         version: 0.11.5(core-js@3.47.0)(jsdom@29.0.2)
+      '@types/js-yaml':
+        specifier: 4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -7820,10 +7826,6 @@ packages:
 
   js-yaml@4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
-    hasBin: true
-
-  js-yaml@4.1.1:
-    resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
     hasBin: true
 
   jsbn@1.1.0:
@@ -16786,7 +16788,7 @@ snapshots:
       commander: 11.1.0
       edit-json-file: 1.8.1
       globby: 13.2.2
-      js-yaml: 4.1.1
+      js-yaml: 4.1.0
       semver: 7.5.2
       table: 6.9.0
       type-fest: 4.41.0
@@ -17156,7 +17158,7 @@ snapshots:
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
-      js-yaml: 4.1.1
+      js-yaml: 4.1.0
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.8.3
@@ -19586,10 +19588,6 @@ snapshots:
       esprima: 4.0.1
 
   js-yaml@4.1.0:
-    dependencies:
-      argparse: 2.0.1
-
-  js-yaml@4.1.1:
     dependencies:
       argparse: 2.0.1
 

@@ -55,6 +55,11 @@ export interface AndroidCapabilities {
   /** More than one display is currently reported by the device. */
   multiDisplay: boolean;
   /**
+   * Two-finger gestures (pinch) are available. `input swipe` cannot express
+   * multi-touch, so this is only true when a gesture injector (yadb) is present.
+   */
+  gestures: boolean;
+  /**
    * `input text` can only deliver printable ASCII. Non-ASCII input needs a
    * dedicated IME/input service (Phase 3); transports must fail loudly instead
    * of silently typing nothing.
@@ -145,6 +150,21 @@ export interface AndroidTransport {
    */
   keyEvent(keyCode: number | number[], options?: InputOptions): Promise<void>;
   inputText(text: string, options?: TextInputOptions): Promise<void>;
+
+  /**
+   * Two-finger pinch around `center`. Optional: backends without a gesture
+   * injector omit it, and the device layer then omits the Pinch action instead
+   * of degrading it into two separate swipes.
+   */
+  pinch?(
+    center: Point,
+    options: {
+      startDistance: number;
+      endDistance: number;
+      duration: number;
+      displayId?: number;
+    },
+  ): Promise<void>;
 
   startActivity(target: ActivityTarget): Promise<void>;
   forceStop(packageName: string): Promise<void>;

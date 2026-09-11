@@ -31,6 +31,8 @@ export default defineConfig({
     tsconfigPath: 'tsconfig.build.json',
     entry: {
       index: './src/index.ts',
+      cli: './src/cli.ts',
+      'config/schema': './src/config/schema.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),

@@ -18,14 +18,19 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./config": {
+      "types": "./dist/types/config/schema.d.ts",
+      "import": "./dist/es/config/schema.mjs",
+      "require": "./dist/lib/config/schema.js"
+    }
   },
   "scripts": {
     "dev": "npm run build:watch",
@@ -39,14 +44,19 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "js-yaml": "4.1.0",
     "zod": "^3.25.1"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
     "@rstest/core": "0.11.5",
+    "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "bin": {
+    "midscene-local": "./bin/midscene-local"
+  }
 }

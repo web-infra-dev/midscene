@@ -26,6 +26,36 @@ export function buildYadbCommand(yadbPath: string, text: string): string {
   return `app_process -Djava.class.path=${yadbPath} ${yadbDirectory(yadbPath)} ${YADB_MAIN_CLASS} -keyboard ${quoteShellArg(text)}`;
 }
 
+/**
+ * Clear the focused field through yadb.
+ *
+ * The keyevent fallback (MOVE_END + 100 delete pairs) works without any helper,
+ * but some OEM fields ignore it; yadb clears through the framework instead.
+ */
+export function buildYadbKeyboardClearCommand(yadbPath: string): string {
+  return `app_process -Djava.class.path=${yadbPath} ${yadbDirectory(yadbPath)} ${YADB_MAIN_CLASS} -keyboardClear`;
+}
+
+/**
+ * Multi-touch pinch through yadb.
+ *
+ * `input swipe` cannot express two fingers, so without a gesture injector the
+ * action space simply has no Pinch; yadb supplies one.
+ */
+export function buildYadbPinchCommand(
+  yadbPath: string,
+  center: { x: number; y: number },
+  options: { startDistance: number; endDistance: number; duration: number },
+): string {
+  const x = Math.round(center.x);
+  const y = Math.round(center.y);
+  const startDistance = Math.round(options.startDistance);
+  const endDistance = Math.round(options.endDistance);
+  const duration = Math.round(options.duration);
+
+  return `app_process -Djava.class.path=${yadbPath} ${yadbDirectory(yadbPath)} ${YADB_MAIN_CLASS} -pinch ${x} ${y} ${startDistance} ${endDistance} ${duration}`;
+}
+
 export interface TextInputOptionsResolved {
   backend: TransportBackend;
   /** `" -d 0"` or an empty string. */
