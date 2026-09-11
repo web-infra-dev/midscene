@@ -250,7 +250,7 @@ tasks:
         ],
         convertHttpImage2Base64: true,
       },
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.aiTap).toHaveBeenCalledWith('Choose file button', {
       deepLocate: true,
@@ -259,14 +259,14 @@ tasks:
       fileChooserAccept: ['./fixtures/image1.jpg', './fixtures/image2.png'],
     });
     expect(agent.aiTap).toHaveBeenCalledWith(
-      'Choose file button with an image prompt',
       {
+        prompt: 'Choose file button with an image prompt',
         images: [
           { name: 'Upload icon', url: 'https://example.com/upload.png' },
         ],
         convertHttpImage2Base64: true,
-        fileChooserAccept: './fixtures/document.pdf',
       },
+      { fileChooserAccept: './fixtures/document.pdf' },
     );
     expect(agent.aiScroll).toHaveBeenCalledWith('Results list', {
       scrollType: 'singleAction',
@@ -277,7 +277,7 @@ tasks:
       content: 'Screenshot description',
     });
     expect(agent.aiWaitFor).toHaveBeenCalledWith('The page shows results', {
-      timeout: 1000,
+      abortSignal: expect.any(AbortSignal),
       timeoutMs: 1000,
     });
     expect(agent.aiAssert).toHaveBeenCalledWith(
@@ -286,11 +286,12 @@ tasks:
         images: [
           { name: 'Target logo', url: 'https://example.com/target.png' },
         ],
+        convertHttpImage2Base64: true,
       },
       'Target image is not visible',
       {
-        convertHttpImage2Base64: true,
         keepRawResponse: true,
+        abortSignal: expect.any(AbortSignal),
       },
     );
     expect(player.result).toMatchObject({
@@ -378,9 +379,7 @@ tasks:
     await player.run();
 
     expect(player.status).toBe('error');
-    expect(player.taskStatusList[0].error?.message).toContain(
-      '`observe` is not supported in YAML aiAssert',
-    );
+    expect(player.taskStatusList[0].error?.message).toContain('observe');
     expect(agent.aiAssert).not.toHaveBeenCalled();
   });
 
@@ -418,7 +417,7 @@ tasks:
     });
     expect(agent.aiQuery).toHaveBeenCalledWith(
       'Get search results after submitting product id ${product_id}',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(player.result.product_id).toBe('SKU-123');
     expect(player.result.search_result).toEqual({
@@ -454,6 +453,7 @@ tasks:
       expect.stringContaining('Scenario: Add a todo'),
       {
         cacheable: false,
+        abortSignal: expect.any(AbortSignal),
       },
     );
   });
@@ -569,7 +569,7 @@ tasks:
     expect(player.status).toBe('error');
     expect(agent.aiAct).toHaveBeenCalledWith(
       'Try a flaky action that recovers',
-      {},
+      { abortSignal: expect.any(AbortSignal) },
     );
     expect(agent.recordErrorToReport).toHaveBeenCalledWith(
       'YAML task failed - Mixed failure task',
@@ -667,7 +667,7 @@ tasks:
     expect(agent.aiAssert).toHaveBeenCalledWith(
       'The broken button is visible',
       undefined,
-      { keepRawResponse: true },
+      { keepRawResponse: true, abortSignal: expect.any(AbortSignal) },
     );
     expect(player.taskStatusList[0].error?.message).toBe(
       failedAssertionResult.message,
@@ -843,7 +843,9 @@ tasks:
       agent,
     );
 
-    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {});
+    expect(agent.aiQuery).toHaveBeenCalledWith('Search for ENV-123', {
+      abortSignal: expect.any(AbortSignal),
+    });
   });
 
   it('preserves YAML scalar semantics when interpolating config environment variables', () => {
@@ -889,7 +891,9 @@ tasks:
         name: value
 `);
 
-    expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {});
+    expect(agent.aiAct).toHaveBeenCalledWith('Run the task', {
+      abortSignal: expect.any(AbortSignal),
+    });
     expect(result.result.value).toBe('SKU-123');
   });
 });

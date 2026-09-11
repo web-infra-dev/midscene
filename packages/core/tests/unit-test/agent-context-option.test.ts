@@ -75,6 +75,19 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it('retains caller inputs when planning resolves an action locator', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const params = { locate: { prompt: 'search field' }, value: 'headphones' };
+    taskExecutor.runPlans.mockImplementationOnce(async (_title, plans: any) => {
+      plans[0].param.locate = { center: [10, 20] };
+      return { output: {} } as any;
+    });
+    await agent.callActionInActionSpace('Input', params);
+    expect(params).toEqual({
+      locate: { prompt: 'search field' },
+      value: 'headphones',
+    });
+  });
   it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {
     const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
     try {

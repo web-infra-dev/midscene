@@ -1,6 +1,11 @@
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { open as openAsync } from 'node:fs/promises';
+import { StringDecoder } from 'node:string_decoder';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
+import {
+  TEST_RUN_REPORT_SCRIPT_TYPE,
+  type TestRunReportDump,
+} from '../test-run-report';
 import type { AIUsageInfo, IReportActionDump, ModelBrief } from '../types';
 
 export const escapeContent = escapeScriptTag;
@@ -100,6 +105,51 @@ function htmlScriptCloseTag(): string {
   return String.fromCharCode(60) + '/script>';
 }
 
+/** Avoid raw close tokens: this writer itself is bundled into report HTML. */
+export function generateTestRunReportScriptTag(
+  dump: TestRunReportDump,
+): string {
+  return [
+    String.fromCharCode(60),
+    'script type="',
+    TEST_RUN_REPORT_SCRIPT_TYPE,
+    '">\n',
+    escapeScriptTag(JSON.stringify(dump)),
+    '\n',
+    htmlScriptCloseTag(),
+    '\n',
+  ].join('');
+}
+
+export function extractTestRunReportDumpSync(
+  filePath: string,
+): TestRunReportDump | undefined {
+  let result: TestRunReportDump | undefined;
+  // Consume executable scripts as whole elements: the embedded viewer itself
+  // contains report-writer source with data-tag strings that are not payloads.
+  const openTag = `${String.fromCharCode(60)}script`;
+  streamScanTags(filePath, openTag, htmlScriptCloseTag(), (content) => {
+    const tagEnd = content.indexOf('>');
+    const attributes = content.slice(0, tagEnd);
+    const type = attributes.match(/(?:^|\s)type\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (type !== TEST_RUN_REPORT_SCRIPT_TYPE) return false;
+    if (result)
+      throw new Error(
+        `Report contains multiple Midscene Test dumps: ${filePath}`,
+      );
+    const parsed = JSON.parse(unescapeContent(content.slice(tagEnd + 1)));
+    if (
+      parsed?.schemaVersion !== 1 ||
+      parsed?.kind !== 'test-runner' ||
+      !Array.isArray(parsed.projects)
+    )
+      throw new Error(`Invalid Midscene Test report dump: ${filePath}`);
+    result = parsed;
+    return false;
+  });
+  return result;
+}
+
 /** Chunk size for streaming file operations (64KB) */
 export const STREAMING_CHUNK_SIZE = 64 * 1024;
 
@@ -182,6 +232,7 @@ export function streamScanTags(
   const fd = openSync(filePath, 'r');
   const fileSize = statSync(filePath).size;
   const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+  const decoder = new StringDecoder('utf8');
   const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
   let position = 0;
 
@@ -189,8 +240,9 @@ export function streamScanTags(
     while (position < fileSize) {
       const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
       position += bytesRead;
-      if (matcher.push(buffer.toString('utf-8', 0, bytesRead))) return;
+      if (matcher.push(decoder.write(buffer.subarray(0, bytesRead)))) return;
     }
+    matcher.push(decoder.end());
   } finally {
     closeSync(fd);
   }
@@ -205,6 +257,7 @@ export async function streamScanTagsAsync(
 ): Promise<void> {
   const handle = await openAsync(filePath, 'r');
   const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+  const decoder = new StringDecoder('utf8');
   let position = 0;
   const matcher = new StreamingTagMatcher(openTag, closeTag, onMatch);
 
@@ -216,9 +269,12 @@ export async function streamScanTagsAsync(
         STREAMING_CHUNK_SIZE,
         position,
       );
-      if (bytesRead === 0) return;
+      if (bytesRead === 0) {
+        matcher.push(decoder.end());
+        return;
+      }
       position += bytesRead;
-      if (matcher.push(buffer.toString('utf-8', 0, bytesRead))) return;
+      if (matcher.push(decoder.write(buffer.subarray(0, bytesRead)))) return;
     }
   } finally {
     await handle.close();
