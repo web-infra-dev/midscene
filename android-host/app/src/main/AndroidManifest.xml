@@ -34,10 +34,18 @@
             android:exported="false"
             android:label="Run artefact" />
 
-        <!-- Owns agent runs so they survive the UI being reclaimed by the system. -->
+        <!--
+          Owns agent runs so they survive the UI being reclaimed by the system.
+
+          Exported on purpose: the deployment/verification channel is
+          `adb shell am start-foreground-service -a <ACTION>`, which is how an
+          unattended install provisions the runtime and starts runs without
+          touching the UI. The actions only accept a config path inside the
+          app's own storage, and the app never handles credentials from here.
+        -->
         <service
             android:name=".AgentService"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
