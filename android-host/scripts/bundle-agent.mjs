@@ -79,6 +79,18 @@ run(
   workDir,
 );
 
+// Stamp the bundle so the app can re-extract after an APK update: extraction is
+// otherwise "exists -> skip", which would serve a stale agent forever.
+const androidLocalPackage = JSON.parse(
+  fs.readFileSync(path.join(androidLocal, 'package.json'), 'utf8'),
+);
+const bundleInfo = `${androidLocalPackage.version}-${Date.now()}`;
+fs.writeFileSync(
+  path.join(hostRoot, 'app/src/main/assets/bundle-info.txt'),
+  `${bundleInfo}\n`,
+);
+console.log(`bundle info: ${bundleInfo}`);
+
 const size = fs.statSync(outFile).size;
 const yadbOut = path.join(hostRoot, 'app/src/main/assets/yadb');
 console.log(`\n${outFile} (${(size / 1024 / 1024).toFixed(1)} MB)`);

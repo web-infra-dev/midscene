@@ -66,6 +66,24 @@ export const localAgentConfigSchema = z.object({
       screenshotShrinkFactor: z.number().positive().optional(),
       /** Extra AI context, applied to every task. */
       aiContexts: z.record(z.string()).optional(),
+      /**
+       * Send the device HOME before the first task (default true).
+       *
+       * The agent is often started from its own UI, and every screenshot would
+       * then show that UI - the report captures the controller instead of the
+       * task. Pressing HOME first moves the controller to the background; the
+       * foreground service keeps the run alive.
+       */
+      resetToHome: z.boolean().default(true),
+      /** How long to wait for the launcher after pressing HOME. */
+      resetToHomeTimeoutMs: z.number().int().positive().default(8000),
+      /**
+       * Package that must no longer be in the foreground before the first task
+       * (typically the controller app). When set, the runner keeps pressing HOME
+       * until that package is gone instead of waiting for any change - some
+       * devices fall back to the previous activity when no launcher is available.
+       */
+      controllerPackage: z.string().optional(),
     })
     .default({}),
   tasks: z.array(localAgentTaskSchema).min(1),

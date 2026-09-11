@@ -74,6 +74,83 @@ function buildTransport(config: LocalAgentConfig): AndroidTransport {
   });
 }
 
+/**
+ * Press HOME so the run does not record the app that started it.
+ *
+ * Midscene's reports include the screenshots the model saw; starting a run from
+ * the controller UI would otherwise capture that UI in the first steps (and can
+ * even make the agent try to operate it). The resumed package is read before and
+ * after, so the log shows what the device actually switched to.
+ */
+async function resetDeviceToHome(
+  transport: AndroidTransport,
+  timeoutMs: number,
+  controllerPackage: string | undefined,
+  onEvent: ((event: { type: string; message: string }) => void) | undefined,
+): Promise<{ foreground?: string; leftController: boolean }> {
+  if (!transport.runShell) {
+    return { leftController: false };
+  }
+
+  const before = await readForegroundPackage(transport);
+  const deadline = Date.now() + timeoutMs;
+  let current = before;
+
+  try {
+    // Press HOME, then re-press while the controller (or the previous activity)
+    // is still in front: some devices need a second press, and a device with a
+    // broken launcher falls back to the app that asked for HOME.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (current !== before && current !== controllerPackage) {
+        break;
+      }
+      await transport.keyEvent(3);
+      const attemptDeadline = Math.min(deadline, Date.now() + 2500);
+      while (Date.now() < attemptDeadline) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        current = await readForegroundPackage(transport);
+        const left = controllerPackage
+          ? current !== controllerPackage
+          : current !== before;
+        if (current && left) {
+          return { foreground: current, leftController: true };
+        }
+      }
+      if (Date.now() >= deadline) {
+        break;
+      }
+    }
+  } catch (error) {
+    onEvent?.({
+      type: 'device',
+      message: `could not press HOME before the run: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    });
+  }
+
+  return { foreground: current, leftController: false };
+}
+
+/** Resumed package of the primary display, or undefined when unreadable. */
+async function readForegroundPackage(
+  transport: AndroidTransport,
+): Promise<string | undefined> {
+  if (!transport.runShell) {
+    return undefined;
+  }
+
+  try {
+    const result = await transport.runShell(
+      'dumpsys activity activities | grep -m1 mResumedActivity',
+      { timeoutMs: 5000 },
+    );
+    return result.stdout.match(/\s([A-Za-z0-9_.]+)\//)?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
 function applyModelConfig(config: LocalAgentConfig): void {
   const model = config.model;
   if (!model) {
@@ -165,6 +242,21 @@ export async function runLocalAgentConfig(
         screenshotShrinkFactor: config.agent.screenshotShrinkFactor,
         aiContexts: config.agent.aiContexts,
       }));
+
+  if (config.agent.resetToHome) {
+    const outcome = await resetDeviceToHome(
+      transport,
+      config.agent.resetToHomeTimeoutMs,
+      config.agent.controllerPackage,
+      options.onEvent,
+    );
+    options.onEvent?.({
+      type: 'device',
+      message: outcome.leftController
+        ? `left the controller UI before the run (foreground: ${outcome.foreground ?? 'unknown'})`
+        : `pressed HOME but the foreground is still ${outcome.foreground ?? 'unknown'}`,
+    });
+  }
 
   const agent = agentFactory(device, config);
   const taskResults: LocalAgentTaskResult[] = [];

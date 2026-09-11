@@ -15,6 +15,7 @@
         android:extractNativeLibs="true"
         android:label="Midscene Local"
         android:supportsRtl="true"
+        android:theme="@style/Theme.MidsceneLocal"
         android:usesCleartextTraffic="true">
 
         <activity

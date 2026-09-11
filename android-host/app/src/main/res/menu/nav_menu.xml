@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_run" android:icon="@android:drawable/ic_media_play" android:title="Run" />
+    <item android:id="@+id/nav_scripts" android:icon="@android:drawable/ic_menu_edit" android:title="Scripts" />
+    <item android:id="@+id/nav_history" android:icon="@android:drawable/ic_menu_recent_history" android:title="History" />
+    <item android:id="@+id/nav_setup" android:icon="@android:drawable/ic_menu_manage" android:title="Setup" />
+</menu>

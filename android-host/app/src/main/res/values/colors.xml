@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Design tokens mirrored from the desktop studio's palette
+  (apps/studio/src/renderer/App.css the midscene token set), so the phone UI reads as the
+  same product. Dark values live in values-night/colors.xml.
+-->
+<resources>
+    <color name="app_bg">#F6F6F6</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_muted">#F2F4F7</color>
+    <color name="surface_hover">#1A000000</color>
+
+    <color name="border_subtle">#ECECEC</color>
+    <color name="border_strong">#E9ECF3</color>
+    <color name="divider">#14000000</color>
+
+    <color name="text_primary">#0D0D0D</color>
+    <color name="text_secondary">#474848</color>
+    <color name="text_tertiary">#797A7A</color>
+    <color name="text_placeholder">#9D9FA0</color>
+
+    <color name="brand">#1979FF</color>
+    <color name="brand_container">#E5F0FF</color>
+    <color name="on_brand">#FFFFFF</color>
+
+    <color name="status_success">#12B981</color>
+    <color name="status_success_bg">#E5FFF4</color>
+    <color name="status_success_fg">#079669</color>
+    <color name="status_error">#E13E37</color>
+    <color name="status_error_bg">#F7ECEB</color>
+    <color name="status_info_bg">#E5F0FF</color>
+    <color name="status_idle">#B6B6B6</color>
+</resources>

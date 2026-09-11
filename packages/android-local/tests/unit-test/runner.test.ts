@@ -75,6 +75,14 @@ function createStubTransport(): AndroidTransport {
     async inputText() {},
     async startActivity() {},
     async forceStop() {},
+    async runShell() {
+      return {
+        stdout:
+          '  mResumedActivity: ActivityRecord{1 u0 com.example.launcher/.Home t1}',
+        stderr: '',
+        exitCode: 0,
+      };
+    },
     async healthCheck() {
       return {
         ok: true,
@@ -303,6 +311,72 @@ describe('local agent runner', () => {
     );
     expect(written.name).toBe('persisted');
     expect(written.tasks[0].status).toBe('ok');
+  });
+
+  test('leaves the controller UI before the first task', async () => {
+    const { agent, calls } = createRecordingAgent();
+    const keys: number[] = [];
+    let homePressed = false;
+    const base = createStubTransport();
+    const transport = {
+      ...base,
+      async keyEvent(keyCode: number) {
+        keys.push(keyCode);
+        homePressed = true;
+      },
+      async runShell() {
+        // The controller is in front until HOME is pressed, then the launcher is.
+        const pkg = homePressed
+          ? 'com.example.launcher/.Home'
+          : 'com.midscene.localagent/.MainActivity';
+        return {
+          stdout: `  mResumedActivity: ActivityRecord{1 u0 ${pkg} t1}`,
+          stderr: '',
+          exitCode: 0,
+        };
+      },
+    } as AndroidTransport;
+
+    await runLocalAgentConfig(
+      localAgentConfigSchema.parse({
+        name: 'home-first',
+        agent: { controllerPackage: 'com.midscene.localagent' },
+        tasks: [{ name: 'x', type: 'aiAct', prompt: 'y' }],
+      }),
+      {
+        createTransport: () => transport,
+        createAgent: () => agent as never,
+      },
+    );
+
+    // HOME (keycode 3) is pressed exactly once, before any model call.
+    expect(keys).toEqual([3]);
+    expect(calls[0]).toBe('aiAct:y');
+  });
+
+  test('skips the HOME press when resetToHome is disabled', async () => {
+    const keys: number[] = [];
+    const base = createStubTransport();
+    const transport = {
+      ...base,
+      async keyEvent(keyCode: number) {
+        keys.push(keyCode);
+      },
+    } as AndroidTransport;
+
+    await runLocalAgentConfig(
+      localAgentConfigSchema.parse({
+        name: 'no-home',
+        agent: { resetToHome: false },
+        tasks: [{ name: 'x', type: 'aiAct', prompt: 'y' }],
+      }),
+      {
+        createTransport: () => transport,
+        createAgent: () => createRecordingAgent().agent as never,
+      },
+    );
+
+    expect(keys).toEqual([]);
   });
 
   test('resolves a relative report directory against the config file', async () => {

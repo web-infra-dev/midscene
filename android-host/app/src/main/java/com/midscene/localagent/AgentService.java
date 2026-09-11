@@ -220,6 +220,8 @@ public class AgentService extends Service {
                 + "  yadbPath: /data/local/tmp/yadb\n"
                 + "agent:\n"
                 + "  generateReport: true\n"
+                + "  resetToHome: true\n"
+                + "  controllerPackage: " + getPackageName() + "\n"
                 + "  reportDir: ./midscene_run/results\n"
                 + "tasks:\n"
                 + "  - name: " + safeName(prompt) + "\n"

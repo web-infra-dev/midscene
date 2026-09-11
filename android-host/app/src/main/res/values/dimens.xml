@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 4pt spacing scale, matching the studio layout rhythm. -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">12dp</dimen>
+    <dimen name="space_lg">16dp</dimen>
+    <dimen name="space_xl">24dp</dimen>
+
+    <dimen name="card_radius">14dp</dimen>
+    <dimen name="card_elevation">0dp</dimen>
+    <dimen name="page_padding">16dp</dimen>
+    <dimen name="rail_width">96dp</dimen>
+    <dimen name="log_text">11sp</dimen>
+    <dimen name="body_text">14sp</dimen>
+    <dimen name="label_text">12sp</dimen>
+</resources>

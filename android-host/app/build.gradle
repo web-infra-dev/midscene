@@ -2,6 +2,13 @@ plugins {
     id 'com.android.application'
 }
 
+dependencies {
+    // Material 3 provides the design system primitives (toolbar, cards, buttons,
+    // navigation bar/rail) that mirror the desktop studio's antd token palette.
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}
+
 android {
     namespace 'com.midscene.localagent'
     compileSdk 35
@@ -32,6 +39,10 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+
+    buildFeatures {
+        viewBinding false
     }
 
     compileOptions {

@@ -47,10 +47,21 @@ public final class Provisioner {
         return context.getApplicationInfo().nativeLibraryDir + "/libnodebin.so";
     }
 
-    /** Unpack the agent bundle (idempotent). */
+    /**
+     * Unpack the agent bundle. Re-extracts when the APK carries a different
+     * bundle stamp, so an app update never keeps running a stale agent.
+     */
     public static boolean extractAgent(Context context, LogSink log) throws IOException {
-        if (cliFile(context).exists()) {
-            log.log("agent bundle already extracted");
+        String stamp = readAssetText(context, "bundle-info.txt");
+        File stampFile = new File(agentDir(context), ".bundle-info");
+        String installed = stampFile.isFile() ? ShellRunner.readText(stampFile).trim() : "";
+
+        if (cliFile(context).exists() && !stamp.isEmpty() && stamp.equals(installed)) {
+            log.log("agent bundle up to date (" + stamp + ")");
+            return false;
+        }
+        if (cliFile(context).exists() && stamp.isEmpty()) {
+            log.log("agent bundle already extracted (no stamp in APK)");
             return false;
         }
 
@@ -79,8 +90,23 @@ public final class Provisioner {
                 }
             }
         }
-        log.log("extracted agent bundle in " + (System.currentTimeMillis() - startedAt) + " ms");
+        try (FileOutputStream out = new FileOutputStream(stampFile)) {
+            out.write(stamp.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        log.log("extracted agent bundle in " + (System.currentTimeMillis() - startedAt)
+                + " ms (" + (stamp.isEmpty() ? "unstamped" : stamp) + ")");
         return true;
+    }
+
+    private static String readAssetText(Context context, String name) {
+        try (InputStream raw = context.getAssets().open(name)) {
+            byte[] buffer = new byte[1024];
+            int read = raw.read(buffer);
+            return read <= 0 ? "" : new String(buffer, 0, read,
+                    java.nio.charset.StandardCharsets.UTF_8).trim();
+        } catch (IOException error) {
+            return "";
+        }
     }
 
     /** Copy the bundled yadb dex into the app's external files directory. */

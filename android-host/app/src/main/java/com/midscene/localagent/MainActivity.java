@@ -1,11 +1,10 @@
 package com.midscene.localagent;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -17,16 +16,24 @@ import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.navigation.NavigationBarView;
+import com.google.android.material.navigationrail.NavigationRailView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -44,36 +51,62 @@ import java.util.Locale;
 /**
  * Production console for the on-device agent.
  *
- * Four tabs mirror what a desktop studio session offers minus the live preview:
- * run a natural-language instruction, manage YAML scripts, browse run history
- * with reports, and configure the runtime plus model credentials. Execution is
- * delegated to {@link AgentService} so it survives this UI being reclaimed.
+ * Layout follows the desktop studio: a Material 3 shell (bottom navigation on
+ * phones, side rail on tablets, both from `activity_main.xml` variants) with the
+ * studio's colour tokens in `res/values/colors.xml`. The four destinations cover
+ * what a studio session offers minus the live preview: a natural-language run,
+ * YAML scripts, run history with reports, and runtime/credential setup.
  */
-public class MainActivity extends Activity implements AgentService.LogListener {
+public class MainActivity extends AppCompatActivity implements AgentService.LogListener {
 
     private static final int REQUEST_NOTIFICATIONS = 42;
+    private static final String THEME_PREFS = "midscene-theme";
+    private static final String THEME_KEY = "mode";
 
     private final Handler ui = new Handler(Looper.getMainLooper());
-    private TextView statusView;
+    private MaterialToolbar toolbar;
+    private FrameLayout pageHost;
+    private LinearLayout[] pages;
+    private TextView[] pills;
     private TextView logView;
     private EditText promptInput;
     private EditText configEditor;
     private EditText modelEditor;
     private TextView historyView;
-    private LinearLayout[] pages;
     private RunStore runStore;
     private boolean configDirty;
     private boolean loadingText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applySavedTheme();
         super.onCreate(savedInstanceState);
         runStore = new RunStore(getFilesDir());
-        setContentView(buildLayout());
+        setContentView(R.layout.activity_main);
+
+        toolbar = findViewById(R.id.toolbar);
+        pageHost = findViewById(R.id.page_host);
+        setSupportActionBar(toolbar);
+
+        pages = new LinearLayout[]{
+                buildRunPage(),
+                buildScriptsPage(),
+                buildHistoryPage(),
+                buildSetupPage(),
+        };
+        for (LinearLayout page : pages) {
+            page.setVisibility(View.GONE);
+            pageHost.addView(page, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
+        wireNavigation();
+        showPage(0, true);
         requestNotificationPermissionIfNeeded();
         loadConfigEditor();
         loadModelEditor();
         refreshStatus();
+        refreshHistory();
         for (String line : AgentService.logBuffer()) {
             appendLog(line);
         }
@@ -98,200 +131,308 @@ public class MainActivity extends Activity implements AgentService.LogListener {
         ui.post(() -> appendLog(line));
     }
 
-    // ---------------------------------------------------------------- layout
+    // ------------------------------------------------------------ navigation
 
-    private View buildLayout() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+    private void wireNavigation() {
+        NavigationBarView bottom = findViewById(R.id.bottom_nav);
+        NavigationRailView rail = findViewById(R.id.rail_nav);
 
-        LinearLayout tabBar = new LinearLayout(this);
-        tabBar.setOrientation(LinearLayout.HORIZONTAL);
-        String[] titles = {"Run", "Scripts", "History", "Setup"};
-        pages = new LinearLayout[titles.length];
-        for (int index = 0; index < titles.length; index++) {
-            final int tabIndex = index;
-            Button tab = new Button(this);
-            tab.setText(titles[index]);
-            tab.setAllCaps(false);
-            tab.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            tab.setOnClickListener(view -> showTab(tabIndex));
-            tabBar.addView(tab, new LinearLayout.LayoutParams(0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (bottom != null) {
+            bottom.setOnItemSelectedListener(item -> {
+                showPage(indexOf(item.getItemId()), false);
+                return true;
+            });
         }
-        root.addView(tabBar);
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        for (int index = 0; index < titles.length; index++) {
-            LinearLayout page = buildPage(index);
-            page.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
-            pages[index] = page;
-            content.addView(page, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (rail != null) {
+            rail.setOnItemSelectedListener(item -> {
+                showPage(indexOf(item.getItemId()), false);
+                return true;
+            });
         }
-        root.addView(content, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        return root;
     }
 
-    private LinearLayout buildPage(int index) {
-        LinearLayout page = new LinearLayout(this);
-        page.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(10);
-        page.setPadding(pad, pad, pad, pad);
-
-        switch (index) {
-            case 0:
-                buildRunPage(page);
-                break;
-            case 1:
-                buildScriptsPage(page);
-                break;
-            case 2:
-                buildHistoryPage(page);
-                break;
-            default:
-                buildSetupPage(page);
-                break;
-        }
-        return page;
-    }
-
-    private void buildRunPage(LinearLayout page) {
-        statusView = new TextView(this);
-        statusView.setTypeface(Typeface.MONOSPACE);
-        statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        statusView.setTextColor(Color.DKGRAY);
-        page.addView(statusView);
-
-        promptInput = new EditText(this);
-        promptInput.setHint("Natural language instruction, e.g. 打开设置并搜索 Wi-Fi");
-        promptInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        promptInput.setMinLines(2);
-        page.addView(promptInput);
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row, "Run instruction", view -> runInstruction());
-        addButton(row, "Stop", view -> AgentService.start(this, AgentService.ACTION_STOP, null));
-        addButton(row, "Clear log", view -> logView.setText(""));
-        page.addView(row);
-
-        logView = new TextView(this);
-        logView.setTypeface(Typeface.MONOSPACE);
-        logView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        logView.setMovementMethod(new ScrollingMovementMethod());
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(logView);
-        page.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-    }
-
-    private void buildScriptsPage(LinearLayout page) {
-        TextView hint = new TextView(this);
-        hint.setText("config.yaml — tasks run in order; script tasks may reference files in files/scripts.");
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        page.addView(hint);
-
-        configEditor = new EditText(this);
-        configEditor.setTypeface(Typeface.MONOSPACE);
-        configEditor.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        configEditor.setGravity(Gravity.TOP | Gravity.START);
-        configEditor.addTextChangedListener(new SimpleWatcher(() -> {
-            if (!loadingText) {
-                configDirty = true;
-            }
-        }));
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(configEditor);
-        page.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row, "Save", view -> saveConfig(true));
-        addButton(row, "Run config", view -> runConfig());
-        addButton(row, "Reload", view -> loadConfigEditor());
-        page.addView(row);
-    }
-
-    private void buildHistoryPage(LinearLayout page) {
-        TextView hint = new TextView(this);
-        hint.setText("Tap a run to open its log or HTML report.");
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        page.addView(hint);
-
-        historyView = new TextView(this);
-        historyView.setTypeface(Typeface.MONOSPACE);
-        historyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        historyView.setPadding(0, dp(8), 0, dp(8));
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(historyView);
-        page.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row, "Refresh", view -> refreshHistory());
-        page.addView(row);
-    }
-
-    private void buildSetupPage(LinearLayout page) {
-        TextView hint = new TextView(this);
-        hint.setText("Runtime and credentials. model.env keeps the API key out of the visible config.");
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        page.addView(hint);
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row, "Provision runtime", view ->
-                AgentService.start(this, AgentService.ACTION_PROVISION, null));
-        addButton(row, "Check state", view -> refreshStatus());
-        page.addView(row);
-
-        LinearLayout row2 = new LinearLayout(this);
-        row2.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row2, "Battery exemption", view -> requestBatteryExemption());
-        addButton(row2, "Open Shizuku", view -> openShizuku());
-        page.addView(row2);
-
-        modelEditor = new EditText(this);
-        modelEditor.setTypeface(Typeface.MONOSPACE);
-        modelEditor.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        modelEditor.setGravity(Gravity.TOP | Gravity.START);
-        modelEditor.setMinLines(4);
-        page.addView(modelEditor);
-
-        LinearLayout row3 = new LinearLayout(this);
-        row3.setOrientation(LinearLayout.HORIZONTAL);
-        addButton(row3, "Save model.env", view -> saveModelEnv());
-        addButton(row3, "Run doctor", view -> runDoctor());
-        page.addView(row3);
-    }
-
-    private void addButton(LinearLayout parent, String label, View.OnClickListener listener) {
-        Button button = new Button(this);
-        button.setText(label);
-        button.setAllCaps(false);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        button.setOnClickListener(listener);
-        parent.addView(button, new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
-
-    private void showTab(int index) {
+    private void showPage(int index, boolean selectInNav) {
         for (int i = 0; i < pages.length; i++) {
             pages[i].setVisibility(i == index ? View.VISIBLE : View.GONE);
+        }
+        if (selectInNav) {
+            NavigationBarView bottom = findViewById(R.id.bottom_nav);
+            NavigationRailView rail = findViewById(R.id.rail_nav);
+            int id = idOf(index);
+            if (bottom != null) {
+                bottom.setSelectedItemId(id);
+            }
+            if (rail != null) {
+                rail.setSelectedItemId(id);
+            }
         }
         if (index == 2) {
             refreshHistory();
         } else if (index == 3) {
             refreshStatus();
         }
+    }
+
+    private int idOf(int index) {
+        switch (index) {
+            case 1:
+                return R.id.nav_scripts;
+            case 2:
+                return R.id.nav_history;
+            case 3:
+                return R.id.nav_setup;
+            default:
+                return R.id.nav_run;
+        }
+    }
+
+    private int indexOf(int id) {
+        if (id == R.id.nav_scripts) {
+            return 1;
+        }
+        if (id == R.id.nav_history) {
+            return 2;
+        }
+        if (id == R.id.nav_setup) {
+            return 3;
+        }
+        return 0;
+    }
+
+    // ------------------------------------------------------------- building
+
+    private LinearLayout page() {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        int pad = getResources().getDimensionPixelSize(R.dimen.page_padding);
+        page.setPadding(pad, pad, pad, pad);
+        return page;
+    }
+
+    private MaterialCardView card(LinearLayout parent, String title) {
+        MaterialCardView card = new MaterialCardView(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = getResources().getDimensionPixelSize(R.dimen.space_md);
+        card.setLayoutParams(params);
+        card.setCardBackgroundColor(getColor(R.color.surface));
+        card.setStrokeColor(getColor(R.color.border_subtle));
+        card.setStrokeWidth(1);
+        card.setRadius(getResources().getDimensionPixelSize(R.dimen.card_radius));
+        card.setCardElevation(0);
+
+        LinearLayout inner = new LinearLayout(this);
+        inner.setOrientation(LinearLayout.VERTICAL);
+        int pad = getResources().getDimensionPixelSize(R.dimen.space_lg);
+        inner.setPadding(pad, pad, pad, pad);
+        card.addView(inner);
+
+        if (title != null) {
+            TextView label = new TextView(this);
+            label.setText(title);
+            label.setTypeface(Typeface.DEFAULT_BOLD);
+            label.setTextSize(12);
+            label.setTextColor(getColor(R.color.text_secondary));
+            LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            labelParams.bottomMargin = getResources().getDimensionPixelSize(R.dimen.space_sm);
+            label.setLayoutParams(labelParams);
+            inner.addView(label);
+        }
+
+        parent.addView(card);
+        return card;
+    }
+
+    private LinearLayout cardBody(MaterialCardView card) {
+        return (LinearLayout) card.getChildAt(0);
+    }
+
+    private MaterialButton primaryButton(String label, View.OnClickListener listener) {
+        MaterialButton button = new MaterialButton(this, null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(12);
+        button.setCornerRadius(getResources().getDimensionPixelSize(R.dimen.space_sm));
+        button.setOnClickListener(listener);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        params.setMarginEnd(getResources().getDimensionPixelSize(R.dimen.space_sm));
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    private MaterialButton filledButton(String label, View.OnClickListener listener) {
+        MaterialButton button = new MaterialButton(this);
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(12);
+        button.setCornerRadius(getResources().getDimensionPixelSize(R.dimen.space_sm));
+        button.setOnClickListener(listener);
+        button.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        return button;
+    }
+
+    private LinearLayout buttonRow(LinearLayout parent) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        parent.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    private EditText editor(int minLines, boolean mono) {
+        EditText editor = new EditText(this);
+        if (mono) {
+            editor.setTypeface(Typeface.MONOSPACE);
+            editor.setTextSize(11);
+        } else {
+            editor.setTextSize(14);
+        }
+        editor.setGravity(Gravity.TOP | Gravity.START);
+        editor.setMinLines(minLines);
+        editor.setBackgroundColor(getColor(R.color.surface_muted));
+        int pad = getResources().getDimensionPixelSize(R.dimen.space_md);
+        editor.setPadding(pad, pad, pad, pad);
+        return editor;
+    }
+
+    private TextView pill(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(11);
+        view.setPadding(
+                getResources().getDimensionPixelSize(R.dimen.space_sm),
+                getResources().getDimensionPixelSize(R.dimen.space_xs),
+                getResources().getDimensionPixelSize(R.dimen.space_sm),
+                getResources().getDimensionPixelSize(R.dimen.space_xs));
+        view.setBackgroundColor(getColor(R.color.surface_muted));
+        view.setTextColor(getColor(R.color.text_secondary));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMarginEnd(getResources().getDimensionPixelSize(R.dimen.space_xs));
+        view.setLayoutParams(params);
+        return view;
+    }
+
+    // ----------------------------------------------------------------- pages
+
+    private LinearLayout buildRunPage() {
+        LinearLayout page = page();
+        ScrollView scroll = new ScrollView(this);
+        scroll.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout content = page();
+        scroll.addView(content);
+        page.addView(scroll);
+
+        // Status pills: one per subsystem, colour-coded like the studio badges.
+        MaterialCardView statusCard = card(content, "DEVICE");
+        LinearLayout statusBody = cardBody(statusCard);
+        LinearLayout pillRow = new LinearLayout(this);
+        pillRow.setOrientation(LinearLayout.HORIZONTAL);
+        pills = new TextView[]{pill("state"), pill("node"), pill("agent"), pill("yadb")};
+        for (TextView view : pills) {
+            pillRow.addView(view);
+        }
+        statusBody.addView(pillRow);
+
+        MaterialCardView promptCard = card(content, "INSTRUCTION");
+        LinearLayout promptBody = cardBody(promptCard);
+        promptInput = editor(3, false);
+        promptInput.setHint("自然语言指令，例如：打开设置并搜索 Wi-Fi");
+        promptBody.addView(promptInput);
+        LinearLayout promptRow = buttonRow(promptBody);
+        promptRow.addView(filledButton("Run instruction", view -> runInstruction()));
+        promptRow.addView(primaryButton("Stop", view ->
+                AgentService.start(this, AgentService.ACTION_STOP, null)));
+
+        MaterialCardView logCard = card(content, "RUN LOG");
+        LinearLayout logBody = cardBody(logCard);
+        logView = new TextView(this);
+        logView.setTypeface(Typeface.MONOSPACE);
+        logView.setTextSize(11);
+        logView.setTextColor(getColor(R.color.text_secondary));
+        logView.setMovementMethod(new ScrollingMovementMethod());
+        logView.setMinLines(12);
+        logBody.addView(logView);
+        LinearLayout logRow = buttonRow(logBody);
+        logRow.addView(primaryButton("Clear log", view -> logView.setText("")));
+        logRow.addView(primaryButton("History", view -> showPage(2, true)));
+
+        return page;
+    }
+
+    private LinearLayout buildScriptsPage() {
+        LinearLayout page = page();
+        MaterialCardView card = card(page, "CONFIG.YAML");
+        LinearLayout body = cardBody(card);
+        configEditor = editor(14, true);
+        configEditor.addTextChangedListener(new SimpleWatcher(() -> {
+            if (!loadingText) {
+                configDirty = true;
+            }
+        }));
+        ScrollView scroll = new ScrollView(this);
+        scroll.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        scroll.addView(configEditor);
+        body.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout row = buttonRow(body);
+        row.addView(filledButton("Run config", view -> runConfig()));
+        row.addView(primaryButton("Save", view -> saveConfig(true)));
+        row.addView(primaryButton("Reload", view -> loadConfigEditor()));
+        return page;
+    }
+
+    private LinearLayout buildHistoryPage() {
+        LinearLayout page = page();
+        MaterialCardView card = card(page, "RUNS");
+        LinearLayout body = cardBody(card);
+        historyView = new TextView(this);
+        historyView.setTypeface(Typeface.MONOSPACE);
+        historyView.setTextSize(11);
+        historyView.setTextColor(getColor(R.color.text_secondary));
+        historyView.setPadding(0, getResources().getDimensionPixelSize(R.dimen.space_sm), 0,
+                getResources().getDimensionPixelSize(R.dimen.space_sm));
+        body.addView(historyView);
+        LinearLayout row = buttonRow(body);
+        row.addView(primaryButton("Refresh", view -> refreshHistory()));
+        return page;
+    }
+
+    private LinearLayout buildSetupPage() {
+        LinearLayout page = page();
+
+        MaterialCardView runtime = card(page, "RUNTIME");
+        LinearLayout runtimeBody = cardBody(runtime);
+        LinearLayout runtimeRow = buttonRow(runtimeBody);
+        runtimeRow.addView(filledButton("Provision", view ->
+                AgentService.start(this, AgentService.ACTION_PROVISION, null)));
+        runtimeRow.addView(primaryButton("Check state", view -> refreshStatus()));
+        LinearLayout accessRow = buttonRow(runtimeBody);
+        accessRow.addView(primaryButton("Battery exemption", view -> requestBatteryExemption()));
+        accessRow.addView(primaryButton("Open Shizuku", view -> openShizuku()));
+
+        MaterialCardView theme = card(page, "APPEARANCE");
+        LinearLayout themeBody = cardBody(theme);
+        LinearLayout themeRow = buttonRow(themeBody);
+        themeRow.addView(primaryButton("Light", view -> setThemeMode("light")));
+        themeRow.addView(primaryButton("Dark", view -> setThemeMode("dark")));
+        themeRow.addView(primaryButton("System", view -> setThemeMode("system")));
+
+        MaterialCardView model = card(page, "MODEL.ENV");
+        LinearLayout modelBody = cardBody(model);
+        modelEditor = editor(5, true);
+        modelBody.addView(modelEditor);
+        LinearLayout modelRow = buttonRow(modelBody);
+        modelRow.addView(filledButton("Save", view -> saveModelEnv()));
+        modelRow.addView(primaryButton("Run doctor", view -> runDoctor()));
+
+        return page;
     }
 
     // ----------------------------------------------------------------- runs
@@ -302,9 +443,9 @@ public class MainActivity extends Activity implements AgentService.LogListener {
             toast("Enter an instruction first");
             return;
         }
-        Intent extras = new Intent().putExtra(AgentService.EXTRA_PROMPT, prompt);
-        AgentService.start(this, AgentService.ACTION_RUN_PROMPT, extras);
-        showTab(0);
+        AgentService.start(this, AgentService.ACTION_RUN_PROMPT,
+                new Intent().putExtra(AgentService.EXTRA_PROMPT, prompt));
+        showPage(0, true);
     }
 
     private void runConfig() {
@@ -312,15 +453,14 @@ public class MainActivity extends Activity implements AgentService.LogListener {
         AgentService.start(this, AgentService.ACTION_RUN_CONFIG,
                 new Intent().putExtra(AgentService.EXTRA_CONFIG_PATH,
                         new File(getFilesDir(), "config.yaml").getAbsolutePath()));
-        showTab(0);
+        showPage(0, true);
     }
 
-    /** A one-task config that exercises perception plus a model round trip. */
     private void runDoctor() {
         saveModelEnv();
         String yaml = "name: doctor\n"
                 + "device:\n  backend: rish\n  displayId: 0\n  rishPath: /data/local/tmp/rish\n"
-                + "agent:\n  generateReport: false\n"
+                + "agent:\n  generateReport: false\n  resetToHome: true\n"
                 + "tasks:\n  - name: describe-screen\n    type: aiQuery\n"
                 + "    prompt: describe what is currently visible on screen in one sentence\n";
         try {
@@ -360,6 +500,7 @@ public class MainActivity extends Activity implements AgentService.LogListener {
                 + "  yadbPath: /data/local/tmp/yadb\n"
                 + "agent:\n"
                 + "  generateReport: true\n"
+                + "  resetToHome: true\n"
                 + "  reportDir: ./midscene_run/results\n"
                 + "tasks:\n"
                 + "  - name: open-settings\n"
@@ -425,11 +566,11 @@ public class MainActivity extends Activity implements AgentService.LogListener {
         StringBuilder text = new StringBuilder();
         SimpleDateFormat format = new SimpleDateFormat("MM-dd HH:mm", Locale.US);
         for (RunStore.RunRecord record : records) {
-            text.append(record.ok ? "OK  " : "ERR ")
+            text.append(record.ok ? "● OK   " : "● ERR  ")
                     .append(format.format(new Date(record.startedAt)))
-                    .append("  ").append(record.configName)
-                    .append("  ").append(record.durationMs / 1000).append("s")
-                    .append("  tasks=").append(record.taskCount - record.failedTasks)
+                    .append("   ").append(record.configName)
+                    .append("   ").append(record.durationMs / 1000).append("s")
+                    .append("   tasks ").append(record.taskCount - record.failedTasks)
                     .append("/").append(record.taskCount)
                     .append('\n');
         }
@@ -444,7 +585,7 @@ public class MainActivity extends Activity implements AgentService.LogListener {
         SimpleDateFormat format = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.US);
         for (int index = 0; index < records.size(); index++) {
             RunStore.RunRecord record = records.get(index);
-            labels[index] = (record.ok ? "OK " : "ERR ")
+            labels[index] = (record.ok ? "OK  " : "ERR ")
                     + format.format(new Date(record.startedAt)) + " · " + record.configName;
         }
 
@@ -509,6 +650,33 @@ public class MainActivity extends Activity implements AgentService.LogListener {
                 .putExtra(ReportViewerActivity.EXTRA_HTML, html));
     }
 
+    // ---------------------------------------------------------------- theme
+
+    private void applySavedTheme() {
+        SharedPreferences prefs = getSharedPreferences(THEME_PREFS, MODE_PRIVATE);
+        applyThemeMode(prefs.getString(THEME_KEY, "system"));
+    }
+
+    private void setThemeMode(String mode) {
+        getSharedPreferences(THEME_PREFS, MODE_PRIVATE).edit().putString(THEME_KEY, mode).apply();
+        applyThemeMode(mode);
+    }
+
+    private void applyThemeMode(String mode) {
+        switch (mode) {
+            case "light":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case "dark":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            default:
+                AppCompatDelegate.setDefaultNightMode(
+                        AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
+    }
+
     // ----------------------------------------------------------- permissions
 
     private void requestNotificationPermissionIfNeeded() {
@@ -522,8 +690,8 @@ public class MainActivity extends Activity implements AgentService.LogListener {
 
     /**
      * Surviving doze for a user-initiated long task is a legitimate use of the
-     * battery optimisation exemption, so ask for it through the system dialog
-     * instead of relying on adb-only privileges.
+     * battery optimisation exemption, so ask through the system dialog instead of
+     * relying on adb-only privileges.
      */
     private void requestBatteryExemption() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
@@ -555,29 +723,45 @@ public class MainActivity extends Activity implements AgentService.LogListener {
     // -------------------------------------------------------------- helpers
 
     private void refreshStatus() {
-        StringBuilder text = new StringBuilder();
-        text.append("state: ").append(AgentService.state).append('\n');
-        text.append("node: ").append(new File(Provisioner.nodePath(this)).exists()
-                ? "ready" : "missing").append('\n');
-        text.append("agent: ").append(Provisioner.cliFile(this).exists()
-                ? "extracted" : "not extracted").append('\n');
-        text.append("yadb: ").append(new File(Provisioner.YADB_TARGET).exists()
-                ? "installed" : "missing (Setup → Provision runtime)").append('\n');
-        if (AgentService.isBusy()) {
-            text.append("running since: ").append(
-                    new SimpleDateFormat("HH:mm:ss", Locale.US)
-                            .format(new Date(AgentService.runStartedAt))).append('\n');
+        if (pills == null) {
+            return;
         }
-        statusView.setText(text.toString());
+        boolean nodeReady = new File(Provisioner.nodePath(this)).exists();
+        boolean agentReady = Provisioner.cliFile(this).exists();
+        boolean yadbReady = new File(Provisioner.YADB_TARGET).exists();
+        boolean busy = AgentService.isBusy();
+
+        pills[0].setText("state " + AgentService.state);
+        pills[0].setBackgroundColor(getColor(busy ? R.color.status_info_bg : R.color.surface_muted));
+        pills[1].setText(nodeReady ? "node ready" : "node missing");
+        pills[2].setText(agentReady ? "agent ready" : "agent missing");
+        pills[3].setText(yadbReady ? "yadb ready" : "yadb missing");
+        for (int index = 1; index < pills.length; index++) {
+            boolean ready = index == 1 ? nodeReady : index == 2 ? agentReady : yadbReady;
+            pills[index].setBackgroundColor(getColor(
+                    ready ? R.color.status_success_bg : R.color.status_error_bg));
+            pills[index].setTextColor(getColor(
+                    ready ? R.color.status_success_fg : R.color.status_error));
+        }
+        pills[0].setTextColor(getColor(busy ? R.color.brand : R.color.text_secondary));
+
+        if (toolbar != null) {
+            toolbar.setSubtitle(busy
+                    ? "running · started " + new SimpleDateFormat("HH:mm:ss", Locale.US)
+                    .format(new Date(AgentService.runStartedAt))
+                    : "idle · " + (nodeReady && agentReady ? "runtime ready" : "runtime not provisioned"));
+        }
     }
 
     private void appendLog(String line) {
         ui.post(() -> {
+            if (logView == null) {
+                return;
+            }
             logView.append(line + "\n");
-            int scrollAmount = logView.getLayout() == null ? 0
-                    : logView.getLayout().getLineTop(logView.getLineCount()) - logView.getHeight();
-            if (scrollAmount > 0) {
-                ((ScrollView) logView.getParent()).scrollTo(0, scrollAmount);
+            View parent = (View) logView.getParent();
+            if (parent instanceof ScrollView) {
+                ((ScrollView) parent).fullScroll(View.FOCUS_DOWN);
             }
         });
     }
