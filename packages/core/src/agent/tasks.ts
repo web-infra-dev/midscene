@@ -10,7 +10,7 @@ import {
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import type { AbstractInterface } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
 import type {
   ExecutionReferenceImage,
@@ -343,6 +343,28 @@ export class TaskExecutor {
     return {
       runner,
     };
+  }
+
+  async sleep(ms: number): Promise<void> {
+    const session = this.createExecutionSession('Sleep');
+    const action = defineActionSleep();
+    await session.appendAndRun({
+      type: 'Action Space',
+      subType: action.name,
+      param: { timeMs: ms },
+      executor: async ({ task }) => {
+        assert(
+          Number.isFinite(ms) && ms > 0,
+          `ms for sleep must be a finite number greater than 0, but got ${ms}`,
+        );
+        setTimingFieldOnce(task.timing, 'callActionStart');
+        try {
+          await action.call({ timeMs: ms });
+        } finally {
+          setTimingFieldOnce(task.timing, 'callActionEnd');
+        }
+      },
+    });
   }
 
   async runPlans(

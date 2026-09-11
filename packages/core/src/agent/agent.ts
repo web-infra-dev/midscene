@@ -1733,6 +1733,15 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
   }
 
+  /**
+   * Wait for a finite, positive duration in milliseconds and record it as a
+   * Sleep task with the standard UI snapshots. Does not invoke device action
+   * hooks. Actual elapsed time is recorded by the task runner.
+   */
+  async sleep(ms: number): Promise<void> {
+    await this.taskExecutor.sleep(ms);
+  }
+
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
     const screenshots = opt?.screenshots;
