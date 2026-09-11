@@ -1,11 +1,9 @@
 # YAML 脚本运行器
 
-:::warning 下一代方案升级提示
-本文档介绍的是老版 YAML 自动化运行方案。我们已推出了全新、面向未来的 **[Midscene Test](./midscene-test/overview) (Beta)**。
+:::info 与 Midscene Test 共用执行内核
+已有项目可继续使用 `tasks/flow`、原来的批配置、目录结构和 `midscene` 命令；升级后的入口由 Test 内核执行，并生成新的 Test 报告页面。也可用 `midscene-test ./flow.yaml` 或 `midscene-test --config ./batch.yaml` 运行原文件，无需注册 Node 或改写 YAML。
 
-新方案采用“自然语言驱动主线，可编程可定制 Node 作为辅助”的全新测试范式，支持完备的测试生命周期、多环境并发隔离以及标准化运行报告，是老版方案的**官方替代升级版**。
-
-目前新方案正处于 **Beta 开放阶段**，我们强烈建议您阅读 **[Midscene Test 概览](./midscene-test/overview)** 并基于新方案进行项目实践与迁移。
+原来的 task continuation、整文件重试、环境变量、结果输出和 summary 语义继续保留。原生 `cases/steps` 的默认失败和重试策略有所不同；手动转换时请参阅 [YAML 字段映射](./midscene-test/extend#yaml-字段与原生能力的对应关系)。旧 HTML 报告文件无需转换，重新运行即可生成新页面。
 :::
 
 Midscene 定义了一种 YAML 格式的脚本，方便开发者快速编写自动化脚本，并提供了对应的命令行工具来快速执行这些脚本。
