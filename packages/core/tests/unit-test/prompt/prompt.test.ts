@@ -64,6 +64,25 @@ const defaultPlanningProtocolOptions = {
 };
 
 describe('action space', () => {
+  it('planning prompt explains how to interpret ambiguous scroll and swipe directions', async () => {
+    const prompt = await buildStandardPlanningSystemPrompt({
+      ...defaultPlanningProtocolOptions,
+      actionSpace: mockActionSpace,
+      includeLocateInPlanning: false,
+    });
+
+    expect(prompt).toContain('### Interpreting Scroll and Swipe Directions');
+    expect(prompt).toContain(
+      "The user's description of a scrolling or swiping direction may be ambiguous.",
+    );
+    expect(prompt).toContain(
+      'use its supported parameters to achieve the intended result',
+    );
+    expect(prompt).toContain(
+      'Scrolling and swiping actions do not always express movement through a `direction` parameter; some also support specifying a start and an end point.',
+    );
+  });
+
   it('planning prompt recommends cursor-level recovery for text inserts', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
@@ -90,7 +109,7 @@ describe('action space', () => {
       "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
     expect(prompt).toContain(
-      'such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
+      'If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
     );
   });
 

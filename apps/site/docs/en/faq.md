@@ -198,6 +198,31 @@ If you are running Midscene in a web browser, you can try increasing the DPR to 
 
 Keep in mind that this will consume more tokens.
 
+## The model plans the wrong scroll or swipe direction in aiAct {#scroll-and-swipe-directions}
+
+If the model plans the wrong scroll or swipe direction in `aiAct()`, the cause may be ambiguity in the natural-language instruction.
+
+For example, “scroll down” can mean several things:
+
+- **Move the mouse wheel downward**: with common Windows mouse-wheel settings, the page content moves upward.
+- **Move a finger downward on the screen**: the page content follows the finger downward.
+- **Reveal content below the current viewport**: the required finger or mouse-wheel movement depends on how the device is operated.
+
+The model may therefore plan a direction that differs from your expectation because it interpreted the instruction differently.
+
+A good way to reduce ambiguity is to **state the result you want to achieve** in the instruction. For example:
+
+- “Scroll down the page to the footer.”
+- “Scroll the date picker up to increase the date.”
+- “Scroll the page to the right to view the content of the tab on the right.”
+
+Even if you and the model interpret a direction word differently, a clear goal helps the model plan the correct movement.
+
+Midscene instructs the model to prioritize the goal of the scroll or swipe when determining the movement direction. For vague instructions such as “scroll down” or “swipe down”, if the context still does not clarify the intent, the following defaults apply:
+
+- **scroll**: interpret the direction as the off-screen content to reveal. For example, scroll down means revealing content below the current viewport.
+- **swipe**: interpret the direction as finger movement. For example, swipe down means moving the finger downward.
+
 ## Does the Doubao phone use Midscene under the hood?
 
 No.
