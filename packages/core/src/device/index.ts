@@ -634,13 +634,16 @@ export const actionScrollParamSchema = z.object({
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
     .describe(
-      'The direction to scroll. Only effective when scrollType is "singleAction".',
+      'The direction toward the off-screen content to reveal. "down" reveals content below the current viewport, "up" reveals content above, "right" reveals content to the right, and "left" reveals content to the left. This does not describe the movement direction of the content currently visible on the screen. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()
+    .positive()
     .nullable()
     .optional()
-    .describe('The distance in pixels to scroll'),
+    .describe(
+      'Positive requested scroll amount in screen-coordinate units. On touch platforms, it controls the length of the swipe gesture used to scroll; on web and desktop platforms, it controls or approximates the wheel scroll delta. Only effective when scrollType is "singleAction".',
+    ),
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(
@@ -654,7 +657,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
+      'Scroll a page or scrollable region to reveal off-screen content. Use Scroll when the goal is to browse content outside the current viewport. For direct gesture interactions, such as adjusting a slider or wheel picker, switching between paged cards or images, following an on-screen swipe gesture to continue or dismiss, or swiping an item to delete it, use Swipe instead. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     sample: {
@@ -750,22 +753,25 @@ export const ActionSwipeParamSchema = z.object({
   start: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'Starting point of the swipe gesture, if not specified, the center of the page will be used',
+      'Optional starting point of the finger movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.',
     ),
   direction: z
     .enum(['up', 'down', 'left', 'right'])
     .optional()
     .describe(
-      'The direction to swipe (required when using distance). The direction means the direction of the finger swipe.',
+      'Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.',
     ),
   distance: z
     .number()
+    .positive()
     .optional()
-    .describe('The distance in pixels to swipe (mutually exclusive with end)'),
+    .describe(
+      'Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.',
+    ),
   end: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'Ending point of the swipe gesture (mutually exclusive with distance)',
+      'Endpoint of the finger movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.',
     ),
   duration: z
     .number()
@@ -804,36 +810,46 @@ export function normalizeMobileSwipeParam(
     ? { x: start.center[0], y: start.center[1] }
     : { x: width / 2, y: height / 2 };
 
-  let endPoint: { x: number; y: number };
+  const endPoint = (() => {
+    if (end) {
+      if (param.direction !== undefined || param.distance !== undefined) {
+        throw new Error(
+          'Invalid Swipe parameters: "end" cannot be combined with "direction" or "distance". Use "end", optionally with "start", for an endpoint swipe.',
+        );
+      }
 
-  if (end) {
-    endPoint = { x: end.center[0], y: end.center[1] };
-  } else if (param.distance) {
-    const direction = param.direction;
-    if (!direction) {
-      throw new Error('direction is required for swipe gesture');
+      return { x: end.center[0], y: end.center[1] };
     }
-    endPoint = {
+
+    if (param.direction === undefined || param.distance === undefined) {
+      throw new Error(
+        'Invalid Swipe parameters: a relative swipe requires both "direction" and a positive "distance".',
+      );
+    }
+
+    if (param.distance <= 0) {
+      throw new Error(
+        'Invalid Swipe parameters: "distance" must be a positive number.',
+      );
+    }
+
+    return {
       x:
         startPoint.x +
-        (direction === 'right'
+        (param.direction === 'right'
           ? param.distance
-          : direction === 'left'
+          : param.direction === 'left'
             ? -param.distance
             : 0),
       y:
         startPoint.y +
-        (direction === 'down'
+        (param.direction === 'down'
           ? param.distance
-          : direction === 'up'
+          : param.direction === 'up'
             ? -param.distance
             : 0),
     };
-  } else {
-    throw new Error(
-      'Either end or distance must be specified for swipe gesture',
-    );
-  }
+  })();
 
   endPoint.x = Math.max(0, Math.min(endPoint.x, width));
   endPoint.y = Math.max(0, Math.min(endPoint.y, height));
@@ -855,7 +871,7 @@ export const defineActionSwipe = (config: {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+      'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },
