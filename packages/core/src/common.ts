@@ -4,6 +4,10 @@ import type {
   PlanningAction,
 } from '@/types';
 import { isPlainObject } from '@midscene/shared/utils';
+import {
+  isMidsceneLocatorField,
+  markMidsceneLocatorField,
+} from '@midscene/shared/zod-schema-utils';
 import { z } from 'zod';
 
 export function findActionInActionSpaceOrThrow(
@@ -130,18 +134,20 @@ export const userPromptToMultimodalPrompt = (
 };
 
 // Schema for locator field input (when users provide locate parameters)
-const MidsceneLocationInput = z
-  .object({
-    prompt: TUserPromptSchema,
-    deepLocate: z.boolean().optional(),
-    deepThink: z
-      .boolean()
-      .optional()
-      .describe('@deprecated Use `deepLocate` instead.'),
-    cacheable: z.boolean().optional(),
-    xpath: z.union([z.string(), z.boolean()]).optional(),
-  })
-  .passthrough();
+const MidsceneLocationInput = markMidsceneLocatorField(
+  z
+    .object({
+      prompt: TUserPromptSchema,
+      deepLocate: z.boolean().optional(),
+      deepThink: z
+        .boolean()
+        .optional()
+        .describe('@deprecated Use `deepLocate` instead.'),
+      cacheable: z.boolean().optional(),
+      xpath: z.union([z.string(), z.boolean()]).optional(),
+    })
+    .passthrough(),
+);
 
 /**
  * Returns the schema for locator fields.
@@ -149,26 +155,6 @@ const MidsceneLocationInput = z
  */
 export const getMidsceneLocationSchema = () => {
   return MidsceneLocationInput;
-};
-
-export const ifMidsceneLocatorField = (field: any): boolean => {
-  // Handle optional fields by getting the inner type
-  let actualField = field;
-  if (actualField._def?.typeName === 'ZodOptional') {
-    actualField = actualField._def.innerType;
-  }
-
-  // Check if this is a ZodObject
-  if (actualField._def?.typeName === 'ZodObject') {
-    const shape = actualField._def.shape();
-
-    // Input schema has 'prompt' as a required field
-    if ('prompt' in shape && shape.prompt) {
-      return true;
-    }
-  }
-
-  return false;
 };
 
 const formatPromptWithImages = (
@@ -196,9 +182,7 @@ export const findAllMidsceneLocatorField = (
     const keys = Object.keys(zodObject.shape);
     return keys.filter((key) => {
       const field = zodObject.shape[key];
-      // TODO: A similar locator-field check exists as isMidsceneLocatorField in
-      // @midscene/shared/zod-schema-utils.
-      if (!ifMidsceneLocatorField(field)) {
+      if (!isMidsceneLocatorField(field)) {
         return false;
       }
 
