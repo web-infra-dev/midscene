@@ -42,6 +42,7 @@ const runAdbShell = defineNode<
         })
       : await agent.callActionInActionSpace('RunAdbShell', {
           command: ctx.input.command,
+          timeout: ctx.input.timeout,
         });
     return value === undefined ? undefined : { data: value };
   },
