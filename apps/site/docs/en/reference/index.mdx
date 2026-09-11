@@ -545,7 +545,7 @@ function aiScroll(
   - `locate: string | object | undefined` — A natural language description of the scroll target, or [prompting with images](#prompting-with-images). When omitted, Midscene scrolls at the current pointer position.
   - `opt: object` — Configuration:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` — Scroll behavior. Default: `'singleAction'`.
-    - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of content movement. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
+    - `direction?: 'down' | 'up' | 'right' | 'left'` — Direction of the off-screen content to reveal, rather than the movement of currently visible content. Used only when `scrollType` is `'singleAction'`. For example, `'down'` reveals content below the current viewport. Default: `'down'`.
     - `distance?: number | null` — Scroll distance in pixels. Use `null` to let Midscene choose the distance.
     - `deepLocate?: boolean` — Whether to enable [Deep Locate](#deep-locate-deeplocate). The deprecated `deepThink` name remains supported. Default: `false`.
     - `context?: string` — Additional context for this call. See [Per-call context](#per-call-context).
@@ -2189,6 +2189,7 @@ Use this section to configure Midscene's Android automation and review Android-s
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2457,6 +2458,7 @@ Use this section to configure iOS device behavior, integrate Midscene with WebDr
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`/`typeOnly`/`clear` modes (`append` is a deprecated alias for `typeOnly`). Supports optional `autoDismissKeyboard`, `keyboardTypeDelay`, and `inputStrategy` parameters.
 - `Scroll` — Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specified key.
 - `LongPress` — Long-press a target element with optional duration.
@@ -2682,6 +2684,7 @@ Use this section to configure HarmonyOS device behavior, integrate Midscene with
 - `DoubleClick` — Double-tap an element.
 - `Input` — Enter text with `replace`, `typeOnly`, or `clear` mode.
 - `Scroll` — Scroll from an element or the screen center in any direction, including scroll-to-top, bottom, left, and right helpers.
+- `Swipe` — Touch-style swipe gesture.
 - `DragAndDrop` — Drag from one element to another.
 - `KeyboardPress` — Press a specific key.
 - `LongPress` — Long-press a target element with an optional duration.
