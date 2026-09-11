@@ -13,6 +13,87 @@
 - [HarmonyOS](./platforms/harmonyos#常见问题)
 - [PC 桌面](./platforms/desktop#常见问题)
 
+## 操作 VNC 等桌面客户端时，为什么会丢失大写字母或修饰键？ {#keyboard-input-through-desktop-clients}
+
+使用 `@midscene/computer` 操作 VNC、TeamViewer 或虚拟机控制台时，部分客户端可能无法完整识别键盘事件。常见现象包括：大写 `K` 变成 `k`、`!` 变成 `1`，或者 `Control+S` 只输入了 `s`。
+
+遇到这些问题时，可以增加修饰键事件的间隔。下面是一组已经在 Windows VNC 全屏模式下验证过的配置。
+
+```typescript
+import { agentForComputer } from '@midscene/computer';
+
+const agent = await agentForComputer({
+  inputStrategy: 'sequential',
+  keyboardTypeDelay: 120,
+  keyboardModifierDelay: 100,
+  keyboardLayout: 'en-US',
+});
+```
+
+其中，`keyboardModifierDelay` 是解决修饰键丢失问题的主要配置。建议从 `100` 开始测试。确认输入正常后，可以逐步减小这个数值。
+
+### 为什么增加间隔可以解决问题？
+
+大写字母、特殊字符和组合键都依赖修饰键。
+
+例如：
+
+- 大写 `K` 需要按下 `Shift`，再按下 `K`。
+- en-US 键盘布局中的 `!` 需要按下 `Shift`，再按下 `1`。
+- `Control+S` 需要按下 `Control`，再按下 `S`。
+
+Midscene 会把这些操作转换成修饰键按下、主键按下和按键释放等事件。
+
+某些桌面客户端会捕获这些事件，并转发给另一个系统或功能模块。如果事件之间的间隔太短，客户端可能无法在处理主键时保留修饰键状态。结果就是大写字母变成小写、特殊字符变成数字，或者组合键只剩下主键。
+
+设置 `keyboardModifierDelay` 后，Midscene 会分阶段发送这些事件，并在每个阶段之间等待。这样可以给桌面客户端留出识别和转发修饰键状态的时间。
+
+VNC 全屏模式是已经验证过的典型场景。不过，这个问题并不只与 VNC 或远程控制有关。只要桌面客户端需要捕获或转发键盘事件，就可能受到输入时序的影响。
+
+### 各项配置分别有什么作用？
+
+- `keyboardModifierDelay`：控制一次带修饰键输入过程中，各阶段之间的等待时间。它适用于 `Control+S` 等组合键，也适用于大写字母中隐含的 `Shift`。
+- `keyboardTypeDelay`：控制连续输入文本时，相邻字符之间的等待时间。
+- `inputStrategy: 'sequential'`：逐个输入文本字符，使 Midscene 可以为大写字母和特殊字符发送对应的按键序列。
+- `keyboardLayout: 'en-US'`：启用 en-US 键盘布局中的 Shift 字符映射，例如使用 `Shift+1` 输入 `!`。
+
+拉丁大写字母不依赖 `keyboardLayout`。只有 `!`、`@`、`#` 等与键盘布局有关的 Shift 字符，才需要设置该选项。
+
+:::warning
+只有本机和目标环境都使用 en-US 键位时，才能设置 `keyboardLayout: 'en-US'`。其他键盘布局可能使用不同的标点键位，或者需要 AltGr 等修饰键。
+:::
+
+### 这个配置适用于哪些输入方式？
+
+`keyboardModifierDelay` 只对本机 libnut 键盘驱动生效。
+
+- Windows 和 Linux 的本机桌面控制使用 libnut。
+- macOS 设置 `keyboardDriver: 'libnut'` 后，也会使用这条输入路径。
+- 直接通过 RDP 协议输入时，该配置不生效。
+- macOS 使用默认的 AppleScript 键盘驱动时，该配置不生效。
+
+AppleScript 使用另一套输入方式。它是否能被桌面客户端正确识别，仍取决于客户端的快捷键拦截、键盘模式和布局转换。
+
+### 如何发送组合键？
+
+通过 `keyName` 传入组合键。使用 `+` 连接修饰键和主键，并删除 `+` 两侧的空格。
+
+```typescript
+// 向当前获得焦点的元素发送 Control+S。
+await agent.aiKeyboardPress(undefined, {
+  keyName: 'Control+S',
+});
+
+// 先定位终端窗口，再发送 Control+Shift+P。
+await agent.aiKeyboardPress('终端窗口', {
+  keyName: 'Control+Shift+P',
+});
+```
+
+请使用 `Control+S`，不要使用 `Control + S`。
+
+如果目标已经获得焦点，请将第一个参数设置为 `undefined`。这样可以避免额外点击改变当前选区或光标位置。
+
 ## 会有哪些信息发送到 AI 模型？
 
 Midscene 会发送页面截图到 AI 模型。在某些场景下，例如调用 `aiAsk` 或 `aiQuery` 时传入 `domIncluded: true`，页面的 DOM 信息也会被发送。

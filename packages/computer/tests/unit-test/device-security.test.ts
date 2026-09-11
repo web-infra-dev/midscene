@@ -80,6 +80,7 @@ const mockState = rs.hoisted(() => {
     mouseToggle: rs.fn(),
     scrollMouse: rs.fn(),
     keyTap: rs.fn(),
+    keyToggle: rs.fn(),
     typeString: rs.fn(),
     getActiveWindow: rs.fn(() => 0),
     getWindowRect: rs.fn(),
@@ -110,6 +111,7 @@ const mockState = rs.hoisted(() => {
     libnut.mouseToggle.mockClear();
     libnut.scrollMouse.mockClear();
     libnut.keyTap.mockClear();
+    libnut.keyToggle.mockClear();
     libnut.typeString.mockClear();
     libnut.getActiveWindow.mockClear();
     libnut.getActiveWindow.mockReturnValue(0);
@@ -179,7 +181,7 @@ afterEach(() => {
 
 async function createConnectedDevice() {
   const { ComputerDevice } = await import('../../src/device');
-  const device = new ComputerDevice({});
+  const device = new ComputerDevice();
   await device.connect();
   return device;
 }
@@ -233,6 +235,15 @@ describe('ComputerDevice AppleScript security', () => {
     expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
       '-e',
       'tell application "System Events" to keystroke "a\\"\\\\b"',
+    ]);
+  });
+
+  it('keeps logical modifier events by default', async () => {
+    await runKeyboardPress('Control+s');
+
+    expect(mockState.execFileSync).toHaveBeenCalledWith('osascript', [
+      '-e',
+      'tell application "System Events" to keystroke "s" using {control down}',
     ]);
   });
 });
@@ -325,6 +336,154 @@ describe('ComputerInputDriver native arg handling', () => {
 
     driver.keyTap('a', ['command']);
     expect(mockState.libnut.keyTap).toHaveBeenLastCalledWith('a', ['command']);
+  });
+
+  it('holds and releases explicit shortcut modifiers around the main key', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay(
+      's',
+      ['control', 'shift', 'control'],
+      50,
+    );
+
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+    ]);
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+    ]);
+    expect(mockState.libnut.keyTap).not.toHaveBeenCalled();
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyTap).toHaveBeenCalledWith('s');
+    expect(mockState.libnut.keyToggle).toHaveBeenCalledTimes(2);
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+    ]);
+
+    await rs.advanceTimersByTimeAsync(50);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
+
+    await rs.advanceTimersByTimeAsync(50);
+    await shortcut;
+  });
+
+  it('keeps compact modifier taps when the delay is zero', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    await driver.keyTapWithModifierDelay('s', ['control'], 0);
+
+    expect(mockState.libnut.keyTap).toHaveBeenCalledWith('s', ['control']);
+    expect(mockState.libnut.keyToggle).not.toHaveBeenCalled();
+  });
+
+  it('releases explicit shortcut modifiers when interrupted', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay('s', ['control'], 50);
+    driver.destroy();
+
+    await expect(shortcut).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['control', 'up'],
+    ]);
+  });
+
+  it('releases remaining modifiers when interrupted between releases', async () => {
+    rs.useFakeTimers();
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+
+    const shortcut = driver.keyTapWithModifierDelay(
+      's',
+      ['control', 'shift'],
+      50,
+    );
+    await rs.advanceTimersByTimeAsync(150);
+    expect(mockState.libnut.keyToggle).toHaveBeenLastCalledWith('shift', 'up');
+
+    driver.destroy();
+
+    await expect(shortcut).rejects.toThrow(/destroyed/);
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
+  });
+
+  it('reports modifier release failures and still releases remaining keys', async () => {
+    const { ComputerInputDriver } = await import('../../src/input-driver');
+    mockState.libnut.keyToggle.mockImplementation(
+      (key: string, state: 'up' | 'down') => {
+        if (key === 'shift' && state === 'up') {
+          throw new Error('native release failed');
+        }
+      },
+    );
+    const driver = new ComputerInputDriver({
+      getLibnut: () => mockState.libnut,
+      useAppleScript: () => false,
+      sendKeyViaAppleScript: rs.fn(),
+      runPhasedScroll: rs.fn(() => true),
+      debug: rs.fn(),
+    });
+    rs.spyOn(driver, 'delay').mockResolvedValue(undefined);
+
+    await expect(
+      driver.keyTapWithModifierDelay('s', ['control', 'shift'], 50),
+    ).rejects.toThrow('Failed to release modifier key "shift"');
+    expect(mockState.libnut.keyToggle.mock.calls).toEqual([
+      ['control', 'down'],
+      ['shift', 'down'],
+      ['shift', 'up'],
+      ['control', 'up'],
+    ]);
   });
 });
 

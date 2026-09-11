@@ -2885,6 +2885,8 @@ interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
   // 本机桌面选项
   displayId?: string;
   keyboardDriver?: 'applescript' | 'libnut';
+  keyboardModifierDelay?: number;
+  keyboardLayout?: 'en-US';
   headless?: boolean;
   xvfbResolution?: string;
 }
@@ -2909,6 +2911,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
 - `customActions`（可选）：添加额外的自定义动作，让 Agent 可以调用你定义的领域特定动作。
 - `keyboardDriver?: 'applescript' | 'libnut'`：macOS 的键盘事件后端。`'applescript'` 是兼容性更好的默认选项；目标应用支持时，也可以使用输入速度更快的 `'libnut'`。
+- `keyboardModifierDelay?: number`：本机 libnut 驱动的修饰键事件间隔，单位为毫秒。取值必须是有限的非负数。设置为大于 `0` 的值后，Midscene 会在修饰键状态变化和发送主键后等待。修饰键包括 `Control`、`Shift`、`Alt` 和 `Command`。因此，该选项既适用于组合键，也适用于逐键输入时大写字母中隐含的 `Shift`。设置 `keyboardLayout: 'en-US'` 后，该选项也适用于 en-US 布局的 Shift 标点。默认值为 `0`。直接使用 RDP 或 macOS AppleScript 驱动时，该选项无效。详见[通过桌面客户端转发键盘输入](../faq#keyboard-input-through-desktop-clients)。
+- `keyboardLayout?: 'en-US'`：逐键输入时，为本机 libnut 驱动启用 Shift 标点的基础键映射。拉丁大写字母不依赖该配置。其他布局保持后端原有输入行为。直接使用 RDP 或 macOS AppleScript 驱动时，该选项无效。
 - `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
 - `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
 

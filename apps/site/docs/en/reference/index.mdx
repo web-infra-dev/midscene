@@ -2929,6 +2929,8 @@ interface LocalComputerAgentOpt extends BaseComputerAgentOpt {
   // Local desktop options
   displayId?: string;
   keyboardDriver?: 'applescript' | 'libnut';
+  keyboardModifierDelay?: number;
+  keyboardLayout?: 'en-US';
   headless?: boolean;
   xvfbResolution?: string;
 }
@@ -2953,6 +2955,8 @@ interface RDPComputerAgentOpt extends BaseComputerAgentOpt {
 - `displayId?: string` — Display to control. Use `ComputerDevice.listDisplays()` to list the available displays. Default: the primary display.
 - `customActions?: DeviceAction<any>[]` — Add additional custom actions so the Agent can call your domain-specific actions.
 - `keyboardDriver?: 'applescript' | 'libnut'` — On macOS, keyboard event backend. Use `'applescript'` for the default, more compatible behavior or `'libnut'` for faster input when the target application supports it. Default: `'applescript'`.
+- `keyboardModifierDelay?: number` — Finite non-negative delay in milliseconds after each modifier transition and the primary key for the local libnut keyboard driver. It applies to shortcuts and to the implicit `Shift` used by uppercase letters during sequential text input. With `keyboardLayout: 'en-US'`, it also applies to shifted en-US punctuation. Default: `0`. This option has no effect on direct RDP input or the macOS AppleScript driver. See [Forward keyboard input through desktop clients](../faq#keyboard-input-through-desktop-clients).
+- `keyboardLayout?: 'en-US'` — Enables layout-dependent base-key mapping for shifted punctuation during sequential local libnut input. Uppercase Latin letters do not require it. Other layouts keep the backend's existing input behavior. This option has no effect on direct RDP input or the macOS AppleScript driver.
 - `headless?: boolean` — On Linux, set this to `true` to start a virtual display with [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml). This enables desktop automation on headless servers and in CI environments. You can also set the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable. Default: `false`.
 - `xvfbResolution?: string` — Resolution of the Xvfb virtual display. Default: `'1920x1080x24'`.
 
