@@ -57,7 +57,10 @@ npx nx test @midscene/android-local
 import { RishTransport, LocalAndroidDevice } from '@midscene/android-local';
 
 const transport = new RishTransport({ rishPath: process.env.MIDSCENE_RISH_PATH });
-const device = new LocalAndroidDevice(transport);
+
+// create() 会先探测能力；未 connect 的设备调用 actionSpace() 会直接报错，
+// 避免注册底层并不支持的动作。
+const device = await LocalAndroidDevice.create(transport, { displayId: 0 });
 const png = await transport.screenshot(); // Buffer，不落盘
 ```
 
