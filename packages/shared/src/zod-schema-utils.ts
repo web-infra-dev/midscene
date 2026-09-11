@@ -1,5 +1,13 @@
 import type { z } from 'zod';
 
+export type ZodValueKind =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'array'
+  | 'object'
+  | 'unknown';
+
 /**
  * Recursively unwrap optional, nullable, default, and effects wrapper types
  * to get the actual inner Zod type
@@ -29,6 +37,68 @@ export function unwrapZodField(field: unknown): unknown {
   }
 
   return f;
+}
+
+function getLiteralValueKind(value: unknown): ZodValueKind {
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'unknown';
+}
+
+function getNativeEnumValueKinds(
+  values: Record<string, unknown> | undefined,
+): Set<ZodValueKind> {
+  const enumValues = Object.entries(values ?? {})
+    .filter(([key]) => Number.isNaN(Number(key)))
+    .map(([, value]) => value);
+  return new Set(enumValues.map(getLiteralValueKind));
+}
+
+/**
+ * Return every top-level value kind accepted by a Zod field. Unlike
+ * `getZodTypeName`, this normalizes enums, literals, and unions so consumers
+ * can make type-directed decisions without parsing its display label.
+ */
+export function getZodValueKinds(field: unknown): Set<ZodValueKind> {
+  const actualField = unwrapZodField(field) as {
+    _def?: {
+      typeName?: string;
+      options?: unknown[];
+      value?: unknown;
+      values?: Record<string, unknown>;
+    };
+  };
+  const definition = actualField._def;
+
+  switch (definition?.typeName) {
+    case 'ZodString':
+    case 'ZodEnum':
+      return new Set(['string']);
+    case 'ZodNumber':
+      return new Set(['number']);
+    case 'ZodBoolean':
+      return new Set(['boolean']);
+    case 'ZodArray':
+    case 'ZodTuple':
+      return new Set(['array']);
+    case 'ZodObject':
+    case 'ZodRecord':
+    case 'ZodDiscriminatedUnion':
+      return new Set(['object']);
+    case 'ZodLiteral':
+      return new Set([getLiteralValueKind(definition.value)]);
+    case 'ZodNativeEnum':
+      return getNativeEnumValueKinds(definition.values);
+    case 'ZodUnion':
+      return new Set(
+        (definition.options ?? []).flatMap((option) => [
+          ...getZodValueKinds(option),
+        ]),
+      );
+    default:
+      return new Set(['unknown']);
+  }
 }
 
 /**

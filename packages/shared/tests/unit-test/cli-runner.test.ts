@@ -211,13 +211,16 @@ describe('parseCliArgs', () => {
     });
   });
 
-  it('preserves numeric-looking string fields without running schema effects', () => {
+  it('preserves numeric-looking values for string-compatible fields', () => {
     const refinement = rs.fn(() => true);
     const def = {
       name: 'connect',
       description: 'connect',
       schema: {
         deviceId: z.string().refine(refinement),
+        mode: z.enum(['123', 'safe']),
+        literal: z.literal('007'),
+        stringOrNumber: z.union([z.string(), z.number()]),
       },
       cli: {
         options: {
@@ -229,10 +232,59 @@ describe('parseCliArgs', () => {
       handler: rs.fn(),
     };
 
-    expect(parseCliArgs(['--device-id', '0009007199254740993'], def)).toEqual({
+    expect(
+      parseCliArgs(
+        [
+          '--device-id',
+          '0009007199254740993',
+          '--mode=123',
+          '--literal',
+          '007',
+          '--string-or-number',
+          '42',
+        ],
+        def,
+      ),
+    ).toEqual({
       'device-id': '0009007199254740993',
+      mode: '123',
+      literal: '007',
+      'string-or-number': '42',
     });
     expect(refinement).not.toHaveBeenCalled();
+  });
+
+  it('decodes values according to non-string schema fields', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: {
+        timeout: z.number(),
+        enabled: z.boolean(),
+        attempts: z.literal(3),
+        payload: z.union([z.string(), z.object({ prompt: z.string() })]),
+      },
+      handler: rs.fn(),
+    };
+
+    expect(
+      parseCliArgs(
+        [
+          '--timeout=-2.5',
+          '--enabled=false',
+          '--attempts',
+          '3',
+          '--payload',
+          '{"prompt":"go"}',
+        ],
+        def,
+      ),
+    ).toEqual({
+      timeout: -2.5,
+      enabled: false,
+      attempts: 3,
+      payload: { prompt: 'go' },
+    });
   });
 
   it('accumulates repeated flags into an array', () => {
