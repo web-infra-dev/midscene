@@ -51,5 +51,70 @@ describe('YAML resource cleanup', () => {
     }));
 
     await expect(player.run()).rejects.toBe(cleanupError);
+    expect(player.status).toBe('error');
+    expect(player.executionResult?.document.status).toBe('success');
+    expect(player.executionRecord).toMatchObject({
+      status: 'failed',
+      cleanupErrors: [cleanupError],
+    });
+  });
+
+  test('records setup failure even when the kernel cannot start', async () => {
+    const failure = new Error('setup failed');
+    const player = new ScriptPlayer({ tasks: [] }, async () => {
+      throw failure;
+    });
+    await player.run();
+    expect(player.errorInSetup).toBe(failure);
+    expect(player.executionRecord).toMatchObject({
+      status: 'failed',
+      setupError: failure,
+    });
+    expect(player.executionRecord?.execution).toBeUndefined();
+  });
+
+  test('cleans up an acquired Agent if discovering its actions fails', async () => {
+    const failure = new Error('actions unavailable');
+    const cleanup = rs.fn();
+    const player = new ScriptPlayer({ tasks: [] }, async () => ({
+      agent: {
+        getActionSpace: async () => {
+          throw failure;
+        },
+      } as any,
+      freeFn: [{ name: 'agent', fn: cleanup }],
+    }));
+    await player.run();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(player.executionRecord).toMatchObject({
+      status: 'failed',
+      setupError: failure,
+    });
+  });
+
+  test('retains both setup and cleanup errors', async () => {
+    const setupError = new Error('actions unavailable');
+    const cleanupError = new Error('cleanup failed');
+    const player = new ScriptPlayer({ tasks: [] }, async () => ({
+      agent: {
+        getActionSpace: async () => {
+          throw setupError;
+        },
+      } as any,
+      freeFn: [
+        {
+          name: 'agent',
+          fn: async () => {
+            throw cleanupError;
+          },
+        },
+      ],
+    }));
+    await expect(player.run()).rejects.toBe(cleanupError);
+    expect(player.executionRecord).toMatchObject({
+      status: 'failed',
+      setupError,
+      cleanupErrors: [cleanupError],
+    });
   });
 });

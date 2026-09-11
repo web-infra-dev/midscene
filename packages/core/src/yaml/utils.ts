@@ -117,6 +117,28 @@ export function resolveWebTarget(
   };
 }
 
+/** Legacy output settings apply to every host, including native Test setup.
+ * Target-local values keep their original priority; config supplies defaults.
+ */
+export function resolveYamlOutputConfig(
+  script: Omit<MidsceneYamlScript, 'tasks'>,
+): {
+  output?: string;
+  unstableLogContent?: boolean | string;
+} {
+  const target =
+    resolveWebTarget(script)?.target ??
+    script.android ??
+    script.ios ??
+    script.harmony ??
+    script.computer;
+  return {
+    output: target?.output ?? script.config?.output,
+    unstableLogContent:
+      target?.unstableLogContent ?? script.config?.unstableLogContent,
+  };
+}
+
 function interpolateEnvVarRefs(
   value: string,
   keepUnresolvedRefs = false,
