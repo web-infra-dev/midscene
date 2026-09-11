@@ -11,6 +11,7 @@ function makeDriver(scrollMouse = rs.fn()) {
     mouseToggle: rs.fn(),
     scrollMouse,
     keyTap: rs.fn(),
+    keyToggle: rs.fn(),
     typeString: rs.fn(),
   };
   const driver = new ComputerInputDriver({
