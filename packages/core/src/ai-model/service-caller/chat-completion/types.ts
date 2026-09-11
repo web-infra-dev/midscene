@@ -6,7 +6,6 @@ import type { OpenAIRequestContext } from '../openai-request-context';
 
 export type ChatCompletionCallOptions = {
   completion: OpenAI.Chat.Completions;
-  modelName: string;
   openAIRequestContext: OpenAIRequestContext;
   modelRuntime: ModelRuntime;
   messages: ChatCompletionMessageParam[];

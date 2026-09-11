@@ -19,7 +19,6 @@ import { resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionStream = async ({
   completion,
-  modelName,
   openAIRequestContext,
   modelRuntime,
   messages,
@@ -34,6 +33,7 @@ export const callChatCompletionStream = async ({
     'onChunk is required when stream is true',
   );
   const { adapter } = modelRuntime;
+  const { modelName } = modelRuntime.config;
   let accumulated = '';
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;

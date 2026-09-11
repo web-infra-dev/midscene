@@ -91,7 +91,6 @@ export const chat = async ({
       responseModelName,
     } = await callChatCompletion({
       completion,
-      modelName,
       openAIRequestContext,
       modelRuntime,
       messages: messagesWithImageDetail,

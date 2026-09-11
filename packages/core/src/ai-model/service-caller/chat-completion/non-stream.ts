@@ -21,7 +21,6 @@ import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionNonStreaming = async ({
   completion,
-  modelName,
   openAIRequestContext,
   modelRuntime,
   messages,
@@ -30,6 +29,7 @@ export const callChatCompletionNonStreaming = async ({
   abortSignal,
 }: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
+  const { modelName } = modelConfig;
   const warnCall = getDebug('ai:call', { console: true });
   let content: string | undefined;
   let reasoningContent = '';
