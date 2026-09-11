@@ -44,10 +44,20 @@ export interface ResolvedTestOptions {
 
 export interface TestOutputDefinition {
   reportDir?: string;
+  report?: {
+    enabled?: boolean;
+    fileName?: string;
+    overwrite?: boolean;
+  };
 }
 
 export interface ResolvedTestOutputDefinition {
   reportDir: string;
+  report: {
+    enabled: boolean;
+    fileName?: string;
+    overwrite: boolean;
+  };
 }
 
 const projectIdFromIndex = (index: number): string => `project-${index}`;
@@ -550,13 +560,42 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(candidate, ['reportDir'], 'output');
+  rejectUnknownKeys(candidate, ['reportDir', 'report'], 'output');
+  if (candidate.report !== undefined && !isRecord(candidate.report))
+    throw new TypeError('Midscene config output.report must be an object.');
+  const report = (candidate.report ?? {}) as Record<string, unknown>;
+  rejectUnknownKeys(
+    report,
+    ['enabled', 'fileName', 'overwrite'],
+    'output.report',
+  );
+  if (report.enabled !== undefined && typeof report.enabled !== 'boolean')
+    throw new TypeError(
+      'Midscene config output.report.enabled must be boolean.',
+    );
+  if (report.overwrite !== undefined && typeof report.overwrite !== 'boolean')
+    throw new TypeError(
+      'Midscene config output.report.overwrite must be boolean.',
+    );
   return Object.freeze({
     reportDir: validateOutputPath(
       candidate.reportDir,
       './midscene_run/report',
       'output.reportDir',
     ),
+    report: Object.freeze({
+      enabled: (report.enabled as boolean | undefined) ?? true,
+      ...(report.fileName === undefined
+        ? {}
+        : {
+            fileName: validateOutputPath(
+              report.fileName,
+              '',
+              'output.report.fileName',
+            ),
+          }),
+      overwrite: (report.overwrite as boolean | undefined) ?? true,
+    }),
   });
 };
 

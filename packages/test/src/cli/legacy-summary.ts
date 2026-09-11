@@ -1,13 +1,12 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
 } from '@midscene/core';
 import {
   WorkflowExecutionFailure,
-  type WorkflowExecutionRecord,
   WorkflowPublicationError,
   serializeWorkflowValue,
 } from '@midscene/core/internal/test-runner';
@@ -16,13 +15,12 @@ import {
   getMidsceneRunSubDir,
 } from '@midscene/shared/common';
 import { buildLegacySummaryData } from '../runtime/legacy-summary-format';
-import type { TestProjectRunResult } from './types';
+import type { TestProjectCaseRunResult, TestProjectRunResult } from './types';
 
 export interface LegacySummaryArtifact {
-  runId: string;
+  documentRunId: string;
   outputPath?: string;
   reportPath?: string;
-  executionRecordPath?: string;
 }
 
 export interface LegacySummaryOccurrence {
@@ -37,62 +35,54 @@ const messageOf = (error: unknown): string =>
     ? String(error.message)
     : String(error);
 
+const caseErrors = (outcome: TestProjectCaseRunResult): unknown[] =>
+  (outcome.attempts ?? (outcome.run ? [outcome.run] : [])).flatMap((run) => [
+    ...run.beforeEach.flatMap((step) => (step.error ? [step.error] : [])),
+    ...run.steps.flatMap((step) => (step.error ? [step.error] : [])),
+    ...run.afterEach.flatMap((step) => (step.error ? [step.error] : [])),
+    ...(run.executionErrors ?? []),
+    ...(run.teardownErrors ?? []),
+  ]);
+
 function legacyAttempt(
-  record: WorkflowExecutionRecord,
-  artifacts: LegacySummaryArtifact | undefined,
-  recordPath: string,
+  document: TestProjectRunResult['documents'][number],
+  outcomes: readonly TestProjectCaseRunResult[],
+  artifact: LegacySummaryArtifact | undefined,
 ): MidsceneYamlConfigAttempt {
-  const failures =
-    record.execution?.cases.filter((item) => item.status === 'failed') ?? [];
-  const stoppedOnFailure = failures.some(
-    (outcome) =>
-      record.document.cases.find((item) => item.caseIndex === outcome.caseIndex)
-        ?.definition.onFailure === 'stop-document',
-  );
+  const failedCases = outcomes.filter((item) => item.status === 'failed');
   const infrastructureErrors = [
-    ...(record.reportError === undefined ? [] : [record.reportError]),
-    ...record.cleanupErrors,
+    ...(document.hostErrors ?? []).map((item) => item.error),
+    ...(document.executionErrors ?? []),
+    ...(document.teardownErrors ?? []),
+    ...outcomes.flatMap((outcome) =>
+      (outcome.attempts ?? []).flatMap((attempt) => [
+        ...(attempt.executionErrors ?? []),
+        ...(attempt.teardownErrors ?? []),
+      ]),
+    ),
   ];
-  const failed =
-    record.setupError !== undefined ||
-    record.executionError !== undefined ||
-    infrastructureErrors.length > 0 ||
-    !!record.publicationErrors?.length ||
-    !!record.observerErrors?.length ||
-    stoppedOnFailure ||
-    (record.execution?.document.status === 'failed' && failures.length === 0);
+  const stoppedOnFailure = failedCases.some(
+    (outcome) => outcome.onFailure === 'stop-document',
+  );
   const resultType =
-    record.status === 'success'
+    document.status === 'success' && failedCases.length === 0
       ? 'success'
-      : !failed && failures.length > 0
+      : !stoppedOnFailure &&
+          failedCases.length > 0 &&
+          infrastructureErrors.length === 0
         ? 'partialFailed'
         : 'failed';
-  const actionErrors = failures.flatMap((outcome) => {
-    const run = outcome.run;
-    if (!run) return [];
-    return [...run.beforeEach, ...run.steps, ...run.afterEach].flatMap(
-      (step) => (step.error ? [step.error] : []),
-    );
-  });
-  const errors = [
-    ...(record.setupError === undefined ? [] : [record.setupError]),
-    ...(record.executionError === undefined ? [] : [record.executionError]),
-    ...actionErrors,
-    ...infrastructureErrors,
-    ...(record.publicationErrors ?? []),
-    ...(record.observerErrors ?? []),
-  ];
-  const executionRecordPath = artifacts?.executionRecordPath ?? recordPath;
+  const errors = [...failedCases.flatMap(caseErrors), ...infrastructureErrors];
   return {
-    attempt: record.attemptIndex + 1,
+    attempt: (document.attemptIndex ?? 0) + 1,
     success: resultType === 'success',
     resultType,
     output:
-      artifacts?.outputPath && existsSync(artifacts.outputPath)
-        ? artifacts.outputPath
+      artifact?.outputPath && existsSync(artifact.outputPath)
+        ? artifact.outputPath
         : undefined,
-    report: artifacts?.reportPath ?? record.reportPaths.at(-1),
-    duration: record.durationMs,
+    report: artifact?.reportPath ?? document.reportPaths?.at(-1),
+    duration: document.durationMs,
     ...(resultType === 'success'
       ? {}
       : {
@@ -100,20 +90,11 @@ function legacyAttempt(
             ? [...new Set(errors.map(messageOf))].join('; ')
             : 'Execution failed',
         }),
-    ...(existsSync(executionRecordPath)
-      ? { executionRecordPath }
-      : { executionRecordFallback: record }),
-    ...(record.publicationErrors?.length
-      ? { publicationErrors: record.publicationErrors }
-      : {}),
-    ...(record.observerErrors?.length
-      ? { observerErrors: record.observerErrors }
-      : {}),
     ...(infrastructureErrors.length ? { infrastructureErrors } : {}),
   };
 }
 
-/** Legacy result projection only: execution and retry ownership remain in Test. */
+/** Project the old summary shape from standard document and case results. */
 export function buildLegacyYamlResults(
   result: TestProjectRunResult,
   occurrences: readonly LegacySummaryOccurrence[],
@@ -127,12 +108,11 @@ export function buildLegacyYamlResults(
       throw new Error(
         `Missing Test execution project: ${occurrence.projectId}`,
       );
-    const records = (project.executionRecords ?? []).filter(
-      (record) =>
-        !occurrence.documentId ||
-        record.document.documentId === occurrence.documentId,
+    const documents = project.documents.filter(
+      (document) =>
+        !occurrence.documentId || document.documentId === occurrence.documentId,
     );
-    if (records.length === 0) {
+    if (documents.length === 0) {
       const errors = project.collectionErrors.map((item) => item.error);
       return {
         file: occurrence.file,
@@ -146,18 +126,20 @@ export function buildLegacyYamlResults(
       };
     }
     const artifacts = new Map(
-      occurrence.artifacts?.map((artifact) => [artifact.runId, artifact]),
+      occurrence.artifacts?.map((artifact) => [
+        artifact.documentRunId,
+        artifact,
+      ]),
     );
-    const attempts = records.map((record) =>
+    const attempts = documents.map((document) =>
       legacyAttempt(
-        record,
-        artifacts.get(record.runId),
-        join(
-          dirname(result.summaryPath),
-          project.projectId,
-          'execution-records',
-          `${record.runId}.json`,
+        document,
+        project.cases.filter(
+          (item) =>
+            item.documentId === document.documentId &&
+            item.documentRunId === document.documentRunId,
         ),
+        artifacts.get(document.documentRunId),
       ),
     );
     if (result.reportPath)

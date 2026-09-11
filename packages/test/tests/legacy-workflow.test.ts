@@ -12,9 +12,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { MidsceneYamlScript } from '@midscene/core';
 import type * as CoreRuntime from '@midscene/core';
-import type * as YamlRuntime from '@midscene/core/yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { collectLegacyWorkflow } from '../src/cli/legacy-workflow';
+import {
+  adaptLegacyExecutionPlan,
+  adaptLegacyWorkflow,
+} from '../src/cli/legacy-adapter';
+import { collectLegacyWorkflow } from '../src/cli/legacy-collector';
 import { loadTestProject } from '../src/cli/test-project';
 import * as projectLoader from '../src/cli/test-project';
 import { runTestProject } from '../src/cli/test-project-runner';
@@ -28,14 +31,13 @@ import {
 const require = createRequire(import.meta.url);
 const { Agent, ReportGenerator } =
   require('@midscene/core') as typeof CoreRuntime;
-const { ScriptPlayer } = require('@midscene/core/yaml') as typeof YamlRuntime;
 
 const host = vi.hoisted(() => ({
-  createYamlPlayer: vi.fn(),
+  createYamlAgent: vi.fn(),
   loadDotenvConfig: vi.fn(),
 }));
 vi.mock('../src/runtime/create-yaml-player', () => ({
-  createYamlPlayer: host.createYamlPlayer,
+  createYamlAgent: host.createYamlAgent,
 }));
 vi.mock('../src/runtime/dotenv-loader', () => ({
   loadDotenvConfig: host.loadDotenvConfig,
@@ -45,11 +47,12 @@ let calls: string[];
 let failOnce: boolean;
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'legacy-workflow-'));
+  vi.stubEnv('MIDSCENE_RUN_DIR', join(root, 'midscene_run'));
   calls = [];
   failOnce = false;
   host.loadDotenvConfig.mockReset();
-  host.createYamlPlayer.mockReset();
-  host.createYamlPlayer.mockImplementation(
+  host.createYamlAgent.mockReset();
+  host.createYamlAgent.mockImplementation(
     async (file: string, script: MidsceneYamlScript) => {
       const reportPath = join(
         root,
@@ -83,21 +86,10 @@ beforeEach(() => {
         }
         return { value: code };
       });
-      const player = new ScriptPlayer(
-        script,
-        async () => ({
-          agent,
-          freeFn: [{ name: 'agent', fn: () => agent.destroy() }],
-        }),
-        undefined,
-        file,
-      );
-      player.output = join(
-        root,
-        script.web?.output ?? script.config?.output ?? 'old-output.json',
-      );
-      player.reportFile = reportPath;
-      return player;
+      return {
+        agent,
+        freeFn: [{ name: 'agent', fn: () => agent.destroy() }],
+      };
     },
   );
 });
@@ -124,6 +116,79 @@ const deferred = () => {
 };
 
 describe('zero-config legacy format routing', () => {
+  it('maps old batch scheduling fields to one standard Execution Project', () => {
+    const setup = join(root, 'setup.yaml');
+    const first = join(root, 'nested', 'first.yaml');
+    const adapted = adaptLegacyExecutionPlan(
+      {
+        ...defaultLegacyConfig,
+        files: [first, first],
+        setup,
+        concurrent: 3,
+        retry: 2,
+        summary: join(root, 'summary.json'),
+        bail: 1,
+      },
+      root,
+    );
+
+    expect(adapted).toEqual({
+      bail: 1,
+      project: {
+        name: 'legacy',
+        files: {
+          include: ['nested/first.yaml', 'nested/first.yaml'],
+          order: 'listed',
+        },
+        retry: 2,
+        retryScope: 'document',
+        fileConcurrency: 3,
+        setupFile: 'setup.yaml',
+      },
+    });
+  });
+
+  it('adapts parsed tasks/flow into public document, case, and Node input without I/O', () => {
+    const workflow = adaptLegacyWorkflow(
+      {
+        projectId: 'project-7',
+        projectName: 'legacy',
+        sourcePath: 'old.yaml',
+        absolutePath: '/unused/old.yaml',
+        invocationIndex: 2,
+      },
+      {
+        tasks: [
+          {
+            name: 'old case',
+            flow: [{ javascript: 'return 42', name: 'answer' }],
+          },
+        ],
+      },
+    );
+
+    expect(workflow.document).toMatchObject({
+      projectId: 'project-7',
+      sourcePath: 'old.yaml',
+      cases: [
+        {
+          projectId: 'project-7',
+          caseIndex: 0,
+          definition: {
+            name: 'old case',
+            steps: [
+              {
+                node: 'javascript',
+                input: { script: 'return 42' },
+                meta: { captureResult: true, resultName: 'answer' },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
   it('passes explicit setup resources to the shared legacy host', async () => {
     write('old.yaml', oldYaml);
     write(
@@ -136,7 +201,7 @@ describe('zero-config legacy format routing', () => {
     );
     const result = await runTestProject({ projectRoot: root });
     expect(result.status).toBe('success');
-    expect(host.createYamlPlayer).toHaveBeenCalledWith(
+    expect(host.createYamlAgent).toHaveBeenCalledWith(
       join(root, 'old.yaml'),
       expect.any(Object),
       { headed: true },
@@ -154,7 +219,7 @@ describe('zero-config legacy format routing', () => {
     });
     const result = await runTestProject({ projectRoot: file, cwd: root });
     expect(host.loadDotenvConfig).toHaveBeenCalledWith({ cwd: root });
-    expect(host.createYamlPlayer).toHaveBeenCalledWith(
+    expect(host.createYamlAgent).toHaveBeenCalledWith(
       file,
       expect.objectContaining({ web: { url: 'https://example.com' } }),
       { headed: false, keepWindow: false },
@@ -172,7 +237,7 @@ describe('zero-config legacy format routing', () => {
     const result = await runTestProject({ projectRoot: root });
     expect(result.status).toBe('success');
     expect(host.loadDotenvConfig).not.toHaveBeenCalled();
-    expect(host.createYamlPlayer).not.toHaveBeenCalled();
+    expect(host.createYamlAgent).not.toHaveBeenCalled();
   });
 
   it('runs a single unchanged YAML file without a test config or Node registration', async () => {
@@ -185,14 +250,12 @@ describe('zero-config legacy format routing', () => {
     expect(result.status).toBe('success');
     expect(result.summary).toMatchObject({ total: 2, passed: 2, failed: 0 });
     expect(calls).toEqual(['first', 'second']);
-    expect(host.createYamlPlayer).toHaveBeenCalledWith(
+    expect(host.createYamlAgent).toHaveBeenCalledWith(
       file,
       expect.objectContaining({ web: { url: 'https://example.com' } }),
       { headed: false, keepWindow: false },
     );
-    expect(
-      JSON.parse(readFileSync(join(root, 'old-output.json'), 'utf8')).answer,
-    ).toEqual({ value: 'first' });
+    expect(result.documents[0].outputs?.answer).toEqual({ value: 'first' });
     expect(readFileSync(result.reportPath!, 'utf8')).toContain(
       'midscene_test_run_dump',
     );
@@ -209,14 +272,14 @@ describe('zero-config legacy format routing', () => {
     const result = await runTestProject({ projectRoot: root });
     expect(result.summary).toMatchObject({ total: 3, passed: 3 });
     expect(result.documents).toHaveLength(2);
-    expect(host.createYamlPlayer).toHaveBeenCalledTimes(1);
+    expect(host.createYamlAgent).toHaveBeenCalledTimes(1);
   });
 
   it('retries the whole legacy file, preserves each attempt and summarizes the final one', async () => {
     write('old.yaml', oldYaml);
     write(
       'midscene.config.ts',
-      `export default { nodes: [], projects: [{ name: 'retry', retry: 1 }] };`,
+      `export default { nodes: [], projects: [{ name: 'retry', retry: 1, retryScope: 'document' }] };`,
     );
     failOnce = true;
     const result = await runTestProject({ projectRoot: root });
@@ -242,15 +305,7 @@ describe('zero-config legacy format routing', () => {
     );
     expect(new Set(sources).size).toBe(2);
     for (const source of sources) expect(existsSync(source)).toBe(true);
-    expect(
-      readdirSync(
-        join(
-          dirname(result.summaryPath),
-          result.projects[0].projectId,
-          'execution-records',
-        ),
-      ),
-    ).toHaveLength(2);
+    expect(result.documents).toHaveLength(2);
   });
 
   it('rejects ambiguous mixed syntax before creating any Agent', async () => {
@@ -258,7 +313,7 @@ describe('zero-config legacy format routing', () => {
     const result = await runTestProject({ projectRoot: root });
     expect(result.status).toBe('failed');
     expect(result.collectionErrors[0].error.message).toContain('cannot mix');
-    expect(host.createYamlPlayer).not.toHaveBeenCalled();
+    expect(host.createYamlAgent).not.toHaveBeenCalled();
   });
 });
 
@@ -275,7 +330,7 @@ describe('legacy batch plans on the Test scheduler', () => {
   });
   const script = (name: string) => `web:
   url: https://example.com
-  output: ${name}.json
+  output: ${join(root, `${name}.json`)}
 agent:
   reportFileName: ${name}.html
 tasks:
@@ -308,9 +363,7 @@ tasks:
       'b.yaml',
     ]);
     expect(
-      summary.results.every(
-        (item: any) => item.executionRecord && item.attempts.length === 1,
-      ),
+      summary.results.every((item: any) => item.attempts.length === 1),
     ).toBe(true);
   });
 
@@ -340,21 +393,16 @@ tasks:
     const gate = deferred();
     let active = 0;
     let maximum = 0;
-    const create = host.createYamlPlayer.getMockImplementation()!;
-    host.createYamlPlayer.mockImplementation(async (...args) => {
-      const player = await create(...args);
-      const run = player.run.bind(player);
-      player.run = async (...runArgs: any[]) => {
-        active++;
-        maximum = Math.max(maximum, active);
-        try {
-          await gate.promise;
-          return await run(...runArgs);
-        } finally {
-          active--;
-        }
-      };
-      return player;
+    const create = host.createYamlAgent.getMockImplementation()!;
+    host.createYamlAgent.mockImplementation(async (...args) => {
+      active++;
+      maximum = Math.max(maximum, active);
+      try {
+        await gate.promise;
+        return await create(...args);
+      } finally {
+        active--;
+      }
     });
     const pending = runTestProject({
       cwd: root,
@@ -369,100 +417,17 @@ tasks:
     expect(maximum).toBe(2);
   });
 
-  it.each([true, false])(
-    'keeps in-flight file retries after batch bail only in legacy mode (%s)',
-    async (legacyBatch) => {
-      const a = write('a.yaml', script('second'));
-      const b = write(
-        'b.yaml',
-        script('broken').replace('javascript: broken', 'unknownAction: true'),
-      );
-      const c = write('c.yaml', script('later'));
-      const configPath = legacyBatch
-        ? undefined
-        : write(
-            'midscene.config.ts',
-            `export default {
-              nodes: [], test: {maxConcurrency: 2, bail: 1},
-              projects: ${JSON.stringify(
-                ['a', 'b', 'c'].map((name) => ({
-                  name,
-                  retry: 1,
-                  files: { include: [`${name}.yaml`] },
-                })),
-              )}
-            };`,
-          );
-      const slowStarted = deferred();
-      const fastFinished = deferred();
-      const definition = await loadTestProject(configPath);
-      vi.spyOn(projectLoader, 'loadTestProject').mockResolvedValue({
-        ...definition,
-        projects: definition.projects.map((project) => ({
-          ...project,
-          setup: {
-            name: 'coordinate-file-completion',
-            async setup(ctx: any) {
-              if (!legacyBatch && ctx.project.projectId === 'project-1') {
-                await slowStarted.promise;
-                // Teardown follows the final failure count update, so A sees
-                // bail deterministically without depending on a timer race.
-                ctx.onTeardown(() => fastFinished.resolve());
-              }
-            },
-            async onDocumentResult(document: any) {
-              if (
-                legacyBatch &&
-                document.sourcePath === 'b.yaml' &&
-                document.attemptIndex === 1
-              ) {
-                // Let the scheduler consume B's final result before releasing A.
-                setTimeout(() => fastFinished.resolve(), 0);
-              }
-            },
-          },
-        })),
-      });
-      const create = host.createYamlPlayer.getMockImplementation()!;
-      host.createYamlPlayer.mockImplementation(async (...args) => {
-        if (args[0] === b) await slowStarted.promise;
-        const player = await create(...args);
-        if (args[0] === a) {
-          const run = player.run.bind(player);
-          player.run = async (...runArgs: any[]) => {
-            slowStarted.resolve();
-            await fastFinished.promise;
-            return run(...runArgs);
-          };
-        }
-        return player;
-      });
-      failOnce = true;
-      const result = await runTestProject({
-        cwd: root,
-        ...(legacyBatch
-          ? { legacyPlan: plan([a, b, c], { concurrent: 2, retry: 1 }) }
-          : { configPath }),
-      });
-      expect(result.status).toBe('failed');
-      const records = result.projects.flatMap(
-        (project) => project.executionRecords ?? [],
-      );
-      expect(
-        records.filter((record) => record.sourcePath === 'a.yaml'),
-      ).toHaveLength(legacyBatch ? 2 : 1);
-      expect(
-        records.filter((record) => record.sourcePath === 'b.yaml'),
-      ).toHaveLength(2);
-      expect(
-        records.filter((record) => record.sourcePath === 'c.yaml'),
-      ).toHaveLength(0);
-      expect(
-        result.cases.find((item) => item.sourcePath === 'c.yaml'),
-      ).toMatchObject({ status: 'not-run', notRunReason: 'bail' });
-      expect(calls).toEqual(legacyBatch ? ['second', 'second'] : ['second']);
-    },
-  );
+  it('uses the common document retry boundary for legacy files', async () => {
+    const file = write('retry.yaml', script('second'));
+    failOnce = true;
+    const result = await runTestProject({
+      cwd: root,
+      legacyPlan: plan([file], { retry: 1 }),
+    });
+    expect(result.status).toBe('success');
+    expect(calls).toEqual(['second', 'second']);
+    expect(result.documents.map((item) => item.attemptIndex)).toEqual([0, 1]);
+  });
 
   it('retries setup in a fresh shared browser context before starting main files', async () => {
     const setup = write('setup.yaml', script('second'));
@@ -487,14 +452,14 @@ tasks:
     expect(reset).toHaveBeenCalledTimes(1);
     expect(close).toHaveBeenCalledTimes(1);
     expect(
-      host.createYamlPlayer.mock.calls.map(
-        (call) => call[2]?.browserContext.id,
-      ),
+      host.createYamlAgent.mock.calls.map((call) => call[2]?.browserContext.id),
     ).toEqual([0, 1, 1]);
     expect(result.projects).toHaveLength(1);
-    expect(
-      result.projects[0].executionRecords?.map((record) => record.sourcePath),
-    ).toEqual(['setup.yaml', 'setup.yaml', 'main.yaml']);
+    expect(result.documents.map((document) => document.sourcePath)).toEqual([
+      'setup.yaml',
+      'setup.yaml',
+      'main.yaml',
+    ]);
   });
 
   it('stops main files after failed setup even with continueOnError enabled', async () => {
@@ -538,11 +503,11 @@ tasks:
       }),
     });
     expect(calls).toEqual(['second', 'third']);
-    expect(host.createYamlPlayer.mock.calls[0][1].web).toMatchObject({
+    expect(host.createYamlAgent.mock.calls[0][1].web).toMatchObject({
       url: 'https://global.example',
       viewportWidth: 800,
     });
-    expect(host.createYamlPlayer.mock.calls[0][2]).toMatchObject({
+    expect(host.createYamlAgent.mock.calls[0][2]).toMatchObject({
       headed: true,
     });
     const summary = JSON.parse(
@@ -565,6 +530,6 @@ tasks:
     });
     expect(result.exitCode).toBe(1);
     expect(result.summary.collectionErrors).toBe(1);
-    expect(host.createYamlPlayer).not.toHaveBeenCalled();
+    expect(host.createYamlAgent).not.toHaveBeenCalled();
   });
 });

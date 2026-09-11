@@ -2,7 +2,7 @@ import { executionRecordsToReportInput } from '@/test-runner';
 import { ScriptPlayer } from '@/yaml/player';
 import { expect, test } from '@rstest/core';
 
-test('projects complete legacy results while keeping numeric naming outside the kernel', async () => {
+test('keeps named and unnamed legacy results in the common execution result', async () => {
   const player = new ScriptPlayer(
     {
       tasks: [
@@ -34,5 +34,8 @@ test('projects complete legacy results while keeping numeric naming outside the 
     answer: 7,
   });
   expect(record.outputs).toEqual(player.result);
-  expect(record.execution?.document.outputs).toEqual({ answer: 7 });
+  expect(record.execution?.document.outputs).toEqual({
+    0: 42,
+    answer: 7,
+  });
 });

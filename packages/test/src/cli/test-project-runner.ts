@@ -4,13 +4,11 @@ import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import {
   WorkflowExecutionFailure,
-  type WorkflowExecutionRecord,
   WorkflowPublicationError,
   asExecutionError,
   runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
 import { TestRunReportAssembler } from '@midscene/core/report';
-import { resolveWebTarget } from '@midscene/core/yaml';
 import { getDebug } from '@midscene/shared/logger';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
@@ -31,9 +29,9 @@ import {
 } from '../report/test-run-report';
 import { loadDotenvConfig } from '../runtime/dotenv-loader';
 import {
-  type YamlBatchBrowserSession,
   assertBrowserContextUsage,
   createYamlBatchBrowser,
+  createYamlSharedBrowserProjectSetup,
 } from '../runtime/legacy-browser';
 import {
   type LegacyTestRunPlan,
@@ -46,14 +44,17 @@ import {
   executeDocumentInvocation,
 } from './document-invocation';
 import {
+  type LegacyWorkflow,
+  adaptLegacyExecutionPlan,
+} from './legacy-adapter';
+import {
+  collectLegacyWorkflow,
+  isLegacyWorkflowFile,
+} from './legacy-collector';
+import {
   buildLegacyYamlResults,
   writeLegacyTestSummary,
 } from './legacy-summary';
-import {
-  type LegacyWorkflow,
-  collectLegacyWorkflow,
-  isLegacyWorkflowFile,
-} from './legacy-workflow';
 import {
   writeCollectionError,
   writeTestProjectRunResult,
@@ -115,14 +116,11 @@ interface PreparedExecutionProject<TProjectContext = unknown> {
   filteredCaseCount: number;
 }
 
-export const discoverTestFiles = (
+const discoverResolvedTestFiles = (
   projectRoot: string,
-  selection: TestFileSelection = DEFAULT_TEST_FILE_SELECTION,
+  selection: TestFileSelection,
 ): string[] => {
   const root = resolve(projectRoot);
-  const normalized = validateTestFileSelection(selection);
-  if (!normalized) throw new TypeError('Test file selection is required.');
-
   const match = (patterns: readonly string[]) =>
     globSync(patterns, {
       absolute: true,
@@ -131,22 +129,38 @@ export const discoverTestFiles = (
       dot: true,
       expandDirectories: false,
       followSymbolicLinks: false,
-      ignore: [...ALWAYS_IGNORED_PATTERNS, ...(normalized.exclude ?? [])],
+      ignore: [...ALWAYS_IGNORED_PATTERNS, ...(selection.exclude ?? [])],
       onlyFiles: true,
     }).filter((file) => /\.ya?ml$/i.test(file));
-  if (normalized.order === 'listed')
-    return normalized.include.flatMap((pattern) =>
-      match([pattern])
+  if (selection.order === 'listed')
+    return selection.include.flatMap((pattern) => {
+      const absolute = resolve(root, pattern);
+      if (
+        existsSync(absolute) &&
+        statSync(absolute).isFile() &&
+        /\.ya?ml$/i.test(absolute)
+      )
+        return [absolute];
+      return match([pattern])
         .map((file) => resolve(file))
-        .sort(),
-    );
-  const files = match(normalized.include);
+        .sort();
+    });
+  const files = match(selection.include);
 
   return [...new Set(files.map((file) => resolve(file)))].sort((a, b) => {
     const relativeA = toPosix(relative(root, a));
     const relativeB = toPosix(relative(root, b));
     return relativeA < relativeB ? -1 : relativeA > relativeB ? 1 : 0;
   });
+};
+
+export const discoverTestFiles = (
+  projectRoot: string,
+  selection: TestFileSelection = DEFAULT_TEST_FILE_SELECTION,
+): string[] => {
+  const normalized = validateTestFileSelection(selection);
+  if (!normalized) throw new TypeError('Test file selection is required.');
+  return discoverResolvedTestFiles(projectRoot, normalized);
 };
 
 export const discoverTestConfig = (projectRoot: string): string | undefined => {
@@ -326,12 +340,12 @@ const prepareProject = async <TProjectContext>(
   legacyPlan?: LegacyTestRunPlan,
 ): Promise<PreparedExecutionProject<TProjectContext>> => {
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
-  const setupFile =
-    legacyPlan?.setup ??
-    (project.setupFile ? resolve(projectRoot, project.setupFile) : undefined);
-  const mainFiles =
-    legacyPlan?.files ??
-    (singleFile ? [singleFile] : discoverTestFiles(projectRoot, fileSelection));
+  const setupFile = project.setupFile
+    ? resolve(projectRoot, project.setupFile)
+    : undefined;
+  const mainFiles = singleFile
+    ? [singleFile]
+    : discoverResolvedTestFiles(projectRoot, fileSelection);
   const files = [
     ...(setupFile ? [setupFile] : []),
     ...mainFiles.filter((file) => file !== setupFile),
@@ -507,27 +521,33 @@ export async function runTestProject(
     }
   }
   if (legacyPlan) loadDotenvConfig({ cwd, ...legacyPlan });
+  const projectRoot = cliProjectRoot ?? cwd;
   let definition = await loadTestProject<unknown>(configPath);
-  if (legacyPlan)
+  if (legacyPlan) {
+    const adapted = adaptLegacyExecutionPlan(legacyPlan, projectRoot);
     definition = {
       ...definition,
       test: {
         ...definition.test,
         maxConcurrency: 1,
-        bail: legacyPlan.bail,
+        bail: adapted.bail,
       },
       projects: [
         {
           ...definition.projects[0],
-          name: 'legacy',
-          retry: legacyPlan.retry,
-          retryScope: 'document',
-          fileConcurrency: legacyPlan.concurrent,
-          ...(legacyPlan.setup ? { setupFile: legacyPlan.setup } : {}),
+          ...adapted.project,
+          ...(legacyPlan.shareBrowserContext
+            ? {
+                setup: createYamlSharedBrowserProjectSetup(
+                  legacyPlan,
+                  createYamlBatchBrowser,
+                ),
+              }
+            : {}),
         },
       ],
     };
-  const projectRoot = cliProjectRoot ?? cwd;
+  }
 
   const resultDir = options.resultDir
     ? resolve(cwd, options.resultDir)
@@ -609,24 +629,7 @@ export async function runTestProject(
   process.on('SIGTERM', sigterm);
 
   let failedCaseCount = 0;
-  let batchBrowser: YamlBatchBrowserSession | undefined;
   const legacyArtifacts = new Map<string, LegacyInvocationArtifacts>();
-  const batchRuntime =
-    totalErrors === 0 &&
-    legacyPlan?.shareBrowserContext &&
-    batchInputs.some((input) => !!resolveWebTarget(input.executionConfig))
-      ? createProjectRuntime({
-          project: { ...definition.projects[0], name: 'legacy batch browser' },
-          signal: rootController.signal,
-          setup: {
-            name: 'legacy batch browser',
-            async setup(ctx) {
-              batchBrowser = await createYamlBatchBrowser(legacyPlan!);
-              ctx.onTeardown(() => batchBrowser!.close());
-            },
-          },
-        })
-      : undefined;
   const bailReached = () =>
     definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
   let hasInfrastructureError = false;
@@ -711,7 +714,6 @@ export async function runTestProject(
       );
     const cases: TestProjectCaseRunResult[] = [];
     const documents: WorkflowDocumentRunResult[] = [];
-    const executionRecords: WorkflowExecutionRecord[] = [];
     let lifecycle: TestExecutionProjectRunResult['lifecycle'];
     let projectFatal = false;
 
@@ -728,7 +730,7 @@ export async function runTestProject(
       const runtime = createProjectRuntime({
         project,
         setup: project.setup,
-        signal: batchRuntime?.signal ?? rootController.signal,
+        signal: rootController.signal,
       });
       let hasProjectExecutionError = false;
       try {
@@ -777,7 +779,6 @@ export async function runTestProject(
               signal: runtime.signal,
               rootSignal: rootController.signal,
               legacyPlan,
-              batchBrowser,
               getLegacyPlayerOptions: definition.legacy
                 ? () => definition.legacy!.getOptions(runtime.context)
                 : undefined,
@@ -799,7 +800,6 @@ export async function runTestProject(
               sinks: {
                 cases,
                 documents,
-                executionRecords,
                 legacyArtifacts,
               },
             });
@@ -889,27 +889,13 @@ export async function runTestProject(
         documentOrder(a.documentId) - documentOrder(b.documentId) ||
         (a.attemptIndex ?? 0) - (b.attemptIndex ?? 0),
     );
-    executionRecords.sort(
-      (a, b) =>
-        documentOrder(a.document.documentId) -
-          documentOrder(b.document.documentId) ||
-        a.attemptIndex - b.attemptIndex,
-    );
-    return {
-      ...buildProjectResult(prepared, cases, documents, lifecycle),
-      ...(executionRecords.length ? { executionRecords } : {}),
-    };
+    return buildProjectResult(prepared, cases, documents, lifecycle);
   };
 
   const projectResults: Array<TestExecutionProjectRunResult | undefined> =
     new Array(preparedProjects.length);
 
   try {
-    if (batchRuntime) {
-      const lifecycle = await batchRuntime.start();
-      if (!batchRuntime.canRun && lifecycle.setupError)
-        recordInfrastructureError(lifecycle.setupError);
-    }
     await runConcurrentJobs(
       preparedProjects,
       {
@@ -931,13 +917,6 @@ export async function runTestProject(
   } catch (error) {
     recordInfrastructureError(error);
   } finally {
-    if (batchRuntime) {
-      const lifecycle = await batchRuntime.finish(
-        hasInfrastructureError ? 'failed' : 'success',
-      );
-      for (const error of lifecycle.teardownErrors ?? [])
-        recordInfrastructureError(error);
-    }
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }
@@ -1029,10 +1008,12 @@ export async function runTestProject(
     );
   const writeReport = () =>
     publish('write-report', reportDir, async () => {
+      if (!definition.output.report.enabled) return;
       const reportPath = await new TestRunReportAssembler().assembleAsync({
         outputDir: reportDir,
-        reportFileName: `test-run-${runId}`,
-        overwrite: true,
+        reportFileName:
+          definition.output.report.fileName ?? `test-run-${runId}`,
+        overwrite: definition.output.report.overwrite,
         sources: collectTestRunReportSources(completedResult),
         buildRunnerDump: (index) => {
           const dump = buildTestRunReportDump(completedResult, index);

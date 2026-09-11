@@ -16,9 +16,7 @@ import * as puppeteerAgentLauncherActual from '@midscene/web/puppeteer-agent-lau
 import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 // Mock dependencies
-rs.mock('node:fs', () => ({
-  readFileSync: rs.fn(),
-}));
+rs.mock('node:fs', { spy: true });
 
 rs.mock('http-server', () => ({
   createServer: rs.fn(),
@@ -111,6 +109,8 @@ describe('create-yaml-player', () => {
           setTimeout(() => callback(), 0);
         }),
         server: {
+          once: rs.fn(),
+          removeListener: rs.fn(),
           address: rs.fn().mockReturnValue({
             address: '127.0.0.1',
             port: 8080,
@@ -247,6 +247,8 @@ describe('create-yaml-player', () => {
       const mockServer = {
         listen: rs.fn((_port, _host, callback) => callback()),
         server: {
+          once: rs.fn(),
+          removeListener: rs.fn(),
           address: rs.fn().mockReturnValue({
             address: '127.0.0.1',
             port: 8080,
@@ -1039,6 +1041,7 @@ describe('create-yaml-player', () => {
       await setupFnCallback?.();
 
       expect(warnSpy).toHaveBeenCalledWith(
+        '[Midscene]',
         expect.stringContaining('downloadPath'),
       );
       warnSpy.mockRestore();

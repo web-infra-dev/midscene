@@ -1018,13 +1018,31 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
+    const actionSpace = this.fullActionSpace ?? [];
+    const action =
+      actionSpace.find((item) => item.name === type) ??
+      actionSpace.find((item) => item.interfaceAlias === type);
+    const actionType = action?.name ?? type;
+    const shortcutField =
+      actionType === 'Launch' || actionType === 'Terminate'
+        ? 'uri'
+        : actionType === 'RunAdbShell' || actionType === 'RunHdcShell'
+          ? 'command'
+          : undefined;
+    const actionParam =
+      shortcutField && typeof opt === 'string' ? { [shortcutField]: opt } : opt;
+    const clonedActionParam =
+      actionParam &&
+      typeof actionParam === 'object' &&
+      !Array.isArray(actionParam)
+        ? { ...actionParam }
+        : actionParam || {};
+
     const actionPlan: PlanningAction<T> = {
-      type: type as any,
+      type: actionType as any,
       // Planning resolves locate/from/to in place. Keep the caller's inputs
       // intact so YAML and Test execution facts retain the original prompts.
-      param: (opt && typeof opt === 'object' && !Array.isArray(opt)
-        ? { ...opt }
-        : opt || {}) as any,
+      param: clonedActionParam as any,
       thought: '',
     };
     debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
@@ -1034,8 +1052,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     ) as PlanningAction[];
 
     const title = taskTitleStr(
-      type as any,
-      locateParamStr((opt as any)?.locate || {}),
+      actionType as any,
+      locateParamStr((actionParam as any)?.locate || {}),
     );
 
     // assume all operation in action space is related to locating
