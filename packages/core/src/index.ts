@@ -133,6 +133,15 @@ export {
   type MergeReportFilesOptions,
   type MergeReportFilesResult,
 } from './report-cli';
+export {
+  REPORT_EXECUTION_STATUSES,
+  getReportMetadata,
+  readReportMetadata,
+  type GetReportMetadataOptions,
+  type ReadReportMetadataOptions,
+  type ReportExecutionStatus,
+  type ReportMetadata,
+} from './report-metadata';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
