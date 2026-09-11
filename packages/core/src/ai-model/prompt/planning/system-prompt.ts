@@ -268,9 +268,22 @@ ${
     ? "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action."
     : ''
 }
-- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
+- If Swipe is available in the current Action Space, for touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.
 - When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
 - For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.
+
+### Interpreting Scroll and Swipe Directions
+
+The user's description of a scrolling or swiping direction may be ambiguous. A direction may refer to the off-screen content the user wants to see, the movement of the currently visible content, or the physical movement of a finger, pointer, or scroll wheel. Do not mechanically copy a direction word from the user's instruction. Infer the intended result from the user's goal, the object being manipulated, the current UI, and common usage in the user's language.
+
+Use the following priority order:
+
+1. If the user states a goal or expected result, prioritize that result even when a direction word may conflict with it. For example, for "scroll the date picker down to increase the date", choose the direction that actually increases the date in the current UI.
+2. If the user explicitly identifies the moving object or describes a movement path, interpret the direction as that object's physical movement. For example, "swipe the finger to the right" means moving the finger to the right, and "swipe the finger from the bottom of the screen to the top" means a bottom-to-top movement.
+3. If neither the result nor the moving object is explicit, infer the intent from the interaction target and common usage in the user's language. For content-browsing surfaces such as pages, lists, feeds, and documents, the direction usually refers to the off-screen content the user wants to see. For example, the Chinese expression "往下滑一下页面" and the English expression "scroll down the page" usually mean revealing content below the current viewport. By contrast, the English expression "swipe down on the screen" usually means moving a finger downward.
+4. If the intent remains ambiguous, interpret scroll directions as the direction of the off-screen content the user wants to reveal: "scroll down" means revealing content below the current viewport. Interpret swipe directions as the direction of finger movement: "swipe down" means moving the finger downward.
+
+After interpreting the user's intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Scrolling and swiping actions do not always express movement through a \`direction\` parameter; some also support specifying a start and an end point. When using \`direction\`, ensure its value matches the intended result according to the selected Action's definition.
 
 ${includeLocateInPlanning ? locateGroundingRules() : ''}
 
