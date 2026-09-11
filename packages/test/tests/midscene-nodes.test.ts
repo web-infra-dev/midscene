@@ -85,14 +85,7 @@ describe('createMidsceneNodes', () => {
     );
 
     expect(registry.names()).toEqual([
-      'aiAct',
-      'aiTap',
-      'aiAssert',
-      'aiBoolean',
-      'aiNumber',
-      'aiString',
-      'aiAsk',
-      'recordToReport',
+      ...commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
       'wait',
     ]);
     expect(getAgent).toHaveBeenCalledTimes(3);
@@ -105,6 +98,7 @@ describe('createMidsceneNodes', () => {
       'Paid state is missing',
       {
         domIncluded: false,
+        keepRawResponse: true,
         abortSignal: expect.any(AbortSignal),
       },
     );
@@ -313,10 +307,10 @@ describe('createMidsceneNodes', () => {
       expect.objectContaining({ deepLocate: true }),
     );
     expect(result.steps.slice(1, 5).map((step) => step.output?.data)).toEqual([
-      { value: true },
-      { value: 42 },
-      { value: 'ready' },
-      { value: 'details' },
+      true,
+      42,
+      'ready',
+      'details',
     ]);
     expect(aiAssert).toHaveBeenCalledWith(
       'The result is visible',
@@ -404,6 +398,7 @@ describe('createMidsceneNodes', () => {
 
     expect(result.steps[0].output?.data).toEqual({ stdout });
     expect(aiAssert).toHaveBeenCalledWith('The command completed.', undefined, {
+      keepRawResponse: true,
       abortSignal: expect.any(AbortSignal),
     });
   });

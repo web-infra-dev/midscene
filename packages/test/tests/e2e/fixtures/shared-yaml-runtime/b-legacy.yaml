@@ -1,0 +1,4 @@
+tasks:
+  - name: legacy on the shared Agent
+    flow:
+      - javascript: legacy:middle

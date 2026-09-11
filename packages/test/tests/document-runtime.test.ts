@@ -397,3 +397,124 @@ describe('workflow document runtime', () => {
     expect(result.document.status).toBe('success');
   });
 });
+
+describe('document resource ownership', () => {
+  it('releases each attempt context after hooks and Node teardown without changing Project context', async () => {
+    const events: string[] = [];
+    const shared = { id: 0 };
+    let next = 0;
+    const document = collectedDocument({
+      beforeAll: [step('use')],
+      afterAll: [step('use')],
+    });
+    document.cases[0].definition.steps = [step('use')];
+    const node = defineNode<unknown, unknown, { id: number }>({
+      name: 'use',
+      execute(ctx) {
+        events.push(`${ctx.scope}:${ctx.context.id}`);
+        ctx.onTeardown(() => {
+          events.push(`node-release:${ctx.context.id}`);
+        });
+      },
+    });
+    const documentSetup = {
+      name: 'session',
+      setup(
+        ctx: import('../src/cli/test-project').DocumentSetupContext<{
+          id: number;
+        }>,
+      ) {
+        expect(ctx.projectContext).toBe(shared);
+        expect(ctx.document.attemptIndex).toBe(next);
+        const context = { id: ++next };
+        events.push(`acquire:${context.id}`);
+        ctx.onTeardown(() => {
+          events.push(`release:${context.id}`);
+        });
+        return context;
+      },
+    };
+    for (const documentAttemptIndex of [0, 1]) {
+      await runWorkflowDocument(document, {
+        resolveNode: () => node,
+        documentSetup,
+        projectContext: shared,
+        documentAttemptIndex,
+      });
+    }
+    expect(shared.id).toBe(0);
+    expect(events).toEqual(
+      [1, 2].flatMap((id) => [
+        `acquire:${id}`,
+        `document:${id}`,
+        `case:${id}`,
+        `node-release:${id}`,
+        `document:${id}`,
+        `node-release:${id}`,
+        `node-release:${id}`,
+        `release:${id}`,
+      ]),
+    );
+  });
+
+  it('releases partially acquired resources when setup fails, skips authored hooks, and rejects late registrations', async () => {
+    const release = vi.fn();
+    const execute = vi.fn();
+    let register: ((callback: () => void) => void) | undefined;
+    const document = collectedDocument({ afterAll: [step('use')] });
+    const result = await runWorkflowDocument(document, {
+      resolveNode: () => ({ name: 'use', execute }),
+      documentSetup: {
+        name: 'partial',
+        setup(ctx) {
+          register = ctx.onTeardown;
+          ctx.onTeardown(release);
+          throw new Error('connection failed');
+        },
+      },
+    });
+    expect(result.document).toMatchObject({
+      status: 'failed',
+      hostErrors: [{ phase: 'setup', error: { message: 'connection failed' } }],
+    });
+    expect(result.cases[0]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'document-start-failed',
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(() => register!(() => {})).toThrow('registered during setup');
+  });
+
+  it('preserves successful actions and releases every resource when owner cleanup fails', async () => {
+    const events: string[] = [];
+    const document = collectedDocument();
+    document.cases[0].definition.steps = [step('use')];
+    const failure = await runWorkflowDocument(document, {
+      resolveNode: () => ({
+        name: 'use',
+        execute() {
+          events.push('action');
+        },
+      }),
+      documentSetup: {
+        name: 'owner',
+        setup(ctx) {
+          ctx.onTeardown(() => {
+            events.push('first');
+          });
+          ctx.onTeardown(() => {
+            events.push('second');
+            throw new Error('close failed');
+          });
+        },
+      },
+    }).catch((error) => error);
+    expect(events).toEqual(['action', 'second', 'first']);
+    expect(failure.result.cases[0].status).toBe('success');
+    expect(failure.result.document).toMatchObject({
+      status: 'failed',
+      hostErrors: [{ phase: 'cleanup', error: { message: 'close failed' } }],
+    });
+  });
+});

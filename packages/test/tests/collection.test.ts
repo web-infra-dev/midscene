@@ -41,6 +41,43 @@ describe('workflow document collection', () => {
     execute() {},
   });
 
+  it('collects Case failure policy and generic named result selection', () => {
+    const source = createDocument(`
+cases:
+  - name: extract
+    onFailure: stop-document
+    steps:
+      - test.record:
+          prompt: price
+          $:
+            resultName: price
+            resultPath: /value
+`);
+    const result = collectWorkflowDocument(source, { resolveNode: () => node });
+    expect(result.cases[0].definition).toMatchObject({
+      onFailure: 'stop-document',
+      steps: [
+        {
+          input: { prompt: 'price' },
+          meta: {
+            continueOnError: false,
+            resultName: 'price',
+            resultPath: '/value',
+          },
+        },
+      ],
+    });
+  });
+
+  it('rejects unknown Case failure policies before executing steps', () => {
+    const source = createDocument(
+      'cases:\n  - name: invalid\n    onFailure: stop-all\n    steps:\n      - test.record: value',
+    );
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('onFailure must be continue or stop-document');
+  });
+
   it('collects and normalizes every case with stable positional ids', () => {
     const source = createDocument(`
 cases:
