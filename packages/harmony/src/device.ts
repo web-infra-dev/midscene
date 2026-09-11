@@ -123,7 +123,7 @@ export class HarmonyDevice implements AbstractInterface {
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
@@ -143,7 +143,10 @@ export class HarmonyDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -172,7 +175,7 @@ export class HarmonyDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,

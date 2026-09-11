@@ -84,6 +84,7 @@ import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
+import { ActionReadiness, isActionReadinessError } from './action-readiness';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
@@ -244,6 +245,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   destroyed = false;
 
+  private readonly actionReadiness?: ActionReadiness;
+
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -398,6 +401,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       opts || {},
     );
     assertReportGenerationOptions(this.opts);
+    if (this.opts.waitForActionReady !== undefined) {
+      this.actionReadiness = new ActionReadiness(this.opts.waitForActionReady);
+    }
 
     if (
       this.opts.aiContexts !== undefined &&
@@ -513,6 +519,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       waitAfterAction: this.opts.waitAfterAction,
+      actionReadiness: this.actionReadiness,
       useDeviceTime: this.opts.useDeviceTime,
       actionSpace: this.fullActionSpace,
       hooks: {
@@ -594,6 +601,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
+    this.actionReadiness?.assertCanUseAgent();
     // Some non-web flows, such as Android, need an Agent instance before they
     // can call device methods via ADB, so defer missing modelFamily errors
     // until UI context is actually requested.
@@ -653,6 +661,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * before your next action.
    */
   async startObserving(opt?: UIObserverOption): Promise<UIObserver> {
+    this.actionReadiness?.assertCanUseAgent();
     // A frozen context pins perception to a single snapshot; observing a
     // window of frames contradicts that. Fail fast instead of silently
     // producing an all-identical sequence.
@@ -904,6 +913,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params
+    abortSignal?: AbortSignal,
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
@@ -932,6 +942,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       plans,
       planningModel,
       defaultModel,
+      { abortSignal },
     );
     return output;
   }
@@ -1280,6 +1291,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     taskPrompt: TUserPrompt,
     opt?: AiActOptions,
   ): Promise<string | undefined> {
+    this.actionReadiness?.assertCanUseAgent();
     const internalOptions = opt as AiActInternalOptions | undefined;
     const internalReportDisplay = internalOptions?._internalReportDisplay;
     const taskPromptText =
@@ -1371,9 +1383,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
           );
 
           debug('matched cache, will call .runYaml to run the action');
-          await this.runYaml(yaml);
+          if (abortSignal) await this.runYaml(yaml, { abortSignal });
+          else await this.runYaml(yaml);
           return;
         } catch (error) {
+          if (abortSignal?.aborted || isActionReadinessError(error))
+            throw error;
           cachedYamlFailed = true;
           warn(
             `cached aiAct plan failed, will replan and disable the stale cache: ${
@@ -1590,16 +1605,30 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     return this.aiAct(...args);
   }
 
-  async runYaml(yamlScriptContent: string): Promise<{
+  async runYaml(
+    yamlScriptContent: string,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<{
     result: Record<string, any>;
   }> {
+    this.actionReadiness?.assertCanUseAgent();
     const script = parseYamlScript(yamlScriptContent, 'yaml');
-    const player = new ScriptPlayer(script, async () => {
-      return { agent: this, freeFn: [] };
-    });
+    const player = new ScriptPlayer(
+      script,
+      async () => {
+        return { agent: this, freeFn: [] };
+      },
+      undefined,
+      undefined,
+      options?.abortSignal,
+    );
     await player.run();
 
     if (player.status === 'error') {
+      const readinessFailure = player.taskStatusList.find((task) =>
+        isActionReadinessError(task.error),
+      );
+      if (readinessFailure) throw readinessFailure.error;
       const errors = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => {
@@ -1615,6 +1644,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   }
 
   async evaluateJavaScript(script: string) {
+    this.actionReadiness?.assertCanUseAgent();
     assert(
       this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
@@ -1701,6 +1731,7 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     this.destroyed = true;
+    await this.actionReadiness?.destroy();
 
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {

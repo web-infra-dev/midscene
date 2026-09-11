@@ -444,6 +444,7 @@ export async function puppeteerAgentForTarget(
       | 'replanningCycleLimit'
       | 'cache'
       | 'aiActionContext'
+      | 'waitForActionReady'
     >
   >,
   browser?: Browser,

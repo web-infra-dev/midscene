@@ -148,7 +148,7 @@ export class IOSDevice implements AbstractInterface {
       },
     },
     scroll: {
-      scroll: (param) => this.performActionScroll(param),
+      scroll: (param, opts) => this.performActionScroll(param, opts),
     },
   };
 
@@ -300,7 +300,10 @@ export class IOSDevice implements AbstractInterface {
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
-  private async performActionScroll(param: ActionScrollParam): Promise<void> {
+  private async performActionScroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void> {
     const element = param.locate;
     const startingPoint = element
       ? {
@@ -329,7 +332,7 @@ export class IOSDevice implements AbstractInterface {
       } else {
         throw new Error(`Unknown scroll direction: ${param.direction}`);
       }
-      await sleep(500);
+      if (!opts?.skipDefaultWait) await sleep(500);
     } else {
       throw new Error(
         `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
@@ -645,7 +648,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   private async typeText(
     text: string,
-    options?: IOSDeviceInputOpt,
+    options?: IOSDeviceInputOpt & { skipDefaultWait?: boolean },
     focusRestorePoint?: PointerPoint,
     resolvedInputOptions: ResolvedTextInputOptions = resolveTextInputOptions(
       options,
@@ -686,7 +689,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         await this.wdaBackend.typeText(text);
       }
 
-      await sleep(300); // Give more time for text to appear
+      // Optional settling is owned by a custom action waiter when configured.
+      if (!options?.skipDefaultWait) await sleep(300);
     } catch (error) {
       debugDevice(`Failed to type text with WDA: ${error}`);
       throw error;

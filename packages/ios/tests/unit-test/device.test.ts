@@ -1,4 +1,5 @@
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
+import * as CoreUtils from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
@@ -89,6 +90,55 @@ describe('IOSDevice', () => {
     rs.clearAllMocks();
     if (device) {
       await device.destroy();
+    }
+  });
+
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDown')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
+  it('skips post-input settling while preserving keyboard preparation', async () => {
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Input')!;
+      await action.call(
+        { value: 'account', mode: 'typeOnly', autoDismissKeyboard: false },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(mockWdaClient.typeText).toHaveBeenCalledWith('account');
+      expect(delay).toHaveBeenCalledWith(200);
+      expect(delay).not.toHaveBeenCalledWith(300);
+      await action.call(
+        { value: 'password', mode: 'typeOnly', autoDismissKeyboard: false },
+        mockExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(300);
+    } finally {
+      delay.mockRestore();
     }
   });
 
