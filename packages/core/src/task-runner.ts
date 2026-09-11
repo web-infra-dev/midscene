@@ -365,12 +365,9 @@ export class TaskRunner {
         // For Insight tasks (Query/Assert/WaitFor), always get fresh context
         // to ensure we have the latest UI state after any preceding actions
         const forceRefresh = task.type === 'Insight';
-        let uiContext: UIContext | undefined;
-        if (task.requiresUIContext !== false) {
-          setTimingFieldOnce(task.timing, 'getUiContextStart');
-          uiContext = await this.getUiContext({ forceRefresh });
-          setTimingFieldOnce(task.timing, 'getUiContextEnd');
-        }
+        setTimingFieldOnce(task.timing, 'getUiContextStart');
+        const uiContext = await this.getUiContext({ forceRefresh });
+        setTimingFieldOnce(task.timing, 'getUiContextEnd');
 
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
@@ -415,7 +412,7 @@ export class TaskRunner {
 
         const isLastTask = taskIndex === this.tasks.length - 1;
 
-        if (isLastTask && task.requiresUIContext !== false) {
+        if (isLastTask) {
           setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after-calling');

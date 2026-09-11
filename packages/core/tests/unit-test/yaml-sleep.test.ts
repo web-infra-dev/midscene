@@ -4,6 +4,19 @@ import { ScriptPlayer } from '@/yaml/player';
 import { parseYamlScript } from '@/yaml/utils';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
+function createMockInterface() {
+  return {
+    interfaceType: 'puppeteer',
+    actionSpace: () => [],
+    describe: () => 'sleep test page',
+    size: async () => ({ width: 1, height: 1 }),
+    screenshotBase64: rs.fn(
+      async () =>
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+    ),
+  };
+}
+
 describe('YAML sleep', () => {
   afterEach(() => {
     rs.useRealTimers();
@@ -11,12 +24,20 @@ describe('YAML sleep', () => {
 
   it('waits exactly the requested timer duration and emits the completed dump', async () => {
     const agent = new Agent(
+      createMockInterface() as unknown as AbstractInterface,
       {
-        interfaceType: 'mock',
-        actionSpace: () => [],
-      } as unknown as AbstractInterface,
-      { generateReport: false },
+        generateReport: false,
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test-model',
+          MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+          MIDSCENE_MODEL_API_KEY: 'test-key',
+        },
+      },
     );
+    // Keep image decoding outside the fake-clock test; YAML cases below
+    // exercise the real screenshot pipeline.
+    const uiContext = await agent.getUIContext();
+    rs.spyOn(agent, 'getUIContext').mockResolvedValue(uiContext);
     const listener = rs.fn();
     agent.onDumpUpdate = listener;
     rs.useFakeTimers();
@@ -46,11 +67,15 @@ describe('YAML sleep', () => {
     'records invalid SDK duration %s as a failed task',
     async (duration) => {
       const agent = new Agent(
+        createMockInterface() as unknown as AbstractInterface,
         {
-          interfaceType: 'mock',
-          actionSpace: () => [],
-        } as unknown as AbstractInterface,
-        { generateReport: false },
+          generateReport: false,
+          modelConfig: {
+            MIDSCENE_MODEL_NAME: 'test-model',
+            MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+            MIDSCENE_MODEL_API_KEY: 'test-key',
+          },
+        },
       );
       try {
         await expect(agent.sleep(duration)).rejects.toThrow(
@@ -72,20 +97,23 @@ describe('YAML sleep', () => {
   it.each(['20', '"20"'])(
     'records sleep: %s with its duration and execution timing',
     async (duration) => {
-      const screenshotBase64 = rs.fn(() => {
-        throw new Error('Sleep must not capture screenshots');
-      });
+      const mockInterface = createMockInterface();
       const beforeInvokeAction = rs.fn();
       const afterInvokeAction = rs.fn();
       const agent = new Agent(
         {
-          interfaceType: 'mock',
-          actionSpace: () => [],
-          screenshotBase64,
+          ...mockInterface,
           beforeInvokeAction,
           afterInvokeAction,
         } as unknown as AbstractInterface,
-        { generateReport: false },
+        {
+          generateReport: false,
+          modelConfig: {
+            MIDSCENE_MODEL_NAME: 'test-model',
+            MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+            MIDSCENE_MODEL_API_KEY: 'test-key',
+          },
+        },
       );
       const script = parseYamlScript(`
 tasks:
@@ -103,7 +131,7 @@ tasks:
 
         expect(player.taskStatusList[0].error).toBeUndefined();
         expect(player.status).toBe('done');
-        expect(screenshotBase64).not.toHaveBeenCalled();
+        expect(mockInterface.screenshotBase64).toHaveBeenCalledTimes(2);
         expect(beforeInvokeAction).not.toHaveBeenCalled();
         expect(afterInvokeAction).not.toHaveBeenCalled();
         const dump = JSON.parse(agent.dumpDataString());
@@ -115,6 +143,13 @@ tasks:
           param: { timeMs: 20 },
           status: 'finished',
         });
+        expect(task.uiContext.screenshot).toBeDefined();
+        expect(task.recorder).toEqual([
+          expect.objectContaining({
+            type: 'screenshot',
+            timing: 'after-calling',
+          }),
+        ]);
         expect(
           task.timing.callActionEnd - task.timing.callActionStart,
         ).toBeGreaterThanOrEqual(19);
