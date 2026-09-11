@@ -288,11 +288,12 @@ export function compileLegacyFlowItem(
     const siblingParams = Object.fromEntries(
       Object.entries(flow).filter(([item]) => item !== key),
     );
-    const params =
-      (value === '' || value === undefined) &&
-      Object.keys(siblingParams).length > 0
+    const hasSiblingParams = Object.keys(siblingParams).length > 0;
+    const params = hasSiblingParams
+      ? value === '' || value === undefined
         ? siblingParams
-        : value;
+        : { ...siblingParams, prompt: value }
+      : value;
     return step('action', { name: key, params }, true);
   }
   if (typeof value === 'string') {

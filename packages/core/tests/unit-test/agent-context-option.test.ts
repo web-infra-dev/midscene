@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { actionHoverParamSchema } from '@/device';
 import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -109,6 +110,65 @@ describe('Agent per-call context option', () => {
         type: 'CustomAction',
         param: { value: 7 },
       }),
+    ]);
+  });
+  it('normalizes deferred YAML locate aliases after the ActionSpace exists', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).fullActionSpace = [
+      {
+        name: 'Hover',
+        interfaceAlias: 'aiHover',
+        paramSchema: actionHoverParamSchema,
+      },
+    ];
+
+    await agent.callActionInActionSpace('aiHover', 'search field');
+    await agent.callActionInActionSpace('aiHover', {
+      prompt: 'menu item',
+      deepLocate: true,
+    });
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({
+        type: 'Hover',
+        param: {
+          locate: expect.objectContaining({
+            prompt: 'search field',
+            deepLocate: false,
+            cacheable: true,
+          }),
+        },
+      }),
+    ]);
+    expect(taskExecutor.runPlans.mock.calls[1][1]).toEqual([
+      expect.objectContaining({
+        type: 'Hover',
+        param: {
+          locate: expect.objectContaining({
+            prompt: 'menu item',
+            deepLocate: true,
+            cacheable: true,
+          }),
+        },
+      }),
+    ]);
+  });
+
+  it('keeps native action params that already satisfy the ActionSpace schema', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const params = { locate: { prompt: 'search field' } };
+    (agent as any).fullActionSpace = [
+      {
+        name: 'Hover',
+        interfaceAlias: 'aiHover',
+        paramSchema: actionHoverParamSchema,
+      },
+    ];
+
+    await agent.callActionInActionSpace('Hover', params);
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({ type: 'Hover', param: params }),
     ]);
   });
   it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {

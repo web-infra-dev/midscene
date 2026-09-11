@@ -57,6 +57,7 @@ const legacyRunAdbShellNodeDefinition: AgentTestRunnerNodeDefinition = {
       ? await androidAgent.runAdbShell(command, { timeout })
       : await androidAgent.callActionInActionSpace('RunAdbShell', {
           command,
+          timeout,
         });
     return value === undefined ? undefined : { data: value };
   },

@@ -6,6 +6,7 @@ import type { TUserPrompt } from '../ai-model/index';
 import { generateTestRunReportScriptTag } from '../dump/html-utils';
 import { ScreenshotItem } from '../screenshot-item';
 import Service from '../service/index';
+import { waitForResourceIdle } from '../test-runner/engine/resource-operations';
 import type { WorkflowExecutionRecord } from '../test-runner/execution-record';
 import { buildAgentTestRunReportDump } from '../test-runner/reporting/agent-report';
 import { executionRecordsToReportInput } from '../test-runner/reporting/execution-record';
@@ -94,6 +95,7 @@ import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
+import { normalizeActionSpaceCall } from './action-space-call';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
@@ -1018,19 +1020,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
-    const actionSpace = this.fullActionSpace ?? [];
-    const action =
-      actionSpace.find((item) => item.name === type) ??
-      actionSpace.find((item) => item.interfaceAlias === type);
-    const actionType = action?.name ?? type;
-    const shortcutField =
-      actionType === 'Launch' || actionType === 'Terminate'
-        ? 'uri'
-        : actionType === 'RunAdbShell' || actionType === 'RunHdcShell'
-          ? 'command'
-          : undefined;
-    const actionParam =
-      shortcutField && typeof opt === 'string' ? { [shortcutField]: opt } : opt;
+    const { actionType, actionParam } = normalizeActionSpaceCall(
+      type,
+      opt,
+      this.fullActionSpace ?? [],
+    );
     const clonedActionParam =
       actionParam &&
       typeof actionParam === 'object' &&
@@ -1849,6 +1843,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
 
     this.destroyed = true;
+
+    // A Runner cancellation can finish before a non-cooperative device call.
+    // Keep the public owner from disposing the interface until that call has
+    // actually settled.
+    await waitForResourceIdle(this);
 
     // Observers own observation frame files until explicitly disposed.
     for (const observer of this.ownedObservers) {
