@@ -63,12 +63,13 @@ export const chat = async ({
 
   const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
 
-  const { completion, modelName, openAIRequestContext } =
-    await createChatClient({
-      modelConfig,
-      executionId,
-      recordEvent,
-    });
+  const { completion, openAIRequestContext } = await createChatClient({
+    modelConfig,
+    executionId,
+    recordEvent,
+  });
+
+  const { modelName } = modelConfig;
 
   debugCall(
     `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,

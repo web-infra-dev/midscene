@@ -2,7 +2,6 @@ import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
-  type TModelFamily,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -121,20 +120,14 @@ export async function createChatClient({
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
-  modelName: string;
-  modelDescription: string;
-  modelFamily: TModelFamily | undefined;
   openAIRequestContext: OpenAIRequestContext;
 }> {
   const {
     socksProxy,
     httpProxy,
-    modelName,
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig,
-    modelDescription,
-    modelFamily,
     createOpenAIClient,
     timeout,
   } = modelConfig;
@@ -159,9 +152,6 @@ export async function createChatClient({
 
   return {
     completion: openai.chat.completions,
-    modelName,
-    modelDescription,
-    modelFamily,
     openAIRequestContext,
   };
 }
