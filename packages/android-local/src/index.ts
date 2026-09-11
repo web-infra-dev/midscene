@@ -40,6 +40,22 @@ export {
 } from './transport/rish';
 export type { RishTransportOptions, ShellFileIo } from './transport/rish';
 
+export {
+  AdbShellTransport,
+  DEFAULT_ADB_DISPLAY_CACHE_TTL_MS,
+  DEFAULT_ADB_MAX_CONCURRENT_COMMANDS,
+  DEFAULT_ADB_PATH,
+  DEFAULT_ADB_SCREENSHOT_TIMEOUT_MS,
+  DEFAULT_ADB_TIMEOUT_MS,
+} from './transport/adb-shell';
+export type { AdbShellTransportOptions } from './transport/adb-shell';
+
+export {
+  combinedOutputText,
+  isAsciiPrintable,
+  isImageBuffer,
+} from './transport/payload';
+
 export { Semaphore } from './transport/semaphore';
 
 export {

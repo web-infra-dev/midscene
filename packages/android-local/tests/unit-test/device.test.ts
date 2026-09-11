@@ -36,6 +36,9 @@ function deviceResponses(): FakeCommandResponse[] {
     { match: ['screencap'], stdout: '' },
     { match: ['mkdir -p'], stdout: '' },
     { match: ['rm -f'], stdout: '' },
+    { match: ['am start'], stdout: '' },
+    { match: ['am force-stop'], stdout: '' },
+    { match: ['monkey'], stdout: '' },
     { match: ['date +'], stdout: '2026-09-11T22:55:00\n' },
     { match: [], stdout: '' },
   ];
@@ -57,7 +60,11 @@ function createFixtureFileIo(image: Buffer = PNG_BYTES) {
 
 async function createDevice(
   responses: FakeCommandResponse[] = deviceResponses(),
-  options: { displayId?: number; customActions?: DeviceAction<any>[] } = {},
+  options: {
+    displayId?: number;
+    customActions?: DeviceAction<any>[];
+    appNameMapping?: Record<string, string>;
+  } = {},
 ) {
   const runner = new FakeCommandRunner(responses);
   const transport = new RishTransport({
@@ -70,6 +77,7 @@ async function createDevice(
   const device = await LocalAndroidDevice.create(transport, {
     displayId: options.displayId,
     customActions: options.customActions,
+    appNameMapping: options.appNameMapping,
   });
 
   return { device, runner, transport };
@@ -80,7 +88,7 @@ const noInputResponses = (): FakeCommandResponse[] => [
   { match: ['id -u'], stdout: '2000\n' },
   { match: ['command -v screencap'], stdout: '/system/bin/screencap\n' },
   { match: ['command -v input'], exitCode: 1 },
-  { match: ['command -v am'], stdout: '/system/bin/am\n' },
+  { match: ['command -v am'], exitCode: 1 },
   { match: ['dumpsys display'], stdout: dumpsysDisplay },
   { match: ['wm size'], stdout: wmSize },
   { match: ['wm density'], stdout: wmDensity },
@@ -325,6 +333,82 @@ describe('LocalAndroidDevice input primitives', () => {
         command.includes('input swipe 10 10 10 20 120'),
       ),
     ).toHaveLength(3);
+  });
+});
+
+describe('LocalAndroidDevice app lifecycle actions (phone parity)', () => {
+  test('exposes Launch and Terminate when the device manages apps', async () => {
+    const { device } = await createDevice();
+
+    const names = device.actionSpace().map((action) => action.name);
+
+    expect(names).toContain('Launch');
+    expect(names).toContain('Terminate');
+  });
+
+  test('launches a component, a URL and a launcher intent', async () => {
+    const { device, runner } = await createDevice();
+
+    await device.launch('com.android.settings/.Settings');
+    await device.launch('https://example.com');
+    await device.launch('com.example.app');
+
+    const commands = runner.commands.map(
+      (command) => command.split('-c ')[1] ?? command,
+    );
+    expect(
+      runner.commands.some((c) =>
+        c.includes("am start -W -n 'com.android.settings/.Settings'"),
+      ),
+    ).toBe(true);
+    expect(
+      runner.commands.some((c) =>
+        c.includes(
+          "am start -W -a android.intent.action.VIEW -d 'https://example.com'",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      runner.commands.some((c) => c.includes("monkey -p 'com.example.app'")),
+    ).toBe(true);
+    expect(commands.length).toBeGreaterThan(0);
+  });
+
+  test('resolves a friendly app name through the mapping', async () => {
+    const { device, runner } = await createDevice(deviceResponses(), {
+      appNameMapping: { 微信: 'com.tencent.mm', WeChat: 'com.tencent.mm' },
+    });
+
+    await device.launch('wechat');
+    await device.terminate('微信');
+
+    expect(
+      runner.commands.some((c) => c.includes("monkey -p 'com.tencent.mm'")),
+    ).toBe(true);
+    expect(
+      runner.commands.some((c) => c.includes("am force-stop 'com.tencent.mm'")),
+    ).toBe(true);
+  });
+
+  test('terminates by stripping an activity suffix', async () => {
+    const { device, runner } = await createDevice();
+
+    await device.terminate('com.example.app/.MainActivity');
+
+    expect(
+      runner.commands.some((c) =>
+        c.includes("am force-stop 'com.example.app'"),
+      ),
+    ).toBe(true);
+  });
+
+  test('omits the app actions when the device cannot manage apps', async () => {
+    const { device } = await createDevice(noInputResponses());
+
+    const names = device.actionSpace().map((action) => action.name);
+
+    expect(names).not.toContain('Launch');
+    expect(names).not.toContain('Terminate');
   });
 });
 

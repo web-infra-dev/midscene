@@ -100,7 +100,11 @@ export interface ShellResult {
 }
 
 export interface ActivityTarget {
-  packageName: string;
+  /**
+   * Package to target. Optional for a plain VIEW intent (`uri` only); required
+   * for a component start or a launcher start.
+   */
+  packageName?: string;
   /** Activity class, e.g. `.MainActivity`. */
   activity?: string;
   /** Deep link / VIEW intent data. Takes precedence over `activity`. */

@@ -2,12 +2,14 @@
 
 阶段划分与 Gate 沿用调研文档（`research-v0.1.md` §7），此处细化到**可执行任务、产出物与验收方式**，并补上本仓库特有的风险（见 §6）。
 
+> **平台优先级（2026-09 调整）**：**普通安卓手机优先**。Phase 0/1 的所有结论以手机为目标平台；车机/OEM 特权通道（OEM Privileged Transport、多 Display 车机矩阵）降级为 Phase 3 的条件式可选项。
+
 ## 1. 阶段总览
 
-| 阶段 | 目标 | Exit Gate | 节奏 |
-| --- | --- | --- | --- |
-| Phase 0 可行性 Spike | 证明 Android 本机能跑 Agent 核心 | G0 + G1 | 3–5 个工作日 |
-| Phase 1 Local Transport MVP | 形成可维护的本机设备适配层 | 核心 YAML 动作可运行，与 ADB 回归结果一致 | 1–2 周 |
+| 阶段 | 目标 | Exit Gate | 节奏 | 状态 |
+| --- | --- | --- | --- | --- |
+| Phase 0 可行性 Spike | 证明 Android 本机能跑 Agent 核心 | G0 + G1 | 3–5 个工作日 | ✅ 完成 |
+| Phase 1 Local Transport MVP（**手机优先**） | 形成可维护的本机设备适配层 | 核心 YAML 动作可运行，与 ADB 回归结果一致 | 1–2 周 | 🔄 进行中 |
 | Phase 2 Native Host | 从终端 POC 进入 APK 内运行 | APK 独立启动 Agent，无 Termux 依赖 | 2–4 周 |
 | Phase 3 产品化/车机化 | 可靠性、性能、安全 | 达到内部工具发布标准并确定权限模型 | 3–6 周 |
 
@@ -48,11 +50,11 @@
 
 | 编号 | 任务 | 验收 |
 | --- | --- | --- |
-| P1-1 | 契约冻结：`AndroidTransport` + 错误码表 + 能力模型 + `displayId` 一等参数；新增 `transport-contract.test.ts` | 任何后端实现跑同一份契约测试都通过 |
-| P1-2 | `LocalAndroidDevice` 完整动作空间（能力驱动裁剪）、`size()` 逻辑尺寸口径与 `AndroidDevice` 对齐、滚动边界数学 | 与 ADB 路径在相同任务上的坐标/尺寸行为一致 |
-| P1-3 | `AdbShellTransport`（对照与 CI 后端，复用现有 ADB 能力） | 在 `android-emulator.yml` 的模拟器上通过契约测试 |
+| P1-1 ✅ | 契约冻结 + `tests/unit-test/transport-contract.ts`（一份契约跑全部后端） | ✅ rish 与 adb 两个后端通过同一套 12 项契约测试 |
+| P1-2 🔄 | `Launch`/`Terminate` + `appNameMapping`（手机 YAML 平价）已完成；余：竖屏/旋转语义与截图坐标一致性需真机验证 | 与 ADB 路径在相同任务上的坐标/尺寸行为一致 |
+| P1-3 ✅ | `AdbShellTransport`（host/USB 后端，`exec-out` 直读截图，无临时文件） | ✅ 真机实测通过（截图 P50 1.14s / 输入 90ms，13 个动作）；CI 接入见 P1-6 |
 | P1-4 | 同一 YAML 任务双路径对照（ADB `AndroidDevice` vs rish `LocalAndroidDevice`） | 结果一致性对照报告 |
-| P1-5 | 性能基线：screenshot/action/AI 往返 | `packages/android-local/docs/baseline.md` |
+| P1-5 ✅ | 性能基线：screenshot/action/AI 往返（两后端对比 + 优化线索） | `packages/android-local/docs/baseline.md` |
 | P1-6 | CI 接入：`android-emulator.yml` 增加 android-local 单测与可选 Shizuku 冒烟 job | PR 可见结果 |
 | P1-7 | 收敛：`packages/android` 单向消费 android-local 的纯逻辑（display 解析、坐标/滚动数学） | 无反向依赖，`check:references` 通过 |
 

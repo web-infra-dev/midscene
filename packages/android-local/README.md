@@ -17,7 +17,7 @@ Midscene Core / Agent / YAML      (unchanged)
 Design baseline, roadmap and the Phase 0 playbook live in
 [`docs/`](./docs/README.md) (start with [`docs/roadmap.md`](./docs/roadmap.md)).
 
-## Status: Phase 0 device-verified
+## Status: Phase 0 complete, Phase 1 in progress (phone-first)
 
 Implemented and **verified on a real Android 12 device** (Termux Node v24.18.0
 → rish → shell uid 2000): transport contract, error codes, capability probing,
@@ -34,15 +34,28 @@ Three device-only findings are baked into the transport:
 3. A terminal runtime's `LD_LIBRARY_PATH` breaks `app_process` linking, so
    `LD_LIBRARY_PATH`/`LD_PRELOAD` are stripped by default.
 
+Phase 1 additions: `AdbShellTransport` (host/USB backend, binary-safe
+`exec-out` screenshots, no temp files), a shared transport **contract suite**
+that every backend must pass, `Launch`/`Terminate` app actions with
+`appNameMapping`, and a measured [`docs/baseline.md`](./docs/baseline.md).
+
 Not implemented yet: Shizuku UserService + AIDL, embedded Node runtime, Kotlin
-host app, UI tree extraction, multi-touch (pinch), non-ASCII text input, YAML/AI
-regression parity with the ADB path. See `docs/roadmap.md` for the full plan.
+host app, UI tree extraction, multi-touch (pinch), **non-ASCII text input**
+(the main gap for Chinese phone usage), YAML regression parity against the ADB
+path. See `docs/roadmap.md`.
 
 ## Usage
 
 ```ts
-import { LocalAndroidDevice, RishTransport } from '@midscene/android-local';
+import {
+  AdbShellTransport,
+  LocalAndroidDevice,
+  RishTransport,
+} from '@midscene/android-local';
 import { Agent } from '@midscene/core/agent';
+
+// Debug/regression backend: PC + phone over USB (no Shizuku needed).
+const usbTransport = new AdbShellTransport({ serial: 'emulator-5554' });
 
 const transport = new RishTransport({
   // Defaults to $MIDSCENE_RISH_PATH, then /data/local/tmp/rish

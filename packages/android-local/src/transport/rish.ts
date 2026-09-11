@@ -18,6 +18,7 @@ import {
   toAndroidTransportError,
 } from './errors';
 import { findDisplay, parseDisplays } from './parsers/display';
+import { combinedOutputText, isAsciiPrintable, isImageBuffer } from './payload';
 import { Semaphore } from './semaphore';
 import type {
   ActivityTarget,
@@ -53,9 +54,6 @@ export const DEFAULT_DISPLAY_CACHE_TTL_MS = 2_000;
 /** uid of adb shell (and of a Shizuku shell channel). */
 const SHELL_UID = 2000;
 const ROOT_UID = 0;
-
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
-const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
 
 /**
  * Variables stripped from the spawned rish process.
@@ -105,22 +103,6 @@ export interface ShellFileIo {
 const nodeFileIo: ShellFileIo = {
   read: (filePath) => fs.promises.readFile(filePath),
 };
-
-/**
- * Text form of a command result.
- *
- * rish is not reliable about stream placement: measured on Android 12 +
- * Shizuku 13.6.0, `id -u` arrived on stderr with an empty stdout, while large
- * outputs were split across both pipes. Small text commands therefore prefer
- * stdout and fall back to stderr.
- */
-function combinedOutputText(outcome: {
-  stdout: Buffer;
-  stderr: string;
-}): string {
-  const stdout = outcome.stdout.toString('utf8');
-  return stdout.trim() !== '' ? stdout : outcome.stderr;
-}
 
 export interface RishTransportOptions {
   /** Path of the `rish` script on the device. */
@@ -696,18 +678,18 @@ export class RishTransport implements AndroidTransport {
     }
 
     const { packageName, activity, uri } = target;
-    assertNonEmptyString(packageName, 'packageName', this.backend);
 
     if (uri !== undefined) {
       assertNonEmptyString(uri, 'uri', this.backend);
+      const packageArg = packageName ? ` -p ${quoteShellArg(packageName)}` : '';
       await this.runOrThrow(
-        `am start -W -a android.intent.action.VIEW -d ${quoteShellArg(uri)} -p ${quoteShellArg(
-          packageName,
-        )}`,
+        `am start -W -a android.intent.action.VIEW -d ${quoteShellArg(uri)}${packageArg}`,
         'startActivity',
       );
       return;
     }
+
+    assertNonEmptyString(packageName ?? '', 'packageName', this.backend);
 
     if (activity !== undefined) {
       assertNonEmptyString(activity, 'activity', this.backend);
@@ -724,7 +706,7 @@ export class RishTransport implements AndroidTransport {
 
     // No component or deep link: ask the launcher through monkey.
     await this.runOrThrow(
-      `monkey -p ${quoteShellArg(packageName)} -c android.intent.category.LAUNCHER 1`,
+      `monkey -p ${quoteShellArg(packageName as string)} -c android.intent.category.LAUNCHER 1`,
       'startActivity',
     );
   }
@@ -1024,31 +1006,4 @@ function assertGestureDuration(
   }
 
   return value;
-}
-
-function isImageBuffer(buffer: Buffer): boolean {
-  if (buffer.length < 3) {
-    return false;
-  }
-
-  return (
-    buffer.subarray(0, 4).equals(PNG_MAGIC) ||
-    buffer.subarray(0, 3).equals(JPEG_MAGIC)
-  );
-}
-
-/** `input text` treats everything outside printable ASCII as unsupported. */
-function isAsciiPrintable(value: string): boolean {
-  for (const character of value) {
-    if (character === '\n') {
-      continue;
-    }
-
-    const code = character.codePointAt(0) ?? 0;
-    if (code < 0x20 || code > 0x7e) {
-      return false;
-    }
-  }
-
-  return true;
 }

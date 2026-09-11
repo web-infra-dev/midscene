@@ -1,17 +1,23 @@
-import type {
-  DeviceAction,
-  InterfaceType,
-  Size,
-  UITreeSnapshot,
+import {
+  type DeviceAction,
+  type InterfaceType,
+  type Size,
+  type UITreeSnapshot,
+  z,
 } from '@midscene/core';
 import {
   type AbstractInterface,
   type AndroidDeviceInputOpt,
   type MobileInputPrimitives,
   createDefaultMobileActions,
+  defineAction,
 } from '@midscene/core/device';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import {
+  mergeAndNormalizeAppNameMapping,
+  normalizeForComparison,
+} from '@midscene/shared/utils';
 
 import { createTransportInputPrimitives } from './input-primitives';
 import { AndroidTransportError } from './transport/errors';
@@ -30,7 +36,33 @@ export interface LocalAndroidDeviceOpt extends AndroidDeviceInputOpt {
   customActions?: DeviceAction<any>[];
   /** Label used in reports and diagnostics. */
   description?: string;
+  /**
+   * Friendly app name → package name mapping (keys are normalized, so
+   * `WeChat`, `wechat` and `We Chat` all resolve). The upstream Android path
+   * ships a large default table; callers that want it pass it in — moving that
+   * table into this package is the P1-7 convergence task.
+   */
+  appNameMapping?: Record<string, string>;
 }
+
+const launchParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+    ),
+});
+
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Package name or app name to terminate. Use the exact package name, e.g. com.android.settings.',
+    ),
+});
+
+type LaunchParam = z.infer<typeof launchParamSchema>;
+type TerminateParam = z.infer<typeof terminateParamSchema>;
 
 /**
  * Device-local Android interface.
@@ -48,6 +80,7 @@ export class LocalAndroidDevice implements AbstractInterface {
   private readonly options: LocalAndroidDeviceOpt;
   private capabilities?: AndroidCapabilities;
   private inputPrimitivesCache?: MobileInputPrimitives;
+  private appNameMapping: Record<string, string>;
   private destroyed = false;
 
   constructor(
@@ -56,6 +89,50 @@ export class LocalAndroidDevice implements AbstractInterface {
   ) {
     this.transport = transport;
     this.options = options;
+    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+      {},
+      options.appNameMapping,
+    );
+  }
+
+  /** Replace the friendly app name mapping used by Launch/Terminate. */
+  setAppNameMapping(mapping: Record<string, string>): void {
+    this.appNameMapping = mergeAndNormalizeAppNameMapping({}, mapping);
+  }
+
+  private resolvePackageName(appName: string): string | undefined {
+    return this.appNameMapping[normalizeForComparison(appName)];
+  }
+
+  /**
+   * Launch an app by package name, `pkg/activity`, a URL, or a friendly app
+   * name (when a mapping is configured). Mirrors the ADB path's `Launch` action.
+   */
+  async launch(uri: string): Promise<LocalAndroidDevice> {
+    if (uri.includes('://')) {
+      await this.transport.startActivity({ uri });
+      return this;
+    }
+
+    if (uri.includes('/')) {
+      const [packageName, activity] = uri.split('/');
+      await this.transport.startActivity({
+        packageName: packageName as string,
+        activity,
+      });
+      return this;
+    }
+
+    const resolved = this.resolvePackageName(uri) ?? uri;
+    await this.transport.startActivity({ packageName: resolved });
+    return this;
+  }
+
+  /** Force-stop an app by package name or friendly app name. */
+  async terminate(uri: string): Promise<void> {
+    const packagePart = uri.includes('/') ? (uri.split('/')[0] as string) : uri;
+    const resolved = this.resolvePackageName(packagePart) ?? packagePart;
+    await this.transport.forceStop(resolved);
   }
 
   /** Connect path that probes capabilities before the device is used. */
@@ -164,8 +241,39 @@ export class LocalAndroidDevice implements AbstractInterface {
       },
     };
 
+    const appActions = capabilities.appManagement
+      ? [
+          defineAction<typeof launchParamSchema, LaunchParam, void>({
+            name: 'Launch',
+            description: 'Launch an Android app or URL',
+            paramSchema: launchParamSchema,
+            sample: { uri: 'com.android.settings' },
+            call: async (param) => {
+              if (!param?.uri) {
+                throw new Error('Launch requires a non-empty uri parameter');
+              }
+              await this.launch(param.uri);
+            },
+          }),
+          defineAction<typeof terminateParamSchema, TerminateParam, void>({
+            name: 'Terminate',
+            description:
+              'Terminate (force-stop) an Android app by package name',
+            paramSchema: terminateParamSchema,
+            sample: { uri: 'com.android.settings' },
+            call: async (param) => {
+              if (!param?.uri) {
+                throw new Error('Terminate requires a non-empty uri parameter');
+              }
+              await this.terminate(param.uri);
+            },
+          }),
+        ]
+      : [];
+
     return [
       ...createDefaultMobileActions(mobileActionContext),
+      ...appActions,
       ...(this.options.customActions ?? []),
     ];
   }
