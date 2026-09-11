@@ -72,6 +72,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | `doctor` | ✅ `uid: 2000`、`privileged: true`、shell/screenshot/input/appManagement/multiDisplay/gestures 全 true |
 | `run config`（aiAct + aiAssert） | ✅ 任务 1 完成真实点击（19.3s，ok）；任务 2 的断言由模型如实判失败（模拟器 launcher 未起来，非链路问题）；结果 JSON 落盘 `files/midscene_run/results/` |
 
+## 验证环境提示
+
+模拟器（2 核 / 2GB）的 launcher 本身不稳定，经常停留在 "Pixel is starting..."，因此 `home` 相关断言
+会由模型如实判失败——这是环境问题，不是链路问题。截图 → 模型 → 动作 → 结果落盘的链路在同一环境下是通的。
+
 ## 已知限制（下一步）
 
 1. **长任务没有守护**：目前在 Activity 的后台线程里跑，Activity 被系统回收时任务会中断 →

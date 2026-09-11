@@ -295,7 +295,9 @@ public class MainActivity extends Activity {
         // with KEY=VALUE lines is injected into the child environment. Production
         // builds should read these from the Android Keystore instead.
         env.putAll(readEnvFile(new File(getFilesDir(), "model.env")));
-        builder.directory(agentDir());
+        // Run from the app's private root: relative paths inside a config are
+        // resolved against the config file, and anything else stays here.
+        builder.directory(getFilesDir());
         builder.redirectErrorStream(true);
 
         // Persist the output as well: a long run may outlive the visible screen,

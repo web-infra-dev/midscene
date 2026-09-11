@@ -212,7 +212,7 @@ export async function runLocalAgentConfig(
   };
 
   if (config.agent.reportDir) {
-    const resultFile = await persistResult(config, result);
+    const resultFile = await persistResult(config, result, options.configPath);
     result.resultFile = resultFile;
   }
 
@@ -228,11 +228,28 @@ export async function runLocalAgentConfigFile(
   return await runLocalAgentConfig(config, { ...options, configPath });
 }
 
+/**
+ * Resolve the report directory against the config file, so a relative path means
+ * "next to the config" regardless of the process working directory (the Android
+ * app runs the CLI from a different directory than the user's config lives in).
+ */
+function resolveReportDir(
+  reportDir: string,
+  configPath: string | undefined,
+): string {
+  if (path.isAbsolute(reportDir) || !configPath) {
+    return reportDir;
+  }
+
+  return path.resolve(path.dirname(path.resolve(configPath)), reportDir);
+}
+
 async function persistResult(
   config: LocalAgentConfig,
   result: LocalAgentRunResult,
+  configPath: string | undefined,
 ): Promise<string> {
-  const dir = config.agent.reportDir as string;
+  const dir = resolveReportDir(config.agent.reportDir as string, configPath);
   await fs.promises.mkdir(dir, { recursive: true });
   const stamp = new Date(result.startedAt).toISOString().replace(/[:.]/g, '-');
   const file = path.join(dir, `${config.name}-${stamp}.json`);

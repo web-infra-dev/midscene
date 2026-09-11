@@ -304,4 +304,28 @@ describe('local agent runner', () => {
     expect(written.name).toBe('persisted');
     expect(written.tasks[0].status).toBe('ok');
   });
+
+  test('resolves a relative report directory against the config file', async () => {
+    const dir = createTempDir();
+    const configPath = path.join(dir, 'agent.yaml');
+    fs.writeFileSync(configPath, 'tasks:\n  - name: x\n    prompt: y\n');
+    const { agent } = createRecordingAgent();
+
+    const result = await runLocalAgentConfig(
+      localAgentConfigSchema.parse({
+        name: 'relative',
+        agent: { reportDir: './reports' },
+        tasks: [{ name: 'smoke', type: 'aiAct', prompt: 'hello' }],
+      }),
+      {
+        configPath,
+        createTransport: () => createStubTransport(),
+        createAgent: () => agent as never,
+      },
+    );
+
+    // Not resolved against process.cwd(), which differs inside the Android app.
+    expect(result.resultFile).toContain(path.join(dir, 'reports'));
+    expect(fs.existsSync(result.resultFile as string)).toBe(true);
+  });
 });
