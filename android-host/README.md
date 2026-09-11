@@ -49,19 +49,54 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 `local.properties` 需要指向 Android SDK（`sdk.dir=...`），`jniLibs/` 与 `agent-bundle.zip` 均为生成物，已在
 `.gitignore` 中忽略（APK 约 48MB）。
 
-## 界面（M3 最小集）
+## 界面（生产版四页签）
 
-| 元素 | 作用 |
+参考 desktop studio 的信息架构（去掉实时预览），四个页签：
+
+| 页签 | 功能 |
 | --- | --- |
-| 状态行 | Node 路径是否存在、agent 是否已解包 |
-| **Prepare runtime** | 解包 `agent-bundle.zip` 并打印 CLI 版本 |
-| **doctor** | 打印能力矩阵、健康状态、显示信息、截图耗时 |
-| **run config** | 运行 `files/config.yaml`（编辑器内容优先，未编辑则用磁盘上的文件） |
-| 配置编辑器 | 直接编辑 YAML 配置并保存到应用私有目录 |
-| 运行日志 | 界面实时输出，同时落盘 `files/run/last-run.log`（长时间运行可事后查看） |
+| **Run** | 自然语言指令输入 + `Run instruction` / `Stop` / `Clear log`；状态行显示 state / node / agent / yadb；实时日志流 |
+| **Scripts** | `config.yaml` 编辑器（YAML，支持 `yaml` 任务引用 `files/scripts` 下的脚本）+ Save / Run config / Reload（未编辑时以磁盘文件为准，便于外部配置推送） |
+| **History** | 运行记录列表（OK/ERR、时间、耗时、任务通过数）→ 详情对话框（逐任务类型/状态/耗时/错误）→ **Log** 与 **Report** |
+| **Setup** | Provision runtime（解包 agent + 安装 yadb）、Check state、Battery exemption、Open Shizuku、`model.env` 编辑保存、Run doctor |
 
-首次点 **doctor** 会触发 Shizuku 授权弹窗（"Allow Midscene Local to access Shizuku?"），选择
-**Allow all the time**。
+**报告查看**：History → Report 用 WebView 打开 Midscene 生成的单文件 HTML 报告（执行时间线、每一步耗时、
+Record 逐帧回放与视频条、失败原因气泡），与桌面端一致。
+
+## 守护与保活
+
+- **前台 Service**（`AgentService`，`foregroundServiceType=specialUse`）持有所有运行；通知显示状态，
+  运行期间持有 `PARTIAL_WAKE_LOCK`。
+- **Activity 与运行解耦**：切后台、被系统回收都不影响任务（实测：App 切到后台后任务继续跑完 45s）。
+- **电池优化豁免**：Setup 页提供系统对话框入口（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`），
+  属于用户可见、用户主动开启的通用合法方案，不依赖 adb 特权。
+- 服务级日志落盘 `files/run/agent.log`，每次运行的完整输出落盘 `files/run/<runId>.log`。
+
+## yadb 自动分发（无需 adb push）
+
+yadb 需要落在 `/data/local/tmp`（shell 身份可读），但 **SELinux 不允许 app 写该目录**。方案：
+
+```text
+APK assets/yadb
+   │  ① App 复制到自己的外部目录（shell 可读）
+   ▼
+/storage/emulated/0/Android/data/<pkg>/files/yadb
+   │  ② rish（shell uid 2000）cp → /data/local/tmp/yadb && chmod 644
+   ▼
+/data/local/tmp/yadb   ← 中文输入 / pinch 即刻可用
+```
+
+实测日志：
+
+```
+[01:40:46] extracted agent bundle in 657 ms
+[01:40:46] staged yadb at /storage/emulated/0/Android/data/.../files/yadb (14431 bytes)
+[01:40:47] yadb-installed
+[01:40:47] midscene-local v1.12.6 (node v24.18.0)
+```
+
+首次使用任何一个需要 Shizuku 的功能时会弹授权框（"Allow Midscene Local to access Shizuku?"），
+选择 **Allow all the time**。
 
 ## 已验证（Android 12 模拟器 / arm64）
 
@@ -79,10 +114,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## 已知限制（下一步）
 
-1. **长任务没有守护**：目前在 Activity 的后台线程里跑，Activity 被系统回收时任务会中断 →
-   需要一个前台 Service（部署文档 M5）。
-2. **Node 运行时来自 Termux 包**：可用但不是产品形态；自编译 Node 22/24（NDK + libnode）是 Phase 2 主线，
+1. **Node 运行时来自 Termux 包**：可用但不是产品形态；自编译 Node 22/24（NDK + libnode）是 Phase 2 主线，
    替换时只需换掉 `libnodebin.so` 与依赖库，应用与 transport 代码不变。
-3. **依赖 yadb 提供中文输入与 pinch**：`/data/local/tmp/yadb` 需要预先 push（本 App 尚未自动分发，
-   受 SELinux 限制：app 不能写 `/data/local/tmp`）。
-4. **凭据明文**：`model.env` 目前是明文文件，生产版必须转 Keystore。
+2. **凭证仍是明文文件**：`model.env` 在 Setup 页可见且为明文，生产版需转 Android Keystore +
+   输入框掩码；`config.yaml` 不含密钥（这点已经做到）。
+3. **历史条目只增不删**：详情对话框提供了日志删除；索引清理/导出（部署文档 M2）待补。
+4. **模拟器环境**：2 核模拟器的 launcher 常驻 "Pixel is starting…"，`home`/launcher 相关断言会由模型
+   如实判失败——链路正常，真机需复测。

@@ -59,6 +59,18 @@ fs.cpSync(path.join(androidLocal, 'examples'), path.join(workDir, 'examples'), {
   recursive: true,
 });
 
+// yadb powers CJK text input and pinch gestures. It ships as a top-level APK
+// asset (not inside the JS bundle) because provisioning must work even before
+// the agent is extracted: the app stages it in its external files directory and
+// the shell copies it to /data/local/tmp (the app cannot write there itself).
+const yadbSource = path.join(repoRoot, 'packages/android/bin/yadb');
+if (!fs.existsSync(yadbSource)) {
+  throw new Error(
+    `yadb not found at ${yadbSource}; run the @midscene/android prebuild step first`,
+  );
+}
+fs.copyFileSync(yadbSource, path.join(hostRoot, 'app/src/main/assets/yadb'));
+
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.rmSync(outFile, { force: true });
 run(
@@ -68,5 +80,7 @@ run(
 );
 
 const size = fs.statSync(outFile).size;
+const yadbOut = path.join(hostRoot, 'app/src/main/assets/yadb');
 console.log(`\n${outFile} (${(size / 1024 / 1024).toFixed(1)} MB)`);
+console.log(`${yadbOut} (${fs.statSync(yadbOut).size} bytes)`);
 console.log('Now rebuild the app: cd android-host && gradle assembleDebug');

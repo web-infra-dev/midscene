@@ -1,11 +1,19 @@
 package com.midscene.localagent;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.method.ScrollingMovementMethod;
@@ -18,53 +26,76 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.io.BufferedReader;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.Locale;
 
 /**
- * Minimal on-device agent console.
+ * Production console for the on-device agent.
  *
- * Responsibilities: prepare the runtime (Node + agent bundle), keep a config
- * file on disk, start the CLI and stream its output. Everything the agent needs
- * is already inside the APK, so the app works without Termux or a PC.
+ * Four tabs mirror what a desktop studio session offers minus the live preview:
+ * run a natural-language instruction, manage YAML scripts, browse run history
+ * with reports, and configure the runtime plus model credentials. Execution is
+ * delegated to {@link AgentService} so it survives this UI being reclaimed.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements AgentService.LogListener {
 
-    private static final String AGENT_ASSET = "agent-bundle.zip";
-    private static final String CONFIG_FILE = "config.yaml";
+    private static final int REQUEST_NOTIFICATIONS = 42;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private TextView statusView;
     private TextView logView;
-    private EditText configView;
-    private Button prepareButton;
-    private Button doctorButton;
-    private Button runButton;
-    private Thread worker;
-    /** True once the user edited the config, so an externally pushed file wins otherwise. */
+    private EditText promptInput;
+    private EditText configEditor;
+    private EditText modelEditor;
+    private TextView historyView;
+    private LinearLayout[] pages;
+    private RunStore runStore;
     private boolean configDirty;
-    /** Guards against setText() being mistaken for a user edit. */
-    private boolean loadingConfig;
+    private boolean loadingText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        runStore = new RunStore(getFilesDir());
         setContentView(buildLayout());
-        writeDefaultConfigIfMissing();
-        statusView.setText(runtimeSummary());
-        appendLog("Ready. App dir: " + getFilesDir().getAbsolutePath());
-        appendLog("Native lib dir: " + getApplicationInfo().nativeLibraryDir);
+        requestNotificationPermissionIfNeeded();
+        loadConfigEditor();
+        loadModelEditor();
+        refreshStatus();
+        for (String line : AgentService.logBuffer()) {
+            appendLog(line);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        AgentService.addListener(this);
+        refreshStatus();
+        refreshHistory();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        AgentService.removeListener(this);
+    }
+
+    @Override
+    public void onLog(String line) {
+        ui.post(() -> appendLog(line));
     }
 
     // ---------------------------------------------------------------- layout
@@ -72,346 +103,472 @@ public class MainActivity extends Activity {
     private View buildLayout() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(12);
-        root.setPadding(pad, pad, pad, pad);
 
-        statusView = new TextView(this);
-        statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        statusView.setTypeface(Typeface.MONOSPACE);
-        statusView.setTextColor(Color.DKGRAY);
-        root.addView(statusView);
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        prepareButton = addButton(buttons, "Prepare runtime", v -> runOnWorker("prepare", this::prepareRuntime));
-        doctorButton = addButton(buttons, "doctor", v -> runOnWorker("doctor", () -> runCli("doctor", "--backend", "rish")));
-        runButton = addButton(buttons, "run config", v -> runOnWorker("run", this::runConfig));
-        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        for (int i = 0; i < buttons.getChildCount(); i++) {
-            buttons.getChildAt(i).setLayoutParams(buttonParams);
+        LinearLayout tabBar = new LinearLayout(this);
+        tabBar.setOrientation(LinearLayout.HORIZONTAL);
+        String[] titles = {"Run", "Scripts", "History", "Setup"};
+        pages = new LinearLayout[titles.length];
+        for (int index = 0; index < titles.length; index++) {
+            final int tabIndex = index;
+            Button tab = new Button(this);
+            tab.setText(titles[index]);
+            tab.setAllCaps(false);
+            tab.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            tab.setOnClickListener(view -> showTab(tabIndex));
+            tabBar.addView(tab, new LinearLayout.LayoutParams(0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
-        root.addView(buttons);
+        root.addView(tabBar);
 
-        TextView configLabel = new TextView(this);
-        configLabel.setText("Config (saved to " + CONFIG_FILE + ")");
-        configLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        root.addView(configLabel);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        for (int index = 0; index < titles.length; index++) {
+            LinearLayout page = buildPage(index);
+            page.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
+            pages[index] = page;
+            content.addView(page, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        root.addView(content, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        return root;
+    }
 
-        configView = new EditText(this);
-        configView.setTypeface(Typeface.MONOSPACE);
-        configView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        configView.setGravity(Gravity.TOP | Gravity.START);
-        configView.setMinLines(6);
-        configView.setMaxLines(12);
-        configView.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
+    private LinearLayout buildPage(int index) {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(10);
+        page.setPadding(pad, pad, pad, pad);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
+        switch (index) {
+            case 0:
+                buildRunPage(page);
+                break;
+            case 1:
+                buildScriptsPage(page);
+                break;
+            case 2:
+                buildHistoryPage(page);
+                break;
+            default:
+                buildSetupPage(page);
+                break;
+        }
+        return page;
+    }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!loadingConfig) {
-                    configDirty = true;
-                }
-            }
-        });
-        root.addView(configView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    private void buildRunPage(LinearLayout page) {
+        statusView = new TextView(this);
+        statusView.setTypeface(Typeface.MONOSPACE);
+        statusView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        statusView.setTextColor(Color.DKGRAY);
+        page.addView(statusView);
 
-        TextView logLabel = new TextView(this);
-        logLabel.setText("Run log");
-        logLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        root.addView(logLabel);
+        promptInput = new EditText(this);
+        promptInput.setHint("Natural language instruction, e.g. 打开设置并搜索 Wi-Fi");
+        promptInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        promptInput.setMinLines(2);
+        page.addView(promptInput);
 
-        ScrollView scroll = new ScrollView(this);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row, "Run instruction", view -> runInstruction());
+        addButton(row, "Stop", view -> AgentService.start(this, AgentService.ACTION_STOP, null));
+        addButton(row, "Clear log", view -> logView.setText(""));
+        page.addView(row);
+
         logView = new TextView(this);
         logView.setTypeface(Typeface.MONOSPACE);
         logView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         logView.setMovementMethod(new ScrollingMovementMethod());
+        ScrollView scroll = new ScrollView(this);
         scroll.addView(logView);
-        root.addView(scroll, new LinearLayout.LayoutParams(
+        page.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        return root;
     }
 
-    private Button addButton(LinearLayout parent, String label, View.OnClickListener listener) {
+    private void buildScriptsPage(LinearLayout page) {
+        TextView hint = new TextView(this);
+        hint.setText("config.yaml — tasks run in order; script tasks may reference files in files/scripts.");
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        page.addView(hint);
+
+        configEditor = new EditText(this);
+        configEditor.setTypeface(Typeface.MONOSPACE);
+        configEditor.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        configEditor.setGravity(Gravity.TOP | Gravity.START);
+        configEditor.addTextChangedListener(new SimpleWatcher(() -> {
+            if (!loadingText) {
+                configDirty = true;
+            }
+        }));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(configEditor);
+        page.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row, "Save", view -> saveConfig(true));
+        addButton(row, "Run config", view -> runConfig());
+        addButton(row, "Reload", view -> loadConfigEditor());
+        page.addView(row);
+    }
+
+    private void buildHistoryPage(LinearLayout page) {
+        TextView hint = new TextView(this);
+        hint.setText("Tap a run to open its log or HTML report.");
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        page.addView(hint);
+
+        historyView = new TextView(this);
+        historyView.setTypeface(Typeface.MONOSPACE);
+        historyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        historyView.setPadding(0, dp(8), 0, dp(8));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(historyView);
+        page.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row, "Refresh", view -> refreshHistory());
+        page.addView(row);
+    }
+
+    private void buildSetupPage(LinearLayout page) {
+        TextView hint = new TextView(this);
+        hint.setText("Runtime and credentials. model.env keeps the API key out of the visible config.");
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        page.addView(hint);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row, "Provision runtime", view ->
+                AgentService.start(this, AgentService.ACTION_PROVISION, null));
+        addButton(row, "Check state", view -> refreshStatus());
+        page.addView(row);
+
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row2, "Battery exemption", view -> requestBatteryExemption());
+        addButton(row2, "Open Shizuku", view -> openShizuku());
+        page.addView(row2);
+
+        modelEditor = new EditText(this);
+        modelEditor.setTypeface(Typeface.MONOSPACE);
+        modelEditor.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        modelEditor.setGravity(Gravity.TOP | Gravity.START);
+        modelEditor.setMinLines(4);
+        page.addView(modelEditor);
+
+        LinearLayout row3 = new LinearLayout(this);
+        row3.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(row3, "Save model.env", view -> saveModelEnv());
+        addButton(row3, "Run doctor", view -> runDoctor());
+        page.addView(row3);
+    }
+
+    private void addButton(LinearLayout parent, String label, View.OnClickListener listener) {
         Button button = new Button(this);
         button.setText(label);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         button.setAllCaps(false);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
         button.setOnClickListener(listener);
-        parent.addView(button);
-        return button;
+        parent.addView(button, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
     }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    // ------------------------------------------------------------- runtime
-
-    private File agentDir() {
-        return new File(getFilesDir(), "agent");
+    private void showTab(int index) {
+        for (int i = 0; i < pages.length; i++) {
+            pages[i].setVisibility(i == index ? View.VISIBLE : View.GONE);
+        }
+        if (index == 2) {
+            refreshHistory();
+        } else if (index == 3) {
+            refreshStatus();
+        }
     }
 
-    private File cliFile() {
-        return new File(agentDir(), "node_modules/@midscene/android-local/dist/lib/cli.js");
-    }
+    // ----------------------------------------------------------------- runs
 
-    private File configFile() {
-        return new File(getFilesDir(), CONFIG_FILE);
-    }
-
-    private String nodePath() {
-        return getApplicationInfo().nativeLibraryDir + "/libnodebin.so";
-    }
-
-    private String runtimeSummary() {
-        return "node: " + (new File(nodePath()).exists() ? nodePath() : "MISSING")
-                + "\nagent: " + (cliFile().exists() ? "extracted" : "not extracted yet");
-    }
-
-    private void setButtonsEnabled(boolean enabled) {
-        prepareButton.setEnabled(enabled);
-        doctorButton.setEnabled(enabled);
-        runButton.setEnabled(enabled);
-    }
-
-    private void runOnWorker(String name, ThrowingRunnable task) {
-        if (worker != null && worker.isAlive()) {
-            appendLog("[" + name + "] a run is already in progress");
+    private void runInstruction() {
+        String prompt = promptInput.getText().toString().trim();
+        if (prompt.isEmpty()) {
+            toast("Enter an instruction first");
             return;
         }
-        setButtonsEnabled(false);
-        appendLog("=== " + name + " ===");
-        worker = new Thread(() -> {
-            try {
-                task.run();
-            } catch (Exception error) {
-                appendLog("[" + name + "] failed: " + error);
-            } finally {
-                ui.post(() -> {
-                    setButtonsEnabled(true);
-                    statusView.setText(runtimeSummary());
-                });
-            }
-        });
-        worker.start();
+        Intent extras = new Intent().putExtra(AgentService.EXTRA_PROMPT, prompt);
+        AgentService.start(this, AgentService.ACTION_RUN_PROMPT, extras);
+        showTab(0);
     }
 
-    /** Unpack the agent bundle from assets so Node can run it from disk. */
-    private void prepareRuntime() throws IOException {
-        if (!cliFile().exists()) {
-            File target = agentDir();
-            appendLog("extracting " + AGENT_ASSET + " -> " + target.getAbsolutePath());
-            long startedAt = System.currentTimeMillis();
-            try (InputStream raw = getAssets().open(AGENT_ASSET);
-                 ZipInputStream zip = new ZipInputStream(raw)) {
-                ZipEntry entry;
-                byte[] buffer = new byte[64 * 1024];
-                while ((entry = zip.getNextEntry()) != null) {
-                    File out = new File(target, entry.getName());
-                    if (entry.isDirectory()) {
-                        out.mkdirs();
-                        continue;
-                    }
-                    File parent = out.getParentFile();
-                    if (parent != null) {
-                        parent.mkdirs();
-                    }
-                    try (FileOutputStream sink = new FileOutputStream(out)) {
-                        int read;
-                        while ((read = zip.read(buffer)) > 0) {
-                            sink.write(buffer, 0, read);
-                        }
-                    }
-                }
-            }
-            appendLog("extracted in " + (System.currentTimeMillis() - startedAt) + " ms");
-        } else {
-            appendLog("agent bundle already extracted");
-        }
-
-        writeDefaultConfigIfMissing();
-        runCli("--version");
+    private void runConfig() {
+        saveConfig(false);
+        AgentService.start(this, AgentService.ACTION_RUN_CONFIG,
+                new Intent().putExtra(AgentService.EXTRA_CONFIG_PATH,
+                        new File(getFilesDir(), "config.yaml").getAbsolutePath()));
+        showTab(0);
     }
 
-    private void runConfig() throws IOException {
-        // Only persist the editor when the user actually changed it; a config
-        // pushed in over adb (or by a future config manager) must not be lost.
-        if (configDirty || !configFile().exists()) {
-            String config = configView.getText().toString();
-            if (config.trim().isEmpty()) {
-                appendLog("config is empty; nothing to run");
-                return;
-            }
-            try (FileOutputStream out = new FileOutputStream(configFile())) {
-                out.write(config.getBytes(StandardCharsets.UTF_8));
-            }
-            configDirty = false;
-        } else {
-            appendLog("using config from disk: " + configFile().getAbsolutePath());
-        }
-
-        runCli("run", configFile().getAbsolutePath());
-    }
-
-    /** Start the bundled Node CLI and stream its output into the log view. */
-    private void runCli(String... args) throws IOException {
-        if (!new File(nodePath()).exists()) {
-            appendLog("node runtime missing at " + nodePath());
-            return;
-        }
-        if (!cliFile().exists()) {
-            appendLog("agent bundle not extracted yet; press \"Prepare runtime\"");
-            return;
-        }
-
-        List<String> command = new ArrayList<>();
-        command.add(nodePath());
-        command.add(cliFile().getAbsolutePath());
-        for (String arg : args) {
-            command.add(arg);
-        }
-
-        ProcessBuilder builder = new ProcessBuilder(command);
-        File runDir = new File(getFilesDir(), "run");
-        runDir.mkdirs();
-        Map<String, String> env = builder.environment();
-        env.put("LD_LIBRARY_PATH", getApplicationInfo().nativeLibraryDir);
-        env.put("HOME", getFilesDir().getAbsolutePath());
-        env.put("TMPDIR", getCacheDir().getAbsolutePath());
-        env.put("PATH", getApplicationInfo().nativeLibraryDir + ":/system/bin:/system/xbin");
-        env.put("MIDSCENE_RUN_DIR", runDir.getAbsolutePath());
-        // rish asks Shizuku for the shell channel on behalf of this package, so the
-        // user gets the permission prompt for the app rather than for a terminal.
-        env.put("RISH_APPLICATION_ID", getPackageName());
-        // Model credentials live outside the visible config: a `model.env` file
-        // with KEY=VALUE lines is injected into the child environment. Production
-        // builds should read these from the Android Keystore instead.
-        env.putAll(readEnvFile(new File(getFilesDir(), "model.env")));
-        // Run from the app's private root: relative paths inside a config are
-        // resolved against the config file, and anything else stays here.
-        builder.directory(getFilesDir());
-        builder.redirectErrorStream(true);
-
-        // Persist the output as well: a long run may outlive the visible screen,
-        // and the file is what a support workflow (or the future UI) reads back.
-        File runLog = new File(runDir, "last-run.log");
-        long startedAt = System.currentTimeMillis();
-        Process process = builder.start();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
-             FileOutputStream logSink = new FileOutputStream(runLog, false)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                appendLog(line);
-                logSink.write((line + "\n").getBytes(StandardCharsets.UTF_8));
-                logSink.flush();
-            }
-        }
-        int exitCode;
+    /** A one-task config that exercises perception plus a model round trip. */
+    private void runDoctor() {
+        saveModelEnv();
+        String yaml = "name: doctor\n"
+                + "device:\n  backend: rish\n  displayId: 0\n  rishPath: /data/local/tmp/rish\n"
+                + "agent:\n  generateReport: false\n"
+                + "tasks:\n  - name: describe-screen\n    type: aiQuery\n"
+                + "    prompt: describe what is currently visible on screen in one sentence\n";
         try {
-            exitCode = process.waitFor();
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            process.destroy();
-            appendLog("interrupted while waiting for the CLI");
-            return;
-        }
-        appendLog("exit=" + exitCode + " in " + (System.currentTimeMillis() - startedAt) + " ms");
-        appendLog("log: " + runLog.getAbsolutePath());
-    }
-
-    private void writeDefaultConfigIfMissing() {
-        if (configFile().exists()) {
-            loadConfigIntoEditor(readFile(configFile()));
-            return;
-        }
-
-        String defaultConfig = String.join("\n", new String[]{
-                "name: phone-smoke",
-                "device:",
-                "  backend: rish",
-                "  displayId: 0",
-                "  rishPath: /data/local/tmp/rish",
-                "  yadbPath: /data/local/tmp/yadb",
-                "model:",
-                "  # Prefer the environment; the app stores this file in private storage.",
-                "  apiKey: \"\"",
-                "  baseUrl: \"\"",
-                "  name: \"\"",
-                "  family: \"\"",
-                "agent:",
-                "  generateReport: false",
-                "  reportDir: ./midscene_run/results",
-                "tasks:",
-                "  - name: open-settings",
-                "    type: aiAct",
-                "    prompt: open the settings app",
-                "  - name: settings-visible",
-                "    type: aiAssert",
-                "    prompt: the settings screen is visible",
-                "",
-        });
-
-        try (FileOutputStream out = new FileOutputStream(configFile())) {
-            out.write(defaultConfig.getBytes(StandardCharsets.UTF_8));
+            Files.write(new File(getFilesDir(), "doctor.yaml").toPath(),
+                    yaml.getBytes(StandardCharsets.UTF_8));
         } catch (IOException error) {
-            appendLog("failed to write default config: " + error);
+            appendLog("could not write doctor config: " + error);
+            return;
         }
-        loadConfigIntoEditor(defaultConfig);
+        AgentService.start(this, AgentService.ACTION_RUN_CONFIG,
+                new Intent().putExtra(AgentService.EXTRA_CONFIG_PATH,
+                        new File(getFilesDir(), "doctor.yaml").getAbsolutePath()));
     }
 
-    /** Load config text without marking it as a user edit. */
-    private void loadConfigIntoEditor(String text) {
-        loadingConfig = true;
+    // --------------------------------------------------------------- config
+
+    private void loadConfigEditor() {
+        String text = ShellRunner.readText(new File(getFilesDir(), "config.yaml"));
+        if (text.isEmpty()) {
+            text = defaultConfig();
+        }
+        loadingText = true;
         try {
-            configView.setText(text);
+            configEditor.setText(text);
             configDirty = false;
         } finally {
-            loadingConfig = false;
+            loadingText = false;
         }
     }
 
-    private Map<String, String> readEnvFile(File file) {
-        Map<String, String> values = new java.util.HashMap<>();
-        if (!file.exists()) {
-            return values;
-        }
-        for (String line : readFile(file).split("\n")) {
-            String trimmed = line.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("#") || !trimmed.contains("=")) {
-                continue;
-            }
-            int index = trimmed.indexOf('=');
-            String key = trimmed.substring(0, index).trim();
-            String value = trimmed.substring(index + 1).trim();
-            if (!key.isEmpty()) {
-                values.put(key, value);
-            }
-        }
-        appendLog("model.env: injecting " + values.size() + " variables");
-        return values;
+    private String defaultConfig() {
+        return "name: phone-task\n"
+                + "device:\n"
+                + "  backend: rish\n"
+                + "  displayId: 0\n"
+                + "  rishPath: /data/local/tmp/rish\n"
+                + "  yadbPath: /data/local/tmp/yadb\n"
+                + "agent:\n"
+                + "  generateReport: true\n"
+                + "  reportDir: ./midscene_run/results\n"
+                + "tasks:\n"
+                + "  - name: open-settings\n"
+                + "    type: aiAct\n"
+                + "    prompt: open the settings app\n"
+                + "  - name: settings-visible\n"
+                + "    type: aiAssert\n"
+                + "    prompt: the settings screen is visible\n";
     }
 
-    private String readFile(File file) {
-        StringBuilder text = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new java.io.FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                text.append(line).append('\n');
+    private void saveConfig(boolean notify) {
+        if (!configDirty) {
+            if (notify) {
+                toast("Config unchanged");
+            }
+            return;
+        }
+        try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), "config.yaml"))) {
+            out.write(configEditor.getText().toString().getBytes(StandardCharsets.UTF_8));
+            configDirty = false;
+            if (notify) {
+                toast("Config saved");
             }
         } catch (IOException error) {
-            return "";
+            appendLog("could not save config: " + error);
         }
-        return text.toString();
+    }
+
+    private void loadModelEditor() {
+        String text = ShellRunner.readText(new File(getFilesDir(), "model.env"));
+        if (text.isEmpty()) {
+            text = "MIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_BASE_URL=\n"
+                    + "MIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n";
+        }
+        loadingText = true;
+        try {
+            modelEditor.setText(text);
+        } finally {
+            loadingText = false;
+        }
+    }
+
+    private void saveModelEnv() {
+        try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), "model.env"))) {
+            out.write(modelEditor.getText().toString().getBytes(StandardCharsets.UTF_8));
+            toast("model.env saved");
+        } catch (IOException error) {
+            appendLog("could not save model.env: " + error);
+        }
+    }
+
+    // -------------------------------------------------------------- history
+
+    private void refreshHistory() {
+        List<RunStore.RunRecord> records = runStore.list();
+        if (records.isEmpty()) {
+            historyView.setText("No runs yet.");
+            historyView.setOnClickListener(null);
+            historyView.setClickable(false);
+            return;
+        }
+
+        StringBuilder text = new StringBuilder();
+        SimpleDateFormat format = new SimpleDateFormat("MM-dd HH:mm", Locale.US);
+        for (RunStore.RunRecord record : records) {
+            text.append(record.ok ? "OK  " : "ERR ")
+                    .append(format.format(new Date(record.startedAt)))
+                    .append("  ").append(record.configName)
+                    .append("  ").append(record.durationMs / 1000).append("s")
+                    .append("  tasks=").append(record.taskCount - record.failedTasks)
+                    .append("/").append(record.taskCount)
+                    .append('\n');
+        }
+
+        historyView.setText(text.toString());
+        historyView.setClickable(true);
+        historyView.setOnClickListener(view -> showRunPicker(records));
+    }
+
+    private void showRunPicker(List<RunStore.RunRecord> records) {
+        String[] labels = new String[records.size()];
+        SimpleDateFormat format = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.US);
+        for (int index = 0; index < records.size(); index++) {
+            RunStore.RunRecord record = records.get(index);
+            labels[index] = (record.ok ? "OK " : "ERR ")
+                    + format.format(new Date(record.startedAt)) + " · " + record.configName;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Open run")
+                .setItems(labels, (dialog, which) -> showRunDetail(records.get(which)))
+                .show();
+    }
+
+    private void showRunDetail(RunStore.RunRecord record) {
+        JSONObject result = runStore.readResult(record);
+        StringBuilder summary = new StringBuilder();
+        summary.append("config: ").append(record.configName).append('\n');
+        summary.append("duration: ").append(record.durationMs / 1000).append(" s\n");
+        summary.append("exit: ").append(record.exitCode).append('\n');
+        JSONArray tasks = result == null ? null : result.optJSONArray("tasks");
+        if (tasks != null) {
+            for (int index = 0; index < tasks.length(); index++) {
+                JSONObject task = tasks.optJSONObject(index);
+                if (task == null) {
+                    continue;
+                }
+                summary.append("• ").append(task.optString("name"))
+                        .append(" [").append(task.optString("type")).append("] ")
+                        .append(task.optString("status"))
+                        .append("  ").append(task.optLong("ms") / 1000).append("s");
+                String error = task.optString("error", "");
+                if (!error.isEmpty()) {
+                    summary.append("\n    ").append(error.replace('\n', ' '));
+                }
+                summary.append('\n');
+            }
+        }
+
+        boolean hasReport = record.reportFile != null && !record.reportFile.isEmpty()
+                && new File(record.reportFile).exists();
+
+        new AlertDialog.Builder(this)
+                .setTitle(record.ok ? "Run succeeded" : "Run reported errors")
+                .setMessage(summary.toString())
+                .setPositiveButton(hasReport ? "Report" : "Log", (dialog, which) -> {
+                    if (hasReport) {
+                        openViewer("Run report", record.reportFile, true);
+                    } else {
+                        openViewer("Run log", record.logFile, false);
+                    }
+                })
+                .setNeutralButton("Log", (dialog, which) ->
+                        openViewer("Run log", record.logFile, false))
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void openViewer(String title, String path, boolean html) {
+        if (path == null || path.isEmpty()) {
+            toast("Nothing to open");
+            return;
+        }
+        startActivity(new Intent(this, ReportViewerActivity.class)
+                .putExtra(ReportViewerActivity.EXTRA_TITLE, title)
+                .putExtra(ReportViewerActivity.EXTRA_PATH, path)
+                .putExtra(ReportViewerActivity.EXTRA_HTML, html));
+    }
+
+    // ----------------------------------------------------------- permissions
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    REQUEST_NOTIFICATIONS);
+        }
+    }
+
+    /**
+     * Surviving doze for a user-initiated long task is a legitimate use of the
+     * battery optimisation exemption, so ask for it through the system dialog
+     * instead of relying on adb-only privileges.
+     */
+    private void requestBatteryExemption() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+        PowerManager power = getSystemService(PowerManager.class);
+        if (power != null && power.isIgnoringBatteryOptimizations(getPackageName())) {
+            toast("Already exempt from battery optimization");
+            return;
+        }
+        try {
+            startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:" + getPackageName())));
+        } catch (Exception error) {
+            startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+        }
+    }
+
+    private void openShizuku() {
+        Intent intent = getPackageManager().getLaunchIntentForPackage(
+                "moe.shizuku.privileged.api");
+        if (intent == null) {
+            toast("Shizuku is not installed");
+            return;
+        }
+        startActivity(intent);
+    }
+
+    // -------------------------------------------------------------- helpers
+
+    private void refreshStatus() {
+        StringBuilder text = new StringBuilder();
+        text.append("state: ").append(AgentService.state).append('\n');
+        text.append("node: ").append(new File(Provisioner.nodePath(this)).exists()
+                ? "ready" : "missing").append('\n');
+        text.append("agent: ").append(Provisioner.cliFile(this).exists()
+                ? "extracted" : "not extracted").append('\n');
+        text.append("yadb: ").append(new File(Provisioner.YADB_TARGET).exists()
+                ? "installed" : "missing (Setup → Provision runtime)").append('\n');
+        if (AgentService.isBusy()) {
+            text.append("running since: ").append(
+                    new SimpleDateFormat("HH:mm:ss", Locale.US)
+                            .format(new Date(AgentService.runStartedAt))).append('\n');
+        }
+        statusView.setText(text.toString());
     }
 
     private void appendLog(String line) {
@@ -425,7 +582,28 @@ public class MainActivity extends Activity {
         });
     }
 
-    private interface ThrowingRunnable {
-        void run() throws Exception;
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private static class SimpleWatcher implements TextWatcher {
+        private final Runnable onChange;
+
+        SimpleWatcher(Runnable onChange) {
+            this.onChange = onChange;
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            onChange.run();
+        }
     }
 }

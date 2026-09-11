@@ -36,6 +36,12 @@ export interface LocalAgentRunResult {
   capabilities: Record<string, unknown>;
   tasks: LocalAgentTaskResult[];
   resultFile?: string;
+  /**
+   * HTML report produced by the agent for this run, when report generation is
+   * enabled. Discovered by scanning the run directory, so the app does not have
+   * to know Midscene's internal report naming.
+   */
+  reportFile?: string;
 }
 
 export interface RunLocalAgentOptions {
@@ -211,6 +217,10 @@ export async function runLocalAgentConfig(
     tasks: taskResults,
   };
 
+  if (config.agent.generateReport) {
+    result.reportFile = findNewestReport(config.agent.reportDir, startedAt);
+  }
+
   if (config.agent.reportDir) {
     const resultFile = await persistResult(config, result, options.configPath);
     result.resultFile = resultFile;
@@ -226,6 +236,57 @@ export async function runLocalAgentConfigFile(
 ): Promise<LocalAgentRunResult> {
   const config = loadLocalAgentConfig(configPath);
   return await runLocalAgentConfig(config, { ...options, configPath });
+}
+
+/**
+ * Locate the newest HTML report written during this run.
+ *
+ * Midscene names reports `<tag>-<timestamp>-<uuid>` under
+ * `$MIDSCENE_RUN_DIR/report`, so scanning is more stable than reconstructing the
+ * name; anything older than the run itself is ignored.
+ */
+function findNewestReport(
+  reportDir: string | undefined,
+  startedAt: number,
+): string | undefined {
+  const runDir = process.env.MIDSCENE_RUN_DIR;
+  const candidates: string[] = [];
+  if (runDir) {
+    candidates.push(path.join(runDir, 'report'));
+  }
+  if (reportDir) {
+    candidates.push(reportDir);
+  }
+
+  let newest: { file: string; mtimeMs: number } | undefined;
+  for (const dir of candidates) {
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.html')) {
+        continue;
+      }
+      const file = path.join(dir, entry);
+      try {
+        const stat = fs.statSync(file);
+        if (stat.mtimeMs < startedAt - 2000) {
+          continue;
+        }
+        if (!newest || stat.mtimeMs > newest.mtimeMs) {
+          newest = { file, mtimeMs: stat.mtimeMs };
+        }
+      } catch {
+        // ignore unreadable candidates
+      }
+    }
+  }
+
+  return newest?.file;
 }
 
 /**

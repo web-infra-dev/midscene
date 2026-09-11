@@ -171,4 +171,7 @@ tasks:
 | M2 | 配置/脚本导入导出、结果汇总、失败重试策略 | 一条配置在 2 台手机上可复现 |
 | M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
 | M4 | Shizuku UserService 常驻通道（消除 rish spawn 开销与文件通道） | 截图/输入延迟显著下降，中文输入不再启动 ART |
-| M5 | 长稳与恢复（电池优化、崩溃拉起、权限失效重建） | 连续 8 小时任务不死、异常后自恢复 |
+| M4' ✅ | **守护与保活**：前台 Service（specialUse）+ WakeLock + 电池优化豁免入口；Activity 与运行解耦 | ✅ 实测：App 切后台后任务继续跑完；`isForeground=true`；服务日志落盘 `files/run/agent.log` |
+| M4'' ✅ | **yadb 自动分发**：assets → App 外部目录 → rish cp 到 `/data/local/tmp`（无需 adb push） | ✅ 实测日志 `staged yadb → yadb-installed`，`/data/local/tmp/yadb` 就位 |
+| M4''' ✅ | **生产版 UI**（参考 studio，无预览）：自然语言指令 / YAML 编辑运行 / 历史与报告查看 / 运行时与凭证设置 | ✅ 四页签可用；History → Report 在 WebView 内渲染 Midscene 交互报告（时间线 + 逐帧回放） |
+| M5 | 长稳与恢复（崩溃拉起、权限失效重建、索引清理与导出） | 连续 8 小时任务不死、异常后自恢复 |
