@@ -32,6 +32,43 @@ Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
 - **模型凭据不落在可见配置里**：`filesDir/model.env`（`KEY=VALUE` 行）被注入子进程环境；
   生产版本应改为 Android Keystore（见 `docs/deployment.md` §5）。
 
+## 测试设备矩阵
+
+本地已创建的 AVD（均使用已安装的 arm64-v8a 系统镜像，无需下载）：
+
+| AVD | 镜像 | 形态 | 用途 |
+| --- | --- | --- | --- |
+| `Midscene_Phone_API34` | android-34 default | Pixel 7，1080×2400 竖屏 | **Android 14 基准**（rish/DEX 限制、竖屏、可用的 launcher） |
+| `Midscene_Tablet_API34` | android-34 default | Pixel Tablet | `layout-sw600dp` 侧边导航与宽屏布局 |
+| `Midscene_Fast_API32ATD` | android-32 google_atd | Pixel 5，精简 ATD | 快速冒烟回归 |
+| `HaloCanvas_RemoteScreen_API31` | android-31 | 车机双屏 | 对照组（launcher 不可用，仅作参考） |
+
+启动示例：
+
+```bash
+emulator -avd Midscene_Phone_API34 -no-audio -no-boot-anim -gpu swiftshader_indirect
+```
+
+## 无人化部署（adb）
+
+```bash
+scripts/adb-bootstrap.sh \
+  --shizuku-apk <shizuku.apk> \
+  --model-env <model.env> \
+  --config <config.yaml>
+```
+
+完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 部署 `rish` 与 `rish_shizuku.dex`（Android 14 起 dex 需只读）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
+
+幂等：可加 `--skip-install` 重复执行。
+
+## Android 14 实测要点（重要）
+
+- **Node v24.18.0 可正常运行**；bundle 版本戳会在 APK 更新后自动重新解包
+- **授权**：必须走官方 API —— Setup → RUNTIME → `Authorize Shizuku`（`Shizuku.requestPermission()`）。rish 调用无法拉起授权弹窗；`pm grant API_V23` 也不能绕过（Shizuku 13.x 自建授权存储）
+- **rish 在本机应用进程中不可用**：前台 Activity / 前台 Service / `run-as` 三种来源都只返回 `Aborted`。因此后续把提权执行改为 **Shizuku UserService**（`bindUserService` + AIDL），Node 侧经回环 HTTP 调 App 内的执行桥
+- 手机布局必须用 `BottomNavigationView`（抽象类 `NavigationBarView` 会 inflate 崩溃）
+
 ## 构建
 
 ```bash

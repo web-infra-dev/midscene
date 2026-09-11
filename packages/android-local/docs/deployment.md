@@ -146,6 +146,30 @@ tasks:
 6. **已知限制**：长任务暂无前台 Service 守护（M5）；Node 运行时暂取自 Termux 包，Phase 2 换自编译
    libnode；yadb 仍需外部 push。
 
+## 5.6 Android 14 实测结论（手机 AVD，2026-09）
+
+被测设备：`Midscene_Phone_API34`（Pixel 7，1080×2400 竖屏，Android 14）。
+
+| # | 结论 |
+| --- | --- |
+| A14-1 | **Node v24.18.0 在 Android 14 上正常运行**（`midscene-local v1.12.6 (node v24.18.0)`），G1 最大未知项解除 |
+| A14-2 | 设备侧部署可完全无人化：`adb-bootstrap.sh` 完成安装 APK/Shizuku、起 server、部署 rish（Android 14 需 `chmod 400` dex）、注入 `model.env`、电池白名单（`dumpsys deviceidle whitelist`）、通知授权、服务触发 provisioning |
+| A14-3 | agent bundle 版本戳生效：更新 APK 后自动重新解包（此前"存在即跳过"会让设备一直跑旧 agent） |
+| A14-4 | **rish 在本机应用进程中一律 `Aborted`**（前台 Activity、前台 Service、`run-as` 三种来源都试过），Shizuku 只回这一句、无更多信息 |
+| A14-5 | `pm grant moe.shizuku.manager.permission.API_V23` **不能**免人工授权：Shizuku 13.x 的授权在它自己的存储里（包名+签名），系统权限绕不过去 |
+| A14-6 | `Shizuku.newProcess` 在 API 13.1.5 中是 **private**；公开的提权执行路径只有 **`Shizuku.bindUserService` + UserService**（即本路线图的 Phase 2 方案） |
+| A14-7 | 客户端崩溃修复：手机布局不能用抽象类 `NavigationBarView`（平板用的 `NavigationRailView` 是具体类，问题只在手机暴露），须用 `BottomNavigationView` |
+
+**由此确定的执行器方案（替换 rish，不再有文件通道）：**
+
+```text
+Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
+      → App 主进程 ExecBridge（回环 HTTP + token）
+      → Shizuku.bindUserService → UserService 进程（shell 2000，byte[] 往返）
+```
+
+好处：一次性消除 `Aborted`（前后台限制）、`LD_LIBRARY_PATH` 污染、rish 大输出跨管道拆分、yadb 部署依赖；截图与输入预计进一步提速，中文输入不再依赖 yadb 启动 ART。
+
 ## 6. 移动版 Studio 的功能切分（阶段 C）
 
 最小可用界面（一个 Activity + 一个前台 Service）：
@@ -170,7 +194,9 @@ tasks:
 | M1（当前） | Termux CLI + 配置 + YAML 脚本 + 结果文件 | ✅ **已在 Android 12 模拟器验证**：`doctor` 全绿（capabilities 含 `gestures: true`/`textInput: full`、截图 125KB/1.77s）；`run` 三个任务（aiAct 112s / aiAssert 25s / YAML 脚本 92s）全部 ok，退出码 0，结果 JSON 落盘 `midscene_run/agent-results/` |
 | M2 | 配置/脚本导入导出、结果汇总、失败重试策略 | 一条配置在 2 台手机上可复现 |
 | M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
-| M4 | Shizuku UserService 常驻通道（消除 rish spawn 开销与文件通道） | 截图/输入延迟显著下降，中文输入不再启动 ART |
+| M4 🔄 | Shizuku UserService 常驻通道（消除 rish spawn 开销与文件通道） | 截图/输入延迟显著下降，中文输入不再启动 ART |
+| M4-pre ✅ | **授权通道**：`Shizuku.requestPermission()`（官方 API）+ Setup 页 `Authorize Shizuku` 按钮 → Shizuku 里本 App 授权开关 ON | ✅ 已授权；rish 仍 `Aborted` → 见 §5.6 结论 |
+| M5-a ✅ | **adb 无感安装与配置**：`scripts/adb-bootstrap.sh` 一条命令完成安装/起 Shizuku/部署 rish/注入 model.env/电池与通知白名单/触发 provisioning | ✅ Android 14 手机实测（Node v24.18.0 正常） |
 | M4' ✅ | **守护与保活**：前台 Service（specialUse）+ WakeLock + 电池优化豁免入口；Activity 与运行解耦 | ✅ 实测：App 切后台后任务继续跑完；`isForeground=true`；服务日志落盘 `files/run/agent.log` |
 | M4'' ✅ | **yadb 自动分发**：assets → App 外部目录 → rish cp 到 `/data/local/tmp`（无需 adb push） | ✅ 实测日志 `staged yadb → yadb-installed`，`/data/local/tmp/yadb` 就位 |
 | M4''' ✅ | **生产版 UI**（参考 studio，无预览）：自然语言指令 / YAML 编辑运行 / 历史与报告查看 / 运行时与凭证设置 | ✅ 四页签可用；History → Report 在 WebView 内渲染 Midscene 交互报告（时间线 + 逐帧回放） |
