@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.midscene.localagent'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.midscene.localagent'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    buildTypes {
+        debug {
+            // Debug builds are debuggable so `adb run-as` can drop a config file
+            // in during development (the model key is not typed on screen).
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+
+    packaging {
+        // The Node runtime is executed from the app's native library directory,
+        // so the libraries must be extracted to disk rather than loaded from
+        // the APK (AGP defaults to extractNativeLibs=false).
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

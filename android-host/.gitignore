@@ -1,0 +1,10 @@
+# Build outputs
+build/
+.gradle/
+local.properties
+
+# Generated runtime artifacts (large, produced by scripts/)
+#   scripts/fetch-node-runtime.sh  -> app/src/main/jniLibs/arm64-v8a/*.so
+#   scripts/bundle-agent.mjs       -> app/src/main/assets/agent-bundle.zip
+app/src/main/jniLibs/
+app/src/main/assets/agent-bundle.zip

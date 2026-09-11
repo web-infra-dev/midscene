@@ -861,8 +861,10 @@ export class RishTransport implements AndroidTransport {
   private async ensureChannelDir(): Promise<void> {
     if (!this.channelDirPromise) {
       this.channelDirPromise = (async () => {
+        // `.nomedia` keeps Android's media scanner away from the transient
+        // payloads (it otherwise index-scans every screenshot we write).
         const outcome = await this.execute(
-          `mkdir -p ${quoteShellArg(this.fileChannelDir)} && chmod 0755 ${quoteShellArg(this.fileChannelDir)}`,
+          `mkdir -p ${quoteShellArg(this.fileChannelDir)} && chmod 0755 ${quoteShellArg(this.fileChannelDir)} && touch ${quoteShellArg(`${this.fileChannelDir}/.nomedia`)}`,
           { timeoutMs: this.defaultTimeoutMs },
         );
 
@@ -978,6 +980,11 @@ export class RishTransport implements AndroidTransport {
     const runnerOptions: CommandRunnerOptions = {
       timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
       unsetEnv: this.unsetEnv,
+      // rish briefly re-executes as the shell uid (2000). If the caller's cwd is
+      // an app-private directory that uid cannot enter, rish logs
+      // "access <cwd> failed with 13: Permission denied" and chdir fails, so
+      // every rish command starts from / (all commands use absolute paths).
+      cwd: '/',
     };
 
     return await this.semaphore.run(async () => {

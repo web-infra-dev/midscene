@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- |
 | **A. 设备本机 CLI** | Termux 内 `midscene-local` | Termux `nodejs-lts` (24.x) | Shizuku → rish（shell 2000） | ✅ 可用 |
 | **B. 宿主调试** | PC + USB 上的 `midscene-local` | 开发机 Node | adb（shell 2000） | ✅ 可用 |
-| **C. APK 内嵌 Agent** | Android Host App（libnode + JNI） | 随 APK 交付的 Node 22/24 | Shizuku UserService（AIDL/JNI）或 OEM 特权 | Phase 2 |
+| **C. APK 内嵌 Agent** | Android Host App（Node 作为 native library + 最小 UI） | 随 APK 交付的 Node（当前取自 Termux 包，见 `android-host/`） | rish（Shizuku 授权给本 App）→ 后续换 UserService | ✅ **M3 切片已在模拟器验证** |
 | **D. 车机/系统应用** | priv-app / 系统服务 | 同上 | platform signature / OEM 服务 | Phase 3（条件式） |
 
 阶段 A 与 C **共用同一个配置与脚本模型**：`midscene-local run config.yaml` 这条命令既是
@@ -130,6 +130,22 @@ tasks:
 **不要在共享设备上把密钥写进配置文件再分发**：阶段 C 的计划是密钥只进 Keystore，
 配置文件本身可导出/导入以复用任务。
 
+## 5.5 阶段 C 的实现要点（`android-host/`，已跑通）
+
+1. **Node 作为 native library**：Android 10+ 禁止从应用私有目录 execve，但允许执行 APK 的 `lib/<abi>/`
+   （Shizuku 同款做法）→ Node 二进制以 `libnodebin.so` 交付，`android:extractNativeLibs="true"`
+   保证它被解成真实文件（AGP 默认 `false`）。
+2. **依赖库 soname 改写**：链接器按文件名匹配 `DT_NEEDED`，AGP 只打包 `*.so` →
+   `scripts/patch-elf-sonames.py` 在 `.dynstr` 内把所有旧 soname 改成 `.so` 结尾并重命名文件。
+   **只改 DT_NEEDED 会与 `.gnu.version_r` 冲突**，链接器报
+   `cannot find X from verneed[0] in DT_NEEDED list`（实测踩过）。
+3. **JS 侧随 APK 交付**：`assets/agent-bundle.zip`（wasm 版 sharp）首次运行解包到私有目录（14MB / 2.9s）。
+4. **凭据隔离**：模型密钥放 `filesDir/model.env`（`KEY=VALUE`），注入子进程环境，不出现在可见配置里。
+5. **配置覆盖语义**：只有用户真正编辑过编辑器内容才回写 `config.yaml`，否则以磁盘文件为准
+   （便于外部配置管理/推送；`setText()` 触发 dirty 的坑已修）。
+6. **已知限制**：长任务暂无前台 Service 守护（M5）；Node 运行时暂取自 Termux 包，Phase 2 换自编译
+   libnode；yadb 仍需外部 push。
+
 ## 6. 移动版 Studio 的功能切分（阶段 C）
 
 最小可用界面（一个 Activity + 一个前台 Service）：
@@ -153,6 +169,6 @@ tasks:
 | --- | --- | --- |
 | M1（当前） | Termux CLI + 配置 + YAML 脚本 + 结果文件 | ✅ **已在 Android 12 模拟器验证**：`doctor` 全绿（capabilities 含 `gestures: true`/`textInput: full`、截图 125KB/1.77s）；`run` 三个任务（aiAct 112s / aiAssert 25s / YAML 脚本 92s）全部 ok，退出码 0，结果 JSON 落盘 `midscene_run/agent-results/` |
 | M2 | 配置/脚本导入导出、结果汇总、失败重试策略 | 一条配置在 2 台手机上可复现 |
-| M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | 无 Termux、无 PC，App 内启动 Agent 完成任务 |
+| M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
 | M4 | Shizuku UserService 常驻通道（消除 rish spawn 开销与文件通道） | 截图/输入延迟显著下降，中文输入不再启动 ART |
 | M5 | 长稳与恢复（电池优化、崩溃拉起、权限失效重建） | 连续 8 小时任务不死、异常后自恢复 |

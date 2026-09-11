@@ -9,7 +9,7 @@
 | [roadmap.md](./roadmap.md) | Phase 0–3 任务表、Gate G0–G3、Phase 0 执行手册与**实测结论**、风险表、验收矩阵 |
 | [dependency-audit.md](./dependency-audit.md) | P0-1 依赖/运行时审计（设备实测版）：可用 / 需回退 / 阻塞 三分类 + 部署约束 |
 | [baseline.md](./baseline.md) | P1-5 性能基线：rish vs adb 两后端对比、AI 闭环耗时分解、优化线索 |
-| [deployment.md](./deployment.md) | **部署与配置方式**：阶段 A/B/C/D 部署模型、`midscene-local` 命令面、配置 schema、设备侧目录、密钥管理、移动版 Studio 功能切分 |
+| [deployment.md](./deployment.md) | **部署与配置方式**：阶段 A/B/C/D 部署模型、`midscene-local` 命令面、配置 schema、设备侧目录、密钥管理、阶段 C（APK 内嵌 Node）实现要点与移动版 Studio 功能切分 |
 
 ## 目标
 

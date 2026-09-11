@@ -6,6 +6,8 @@
  * Android host app (embedded Node + thin UI) will call later, so the surface is
  * deliberately small: inspect the device (`doctor`) and run a config (`run`).
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
 
 import { loadLocalAgentConfig } from './config/schema';
@@ -14,11 +16,30 @@ import { AdbShellTransport } from './transport/adb-shell';
 import { RishTransport } from './transport/rish';
 import type { AndroidTransport } from './transport/types';
 
+function readVersion(): string {
+  // The CLI is bundled into dist/lib (cjs) and dist/es (esm), so the package
+  // manifest sits either one or two levels up depending on the artefact.
+  for (const candidate of ['../../package.json', '../package.json']) {
+    try {
+      const pkg = JSON.parse(
+        fs.readFileSync(path.resolve(__dirname, candidate), 'utf8'),
+      ) as { version?: string };
+      if (pkg.version) {
+        return pkg.version;
+      }
+    } catch {
+      // try the next location
+    }
+  }
+  return 'unknown';
+}
+
 const USAGE = `midscene-local — on-device Android agent
 
 Usage:
   midscene-local doctor [--backend rish|adb-shell] [--serial <id>]
   midscene-local run <config.yaml|config.json>
+  midscene-local --version
   midscene-local --help
 
 Commands:
@@ -141,6 +162,11 @@ async function run(configPath: string | undefined): Promise<number> {
 async function main(): Promise<void> {
   const { flags, positional } = parseArgs(process.argv.slice(2));
   const command = positional[0];
+
+  if (flags.version === 'true' || command === '--version') {
+    console.log(`midscene-local v${readVersion()} (node ${process.version})`);
+    return;
+  }
 
   if (!command || flags.help === 'true') {
     console.log(USAGE);
