@@ -16,6 +16,9 @@ describe('Playwright Agent Node registration', () => {
       const { page, pageMock } = createPage();
       const agent = Object.assign(Object.create(agentClass.prototype), {
         interface: { underlyingPage: page },
+        _prepareForTestRunner() {},
+        _createReportSource: async () => undefined,
+        flushReport: async () => undefined,
         // No report listener is needed for this browser-only fixture.
         addDumpUpdateListener: undefined,
         testRunner: {

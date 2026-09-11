@@ -1389,12 +1389,24 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.7
       execa:
         specifier: 9.3.0
         version: 9.3.0
+      glob:
+        specifier: 11.0.0
+        version: 11.0.0
+      http-server:
+        specifier: 14.1.1
+        version: 14.1.1
       js-yaml:
         specifier: 4.1.0
         version: 4.1.0
+      lodash.merge:
+        specifier: 4.6.2
+        version: 4.6.2
       tinyglobby:
         specifier: 0.2.15
         version: 0.2.15
@@ -1429,6 +1441,9 @@ importers:
       '@types/js-yaml':
         specifier: 4.0.9
         version: 4.0.9
+      '@types/lodash.merge':
+        specifier: 4.6.9
+        version: 4.6.9
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.130
@@ -1438,6 +1453,9 @@ importers:
       playwright:
         specifier: ^1.45.0
         version: 1.58.1
+      puppeteer:
+        specifier: 24.6.0
+        version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

@@ -1,0 +1,4 @@
+cases:
+  - name: native after legacy
+    steps:
+      - javascript: native:last
