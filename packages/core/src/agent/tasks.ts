@@ -352,7 +352,6 @@ export class TaskExecutor {
       type: 'Action Space',
       subType: action.name,
       param: { timeMs: ms },
-      requiresUIContext: false,
       executor: async ({ task }) => {
         assert(
           Number.isFinite(ms) && ms > 0,

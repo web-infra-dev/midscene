@@ -585,8 +585,6 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;
-  /** Defaults to true. False skips UI capture before and after this task. */
-  requiresUIContext?: boolean;
   executor: (
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value

@@ -1714,8 +1714,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
 
   /**
    * Wait for a finite, positive duration in milliseconds and record it as a
-   * Sleep task. Does not require model configuration, screenshots or device
-   * action hooks. Actual elapsed time is recorded by the task runner.
+   * Sleep task with the standard UI snapshots. Does not invoke device action
+   * hooks. Actual elapsed time is recorded by the task runner.
    */
   async sleep(ms: number): Promise<void> {
     await this.taskExecutor.sleep(ms);
