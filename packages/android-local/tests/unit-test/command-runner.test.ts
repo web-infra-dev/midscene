@@ -59,6 +59,41 @@ describe('NodeCommandRunner', () => {
     expect(result.stdout.toString('utf8')).toBe('midscene');
   });
 
+  test('removes variables listed in unsetEnv after merging env', async () => {
+    const result = await nodeRunner.run(
+      [
+        process.execPath,
+        '-e',
+        'process.stdout.write(`${process.env.MIDSCENE_KEEP}|${process.env.MIDSCENE_DROP}`)',
+      ],
+      {
+        env: { MIDSCENE_KEEP: 'keep', MIDSCENE_DROP: 'drop' },
+        unsetEnv: ['MIDSCENE_DROP'],
+      },
+    );
+
+    expect(result.stdout.toString('utf8')).toBe('keep|undefined');
+  });
+
+  test('strips an inherited variable that a terminal runtime exports', async () => {
+    process.env.MIDSCENE_INHERITED = 'from-parent';
+    try {
+      const result = await nodeRunner.run(
+        [
+          process.execPath,
+          '-e',
+          'process.stdout.write(String(process.env.MIDSCENE_INHERITED))',
+        ],
+        { unsetEnv: ['MIDSCENE_INHERITED'] },
+      );
+
+      expect(result.stdout.toString('utf8')).toBe('undefined');
+    } finally {
+      // `delete process.env.X` is flagged by lint; this is the same operation.
+      Reflect.deleteProperty(process.env, 'MIDSCENE_INHERITED');
+    }
+  });
+
   test('kills the process and reports a timeout', async () => {
     const startedAt = Date.now();
     const error = await nodeRunner

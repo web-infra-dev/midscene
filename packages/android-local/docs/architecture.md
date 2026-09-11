@@ -149,15 +149,28 @@ type AndroidTransportErrorCode =
 
 ## 6. `RishTransport` 实现要点
 
+下表结合 Phase 0 真机实测（`roadmap.md` §9.2 的 C1–C10）定稿：
+
 | 项 | 决定 |
 | --- | --- |
-| 启动方式 | 默认 `spawn('sh', [rishPath, '-c', cmd])`（`useShLauncher: true`），规避 `/sdcard` noexec 与直接 `execve` 的差异；P0-4 对比两种方式并记录结论 |
-| `rishPath` | `MIDSCENE_RISH_PATH` → 默认 `/data/local/tmp/rish` |
-| 截图 | `screencap -p [-d <displayId>] \| base64 -w0` → `Buffer.from(b64)` → PNG magic 校验 → 失败降级为二进制直读 `screencap -p` → 仍失败抛 `ScreenshotFailed`（附 stderr 截断） |
-| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；`input text` 仅支持 ASCII，非 ASCII 显式抛 `NotSupported`（中文/特殊字符留给 Phase 3 的专用输入服务，禁止静默半成功） |
-| 应用管理 | `am start -W -n pkg/activity`、`am start -W -a android.intent.action.VIEW -d <uri>`、无 activity 时 `monkey -p <pkg> -c android.intent.category.LAUNCHER 1`、`am force-stop <pkg>` |
-| 能力探测 | `id -u` 必须为 2000 或 0，否则 `PermissionDenied`；逐项探测 `screencap` / `input` / `am`；结果缓存并写 debug 日志 |
-| 依赖注入 | 通过 `CommandRunner` 注入（`NodeCommandRunner` / `FakeCommandRunner`），保证单测与契约测试完全离线 |
+| 启动方式 | 默认 `spawn('sh', [rishPath, '-c', cmd])`（`useShLauncher: true`）；Shizuku 13.6.0 的 rish 只需 `rish` + `rish_shizuku.dex` 同目录，Android 14+ 需 dex 非可写（chmod 400） |
+| **环境净化** | 子进程剥离 `LD_LIBRARY_PATH` / `LD_PRELOAD`（默认 `DEFAULT_UNSET_ENV`）。Termux 注入的前缀 lib 会让 `app_process` 链接失败：`cannot locate symbol "Xzs_Construct" referenced by /system/lib64/libunwindstack.so` |
+| **大 payload 通道** | **文件通道**：shell 写 `/data/local/tmp/midscene-<pid>-<ts>.png/.txt`，本机 Node 直接 `fs.readFile` 后立即删除。原因：rish 会把大输出拆到 stdout+stderr 两条管道（674KB PNG → 346KB + 328KB），任何管道方案都会截断 |
+| **小输出读取** | `combinedOutputText()`：stdout 优先、为空则取 stderr（实测 `id -u` 曾整段跑到 stderr），并暴露为 `runShell().stdout` |
+| 截图 | `screencap -p [-d <displayId>] <file>` → 读取 → PNG/JPEG magic 校验 → 删除；失败时回退到 base64 管道（best-effort） |
+| 显示信息 | `dumpsys display > <file>`（约 21KB，必须走文件通道）+ `wm size` / `wm density`（小输出） |
+| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；`input text` 仅 ASCII，非 ASCII 显式抛 `NotSupported` |
+| 应用管理 | `am start -W -n pkg/activity`、`-a android.intent.action.VIEW -d <uri>`、无 activity 时 `monkey -p <pkg> -c android.intent.category.LAUNCHER 1`、`am force-stop <pkg>` |
+| **能力探测** | **串行**执行 + 每次探测重试一次。每个 rish 调用都会新建 app_process（实测 0.4–1.8s）；并发探测出现过瞬时失败，被误判为「不支持」并导致动作空间为空 |
+| 依赖注入 | `CommandRunner`（`NodeCommandRunner` / `FakeCommandRunner`）+ `ShellFileIo`（文件通道 seam），使全部单测无需设备 |
+| 性能基线（2 核模拟器） | 单次 spawn 1.6–1.8s；截图 P50 2155ms（673KB）；keyevent 470ms；`healthCheck` 3.75s → Phase 1 必须降低 spawn 次数，Phase 2 走 UserService/FD |
+
+### 6.1 图像链路（P0-2 结论）
+
+- 原生 `sharp` **在 android-arm64 上无预编译产物**，`@midscene/shared` 的 `convertImgBufferToJpeg` / `cropByRect` / `resizeImgBase64` / `paddingToMatchBlockByBase64` 全部失败（`convertImgBufferToJpeg` 是抛错而非回退）。
+- 解法是 **sharp 官方 WASM 实现**：`npm install --cpu=wasm32 sharp`（等价依赖 `@img/sharp-wasm32`，约 8.9MB）。API 与原生一致，**`packages/shared/src/img/*` 无需回退逻辑、无需改调用点**；部署侧固定该安装方式即可。
+- photon 不适用于 Node：`@silvia-odwyer/photon@0.3.3` 缺 `main`/`exports`，纯 Node 无法解析；且 `getPhoton()` 在 Node 下被显式拒绝（仅 browser/worker）。
+- 因此原先设想的 `MIDSCENE_IMAGE_BACKEND=auto|sharp|photon` 开关**不再需要**；若未来要上嵌入式精简镜像，只需保证 wasm32 版 sharp 随包交付。
 
 ## 7. 与 ADB 路径的收敛策略（Phase 1 末执行）
 

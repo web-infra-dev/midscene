@@ -38,12 +38,13 @@
 - [x] 勘察本仓库现状并形成证据表（见 `architecture.md` §2）
 - [x] 归档调研原文（`research-v0.1.md`，sha256 `0bed707e…`）
 - [x] `packages/android-local` 骨架：transport 契约、`RishTransport`、`LocalAndroidDevice`、离线单元测试
-- [ ] **P0-1** 依赖/运行时审计（产出审计表）
-- [ ] **P0-2** 图片后端回退（`sharp` → `photon`，G0 关键，需改 `packages/shared`）
-- [ ] **P0-3** 设备侧 Node 22/24 运行时（POC 形态）
-- [ ] **P0-4** Shizuku + rish 部署与 `id -u` 验证
-- [ ] **P0-5/P0-6** 真机闭环与端到端样例（`screenshot → aiTap → aiAssert`）
-- [ ] **G0/G1** 结论回填 `roadmap.md`
+- [ ] **P0-1** 依赖/运行时审计（图像链路已完成，其余依赖待补）
+- [x] **P0-2** 图片链路：原生 sharp 在 android-arm64 不可用 → 改用 sharp 官方 WASM（`--cpu=wasm32`），`@midscene/shared` 图像函数全绿且**无需改调用点**
+- [x] **P0-3** 设备侧 Node 运行时：Termux `nodejs-lts` = Node **v24.18.0**（`process.platform=android`）
+- [x] **P0-4** Shizuku + rish 部署：Termux uid(10149) → rish → shell(**2000**) 验证通过
+- [x] **P0-5** 设备本机闭环：13 个动作 + 截图 P50 **2155ms**（5/5 成功，合法 PNG）
+- [ ] **P0-6** AI 端到端样例（`screenshot → aiTap → aiAssert`）
+- [x] **G0** 通过（Core 可在设备 Node 加载 + wasm sharp 覆盖图像链路）；**G1** 设备侧已验证，AI 闭环进行中
 
 ## 使用（骨架阶段）
 
@@ -61,7 +62,9 @@ const transport = new RishTransport({ rishPath: process.env.MIDSCENE_RISH_PATH }
 // create() 会先探测能力；未 connect 的设备调用 actionSpace() 会直接报错，
 // 避免注册底层并不支持的动作。
 const device = await LocalAndroidDevice.create(transport, { displayId: 0 });
-const png = await transport.screenshot(); // Buffer，不落盘
+const png = await transport.screenshot(); // Buffer（经设备本地瞬时文件通道）
 ```
+
+> 实测要点（Phase 0）：截图**不能**走 rish 管道——674KB 的 PNG 会被拆到 stdout 与 stderr 两条管道而截断；transport 因此让 shell 把文件写到设备上、由本机 Node 直接读取后立即删除。这也是本机化相对 ADB 的独有优势。详见 `roadmap.md` §9.2。
 
 > 硬规则：只有 `src/transport/**` 允许知道 shell 命令、Binder、AIDL 或权限实现细节；`LocalAndroidDevice` 只调用 transport；业务层禁止拼接 `adb`/`rish` 命令。详见 `architecture.md` §4。

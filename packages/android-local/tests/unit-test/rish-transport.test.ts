@@ -35,16 +35,64 @@ function deviceResponses(): FakeCommandResponse[] {
   ];
 }
 
+/**
+ * Fake on-device filesystem for the file channel.
+ *
+ * Reads are scripted per suffix (`.txt` -> command text, other -> image bytes)
+ * and every read/removal is recorded so tests can assert the transient file is
+ * cleaned up.
+ */
+function createFixtureFileIo(options: { image?: Buffer; text?: string } = {}) {
+  const image = options.image ?? PNG_BYTES;
+  const text = options.text ?? dumpsysDisplay;
+  const reads: string[] = [];
+  const removals: string[] = [];
+
+  return {
+    reads,
+    removals,
+    io: {
+      async read(filePath: string) {
+        reads.push(filePath);
+        return filePath.endsWith('.txt')
+          ? Buffer.from(text, 'utf8')
+          : Buffer.from(image);
+      },
+      async remove(filePath: string) {
+        removals.push(filePath);
+      },
+    },
+  };
+}
+
+/** Responses for the file-channel path: screencap succeeds, bytes come from the fake FS. */
+function screenResponses(): FakeCommandResponse[] {
+  return [{ match: ['screencap'], stdout: '' }];
+}
+
+interface CreateTransportOptions {
+  displayId?: number;
+  displayCacheTtlMs?: number;
+  fileIo?: {
+    read(filePath: string): Promise<Buffer>;
+    remove(filePath: string): Promise<void>;
+  };
+  unsetEnv?: string[];
+}
+
 function createTransport(
   responses: FakeCommandResponse[],
-  options: { displayId?: number; displayCacheTtlMs?: number } = {},
+  options: CreateTransportOptions = {},
 ) {
   const runner = new FakeCommandRunner(responses);
+  const fileIo = options.fileIo ?? createFixtureFileIo().io;
   const transport = new RishTransport({
     rishPath: RISH,
     runner,
     displayCacheTtlMs: options.displayCacheTtlMs ?? 0,
     displayId: options.displayId,
+    fileIo,
+    unsetEnv: options.unsetEnv,
   });
 
   return { runner, transport };
@@ -103,6 +151,32 @@ describe('RishTransport capability probing', () => {
     ).toHaveLength(1);
   });
 
+  test('strips terminal-runtime loader variables from every command', async () => {
+    const { runner, transport } = createTransport(deviceResponses());
+
+    await transport.getCapabilities();
+
+    expect(runner.calls.length).toBeGreaterThan(0);
+    for (const call of runner.calls) {
+      expect(call.options?.unsetEnv).toContain('LD_LIBRARY_PATH');
+      expect(call.options?.unsetEnv).toContain('LD_PRELOAD');
+    }
+  });
+
+  test('lets callers opt out of environment sanitising', async () => {
+    const runner = new FakeCommandRunner(deviceResponses());
+    const transport = new RishTransport({
+      rishPath: RISH,
+      runner,
+      displayCacheTtlMs: 0,
+      unsetEnv: [],
+    });
+
+    await transport.getCapabilities();
+
+    expect(runner.calls[0]?.options?.unsetEnv).toEqual([]);
+  });
+
   test('flags an unprivileged uid instead of pretending to be adb shell', async () => {
     const { transport } = createTransport([
       { match: ['id -u'], stdout: '10123\n' },
@@ -135,7 +209,7 @@ describe('RishTransport capability probing', () => {
   });
 
   test('reports ServiceUnavailable when rish cannot be started at all', async () => {
-    const { transport } = createTransport([
+    const { runner, transport } = createTransport([
       {
         match: [],
         failure: { kind: 'spawn-failed', message: 'rish: not found' },
@@ -147,7 +221,82 @@ describe('RishTransport capability probing', () => {
       .catch((caught: unknown) => caught);
 
     expect((error as { code?: string }).code).toBe('ServiceUnavailable');
-    expect((error as Error).message).toContain('rish: not found');
+    expect((error as Error).message).toContain('Unable to determine the uid');
+    expect(
+      String((error as { cause?: { message?: string } }).cause?.message),
+    ).toContain('rish: not found');
+    // The uid probe retries once before giving up.
+    expect(runner.calls).toHaveLength(2);
+  });
+
+  test('probes capabilities sequentially so heavyweight spawns do not compete', async () => {
+    const inner = new FakeCommandRunner(
+      deviceResponses().map((response) => ({ ...response, delayMs: 5 })),
+    );
+    let active = 0;
+    let peak = 0;
+    const trackingRunner = {
+      async run(
+        argv: string[],
+        options?: Parameters<FakeCommandRunner['run']>[1],
+      ) {
+        active += 1;
+        peak = Math.max(peak, active);
+        try {
+          return await inner.run(argv, options);
+        } finally {
+          active -= 1;
+        }
+      },
+    };
+    const transport = new RishTransport({
+      rishPath: RISH,
+      runner: trackingRunner,
+      displayCacheTtlMs: 0,
+      fileIo: createFixtureFileIo().io,
+    });
+
+    await transport.getCapabilities();
+
+    expect(peak).toBe(1);
+    expect(inner.calls.length).toBeGreaterThan(5);
+  });
+
+  test('retries a capability probe that failed transiently', async () => {
+    const inner = new FakeCommandRunner(deviceResponses());
+    let inputAttempts = 0;
+    const flakyRunner = {
+      async run(
+        argv: string[],
+        options?: Parameters<FakeCommandRunner['run']>[1],
+      ) {
+        const command = argv[argv.length - 1] ?? '';
+        if (command.startsWith('command -v input')) {
+          inputAttempts += 1;
+          if (inputAttempts === 1) {
+            return {
+              exitCode: 1,
+              signal: null,
+              stdout: Buffer.alloc(0),
+              stderr: 'transient app_process failure',
+              durationMs: 1,
+            };
+          }
+        }
+
+        return await inner.run(argv, options);
+      },
+    };
+    const transport = new RishTransport({
+      rishPath: RISH,
+      runner: flakyRunner,
+      displayCacheTtlMs: 0,
+    });
+
+    const capabilities = await transport.getCapabilities();
+
+    expect(inputAttempts).toBe(2);
+    expect(capabilities.input).toBe(true);
   });
 });
 
@@ -186,75 +335,102 @@ describe('RishTransport health check', () => {
 });
 
 describe('RishTransport screenshot', () => {
-  test('fetches PNG bytes through the base64 pipe without touching disk', async () => {
-    const { runner, transport } = createTransport([
-      { match: ['| base64 -w0'], stdout: `${PNG_BYTES.toString('base64')}\n` },
-    ]);
+  test('captures through the on-device file channel and cleans up', async () => {
+    const fileIo = createFixtureFileIo();
+    const { runner, transport } = createTransport(screenResponses(), {
+      fileIo: fileIo.io,
+    });
 
     const buffer = await transport.screenshot();
 
     expect(buffer.equals(PNG_BYTES)).toBe(true);
-    expectRishCommand(runner, 0, 'screencap -p | base64 -w0');
-    expect(runner.commands[0]).not.toContain('> ');
-  });
-
-  test('targets the requested display', async () => {
-    const { runner, transport } = createTransport([
-      { match: ['| base64 -w0'], stdout: PNG_BYTES.toString('base64') },
-    ]);
-
-    await transport.screenshot({ displayId: 10 });
-
-    expectRishCommand(runner, 0, 'screencap -p -d 10 | base64 -w0');
-  });
-
-  test('uses the transport default display when the caller omits it', async () => {
-    const { runner, transport } = createTransport(
-      [{ match: ['| base64 -w0'], stdout: PNG_BYTES.toString('base64') }],
-      { displayId: 1 },
+    const command = runner.calls[0]?.argv[3] ?? '';
+    expect(command).toMatch(
+      /^screencap -p '\/data\/local\/tmp\/midscene-.*\.png'$/,
     );
+    // The transient file is read exactly once and then removed.
+    expect(fileIo.reads).toHaveLength(1);
+    expect(fileIo.removals).toEqual(fileIo.reads);
+  });
+
+  test('does not pipe pixels through rish on the happy path', async () => {
+    const { runner, transport } = createTransport(screenResponses());
 
     await transport.screenshot();
 
-    expectRishCommand(runner, 0, 'screencap -p -d 1 | base64 -w0');
+    expect(runner.calls).toHaveLength(1);
+    expect(runner.commands[0]).not.toContain('base64');
+    expect(runner.commands[0]).not.toContain('|');
+  });
+
+  test('targets the requested display', async () => {
+    const { runner, transport } = createTransport(screenResponses());
+
+    await transport.screenshot({ displayId: 10 });
+
+    expect(runner.calls[0]?.argv[3]).toContain("screencap -p -d 10 '");
+  });
+
+  test('uses the transport default display when the caller omits it', async () => {
+    const { runner, transport } = createTransport(screenResponses(), {
+      displayId: 1,
+    });
+
+    await transport.screenshot();
+
+    expect(runner.calls[0]?.argv[3]).toContain('screencap -p -d 1');
   });
 
   test('accepts a JPEG payload', async () => {
     const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
-    const { transport } = createTransport([
-      { match: ['| base64 -w0'], stdout: jpeg.toString('base64') },
-    ]);
+    const fileIo = createFixtureFileIo({ image: jpeg });
+    const { transport } = createTransport(screenResponses(), {
+      fileIo: fileIo.io,
+    });
 
     const buffer = await transport.screenshot();
 
     expect(buffer.equals(jpeg)).toBe(true);
   });
 
-  test('falls back to a binary pipe when base64 output is not an image', async () => {
-    const { runner, transport } = createTransport([
-      { match: ['| base64 -w0'], stdout: 'this is not an image' },
-      { match: /screencap -p$/, stdout: PNG_BYTES },
-    ]);
+  test('falls back to the rish pipe when the file channel is unusable', async () => {
+    const fileIo = createFixtureFileIo();
+    fileIo.io.read = async () => {
+      throw new Error('EACCES: permission denied');
+    };
+    const { runner, transport } = createTransport(
+      [
+        { match: ['| base64 -w0'], stdout: PNG_BYTES.toString('base64') },
+        { match: ['screencap'], stdout: '' },
+      ],
+      { fileIo: fileIo.io },
+    );
 
     const buffer = await transport.screenshot();
 
     expect(buffer.equals(PNG_BYTES)).toBe(true);
+    expect(fileIo.removals).toHaveLength(1);
     expect(runner.calls).toHaveLength(2);
-    expectRishCommand(runner, 1, 'screencap -p');
+    expect(runner.commands[1]).toContain('base64');
   });
 
-  test('fails with ScreenshotFailed and keeps diagnostics when every path fails', async () => {
-    const { transport } = createTransport([
-      { match: ['| base64 -w0'], exitCode: 1, stderr: 'permission denied' },
-      { match: /screencap -p$/, exitCode: 1, stderr: 'permission denied' },
-    ]);
+  test('fails with ScreenshotFailed when every channel fails', async () => {
+    const fileIo = createFixtureFileIo();
+    fileIo.io.read = async () => Buffer.from('not an image');
+    const { transport } = createTransport(
+      [
+        { match: ['| base64 -w0'], stdout: 'still-not-an-image' },
+        { match: ['screencap'], stdout: '' },
+      ],
+      { fileIo: fileIo.io },
+    );
 
     const error = await transport
       .screenshot()
       .catch((caught: unknown) => caught);
 
     expect((error as { code?: string }).code).toBe('ScreenshotFailed');
-    expect((error as Error).message).toContain('permission denied');
+    expect((error as Error).message).toContain('without a PNG/JPEG header');
   });
 
   test('surfaces a timeout instead of falling back blindly', async () => {
@@ -270,8 +446,22 @@ describe('RishTransport screenshot', () => {
     expect(runner.calls).toHaveLength(1);
   });
 
+  test('reports a non-zero screencap as a failure', async () => {
+    const { transport } = createTransport([
+      { match: ['screencap'], exitCode: 1, stderr: 'permission denied' },
+      { match: ['| base64 -w0'], exitCode: 1, stderr: 'permission denied' },
+    ]);
+
+    const error = await transport
+      .screenshot()
+      .catch((caught: unknown) => caught);
+
+    expect((error as { code?: string }).code).toBe('ScreenshotFailed');
+    expect((error as Error).message).toContain('permission denied');
+  });
+
   test('rejects an invalid display id', async () => {
-    const { transport } = createTransport([]);
+    const { transport } = createTransport(screenResponses());
 
     const error = await transport
       .screenshot({ displayId: -1 })

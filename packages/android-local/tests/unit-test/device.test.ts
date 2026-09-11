@@ -33,10 +33,27 @@ function deviceResponses(): FakeCommandResponse[] {
     { match: ['dumpsys display'], stdout: dumpsysDisplay },
     { match: ['wm size'], stdout: wmSize },
     { match: ['wm density'], stdout: wmDensity },
-    { match: ['| base64 -w0'], stdout: PNG_BYTES.toString('base64') },
+    { match: ['screencap'], stdout: '' },
     { match: ['date +'], stdout: '2026-09-11T22:55:00\n' },
     { match: [], stdout: '' },
   ];
+}
+
+/**
+ * Fake on-device filesystem for the transport's file channel: `.txt` reads
+ * serve the dumpsys fixture, other reads serve a PNG.
+ */
+function createFixtureFileIo(image: Buffer = PNG_BYTES) {
+  return {
+    async read(filePath: string) {
+      return filePath.endsWith('.txt')
+        ? Buffer.from(dumpsysDisplay, 'utf8')
+        : Buffer.from(image);
+    },
+    async remove() {
+      return undefined;
+    },
+  };
 }
 
 async function createDevice(
@@ -49,6 +66,7 @@ async function createDevice(
     runner,
     displayCacheTtlMs: 0,
     displayId: options.displayId,
+    fileIo: createFixtureFileIo(),
   });
   const device = await LocalAndroidDevice.create(transport, {
     displayId: options.displayId,
@@ -141,6 +159,7 @@ describe('LocalAndroidDevice action space', () => {
     const transport = new RishTransport({
       rishPath: RISH,
       runner: new FakeCommandRunner(deviceResponses()),
+      fileIo: createFixtureFileIo(),
     });
     const device = new LocalAndroidDevice(transport);
 

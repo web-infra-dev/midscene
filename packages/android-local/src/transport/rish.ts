@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { getDebug } from '@midscene/shared/logger';
 
 import {
@@ -50,6 +53,64 @@ const ROOT_UID = 0;
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
 
+/**
+ * Variables stripped from the spawned rish process.
+ *
+ * A terminal runtime (Termux) exports `LD_LIBRARY_PATH=$PREFIX/lib`. rish then
+ * launches `/system/bin/app_process`, which would resolve the terminal's
+ * libraries instead of the system ones and die with
+ * `cannot locate symbol "Xzs_Construct" referenced by
+ * /system/lib64/libunwindstack.so` (measured on Android 12 + Termux + Shizuku
+ * 13.6.0, see `docs/roadmap.md` P0-4).
+ */
+export const DEFAULT_UNSET_ENV = ['LD_LIBRARY_PATH', 'LD_PRELOAD'];
+
+/**
+ * Capability probes retry once: a single heavyweight rish spawn can fail
+ * transiently on a busy device, and treating that as "unsupported" would
+ * silently drop device actions.
+ */
+export const CAPABILITY_PROBE_ATTEMPTS = 2;
+
+/** Directory used for the on-device file channel. */
+export const DEFAULT_FILE_CHANNEL_DIR = '/data/local/tmp';
+
+/**
+ * Filesystem seam for the on-device file channel. Tests inject a fake so the
+ * transport stays device-free.
+ */
+export interface ShellFileIo {
+  read(filePath: string): Promise<Buffer>;
+  remove(filePath: string): Promise<void>;
+}
+
+const nodeFileIo: ShellFileIo = {
+  read: (filePath) => fs.promises.readFile(filePath),
+  remove: async (filePath) => {
+    try {
+      await fs.promises.unlink(filePath);
+    } catch {
+      // Best effort: a leaked transient file must never fail a screenshot.
+    }
+  },
+};
+
+/**
+ * Text form of a command result.
+ *
+ * rish is not reliable about stream placement: measured on Android 12 +
+ * Shizuku 13.6.0, `id -u` arrived on stderr with an empty stdout, while large
+ * outputs were split across both pipes. Small text commands therefore prefer
+ * stdout and fall back to stderr.
+ */
+function combinedOutputText(outcome: {
+  stdout: Buffer;
+  stderr: string;
+}): string {
+  const stdout = outcome.stdout.toString('utf8');
+  return stdout.trim() !== '' ? stdout : outcome.stderr;
+}
+
 export interface RishTransportOptions {
   /** Path of the `rish` script on the device. */
   rishPath?: string;
@@ -72,6 +133,19 @@ export interface RishTransportOptions {
   maxConcurrentCommands?: number;
   /** TTL of the `dumpsys display` cache; 0 disables caching. */
   displayCacheTtlMs?: number;
+  /**
+   * Environment variables removed before spawning rish. Defaults to
+   * {@link DEFAULT_UNSET_ENV}; pass `[]` to inherit the environment verbatim.
+   */
+  unsetEnv?: string[];
+  /**
+   * Directory for the on-device file channel (screenshots and large command
+   * output). Must be writable by the shell uid and readable by this process.
+   * Defaults to {@link DEFAULT_FILE_CHANNEL_DIR}.
+   */
+  fileChannelDir?: string;
+  /** Filesystem seam; tests inject a fake. */
+  fileIo?: ShellFileIo;
 }
 
 interface CommandOutcome {
@@ -95,6 +169,9 @@ export class RishTransport implements AndroidTransport {
   private readonly screenshotTimeoutMs: number;
   private readonly defaultDisplayId: number | undefined;
   private readonly displayCacheTtlMs: number;
+  private readonly unsetEnv: string[];
+  private readonly fileChannelDir: string;
+  private readonly fileIo: ShellFileIo;
 
   private capabilities?: AndroidCapabilities;
   private capabilitiesPromise?: Promise<AndroidCapabilities>;
@@ -114,6 +191,9 @@ export class RishTransport implements AndroidTransport {
     this.defaultDisplayId = options.displayId;
     this.displayCacheTtlMs =
       options.displayCacheTtlMs ?? DEFAULT_DISPLAY_CACHE_TTL_MS;
+    this.unsetEnv = options.unsetEnv ?? DEFAULT_UNSET_ENV;
+    this.fileChannelDir = options.fileChannelDir ?? DEFAULT_FILE_CHANNEL_DIR;
+    this.fileIo = options.fileIo ?? nodeFileIo;
     this.semaphore = new Semaphore(
       options.maxConcurrentCommands ?? DEFAULT_MAX_CONCURRENT_COMMANDS,
     );
@@ -142,14 +222,20 @@ export class RishTransport implements AndroidTransport {
     return this.capabilities;
   }
 
+  /**
+   * Probe capabilities one command at a time.
+   *
+   * Each rish call starts a fresh `app_process` (measured 0.4–1.8s on a 2-core
+   * Android 12 emulator). Running the probes in parallel produced *transient*
+   * failures on device — `command -v input` exited non-zero while the same
+   * command succeeded standalone, which silently produced an empty action
+   * space. Sequential probing plus one retry is the reliable behaviour.
+   */
   private async probeCapabilities(): Promise<AndroidCapabilities> {
     const uid = await this.probeUid();
-
-    const [screenshot, input, appManagement] = await Promise.all([
-      this.probeCommand('screencap'),
-      this.probeCommand('input'),
-      this.probeCommand('am'),
-    ]);
+    const screenshot = await this.probeCommand('screencap');
+    const input = await this.probeCommand('input');
+    const appManagement = await this.probeCommand('am');
 
     let multiDisplay = false;
     try {
@@ -184,42 +270,79 @@ export class RishTransport implements AndroidTransport {
   }
 
   private async probeUid(): Promise<number> {
-    const outcome = await this.execute('id -u', {
-      timeoutMs: this.defaultTimeoutMs,
-    });
+    let lastOutcome: CommandOutcome | undefined;
+    let lastError: unknown;
 
-    const uid = Number.parseInt(outcome.stdout.toString('utf8').trim(), 10);
-    if (outcome.exitCode !== 0 || !Number.isFinite(uid)) {
-      throw new AndroidTransportError(
-        'Unable to determine the uid of the rish shell channel',
-        {
-          code: 'ServiceUnavailable',
-          backend: this.backend,
-          command: outcome.command,
-          exitCode: outcome.exitCode,
-          stdout: outcome.stdout.toString('utf8'),
-          stderr: outcome.stderr,
-        },
-      );
+    for (let attempt = 1; attempt <= CAPABILITY_PROBE_ATTEMPTS; attempt += 1) {
+      try {
+        const outcome = await this.execute('id -u', {
+          timeoutMs: this.defaultTimeoutMs,
+        });
+        lastOutcome = outcome;
+
+        const uid = Number.parseInt(combinedOutputText(outcome).trim(), 10);
+        if (outcome.exitCode === 0 && Number.isFinite(uid)) {
+          return uid;
+        }
+
+        debugRish(
+          `id -u attempt ${attempt} returned exit=${outcome.exitCode} output=${JSON.stringify(
+            combinedOutputText(outcome),
+          )}`,
+        );
+      } catch (error) {
+        lastError = error;
+        debugRish(
+          `id -u attempt ${attempt} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
     }
 
-    return uid;
+    throw new AndroidTransportError(
+      'Unable to determine the uid of the rish shell channel',
+      {
+        code: 'ServiceUnavailable',
+        backend: this.backend,
+        command: lastOutcome?.command ?? 'id -u',
+        exitCode: lastOutcome?.exitCode,
+        stdout: lastOutcome?.stdout.toString('utf8'),
+        stderr: lastOutcome?.stderr,
+        cause: lastError,
+      },
+    );
   }
 
   private async probeCommand(name: string): Promise<boolean> {
-    try {
-      const outcome = await this.execute(`command -v ${name}`, {
-        timeoutMs: this.defaultTimeoutMs,
-      });
-      return outcome.exitCode === 0 && outcome.stdout.length > 0;
-    } catch (error) {
-      debugRish(
-        `probe for "${name}" failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      return false;
+    for (let attempt = 1; attempt <= CAPABILITY_PROBE_ATTEMPTS; attempt += 1) {
+      try {
+        const outcome = await this.execute(`command -v ${name}`, {
+          timeoutMs: this.defaultTimeoutMs,
+        });
+
+        if (
+          outcome.exitCode === 0 &&
+          combinedOutputText(outcome).trim() !== ''
+        ) {
+          return true;
+        }
+
+        debugRish(
+          `probe for "${name}" attempt ${attempt} returned exit=${outcome.exitCode} output=${JSON.stringify(
+            combinedOutputText(outcome),
+          )}`,
+        );
+      } catch (error) {
+        debugRish(
+          `probe for "${name}" attempt ${attempt} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
     }
+
+    return false;
   }
 
   async healthCheck(): Promise<TransportHealth> {
@@ -272,6 +395,17 @@ export class RishTransport implements AndroidTransport {
   // screen
   // ---------------------------------------------------------------------------
 
+  /**
+   * Capture a screenshot through the on-device file channel.
+   *
+   * rish cannot carry large payloads: measured on Android 12 + Shizuku 13.6.0,
+   * a 674KB PNG came back split across the stdout AND stderr pipes (346KB +
+   * 328KB), so any pipe-based scheme silently truncates the image. Because the
+   * agent runs *on the device*, the shell writes the file and this process reads
+   * it directly — that is the advantage of local execution over adb.
+   *
+   * The file is transient: it is removed as soon as it has been read.
+   */
   async screenshot(options: ScreenshotOptions = {}): Promise<Buffer> {
     this.assertOpen();
     const displayId = options.displayId ?? this.defaultDisplayId;
@@ -281,26 +415,18 @@ export class RishTransport implements AndroidTransport {
 
     let firstFailure: string | undefined;
 
-    // Preferred path: `screencap -p` piped through base64, so no temp file is
-    // written and the payload survives the shell channel intact.
     try {
-      const outcome = await this.execute(
-        `screencap -p${displayArg} | base64 -w0`,
-        { timeoutMs },
-      );
+      const result = await this.runToFile(`screencap -p${displayArg}`, {
+        timeoutMs,
+        suffix: '.png',
+        writeMode: 'argument',
+      });
 
-      if (outcome.exitCode === 0) {
-        const buffer = Buffer.from(
-          outcome.stdout.toString('utf8').replace(/\s+/g, ''),
-          'base64',
-        );
-        if (isImageBuffer(buffer)) {
-          return buffer;
-        }
-        firstFailure = `screencap produced ${buffer.length} bytes without a PNG/JPEG header`;
-      } else {
-        firstFailure = `screencap exited with ${outcome.exitCode}: ${outcome.stderr.trim()}`;
+      if (isImageBuffer(result.buffer)) {
+        return result.buffer;
       }
+
+      firstFailure = `screencap wrote ${result.buffer.length} bytes without a PNG/JPEG header`;
     } catch (error) {
       if (error instanceof AndroidTransportError && error.code === 'Timeout') {
         throw error;
@@ -309,37 +435,45 @@ export class RishTransport implements AndroidTransport {
     }
 
     debugRish(
-      `base64 screenshot path failed (${firstFailure}); retrying with a binary pipe`,
+      `file-channel screenshot failed (${firstFailure}); falling back to the rish pipe`,
     );
 
-    // Fallback: read the PNG straight from stdout as bytes.
+    // Fallback for devices where the file channel is unavailable. Pipes can be
+    // truncated by rish, so this is best-effort only.
     try {
-      const outcome = await this.execute(`screencap -p${displayArg}`, {
-        timeoutMs,
-      });
-
-      if (outcome.exitCode === 0 && isImageBuffer(outcome.stdout)) {
-        return outcome.stdout;
-      }
-
-      throw new AndroidTransportError(
-        `Unable to capture a screenshot (${firstFailure}; binary pipe exited with ${outcome.exitCode})`,
-        {
-          code: 'ScreenshotFailed',
-          backend: this.backend,
-          command: outcome.command,
-          exitCode: outcome.exitCode,
-          stderr: outcome.stderr || firstFailure,
-        },
+      const outcome = await this.execute(
+        `screencap -p${displayArg} | base64 -w0`,
+        { timeoutMs },
       );
+
+      if (outcome.exitCode === 0) {
+        const buffer = Buffer.from(
+          combinedOutputText(outcome).replace(/\s+/g, ''),
+          'base64',
+        );
+        if (isImageBuffer(buffer)) {
+          return buffer;
+        }
+        firstFailure = `${firstFailure}; pipe produced ${buffer.length} bytes without an image header`;
+      }
     } catch (error) {
-      throw toAndroidTransportError(error, {
+      if (error instanceof AndroidTransportError && error.code === 'Timeout') {
+        throw error;
+      }
+      firstFailure = `${firstFailure}; ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+    }
+
+    throw new AndroidTransportError(
+      `Unable to capture a screenshot: ${firstFailure}`,
+      {
         code: 'ScreenshotFailed',
         backend: this.backend,
-        message: 'Unable to capture a screenshot',
+        command: `screencap -p${displayArg}`,
         timeoutMs,
-      });
-    }
+      },
+    );
   }
 
   async listDisplays(): Promise<DisplayInfo[]> {
@@ -354,26 +488,24 @@ export class RishTransport implements AndroidTransport {
       return this.displayCache.displays;
     }
 
-    const [displayOutcome, sizeOutcome, densityOutcome] = await Promise.all([
-      this.execute('dumpsys display', { timeoutMs: this.defaultTimeoutMs }),
-      this.execute('wm size', { timeoutMs: this.defaultTimeoutMs }),
-      this.execute('wm density', { timeoutMs: this.defaultTimeoutMs }),
-    ]);
-
-    if (displayOutcome.exitCode !== 0) {
-      throw new AndroidTransportError('Unable to read display information', {
-        code: 'CommandFailed',
-        backend: this.backend,
-        command: displayOutcome.command,
-        exitCode: displayOutcome.exitCode,
-        stderr: displayOutcome.stderr,
-      });
-    }
+    // Sequential on purpose: three concurrent `app_process` spawns compete for
+    // the device CPU and can fail transiently (see `probeCapabilities`). The
+    // dump is read through the file channel because rish splits large payloads
+    // across its two pipes.
+    const dumpsysDisplay = await this.runShellToTextFile('dumpsys display', {
+      timeoutMs: this.defaultTimeoutMs,
+    });
+    const wmSizeOutcome = await this.execute('wm size', {
+      timeoutMs: this.defaultTimeoutMs,
+    });
+    const wmDensityOutcome = await this.execute('wm density', {
+      timeoutMs: this.defaultTimeoutMs,
+    });
 
     const displays = parseDisplays({
-      dumpsysDisplay: displayOutcome.stdout.toString('utf8'),
-      wmSize: sizeOutcome.stdout.toString('utf8'),
-      wmDensity: densityOutcome.stdout.toString('utf8'),
+      dumpsysDisplay,
+      wmSize: combinedOutputText(wmSizeOutcome),
+      wmDensity: combinedOutputText(wmDensityOutcome),
     });
 
     if (displays.length === 0) {
@@ -382,8 +514,8 @@ export class RishTransport implements AndroidTransport {
         {
           code: 'CommandFailed',
           backend: this.backend,
-          command: displayOutcome.command,
-          stdout: displayOutcome.stdout.toString('utf8').slice(0, 500),
+          command: 'dumpsys display',
+          stdout: dumpsysDisplay.slice(0, 500),
         },
       );
     }
@@ -593,6 +725,14 @@ export class RishTransport implements AndroidTransport {
   // shell
   // ---------------------------------------------------------------------------
 
+  /**
+   * Run an arbitrary shell command.
+   *
+   * `stdout` prefers the stdout stream but falls back to stderr: rish may route
+   * a command's output to either pipe (measured — `id -u` arrived on stderr).
+   * For payloads larger than a few KB use the file channel based commands
+   * instead; rish splits big outputs across both pipes.
+   */
   async runShell(
     command: string,
     options: ShellOptions = {},
@@ -607,7 +747,7 @@ export class RishTransport implements AndroidTransport {
     return {
       stdout: options.binary
         ? outcome.stdout.toString('base64')
-        : outcome.stdout.toString('utf8'),
+        : combinedOutputText(outcome),
       stderr: outcome.stderr,
       exitCode: outcome.exitCode,
     };
@@ -643,6 +783,75 @@ export class RishTransport implements AndroidTransport {
       : [this.rishPath, ...this.rishArgs, command];
   }
 
+  /**
+   * Run a command whose stdout must survive intact by writing it to an
+   * on-device file and reading that file from this (on-device) process.
+   *
+   * `writeMode: 'argument'` appends the path as the final argument (commands
+   * like `screencap` write the file themselves); `'redirect'` wraps the command
+   * in a shell redirection.
+   */
+  private async runToFile(
+    command: string,
+    options: {
+      timeoutMs?: number;
+      suffix?: string;
+      writeMode: 'argument' | 'redirect';
+    },
+  ): Promise<{ filePath: string; buffer: Buffer }> {
+    const filePath = path.posix.join(
+      this.fileChannelDir,
+      `midscene-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${options.suffix ?? '.out'}`,
+    );
+    const fullCommand =
+      options.writeMode === 'argument'
+        ? `${command} ${quoteShellArg(filePath)}`
+        : `${command} > ${quoteShellArg(filePath)}`;
+
+    try {
+      const outcome = await this.execute(fullCommand, {
+        timeoutMs: options.timeoutMs,
+      });
+
+      if (outcome.exitCode !== 0) {
+        const detail = combinedOutputText(outcome).trim();
+        throw new AndroidTransportError(
+          `Command failed while writing to the file channel (exit ${outcome.exitCode})${
+            detail ? `: ${detail}` : ''
+          }`,
+          {
+            code: 'CommandFailed',
+            backend: this.backend,
+            command: fullCommand,
+            exitCode: outcome.exitCode,
+            stderr: detail,
+          },
+        );
+      }
+
+      return { filePath, buffer: await this.fileIo.read(filePath) };
+    } finally {
+      await this.fileIo.remove(filePath);
+    }
+  }
+
+  /**
+   * Text output of a command whose payload may exceed the rish pipe limits
+   * (for example `dumpsys display`, ~21KB).
+   */
+  private async runShellToTextFile(
+    command: string,
+    options: { timeoutMs?: number } = {},
+  ): Promise<string> {
+    const { buffer } = await this.runToFile(command, {
+      timeoutMs: options.timeoutMs,
+      suffix: '.txt',
+      writeMode: 'redirect',
+    });
+
+    return buffer.toString('utf8');
+  }
+
   private async execute(
     command: string,
     options: { timeoutMs?: number } = {},
@@ -650,6 +859,7 @@ export class RishTransport implements AndroidTransport {
     const argv = this.buildArgv(command);
     const runnerOptions: CommandRunnerOptions = {
       timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+      unsetEnv: this.unsetEnv,
     };
 
     return await this.semaphore.run(async () => {

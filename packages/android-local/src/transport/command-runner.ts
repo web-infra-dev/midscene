@@ -63,6 +63,17 @@ export interface CommandRunnerOptions {
   timeoutMs?: number;
   cwd?: string;
   env?: Record<string, string | undefined>;
+  /**
+   * Environment variables to REMOVE from the child environment, applied after
+   * `env` is merged.
+   *
+   * Needed on device: a terminal runtime (Termux) exports
+   * `LD_LIBRARY_PATH=$PREFIX/lib`, and a `rish` process inheriting it makes the
+   * launched `app_process` resolve the terminal's libraries instead of the
+   * system ones, failing with
+   * `cannot locate symbol ... referenced by /system/lib64/libunwindstack.so`.
+   */
+  unsetEnv?: string[];
   maxStdoutBytes?: number;
 }
 
@@ -100,6 +111,7 @@ export class NodeCommandRunner implements CommandRunner {
       timeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
       cwd,
       env,
+      unsetEnv,
       maxStdoutBytes = DEFAULT_MAX_STDOUT_BYTES,
     } = options;
 
@@ -109,6 +121,11 @@ export class NodeCommandRunner implements CommandRunner {
         argv,
         durationMs: 0,
       });
+    }
+
+    const childEnv: NodeJS.ProcessEnv = { ...process.env, ...env };
+    for (const key of unsetEnv ?? []) {
+      delete childEnv[key];
     }
 
     return await new Promise<CommandRunnerResult>((resolve, reject) => {
@@ -122,7 +139,7 @@ export class NodeCommandRunner implements CommandRunner {
 
       const child = spawn(argv[0] as string, argv.slice(1), {
         cwd,
-        env: env ? { ...process.env, ...env } : process.env,
+        env: childEnv,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
