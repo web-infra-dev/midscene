@@ -195,6 +195,134 @@ async function readForegroundPackage(
   }
 }
 
+interface LocatedRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  centerX?: number;
+  centerY?: number;
+}
+
+/**
+ * Walk the dump for element rectangles, newest last.
+ *
+ * The dump shape evolves, so this looks for the fields rather than a fixed path: any
+ * object carrying x/y plus width/height (or w/h, or left/top/right/bottom) counts, as
+ * does a [x, y] centre.
+ */
+function collectRects(node: unknown, found: LocatedRect[] = []): LocatedRect[] {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      collectRects(item, found);
+    }
+    return found;
+  }
+  if (!node || typeof node !== 'object') {
+    return found;
+  }
+
+  const record = node as Record<string, unknown>;
+  const number = (value: unknown): number | undefined =>
+    typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+  const x = number(record.x) ?? number(record.left);
+  const y = number(record.y) ?? number(record.top);
+  const w =
+    number(record.width) ??
+    number(record.w) ??
+    (number(record.right) !== undefined && x !== undefined
+      ? (number(record.right) as number) - x
+      : undefined);
+  const h =
+    number(record.height) ??
+    number(record.h) ??
+    (number(record.bottom) !== undefined && y !== undefined
+      ? (number(record.bottom) as number) - y
+      : undefined);
+
+  const center = Array.isArray(record.center) ? record.center : undefined;
+  const centerX = center ? number(center[0]) : undefined;
+  const centerY = center ? number(center[1]) : undefined;
+
+  if (
+    x !== undefined &&
+    y !== undefined &&
+    w !== undefined &&
+    h !== undefined &&
+    w > 0 &&
+    h > 0
+  ) {
+    found.push({ x, y, w, h, centerX, centerY });
+  } else if (centerX !== undefined && centerY !== undefined) {
+    found.push({ x: centerX, y: centerY, w: 0, h: 0, centerX, centerY });
+  }
+
+  for (const value of Object.values(record)) {
+    collectRects(value, found);
+  }
+  return found;
+}
+
+/**
+ * Report the located element to the host.
+ *
+ * Coordinates live in the screenshot the model saw, which Midscene scales by
+ * `screenshotShrinkFactor`, so they are divided back into screen pixels here (the
+ * transport owns the screen geometry; this keeps the mapping next to the config that
+ * caused it).
+ */
+function attachLocationReporting(
+  agent: { onDumpUpdate?: unknown },
+  shrinkFactor: number | undefined,
+  onEvent: ((event: { type: string; message: string }) => void) | undefined,
+): void {
+  const shrink = shrinkFactor && shrinkFactor > 0 ? shrinkFactor : 1;
+  let lastKey = '';
+
+  try {
+    agent.onDumpUpdate = (dump: unknown) => {
+      const rects = collectRects(dump).filter(
+        (rect) => rect.w > 0 && rect.h > 0,
+      );
+      const latest = rects[rects.length - 1];
+      if (!latest) {
+        return;
+      }
+
+      const key = `${latest.x},${latest.y},${latest.w},${latest.h}`;
+      if (key === lastKey) {
+        return;
+      }
+      lastKey = key;
+
+      const scale = (value: number) => Math.round(value / shrink);
+      emitEvent(onEvent, {
+        event: 'locate',
+        rect: {
+          x: scale(latest.x),
+          y: scale(latest.y),
+          w: scale(latest.w),
+          h: scale(latest.h),
+        },
+        screenshot: { x: latest.x, y: latest.y, w: latest.w, h: latest.h },
+        shrink,
+      });
+      if (latest.centerX !== undefined && latest.centerY !== undefined) {
+        emitEvent(onEvent, {
+          event: 'tap',
+          x: scale(latest.centerX),
+          y: scale(latest.centerY),
+        });
+      }
+    };
+  } catch (error) {
+    debugRunner(
+      `location reporting unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 /** Prompt text of a task, used by the overlay to describe the current step. */
 function promptOf(task: LocalAgentTask): string {
   const candidate = task as { prompt?: unknown; script?: unknown };
@@ -316,6 +444,14 @@ export async function runLocalAgentConfig(
 
   const agent = agentFactory(device, config);
   const taskResults: LocalAgentTaskResult[] = [];
+
+  // Feed the host's overlay: every dump update carries the element the agent just
+  // located, which is what the dashed box and the tap ripple visualise.
+  attachLocationReporting(
+    agent,
+    config.agent.screenshotShrinkFactor,
+    options.onEvent,
+  );
 
   emitEvent(options.onEvent, {
     event: 'run.start',
