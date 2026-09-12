@@ -875,7 +875,7 @@ private fun RunDetailPane(
     reportView: MutableState<WebView?>,
     onDelete: () -> Unit,
 ) {
-    var reportReady by remember { mutableStateOf(false) }
+    var reportReady by remember(record.id) { mutableStateOf(false) }
     val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
     var showReport by remember(record.id) { mutableStateOf(hasReport) }
 
@@ -974,23 +974,30 @@ private fun EmbeddedReport(
                 FrameLayout(context).apply {
                     val web = holder.value ?: WebView(context).apply {
                         setBackgroundColor(android.graphics.Color.WHITE)
-                        webViewClient = object : android.webkit.WebViewClient() {
-                            private val startedAt = System.currentTimeMillis()
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                android.util.Log.i(
-                                    "MidsceneReport",
-                                    "report ready in ${System.currentTimeMillis() - startedAt} ms",
-                                )
-                                onReady()
-                            }
-                        }
                         settings.javaScriptEnabled = true
                         settings.allowFileAccess = true
                         settings.allowFileAccessFromFileURLs = true
                         settings.allowUniversalAccessFromFileURLs = true
                         settings.domStorageEnabled = true
                     }
+                    // Switching reports disposes the previous container: the WebView may
+                    // still be attached to it, and adding a parented child throws.
+                    (web.parent as? android.view.ViewGroup)?.removeView(web)
                     holder.value = web
+                    val url = "file://$path"
+                    // Re-bound on every entry: a client captured at creation reports to
+                    // the composition that built it, so later selections never heard
+                    // that their report had finished and kept the loading state up.
+                    web.webViewClient = object : android.webkit.WebViewClient() {
+                        private val startedAt = System.currentTimeMillis()
+                        override fun onPageFinished(view: WebView?, finishedUrl: String?) {
+                            android.util.Log.i(
+                                "MidsceneReport",
+                                "report ready in ${System.currentTimeMillis() - startedAt} ms",
+                            )
+                            onReady()
+                        }
+                    }
                     addView(
                         web,
                         FrameLayout.LayoutParams(
@@ -998,10 +1005,10 @@ private fun EmbeddedReport(
                             FrameLayout.LayoutParams.MATCH_PARENT,
                         ),
                     )
-                    val url = "file://$path"
                     if (web.url != url) {
                         web.loadUrl(url)
                     } else {
+                        // Already showing this report (it is cached): no reload.
                         onReady()
                     }
                 }
