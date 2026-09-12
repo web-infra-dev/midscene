@@ -211,6 +211,31 @@ interface LocatedRect {
  * object carrying x/y plus width/height (or w/h, or left/top/right/bottom) counts, as
  * does a [x, y] centre.
  */
+/**
+ * Copy a live object tree into plain objects.
+ *
+ * The runtime dump holds class instances whose geometry sits behind prototype
+ * getters, which `Object.values` never sees; `for...in` walks those, and the depth
+ * cap keeps a cyclic or very deep tree from exploding.
+ */
+function toPlain(node: unknown, depth = 0): unknown {
+  if (depth > 9 || node === null || typeof node !== 'object') {
+    return node;
+  }
+  if (Array.isArray(node)) {
+    return node.map((item) => toPlain(item, depth + 1));
+  }
+  const out: Record<string, unknown> = {};
+  for (const key in node as Record<string, unknown>) {
+    try {
+      out[key] = toPlain((node as Record<string, unknown>)[key], depth + 1);
+    } catch {
+      // a throwing getter is not worth failing the run over
+    }
+  }
+  return out;
+}
+
 function collectRects(node: unknown, found: LocatedRect[] = []): LocatedRect[] {
   if (Array.isArray(node)) {
     for (const item of node) {
@@ -279,10 +304,30 @@ function attachLocationReporting(
 ): void {
   const shrink = shrinkFactor && shrinkFactor > 0 ? shrinkFactor : 1;
   let lastKey = '';
+  let dumpCount = 0;
 
   try {
-    agent.onDumpUpdate = (dump: unknown) => {
-      const rects = collectRects(dump).filter(
+    // The signature is (tag: string, executionDump?: ExecutionDump): the tree is the
+    // second argument, the first is a label. Walking the label found nothing but the
+    // character indices of a string.
+    agent.onDumpUpdate = (_tag: string, executionDump?: unknown) => {
+      const tree = executionDump;
+      if (!tree) {
+        return;
+      }
+      dumpCount += 1;
+      if (dumpCount <= 2) {
+        const rects = collectRects(toPlain(tree));
+        process.stdout.write(
+          `[event] ${JSON.stringify({
+            event: 'debug.dump',
+            n: dumpCount,
+            rects: rects.length,
+            sample: rects.slice(-1),
+          })}\n`,
+        );
+      }
+      const rects = collectRects(toPlain(tree)).filter(
         (rect) => rect.w > 0 && rect.h > 0,
       );
       const latest = rects[rects.length - 1];
