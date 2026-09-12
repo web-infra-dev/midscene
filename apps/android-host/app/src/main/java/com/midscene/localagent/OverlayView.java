@@ -63,6 +63,7 @@ public final class OverlayView {
     private static boolean showBox = true;
     private static boolean showRipple = true;
     private static boolean demoMode;
+    private static boolean clearSystemBars;
     private static long boxUntil;
     private static RectF boxRect;
     private static float rippleX = -1;
@@ -80,12 +81,14 @@ public final class OverlayView {
             boolean edge,
             boolean box,
             boolean ripple,
-            boolean demo) {
+            boolean demo,
+            boolean clearBars) {
         showBar = bar;
         showEdge = edge;
         showBox = box;
         showRipple = ripple;
         demoMode = demo;
+        clearSystemBars = clearBars;
         if (pill != null) {
             pill.invalidateVisuals();
         }
@@ -542,14 +545,20 @@ public final class OverlayView {
                 return;
             }
             float stroke = (demoMode ? 9f : 5.5f) * density;
-            float radius = 26 * density;
 
-            // The path sits half a stroke from the edge, so the painted band starts
-            // exactly at the screen border instead of leaving a gutter.
-            float edge = stroke / 2f + 0.5f * density;
-            RectF frame = new RectF(edge, edge, width - edge, height - edge);
+            // Follow the screen edge exactly: sharp corners, and the path half a
+            // stroke in so the painted band starts at the border.
+            float edge = stroke / 2f;
+            // An application overlay is always composited below the system bars and the
+            // taskbar, so on devices where that matters the beam can be pulled inside
+            // them instead (the painted band then stops at their edge).
+            float bottomEdge = clearSystemBars
+                    ? edge + systemInsetBottom
+                    : edge;
+            float topEdge = clearSystemBars ? edge + systemInsetTop : edge;
+            RectF frame = new RectF(edge, topEdge, width - edge, height - bottomEdge);
             Path path = new Path();
-            path.addRoundRect(frame, radius, radius, Path.Direction.CW);
+            path.addRect(frame, Path.Direction.CW);
             PathMeasure measure = new PathMeasure(path, false);
             float length = measure.getLength();
             if (length <= 0) {
@@ -588,7 +597,9 @@ public final class OverlayView {
 
                 float fade = 1f - (float) i / segments;
                 int alpha = Math.round(255 * fade * (demoMode ? 1f : 0.9f));
-                paint.setStrokeWidth(stroke * (0.35f + 0.65f * fade));
+                // Constant width: a thinner tail segment sits further from the edge and
+                // reads as a gap.
+                paint.setStrokeWidth(stroke);
                 paint.setColor((BEAM_COLOR & 0x00FFFFFF) | (alpha << 24));
                 canvas.drawPath(piece, paint);
             }

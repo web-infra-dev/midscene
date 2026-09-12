@@ -1236,6 +1236,11 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             OverlaySwitch("Element box", "Dashed box around the element the agent located", "showElementBox")
             OverlaySwitch("Tap ripple", "A ring where the agent taps", "showTapRipple")
             OverlaySwitch("Demo mode", "Louder animations, for showing the agent off", "demoMode")
+            OverlaySwitch(
+                "Clear of system bars",
+                "Pull the border inside the dock and status bar (an app overlay cannot draw above them)",
+                "clearSystemBars",
+            )
         }
 
         DiagnosticsCard("MODEL CREDENTIALS") {

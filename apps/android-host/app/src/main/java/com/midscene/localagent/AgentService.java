@@ -541,7 +541,8 @@ public class AgentService extends Service {
                 prefs().getBoolean("showEdgeGlow", true),
                 prefs().getBoolean("showElementBox", true),
                 prefs().getBoolean("showTapRipple", true),
-                prefs().getBoolean("demoMode", false));
+                prefs().getBoolean("demoMode", false),
+                prefs().getBoolean("clearSystemBars", true));
         phase = "";
         stepIndex = 0;
         stepTotal = 0;
