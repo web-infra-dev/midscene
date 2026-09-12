@@ -236,6 +236,37 @@ function toPlain(node: unknown, depth = 0): unknown {
   return out;
 }
 
+/** [x, y] points published as `point`, `center` or `coordinates`. */
+function collectPoints(
+  node: unknown,
+  found: Array<[number, number]> = [],
+): Array<[number, number]> {
+  if (Array.isArray(node)) {
+    const numbers = node.filter(
+      (item): item is number => typeof item === 'number',
+    );
+    if (
+      node.length === numbers.length &&
+      node.length >= 2 &&
+      node.length <= 4
+    ) {
+      found.push([numbers[0], numbers[1]]);
+      return found;
+    }
+    for (const item of node) {
+      collectPoints(item, found);
+    }
+    return found;
+  }
+  if (!node || typeof node !== 'object') {
+    return found;
+  }
+  for (const value of Object.values(node as Record<string, unknown>)) {
+    collectPoints(value, found);
+  }
+  return found;
+}
+
 function collectRects(node: unknown, found: LocatedRect[] = []): LocatedRect[] {
   if (Array.isArray(node)) {
     for (const item of node) {
@@ -298,7 +329,7 @@ function collectRects(node: unknown, found: LocatedRect[] = []): LocatedRect[] {
  * caused it).
  */
 function attachLocationReporting(
-  agent: { onDumpUpdate?: unknown },
+  agent: { onDumpUpdate?: unknown; addProgressListener?: unknown },
   shrinkFactor: number | undefined,
   onEvent: ((event: { type: string; message: string }) => void) | undefined,
 ): void {
