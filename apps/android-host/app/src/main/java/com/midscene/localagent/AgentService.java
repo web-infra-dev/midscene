@@ -55,6 +55,14 @@ public class AgentService extends Service {
     public static volatile String currentTask = "";
     public static volatile long runStartedAt;
     public static volatile String lastMessage = "";
+    // ---- live progress, fed by the runner's structured `[event] {json}` lines ----
+    private static volatile String phase = "";
+    private static volatile int stepIndex = 0;
+    private static volatile int stepTotal = 0;
+    private static volatile String stepPrompt = "";
+    private static volatile long runStartedAtMs = 0;
+    private static volatile long stepStartedAtMs = 0;
+
     /** Set from onCreate so log lines can drive the floating progress pill. */
     private static Context overlayContext;
     /** Overwritten from onCreate with the app's private run directory. */
@@ -107,7 +115,13 @@ public class AgentService extends Service {
     private static void emit(String line) {
         lastMessage = line;
         persistServiceLog(line);
-        if (overlayContext != null) {
+
+        if (line != null && line.startsWith("[event] ")) {
+            applyProgressEvent(line.substring("[event] ".length()));
+            return;
+        }
+
+        if (overlayContext != null && phase.isEmpty()) {
             OverlayView.post(() -> OverlayView.update(OverlayView.summarize(line)));
         }
         synchronized (LOG_BUFFER) {
@@ -121,6 +135,71 @@ public class AgentService extends Service {
                 listener.onLog(line);
             }
         }
+    }
+
+    /**
+     * Turn one structured event into the pill's three lines: what the agent is
+     * doing, which step, and how long it has been at it.
+     */
+    private static void applyProgressEvent(String json) {
+        try {
+            JSONObject event = new JSONObject(json);
+            String name = event.optString("event", "");
+            switch (name) {
+                case "run.start":
+                    runStartedAtMs = event.optLong("startedAt", System.currentTimeMillis());
+                    stepTotal = event.optInt("total", 0);
+                    stepIndex = 0;
+                    phase = "starting";
+                    break;
+                case "step.start":
+                    phase = event.optString("phase", "acting");
+                    stepIndex = event.optInt("index", 0);
+                    stepTotal = event.optInt("total", stepTotal);
+                    stepPrompt = event.optString("prompt", event.optString("name", ""));
+                    stepStartedAtMs = event.optLong("startedAt", System.currentTimeMillis());
+                    break;
+                case "step.end":
+                    phase = "ok".equals(event.optString("status")) ? "step done" : "step failed";
+                    break;
+                case "run.end":
+                    phase = "ok".equals(event.optString("status")) ? "done" : "failed";
+                    break;
+                default:
+                    return;
+            }
+        } catch (JSONException error) {
+            return;
+        }
+
+        if (overlayContext == null) {
+            return;
+        }
+        OverlayView.post(() -> OverlayView.updateProgress(progressLines()));
+    }
+
+    /**
+     * Bar slots, left to right: phase, step counter, current step, timings.
+     */
+    private static String[] progressLines() {
+        long now = System.currentTimeMillis();
+        String chip = stepTotal > 0 ? Math.max(stepIndex, 1) + "/" + stepTotal : "";
+        String detail = stepPrompt.isEmpty() ? lastMessage : stepPrompt;
+        String metrics = "";
+        if (stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase)) {
+            metrics = formatDuration(now - stepStartedAtMs);
+            if (runStartedAtMs > 0) {
+                metrics = metrics + " · " + formatDuration(now - runStartedAtMs);
+            }
+        }
+        return new String[] { phase.isEmpty() ? "working" : phase, chip, detail, metrics };
+    }
+
+    private static String formatDuration(long millis) {
+        long seconds = millis / 1000;
+        return seconds < 60
+                ? seconds + "s"
+                : String.format(java.util.Locale.US, "%d:%02d", seconds / 60, seconds % 60);
     }
 
     /** Service-level log, kept next to the run logs for post-mortem reading. */
@@ -392,6 +471,12 @@ public class AgentService extends Service {
 
         state = stateLabel;
         final String runKind = stateLabel;
+        phase = "";
+        stepIndex = 0;
+        stepTotal = 0;
+        stepPrompt = "";
+        runStartedAtMs = System.currentTimeMillis();
+        stepStartedAtMs = 0;
         clearBuffer();
         startOverlayKeepAlive();
         OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));

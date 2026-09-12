@@ -23,6 +23,22 @@ import type { AndroidTransport } from '../transport/types';
 
 const debugRunner = getDebug('android-local:runner');
 
+/**
+ * Structured progress events for the host app's overlay.
+ *
+ * They are printed as `[event] {json}` lines on the same stream as the human log,
+ * so a terminal shows both while the Android host can build a live state machine
+ * (phase, step index, timings) instead of parsing prose.
+ */
+function emitEvent(
+  onEvent: ((event: { type: string; message: string }) => void) | undefined,
+  payload: Record<string, unknown>,
+): void {
+  const line = `[event] ${JSON.stringify(payload)}`;
+  onEvent?.({ type: 'event', message: line });
+  process.stdout.write(`${line}\n`);
+}
+
 export interface LocalAgentTaskResult {
   name: string;
   type: LocalAgentTask['type'];
@@ -178,6 +194,18 @@ async function readForegroundPackage(
   }
 }
 
+/** Prompt text of a task, used by the overlay to describe the current step. */
+function promptOf(task: LocalAgentTask): string {
+  const candidate = task as { prompt?: unknown; script?: unknown };
+  if (typeof candidate.prompt === 'string') {
+    return candidate.prompt;
+  }
+  if (typeof candidate.script === 'string') {
+    return `script: ${candidate.script}`;
+  }
+  return task.name;
+}
+
 function applyModelConfig(config: LocalAgentConfig): void {
   const model = config.model;
   if (!model) {
@@ -288,26 +316,64 @@ export async function runLocalAgentConfig(
   const agent = agentFactory(device, config);
   const taskResults: LocalAgentTaskResult[] = [];
 
-  for (const task of config.tasks) {
+  emitEvent(options.onEvent, {
+    event: 'run.start',
+    name: config.name,
+    total: config.tasks.length,
+    startedAt,
+  });
+
+  for (let index = 0; index < config.tasks.length; index += 1) {
+    const task = config.tasks[index];
     const taskStartedAt = Date.now();
     options.onEvent?.({ type: 'task', message: `running ${task.name}` });
+    emitEvent(options.onEvent, {
+      event: 'step.start',
+      index: index + 1,
+      total: config.tasks.length,
+      name: task.name,
+      taskType: task.type,
+      // The phase a UI should show while this step runs: an assertion observes,
+      // everything else acts.
+      phase: task.type === 'aiAssert' ? 'asserting' : 'acting',
+      prompt: promptOf(task),
+      startedAt: taskStartedAt,
+    });
 
     try {
       const output = await runTask(agent, task, options.configPath);
+      const ms = Date.now() - taskStartedAt;
       taskResults.push({
         name: task.name,
         type: task.type,
         status: 'ok',
-        ms: Date.now() - taskStartedAt,
+        ms,
         output,
       });
+      emitEvent(options.onEvent, {
+        event: 'step.end',
+        index: index + 1,
+        total: config.tasks.length,
+        name: task.name,
+        status: 'ok',
+        ms,
+      });
     } catch (error) {
+      const ms = Date.now() - taskStartedAt;
       taskResults.push({
         name: task.name,
         type: task.type,
         status: 'error',
         ms: Date.now() - taskStartedAt,
         error: error instanceof Error ? error.message : String(error),
+      });
+      emitEvent(options.onEvent, {
+        event: 'step.end',
+        index: index + 1,
+        total: config.tasks.length,
+        name: task.name,
+        status: 'error',
+        ms,
       });
     }
   }
@@ -335,6 +401,14 @@ export async function runLocalAgentConfig(
     capabilities: capabilities as unknown as Record<string, unknown>,
     tasks: taskResults,
   };
+
+  emitEvent(options.onEvent, {
+    event: 'run.end',
+    name: config.name,
+    status: result.ok ? 'ok' : 'error',
+    ms: result.durationMs,
+    failed: taskResults.filter((task) => task.status !== 'ok').length,
+  });
 
   if (config.agent.generateReport) {
     result.reportFile = findNewestReport(config.agent.reportDir, startedAt);

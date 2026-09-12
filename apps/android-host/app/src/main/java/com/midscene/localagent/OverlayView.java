@@ -45,6 +45,7 @@ public final class OverlayView {
     private static final String TAG = "MidsceneOverlay";
     private static final int BG_COLOR = 0xE60D0D0D;
     private static final int DOT_COLOR = 0xFF1979FF;
+    private static final int CHIP_COLOR = 0xFF2F6FE4;
 
     private static WindowManager windowManager;
     private static PillView pill;
@@ -96,9 +97,10 @@ public final class OverlayView {
             }
 
             pill = new PillView(app);
+            int barHeight = Math.round(30 * app.getResources().getDisplayMetrics().density);
             params = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    barHeight,
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
@@ -106,11 +108,10 @@ public final class OverlayView {
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                     PixelFormat.TRANSLUCENT);
             params.gravity = Gravity.TOP | Gravity.START;
-            params.x = dp(app, 12);
-            // Just below the status bar: visible without covering the content a task
-            // usually needs (toolbars sit lower than this).
-            params.y = dp(app, 44);
-            pill.setOnTouchListener(new DragListener(app));
+            // Flush to the top edge and full width: a status bar for the agent, the
+            // way a system-level indicator reads.
+            params.x = 0;
+            params.y = 0;
 
             try {
                 windowManager.addView(pill, params);
@@ -125,10 +126,20 @@ public final class OverlayView {
     }
 
     public static synchronized void update(String text) {
-        lastText = text == null ? "" : text;
+        updateProgress(new String[] { text == null ? "" : text });
+    }
+
+    /**
+     * Bar contents, left to right: agent phase, step counter, current step text and
+     * timings (see AgentService for the state machine that fills them).
+     */
+    public static synchronized void updateProgress(String[] fields) {
+        if (fields == null || fields.length == 0) {
+            return;
+        }
+        lastText = fields[0];
         if (pill != null) {
-            pill.setText(lastText);
-            resizeToContent();
+            pill.setFields(fields);
         }
     }
 
@@ -158,7 +169,7 @@ public final class OverlayView {
             return;
         }
         lastText = text == null ? lastText : text;
-        pill.setText(lastText);
+        pill.setFields(new String[] { lastText });
         resizeToContent();
         applyVisibility();
     }
@@ -227,15 +238,20 @@ public final class OverlayView {
         new Handler(Looper.getMainLooper()).post(runnable);
     }
 
-    /** The pill itself: a rounded card with a status dot, drawn on its own surface. */
+    /** The bar: drawn on a surface we own so it can opt out of captures. */
     private static final class PillView extends SurfaceView implements SurfaceHolder.Callback {
         private final Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint chip = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint chipPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint detailPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint metricsPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         private final float density = getResources().getDisplayMetrics().density;
-        private String text = "";
-        private int measuredWidth;
-        private int measuredHeight;
+        private String phase = "";
+        private String stepChip = "";
+        private String detail = "";
+        private String metrics = "";
         private SurfaceControl surfaceControl;
         boolean hiddenFromCapture;
 
@@ -243,9 +259,16 @@ public final class OverlayView {
             super(context);
             background.setColor(BG_COLOR);
             dot.setColor(DOT_COLOR);
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(12f * density);
-            // A translucent, top-most surface: the window itself draws nothing.
+            chip.setColor(CHIP_COLOR);
+            titlePaint.setColor(Color.WHITE);
+            titlePaint.setTextSize(12f * density);
+            titlePaint.setFakeBoldText(true);
+            chipPaint.setColor(Color.WHITE);
+            chipPaint.setTextSize(10f * density);
+            detailPaint.setColor(0xFFE3E5E8);
+            detailPaint.setTextSize(11.5f * density);
+            metricsPaint.setColor(0xFF9DA0A1);
+            metricsPaint.setTextSize(11f * density);
             setZOrderOnTop(true);
             setZOrderMediaOverlay(true);
             getHolder().setFormat(PixelFormat.TRANSLUCENT);
@@ -253,44 +276,40 @@ public final class OverlayView {
             setWillNotDraw(true);
         }
 
-        void setText(String value) {
-            if (value.equals(text)) {
+        void setFields(String[] fields) {
+            String nextPhase = fields.length > 0 && fields[0] != null ? fields[0] : "";
+            String nextChip = fields.length > 1 && fields[1] != null ? fields[1] : "";
+            String nextDetail = fields.length > 2 && fields[2] != null ? fields[2] : "";
+            String nextMetrics = fields.length > 3 && fields[3] != null ? fields[3] : "";
+            if (nextPhase.equals(phase)
+                    && nextChip.equals(stepChip)
+                    && nextDetail.equals(detail)
+                    && nextMetrics.equals(metrics)) {
                 return;
             }
-            text = value;
-            measure();
+            phase = nextPhase;
+            stepChip = nextChip;
+            detail = nextDetail;
+            metrics = nextMetrics;
             render();
         }
 
         int measuredWidth() {
-            return measuredWidth;
+            return getWidth();
         }
 
         int measuredHeight() {
-            return measuredHeight;
+            return getHeight();
         }
 
-        private Layout layout() {
-            // Compact by design: the pill is a hint, not a log. Very long messages
-            // are ellipsised rather than stretching across the screen.
-            float screenCap = getResources().getDisplayMetrics().widthPixels - 72f * density;
-            int maxTextWidth = Math.round(Math.min(screenCap, 240f * density));
+        /** One line of text, ellipsised into the space the caller allows. */
+        private Layout fit(String value, TextPaint paint, int maxWidth) {
             return StaticLayout.Builder
-                    .obtain(text, 0, text.length(), textPaint, Math.max(maxTextWidth, 120))
+                    .obtain(value == null ? "" : value, 0, value == null ? 0 : value.length(),
+                            paint, Math.max(maxWidth, 40))
                     .setMaxLines(1)
                     .setEllipsize(TextUtils.TruncateAt.END)
-                    .setLineSpacing(0f, 1.1f)
                     .build();
-        }
-
-        private void measure() {
-            Layout layout = layout();
-            int padH = Math.round(10 * density);
-            int padV = Math.round(6 * density);
-            int dotSize = Math.round(7 * density);
-            int gap = Math.round(8 * density);
-            measuredWidth = padH * 2 + dotSize + gap + layout.getWidth();
-            measuredHeight = padV * 2 + Math.max(layout.getHeight(), dotSize);
         }
 
         private void render() {
@@ -304,22 +323,59 @@ public final class OverlayView {
             if (canvas == null) {
                 return;
             }
-            try {
-                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                float radius = measuredHeight / 2f;
-                canvas.drawRoundRect(
-                        new RectF(0, 0, measuredWidth, measuredHeight), radius, radius, background);
 
-                float padH = 10 * density;
+            try {
+                int width = getWidth();
+                int height = getHeight();
+                if (width <= 0 || height <= 0) {
+                    return;
+                }
+                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                canvas.drawRect(0, 0, width, height, background);
+
+                float pad = 12 * density;
                 float dotSize = 7 * density;
-                float top = (measuredHeight - dotSize) / 2f;
-                canvas.drawCircle(padH + dotSize / 2f, top + dotSize / 2f, dotSize / 2f, dot);
+                float centerY = height / 2f;
+                canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
+
+                float cursor = pad + dotSize + 8 * density;
+                canvas.save();
+                canvas.translate(cursor, centerY - titlePaint.getTextSize() * 0.72f);
+                fit(phase, titlePaint, Math.round(120 * density)).draw(canvas);
+                canvas.restore();
+                cursor += titlePaint.measureText(phase) + 10 * density;
+
+                if (!stepChip.isEmpty()) {
+                    float chipWidth = chipPaint.measureText(stepChip) + 12 * density;
+                    float chipHeight = 16 * density;
+                    RectF chipRect = new RectF(cursor, centerY - chipHeight / 2f,
+                            cursor + chipWidth, centerY + chipHeight / 2f);
+                    canvas.drawRoundRect(chipRect, chipHeight / 2f, chipHeight / 2f, chip);
+                    canvas.save();
+                    canvas.translate(cursor + 6 * density,
+                            centerY - (chipPaint.getFontMetrics().descent
+                                    - chipPaint.getFontMetrics().ascent) / 2f
+                                    - chipPaint.getFontMetrics().ascent + 1);
+                    canvas.drawText(stepChip, 0, 0, chipPaint);
+                    canvas.restore();
+                    cursor += chipWidth + 10 * density;
+                }
+
+                float metricsWidth = metrics.isEmpty() ? 0 : metricsPaint.measureText(metrics);
+                float metricsLeft = width - pad - metricsWidth;
+                float detailSpace = Math.max(metricsLeft - cursor - 12 * density, 60 * density);
 
                 canvas.save();
-                canvas.translate(padH + dotSize + 8 * density,
-                        (measuredHeight - layout().getHeight()) / 2f);
-                layout().draw(canvas);
+                canvas.translate(cursor, centerY - detailPaint.getTextSize() * 0.72f);
+                fit(detail, detailPaint, Math.round(detailSpace)).draw(canvas);
                 canvas.restore();
+
+                if (!metrics.isEmpty()) {
+                    canvas.save();
+                    canvas.translate(metricsLeft, centerY - metricsPaint.getTextSize() * 0.72f);
+                    canvas.drawText(metrics, 0, 0, metricsPaint);
+                    canvas.restore();
+                }
             } finally {
                 holder.unlockCanvasAndPost(canvas);
             }
@@ -341,8 +397,6 @@ public final class OverlayView {
 
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
-            // Entering some system screens (and low-memory reclaim) tears the surface
-            // down; remember that so refresh() can restore it.
             surfaceControl = null;
             Log.i(TAG, "surface destroyed");
         }
