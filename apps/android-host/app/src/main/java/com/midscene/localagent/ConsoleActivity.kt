@@ -1796,57 +1796,18 @@ agent:
   resetToHome: false
   reportDir: ./midscene_run/results
 tasks:
-  - name: 01-direct-app-and-keys
+  - name: 01-tab-tour-and-input
     type: yaml
     script: |
       tasks:
-        - name: direct-app-and-keys
+        - name: tab-tour-and-input
           flow:
-            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
-            - sleep: 800
-            - runAdbShell: "input keyevent KEYCODE_HOME"
-            - sleep: 600
-            - runAdbShell: "input keyevent KEYCODE_APP_SWITCH"
-            - sleep: 600
-            - runAdbShell: "input keyevent KEYCODE_BACK"
-            - sleep: 400
-            - runAdbShell: "dumpsys window | grep -m1 mCurrentFocus"
-  - name: 02-direct-settings-scroll-shot
-    type: yaml
-    script: |
-      tasks:
-        - name: direct-settings-scroll-shot
-          flow:
-            - runAdbShell: "am start -a android.settings.SETTINGS"
-            - sleep: 1500
-            - runAdbShell: "input swipe 1280 1400 1280 700 250"
-            - sleep: 800
-            - runAdbShell: "screencap -p /data/local/tmp/selfcheck.png"
-            - runAdbShell: "ls -l /data/local/tmp/selfcheck.png"
-  - name: 03-ui-tab-tour
-    type: yaml
-    script: |
-      tasks:
-        - name: tap-every-tab
-          flow:
-            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
-            - sleep: 1200
-            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏上的 Scripts）"
-            - sleep: 400
+            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏）"
             - aiTap: "History 标签"
-            - sleep: 400
             - aiTap: "Diagnostics 标签"
-            - sleep: 400
             - aiTap: "Settings 标签"
-            - sleep: 400
             - aiTap: "Run 标签"
-  - name: 04-ui-toggle-a-switch
-    type: aiAct
-    prompt: 打开 Midscene 应用，进入 Settings 页，把 AGENT OVERLAY 区域的第一个开关切换一次
-  - name: 05-assert-screen
-    type: aiAssert
-    prompt: 屏幕上有可见内容，不是黑屏或空白
-  - name: 06-query-screen
-    type: aiQuery
-    prompt: 用一句话描述当前屏幕上最重要的内容
+            - aiTap: "首页的自然语言指令输入框"
+            - aiInput: "首页的自然语言指令输入框"
+              value: "open the settings app and search for Wi-Fi"
 """
