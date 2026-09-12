@@ -228,7 +228,7 @@ public class AgentService extends Service {
                 + "  controllerPackage: " + getPackageName() + "\n"
                 + "  reportDir: ./midscene_run/results\n"
                 + "tasks:\n"
-                + "  - name: " + safeName(prompt) + "\n"
+                + "  - name: " + quoteYaml(safeName(prompt)) + "\n"
                 + "    type: aiAct\n"
                 + "    prompt: " + quoteYaml(prompt) + "\n";
         java.nio.file.Files.write(config.toPath(), yaml.getBytes(StandardCharsets.UTF_8));
@@ -495,16 +495,31 @@ public class AgentService extends Service {
         wakeLock = null;
     }
 
+    /**
+     * Turn an instruction into a task name.
+     *
+     * Non-ASCII prompts sanitise to nothing but dashes (a Chinese instruction used
+     * to yield "-", and `- name: -` is a YAML sequence marker, not a scalar), so
+     * empty or dash-only results fall back to a fixed name.
+     */
     private static String safeName(String prompt) {
-        String name = prompt.trim().replaceAll("[^A-Za-z0-9]+", "-").toLowerCase(Locale.US);
+        String name = prompt.trim()
+                .replaceAll("[^A-Za-z0-9]+", "-")
+                .replaceAll("^-+", "")
+                .replaceAll("-+$", "")
+                .toLowerCase(Locale.US);
         if (name.isEmpty()) {
-            return "instruction";
+            name = "task";
         }
         return name.length() > 40 ? name.substring(0, 40) : name;
     }
 
     private static String quoteYaml(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", " ")
+                .replace("\n", "\\n") + "\"";
     }
 
     private interface ThrowingRunnable {
