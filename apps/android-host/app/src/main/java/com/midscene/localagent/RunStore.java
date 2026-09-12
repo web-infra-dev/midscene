@@ -87,6 +87,7 @@ public class RunStore {
      * @return how many runs were removed
      */
     public synchronized int prune() {
+        removeOrphanReports();
         List<RunRecord> records = list();
         int removed = 0;
         long total = totalBytes();
@@ -161,8 +162,12 @@ public class RunStore {
             referenced.add(record.id + ".json");
         }
 
-        File reports = new File(new File(dir.getParentFile(), "run"), "report");
-        File[] files = reports.listFiles();
+        removeUnreferencedFiles(new File(new File(dir.getParentFile(), "run"), "report"), referenced);
+        removeUnreferencedFiles(new File(dir.getParentFile(), "midscene_run/results"), referenced);
+    }
+
+    private void removeUnreferencedFiles(File directory, java.util.Set<String> referenced) {
+        File[] files = directory.listFiles();
         if (files == null) {
             return;
         }

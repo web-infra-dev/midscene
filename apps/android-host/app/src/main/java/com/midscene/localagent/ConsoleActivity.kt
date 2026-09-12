@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,8 +36,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -142,6 +143,7 @@ class ConsoleActivity : ComponentActivity() {
                             dark = it
                             ThemePrefs.setDark(this, it)
                         },
+                        openHistory = openHistory,
                     )
                 }
             }
@@ -155,15 +157,13 @@ private val DESTINATIONS = listOf(
     Destination("Run", Icons.Filled.Bolt),
     Destination("Scripts", Icons.Filled.Terminal),
     Destination("History", Icons.Filled.History),
-    Destination("Diagnostics", Icons.Filled.Build),
-    Destination("Settings", Icons.Filled.Settings),
 )
 
 @Composable
 private fun ConsoleShell(
     dark: Boolean,
     onDarkChange: (Boolean) -> Unit,
-    openHistory: MutableState<Boolean> = mutableStateOf(false),
+    openHistory: MutableState<Boolean>,
 ) {
     var tab by remember { mutableStateOf(0) }
 
@@ -196,29 +196,41 @@ private fun ConsoleShell(
 
     if (wide) {
         Row(Modifier.fillMaxSize()) {
-            NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
-                DESTINATIONS.forEachIndexed { index, destination ->
-                    NavigationRailItem(
-                        selected = tab == index,
-                        onClick = { tab = index },
-                        icon = { Icon(destination.icon, contentDescription = destination.label) },
-                        label = { Text(destination.label, fontSize = 11.sp) },
-                    )
+            if (tab < 3) {
+                NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+                    DESTINATIONS.forEachIndexed { index, destination ->
+                        NavigationRailItem(
+                            selected = tab == index,
+                            onClick = { tab = index },
+                            icon = { Icon(destination.icon, contentDescription = destination.label) },
+                            label = { Text(destination.label, fontSize = 11.sp) },
+                        )
+                    }
                 }
             }
-            Screen(tab, dark, onDarkChange, reportView)
+            Screen(tab, dark, onDarkChange, reportView,
+                onSettings = { tab = 3 },
+                onBack = { tab = if (tab == 4) 3 else 0 },
+                onDiagnostics = { tab = 4 })
         }
     } else {
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) { Screen(tab, dark, onDarkChange, reportView) }
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                DESTINATIONS.forEachIndexed { index, destination ->
-                    NavigationBarItem(
-                        selected = tab == index,
-                        onClick = { tab = index },
-                        icon = { Icon(destination.icon, contentDescription = destination.label) },
-                        label = { Text(destination.label, fontSize = 10.sp) },
-                    )
+            Box(Modifier.weight(1f)) {
+                Screen(tab, dark, onDarkChange, reportView,
+                    onSettings = { tab = 3 },
+                    onBack = { tab = if (tab == 4) 3 else 0 },
+                    onDiagnostics = { tab = 4 })
+            }
+            if (tab < 3) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    DESTINATIONS.forEachIndexed { index, destination ->
+                        NavigationBarItem(
+                            selected = tab == index,
+                            onClick = { tab = index },
+                            icon = { Icon(destination.icon, contentDescription = destination.label) },
+                            label = { Text(destination.label, fontSize = 10.sp) },
+                        )
+                    }
                 }
             }
         }
@@ -231,13 +243,38 @@ private fun Screen(
     dark: Boolean,
     onDarkChange: (Boolean) -> Unit,
     reportView: MutableState<WebView?>,
+    onSettings: () -> Unit,
+    onBack: () -> Unit,
+    onDiagnostics: () -> Unit,
 ) {
-    when (tab) {
-        1 -> ScriptsScreen()
-        2 -> HistoryScreen(reportView)
-        3 -> DiagnosticsScreen()
-        4 -> SettingsScreen(dark, onDarkChange)
-        else -> RunScreen()
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (tab < 3) "Midscene" else if (tab == 3) "Settings" else "Diagnostics",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            TextButton(onClick = if (tab < 3) onSettings else onBack) {
+                Icon(
+                    if (tab < 3) Icons.Filled.Settings else Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = if (tab < 3) "Settings" else "Back",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Box(Modifier.weight(1f)) {
+            when (tab) {
+                1 -> ScriptsScreen()
+                2 -> HistoryScreen(reportView)
+                3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
+                4 -> DiagnosticsScreen()
+                else -> RunScreen()
+            }
+        }
     }
 }
 
@@ -249,23 +286,16 @@ private fun RunScreen() {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
     val store = remember { RunStore(context.filesDir) }
     var prompt by remember { mutableStateOf(SetupPrefs.lastInstruction(context)) }
-    val lines = remember { mutableStateListOf<String>() }
     var busy by remember { mutableStateOf(AgentService.isBusy()) }
     var lastRun by remember { mutableStateOf(store.list().firstOrNull()) }
-    var recent by remember { mutableStateOf(SetupPrefs.recentInstructions(context)) }
 
     DisposableEffect(Unit) {
-        val listener = AgentService.LogListener { line ->
-            lines.add(line)
-            if (lines.size > 400) lines.removeAt(0)
+        val listener = AgentService.LogListener { _ ->
             busy = AgentService.isBusy()
         }
         AgentService.addListener(listener)
-        lines.clear()
-        lines.addAll(AgentService.logBuffer())
         onDispose { AgentService.removeListener(listener) }
     }
 
@@ -275,7 +305,6 @@ private fun RunScreen() {
     LaunchedEffect(busy) {
         if (!busy) {
             lastRun = store.list().firstOrNull()
-            recent = SetupPrefs.recentInstructions(context)
         }
     }
     LaunchedEffect(Unit) {
@@ -288,11 +317,16 @@ private fun RunScreen() {
         }
     }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    Box(Modifier.fillMaxSize()) { Column(
+        Modifier.align(Alignment.TopCenter).widthIn(max = 920.dp).fillMaxWidth()
+            .verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        HeroHeader(busy)
+        Text(
+            if (busy) "Running · Stop at any time" else "Describe what you want your phone to do",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Card(
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -310,7 +344,7 @@ private fun RunScreen() {
                 ) {
                     if (prompt.isEmpty()) {
                         Text(
-                            "例如：打开设置并搜索 Wi-Fi",
+                            "For example: Open Settings and search for Wi-Fi",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         )
@@ -325,16 +359,7 @@ private fun RunScreen() {
                             .semantics { contentDescription = "Instruction input" },
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = {
-                        clipboard.getText()?.text?.let { text ->
-                            if (text.isNotBlank()) {
-                                prompt = if (prompt.isBlank()) text else "$prompt $text"
-                            }
-                        }
-                    }) { Text("Paste", fontSize = 12.sp) }
-                    TextButton(onClick = { prompt = "" }) { Text("Clear", fontSize = 12.sp) }
-                }
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = {
@@ -364,36 +389,17 @@ private fun RunScreen() {
                     OutlinedButton(
                         onClick = {
                             AgentService.start(context, AgentService.ACTION_STOP, null)
-                            busy = false
+                            busy = AgentService.isBusy()
                         },
                         enabled = busy,
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier.weight(0.6f),
                     ) { Text("Stop") }
                 }
-                if (recent.isNotEmpty()) {
-                    Spacer(Modifier.height(10.dp))
-                    SectionLabel("RECENT")
-                    Spacer(Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        recent.take(4).forEach { item ->
-                            Text(
-                                item,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MidsceneColors.Brand,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { prompt = item }
-                                    .padding(vertical = 4.dp),
-                            )
-                        }
-                    }
-                }
             }
         }
-        LogCard("LIVE LOG", lines) { lines.clear() }
+        lastRun?.let { LastRunCard(it) { path, html -> openArtefact(context, path, html) } }
+    }
     }
 }
 
@@ -451,95 +457,24 @@ private fun openArtefact(context: android.content.Context, path: String, html: B
     )
 }
 
-@Composable
-private fun HeroHeader(busy: Boolean) {
-    Card(
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (busy) MidsceneColors.Brand else MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Text(
-                "Midscene",
-                style = MaterialTheme.typography.headlineSmall,
-                color = if (busy) Color.White else MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                if (busy) "Working on your instruction…" else "Describe a task, the phone does the rest",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (busy) Color.White.copy(alpha = 0.9f)
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LogCard(title: String, lines: List<String>, onClear: () -> Unit) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SectionLabel(title)
-                TextButton(onClick = onClear) { Text("Clear", fontSize = 12.sp) }
-            }
-            Spacer(Modifier.height(6.dp))
-            Column(Modifier.height(200.dp).verticalScroll(rememberScrollState())) {
-                if (lines.isEmpty()) {
-                    Text(
-                        "Nothing yet — run an instruction to see progress here.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                lines.takeLast(200).forEach {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
 // ----------------------------------------------------------------- scripts
 
 @Composable
 private fun ScriptsScreen() {
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
     val file = remember { File(context.filesDir, "config.yaml") }
     var text by remember { mutableStateOf(ShellRunner.readText(file)) }
     var status by remember { mutableStateOf("") }
 
-    Column(
-        Modifier.fillMaxSize().padding(16.dp),
+    Box(Modifier.fillMaxSize()) { Column(
+        Modifier.align(Alignment.TopCenter).widthIn(max = 920.dp).fillMaxWidth().fillMaxHeight().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Scripts", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "config.yaml — tasks run in order",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        Text(
+            "Edit config.yaml to run tasks in order",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Card(
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -585,16 +520,8 @@ private fun ScriptsScreen() {
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.weight(1f),
             ) { Text("Save") }
-            OutlinedButton(
-                onClick = { text = ShellRunner.readText(file); status = "reloaded" },
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.weight(1f),
-            ) { Text("Reload") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = {
-                clipboard.getText()?.text?.let { text = it }
-            }) { Text("Paste", fontSize = 12.sp) }
             TextButton(onClick = {
                 // Self-bootstrapping check: write the script and run it without
                 // leaving the app.
@@ -624,6 +551,7 @@ private fun ScriptsScreen() {
                 )
             }
         }
+    }
     }
 }
 
@@ -1238,7 +1166,7 @@ private fun ActionRow(vararg actions: Pair<String, () -> Unit>) {
 // ---------------------------------------------------------------- settings
 
 @Composable
-private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
+private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDiagnostics: () -> Unit) {
     val context = LocalContext.current
     val file = remember { File(context.filesDir, "model.env") }
     var text by remember {
@@ -1255,9 +1183,7 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall)
-
-        DiagnosticsCard("APPEARANCE") {
+        DiagnosticsCard("PREFERENCES") {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1319,14 +1245,6 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             }
         }
 
-        DiagnosticsCard("AGENT OVERLAY") {
-            OverlaySwitch("Status bar", "Phase, step and timings along the top", "showStatusBar")
-            OverlaySwitch("Edge glow", "A breathing glow while the agent controls the phone", "showEdgeGlow")
-            OverlaySwitch("Element box", "Dashed box around the element the agent located", "showElementBox")
-            OverlaySwitch("Tap ripple", "A ring where the agent taps", "showTapRipple")
-            OverlaySwitch("Demo mode", "Louder animations, for showing the agent off", "demoMode")
-        }
-
         DiagnosticsCard("MODEL CREDENTIALS") {
             Text(
                 "Kept in the app's private storage and injected into the agent process; never written into a script.",
@@ -1359,18 +1277,13 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             )
         }
 
-        DiagnosticsCard("SETUP") {
+        DiagnosticsCard("DEVICE & SETUP") {
             ActionRow(
-                "Run setup again" to { SetupPrefs.setOnboarded(context, false) },
-                "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
-            )
-        }
-
-        DiagnosticsCard("ABOUT") {
-            Text(
-                "Midscene on-device agent · ${Provisioner.nodePath(context).substringAfterLast('/')}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "Diagnostics" to onDiagnostics,
+                "Run setup again" to {
+                    SetupPrefs.setOnboarded(context, false)
+                    (context as? android.app.Activity)?.recreate()
+                },
             )
         }
     }
@@ -1630,34 +1543,6 @@ private fun StepCard(
 // ----------------------------------------------------------------- helpers
 
 @Composable
-private fun OverlaySwitch(title: String, subtitle: String, key: String) {
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("midscene-ui", android.content.Context.MODE_PRIVATE)
-    var checked by remember { mutableStateOf(prefs.getBoolean(key, true)) }
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = {
-                checked = it
-                prefs.edit().putBoolean(key, it).apply()
-            },
-        )
-    }
-}
-
-@Composable
 private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -1824,8 +1709,6 @@ tasks:
           flow:
             - aiTap: "Scripts 标签（左侧导航栏或底部导航栏）"
             - aiTap: "History 标签"
-            - aiTap: "Diagnostics 标签"
-            - aiTap: "Settings 标签"
             - aiTap: "Run 标签"
             - aiTap: "首页的自然语言指令输入框"
             - aiInput: "首页的自然语言指令输入框"

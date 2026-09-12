@@ -306,10 +306,11 @@ export class LocalAndroidDevice implements AbstractInterface {
       : [];
 
     const shellActions =
-      capabilities.shell && this.options.exposeRunAdbShellAction !== false
+      capabilities.shell && this.options.exposeRunAdbShellAction === true
         ? [
             defineAction<typeof runShellParamSchema, RunShellParam, string>({
               name: 'RunAdbShell',
+              interfaceAlias: 'runAdbShell',
               description:
                 'Run a shell command on the device and return its output. Use it for diagnostics and for capabilities the other actions do not cover.',
               paramSchema: runShellParamSchema,
@@ -329,6 +330,12 @@ export class LocalAndroidDevice implements AbstractInterface {
                 const result = await this.transport.runShell(param.command, {
                   timeoutMs: param.timeout,
                 });
+
+                if (result.exitCode !== 0) {
+                  throw new Error(
+                    `RunAdbShell failed (exit ${result.exitCode}): ${result.stderr || result.stdout}`,
+                  );
+                }
 
                 return result.stdout;
               },

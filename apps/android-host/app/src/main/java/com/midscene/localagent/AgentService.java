@@ -86,6 +86,8 @@ public class AgentService extends Service {
 
     private final IBinder binder = new LocalBinder();
     private Thread worker;
+    private volatile Process activeProcess;
+    private volatile boolean stopRequested;
     private static Thread overlayTicker;
     private RunStore runStore;
 
@@ -230,13 +232,13 @@ public class AgentService extends Service {
     }
 
     /** Service-level log, kept next to the run logs for post-mortem reading. */
-    private static void persistServiceLog(String line) {
+    private static synchronized void persistServiceLog(String line) {
         File dir = new File(SERVICE_LOG_DIR, "");
         if (!dir.exists() && !dir.mkdirs()) {
             return;
         }
         File file = new File(dir, "agent.log");
-        try (FileOutputStream out = new FileOutputStream(file, true)) {
+        try (FileOutputStream out = new FileOutputStream(file, file.length() < 4L * 1024 * 1024)) {
             out.write(("[" + new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date())
                     + "] " + line + "\n").getBytes(StandardCharsets.UTF_8));
         } catch (IOException ignored) {
@@ -318,6 +320,13 @@ public class AgentService extends Service {
 
     @Override
     public void onDestroy() {
+        Process process = activeProcess;
+        if (process != null) {
+            process.destroyForcibly();
+        }
+        if (worker != null) {
+            worker.interrupt();
+        }
         releaseWakeLock();
         super.onDestroy();
     }
@@ -326,6 +335,9 @@ public class AgentService extends Service {
 
     /** Prepare a config with one natural-language task and run it. */
     private void runPrompt(String prompt) throws IOException {
+        if (prompt == null || prompt.trim().isEmpty()) {
+            throw new IOException("prompt is empty");
+        }
         File config = new File(getFilesDir(), "prompt-run.yaml");
         String yaml = "name: prompt-run\n"
                 + deviceYaml()
@@ -370,13 +382,10 @@ public class AgentService extends Service {
     }
 
     private void runConfig(String configPath) throws IOException {
-        try {
-            Provisioner.extractAgent(this, AgentService::emit);
-            if (!new File(Provisioner.YADB_TARGET).exists()) {
-                Provisioner.installYadb(this, AgentService::emit);
-            }
-        } catch (IOException error) {
-            emit("provisioning before the run failed: " + error.getMessage());
+        File configFile = requirePrivateConfig(configPath);
+        Provisioner.extractAgent(this, AgentService::emit);
+        if (!new File(Provisioner.YADB_TARGET).exists()) {
+            Provisioner.installYadb(this, AgentService::emit);
         }
 
         String id = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date())
@@ -387,11 +396,11 @@ public class AgentService extends Service {
         acquireWakeLock();
 
         emit("=== run " + id + " ===");
-        emit("config: " + configPath);
+        emit("config: " + configFile.getAbsolutePath());
 
         ShellRunner.Result result;
         try (FileOutputStream logSink = new FileOutputStream(logFile, false)) {
-            result = ShellRunner.runCli(this, getFilesDir(), line -> {
+            result = ShellRunner.runCliControlled(this, getFilesDir(), line -> {
                 emit(line);
                 try {
                     logSink.write((line + "\n").getBytes(StandardCharsets.UTF_8));
@@ -399,18 +408,23 @@ public class AgentService extends Service {
                 } catch (IOException ignored) {
                     // logging must never break a run
                 }
-            }, "run", configPath);
+            }, process -> {
+                activeProcess = process;
+                if (process != null && stopRequested) {
+                    process.destroyForcibly();
+                }
+            }, "run", configFile.getAbsolutePath());
         }
 
-        JSONObject summary = summarize(result, configPath);
+        JSONObject summary = summarize(result, configFile.getAbsolutePath());
         JSONObject record = new JSONObject();
         try {
             record.put("id", id);
             record.put("configName", summary.optString("name", "run"));
             record.put("startedAt", startedAt);
             record.put("durationMs", result.durationMs);
-            record.put("ok", summary.optBoolean("ok", false));
-            record.put("exitCode", result.exitCode);
+            record.put("ok", !stopRequested && summary.optBoolean("ok", false));
+            record.put("exitCode", stopRequested ? -1 : result.exitCode);
             JSONArray tasks = summary.optJSONArray("tasks");
             record.put("taskCount", tasks == null ? 0 : tasks.length());
             record.put("failedTasks", countFailed(tasks));
@@ -422,9 +436,22 @@ public class AgentService extends Service {
         }
         runStore.append(record);
 
-        emit("exit=" + result.exitCode + " in " + result.durationMs + " ms");
+        emit((stopRequested ? "stopped" : "exit=" + result.exitCode)
+                + " in " + result.durationMs + " ms");
         emit("history: " + id);
         releaseWakeLock();
+    }
+
+    private File requirePrivateConfig(String configPath) throws IOException {
+        if (configPath == null || configPath.trim().isEmpty()) {
+            throw new IOException("config path is empty");
+        }
+        File root = getFilesDir().getCanonicalFile();
+        File file = new File(configPath).getCanonicalFile();
+        if (!file.getPath().startsWith(root.getPath() + File.separator) || !file.isFile()) {
+            throw new IOException("config must be an existing file in app-private storage");
+        }
+        return file;
     }
 
     /**
@@ -537,6 +564,7 @@ public class AgentService extends Service {
         }
 
         state = stateLabel;
+        stopRequested = false;
         final String runKind = stateLabel;
         OverlayView.setOptions(
                 prefs().getBoolean("showStatusBar", true),
@@ -561,6 +589,7 @@ public class AgentService extends Service {
                 emit("[" + name + "] failed: " + error);
                 Log.e(TAG, "run failed", error);
             } finally {
+                activeProcess = null;
                 state = "idle";
                 currentTask = "";
                 releaseWakeLock();
@@ -605,12 +634,16 @@ public class AgentService extends Service {
 
     private void stopCurrentRun() {
         if (worker != null && worker.isAlive()) {
+            stopRequested = true;
+            state = "stopping";
+            Process process = activeProcess;
+            if (process != null) {
+                process.destroyForcibly();
+            }
             worker.interrupt();
             emit("stop requested");
+            updateNotification("Midscene agent", "stopping");
         }
-        state = "idle";
-        releaseWakeLock();
-        updateNotification("Midscene agent", "stopped");
     }
 
     // -------------------------------------------------------- notification

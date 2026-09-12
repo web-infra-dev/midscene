@@ -159,19 +159,23 @@ describe('device action space gestures', () => {
 describe('RunAdbShell parity action', () => {
   test('is registered when the backend can run shell commands', async () => {
     const { transport } = createTransport(true);
-    const device = await LocalAndroidDevice.create(transport, { displayId: 0 });
+    const device = await LocalAndroidDevice.create(transport, {
+      displayId: 0,
+      exposeRunAdbShellAction: true,
+    });
 
     expect(device.actionSpace().map((action) => action.name)).toContain(
       'RunAdbShell',
     );
+    expect(
+      device.actionSpace().find((action) => action.name === 'RunAdbShell')
+        ?.interfaceAlias,
+    ).toBe('runAdbShell');
   });
 
-  test('can be hidden by configuration', async () => {
+  test('is hidden by default', async () => {
     const { transport } = createTransport(true);
-    const device = await LocalAndroidDevice.create(transport, {
-      displayId: 0,
-      exposeRunAdbShellAction: false,
-    });
+    const device = await LocalAndroidDevice.create(transport, { displayId: 0 });
 
     expect(device.actionSpace().map((action) => action.name)).not.toContain(
       'RunAdbShell',
@@ -182,7 +186,10 @@ describe('RunAdbShell parity action', () => {
     const { transport, runner } = createTransport(true, [
       { match: ['getprop'], stdout: 'Pixel\n' },
     ]);
-    const device = await LocalAndroidDevice.create(transport, { displayId: 0 });
+    const device = await LocalAndroidDevice.create(transport, {
+      displayId: 0,
+      exposeRunAdbShellAction: true,
+    });
     const action = device
       .actionSpace()
       .find((candidate) => candidate.name === 'RunAdbShell');
@@ -191,5 +198,25 @@ describe('RunAdbShell parity action', () => {
 
     expect(output).toBe('Pixel\n');
     expect(runner.commands.at(-1)).toContain('getprop ro.product.model');
+  });
+
+  test('throws when the shell command fails', async () => {
+    const { transport } = createTransport(true, [
+      {
+        match: ['false'],
+        stdout: '',
+        stderr: 'permission denied',
+        exitCode: 1,
+      },
+    ]);
+    const device = await LocalAndroidDevice.create(transport, {
+      displayId: 0,
+      exposeRunAdbShellAction: true,
+    });
+    const action = device
+      .actionSpace()
+      .find((item) => item.name === 'RunAdbShell');
+
+    await expect(action?.call({ command: 'false' })).rejects.toThrow(/exit 1/);
   });
 });

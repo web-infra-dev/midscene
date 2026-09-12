@@ -76,6 +76,7 @@ export class ExecBridgeCommandRunner implements CommandRunner {
         method: 'POST',
         headers: { 'x-midscene-token': this.token },
         body: command,
+        signal: AbortSignal.timeout(timeoutMs + 5_000),
       },
     );
 
@@ -105,7 +106,12 @@ export class ExecBridgeCommandRunner implements CommandRunner {
   async readFile(filePath: string): Promise<Buffer> {
     const response = await this.fetchImpl(
       `${this.url}/read-file?path=${encodeURIComponent(filePath)}`,
-      { method: 'POST', headers: { 'x-midscene-token': this.token }, body: '' },
+      {
+        method: 'POST',
+        headers: { 'x-midscene-token': this.token },
+        body: '',
+        signal: AbortSignal.timeout(this.defaultTimeoutMs),
+      },
     );
     if (!response.ok) {
       throw new Error(
@@ -123,6 +129,9 @@ export class ExecBridgeCommandRunner implements CommandRunner {
         method: 'POST',
         headers: { 'x-midscene-token': this.token },
         body: command,
+        signal: AbortSignal.timeout(
+          (timeoutMs ?? this.defaultTimeoutMs) + 5_000,
+        ),
       },
     );
     if (!response.ok) {

@@ -2,6 +2,9 @@ package com.midscene.localagent;
 
 import android.content.Context;
 import android.util.Log;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -51,7 +54,7 @@ public final class Provisioner {
 
     public static File cliFile(Context context) {
         return new File(agentDir(context),
-                "node_modules/@midscene/android-local/dist/lib/cli.js");
+                "dist/lib/cli.js");
     }
 
     public static String nodePath(Context context) {
@@ -77,14 +80,21 @@ public final class Provisioner {
         }
 
         File target = agentDir(context);
-        target.mkdirs();
+        File next = new File(context.getFilesDir(), "agent-next");
+        deleteTree(next);
+        if (!next.mkdirs()) {
+            throw new IOException("could not create " + next);
+        }
         long startedAt = System.currentTimeMillis();
         try (InputStream raw = context.getAssets().open("agent-bundle.zip");
              java.util.zip.ZipInputStream zip = new java.util.zip.ZipInputStream(raw)) {
             java.util.zip.ZipEntry entry;
             byte[] buffer = new byte[64 * 1024];
             while ((entry = zip.getNextEntry()) != null) {
-                File out = new File(target, entry.getName());
+                File out = new File(next, entry.getName());
+                if (!out.getCanonicalPath().startsWith(next.getCanonicalPath() + File.separator)) {
+                    throw new IOException("unsafe bundle entry: " + entry.getName());
+                }
                 if (entry.isDirectory()) {
                     out.mkdirs();
                     continue;
@@ -101,12 +111,58 @@ public final class Provisioner {
                 }
             }
         }
+        restoreLinks(next);
+        if (!new File(next, "dist/lib/cli.js").isFile()) {
+            throw new IOException("agent bundle has no CLI");
+        }
+        deleteTree(target);
+        if (!next.renameTo(target)) {
+            throw new IOException("could not install agent bundle");
+        }
         try (FileOutputStream out = new FileOutputStream(stampFile)) {
             out.write(stamp.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
         log.log("extracted agent bundle in " + (System.currentTimeMillis() - startedAt)
                 + " ms (" + (stamp.isEmpty() ? "unstamped" : stamp) + ")");
         return true;
+    }
+
+    private static void restoreLinks(File root) throws IOException {
+        File manifest = new File(root, "bundle-links.json");
+        try {
+            JSONArray links = new JSONArray(ShellRunner.readText(manifest));
+            for (int index = 0; index < links.length(); index++) {
+                JSONObject item = links.getJSONObject(index);
+                String relative = item.getString("path");
+                String target = item.getString("target");
+                File link = new File(root, relative);
+                File destination = new File(link.getParentFile(), target);
+                String safeRoot = root.getCanonicalPath() + File.separator;
+                if (!relative.startsWith("node_modules/")
+                        || !link.getCanonicalPath().startsWith(safeRoot)
+                        || !destination.getCanonicalPath().startsWith(safeRoot)) {
+                    throw new IOException("unsafe bundle link: " + relative);
+                }
+                java.nio.file.Files.delete(link.toPath());
+                java.nio.file.Files.createSymbolicLink(link.toPath(),
+                        java.nio.file.Paths.get(target));
+            }
+        } catch (JSONException error) {
+            throw new IOException("invalid bundle-links.json", error);
+        }
+    }
+
+    private static void deleteTree(File directory) throws IOException {
+        if (!directory.exists()) {
+            return;
+        }
+        try (java.util.stream.Stream<java.nio.file.Path> paths =
+                     java.nio.file.Files.walk(directory.toPath())) {
+            for (java.nio.file.Path path : (Iterable<java.nio.file.Path>)
+                    paths.sorted(java.util.Comparator.reverseOrder())::iterator) {
+                java.nio.file.Files.deleteIfExists(path);
+            }
+        }
     }
 
     private static String readAssetText(Context context, String name) {

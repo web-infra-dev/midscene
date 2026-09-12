@@ -22,8 +22,6 @@ tasks:
           flow:
             - aiTap: "Scripts 标签（左侧导航栏或底部导航栏）"
             - aiTap: "History 标签"
-            - aiTap: "Diagnostics 标签"
-            - aiTap: "Settings 标签"
             - aiTap: "Run 标签"
             - aiTap: "首页的自然语言指令输入框"
             - aiInput: "首页的自然语言指令输入框"

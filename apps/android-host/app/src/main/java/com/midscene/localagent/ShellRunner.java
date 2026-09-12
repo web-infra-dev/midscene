@@ -44,6 +44,17 @@ public final class ShellRunner {
             LineSink sink,
             String... args
     ) throws IOException {
+        return runCliControlled(context, workingDir, sink, process -> {}, args);
+    }
+
+    /** The observer receives the live process and null after it has exited. */
+    public static Result runCliControlled(
+            Context context,
+            File workingDir,
+            LineSink sink,
+            ProcessListener observer,
+            String... args
+    ) throws IOException {
         File cli = Provisioner.cliFile(context);
         if (!new File(Provisioner.nodePath(context)).exists()) {
             throw new IOException("node runtime missing at " + Provisioner.nodePath(context));
@@ -79,29 +90,40 @@ public final class ShellRunner {
         builder.directory(workingDir);
         builder.redirectErrorStream(true);
 
+        if (Thread.currentThread().isInterrupted()) {
+            throw new IOException("run cancelled before Node started");
+        }
         long startedAt = System.currentTimeMillis();
         Process process = builder.start();
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append('\n');
-                if (sink != null) {
-                    sink.line(line);
+        observer.onProcess(process);
+        try {
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append('\n');
+                    if (sink != null) {
+                        sink.line(line);
+                    }
                 }
             }
-        }
 
-        int exitCode;
-        try {
-            exitCode = process.waitFor();
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            process.destroy();
-            return new Result(-1, output.toString(), System.currentTimeMillis() - startedAt);
+            int exitCode;
+            try {
+                exitCode = process.waitFor();
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                process.destroyForcibly();
+                return new Result(-1, output.toString(), System.currentTimeMillis() - startedAt);
+            }
+            return new Result(exitCode, output.toString(), System.currentTimeMillis() - startedAt);
+        } finally {
+            observer.onProcess(null);
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
         }
-        return new Result(exitCode, output.toString(), System.currentTimeMillis() - startedAt);
     }
 
     /**
@@ -226,6 +248,10 @@ public final class ShellRunner {
 
     public interface LineSink {
         void line(String line);
+    }
+
+    public interface ProcessListener {
+        void onProcess(Process process);
     }
 
 }

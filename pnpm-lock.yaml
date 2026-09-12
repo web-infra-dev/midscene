@@ -81,6 +81,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  apps/android-host: {}
+
   apps/android-playground:
     dependencies:
       '@midscene/playground-app':
@@ -717,10 +719,10 @@ importers:
     dependencies:
       '@midscene/core':
         specifier: workspace:*
-        version: link:../core
+        version: file:packages/core(ws@8.20.0)
       '@midscene/shared':
         specifier: workspace:*
-        version: link:../shared
+        version: file:packages/shared
       js-yaml:
         specifier: 4.1.0
         version: 4.1.0
@@ -746,6 +748,11 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+    dependenciesMeta:
+      '@midscene/core':
+        injected: true
+      '@midscene/shared':
+        injected: true
 
   packages/android-playground:
     dependencies:
@@ -3394,6 +3401,13 @@ packages:
 
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
+
+  '@midscene/core@file:packages/core':
+    resolution: {directory: packages/core, type: directory}
+    engines: {node: '>=18.19.0'}
+
+  '@midscene/shared@file:packages/shared':
+    resolution: {directory: packages/shared, type: directory}
 
   '@module-federation/error-codes@0.21.6':
     resolution: {integrity: sha512-MLJUCQ05KnoVl8xd6xs9a5g2/8U+eWmVxg7xiBMeR0+7OjdWUbHwcwgVFatRIwSZvFgKHfWEiI7wsU1q1XbTRQ==}
@@ -6989,7 +7003,7 @@ packages:
   git-raw-commits@4.0.0:
     resolution: {integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==}
     engines: {node: '>=16'}
-    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   glob-parent@5.1.2:
@@ -7435,10 +7449,6 @@ packages:
     resolution: {integrity: sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==}
     engines: {node: '>= 12'}
 
-  ip-address@9.0.5:
-    resolution: {integrity: sha512-zHtQzGojZXTwZTHQqra+ETKd4Sn3vgi7uBmlPoXVWZqYvuKmtI0l/VZTjqGmJY9x88GGOaZ9+G9ES8hC4T4X8g==}
-    engines: {node: '>= 12'}
-
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -7827,9 +7837,6 @@ packages:
   js-yaml@4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
     hasBin: true
-
-  jsbn@1.1.0:
-    resolution: {integrity: sha512-4bYVV3aAMtDTTu4+xsDYa6sy9GyJ69/amsu9sYF2zqjiEoZA5xJi3BrfX3uY+/IekIu7MwdObdbDWpoZdBv3/A==}
 
   jsdom@29.0.2:
     resolution: {integrity: sha512-9VnGEBosc/ZpwyOsJBCQ/3I5p7Q5ngOY14a9bf5btenAORmZfDse1ZEheMiWcJ3h81+Fv7HmJFdS0szo/waF2w==}
@@ -10532,10 +10539,6 @@ packages:
     resolution: {integrity: sha512-HehCEsotFqbPW9sJ8WVYB6UbmIMv7kUUORIF2Nncq4VQvBfNBLibW9YZR5dlYCSUhwcD628pRllm7n+E+YTzJw==}
     engines: {node: '>= 14'}
 
-  socks@2.8.3:
-    resolution: {integrity: sha512-l5x7VUUWbjVFbafGLxPWkYsHIhEvmF85tbIeFZWc8ZPtoMyybuEhL7Jye/ooC4/d48FgOjSJXgsF/AJPYCW8Zw==}
-    engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
-
   socks@2.8.7:
     resolution: {integrity: sha512-HLpt+uLy/pxB+bum/9DzAgiKS8CX1EvbWxI4zlmgGCExImLdiad2iCwXT5Z4c9c3Eq8rP2318mPW2c+QbtjK8A==}
     engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
@@ -13153,7 +13156,7 @@ snapshots:
 
   '@img/sharp-wasm32@0.34.3':
     dependencies:
-      '@emnapi/runtime': 1.7.1
+      '@emnapi/runtime': 1.11.2
     optional: true
 
   '@img/sharp-win32-arm64@0.34.3':
@@ -14035,6 +14038,37 @@ snapshots:
   '@microsoft/tsdoc@0.15.1':
     optional: true
 
+  '@midscene/core@file:packages/core(ws@8.20.0)':
+    dependencies:
+      '@midscene/shared': file:packages/shared
+      '@ui-tars/action-parser': 1.2.3
+      dayjs: 1.11.19
+      dotenv: 16.4.7
+      fetch-socks: 1.3.2
+      js-yaml: 4.1.0
+      jsonrepair: 3.15.0
+      mdast-util-from-markdown: 2.0.2
+      mdast-util-to-markdown: 2.1.2
+      openai: 6.3.0(ws@8.20.0)(zod@3.25.76)
+      semver: 7.5.2
+      undici: 6.22.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - supports-color
+      - ws
+
+  '@midscene/shared@file:packages/shared':
+    dependencies:
+      '@silvia-odwyer/photon': 0.3.3
+      debug: 4.4.0
+      dotenv: 16.4.7
+      js-sha256: 0.11.0
+      sharp: 0.34.3
+      uuid: 11.1.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - supports-color
+
   '@module-federation/error-codes@0.21.6': {}
 
   '@module-federation/runtime-core@0.21.6':
@@ -14069,7 +14103,7 @@ snapshots:
   '@napi-rs/wasm-runtime@1.0.7':
     dependencies:
       '@emnapi/core': 1.7.1
-      '@emnapi/runtime': 1.7.1
+      '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.1
     optional: true
 
@@ -14831,6 +14865,13 @@ snapshots:
       '@rspack/binding-win32-arm64-msvc': 2.1.6
       '@rspack/binding-win32-ia32-msvc': 2.1.6
       '@rspack/binding-win32-x64-msvc': 2.1.6
+
+  '@rspack/core@1.6.8':
+    dependencies:
+      '@module-federation/runtime-tools': 0.21.6
+      '@rspack/binding': 1.6.8
+      '@rspack/lite-tapable': 1.1.0
+    optional: true
 
   '@rspack/core@1.6.8(@swc/helpers@0.5.21)':
     dependencies:
@@ -18255,8 +18296,8 @@ snapshots:
 
   fetch-socks@1.3.2:
     dependencies:
-      socks: 2.8.3
-      undici: 6.22.0
+      socks: 2.8.7
+      undici: 7.25.0
 
   fflate@0.8.2: {}
 
@@ -19231,11 +19272,6 @@ snapshots:
 
   ip-address@10.1.0: {}
 
-  ip-address@9.0.5:
-    dependencies:
-      jsbn: 1.1.0
-      sprintf-js: 1.1.3
-
   ipaddr.js@1.9.1: {}
 
   is-absolute-url@4.0.1: {}
@@ -19519,7 +19555,7 @@ snapshots:
   istanbul-lib-source-maps@5.0.6:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      debug: 4.4.0
+      debug: 4.4.3
       istanbul-lib-coverage: 3.2.2
     transitivePeerDependencies:
       - supports-color
@@ -19590,8 +19626,6 @@ snapshots:
   js-yaml@4.1.0:
     dependencies:
       argparse: 2.0.1
-
-  jsbn@1.1.0: {}
 
   jsdom@29.0.2:
     dependencies:
@@ -20540,7 +20574,7 @@ snapshots:
   micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.0
+      debug: 4.4.3
       decode-named-character-reference: 1.0.2
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
@@ -20750,7 +20784,7 @@ snapshots:
   needle@3.3.1:
     dependencies:
       iconv-lite: 0.6.3
-      sax: 1.4.1
+      sax: 1.6.0
     optional: true
 
   negotiator@0.6.3: {}
@@ -22882,11 +22916,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  socks@2.8.3:
-    dependencies:
-      ip-address: 9.0.5
-      smart-buffer: 4.2.0
-
   socks@2.8.7:
     dependencies:
       ip-address: 10.1.0
@@ -22945,7 +22974,8 @@ snapshots:
 
   sprintf-js@1.0.3: {}
 
-  sprintf-js@1.1.3: {}
+  sprintf-js@1.1.3:
+    optional: true
 
   ssri@9.0.1:
     dependencies:
@@ -23409,7 +23439,7 @@ snapshots:
       picocolors: 1.1.1
       typescript: 5.8.3
     optionalDependencies:
-      '@rspack/core': 1.6.8(@swc/helpers@0.5.21)
+      '@rspack/core': 1.6.8
 
   tsconfig-paths@4.2.0:
     dependencies:
@@ -23707,7 +23737,7 @@ snapshots:
   vite-node@3.0.5(@types/node@18.19.130)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.0
+      debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 5.4.10(@types/node@18.19.130)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.46.1)
@@ -23745,7 +23775,7 @@ snapshots:
       '@vitest/spy': 3.0.5
       '@vitest/utils': 3.0.5
       chai: 5.2.0
-      debug: 4.4.0
+      debug: 4.4.3
       expect-type: 1.2.1
       magic-string: 0.30.17
       pathe: 2.0.3

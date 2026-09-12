@@ -45,7 +45,7 @@ device:
   fileChannelDir: /data/local/tmp/midscene-channel   # 大 payload 通道目录
   yadbPath: /data/local/tmp/yadb                     # 中文输入 / pinch
   appNameMapping: { 设置: com.android.settings }      # Launch/Terminate 友好名
-  exposeRunAdbShellAction: true                      # 是否暴露 RunAdbShell 动作
+  exposeRunAdbShellAction: true                      # 显式开启模型可见 shell 动作；默认关闭
 
 model:                     # 省略则读环境变量 MIDSCENE_MODEL_*
   apiKey: sk-...
@@ -113,7 +113,7 @@ tasks:
 
 - 截图**不能**走 rish 管道（大输出会被拆到 stdout/stderr 两条管道）；必须走设备本地文件通道。
 - app uid 无法写/删 `/data/local/tmp`（SELinux），通道清理由 shell 在写入命令内完成。
-- 依赖安装必须用 `npm install --cpu=wasm32 sharp`（原生 sharp 无 android-arm64 产物）。
+- APK bundle 使用 pnpm deploy 从当前 workspace/lockfile 安装依赖，并配置 wasm32 可选依赖（原生 sharp 无 android-arm64 产物）。
 
 > 阶段 A 实测（2026-09，Android 12 / arm64 / Termux Node 24）：`doctor` 与 `run` 均在设备本机跑通；
 > 注意模拟器（2 核）上 AI 任务耗时会显著放大（单个 `aiAct` 112s），真机需复测。
@@ -241,7 +241,7 @@ apps/android-host/
 
 **可视化能力（阶段 C 收尾）**：一个全屏 surface 承载四种信息——顶部状态栏、边框流光（`aiAct` 运行中 3.6s/圈，demo 2.2s）、定位元素虚线框（2.5s 淡出）、点击涟漪（0.7s）；Settings 提供五个开关（状态栏 / 边框 / 元素框 / 涟漪 / demo），全部不进截图。
 
-**自检 demo（自举）**：App 内 **Scripts → Self-check** 一键写入并运行 `self-check.yaml`——轮流 `aiTap` 五个 tab，再聚焦首页指令框 `aiInput` 一段文本。全流程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟。YAML 能力边界：`aiTap` / `aiInput` / `aiKeyboardPress` / `aiScroll` / `sleep` / 任意 action 的 alias（如 `runAdbShell`，**零模型调用**）；**没有坐标版 tap**。
+**自检 demo（自举）**：App 内 **Scripts → Self-check** 一键写入并运行 `self-check.yaml`——轮流 `aiTap` 三个主入口，再聚焦首页指令框 `aiInput` 一段文本。全流程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟。YAML 能力边界：`aiTap` / `aiInput` / `aiKeyboardPress` / `aiScroll` / `sleep` / 任意 action 的 alias（如 `runAdbShell`，**零模型调用**）；**没有坐标版 tap**。
 
 原始设计（1–5 步全部落地并验证）：
 

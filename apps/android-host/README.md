@@ -7,7 +7,7 @@ shell 身份控制本机，**不依赖 Termux，也不依赖 PC**。它是 `docs
 ## 它是怎么工作的
 
 ```text
-MainActivity (config/status/log)
+ConsoleActivity (Run / Scripts / History)
     │  ProcessBuilder
     ▼
 lib/arm64/libnodebin.so            ← Node 运行时（作为 native library 随 APK 交付）
@@ -28,7 +28,7 @@ Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
   `scripts/patch-elf-sonames.py` 在 `.dynstr` 中把所有旧 soname（`libssl.so.3`、`libicuuc.so.78`、
   `libz.so.1` 等）改写为 `.so` 结尾并把文件重命名；只改 `DT_NEEDED` 会与 `.gnu.version_r` 不一致，
   链接器会报 `cannot find X from verneed[0] in DT_NEEDED list`。
-- **JS 侧按需解包**：`assets/agent-bundle.zip` 首次运行时解到 `filesDir/agent`（本机 2.9s / 14MB）。
+- **JS 侧按需解包**：`assets/agent-bundle.zip` 首次运行时解到 `filesDir/agent`；bundle 使用当前 workspace 的构建产物和 pnpm lockfile，解包后恢复依赖符号链接。
 - **模型凭据不落在可见配置里**：`filesDir/model.env`（`KEY=VALUE` 行）被注入子进程环境；
   生产版本应改为 Android Keystore（见 `docs/deployment.md` §5）。
 
@@ -58,7 +58,7 @@ scripts/adb-bootstrap.sh \
   --config <config.yaml>
 ```
 
-完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 部署 `rish` 与 `rish_shizuku.dex`（Android 14 起 dex 需只读）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
+完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 部署 `rish` 与 `rish_shizuku.dex`（Android 14 起 dex 需只读）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过仅 Debug 导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
 
 幂等：可加 `--skip-install` 重复执行。
 
@@ -77,26 +77,28 @@ cd apps/android-host
 # 1) Node 运行时（从已装 Termux 的设备拉取并改写 soname）
 ./scripts/fetch-node-runtime.sh                 # 或 --from <dir>（bin/node + lib/*.so）
 # 2) JS 侧（wasm 版 sharp，保证 android-arm64 可用）
-node ./scripts/bundle-agent.mjs
+pnpm --filter @midscene/shared build
+pnpm --filter @midscene/core build
+pnpm --filter @midscene/android-local build
 # 3) APK
-gradle assembleDebug                            # 产物 app/build/outputs/apk/debug/app-debug.apk
+pnpm assemble                            # 产物 app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 `local.properties` 需要指向 Android SDK（`sdk.dir=...`），`jniLibs/` 与 `agent-bundle.zip` 均为生成物，已在
-`.gitignore` 中忽略（APK 约 48MB）。
+`.gitignore` 中忽略（APK 大小随 Node 运行时与 bundle 内容变化）。
 
 ## 界面（Compose 控制台）
 
-Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，五个页签：
+Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，三个主入口（设置与诊断从右上角进入）：
 
 | 页签 | 功能 |
 | --- | --- |
-| **Run** | 自然语言指令（Paste / Clear / Run / Stop）+ Hero 状态卡 + 实时日志；键盘弹出自动顶起内容 |
-| **Scripts** | `config.yaml` 编辑与运行、Save / Reload / Paste / New template（模板自带正确的 `fileChannelDir`） |
+| **Run** | 自然语言指令、Run / Stop、最近一次结果；键盘弹出自动顶起内容 |
+| **Scripts** | `config.yaml` 编辑与运行、Run / Save / Self-check / New template（模板自带正确的 `fileChannelDir`） |
 | **History** | 运行记录卡片列表（状态点、任务名、时间·耗时·通过数）→ 手机弹窗 / **平板右栏详情** → **Log** 与 **Report** |
-| **Diagnostics** | runtime 状态（node / agent bundle / yadb / shizuku user service / overlay permission）、Provision、Authorize、Battery / Shizuku / Overlay、服务日志 |
-| **Settings** | 暗色主题、**悬浮窗开关**、**Open app after a run**、模型凭据（`model.env`）、About |
+| **Settings → Diagnostics** | runtime 状态（node / agent bundle / yadb / shizuku user service / overlay permission）、Provision、Authorize、Battery / Shizuku / Overlay、服务日志 |
+| **Settings** | 暗色主题、悬浮进度、运行结束返回 App、模型凭据（`model.env`） |
 
 响应式：手机底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
 
@@ -111,13 +113,13 @@ Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，�
 | 元素框 | agent 定位到的元素：品牌蓝虚线 + 淡填充，动作后约 2.5s 淡出 |
 | 点击涟漪 | 实际落点的扩散圆环（0.7s） |
 
-Settings → AGENT OVERLAY 五个开关：状态栏 / 边框 / 元素框 / 涟漪 / demo 模式。
+Settings 只保留悬浮进度总开关；具体动效使用统一默认样式。
 
 > 注意：应用级 overlay **无法覆盖系统 dock 与状态栏**（系统层级规则）；要让浮层常驻可见又不进截图，靠的是自有 surface 上的 `setSkipScreenshot`（隐藏 API，经 HiddenApiBypass；不可用时自动降级为"截图前后隐藏"）。
 
 ## 自检（自举）
 
-App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运行——轮流 `aiTap` 五个页签，再聚焦首页指令框 `aiInput` 一段文本。全程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟；脚本同时保存在 `packages/android-local/examples/self-check.yaml`。
+App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运行——轮流 `aiTap` 三个主入口，再聚焦首页指令框 `aiInput` 一段文本。全程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟；脚本同时保存在 `packages/android-local/examples/self-check.yaml`。
 
 ## 悬浮窗进度
 

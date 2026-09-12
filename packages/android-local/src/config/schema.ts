@@ -31,7 +31,7 @@ export const localAgentDeviceSchema = z.object({
   yadbPath: z.string().optional(),
   /** Friendly app name → package name mapping for Launch/Terminate. */
   appNameMapping: z.record(z.string()).optional(),
-  /** Register the model-visible RunAdbShell action. Defaults to true. */
+  /** Register the model-visible RunAdbShell action. Defaults to false. */
   exposeRunAdbShellAction: z.boolean().optional(),
 });
 

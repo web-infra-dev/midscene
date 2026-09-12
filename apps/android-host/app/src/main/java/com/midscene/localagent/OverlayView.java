@@ -249,7 +249,7 @@ public final class OverlayView {
             return;
         }
         lastText = text == null ? lastText : text;
-        pill.setFields(new String[] { lastText });
+        pill.invalidate();
         resizeToContent();
         applyVisibility();
     }

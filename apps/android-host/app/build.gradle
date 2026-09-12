@@ -79,4 +79,22 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
     debugImplementation 'androidx.compose.ui:ui-tooling'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }
+
+tasks.register('verifyRuntimeAssets') {
+    doLast {
+        def required = [
+            'src/main/assets/agent-bundle.zip',
+            'src/main/assets/bundle-info.txt',
+            'src/main/assets/yadb',
+            'src/main/jniLibs/arm64-v8a/libnodebin.so',
+        ]
+        def missing = required.findAll { !file(it).isFile() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing Android runtime assets: ${missing.join(', ')}. Run pnpm --filter android-host runtime and pnpm --filter android-host bundle first.")
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn tasks.named('verifyRuntimeAssets') }

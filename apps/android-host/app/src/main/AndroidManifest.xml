@@ -55,18 +55,10 @@
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
-        <!--
-          Owns agent runs so they survive the UI being reclaimed by the system.
-
-          Exported on purpose: the deployment/verification channel is
-          `adb shell am start-foreground-service -a <ACTION>`, which is how an
-          unattended install provisions the runtime and starts runs without
-          touching the UI. The actions only accept a config path inside the
-          app's own storage, and the app never handles credentials from here.
-        -->
+        <!-- Debug builds override exported for adb-driven provisioning. -->
         <service
             android:name=".AgentService"
-            android:exported="true"
+            android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

@@ -12,6 +12,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Loopback HTTP bridge between the bundled Node agent and the Shizuku user service.
@@ -26,6 +29,10 @@ import java.util.UUID;
 public final class ExecBridge {
 
     private static final String TAG = "MidsceneExecBridge";
+    private static final int MAX_HEADER_BYTES = 16 * 1024;
+    private static final int MAX_COMMAND_BYTES = 64 * 1024;
+    private static final ThreadPoolExecutor REQUESTS = new ThreadPoolExecutor(
+            4, 4, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(16));
 
     static final String PACKAGE = "com.midscene.localagent";
     private static ServerSocket server;
@@ -71,8 +78,21 @@ public final class ExecBridge {
             if (current == null || current.isClosed()) {
                 return;
             }
-            try (Socket socket = current.accept()) {
-                handle(socket);
+            try {
+                Socket socket = current.accept();
+                socket.setSoTimeout(5_000);
+                try {
+                    REQUESTS.execute(() -> {
+                        try (Socket request = socket) {
+                            handle(request);
+                        } catch (IOException | RuntimeException error) {
+                            Log.w(TAG, "request failed: " + error);
+                        }
+                    });
+                } catch (RuntimeException rejected) {
+                    socket.close();
+                    Log.w(TAG, "request queue full", rejected);
+                }
             } catch (IOException error) {
                 if (current.isClosed()) {
                     return;
@@ -92,6 +112,9 @@ public final class ExecBridge {
         int value;
         while (state < 4 && (value = input.read()) != -1) {
             headerBytes.write(value);
+            if (headerBytes.size() > MAX_HEADER_BYTES) {
+                throw new IOException("request header too large");
+            }
             if ((state == 0 || state == 2) && value == '\r') {
                 state++;
             } else if ((state == 1 || state == 3) && value == '\n') {
@@ -100,12 +123,18 @@ public final class ExecBridge {
                 state = value == '\r' ? 1 : 0;
             }
         }
+        if (state != 4) {
+            throw new IOException("incomplete request headers");
+        }
 
         String header = headerBytes.toString("UTF-8");
         String[] lines = header.split("\r\n");
         String path = "/";
-        if (lines.length > 0 && lines[0].contains(" ")) {
-            path = lines[0].split(" ")[1];
+        if (lines.length > 0) {
+            String[] requestLine = lines[0].split(" ");
+            if (requestLine.length >= 2 && "POST".equals(requestLine[0])) {
+                path = requestLine[1];
+            }
         }
 
         String suppliedToken = null;
@@ -120,25 +149,38 @@ public final class ExecBridge {
             if ("x-midscene-token".equals(name)) {
                 suppliedToken = headerValue;
             } else if ("content-length".equals(name)) {
-                contentLength = Integer.parseInt(headerValue);
+                try {
+                    contentLength = Integer.parseInt(headerValue);
+                } catch (NumberFormatException error) {
+                    throw new IOException("invalid content length", error);
+                }
             }
         }
-
-        byte[] body = new byte[Math.max(contentLength, 0)];
-        int read = 0;
-        while (read < contentLength) {
-            int chunk = input.read(body, read, contentLength - read);
-            if (chunk < 0) {
-                break;
-            }
-            read += chunk;
-        }
-        String command = new String(body, 0, read, StandardCharsets.UTF_8);
 
         if (!token.equals(suppliedToken)) {
             respond(output, 403, "text/plain", "forbidden".getBytes(StandardCharsets.UTF_8));
             return;
         }
+        if (contentLength < 0 || contentLength > MAX_COMMAND_BYTES) {
+            throw new IOException("request body too large");
+        }
+
+        byte[] body = new byte[contentLength];
+        int read = 0;
+        while (read < contentLength) {
+            int chunk = input.read(body, read, contentLength - read);
+            if (chunk < 0) {
+                throw new IOException("incomplete request body");
+            }
+            read += chunk;
+        }
+        if (!path.startsWith("/exec?") && !path.startsWith("/exec-binary?")
+                && !path.startsWith("/read-file?") && !"/ready".equals(path)) {
+            respond(output, 404, "text/plain", "unknown endpoint".getBytes(StandardCharsets.UTF_8));
+            return;
+        }
+        String command = new String(body, 0, read, StandardCharsets.UTF_8);
+
         if (path.startsWith("/read-file")) {
             // Bulk payloads (screenshots) must not cross Binder: a 1.3MB PNG
             // exceeds the transaction buffer and kills the user service, so the
@@ -200,14 +242,16 @@ public final class ExecBridge {
         }
         String requested = java.net.URLDecoder.decode(
                 path.substring(index + "path=".length()), StandardCharsets.UTF_8);
+        java.io.File requestedFile = new java.io.File(requested).getCanonicalFile();
         String[] allowed = {
-                "/storage/emulated/0/Android/data/" + PACKAGE + "/",
-                "/data/data/" + PACKAGE + "/",
-                "/data/user/0/" + PACKAGE + "/",
+                "/storage/emulated/0/Android/data/" + PACKAGE,
+                "/data/data/" + PACKAGE,
+                "/data/user/0/" + PACKAGE,
         };
         boolean permitted = false;
         for (String prefix : allowed) {
-            if (requested.startsWith(prefix)) {
+            if (requestedFile.getPath().startsWith(new java.io.File(prefix).getCanonicalPath()
+                    + java.io.File.separator)) {
                 permitted = true;
                 break;
             }
@@ -215,7 +259,10 @@ public final class ExecBridge {
         if (!permitted) {
             throw new IOException("path outside the app sandbox: " + requested);
         }
-        return java.nio.file.Files.readAllBytes(new java.io.File(requested).toPath());
+        if (!requestedFile.isFile() || requestedFile.length() > 20L * 1024 * 1024) {
+            throw new IOException("channel file missing or too large: " + requested);
+        }
+        return java.nio.file.Files.readAllBytes(requestedFile.toPath());
     }
 
     private static int parseTimeout(String path, int fallback) {
@@ -234,7 +281,11 @@ public final class ExecBridge {
         if (digits.length() == 0) {
             return fallback;
         }
-        return Math.max(Integer.parseInt(digits.toString()), 1000);
+        try {
+            return Math.min(Math.max(Integer.parseInt(digits.toString()), 1000), 60_000);
+        } catch (NumberFormatException error) {
+            return fallback;
+        }
     }
 
     private static void respond(OutputStream output, int status, String contentType, byte[] body)
