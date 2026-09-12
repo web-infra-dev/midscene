@@ -597,72 +597,7 @@ private fun ScriptsScreen() {
             }) { Text("Paste", fontSize = 12.sp) }
             TextButton(onClick = {
                 // A minimal, valid starting point for a new script.
-                text = """
-name: self-check
-device:
-  backend: rish
-  rishPath: /data/local/tmp/rish
-  yadbPath: /data/local/tmp/yadb
-  fileChannelDir: ${Provisioner.channelDir(context).absolutePath}
-agent:
-  generateReport: true
-  resetToHome: false
-  reportDir: ./midscene_run/results
-tasks:
-  - name: 01-direct-app-and-keys
-    type: yaml
-    script: |
-      tasks:
-        - name: direct-app-and-keys
-          flow:
-            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
-            - sleep: 800
-            - runAdbShell: "input keyevent KEYCODE_HOME"
-            - sleep: 600
-            - runAdbShell: "input keyevent KEYCODE_APP_SWITCH"
-            - sleep: 600
-            - runAdbShell: "input keyevent KEYCODE_BACK"
-            - sleep: 400
-            - runAdbShell: "dumpsys window | grep -m1 mCurrentFocus"
-  - name: 02-direct-settings-scroll-shot
-    type: yaml
-    script: |
-      tasks:
-        - name: direct-settings-scroll-shot
-          flow:
-            - runAdbShell: "am start -a android.settings.SETTINGS"
-            - sleep: 1500
-            - runAdbShell: "input swipe 1280 1400 1280 700 250"
-            - sleep: 800
-            - runAdbShell: "screencap -p /data/local/tmp/selfcheck.png"
-            - runAdbShell: "ls -l /data/local/tmp/selfcheck.png"
-  - name: 03-ui-tab-tour
-    type: yaml
-    script: |
-      tasks:
-        - name: tap-every-tab
-          flow:
-            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
-            - sleep: 1200
-            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏上的 Scripts）"
-            - sleep: 400
-            - aiTap: "History 标签"
-            - sleep: 400
-            - aiTap: "Diagnostics 标签"
-            - sleep: 400
-            - aiTap: "Settings 标签"
-            - sleep: 400
-            - aiTap: "Run 标签"
-  - name: 04-ui-toggle-a-switch
-    type: aiAct
-    prompt: 打开 Midscene 应用，进入 Settings 页，把 AGENT OVERLAY 区域的第一个开关切换一次
-  - name: 05-assert-screen
-    type: aiAssert
-    prompt: 屏幕上有可见内容，不是黑屏或空白
-  - name: 06-query-screen
-    type: aiQuery
-    prompt: 用一句话描述当前屏幕上最重要的内容
-"""
+                text = selfCheckConfig(context)
                 status = "template loaded"
             }) { Text("New template", fontSize = 12.sp) }
             if (status.isNotEmpty()) {
@@ -1826,3 +1761,77 @@ private fun openShizuku(context: android.content.Context) {
 
 /** Extras understood by this activity when the service brings it forward. */
 const val EXTRA_OPEN_HISTORY = "openHistory"
+
+/**
+ * The self-check script: the app drives its own UI.
+ *
+ * Shell-only sections come first (they measure transport cost with no model call at
+ * all), then a tap per tab, a switch toggle, and two perception checks, so the
+ * per-task timings separate engine cost from model cost.
+ */
+private fun selfCheckConfig(context: android.content.Context): String = """
+name: self-check
+device:
+  backend: rish
+  rishPath: /data/local/tmp/rish
+  yadbPath: /data/local/tmp/yadb
+  fileChannelDir: ${Provisioner.channelDir(context).absolutePath}
+agent:
+  generateReport: true
+  resetToHome: false
+  reportDir: ./midscene_run/results
+tasks:
+  - name: 01-direct-app-and-keys
+    type: yaml
+    script: |
+      tasks:
+        - name: direct-app-and-keys
+          flow:
+            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
+            - sleep: 800
+            - runAdbShell: "input keyevent KEYCODE_HOME"
+            - sleep: 600
+            - runAdbShell: "input keyevent KEYCODE_APP_SWITCH"
+            - sleep: 600
+            - runAdbShell: "input keyevent KEYCODE_BACK"
+            - sleep: 400
+            - runAdbShell: "dumpsys window | grep -m1 mCurrentFocus"
+  - name: 02-direct-settings-scroll-shot
+    type: yaml
+    script: |
+      tasks:
+        - name: direct-settings-scroll-shot
+          flow:
+            - runAdbShell: "am start -a android.settings.SETTINGS"
+            - sleep: 1500
+            - runAdbShell: "input swipe 1280 1400 1280 700 250"
+            - sleep: 800
+            - runAdbShell: "screencap -p /data/local/tmp/selfcheck.png"
+            - runAdbShell: "ls -l /data/local/tmp/selfcheck.png"
+  - name: 03-ui-tab-tour
+    type: yaml
+    script: |
+      tasks:
+        - name: tap-every-tab
+          flow:
+            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
+            - sleep: 1200
+            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏上的 Scripts）"
+            - sleep: 400
+            - aiTap: "History 标签"
+            - sleep: 400
+            - aiTap: "Diagnostics 标签"
+            - sleep: 400
+            - aiTap: "Settings 标签"
+            - sleep: 400
+            - aiTap: "Run 标签"
+  - name: 04-ui-toggle-a-switch
+    type: aiAct
+    prompt: 打开 Midscene 应用，进入 Settings 页，把 AGENT OVERLAY 区域的第一个开关切换一次
+  - name: 05-assert-screen
+    type: aiAssert
+    prompt: 屏幕上有可见内容，不是黑屏或空白
+  - name: 06-query-screen
+    type: aiQuery
+    prompt: 用一句话描述当前屏幕上最重要的内容
+"""
