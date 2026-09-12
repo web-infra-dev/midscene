@@ -439,9 +439,11 @@ public final class OverlayView {
             if (!showEdge) {
                 return;
             }
-            float band = (demoMode ? 10f : 3.5f) * density;
-            float pulse = 0.45f + 0.35f * (float) Math.sin(System.currentTimeMillis() / 700.0);
-            int alpha = Math.round(255 * (demoMode ? Math.min(pulse + 0.2f, 0.95f) : pulse * 0.6f));
+            float band = (demoMode ? 18f : 7f) * density;
+            // A clearly readable breath: 0.25..0.85 alpha over a 1.6s cycle.
+            float pulse = 0.55f + 0.3f * (float) Math.sin(
+                    System.currentTimeMillis() / 260.0);
+            int alpha = Math.round(255 * (demoMode ? Math.min(pulse + 0.25f, 1f) : pulse));
             int tint = (CHIP_COLOR & 0x00FFFFFF) | (alpha << 24);
 
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);

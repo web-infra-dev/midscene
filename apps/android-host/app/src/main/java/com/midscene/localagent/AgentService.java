@@ -41,6 +41,7 @@ public class AgentService extends Service {
 
     public static final String TAG = "MidsceneAgentService";
     private static final String CHANNEL_ID = "midscene-agent";
+    private static final String EVENT_MARKER = "[event] ";
     private static final int NOTIFICATION_ID = 1001;
 
     public static final String ACTION_RUN_CONFIG = "com.midscene.localagent.RUN_CONFIG";
@@ -116,8 +117,11 @@ public class AgentService extends Service {
         lastMessage = line;
         persistServiceLog(line);
 
-        if (line != null && line.startsWith("[event] ")) {
-            applyProgressEvent(line.substring("[event] ".length()));
+        int eventAt = line == null ? -1 : line.lastIndexOf(EVENT_MARKER);
+        if (eventAt >= 0) {
+            // The stream may carry the marker more than once (the CLI echoes onEvent
+            // messages too), so parse from the last one.
+            applyProgressEvent(line.substring(eventAt + EVENT_MARKER.length()));
             return;
         }
 
@@ -205,6 +209,9 @@ public class AgentService extends Service {
         long now = System.currentTimeMillis();
         String chip = stepTotal > 0 ? Math.max(stepIndex, 1) + "/" + stepTotal : "";
         String detail = stepPrompt.isEmpty() ? lastMessage : stepPrompt;
+        if (detail.contains(EVENT_MARKER.trim())) {
+            detail = "";
+        }
         String metrics = "";
         if (stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase)) {
             metrics = formatDuration(now - stepStartedAtMs);
@@ -423,13 +430,16 @@ public class AgentService extends Service {
     /**
      * Pull the run result out of the CLI's output.
      *
-     * The stream carries log lines and `[event] {json}` progress lines before the
-     * result, so slicing from the first brace to the last one produced invalid JSON
-     * (and silently dropped the report path and task counts). Lines are scanned from
-     * the end instead, and only an object that looks like a run result is accepted.
+     * The result is pretty-printed, so its root brace sits alone on a line and the
+     * nested objects also start with "{": searching for the last brace (or the last
+     * "{\n") finds a nested object, which is why successful runs were recorded as
+     * failures without a report. Candidate roots are tried from the top instead, and
+     * only an object carrying a "tasks" array is accepted.
      */
     private JSONObject summarize(ShellRunner.Result result, String configPath) {
         String[] lines = result.output.split("\r?\n");
+
+        // Single-line result (compact JSON somewhere in the output).
         for (int index = lines.length - 1; index >= 0; index--) {
             String line = lines[index].trim();
             if (!line.startsWith("{") || !line.contains("\"tasks\"")) {
@@ -437,18 +447,30 @@ public class AgentService extends Service {
             }
             try {
                 return new JSONObject(line);
-            } catch (JSONException error) {
-                // not this line; keep looking upwards
+            } catch (JSONException ignored) {
+                // keep looking
             }
         }
 
-        // Multi-line pretty-printed results: try the tail of the output.
-        int start = result.output.lastIndexOf("{\n");
-        if (start >= 0) {
+        // Pretty-printed result: try every line that opens a root-level object.
+        StringBuilder candidate = new StringBuilder();
+        for (int index = 0; index < lines.length; index++) {
+            String trimmed = lines[index].trim();
+            if (!"{".equals(trimmed)) {
+                continue;
+            }
+            candidate.setLength(0);
+            for (int rest = index; rest < lines.length; rest++) {
+                candidate.append(lines[rest]).append('\n');
+            }
+            String text = candidate.toString();
+            if (!text.contains("\"tasks\"")) {
+                continue;
+            }
             try {
-                return new JSONObject(result.output.substring(start));
-            } catch (JSONException error) {
-                Log.w(TAG, "result JSON not parseable: " + error.getMessage());
+                return new JSONObject(text);
+            } catch (JSONException ignored) {
+                // a nested object: try the next candidate
             }
         }
 
@@ -457,7 +479,7 @@ public class AgentService extends Service {
             fallback.put("name", new File(configPath).getName());
             fallback.put("ok", result.exitCode == 0);
         } catch (JSONException ignored) {
-            // never happens for string/boolean values
+            // never happens for string and boolean values
         }
         return fallback;
     }
