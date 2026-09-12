@@ -643,7 +643,11 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
                 TextButton(onClick = {
                     store.delete(record)
                     pendingDelete = null
-                    reload()
+                    // Inlined: a local function declared further down is not visible here.
+                    records = store.list()
+                    if (records.none { it.id == selected?.id }) {
+                        selected = null
+                    }
                 }) { Text("Delete", color = MidsceneColors.Error) }
             },
             dismissButton = {
