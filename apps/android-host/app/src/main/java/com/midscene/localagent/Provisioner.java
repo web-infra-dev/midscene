@@ -112,7 +112,9 @@ public final class Provisioner {
             }
         }
         restoreLinks(next);
-        if (!new File(next, "dist/lib/cli.js").isFile()) {
+        // The CLI lives inside the package, not at the bundle root: checking the wrong
+        // path rejected every valid bundle with "agent bundle has no CLI".
+        if (!new File(next, "node_modules/@midscene/android-local/dist/lib/cli.js").isFile()) {
             throw new IOException("agent bundle has no CLI");
         }
         deleteTree(target);
@@ -128,7 +130,14 @@ public final class Provisioner {
     }
 
     private static void restoreLinks(File root) throws IOException {
+        // Bundles no longer ship a link manifest: links are materialised when the
+        // bundle is built, so there is nothing to restore. A manifest is still honoured
+        // for older bundles.
         File manifest = new File(root, "bundle-links.json");
+        if (!manifest.isFile()) {
+            return;
+        }
+
         try {
             JSONArray links = new JSONArray(ShellRunner.readText(manifest));
             for (int index = 0; index < links.length(); index++) {
@@ -143,9 +152,9 @@ public final class Provisioner {
                         || !destination.getCanonicalPath().startsWith(safeRoot)) {
                     throw new IOException("unsafe bundle link: " + relative);
                 }
-                java.nio.file.Files.delete(link.toPath());
-                java.nio.file.Files.createSymbolicLink(link.toPath(),
-                        java.nio.file.Paths.get(target));
+                link.getParentFile().mkdirs();
+                java.nio.file.Files.createSymbolicLink(
+                        link.toPath(), destination.toPath());
             }
         } catch (JSONException error) {
             throw new IOException("invalid bundle-links.json", error);
