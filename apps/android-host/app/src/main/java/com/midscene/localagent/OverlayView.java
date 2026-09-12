@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
 import android.graphics.RectF;
@@ -162,8 +164,17 @@ public final class OverlayView {
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                            // Without these the window manager insets the surface to
+                            // avoid the status bar and the taskbar, so the frame never
+                            // reached the physical screen edges.
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                     PixelFormat.TRANSLUCENT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                params.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            }
             params.gravity = Gravity.TOP | Gravity.START;
             params.x = 0;
             params.y = 0;
@@ -180,6 +191,9 @@ public final class OverlayView {
 
         update(text);
         applyVisibility();
+        if (pill != null) {
+            pill.startAnimating();
+        }
     }
 
     public static synchronized void update(String text) {
@@ -390,7 +404,9 @@ public final class OverlayView {
                     return;
                 }
                 render();
-                boolean busy = System.currentTimeMillis() < boxUntil
+                // The border streak animates for as long as the overlay is up.
+                boolean busy = showEdge
+                        || System.currentTimeMillis() < boxUntil
                         || (rippleX >= 0
                         && System.currentTimeMillis() - rippleStartedAt < RIPPLE_MS);
                 if (busy) {
@@ -423,7 +439,7 @@ public final class OverlayView {
                 canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
                 long now = System.currentTimeMillis();
 
-                drawEdgeGlow(canvas, width, height);
+                drawBorderBeam(canvas, width, height, now);
                 drawBox(canvas, now);
                 drawRipple(canvas, now);
                 if (showBar) {
@@ -434,33 +450,78 @@ public final class OverlayView {
             }
         }
 
-        /** A breathing brand glow along the screen edges: "the agent is in control". */
-        private void drawEdgeGlow(Canvas canvas, int width, int height) {
+        /**
+         * A light streak travelling around the frame: a comet head with a fading tail,
+         * which reads as "the agent is driving" far better than a static glow.
+         */
+        private void drawBorderBeam(Canvas canvas, int width, int height, long now) {
             if (!showEdge) {
                 return;
             }
-            float band = (demoMode ? 18f : 7f) * density;
-            // A clearly readable breath: 0.25..0.85 alpha over a 1.6s cycle.
-            float pulse = 0.55f + 0.3f * (float) Math.sin(
-                    System.currentTimeMillis() / 260.0);
-            int alpha = Math.round(255 * (demoMode ? Math.min(pulse + 0.25f, 1f) : pulse));
-            int tint = (CHIP_COLOR & 0x00FFFFFF) | (alpha << 24);
+            float inset = (demoMode ? 10f : 5f) * density;
+            float stroke = (demoMode ? 9f : 5.5f) * density;
+            float radius = 20 * density;
 
+            RectF frame = new RectF(inset, inset, width - inset, height - inset);
+            Path path = new Path();
+            path.addRoundRect(frame, radius, radius, Path.Direction.CW);
+            PathMeasure measure = new PathMeasure(path, false);
+            float length = measure.getLength();
+            if (length <= 0) {
+                return;
+            }
+
+            // A faint frame keeps the border defined between passes of the streak.
+            Paint framePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            framePaint.setStyle(Paint.Style.STROKE);
+            framePaint.setStrokeWidth(1.2f * density);
+            framePaint.setColor((CHIP_COLOR & 0x00FFFFFF) | (demoMode ? 0x44 : 0x22) << 24);
+            canvas.drawPath(path, framePaint);
+
+            long lapMs = demoMode ? 2200 : 3600;
+            float head = ((now % lapMs) / (float) lapMs) * length;
+            float tail = length * (demoMode ? 0.34f : 0.22f);
+            int segments = 22;
+            Path piece = new Path();
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            paint.setShader(new android.graphics.LinearGradient(
-                    0, 0, 0, band, tint, Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, width, band, paint);
-            paint.setShader(new android.graphics.LinearGradient(
-                    0, height, 0, height - band, tint, Color.TRANSPARENT,
-                    android.graphics.Shader.TileMode.CLAMP));
-            canvas.drawRect(0, height - band, width, height, paint);
-            paint.setShader(new android.graphics.LinearGradient(
-                    0, 0, band, 0, tint, Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, band, height, paint);
-            paint.setShader(new android.graphics.LinearGradient(
-                    width, 0, width - band, 0, tint, Color.TRANSPARENT,
-                    android.graphics.Shader.TileMode.CLAMP));
-            canvas.drawRect(width - band, 0, width, height, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+
+            for (int i = 0; i < segments; i++) {
+                float from = head - tail * (i + 1) / segments;
+                float to = head - tail * i / segments;
+                float start = ((from % length) + length) % length;
+                float stop = ((to % length) + length) % length;
+
+                piece.reset();
+                if (start <= stop) {
+                    measure.getSegment(start, stop, piece, true);
+                } else {
+                    measure.getSegment(start, length, piece, true);
+                    measure.getSegment(0, stop, piece, true);
+                }
+
+                float fade = 1f - (float) i / segments;
+                int alpha = Math.round(255 * fade * (demoMode ? 1f : 0.9f));
+                paint.setStrokeWidth(stroke * (0.35f + 0.65f * fade));
+                paint.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+                canvas.drawPath(piece, paint);
+            }
+
+            // A soft halo around the head.
+            Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+            halo.setStyle(Paint.Style.STROKE);
+            halo.setStrokeWidth(stroke * 2.6f);
+            halo.setColor((CHIP_COLOR & 0x00FFFFFF) | (demoMode ? 0x3A : 0x24) << 24);
+            piece.reset();
+            float headStart = ((head - tail * 0.06f) % length + length) % length;
+            if (headStart <= head) {
+                measure.getSegment(headStart, head, piece, true);
+            } else {
+                measure.getSegment(headStart, length, piece, true);
+                measure.getSegment(0, head, piece, true);
+            }
+            canvas.drawPath(piece, halo);
         }
 
         /** Dashed box around the element the agent located, fading out. */
