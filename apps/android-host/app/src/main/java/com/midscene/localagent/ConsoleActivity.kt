@@ -2,6 +2,7 @@ package com.midscene.localagent
 
 import android.content.Intent
 import android.webkit.WebView
+import android.widget.FrameLayout
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -966,35 +967,47 @@ private fun EmbeddedReport(
     key(path) {
         AndroidView(
             modifier = modifier,
+            // Compose only ever parents this throwaway FrameLayout; the WebView (and
+            // its parsed document) is moved in and out by us, so re-entering History
+            // never hits "the specified child already has a parent".
             factory = { context ->
-                (holder.value ?: WebView(context)).also { holder.value = it }.apply {
-                    setBackgroundColor(android.graphics.Color.WHITE)
-                    webViewClient = object : android.webkit.WebViewClient() {
-                        private val startedAt = System.currentTimeMillis()
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            android.util.Log.i(
-                                "MidsceneReport",
-                                "report ready in ${System.currentTimeMillis() - startedAt} ms",
-                            )
-                            onReady()
+                FrameLayout(context).apply {
+                    val web = holder.value ?: WebView(context).apply {
+                        setBackgroundColor(android.graphics.Color.WHITE)
+                        webViewClient = object : android.webkit.WebViewClient() {
+                            private val startedAt = System.currentTimeMillis()
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                android.util.Log.i(
+                                    "MidsceneReport",
+                                    "report ready in ${System.currentTimeMillis() - startedAt} ms",
+                                )
+                                onReady()
+                            }
                         }
+                        settings.javaScriptEnabled = true
+                        settings.allowFileAccess = true
+                        settings.allowFileAccessFromFileURLs = true
+                        settings.allowUniversalAccessFromFileURLs = true
+                        settings.domStorageEnabled = true
                     }
-                    settings.javaScriptEnabled = true
-                    settings.allowFileAccess = true
-                    settings.allowFileAccessFromFileURLs = true
-                    settings.allowUniversalAccessFromFileURLs = true
-                    settings.domStorageEnabled = true
+                    holder.value = web
+                    addView(
+                        web,
+                        FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                        ),
+                    )
+                    val url = "file://$path"
+                    if (web.url != url) {
+                        web.loadUrl(url)
+                    } else {
+                        onReady()
+                    }
                 }
             },
-            // Compose re-attaches this view when History comes back; a WebView still
-            // parented to its previous container would throw IllegalStateException,
-            // so detach it on release and keep the parsed document alive.
-            onRelease = { web -> (web.parent as? android.view.ViewGroup)?.removeView(web) },
-            update = { web ->
-                val url = "file://$path"
-                if (web.url != url) {
-                    web.loadUrl(url)
-                }
+            onRelease = { container ->
+                (container as? android.view.ViewGroup)?.removeAllViews()
             },
         )
     }
