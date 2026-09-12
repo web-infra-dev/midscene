@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,9 +60,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,12 +89,18 @@ class ConsoleActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge to edge (plus imePadding below) is what makes the keyboard push the
+        // content instead of covering the run controls.
+        enableEdgeToEdge()
         ShizukuExecBridge.ensureBound(this)
         ExecBridge.start(this)
         setContent {
             MidsceneTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .safeDrawingPadding()
+                        .imePadding(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     Console()
@@ -157,6 +168,8 @@ class ConsoleActivity : ComponentActivity() {
             onDispose { AgentService.removeListener(listener) }
         }
 
+        val clipboard = LocalClipboardManager.current
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -182,6 +195,16 @@ class ConsoleActivity : ComponentActivity() {
                     AgentService.start(context, AgentService.ACTION_STOP, null)
                     busy = false
                 },
+                onPaste = {
+                    // Explicit paste: the emulator's shared clipboard and the
+                    // long-press toolbar are both unreliable while debugging.
+                    clipboard.getText()?.text?.let { text ->
+                        if (text.isNotBlank()) {
+                            prompt = if (prompt.isBlank()) text else prompt + " " + text
+                        }
+                    }
+                },
+                onClear = { prompt = "" },
             )
             LogCard(lines) { lines.clear() }
             Spacer(Modifier.height(4.dp))
@@ -224,6 +247,8 @@ class ConsoleActivity : ComponentActivity() {
         busy: Boolean,
         onRun: () -> Unit,
         onStop: () -> Unit,
+        onPaste: () -> Unit,
+        onClear: () -> Unit,
     ) {
         Card(
             shape = MaterialTheme.shapes.medium,
@@ -260,7 +285,14 @@ class ConsoleActivity : ComponentActivity() {
                             .semantics { contentDescription = "Instruction input" },
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onPaste) { Text("Paste", fontSize = 12.sp) }
+                    TextButton(onClick = onClear) { Text("Clear", fontSize = 12.sp) }
+                }
+                Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = onRun,
