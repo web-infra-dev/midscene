@@ -588,7 +588,12 @@ private fun HistoryScreen() {
     var pendingDelete by remember { mutableStateOf<RunStore.RunRecord?>(null) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
-    LaunchedEffect(Unit) { records = store.list() }
+    LaunchedEffect(Unit) {
+        records = store.list()
+        if (wide && selected == null) {
+            selected = records.firstOrNull()
+        }
+    }
 
     fun reload() {
         records = store.list()
@@ -618,7 +623,7 @@ private fun HistoryScreen() {
                     RunCard(
                         record = record,
                         highlighted = selected?.id == record.id,
-                        onOpenReport = { openRun(record, ::open) },
+                        onOpenReport = { selected = record },
                         onDetails = { selected = record },
                         onDelete = { pendingDelete = record },
                     )
