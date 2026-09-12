@@ -4,7 +4,6 @@ import type {
   CommandRunnerOptions,
   CommandRunnerResult,
 } from './command-runner';
-import { quoteShellArg } from './command-runner';
 import type { ShellFileIo } from './rish';
 
 /**
@@ -96,7 +95,27 @@ export class ExecBridgeCommandRunner implements CommandRunner {
     };
   }
 
-  /** Raw stdout bytes: screenshots and other binary payloads travel unencoded. */
+  /**
+   * Read a file the shell wrote, served by the app process.
+   *
+   * Bulk payloads cannot come back over Binder (a full screenshot exceeds the
+   * transaction buffer and takes the user service down), so the app reads the
+   * file from its own storage and streams it here.
+   */
+  async readFile(filePath: string): Promise<Buffer> {
+    const response = await this.fetchImpl(
+      `${this.url}/read-file?path=${encodeURIComponent(filePath)}`,
+      { method: 'POST', headers: { 'x-midscene-token': this.token }, body: '' },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `exec bridge could not read ${filePath}: HTTP ${response.status} ${await response.text()}`,
+      );
+    }
+    return Buffer.from(await response.arrayBuffer());
+  }
+
+  /** Raw stdout bytes: small binary payloads travel unencoded. */
   async runBinary(command: string, timeoutMs?: number): Promise<Buffer> {
     const response = await this.fetchImpl(
       `${this.url}/exec-binary?timeout=${Math.round(timeoutMs ?? this.defaultTimeoutMs)}`,
@@ -116,20 +135,18 @@ export class ExecBridgeCommandRunner implements CommandRunner {
 }
 
 /**
- * File channel for the transports, served by the shell instead of this process.
+ * File channel for the transports, served by the app process.
  *
- * The app uid cannot read `/data/local/tmp` (SELinux), so the transports read the
- * files the shell wrote by asking the shell to base64 them back through the
- * bridge.
+ * The shell writes the payload (it has the privileges and the directory is shared
+ * through the app's external files dir), and the app reads it back: routing bytes
+ * through Binder would hit the transaction limit on real screenshots.
  */
 export function createBridgeFileIo(
   runner: ExecBridgeCommandRunner,
 ): ShellFileIo {
   return {
     read: async (filePath: string) => {
-      // Raw bytes over the binary endpoint: no base64 dependency (AOSP images
-      // do not always ship the tool) and no 33% size penalty.
-      return runner.runBinary(`cat ${quoteShellArg(filePath)}`, 20_000);
+      return runner.readFile(filePath);
     },
   };
 }

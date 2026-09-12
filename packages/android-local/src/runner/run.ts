@@ -71,6 +71,10 @@ function buildTransport(config: LocalAgentConfig): AndroidTransport {
     return new RishTransport({
       runner,
       fileIo: createBridgeFileIo(runner),
+      // The channel dir must be readable by the app process (it serves the
+      // payloads) and writable by the shell, which is what the app's external
+      // files directory provides.
+      fileChannelDir: device.fileChannelDir,
       displayId: device.displayId,
       yadbPath: device.yadbPath,
       unsetEnv: [],

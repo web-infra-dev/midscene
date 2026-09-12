@@ -176,7 +176,16 @@ tasks:
 | A14-12 | ✅ TS 侧 `ExecBridgeCommandRunner` 作为 drop-in 替换：`RishTransport` 仍照旧拼 `sh <rish> -c <cmd>`，runner 直接执行 payload 元素（无需改 transport）；文件通道改为经 `/exec-binary` + `cat` 取**原始字节**（不再依赖 `base64`，AOSP 镜像不保证有） |
 | A14-13 | ⏳ 设备验收中：run 已能走到 transport（rish `Aborted` 已消失），当前卡在 `probeUid`：「Unable to determine the uid of the rish shell channel」——下一步打印该探针的实际命令与返回，定位是命令形态还是解析问题 |
 
-原始设计（1–4 步已完成并验证，第 5 步实现已落地、验收进行中）：
+**第 5 步完成（A14-14 ~ A14-17，Android 14 手机端到端跑通）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-14 | ✅ **端到端成功**：`aiAssert` 通过（7.4s）、报告与结果文件生成、CLI `exit=0`（16.9s）。能力矩阵 `uid 2000 / privileged / textInput full / gestures` —— **无 rish、无 Termux、无 PC** |
+| A14-15 | 截图失败根因之一：本机 `screencap -p -d 0 <file>` 返回 1 且 0 字节，`screencap -p`（不带 `-d`）正常。设备 `displayId` 不应默认写 0，transport 需要能回退到不带 `-d` 的调用 |
+| A14-16 | 截图失败根因之二：**大载荷不能走 Binder**。1.3MB PNG 经 AIDL `byte[]` 返回触发 `DeadObjectException`（事务缓冲上限）并打死 UserService 进程。改为：shell 写到 App 外部目录 → **App 主进程读文件** → 回环 HTTP 原始字节返回（`/read-file`，路径白名单限制在 App 沙箱内） |
+| A14-17 | 文件通道目录必须同时满足「shell 可写 + App 可读」，因此用 App 外部目录 `/storage/emulated/0/Android/data/<pkg>/files/channel`，并需由 runner 把配置里的 `fileChannelDir` 透传给 transport（否则仍用 `/data/local/tmp`，App 沙箱读不到 → HTTP 404） |
+
+原始设计（1–5 步全部落地并验证）：
 
 ```text
 Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
@@ -210,7 +219,7 @@ Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
 | M1（当前） | Termux CLI + 配置 + YAML 脚本 + 结果文件 | ✅ **已在 Android 12 模拟器验证**：`doctor` 全绿（capabilities 含 `gestures: true`/`textInput: full`、截图 125KB/1.77s）；`run` 三个任务（aiAct 112s / aiAssert 25s / YAML 脚本 92s）全部 ok，退出码 0，结果 JSON 落盘 `midscene_run/agent-results/` |
 | M2 | 配置/脚本导入导出、结果汇总、失败重试策略 | 一条配置在 2 台手机上可复现 |
 | M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
-| M4 🔄 | Shizuku UserService 常驻通道（消除 rish spawn 开销与文件通道） | 截图/输入延迟显著下降，中文输入不再启动 ART |
+| M4 ✅ | Shizuku UserService 常驻通道（替代 rish；大载荷由 App 进程直读，不经 Binder） | ✅ Android 14 实测：能力矩阵全绿、`aiAssert` ok、报告/结果文件生成、`exit=0` |
 | M4-pre ✅ | **授权通道**：`Shizuku.requestPermission()`（官方 API）+ Setup 页 `Authorize Shizuku` 按钮 → Shizuku 里本 App 授权开关 ON | ✅ 已授权；rish 仍 `Aborted` → 见 §5.6 结论 |
 | M5-a ✅ | **adb 无感安装与配置**：`scripts/adb-bootstrap.sh` 一条命令完成安装/起 Shizuku/部署 rish/注入 model.env/电池与通知白名单/触发 provisioning | ✅ Android 14 手机实测（Node v24.18.0 正常） |
 | M4' ✅ | **守护与保活**：前台 Service（specialUse）+ WakeLock + 电池优化豁免入口；Activity 与运行解耦 | ✅ 实测：App 切后台后任务继续跑完；`isForeground=true`；服务日志落盘 `files/run/agent.log` |

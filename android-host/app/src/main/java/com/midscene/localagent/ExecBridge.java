@@ -27,6 +27,7 @@ public final class ExecBridge {
 
     private static final String TAG = "MidsceneExecBridge";
 
+    static final String PACKAGE = "com.midscene.localagent";
     private static ServerSocket server;
     private static String token = "";
     private static volatile boolean started;
@@ -138,6 +139,18 @@ public final class ExecBridge {
             respond(output, 403, "text/plain", "forbidden".getBytes(StandardCharsets.UTF_8));
             return;
         }
+        if (path.startsWith("/read-file")) {
+            // Bulk payloads (screenshots) must not cross Binder: a 1.3MB PNG
+            // exceeds the transaction buffer and kills the user service, so the
+            // app process reads the file the shell wrote and returns raw bytes.
+            try {
+                respond(output, 200, "application/octet-stream", readChannelFile(path));
+            } catch (Exception error) {
+                respond(output, 404, "text/plain",
+                        String.valueOf(error.getMessage()).getBytes(StandardCharsets.UTF_8));
+            }
+            return;
+        }
         if (path.startsWith("/ready")) {
             respond(output, 200, "application/json",
                     ("{\"ready\":" + ShizukuExecBridge.isReady() + "}").getBytes(StandardCharsets.UTF_8));
@@ -162,6 +175,32 @@ public final class ExecBridge {
             respond(output, 500, "text/plain",
                     String.valueOf(error.getMessage()).getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    /** Read a channel file, restricted to directories this app owns. */
+    private static byte[] readChannelFile(String path) throws IOException {
+        int index = path.indexOf("path=");
+        if (index < 0) {
+            throw new IOException("missing path");
+        }
+        String requested = java.net.URLDecoder.decode(
+                path.substring(index + "path=".length()), StandardCharsets.UTF_8);
+        String[] allowed = {
+                "/storage/emulated/0/Android/data/" + PACKAGE + "/",
+                "/data/data/" + PACKAGE + "/",
+                "/data/user/0/" + PACKAGE + "/",
+        };
+        boolean permitted = false;
+        for (String prefix : allowed) {
+            if (requested.startsWith(prefix)) {
+                permitted = true;
+                break;
+            }
+        }
+        if (!permitted) {
+            throw new IOException("path outside the app sandbox: " + requested);
+        }
+        return java.nio.file.Files.readAllBytes(new java.io.File(requested).toPath());
     }
 
     private static int parseTimeout(String path, int fallback) {

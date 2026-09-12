@@ -67,7 +67,7 @@ describe('exec bridge runner', () => {
     );
   });
 
-  test('reads channel files through the shell as raw bytes', async () => {
+  test('reads channel files from the app process', async () => {
     const fetchImpl = (async () =>
       ({
         ok: true,
