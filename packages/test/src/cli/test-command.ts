@@ -37,8 +37,7 @@ export const parseTestCliArgs = (
   for (let index = commandOffset; index < args.length; index += 1) {
     const arg = args[index];
     if (!arg.startsWith('-')) {
-      if (projectRoot)
-        throw new Error('Only one test project directory is allowed.');
+      if (projectRoot) throw new Error('Only one test path is allowed.');
       projectRoot = resolve(cwd, arg);
       continue;
     }

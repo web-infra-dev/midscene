@@ -193,6 +193,49 @@ describe('midscene-test CLI', () => {
     });
   });
 
+  it('runs only the requested workflow document', async () => {
+    const projectRoot = join(__dirname, 'fixtures', 'test-project');
+    const workflowPath = join(projectRoot, 'flows', 'first.yaml');
+    const { resultDir, executionLog } = temporaryRun(
+      'midscene-single-file-e2e-',
+    );
+
+    const execution = await execFileAsync(
+      process.execPath,
+      [cliPath, workflowPath, '--result-dir', resultDir],
+      {
+        cwd: packageRoot,
+        env: { ...process.env, WORKFLOW_E2E_LOG: executionLog },
+      },
+    );
+
+    expect(execution.stdout).toContain(
+      'midscene-test: preflighted 1 projects, 1 documents, 2 cases, 0 collection errors',
+    );
+    expect(execution.stdout).toContain('[document 1/1] flows/first.yaml');
+    expect(execution.stdout).not.toContain('flows/nested/second.yml');
+    expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
+      'first:one',
+      'first:two',
+      'second:one',
+    ]);
+
+    const projectResult = JSON.parse(
+      readFileSync(summaryPathFor(resultDir), 'utf8'),
+    );
+    expect(projectResult).toMatchObject({
+      projectRoot,
+      projects: [
+        {
+          name: 'web',
+          sourceCount: 1,
+          fileSelection: { include: ['flows/first.yaml'] },
+          cases: [{ name: 'first case' }, { name: 'second case' }],
+        },
+      ],
+    });
+  });
+
   it('describes registered nodes without reading workflows or running setup', async () => {
     const projectRoot = mkdtempSync(join(packageRoot, '.node-reference-e2e-'));
     temporaryDirectories.push(projectRoot);
