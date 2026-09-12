@@ -636,13 +636,30 @@ tasks:
             - sleep: 800
             - runAdbShell: "screencap -p /data/local/tmp/selfcheck.png"
             - runAdbShell: "ls -l /data/local/tmp/selfcheck.png"
-  - name: 03-ui-toggle-a-switch
+  - name: 03-ui-tab-tour
+    type: yaml
+    script: |
+      tasks:
+        - name: tap-every-tab
+          flow:
+            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
+            - sleep: 1200
+            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏上的 Scripts）"
+            - sleep: 400
+            - aiTap: "History 标签"
+            - sleep: 400
+            - aiTap: "Diagnostics 标签"
+            - sleep: 400
+            - aiTap: "Settings 标签"
+            - sleep: 400
+            - aiTap: "Run 标签"
+  - name: 04-ui-toggle-a-switch
     type: aiAct
     prompt: 打开 Midscene 应用，进入 Settings 页，把 AGENT OVERLAY 区域的第一个开关切换一次
-  - name: 04-assert-screen
+  - name: 05-assert-screen
     type: aiAssert
     prompt: 屏幕上有可见内容，不是黑屏或空白
-  - name: 05-query-screen
+  - name: 06-query-screen
     type: aiQuery
     prompt: 用一句话描述当前屏幕上最重要的内容
 """
