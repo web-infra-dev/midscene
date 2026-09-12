@@ -511,7 +511,9 @@ public class AgentService extends Service {
             Intent open = new Intent(this, ConsoleActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                             | Intent.FLAG_ACTIVITY_SINGLE_TOP
-                            | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                            | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    // Returning is about the result, so land on the run list.
+                    .putExtra("openHistory", true);
             startActivity(open);
         } catch (Exception error) {
             Log.w(TAG, "could not bring the console forward: " + error);

@@ -1,6 +1,7 @@
 package com.midscene.localagent
 
 import android.content.Intent
+import android.widget.Toast
 import android.webkit.WebView
 import android.widget.FrameLayout
 import android.content.pm.PackageManager
@@ -107,11 +108,22 @@ import java.util.Locale
  */
 class ConsoleActivity : ComponentActivity() {
 
+    /** Set when the service brings the console forward after a run. */
+    private val openHistory = mutableStateOf(false)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_OPEN_HISTORY, false)) {
+            openHistory.value = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ShizukuExecBridge.ensureBound(this)
         ExecBridge.start(this)
+        openHistory.value = intent?.getBooleanExtra(EXTRA_OPEN_HISTORY, false) == true
         setContent {
             // Read the system default outside remember{ }: its lambda is not composable.
             val systemDark = isSystemInDarkTheme()
@@ -148,8 +160,20 @@ private val DESTINATIONS = listOf(
 )
 
 @Composable
-private fun ConsoleShell(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
+private fun ConsoleShell(
+    dark: Boolean,
+    onDarkChange: (Boolean) -> Unit,
+    openHistory: MutableState<Boolean> = mutableStateOf(false),
+) {
     var tab by remember { mutableStateOf(0) }
+
+    // A finished run lands on the run list: that is where the result lives.
+    LaunchedEffect(openHistory.value) {
+        if (openHistory.value) {
+            tab = 2
+            openHistory.value = false
+        }
+    }
     val context = LocalContext.current
     var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
@@ -654,7 +678,10 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
                         record = current,
                         store = store,
                         reportView = reportView,
-                        onDelete = { pendingDelete = current },
+                        onDelete = {
+                            store.delete(current)
+                            reload()
+                        },
                     )
                 }
             }
@@ -876,6 +903,7 @@ private fun RunDetailPane(
     onDelete: () -> Unit,
 ) {
     var reportReady by remember(record.id) { mutableStateOf(false) }
+    var confirmDelete by remember(record.id) { mutableStateOf(false) }
     val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
     var showReport by remember(record.id) { mutableStateOf(hasReport) }
 
@@ -907,9 +935,31 @@ private fun RunDetailPane(
                 TextButton(onClick = { showReport = true }) { Text("Report", fontSize = 12.sp) }
             }
             TextButton(onClick = { showReport = false }) { Text("Log", fontSize = 12.sp) }
-            TextButton(onClick = onDelete) {
+            TextButton(onClick = { confirmDelete = true }) {
                 Text("Delete", fontSize = 12.sp, color = MidsceneColors.Error)
             }
+        }
+
+        if (confirmDelete) {
+            AlertDialog(
+                onDismissRequest = { confirmDelete = false },
+                title = { Text("Delete this run?") },
+                text = {
+                    Text(
+                        "Its log, result and report will be removed from the device.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmDelete = false
+                        onDelete()
+                    }) { Text("Delete", color = MidsceneColors.Error) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                },
+            )
         }
 
         if (showReport && hasReport) {
@@ -1264,7 +1314,7 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             ActionRow(
                 "Save" to {
                     file.writeText(text)
-                    OverlayView.show(context, "Credentials saved")
+                    Toast.makeText(context, "Credentials saved", Toast.LENGTH_SHORT).show()
                 },
                 "Paste" to { clipboard.getText()?.text?.let { text = it } },
             )
@@ -1704,3 +1754,6 @@ private fun openShizuku(context: android.content.Context) {
     context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
         ?.let(context::startActivity)
 }
+
+/** Extras understood by this activity when the service brings it forward. */
+const val EXTRA_OPEN_HISTORY = "openHistory"
