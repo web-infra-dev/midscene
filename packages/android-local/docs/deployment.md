@@ -211,6 +211,20 @@ apps/android-host/
 └── package.json          # pnpm scripts: bundle | runtime | assemble | install | bootstrap
 ```
 
+**控制台产品化与真机修复（A14-23 ~ A14-31）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-23 | 中文等非 ASCII 指令曾生成非法 YAML（`safeName` 清洗后只剩 `-`，`- name: -` 被解析成序列符号）→ 清洗后去首尾连字符、空则回退固定名，`name`/`prompt` 统一加引号并转义换行 |
+| A14-24 | `model.env` 解析过于严格：只认 `=`，`KEY: VALUE`、`export ` 前缀、引号、CRLF、值内 `#` 都会丢行 → 改为宽容解析并**显式记录被跳过的行**（丢 base URL 会在很久以后表现为 `Invalid URL`，指错层） |
+| A14-25 | 文件通道目录准备在 FUSE（`/sdcard`）上失败：`chmod` 不被支持导致整条命令非零 → `chmod`/`touch` 改为尽力而为，末尾用 `ls -d` 确认目录可用 |
+| A14-26 | **浮层不进截图（方案 B 落地）**：胶囊内容画在自有 `SurfaceView` 上 → 通过 `HiddenApiBypass` 调 `setSkipScreenshot`（两种签名都试）；报告已验证干净，日志可观测 `hiddenFromCapture=true`。API < 29 / 绕过失败 / 方法缺失 → 自动降级为 A（截图前后隐藏） |
+| A14-27 | 胶囊体验：宽度自适应（上限 240dp、单行省略）、距顶 44dp；surface 可能被系统拆掉 → `onVisibilityChanged`/`onAttachedToWindow` 重绘 + 服务每 1.5s `refresh()` 保活 |
+| A14-28 | 首页状态：完成后回前台头部曾停在运行态 → 页面可见期间轮询 `AgentService.isBusy()`；点 Run 自动收键盘 |
+| A14-29 | 历史页：卡片重设计（状态条 + Success/Failed 胶囊 + 相对时间 + Review/Log/Delete）、支持**删除记录**（索引 + 日志 + 结果 + 报告一并清理） |
+| A14-30 | 平板**内嵌报告**：右栏 WebView 渲染，点卡片=选中（不再跳窗口）；手机仍走全屏查看页 |
+| A14-31 | 内嵌报告的两个真问题：①WebView 在 Column 中量到 0 高 → 白屏（改 `weight(1f)`）；②每次进 History 重建 WebView 重新解析 3.9MB 报告 → **复用后 18s → ~400ms**。复用引入的两次崩溃（`The specified child already has a parent`）最终修法：**容器承载**（Compose 只持有一次性 `FrameLayout`）+ factory 内无条件 `removeView` + **每次进入重绑 `WebViewClient`**（否则回调指向已废弃的组合，"Rendering…"遮罩不消失） |
+
 原始设计（1–5 步全部落地并验证）：
 
 ```text

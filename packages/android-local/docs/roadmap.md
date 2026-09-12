@@ -9,9 +9,9 @@
 | 阶段 | 目标 | Exit Gate | 节奏 | 状态 |
 | --- | --- | --- | --- | --- |
 | Phase 0 可行性 Spike | 证明 Android 本机能跑 Agent 核心 | G0 + G1 | 3–5 个工作日 | ✅ 完成 |
-| Phase 1 Local Transport MVP（**手机优先**） | 形成可维护的本机设备适配层 | 核心 YAML 动作可运行，与 ADB 回归结果一致 | 1–2 周 | 🔄 进行中 |
-| Phase 2 Native Host | 从终端 POC 进入 APK 内运行 | APK 独立启动 Agent，无 Termux 依赖 | 2–4 周 |
-| Phase 3 产品化/车机化 | 可靠性、性能、安全 | 达到内部工具发布标准并确定权限模型 | 3–6 周 |
+| Phase 1 Local Transport MVP（**手机优先**） | 形成可维护的本机设备适配层 | 核心 YAML 动作可运行，与 ADB 回归结果一致 | 1–2 周 | ✅ 完成（transport/能力探测/配置/runner/CLI + 199 单测） |
+| Phase 2 Native Host | 从终端 POC 进入 APK 内运行 | APK 独立启动 Agent，无 Termux 依赖 | 2–4 周 | ✅ 完成（`apps/android-host`：内嵌 Node、Shizuku UserService 提权、Compose 控制台；Android 14 端到端通过） |
+| Phase 3 产品化/车机化 | 可靠性、性能、安全 | 达到内部工具发布标准并确定权限模型 | 3–6 周 | 🔄 进行中 |
 
 ## 2. Phase 0：可行性 Spike
 
@@ -67,7 +67,7 @@
 | D3 | 配置 schema（zod，YAML/JSON）+ 内联/文件 YAML 脚本解析 | ✅ |
 | D4 | 结果 JSON（每任务 状态/耗时/错误）+ 退出码约定 | ✅ |
 | D5 | 配置导入导出、结果汇总、失败重试策略 | 计划（M2） |
-| D6 | APK + 内嵌 Node + 配置/脚本/运行/日志 UI | 计划（M3，Phase 2 主体） |
+| D6 | APK + 内嵌 Node + 配置/脚本/运行/日志 UI | ✅ 完成（M3/M4；Compose 五页签 + 悬浮窗 + 内嵌报告 + 首次引导） |
 
 ## 4. Phase 2：Native Host
 
@@ -83,6 +83,22 @@
 - 权限恢复（Shizuku 重启后自动恢复或系统服务方案）、资源限额与监控、OTA 与部署文档。
 - OEM Privileged Transport（platform signature / priv-app / OEM 系统服务）可选实现。
 - **Gate G3**：确定最终权限模型。
+
+## 5.5 当前待办（Backlog，按建议优先级）
+
+| # | 项 | 说明 | 规模 |
+| --- | --- | --- | --- |
+| B1 | **凭据入 Android Keystore** | `model.env` 目前是明文且在 Settings 可见；计划：Keystore 存储 + 掩码输入，保留现有 env 注入作为回退 | 中 |
+| B2 | **浮层不进截图的像素级回归** | 现为机制级证据（`hiddenFromCapture=true` + 报告干净）；计划：读 overlay frame 精确裁切，与"关闭浮层"参考帧逐像素比对，纳入回归 | 小 |
+| B3 | **多诊断浮层** | 方案 B 已验证可复用：每个浮层各自一份 SurfaceControl，均不进截图 | 小–中 |
+| B4 | **移动端精简报告** | 报告内嵌全部截图/视频帧（约 3.9MB），首屏仍需数百 ms～数秒；生成"仅关键帧"的精简版可再降一个量级（需动报告生成侧） | 中 |
+| B5 | **手机端内嵌报告** | 目前手机走全屏查看页；可按宽度放宽阈值或改为详情弹窗内嵌 | 小 |
+| B6 | **真机矩阵** | AVD 已覆盖 Android 12/14 手机与平板；仍需在**真实手机**上复测（浮层排除、Shizuku 生命周期、长稳） | 中 |
+| B7 | **自编译 libnode** | Phase 2 主线遗留：替换 Termux 包的 Node（接口不变，只换 `libnodebin.so` + 依赖），提升可发布性 | 中 |
+| B8 | **截图侧图层排除（方案 D）** | 若 B 在个别机型不可用：在 UserService 内用 `CaptureArgs.setExcludeLayers(LayerFilter.ownerUid)` 自研截图后端 | 中–大 |
+| B9 | **Shizuku 生命周期自愈** | manager 进程被回收后 binder 不再送达（已定位），需要重试/引导闭环；设备重启后授权的恢复 | 中 |
+| B10 | **长稳与恢复** | 8 小时运行、崩溃拉起、历史索引清理/导出 | 中 |
+| B11 | **工程化** | CI（暂缓，按用户要求）、`apps/android-host/project.json` 声明 Nx target、真机自动化脚本沉淀 | 小–中 |
 
 ## 6. 风险与对策
 
