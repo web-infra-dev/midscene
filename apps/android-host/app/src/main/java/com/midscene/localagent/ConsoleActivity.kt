@@ -597,12 +597,55 @@ private fun ScriptsScreen() {
             }) { Text("Paste", fontSize = 12.sp) }
             TextButton(onClick = {
                 // A minimal, valid starting point for a new script.
-                text = "name: phone-task\ndevice:\n  backend: rish\n  rishPath: /data/local/tmp/rish\n" +
-                    "  yadbPath: /data/local/tmp/yadb\n  fileChannelDir: " +
-                    Provisioner.channelDir(context).absolutePath +
-                    "\nagent:\n  generateReport: true\n  resetToHome: true\n  controllerPackage: " +
-                    context.packageName + "\n  reportDir: ./midscene_run/results\ntasks:\n" +
-                    "  - name: open-settings\n    type: aiAct\n    prompt: open the settings app\n"
+                text = """
+name: self-check
+device:
+  backend: rish
+  rishPath: /data/local/tmp/rish
+  yadbPath: /data/local/tmp/yadb
+  fileChannelDir: ${Provisioner.channelDir(context).absolutePath}
+agent:
+  generateReport: true
+  resetToHome: false
+  reportDir: ./midscene_run/results
+tasks:
+  - name: 01-direct-app-and-keys
+    type: yaml
+    script: |
+      tasks:
+        - name: direct-app-and-keys
+          flow:
+            - runAdbShell: "am start -n com.midscene.localagent/.ConsoleActivity"
+            - sleep: 800
+            - runAdbShell: "input keyevent KEYCODE_HOME"
+            - sleep: 600
+            - runAdbShell: "input keyevent KEYCODE_APP_SWITCH"
+            - sleep: 600
+            - runAdbShell: "input keyevent KEYCODE_BACK"
+            - sleep: 400
+            - runAdbShell: "dumpsys window | grep -m1 mCurrentFocus"
+  - name: 02-direct-settings-scroll-shot
+    type: yaml
+    script: |
+      tasks:
+        - name: direct-settings-scroll-shot
+          flow:
+            - runAdbShell: "am start -a android.settings.SETTINGS"
+            - sleep: 1500
+            - runAdbShell: "input swipe 1280 1400 1280 700 250"
+            - sleep: 800
+            - runAdbShell: "screencap -p /data/local/tmp/selfcheck.png"
+            - runAdbShell: "ls -l /data/local/tmp/selfcheck.png"
+  - name: 03-ui-toggle-a-switch
+    type: aiAct
+    prompt: 打开 Midscene 应用，进入 Settings 页，把 AGENT OVERLAY 区域的第一个开关切换一次
+  - name: 04-assert-screen
+    type: aiAssert
+    prompt: 屏幕上有可见内容，不是黑屏或空白
+  - name: 05-query-screen
+    type: aiQuery
+    prompt: 用一句话描述当前屏幕上最重要的内容
+"""
                 status = "template loaded"
             }) { Text("New template", fontSize = 12.sp) }
             if (status.isNotEmpty()) {
