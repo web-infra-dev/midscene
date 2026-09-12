@@ -56,6 +56,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.Dispatchers
@@ -152,6 +153,11 @@ private fun ConsoleShell(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
     var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
+    // One WebView for the session: reports are several megabytes and re-parsing one
+    // on every visit to History is what made the embedded view feel slower than a
+    // standalone window.
+    val reportView = remember { mutableStateOf<WebView?>(null) }
+
     if (!onboarded) {
         Onboarding(
             onDone = {
@@ -174,11 +180,11 @@ private fun ConsoleShell(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                     )
                 }
             }
-            Screen(tab, dark, onDarkChange)
+            Screen(tab, dark, onDarkChange, reportView)
         }
     } else {
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) { Screen(tab, dark, onDarkChange) }
+            Box(Modifier.weight(1f)) { Screen(tab, dark, onDarkChange, reportView) }
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 DESTINATIONS.forEachIndexed { index, destination ->
                     NavigationBarItem(
@@ -194,10 +200,15 @@ private fun ConsoleShell(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun Screen(tab: Int, dark: Boolean, onDarkChange: (Boolean) -> Unit) {
+private fun Screen(
+    tab: Int,
+    dark: Boolean,
+    onDarkChange: (Boolean) -> Unit,
+    reportView: MutableState<WebView?>,
+) {
     when (tab) {
         1 -> ScriptsScreen()
-        2 -> HistoryScreen()
+        2 -> HistoryScreen(reportView)
         3 -> DiagnosticsScreen()
         4 -> SettingsScreen(dark, onDarkChange)
         else -> RunScreen()
@@ -583,7 +594,7 @@ private fun ScriptsScreen() {
 // ----------------------------------------------------------------- history
 
 @Composable
-private fun HistoryScreen() {
+private fun HistoryScreen(reportView: MutableState<WebView?>) {
     val context = LocalContext.current
     val store = remember { RunStore(context.filesDir) }
     var records by remember { mutableStateOf(store.list()) }
@@ -641,6 +652,7 @@ private fun HistoryScreen() {
                     RunDetailPane(
                         record = current,
                         store = store,
+                        reportView = reportView,
                         onDelete = { pendingDelete = current },
                     )
                 }
@@ -859,8 +871,10 @@ private fun CardAction(label: String, icon: ImageVector, onClick: () -> Unit) {
 private fun RunDetailPane(
     record: RunStore.RunRecord,
     store: RunStore,
+    reportView: MutableState<WebView?>,
     onDelete: () -> Unit,
 ) {
+    var reportReady by remember { mutableStateOf(false) }
     val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
     var showReport by remember(record.id) { mutableStateOf(hasReport) }
 
@@ -898,7 +912,31 @@ private fun RunDetailPane(
         }
 
         if (showReport && hasReport) {
-            EmbeddedReport(record.reportFile, Modifier.weight(1f).fillMaxWidth())
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                EmbeddedReport(
+                    path = record.reportFile,
+                    holder = reportView,
+                    onReady = { reportReady = true },
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (!reportReady) {
+                    // A multi-megabyte report takes seconds to parse; say so instead
+                    // of showing an empty white pane.
+                    Column(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text("Rendering report…", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Reports embed every screenshot, so the first render takes a moment.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         } else {
             Box(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
                 Text(
@@ -911,15 +949,36 @@ private fun RunDetailPane(
     }
 }
 
-/** Midscene reports are self-contained HTML, so a plain WebView renders them offline. */
+/**
+ * Midscene reports are self-contained HTML, so a plain WebView renders them offline.
+ *
+ * The instance is owned by the console (`holder`) and re-attached here, and the
+ * page is only (re)loaded when the path changes: revisiting History reuses the
+ * parsed document instead of paying for it again.
+ */
 @Composable
-private fun EmbeddedReport(path: String, modifier: Modifier = Modifier) {
+private fun EmbeddedReport(
+    path: String,
+    holder: MutableState<WebView?>,
+    onReady: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     key(path) {
         AndroidView(
             modifier = modifier,
             factory = { context ->
-                WebView(context).apply {
+                (holder.value ?: WebView(context)).also { holder.value = it }.apply {
                     setBackgroundColor(android.graphics.Color.WHITE)
+                    webViewClient = object : android.webkit.WebViewClient() {
+                        private val startedAt = System.currentTimeMillis()
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            android.util.Log.i(
+                                "MidsceneReport",
+                                "report ready in ${System.currentTimeMillis() - startedAt} ms",
+                            )
+                            onReady()
+                        }
+                    }
                     settings.javaScriptEnabled = true
                     settings.allowFileAccess = true
                     settings.allowFileAccessFromFileURLs = true
