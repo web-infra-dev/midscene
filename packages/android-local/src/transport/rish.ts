@@ -185,6 +185,8 @@ export class RishTransport implements AndroidTransport {
    */
   private readonly fileChannelLock = new Semaphore(1);
 
+  /** Cleared when a capture with `-d <id>` fails and the plain form succeeds. */
+  private displayArgSupported = true;
   private capabilities?: AndroidCapabilities;
   private capabilitiesPromise?: Promise<AndroidCapabilities>;
   private displayCache?: { displays: DisplayInfo[]; fetchedAt: number };
@@ -442,12 +444,40 @@ export class RishTransport implements AndroidTransport {
    *
    * The file is transient: it is removed as soon as it has been read.
    */
+  /**
+   * Capture the screen.
+   *
+   * Some builds reject an explicit display (`screencap -p -d 0` returns nothing on
+   * the Android 14 reference device while the plain form works), so a failed
+   * capture with a display argument is retried without it and the result is
+   * remembered for the rest of the session.
+   */
   async screenshot(options: ScreenshotOptions = {}): Promise<Buffer> {
+    try {
+      return await this.captureScreenshot(options, this.displayArgSupported);
+    } catch (error) {
+      const displayId = options.displayId ?? this.defaultDisplayId;
+      if (typeof displayId !== 'number' || !this.displayArgSupported) {
+        throw error;
+      }
+
+      this.displayArgSupported = false;
+      debugRish(
+        'screencap rejected the display argument; retrying without it (this session)',
+      );
+      return this.captureScreenshot(options, false);
+    }
+  }
+
+  private async captureScreenshot(
+    options: ScreenshotOptions = {},
+    allowDisplayArg = true,
+  ): Promise<Buffer> {
     this.assertOpen();
     const displayId = options.displayId ?? this.defaultDisplayId;
     assertDisplayId(displayId, this.backend);
     const timeoutMs = options.timeoutMs ?? this.screenshotTimeoutMs;
-    const displayArg = this.displayArg(displayId);
+    const displayArg = allowDisplayArg ? this.displayArg(displayId) : '';
 
     let firstFailure: string | undefined;
 

@@ -35,7 +35,8 @@
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "npx biome check --diagnostic-level=info --fix"
     ],
-    "package.json": "pnpm run check-dependency-version"
+    "package.json": "pnpm run check-dependency-version",
+    "apps/android-host/**": []
   },
   "keywords": [],
   "author": "",
