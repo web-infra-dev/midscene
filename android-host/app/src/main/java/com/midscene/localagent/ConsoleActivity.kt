@@ -756,6 +756,29 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                 Switch(checked = dark, onCheckedChange = onDarkChange)
             }
             Spacer(Modifier.height(6.dp))
+            var returnAfterRun by remember { mutableStateOf(UiPrefs.returnAfterRun(context)) }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Open app after a run", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Brings Midscene back to the front when the agent finishes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = returnAfterRun,
+                    onCheckedChange = {
+                        returnAfterRun = it
+                        UiPrefs.setReturnAfterRun(context, it)
+                    },
+                )
+            }
+            Spacer(Modifier.height(6.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -843,6 +866,21 @@ private object ThemePrefs {
     fun setDark(context: android.content.Context, dark: Boolean) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(KEY, dark).apply()
+    }
+}
+
+/** UI preferences shared with the service (same file and keys). */
+private object UiPrefs {
+    private const val FILE = "midscene-ui"
+    private const val RETURN_KEY = "returnAfterRun"
+
+    fun returnAfterRun(context: android.content.Context): Boolean =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(RETURN_KEY, true)
+
+    fun setReturnAfterRun(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(RETURN_KEY, value).apply()
     }
 }
 

@@ -77,19 +77,24 @@ public final class OverlayView {
             label = new TextView(app);
             label.setTextColor(Color.WHITE);
             label.setTextSize(12);
-            label.setMaxLines(1);
+            // Two lines plus a bounded width: the pill used to run off the screen
+            // edge (LAYOUT_NO_LIMITS) and cut the message off.
+            label.setMaxLines(2);
             label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            label.setLineSpacing(0f, 1.15f);
             container.addView(label);
 
+            int screenWidth = app.getResources().getDisplayMetrics().widthPixels;
+            int maxWidth = screenWidth - dp(app, 56);
             params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                     PixelFormat.TRANSLUCENT);
+            params.width = maxWidth;
             params.gravity = Gravity.TOP | Gravity.START;
             params.x = dp(app, 16);
             params.y = dp(app, 240);
@@ -159,11 +164,12 @@ public final class OverlayView {
                 return text.substring(1, close) + text.substring(close + 1);
             }
         }
-        return text.length() > 80 ? text.substring(0, 80) + "…" : text;
+        return text;
     }
 
     private static String trim(String text) {
-        return text.length() > 64 ? text.substring(0, 64) + "…" : text;
+        // Two lines at ~26 characters fit the bounded width.
+        return text.length() > 52 ? text.substring(0, 52) + "…" : text;
     }
 
     private static int dp(Context context, int value) {
@@ -198,8 +204,13 @@ public final class OverlayView {
                     if (Math.abs(dx) > dp(context, 4) || Math.abs(dy) > dp(context, 4)) {
                         moved = true;
                     }
-                    params.x = startX + dx;
-                    params.y = startY + dy;
+                    int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
+                    int screenHeight = context.getResources().getDisplayMetrics().heightPixels;
+                    int pillWidth = pill.getWidth() > 0 ? pill.getWidth() : dp(context, 200);
+                    int pillHeight = pill.getHeight() > 0 ? pill.getHeight() : dp(context, 40);
+                    params.x = Math.max(0, Math.min(startX + dx, screenWidth - pillWidth));
+                    params.y = Math.max(dp(context, 40),
+                            Math.min(startY + dy, screenHeight - pillHeight - dp(context, 80)));
                     if (windowManager != null && pill != null) {
                         windowManager.updateViewLayout(pill, params);
                     }

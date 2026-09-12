@@ -357,6 +357,32 @@ public class AgentService extends Service {
         return failed;
     }
 
+    /**
+     * Reopen the console after a run so the result is one glance away.
+     *
+     * Starting an activity from the background is restricted on modern Android,
+     * but this app holds the overlay permission (needed for the progress pill) and
+     * runs a foreground service, which is exactly the documented exemption. The
+     * notification also opens the console, so a refusal is harmless.
+     */
+    private void bringConsoleToFront() {
+        try {
+            Intent open = new Intent(this, ConsoleActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(open);
+        } catch (Exception error) {
+            Log.w(TAG, "could not bring the console forward: " + error);
+        }
+    }
+
+    /** User preference: return to the app when a run completes (default on). */
+    private boolean returnToAppAfterRun() {
+        return getSharedPreferences("midscene-ui", MODE_PRIVATE)
+                .getBoolean("returnAfterRun", true);
+    }
+
     private void runAsync(String name, ThrowingRunnable task, String stateLabel) {
         if (isBusy()) {
             emit("[" + name + "] a run is already in progress (" + state + ")");
@@ -364,6 +390,7 @@ public class AgentService extends Service {
         }
 
         state = stateLabel;
+        final String runKind = stateLabel;
         clearBuffer();
         OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
         updateNotification("running " + stateLabel, "preparing");
@@ -379,6 +406,9 @@ public class AgentService extends Service {
                 releaseWakeLock();
                 updateNotification("Midscene agent", "idle");
                 OverlayView.post(OverlayView::hide);
+                if (returnToAppAfterRun() && (runKind.equals("prompt") || runKind.equals("config"))) {
+                    bringConsoleToFront();
+                }
             }
         }, "midscene-" + name);
         worker.start();
