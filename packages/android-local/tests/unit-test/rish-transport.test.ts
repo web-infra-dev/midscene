@@ -357,13 +357,16 @@ describe('RishTransport screenshot', () => {
     await transport.screenshot();
     await transport.screenshot();
 
+    // chmod/touch are best-effort on FUSE volumes, so the prep command tolerates
+    // their failure and is asserted by intent rather than by exact text.
     const mkdirCalls = runner.commands.filter((command) =>
       command.includes('mkdir -p'),
     );
     expect(mkdirCalls).toHaveLength(1);
     for (const command of runner.commands) {
       expect(command).not.toContain('base64');
-      expect(command).not.toContain('|');
+      // `|| true` (tolerating chmod on FUSE) is fine; piping pixels is not.
+      expect(command).not.toMatch(/\|\s*(base64|cat|xxd)/);
     }
   });
 

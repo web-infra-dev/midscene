@@ -159,23 +159,56 @@ public final class ShellRunner {
         return output.toString();
     }
 
+    /**
+     * Parse a KEY=VALUE credentials file.
+     *
+     * Deliberately forgiving: it also accepts `KEY: VALUE` (what a YAML habit
+     * produces), an `export ` prefix, surrounding quotes and CRLF line endings, and
+     * it never truncates a value at `#`. A silently dropped line used to leave the
+     * model base URL empty, which surfaced much later as "Invalid URL".
+     */
     private static Map<String, String> readEnvFile(File file, LineSink sink) {
         Map<String, String> values = new java.util.HashMap<>();
         if (!file.exists()) {
             return values;
         }
-        for (String line : readText(file).split("\n")) {
-            String trimmed = line.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("#") || !trimmed.contains("=")) {
+
+        for (String rawLine : readText(file).split("\r?\n")) {
+            String line = rawLine.trim();
+            if (line.isEmpty() || line.startsWith("#") || line.startsWith("//")) {
                 continue;
             }
-            int index = trimmed.indexOf('=');
-            String key = trimmed.substring(0, index).trim();
-            String value = trimmed.substring(index + 1).trim();
-            if (!key.isEmpty()) {
-                values.put(key, value);
+            if (line.startsWith("export ")) {
+                line = line.substring("export ".length()).trim();
             }
+
+            int separator = line.indexOf('=');
+            if (separator < 0) {
+                separator = line.indexOf(':');
+            }
+            if (separator <= 0) {
+                if (sink != null) {
+                    sink.line("model.env: skipped an unreadable line");
+                }
+                continue;
+            }
+
+            String key = line.substring(0, separator).trim();
+            String value = line.substring(separator + 1).trim();
+            if (value.length() >= 2
+                    && ((value.startsWith("\"") && value.endsWith("\""))
+                    || (value.startsWith("'") && value.endsWith("'")))) {
+                value = value.substring(1, value.length() - 1);
+            }
+            if (!key.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+                if (sink != null) {
+                    sink.line("model.env: skipped a line with an invalid key");
+                }
+                continue;
+            }
+            values.put(key, value);
         }
+
         if (!values.isEmpty() && sink != null) {
             sink.line("model.env: injecting " + values.size() + " variables");
         }

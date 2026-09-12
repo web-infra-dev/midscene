@@ -894,7 +894,7 @@ export class RishTransport implements AndroidTransport {
         // `.nomedia` keeps Android's media scanner away from the transient
         // payloads (it otherwise index-scans every screenshot we write).
         const outcome = await this.execute(
-          `mkdir -p ${quoteShellArg(this.fileChannelDir)} && chmod 0755 ${quoteShellArg(this.fileChannelDir)} && touch ${quoteShellArg(`${this.fileChannelDir}/.nomedia`)}`,
+          `mkdir -p ${quoteShellArg(this.fileChannelDir)} && (chmod 0755 ${quoteShellArg(this.fileChannelDir)} 2>/dev/null || true) && (touch ${quoteShellArg(`${this.fileChannelDir}/.nomedia`)} 2>/dev/null || true) && ls -d ${quoteShellArg(this.fileChannelDir)}`,
           { timeoutMs: this.defaultTimeoutMs },
         );
 
