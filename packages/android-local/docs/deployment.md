@@ -225,6 +225,24 @@ apps/android-host/
 | A14-30 | 平板**内嵌报告**：右栏 WebView 渲染，点卡片=选中（不再跳窗口）；手机仍走全屏查看页 |
 | A14-31 | 内嵌报告的两个真问题：①WebView 在 Column 中量到 0 高 → 白屏（改 `weight(1f)`）；②每次进 History 重建 WebView 重新解析 3.9MB 报告 → **复用后 18s → ~400ms**。复用引入的两次崩溃（`The specified child already has a parent`）最终修法：**容器承载**（Compose 只持有一次性 `FrameLayout`）+ factory 内无条件 `removeView` + **每次进入重绑 `WebViewClient`**（否则回调指向已废弃的组合，"Rendering…"遮罩不消失） |
 
+**可视化、自检与运维教训（A14-32 ~ A14-40）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-32 | **浮层常驻且不进截图**：内容画在自有 `SurfaceView` 上，经 `HiddenApiBypass` 调 `setSkipScreenshot`（两种签名都试）；API < 29 / 绕过失败自动降级为「截图前后隐藏」。注意：`adb screencap` **也**拍不到浮层，外观只能目视确认，机制用日志 `hiddenFromCapture=true` 证明 |
+| A14-33 | overlay 窗口默认被系统按状态栏/任务栏**内缩**（`MATCH_PARENT` 解析到内缩后的 frame）→ 需 `FLAG_LAYOUT_IN_SCREEN | FLAG_LAYOUT_NO_LIMITS` 并**按显示器 bounds 显式设尺寸**；但**应用级 overlay 永远低于 dock/状态栏**（系统规则），要盖住只能改用无障碍浮层 |
+| A14-34 | 边框流光：`Path` + `PathMeasure` 彗尾、**恒定线宽**（宽度渐变会让细段离开边缘，看起来"时贴时不贴"）、直角贴边、路径偏移 = 描边半宽 |
+| A14-35 | 顶部状态栏四槽（阶段 / 步骤计数 / 当前指令 / 计时）来自 runner 的**结构化事件** `[event] {json}`（run.start、step.start、step.end、run.end），不再从日志文本猜 |
+| A14-36 | 元素框数据源：`Agent.onDumpUpdate` 的签名是 **`(tag: string, executionDump?)`**——按第一个参数遍历只会拿到字符串下标（诊断输出形如 `keys:["0","1",…]`）；运行时 dump 也拿不到矩形。正解是 **`Agent.addProgressListener`**（进度总线），其 aiAct action 自带 `point` + `bbox`；无 point 时用 bbox 中心发 `tap` |
+| A14-37 | 运行结果是**多行美化 JSON**，必须从顶部找"单独一行的 `{`"并按 `tasks` 判定根对象，否则历史记录丢掉 `reportFile` 与成功标志（表现为"成功却报失败、且没报告"） |
+| A14-38 | `model.env` 解析需容错：`=` 与 `:` 均可、`export ` 前缀、引号、CRLF、值内 `#`；非法行要**显式记录**（丢 base URL 会在很久以后表现为 `Invalid URL`） |
+| A14-39 | 中文指令经清洗后只剩 `-`，生成 `- name: -` 被 YAML 当成序列符号 → 任务名需去首尾连字符并在为空时回退 |
+| A14-40 | **安装静默失败**（重要运维教训）：模拟器 `/data` 达 91% 时 `adb install` 报 `INSTALL_FAILED_INSUFFICIENT_STORAGE`，而命令输出被 `| tail -1` 吞掉 → 设备长期运行**旧构建**（表现为"改了却看不到"）。清理历史报告/缓存后恢复；此后**每轮安装必须显式校验 `Success`** |
+
+**可视化能力（阶段 C 收尾）**：一个全屏 surface 承载四种信息——顶部状态栏、边框流光（`aiAct` 运行中 3.6s/圈，demo 2.2s）、定位元素虚线框（2.5s 淡出）、点击涟漪（0.7s）；Settings 提供五个开关（状态栏 / 边框 / 元素框 / 涟漪 / demo），全部不进截图。
+
+**自检 demo（自举）**：App 内 **Scripts → Self-check** 一键写入并运行 `self-check.yaml`——轮流 `aiTap` 五个 tab，再聚焦首页指令框 `aiInput` 一段文本。全流程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟。YAML 能力边界：`aiTap` / `aiInput` / `aiKeyboardPress` / `aiScroll` / `sleep` / 任意 action 的 alias（如 `runAdbShell`，**零模型调用**）；**没有坐标版 tap**。
+
 原始设计（1–5 步全部落地并验证）：
 
 ```text

@@ -100,6 +100,25 @@ Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，�
 
 响应式：手机底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
 
+## Agent 可视化浮层
+
+一个全屏、不可触摸的 overlay surface 承载四种信息（**全部不进截图**，含 `adb screencap`）：
+
+| 元素 | 说明 |
+| --- | --- |
+| 顶部状态栏 | 阶段（acting/asserting/done…）、步骤计数、当前指令、本步/整轮计时；数据来自 runner 的结构化事件 |
+| 边框流光 | 运行中沿屏幕边缘流动的光条（3.6s/圈，demo 模式 2.2s 更亮更粗） |
+| 元素框 | agent 定位到的元素：品牌蓝虚线 + 淡填充，动作后约 2.5s 淡出 |
+| 点击涟漪 | 实际落点的扩散圆环（0.7s） |
+
+Settings → AGENT OVERLAY 五个开关：状态栏 / 边框 / 元素框 / 涟漪 / demo 模式。
+
+> 注意：应用级 overlay **无法覆盖系统 dock 与状态栏**（系统层级规则）；要让浮层常驻可见又不进截图，靠的是自有 surface 上的 `setSkipScreenshot`（隐藏 API，经 HiddenApiBypass；不可用时自动降级为"截图前后隐藏"）。
+
+## 自检（自举）
+
+App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运行——轮流 `aiTap` 五个页签，再聚焦首页指令框 `aiInput` 一段文本。全程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟；脚本同时保存在 `packages/android-local/examples/self-check.yaml`。
+
 ## 悬浮窗进度
 
 运行期间在屏幕边缘显示进度胶囊（`Running <任务名>`，可拖拽并吸附边缘，两行内完整显示）。**任何包含 `screencap` 的命令执行期间自动隐藏**，因此报告里的截图永远不会带上悬浮窗。运行结束后可自动把控制台拉回前台（Settings 可关）。
