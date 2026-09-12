@@ -178,6 +178,14 @@ public final class OverlayView {
             params.gravity = Gravity.TOP | Gravity.START;
             params.x = 0;
             params.y = 0;
+            // MATCH_PARENT is resolved against the *inset* frame on this device, so the
+            // surface stopped short of the edges and the beam looked boxed in. Take the
+            // display bounds explicitly instead.
+            android.graphics.Rect bounds = displayBounds(app);
+            if (bounds != null) {
+                params.width = bounds.width();
+                params.height = bounds.height();
+            }
             // Touch events must reach the app underneath: this layer only observes.
             params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
 
@@ -299,6 +307,24 @@ public final class OverlayView {
             }
         }
         return text;
+    }
+
+    private static android.graphics.Rect displayBounds(Context context) {
+        try {
+            WindowManager manager =
+                    (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+            if (manager == null) {
+                return null;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                return manager.getCurrentWindowMetrics().getBounds();
+            }
+            android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
+            manager.getDefaultDisplay().getRealMetrics(metrics);
+            return new android.graphics.Rect(0, 0, metrics.widthPixels, metrics.heightPixels);
+        } catch (Throwable error) {
+            return null;
+        }
     }
 
     private static int dp(Context context, int value) {
@@ -521,10 +547,13 @@ public final class OverlayView {
             // Keep the streak inside the area the system leaves us: the taskbar and
             // the status bar are drawn above an application overlay, so a beam at the
             // physical edge disappears underneath them.
-            float left = Math.max(inset, systemInsetLeft + stroke / 2f);
-            float top = Math.max(inset, systemInsetTop + stroke / 2f);
-            float right = Math.max(inset, systemInsetRight + stroke / 2f);
-            float bottom = Math.max(inset, systemInsetBottom + stroke / 2f);
+            // Only a hair of clearance: the window already covers the display, and
+            // insetting by the reported system bars boxed the beam in twice.
+            float clearance = 2f * density;
+            float left = inset + clearance;
+            float top = inset + clearance;
+            float right = inset + clearance;
+            float bottom = inset + clearance;
             RectF frame = new RectF(left, top, width - right, height - bottom);
             Path path = new Path();
             path.addRoundRect(frame, radius, radius, Path.Direction.CW);
@@ -630,7 +659,7 @@ public final class OverlayView {
 
         private void drawBar(Canvas canvas, int width, int height) {
             float barHeight = 30 * density;
-            float barTop = Math.max(systemInsetTop, topBeamSpace());
+            float barTop = topBeamSpace();
             canvas.drawRect(0, barTop, width, barTop + barHeight, background);
 
             float pad = 12 * density;
