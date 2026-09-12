@@ -215,11 +215,7 @@ public class AgentService extends Service {
     private void runPrompt(String prompt) throws IOException {
         File config = new File(getFilesDir(), "prompt-run.yaml");
         String yaml = "name: prompt-run\n"
-                + "device:\n"
-                + "  backend: rish\n"
-                + "  displayId: 0\n"
-                + "  rishPath: /data/local/tmp/rish\n"
-                + "  yadbPath: /data/local/tmp/yadb\n"
+                + deviceYaml()
                 + "agent:\n"
                 + "  generateReport: true\n"
                 + "  resetToHome: true\n"
@@ -234,7 +230,42 @@ public class AgentService extends Service {
         runConfig(config.getAbsolutePath());
     }
 
+    /**
+     * Device block shared by generated configs.
+     *
+     * No `displayId`: this build rejects `screencap -p -d 0`, so the transport has
+     * to use its plain form. The channel directory is the app's external files
+     * directory because it must be shell-writable (the shell writes payloads) and
+     * app-readable (this process serves them over the bridge).
+     */
+    private String deviceYaml() {
+        return "device:\n"
+                + "  backend: rish\n"
+                + "  rishPath: /data/local/tmp/rish\n"
+                + "  yadbPath: /data/local/tmp/yadb\n"
+                + "  fileChannelDir: " + channelDir().getAbsolutePath() + "\n";
+    }
+
+    private File channelDir() {
+        File external = getExternalFilesDir(null);
+        File base = external != null ? external : getFilesDir();
+        File dir = new File(base, "channel");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
     private void runConfig(String configPath) throws IOException {
+        try {
+            Provisioner.extractAgent(this, AgentService::emit);
+            if (!new File(Provisioner.YADB_TARGET).exists()) {
+                Provisioner.installYadb(this, AgentService::emit);
+            }
+        } catch (IOException error) {
+            emit("provisioning before the run failed: " + error.getMessage());
+        }
+
         String id = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date())
                 + "-" + UUID.randomUUID().toString().substring(0, 6);
         File logFile = runStore.logFileFor(id);

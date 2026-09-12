@@ -467,7 +467,7 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
     private void runDoctor() {
         saveModelEnv();
         String yaml = "name: doctor\n"
-                + "device:\n  backend: rish\n  displayId: 0\n  rishPath: /data/local/tmp/rish\n"
+                + "device:\n  backend: rish\n  rishPath: /data/local/tmp/rish\n"
                 + "agent:\n  generateReport: false\n  resetToHome: true\n"
                 + "tasks:\n  - name: describe-screen\n    type: aiQuery\n"
                 + "    prompt: describe what is currently visible on screen in one sentence\n";
@@ -493,15 +493,28 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
      * yadb and refresh the status pills.
      */
     private void authorizeShizuku() {
-        if (!rikka.shizuku.Shizuku.isPreV11() && rikka.shizuku.Shizuku.checkSelfPermission()
-                == PackageManager.PERMISSION_GRANTED) {
+        // checkSelfPermission() throws IllegalStateException when Shizuku has not
+        // delivered its binder yet, so it must never be called unguarded.
+        if (ShizukuExecBridge.shizukuAuthorized()) {
             appendLog("shizuku already authorized for " + getPackageName());
             installYadb();
             return;
         }
 
-        appendLog("requesting Shizuku authorization (binder available: "
-                + rikka.shizuku.Shizuku.pingBinder() + ")");
+        boolean binderReady;
+        try {
+            binderReady = rikka.shizuku.Shizuku.pingBinder();
+        } catch (Throwable error) {
+            binderReady = false;
+        }
+        if (!binderReady) {
+            appendLog("Shizuku is not running (no binder). Open Shizuku once, then retry.");
+            toast("Start Shizuku first, then retry");
+            openShizuku();
+            return;
+        }
+
+        appendLog("requesting Shizuku authorization (binder available: true)");
         toast("Requesting Shizuku authorization…");
 
         rikka.shizuku.Shizuku.addRequestPermissionResultListener(
@@ -575,13 +588,24 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
         }
     }
 
+    /** Shared payload directory: shell-writable and readable by this process. */
+    private File channelDir() {
+        File external = getExternalFilesDir(null);
+        File base = external != null ? external : getFilesDir();
+        File dir = new File(base, "channel");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
     private String defaultConfig() {
         return "name: phone-task\n"
                 + "device:\n"
                 + "  backend: rish\n"
-                + "  displayId: 0\n"
                 + "  rishPath: /data/local/tmp/rish\n"
                 + "  yadbPath: /data/local/tmp/yadb\n"
+                + "  fileChannelDir: " + channelDir().getAbsolutePath() + "\n"
                 + "agent:\n"
                 + "  generateReport: true\n"
                 + "  resetToHome: true\n"
