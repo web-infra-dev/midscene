@@ -986,6 +986,10 @@ private fun EmbeddedReport(
                     settings.domStorageEnabled = true
                 }
             },
+            // Compose re-attaches this view when History comes back; a WebView still
+            // parented to its previous container would throw IllegalStateException,
+            // so detach it on release and keep the parsed document alive.
+            onRelease = { web -> (web.parent as? android.view.ViewGroup)?.removeView(web) },
             update = { web ->
                 val url = "file://$path"
                 if (web.url != url) {
