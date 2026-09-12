@@ -1157,6 +1157,26 @@ private fun DiagnosticsScreen() {
                 "Overlay" to { Overlay.requestPermission(context) },
             )
         }
+        DiagnosticsCard("STORAGE") {
+            val store = remember { RunStore(context.filesDir) }
+            var usage by remember { mutableStateOf(store.totalBytes()) }
+            val runs = remember(usage) { store.list().size }
+            Text(
+                "Runs: $runs · ${usage / 1024 / 1024} MB of ${RunStore.MAX_BYTES / 1024 / 1024} MB " +
+                    "(keeps at most ${RunStore.MAX_RUNS} runs)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            ActionRow(
+                "Clean now" to {
+                    store.prune()
+                    usage = store.totalBytes()
+                },
+                "Refresh" to { usage = store.totalBytes() },
+            )
+        }
+
         DiagnosticsCard("SERVICE LOG") {
             Column(Modifier.height(180.dp).verticalScroll(rememberScrollState())) {
                 lines.takeLast(150).forEach {

@@ -20,6 +20,11 @@ import java.util.List;
  */
 public class RunStore {
 
+    /** Keep at most this many runs. */
+    public static final int MAX_RUNS = 50;
+    /** And at most this much disk for reports, logs and results together. */
+    public static final long MAX_BYTES = 300L * 1024 * 1024;
+
     public static final class RunRecord {
         public final String id;
         public final String configName;
@@ -69,6 +74,110 @@ public class RunStore {
             writeJson(indexFile(), wrap(index));
         } catch (IOException | JSONException error) {
             // History is best effort: bookkeeping must never break a run.
+        }
+        // Reports embed every screenshot (megabytes each), so the store trims itself
+        // after every run instead of waiting for the disk to fill up.
+        prune();
+    }
+
+    /**
+     * Drop the oldest runs until both limits hold, then remove report files nothing
+     * points at any more.
+     *
+     * @return how many runs were removed
+     */
+    public synchronized int prune() {
+        List<RunRecord> records = list();
+        int removed = 0;
+        long total = totalBytes();
+
+        // `list()` returns newest first.
+        for (int index = records.size() - 1; index >= 0; index--) {
+            boolean tooMany = records.size() - removed > MAX_RUNS;
+            if (!tooMany && total <= MAX_BYTES) {
+                break;
+            }
+            RunRecord record = records.get(index);
+            total -= sizeOf(record);
+            delete(record);
+            removed++;
+        }
+
+        removeOrphanReports();
+        removeEmptyDirs();
+        return removed;
+    }
+
+    /** Bytes used by this run's artefacts. */
+    private long sizeOf(RunRecord record) {
+        long size = 0;
+        size += length(record.logFile);
+        size += length(record.resultFile);
+        size += length(record.reportFile);
+        size += length(new File(dir, record.id + ".json").getAbsolutePath());
+        return size;
+    }
+
+    private long length(String path) {
+        if (path == null || path.isEmpty()) {
+            return 0;
+        }
+        File file = new File(path);
+        return file.isFile() ? file.length() : 0;
+    }
+
+    /** Everything the app keeps for runs: index, logs, results and reports. */
+    public synchronized long totalBytes() {
+        long total = 0;
+        total += directoryBytes(dir);
+        total += directoryBytes(new File(new File(dir.getParentFile(), "run"), "report"));
+        total += directoryBytes(new File(dir.getParentFile(), "midscene_run/results"));
+        return total;
+    }
+
+    private long directoryBytes(File directory) {
+        long total = 0;
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return 0;
+        }
+        for (File file : files) {
+            total += file.isDirectory() ? directoryBytes(file) : file.length();
+        }
+        return total;
+    }
+
+    /** Report files left behind by runs that are no longer in the index. */
+    private void removeOrphanReports() {
+        java.util.Set<String> referenced = new java.util.HashSet<>();
+        for (RunRecord record : list()) {
+            if (!record.reportFile.isEmpty()) {
+                referenced.add(new File(record.reportFile).getName());
+            }
+            if (!record.resultFile.isEmpty()) {
+                referenced.add(new File(record.resultFile).getName());
+            }
+            referenced.add(record.id + ".log");
+            referenced.add(record.id + ".json");
+        }
+
+        File reports = new File(new File(dir.getParentFile(), "run"), "report");
+        File[] files = reports.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isFile() && !referenced.contains(file.getName())) {
+                deleteQuietly(file);
+            }
+        }
+    }
+
+    private void removeEmptyDirs() {
+        File reports = new File(new File(dir.getParentFile(), "run"), "report");
+        File[] files = reports.listFiles();
+        if (files != null && files.length == 0) {
+            reports.delete();
         }
     }
 
