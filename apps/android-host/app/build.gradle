@@ -8,6 +8,9 @@ plugins {
 dependencies {
     // Official Shizuku API: requestPermission() is what makes Shizuku raise its
     // authorization activity for this app; a rish call cannot trigger it.
+    // Lets the overlay call setSkipScreenshot (hidden API) so a always-visible
+    // diagnostic layer never lands in the agent's screenshots.
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:6.1'
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'
 

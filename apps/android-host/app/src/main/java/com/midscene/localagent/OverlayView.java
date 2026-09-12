@@ -1,37 +1,55 @@
 package com.midscene.localagent;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.PorterDuff;
+import android.graphics.RectF;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.SurfaceControl;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
+
+import java.lang.reflect.Method;
 
 /**
- * Floating progress pill.
+ * Floating progress pill, drawn on a surface we own.
  *
- * Shows what the agent is doing while the console is in the background. It must
- * never appear in the agent's own screenshots (they end up in the report), so the
- * app hides it for the duration of any `screencap` command - see
- * {@link #setSuppressed(boolean)} and its use in {@link ExecBridge}.
+ * The content lives on a {@link SurfaceView} so the window has a SurfaceControl we
+ * can mark with `setSkipScreenshot(true)`: the layer then stays on screen but never
+ * appears in ScreenCapture or screencap output, which is what lets diagnostics stay
+ * visible for the whole run instead of blinking out around every capture.
+ *
+ * Everything is best-effort and degrades to plan A: when the hidden API, the
+ * bypass or the API level is unavailable, {@link #setSuppressed(boolean)} still
+ * hides the pill for the duration of a capture (see ExecBridge).
  */
 public final class OverlayView {
 
     private static final String TAG = "MidsceneOverlay";
+    private static final int BG_COLOR = 0xE60D0D0D;
+    private static final int DOT_COLOR = 0xFF1979FF;
 
     private static WindowManager windowManager;
-    private static View pill;
-    private static TextView label;
+    private static PillView pill;
     private static WindowManager.LayoutParams params;
     private static boolean suppressed;
+    private static boolean bypassReady;
     private static String lastText = "";
 
     private OverlayView() {
@@ -41,71 +59,56 @@ public final class OverlayView {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context);
     }
 
+    /** True when the platform can keep this layer out of captures. */
+    public static boolean isHiddenFromCapture() {
+        return pill != null && pill.hiddenFromCapture;
+    }
+
+    private static void prepareHiddenApis() {
+        if (bypassReady) {
+            return;
+        }
+        bypassReady = true;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return;
+        }
+        try {
+            HiddenApiBypass.addHiddenApiExemptions(
+                    "Landroid/view/SurfaceControl;",
+                    "Landroid/view/SurfaceControl$Transaction;");
+        } catch (Throwable error) {
+            // Plan A still works; nothing else to do.
+        }
+    }
+
     public static synchronized void show(Context context, String text) {
         if (!canDraw(context)) {
             return;
         }
+        prepareHiddenApis();
         Context app = context.getApplicationContext();
+
         if (pill == null) {
             windowManager = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
             if (windowManager == null) {
                 return;
             }
 
-            LinearLayout container = new LinearLayout(app);
-            container.setOrientation(LinearLayout.HORIZONTAL);
-            container.setGravity(Gravity.CENTER_VERTICAL);
-            int padH = dp(app, 14);
-            int padV = dp(app, 8);
-            container.setPadding(padH, padV, padH, padV);
-
-            GradientDrawable background = new GradientDrawable();
-            background.setColor(Color.parseColor("#E60D0D0D"));
-            background.setCornerRadius(dp(app, 22));
-            container.setBackground(background);
-
-            View dot = new View(app);
-            GradientDrawable dotDrawable = new GradientDrawable();
-            dotDrawable.setShape(GradientDrawable.OVAL);
-            dotDrawable.setColor(Color.parseColor("#1979FF"));
-            dot.setBackground(dotDrawable);
-            LinearLayout.LayoutParams dotParams =
-                    new LinearLayout.LayoutParams(dp(app, 8), dp(app, 8));
-            dotParams.rightMargin = dp(app, 8);
-            container.addView(dot, dotParams);
-
-            label = new TextView(app);
-            label.setTextColor(Color.WHITE);
-            label.setTextSize(12);
-            // Two lines plus a bounded width: the pill used to run off the screen
-            // edge (LAYOUT_NO_LIMITS) and cut the message off.
-            label.setMaxLines(2);
-            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            label.setLineSpacing(0f, 1.15f);
-            container.addView(label);
-
-            int screenWidth = app.getResources().getDisplayMetrics().widthPixels;
-            int maxWidth = screenWidth - dp(app, 56);
-            // Adaptive width: short messages stay a compact pill, long ones wrap at
-            // the cap instead of stretching across the screen.
-            label.setMaxWidth(maxWidth - dp(app, 46));
+            pill = new PillView(app);
             params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                     PixelFormat.TRANSLUCENT);
-            params.width = WindowManager.LayoutParams.WRAP_CONTENT;
             params.gravity = Gravity.TOP | Gravity.START;
             params.x = dp(app, 16);
-            // Near the top: visible without covering the content a task usually needs.
             params.y = dp(app, 96);
-            params.alpha = 0.92f;
+            pill.setOnTouchListener(new DragListener(app));
 
-            container.setOnTouchListener(new DragListener(app));
-            pill = container;
             try {
                 windowManager.addView(pill, params);
             } catch (Exception error) {
@@ -120,8 +123,9 @@ public final class OverlayView {
 
     public static synchronized void update(String text) {
         lastText = text == null ? "" : text;
-        if (label != null) {
-            label.setText(trim(lastText));
+        if (pill != null) {
+            pill.setText(lastText);
+            resizeToContent();
         }
     }
 
@@ -134,10 +138,9 @@ public final class OverlayView {
             }
         }
         pill = null;
-        label = null;
     }
 
-    /** Hide while a screenshot is taken, so the agent never captures this pill. */
+    /** Plan A fallback: hide while a capture runs, when the layer cannot opt out. */
     public static synchronized void setSuppressed(boolean value) {
         suppressed = value;
         applyVisibility();
@@ -147,7 +150,29 @@ public final class OverlayView {
         if (pill == null) {
             return;
         }
-        pill.setVisibility(suppressed ? View.GONE : View.VISIBLE);
+        // A surface that opts out of captures stays visible; otherwise hide it.
+        boolean hide = suppressed && !pill.hiddenFromCapture;
+        pill.setVisibility(hide ? View.GONE : View.VISIBLE);
+    }
+
+    private static void resizeToContent() {
+        if (pill == null || params == null || windowManager == null) {
+            return;
+        }
+        int width = pill.measuredWidth();
+        int height = pill.measuredHeight();
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        if (params.width != width || params.height != height) {
+            params.width = width;
+            params.height = height;
+            try {
+                windowManager.updateViewLayout(pill, params);
+            } catch (Exception ignored) {
+                // the view is being detached
+            }
+        }
     }
 
     /** One terse line for the pill: the most informative tail of a log line. */
@@ -171,13 +196,165 @@ public final class OverlayView {
         return text;
     }
 
-    private static String trim(String text) {
-        // Two lines at ~26 characters fit the bounded width.
-        return text.length() > 52 ? text.substring(0, 52) + "…" : text;
-    }
-
     private static int dp(Context context, int value) {
         return Math.round(value * context.getResources().getDisplayMetrics().density);
+    }
+
+    static void post(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
+    }
+
+    /** The pill itself: a rounded card with a status dot, drawn on its own surface. */
+    private static final class PillView extends SurfaceView implements SurfaceHolder.Callback {
+        private final Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final float density = getResources().getDisplayMetrics().density;
+        private String text = "";
+        private int measuredWidth;
+        private int measuredHeight;
+        private SurfaceControl surfaceControl;
+        boolean hiddenFromCapture;
+
+        PillView(Context context) {
+            super(context);
+            background.setColor(BG_COLOR);
+            dot.setColor(DOT_COLOR);
+            textPaint.setColor(Color.WHITE);
+            textPaint.setTextSize(13f * density);
+            // A translucent, top-most surface: the window itself draws nothing.
+            setZOrderOnTop(true);
+            setZOrderMediaOverlay(true);
+            getHolder().setFormat(PixelFormat.TRANSLUCENT);
+            getHolder().addCallback(this);
+            setWillNotDraw(true);
+        }
+
+        void setText(String value) {
+            if (value.equals(text)) {
+                return;
+            }
+            text = value;
+            measure();
+            render();
+        }
+
+        int measuredWidth() {
+            return measuredWidth;
+        }
+
+        int measuredHeight() {
+            return measuredHeight;
+        }
+
+        private Layout layout() {
+            int maxTextWidth = Math.round(
+                    getResources().getDisplayMetrics().widthPixels - 96f * density);
+            return StaticLayout.Builder
+                    .obtain(text, 0, text.length(), textPaint, Math.max(maxTextWidth, 120))
+                    .setMaxLines(2)
+                    .setEllipsize(TextUtils.TruncateAt.END)
+                    .setLineSpacing(0f, 1.1f)
+                    .build();
+        }
+
+        private void measure() {
+            Layout layout = layout();
+            int padH = Math.round(14 * density);
+            int padV = Math.round(9 * density);
+            int dotSize = Math.round(8 * density);
+            int gap = Math.round(8 * density);
+            measuredWidth = padH * 2 + dotSize + gap + layout.getWidth();
+            measuredHeight = padV * 2 + Math.max(layout.getHeight(), dotSize);
+        }
+
+        private void render() {
+            SurfaceHolder holder = getHolder();
+            Canvas canvas = null;
+            try {
+                canvas = holder.lockCanvas();
+            } catch (Exception ignored) {
+                return;
+            }
+            if (canvas == null) {
+                return;
+            }
+            try {
+                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                float radius = measuredHeight / 2f;
+                canvas.drawRoundRect(
+                        new RectF(0, 0, measuredWidth, measuredHeight), radius, radius, background);
+
+                float padH = 14 * density;
+                float dotSize = 8 * density;
+                float top = (measuredHeight - dotSize) / 2f;
+                canvas.drawCircle(padH + dotSize / 2f, top + dotSize / 2f, dotSize / 2f, dot);
+
+                canvas.save();
+                canvas.translate(padH + dotSize + 8 * density,
+                        (measuredHeight - layout().getHeight()) / 2f);
+                layout().draw(canvas);
+                canvas.restore();
+            } finally {
+                holder.unlockCanvasAndPost(canvas);
+            }
+        }
+
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            surfaceControl = getSurfaceControl();
+            hiddenFromCapture = applySkipScreenshot(surfaceControl);
+            render();
+            post(OverlayView::applyVisibility);
+        }
+
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            render();
+        }
+
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            surfaceControl = null;
+        }
+    }
+
+    /**
+     * Mark our layer as "not part of screenshots".
+     *
+     * `setSkipScreenshot` is hidden API with two shapes across releases (with and
+     * without an explicit SurfaceControl), so both are attempted and any failure
+     * means plan A takes over.
+     */
+    private static boolean applySkipScreenshot(SurfaceControl surfaceControl) {
+        if (surfaceControl == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return false;
+        }
+        prepareHiddenApis();
+        try {
+            SurfaceControl.Transaction transaction = new SurfaceControl.Transaction();
+            Method withArg = null;
+            try {
+                withArg = SurfaceControl.Transaction.class
+                        .getDeclaredMethod("setSkipScreenshot", SurfaceControl.class, boolean.class);
+            } catch (NoSuchMethodException ignored) {
+                // older shape: the transaction already targets one surface
+            }
+            Method withoutArg = null;
+            if (withArg == null) {
+                withoutArg = SurfaceControl.Transaction.class
+                        .getDeclaredMethod("setSkipScreenshot", boolean.class);
+            }
+            if (withArg != null) {
+                withArg.invoke(transaction, surfaceControl, true);
+            } else {
+                withoutArg.invoke(transaction, true);
+            }
+            SurfaceControl.Transaction.class.getMethod("apply").invoke(transaction);
+            return true;
+        } catch (Throwable error) {
+            return false;
+        }
     }
 
     private static final class DragListener implements View.OnTouchListener {
@@ -210,11 +387,13 @@ public final class OverlayView {
                     }
                     int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
                     int screenHeight = context.getResources().getDisplayMetrics().heightPixels;
-                    int pillWidth = pill.getWidth() > 0 ? pill.getWidth() : dp(context, 200);
-                    int pillHeight = pill.getHeight() > 0 ? pill.getHeight() : dp(context, 40);
-                    params.x = Math.max(0, Math.min(startX + dx, screenWidth - pillWidth));
+                    int width = pill != null && pill.measuredWidth() > 0
+                            ? pill.measuredWidth() : dp(context, 200);
+                    int height = pill != null && pill.measuredHeight() > 0
+                            ? pill.measuredHeight() : dp(context, 40);
+                    params.x = Math.max(0, Math.min(startX + dx, screenWidth - width));
                     params.y = Math.max(dp(context, 40),
-                            Math.min(startY + dy, screenHeight - pillHeight - dp(context, 80)));
+                            Math.min(startY + dy, screenHeight - height - dp(context, 80)));
                     if (windowManager != null && pill != null) {
                         windowManager.updateViewLayout(pill, params);
                     }
@@ -222,11 +401,10 @@ public final class OverlayView {
                 }
                 case MotionEvent.ACTION_UP:
                     if (moved && windowManager != null && pill != null) {
-                        // Snap to the nearest horizontal edge.
                         int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
-                        params.x = params.x + pill.getWidth() / 2 < screenWidth / 2
+                        params.x = params.x + pill.measuredWidth() / 2 < screenWidth / 2
                                 ? dp(context, 12)
-                                : screenWidth - pill.getWidth() - dp(context, 12);
+                                : screenWidth - pill.measuredWidth() - dp(context, 12);
                         windowManager.updateViewLayout(pill, params);
                     }
                     return true;
@@ -234,10 +412,5 @@ public final class OverlayView {
                     return false;
             }
         }
-    }
-
-    /** Called from the service thread; the pill itself must be touched on the UI thread. */
-    static void post(Runnable runnable) {
-        new Handler(Looper.getMainLooper()).post(runnable);
     }
 }
