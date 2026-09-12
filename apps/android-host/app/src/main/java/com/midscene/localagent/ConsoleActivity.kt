@@ -178,6 +178,7 @@ private fun ConsoleShell(
     var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
+
     // One WebView for the session: reports are several megabytes and re-parsing one
     // on every visit to History is what made the embedded view feel slower than a
     // standalone window.
@@ -625,7 +626,33 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
     var records by remember { mutableStateOf(store.list()) }
     var selected by remember { mutableStateOf<RunStore.RunRecord?>(null) }
     var pendingDelete by remember { mutableStateOf<RunStore.RunRecord?>(null) }
+
+    // Rendered before the layout branches: a dialog is its own window, so it must
+    // exist on both the phone and the tablet path (the wide branch returns early).
+    pendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete this run?") },
+            text = {
+                Text(
+                    "Its log, result and report will be removed from the device.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.delete(record)
+                    pendingDelete = null
+                    reload()
+                }) { Text("Delete", color = MidsceneColors.Error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
+    }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
+
 
     LaunchedEffect(Unit) {
         val loaded = withContext(Dispatchers.IO) { store.list() }
@@ -725,28 +752,6 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
         )
     }
 
-    pendingDelete?.let { record ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this run?") },
-            text = {
-                Text(
-                    "Its log, result and report will be removed from the device.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    store.delete(record)
-                    pendingDelete = null
-                    reload()
-                }) { Text("Delete", color = MidsceneColors.Error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
-            },
-        )
-    }
 }
 
 @Composable
