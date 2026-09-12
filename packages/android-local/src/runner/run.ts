@@ -35,7 +35,8 @@ function emitEvent(
   payload: Record<string, unknown>,
 ): void {
   const line = `[event] ${JSON.stringify(payload)}`;
-  onEvent?.({ type: 'event', message: line });
+  // stdout only: the host prints onEvent messages as well, which duplicated every
+  // event in the log.
   process.stdout.write(`${line}\n`);
 }
 

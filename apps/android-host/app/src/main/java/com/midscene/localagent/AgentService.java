@@ -400,14 +400,33 @@ public class AgentService extends Service {
         releaseWakeLock();
     }
 
-    /** The CLI prints a JSON result on stdout; parse the last JSON object. */
+    /**
+     * Pull the run result out of the CLI's output.
+     *
+     * The stream carries log lines and `[event] {json}` progress lines before the
+     * result, so slicing from the first brace to the last one produced invalid JSON
+     * (and silently dropped the report path and task counts). Lines are scanned from
+     * the end instead, and only an object that looks like a run result is accepted.
+     */
     private JSONObject summarize(ShellRunner.Result result, String configPath) {
-        String output = result.output;
-        int start = output.indexOf('{');
-        int end = output.lastIndexOf('}');
-        if (start >= 0 && end > start) {
+        String[] lines = result.output.split("\r?\n");
+        for (int index = lines.length - 1; index >= 0; index--) {
+            String line = lines[index].trim();
+            if (!line.startsWith("{") || !line.contains("\"tasks\"")) {
+                continue;
+            }
             try {
-                return new JSONObject(output.substring(start, end + 1));
+                return new JSONObject(line);
+            } catch (JSONException error) {
+                // not this line; keep looking upwards
+            }
+        }
+
+        // Multi-line pretty-printed results: try the tail of the output.
+        int start = result.output.lastIndexOf("{\n");
+        if (start >= 0) {
+            try {
+                return new JSONObject(result.output.substring(start));
             } catch (JSONException error) {
                 Log.w(TAG, "result JSON not parseable: " + error.getMessage());
             }
