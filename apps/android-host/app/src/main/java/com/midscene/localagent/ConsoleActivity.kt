@@ -1,6 +1,7 @@
 package com.midscene.localagent
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.midscene.localagent.ui.theme.MidsceneColors
 import com.midscene.localagent.ui.theme.MidsceneTheme
+import rikka.shizuku.Shizuku
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -134,7 +138,19 @@ private val DESTINATIONS = listOf(
 @Composable
 private fun ConsoleShell(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
     var tab by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
+
+    if (!onboarded) {
+        Onboarding(
+            onDone = {
+                SetupPrefs.setOnboarded(context, true)
+                onboarded = true
+            },
+        )
+        return
+    }
 
     if (wide) {
         Row(Modifier.fillMaxSize()) {
@@ -654,9 +670,16 @@ private fun DiagnosticsScreen() {
             StatusRow("shizuku user service", ShizukuExecBridge.isReady())
             StatusRow("overlay permission", OverlayView.canDraw(context))
             Spacer(Modifier.height(10.dp))
+            val authorizeLabel = if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize"
             ActionRow(
                 "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
-                "Authorize" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
+                authorizeLabel to {
+                    if (ShizukuAuth.binderReady()) {
+                        ShizukuAuth.request { }
+                    } else {
+                        openShizuku(context)
+                    }
+                },
             )
         }
         DiagnosticsCard("DEVICE") {
@@ -756,7 +779,9 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                 Switch(checked = dark, onCheckedChange = onDarkChange)
             }
             Spacer(Modifier.height(6.dp))
-            var returnAfterRun by remember { mutableStateOf(UiPrefs.returnAfterRun(context)) }
+            var returnAfterRun: Boolean by remember {
+                mutableStateOf(SetupPrefs.returnAfterRun(context))
+            }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -774,7 +799,7 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                     checked = returnAfterRun,
                     onCheckedChange = {
                         returnAfterRun = it
-                        UiPrefs.setReturnAfterRun(context, it)
+                        SetupPrefs.setReturnAfterRun(context, it)
                     },
                 )
             }
@@ -838,12 +863,270 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             )
         }
 
+        DiagnosticsCard("SETUP") {
+            ActionRow(
+                "Run setup again" to { SetupPrefs.setOnboarded(context, false) },
+                "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
+            )
+        }
+
         DiagnosticsCard("ABOUT") {
             Text(
                 "Midscene on-device agent · ${Provisioner.nodePath(context).substringAfterLast('/')}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+
+// -------------------------------------------------------------- onboarding
+
+private const val STEP_COUNT = 4
+
+/**
+ * First-run guide.
+ *
+ * Authorization is the one part of the setup that cannot be automated: Shizuku
+ * only shows its dialog when the app asks for it, the overlay and battery
+ * exemptions are system screens, and provisioning needs the shell channel those
+ * grants unlock. So the app walks through them in order, shows the live state of
+ * each one, and only then hands over the console.
+ */
+@Composable
+private fun Onboarding(onDone: () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var step by remember { mutableStateOf(0) }
+    var tick by remember { mutableStateOf(0) }
+    val lines = remember { mutableStateListOf<String>() }
+
+    // Re-read the statuses whenever the user comes back from a system screen.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                tick++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    DisposableEffect(Unit) {
+        val listener = AgentService.LogListener { line ->
+            lines.add(line)
+            if (lines.size > 60) lines.removeAt(0)
+        }
+        AgentService.addListener(listener)
+        onDispose { AgentService.removeListener(listener) }
+    }
+
+    val shizukuReady = remember(tick) { ShizukuAuth.authorized() }
+    val overlayReady = remember(tick) { OverlayView.canDraw(context) }
+    val batteryReady = remember(tick) {
+        context.getSystemService(android.os.PowerManager::class.java)
+            ?.isIgnoringBatteryOptimizations(context.packageName) == true
+    }
+    val runtimeReady = remember(tick) {
+        File(Provisioner.nodePath(context)).exists() &&
+            Provisioner.cliFile(context).exists() &&
+            File(Provisioner.YADB_TARGET).exists()
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column {
+            Text("Welcome to Midscene", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Four quick steps and the phone can run tasks by itself.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        StepCard(
+            index = 1,
+            title = "Let Midscene control the phone",
+            body = "Midscene uses Shizuku to tap, type and read the screen. Shizuku has to be " +
+                "running, and this app needs your permission.",
+            done = shizukuReady,
+            current = step == 0,
+            actionLabel = when {
+                !ShizukuAuth.installed(context) -> "Get Shizuku"
+                !ShizukuAuth.binderReady() -> "Open Shizuku"
+                else -> "Authorize"
+            },
+            onAction = {
+                when {
+                    !ShizukuAuth.installed(context) ->
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://shizuku.rikka.app/"),
+                            ),
+                        )
+                    !ShizukuAuth.binderReady() -> openShizuku(context)
+                    else -> ShizukuAuth.request { tick++ }
+                }
+            },
+            hint = if (shizukuReady) "Authorized"
+            else if (!ShizukuAuth.binderReady()) "Shizuku is not running yet"
+            else "Waiting for your permission",
+        )
+
+        StepCard(
+            index = 2,
+            title = "Allow the progress bubble",
+            body = "A small floating pill shows what the agent is doing. It hides itself " +
+                "whenever the agent takes a screenshot, so it never appears in reports.",
+            done = overlayReady,
+            current = step == 1,
+            actionLabel = "Allow overlay",
+            onAction = { Overlay.requestPermission(context) },
+            hint = if (overlayReady) "Granted" else "Not granted yet",
+        )
+
+        StepCard(
+            index = 3,
+            title = "Keep long tasks alive",
+            body = "Exempting Midscene from battery optimisation lets a run continue while the " +
+                "screen is off or the app is in the background.",
+            done = batteryReady,
+            current = step == 2,
+            actionLabel = "Exempt from battery limits",
+            onAction = { Battery.requestExemption(context) },
+            hint = if (batteryReady) "Exempt" else "Still optimised",
+        )
+
+        StepCard(
+            index = 4,
+            title = "Install the agent runtime",
+            body = "Unpacks Node, the Midscene agent and the input helper onto the device.",
+            done = runtimeReady,
+            current = step == 3,
+            actionLabel = if (runtimeReady) "Re-provision" else "Install now",
+            onAction = { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
+            hint = if (runtimeReady) "Ready" else "Needs step 1 first",
+        )
+
+        if (lines.isNotEmpty()) {
+            Card(
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(0.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(14.dp).height(140.dp).verticalScroll(rememberScrollState())) {
+                    lines.takeLast(40).forEach {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = { if (step < STEP_COUNT) step++ else onDone() },
+                shape = MaterialTheme.shapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MidsceneColors.Brand,
+                    contentColor = Color.White,
+                ),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(if (step < STEP_COUNT - 1) "Next" else "Start using Midscene")
+            }
+            if (step > 0) {
+                OutlinedButton(
+                    onClick = { step-- },
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.weight(0.5f),
+                ) { Text("Back") }
+            }
+        }
+        TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+            Text("Skip setup", fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun StepCard(
+    index: Int,
+    title: String,
+    body: String,
+    done: Boolean,
+    current: Boolean,
+    actionLabel: String,
+    onAction: () -> Unit,
+    hint: String,
+) {
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = if (current) MaterialTheme.colorScheme.surface
+            else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(22.dp).clip(CircleShape).background(
+                        if (done) MidsceneColors.Success
+                        else if (current) MidsceneColors.Brand
+                        else MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (done) "\u2713" else index.toString(),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (done) MidsceneColors.SuccessText
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!done) {
+                    Button(
+                        onClick = onAction,
+                        shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MidsceneColors.Brand,
+                            contentColor = Color.White,
+                        ),
+                    ) { Text(actionLabel, fontSize = 12.sp) }
+                }
+            }
         }
     }
 }
@@ -870,8 +1153,42 @@ private object ThemePrefs {
 }
 
 /** UI preferences shared with the service (same file and keys). */
-private object UiPrefs {
+/** Shizuku authorization, done properly: only requestPermission() raises the dialog. */
+private object ShizukuAuth {
+    private const val REQUEST_CODE = 4210
+
+    fun authorized(): Boolean = try {
+        !Shizuku.isPreV11() &&
+            Shizuku.pingBinder() &&
+            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+    } catch (error: Throwable) {
+        false
+    }
+
+    fun binderReady(): Boolean = try {
+        Shizuku.pingBinder()
+    } catch (error: Throwable) {
+        false
+    }
+
+    fun installed(context: android.content.Context): Boolean =
+        context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api") != null
+
+    fun request(onResult: (Boolean) -> Unit) {
+        Shizuku.addRequestPermissionResultListener { _, grantResult ->
+            onResult(grantResult == PackageManager.PERMISSION_GRANTED)
+        }
+        try {
+            Shizuku.requestPermission(REQUEST_CODE)
+        } catch (error: Throwable) {
+            onResult(false)
+        }
+    }
+}
+
+private object SetupPrefs {
     private const val FILE = "midscene-ui"
+    private const val ONBOARDED_KEY = "onboarded"
     private const val RETURN_KEY = "returnAfterRun"
 
     fun returnAfterRun(context: android.content.Context): Boolean =
@@ -881,6 +1198,15 @@ private object UiPrefs {
     fun setReturnAfterRun(context: android.content.Context, value: Boolean) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(RETURN_KEY, value).apply()
+    }
+
+    fun onboarded(context: android.content.Context): Boolean =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(ONBOARDED_KEY, false)
+
+    fun setOnboarded(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(ONBOARDED_KEY, value).apply()
     }
 }
 

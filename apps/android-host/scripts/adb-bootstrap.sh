@@ -81,6 +81,9 @@ else
 fi
 sh_ 'chmod 755 /data/local/tmp/rish 2>/dev/null; chmod 400 /data/local/tmp/rish_shizuku.dex 2>/dev/null; ls -l /data/local/tmp/rish /data/local/tmp/rish_shizuku.dex' | tail -2
 
+# The app's private directories only exist once it has run at least once.
+sh_ "run-as ${PKG} mkdir -p files" >/dev/null 2>&1 || true
+
 if [[ -n "$MODEL_ENV" ]]; then
   say "seed model.env"
   "${ADB[@]}" push "$MODEL_ENV" /data/local/tmp/model.env >/dev/null
@@ -92,6 +95,7 @@ fi
 if [[ -n "$CONFIG" ]]; then
   say "seed config.yaml"
   "${ADB[@]}" push "$CONFIG" /data/local/tmp/config.yaml >/dev/null
+  sh_ "run-as ${PKG} mkdir -p files"
   sh_ "run-as ${PKG} cp /data/local/tmp/config.yaml files/config.yaml"
   sh_ 'rm -f /data/local/tmp/config.yaml'
   echo "config.yaml installed into the app's private storage"
@@ -110,10 +114,14 @@ else
 fi
 
 say "provision runtime (bundle + yadb) through the service"
+# Android 14 refuses to start a foreground service from the background, so bring
+# the console up first; the service then runs in the foreground it is allowed to use.
+sh_ "am start -n ${PKG}/.ConsoleActivity" >/dev/null
+sleep 4
 sh_ "am start-foreground-service -n ${PKG}/.AgentService -a ${PKG}.PROVISION" | tail -1
 sleep 25
 sh_ "run-as ${PKG} tail -6 files/run/agent.log" | tail -7
 sh_ 'ls -l /data/local/tmp/yadb 2>/dev/null || echo "yadb missing"'
 
 say "done"
-echo "Launch the console with: adb shell am start -n ${PKG}/.MainActivity"
+echo "Launch the console with: adb shell am start -n ${PKG}/.ConsoleActivity"
