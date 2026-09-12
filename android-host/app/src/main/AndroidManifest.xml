@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- Floating progress pill shown while a run is in flight. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!--
       Shizuku API permission. Declaring it lets an unattended install authorize
       the app with `adb shell pm grant <pkg> moe.shizuku.manager.permission.API_V23`
@@ -19,21 +21,31 @@
     <application
         android:allowBackup="false"
         android:extractNativeLibs="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="Midscene Local"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MidsceneLocal"
         android:usesCleartextTraffic="true">
 
+        <!-- Compose console: the product surface. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".ConsoleActivity"
             android:exported="true"
-            android:label="Midscene Local"
+            android:label="Midscene"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Previous widget-based screen, kept reachable for comparison. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="Midscene Local (classic)"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ReportViewerActivity"

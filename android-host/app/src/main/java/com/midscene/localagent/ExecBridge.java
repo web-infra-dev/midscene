@@ -158,6 +158,17 @@ public final class ExecBridge {
         }
 
         int timeoutMs = parseTimeout(path, 30_000);
+        // The agent's screenshots end up in the report, so the progress pill has
+        // to be out of the frame while screencap runs.
+        boolean screenshot = command.contains("screencap");
+        if (screenshot) {
+            OverlayView.post(() -> OverlayView.setSuppressed(true));
+            try {
+                Thread.sleep(120);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
         try {
             if (path.startsWith("/exec-binary")) {
                 respond(output, 200, "application/octet-stream",
@@ -174,6 +185,10 @@ public final class ExecBridge {
         } catch (Exception error) {
             respond(output, 500, "text/plain",
                     String.valueOf(error.getMessage()).getBytes(StandardCharsets.UTF_8));
+        } finally {
+            if (screenshot) {
+                OverlayView.post(() -> OverlayView.setSuppressed(false));
+            }
         }
     }
 

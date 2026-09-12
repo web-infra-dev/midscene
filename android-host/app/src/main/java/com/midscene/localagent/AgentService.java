@@ -55,6 +55,8 @@ public class AgentService extends Service {
     public static volatile String currentTask = "";
     public static volatile long runStartedAt;
     public static volatile String lastMessage = "";
+    /** Set from onCreate so log lines can drive the floating progress pill. */
+    private static Context overlayContext;
     /** Overwritten from onCreate with the app's private run directory. */
     private static String SERVICE_LOG_DIR = "/data/local/tmp";
 
@@ -104,6 +106,9 @@ public class AgentService extends Service {
     private static void emit(String line) {
         lastMessage = line;
         persistServiceLog(line);
+        if (overlayContext != null) {
+            OverlayView.post(() -> OverlayView.update(OverlayView.summarize(line)));
+        }
         synchronized (LOG_BUFFER) {
             LOG_BUFFER.add(line);
             if (LOG_BUFFER.size() > LOG_BUFFER_LIMIT) {
@@ -155,6 +160,7 @@ public class AgentService extends Service {
         ShizukuExecBridge.ensureBound(this);
         ExecBridge.start(this);
         SERVICE_LOG_DIR = new File(getFilesDir(), "run").getAbsolutePath();
+        overlayContext = this;
         createChannel();
         startForegroundCompat("Midscene agent", "idle");
     }
@@ -359,6 +365,7 @@ public class AgentService extends Service {
 
         state = stateLabel;
         clearBuffer();
+        OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
         updateNotification("running " + stateLabel, "preparing");
         worker = new Thread(() -> {
             try {
@@ -371,6 +378,7 @@ public class AgentService extends Service {
                 currentTask = "";
                 releaseWakeLock();
                 updateNotification("Midscene agent", "idle");
+                OverlayView.post(OverlayView::hide);
             }
         }, "midscene-" + name);
         worker.start();

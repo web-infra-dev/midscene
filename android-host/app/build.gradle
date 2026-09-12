@@ -1,5 +1,8 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android' version '2.0.21'
+    // Required for Kotlin 2.x: the Compose compiler ships as its own plugin.
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21'
 }
 
 dependencies {
@@ -48,6 +51,7 @@ android {
 
     buildFeatures {
         viewBinding false
+        compose true
         // The Shizuku user service is reached over AIDL.
         aidl true
     }
@@ -56,4 +60,20 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    // Compose: the console is designed rather than assembled from widgets, and the
+    // studio palette maps cleanly onto a Material 3 colour scheme.
+    def composeBom = platform('androidx.compose:compose-bom:2024.09.00')
+    implementation composeBom
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.activity:activity-compose:1.9.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
 }
