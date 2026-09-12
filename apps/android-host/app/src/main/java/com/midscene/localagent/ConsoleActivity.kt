@@ -1230,6 +1230,14 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit) {
             }
         }
 
+        DiagnosticsCard("AGENT OVERLAY") {
+            OverlaySwitch("Status bar", "Phase, step and timings along the top", "showStatusBar")
+            OverlaySwitch("Edge glow", "A breathing glow while the agent controls the phone", "showEdgeGlow")
+            OverlaySwitch("Element box", "Dashed box around the element the agent located", "showElementBox")
+            OverlaySwitch("Tap ripple", "A ring where the agent taps", "showTapRipple")
+            OverlaySwitch("Demo mode", "Louder animations, for showing the agent off", "demoMode")
+        }
+
         DiagnosticsCard("MODEL CREDENTIALS") {
             Text(
                 "Kept in the app's private storage and injected into the agent process; never written into a script.",
@@ -1531,6 +1539,34 @@ private fun StepCard(
 }
 
 // ----------------------------------------------------------------- helpers
+
+@Composable
+private fun OverlaySwitch(title: String, subtitle: String, key: String) {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("midscene-ui", android.content.Context.MODE_PRIVATE)
+    var checked by remember { mutableStateOf(prefs.getBoolean(key, true)) }
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = {
+                checked = it
+                prefs.edit().putBoolean(key, it).apply()
+            },
+        )
+    }
+}
 
 @Composable
 private fun SectionLabel(text: String) {

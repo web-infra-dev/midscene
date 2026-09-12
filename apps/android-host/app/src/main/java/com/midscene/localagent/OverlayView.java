@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
+import android.graphics.RectF;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -46,15 +47,70 @@ public final class OverlayView {
     private static final int BG_COLOR = 0xE60D0D0D;
     private static final int DOT_COLOR = 0xFF1979FF;
     private static final int CHIP_COLOR = 0xFF2F6FE4;
+    private static final long BOX_TTL_MS = 2500;
+    private static final long RIPPLE_MS = 700;
 
     private static WindowManager windowManager;
     private static PillView pill;
     private static WindowManager.LayoutParams params;
     private static boolean suppressed;
+    // User preferences (Settings): which visualisations to show, and how loud.
+    private static boolean showBar = true;
+    private static boolean showEdge = true;
+    private static boolean showBox = true;
+    private static boolean showRipple = true;
+    private static boolean demoMode;
+    private static long boxUntil;
+    private static RectF boxRect;
+    private static float rippleX = -1;
+    private static float rippleY = -1;
+    private static long rippleStartedAt;
     private static boolean bypassReady;
     private static String lastText = "";
 
     private OverlayView() {
+    }
+
+    /** Applied when a run starts, from the Settings switches. */
+    public static synchronized void setOptions(
+            boolean bar,
+            boolean edge,
+            boolean box,
+            boolean ripple,
+            boolean demo) {
+        showBar = bar;
+        showEdge = edge;
+        showBox = box;
+        showRipple = ripple;
+        demoMode = demo;
+        if (pill != null) {
+            pill.invalidateVisuals();
+        }
+    }
+
+    /** The element the agent located, in screen pixels; drawn until it fades out. */
+    public static synchronized void showBox(float x, float y, float width, float height) {
+        boxRect = new RectF(x, y, x + width, y + height);
+        boxUntil = System.currentTimeMillis() + BOX_TTL_MS;
+        if (pill != null) {
+            pill.startAnimating();
+        }
+    }
+
+    /** A tap the agent performed: a short ripple at that point. */
+    public static synchronized void showRipple(float x, float y) {
+        rippleX = x;
+        rippleY = y;
+        rippleStartedAt = System.currentTimeMillis();
+        if (pill != null) {
+            pill.startAnimating();
+        }
+    }
+
+    public static synchronized void clearTransient() {
+        boxRect = null;
+        boxUntil = 0;
+        rippleX = -1;
     }
 
     public static boolean canDraw(Context context) {
@@ -97,10 +153,11 @@ public final class OverlayView {
             }
 
             pill = new PillView(app);
-            int barHeight = Math.round(30 * app.getResources().getDisplayMetrics().density);
+            // One full-screen surface carries every visualisation (bar, edge glow,
+            // element box, tap ripple), so a single setSkipScreenshot covers them all.
             params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
-                    barHeight,
+                    WindowManager.LayoutParams.MATCH_PARENT,
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
@@ -108,10 +165,10 @@ public final class OverlayView {
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                     PixelFormat.TRANSLUCENT);
             params.gravity = Gravity.TOP | Gravity.START;
-            // Flush to the top edge and full width: a status bar for the agent, the
-            // way a system-level indicator reads.
             params.x = 0;
             params.y = 0;
+            // Touch events must reach the app underneath: this layer only observes.
+            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
 
             try {
                 windowManager.addView(pill, params);
@@ -253,6 +310,7 @@ public final class OverlayView {
         private String detail = "";
         private String metrics = "";
         private SurfaceControl surfaceControl;
+        private boolean animating;
         boolean hiddenFromCapture;
 
         PillView(Context context) {
@@ -312,6 +370,38 @@ public final class OverlayView {
                     .build();
         }
 
+        void invalidateVisuals() {
+            render();
+        }
+
+        /** Frame loop: only runs while there is something animated to show. */
+        void startAnimating() {
+            if (animating) {
+                return;
+            }
+            animating = true;
+            post(frame);
+        }
+
+        private final Runnable frame = new Runnable() {
+            @Override
+            public void run() {
+                if (!animating) {
+                    return;
+                }
+                render();
+                boolean busy = System.currentTimeMillis() < boxUntil
+                        || (rippleX >= 0
+                        && System.currentTimeMillis() - rippleStartedAt < RIPPLE_MS);
+                if (busy) {
+                    postDelayed(this, 40);
+                } else {
+                    animating = false;
+                    render();
+                }
+            }
+        };
+
         private void render() {
             SurfaceHolder holder = getHolder();
             Canvas canvas = null;
@@ -331,53 +421,133 @@ public final class OverlayView {
                     return;
                 }
                 canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                canvas.drawRect(0, 0, width, height, background);
+                long now = System.currentTimeMillis();
 
-                float pad = 12 * density;
-                float dotSize = 7 * density;
-                float centerY = height / 2f;
-                canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
-
-                float cursor = pad + dotSize + 8 * density;
-                canvas.save();
-                canvas.translate(cursor, centerY - titlePaint.getTextSize() * 0.72f);
-                fit(phase, titlePaint, Math.round(120 * density)).draw(canvas);
-                canvas.restore();
-                cursor += titlePaint.measureText(phase) + 10 * density;
-
-                if (!stepChip.isEmpty()) {
-                    float chipWidth = chipPaint.measureText(stepChip) + 12 * density;
-                    float chipHeight = 16 * density;
-                    RectF chipRect = new RectF(cursor, centerY - chipHeight / 2f,
-                            cursor + chipWidth, centerY + chipHeight / 2f);
-                    canvas.drawRoundRect(chipRect, chipHeight / 2f, chipHeight / 2f, chip);
-                    canvas.save();
-                    canvas.translate(cursor + 6 * density,
-                            centerY - (chipPaint.getFontMetrics().descent
-                                    - chipPaint.getFontMetrics().ascent) / 2f
-                                    - chipPaint.getFontMetrics().ascent + 1);
-                    canvas.drawText(stepChip, 0, 0, chipPaint);
-                    canvas.restore();
-                    cursor += chipWidth + 10 * density;
-                }
-
-                float metricsWidth = metrics.isEmpty() ? 0 : metricsPaint.measureText(metrics);
-                float metricsLeft = width - pad - metricsWidth;
-                float detailSpace = Math.max(metricsLeft - cursor - 12 * density, 60 * density);
-
-                canvas.save();
-                canvas.translate(cursor, centerY - detailPaint.getTextSize() * 0.72f);
-                fit(detail, detailPaint, Math.round(detailSpace)).draw(canvas);
-                canvas.restore();
-
-                if (!metrics.isEmpty()) {
-                    canvas.save();
-                    canvas.translate(metricsLeft, centerY - metricsPaint.getTextSize() * 0.72f);
-                    canvas.drawText(metrics, 0, 0, metricsPaint);
-                    canvas.restore();
+                drawEdgeGlow(canvas, width, height);
+                drawBox(canvas, now);
+                drawRipple(canvas, now);
+                if (showBar) {
+                    drawBar(canvas, width, height);
                 }
             } finally {
                 holder.unlockCanvasAndPost(canvas);
+            }
+        }
+
+        /** A breathing brand glow along the screen edges: "the agent is in control". */
+        private void drawEdgeGlow(Canvas canvas, int width, int height) {
+            if (!showEdge) {
+                return;
+            }
+            float band = (demoMode ? 10f : 3.5f) * density;
+            float pulse = 0.45f + 0.35f * (float) Math.sin(System.currentTimeMillis() / 700.0);
+            int alpha = Math.round(255 * (demoMode ? Math.min(pulse + 0.2f, 0.95f) : pulse * 0.6f));
+            int tint = (CHIP_COLOR & 0x00FFFFFF) | (alpha << 24);
+
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paint.setShader(new android.graphics.LinearGradient(
+                    0, 0, 0, band, tint, Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, width, band, paint);
+            paint.setShader(new android.graphics.LinearGradient(
+                    0, height, 0, height - band, tint, Color.TRANSPARENT,
+                    android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRect(0, height - band, width, height, paint);
+            paint.setShader(new android.graphics.LinearGradient(
+                    0, 0, band, 0, tint, Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, band, height, paint);
+            paint.setShader(new android.graphics.LinearGradient(
+                    width, 0, width - band, 0, tint, Color.TRANSPARENT,
+                    android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRect(width - band, 0, width, height, paint);
+        }
+
+        /** Dashed box around the element the agent located, fading out. */
+        private void drawBox(Canvas canvas, long now) {
+            if (!showBox || boxRect == null || now >= boxUntil) {
+                return;
+            }
+            float remaining = (boxUntil - now) / (float) BOX_TTL_MS;
+            int alpha = Math.round(255 * Math.min(1f, remaining * 2f));
+            Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+            stroke.setStyle(Paint.Style.STROKE);
+            stroke.setStrokeWidth(2f * density);
+            stroke.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+            stroke.setPathEffect(new android.graphics.DashPathEffect(
+                    new float[] { 10f * density, 6f * density }, 0));
+
+            Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fill.setColor((CHIP_COLOR & 0x00FFFFFF) | (Math.round(alpha * 0.16f) << 24));
+
+            RectF rect = new RectF(boxRect);
+            float radius = 6f * density;
+            canvas.drawRoundRect(rect, radius, radius, fill);
+            canvas.drawRoundRect(rect, radius, radius, stroke);
+        }
+
+        /** Expanding ring where the agent tapped. */
+        private void drawRipple(Canvas canvas, long now) {
+            if (!showRipple || rippleX < 0) {
+                return;
+            }
+            long elapsed = now - rippleStartedAt;
+            if (elapsed >= RIPPLE_MS) {
+                return;
+            }
+            float progress = elapsed / (float) RIPPLE_MS;
+            int alpha = Math.round(200 * (1f - progress));
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(2.5f * density);
+            paint.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+            canvas.drawCircle(rippleX, rippleY, (8f + 26f * progress) * density, paint);
+        }
+
+        private void drawBar(Canvas canvas, int width, int height) {
+            float barHeight = 30 * density;
+            canvas.drawRect(0, 0, width, barHeight, background);
+
+            float pad = 12 * density;
+            float dotSize = 7 * density;
+            float centerY = barHeight / 2f;
+            canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
+
+            float cursor = pad + dotSize + 8 * density;
+            canvas.save();
+            canvas.translate(cursor, centerY - titlePaint.getTextSize() * 0.72f);
+            fit(phase, titlePaint, Math.round(120 * density)).draw(canvas);
+            canvas.restore();
+            cursor += titlePaint.measureText(phase) + 10 * density;
+
+            if (!stepChip.isEmpty()) {
+                float chipWidth = chipPaint.measureText(stepChip) + 12 * density;
+                float chipHeight = 16 * density;
+                RectF chipRect = new RectF(cursor, centerY - chipHeight / 2f,
+                        cursor + chipWidth, centerY + chipHeight / 2f);
+                canvas.drawRoundRect(chipRect, chipHeight / 2f, chipHeight / 2f, chip);
+                canvas.save();
+                canvas.translate(cursor + 6 * density,
+                        centerY - (chipPaint.getFontMetrics().descent
+                                - chipPaint.getFontMetrics().ascent) / 2f
+                                - chipPaint.getFontMetrics().ascent + 1);
+                canvas.drawText(stepChip, 0, 0, chipPaint);
+                canvas.restore();
+                cursor += chipWidth + 10 * density;
+            }
+
+            float metricsWidth = metrics.isEmpty() ? 0 : metricsPaint.measureText(metrics);
+            float metricsLeft = width - pad - metricsWidth;
+            float detailSpace = Math.max(metricsLeft - cursor - 12 * density, 60 * density);
+
+            canvas.save();
+            canvas.translate(cursor, centerY - detailPaint.getTextSize() * 0.72f);
+            fit(detail, detailPaint, Math.round(detailSpace)).draw(canvas);
+            canvas.restore();
+
+            if (!metrics.isEmpty()) {
+                canvas.save();
+                canvas.translate(metricsLeft, centerY - metricsPaint.getTextSize() * 0.72f);
+                canvas.drawText(metrics, 0, 0, metricsPaint);
+                canvas.restore();
             }
         }
 
@@ -388,6 +558,7 @@ public final class OverlayView {
             Log.i(TAG, "surface created, hiddenFromCapture=" + hiddenFromCapture);
             render();
             post(OverlayView::applyVisibility);
+            startAnimating();
         }
 
         @Override

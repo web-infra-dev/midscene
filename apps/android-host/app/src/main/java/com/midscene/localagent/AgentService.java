@@ -165,6 +165,26 @@ public class AgentService extends Service {
                 case "run.end":
                     phase = "ok".equals(event.optString("status")) ? "done" : "failed";
                     break;
+                case "locate": {
+                    // Screen-space rect of the element the agent located.
+                    JSONObject rect = event.optJSONObject("rect");
+                    if (rect != null) {
+                        OverlayView.post(() -> OverlayView.showBox(
+                                (float) rect.optDouble("x"),
+                                (float) rect.optDouble("y"),
+                                (float) rect.optDouble("w"),
+                                (float) rect.optDouble("h")));
+                    }
+                    return;
+                }
+                case "tap": {
+                    double x = event.optDouble("x", -1);
+                    double y = event.optDouble("y", -1);
+                    if (x >= 0 && y >= 0) {
+                        OverlayView.post(() -> OverlayView.showRipple((float) x, (float) y));
+                    }
+                    return;
+                }
                 default:
                     return;
             }
@@ -476,6 +496,10 @@ public class AgentService extends Service {
         }
     }
 
+    private android.content.SharedPreferences prefs() {
+        return getSharedPreferences("midscene-ui", MODE_PRIVATE);
+    }
+
     /** User preference: return to the app when a run completes (default on). */
     private boolean returnToAppAfterRun() {
         return getSharedPreferences("midscene-ui", MODE_PRIVATE)
@@ -490,6 +514,12 @@ public class AgentService extends Service {
 
         state = stateLabel;
         final String runKind = stateLabel;
+        OverlayView.setOptions(
+                prefs().getBoolean("showStatusBar", true),
+                prefs().getBoolean("showEdgeGlow", true),
+                prefs().getBoolean("showElementBox", true),
+                prefs().getBoolean("showTapRipple", true),
+                prefs().getBoolean("demoMode", false));
         phase = "";
         stepIndex = 0;
         stepTotal = 0;
@@ -511,7 +541,10 @@ public class AgentService extends Service {
                 currentTask = "";
                 releaseWakeLock();
                 updateNotification("Midscene agent", "idle");
-                OverlayView.post(OverlayView::hide);
+                OverlayView.post(() -> {
+                    OverlayView.clearTransient();
+                    OverlayView.hide();
+                });
                 if (returnToAppAfterRun() && (runKind.equals("prompt") || runKind.equals("config"))) {
                     bringConsoleToFront();
                 }
@@ -643,7 +676,12 @@ public class AgentService extends Service {
         if (name.isEmpty()) {
             name = "task";
         }
-        return name.length() > 40 ? name.substring(0, 40) : name;
+        if (name.length() <= 40) {
+            return name;
+        }
+        // Prefer a word boundary over a mid-word cut.
+        int cut = name.lastIndexOf('-', 40);
+        return cut > 12 ? name.substring(0, cut) : name.substring(0, 40);
     }
 
     private static String quoteYaml(String value) {
