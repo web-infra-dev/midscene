@@ -48,7 +48,8 @@ public final class OverlayView {
     private static final String TAG = "MidsceneOverlay";
     private static final int BG_COLOR = 0xE60D0D0D;
     private static final int DOT_COLOR = 0xFF1979FF;
-    private static final int CHIP_COLOR = 0xFF2F6FE4;
+    private static final int CHIP_COLOR = 0xFF1979FF;
+    private static final int BEAM_COLOR = 0xFF1979FF;
     private static final long BOX_TTL_MS = 2500;
     private static final long RIPPLE_MS = 700;
 
@@ -418,9 +419,9 @@ public final class OverlayView {
             titlePaint.setFakeBoldText(true);
             chipPaint.setColor(Color.WHITE);
             chipPaint.setTextSize(10f * density);
-            detailPaint.setColor(0xFFE3E5E8);
+            detailPaint.setColor(0xFFD8DEE9);
             detailPaint.setTextSize(11.5f * density);
-            metricsPaint.setColor(0xFF9DA0A1);
+            metricsPaint.setColor(0xFF8C93A0);
             metricsPaint.setTextSize(11f * density);
             setZOrderOnTop(true);
             setZOrderMediaOverlay(true);
@@ -540,21 +541,13 @@ public final class OverlayView {
             if (!showEdge) {
                 return;
             }
-            float inset = (demoMode ? 10f : 5f) * density;
             float stroke = (demoMode ? 9f : 5.5f) * density;
-            float radius = 20 * density;
+            float radius = 26 * density;
 
-            // Keep the streak inside the area the system leaves us: the taskbar and
-            // the status bar are drawn above an application overlay, so a beam at the
-            // physical edge disappears underneath them.
-            // Only a hair of clearance: the window already covers the display, and
-            // insetting by the reported system bars boxed the beam in twice.
-            float clearance = 2f * density;
-            float left = inset + clearance;
-            float top = inset + clearance;
-            float right = inset + clearance;
-            float bottom = inset + clearance;
-            RectF frame = new RectF(left, top, width - right, height - bottom);
+            // The path sits half a stroke from the edge, so the painted band starts
+            // exactly at the screen border instead of leaving a gutter.
+            float edge = stroke / 2f + 0.5f * density;
+            RectF frame = new RectF(edge, edge, width - edge, height - edge);
             Path path = new Path();
             path.addRoundRect(frame, radius, radius, Path.Direction.CW);
             PathMeasure measure = new PathMeasure(path, false);
@@ -567,7 +560,7 @@ public final class OverlayView {
             Paint framePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             framePaint.setStyle(Paint.Style.STROKE);
             framePaint.setStrokeWidth(1.2f * density);
-            framePaint.setColor((CHIP_COLOR & 0x00FFFFFF) | (demoMode ? 0x44 : 0x22) << 24);
+            framePaint.setColor((BEAM_COLOR & 0x00FFFFFF) | (demoMode ? 0x44 : 0x22) << 24);
             canvas.drawPath(path, framePaint);
 
             long lapMs = demoMode ? 2200 : 3600;
@@ -596,7 +589,7 @@ public final class OverlayView {
                 float fade = 1f - (float) i / segments;
                 int alpha = Math.round(255 * fade * (demoMode ? 1f : 0.9f));
                 paint.setStrokeWidth(stroke * (0.35f + 0.65f * fade));
-                paint.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+                paint.setColor((BEAM_COLOR & 0x00FFFFFF) | (alpha << 24));
                 canvas.drawPath(piece, paint);
             }
 
@@ -604,7 +597,7 @@ public final class OverlayView {
             Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
             halo.setStyle(Paint.Style.STROKE);
             halo.setStrokeWidth(stroke * 2.6f);
-            halo.setColor((CHIP_COLOR & 0x00FFFFFF) | (demoMode ? 0x3A : 0x24) << 24);
+            halo.setColor((BEAM_COLOR & 0x00FFFFFF) | (demoMode ? 0x3A : 0x24) << 24);
             piece.reset();
             float headStart = ((head - tail * 0.06f) % length + length) % length;
             if (headStart <= head) {
@@ -626,12 +619,12 @@ public final class OverlayView {
             Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
             stroke.setStyle(Paint.Style.STROKE);
             stroke.setStrokeWidth(2f * density);
-            stroke.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+            stroke.setColor((BEAM_COLOR & 0x00FFFFFF) | (alpha << 24));
             stroke.setPathEffect(new android.graphics.DashPathEffect(
                     new float[] { 10f * density, 6f * density }, 0));
 
             Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-            fill.setColor((CHIP_COLOR & 0x00FFFFFF) | (Math.round(alpha * 0.16f) << 24));
+            fill.setColor((BEAM_COLOR & 0x00FFFFFF) | (Math.round(alpha * 0.16f) << 24));
 
             RectF rect = new RectF(boxRect);
             float radius = 6f * density;
@@ -653,18 +646,42 @@ public final class OverlayView {
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2.5f * density);
-            paint.setColor((CHIP_COLOR & 0x00FFFFFF) | (alpha << 24));
+            paint.setColor((BEAM_COLOR & 0x00FFFFFF) | (alpha << 24));
             canvas.drawCircle(rippleX, rippleY, (8f + 26f * progress) * density, paint);
         }
 
         private void drawBar(Canvas canvas, int width, int height) {
             float barHeight = 30 * density;
             float barTop = topBeamSpace();
-            canvas.drawRect(0, barTop, width, barTop + barHeight, background);
+            float corner = 16 * density;
 
-            float pad = 12 * density;
+            // A dark glass panel that fades into the screen, rounded at the bottom and
+            // finished with a brand hairline: the same language as the border streak
+            // instead of a slab that fights with it.
+            Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
+            panel.setShader(new android.graphics.LinearGradient(
+                    0, barTop, 0, barTop + barHeight,
+                    0xF20E141C, 0xD90B0F15, android.graphics.Shader.TileMode.CLAMP));
+            android.graphics.Path panelPath = new android.graphics.Path();
+            panelPath.addRoundRect(
+                    new RectF(0, barTop - corner, width, barTop + barHeight),
+                    corner, corner, android.graphics.Path.Direction.CW);
+            canvas.drawPath(panelPath, panel);
+
+            Paint hairline = new Paint(Paint.ANTI_ALIAS_FLAG);
+            hairline.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x59 << 24);
+            hairline.setStrokeWidth(1.5f * density);
+            canvas.drawLine(corner / 2f, barTop + barHeight - 0.75f * density,
+                    width - corner / 2f, barTop + barHeight - 0.75f * density, hairline);
+
+            float pad = 14 * density;
             float dotSize = 7 * density;
             float centerY = barTop + barHeight / 2f;
+
+            // A soft halo behind the state dot ties it to the beam.
+            Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+            halo.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x33 << 24);
+            canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize, halo);
             canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
 
             float cursor = pad + dotSize + 8 * density;
