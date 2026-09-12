@@ -40,7 +40,7 @@ sh_() { "${ADB[@]}" shell "$@"; }
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 host_root="$(cd "${here}/.." && pwd)"
-repo_root="$(cd "${host_root}/.." && pwd)"
+repo_root="$(cd "${host_root}/../.." && pwd)"
 APK="${host_root}/app/build/outputs/apk/debug/app-debug.apk"
 ASSETS="${repo_root}/packages/android/bin"
 

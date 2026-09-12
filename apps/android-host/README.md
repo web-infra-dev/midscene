@@ -72,7 +72,7 @@ scripts/adb-bootstrap.sh \
 ## 构建
 
 ```bash
-cd android-host
+cd apps/android-host
 
 # 1) Node 运行时（从已装 Termux 的设备拉取并改写 soname）
 ./scripts/fetch-node-runtime.sh                 # 或 --from <dir>（bin/node + lib/*.so）
@@ -86,16 +86,23 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 `local.properties` 需要指向 Android SDK（`sdk.dir=...`），`jniLibs/` 与 `agent-bundle.zip` 均为生成物，已在
 `.gitignore` 中忽略（APK 约 48MB）。
 
-## 界面（生产版四页签）
+## 界面（Compose 控制台）
 
-参考 desktop studio 的信息架构（去掉实时预览），四个页签：
+Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，五个页签：
 
 | 页签 | 功能 |
 | --- | --- |
-| **Run** | 自然语言指令输入 + `Run instruction` / `Stop` / `Clear log`；状态行显示 state / node / agent / yadb；实时日志流 |
-| **Scripts** | `config.yaml` 编辑器（YAML，支持 `yaml` 任务引用 `files/scripts` 下的脚本）+ Save / Run config / Reload（未编辑时以磁盘文件为准，便于外部配置推送） |
-| **History** | 运行记录列表（OK/ERR、时间、耗时、任务通过数）→ 详情对话框（逐任务类型/状态/耗时/错误）→ **Log** 与 **Report** |
-| **Setup** | Provision runtime（解包 agent + 安装 yadb）、Check state、Battery exemption、Open Shizuku、`model.env` 编辑保存、Run doctor |
+| **Run** | 自然语言指令（Paste / Clear / Run / Stop）+ Hero 状态卡 + 实时日志；键盘弹出自动顶起内容 |
+| **Scripts** | `config.yaml` 编辑与运行、Save / Reload / Paste / New template（模板自带正确的 `fileChannelDir`） |
+| **History** | 运行记录卡片列表（状态点、任务名、时间·耗时·通过数）→ 手机弹窗 / **平板右栏详情** → **Log** 与 **Report** |
+| **Diagnostics** | runtime 状态（node / agent bundle / yadb / shizuku user service / overlay permission）、Provision、Authorize、Battery / Shizuku / Overlay、服务日志 |
+| **Settings** | 暗色主题、**悬浮窗开关**、**Open app after a run**、模型凭据（`model.env`）、About |
+
+响应式：手机底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
+
+## 悬浮窗进度
+
+运行期间在屏幕边缘显示进度胶囊（`Running <任务名>`，可拖拽并吸附边缘，两行内完整显示）。**任何包含 `screencap` 的命令执行期间自动隐藏**，因此报告里的截图永远不会带上悬浮窗。运行结束后可自动把控制台拉回前台（Settings 可关）。
 
 **报告查看**：History → Report 用 WebView 打开 Midscene 生成的单文件 HTML 报告（执行时间线、每一步耗时、
 Record 逐帧回放与视频条、失败原因气泡），与桌面端一致。

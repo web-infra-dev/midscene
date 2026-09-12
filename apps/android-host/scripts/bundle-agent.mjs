@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hostRoot = path.resolve(here, '..');
-const repoRoot = path.resolve(hostRoot, '..');
+const repoRoot = path.resolve(hostRoot, '../..');
 const androidLocal = path.join(repoRoot, 'packages/android-local');
 const workDir = path.join(hostRoot, 'build/agent-bundle');
 const outFile = path.join(hostRoot, 'app/src/main/assets/agent-bundle.zip');
@@ -95,4 +95,4 @@ const size = fs.statSync(outFile).size;
 const yadbOut = path.join(hostRoot, 'app/src/main/assets/yadb');
 console.log(`\n${outFile} (${(size / 1024 / 1024).toFixed(1)} MB)`);
 console.log(`${yadbOut} (${fs.statSync(yadbOut).size} bytes)`);
-console.log('Now rebuild the app: cd android-host && gradle assembleDebug');
+console.log('Now rebuild the app: pnpm --filter android-host assemble');

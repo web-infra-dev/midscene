@@ -1,0 +1,13 @@
+{
+  "name": "android-host",
+  "private": true,
+  "version": "1.0.0",
+  "description": "On-device Android agent host: ships Node and the Midscene agent inside an APK and drives the phone through Shizuku.",
+  "scripts": {
+    "bundle": "node ./scripts/bundle-agent.mjs",
+    "runtime": "./scripts/fetch-node-runtime.sh",
+    "assemble": "gradle assembleDebug",
+    "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
+    "bootstrap": "./scripts/adb-bootstrap.sh"
+  }
+}

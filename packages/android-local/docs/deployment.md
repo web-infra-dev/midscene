@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- |
 | **A. 设备本机 CLI** | Termux 内 `midscene-local` | Termux `nodejs-lts` (24.x) | Shizuku → rish（shell 2000） | ✅ 可用 |
 | **B. 宿主调试** | PC + USB 上的 `midscene-local` | 开发机 Node | adb（shell 2000） | ✅ 可用 |
-| **C. APK 内嵌 Agent** | Android Host App（Node 作为 native library + 最小 UI） | 随 APK 交付的 Node（当前取自 Termux 包，见 `android-host/`） | rish（Shizuku 授权给本 App）→ 后续换 UserService | ✅ **M3 切片已在模拟器验证** |
+| **C. APK 内嵌 Agent** | Android Host App（Node 作为 native library + 最小 UI） | 随 APK 交付的 Node（当前取自 Termux 包，见 `apps/android-host/`） | rish（Shizuku 授权给本 App）→ 后续换 UserService | ✅ **M3 切片已在模拟器验证** |
 | **D. 车机/系统应用** | priv-app / 系统服务 | 同上 | platform signature / OEM 服务 | Phase 3（条件式） |
 
 阶段 A 与 C **共用同一个配置与脚本模型**：`midscene-local run config.yaml` 这条命令既是
@@ -130,7 +130,7 @@ tasks:
 **不要在共享设备上把密钥写进配置文件再分发**：阶段 C 的计划是密钥只进 Keystore，
 配置文件本身可导出/导入以复用任务。
 
-## 5.5 阶段 C 的实现要点（`android-host/`，已跑通）
+## 5.5 阶段 C 的实现要点（`apps/android-host/`，已跑通）
 
 1. **Node 作为 native library**：Android 10+ 禁止从应用私有目录 execve，但允许执行 APK 的 `lib/<abi>/`
    （Shizuku 同款做法）→ Node 二进制以 `libnodebin.so` 交付，`android:extractNativeLibs="true"`
@@ -185,6 +185,32 @@ tasks:
 | A14-16 | 截图失败根因之二：**大载荷不能走 Binder**。1.3MB PNG 经 AIDL `byte[]` 返回触发 `DeadObjectException`（事务缓冲上限）并打死 UserService 进程。改为：shell 写到 App 外部目录 → **App 主进程读文件** → 回环 HTTP 原始字节返回（`/read-file`，路径白名单限制在 App 沙箱内） |
 | A14-17 | 文件通道目录必须同时满足「shell 可写 + App 可读」，因此用 App 外部目录 `/storage/emulated/0/Android/data/<pkg>/files/channel`，并需由 runner 把配置里的 `fileChannelDir` 透传给 transport（否则仍用 `/data/local/tmp`，App 沙箱读不到 → HTTP 404） |
 
+**阶段 C 产品化收尾（A14-18 ~ A14-22）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-18 | ✅ **Compose 控制台**（`ConsoleActivity`）：Run / Scripts / History / Diagnostics / Settings 五页签；classic 的 widget 界面已删除。设计令牌取自 desktop studio（品牌蓝 #1979ff + 双色板 + 圆角/字重体系），不套用原生默认样式 |
+| A14-19 | ✅ **响应式**：宽度 ≥600dp 用 `NavigationRail`（否则底部导航），History 在大屏变列表/详情双栏 |
+| A14-20 | ✅ **悬浮窗进度胶囊**：`TYPE_APPLICATION_OVERLAY`，可拖拽吸附边缘、宽度受屏宽约束（两行内完整显示），文案由服务日志流驱动；**含 `screencap` 的命令执行期间自动隐藏**，保证报告截图不含悬浮窗 |
+| A14-21 | ✅ **运行结束回到 App**：前台服务 + 悬浮窗权限构成系统允许的后台启动豁免；Settings 提供「Open app after a run」开关（默认开） |
+| A14-22 | ✅ **输入体验**：`enableEdgeToEdge` + `imePadding` 解决键盘遮挡；指令/脚本/凭据三处提供显式 **Paste/Clear**（模拟器剪贴板与长按菜单都不可靠） |
+
+**仓库结构（与应用规范对齐）：**
+
+`android-host` 已迁至 **`apps/android-host/`**（应用放 `apps/`、commit scope 取目录名），并补上 `package.json` 以进入 Nx/pnpm 生态：
+
+```
+apps/android-host/
+├── app/                  # Gradle 模块（Java + Kotlin/Compose）
+│   ├── src/main/aidl/    # IExecService（Shizuku UserService）
+│   ├── src/main/java/    # 执行桥 / 服务 / 控制台
+│   ├── src/main/res/     # studio 令牌、图标、布局
+│   ├── src/main/assets/  # agent-bundle.zip、yadb（生成物，gitignore）
+│   └── src/main/jniLibs/ # Node 运行时（生成物，gitignore）
+├── scripts/              # bundle-agent.mjs / fetch-node-runtime.sh / adb-bootstrap.sh
+└── package.json          # pnpm scripts: bundle | runtime | assemble | install | bootstrap
+```
+
 原始设计（1–5 步全部落地并验证）：
 
 ```text
@@ -218,7 +244,7 @@ Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
 | --- | --- | --- |
 | M1（当前） | Termux CLI + 配置 + YAML 脚本 + 结果文件 | ✅ **已在 Android 12 模拟器验证**：`doctor` 全绿（capabilities 含 `gestures: true`/`textInput: full`、截图 125KB/1.77s）；`run` 三个任务（aiAct 112s / aiAssert 25s / YAML 脚本 92s）全部 ok，退出码 0，结果 JSON 落盘 `midscene_run/agent-results/` |
 | M2 | 配置/脚本导入导出、结果汇总、失败重试策略 | 一条配置在 2 台手机上可复现 |
-| M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
+| M3 | APK + 内嵌 Node + 精简 UI（配置/脚本/运行/日志） | ✅ **已验证**：`apps/android-host/` 产物 48MB，APK 内 exec Node v24.18.0；`doctor` 输出 `uid: 2000` 能力全绿；`run config` 完成 aiAct 真实点击（19.3s ok）与 aiAssert 模型判定，结果 JSON 落盘。无 Termux、无 PC |
 | M4 ✅ | Shizuku UserService 常驻通道（替代 rish；大载荷由 App 进程直读，不经 Binder） | ✅ Android 14 实测：能力矩阵全绿、`aiAssert` ok、报告/结果文件生成、`exit=0` |
 | M4-pre ✅ | **授权通道**：`Shizuku.requestPermission()`（官方 API）+ Setup 页 `Authorize Shizuku` 按钮 → Shizuku 里本 App 授权开关 ON | ✅ 已授权；rish 仍 `Aborted` → 见 §5.6 结论 |
 | M5-a ✅ | **adb 无感安装与配置**：`scripts/adb-bootstrap.sh` 一条命令完成安装/起 Shizuku/部署 rish/注入 model.env/电池与通知白名单/触发 provisioning | ✅ Android 14 手机实测（Node v24.18.0 正常） |
