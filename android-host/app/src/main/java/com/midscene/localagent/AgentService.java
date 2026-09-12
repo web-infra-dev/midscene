@@ -153,6 +153,7 @@ public class AgentService extends Service {
         super.onCreate();
         runStore = new RunStore(getFilesDir());
         ShizukuExecBridge.ensureBound(this);
+        ExecBridge.start(this);
         SERVICE_LOG_DIR = new File(getFilesDir(), "run").getAbsolutePath();
         createChannel();
         startForegroundCompat("Midscene agent", "idle");

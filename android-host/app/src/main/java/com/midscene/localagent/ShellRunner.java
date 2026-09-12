@@ -69,6 +69,12 @@ public final class ShellRunner {
         env.put("MIDSCENE_RUN_DIR", new File(context.getFilesDir(), "run").getAbsolutePath());
         // rish asks Shizuku for the shell channel on behalf of this package.
         env.put("RISH_APPLICATION_ID", context.getPackageName());
+        // The agent reaches the Shizuku user service through the app's loopback
+        // bridge; empty values mean "not available", and the transport falls back.
+        if (!ExecBridge.baseUrl().isEmpty()) {
+            env.put("MIDSCENE_EXEC_BRIDGE_URL", ExecBridge.baseUrl());
+            env.put("MIDSCENE_EXEC_BRIDGE_TOKEN", ExecBridge.token());
+        }
         env.putAll(readEnvFile(new File(context.getFilesDir(), "model.env"), sink));
         builder.directory(workingDir);
         builder.redirectErrorStream(true);
@@ -116,6 +122,12 @@ public final class ShellRunner {
         env.remove("LD_LIBRARY_PATH");
         env.remove("LD_PRELOAD");
         env.put("RISH_APPLICATION_ID", context.getPackageName());
+        // The agent reaches the Shizuku user service through the app's loopback
+        // bridge; empty values mean "not available", and the transport falls back.
+        if (!ExecBridge.baseUrl().isEmpty()) {
+            env.put("MIDSCENE_EXEC_BRIDGE_URL", ExecBridge.baseUrl());
+            env.put("MIDSCENE_EXEC_BRIDGE_TOKEN", ExecBridge.token());
+        }
         env.put("PATH", "/system/bin:/system/xbin");
         // rish re-executes as the shell uid, which cannot enter app-private dirs.
         builder.directory(new File("/"));

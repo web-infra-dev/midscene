@@ -39,6 +39,16 @@ export {
   RishTransport,
 } from './transport/rish';
 export type { RishTransportOptions, ShellFileIo } from './transport/rish';
+export {
+  ExecBridgeCommandRunner,
+  bridgeFromEnv,
+  commandFromArgv,
+  createBridgeFileIo,
+} from './transport/bridge';
+export type {
+  ExecBridgeOptions,
+  ExecBridgeResultPayload,
+} from './transport/bridge';
 
 export {
   AdbShellTransport,

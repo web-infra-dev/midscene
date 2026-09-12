@@ -13,6 +13,11 @@ import {
 } from '../config/schema';
 import { LocalAndroidDevice } from '../device';
 import { AdbShellTransport } from '../transport/adb-shell';
+import {
+  ExecBridgeCommandRunner,
+  bridgeFromEnv,
+  createBridgeFileIo,
+} from '../transport/bridge';
 import { RishTransport } from '../transport/rish';
 import type { AndroidTransport } from '../transport/types';
 
@@ -56,6 +61,21 @@ export interface RunLocalAgentOptions {
 
 function buildTransport(config: LocalAgentConfig): AndroidTransport {
   const device = config.device;
+
+  // On device the app hands us a loopback bridge backed by a Shizuku user
+  // service; it takes precedence because rish cannot run from an app process on
+  // Android 14.
+  const bridge = bridgeFromEnv();
+  if (bridge && device.backend !== 'adb-shell') {
+    const runner = new ExecBridgeCommandRunner(bridge);
+    return new RishTransport({
+      runner,
+      fileIo: createBridgeFileIo(runner),
+      displayId: device.displayId,
+      yadbPath: device.yadbPath,
+      unsetEnv: [],
+    });
+  }
 
   if (device.backend === 'adb-shell') {
     return new AdbShellTransport({

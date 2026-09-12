@@ -168,7 +168,15 @@ tasks:
 | A14-9 | 绑定实现的坑：`Shizuku.addBinderReceivedListenerSticky` 在 binder 已就绪时**同步回调**，守卫若在注册之后设置会无限递归（`StackOverflowError`）；必须先置 `binding` 再注册，并在回调里复位后重入 |
 | A14-10 | Android 14 禁止**从后台启动前台服务**：`am start-foreground-service` 需先让 App 到前台（或已有电池优化豁免），否则服务动作静默不执行 |
 
-原始设计（已完成 1–4 步，第 5 步待接）：
+**第 5 步进展（A14-11 ~ A14-13）：**
+
+| # | 结论 |
+| --- | --- |
+| A14-11 | ✅ 回环执行桥落地：App 内 `ExecBridge`（仅绑定 127.0.0.1 + 每进程随机 token）转发到 UserService；Node 子进程通过 env `MIDSCENE_EXEC_BRIDGE_URL/TOKEN` 获得地址 |
+| A14-12 | ✅ TS 侧 `ExecBridgeCommandRunner` 作为 drop-in 替换：`RishTransport` 仍照旧拼 `sh <rish> -c <cmd>`，runner 直接执行 payload 元素（无需改 transport）；文件通道改为经 `/exec-binary` + `cat` 取**原始字节**（不再依赖 `base64`，AOSP 镜像不保证有） |
+| A14-13 | ⏳ 设备验收中：run 已能走到 transport（rish `Aborted` 已消失），当前卡在 `probeUid`：「Unable to determine the uid of the rish shell channel」——下一步打印该探针的实际命令与返回，定位是命令形态还是解析问题 |
+
+原始设计（1–4 步已完成并验证，第 5 步实现已落地、验收进行中）：
 
 ```text
 Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)

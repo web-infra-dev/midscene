@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements AgentService.LogL
         super.onCreate(savedInstanceState);
         runStore = new RunStore(getFilesDir());
         ShizukuExecBridge.ensureBound(this);
+        ExecBridge.start(this);
         setContentView(R.layout.activity_main);
 
         toolbar = findViewById(R.id.toolbar);
