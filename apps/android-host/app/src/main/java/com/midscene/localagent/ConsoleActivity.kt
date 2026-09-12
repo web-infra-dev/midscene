@@ -58,8 +58,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -589,9 +592,10 @@ private fun HistoryScreen() {
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
     LaunchedEffect(Unit) {
-        records = store.list()
+        val loaded = withContext(Dispatchers.IO) { store.list() }
+        records = loaded
         if (wide && selected == null) {
-            selected = records.firstOrNull()
+            selected = loaded.firstOrNull()
         }
     }
 
@@ -894,7 +898,7 @@ private fun RunDetailPane(
         }
 
         if (showReport && hasReport) {
-            EmbeddedReport(record.reportFile, Modifier.fillMaxSize())
+            EmbeddedReport(record.reportFile, Modifier.weight(1f).fillMaxWidth())
         } else {
             Box(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
                 Text(
@@ -910,24 +914,27 @@ private fun RunDetailPane(
 /** Midscene reports are self-contained HTML, so a plain WebView renders them offline. */
 @Composable
 private fun EmbeddedReport(path: String, modifier: Modifier = Modifier) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.allowFileAccess = true
-                settings.allowFileAccessFromFileURLs = true
-                settings.allowUniversalAccessFromFileURLs = true
-                settings.domStorageEnabled = true
-            }
-        },
-        update = { web ->
-            val url = "file://$path"
-            if (web.url != url) {
-                web.loadUrl(url)
-            }
-        },
-    )
+    key(path) {
+        AndroidView(
+            modifier = modifier,
+            factory = { context ->
+                WebView(context).apply {
+                    setBackgroundColor(android.graphics.Color.WHITE)
+                    settings.javaScriptEnabled = true
+                    settings.allowFileAccess = true
+                    settings.allowFileAccessFromFileURLs = true
+                    settings.allowUniversalAccessFromFileURLs = true
+                    settings.domStorageEnabled = true
+                }
+            },
+            update = { web ->
+                val url = "file://$path"
+                if (web.url != url) {
+                    web.loadUrl(url)
+                }
+            },
+        )
+    }
 }
 
 @Composable
