@@ -596,6 +596,21 @@ private fun ScriptsScreen() {
                 clipboard.getText()?.text?.let { text = it }
             }) { Text("Paste", fontSize = 12.sp) }
             TextButton(onClick = {
+                // Self-bootstrapping check: write the script and run it without
+                // leaving the app.
+                val script = selfCheckConfig(context)
+                text = script
+                val target = java.io.File(context.filesDir, "self-check.yaml")
+                target.writeText(script)
+                status = "self-check running"
+                AgentService.start(
+                    context,
+                    AgentService.ACTION_RUN_CONFIG,
+                    Intent().putExtra(AgentService.EXTRA_CONFIG_PATH, target.absolutePath),
+                )
+            }) { Text("Self-check", fontSize = 12.sp, color = MidsceneColors.Brand) }
+
+            TextButton(onClick = {
                 // A minimal, valid starting point for a new script.
                 text = selfCheckConfig(context)
                 status = "template loaded"
