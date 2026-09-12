@@ -421,7 +421,7 @@ public class AgentService extends Service {
     }
 
     private Notification buildNotification(String title, String text) {
-        Intent open = new Intent(this, MainActivity.class)
+        Intent open = new Intent(this, ConsoleActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(
                 this, 0, open,
