@@ -98,8 +98,9 @@ export function createScrcpyVideoStream(
             if (decoderState === 'waiting-for-configuration') {
               // Socket.IO cannot apply Web Streams backpressure to scrcpy.
               // Retain only a keyframe and one following delta while the
-              // renderer initializes its decoder. Deltas before a keyframe
-              // can never be decoded and are discarded.
+              // renderer initializes its decoder. Once a delta is dropped,
+              // discard the retained prefix too: later deltas cannot safely
+              // continue that GOP when configuration arrives.
               if (packet.keyframe) {
                 pendingDataPackets = [packet];
               } else if (
@@ -107,6 +108,8 @@ export function createScrcpyVideoStream(
                 pendingDataPackets.length < 2
               ) {
                 pendingDataPackets.push(packet);
+              } else {
+                pendingDataPackets = [];
               }
               return;
             }
@@ -115,9 +118,13 @@ export function createScrcpyVideoStream(
               // Drop the rest of the damaged GOP. Resume only after a
               // keyframe has actually entered the bounded stream queue.
               if (!packet.keyframe) {
+                // A retained keyframe is no longer a safe recovery point if
+                // we discard any of its following predictive frames.
+                pendingKeyframe = undefined;
                 return;
               }
               if (canEnqueue()) {
+                pendingKeyframe = undefined;
                 decoderState = 'ready';
                 reportFirstDataPacket();
                 controller.enqueue(packet);

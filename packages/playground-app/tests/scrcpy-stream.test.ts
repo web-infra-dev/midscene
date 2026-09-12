@@ -273,30 +273,40 @@ describe('createScrcpyVideoStream', () => {
 
     const reader = stream.getReader();
     const packets: ScrcpyMediaStreamPacket[] = [];
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 4; index += 1) {
       const result = await reader.read();
       expect(result.done).toBe(false);
       if (result.done) {
-        throw new Error('Scrcpy stream ended before the retained keyframe');
+        throw new Error(
+          'Scrcpy stream ended before the original queue drained',
+        );
       }
       packets.push(result.value);
     }
 
-    // The retained keyframe has now entered the stream, so its following
-    // delta frame is safe to forward.
+    // Frame 11 was dropped after retaining keyframe 10. Draining the queue
+    // must not make frame 12 safe: its prediction chain is still broken.
     socket.dispatchVideoData({
       type: 'data',
       data: new Uint8Array([12]),
       keyFrame: false,
     });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([20]),
+      keyFrame: true,
+    });
+    socket.dispatchVideoData({
+      type: 'data',
+      data: new Uint8Array([21]),
+      keyFrame: false,
+    });
     socket.dispatchDisconnect();
-    const finalPacket = await reader.read();
-    expect(finalPacket.done).toBe(false);
-    if (finalPacket.done) {
-      throw new Error('Scrcpy stream ended before the resumed delta frame');
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      packets.push(result.value);
     }
-    packets.push(finalPacket.value);
-    expect((await reader.read()).done).toBe(true);
 
     expect(
       packets.map((packet) => ({
@@ -308,9 +318,99 @@ describe('createScrcpyVideoStream', () => {
       { type: 'data', data: 0 },
       { type: 'data', data: 1 },
       { type: 'data', data: 2 },
-      { type: 'data', data: 10 },
-      { type: 'data', data: 12 },
+      { type: 'data', data: 20 },
+      { type: 'data', data: 21 },
     ]);
+  });
+
+  test.each([[10], [10, 20], [10, 11, 20]])(
+    'resumes from the latest intact retained keyframe after %j',
+    async (...recoveryFrames: number[]) => {
+      const socket = new MockScrcpySocket();
+      const stream = createScrcpyVideoStream(socket);
+      socket.dispatchVideoData({
+        type: 'configuration',
+        data: new Uint8Array([99]),
+      });
+      for (const index of [0, 1, 2, ...recoveryFrames]) {
+        socket.dispatchVideoData({
+          type: 'data',
+          data: new Uint8Array([index]),
+          keyFrame: index % 10 === 0,
+        });
+      }
+
+      const reader = stream.getReader();
+      const packets: ScrcpyMediaStreamPacket[] = [];
+      for (let index = 0; index < 4; index += 1) {
+        const result = await reader.read();
+        if (result.done)
+          throw new Error('Stream ended before the queue drained');
+        packets.push(result.value);
+      }
+      const lastKeyframe = recoveryFrames[recoveryFrames.length - 1];
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([lastKeyframe + 1]),
+        keyFrame: false,
+      });
+      socket.dispatchDisconnect();
+      while (true) {
+        const result = await reader.read();
+        if (result.done) break;
+        packets.push(result.value);
+      }
+      expect(packets.map((packet) => packet.data[0])).toEqual([
+        99,
+        0,
+        1,
+        2,
+        lastKeyframe,
+        lastKeyframe + 1,
+      ]);
+    },
+  );
+
+  test('discards an overflowing pre-configuration GOP and waits for a new keyframe', async () => {
+    const socket = new MockScrcpySocket();
+    const onFirstDataPacket = rs.fn();
+    const stream = createScrcpyVideoStream(socket, { onFirstDataPacket });
+    for (let index = 0; index < 4; index += 1) {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([index]),
+        keyFrame: index === 0,
+      });
+    }
+    socket.dispatchVideoData({
+      type: 'configuration',
+      data: new Uint8Array([99]),
+    });
+    // Drain configuration and any incorrectly retained initial frames before
+    // sending the next delta, so queue pressure cannot hide the broken GOP.
+    const packets: ScrcpyMediaStreamPacket[] = [];
+    const collected = stream.pipeTo(
+      new WritableStream<ScrcpyMediaStreamPacket>({
+        write(packet) {
+          packets.push(packet);
+        },
+      }),
+    );
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const reportedBeforeRecovery = onFirstDataPacket.mock.calls.length;
+    for (const index of [4, 10, 11]) {
+      socket.dispatchVideoData({
+        type: 'data',
+        data: new Uint8Array([index]),
+        keyFrame: index === 10,
+      });
+    }
+    socket.dispatchDisconnect();
+    await collected;
+
+    expect(packets.map((packet) => packet.data[0])).toEqual([99, 10, 11]);
+    expect(reportedBeforeRecovery).toBe(0);
+    expect(onFirstDataPacket).toHaveBeenCalledTimes(1);
   });
 
   test('rejects data packets without keyframe metadata', async () => {
