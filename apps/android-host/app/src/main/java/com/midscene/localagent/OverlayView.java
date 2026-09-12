@@ -325,6 +325,61 @@ public final class OverlayView {
         private String metrics = "";
         private SurfaceControl surfaceControl;
         private boolean animating;
+        private int systemInsetTop;
+        private int systemInsetBottom;
+        private int systemInsetLeft;
+        private int systemInsetRight;
+
+        private float topBeamSpace() {
+            float band = (demoMode ? 10f : 5f) * density;
+            float stroke = (demoMode ? 9f : 5.5f) * density;
+            return band + stroke;
+        }
+
+        private void readSystemInsets() {
+            try {
+                android.view.WindowInsets insets = getRootWindowInsets();
+                if (insets == null) {
+                    return;
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.graphics.Insets bars = insets.getInsets(
+                            android.view.WindowInsets.Type.systemBars());
+                    // The taskbar on large screens is a tappable element rather than a
+                    // navigation bar, and it is drawn above an application overlay, so
+                    // it has to be part of the safe area.
+                    android.graphics.Insets tappable = insets.getInsets(
+                            android.view.WindowInsets.Type.tappableElement());
+                    systemInsetTop = bars.top;
+                    systemInsetBottom = Math.max(bars.bottom, tappable.bottom);
+                    systemInsetLeft = bars.left;
+                    systemInsetRight = bars.right;
+                } else {
+                    systemInsetTop = insets.getSystemWindowInsetTop();
+                    systemInsetBottom = insets.getSystemWindowInsetBottom();
+                    systemInsetLeft = insets.getSystemWindowInsetLeft();
+                    systemInsetRight = insets.getSystemWindowInsetRight();
+                }
+            } catch (Throwable ignored) {
+                // fall back to the resource below
+            }
+            if (systemInsetBottom == 0) {
+                // Last resort on devices that report nothing: the framework's own
+                // navigation bar height, which a taskbar is at least as tall as.
+                int id = getResources().getIdentifier(
+                        "navigation_bar_height", "dimen", "android");
+                if (id > 0) {
+                    systemInsetBottom = getResources().getDimensionPixelSize(id);
+                }
+            }
+            if (systemInsetTop == 0) {
+                int id = getResources().getIdentifier(
+                        "status_bar_height", "dimen", "android");
+                if (id > 0) {
+                    systemInsetTop = getResources().getDimensionPixelSize(id);
+                }
+            }
+        }
         boolean hiddenFromCapture;
 
         PillView(Context context) {
@@ -439,12 +494,13 @@ public final class OverlayView {
                 canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
                 long now = System.currentTimeMillis();
 
-                drawBorderBeam(canvas, width, height, now);
                 drawBox(canvas, now);
                 drawRipple(canvas, now);
                 if (showBar) {
                     drawBar(canvas, width, height);
                 }
+                // Last, so the streak runs over the info bar instead of under it.
+                drawBorderBeam(canvas, width, height, now);
             } finally {
                 holder.unlockCanvasAndPost(canvas);
             }
@@ -462,7 +518,14 @@ public final class OverlayView {
             float stroke = (demoMode ? 9f : 5.5f) * density;
             float radius = 20 * density;
 
-            RectF frame = new RectF(inset, inset, width - inset, height - inset);
+            // Keep the streak inside the area the system leaves us: the taskbar and
+            // the status bar are drawn above an application overlay, so a beam at the
+            // physical edge disappears underneath them.
+            float left = Math.max(inset, systemInsetLeft + stroke / 2f);
+            float top = Math.max(inset, systemInsetTop + stroke / 2f);
+            float right = Math.max(inset, systemInsetRight + stroke / 2f);
+            float bottom = Math.max(inset, systemInsetBottom + stroke / 2f);
+            RectF frame = new RectF(left, top, width - right, height - bottom);
             Path path = new Path();
             path.addRoundRect(frame, radius, radius, Path.Direction.CW);
             PathMeasure measure = new PathMeasure(path, false);
@@ -567,11 +630,12 @@ public final class OverlayView {
 
         private void drawBar(Canvas canvas, int width, int height) {
             float barHeight = 30 * density;
-            canvas.drawRect(0, 0, width, barHeight, background);
+            float barTop = Math.max(systemInsetTop, topBeamSpace());
+            canvas.drawRect(0, barTop, width, barTop + barHeight, background);
 
             float pad = 12 * density;
             float dotSize = 7 * density;
-            float centerY = barHeight / 2f;
+            float centerY = barTop + barHeight / 2f;
             canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
 
             float cursor = pad + dotSize + 8 * density;
@@ -618,7 +682,9 @@ public final class OverlayView {
         public void surfaceCreated(SurfaceHolder holder) {
             surfaceControl = getSurfaceControl();
             hiddenFromCapture = applySkipScreenshot(surfaceControl);
-            Log.i(TAG, "surface created, hiddenFromCapture=" + hiddenFromCapture);
+            readSystemInsets();
+            Log.i(TAG, "surface created, hiddenFromCapture=" + hiddenFromCapture
+                    + " insets=" + systemInsetTop + "/" + systemInsetBottom);
             render();
             post(OverlayView::applyVisibility);
             startAnimating();
