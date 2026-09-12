@@ -40,12 +40,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Previous widget-based screen, kept reachable for comparison. -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:label="Midscene Local (classic)"
-            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ReportViewerActivity"

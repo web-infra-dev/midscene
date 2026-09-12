@@ -165,11 +165,14 @@ async function readForegroundPackage(
   }
 
   try {
+    // Android 14 tops the list with `topResumedActivity`; older releases only
+    // carry `mResumedActivity`, and some builds expose neither.
     const result = await transport.runShell(
-      'dumpsys activity activities | grep -m1 mResumedActivity',
+      'dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -2',
       { timeoutMs: 5000 },
     );
-    return result.stdout.match(/\s([A-Za-z0-9_.]+)\//)?.[1];
+    const match = result.stdout.match(/([A-Za-z0-9_.]+)\/[A-Za-z0-9_.$]+/);
+    return match?.[1];
   } catch {
     return undefined;
   }

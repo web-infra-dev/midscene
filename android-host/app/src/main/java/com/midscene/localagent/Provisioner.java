@@ -34,6 +34,17 @@ public final class Provisioner {
         return RUNNING.containsKey(key);
     }
 
+    /** Payload directory shared with the UI: shell-writable, app-readable. */
+    public static File channelDir(Context context) {
+        File external = context.getExternalFilesDir(null);
+        File base = external != null ? external : context.getFilesDir();
+        File dir = new File(base, "channel");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
     public static File agentDir(Context context) {
         return new File(context.getFilesDir(), "agent");
     }

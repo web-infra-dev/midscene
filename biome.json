@@ -4,6 +4,7 @@
     "enabled": true
   },
   "files": {
+    "ignore": ["android-host/**"],
     "ignore": [
       "static/**",
       "node_modules/**",
