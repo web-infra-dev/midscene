@@ -31,28 +31,41 @@ interface ScrcpyVideoStreamOptions {
   onFirstDataPacket?: () => void;
 }
 
+type DecoderState =
+  | 'waiting-for-configuration'
+  | 'waiting-for-keyframe'
+  | 'ready';
+
 export function createScrcpyVideoStream(
   socket: ScrcpyVideoSocketLike,
   options: ScrcpyVideoStreamOptions = {},
 ): ReadableStream<ScrcpyMediaStreamPacket> {
-  let configurationPacketSent = false;
+  let decoderState: DecoderState = 'waiting-for-configuration';
   let firstDataPacketReported = false;
   let pendingDataPackets: ScrcpyMediaStreamPacket[] = [];
   let cleanupListeners: (() => void) | undefined;
   let pendingKeyframe: ScrcpyMediaStreamPacket | undefined;
+  const reportFirstDataPacket = () => {
+    if (!firstDataPacketReported) {
+      firstDataPacketReported = true;
+      options.onFirstDataPacket?.();
+    }
+  };
   const readable = new ReadableStream<ScrcpyMediaStreamPacket>(
     {
       start(controller) {
         const canEnqueue = () =>
           controller.desiredSize === null || controller.desiredSize > 0;
-        const reportFirstDataPacket = () => {
-          if (!firstDataPacketReported) {
-            firstDataPacketReported = true;
-            options.onFirstDataPacket?.();
-          }
-        };
         const handleVideoData = (data: RawScrcpyVideoPacket) => {
           try {
+            if (
+              data.type !== 'configuration' &&
+              typeof data.keyFrame !== 'boolean'
+            ) {
+              throw new Error(
+                'Scrcpy video data packet is missing keyFrame metadata',
+              );
+            }
             const payload = toUint8Array(data.data);
             const packet: ScrcpyMediaStreamPacket =
               data.type === 'configuration'
@@ -66,28 +79,57 @@ export function createScrcpyVideoStream(
                     keyframe: data.keyFrame,
                   };
             if (packet.type === 'configuration') {
-              configurationPacketSent = true;
+              decoderState = 'waiting-for-keyframe';
+              pendingKeyframe = undefined;
               // This small, bounded initial burst is required by WebCodecs:
               // it must receive configuration before any retained frame.
               controller.enqueue(packet);
               if (pendingDataPackets.length > 0) {
+                decoderState = 'ready';
                 reportFirstDataPacket();
+                pendingDataPackets.forEach((queuedPacket) =>
+                  controller.enqueue(queuedPacket),
+                );
               }
-              pendingDataPackets.forEach((queuedPacket) =>
-                controller.enqueue(queuedPacket),
-              );
               pendingDataPackets = [];
               return;
             }
 
-            if (!configurationPacketSent) {
+            if (decoderState === 'waiting-for-configuration') {
               // Socket.IO cannot apply Web Streams backpressure to scrcpy.
-              // Keep a tiny pre-configuration buffer instead of retaining
-              // every frame while the renderer initializes its decoder.
+              // Retain only a keyframe and one following delta while the
+              // renderer initializes its decoder. Once a delta is dropped,
+              // discard the retained prefix too: later deltas cannot safely
+              // continue that GOP when configuration arrives.
               if (packet.keyframe) {
                 pendingDataPackets = [packet];
-              } else if (pendingDataPackets.length < 2) {
+              } else if (
+                pendingDataPackets.length > 0 &&
+                pendingDataPackets.length < 2
+              ) {
                 pendingDataPackets.push(packet);
+              } else {
+                pendingDataPackets = [];
+              }
+              return;
+            }
+
+            if (decoderState === 'waiting-for-keyframe') {
+              // Drop the rest of the damaged GOP. Resume only after a
+              // keyframe has actually entered the bounded stream queue.
+              if (!packet.keyframe) {
+                // A retained keyframe is no longer a safe recovery point if
+                // we discard any of its following predictive frames.
+                pendingKeyframe = undefined;
+                return;
+              }
+              if (canEnqueue()) {
+                pendingKeyframe = undefined;
+                decoderState = 'ready';
+                reportFirstDataPacket();
+                controller.enqueue(packet);
+              } else {
+                pendingKeyframe = packet;
               }
               return;
             }
@@ -95,18 +137,28 @@ export function createScrcpyVideoStream(
             if (canEnqueue()) {
               reportFirstDataPacket();
               controller.enqueue(packet);
-            } else if (packet.keyframe) {
-              // Discard delta frames while the decoder is behind. The newest
-              // keyframe lets it resume without accumulating stale frames.
-              pendingKeyframe = packet;
+              return;
             }
+
+            // Dropping one predictive frame invalidates all dependent frames
+            // in the same GOP. Enter recovery mode instead of forwarding a
+            // broken prediction chain to WebCodecs.
+            decoderState = 'waiting-for-keyframe';
+            pendingKeyframe = packet.keyframe ? packet : undefined;
           } catch (error) {
+            cleanupListeners?.();
             controller.error(error);
           }
         };
 
-        const handleDisconnect = () => controller.close();
-        const handleError = (error: Error) => controller.error(error);
+        const handleDisconnect = () => {
+          cleanupListeners?.();
+          controller.close();
+        };
+        const handleError = (error: Error) => {
+          cleanupListeners?.();
+          controller.error(error);
+        };
 
         cleanupListeners = () => {
           socket.off('video-data', handleVideoData);
@@ -119,20 +171,21 @@ export function createScrcpyVideoStream(
         socket.on('error', handleError);
       },
       pull(controller) {
-        if (controller.desiredSize === null || controller.desiredSize > 0) {
-          if (
-            pendingKeyframe &&
-            (controller.desiredSize === null || controller.desiredSize > 0)
-          ) {
-            controller.enqueue(pendingKeyframe);
-            pendingKeyframe = undefined;
-          }
+        if (
+          pendingKeyframe &&
+          (controller.desiredSize === null || controller.desiredSize > 0)
+        ) {
+          reportFirstDataPacket();
+          controller.enqueue(pendingKeyframe);
+          pendingKeyframe = undefined;
+          decoderState = 'ready';
         }
       },
       cancel() {
         cleanupListeners?.();
         pendingKeyframe = undefined;
         pendingDataPackets = [];
+        decoderState = 'waiting-for-configuration';
       },
     },
     { highWaterMark: 4 },

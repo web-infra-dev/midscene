@@ -15,6 +15,7 @@ import {
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
+import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
@@ -38,6 +39,18 @@ interface ActiveScrcpySession {
   failureReported: boolean;
   id: string;
   outputLines: string[];
+}
+
+export function buildScrcpyVideoPacket(
+  packet: ScrcpyMediaStreamPacket,
+  timestamp = Date.now(),
+) {
+  return {
+    data: packet.data,
+    type: packet.type,
+    timestamp,
+    keyFrame: packet.type === 'data' ? packet.keyframe : undefined,
+  };
 }
 
 export function appendBoundedScrcpyOutput(
@@ -736,24 +749,18 @@ export default class ScrcpyServer {
                         return;
                       }
 
-                      // ensure type field is correctly set to 'configuration' or 'data'
-                      const frameType = value.type || 'data'; // default to 'data'
-
                       // Forward the raw Uint8Array — socket.io transports it as
                       // a binary frame. Converting via Array.from inflates each
                       // byte to a boxed JS Number, blowing the V8 old space on
                       // low-memory hosts (e.g. 8GB Windows) after a few seconds
                       // of a 2 Mbps stream.
-                      // Frames are disposable. `volatile` prevents Socket.IO
-                      // from retaining an unbounded write buffer when the
-                      // renderer is busy decoding or has stopped responding.
-                      socket.volatile.emit('video-data', {
-                        data: value.data,
-                        type: frameType,
-                        timestamp: Date.now(),
-                        // fix keyframe access
-                        keyFrame: value.keyFrame,
-                      });
+                      // H.264/H.265 delta frames form a prediction chain. Losing
+                      // any packet can corrupt the remainder of the GOP, so the
+                      // complete stream must use Socket.IO's reliable transport.
+                      // The renderer bounds its own queue and, when overloaded,
+                      // drops the rest of the GOP before resuming at a keyframe.
+                      const videoPacket = buildScrcpyVideoPacket(value);
+                      socket.emit('video-data', videoPacket);
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);
