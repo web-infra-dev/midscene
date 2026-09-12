@@ -86,6 +86,9 @@ public final class OverlayView {
 
             int screenWidth = app.getResources().getDisplayMetrics().widthPixels;
             int maxWidth = screenWidth - dp(app, 56);
+            // Adaptive width: short messages stay a compact pill, long ones wrap at
+            // the cap instead of stretching across the screen.
+            label.setMaxWidth(maxWidth - dp(app, 46));
             params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT,
@@ -94,10 +97,11 @@ public final class OverlayView {
                             : WindowManager.LayoutParams.TYPE_PHONE,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                     PixelFormat.TRANSLUCENT);
-            params.width = maxWidth;
+            params.width = WindowManager.LayoutParams.WRAP_CONTENT;
             params.gravity = Gravity.TOP | Gravity.START;
             params.x = dp(app, 16);
-            params.y = dp(app, 240);
+            // Near the top: visible without covering the content a task usually needs.
+            params.y = dp(app, 96);
             params.alpha = 0.92f;
 
             container.setOnTouchListener(new DragListener(app));

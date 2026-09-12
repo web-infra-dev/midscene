@@ -200,9 +200,12 @@ private fun Screen(tab: Int, dark: Boolean, onDarkChange: (Boolean) -> Unit) {
 private fun RunScreen() {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    var prompt by remember { mutableStateOf("") }
+    val store = remember { RunStore(context.filesDir) }
+    var prompt by remember { mutableStateOf(SetupPrefs.lastInstruction(context)) }
     val lines = remember { mutableStateListOf<String>() }
     var busy by remember { mutableStateOf(AgentService.isBusy()) }
+    var lastRun by remember { mutableStateOf(store.list().firstOrNull()) }
+    var recent by remember { mutableStateOf(SetupPrefs.recentInstructions(context)) }
 
     DisposableEffect(Unit) {
         val listener = AgentService.LogListener { line ->
@@ -214,6 +217,14 @@ private fun RunScreen() {
         lines.clear()
         lines.addAll(AgentService.logBuffer())
         onDispose { AgentService.removeListener(listener) }
+    }
+
+    // Refresh the summary once a run has finished (busy flips back to false).
+    LaunchedEffect(busy) {
+        if (!busy) {
+            lastRun = store.list().firstOrNull()
+            recent = SetupPrefs.recentInstructions(context)
+        }
     }
 
     Column(
@@ -266,6 +277,7 @@ private fun RunScreen() {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = {
+                            SetupPrefs.rememberInstruction(context, prompt.trim())
                             AgentService.start(
                                 context,
                                 AgentService.ACTION_RUN_PROMPT,
@@ -296,10 +308,84 @@ private fun RunScreen() {
                         modifier = Modifier.weight(0.6f),
                     ) { Text("Stop") }
                 }
+                if (recent.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    SectionLabel("RECENT")
+                    Spacer(Modifier.height(6.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        recent.take(4).forEach { item ->
+                            Text(
+                                item,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MidsceneColors.Brand,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { prompt = item }
+                                    .padding(vertical = 4.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
         LogCard("LIVE LOG", lines) { lines.clear() }
     }
+}
+
+/** Summary of the previous run: status, duration and a shortcut to its artefacts. */
+@Composable
+private fun LastRunCard(record: RunStore.RunRecord, onOpen: (String, Boolean) -> Unit) {
+    val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(10.dp).clip(CircleShape)
+                    .background(if (record.ok) MidsceneColors.Success else MidsceneColors.Error),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (record.ok) "Last run succeeded" else "Last run reported errors",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    buildString {
+                        append(
+                            SimpleDateFormat("HH:mm", Locale.US).format(Date(record.startedAt)),
+                        )
+                        append(" · ")
+                        append(record.durationMs / 1000)
+                        append("s · ")
+                        append(record.taskCount - record.failedTasks)
+                        append("/")
+                        append(record.taskCount)
+                        append(" tasks")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = {
+                if (hasReport) onOpen(record.reportFile, true) else onOpen(record.logFile, false)
+            }) { Text(if (hasReport) "Report" else "Log", fontSize = 12.sp) }
+        }
+    }
+}
+
+private fun openArtefact(context: android.content.Context, path: String, html: Boolean) {
+    context.startActivity(
+        Intent(context, ReportViewerActivity::class.java)
+            .putExtra(ReportViewerActivity.EXTRA_TITLE, if (html) "Run report" else "Run log")
+            .putExtra(ReportViewerActivity.EXTRA_PATH, path)
+            .putExtra(ReportViewerActivity.EXTRA_HTML, html),
+    )
 }
 
 @Composable
@@ -498,7 +584,11 @@ private fun HistoryScreen() {
             ) {
                 item { HistoryHeader(records.size) }
                 items(records) { record ->
-                    RunCard(record, selected?.id == record.id) { selected = record }
+                    RunCard(
+                        record,
+                        selected?.id == record.id,
+                        onClick = { openRun(record, ::open) },
+                    ) { selected = record }
                 }
             }
             Box(Modifier.weight(1f).fillMaxHeight().padding(16.dp)) {
@@ -522,7 +612,9 @@ private fun HistoryScreen() {
         if (records.isEmpty()) {
             item { EmptyHint("No runs yet.") }
         }
-        items(records) { record -> RunCard(record, false) { selected = record } }
+        items(records) { record ->
+            RunCard(record, false, onClick = { openRun(record, ::open) }) { selected = record }
+        }
     }
 
     selected?.let { record ->
@@ -571,8 +663,19 @@ private fun EmptyHint(text: String) {
     }
 }
 
+/** Tapping a row opens its report (the primary artefact); the log is one tap away. */
+private fun openRun(record: RunStore.RunRecord, open: (String, Boolean) -> Unit) {
+    val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
+    if (hasReport) open(record.reportFile, true) else open(record.logFile, false)
+}
+
 @Composable
-private fun RunCard(record: RunStore.RunRecord, highlighted: Boolean, onClick: () -> Unit) {
+private fun RunCard(
+    record: RunStore.RunRecord,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+    onDetails: () -> Unit,
+) {
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
@@ -612,11 +715,14 @@ private fun RunCard(record: RunStore.RunRecord, highlighted: Boolean, onClick: (
                 )
             }
             val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
-            Text(
-                if (hasReport) "Report" else "Log",
-                style = MaterialTheme.typography.labelSmall,
-                color = MidsceneColors.Brand,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    if (hasReport) "Report" else "Log",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MidsceneColors.Brand,
+                )
+                TextButton(onClick = onDetails) { Text("Details", fontSize = 11.sp) }
+            }
         }
     }
 }
@@ -1199,6 +1305,31 @@ private object SetupPrefs {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(RETURN_KEY, value).apply()
     }
+
+    private const val INSTRUCTION_KEY = "lastInstruction"
+    private const val RECENT_KEY = "recentInstructions"
+
+    fun lastInstruction(context: android.content.Context): String =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getString(INSTRUCTION_KEY, "") ?: ""
+
+    fun rememberInstruction(context: android.content.Context, prompt: String) {
+        if (prompt.isBlank()) {
+            return
+        }
+        val prefs = context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(INSTRUCTION_KEY, prompt).apply()
+        val recent = recentInstructions(context).filter { it != prompt }.toMutableList()
+        recent.add(0, prompt)
+        prefs.edit().putString(RECENT_KEY, recent.take(8).joinToString("\n")).apply()
+    }
+
+    fun recentInstructions(context: android.content.Context): List<String> =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getString(RECENT_KEY, "")
+            ?.split("\n")
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
 
     fun onboarded(context: android.content.Context): Boolean =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
