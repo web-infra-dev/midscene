@@ -1,6 +1,7 @@
 package com.midscene.localagent
 
 import android.content.Intent
+import android.webkit.WebView
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -56,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateListOf
@@ -67,7 +70,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
@@ -197,7 +204,10 @@ private fun Screen(tab: Int, dark: Boolean, onDarkChange: (Boolean) -> Unit) {
 // --------------------------------------------------------------------- run
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun RunScreen() {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val store = remember { RunStore(context.filesDir) }
@@ -219,11 +229,22 @@ private fun RunScreen() {
         onDispose { AgentService.removeListener(listener) }
     }
 
-    // Refresh the summary once a run has finished (busy flips back to false).
+    // Refresh the summary once a run has finished (busy flips back to false), and
+    // poll the service so the header is right even when the app returns from the
+    // background and no log line arrived in between.
     LaunchedEffect(busy) {
         if (!busy) {
             lastRun = store.list().firstOrNull()
             recent = SetupPrefs.recentInstructions(context)
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1200)
+            val actual = AgentService.isBusy()
+            if (actual != busy) {
+                busy = actual
+            }
         }
     }
 
@@ -277,6 +298,7 @@ private fun RunScreen() {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = {
+                            focusManager.clearFocus()
                             SetupPrefs.rememberInstruction(context, prompt.trim())
                             AgentService.start(
                                 context,
@@ -285,6 +307,7 @@ private fun RunScreen() {
                             )
                             prompt = ""
                             busy = true
+                            keyboard?.hide()
                         },
                         enabled = prompt.isNotBlank() && !busy,
                         shape = MaterialTheme.shapes.small,
@@ -562,9 +585,17 @@ private fun HistoryScreen() {
     val store = remember { RunStore(context.filesDir) }
     var records by remember { mutableStateOf(store.list()) }
     var selected by remember { mutableStateOf<RunStore.RunRecord?>(null) }
+    var pendingDelete by remember { mutableStateOf<RunStore.RunRecord?>(null) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
     LaunchedEffect(Unit) { records = store.list() }
+
+    fun reload() {
+        records = store.list()
+        if (selected != null && records.none { it.id == selected?.id }) {
+            selected = null
+        }
+    }
 
     fun open(path: String, html: Boolean) {
         context.startActivity(
@@ -583,20 +614,26 @@ private fun HistoryScreen() {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 item { HistoryHeader(records.size) }
-                items(records) { record ->
+                items(records, key = { it.id }) { record ->
                     RunCard(
-                        record,
-                        selected?.id == record.id,
-                        onClick = { openRun(record, ::open) },
-                    ) { selected = record }
+                        record = record,
+                        highlighted = selected?.id == record.id,
+                        onOpenReport = { openRun(record, ::open) },
+                        onDetails = { selected = record },
+                        onDelete = { pendingDelete = record },
+                    )
                 }
             }
-            Box(Modifier.weight(1f).fillMaxHeight().padding(16.dp)) {
+            Box(Modifier.weight(1f).fillMaxHeight()) {
                 val current = selected
                 if (current == null) {
-                    EmptyHint("Select a run to see its log and report")
+                    Box(Modifier.padding(16.dp)) { EmptyHint("Select a run to see its report") }
                 } else {
-                    RunDetail(current, store, onOpen = ::open)
+                    RunDetailPane(
+                        record = current,
+                        store = store,
+                        onDelete = { pendingDelete = current },
+                    )
                 }
             }
         }
@@ -612,8 +649,14 @@ private fun HistoryScreen() {
         if (records.isEmpty()) {
             item { EmptyHint("No runs yet.") }
         }
-        items(records) { record ->
-            RunCard(record, false, onClick = { openRun(record, ::open) }) { selected = record }
+        items(records, key = { it.id }) { record ->
+            RunCard(
+                record = record,
+                highlighted = false,
+                onOpenReport = { openRun(record, ::open) },
+                onDetails = { selected = record },
+                onDelete = { pendingDelete = record },
+            )
         }
     }
 
@@ -629,6 +672,29 @@ private fun HistoryScreen() {
             },
             dismissButton = {
                 TextButton(onClick = { open(record.logFile, false) }) { Text("Log") }
+            },
+        )
+    }
+
+    pendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete this run?") },
+            text = {
+                Text(
+                    "Its log, result and report will be removed from the device.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.delete(record)
+                    pendingDelete = null
+                    reload()
+                }) { Text("Delete", color = MidsceneColors.Error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
             },
         )
     }
@@ -663,19 +729,41 @@ private fun EmptyHint(text: String) {
     }
 }
 
-/** Tapping a row opens its report (the primary artefact); the log is one tap away. */
+/** Tapping a card opens its report (the primary artefact); details are one tap away. */
 private fun openRun(record: RunStore.RunRecord, open: (String, Boolean) -> Unit) {
     val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
     if (hasReport) open(record.reportFile, true) else open(record.logFile, false)
 }
 
+private fun relativeTime(millis: Long): String {
+    val delta = System.currentTimeMillis() - millis
+    val minutes = delta / 60_000
+    return when {
+        minutes < 1 -> "just now"
+        minutes < 60 -> "$minutes min ago"
+        minutes < 60 * 24 -> "${minutes / 60} h ago"
+        else -> SimpleDateFormat("MM-dd HH:mm", Locale.US).format(Date(millis))
+    }
+}
+
+/**
+ * Run card: a status accent, the task name, a one-line summary and the actions that
+ * matter (open the report, read the log, delete the run).
+ */
 @Composable
 private fun RunCard(
     record: RunStore.RunRecord,
     highlighted: Boolean,
-    onClick: () -> Unit,
+    onOpenReport: () -> Unit,
     onDetails: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    val statusColor = if (record.ok) MidsceneColors.Success else MidsceneColors.Error
+    val statusSoft = if (record.ok) MidsceneColors.SuccessSoft else MidsceneColors.ErrorSoft
+    val statusText = if (record.ok) MidsceneColors.SuccessText else MidsceneColors.Error
+    val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
+    val hasLog = record.logFile.isNotEmpty() && File(record.logFile).exists()
+
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
@@ -683,28 +771,38 @@ private fun RunCard(
             else MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenReport),
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(10.dp).clip(CircleShape)
-                    .background(if (record.ok) MidsceneColors.Success else MidsceneColors.Error),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    record.configName.ifEmpty { "run" },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            // Status accent, the way studio marks a failing row.
+            Box(Modifier.width(3.dp).fillMaxHeight().background(statusColor))
+            Column(Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        record.configName.ifEmpty { "run" },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (record.ok) "Success" else "Failed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = statusText,
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(statusSoft)
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+                Spacer(Modifier.height(3.dp))
                 Text(
                     buildString {
-                        append(SimpleDateFormat("MM-dd HH:mm", Locale.US).format(Date(record.startedAt)))
-                        append(" · ")
+                        append(relativeTime(record.startedAt))
+                        append("  ·  ")
                         append(record.durationMs / 1000)
-                        append("s · ")
+                        append("s  ·  ")
                         append(record.taskCount - record.failedTasks)
                         append("/")
                         append(record.taskCount)
@@ -713,18 +811,118 @@ private fun RunCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    if (hasReport) "Report" else "Log",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MidsceneColors.Brand,
-                )
-                TextButton(onClick = onDetails) { Text("Details", fontSize = 11.sp) }
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (hasReport) {
+                        CardAction("Report", Icons.Filled.PlayArrow, onOpenReport)
+                    }
+                    if (hasLog) {
+                        CardAction("Log", Icons.Filled.Terminal, onDetails)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDelete) {
+                        Text("Delete", fontSize = 11.sp, color = MidsceneColors.Error)
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun CardAction(label: String, icon: ImageVector, onClick: () -> Unit) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MidsceneColors.Brand,
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.extraSmall)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * Tablet detail pane: the report is rendered inside the app rather than handing the
+ * user off to another window, with the captured log one toggle away.
+ */
+@Composable
+private fun RunDetailPane(
+    record: RunStore.RunRecord,
+    store: RunStore,
+    onDelete: () -> Unit,
+) {
+    val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
+    var showReport by remember(record.id) { mutableStateOf(hasReport) }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    record.configName.ifEmpty { "run" },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    buildString {
+                        append(relativeTime(record.startedAt))
+                        append("  ·  ")
+                        append(record.durationMs / 1000)
+                        append("s  ·  exit ")
+                        append(record.exitCode)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (hasReport) {
+                TextButton(onClick = { showReport = true }) { Text("Report", fontSize = 12.sp) }
+            }
+            TextButton(onClick = { showReport = false }) { Text("Log", fontSize = 12.sp) }
+            TextButton(onClick = onDelete) {
+                Text("Delete", fontSize = 12.sp, color = MidsceneColors.Error)
+            }
+        }
+
+        if (showReport && hasReport) {
+            EmbeddedReport(record.reportFile, Modifier.fillMaxSize())
+        } else {
+            Box(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+                Text(
+                    store.readLog(record).takeLast(4000).ifEmpty { "No log captured." },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Midscene reports are self-contained HTML, so a plain WebView renders them offline. */
+@Composable
+private fun EmbeddedReport(path: String, modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.allowFileAccess = true
+                settings.allowFileAccessFromFileURLs = true
+                settings.allowUniversalAccessFromFileURLs = true
+                settings.domStorageEnabled = true
+            }
+        },
+        update = { web ->
+            val url = "file://$path"
+            if (web.url != url) {
+                web.loadUrl(url)
+            }
+        },
+    )
 }
 
 @Composable

@@ -72,6 +72,43 @@ public class RunStore {
         }
     }
 
+    /** Remove one run: its index entry, log, result and report files. */
+    public synchronized void delete(RunRecord record) {
+        JSONArray kept = new JSONArray();
+        JSONArray index = readIndex();
+        for (int i = 0; i < index.length(); i++) {
+            JSONObject item = index.optJSONObject(i);
+            if (item == null || record.id.equals(item.optString("id"))) {
+                continue;
+            }
+            kept.put(item);
+        }
+        try {
+            writeJson(indexFile(), wrap(kept));
+        } catch (IOException | JSONException error) {
+            // the list stays as it was; nothing else to do
+        }
+
+        deleteQuietly(new File(dir, record.id + ".json"));
+        deleteQuietly(new File(dir, record.id + ".log"));
+        if (!record.resultFile.isEmpty()) {
+            deleteQuietly(new File(record.resultFile));
+        }
+        if (!record.reportFile.isEmpty()) {
+            deleteQuietly(new File(record.reportFile));
+        }
+    }
+
+    private void deleteQuietly(File file) {
+        try {
+            if (file.isFile()) {
+                file.delete();
+            }
+        } catch (Exception ignored) {
+            // best effort
+        }
+    }
+
     public synchronized List<RunRecord> list() {
         List<RunRecord> records = new ArrayList<>();
         for (int i = 0; i < readIndex().length(); i++) {
