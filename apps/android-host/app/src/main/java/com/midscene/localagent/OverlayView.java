@@ -10,6 +10,7 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.provider.Settings;
 import android.text.Layout;
 import android.text.StaticLayout;
@@ -105,8 +106,10 @@ public final class OverlayView {
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                     PixelFormat.TRANSLUCENT);
             params.gravity = Gravity.TOP | Gravity.START;
-            params.x = dp(app, 16);
-            params.y = dp(app, 96);
+            params.x = dp(app, 12);
+            // Just below the status bar: visible without covering the content a task
+            // usually needs (toolbars sit lower than this).
+            params.y = dp(app, 44);
             pill.setOnTouchListener(new DragListener(app));
 
             try {
@@ -138,6 +141,26 @@ public final class OverlayView {
             }
         }
         pill = null;
+    }
+
+    /**
+     * Re-render and, if the system dropped our window or surface, bring it back.
+     *
+     * Some system screens tear overlay surfaces down (or hide them); the service
+     * calls this on a slow tick during a run so progress stays visible.
+     */
+    public static synchronized void refresh(String text) {
+        if (windowManager == null) {
+            return;
+        }
+        if (pill == null || pill.getParent() == null) {
+            pill = null;
+            return;
+        }
+        lastText = text == null ? lastText : text;
+        pill.setText(lastText);
+        resizeToContent();
+        applyVisibility();
     }
 
     /** Plan A fallback: hide while a capture runs, when the layer cannot opt out. */
@@ -221,7 +244,7 @@ public final class OverlayView {
             background.setColor(BG_COLOR);
             dot.setColor(DOT_COLOR);
             textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(13f * density);
+            textPaint.setTextSize(12f * density);
             // A translucent, top-most surface: the window itself draws nothing.
             setZOrderOnTop(true);
             setZOrderMediaOverlay(true);
@@ -248,11 +271,13 @@ public final class OverlayView {
         }
 
         private Layout layout() {
-            int maxTextWidth = Math.round(
-                    getResources().getDisplayMetrics().widthPixels - 96f * density);
+            // Compact by design: the pill is a hint, not a log. Very long messages
+            // are ellipsised rather than stretching across the screen.
+            float screenCap = getResources().getDisplayMetrics().widthPixels - 72f * density;
+            int maxTextWidth = Math.round(Math.min(screenCap, 240f * density));
             return StaticLayout.Builder
                     .obtain(text, 0, text.length(), textPaint, Math.max(maxTextWidth, 120))
-                    .setMaxLines(2)
+                    .setMaxLines(1)
                     .setEllipsize(TextUtils.TruncateAt.END)
                     .setLineSpacing(0f, 1.1f)
                     .build();
@@ -260,9 +285,9 @@ public final class OverlayView {
 
         private void measure() {
             Layout layout = layout();
-            int padH = Math.round(14 * density);
-            int padV = Math.round(9 * density);
-            int dotSize = Math.round(8 * density);
+            int padH = Math.round(10 * density);
+            int padV = Math.round(6 * density);
+            int dotSize = Math.round(7 * density);
             int gap = Math.round(8 * density);
             measuredWidth = padH * 2 + dotSize + gap + layout.getWidth();
             measuredHeight = padV * 2 + Math.max(layout.getHeight(), dotSize);
@@ -285,8 +310,8 @@ public final class OverlayView {
                 canvas.drawRoundRect(
                         new RectF(0, 0, measuredWidth, measuredHeight), radius, radius, background);
 
-                float padH = 14 * density;
-                float dotSize = 8 * density;
+                float padH = 10 * density;
+                float dotSize = 7 * density;
                 float top = (measuredHeight - dotSize) / 2f;
                 canvas.drawCircle(padH + dotSize / 2f, top + dotSize / 2f, dotSize / 2f, dot);
 
@@ -304,6 +329,7 @@ public final class OverlayView {
         public void surfaceCreated(SurfaceHolder holder) {
             surfaceControl = getSurfaceControl();
             hiddenFromCapture = applySkipScreenshot(surfaceControl);
+            Log.i(TAG, "surface created, hiddenFromCapture=" + hiddenFromCapture);
             render();
             post(OverlayView::applyVisibility);
         }
@@ -315,7 +341,28 @@ public final class OverlayView {
 
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
+            // Entering some system screens (and low-memory reclaim) tears the surface
+            // down; remember that so refresh() can restore it.
             surfaceControl = null;
+            Log.i(TAG, "surface destroyed");
+        }
+
+        @Override
+        protected void onVisibilityChanged(View changedView, int visibility) {
+            super.onVisibilityChanged(changedView, visibility);
+            if (visibility == View.VISIBLE) {
+                post(() -> {
+                    render();
+                    surfaceControl = getSurfaceControl();
+                    hiddenFromCapture = applySkipScreenshot(surfaceControl);
+                });
+            }
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            post(this::render);
         }
     }
 

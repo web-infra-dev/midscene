@@ -77,6 +77,7 @@ public class AgentService extends Service {
 
     private final IBinder binder = new LocalBinder();
     private Thread worker;
+    private static Thread overlayTicker;
     private RunStore runStore;
 
     public static void addListener(LogListener listener) {
@@ -392,6 +393,7 @@ public class AgentService extends Service {
         state = stateLabel;
         final String runKind = stateLabel;
         clearBuffer();
+        startOverlayKeepAlive();
         OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
         updateNotification("running " + stateLabel, "preparing");
         worker = new Thread(() -> {
@@ -412,6 +414,32 @@ public class AgentService extends Service {
             }
         }, "midscene-" + name);
         worker.start();
+    }
+
+    /**
+     * Slow tick that keeps the progress pill rendered while a run is in flight.
+     * System screens can destroy the overlay surface, which used to make the pill
+     * look like it had been switched off.
+     */
+    private void startOverlayKeepAlive() {
+        if (overlayTicker != null) {
+            return;
+        }
+        overlayTicker = new Thread(() -> {
+            while (!"idle".equals(state)) {
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                final String text = lastMessage;
+                OverlayView.post(() -> OverlayView.refresh(text));
+            }
+            overlayTicker = null;
+        }, "midscene-overlay-tick");
+        overlayTicker.setDaemon(true);
+        overlayTicker.start();
     }
 
     private void stopCurrentRun() {
