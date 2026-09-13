@@ -72,7 +72,7 @@ scripts/adb-bootstrap.sh \
 - **Node v24.18.0 可正常运行**；bundle 版本戳会在 APK 更新后自动重新解包
 - **授权**：必须走官方 API —— Setup → RUNTIME → `Authorize Shizuku`（`Shizuku.requestPermission()`）。rish 调用无法拉起授权弹窗；`pm grant API_V23` 也不能绕过（Shizuku 13.x 自建授权存储）
 - **rish 在本机应用进程中不可用**：前台 Activity / 前台 Service / `run-as` 三种来源都只返回 `Aborted`。因此后续把提权执行改为 **Shizuku UserService**（`bindUserService` + AIDL），Node 侧经回环 HTTP 调 App 内的执行桥
-- 手机布局必须用 `BottomNavigationView`（抽象类 `NavigationBarView` 会 inflate 崩溃）
+- **导航不再走 View 体系**：旧版手机布局用 `BottomNavigationView`（当时直接用抽象类 `NavigationBarView` 会 inflate 崩溃，平板的具体类 `NavigationRailView` 没暴露这个问题）；现在手机/平板分别是 Compose 的 `NavigationBar` / `NavigationRail`，旧的 `layout/`、`layout-sw600dp/`、`menu/` 资源已删除
 
 ## 构建
 
@@ -115,18 +115,48 @@ pnpm --filter android-host icons        # 需要 Pillow；写出 ic_launcher_for
 
 ## 界面（Compose 控制台）
 
-Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，三个主入口（设置与诊断从右上角进入），
-标题左侧是品牌标（与 launcher 图标同一素材、同一比例：品牌蓝底 + mark 约占 0.75，明暗主题都可读）：
+Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，三个主入口（设置与诊断从右上角进入）。
+**顶栏只有一行，且只有图标按钮**（`ConsoleTopBar`）：左侧品牌标 + 当前页标题 + 一段灰色补充信息，
+右侧是该页自己的动作（统一 20dp 图标、统一 `IconButton` 尺寸）；页面不再自己画第二行标题或按钮行，
+标题下面直接就是内容。
 
 | 页签 | 功能 |
 | --- | --- |
 | **Run** | 自然语言指令、Run / Stop、最近一次结果；键盘弹出自动顶起内容 |
 | **Scripts** | `config.yaml` 编辑与运行、Run / Save / Self-check / New template（模板自带正确的 `fileChannelDir`） |
-| **History** | 运行记录卡片列表（状态点、任务名、时间·耗时·通过数）→ 手机弹窗 / **平板右栏详情** → **Log** 与 **Report** |
+| **History** | 运行记录卡片列表（状态点、任务名、时间·耗时·通过数）→ 手机弹窗 / **平板右栏报告** → 顶栏切换 **Report / Log** |
 | **Settings → Diagnostics** | runtime 状态（node / agent bundle / yadb / shizuku user service / overlay permission）、Provision、Authorize、Battery / Shizuku / Overlay、服务日志 |
 | **Settings** | 暗色主题、悬浮进度、运行结束返回 App、模型凭据（Form Style / .env Style） |
 
 响应式：手机底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
+
+### History 页
+
+标题栏那一行同时是页头和信息栏，格式为 `History  3 runs · self-check · 14 h ago · 30s · exit 0`
+（计数 + 当前打开的那次运行），所以报告上方不再有任何一行控件：
+
+- **右侧全是图标按钮**（从左到右）：
+  - **Report / Log**：一对 `IconToggleButton`，选中态用品牌蓝（`primaryContainer`），一眼看出在看哪个；
+    没有报告时 Report 自动禁用。**默认看报告**——判定的是"要不要看日志"，所以打开一次有报告的运行
+    永远是报告，不会先闪一下日志；换一次运行重新按默认来。
+  - **Delete**：垃圾桶图标（红色），仍带二次确认弹窗。
+  - **列表开关**：`Hide/Show run list`，收起左栏 340dp 的运行列表让报告占满整宽（时间线多显示几列、右侧
+    Information/Param 不再被挤掉）；选择记在 `midscene-ui` 偏好里，重启后保持，图标同时换成"列表"样式。
+  - **设置齿轮**。
+- **产物区域是一个带外框的面板**（`ArtefactPanel`，`ReportWebView.kt`）：内缩 10dp、圆角、1dp 描边
+  （`outline`）、底色 `surface`，报告与日志都在里面；独立查看器（`ReportViewerActivity`）用同一个面板，
+  所以两处长得一样。日志模式下面板底色跟随明暗主题，文字始终可读。
+- **手机端**：没有第二栏，所以顶栏只有标题 + 计数 + 齿轮，卡片列表从顶栏下面直接开始；点运行卡片仍走弹窗
+  （弹窗里的 Report / Log 打开独立查看器）。
+
+界面全部是 Compose：控制台（`ConsoleActivity`）、运行产物查看器（`ReportViewerActivity`：报告/日志）、设置与诊断页，
+主题令牌集中在 `ui/theme/StudioTheme.kt`；`res/values*/colors.xml` 只留窗口主题需要的颜色（状态栏/导航栏、启动底色），
+没有 View 版控件样式、布局或 menu 资源。只有两处仍是 View，且都不是"我们自己的 UI"：
+
+| 仍是 View | 为什么 |
+| --- | --- |
+| 报告正文 `WebView` | 报告是自带样式的单文件 HTML，用 `AndroidView` 承载；**内嵌面板与独立查看器共用 `ReportWebView.kt` 这一个实现**（曾经各写一份，独立查看器那份在 WebView 未 attach 时就 `loadUrl`，结果是只画出报告背景、内容永远不渲染——两处合并后修复） |
+| 悬浮进度层 `OverlayView` | 需要 `SurfaceView` 自己的 `SurfaceControl` 才能 `setSkipScreenshot`（见下节），普通 Compose 窗口拿不到这个能力 |
 
 ## 模型凭据：Form 与 .env 两种风格
 
@@ -212,7 +242,9 @@ App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运
 buttons are locked until it ends"）。
 
 **报告查看**：History → Report 用 WebView 打开 Midscene 生成的单文件 HTML 报告（执行时间线、每一步耗时、
-Record 逐帧回放与视频条、失败原因气泡），与桌面端一致。
+Record 逐帧回放与视频条、失败原因气泡），与桌面端一致。独立查看器（`ReportViewerActivity`）的**外壳是 Compose**：
+标题 + 返回、跟随控制台的明暗主题，报告解析完成前显示 "Rendering report…"（几 MB 的报告要几秒），文件被清理时显示
+`File not found: <path>`；日志视图同一外壳，等宽、可选中——旧版写死 10sp 深灰，暗色主题下几乎读不出来。
 
 ## 守护与保活
 

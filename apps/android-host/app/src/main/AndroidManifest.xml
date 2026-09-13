@@ -41,6 +41,7 @@
         </activity>
 
 
+        <!-- Compose artefact viewer: a run report (WebView) or its log. -->
         <activity
             android:name=".ReportViewerActivity"
             android:exported="false"

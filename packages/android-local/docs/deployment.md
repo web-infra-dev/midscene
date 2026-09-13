@@ -158,7 +158,7 @@ tasks:
 | A14-4 | **rish 在本机应用进程中一律 `Aborted`**（前台 Activity、前台 Service、`run-as` 三种来源都试过），Shizuku 只回这一句、无更多信息 |
 | A14-5 | `pm grant moe.shizuku.manager.permission.API_V23` **不能**免人工授权：Shizuku 13.x 的授权在它自己的存储里（包名+签名），系统权限绕不过去 |
 | A14-6 | `Shizuku.newProcess` 在 API 13.1.5 中是 **private**；公开的提权执行路径只有 **`Shizuku.bindUserService` + UserService**（即本路线图的 Phase 2 方案） |
-| A14-7 | 客户端崩溃修复：手机布局不能用抽象类 `NavigationBarView`（平板用的 `NavigationRailView` 是具体类，问题只在手机暴露），须用 `BottomNavigationView` |
+| A14-7 | 客户端崩溃修复：手机布局不能用抽象类 `NavigationBarView`（平板用的 `NavigationRailView` 是具体类，问题只在手机暴露），须用 `BottomNavigationView`（该 View 布局后来整体换成 Compose 控制台 `NavigationBar`/`NavigationRail`，此条仅存档） |
 
 **执行器方案已落地（A14-8 起为实测结果）：**
 

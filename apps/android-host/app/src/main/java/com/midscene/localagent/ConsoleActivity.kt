@@ -3,12 +3,16 @@ package com.midscene.localagent
 import android.content.Intent
 import android.widget.Toast
 import android.webkit.WebView
-import android.widget.FrameLayout
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,7 +44,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.automirrored.filled.ViewSidebar
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -53,6 +62,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -76,7 +87,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -91,7 +101,6 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
@@ -198,6 +207,10 @@ private fun ConsoleShell(
     // standalone window.
     val reportView = remember { mutableStateOf<WebView?>(null) }
 
+    // The tablet can fold the History run list away so the report it is reading gets the
+    // whole width; the choice outlives the activity.
+    var listHidden by remember { mutableStateOf(SetupPrefs.historyListHidden(context)) }
+
     if (!onboarded) {
         Onboarding(
             onDone = {
@@ -206,6 +219,11 @@ private fun ConsoleShell(
             },
         )
         return
+    }
+
+    val toggleList = {
+        listHidden = !listHidden
+        SetupPrefs.setHistoryListHidden(context, listHidden)
     }
 
     if (wide) {
@@ -222,7 +240,7 @@ private fun ConsoleShell(
                     }
                 }
             }
-            Screen(tab, dark, onDarkChange, reportView,
+            Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                 onSettings = { tab = 3 },
                 onBack = { tab = if (tab == 4) 3 else 0 },
                 onDiagnostics = { tab = 4 })
@@ -230,7 +248,7 @@ private fun ConsoleShell(
     } else {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f)) {
-                Screen(tab, dark, onDarkChange, reportView,
+                Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                     onSettings = { tab = 3 },
                     onBack = { tab = if (tab == 4) 3 else 0 },
                     onDiagnostics = { tab = 4 })
@@ -257,59 +275,106 @@ private fun Screen(
     dark: Boolean,
     onDarkChange: (Boolean) -> Unit,
     reportView: MutableState<WebView?>,
+    listHidden: Boolean,
+    onToggleList: () -> Unit,
     onSettings: () -> Unit,
     onBack: () -> Unit,
     onDiagnostics: () -> Unit,
 ) {
+    // History draws its own bar: it is the only page whose actions belong next to the
+    // title it is showing (which run is open, report or log, delete, list).
+    if (tab == 2) {
+        HistoryScreen(reportView, listHidden, onToggleList, onSettings)
+        return
+    }
+
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        ConsoleTopBar(
+            title = when (tab) {
+                3 -> "Settings"
+                4 -> "Diagnostics"
+                else -> "Midscene"
+            },
+            showMark = tab < 3,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // The console tabs carry the product mark; Settings/Diagnostics are
-                // sub-pages of it and only need their own title. The mark sits on the
-                // brand colour, exactly like the launcher icon, so it stays legible on
-                // the light and the dark surface.
-                if (tab < 3) {
-                    Box(
-                        Modifier.size(30.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .background(MidsceneColors.Brand),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_brand_mark),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(
-                    if (tab < 3) "Midscene" else if (tab == 3) "Settings" else "Diagnostics",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            TextButton(onClick = if (tab < 3) onSettings else onBack) {
+            IconButton(onClick = if (tab < 3) onSettings else onBack) {
                 Icon(
                     if (tab < 3) Icons.Filled.Settings else Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = if (tab < 3) "Settings" else "Back",
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(TopBarIcon),
                 )
             }
         }
         Box(Modifier.weight(1f)) {
             when (tab) {
                 1 -> ScriptsScreen()
-                2 -> HistoryScreen(reportView)
                 3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
                 4 -> DiagnosticsScreen()
                 else -> RunScreen()
             }
         }
+    }
+}
+
+/** One icon size for every bar and panel action, so the buttons line up across pages. */
+private val TopBarIcon = 20.dp
+
+/**
+ * The console's top bar: brand mark, page title, an optional muted detail, and the page's
+ * own actions — one row, icon buttons only, on every screen.
+ *
+ * [Screen] calls it for the plain pages; History calls it with its own actions, so both
+ * bars are literally the same code.
+ */
+@Composable
+private fun ConsoleTopBar(
+    title: String,
+    detail: String? = null,
+    showMark: Boolean = true,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 20.dp, top = 2.dp, end = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            // The console tabs carry the product mark; Settings/Diagnostics are sub-pages
+            // of it and only need their own title. The mark sits on the brand colour,
+            // exactly like the launcher icon, so it stays legible on the light and the
+            // dark surface.
+            if (showMark) {
+                Box(
+                    Modifier.size(30.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MidsceneColors.Brand),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_brand_mark),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            if (detail != null) {
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }
 
@@ -639,7 +704,12 @@ private fun ScriptsScreen() {
 // ----------------------------------------------------------------- history
 
 @Composable
-private fun HistoryScreen(reportView: MutableState<WebView?>) {
+private fun HistoryScreen(
+    reportView: MutableState<WebView?>,
+    listHidden: Boolean,
+    onToggleList: () -> Unit,
+    onSettings: () -> Unit,
+) {
     val context = LocalContext.current
     val store = remember { RunStore(context.filesDir) }
     val busy = rememberRunBusy()
@@ -647,8 +717,17 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
     var selected by remember { mutableStateOf<RunStore.RunRecord?>(null) }
     var pendingDelete by remember { mutableStateOf<RunStore.RunRecord?>(null) }
 
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    val current = selected
+    val hasReport = current != null && reportExists(current)
+    // The pane asks for the *log*; the report is what a run with a report opens on. The
+    // default therefore never depends on state that arrives a frame later, and the
+    // choice resets for every run the reader opens.
+    var showLog by remember(current?.id) { mutableStateOf(false) }
+    val showingReport = !showLog && hasReport
+
     // Rendered before the layout branches: a dialog is its own window, so it must
-    // exist on both the phone and the tablet path (the wide branch returns early).
+    // exist on both the phone and the tablet path.
     pendingDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -675,21 +754,12 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
             },
         )
     }
-    val wide = LocalConfiguration.current.screenWidthDp >= 600
-
 
     LaunchedEffect(Unit) {
         val loaded = withContext(Dispatchers.IO) { store.list() }
         records = loaded
         if (wide && selected == null) {
             selected = loaded.firstOrNull()
-        }
-    }
-
-    fun reload() {
-        records = store.list()
-        if (selected != null && records.none { it.id == selected?.id }) {
-            selected = null
         }
     }
 
@@ -702,74 +772,144 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
         )
     }
 
-    if (wide) {
-        Row(Modifier.fillMaxSize()) {
-            LazyColumn(
-                Modifier.width(340.dp).fillMaxHeight(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                item { HistoryHeader(records.size) }
-                items(records, key = { it.id }) { record ->
-                    RunCard(
-                        record = record,
-                        highlighted = selected?.id == record.id,
-                        canDelete = !busy,
-                        onOpenReport = { selected = record },
-                        onDetails = { selected = record },
-                        onDelete = { pendingDelete = record },
+    Column(Modifier.fillMaxSize()) {
+        // Everything this page can do lives in the one bar: which run is open, which
+        // artefact is on screen, delete, and folding the list away. Nothing sits between
+        // the bar and the report, so the report gets all of the remaining box.
+        ConsoleTopBar(
+            title = "History",
+            detail = historyDetail(records.size, if (wide) current else null),
+        ) {
+            if (wide) {
+                // Report and log are two views of one artefact, so they are a pair of
+                // toggles that say which one is up rather than two look-alike buttons.
+                IconToggleButton(
+                    checked = showingReport,
+                    onCheckedChange = { showLog = false },
+                    enabled = hasReport,
+                    colors = artefactToggleColors(),
+                ) {
+                    Icon(
+                        Icons.Filled.Insights,
+                        contentDescription = "Report",
+                        modifier = Modifier.size(TopBarIcon),
+                    )
+                }
+                IconToggleButton(
+                    checked = !showingReport,
+                    onCheckedChange = { showLog = true },
+                    colors = artefactToggleColors(),
+                ) {
+                    Icon(
+                        Icons.Filled.Terminal,
+                        contentDescription = "Log",
+                        modifier = Modifier.size(TopBarIcon),
+                    )
+                }
+                IconButton(
+                    onClick = { pendingDelete = current },
+                    enabled = current != null && !busy,
+                ) {
+                    Icon(
+                        Icons.Filled.DeleteOutline,
+                        contentDescription = "Delete run",
+                        modifier = Modifier.size(TopBarIcon),
+                        tint = MidsceneColors.Error,
+                    )
+                }
+                IconButton(onClick = onToggleList) {
+                    Icon(
+                        if (listHidden) Icons.AutoMirrored.Filled.ViewList else Icons.AutoMirrored.Filled.ViewSidebar,
+                        contentDescription = if (listHidden) "Show run list" else "Hide run list",
+                        modifier = Modifier.size(TopBarIcon),
                     )
                 }
             }
-            Box(Modifier.weight(1f).fillMaxHeight()) {
-                val current = selected
-                if (current == null) {
-                    Box(Modifier.padding(16.dp)) { EmptyHint("Select a run to see its report") }
-                } else {
-                    RunDetailPane(
-                        record = current,
-                        store = store,
-                        reportView = reportView,
-                        canDelete = !busy,
-                        onDelete = {
-                            store.delete(current)
-                            reload()
-                        },
-                    )
-                }
+            IconButton(onClick = onSettings) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = "Settings",
+                    modifier = Modifier.size(TopBarIcon),
+                )
             }
         }
-        return
+
+        if (wide) {
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                // Folded away, the pane takes the whole width: on a tablet the run list
+                // is a navigator, not the content, and a report wants every pixel of the
+                // timeline it is drawing.
+                AnimatedVisibility(
+                    visible = !listHidden,
+                    enter = expandHorizontally() + fadeIn(),
+                    exit = shrinkHorizontally() + fadeOut(),
+                ) {
+                    LazyColumn(
+                        Modifier.width(340.dp).fillMaxHeight(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (records.isEmpty()) {
+                            item { EmptyHint("No runs yet.") }
+                        }
+                        items(records, key = { it.id }) { record ->
+                            RunCard(
+                                record = record,
+                                highlighted = selected?.id == record.id,
+                                canDelete = !busy,
+                                onOpenReport = { selected = record },
+                                onDetails = { selected = record },
+                                onDelete = { pendingDelete = record },
+                            )
+                        }
+                    }
+                }
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    val open = selected
+                    if (open == null) {
+                        Box(Modifier.padding(12.dp)) { EmptyHint("Select a run to see its report") }
+                    } else {
+                        RunArtefactPane(
+                            record = open,
+                            store = store,
+                            reportView = reportView,
+                            showReport = showingReport,
+                        )
+                    }
+                }
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (records.isEmpty()) {
+                item { EmptyHint("No runs yet.") }
+            }
+            items(records, key = { it.id }) { record ->
+                RunCard(
+                    record = record,
+                    highlighted = false,
+                    canDelete = !busy,
+                    onOpenReport = { openRun(record, ::open) },
+                    onDetails = { selected = record },
+                    onDelete = { pendingDelete = record },
+                )
+            }
+        }
     }
 
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item { HistoryHeader(records.size) }
-        if (records.isEmpty()) {
-            item { EmptyHint("No runs yet.") }
-        }
-        items(records, key = { it.id }) { record ->
-            RunCard(
-                record = record,
-                highlighted = false,
-                canDelete = !busy,
-                onOpenReport = { openRun(record, ::open) },
-                onDetails = { selected = record },
-                onDelete = { pendingDelete = record },
-            )
-        }
-    }
-
-    selected?.let { record ->
+    // Phone: a run opens in a dialog, with the artefacts handed to the viewer activity.
+    selected?.takeIf { !wide }?.let { record ->
         AlertDialog(
             onDismissRequest = { selected = null },
             title = { Text(if (record.ok) "Run succeeded" else "Run reported errors") },
             text = { RunDetail(record, store, onOpen = ::open) },
             confirmButton = {
-                if (record.reportFile.isNotEmpty() && File(record.reportFile).exists()) {
+                if (reportExists(record)) {
                     TextButton(onClick = { open(record.reportFile, true) }) { Text("Report") }
                 }
             },
@@ -781,15 +921,40 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
 
 }
 
+/** Brand-tinted selected state for the Report/Log pair, rather than Material's purple. */
 @Composable
-private fun HistoryHeader(count: Int) {
-    Column {
-        Text("History", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            if (count == 0) "Runs you start will appear here" else "$count runs · tap for log and report",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun artefactToggleColors() = IconButtonDefaults.iconToggleButtonColors(
+    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+)
+
+/** True when the run still has its report on disk. */
+private fun reportExists(record: RunStore.RunRecord): Boolean =
+    record.reportFile.isNotEmpty() && File(record.reportFile).exists()
+
+/**
+ * The bar's muted half: what the page is holding. The run on screen when one is open —
+ * that line used to be a header above the report, which cost the report a whole row.
+ */
+private fun historyDetail(count: Int, record: RunStore.RunRecord?): String {
+    val tally = when (count) {
+        0 -> "No runs"
+        1 -> "1 run"
+        else -> "$count runs"
+    }
+    if (record == null) {
+        return tally
+    }
+    return buildString {
+        append(tally)
+        append("  ·  ")
+        append(record.configName.ifEmpty { "run" })
+        append("  ·  ")
+        append(relativeTime(record.startedAt))
+        append("  ·  ")
+        append(record.durationMs / 1000)
+        append("s  ·  exit ")
+        append(record.exitCode)
     }
 }
 
@@ -925,104 +1090,50 @@ private fun CardAction(label: String, icon: ImageVector, onClick: () -> Unit) {
 }
 
 /**
- * Tablet detail pane: the report is rendered inside the app rather than handing the
- * user off to another window, with the captured log one toggle away.
+ * What the tablet shows for the selected run: the report, or the captured log.
+ *
+ * There is no header here any more — the run, the artefact toggle and delete all live in
+ * the top bar — so the pane is nothing but the artefact, in the same framed panel the
+ * standalone viewer uses.
  */
 @Composable
-private fun RunDetailPane(
+private fun RunArtefactPane(
     record: RunStore.RunRecord,
     store: RunStore,
     reportView: MutableState<WebView?>,
-    canDelete: Boolean,
-    onDelete: () -> Unit,
+    showReport: Boolean,
 ) {
     var reportReady by remember(record.id) { mutableStateOf(false) }
-    var confirmDelete by remember(record.id) { mutableStateOf(false) }
-    val hasReport = record.reportFile.isNotEmpty() && File(record.reportFile).exists()
-    var showReport by remember(record.id) { mutableStateOf(hasReport) }
+    val hasReport = reportExists(record)
 
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    record.configName.ifEmpty { "run" },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    buildString {
-                        append(relativeTime(record.startedAt))
-                        append("  ·  ")
-                        append(record.durationMs / 1000)
-                        append("s  ·  exit ")
-                        append(record.exitCode)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (hasReport) {
-                TextButton(onClick = { showReport = true }) { Text("Report", fontSize = 12.sp) }
-            }
-            TextButton(onClick = { showReport = false }) { Text("Log", fontSize = 12.sp) }
-            TextButton(onClick = { confirmDelete = true }, enabled = canDelete) {
-                Text("Delete", fontSize = 12.sp, color = MidsceneColors.Error)
-            }
-        }
-
-        if (confirmDelete) {
-            AlertDialog(
-                onDismissRequest = { confirmDelete = false },
-                title = { Text("Delete this run?") },
-                text = {
-                    Text(
-                        "Its log, result and report will be removed from the device.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        confirmDelete = false
-                        onDelete()
-                    }) { Text("Delete", color = MidsceneColors.Error) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
-                },
+    if (showReport && hasReport) {
+        ArtefactPanel {
+            ReportWebView(
+                path = record.reportFile,
+                holder = reportView,
+                onReady = { reportReady = true },
+                modifier = Modifier.fillMaxSize(),
             )
-        }
-
-        if (showReport && hasReport) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                EmbeddedReport(
-                    path = record.reportFile,
-                    holder = reportView,
-                    onReady = { reportReady = true },
-                    modifier = Modifier.fillMaxSize(),
-                )
-                if (!reportReady) {
-                    // A multi-megabyte report takes seconds to parse; say so instead
-                    // of showing an empty white pane.
-                    Column(
-                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("Rendering report…", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Reports embed every screenshot, so the first render takes a moment.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            if (!reportReady) {
+                // A multi-megabyte report takes seconds to parse; say so instead of
+                // showing an empty white pane.
+                Column(
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("Rendering report…", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Reports embed every screenshot, so the first render takes a moment.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-        } else {
+        }
+    } else {
+        ArtefactPanel {
             Box(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
                 Text(
                     store.readLog(record).takeLast(4000).ifEmpty { "No log captured." },
@@ -1031,76 +1142,6 @@ private fun RunDetailPane(
                 )
             }
         }
-    }
-}
-
-/**
- * Midscene reports are self-contained HTML, so a plain WebView renders them offline.
- *
- * The instance is owned by the console (`holder`) and re-attached here, and the
- * page is only (re)loaded when the path changes: revisiting History reuses the
- * parsed document instead of paying for it again.
- */
-@Composable
-private fun EmbeddedReport(
-    path: String,
-    holder: MutableState<WebView?>,
-    onReady: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    key(path) {
-        AndroidView(
-            modifier = modifier,
-            // Compose only ever parents this throwaway FrameLayout; the WebView (and
-            // its parsed document) is moved in and out by us, so re-entering History
-            // never hits "the specified child already has a parent".
-            factory = { context ->
-                FrameLayout(context).apply {
-                    val web = holder.value ?: WebView(context).apply {
-                        setBackgroundColor(android.graphics.Color.WHITE)
-                        settings.javaScriptEnabled = true
-                        settings.allowFileAccess = true
-                        settings.allowFileAccessFromFileURLs = true
-                        settings.allowUniversalAccessFromFileURLs = true
-                        settings.domStorageEnabled = true
-                    }
-                    // Switching reports disposes the previous container: the WebView may
-                    // still be attached to it, and adding a parented child throws.
-                    (web.parent as? android.view.ViewGroup)?.removeView(web)
-                    holder.value = web
-                    val url = "file://$path"
-                    // Re-bound on every entry: a client captured at creation reports to
-                    // the composition that built it, so later selections never heard
-                    // that their report had finished and kept the loading state up.
-                    web.webViewClient = object : android.webkit.WebViewClient() {
-                        private val startedAt = System.currentTimeMillis()
-                        override fun onPageFinished(view: WebView?, finishedUrl: String?) {
-                            android.util.Log.i(
-                                "MidsceneReport",
-                                "report ready in ${System.currentTimeMillis() - startedAt} ms",
-                            )
-                            onReady()
-                        }
-                    }
-                    addView(
-                        web,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
-                    if (web.url != url) {
-                        web.loadUrl(url)
-                    } else {
-                        // Already showing this report (it is cached): no reload.
-                        onReady()
-                    }
-                }
-            },
-            onRelease = { container ->
-                (container as? android.view.ViewGroup)?.removeAllViews()
-            },
-        )
     }
 }
 
@@ -1806,7 +1847,8 @@ private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-private object ThemePrefs {
+/** UI preferences shared with the service (same file and keys), and with the artefact viewer. */
+internal object ThemePrefs {
     private const val FILE = "midscene-ui"
     private const val KEY = "dark"
 
@@ -1820,7 +1862,6 @@ private object ThemePrefs {
     }
 }
 
-/** UI preferences shared with the service (same file and keys). */
 /** Shizuku authorization, done properly: only requestPermission() raises the dialog. */
 private object ShizukuAuth {
     private const val REQUEST_CODE = 4210
@@ -1858,6 +1899,7 @@ private object SetupPrefs {
     private const val FILE = "midscene-ui"
     private const val ONBOARDED_KEY = "onboarded"
     private const val RETURN_KEY = "returnAfterRun"
+    private const val LIST_HIDDEN_KEY = "historyListHidden"
 
     fun returnAfterRun(context: android.content.Context): Boolean =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
@@ -1866,6 +1908,16 @@ private object SetupPrefs {
     fun setReturnAfterRun(context: android.content.Context, value: Boolean) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(RETURN_KEY, value).apply()
+    }
+
+    /** Whether the tablet run list is folded away; the choice outlives the activity. */
+    fun historyListHidden(context: android.content.Context): Boolean =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(LIST_HIDDEN_KEY, false)
+
+    fun setHistoryListHidden(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(LIST_HIDDEN_KEY, value).apply()
     }
 
     private const val INSTRUCTION_KEY = "lastInstruction"

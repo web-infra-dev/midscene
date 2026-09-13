@@ -14,10 +14,10 @@ dependencies {
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'
 
-    // Material 3 provides the design system primitives (toolbar, cards, buttons,
-    // navigation bar/rail) that mirror the desktop studio's antd token palette.
+    // Material 3 resources: the app theme (`Theme.Material3.DayNight.NoActionBar` in
+    // res/values/themes.xml) is the only View-system dependency left — every screen is
+    // Compose, whose own Material 3 scheme comes from the Compose BOM below.
     implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
 }
 
 android {

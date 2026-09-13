@@ -1,29 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dark counterparts of the studio palette (see values/colors.xml). -->
+<!-- Dark counterparts of the window-theme palette (see values/colors.xml). -->
 <resources>
     <color name="app_bg">#282828</color>
     <color name="surface">#2B2B2B</color>
-    <color name="surface_muted">#333333</color>
-    <color name="surface_hover">#1AFFFFFF</color>
 
     <color name="border_subtle">#2E2E2E</color>
     <color name="border_strong">#3A3A3A</color>
-    <color name="divider">#14FFFFFF</color>
 
     <color name="text_primary">#FFFFFF</color>
     <color name="text_secondary">#D0D0D1</color>
-    <color name="text_tertiary">#9DA0A1</color>
-    <color name="text_placeholder">#6F7173</color>
 
     <color name="brand">#1979FF</color>
     <color name="brand_container">#1B2C44</color>
     <color name="on_brand">#FFFFFF</color>
 
-    <color name="status_success">#12B981</color>
-    <color name="status_success_bg">#12352A</color>
-    <color name="status_success_fg">#3FD3A0</color>
     <color name="status_error">#E13E37</color>
-    <color name="status_error_bg">#3A2221</color>
-    <color name="status_info_bg">#16273D</color>
-    <color name="status_idle">#6F7173</color>
 </resources>

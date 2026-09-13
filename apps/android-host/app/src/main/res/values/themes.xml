@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- DayNight theme: the studio palette in both modes, brand #1979FF. -->
+    <!--
+      Window theme only: the Compose screens carry their own Material 3 scheme
+      (`ui/theme/StudioTheme.kt`); this keeps the pre-Compose window background and the
+      system bars on the same studio palette. No widget styles live here — the UI is
+      Compose.
+    -->
     <style name="Theme.MidsceneLocal" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand</item>
         <item name="colorOnPrimary">@color/on_brand</item>
@@ -16,34 +21,5 @@
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:navigationBarColor">@color/app_bg</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
-    </style>
-
-    <style name="CardSurface" parent="Widget.Material3.CardView.Outlined">
-        <item name="cardCornerRadius">@dimen/card_radius</item>
-        <item name="cardElevation">@dimen/card_elevation</item>
-        <item name="strokeColor">@color/border_subtle</item>
-        <item name="cardBackgroundColor">@color/surface</item>
-    </style>
-
-    <style name="SectionTitle">
-        <item name="android:textSize">@dimen/label_text</item>
-        <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:letterSpacing">0.02</item>
-    </style>
-
-    <style name="LogText">
-        <item name="android:fontFamily">monospace</item>
-        <item name="android:textSize">@dimen/log_text</item>
-        <item name="android:textColor">@color/text_secondary</item>
-    </style>
-
-    <style name="StatusPill">
-        <item name="android:paddingLeft">@dimen/space_sm</item>
-        <item name="android:paddingRight">@dimen/space_sm</item>
-        <item name="android:paddingTop">@dimen/space_xs</item>
-        <item name="android:paddingBottom">@dimen/space_xs</item>
-        <item name="android:textSize">11sp</item>
-        <item name="android:textColor">@color/text_secondary</item>
     </style>
 </resources>
