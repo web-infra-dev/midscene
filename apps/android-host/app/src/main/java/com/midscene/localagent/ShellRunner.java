@@ -34,9 +34,9 @@ public final class ShellRunner {
     }
 
     /**
-     * Run the bundled CLI (`node dist/lib/cli.js …`) and stream every line to the
-     * sink. `LD_LIBRARY_PATH` points at the native library directory that holds
-     * the Node runtime and its dependencies.
+     * Run the bundled CLI (`node <filesDir>/agent/node_modules/@midscene/android-local/
+     * dist/lib/cli.js …`) and stream every line to the sink. `LD_LIBRARY_PATH` points at
+     * the native library directory that holds the Node runtime and its dependencies.
      */
     public static Result runCli(
             Context context,
@@ -60,7 +60,10 @@ public final class ShellRunner {
             throw new IOException("node runtime missing at " + Provisioner.nodePath(context));
         }
         if (!cli.exists()) {
-            throw new IOException("agent bundle not extracted yet");
+            // Name the path: a bare "not extracted yet" hid a bundle-layout mismatch
+            // where extraction succeeded at a different location than this lookup.
+            throw new IOException("agent bundle not extracted yet (missing "
+                    + cli.getAbsolutePath() + "); run Provision in Diagnostics");
         }
 
         List<String> command = new ArrayList<>();
@@ -182,12 +185,8 @@ public final class ShellRunner {
     }
 
     /**
-     * Parse a KEY=VALUE credentials file.
-     *
-     * Deliberately forgiving: it also accepts `KEY: VALUE` (what a YAML habit
-     * produces), an `export ` prefix, surrounding quotes and CRLF line endings, and
-     * it never truncates a value at `#`. A silently dropped line used to leave the
-     * model base URL empty, which surfaced much later as "Invalid URL".
+     * Read the credentials file through the same reader the Settings editor uses, so
+     * the values the agent receives cannot drift from the ones the screen shows.
      */
     private static Map<String, String> readEnvFile(File file, LineSink sink) {
         Map<String, String> values = new java.util.HashMap<>();
@@ -195,45 +194,19 @@ public final class ShellRunner {
             return values;
         }
 
-        for (String rawLine : readText(file).split("\r?\n")) {
-            String line = rawLine.trim();
-            if (line.isEmpty() || line.startsWith("#") || line.startsWith("//")) {
-                continue;
+        ModelEnvFile.Content content = ModelEnvFile.parse(readText(file));
+        if (sink != null) {
+            for (int index = 0; index < content.unreadableLines; index++) {
+                sink.line("model.env: skipped an unreadable line");
             }
-            if (line.startsWith("export ")) {
-                line = line.substring("export ".length()).trim();
+            for (int index = 0; index < content.invalidKeyLines; index++) {
+                sink.line("model.env: skipped a line with an invalid key");
             }
-
-            int separator = line.indexOf('=');
-            if (separator < 0) {
-                separator = line.indexOf(':');
+            if (!content.isEmpty()) {
+                sink.line("model.env: injecting " + content.entries.size() + " variables");
             }
-            if (separator <= 0) {
-                if (sink != null) {
-                    sink.line("model.env: skipped an unreadable line");
-                }
-                continue;
-            }
-
-            String key = line.substring(0, separator).trim();
-            String value = line.substring(separator + 1).trim();
-            if (value.length() >= 2
-                    && ((value.startsWith("\"") && value.endsWith("\""))
-                    || (value.startsWith("'") && value.endsWith("'")))) {
-                value = value.substring(1, value.length() - 1);
-            }
-            if (!key.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-                if (sink != null) {
-                    sink.line("model.env: skipped a line with an invalid key");
-                }
-                continue;
-            }
-            values.put(key, value);
         }
-
-        if (!values.isEmpty() && sink != null) {
-            sink.line("model.env: injecting " + values.size() + " variables");
-        }
+        values.putAll(content.entries);
         return values;
     }
 

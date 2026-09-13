@@ -28,6 +28,19 @@ public final class Provisioner {
     private static final String TAG = "MidsceneProvisioner";
     public static final String YADB_TARGET = "/data/local/tmp/yadb";
 
+    /**
+     * Where the CLI sits inside the extracted bundle.
+     *
+     * The bundle's root is the staging install itself (`node_modules`, `examples`,
+     * `package.json`), so the CLI is inside the workspace package rather than at
+     * `dist/lib/cli.js`. Extraction and every runtime lookup read this one constant:
+     * when only the extractor learned the new layout, provisioning reported
+     * "extracted agent bundle in 1256 ms" while the run path kept failing with
+     * "agent bundle not extracted yet" and Diagnostics showed "missing".
+     */
+    public static final String BUNDLE_CLI_PATH =
+            "node_modules/@midscene/android-local/dist/lib/cli.js";
+
     private static final Map<String, Boolean> RUNNING = new ConcurrentHashMap<>();
 
     private Provisioner() {
@@ -53,8 +66,7 @@ public final class Provisioner {
     }
 
     public static File cliFile(Context context) {
-        return new File(agentDir(context),
-                "dist/lib/cli.js");
+        return new File(agentDir(context), BUNDLE_CLI_PATH);
     }
 
     public static String nodePath(Context context) {
@@ -112,14 +124,21 @@ public final class Provisioner {
             }
         }
         restoreLinks(next);
-        // The CLI lives inside the package, not at the bundle root: checking the wrong
-        // path rejected every valid bundle with "agent bundle has no CLI".
-        if (!new File(next, "node_modules/@midscene/android-local/dist/lib/cli.js").isFile()) {
-            throw new IOException("agent bundle has no CLI");
+        // Check the CLI at the exact path the runtime will read it from, so a bundle
+        // that extracts but cannot run fails here instead of on the next run.
+        File stagedCli = new File(next, BUNDLE_CLI_PATH);
+        if (!stagedCli.isFile()) {
+            throw new IOException("agent bundle has no CLI at " + BUNDLE_CLI_PATH);
         }
         deleteTree(target);
         if (!next.renameTo(target)) {
             throw new IOException("could not install agent bundle");
+        }
+        // Post-condition, read through the same accessor the run path and Diagnostics
+        // use: "extracted" must mean "the CLI is where the app will look for it".
+        if (!cliFile(context).isFile()) {
+            throw new IOException("agent bundle installed without a CLI at "
+                    + cliFile(context).getAbsolutePath());
         }
         try (FileOutputStream out = new FileOutputStream(stampFile)) {
             out.write(stamp.getBytes(java.nio.charset.StandardCharsets.UTF_8));
