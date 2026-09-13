@@ -7,11 +7,10 @@ import {
 } from '../../src/transport/bridge';
 
 describe('exec bridge runner', () => {
-  test('unwraps the launcher argv the transports build', () => {
-    // `sh <rish> -c <command>`; the bridge runs the payload directly as shell.
-    expect(
-      commandFromArgv(['sh', '/data/local/tmp/rish', '-c', 'screencap -p']),
-    ).toBe('screencap -p');
+  test('unwraps the `sh -c` argv the transport builds', () => {
+    // The transport asks for `sh -c <command>`; the app runs the payload itself
+    // as shell (uid 2000) through the user service.
+    expect(commandFromArgv(['sh', '-c', 'screencap -p'])).toBe('screencap -p');
   });
 
   test('posts the command and maps the JSON envelope', async () => {
@@ -36,10 +35,9 @@ describe('exec bridge runner', () => {
       token: 'secret',
       fetchImpl,
     });
-    const result = await runner.run(
-      ['sh', '/data/local/tmp/rish', '-c', 'id -u'],
-      { timeoutMs: 5000 },
-    );
+    const result = await runner.run(['sh', '-c', 'id -u'], {
+      timeoutMs: 5000,
+    });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout.toString('utf8')).toBe('2000\n');
@@ -62,9 +60,7 @@ describe('exec bridge runner', () => {
       fetchImpl,
     });
 
-    await expect(runner.run(['sh', 'rish', '-c', 'id -u'])).rejects.toThrow(
-      /HTTP 403/,
-    );
+    await expect(runner.run(['sh', '-c', 'id -u'])).rejects.toThrow(/HTTP 403/);
   });
 
   test('reads channel files from the app process', async () => {

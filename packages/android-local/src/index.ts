@@ -30,15 +30,12 @@ export type {
 export {
   CAPABILITY_PROBE_ATTEMPTS,
   DEFAULT_DISPLAY_CACHE_TTL_MS,
-  DEFAULT_FILE_CHANNEL_DIR,
   DEFAULT_MAX_CONCURRENT_COMMANDS,
-  DEFAULT_RISH_PATH,
   DEFAULT_SCREENSHOT_TIMEOUT_MS,
   DEFAULT_TIMEOUT_MS,
-  DEFAULT_UNSET_ENV,
-  RishTransport,
-} from './transport/rish';
-export type { RishTransportOptions, ShellFileIo } from './transport/rish';
+  ShellTransport,
+} from './transport/shell';
+export type { ShellFileIo, ShellTransportOptions } from './transport/shell';
 export {
   ExecBridgeCommandRunner,
   bridgeFromEnv,

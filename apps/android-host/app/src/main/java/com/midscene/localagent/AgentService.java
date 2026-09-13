@@ -417,20 +417,9 @@ public class AgentService extends Service {
      */
     private String deviceYaml() {
         return "device:\n"
-                + "  backend: rish\n"
-                + "  rishPath: /data/local/tmp/rish\n"
+                + "  backend: shizuku-userservice\n"
                 + "  yadbPath: /data/local/tmp/yadb\n"
-                + "  fileChannelDir: " + channelDir().getAbsolutePath() + "\n";
-    }
-
-    private File channelDir() {
-        File external = getExternalFilesDir(null);
-        File base = external != null ? external : getFilesDir();
-        File dir = new File(base, "channel");
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        return dir;
+                + "  fileChannelDir: " + Provisioner.channelDir(this).getAbsolutePath() + "\n";
     }
 
     private void runConfig(String configPath) throws IOException {

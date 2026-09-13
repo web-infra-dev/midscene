@@ -67,11 +67,9 @@ export interface CommandRunnerOptions {
    * Environment variables to REMOVE from the child environment, applied after
    * `env` is merged.
    *
-   * Needed on device: a terminal runtime (Termux) exports
-   * `LD_LIBRARY_PATH=$PREFIX/lib`, and a `rish` process inheriting it makes the
-   * launched `app_process` resolve the terminal's libraries instead of the
-   * system ones, failing with
-   * `cannot locate symbol ... referenced by /system/lib64/libunwindstack.so`.
+   * Needed for spawned helpers (the adb CLI, yadb) whose launcher inherits the
+   * caller's environment and must not resolve a terminal runtime's libraries
+   * instead of the system ones.
    */
   unsetEnv?: string[];
   maxStdoutBytes?: number;

@@ -87,7 +87,7 @@ type RunShellParam = z.infer<typeof runShellParamSchema>;
  * Device-local Android interface.
  *
  * It only talks to an {@link AndroidTransport}; it never builds shell
- * commands, and it never knows whether the bytes came from rish, a Shizuku
+ * commands, and it never knows whether the bytes came from a Shizuku
  * UserService or an OEM system service.
  *
  * Prefer {@link LocalAndroidDevice.create}, which probes capabilities up front.

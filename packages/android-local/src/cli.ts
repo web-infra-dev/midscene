@@ -2,9 +2,9 @@
 /**
  * `midscene-local` — the deployment shell around the on-device agent.
  *
- * Today it runs inside Termux/Node on the phone; the same commands are what an
- * Android host app (embedded Node + thin UI) will call later, so the surface is
- * deliberately small: inspect the device (`doctor`) and run a config (`run`).
+ * It runs inside the Android host app's embedded Node (the app injects the
+ * bridge coordinates), or on a PC against adb. The surface is deliberately
+ * small: inspect the device (`doctor`) and run a config (`run`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,7 +13,12 @@ import process from 'node:process';
 import { loadLocalAgentConfig } from './config/schema';
 import { runLocalAgentConfigFile } from './runner/run';
 import { AdbShellTransport } from './transport/adb-shell';
-import { RishTransport } from './transport/rish';
+import {
+  ExecBridgeCommandRunner,
+  bridgeFromEnv,
+  createBridgeFileIo,
+} from './transport/bridge';
+import { ShellTransport } from './transport/shell';
 import type { AndroidTransport } from './transport/types';
 
 function readVersion(): string {
@@ -37,7 +42,7 @@ function readVersion(): string {
 const USAGE = `midscene-local — on-device Android agent
 
 Usage:
-  midscene-local doctor [--backend rish|adb-shell] [--serial <id>]
+  midscene-local doctor [--backend shizuku-userservice|adb-shell] [--serial <id>]
   midscene-local run <config.yaml|config.json>
   midscene-local --version
   midscene-local --help
@@ -45,6 +50,12 @@ Usage:
 Commands:
   doctor   Probe the device: capabilities, health, displays and timing.
   run      Execute the tasks described by a config file.
+
+Backends:
+  shizuku-userservice  (default) On-device path. The host app injects
+                       MIDSCENE_EXEC_BRIDGE_URL/TOKEN; commands reach a Shizuku
+                       user service running as shell (uid 2000).
+  adb-shell            Drive the device from this host over adb.
 `;
 
 function parseArgs(argv: string[]) {
@@ -72,10 +83,17 @@ function parseArgs(argv: string[]) {
   return { flags, positional };
 }
 
+/**
+ * Build the transport the CLI drives directly.
+ *
+ * `run <config>` goes through the runner, which selects its own transport, so
+ * this only serves `doctor`. With no `--backend` the CLI behaves like the
+ * bundled agent: it needs the host app's bridge coordinates in the environment.
+ */
 function createTransportFromFlags(
   flags: Record<string, string>,
 ): AndroidTransport {
-  const backend = flags.backend ?? 'rish';
+  const backend = flags.backend ?? 'shizuku-userservice';
 
   if (backend === 'adb-shell') {
     return new AdbShellTransport({
@@ -84,11 +102,47 @@ function createTransportFromFlags(
     });
   }
 
-  if (backend !== 'rish') {
-    throw new Error(`Unknown backend "${backend}"; expected rish or adb-shell`);
+  if (backend !== 'shizuku-userservice') {
+    throw new Error(
+      `Unknown backend "${backend}"; expected shizuku-userservice or adb-shell`,
+    );
   }
 
-  return new RishTransport({ rishPath: flags.rishPath });
+  const bridge = bridgeFromEnv();
+  if (!bridge) {
+    throw new Error(
+      'The shizuku-userservice backend needs the host app: it must set ' +
+        'MIDSCENE_EXEC_BRIDGE_URL and MIDSCENE_EXEC_BRIDGE_TOKEN. From a PC, ' +
+        'pass --backend adb-shell --serial <id> instead.',
+    );
+  }
+
+  const runner = new ExecBridgeCommandRunner(bridge);
+  return new ShellTransport({
+    runner,
+    fileIo: createBridgeFileIo(runner),
+    fileChannelDir: requireFileChannelDir(
+      flags['file-channel-dir'] ?? process.env.MIDSCENE_FILE_CHANNEL_DIR,
+    ),
+  });
+}
+
+/**
+ * The file channel has no safe default: the directory must be writable by the
+ * shell uid and readable by this process. A missing value used to fall back to
+ * an on-device path, which fails later with an opaque EACCES.
+ */
+function requireFileChannelDir(value: string | undefined): string {
+  if (!value) {
+    throw new Error(
+      'The file channel directory is required on the on-device path: pass ' +
+        '--file-channel-dir <path> or set MIDSCENE_FILE_CHANNEL_DIR. It must ' +
+        'be writable by the shell uid and readable by this process (the app ' +
+        'uses its external files directory).',
+    );
+  }
+
+  return value;
 }
 
 async function doctor(flags: Record<string, string>): Promise<number> {

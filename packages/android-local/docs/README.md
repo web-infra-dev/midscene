@@ -1,5 +1,10 @@
 # Midscene Android 本机化（android-local）
 
+> **范围变更（2026-09-13，已执行）**：端侧现场收敛为 **APK + Shizuku UserService** 一种，Termux + rish 现场已移除。
+> 各文档中仍以 rish 描述历史或实测环境的段落属**有意保留的证据**；决策与执行记录见
+> [productization-decisions.md](./productization-decisions.md) §9。历史实测记录（research-v0.1、roadmap Phase 0、
+> deployment 的 A14 系列、baseline 两后端对比）**保留，不删除**。
+
 把 Android 自动化从「PC/服务器侧 ADB Host 驱动」演进为「设备本机 Agent」：**Agent 核心不动、设备能力换 Transport**。
 
 | 文档 | 内容 |
@@ -41,7 +46,7 @@
 
 - [x] 勘察本仓库现状并形成证据表（见 `architecture.md` §2）
 - [x] 归档调研原文（`research-v0.1.md`，sha256 `0bed707e…`）
-- [x] `packages/android-local` 骨架：transport 契约、`RishTransport`、`LocalAndroidDevice`、离线单元测试
+- [x] `packages/android-local` 骨架：transport 契约、`ShellTransport`（原 `RishTransport`）、`LocalAndroidDevice`、离线单元测试
 - [x] **P0-1** 依赖/运行时审计（设备实测版）：`dependency-audit.md`，设备侧 70 包 0 原生 addon
 - [x] **P0-2** 图片链路：原生 sharp 在 android-arm64 不可用 → 改用 sharp 官方 WASM（`--cpu=wasm32`），`@midscene/shared` 图像函数全绿且**无需改调用点**
 - [x] **P0-3** 设备侧 Node 运行时：Termux `nodejs-lts` = Node **v24.18.0**（`process.platform=android`）
@@ -71,9 +76,14 @@ npx nx test @midscene/android-local
 ```
 
 ```ts
-import { RishTransport, LocalAndroidDevice } from '@midscene/android-local';
+import { ShellTransport, LocalAndroidDevice } from '@midscene/android-local';
 
-const transport = new RishTransport({ rishPath: process.env.MIDSCENE_RISH_PATH });
+// 端侧：runner 与 fileChannelDir 必须显式给出；Host 通过环境注入桥坐标
+// （在 APK 内这段由 app 完成，见 apps/android-host）。
+const transport = new ShellTransport({
+  runner: new ExecBridgeCommandRunner({ url, token }),
+  fileChannelDir: process.env.MIDSCENE_FILE_CHANNEL_DIR!,
+});
 
 // create() 会先探测能力；未 connect 的设备调用 actionSpace() 会直接报错，
 // 避免注册底层并不支持的动作。

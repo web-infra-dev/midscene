@@ -1,5 +1,9 @@
 # @midscene/android-local
 
+> **范围变更（2026-09-13，已执行）**：端侧现场收敛为 **APK + Shizuku UserService** 一种，Termux + rish 现场已移除，
+> `RishTransport` 已更名为 `ShellTransport`。本文件下方仍以 rish 描述历史或部署记录的段落属**有意保留的证据**，
+> 决策与执行记录见 [`docs/productization-decisions.md`](./docs/productization-decisions.md) §9。
+
 Device-local Android automation for Midscene. The agent core stays untouched;
 only the device channel changes, so a car head unit or phone can host the agent
 instead of a PC running ADB.
@@ -55,7 +59,7 @@ See `docs/roadmap.md`.
 ## CLI (deployment shell)
 
 ```bash
-midscene-local doctor --backend rish              # capabilities, health, displays, timing
+midscene-local doctor --backend adb-shell --serial <id>   # capabilities, health, displays, timing
 midscene-local run examples/local-agent.config.yaml
 ```
 
@@ -70,21 +74,25 @@ entry point is what an embedded-Node Android app will call in Phase 2.
 import {
   AdbShellTransport,
   LocalAndroidDevice,
-  RishTransport,
+  ShellTransport,
 } from '@midscene/android-local';
 import { Agent } from '@midscene/core/agent';
 
 // Debug/regression backend: PC + phone over USB (no Shizuku needed).
 const usbTransport = new AdbShellTransport({ serial: 'emulator-5554' });
 
-const transport = new RishTransport({
-  // Defaults to $MIDSCENE_RISH_PATH, then /data/local/tmp/rish
-  rishPath: process.env.MIDSCENE_RISH_PATH,
+// On-device backend: the app injects a bridge runner and file I/O, so the
+// transport never spawns anything itself. `runner` and `fileChannelDir` are
+// required: reaching a shell uid is the runner's job.
+const transport = new ShellTransport({
+  runner: new ExecBridgeCommandRunner({ url, token }),
+  fileIo: createBridgeFileIo(runner),
+  fileChannelDir: externalFilesDir,
 });
 
 const health = await transport.healthCheck();
 if (!health.ok || health.uid !== 2000) {
-  throw new Error(`rish is not running with shell privileges: ${health.details}`);
+  throw new Error(`not running with shell privileges: ${health.details}`);
 }
 
 const device = await LocalAndroidDevice.create(transport, { displayId: 0 });

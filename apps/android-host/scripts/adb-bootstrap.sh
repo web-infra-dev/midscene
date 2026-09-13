@@ -4,10 +4,9 @@
 #
 #   1. install the agent APK (and Shizuku, when an APK is provided)
 #   2. start the Shizuku server through its own native launcher
-#   3. deploy rish + rish_shizuku.dex (read-only dex on Android 14+)
-#   4. seed model.env and config.yaml into the app's private storage
-#   5. exempt the app from battery optimisation and grant notifications
-#   6. trigger runtime provisioning (agent bundle + yadb) through the service
+#   3. seed model.env and config.yaml into the app's private storage
+#   4. exempt the app from battery optimisation and grant notifications
+#   5. trigger runtime provisioning (agent bundle + yadb) through the service
 #
 # Usage:
 #   scripts/adb-bootstrap.sh [--serial <id>] [--shizuku-apk <path>]
@@ -65,21 +64,6 @@ if [[ -z "$SHIZUKU_PATH" ]]; then
 else
   sh_ "exec ${SHIZUKU_PATH}/lib/arm64/libshizuku.so" | tail -2
 fi
-
-say "deploy rish"
-if [[ ! -f "${ASSETS}/yadb" ]]; then
-  echo "warning: ${ASSETS}/yadb missing; non-ASCII input will be unavailable" >&2
-fi
-RISH_SRC="$(mktemp -d)/rish"
-# rish + its dex ship inside the Shizuku APK assets.
-if [[ -n "$SHIZUKU_APK" ]]; then
-  unzip -o -q "$SHIZUKU_APK" assets/rish assets/rish_shizuku.dex -d "$(dirname "$RISH_SRC")"
-  "${ADB[@]}" push "$(dirname "$RISH_SRC")/assets/rish" /data/local/tmp/rish >/dev/null
-  "${ADB[@]}" push "$(dirname "$RISH_SRC")/assets/rish_shizuku.dex" /data/local/tmp/rish_shizuku.dex >/dev/null
-else
-  echo "no --shizuku-apk given: keeping the rish already on the device" >&2
-fi
-sh_ 'chmod 755 /data/local/tmp/rish 2>/dev/null; chmod 400 /data/local/tmp/rish_shizuku.dex 2>/dev/null; ls -l /data/local/tmp/rish /data/local/tmp/rish_shizuku.dex' | tail -2
 
 # The app's private directories only exist once it has run at least once.
 sh_ "run-as ${PKG} mkdir -p files" >/dev/null 2>&1 || true

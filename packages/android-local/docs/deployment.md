@@ -1,9 +1,13 @@
 # 部署与配置方式
 
-目标形态（按调研文档）：**APK 植入的移动版 Agent 管理器** —— 简单版"移动 studio"，
+> **范围变更（2026-09-13，已执行）**：端侧现场收敛为 **APK + Shizuku UserService** 一种，**阶段 A（Termux/Node CLI）已废弃并从代码移除**。
+> 本文的阶段 A 内容与 A14 系列实测记录**保留为历史证据**（它们记录了 transport 层为何如此实现），不再是目标部署方式。
+> 决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §9。
+
+目标形态：**APK 植入的移动版 Agent 管理器** —— 简单版"移动 studio"，
 即"脚本 + 配置管理器"：在手机上管理配置、跑脚本、看结果，不依赖 PC。
 
-本文给出部署模型、配置格式、目录布局与演进路径。当前已落地的是**阶段 A（Termux/Node CLI）**，
+本文给出部署模型、配置格式、目录布局与演进路径。**阶段 A（Termux/Node CLI）已废弃并移除**（见上方说明），
 阶段 B 的 APK 内嵌 Node 是 Phase 2 的主体工作。
 
 ## 1. 部署模型
@@ -22,7 +26,9 @@
 
 ```bash
 # 体检：能力、健康、显示信息、截图耗时
-midscene-local doctor --backend rish
+# 端侧（在 APK 内由 app 注入桥坐标）：默认 backend 即 shizuku-userservice
+midscene-local doctor --file-channel-dir /storage/emulated/0/Android/data/<pkg>/files/channel
+# PC 在环（开发与回归）
 midscene-local doctor --backend adb-shell --serial emulator-5554
 
 # 运行配置：逐任务执行并输出 JSON 结果（任务失败会记录但不中断后续任务）
@@ -39,10 +45,11 @@ YAML 或 JSON，schema 定义在 `packages/android-local/src/config/schema.ts`�
 name: phone-smoke
 
 device:
-  backend: rish            # rish | adb-shell
+  backend: adb-shell       # shizuku-userservice（端侧，app 注入桥坐标）| adb-shell（PC 在环）
   displayId: 0             # 省略则用默认屏
-  rishPath: /data/local/tmp/rish
-  fileChannelDir: /data/local/tmp/midscene-channel   # 大 payload 通道目录
+  # fileChannelDir：端侧大 payload 通道目录，必填（shell 可写、本进程可读）；
+  # app 生成的配置会写入自己的 external files dir/channel
+  fileChannelDir: /storage/emulated/0/Android/data/<pkg>/files/channel
   yadbPath: /data/local/tmp/yadb                     # 中文输入 / pinch
   appNameMapping: { 设置: com.android.settings }      # Launch/Terminate 友好名
   exposeRunAdbShellAction: true                      # 显式开启模型可见 shell 动作；默认关闭
@@ -288,3 +295,108 @@ Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
 | M4'' ✅ | **yadb 自动分发**：assets → App 外部目录 → rish cp 到 `/data/local/tmp`（无需 adb push） | ✅ 实测日志 `staged yadb → yadb-installed`，`/data/local/tmp/yadb` 就位 |
 | M4''' ✅ | **生产版 UI**（参考 studio，无预览）：自然语言指令 / YAML 编辑运行 / 历史与报告查看 / 运行时与凭证设置 | ✅ 四页签可用；History → Report 在 WebView 内渲染 Midscene 交互报告（时间线 + 逐帧回放） |
 | M5 | 长稳与恢复（崩溃拉起、权限失效重建、索引清理与导出） | 连续 8 小时任务不死、异常后自恢复 |
+
+## 8. 已知问题：Shizuku UserService 在部分 ROM 上不启动（2026-09 现场记录）
+
+**症状**：Shizuku 主服务正常运行、App 已授权、`Shizuku.bindUserService()` 调用成功返回，但 user service 进程始终不出现；Shizuku 自己的日志给出
+
+```text
+W UserServiceRecord: Service record <uuid> is not started in 30000 ms
+```
+
+Android 12 车机实测：logcat 中**没有任何 `AndroidRuntime` 崩溃栈**。这一点很重要——它说明失败发生在 `app_process` 拉起服务进程这一步之前，而不是服务类起来之后崩掉。因此问题在 Shizuku 服务端的启动路径（或 ROM 对其的限制），不在本 App 的 AIDL/类加载/打包。
+
+**已排除**（逐项核对过）：
+
+| 假设 | 结论 |
+| --- | --- |
+| AIDL 生成类没进 APK | 否。`dexdump` 确认 `IExecService`、`IExecService$Stub`、`IExecService$Stub$Proxy`、`ExecUserService` 均在 dex 中 |
+| 代码混淆 | 否。debug 与 release 均 `minifyEnabled false` |
+| 未授权 / binder 未到 | 否。诊断页显示已授权，且请求确实到达 Shizuku（否则不会出现 `UserServiceRecord`） |
+| 服务类不可实例化 | 否。`ExecUserService` 为 `public`、继承 `IExecService.Stub`、无参构造 |
+
+**当前的诊断手段**（诊断页 "shizuku user service" 一行）：
+
+- 绑定前先用 `Shizuku.peekUserService(args, null)` 取 Shizuku 对该服务记录的**即时状态码**并原样显示（`0` = 已在运行；API 未文档化其余取值，故不做猜测）
+- 绑定后按该状态码判断是否继续等待，而不是傻等 30 秒
+- 失败时给出具体原因，并提供 **Retry binding** 按钮，无需重启 App
+
+**尚未验证、需要下一步确认的方向**：
+
+1. `app_process` 的启动命令与失败原因。Shizuku 服务端日志若包含它尝试执行的命令行，或 `avc: denied`，即可定位。
+2. 该 ROM 是否需要 `UserServiceArgs.use32BitAppProcess(true)`。该方法在 API 13.1.5 中**存在字节码但为 private**，公开 API 无法调用；若确认需要，只能靠反射或更换 Shizuku 版本。
+3. 车机 ROM 对 Shizuku 启动子进程的限制（部分 OEM 会限制 shell uid 派生子进程，历史上 Shizuku 也有厂商相关 issue）。
+
+在结论明确之前，**不要把这个 ROM 计入支持矩阵**；端侧闭环的验收仍以已通过的 Android 12/14 手机记录为准（见 §5.6）。
+
+### 8.1 备选路径（当 Shizuku UserService 在该 ROM 上起不来时）
+
+按"能跑通的概率 × 实现成本"排序。**这些是逃生路线，不是要重新并入产品的能力**；只有在某类 ROM 被正式列入支持范围时才考虑把它们产品化。
+
+| 路径 | 原理 | 需要什么 | 成本 / 风险 |
+| --- | --- | --- | --- |
+| **A. PC + ADB 直驱** | PC 上的 Node 经 `adb shell` / `exec-out` 驱动设备，完全不经 Shizuku | 设备开启开发者选项与 USB 调试；PC 在环 | **成本最低**：`adb-shell` 后端已实现并被单测覆盖，`midscene-local run` 直接可用。代价是放弃"端侧、无 PC"这一前提 |
+| **B. 无线调试直驱** | 同上，但走 `adb connect <ip>:<port>`，不需要数据线 | Android 11+；设备能开无线调试并与 PC 同网段 | 对车机特别合适（通常有线接不出来）。避开 Shizuku 与设备侧 Node 两个依赖 |
+| **C. 恢复 rish 现场** | App 自行 `sh /data/local/tmp/rish -c <cmd>`，由 rish 向 Shizuku 申请 shell 通道 | `/data/local/tmp/rish` + `rish_shizuku.dex`；Shizuku 在跑且已授权 | **概率不高**：整条链路仍然依赖 Shizuku 服务端，而 UserService 失败的证据正指向服务端。但 rish 的回连方式不同（app_process 主动连回，而非 Shizuku 拉起后 Binder 绑定），值得一试 |
+| **D. Root / `su`** | 以 root 身份执行设备命令 | 设备已 root | 与产品定位冲突（明确不使用 root），仅在自用设备上作最后手段 |
+| **E. OEM 特权 / 系统应用** | 以 platform 签名或 priv-app 身份直接调用系统 API，无需 Shizuku | 厂商签名或系统分区写入权限 | 只在有厂商配合时可行，属长期方向 |
+
+**判断顺序建议**：先用 C 的"最小验证"确定故障是否真在 Shizuku 服务端（见下），再决定是否转 A/B。A/B 不依赖 Shizuku，是能立刻交付的路径。
+
+**C 的最小验证**（不重新引入 rish 代码也能做）：在同版本 Shizuku 下用一个已知可用的第三方 Shizuku 用户服务应用做对照。若它同样起不来，则确认是 ROM/Shizuku 层面的限制，与我们的 APK 无关，此时应直接走 A/B，而不是继续在 UserService 上投入。
+
+### 8.2 Android 14 模拟器端到端复验（2026-09-13，rish 移除之后）
+
+在模拟器上完整跑通一次，作为"当前版本在标准设备上没有问题"的证据：
+
+| 检查 | 结果 |
+| --- | --- |
+| Shizuku 服务端身份 | `shell`（uid 2000），用 Shizuku APK 内的 `lib/arm64/libshizuku.so` 从 adb 启动 |
+| 授权 | 必须走 **Shizuku 自己的授权弹窗**（"Allow all the time"） |
+| 绑定 | `user service connected`；服务进程 `com.midscene.localagent:midscene`，owner 为 **shell** |
+| 冷启动绑定耗时 | **约 10 秒**（模拟器实测，8 次采样） |
+| `doctor` 能力矩阵 | `uid: 2000`、`privileged: true`、`screenshot/input/appManagement: true`、`gestures: true`、`textInput: full` |
+| Provision | yadb 落到 `/data/local/tmp/yadb`，owner `shell`，`-rw-r--r--` |
+| agent 任务 | `aiAct` "open the settings app" → **status ok**，54s，输出 "Settings app has been opened." |
+| 产物 | `exit=0`；HTML 报告与结果 JSON 落盘 |
+
+**两条容易踩的坑（本次实测踩到）**：
+
+1. **`adb shell pm grant <pkg> moe.shizuku.manager.permission.API_V23` 不足以授权。** `dumpsys package` 会显示 `granted=true`，但 `Shizuku.checkSelfPermission()` 仍返回 `-1`，因为 Shizuku 校验的是它自己的授权记录，而 `pm grant` 只改了框架权限。表现为"已授权却绑不上"。必须走 Shizuku 的弹窗。这与 §5.6 记录的历史结论一致。
+2. **绑定的等待窗口不能小。** 冷启动约 10 秒；曾用 3 秒窗口，结果把正常设备误报成"服务没起来"，并在日志里刷出误导性告警。
+
+**已知遗留**：`ensureBound` 在 Activity `onCreate` 与 `ExecBridge.start` 两处几乎同时调用，会发出两次 `bindUserService`（间隔数毫秒），但守卫保证只产生一个服务进程。若后续发现重复进程，从 `ensureBound` 的守卫窗口查起。
+
+### 8.3 车机现场（Android 12，user 10）结论：Shizuku UserService 无法派生
+
+现场环境（用户提供）：
+
+- `shizuku_server` 由电脑端 adb 执行 Shizuku APK 自带的 `lib/arm64/libshizuku.so` 启动，运行身份 **shell**，PID 25207
+- Shizuku 与 Midscene **同在 user 10**（因此不存在跨用户代理问题）
+- App 已授权；adb TCP 5555；车机重启后需重新手动启动 Shizuku
+
+新包的完整日志（关键三行）：
+
+```text
+probe: binder=true preV11=false selfPermission=0        ← 授权层正常，与模拟器一致
+bindUserService com.midscene.localagent/.../ExecUserService  ← 请求已发出，Shizuku 接受
+peekUserService status=-1                                ← 服务始终未起来
+```
+
+**全程没有 `user service connected`。** 与 §8.2 模拟器成功记录的差别只有这一处：Shizuku 没有把服务进程拉起来。
+
+对照模拟器（同一启动方式、同一 Shizuku 版本）**完全正常**，因此可以确认差异来自设备侧，而不是本项目的代码或配置。
+
+**已排除**（逐项验证）：
+
+| 假设 | 结论 |
+| --- | --- |
+| 授权 / `pm grant` 问题 | 排除。`selfPermission=0` |
+| Shizuku 启动方式 | 排除。与模拟器成功记录的启动方式完全相同 |
+| 跨用户代理 | 排除。Shizuku 与 App 同在 user 10 |
+| 本项目的等待窗口、主线程阻塞、状态码语义 | 已修复并在模拟器复验通过（§8.2） |
+| AIDL / 类加载 / 打包 | 排除。同一 APK 在模拟器上完整跑通 agent 任务 |
+
+**剩余怀疑（指向 Shizuku 或 ROM，非本项目）**：上游有多个同类报告——[#1198 User services don't work on MediaTek devices](https://github.com/RikkaApps/Shizuku/issues/1198)、[#1171 无法启动用户服务进程](https://github.com/RikkaApps/Shizuku/issues/1171)、[#475 Stuck in Shizuku.bindUserService sometimes](https://github.com/RikkaApps/Shizuku/issues/475)，且多用户环境下 Shizuku 亦有已知问题（如 [aniyomi 的多用户修复](https://github.com/aniyomiorg/aniyomi/commit/c42c7ffd282108de1f25577efc52b7533d58e938)）。本例同时具备"特定 ROM"与"二级用户"两个特征。
+
+**结论**：在 Shizuku 或 ROM 层面解决之前，**该车机不计入支持矩阵**。端侧闭环的验收以已通过的 Android 14 模拟器记录（§8.2）与 Android 12/14 手机记录（§5.6）为准。这台车机若要跑自动化，走 §8.1 的路径 A/B（PC + adb / 无线调试直驱），该路径不经过 Shizuku。

@@ -28,8 +28,7 @@ public final class SelfCheckScript {
     private static final String TEMPLATE =
             "name: self-check\n"
                     + "device:\n"
-                    + "  backend: rish\n"
-                    + "  rishPath: /data/local/tmp/rish\n"
+                    + "  backend: shizuku-userservice\n"
                     + "  yadbPath: /data/local/tmp/yadb\n"
                     + "  fileChannelDir: %s\n"
                     + "agent:\n"

@@ -10,8 +10,8 @@ import {
   type FakeCommandResponse,
   FakeCommandRunner,
 } from '../../src/transport/command-runner';
-import type { ShellFileIo } from '../../src/transport/rish';
-import { RishTransport } from '../../src/transport/rish';
+import type { ShellFileIo } from '../../src/transport/shell';
+import { ShellTransport } from '../../src/transport/shell';
 import { describeTransportContract } from './transport-contract';
 
 const fixtureDir = path.join(__dirname, 'fixtures');
@@ -25,12 +25,12 @@ const wmDensity = fs.readFileSync(
   'utf8',
 );
 
-const RISH = '/data/local/tmp/rish';
+const FILE_CHANNEL_DIR = '/storage/emulated/0/Android/data/app/files/channel';
 const SERIAL = 'emulator-5554';
 
 /**
- * rish reads payloads through the on-device file channel, so the contract's
- * `screencap` response is surfaced as the file content instead of stdout.
+ * The shell transport reads payloads through the on-device file channel, so the
+ * contract's `screencap` response is surfaced as the file content, not stdout.
  */
 function fileIoFromResponses(responses: FakeCommandResponse[]): ShellFileIo {
   const findImage = (): Buffer => {
@@ -54,7 +54,7 @@ function fileIoFromResponses(responses: FakeCommandResponse[]): ShellFileIo {
 }
 
 describeTransportContract({
-  name: 'RishTransport',
+  name: 'ShellTransport',
   healthy: () => [
     { match: ['id -u'], stdout: '2000\n' },
     { match: ['command -v'], stdout: '/system/bin/command\n' },
@@ -66,9 +66,9 @@ describeTransportContract({
     { match: ['input'], stdout: '' },
   ],
   create: (responses) =>
-    new RishTransport({
-      rishPath: RISH,
+    new ShellTransport({
       runner: new FakeCommandRunner(responses),
+      fileChannelDir: FILE_CHANNEL_DIR,
       displayCacheTtlMs: 0,
       fileIo: fileIoFromResponses(responses),
     }),

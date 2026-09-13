@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 const CAPABILITIES: AndroidCapabilities = {
-  backend: 'rish',
+  backend: 'shizuku-userservice',
   shell: true,
   screenshot: true,
   input: true,
@@ -47,7 +47,7 @@ const CAPABILITIES: AndroidCapabilities = {
 /** Minimal transport stub: the runner only needs capabilities and close(). */
 function createStubTransport(): AndroidTransport {
   return {
-    backend: 'rish',
+    backend: 'shizuku-userservice',
     async getCapabilities() {
       return CAPABILITIES;
     },
@@ -86,7 +86,7 @@ function createStubTransport(): AndroidTransport {
     async healthCheck() {
       return {
         ok: true,
-        backend: 'rish',
+        backend: 'shizuku-userservice',
         uid: 2000,
         latencyMs: 1,
         checkedAt: Date.now(),
@@ -134,7 +134,7 @@ describe('local agent config schema', () => {
     });
 
     expect(config.name).toBe('midscene-local');
-    expect(config.device.backend).toBe('rish');
+    expect(config.device.backend).toBe('shizuku-userservice');
     expect(config.agent.generateReport).toBe(true);
     expect(config.tasks).toHaveLength(1);
   });
@@ -162,7 +162,7 @@ describe('local agent config schema', () => {
       [
         'name: phone-smoke',
         'device:',
-        '  backend: rish',
+        '  backend: shizuku-userservice',
         '  displayId: 0',
         'tasks:',
         '  - name: search',
@@ -221,7 +221,7 @@ describe('local agent runner', () => {
     const result = await runLocalAgentConfig(
       localAgentConfigSchema.parse({
         name: 'unit',
-        device: { backend: 'rish' },
+        device: { backend: 'shizuku-userservice' },
         tasks: [
           { name: 'act', type: 'aiAct', prompt: 'open settings' },
           { name: 'assert', type: 'aiAssert', prompt: 'settings is open' },

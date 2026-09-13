@@ -7,7 +7,7 @@ import {
   type FakeCommandResponse,
   FakeCommandRunner,
 } from '../../src/transport/command-runner';
-import { RishTransport } from '../../src/transport/rish';
+import { ShellTransport } from '../../src/transport/shell';
 import {
   buildYadbKeyboardClearCommand,
   buildYadbPinchCommand,
@@ -25,7 +25,7 @@ const wmDensity = fs.readFileSync(
 );
 
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const RISH = '/data/local/tmp/rish';
+const FILE_CHANNEL_DIR = '/storage/emulated/0/Android/data/app/files/channel';
 const YADB = '/data/local/tmp/yadb';
 
 function createFixtureFileIo() {
@@ -57,10 +57,10 @@ function createTransport(
 
   return {
     runner,
-    transport: new RishTransport({
-      rishPath: RISH,
+    transport: new ShellTransport({
       yadbPath: YADB,
       runner,
+      fileChannelDir: FILE_CHANNEL_DIR,
       displayCacheTtlMs: 0,
       fileIo: createFixtureFileIo(),
     }),
@@ -112,7 +112,7 @@ describe('transport pinch capability', () => {
       { startDistance: 200, endDistance: 600, duration: 400 },
     );
 
-    const command = runner.calls.at(-1)?.argv[3] ?? '';
+    const command = runner.calls.at(-1)?.command ?? '';
     expect(command).toContain(
       'com.ysbing.yadb.Main -pinch 1280 800 200 600 400',
     );

@@ -201,6 +201,23 @@ private fun ConsoleShell(
     var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
+    // Probing is the only thing that proves a shell-uid process is reachable, so
+    // it runs here and both the run gate and Diagnostics read the same answer.
+    var bindState by remember { mutableStateOf<ShizukuExecBridge.BindingState?>(null) }
+    var probing by remember { mutableStateOf(true) }
+    var probeTick by remember { mutableStateOf(0) }
+    LaunchedEffect(probeTick, onboarded) {
+        if (!onboarded) {
+            return@LaunchedEffect
+        }
+        probing = true
+        bindState = withContext(Dispatchers.IO) {
+            ShizukuExecBridge.probeBinding(context, 8_000)
+        }
+        probing = false
+    }
+    val retryBinding: () -> Unit = { probeTick += 1 }
+
 
     // One WebView for the session: reports are several megabytes and re-parsing one
     // on every visit to History is what made the embedded view feel slower than a
@@ -243,7 +260,10 @@ private fun ConsoleShell(
             Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                 onSettings = { tab = 3 },
                 onBack = { tab = if (tab == 4) 3 else 0 },
-                onDiagnostics = { tab = 4 })
+                onDiagnostics = { tab = 4 },
+                bindState = bindState,
+                probing = probing,
+                onRetryBinding = retryBinding)
         }
     } else {
         Column(Modifier.fillMaxSize()) {
@@ -251,7 +271,10 @@ private fun ConsoleShell(
                 Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                     onSettings = { tab = 3 },
                     onBack = { tab = if (tab == 4) 3 else 0 },
-                    onDiagnostics = { tab = 4 })
+                    onDiagnostics = { tab = 4 },
+                    bindState = bindState,
+                    probing = probing,
+                    onRetryBinding = retryBinding)
             }
             if (tab < 3) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
@@ -280,6 +303,9 @@ private fun Screen(
     onSettings: () -> Unit,
     onBack: () -> Unit,
     onDiagnostics: () -> Unit,
+    bindState: ShizukuExecBridge.BindingState?,
+    probing: Boolean,
+    onRetryBinding: () -> Unit,
 ) {
     // History draws its own bar: it is the only page whose actions belong next to the
     // title it is showing (which run is open, report or log, delete, list).
@@ -309,8 +335,8 @@ private fun Screen(
             when (tab) {
                 1 -> ScriptsScreen()
                 3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
-                4 -> DiagnosticsScreen()
-                else -> RunScreen()
+                4 -> DiagnosticsScreen(bindState, probing, onRetryBinding)
+                else -> RunScreen(bindState, onRetryBinding)
             }
         }
     }
@@ -411,7 +437,10 @@ private fun rememberRunBusy(): Boolean {
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
-private fun RunScreen() {
+private fun RunScreen(
+    bindState: ShizukuExecBridge.BindingState?,
+    onRetryBinding: () -> Unit,
+) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
@@ -503,7 +532,7 @@ private fun RunScreen() {
                             busy = true
                             keyboard?.hide()
                         },
-                        enabled = prompt.isNotBlank() && !busy,
+                        enabled = prompt.isNotBlank() && !busy && bindState?.ready == true,
                         shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MidsceneColors.Brand,
@@ -526,6 +555,9 @@ private fun RunScreen() {
                     ) { Text("Stop") }
                 }
             }
+        }
+        if (bindState?.ready != true) {
+            ShizukuBindingHint(state = bindState, probing = false, onRetry = onRetryBinding)
         }
         lastRun?.let { LastRunCard(it) { path, html -> openArtefact(context, path, html) } }
     }
@@ -1169,7 +1201,11 @@ private fun RunDetail(
 // ------------------------------------------------------------- diagnostics
 
 @Composable
-private fun DiagnosticsScreen() {
+private fun DiagnosticsScreen(
+    bindState: ShizukuExecBridge.BindingState?,
+    probing: Boolean,
+    onRetryBinding: () -> Unit,
+) {
     val context = LocalContext.current
     val busy = rememberRunBusy()
     val lines = remember { mutableStateListOf<String>() }
@@ -1192,7 +1228,18 @@ private fun DiagnosticsScreen() {
             StatusRow("node", File(Provisioner.nodePath(context)).exists())
             StatusRow("agent bundle", Provisioner.cliFile(context).exists())
             StatusRow("yadb", File(Provisioner.YADB_TARGET).exists())
-            StatusRow("shizuku user service", ShizukuExecBridge.isReady())
+            // No answer yet must not read as "missing": the probe binds and waits,
+            // so the first frame has nothing to report.
+            val serviceReady = bindState?.ready == true
+            StatusRow(
+                "shizuku user service",
+                serviceReady,
+                when {
+                    probing -> "checking…"
+                    bindState == null -> "unknown"
+                    else -> null
+                },
+            )
             StatusRow("overlay permission", OverlayView.canDraw(context))
             Spacer(Modifier.height(10.dp))
             val authorizeLabel = if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize"
@@ -1211,11 +1258,18 @@ private fun DiagnosticsScreen() {
                 "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
                 authorizeLabel to {
                     if (ShizukuAuth.binderReady()) {
-                        ShizukuAuth.request { }
+                        // A grant nobody reacts to leaves the service unbound, so the
+                        // listener rebinds and this re-probes once it lands.
+                        ShizukuAuth.request { onRetryBinding() }
                     } else {
                         openShizuku(context)
                     }
                 },
+            )
+            ShizukuBindingHint(
+                state = bindState,
+                probing = probing,
+                onRetry = onRetryBinding,
             )
         }
         DiagnosticsCard("DEVICE") {
@@ -1278,18 +1332,83 @@ private fun DiagnosticsCard(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun StatusRow(label: String, ready: Boolean) {
+private fun StatusRow(label: String, ready: Boolean, status: String? = null) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Text(
-            if (ready) "ready" else "missing",
+            status ?: if (ready) "ready" else "missing",
             style = MaterialTheme.typography.bodySmall,
-            color = if (ready) MidsceneColors.SuccessText else MidsceneColors.Error,
+            color = when {
+                status != null -> MidsceneColors.Brand
+                ready -> MidsceneColors.SuccessText
+                else -> MidsceneColors.Error
+            },
         )
     }
+}
+
+/**
+ * Why the user service is not ready, and a way to try again.
+ *
+ * "missing" on its own used to be the whole story: the app could be authorized
+ * while the binding had silently failed, and nothing on screen said so or let the
+ * user retry without restarting the app.
+ */
+@Composable
+private fun ShizukuBindingHint(
+    state: ShizukuExecBridge.BindingState?,
+    probing: Boolean,
+    onRetry: () -> Unit,
+) {
+    val context = LocalContext.current
+    if (probing || state == null) {
+        return
+    }
+
+    Spacer(Modifier.height(8.dp))
+    if (state.ready) {
+        Text(
+            "User service bound as uid ${state.uid}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MidsceneColors.SuccessText,
+        )
+        return
+    }
+
+    val explanation = when {
+        !state.binder -> "Shizuku is not running. Start it, then retry."
+        !state.authorized -> "Shizuku is running but this app is not authorized yet."
+        // A bound-then-dead service is a distinct fault: report it before the bind
+        // error, which describes an earlier attempt.
+        state.serviceFailure != null -> state.serviceFailure
+        else -> state.reason?.takeIf { it.isNotBlank() }
+            ?: "Shizuku is running and authorized, but the user service did not start."
+    }
+    Text(
+        explanation,
+        style = MaterialTheme.typography.bodySmall,
+        color = MidsceneColors.Error,
+    )
+    // Shizuku's own status for the service record. The API does not document the
+    // values, so the number is shown as-is: a diagnosis needs the raw answer, not
+    // our guess at what it means.
+    if (state.binder && state.authorized) {
+        Text(
+            "Shizuku user-service status: ${state.serviceStatus}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(8.dp))
+    ActionRow(
+        actions = arrayOf(
+            "Retry binding" to onRetry,
+            "Open Shizuku" to { openShizuku(context) },
+        ),
+    )
 }
 
 @Composable
@@ -1862,36 +1981,25 @@ internal object ThemePrefs {
     }
 }
 
-/** Shizuku authorization, done properly: only requestPermission() raises the dialog. */
+/**
+ * Shizuku authorization: only requestPermission() raises the dialog.
+ *
+ * The result listener lives in [ShizukuExecBridge] rather than here, because the
+ * grant is only useful if something binds the user service in response to it.
+ * This object stays a thin reader so the UI keeps asking one place "is it usable".
+ */
 private object ShizukuAuth {
     private const val REQUEST_CODE = 4210
 
-    fun authorized(): Boolean = try {
-        !Shizuku.isPreV11() &&
-            Shizuku.pingBinder() &&
-            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-    } catch (error: Throwable) {
-        false
-    }
+    fun authorized(): Boolean = ShizukuExecBridge.shizukuAuthorized()
 
-    fun binderReady(): Boolean = try {
-        Shizuku.pingBinder()
-    } catch (error: Throwable) {
-        false
-    }
+    fun binderReady(): Boolean = ShizukuExecBridge.binderAlive()
 
     fun installed(context: android.content.Context): Boolean =
         context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api") != null
 
     fun request(onResult: (Boolean) -> Unit) {
-        Shizuku.addRequestPermissionResultListener { _, grantResult ->
-            onResult(grantResult == PackageManager.PERMISSION_GRANTED)
-        }
-        try {
-            Shizuku.requestPermission(REQUEST_CODE)
-        } catch (error: Throwable) {
-            onResult(false)
-        }
+        ShizukuExecBridge.requestPermission(REQUEST_CODE) { granted -> onResult(granted) }
     }
 }
 

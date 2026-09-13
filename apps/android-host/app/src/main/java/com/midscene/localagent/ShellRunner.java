@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Shared process plumbing: running the bundled Node CLI and one-off rish commands. */
+/** Shared process plumbing: running the bundled Node CLI. */
 public final class ShellRunner {
 
     private ShellRunner() {
@@ -81,10 +81,14 @@ public final class ShellRunner {
         env.put("TMPDIR", context.getCacheDir().getAbsolutePath());
         env.put("PATH", nativeDir + ":/system/bin:/system/xbin");
         env.put("MIDSCENE_RUN_DIR", new File(context.getFilesDir(), "run").getAbsolutePath());
-        // rish asks Shizuku for the shell channel on behalf of this package.
-        env.put("RISH_APPLICATION_ID", context.getPackageName());
+        // The file channel is the app's external files directory: the shell uid
+        // writes payloads there and this process reads them back. `doctor` needs
+        // it too, so the CLI reads it from the environment.
+        env.put("MIDSCENE_FILE_CHANNEL_DIR",
+                Provisioner.channelDir(context).getAbsolutePath());
         // The agent reaches the Shizuku user service through the app's loopback
-        // bridge; empty values mean "not available", and the transport falls back.
+        // bridge; without these the on-device path is unavailable and a run fails
+        // fast instead of picking another privilege channel.
         if (!ExecBridge.baseUrl().isEmpty()) {
             env.put("MIDSCENE_EXEC_BRIDGE_URL", ExecBridge.baseUrl());
             env.put("MIDSCENE_EXEC_BRIDGE_TOKEN", ExecBridge.token());
@@ -127,61 +131,6 @@ public final class ShellRunner {
                 process.destroyForcibly();
             }
         }
-    }
-
-    /**
-     * Run one command through rish (Shizuku shell channel) and return its output.
-     * Used for provisioning, where the agent runtime is not involved yet.
-     */
-    public static String rish(Context context, String command, LineSink sink, int timeoutMs)
-            throws IOException {
-        String rishPath = new File(context.getFilesDir(), "rish-path").isFile()
-                ? readText(new File(context.getFilesDir(), "rish-path"))
-                : "/data/local/tmp/rish";
-
-        ProcessBuilder builder = new ProcessBuilder("sh", rishPath.trim(), "-c", command);
-        String nativeDir = context.getApplicationInfo().nativeLibraryDir;
-        Map<String, String> env = builder.environment();
-        // Strip the loader variables: rish starts app_process, which must resolve
-        // the system libraries, not ours.
-        env.remove("LD_LIBRARY_PATH");
-        env.remove("LD_PRELOAD");
-        env.put("RISH_APPLICATION_ID", context.getPackageName());
-        // The agent reaches the Shizuku user service through the app's loopback
-        // bridge; empty values mean "not available", and the transport falls back.
-        if (!ExecBridge.baseUrl().isEmpty()) {
-            env.put("MIDSCENE_EXEC_BRIDGE_URL", ExecBridge.baseUrl());
-            env.put("MIDSCENE_EXEC_BRIDGE_TOKEN", ExecBridge.token());
-        }
-        env.put("PATH", "/system/bin:/system/xbin");
-        // rish re-executes as the shell uid, which cannot enter app-private dirs.
-        builder.directory(new File("/"));
-        builder.redirectErrorStream(true);
-
-        Process process = builder.start();
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append('\n');
-                if (sink != null) {
-                    sink.line(line);
-                }
-            }
-        }
-
-        try {
-            if (!process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly();
-                throw new IOException("rish command timed out after " + timeoutMs + " ms");
-            }
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            process.destroyForcibly();
-            throw new IOException("rish command interrupted");
-        }
-        return output.toString();
     }
 
     /**

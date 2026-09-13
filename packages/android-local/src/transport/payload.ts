@@ -24,7 +24,7 @@ export function isImageBuffer(buffer: Buffer): boolean {
  * Text form of a command result, tolerating backends that place a command's
  * output on stderr.
  *
- * Measured with rish on Android 12 + Shizuku 13.6.0: `id -u` arrived on stderr
+ * Measured on Android 12 + Shizuku 13.6.0: `id -u` arrived on stderr
  * with an empty stdout, while large outputs were split across both pipes. adb
  * behaves conventionally, so this helper is a no-op there.
  */

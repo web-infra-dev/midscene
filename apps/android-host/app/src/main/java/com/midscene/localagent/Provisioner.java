@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - the agent bundle and JS files go to app-private storage (only the app reads them);
  * - yadb must end up in /data/local/tmp for the shell uid, and the app cannot write
  *   there (SELinux), so it is staged in the app's *external* files directory —
- *   which the shell can read — and copied by rish.
+ *   which the shell can read — and copied by the Shizuku user service.
  */
 public final class Provisioner {
 
@@ -229,37 +229,63 @@ public final class Provisioner {
     }
 
     /**
-     * Install yadb into /data/local/tmp through the shell channel. Requires
-     * Shizuku authorization, which the first rish call triggers.
+     * Install yadb into /data/local/tmp through the shell channel.
+     *
+     * The Shizuku user service is the only privilege path: there is no fallback
+     * to spawning a `rish` script from this process (that call is aborted on
+     * Android 14, so the fallback could only turn a clear "not ready" into a
+     * confusing failure later).
      */
     public static String installYadb(Context context, LogSink log) throws IOException {
         File staged = stageYadb(context, log);
 
-        ShizukuExecBridge.ensureBound(context);
-        if (ShizukuExecBridge.waitUntilReady(20_000)) {
-            String command = String.format(
-                    "cp '%s' %s && chmod 644 %s && ls -l %s",
-                    staged.getAbsolutePath(), YADB_TARGET, YADB_TARGET, YADB_TARGET);
-            ShizukuExecBridge.Result result = ShizukuExecBridge.exec(command, 30_000);
-            log.log("shizuku user service: " + result.stdout.trim()
-                    + (result.stderr.isEmpty() ? "" : " stderr=" + result.stderr.trim()));
-            if (!result.ok()) {
-                throw new IOException("yadb install failed (exit " + result.exitCode + ")"
-                        + (result.stderr.isEmpty() ? "" : ": " + result.stderr.trim()));
-            }
-            return YADB_TARGET;
+        // Probe rather than wait: a bare "not ready" used to be reported with an
+        // empty reason, which told the user nothing about what to fix.
+        ShizukuExecBridge.BindingState state = ShizukuExecBridge.probeBinding(context, 8_000);
+        if (!state.ready) {
+            throw new IOException("yadb install needs the Shizuku user service, which is not "
+                    + "ready: " + describeBinding(state));
         }
-        log.log("user service not ready (" + ShizukuExecBridge.lastError()
-                + "); falling back to rish");
+        log.log("shizuku user service bound as uid " + state.uid);
 
         String command = String.format(
-                "cp '%s' %s && chmod 644 %s && test -f %s && echo yadb-installed",
+                "cp '%s' %s && chmod 644 %s && ls -l %s",
                 staged.getAbsolutePath(), YADB_TARGET, YADB_TARGET, YADB_TARGET);
-        String output = ShellRunner.rish(context, command, log, 30_000);
-        if (!output.contains("yadb-installed")) {
-            throw new IOException("yadb install failed: " + output.trim());
+        ShizukuExecBridge.Result result = ShizukuExecBridge.exec(command, 30_000);
+        log.log("shizuku user service: " + result.stdout.trim()
+                + (result.stderr.isEmpty() ? "" : " stderr=" + result.stderr.trim()));
+        if (!result.ok()) {
+            throw new IOException("yadb install failed (exit " + result.exitCode + ")"
+                    + (result.stderr.isEmpty() ? "" : ": " + result.stderr.trim()));
         }
         return YADB_TARGET;
+    }
+
+    /**
+     * Turn a binding state into the one sentence the user has to act on.
+     *
+     * The reason and the status code are both reported: the reason names the
+     * operation that failed, the code says which stage it failed at, and neither
+     * alone is enough to tell "never started" from "started and died".
+     */
+    private static String describeBinding(ShizukuExecBridge.BindingState state) {
+        StringBuilder message = new StringBuilder();
+        if (!state.binder) {
+            message.append("Shizuku is not running. Start Shizuku, then provision again.");
+        } else if (!state.authorized) {
+            message.append("this app is not authorized in Shizuku. Tap Authorize in "
+                    + "Diagnostics, then provision again.");
+        } else if (state.serviceFailure != null && !state.serviceFailure.isEmpty()) {
+            message.append(state.serviceFailure);
+        } else if (state.reason != null && !state.reason.isEmpty()) {
+            message.append(state.reason);
+        } else {
+            message.append("Shizuku is running and authorized, but the user service did "
+                    + "not come up. Retry binding in Diagnostics; if it keeps failing, "
+                    + "restart Shizuku.");
+        }
+        message.append(" [peek status ").append(state.serviceStatus).append(']');
+        return message.toString();
     }
 
     /** Sink for provisioning output; also usable as a shell line sink. */

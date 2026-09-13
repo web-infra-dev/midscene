@@ -4,20 +4,16 @@ import type {
   CommandRunnerOptions,
   CommandRunnerResult,
 } from './command-runner';
-import type { ShellFileIo } from './rish';
+import type { ShellFileIo } from './shell';
 
 /**
  * Command execution through the Android host app's loopback bridge.
  *
- * On Android 14 a `rish` call from an app process is aborted by Shizuku, so the
- * bundled agent does not spawn rish at all: it posts the command to the app,
- * which forwards it to a Shizuku user service running as shell (uid 2000). The
- * bridge is bound to 127.0.0.1 and authenticated with a per-process token that
- * the app passes in the child environment.
- *
- * The transports still build `sh <rish> -c <command>` argv arrays; this runner
- * executes the payload element directly, which is what makes it a drop-in
- * replacement without touching the transports.
+ * This is the on-device privilege path: the bundled agent never reaches a shell
+ * uid by itself. It hands the runner `['sh', '-c', command]` and posts the
+ * payload to the app, which forwards it to a Shizuku user service running as
+ * shell (uid 2000). The bridge is bound to 127.0.0.1 and authenticated with a
+ * per-process token that the app passes in the child environment.
  */
 export interface ExecBridgeOptions {
   url: string;
@@ -45,7 +41,7 @@ export function bridgeFromEnv(
   return { url, token };
 }
 
-/** The transports wrap the real command for their launcher; the bridge runs it. */
+/** The transport wraps the command in `sh -c`; the bridge runs the payload. */
 export function commandFromArgv(argv: string[]): string {
   return argv[argv.length - 1] ?? '';
 }

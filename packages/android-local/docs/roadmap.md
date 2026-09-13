@@ -1,5 +1,9 @@
 # android-local 开发路线图
 
+> **范围变更（2026-09-13，已执行）**：端侧后端收敛为 **Shizuku UserService（经本地桥）** 一种，Termux + rish 现场已移除。
+> 本表 Phase 0/1 中与 rish 现场相关的任务**保留为已完成的历史记录**，不再作为后续目标；
+> 决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §9。
+
 阶段划分与 Gate 沿用调研文档（`research-v0.1.md` §7），此处细化到**可执行任务、产出物与验收方式**，并补上本仓库特有的风险（见 §6）。
 
 > **平台优先级（2026-09 调整）**：**普通安卓手机优先**。Phase 0/1 的所有结论以手机为目标平台；车机/OEM 特权通道（OEM Privileged Transport、多 Display 车机矩阵）降级为 Phase 3 的条件式可选项。

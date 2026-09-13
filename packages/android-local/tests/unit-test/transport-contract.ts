@@ -18,7 +18,7 @@ export interface ContractHarness {
   create: (responses: FakeCommandResponse[]) => AndroidTransport;
   /**
    * Backend-specific command responses for a healthy device. Kept per backend
-   * because argv shapes legitimately differ (adb vs rish vs file system).
+   * because argv shapes legitimately differ (adb vs the on-device bridge).
    */
   healthy: () => FakeCommandResponse[];
   /** Response set for a device that denies shell access. */

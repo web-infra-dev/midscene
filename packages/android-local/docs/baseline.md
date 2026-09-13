@@ -1,5 +1,9 @@
 # 性能基线（Phase 0 / Phase 1 起点）
 
+> **范围变更（2026-09-13，已执行）**：Termux + rish 现场已移除，本文的 rish 侧数据**保留为历史基线**——
+> 它记录了文件通道、串行探测、环境隔离这些实现的由来（见 [productization-decisions.md](./productization-decisions.md) §9）。
+> 端侧现走桥通道，`adb-shell` 数据仍是有效的对照值。
+
 **目标平台优先级：普通安卓手机**（车机约束在 Phase 3 再评估）。
 
 | 项 | 值 |

@@ -1,17 +1,20 @@
 # Example config for the on-device agent (`midscene-local run`).
 #
-# Copy next to your scripts, edit, and run from the phone (Termux) or from the
-# host with backend adb-shell. Secrets should come from the environment or a
-# secret store in real deployments — see docs/deployment.md.
+# Copy next to your scripts, edit, and run from the host with `backend: adb-shell`.
+# On the phone the app injects the bridge runner and file I/O through the
+# environment, so no backend/fileChannelDir is needed there (the app's generated
+# config carries the channel directory).
+#
+# Secrets should come from the environment or a secret store in real
+# deployments — see docs/deployment.md.
 
 name: phone-smoke
 
 device:
-  # rish = on-device agent through Shizuku (phone only, no PC involved)
-  # adb-shell = PC + USB cable (debugging, regression)
-  backend: rish
+  # adb-shell = PC + USB cable (debugging, regression, CI).
+  # On the phone the bridge is selected by the injected environment, not here.
+  backend: adb-shell
   displayId: 0
-  rishPath: /data/local/tmp/rish
   # yadb enables Chinese/emoji input and pinch gestures
   yadbPath: /data/local/tmp/yadb
   appNameMapping:

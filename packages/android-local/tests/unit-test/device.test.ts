@@ -10,7 +10,7 @@ import {
   type FakeCommandResponse,
   FakeCommandRunner,
 } from '../../src/transport/command-runner';
-import { RishTransport } from '../../src/transport/rish';
+import { ShellTransport } from '../../src/transport/shell';
 
 const fixtureDir = path.join(__dirname, 'fixtures');
 const dumpsysDisplay = fs.readFileSync(
@@ -24,7 +24,7 @@ const wmDensity = fs.readFileSync(
 );
 
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const RISH = '/data/local/tmp/rish';
+const FILE_CHANNEL_DIR = '/storage/emulated/0/Android/data/app/files/channel';
 
 function deviceResponses(): FakeCommandResponse[] {
   return [
@@ -67,9 +67,9 @@ async function createDevice(
   } = {},
 ) {
   const runner = new FakeCommandRunner(responses);
-  const transport = new RishTransport({
-    rishPath: RISH,
+  const transport = new ShellTransport({
     runner,
+    fileChannelDir: FILE_CHANNEL_DIR,
     displayCacheTtlMs: 0,
     displayId: options.displayId,
     fileIo: createFixtureFileIo(),
@@ -100,12 +100,12 @@ describe('LocalAndroidDevice wiring', () => {
 
     expect(device.interfaceType).toBe('android');
     expect(device.getCapabilities()).toMatchObject({
-      backend: 'rish',
+      backend: 'shizuku-userservice',
       uid: 2000,
       privileged: true,
     });
     expect(device.describe()).toBe(
-      'AndroidLocalDevice(backend=rish, uid=2000)',
+      'AndroidLocalDevice(backend=shizuku-userservice, uid=2000)',
     );
   });
 
@@ -141,7 +141,7 @@ describe('LocalAndroidDevice screen access', () => {
     await device.screenshotBase64();
 
     expect(
-      runner.calls.some((call) => call.argv[3]?.includes('screencap -p -d 10')),
+      runner.calls.some((call) => call.command.includes('screencap -p -d 10')),
     ).toBe(true);
   });
 
@@ -163,9 +163,9 @@ describe('LocalAndroidDevice screen access', () => {
 
 describe('LocalAndroidDevice action space', () => {
   test('refuses to build an action space before connecting', () => {
-    const transport = new RishTransport({
-      rishPath: RISH,
+    const transport = new ShellTransport({
       runner: new FakeCommandRunner(deviceResponses()),
+      fileChannelDir: FILE_CHANNEL_DIR,
       fileIo: createFixtureFileIo(),
     });
     const device = new LocalAndroidDevice(transport);
@@ -290,9 +290,9 @@ describe('LocalAndroidDevice input primitives', () => {
     await device.inputPrimitives.system?.recentAppsButton?.();
 
     expect(runner.commands.slice(-3)).toEqual([
-      `sh ${RISH} -c input keyevent 4`,
-      `sh ${RISH} -c input keyevent 3`,
-      `sh ${RISH} -c input keyevent 187`,
+      'sh -c input keyevent 4',
+      'sh -c input keyevent 3',
+      'sh -c input keyevent 187',
     ]);
   });
 

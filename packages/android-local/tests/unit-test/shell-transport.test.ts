@@ -7,7 +7,7 @@ import {
   FakeCommandRunner,
   joinShellCommand,
 } from '../../src/transport/command-runner';
-import { RishTransport } from '../../src/transport/rish';
+import { ShellTransport } from '../../src/transport/shell';
 
 const fixtureDir = path.join(__dirname, 'fixtures');
 const dumpsysDisplay = fs.readFileSync(
@@ -21,7 +21,7 @@ const wmDensity = fs.readFileSync(
 );
 
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const RISH = '/data/local/tmp/rish';
+const FILE_CHANNEL_DIR = '/storage/emulated/0/Android/data/app/files/channel';
 
 function deviceResponses(): FakeCommandResponse[] {
   return [
@@ -75,7 +75,6 @@ interface CreateTransportOptions {
   displayId?: number;
   displayCacheTtlMs?: number;
   fileIo?: { read(filePath: string): Promise<Buffer> };
-  unsetEnv?: string[];
 }
 
 function createTransport(
@@ -84,34 +83,46 @@ function createTransport(
 ) {
   const runner = new FakeCommandRunner(responses);
   const fileIo = options.fileIo ?? createFixtureFileIo().io;
-  const transport = new RishTransport({
-    rishPath: RISH,
+  const transport = new ShellTransport({
     runner,
+    fileChannelDir: FILE_CHANNEL_DIR,
     displayCacheTtlMs: options.displayCacheTtlMs ?? 0,
     displayId: options.displayId,
     fileIo,
-    unsetEnv: options.unsetEnv,
   });
 
   return { runner, transport };
 }
 
-/** Assert the exact rish argv of one recorded call. */
-function expectRishCommand(
+/**
+ * Assert the exact argv of one recorded call.
+ *
+ * The transport always asks for `sh -c <command>`; reaching a shell uid is the
+ * runner's job (the bridge posts the payload to the Shizuku user service).
+ */
+function expectCommand(
   runner: FakeCommandRunner,
   index: number,
   command: string,
 ) {
-  expect(runner.calls[index]?.argv).toEqual(['sh', RISH, '-c', command]);
+  expect(runner.calls[index]?.argv).toEqual(['sh', '-c', command]);
 }
 
-describe('RishTransport capability probing', () => {
+/** The shell payload of one recorded call, without the `sh -c` wrapper. */
+function payloadOf(
+  runner: FakeCommandRunner,
+  index: number,
+): string | undefined {
+  return runner.calls[index]?.argv[2];
+}
+
+describe('ShellTransport capability probing', () => {
   test('detects the shell uid, available commands and multiple displays', async () => {
     const { runner, transport } = createTransport(deviceResponses());
 
     const capabilities = await transport.getCapabilities();
 
-    expect(capabilities.backend).toBe('rish');
+    expect(capabilities.backend).toBe('shizuku-userservice');
     expect(capabilities.shell).toBe(true);
     expect(capabilities.screenshot).toBe(true);
     expect(capabilities.input).toBe(true);
@@ -120,8 +131,8 @@ describe('RishTransport capability probing', () => {
     expect(capabilities.textInput).toBe('ascii-only');
     expect(capabilities.privileged).toBe(true);
     expect(capabilities.uid).toBe(2000);
-    // The probe must go through rish, never a local shell.
-    expectRishCommand(runner, 0, 'id -u');
+    // The probe must go through the shell runner, never a local shell.
+    expectCommand(runner, 0, 'id -u');
   });
 
   test('caches the probe result', async () => {
@@ -149,30 +160,18 @@ describe('RishTransport capability probing', () => {
     ).toHaveLength(1);
   });
 
-  test('strips terminal-runtime loader variables from every command', async () => {
+  test('leaves environment handling to the runner', async () => {
     const { runner, transport } = createTransport(deviceResponses());
 
     await transport.getCapabilities();
 
+    // The transport no longer decides how a shell is reached: it passes only a
+    // timeout, and the injected runner owns environment and working directory.
     expect(runner.calls.length).toBeGreaterThan(0);
     for (const call of runner.calls) {
-      expect(call.options?.unsetEnv).toContain('LD_LIBRARY_PATH');
-      expect(call.options?.unsetEnv).toContain('LD_PRELOAD');
+      expect(call.options?.unsetEnv).toBeUndefined();
+      expect(call.options?.cwd).toBeUndefined();
     }
-  });
-
-  test('lets callers opt out of environment sanitising', async () => {
-    const runner = new FakeCommandRunner(deviceResponses());
-    const transport = new RishTransport({
-      rishPath: RISH,
-      runner,
-      displayCacheTtlMs: 0,
-      unsetEnv: [],
-    });
-
-    await transport.getCapabilities();
-
-    expect(runner.calls[0]?.options?.unsetEnv).toEqual([]);
   });
 
   test('flags an unprivileged uid instead of pretending to be adb shell', async () => {
@@ -206,11 +205,11 @@ describe('RishTransport capability probing', () => {
     expect(capabilities.appManagement).toBe(false);
   });
 
-  test('reports ServiceUnavailable when rish cannot be started at all', async () => {
+  test('reports ServiceUnavailable when the runner cannot start a shell at all', async () => {
     const { runner, transport } = createTransport([
       {
         match: [],
-        failure: { kind: 'spawn-failed', message: 'rish: not found' },
+        failure: { kind: 'spawn-failed', message: 'sh: not found' },
       },
     ]);
 
@@ -222,12 +221,12 @@ describe('RishTransport capability probing', () => {
     expect((error as Error).message).toContain('Unable to determine the uid');
     expect(
       String((error as { cause?: { message?: string } }).cause?.message),
-    ).toContain('rish: not found');
+    ).toContain('sh: not found');
     // The uid probe retries once before giving up.
     expect(runner.calls).toHaveLength(2);
   });
 
-  test('probes capabilities sequentially so heavyweight spawns do not compete', async () => {
+  test('probes capabilities sequentially so heavyweight commands do not compete', async () => {
     const inner = new FakeCommandRunner(
       deviceResponses().map((response) => ({ ...response, delayMs: 5 })),
     );
@@ -247,9 +246,9 @@ describe('RishTransport capability probing', () => {
         }
       },
     };
-    const transport = new RishTransport({
-      rishPath: RISH,
+    const transport = new ShellTransport({
       runner: trackingRunner,
+      fileChannelDir: FILE_CHANNEL_DIR,
       displayCacheTtlMs: 0,
       fileIo: createFixtureFileIo().io,
     });
@@ -285,9 +284,9 @@ describe('RishTransport capability probing', () => {
         return await inner.run(argv, options);
       },
     };
-    const transport = new RishTransport({
-      rishPath: RISH,
+    const transport = new ShellTransport({
       runner: flakyRunner,
+      fileChannelDir: FILE_CHANNEL_DIR,
       displayCacheTtlMs: 0,
     });
 
@@ -298,7 +297,7 @@ describe('RishTransport capability probing', () => {
   });
 });
 
-describe('RishTransport health check', () => {
+describe('ShellTransport health check', () => {
   test('reports a healthy shell channel', async () => {
     const { transport } = createTransport(deviceResponses());
 
@@ -310,7 +309,7 @@ describe('RishTransport health check', () => {
     expect(health.latencyMs).toBeGreaterThanOrEqual(0);
   });
 
-  test('never throws when rish is broken', async () => {
+  test('never throws when the shell channel is broken', async () => {
     const { transport } = createTransport([
       { match: ['id -u'], exitCode: 1, stderr: 'shizuku service not running' },
     ]);
@@ -332,7 +331,7 @@ describe('RishTransport health check', () => {
   });
 });
 
-describe('RishTransport screenshot', () => {
+describe('ShellTransport screenshot', () => {
   test('captures through the on-device file channel and cleans up', async () => {
     const fileIo = createFixtureFileIo();
     const { runner, transport } = createTransport(screenResponses(), {
@@ -343,15 +342,15 @@ describe('RishTransport screenshot', () => {
 
     expect(buffer.equals(PNG_BYTES)).toBe(true);
     expect(runner.commands[0]).toContain('mkdir -p');
-    expect(runner.commands[0]).toContain('/data/local/tmp/midscene-channel');
+    expect(runner.commands[0]).toContain(FILE_CHANNEL_DIR);
     // Fixed path per purpose, removed by the shell inside the same command.
-    expect(runner.calls[1]?.argv[3]).toBe(
-      "rm -f '/data/local/tmp/midscene-channel/shot.png' && screencap -p '/data/local/tmp/midscene-channel/shot.png'",
+    expect(runner.calls[1]?.command).toBe(
+      `sh -c rm -f '${FILE_CHANNEL_DIR}/shot.png' && screencap -p '${FILE_CHANNEL_DIR}/shot.png'`,
     );
-    expect(fileIo.reads).toEqual(['/data/local/tmp/midscene-channel/shot.png']);
+    expect(fileIo.reads).toEqual([`${FILE_CHANNEL_DIR}/shot.png`]);
   });
 
-  test('does not pipe pixels through rish on the happy path and prepares the channel once', async () => {
+  test('does not pipe pixels through the command stream on the happy path and prepares the channel once', async () => {
     const { runner, transport } = createTransport(screenResponses());
 
     await transport.screenshot();
@@ -375,8 +374,8 @@ describe('RishTransport screenshot', () => {
 
     await transport.screenshot({ displayId: 10 });
 
-    expect(runner.calls[1]?.argv[3]).toContain("screencap -p -d 10 '");
-    expect(runner.calls[1]?.argv[3]).toContain('/midscene-channel/shot.png');
+    expect(runner.calls[1]?.command).toContain("screencap -p -d 10 '");
+    expect(runner.calls[1]?.command).toContain(`${FILE_CHANNEL_DIR}/shot.png`);
   });
 
   test('uses the transport default display when the caller omits it', async () => {
@@ -386,7 +385,7 @@ describe('RishTransport screenshot', () => {
 
     await transport.screenshot();
 
-    expect(runner.calls[1]?.argv[3]).toContain('screencap -p -d 1');
+    expect(runner.calls[1]?.command).toContain('screencap -p -d 1');
   });
 
   test('accepts a JPEG payload', async () => {
@@ -401,7 +400,7 @@ describe('RishTransport screenshot', () => {
     expect(buffer.equals(jpeg)).toBe(true);
   });
 
-  test('falls back to the rish pipe when the file channel is unusable', async () => {
+  test('falls back to the command stream when the file channel is unusable', async () => {
     const fileIo = createFixtureFileIo();
     fileIo.io.read = async () => {
       throw new Error('EACCES: permission denied');
@@ -484,7 +483,7 @@ describe('RishTransport screenshot', () => {
   });
 });
 
-describe('RishTransport display information', () => {
+describe('ShellTransport display information', () => {
   test('returns the default display from dumpsys output', async () => {
     const { transport } = createTransport(deviceResponses());
 
@@ -548,14 +547,14 @@ describe('RishTransport display information', () => {
   });
 });
 
-describe('RishTransport input commands', () => {
+describe('ShellTransport input commands', () => {
   test('taps in device pixels', async () => {
     const { runner, transport } = createTransport([{ match: [], stdout: '' }]);
 
     await transport.tap(10.4, 20.6);
 
     expect(runner.calls).toHaveLength(1);
-    expectRishCommand(runner, 0, 'input tap 10 21');
+    expectCommand(runner, 0, 'input tap 10 21');
   });
 
   test('turns a duration into a long press', async () => {
@@ -563,7 +562,7 @@ describe('RishTransport input commands', () => {
 
     await transport.tap(10, 20, { durationMs: 1500 });
 
-    expectRishCommand(runner, 0, 'input swipe 10 20 10 20 1500');
+    expectCommand(runner, 0, 'input swipe 10 20 10 20 1500');
   });
 
   test('swipes with an explicit duration and display', async () => {
@@ -578,7 +577,7 @@ describe('RishTransport input commands', () => {
       },
     );
 
-    expectRishCommand(runner, 0, 'input -d 1 swipe 10 20 30 40 120');
+    expectCommand(runner, 0, 'input -d 1 swipe 10 20 30 40 120');
   });
 
   test('defaults the swipe duration', async () => {
@@ -586,7 +585,7 @@ describe('RishTransport input commands', () => {
 
     await transport.swipe({ x: 1, y: 2 }, { x: 3, y: 4 });
 
-    expectRishCommand(runner, 0, 'input swipe 1 2 3 4 300');
+    expectCommand(runner, 0, 'input swipe 1 2 3 4 300');
   });
 
   test('sends one or many keycodes in a single call', async () => {
@@ -595,8 +594,8 @@ describe('RishTransport input commands', () => {
     await transport.keyEvent(3);
     await transport.keyEvent([4, 3, 187]);
 
-    expectRishCommand(runner, 0, 'input keyevent 3');
-    expectRishCommand(runner, 1, 'input keyevent 4 3 187');
+    expectCommand(runner, 0, 'input keyevent 3');
+    expectCommand(runner, 1, 'input keyevent 4 3 187');
   });
 
   test('sends ASCII text as one quoted argument', async () => {
@@ -604,7 +603,7 @@ describe('RishTransport input commands', () => {
 
     await transport.inputText('hello world');
 
-    expectRishCommand(runner, 0, "input text 'hello world'");
+    expectCommand(runner, 0, "input text 'hello world'");
   });
 
   test('splits newlines and commits each line with ENTER', async () => {
@@ -612,9 +611,9 @@ describe('RishTransport input commands', () => {
 
     await transport.inputText('line1\nline2');
 
-    expectRishCommand(runner, 0, "input text 'line1'");
-    expectRishCommand(runner, 1, 'input keyevent 66');
-    expectRishCommand(runner, 2, "input text 'line2'");
+    expectCommand(runner, 0, "input text 'line1'");
+    expectCommand(runner, 1, 'input keyevent 66');
+    expectCommand(runner, 2, "input text 'line2'");
   });
 
   test('refuses non-ASCII text when the yadb helper is absent', async () => {
@@ -644,7 +643,7 @@ describe('RishTransport input commands', () => {
 
     await transport.inputText('中文输入测试 hello');
 
-    const yadbCommand = runner.calls.at(-1)?.argv[3] ?? '';
+    const yadbCommand = runner.calls.at(-1)?.command ?? '';
     expect(yadbCommand).toContain('com.ysbing.yadb.Main');
     expect(yadbCommand).toContain("'中文输入测试 hello'");
   });
@@ -680,7 +679,7 @@ describe('RishTransport input commands', () => {
   });
 });
 
-describe('RishTransport app management', () => {
+describe('ShellTransport app management', () => {
   test('starts an explicit activity', async () => {
     const { runner, transport } = createTransport([{ match: [], stdout: '' }]);
 
@@ -689,7 +688,7 @@ describe('RishTransport app management', () => {
       activity: '.Settings',
     });
 
-    expect(runner.calls[0]?.argv[3]).toBe(
+    expect(payloadOf(runner, 0)).toBe(
       "am start -W -n 'com.android.settings/.Settings'",
     );
   });
@@ -702,7 +701,7 @@ describe('RishTransport app management', () => {
       uri: 'example://open?id=1',
     });
 
-    expect(runner.calls[0]?.argv[3]).toBe(
+    expect(payloadOf(runner, 0)).toBe(
       "am start -W -a android.intent.action.VIEW -d 'example://open?id=1' -p 'com.example.app'",
     );
   });
@@ -712,7 +711,7 @@ describe('RishTransport app management', () => {
 
     await transport.startActivity({ packageName: 'com.example.app' });
 
-    expect(runner.calls[0]?.argv[3]).toBe(
+    expect(payloadOf(runner, 0)).toBe(
       "monkey -p 'com.example.app' -c android.intent.category.LAUNCHER 1",
     );
   });
@@ -722,7 +721,7 @@ describe('RishTransport app management', () => {
 
     await transport.forceStop('com.example.app');
 
-    expect(runner.calls[0]?.argv[3]).toBe("am force-stop 'com.example.app'");
+    expect(payloadOf(runner, 0)).toBe("am force-stop 'com.example.app'");
   });
 
   test('rejects an empty package name', async () => {
@@ -740,7 +739,7 @@ describe('RishTransport app management', () => {
   });
 });
 
-describe('RishTransport shell and lifecycle', () => {
+describe('ShellTransport shell and lifecycle', () => {
   test('returns stdout, stderr and the exit code', async () => {
     const { transport } = createTransport([
       { match: ['getprop'], stdout: '12\n', stderr: 'warn', exitCode: 0 },
@@ -779,18 +778,31 @@ describe('RishTransport shell and lifecycle', () => {
     }
   });
 
-  test('exposes the exact rish argv for diagnostics', () => {
+  test('exposes the exact argv for diagnostics', () => {
     const { transport } = createTransport([]);
 
     expect(transport.describeCommand('id -u')).toBe(
-      joinShellCommand(['sh', RISH, '-c', 'id -u']),
+      joinShellCommand(['sh', '-c', 'id -u']),
     );
   });
 
   test('validates the display id given at construction time', () => {
     expect(
       () =>
-        new RishTransport({ runner: new FakeCommandRunner([]), displayId: -3 }),
+        new ShellTransport({
+          runner: new FakeCommandRunner([]),
+          fileChannelDir: FILE_CHANNEL_DIR,
+          displayId: -3,
+        }),
     ).toThrow(/displayId/);
+  });
+
+  test('requires the file channel directory: there is no safe default', () => {
+    expect(
+      () =>
+        new ShellTransport({
+          runner: new FakeCommandRunner([]),
+        } as unknown as ConstructorParameters<typeof ShellTransport>[0]),
+    ).toThrow(/fileChannelDir/);
   });
 });

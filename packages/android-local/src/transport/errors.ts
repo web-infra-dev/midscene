@@ -13,7 +13,7 @@ export type AndroidTransportErrorCode =
   | 'ScreenshotFailed'
   /** The command did not finish within its timeout. */
   | 'Timeout'
-  /** The rish/Shizuku channel is unreachable or the transport was closed. */
+  /** The shell channel is unreachable or the transport was closed. */
   | 'ServiceUnavailable'
   /** The backend cannot do this (e.g. non-ASCII text on `input text`). */
   | 'NotSupported'

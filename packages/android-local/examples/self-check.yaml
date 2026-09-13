@@ -12,12 +12,13 @@
 #     for the instruction box reads as the Android home screen, so the model goes looking
 #     for the launcher instead of a field that is already on screen.
 # The box keeps the last instruction, so its placeholder is often absent: it is named only
-# as a secondary hint. ConsoleActivity generates the same script, naming just the bar the
-# running device has.
+# as a secondary hint. ConsoleActivity generates the same script (see SelfCheckScript.java),
+# naming just the bar the running device has.
+#
+# This file mirrors the template the host app generates; keep the two in sync.
 name: self-check
 device:
-  backend: rish
-  rishPath: /data/local/tmp/rish
+  backend: shizuku-userservice
   yadbPath: /data/local/tmp/yadb
   fileChannelDir: /storage/emulated/0/Android/data/com.midscene.localagent/files/channel
 agent:

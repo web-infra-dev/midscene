@@ -1,6 +1,10 @@
 # android-local 架构与契约
 
-本文是 `packages/android-local` 的设计基线。契约一旦冻结（Phase 1 P1-1），任何后端实现（rish / Shizuku UserService / OEM Privileged / ADB shell）都必须满足同一份契约。
+> **范围变更（2026-09-13，已执行）**：端侧后端收敛为 **Shizuku UserService（经本地桥）** 一种，Termux + rish 现场已移除，
+> 原 `RishTransport` 现名 `ShellTransport`（桥通道一直复用它）。本文中把 rish 作为并列后端实现的表述属历史记录。
+> 详见 [productization-decisions.md](./productization-decisions.md) §9。
+
+本文是 `packages/android-local` 的设计基线。契约一旦冻结（Phase 1 P1-1），任何后端实现（Shizuku UserService / ADB shell 调试基线）都必须满足同一份契约。
 
 ## 1. 分层
 
@@ -13,10 +17,10 @@ Android Host App / Agent Runtime
         │
   AndroidTransport            ← 只描述「通过什么权限与协议做到」
         │
-  ┌───────────────┬──────────────────┬─────────────────────┐
-  │ RishTransport │ ShizukuTransport │ OemPrivileged/Adb   │
-  │   (POC)       │  (UserService)   │ (长期/调试)          │
-  └───────────────┴──────────────────┴─────────────────────┘
+  ┌──────────────────────┬──────────────────┬─────────────────────┐
+  │ ShellTransport       │ ShizukuTransport │ OemPrivileged/Adb   │
+  │ (桥 → UserService)   │   (未实现)        │ (长期/调试)          │
+  └──────────────────────┴──────────────────┴─────────────────────┘
         │                │                    │
    rish / shell    AIDL + JNI        System/Binder 或 adb server
 
@@ -147,25 +151,26 @@ type AndroidTransportErrorCode =
 - `actionSpace()`：`createDefaultMobileActions({ input, size, sleep, systemActions })`，按钮名与 `AndroidDevice` 一致（`AndroidBackButton` / `AndroidHomeButton` / `AndroidRecentAppsButton`），并按 `getCapabilities()` 裁剪不支持的动作。
 - 骨架阶段**不注册** shell / Launch / Terminate 类模型可见动作；`runShell` 仅保留在 transport，供 Phase 0 诊断脚本使用。是否与 `AndroidDevice` 的 `Launch` / `Terminate` / `RunAdbShell` 对齐，留到 Phase 1 P1-4 回归对照阶段决定。
 
-## 6. `RishTransport` 实现要点
+## 6. `ShellTransport` 实现要点
 
-下表结合 Phase 0 真机实测（`roadmap.md` §9.2 的 C1–C10）定稿：
+`ShellTransport` 是端侧唯一在用的 transport：它把命令交给注入的 `CommandRunner`，由后者决定如何抵达 shell uid（端侧是本地桥 → Shizuku UserService）。原 `RishTransport` 的自启模式已在移除 rish 现场时删除，下表结合 Phase 0 真机实测重写。
 
 | 项 | 决定 |
 | --- | --- |
-| 启动方式 | 默认 `spawn('sh', [rishPath, '-c', cmd])`（`useShLauncher: true`）；Shizuku 13.6.0 的 rish 只需 `rish` + `rish_shizuku.dex` 同目录，Android 14+ 需 dex 非可写（chmod 400） |
-| **环境净化** | 子进程剥离 `LD_LIBRARY_PATH` / `LD_PRELOAD`（默认 `DEFAULT_UNSET_ENV`）。Termux 注入的前缀 lib 会让 `app_process` 链接失败：`cannot locate symbol "Xzs_Construct" referenced by /system/lib64/libunwindstack.so` |
-| **大 payload 通道** | **文件通道**：shell 写 `<fileChannelDir>/shot.png` 或 `shell.txt`，本机 Node 直接 `fs.readFile`。原因：rish 会把大输出拆到 stdout+stderr 两条管道（674KB PNG → 346KB + 328KB），任何管道方案都会截断 |
-| **通道清理** | 由 shell 在同一条命令内完成：`rm -f <file> && <写入命令>`（SELinux 禁止 app uid 写/删 `/data/local/tmp`，即使目录 0777；实测 `touch`/`rm` 均 EACCES、读取正常）。固定文件名 + 进程内锁 ⇒ 无残留、不会读到陈旧帧、零额外 spawn |
-| **小输出读取** | `combinedOutputText()`：stdout 优先、为空则取 stderr（实测 `id -u` 曾整段跑到 stderr），并暴露为 `runShell().stdout` |
-| 截图 | `screencap -p [-d <displayId>] <file>` → 读取 → PNG/JPEG magic 校验 → 删除；失败时回退到 base64 管道（best-effort） |
+| 执行方式 | 固定构造 `['sh', '-c', command]` 交给 `runner`；**transport 不拼启动器 argv，也不 spawn 任何进程**。`runner` 必填；如何到 shell uid 是 runner 的事 |
+| **环境与工作目录** | transport 只传 `timeoutMs`。环境净化与 `cwd` 归 runner（`NodeCommandRunner` 仍支持 `unsetEnv` / `cwd`，供 adb 与 yadb 子进程使用）；端侧桥不需要它们 |
+| **大 payload 通道** | **文件通道**：shell 写 `<fileChannelDir>/shot.png` 或 `shell.txt`，本机 Node 直接 `readFile`（端侧经桥的 `/read-file`）。原因：命令通道会把大输出拆到 stdout+stderr 两条管道（674KB PNG → 346KB + 328KB），任何管道方案都会截断 |
+| `fileChannelDir` | **必填**，构造时校验（`InvalidArgument`）。目录须同时满足 shell uid 可写、本进程可读，只有 Host 知道这个位置（app 的 external files dir） |
+| **通道清理** | 由 shell 在同一条命令内完成：`rm -f <file> && <写入命令>`；固定文件名 + 进程内锁 ⇒ 无残留、不会读到陈旧帧 |
+| **小输出读取** | `combinedOutputText()`：stdout 优先、为空则取 stderr（历史实测 `id -u` 曾整段跑到 stderr），并暴露为 `runShell().stdout` |
+| 截图 | `screencap -p [-d <displayId>] <file>` → 读取 → PNG/JPEG magic 校验；失败时回退到 base64 管道（best-effort） |
 | 显示信息 | `dumpsys display > <file>`（约 21KB，必须走文件通道）+ `wm size` / `wm density`（小输出） |
-| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；ASCII 文本走 `input text`；**非 ASCII（中文/emoji）走 yadb**（`app_process … com.ysbing.yadb.Main -keyboard '<text>'`），yadb 缺失时抛 `NotSupported` 并给出 provisioning 提示（`adb push packages/android/bin/yadb /data/local/tmp/yadb`） |
-| 文本能力探测 | `test -f <yadbPath>` → `textInput: 'full' | 'ascii-only'`；ASCII 路径不探测，避免热路径多一次 spawn |
+| 输入 | `input [-d <displayId>] tap/swipe/keyevent`；ASCII 文本走 `input text`；**非 ASCII（中文/emoji）走 yadb**（`app_process … com.ysbing.yadb.Main -keyboard '<text>'`），yadb 缺失时抛 `NotSupported` 并给出 provisioning 提示 |
+| 文本能力探测 | `test -f <yadbPath>` → `textInput: 'full' | 'ascii-only'`；ASCII 路径不探测，避免热路径多一次往返 |
 | 应用管理 | `am start -W -n pkg/activity`、`-a android.intent.action.VIEW -d <uri>`、无 activity 时 `monkey -p <pkg> -c android.intent.category.LAUNCHER 1`、`am force-stop <pkg>` |
-| **能力探测** | **串行**执行 + 每次探测重试一次。每个 rish 调用都会新建 app_process（实测 0.4–1.8s）；并发探测出现过瞬时失败，被误判为「不支持」并导致动作空间为空 |
-| 依赖注入 | `CommandRunner`（`NodeCommandRunner` / `FakeCommandRunner`）+ `ShellFileIo`（文件通道 seam），使全部单测无需设备 |
-| 性能基线（2 核模拟器） | 单次 spawn 1.6–1.8s；截图 P50 2155ms（673KB）；keyevent 470ms；`healthCheck` 3.75s → Phase 1 必须降低 spawn 次数，Phase 2 走 UserService/FD |
+| **能力探测** | **串行**执行 + 每次探测重试一次。并发探测曾出现瞬时失败，被误判为「不支持」并导致动作空间为空 |
+| 依赖注入 | `CommandRunner`（`ExecBridgeCommandRunner` / `NodeCommandRunner` / `FakeCommandRunner`）+ `ShellFileIo`（文件通道 seam），使全部单测无需设备 |
+| 性能基线 | 旧 rish 现场单次 spawn 1.6–1.8s；桥通道每次往返是一次 Binder hop 加一次 `sh` 启动。历史数据见 `baseline.md` |
 
 ### 6.1 图像链路（P0-2 结论）
 

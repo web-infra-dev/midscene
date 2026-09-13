@@ -1,9 +1,9 @@
 /**
  * Minimal counting semaphore.
  *
- * Each rish call spawns a fresh process; a car head unit cannot absorb an
- * unbounded number of them. Transports cap in-flight commands and queue the
- * rest instead of failing.
+ * Each shell round trip costs a Binder hop and a process start; a car head unit
+ * cannot absorb an unbounded number of them. Transports cap in-flight commands
+ * and queue the rest instead of failing.
  */
 export class Semaphore {
   private active = 0;

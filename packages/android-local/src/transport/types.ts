@@ -6,17 +6,20 @@
  * these types, so the privilege backend can be swapped without touching them.
  */
 
-/** Which privilege channel a transport uses. */
+/**
+ * Which privilege channel a transport uses.
+ *
+ * Two are implemented; the rest are extension points kept in the contract so a
+ * future transport does not have to widen this union (see `docs/architecture.md`).
+ */
 export type TransportBackend =
-  /** POC: plain Node process spawns `rish` to reach the Shizuku shell. */
-  | 'rish'
-  /** Product: app → Binder/AIDL → Shizuku UserService (shell/root UID). */
+  /** Product: app → loopback bridge → Shizuku UserService (shell UID 2000). */
   | 'shizuku-userservice'
-  /** Car/head-unit: platform signature / priv-app / OEM system service. */
-  | 'oem-privileged'
   /** Debug and regression baseline: external adb host → shell. */
   | 'adb-shell'
-  /** Degraded: an unprivileged local shell (non ADB-equivalent capabilities). */
+  /** Car/head-unit (not implemented): platform signature / priv-app / OEM service. */
+  | 'oem-privileged'
+  /** Degraded (not implemented): an unprivileged local shell. */
   | 'local-shell';
 
 /** A point in device-pixel coordinates on the screen. */
@@ -128,7 +131,7 @@ export interface TransportHealth {
 
 /**
  * The device capability contract. Implementations must be interchangeable:
- * a Shizuku UserService backend must satisfy the same tests as `rish`.
+ * every backend must satisfy the same contract test.
  */
 export interface AndroidTransport {
   readonly backend: TransportBackend;

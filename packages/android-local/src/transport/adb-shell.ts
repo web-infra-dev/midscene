@@ -83,11 +83,11 @@ interface AdbOutcome {
 /**
  * Debug and regression backend: drives a device through the host's adb.
  *
- * This is the counterpart of {@link RishTransport} for the "PC + USB cable"
+ * This is the counterpart of {@link ShellTransport} for the "PC + USB cable"
  * workflow, and the reference implementation in CI (the Android emulator
  * workflow has adb but no Shizuku). adb is a real protocol rather than a
- * subprocess shim, so unlike rish it can carry binary payloads on stdout and
- * does not need the file channel.
+ * subprocess shim, so unlike the on-device bridge it can carry binary payloads
+ * on stdout and does not need the file channel.
  */
 export class AdbShellTransport implements AndroidTransport {
   readonly backend: TransportBackend = 'adb-shell';
@@ -311,7 +311,7 @@ export class AdbShellTransport implements AndroidTransport {
   /**
    * `adb exec-out screencap -p` streams the PNG straight back, so no temp file
    * and no base64 round trip is needed — the counterpart of the file channel
-   * that rish requires.
+   * that the on-device path requires.
    */
   async screenshot(options: ScreenshotOptions = {}): Promise<Buffer> {
     this.assertOpen();

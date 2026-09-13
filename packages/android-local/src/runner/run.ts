@@ -18,10 +18,28 @@ import {
   bridgeFromEnv,
   createBridgeFileIo,
 } from '../transport/bridge';
-import { RishTransport } from '../transport/rish';
+import { ShellTransport } from '../transport/shell';
 import type { AndroidTransport } from '../transport/types';
 
 const debugRunner = getDebug('android-local:runner');
+
+/**
+ * The file channel has no safe default: the directory must be writable by the
+ * shell uid and readable by this process, which only the host knows. A missing
+ * value used to fall back to `/data/local/tmp`, which fails later with an
+ * opaque EACCES, so it is rejected up front instead.
+ */
+function requireFileChannelDir(value: string | undefined): string {
+  if (!value) {
+    throw new Error(
+      'device.fileChannelDir is required on the on-device path: it must be a ' +
+        'directory the shell uid can write and this process can read (the app ' +
+        'uses its external files directory).',
+    );
+  }
+
+  return value;
+}
 
 /**
  * Structured progress events for the host app's overlay.
@@ -79,22 +97,21 @@ export interface RunLocalAgentOptions {
 function buildTransport(config: LocalAgentConfig): AndroidTransport {
   const device = config.device;
 
-  // On device the app hands us a loopback bridge backed by a Shizuku user
-  // service; it takes precedence because rish cannot run from an app process on
-  // Android 14.
+  // On device the app injects the loopback bridge (backed by a Shizuku user
+  // service) through the environment. Selecting anything else there is not a
+  // supported configuration, so `adb-shell` is the only value that opts out.
   const bridge = bridgeFromEnv();
   if (bridge && device.backend !== 'adb-shell') {
     const runner = new ExecBridgeCommandRunner(bridge);
-    return new RishTransport({
+    return new ShellTransport({
       runner,
       fileIo: createBridgeFileIo(runner),
       // The channel dir must be readable by the app process (it serves the
       // payloads) and writable by the shell, which is what the app's external
       // files directory provides.
-      fileChannelDir: device.fileChannelDir,
+      fileChannelDir: requireFileChannelDir(device.fileChannelDir),
       displayId: device.displayId,
       yadbPath: device.yadbPath,
-      unsetEnv: [],
     });
   }
 
@@ -107,12 +124,11 @@ function buildTransport(config: LocalAgentConfig): AndroidTransport {
     });
   }
 
-  return new RishTransport({
-    rishPath: device.rishPath,
-    fileChannelDir: device.fileChannelDir,
-    displayId: device.displayId,
-    yadbPath: device.yadbPath,
-  });
+  throw new Error(
+    'No on-device privilege channel is available: the host app must provide ' +
+      'MIDSCENE_EXEC_BRIDGE_URL and MIDSCENE_EXEC_BRIDGE_TOKEN, or set ' +
+      'device.backend to "adb-shell" to drive the device from this host.',
+  );
 }
 
 /**

@@ -153,16 +153,15 @@ describe('FakeCommandRunner', () => {
 
     const screenshot = await runner.run([
       'sh',
-      '/data/local/tmp/rish',
       '-c',
       'screencap -p | base64 -w0',
     ]);
     expect([...screenshot.stdout]).toEqual([0x89, 0x50, 0x4e, 0x47]);
 
-    const tap = await runner.run(['sh', 'rish', '-c', 'input -d 0 tap 1 2']);
+    const tap = await runner.run(['sh', '-c', 'input -d 0 tap 1 2']);
     expect(tap.exitCode).toBe(0);
 
-    const failing = await runner.run(['sh', 'rish', '-c', 'exit-1']);
+    const failing = await runner.run(['sh', '-c', 'exit-1']);
     expect(failing.exitCode).toBe(1);
     expect(failing.stderr).toBe('nope');
 
@@ -173,7 +172,7 @@ describe('FakeCommandRunner', () => {
   test('fails loudly on an unmatched command so drift is visible', async () => {
     const runner = fixture();
 
-    await expect(runner.run(['sh', 'rish', '-c', 'rm -rf /'])).rejects.toThrow(
+    await expect(runner.run(['sh', '-c', 'rm -rf /'])).rejects.toThrow(
       /unmatched command/,
     );
   });
@@ -184,7 +183,7 @@ describe('FakeCommandRunner', () => {
     ]);
 
     const error = await runner
-      .run(['sh', 'rish', '-c', 'anything'])
+      .run(['sh', '-c', 'anything'])
       .catch((caught: unknown) => caught);
 
     expect((error as CommandRunnerError).kind).toBe('timeout');
@@ -193,9 +192,9 @@ describe('FakeCommandRunner', () => {
 
   test('records the command string for assertions', async () => {
     const runner = new FakeCommandRunner([{ match: [], stdout: 'ok' }]);
-    await runner.run(['sh', 'rish', '-c', 'id -u']);
+    await runner.run(['sh', '-c', 'id -u']);
 
-    expect(runner.commands).toEqual(['sh rish -c id -u']);
+    expect(runner.commands).toEqual(['sh -c id -u']);
   });
 });
 

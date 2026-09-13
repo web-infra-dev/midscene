@@ -12,16 +12,23 @@ import { z } from 'zod';
  * here, so a task can be deployed to a phone without rebuilding the agent.
  */
 
-export const transportBackendSchema = z.enum(['rish', 'adb-shell']);
+export const transportBackendSchema = z.enum([
+  'shizuku-userservice',
+  'adb-shell',
+]);
 
 export const localAgentDeviceSchema = z.object({
-  /** Which privilege channel to use. */
-  backend: transportBackendSchema.default('rish'),
+  /**
+   * Which privilege channel to use.
+   *
+   * `shizuku-userservice` is the on-device path; the host app selects it by
+   * injecting the bridge environment, so the value is informational there.
+   * `adb-shell` drives the device from this host instead.
+   */
+  backend: transportBackendSchema.default('shizuku-userservice'),
   /** Display used for every operation; default is the device default display. */
   displayId: z.number().int().nonnegative().optional(),
-  /** Path of the `rish` script (backend: rish). */
-  rishPath: z.string().optional(),
-  /** Directory for the on-device payload channel (backend: rish). */
+  /** Directory for the on-device payload channel (backend: shizuku-userservice). */
   fileChannelDir: z.string().optional(),
   /** adb executable (backend: adb-shell). */
   adbPath: z.string().optional(),

@@ -8,7 +8,6 @@ import {
   CommandRunnerError,
   type CommandRunnerOptions,
   type CommandRunnerResult,
-  NodeCommandRunner,
   joinShellCommand,
   quoteShellArg,
 } from './command-runner';
@@ -48,9 +47,8 @@ import {
   assertPositiveInteger,
 } from './validate';
 
-const debugRish = getDebug('android-local:rish');
+const debugShell = getDebug('android-local:shell');
 
-export const DEFAULT_RISH_PATH = '/data/local/tmp/rish';
 export const DEFAULT_TIMEOUT_MS = 15_000;
 export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 20_000;
 export const DEFAULT_MAX_CONCURRENT_COMMANDS = 4;
@@ -61,32 +59,21 @@ const SHELL_UID = 2000;
 const ROOT_UID = 0;
 
 /**
- * Variables stripped from the spawned rish process.
+ * Interpreter every command is wrapped in.
  *
- * A terminal runtime (Termux) exports `LD_LIBRARY_PATH=$PREFIX/lib`. rish then
- * launches `/system/bin/app_process`, which would resolve the terminal's
- * libraries instead of the system ones and die with
- * `cannot locate symbol "Xzs_Construct" referenced by
- * /system/lib64/libunwindstack.so` (measured on Android 12 + Termux + Shizuku
- * 13.6.0, see `docs/roadmap.md` P0-4).
+ * The transport always hands the runner `['sh', '-c', command]` and never builds
+ * a launcher argv (such as `sh <script> -c <cmd>`) itself: deciding how to reach
+ * a shell-uid process is the runner's job now that the on-device path asks the
+ * Shizuku user service through the app bridge.
  */
-export const DEFAULT_UNSET_ENV = ['LD_LIBRARY_PATH', 'LD_PRELOAD'];
+const SH_PATH = 'sh';
 
 /**
- * Capability probes retry once: a single heavyweight rish spawn can fail
+ * Capability probes retry once: a single heavyweight shell round trip can fail
  * transiently on a busy device, and treating that as "unsupported" would
  * silently drop device actions.
  */
 export const CAPABILITY_PROBE_ATTEMPTS = 2;
-
-/**
- * Directory used for the on-device file channel.
- *
- * Created by the shell uid with mode 0755 (the agent only needs to read it).
- * Phase 2 replaces this with an app-private directory or fd passing through the
- * Shizuku UserService.
- */
-export const DEFAULT_FILE_CHANNEL_DIR = '/data/local/tmp/midscene-channel';
 
 /** Fixed channel file names: one in-flight file per purpose, no leftovers. */
 const SCREENSHOT_CHANNEL_FILE = 'shot.png';
@@ -96,10 +83,9 @@ const TEXT_CHANNEL_FILE = 'shell.txt';
  * Filesystem seam for the on-device file channel. Tests inject a fake so the
  * transport stays device-free.
  *
- * There is deliberately no `remove`: SELinux forbids the app uid from writing
- * or deleting anything under `/data/local/tmp` (measured — a 0777 directory is
- * not enough, `touch`/`rm` both fail with EACCES while reads succeed), so the
- * shell removes its own file inside the same command that writes it.
+ * There is deliberately no `remove`: the shell removes its own file inside the
+ * same command that writes it, so the caller never needs delete rights on the
+ * channel directory.
  */
 export interface ShellFileIo {
   read(filePath: string): Promise<Buffer>;
@@ -109,39 +95,30 @@ const nodeFileIo: ShellFileIo = {
   read: (filePath) => fs.promises.readFile(filePath),
 };
 
-export interface RishTransportOptions {
-  /** Path of the `rish` script on the device. */
-  rishPath?: string;
-  /** Arguments used to pass the command; Shizuku's rish uses `-c`. */
-  rishArgs?: string[];
+export interface ShellTransportOptions {
   /**
-   * Launch rish through `sh <script> -c <cmd>` (default true). Directly
-   * exec'ing a script fails on noexec mounts such as `/sdcard`, and the
-   * direct-exec path still has to be validated on real devices (see
-   * `docs/roadmap.md` P0-4).
+   * Executes `['sh', '-c', command]` on the device.
+   *
+   * Required: the transport no longer spawns anything itself. The on-device
+   * path injects a bridge runner (the app forwards to a Shizuku user service),
+   * and tests inject {@link FakeCommandRunner}.
    */
-  useShLauncher?: boolean;
-  /** Interpreter used when `useShLauncher` is enabled. */
-  shPath?: string;
+  runner: CommandRunner;
+  /**
+   * Directory for the on-device file channel (screenshots and large command
+   * output). Must be writable by the shell uid and readable by this process.
+   *
+   * Required: there is no safe default. The on-device path uses the app's
+   * external files directory, which both sides can reach.
+   */
+  fileChannelDir: string;
   defaultTimeoutMs?: number;
   screenshotTimeoutMs?: number;
   /** Default display for every operation, when the caller does not override. */
   displayId?: number;
-  runner?: CommandRunner;
   maxConcurrentCommands?: number;
   /** TTL of the `dumpsys display` cache; 0 disables caching. */
   displayCacheTtlMs?: number;
-  /**
-   * Environment variables removed before spawning rish. Defaults to
-   * {@link DEFAULT_UNSET_ENV}; pass `[]` to inherit the environment verbatim.
-   */
-  unsetEnv?: string[];
-  /**
-   * Directory for the on-device file channel (screenshots and large command
-   * output). Must be writable by the shell uid and readable by this process.
-   * Defaults to {@link DEFAULT_FILE_CHANNEL_DIR}.
-   */
-  fileChannelDir?: string;
   /**
    * Path of the yadb dex used for non-ASCII (CJK, emoji) text input. Defaults
    * to {@link DEFAULT_YADB_PATH}; the capability probe reports `textInput:
@@ -160,20 +137,15 @@ interface CommandOutcome {
   command: string;
 }
 
-export class RishTransport implements AndroidTransport {
-  readonly backend: TransportBackend = 'rish';
+export class ShellTransport implements AndroidTransport {
+  readonly backend: TransportBackend = 'shizuku-userservice';
 
   private readonly runner: CommandRunner;
   private readonly semaphore: Semaphore;
-  private readonly rishPath: string;
-  private readonly rishArgs: string[];
-  private readonly useShLauncher: boolean;
-  private readonly shPath: string;
   private readonly defaultTimeoutMs: number;
   private readonly screenshotTimeoutMs: number;
   private readonly defaultDisplayId: number | undefined;
   private readonly displayCacheTtlMs: number;
-  private readonly unsetEnv: string[];
   private readonly fileChannelDir: string;
   private readonly yadbPath: string;
   private yadbAvailable?: boolean;
@@ -192,21 +164,15 @@ export class RishTransport implements AndroidTransport {
   private displayCache?: { displays: DisplayInfo[]; fetchedAt: number };
   private closed = false;
 
-  constructor(options: RishTransportOptions = {}) {
-    this.runner = options.runner ?? new NodeCommandRunner();
-    this.rishPath =
-      options.rishPath ?? process.env.MIDSCENE_RISH_PATH ?? DEFAULT_RISH_PATH;
-    this.rishArgs = options.rishArgs ?? ['-c'];
-    this.useShLauncher = options.useShLauncher ?? true;
-    this.shPath = options.shPath ?? 'sh';
+  constructor(options: ShellTransportOptions) {
+    this.runner = options.runner;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.screenshotTimeoutMs =
       options.screenshotTimeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS;
     this.defaultDisplayId = options.displayId;
     this.displayCacheTtlMs =
       options.displayCacheTtlMs ?? DEFAULT_DISPLAY_CACHE_TTL_MS;
-    this.unsetEnv = options.unsetEnv ?? DEFAULT_UNSET_ENV;
-    this.fileChannelDir = options.fileChannelDir ?? DEFAULT_FILE_CHANNEL_DIR;
+    this.fileChannelDir = requireFileChannelDir(options.fileChannelDir);
     this.yadbPath = options.yadbPath ?? DEFAULT_YADB_PATH;
     this.fileIo = options.fileIo ?? nodeFileIo;
     this.semaphore = new Semaphore(
@@ -240,7 +206,7 @@ export class RishTransport implements AndroidTransport {
   /**
    * Probe capabilities one command at a time.
    *
-   * Each rish call starts a fresh `app_process` (measured 0.4–1.8s on a 2-core
+   * The on-device bridge round trip costs a Binder hop plus one `sh` start per
    * Android 12 emulator). Running the probes in parallel produced *transient*
    * failures on device — `command -v input` exited non-zero while the same
    * command succeeded standalone, which silently produced an empty action
@@ -258,7 +224,7 @@ export class RishTransport implements AndroidTransport {
     try {
       multiDisplay = (await this.listDisplays()).length > 1;
     } catch (error) {
-      debugRish(
+      debugShell(
         `display probe failed, assuming a single display: ${
           error instanceof Error ? error.message : String(error)
         }`,
@@ -279,8 +245,8 @@ export class RishTransport implements AndroidTransport {
     };
 
     if (!capabilities.privileged) {
-      debugRish(
-        `rish runs as uid ${uid}, not shell(2000)/root(0); ADB-equivalent commands will fail`,
+      debugShell(
+        `the shell runs as uid ${uid}, not shell(2000)/root(0); ADB-equivalent commands will fail`,
       );
     }
 
@@ -303,14 +269,14 @@ export class RishTransport implements AndroidTransport {
           return uid;
         }
 
-        debugRish(
+        debugShell(
           `id -u attempt ${attempt} returned exit=${outcome.exitCode} output=${JSON.stringify(
             combinedOutputText(outcome),
           )}`,
         );
       } catch (error) {
         lastError = error;
-        debugRish(
+        debugShell(
           `id -u attempt ${attempt} failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -319,7 +285,7 @@ export class RishTransport implements AndroidTransport {
     }
 
     throw new AndroidTransportError(
-      'Unable to determine the uid of the rish shell channel',
+      'Unable to determine the uid of the shell channel',
       {
         code: 'ServiceUnavailable',
         backend: this.backend,
@@ -343,7 +309,7 @@ export class RishTransport implements AndroidTransport {
         outcome.exitCode === 0 && combinedOutputText(outcome).includes('yes')
       );
     } catch (error) {
-      debugRish(
+      debugShell(
         `file probe for "${filePath}" failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
@@ -366,13 +332,13 @@ export class RishTransport implements AndroidTransport {
           return true;
         }
 
-        debugRish(
+        debugShell(
           `probe for "${name}" attempt ${attempt} returned exit=${outcome.exitCode} output=${JSON.stringify(
             combinedOutputText(outcome),
           )}`,
         );
       } catch (error) {
-        debugRish(
+        debugShell(
           `probe for "${name}" attempt ${attempt} failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -414,7 +380,7 @@ export class RishTransport implements AndroidTransport {
       const transportError = toAndroidTransportError(error, {
         code: 'ServiceUnavailable',
         backend: this.backend,
-        message: 'rish health check failed',
+        message: 'shell health check failed',
       });
 
       return {
@@ -434,18 +400,13 @@ export class RishTransport implements AndroidTransport {
   // ---------------------------------------------------------------------------
 
   /**
-   * Capture a screenshot through the on-device file channel.
-   *
-   * rish cannot carry large payloads: measured on Android 12 + Shizuku 13.6.0,
-   * a 674KB PNG came back split across the stdout AND stderr pipes (346KB +
-   * 328KB), so any pipe-based scheme silently truncates the image. Because the
-   * agent runs *on the device*, the shell writes the file and this process reads
-   * it directly — that is the advantage of local execution over adb.
-   *
-   * The file is transient: it is removed as soon as it has been read.
-   */
-  /**
    * Capture the screen.
+   *
+   * Sized payloads go through the on-device file channel: a 674KB PNG came back
+   * split across the stdout AND stderr pipes (346KB + 328KB), so any pipe-based
+   * scheme silently truncates the image. Because the agent runs *on the device*,
+   * the shell writes the file and this process reads it directly — that is the
+   * advantage of local execution over adb.
    *
    * Some builds reject an explicit display (`screencap -p -d 0` returns nothing on
    * the Android 14 reference device while the plain form works), so a failed
@@ -462,7 +423,7 @@ export class RishTransport implements AndroidTransport {
       }
 
       this.displayArgSupported = false;
-      debugRish(
+      debugShell(
         'screencap rejected the display argument; retrying without it (this session)',
       );
       return this.captureScreenshot(options, false);
@@ -500,12 +461,12 @@ export class RishTransport implements AndroidTransport {
       firstFailure = error instanceof Error ? error.message : String(error);
     }
 
-    debugRish(
-      `file-channel screenshot failed (${firstFailure}); falling back to the rish pipe`,
+    debugShell(
+      `file-channel screenshot failed (${firstFailure}); falling back to the command pipe`,
     );
 
     // Fallback for devices where the file channel is unavailable. Pipes can be
-    // truncated by rish, so this is best-effort only.
+    // truncated by the command pipe, so this is best-effort only.
     try {
       const outcome = await this.execute(
         `screencap -p${displayArg} | base64 -w0`,
@@ -556,7 +517,7 @@ export class RishTransport implements AndroidTransport {
 
     // Sequential on purpose: three concurrent `app_process` spawns compete for
     // the device CPU and can fail transiently (see `probeCapabilities`). The
-    // dump is read through the file channel because rish splits large payloads
+    // dump is read through the file channel because the command pipe splits large payloads
     // across its two pipes.
     const dumpsysDisplay = await this.runShellToTextFile('dumpsys display', {
       timeoutMs: this.defaultTimeoutMs,
@@ -702,7 +663,7 @@ export class RishTransport implements AndroidTransport {
    * Type text into the focused field.
    *
    * Printable ASCII uses `input text`; anything else goes through yadb when it
-   * is provisioned on the device (see {@link RishTransportOptions.yadbPath}).
+   * is provisioned on the device (see {@link ShellTransportOptions.yadbPath}).
    */
   async inputText(text: string, options: TextInputOptions = {}): Promise<void> {
     this.assertOpen();
@@ -829,10 +790,10 @@ export class RishTransport implements AndroidTransport {
   /**
    * Run an arbitrary shell command.
    *
-   * `stdout` prefers the stdout stream but falls back to stderr: rish may route
-   * a command's output to either pipe (measured — `id -u` arrived on stderr).
-   * For payloads larger than a few KB use the file channel based commands
-   * instead; rish splits big outputs across both pipes.
+   * `stdout` prefers the stdout stream but falls back to stderr: the shell
+   * channel may route a command's output to either pipe. For payloads larger
+   * than a few KB use the file channel based commands instead; the pipe splits
+   * big outputs across both streams.
    */
   async runShell(
     command: string,
@@ -879,9 +840,7 @@ export class RishTransport implements AndroidTransport {
   }
 
   private buildArgv(command: string): string[] {
-    return this.useShLauncher
-      ? [this.shPath, this.rishPath, ...this.rishArgs, command]
-      : [this.rishPath, ...this.rishArgs, command];
+    return [SH_PATH, '-c', command];
   }
 
   /**
@@ -986,7 +945,7 @@ export class RishTransport implements AndroidTransport {
   }
 
   /**
-   * Text output of a command whose payload may exceed the rish pipe limits
+   * Text output of a command whose payload may exceed the pipe limits
    * (for example `dumpsys display`, ~21KB).
    */
   private async runShellToTextFile(
@@ -1009,12 +968,6 @@ export class RishTransport implements AndroidTransport {
     const argv = this.buildArgv(command);
     const runnerOptions: CommandRunnerOptions = {
       timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
-      unsetEnv: this.unsetEnv,
-      // rish briefly re-executes as the shell uid (2000). If the caller's cwd is
-      // an app-private directory that uid cannot enter, rish logs
-      // "access <cwd> failed with 13: Permission denied" and chdir fails, so
-      // every rish command starts from / (all commands use absolute paths).
-      cwd: '/',
     };
 
     return await this.semaphore.run(async () => {
@@ -1053,9 +1006,7 @@ export class RishTransport implements AndroidTransport {
       })();
 
       if (error.kind === 'spawn-failed') {
-        debugRish(
-          `rish could not be started: ${error.message} (path: ${this.rishPath})`,
-        );
+        debugShell(`the shell runner could not be started: ${error.message}`);
       }
 
       return new AndroidTransportError(error.message, {
@@ -1112,6 +1063,24 @@ function assertGestureDuration(
       code: 'InvalidArgument',
       backend,
     });
+  }
+
+  return value;
+}
+
+/**
+ * The channel directory must exist in the caller's configuration: a wrong guess
+ * (the old `/data/local/tmp` default) fails much later, when a screenshot is
+ * already in flight, with an error that does not mention the real cause.
+ */
+function requireFileChannelDir(value: string | undefined): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new AndroidTransportError(
+      'fileChannelDir is required: it must be a directory the shell uid can ' +
+        "write and this process can read (the on-device path uses the app's " +
+        'external files directory)',
+      { code: 'InvalidArgument', backend: 'shizuku-userservice' },
+    );
   }
 
   return value;
