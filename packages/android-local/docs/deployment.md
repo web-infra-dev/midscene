@@ -239,9 +239,13 @@ apps/android-host/
 | A14-39 | 中文指令经清洗后只剩 `-`，生成 `- name: -` 被 YAML 当成序列符号 → 任务名需去首尾连字符并在为空时回退 |
 | A14-40 | **安装静默失败**（重要运维教训）：模拟器 `/data` 达 91% 时 `adb install` 报 `INSTALL_FAILED_INSUFFICIENT_STORAGE`，而命令输出被 `| tail -1` 吞掉 → 设备长期运行**旧构建**（表现为"改了却看不到"）。清理历史报告/缓存后恢复；此后**每轮安装必须显式校验 `Success`** |
 
-**可视化能力（阶段 C 收尾）**：一个全屏 surface 承载四种信息——顶部状态栏、边框流光（`aiAct` 运行中 3.6s/圈，demo 2.2s）、定位元素虚线框（2.5s 淡出）、点击涟漪（0.7s）；Settings 提供五个开关（状态栏 / 边框 / 元素框 / 涟漪 / demo），全部不进截图。
+**可视化能力（阶段 C 收尾）**：一个全屏 surface 承载四种信息——顶部状态卡（状态点 + 人类可读状态词 + `Step 2/5` + 当前步骤 + 实时计时，画在系统状态栏下方、按内容宽度居中，措辞由 `ProgressText` 统一生成：yaml 任务概括成 `Script · 5 actions · first: tap "…"`、slug 还原成词、数值带标签、句首大写）、边框流光（`aiAct` 运行中 3.6s/圈，demo 2.2s）、定位元素虚线框（2.5s 淡出）、点击涟漪（0.7s）；全部不进截图。Settings 只保留悬浮进度总开关。
 
-**自检 demo（自举）**：App 内 **Scripts → Self-check** 一键写入并运行 `self-check.yaml`——轮流 `aiTap` 三个主入口，再聚焦首页指令框 `aiInput` 一段文本。全流程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟。YAML 能力边界：`aiTap` / `aiInput` / `aiKeyboardPress` / `aiScroll` / `sleep` / 任意 action 的 alias（如 `runAdbShell`，**零模型调用**）；**没有坐标版 tap**。
+**运行中的人机互斥（防呆）**：服务持有 run 状态，App 侧 `rememberRunBusy()` 在运行期间禁用会互相干扰的控件并说明原因——Scripts 的编辑器 / Run / Save / Self-check / New template、Settings 的凭据保存、Diagnostics 的 Provision 与 Clean now、History 的 Delete；Run 页的 Run / Stop 早已按 `isBusy()` 处理。前台通知也从「只在 run 开始时写一次」改成按 step/action 事件刷新（标题 `Working · 1/1`、正文 `Tap "Wi-Fi" · 15s`）。
+
+**动作级进度**：runner 只在任务边界上报 step，而 `yaml` 脚本整体只是一个 step，于是脚本跑 25s 时状态一直停在 `1/1`。runner 现在把 agent 的每个设备动作转成 `action` 事件（`onTaskStartTip`，ScriptPlayer 会链式调用），状态卡与通知因此显示当前动作。
+
+**自检 demo（自举）**：App 内 **Scripts → Self-check** 一键写入并运行 `self-check.yaml`——轮流 `aiTap` 三个主入口，再聚焦 Run 页的指令框 `aiInput` 一段文本。全流程在 App 内、由 App 驱动自身界面，用于评估"定位→操作"的真实延迟。措辞按运行时形态生成（`SelfCheckScript`）：导航只说该机型上真实存在的那一条（手机底部标签栏 / 平板左侧标签栏，不用"导航栏"以免与系统返回/主页那一条混淆），指令框锚在常显的 `INSTRUCTION` 标题上（该框会保留上次指令，占位文字常常不在），也不用"首页"称呼它——手机上"首页"会被理解成系统桌面。YAML 能力边界：`aiTap` / `aiInput` / `aiKeyboardPress` / `aiScroll` / `sleep` / 任意 action 的 alias（如 `runAdbShell`，**零模型调用**）；**没有坐标版 tap**。
 
 原始设计（1–5 步全部落地并验证）：
 

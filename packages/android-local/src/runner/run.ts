@@ -554,7 +554,25 @@ export async function runLocalAgentConfig(
     });
 
     try {
-      const output = await runTask(agent, task, options.configPath);
+      // Inside a yaml task the runner only sees one step for the whole script, so a
+      // five-action self-check used to look frozen at 1/1 for half a minute. The agent
+      // reports every device action it starts ("Tap - Wi-Fi"), which is the finest
+      // progress signal available: the ScriptPlayer chains to whatever handler is
+      // installed here, so this needs no change in the yaml player.
+      const previousTip = agent.onTaskStartTip;
+      let actionSeq = 0;
+      agent.onTaskStartTip = async (tip: string) => {
+        actionSeq += 1;
+        emitEvent(options.onEvent, { event: 'action', seq: actionSeq, tip });
+        await previousTip?.(tip);
+      };
+
+      let output: unknown;
+      try {
+        output = await runTask(agent, task, options.configPath);
+      } finally {
+        agent.onTaskStartTip = previousTip;
+      }
       const ms = Date.now() - taskStartedAt;
       taskResults.push({
         name: task.name,
