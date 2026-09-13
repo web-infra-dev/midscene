@@ -3,24 +3,22 @@ package com.midscene.localagent;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
-import android.graphics.RectF;
+import android.graphics.Shader;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.provider.Settings;
-import android.text.Layout;
-import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.SurfaceControl;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -46,10 +44,14 @@ import java.lang.reflect.Method;
 public final class OverlayView {
 
     private static final String TAG = "MidsceneOverlay";
-    private static final int BG_COLOR = 0xE60D0D0D;
     private static final int DOT_COLOR = 0xFF1979FF;
+    private static final int OK_COLOR = 0xFF12B981;
+    private static final int FAIL_COLOR = 0xFFE13E37;
     private static final int CHIP_COLOR = 0xFF1979FF;
     private static final int BEAM_COLOR = 0xFF1979FF;
+    private static final float MAX_CARD_WIDTH_DP = 480f;
+    private static final float MIN_CARD_WIDTH_DP = 148f;
+    private static final float MIN_TOP_INSET_DP = 24f;
     private static final long BOX_TTL_MS = 2500;
     private static final long RIPPLE_MS = 700;
 
@@ -289,27 +291,6 @@ public final class OverlayView {
         }
     }
 
-    /** One terse line for the pill: the most informative tail of a log line. */
-    public static String summarize(String line) {
-        if (line == null) {
-            return "";
-        }
-        String text = line.trim();
-        if (text.startsWith("[task] running")) {
-            return "Running " + text.replace("[task] running", "").trim();
-        }
-        if (text.startsWith("{\"") || text.startsWith("\"") || text.startsWith("}")) {
-            return lastText;
-        }
-        if (text.startsWith("[")) {
-            int close = text.indexOf(']');
-            if (close > 0 && close < 40) {
-                return text.substring(1, close) + text.substring(close + 1);
-            }
-        }
-        return text;
-    }
-
     private static android.graphics.Rect displayBounds(Context context) {
         try {
             WindowManager manager =
@@ -338,7 +319,6 @@ public final class OverlayView {
 
     /** The bar: drawn on a surface we own so it can opt out of captures. */
     private static final class PillView extends SurfaceView implements SurfaceHolder.Callback {
-        private final Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint chip = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -350,18 +330,18 @@ public final class OverlayView {
         private String stepChip = "";
         private String detail = "";
         private String metrics = "";
+        /** Raw runner state ("acting", "done", …) — drives the dot colour only. */
+        private String state = "";
+        /** Step/run start times while the clock should tick; 0 keeps `metrics` frozen. */
+        private long stepStartedAt;
+        private long runStartedAt;
+        private String frozenMetrics = "";
         private SurfaceControl surfaceControl;
         private boolean animating;
         private int systemInsetTop;
         private int systemInsetBottom;
         private int systemInsetLeft;
         private int systemInsetRight;
-
-        private float topBeamSpace() {
-            float band = (demoMode ? 10f : 5f) * density;
-            float stroke = (demoMode ? 9f : 5.5f) * density;
-            return band + stroke;
-        }
 
         private void readSystemInsets() {
             try {
@@ -411,7 +391,6 @@ public final class OverlayView {
 
         PillView(Context context) {
             super(context);
-            background.setColor(BG_COLOR);
             dot.setColor(DOT_COLOR);
             chip.setColor(CHIP_COLOR);
             titlePaint.setColor(Color.WHITE);
@@ -435,17 +414,53 @@ public final class OverlayView {
             String nextChip = fields.length > 1 && fields[1] != null ? fields[1] : "";
             String nextDetail = fields.length > 2 && fields[2] != null ? fields[2] : "";
             String nextMetrics = fields.length > 3 && fields[3] != null ? fields[3] : "";
+            String nextState = fields.length > 4 && fields[4] != null ? fields[4] : "";
+            long nextStepStart = parseTime(fields, 5);
+            long nextRunStart = parseTime(fields, 6);
             if (nextPhase.equals(phase)
                     && nextChip.equals(stepChip)
                     && nextDetail.equals(detail)
-                    && nextMetrics.equals(metrics)) {
+                    && nextMetrics.equals(frozenMetrics)
+                    && nextState.equals(state)
+                    && nextStepStart == stepStartedAt
+                    && nextRunStart == runStartedAt) {
                 return;
             }
             phase = nextPhase;
             stepChip = nextChip;
             detail = nextDetail;
-            metrics = nextMetrics;
+            frozenMetrics = nextMetrics;
+            state = nextState;
+            stepStartedAt = nextStepStart;
+            runStartedAt = nextRunStart;
             render();
+        }
+
+        private long parseTime(String[] fields, int index) {
+            if (fields.length <= index || fields[index] == null) {
+                return 0;
+            }
+            try {
+                return Long.parseLong(fields[index]);
+            } catch (NumberFormatException error) {
+                return 0;
+            }
+        }
+
+        /**
+         * The timings as they should read right now.
+         *
+         * Events arrive per step, and one step can run for half a minute, so a string
+         * computed when the event arrived used to sit frozen on screen. The frame loop
+         * already redraws while the streak animates, so the clock ticks there.
+         */
+        private String liveMetrics() {
+            if (stepStartedAt <= 0) {
+                return frozenMetrics;
+            }
+            long now = System.currentTimeMillis();
+            return ProgressText.timings(now - stepStartedAt,
+                    runStartedAt > 0 ? now - runStartedAt : 0);
         }
 
         int measuredWidth() {
@@ -456,14 +471,30 @@ public final class OverlayView {
             return getHeight();
         }
 
-        /** One line of text, ellipsised into the space the caller allows. */
-        private Layout fit(String value, TextPaint paint, int maxWidth) {
-            return StaticLayout.Builder
-                    .obtain(value == null ? "" : value, 0, value == null ? 0 : value.length(),
-                            paint, Math.max(maxWidth, 40))
-                    .setMaxLines(1)
-                    .setEllipsize(TextUtils.TruncateAt.END)
-                    .build();
+        /**
+         * One line of text, ellipsised to `maxWidth`. Returns the text itself, so callers
+         * measure what is drawn: advancing a cursor by the *unclipped* width was how the
+         * step chip and the timings ended up overlapping each other.
+         */
+        private CharSequence ellipsize(String value, TextPaint paint, float maxWidth) {
+            if (value == null || value.isEmpty()) {
+                return "";
+            }
+            return TextUtils.ellipsize(value, paint, Math.max(maxWidth, 0f), TextUtils.TruncateAt.END);
+        }
+
+        /** Green once a step or the run is done, red when it failed, brand blue while busy. */
+        private int stateColor() {
+            switch (state) {
+                case "done":
+                case "step done":
+                    return OK_COLOR;
+                case "failed":
+                case "step failed":
+                    return FAIL_COLOR;
+                default:
+                    return DOT_COLOR;
+            }
         }
 
         void invalidateVisuals() {
@@ -652,78 +683,116 @@ public final class OverlayView {
             canvas.drawCircle(rippleX, rippleY, (8f + 26f * progress) * density, paint);
         }
 
+        /**
+         * The status card: state dot, what the agent is doing, which step, the step in
+         * words, and the timings — on two rows inside a centred card.
+         *
+         * It sits *below* the system status bar and is sized to its content. The previous
+         * version was a full-width slab at ~10dp from the top edge, i.e. behind the clock
+         * and the battery icons (the top inset it read was only ever logged), and wide
+         * enough to cover the app's own header underneath.
+         */
         private void drawBar(Canvas canvas, int width, int height) {
-            float barHeight = 30 * density;
-            float barTop = topBeamSpace();
-            float corner = 16 * density;
-
-            // A dark glass panel that fades into the screen, rounded at the bottom and
-            // finished with a brand hairline: the same language as the border streak
-            // instead of a slab that fights with it.
-            Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
-            panel.setShader(new android.graphics.LinearGradient(
-                    0, barTop, 0, barTop + barHeight,
-                    0xF20E141C, 0xD90B0F15, android.graphics.Shader.TileMode.CLAMP));
-            android.graphics.Path panelPath = new android.graphics.Path();
-            panelPath.addRoundRect(
-                    new RectF(0, barTop - corner, width, barTop + barHeight),
-                    corner, corner, android.graphics.Path.Direction.CW);
-            canvas.drawPath(panelPath, panel);
-
-            Paint hairline = new Paint(Paint.ANTI_ALIAS_FLAG);
-            hairline.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x59 << 24);
-            hairline.setStrokeWidth(1.5f * density);
-            canvas.drawLine(corner / 2f, barTop + barHeight - 0.75f * density,
-                    width - corner / 2f, barTop + barHeight - 0.75f * density, hairline);
-
-            float pad = 14 * density;
+            float margin = 16 * density;
+            float pad = 13 * density;
             float dotSize = 7 * density;
-            float centerY = barTop + barHeight / 2f;
+            float dotGap = 8 * density;
+            float rowHeight = 19 * density;
+            float detailHeight = 17 * density;
+            float rowGap = 5 * density;
+            float chipGap = 8 * density;
+            boolean hasDetail = !detail.isEmpty();
 
-            // A soft halo behind the state dot ties it to the beam.
+            // Size the card to its content: a one-word state ("Ready") becomes a small
+            // pill instead of a full-width slab, which is also what keeps it from covering
+            // more of the app underneath than it has to. Clamped, so a long step ellipsises
+            // rather than running off the screen.
+            String liveMetrics = liveMetrics();
+            float chipBox = stepChip.isEmpty() ? 0 : chipPaint.measureText(stepChip) + 14 * density;
+            float row1Needed = dotSize + dotGap
+                    + titlePaint.measureText(phase)
+                    + (chipBox > 0 ? chipGap + chipBox : 0)
+                    + (liveMetrics.isEmpty() ? 0 : 12 * density + metricsPaint.measureText(liveMetrics));
+            float contentWidth = Math.max(row1Needed,
+                    hasDetail ? detailPaint.measureText(detail) : 0);
+            float cardWidth = Math.min(
+                    Math.max(contentWidth + pad * 2, MIN_CARD_WIDTH_DP * density),
+                    Math.min(width - 2 * margin, MAX_CARD_WIDTH_DP * density));
+            float left = (width - cardWidth) / 2f;
+            float top = Math.max(systemInsetTop, MIN_TOP_INSET_DP * density) + 12 * density;
+            float cardHeight = pad * 2 + rowHeight + (hasDetail ? rowGap + detailHeight : 0);
+            RectF card = new RectF(left, top, left + cardWidth, top + cardHeight);
+
+            // Dark glass, rounded on every corner: the same language as the border streak.
+            float corner = 16 * density;
+            Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
+            panel.setShader(new LinearGradient(0, card.top, 0, card.bottom,
+                    0xF20E141C, 0xE60B0F15, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(card, corner, corner, panel);
+            Paint hairline = new Paint(Paint.ANTI_ALIAS_FLAG);
+            hairline.setStyle(Paint.Style.STROKE);
+            hairline.setStrokeWidth(1.2f * density);
+            hairline.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x44 << 24);
+            canvas.drawRoundRect(card, corner, corner, hairline);
+
+            float innerLeft = left + pad;
+            float innerRight = left + cardWidth - pad;
+            float centerY = top + pad + rowHeight / 2f;
+
+            // The timings are right-aligned, so they are measured first and everything on
+            // that row fits beside them.
+            CharSequence metricsText = ellipsize(liveMetrics, metricsPaint, (cardWidth - 2 * pad) * 0.45f);
+            float metricsWidth = metricsPaint.measureText(metricsText, 0, metricsText.length());
+            float row1Right = innerRight - (metricsWidth > 0 ? metricsWidth + 12 * density : 0);
+
+            // Same for the chip: measure it before fitting the label that precedes it.
+            float chipWidth = stepChip.isEmpty() ? 0 : chipPaint.measureText(stepChip) + 14 * density;
+            float phaseGap = chipWidth > 0 ? chipGap : 0;
+            float textLeft = innerLeft + dotSize + dotGap;
+            float phaseSpace = row1Right - textLeft - chipWidth - phaseGap;
+            CharSequence phaseText = ellipsize(phase, titlePaint, phaseSpace);
+            float phaseWidth = titlePaint.measureText(phaseText, 0, phaseText.length());
+
+            int accent = stateColor();
             Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
-            halo.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x33 << 24);
-            canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize, halo);
-            canvas.drawCircle(pad + dotSize / 2f, centerY, dotSize / 2f, dot);
+            halo.setColor((accent & 0x00FFFFFF) | 0x33 << 24);
+            canvas.drawCircle(innerLeft + dotSize / 2f, centerY, dotSize, halo);
+            dot.setColor(accent);
+            canvas.drawCircle(innerLeft + dotSize / 2f, centerY, dotSize / 2f, dot);
 
-            float cursor = pad + dotSize + 8 * density;
-            canvas.save();
-            canvas.translate(cursor, centerY - titlePaint.getTextSize() * 0.72f);
-            fit(phase, titlePaint, Math.round(120 * density)).draw(canvas);
-            canvas.restore();
-            cursor += titlePaint.measureText(phase) + 10 * density;
+            canvas.drawText(phaseText, 0, phaseText.length(), textLeft,
+                    centerY - centered(titlePaint), titlePaint);
+            float cursor = textLeft + phaseWidth + phaseGap;
 
-            if (!stepChip.isEmpty()) {
-                float chipWidth = chipPaint.measureText(stepChip) + 12 * density;
+            // Only when the fitted row above left room for it: an overlapping chip is
+            // worse than no chip.
+            if (chipWidth > 0 && cursor + chipWidth <= row1Right + 1) {
                 float chipHeight = 16 * density;
-                RectF chipRect = new RectF(cursor, centerY - chipHeight / 2f,
-                        cursor + chipWidth, centerY + chipHeight / 2f);
-                canvas.drawRoundRect(chipRect, chipHeight / 2f, chipHeight / 2f, chip);
-                canvas.save();
-                canvas.translate(cursor + 6 * density,
-                        centerY - (chipPaint.getFontMetrics().descent
-                                - chipPaint.getFontMetrics().ascent) / 2f
-                                - chipPaint.getFontMetrics().ascent + 1);
-                canvas.drawText(stepChip, 0, 0, chipPaint);
-                canvas.restore();
-                cursor += chipWidth + 10 * density;
+                canvas.drawRoundRect(
+                        new RectF(cursor, centerY - chipHeight / 2f,
+                                cursor + chipWidth, centerY + chipHeight / 2f),
+                        chipHeight / 2f, chipHeight / 2f, chip);
+                canvas.drawText(stepChip, cursor + 7 * density,
+                        centerY - centered(chipPaint), chipPaint);
             }
 
-            float metricsWidth = metrics.isEmpty() ? 0 : metricsPaint.measureText(metrics);
-            float metricsLeft = width - pad - metricsWidth;
-            float detailSpace = Math.max(metricsLeft - cursor - 12 * density, 60 * density);
-
-            canvas.save();
-            canvas.translate(cursor, centerY - detailPaint.getTextSize() * 0.72f);
-            fit(detail, detailPaint, Math.round(detailSpace)).draw(canvas);
-            canvas.restore();
-
-            if (!metrics.isEmpty()) {
-                canvas.save();
-                canvas.translate(metricsLeft, centerY - metricsPaint.getTextSize() * 0.72f);
-                canvas.drawText(metrics, 0, 0, metricsPaint);
-                canvas.restore();
+            if (metricsWidth > 0) {
+                canvas.drawText(metricsText, 0, metricsText.length(), innerRight - metricsWidth,
+                        centerY - centered(metricsPaint), metricsPaint);
             }
+
+            if (hasDetail) {
+                CharSequence detailText = ellipsize(detail, detailPaint, cardWidth - 2 * pad);
+                float detailCenter = top + pad + rowHeight + rowGap + detailHeight / 2f;
+                canvas.drawText(detailText, 0, detailText.length(), innerLeft,
+                        detailCenter - centered(detailPaint), detailPaint);
+            }
+        }
+
+        /** Baseline offset that centres one line of `paint` on a row's centre. */
+        private float centered(TextPaint paint) {
+            Paint.FontMetrics font = paint.getFontMetrics();
+            return (font.ascent + font.descent) / 2f;
         }
 
         @Override
@@ -806,60 +875,4 @@ public final class OverlayView {
         }
     }
 
-    private static final class DragListener implements View.OnTouchListener {
-        private final Context context;
-        private int startX;
-        private int startY;
-        private float touchX;
-        private float touchY;
-        private boolean moved;
-
-        DragListener(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        public boolean onTouch(View view, MotionEvent event) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    startX = params.x;
-                    startY = params.y;
-                    touchX = event.getRawX();
-                    touchY = event.getRawY();
-                    moved = false;
-                    return true;
-                case MotionEvent.ACTION_MOVE: {
-                    int dx = (int) (event.getRawX() - touchX);
-                    int dy = (int) (event.getRawY() - touchY);
-                    if (Math.abs(dx) > dp(context, 4) || Math.abs(dy) > dp(context, 4)) {
-                        moved = true;
-                    }
-                    int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
-                    int screenHeight = context.getResources().getDisplayMetrics().heightPixels;
-                    int width = pill != null && pill.measuredWidth() > 0
-                            ? pill.measuredWidth() : dp(context, 200);
-                    int height = pill != null && pill.measuredHeight() > 0
-                            ? pill.measuredHeight() : dp(context, 40);
-                    params.x = Math.max(0, Math.min(startX + dx, screenWidth - width));
-                    params.y = Math.max(dp(context, 40),
-                            Math.min(startY + dy, screenHeight - height - dp(context, 80)));
-                    if (windowManager != null && pill != null) {
-                        windowManager.updateViewLayout(pill, params);
-                    }
-                    return true;
-                }
-                case MotionEvent.ACTION_UP:
-                    if (moved && windowManager != null && pill != null) {
-                        int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
-                        params.x = params.x + pill.measuredWidth() / 2 < screenWidth / 2
-                                ? dp(context, 12)
-                                : screenWidth - pill.measuredWidth() - dp(context, 12);
-                        windowManager.updateViewLayout(pill, params);
-                    }
-                    return true;
-                default:
-                    return false;
-            }
-        }
-    }
 }

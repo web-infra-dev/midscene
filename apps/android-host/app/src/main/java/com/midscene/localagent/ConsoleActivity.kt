@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
@@ -34,6 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,18 +44,26 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -85,10 +95,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -253,11 +267,32 @@ private fun Screen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                if (tab < 3) "Midscene" else if (tab == 3) "Settings" else "Diagnostics",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // The console tabs carry the product mark; Settings/Diagnostics are
+                // sub-pages of it and only need their own title. The mark sits on the
+                // brand colour, exactly like the launcher icon, so it stays legible on
+                // the light and the dark surface.
+                if (tab < 3) {
+                    Box(
+                        Modifier.size(30.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(MidsceneColors.Brand),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_brand_mark),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    if (tab < 3) "Midscene" else if (tab == 3) "Settings" else "Diagnostics",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             TextButton(onClick = if (tab < 3) onSettings else onBack) {
                 Icon(
                     if (tab < 3) Icons.Filled.Settings else Icons.AutoMirrored.Filled.ArrowBack,
@@ -279,6 +314,35 @@ private fun Screen(
 }
 
 // --------------------------------------------------------------------- run
+
+/**
+ * True while a run is in flight.
+ *
+ * Every screen that could interleave with a run locks its controls on this: starting a
+ * second run, swapping the bundle under a running process, deleting the run's own log or
+ * editing the config it is reading are all things the service would either ignore or
+ * half-do. The service is the source of truth; the listener makes the change immediate
+ * and the poll covers state flips that emit no log line.
+ */
+@Composable
+private fun rememberRunBusy(): Boolean {
+    var busy by remember { mutableStateOf(AgentService.isBusy()) }
+    DisposableEffect(Unit) {
+        val listener = AgentService.LogListener { busy = AgentService.isBusy() }
+        AgentService.addListener(listener)
+        onDispose { AgentService.removeListener(listener) }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val actual = AgentService.isBusy()
+            if (actual != busy) {
+                busy = actual
+            }
+            delay(500)
+        }
+    }
+    return busy
+}
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -334,7 +398,7 @@ private fun RunScreen() {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(16.dp)) {
-                SectionLabel("INSTRUCTION")
+                SectionLabel(SelfCheckScript.INSTRUCTION_LABEL)
                 Spacer(Modifier.height(10.dp))
                 Box(
                     Modifier.fillMaxWidth().height(104.dp)
@@ -344,7 +408,7 @@ private fun RunScreen() {
                 ) {
                     if (prompt.isEmpty()) {
                         Text(
-                            "For example: Open Settings and search for Wi-Fi",
+                            SelfCheckScript.INSTRUCTION_PLACEHOLDER,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         )
@@ -465,15 +529,20 @@ private fun ScriptsScreen() {
     val file = remember { File(context.filesDir, "config.yaml") }
     var text by remember { mutableStateOf(ShellRunner.readText(file)) }
     var status by remember { mutableStateOf("") }
+    val busy = rememberRunBusy()
 
     Box(Modifier.fillMaxSize()) { Column(
         Modifier.align(Alignment.TopCenter).widthIn(max = 920.dp).fillMaxWidth().fillMaxHeight().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            "Edit config.yaml to run tasks in order",
+            if (busy) {
+                "A run is in progress — the script and its buttons are locked until it ends"
+            } else {
+                "Edit config.yaml to run tasks in order"
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (busy) MidsceneColors.Brand else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Card(
             shape = MaterialTheme.shapes.medium,
@@ -488,9 +557,15 @@ private fun ScriptsScreen() {
             ) {
                 BasicTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    // Read-only during a run: the CLI is reading this file right now.
+                    onValueChange = { if (!busy) text = it },
+                    readOnly = busy,
                     textStyle = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (busy) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     ),
                     modifier = Modifier.fillMaxSize()
                         .semantics { contentDescription = "Script editor" },
@@ -513,10 +588,12 @@ private fun ScriptsScreen() {
                     containerColor = MidsceneColors.Brand,
                     contentColor = Color.White,
                 ),
+                enabled = !busy,
                 modifier = Modifier.weight(1f),
             ) { Text("Run") }
             OutlinedButton(
                 onClick = { file.writeText(text); status = "saved" },
+                enabled = !busy,
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.weight(1f),
             ) { Text("Save") }
@@ -535,13 +612,17 @@ private fun ScriptsScreen() {
                     AgentService.ACTION_RUN_CONFIG,
                     Intent().putExtra(AgentService.EXTRA_CONFIG_PATH, target.absolutePath),
                 )
-            }) { Text("Self-check", fontSize = 12.sp, color = MidsceneColors.Brand) }
+            }, enabled = !busy) {
+                // No explicit colour: the button's own enabled/disabled tint is what makes
+                // "locked" legible next to New template.
+                Text("Self-check", fontSize = 12.sp)
+            }
 
             TextButton(onClick = {
                 // A minimal, valid starting point for a new script.
                 text = selfCheckConfig(context)
                 status = "template loaded"
-            }) { Text("New template", fontSize = 12.sp) }
+            }, enabled = !busy) { Text("New template", fontSize = 12.sp) }
             if (status.isNotEmpty()) {
                 Text(
                     status,
@@ -561,6 +642,7 @@ private fun ScriptsScreen() {
 private fun HistoryScreen(reportView: MutableState<WebView?>) {
     val context = LocalContext.current
     val store = remember { RunStore(context.filesDir) }
+    val busy = rememberRunBusy()
     var records by remember { mutableStateOf(store.list()) }
     var selected by remember { mutableStateOf<RunStore.RunRecord?>(null) }
     var pendingDelete by remember { mutableStateOf<RunStore.RunRecord?>(null) }
@@ -632,6 +714,7 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
                     RunCard(
                         record = record,
                         highlighted = selected?.id == record.id,
+                        canDelete = !busy,
                         onOpenReport = { selected = record },
                         onDetails = { selected = record },
                         onDelete = { pendingDelete = record },
@@ -647,6 +730,7 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
                         record = current,
                         store = store,
                         reportView = reportView,
+                        canDelete = !busy,
                         onDelete = {
                             store.delete(current)
                             reload()
@@ -671,6 +755,7 @@ private fun HistoryScreen(reportView: MutableState<WebView?>) {
             RunCard(
                 record = record,
                 highlighted = false,
+                canDelete = !busy,
                 onOpenReport = { openRun(record, ::open) },
                 onDetails = { selected = record },
                 onDelete = { pendingDelete = record },
@@ -750,6 +835,7 @@ private fun relativeTime(millis: Long): String {
 private fun RunCard(
     record: RunStore.RunRecord,
     highlighted: Boolean,
+    canDelete: Boolean,
     onOpenReport: () -> Unit,
     onDetails: () -> Unit,
     onDelete: () -> Unit,
@@ -816,7 +902,7 @@ private fun RunCard(
                         CardAction("Log", Icons.Filled.Terminal, onDetails)
                     }
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = onDelete) {
+                    TextButton(onClick = onDelete, enabled = canDelete) {
                         Text("Delete", fontSize = 11.sp, color = MidsceneColors.Error)
                     }
                 }
@@ -847,6 +933,7 @@ private fun RunDetailPane(
     record: RunStore.RunRecord,
     store: RunStore,
     reportView: MutableState<WebView?>,
+    canDelete: Boolean,
     onDelete: () -> Unit,
 ) {
     var reportReady by remember(record.id) { mutableStateOf(false) }
@@ -882,7 +969,7 @@ private fun RunDetailPane(
                 TextButton(onClick = { showReport = true }) { Text("Report", fontSize = 12.sp) }
             }
             TextButton(onClick = { showReport = false }) { Text("Log", fontSize = 12.sp) }
-            TextButton(onClick = { confirmDelete = true }) {
+            TextButton(onClick = { confirmDelete = true }, enabled = canDelete) {
                 Text("Delete", fontSize = 12.sp, color = MidsceneColors.Error)
             }
         }
@@ -1043,6 +1130,7 @@ private fun RunDetail(
 @Composable
 private fun DiagnosticsScreen() {
     val context = LocalContext.current
+    val busy = rememberRunBusy()
     val lines = remember { mutableStateListOf<String>() }
 
     DisposableEffect(Unit) {
@@ -1067,7 +1155,18 @@ private fun DiagnosticsScreen() {
             StatusRow("overlay permission", OverlayView.canDraw(context))
             Spacer(Modifier.height(10.dp))
             val authorizeLabel = if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize"
+            if (busy) {
+                // Extracting the bundle deletes the agent directory the running CLI is
+                // executing from, so provisioning waits for the run to end.
+                Text(
+                    "Locked while a run is in progress",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MidsceneColors.Brand,
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             ActionRow(
+                enabled = !busy,
                 "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
                 authorizeLabel to {
                     if (ShizukuAuth.binderReady()) {
@@ -1080,6 +1179,7 @@ private fun DiagnosticsScreen() {
         }
         DiagnosticsCard("DEVICE") {
             ActionRow(
+                enabled = true,
                 "Battery" to { Battery.requestExemption(context) },
                 "Shizuku" to { openShizuku(context) },
                 "Overlay" to { Overlay.requestPermission(context) },
@@ -1097,6 +1197,7 @@ private fun DiagnosticsScreen() {
             )
             Spacer(Modifier.height(8.dp))
             ActionRow(
+                enabled = !busy,
                 "Clean now" to {
                     store.prune()
                     usage = store.totalBytes()
@@ -1151,11 +1252,12 @@ private fun StatusRow(label: String, ready: Boolean) {
 }
 
 @Composable
-private fun ActionRow(vararg actions: Pair<String, () -> Unit>) {
+private fun ActionRow(enabled: Boolean = true, vararg actions: Pair<String, () -> Unit>) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         actions.forEach { (label, action) ->
             OutlinedButton(
                 onClick = action,
+                enabled = enabled,
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.weight(1f),
             ) { Text(label, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -1168,16 +1270,7 @@ private fun ActionRow(vararg actions: Pair<String, () -> Unit>) {
 @Composable
 private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDiagnostics: () -> Unit) {
     val context = LocalContext.current
-    val file = remember { File(context.filesDir, "model.env") }
-    var text by remember {
-        mutableStateOf(
-            ShellRunner.readText(file).ifEmpty {
-                "MIDSCENE_MODEL_API_KEY=\nMIDSCENE_MODEL_BASE_URL=\nMIDSCENE_MODEL_NAME=\nMIDSCENE_MODEL_FAMILY=\n"
-            },
-        )
-    }
     var overlayOn by remember { mutableStateOf(OverlayView.canDraw(context)) }
-    val clipboard = LocalClipboardManager.current
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -1245,13 +1338,92 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDia
             }
         }
 
-        DiagnosticsCard("MODEL CREDENTIALS") {
-            Text(
-                "Kept in the app's private storage and injected into the agent process; never written into a script.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ModelCredentialsCard()
+
+        DiagnosticsCard("DEVICE & SETUP") {
+            ActionRow(
+                enabled = true,
+                "Diagnostics" to onDiagnostics,
+                "Run setup again" to {
+                    SetupPrefs.setOnboarded(context, false)
+                    (context as? android.app.Activity)?.recreate()
+                },
             )
-            Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
+
+// ------------------------------------------------------- model credentials
+
+/**
+ * Credentials editor style. Both labels mirror the desktop studio's Config modal, so
+ * "Form Style" and ".env Style" mean the same thing on the phone and on the desktop.
+ */
+private enum class EnvStyle(val label: String) {
+    FORM("Form Style"),
+    ENV(".env Style"),
+}
+
+/**
+ * Model credentials in the two shapes the desktop studio offers: a Form for the keys the
+ * agent needs, and the raw `.env` text for everything else.
+ *
+ * Both styles edit the same in-memory text, so a switch carries every edit over and Save
+ * always writes exactly what the screen shows. Form edits go through
+ * [ModelEnvFile.setValue], which keeps comments and unknown keys, and the same class
+ * parses the file for the agent process.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelCredentialsCard() {
+    val context = LocalContext.current
+    val file = remember { File(context.filesDir, "model.env") }
+    var text by remember {
+        mutableStateOf(ShellRunner.readText(file).ifEmpty { ModelEnvFile.TEMPLATE })
+    }
+    var style by remember { mutableStateOf(SetupPrefs.envStyle(context, EnvStyle.FORM)) }
+    var apiKeyVisible by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val missing = remember(text) { ModelEnvFile.missingKeys(text) }
+    val busy = rememberRunBusy()
+
+    DiagnosticsCard("MODEL CREDENTIALS") {
+        Text(
+            "Kept in the app's private storage and injected into the agent process; never written into a script.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            EnvStyle.entries.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = style == option,
+                    onClick = {
+                        style = option
+                        SetupPrefs.setEnvStyle(context, option)
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index, EnvStyle.entries.size),
+                    // Brand blue, like the Run button: the M3 default is a violet that
+                    // reads as a different product.
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MidsceneColors.Brand,
+                        activeContentColor = Color.White,
+                    ),
+                    label = { Text(option.label, fontSize = 12.sp) },
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        if (style == EnvStyle.FORM) {
+            ModelEnvFields(
+                text = text,
+                apiKeyVisible = apiKeyVisible,
+                onToggleApiKey = { apiKeyVisible = !apiKeyVisible },
+                onChange = { key, value -> text = ModelEnvFile.setValue(text, key, value) },
+            )
+        } else {
             Box(
                 Modifier.fillMaxWidth().height(150.dp)
                     .clip(MaterialTheme.shapes.small)
@@ -1264,28 +1436,115 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDia
                     textStyle = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurface,
                     ),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()
+                        .semantics { contentDescription = "Model env editor" },
                 )
             }
-            Spacer(Modifier.height(10.dp))
-            ActionRow(
-                "Save" to {
-                    file.writeText(text)
-                    Toast.makeText(context, "Credentials saved", Toast.LENGTH_SHORT).show()
-                },
-                "Paste" to { clipboard.getText()?.text?.let { text = it } },
-            )
         }
 
-        DiagnosticsCard("DEVICE & SETUP") {
-            ActionRow(
-                "Diagnostics" to onDiagnostics,
-                "Run setup again" to {
-                    SetupPrefs.setOnboarded(context, false)
-                    (context as? android.app.Activity)?.recreate()
-                },
+        Spacer(Modifier.height(10.dp))
+        CredentialsStatus(missing)
+        if (busy) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                // The running process already has its environment; a save now would look
+                // like it applied and silently not have.
+                "Locked while a run is in progress: the running agent keeps the credentials it started with",
+                style = MaterialTheme.typography.bodySmall,
+                color = MidsceneColors.Brand,
             )
         }
+        Spacer(Modifier.height(10.dp))
+        ActionRow(
+            enabled = !busy,
+            "Save" to {
+                file.writeText(text)
+                Toast.makeText(context, "Credentials saved", Toast.LENGTH_SHORT).show()
+            },
+            if (style == EnvStyle.FORM) {
+                // In Form style the fields are the editor, so a pasted `.env` block is
+                // merged into the file instead of replacing text the user cannot see.
+                "Paste env" to {
+                    clipboard.getText()?.text?.let { pasted ->
+                        text = ModelEnvFile.merge(text, pasted)
+                    }
+                }
+            } else {
+                "Paste" to { clipboard.getText()?.text?.let { text = it } }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ModelEnvFields(
+    text: String,
+    apiKeyVisible: Boolean,
+    onToggleApiKey: () -> Unit,
+    onChange: (String, String) -> Unit,
+) {
+    val values = remember(text) { ModelEnvFile.parse(text).entries }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ModelEnvFile.FIELDS.forEach { field ->
+            val secret = field.kind == ModelEnvFile.Field.Kind.SECRET
+            val trailing: (@Composable () -> Unit)? = if (!secret) {
+                null
+            } else {
+                {
+                    IconButton(onClick = onToggleApiKey) {
+                        Icon(
+                            if (apiKeyVisible) {
+                                Icons.Filled.VisibilityOff
+                            } else {
+                                Icons.Filled.Visibility
+                            },
+                            contentDescription = if (apiKeyVisible) "Hide API key" else "Show API key",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+            OutlinedTextField(
+                value = values[field.key] ?: "",
+                onValueChange = { onChange(field.key, it) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(field.key, fontSize = 11.sp) },
+                placeholder = { Text(field.placeholder, fontSize = 12.sp) },
+                textStyle = MaterialTheme.typography.bodySmall,
+                visualTransformation = if (secret && !apiKeyVisible) {
+                    PasswordVisualTransformation()
+                } else {
+                    VisualTransformation.None
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = when (field.kind) {
+                        ModelEnvFile.Field.Kind.SECRET -> KeyboardType.Password
+                        ModelEnvFile.Field.Kind.URL -> KeyboardType.Uri
+                        else -> KeyboardType.Text
+                    },
+                ),
+                trailingIcon = trailing,
+            )
+        }
+    }
+}
+
+/** Live readiness line: the Form should not let a half-configured agent look done. */
+@Composable
+private fun CredentialsStatus(missing: List<String>) {
+    if (missing.isEmpty()) {
+        Text(
+            "Ready: the agent has a model, a base URL and an API key.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MidsceneColors.SuccessText,
+        )
+    } else {
+        Text(
+            "Still missing: " + missing.joinToString(", "),
+            style = MaterialTheme.typography.bodySmall,
+            color = MidsceneColors.Error,
+        )
     }
 }
 
@@ -1611,6 +1870,23 @@ private object SetupPrefs {
 
     private const val INSTRUCTION_KEY = "lastInstruction"
     private const val RECENT_KEY = "recentInstructions"
+    private const val ENV_STYLE_KEY = "modelEnvStyle"
+
+    /** Last credentials editor style; the Form is the friendlier default on a phone. */
+    fun envStyle(context: android.content.Context, fallback: EnvStyle): EnvStyle =
+        when (
+            context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+                .getString(ENV_STYLE_KEY, null)
+        ) {
+            EnvStyle.ENV.name -> EnvStyle.ENV
+            EnvStyle.FORM.name -> EnvStyle.FORM
+            else -> fallback
+        }
+
+    fun setEnvStyle(context: android.content.Context, style: EnvStyle) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putString(ENV_STYLE_KEY, style.name).apply()
+    }
 
     fun lastInstruction(context: android.content.Context): String =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
@@ -1683,34 +1959,11 @@ private fun openShizuku(context: android.content.Context) {
 const val EXTRA_OPEN_HISTORY = "openHistory"
 
 /**
- * The self-check script: the app drives its own UI.
- *
- * Shell-only sections come first (they measure transport cost with no model call at
- * all), then a tap per tab, a switch toggle, and two perception checks, so the
- * per-task timings separate engine cost from model cost.
+ * The self-check script, worded for the form factor this device is using; the copy lives
+ * in [SelfCheckScript] so the wording rules are unit-tested.
  */
-private fun selfCheckConfig(context: android.content.Context): String = """
-name: self-check
-device:
-  backend: rish
-  rishPath: /data/local/tmp/rish
-  yadbPath: /data/local/tmp/yadb
-  fileChannelDir: ${Provisioner.channelDir(context).absolutePath}
-agent:
-  generateReport: true
-  resetToHome: false
-  reportDir: ./midscene_run/results
-tasks:
-  - name: 01-tab-tour-and-input
-    type: yaml
-    script: |
-      tasks:
-        - name: tab-tour-and-input
-          flow:
-            - aiTap: "Scripts 标签（左侧导航栏或底部导航栏）"
-            - aiTap: "History 标签"
-            - aiTap: "Run 标签"
-            - aiTap: "首页的自然语言指令输入框"
-            - aiInput: "首页的自然语言指令输入框"
-              value: "open the settings app and search for Wi-Fi"
-"""
+private fun selfCheckConfig(context: android.content.Context): String {
+    // The same width test the shell uses to pick a navigation rail over a bottom bar.
+    val wide = context.resources.configuration.screenWidthDp >= 600
+    return SelfCheckScript.config(wide, Provisioner.channelDir(context).absolutePath)
+}

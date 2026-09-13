@@ -61,11 +61,15 @@ public class AgentService extends Service {
     private static volatile int stepIndex = 0;
     private static volatile int stepTotal = 0;
     private static volatile String stepPrompt = "";
+    /** The device action the agent reported most recently ("Tap - Wi-Fi"). */
+    private static volatile String actionTip = "";
     private static volatile long runStartedAtMs = 0;
     private static volatile long stepStartedAtMs = 0;
 
     /** Set from onCreate so log lines can drive the floating progress pill. */
     private static Context overlayContext;
+    /** Set from onCreate so static event handlers can update the run notification. */
+    private static AgentService instance;
     /** Overwritten from onCreate with the app's private run directory. */
     private static String SERVICE_LOG_DIR = "/data/local/tmp";
 
@@ -116,6 +120,9 @@ public class AgentService extends Service {
     }
 
     private static void emit(String line) {
+        // Captured before the assignment: a structured event line must fall back to the
+        // text that was on screen, not to its own JSON.
+        String previousMessage = lastMessage;
         lastMessage = line;
         persistServiceLog(line);
 
@@ -128,7 +135,11 @@ public class AgentService extends Service {
         }
 
         if (overlayContext != null && phase.isEmpty()) {
-            OverlayView.post(() -> OverlayView.update(OverlayView.summarize(line)));
+            OverlayView.post(() ->
+                    OverlayView.update(ProgressText.summarize(line, previousMessage)));
+            // Same terse line in the shade: provisioning emits no step events, so this is
+            // the only thing that moves while it runs.
+            updateRunNotification();
         }
         synchronized (LOG_BUFFER) {
             LOG_BUFFER.add(line);
@@ -164,12 +175,21 @@ public class AgentService extends Service {
                     stepTotal = event.optInt("total", stepTotal);
                     stepPrompt = event.optString("prompt", event.optString("name", ""));
                     stepStartedAtMs = event.optLong("startedAt", System.currentTimeMillis());
+                    actionTip = "";
+                    break;
+                case "action":
+                    // The finest progress signal there is: a yaml script reports one step
+                    // for its whole flow, so without this the bar sits on 1/1 while five
+                    // actions run underneath it.
+                    actionTip = event.optString("tip", "");
                     break;
                 case "step.end":
                     phase = "ok".equals(event.optString("status")) ? "step done" : "step failed";
+                    actionTip = "";
                     break;
                 case "run.end":
                     phase = "ok".equals(event.optString("status")) ? "done" : "failed";
+                    actionTip = "";
                     break;
                 case "locate": {
                     // Screen-space rect of the element the agent located.
@@ -202,33 +222,63 @@ public class AgentService extends Service {
             return;
         }
         OverlayView.post(() -> OverlayView.updateProgress(progressLines()));
+        updateRunNotification();
     }
 
     /**
-     * Bar slots, left to right: phase, step counter, current step, timings.
+     * Keep the foreground notification in step with the run.
+     *
+     * It used to be written once ("running config / preparing") and never again, so the
+     * only thing a user could see from the shade was the start of the run.
+     */
+    private static void updateRunNotification() {
+        AgentService service = instance;
+        if (service == null) {
+            return;
+        }
+        String[] lines = progressLines();
+        long stepMs = stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase)
+                ? System.currentTimeMillis() - stepStartedAtMs
+                : 0;
+        service.updateNotification(
+                ProgressText.notificationTitle(lines[0], ProgressText.stepProgress(stepIndex, stepTotal)),
+                ProgressText.notificationText(lines[2], stepMs));
+    }
+
+    /**
+     * Bar slots, left to right: what the agent is doing, which step, the step itself (in
+     * words), and the timings. The humanising lives in {@link ProgressText}: this method
+     * only knows the state machine.
      */
     private static String[] progressLines() {
         long now = System.currentTimeMillis();
-        String chip = stepTotal > 0 ? Math.max(stepIndex, 1) + "/" + stepTotal : "";
-        String detail = stepPrompt.isEmpty() ? lastMessage : stepPrompt;
+        String chip = ProgressText.stepChip(stepIndex, stepTotal);
+        // A step's own prompt when there is one, otherwise the tail of the last log line;
+        // structured events fall through to the previous text rather than raw JSON.
+        String detail = stepPrompt.isEmpty()
+                ? ProgressText.describeStep(lastMessage, actionTip)
+                : ProgressText.describeStep(stepPrompt, actionTip);
         if (detail.contains(EVENT_MARKER.trim())) {
             detail = "";
         }
         String metrics = "";
-        if (stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase)) {
-            metrics = formatDuration(now - stepStartedAtMs);
-            if (runStartedAtMs > 0) {
-                metrics = metrics + " · " + formatDuration(now - runStartedAtMs);
-            }
+        boolean timing = stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase);
+        if (timing) {
+            metrics = ProgressText.timings(
+                    now - stepStartedAtMs,
+                    runStartedAtMs > 0 ? now - runStartedAtMs : 0);
         }
-        return new String[] { phase.isEmpty() ? "working" : phase, chip, detail, metrics };
-    }
-
-    private static String formatDuration(long millis) {
-        long seconds = millis / 1000;
-        return seconds < 60
-                ? seconds + "s"
-                : String.format(java.util.Locale.US, "%d:%02d", seconds / 60, seconds % 60);
+        // The last two slots are the start timestamps, so the bar can tick the clock
+        // itself: events only arrive per step, and a step can run for half a minute.
+        return new String[] {
+                ProgressText.phaseLabel(phase),
+                chip,
+                detail,
+                metrics,
+                phase,
+                timing ? String.valueOf(stepStartedAtMs) : "0",
+                timing && runStartedAtMs > 0 ? String.valueOf(runStartedAtMs) : "0",
+        };
     }
 
     /** Service-level log, kept next to the run logs for post-mortem reading. */
@@ -265,6 +315,7 @@ public class AgentService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         runStore = new RunStore(getFilesDir());
         ShizukuExecBridge.ensureBound(this);
         ExecBridge.start(this);
@@ -320,6 +371,7 @@ public class AgentService extends Service {
 
     @Override
     public void onDestroy() {
+        instance = null;
         Process process = activeProcess;
         if (process != null) {
             process.destroyForcibly();
@@ -576,12 +628,13 @@ public class AgentService extends Service {
         stepIndex = 0;
         stepTotal = 0;
         stepPrompt = "";
+        actionTip = "";
         runStartedAtMs = System.currentTimeMillis();
         stepStartedAtMs = 0;
         clearBuffer();
         startOverlayKeepAlive();
         OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
-        updateNotification("running " + stateLabel, "preparing");
+        updateNotification("Starting", stateLabel);
         worker = new Thread(() -> {
             try {
                 task.run();
@@ -642,7 +695,7 @@ public class AgentService extends Service {
             }
             worker.interrupt();
             emit("stop requested");
-            updateNotification("Midscene agent", "stopping");
+            updateNotification("Stopping", "");
         }
     }
 
