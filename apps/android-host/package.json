@@ -6,6 +6,7 @@
   "scripts": {
     "bundle": "node ./scripts/bundle-agent.mjs",
     "runtime": "./scripts/fetch-node-runtime.sh",
+    "icons": "python3 ./scripts/make-icons.py",
     "assemble": "pnpm run bundle && ./gradlew assembleDebug",
     "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
     "bootstrap": "./scripts/adb-bootstrap.sh"
