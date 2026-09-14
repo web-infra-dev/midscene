@@ -1,7 +1,6 @@
 import {
   getZodDescription,
   getZodTypeName,
-  getZodValueKinds,
   isMidsceneLocatorField,
   unwrapZodField,
 } from '@/zod-schema-utils';
@@ -122,48 +121,6 @@ describe('zod-schema-utils', () => {
       );
       expect(getZodTypeName(schema)).toBe(
         "enum('replace', 'clear', 'typeOnly')",
-      );
-    });
-  });
-
-  describe('getZodValueKinds', () => {
-    it('uses native enum values rather than guessing from numeric keys', () => {
-      expect(getZodValueKinds(z.nativeEnum({ '007': '123' }))).toEqual(
-        new Set(['string']),
-      );
-      expect(getZodValueKinds(z.nativeEnum({ '007': 3 }))).toEqual(
-        new Set(['number']),
-      );
-      expect(getZodValueKinds(z.nativeEnum({ 0: 'Zero', Zero: 0 }))).toEqual(
-        new Set(['number']),
-      );
-      expect(
-        getZodValueKinds(z.nativeEnum({ 0: 'Zero', Zero: 0, Text: '007' })),
-      ).toEqual(new Set(['number', 'string']));
-    });
-
-    it('unwraps fields and identifies scalar kinds', () => {
-      expect(getZodValueKinds(z.string().optional())).toEqual(
-        new Set(['string']),
-      );
-      expect(getZodValueKinds(z.literal(3))).toEqual(new Set(['number']));
-      expect(getZodValueKinds(z.enum(['123', 'safe']))).toEqual(
-        new Set(['string']),
-      );
-    });
-
-    it('collects every kind accepted by a union', () => {
-      expect(
-        getZodValueKinds(
-          z.union([z.string(), z.number(), z.object({ prompt: z.string() })]),
-        ),
-      ).toEqual(new Set(['string', 'number', 'object']));
-    });
-
-    it('distinguishes structured schemas', () => {
-      expect(getZodValueKinds(z.array(z.string()))).toEqual(new Set(['array']));
-      expect(getZodValueKinds(z.record(z.string()))).toEqual(
-        new Set(['object']),
       );
     });
   });

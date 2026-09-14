@@ -1,12 +1,4 @@
-import { z } from 'zod';
-
-export type ZodValueKind =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
-  | 'unknown';
+import type { z } from 'zod';
 
 /**
  * Recursively unwrap optional, nullable, default, and effects wrapper types
@@ -37,64 +29,6 @@ export function unwrapZodField(field: unknown): unknown {
   }
 
   return f;
-}
-
-function getLiteralValueKind(value: unknown): ZodValueKind {
-  if (typeof value === 'string') return 'string';
-  if (typeof value === 'number') return 'number';
-  if (typeof value === 'boolean') return 'boolean';
-  return 'unknown';
-}
-
-/**
- * Classify the supported top-level Zod input kinds without running validation.
- * Unrecognized types return `unknown`; refinements are not evaluated. Unlike
- * `getZodTypeName`, this normalizes enums, literals, and unions so consumers
- * can make type-directed decisions without parsing its display label.
- */
-export function getZodValueKinds(field: unknown): Set<ZodValueKind> {
-  const actualField = unwrapZodField(field) as {
-    _def?: {
-      typeName?: string;
-      options?: unknown[];
-      value?: unknown;
-      values?: Record<string, unknown>;
-    };
-  };
-  const definition = actualField._def;
-
-  switch (definition?.typeName) {
-    case 'ZodString':
-    case 'ZodEnum':
-      return new Set(['string']);
-    case 'ZodNumber':
-      return new Set(['number']);
-    case 'ZodBoolean':
-      return new Set(['boolean']);
-    case 'ZodArray':
-    case 'ZodTuple':
-      return new Set(['array']);
-    case 'ZodObject':
-    case 'ZodRecord':
-    case 'ZodDiscriminatedUnion':
-      return new Set(['object']);
-    case 'ZodLiteral':
-      return new Set([getLiteralValueKind(definition.value)]);
-    case 'ZodNativeEnum':
-      return new Set(
-        z.util
-          .getValidEnumValues(definition.values ?? {})
-          .map(getLiteralValueKind),
-      );
-    case 'ZodUnion':
-      return new Set(
-        (definition.options ?? []).flatMap((option) => [
-          ...getZodValueKinds(option),
-        ]),
-      );
-    default:
-      return new Set(['unknown']);
-  }
 }
 
 /**

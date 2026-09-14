@@ -1,26 +1,13 @@
 import { z } from 'zod';
 import type { ToolCliOption, ToolDefinition } from '../agent-tools/types';
 import { getKeyAliases } from '../key-alias-utils';
-import { getZodValueKinds } from '../zod-schema-utils';
 import { CLIError } from './cli-error';
-
-const cliNumberPattern = /^-?\d+(\.\d+)?$/;
-
-export function parseValue(raw: string): unknown {
-  const parsedJson = parseJsonValue(raw);
-  if (parsedJson !== raw) return parsedJson;
-
-  if (cliNumberPattern.test(raw)) {
-    return Number(raw);
-  }
-
-  return raw;
-}
+import { parseCliValue } from './cli-value';
+export { parseValue } from './cli-value';
 
 function walkCliArgs(
   args: string[],
-  setArgValue: (key: string, value: unknown) => void,
-  fieldByCliName?: ReadonlyMap<string, z.ZodTypeAny>,
+  setArgValue: (key: string, value: string | true) => void,
 ): void {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -31,13 +18,10 @@ function walkCliArgs(
 
     if (eqIdx >= 0) {
       const key = body.slice(0, eqIdx);
-      setArgValue(
-        key,
-        parseCliValue(body.slice(eqIdx + 1), fieldByCliName?.get(key)),
-      );
+      setArgValue(key, body.slice(eqIdx + 1));
     } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
       i++;
-      setArgValue(body, parseCliValue(args[i], fieldByCliName?.get(body)));
+      setArgValue(body, args[i]);
     } else {
       setArgValue(body, true);
     }
@@ -61,68 +45,41 @@ function buildCliFieldIndex(
   return fieldByCliName;
 }
 
-function parseJsonValue(raw: string): unknown {
-  if (!raw.startsWith('{') && !raw.startsWith('[')) return raw;
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    // Preserve malformed JSON for string fields or the later schema error.
-    return raw;
-  }
-}
-
-function parseCliValue(raw: string, field?: z.ZodTypeAny): unknown {
-  if (!field) return parseValue(raw);
-
-  const kinds = getZodValueKinds(field);
-  if (kinds.has('object') || kinds.has('array')) {
-    const parsedJson = parseJsonValue(raw);
-    if (parsedJson !== raw) return parsedJson;
-  }
-
-  // CLI input cannot distinguish a numeric-looking identifier from a number.
-  // Prefer the lossless representation whenever the schema accepts strings.
-  if (kinds.has('string')) return raw;
-
-  if (kinds.has('number') && cliNumberPattern.test(raw)) {
-    return Number(raw);
-  }
-
-  if (kinds.has('boolean')) {
-    if (raw === 'true') return true;
-    if (raw === 'false') return false;
-  }
-
-  return kinds.has('unknown') ? parseValue(raw) : raw;
-}
-
 export function parseCliArgs(
   args: string[],
   def?: ToolDefinition,
 ): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
   const fieldByCliName = def ? buildCliFieldIndex(def) : undefined;
+  const tokensByName = new Map<string, Array<string | true>>();
+  walkCliArgs(args, (key, raw) => {
+    const tokens = tokensByName.get(key) ?? [];
+    tokens.push(raw);
+    tokensByName.set(key, tokens);
+  });
 
-  walkCliArgs(
-    args,
-    (key, value) => {
+  const result: Record<string, unknown> = {};
+  for (const [key, tokens] of tokensByName) {
+    let elementIndex = 0;
+    for (const raw of tokens) {
       const existing = result[key];
+      const value =
+        raw === true
+          ? true
+          : parseCliValue(
+              raw,
+              fieldByCliName?.get(key),
+              tokens.length > 1 ? elementIndex : undefined,
+            );
       if (existing === undefined) {
         result[key] = value;
-        return;
-      }
-
-      if (Array.isArray(existing)) {
+      } else if (Array.isArray(existing)) {
         existing.push(value);
-        result[key] = existing;
-        return;
+      } else {
+        result[key] = [existing, value];
       }
-
-      result[key] = [existing, value];
-    },
-    fieldByCliName,
-  );
+      elementIndex = Array.isArray(result[key]) ? result[key].length : 1;
+    }
+  }
 
   return result;
 }

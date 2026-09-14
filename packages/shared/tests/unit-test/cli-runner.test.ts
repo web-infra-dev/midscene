@@ -350,6 +350,73 @@ describe('parseCliArgs', () => {
     expect(z.object(def.schema).safeParse(parsed).success).toBe(true);
   });
 
+  it('keeps numeric branches reachable beside restricted strings', () => {
+    const schema = {
+      mode: z.union([z.literal('auto'), z.number()]),
+      choice: z.union([z.enum(['auto', '007']), z.number()]),
+      native: z.nativeEnum({ 0: 'Zero', Zero: 0, Text: '007' }),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(['--mode=42', '--choice=3', '--native=0'], def);
+    expect(parsed).toEqual({ mode: 42, choice: 3, native: 0 });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(
+      parseCliArgs(['--mode=auto', '--choice=007', '--native=007'], def),
+    ).toEqual({ mode: 'auto', choice: '007', native: '007' });
+  });
+
+  it('decodes repeated collection values using their element schemas', () => {
+    const schema = {
+      values: z.array(z.number()).optional(),
+      pair: z.tuple([z.number(), z.string()]),
+      flags: z.array(z.boolean()),
+      names: z.array(z.string()),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(
+      [
+        '--values=1',
+        '--values=2',
+        '--pair=3',
+        '--pair=007',
+        '--flags=true',
+        '--flags=false',
+        '--names=007',
+        '--names=9007199254740993',
+      ],
+      def,
+    );
+    expect(parsed).toEqual({
+      values: [1, 2],
+      pair: [3, '007'],
+      flags: [true, false],
+      names: ['007', '9007199254740993'],
+    });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(parseCliArgs(['--values=[1,2]', '--pair=[3,"007"]'], def)).toEqual({
+      values: [1, 2],
+      pair: [3, '007'],
+    });
+  });
+
+  it('selects collection branches for repeated union inputs and tuple rest items', () => {
+    const schema = {
+      values: z.union([z.string(), z.array(z.number())]),
+      tuple: z.tuple([z.string()]).rest(z.number()),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(
+      ['--values=1', '--values=2', '--tuple=007', '--tuple=3', '--tuple=4'],
+      def,
+    );
+    expect(parsed).toEqual({ values: [1, 2], tuple: ['007', 3, 4] });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(parseCliArgs(['--values=007'], def)).toEqual({ values: '007' });
+    expect(parseCliArgs(['--tuple=["007",3]', '--tuple=4'], def)).toEqual({
+      tuple: ['007', 3, 4],
+    });
+  });
+
   it('accumulates repeated flags into an array', () => {
     expect(
       parseCliArgs([
