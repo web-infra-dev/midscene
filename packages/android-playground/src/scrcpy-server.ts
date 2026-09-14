@@ -15,7 +15,6 @@ import {
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
-import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import cors from 'cors';
 import express from 'express';
 import { Server } from 'socket.io';
@@ -25,6 +24,7 @@ import {
   buildScrcpyPreviewErrorEvent,
   buildScrcpyPreviewStatusEvent,
 } from './scrcpy-preview-status';
+import { ScrcpyVideoSender } from './scrcpy-video-sender';
 import { withTimeout } from './timeout';
 
 export const debugPage = getDebug('android:playground');
@@ -39,18 +39,6 @@ interface ActiveScrcpySession {
   failureReported: boolean;
   id: string;
   outputLines: string[];
-}
-
-export function buildScrcpyVideoPacket(
-  packet: ScrcpyMediaStreamPacket,
-  timestamp = Date.now(),
-) {
-  return {
-    data: packet.data,
-    type: packet.type,
-    timestamp,
-    keyFrame: packet.type === 'data' ? packet.keyframe : undefined,
-  };
 }
 
 export function appendBoundedScrcpyOutput(
@@ -437,6 +425,7 @@ export default class ScrcpyServer {
       let activeSession: ActiveScrcpySession | null = null;
       let sessionGeneration = 0;
       let adb = null;
+      const videoSender = new ScrcpyVideoSender(socket);
 
       const closeScrcpySession = async (
         reason: string,
@@ -754,13 +743,8 @@ export default class ScrcpyServer {
                       // byte to a boxed JS Number, blowing the V8 old space on
                       // low-memory hosts (e.g. 8GB Windows) after a few seconds
                       // of a 2 Mbps stream.
-                      // H.264/H.265 delta frames form a prediction chain. Losing
-                      // any packet can corrupt the remainder of the GOP, so the
-                      // complete stream must use Socket.IO's reliable transport.
-                      // The renderer bounds its own queue and, when overloaded,
-                      // drops the rest of the GOP before resuming at a keyframe.
-                      const videoPacket = buildScrcpyVideoPacket(value);
-                      socket.emit('video-data', videoPacket);
+                      // Preserve GOP integrity with reliable, bounded delivery.
+                      videoSender.send(value);
                     }
                   } catch (error) {
                     console.error('error processing video stream:', error);

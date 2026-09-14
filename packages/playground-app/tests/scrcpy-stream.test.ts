@@ -8,7 +8,10 @@ interface RawVideoPayload {
   keyFrame?: boolean;
 }
 
-type VideoDataHandler = (data: RawVideoPayload) => void;
+type VideoDataHandler = (
+  data: RawVideoPayload,
+  acknowledge?: () => void,
+) => void;
 type VoidHandler = () => void;
 type ErrorHandler = (error: Error) => void;
 
@@ -59,8 +62,8 @@ class MockScrcpySocket {
     this.errorHandlers.delete(handler as ErrorHandler);
   }
 
-  dispatchVideoData(packet: RawVideoPayload) {
-    this.videoDataHandlers.forEach((handler) => handler(packet));
+  dispatchVideoData(packet: RawVideoPayload, acknowledge?: () => void) {
+    this.videoDataHandlers.forEach((handler) => handler(packet, acknowledge));
   }
 
   dispatchDisconnect() {
@@ -83,6 +86,37 @@ async function collectStream(
 }
 
 describe('createScrcpyVideoStream', () => {
+  test('acknowledges receipt even when the decoder is stalled or drops a GOP', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const acknowledge = rs.fn();
+    socket.dispatchVideoData(
+      { type: 'configuration', data: new Uint8Array([99]) },
+      acknowledge,
+    );
+    for (let index = 0; index < 20; index++) {
+      socket.dispatchVideoData(
+        { type: 'data', data: new Uint8Array([index]), keyFrame: index === 0 },
+        acknowledge,
+      );
+    }
+    expect(acknowledge).toHaveBeenCalledTimes(21);
+    await stream.cancel();
+  });
+
+  test('acknowledges malformed packets while surfacing the stream error', async () => {
+    const socket = new MockScrcpySocket();
+    const stream = createScrcpyVideoStream(socket);
+    const acknowledge = rs.fn();
+    const collected = collectStream(stream);
+    socket.dispatchVideoData(
+      { type: 'data', data: new Uint8Array([1]) },
+      acknowledge,
+    );
+    await expect(collected).rejects.toThrow('missing keyFrame metadata');
+    expect(acknowledge).toHaveBeenCalledTimes(1);
+  });
+
   test('subscribes to scrcpy socket events immediately', () => {
     const socket = new MockScrcpySocket();
 

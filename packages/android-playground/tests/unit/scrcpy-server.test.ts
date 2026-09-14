@@ -1,7 +1,7 @@
+import { buildScrcpyVideoPacket } from '@/scrcpy-video-sender';
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
-  buildScrcpyVideoPacket,
   resolveRequestedDeviceId,
 } from '../../src/scrcpy-server';
 

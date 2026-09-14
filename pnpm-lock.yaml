@@ -773,6 +773,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      socket.io-client:
+        specifier: 4.8.1
+        version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

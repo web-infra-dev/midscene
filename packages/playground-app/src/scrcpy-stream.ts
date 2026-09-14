@@ -19,10 +19,16 @@ function toUint8Array(data: RawScrcpyVideoData): Uint8Array {
 }
 
 interface ScrcpyVideoSocketLike {
-  on(event: 'video-data', handler: (data: RawScrcpyVideoPacket) => void): void;
+  on(
+    event: 'video-data',
+    handler: (data: RawScrcpyVideoPacket, acknowledge?: () => void) => void,
+  ): void;
   on(event: 'disconnect', handler: () => void): void;
   on(event: 'error', handler: (error: Error) => void): void;
-  off(event: 'video-data', handler: (data: RawScrcpyVideoPacket) => void): void;
+  off(
+    event: 'video-data',
+    handler: (data: RawScrcpyVideoPacket, acknowledge?: () => void) => void,
+  ): void;
   off(event: 'disconnect', handler: () => void): void;
   off(event: 'error', handler: (error: Error) => void): void;
 }
@@ -56,7 +62,10 @@ export function createScrcpyVideoStream(
       start(controller) {
         const canEnqueue = () =>
           controller.desiredSize === null || controller.desiredSize > 0;
-        const handleVideoData = (data: RawScrcpyVideoPacket) => {
+        const handleVideoData = (
+          data: RawScrcpyVideoPacket,
+          acknowledge?: () => void,
+        ) => {
           try {
             if (
               data.type !== 'configuration' &&
@@ -148,6 +157,10 @@ export function createScrcpyVideoStream(
           } catch (error) {
             cleanupListeners?.();
             controller.error(error);
+          } finally {
+            // Receipt, not decode completion: even intentionally discarded GOP
+            // packets must release sender credit. Never wait for the renderer.
+            acknowledge?.();
           }
         };
 
