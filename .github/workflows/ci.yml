@@ -68,12 +68,20 @@ jobs:
       env:
         MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
         MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+        MIDSCENE_XRDP_ARTIFACT_DIR: ${{ github.workspace }}/midscene_run/rdp-integration-report
       run: >-
         python3 packages/computer/native/rdp/tests/xrdp_integration_test.py
         /tmp/midscene-rdp-build/bin/rdp-helper
     - name: Print xrdp diagnostics
       if: failure()
       run: sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+    - name: Upload RDP integration report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: warn
+        name: rdp-integration-report
+        path: midscene_run/rdp-integration-report
 
   main:
     # The viewport e2e relies on the hosted image's Chrome window behavior.

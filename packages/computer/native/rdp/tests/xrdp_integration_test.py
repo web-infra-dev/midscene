@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+from pathlib import Path
 import select
 import struct
 import subprocess
@@ -56,7 +57,41 @@ def decode_rgba(data_url):
     if len(rows) != row_size * height or any(rows[y * row_size] for y in range(height)):
         raise RuntimeError("screenshot PNG uses an unexpected pixel layout")
     rgba = b"".join(rows[y * row_size + 1 : (y + 1) * row_size] for y in range(height))
-    return width, height, rgba
+    return width, height, rgba, png
+
+
+def write_report(output_dir, first_png, second_png, width, height, non_black, elapsed):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "first-screenshot.png").write_bytes(first_png)
+    (output_dir / "second-screenshot.png").write_bytes(second_png)
+    summary = {
+        "desktopSize": {"width": width, "height": height},
+        "firstScreenshotNonBlackRatio": non_black / (width * height),
+        "laterScreenshotSeconds": elapsed,
+        "laterScreenshotChanged": True,
+        "result": "passed",
+    }
+    (output_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    (output_dir / "report.html").write_text(
+        f"""<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Midscene RDP CI report</title>
+<style>body{{font:16px system-ui;max-width:1100px;margin:40px auto;padding:0 20px}}
+img{{max-width:100%;border:1px solid #ccc}} code{{background:#eee;padding:2px 5px}}</style>
+<h1>Midscene RDP integration report</h1>
+<p><strong>Passed.</strong> Connected to a local xrdp server through the compiled
+<code>rdp-helper</code>, captured the first desktop, sent text input, captured the
+updated desktop, and disconnected cleanly.</p>
+<ul><li>Desktop: {width} × {height}</li>
+<li>First screenshot non-black pixels: {non_black / (width * height):.1%}</li>
+<li>Later screenshot latency: {elapsed:.3f}s</li></ul>
+<h2>First screenshot</h2><img src="first-screenshot.png">
+<h2>After typing</h2><img src="second-screenshot.png">
+</html>
+""",
+        encoding="utf-8",
+    )
 
 
 def main():
@@ -91,7 +126,7 @@ def main():
             raise RuntimeError(f"unexpected negotiated desktop size: {size}")
 
         first = request(process, "first-screenshot", {"type": "screenshot"})
-        width, height, first_pixels = decode_rgba(first["base64"])
+        width, height, first_pixels, first_png = decode_rgba(first["base64"])
         non_black = sum(
             1
             for index in range(0, len(first_pixels), 4)
@@ -105,13 +140,24 @@ def main():
         started = time.monotonic()
         second = request(process, "second-screenshot", {"type": "screenshot"})
         elapsed = time.monotonic() - started
-        _, _, second_pixels = decode_rgba(second["base64"])
+        _, _, second_pixels, second_png = decode_rgba(second["base64"])
         if second_pixels == first_pixels:
             raise RuntimeError("later screenshot did not observe the updated desktop")
         if elapsed >= 2:
             raise RuntimeError(f"later screenshot unexpectedly settled for {elapsed:.2f}s")
 
         request(process, "disconnect", {"type": "disconnect"})
+        output_dir = os.environ.get("MIDSCENE_XRDP_ARTIFACT_DIR")
+        if output_dir:
+            write_report(
+                Path(output_dir),
+                first_png,
+                second_png,
+                width,
+                height,
+                non_black,
+                elapsed,
+            )
         print(
             f"xrdp integration passed: {width}x{height}, "
             f"{non_black / (width * height):.1%} non-black, "
