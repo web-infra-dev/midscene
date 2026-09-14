@@ -54,6 +54,28 @@ public final class OverlayView {
     private static final float MIN_TOP_INSET_DP = 24f;
     private static final long BOX_TTL_MS = 2500;
     private static final long RIPPLE_MS = 700;
+    /**
+     * Where Android 12 starts treating an untrusted window as "obscuring" and drops
+     * touches aimed at whatever is underneath. Matches the platform default of
+     * `Settings.Global.maximum_obscuring_opacity_for_touch`.
+     */
+    private static final float DEFAULT_MAX_OBSCURING_OPACITY = 0.8f;
+    private static final String SETTING_MAX_OBSCURING_OPACITY =
+            "maximum_obscuring_opacity_for_touch";
+    /** Headroom below the threshold, so a near-miss cannot tip the layer over it. */
+    private static final float OBSCURING_HEADROOM = 0.05f;
+    /**
+     * How many input windows this layer contributes to the obscuring-opacity sum:
+     * the window itself, plus the child window `SurfaceView` registers for its own
+     * surface. Both carry the window alpha, and the dispatcher accumulates them as
+     * `1 - (1 - alpha)^n`.
+     *
+     * Measured on the car unit: at alpha 0.75 the layer stopped blocking at a
+     * threshold of 0.94 but not 0.90, i.e. an effective opacity of ~0.9375 =
+     * `1 - (1 - 0.75)^2` — two windows, not one. Lowering only the parent window
+     * therefore looked like it had done nothing.
+     */
+    private static final int OBSCURING_WINDOWS = 2;
 
     private static WindowManager windowManager;
     private static PillView pill;
@@ -72,6 +94,14 @@ public final class OverlayView {
     private static long rippleStartedAt;
     private static boolean bypassReady;
     private static String lastText = "";
+    /**
+     * Whether the layer may be shown at all. Kept here as well as in the caller so
+     * a run that starts while the switch is off cannot bring it back, and so the
+     * exit path can drop the window without touching the service.
+     */
+    private static boolean showEnabled = true;
+    /** Window alpha actually used, kept so every params push re-asserts the same value. */
+    private static float safeAlpha = 0.5f;
 
     private OverlayView() {
     }
@@ -145,11 +175,12 @@ public final class OverlayView {
     }
 
     public static synchronized void show(Context context, String text) {
-        if (!canDraw(context)) {
+        if (!showEnabled || !canDraw(context)) {
             return;
         }
         prepareHiddenApis();
         Context app = context.getApplicationContext();
+        safeAlpha = obscuringSafeAlpha(app);
 
         if (pill == null) {
             windowManager = (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
@@ -167,7 +198,6 @@ public final class OverlayView {
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_PHONE,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                             // Without these the window manager insets the surface to
                             // avoid the status bar and the taskbar, so the frame never
                             // reached the physical screen edges.
@@ -189,8 +219,7 @@ public final class OverlayView {
                 params.width = bounds.width();
                 params.height = bounds.height();
             }
-            // Touch events must reach the app underneath: this layer only observes.
-            params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            applyTouchTransparency(params);
 
             try {
                 windowManager.addView(pill, params);
@@ -267,8 +296,94 @@ public final class OverlayView {
             return;
         }
         // A surface that opts out of captures stays visible; otherwise hide it.
-        boolean hide = suppressed && !pill.hiddenFromCapture;
+        boolean hide = !showEnabled || (suppressed && !pill.hiddenFromCapture);
         pill.setVisibility(hide ? View.GONE : View.VISIBLE);
+    }
+
+    /**
+     * Make the layer incapable of receiving input, and incapable of shadowing it.
+     *
+     * Two separate platform rules have to be satisfied, and only the first one is
+     * about the window flags:
+     *
+     * 1. Touchability. Written as an allow-list rather than `|= FLAG_NOT_TOUCHABLE`,
+     *    because a ROM or the window type can add flags of its own. Nothing here is
+     *    interactive (there is no touch listener anywhere in this class), so the
+     *    layer is safe to make inert. `FLAG_NOT_TOUCH_MODAL` is set as well: it is
+     *    the flag that says "route touches outside me to the window behind", which
+     *    is what this layer wants.
+     *
+     * 2. Obscuring opacity — this is the one that actually broke the Huawei head
+     *    unit. Since Android 12 an untrusted window (ours: `trustedOverlay=false`)
+     *    whose alpha exceeds `maximum_obscuring_opacity_for_touch` (0.8 by default)
+     *    counts as obscuring, and touches aimed at the windows *below* it are
+     *    dropped. `FLAG_NOT_TOUCHABLE` does not exempt a window from that check, and
+     *    `FLAG_NOT_TOUCH_MODAL` is not the culprit either — both were measured on
+     *    the device. What it looked like from the driver's seat: with the layer up,
+     *    taps on another app's window were swallowed, while the car dock and the
+     *    navigation bar (system windows above us) and our own console (same UID)
+     *    kept working — the "everything is dead except the dock" report. Disabling
+     *    the rule with `block_untrusted_touches=0` restored the same taps, which is
+     *    what pinned it to this mechanism.
+     *
+     * So the window alpha is not a style choice here, it is the safety control:
+     * {@link #obscuringSafeAlpha} derives it from the device's own threshold. The
+     * cost is that the layer composites slightly transparent instead of fully
+     * opaque; it is drawn dark-on-dark and stays readable.
+     */
+    private static void applyTouchTransparency(WindowManager.LayoutParams target) {
+        target.flags &= ~(WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
+        target.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+        target.alpha = safeAlpha;
+    }
+
+    /**
+     * Window alpha that keeps the layer's *combined* obscuring opacity below the
+     * platform threshold, read from the device so an OEM that changed it is still
+     * respected.
+     */
+    private static float obscuringSafeAlpha(Context context) {
+        float max = DEFAULT_MAX_OBSCURING_OPACITY;
+        try {
+            max = Settings.Global.getFloat(context.getContentResolver(),
+                    SETTING_MAX_OBSCURING_OPACITY, DEFAULT_MAX_OBSCURING_OPACITY);
+        } catch (Throwable ignored) {
+            // Missing or unreadable: the platform default is the safe assumption.
+        }
+        return obscuringSafeAlpha(max, OBSCURING_WINDOWS);
+    }
+
+    /**
+     * The per-window alpha whose accumulated opacity across `windows` windows stays
+     * under `threshold`, with headroom. Pure so it can be unit tested.
+     *
+     * Safety wins over legibility: on a device that asks for an alpha so low the
+     * layer is barely visible, it still gets one, because the alternative is a layer
+     * that silently swallows every tap aimed at the app underneath. The platform
+     * default of 0.8 yields ~0.51.
+     */
+    static float obscuringSafeAlpha(float threshold, int windows) {
+        float bounded = Math.max(0.05f, Math.min(threshold, 1f));
+        float target = bounded * (1f - OBSCURING_HEADROOM);
+        int count = Math.max(1, windows);
+        // Solve 1 - (1 - alpha)^n = target for alpha.
+        float alpha = 1f - (float) Math.pow(1f - target, 1.0 / count);
+        return Math.max(0.01f, Math.min(alpha, 0.99f));
+    }
+
+    /** Turn the layer on or off; off removes the window entirely. */
+    public static synchronized void setShowEnabled(boolean enabled, Context context) {
+        showEnabled = enabled;
+        if (!enabled) {
+            hide();
+            return;
+        }
+        if (context != null) {
+            show(context, lastText);
+        }
     }
 
     private static void resizeToContent() {
@@ -283,6 +398,9 @@ public final class OverlayView {
         if (params.width != width || params.height != height) {
             params.width = width;
             params.height = height;
+            // Re-assert before every push: this is the one place the flags could
+            // drift without anyone noticing.
+            applyTouchTransparency(params);
             try {
                 windowManager.updateViewLayout(pill, params);
             } catch (Exception ignored) {
