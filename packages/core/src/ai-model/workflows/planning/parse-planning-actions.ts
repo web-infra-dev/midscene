@@ -9,9 +9,23 @@ import type { DeviceAction, PlanningAction } from '@/types';
 import { isPlainObject } from '@midscene/shared/utils';
 import { z } from 'zod';
 
-export function validatePlanningActions(
+import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
+import {
+  type PlanningLocateNormalizationOptions,
+  normalizePlanningLocateParameter,
+} from './locate-normalization';
+
+// Mutates locator fields in place; ordinary parameters retain their model values.
+export function parsePlanningActions(
   actions: PlanningAction[],
-  actionSpace: DeviceAction[],
+  {
+    actionSpace,
+    parseRawLocateParameter,
+    ...normalizationOptions
+  }: PlanningLocateNormalizationOptions & {
+    actionSpace: DeviceAction[];
+    parseRawLocateParameter: (value: unknown) => ParsedPlanningLocateParameter;
+  },
 ): void {
   for (const action of actions) {
     const definition = findActionInActionSpaceOrThrow(action.type, actionSpace);
@@ -19,15 +33,22 @@ export function validatePlanningActions(
       continue;
     }
 
+    const locateFields = findAllMidsceneLocatorField(definition.paramSchema);
     try {
+      for (const field of locateFields) {
+        const rawLocate = action.param?.[field];
+        if (rawLocate !== undefined && rawLocate !== null) {
+          action.param[field] = parseRawLocateParameter(rawLocate);
+        }
+      }
       validateRequiredLocateFields(action.param, definition.paramSchema);
-      // Only preflight validation: keep model parameters unchanged. Parsing can
+      // Only preflight validation: keep ordinary parameters unchanged. Parsing can
       // evaluate defaults/transforms, but its output is consumed only at execution.
       parseActionParam(action.param, definition.paramSchema);
 
-      for (const field of findAllMidsceneLocatorField(definition.paramSchema)) {
+      for (const field of locateFields) {
         const locate = action.param?.[field];
-        if (!locate) {
+        if (locate === undefined) {
           continue;
         }
         // Validate only the model-facing prompt; coordinates are normalized later.
@@ -47,6 +68,10 @@ export function validatePlanningActions(
             })),
           );
         }
+        action.param[field] = normalizePlanningLocateParameter(
+          locate,
+          normalizationOptions,
+        );
       }
     } catch (error) {
       const details =

@@ -138,6 +138,73 @@ describe('plan XML parse retry', () => {
     });
   });
 
+  it.each([false, true])(
+    'decodes protocol locators once before validation (coordinates: %s)',
+    async (includeLocateInPlanning) => {
+      const runtime = getModelRuntime({
+        ...mockModelConfig('qwen3-vl'),
+        retryInterval: 0,
+      });
+      const planning = runtime.adapter.planning;
+      if (planning.kind !== 'standard') {
+        throw new Error('Expected a standard planning adapter');
+      }
+      const encodedLocate = '<prompt>submit</prompt><point>50 60</point>';
+      const parseRawLocateParameter = rs.fn((value: unknown) => {
+        if (value !== encodedLocate) {
+          throw new Error('Unexpected encoded locator');
+        }
+        return { prompt: 'submit', bbox: [100, 200, 300, 400] };
+      });
+      rs.mocked(callAI).mockResolvedValueOnce(
+        mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>${JSON.stringify({ locate: encodedLocate })}</action-param-json>`),
+      );
+      const result = await standardPlan('tap submit', {
+        context: mockContext(),
+        actionSpace: [
+          {
+            name: 'Tap',
+            description: 'Tap an element',
+            paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+            call: rs.fn(),
+          },
+        ],
+        modelRuntime: {
+          config: runtime.config,
+          adapter: new ResolvedModelAdapter(
+            {
+              planning: {
+                protocol: {
+                  ...planning.protocol,
+                  actionOutputProtocol: {
+                    ...planning.protocol.actionOutputProtocol,
+                    parseRawLocateParameter,
+                  },
+                },
+              },
+            },
+            'test-encoded-locator',
+          ),
+        },
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning,
+        effort: 'balance',
+      });
+      expect(callAI).toHaveBeenCalledTimes(1);
+      expect(parseRawLocateParameter).toHaveBeenCalledTimes(1);
+      expect(parseRawLocateParameter).toHaveBeenCalledWith(encodedLocate);
+      expect(result.actions?.[0]?.param.locate.prompt).toBe('submit');
+      if (includeLocateInPlanning) {
+        expect(
+          result.actions?.[0]?.param.locate.locatedPixelResult,
+        ).toBeDefined();
+      } else {
+        expect(result.actions?.[0]?.param.locate).toEqual({ prompt: 'submit' });
+      }
+    },
+  );
+
   it('retries missing locator prompts before normalizing coordinates', async () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce(

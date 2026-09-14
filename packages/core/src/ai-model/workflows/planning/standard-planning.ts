@@ -23,10 +23,9 @@ import {
   type PreparedUserPrompt,
   preparedReferenceImagesToChatMessages,
 } from '../../shared/multimodal-prompt';
-import { normalizePlanningActionLocateFields } from './locate-normalization';
+import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
-import { validatePlanningActions } from './validate-planning-actions';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
@@ -99,14 +98,13 @@ async function callAndParsePlanningResponse(
       }
 
       const actions = planFromAI.action ? [planFromAI.action] : [];
-      validatePlanningActions(actions, actionSpace);
-      normalizePlanningActionLocateFields(actions, {
+      parsePlanningActions(actions, {
+        parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
         actionSpace,
         includeLocateInPlanning,
         locateResultCodec,
         locateResultContext,
         acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
-        parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
       });
       return { response, planFromAI, actions };
     },

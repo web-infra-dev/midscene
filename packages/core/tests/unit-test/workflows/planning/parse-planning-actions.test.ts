@@ -1,4 +1,5 @@
-import { validatePlanningActions } from '@/ai-model/workflows/planning/validate-planning-actions';
+import type { ParsedPlanningLocateParameter } from '@/ai-model/model-adapter/planning-protocol';
+import { parsePlanningActions } from '@/ai-model/workflows/planning/parse-planning-actions';
 import {
   getMidsceneLocationSchema,
   parseActionParam,
@@ -27,33 +28,57 @@ const actionSpace: DeviceAction[] = [
   },
 ];
 
-describe('validatePlanningActions', () => {
+const parseActions = (actions: PlanningAction[], actionSpace: DeviceAction[]) =>
+  parsePlanningActions(actions, {
+    actionSpace,
+    parseRawLocateParameter: (value) => value as ParsedPlanningLocateParameter,
+    includeLocateInPlanning: false,
+    locateResultContext: { preparedSize: { width: 100, height: 100 } },
+  });
+
+describe('parsePlanningActions', () => {
+  it.each([0, false, '', null])(
+    'rejects invalid optional locators: %j',
+    (locate) => {
+      expect(() =>
+        parseActions([{ type: 'Scroll', param: { locate } }], actionSpace),
+      ).toThrow(
+        'Invalid parameters for action Scroll: locate: Expected an object with a prompt field',
+      );
+    },
+  );
+
+  it('allows an explicitly undefined optional locator', () => {
+    const actions = [{ type: 'Scroll', param: { locate: undefined } }];
+    expect(() => parseActions(actions, actionSpace)).not.toThrow();
+    expect(actions[0].param).toEqual({ locate: undefined });
+  });
+
   it('allows omitted parameters for parameterless actions and optional/default fields', () => {
     const actions: PlanningAction[] = [{ type: 'Back' }, { type: 'Scroll' }];
-    expect(() => validatePlanningActions(actions, actionSpace)).not.toThrow();
+    expect(() => parseActions(actions, actionSpace)).not.toThrow();
     expect(actions).toEqual([{ type: 'Back' }, { type: 'Scroll' }]);
   });
 
-  it('preserves raw model coordinates and parameter identity', () => {
+  it('preserves parameter identity and discards coordinates in prompt-only mode', () => {
     const param = {
       locate: {
         prompt: 'submit',
         bbox: [10, 20, 30, 40],
       },
     };
-    const before = structuredClone(param);
     const actions = [{ type: 'Tap', param }];
-    validatePlanningActions(actions, actionSpace);
+    parseActions(actions, actionSpace);
     expect(actions[0].param).toBe(param);
-    expect(param).toEqual(before);
+    expect(param).toEqual({ locate: { prompt: 'submit' } });
   });
 
   it.each([undefined, {}, { locate: null }, { locate: { prompt: 123 } }])(
     'rejects invalid required locators: %j',
     (param) => {
-      expect(() =>
-        validatePlanningActions([{ type: 'Tap', param }], actionSpace),
-      ).toThrow('Invalid parameters for action Tap: locate');
+      expect(() => parseActions([{ type: 'Tap', param }], actionSpace)).toThrow(
+        'Invalid parameters for action Tap: locate',
+      );
     },
   );
 
@@ -83,9 +108,7 @@ describe('validatePlanningActions', () => {
       }
     };
     expect(
-      accepts(() =>
-        validatePlanningActions([{ type: 'Input', param }], [definition]),
-      ),
+      accepts(() => parseActions([{ type: 'Input', param }], [definition])),
     ).toBe(accepts(() => parseActionParam(param, schema)));
   });
 
@@ -95,7 +118,7 @@ describe('validatePlanningActions', () => {
       count: z.number().default(1),
     });
     const param = { value: 'hello' };
-    validatePlanningActions(
+    parseActions(
       [{ type: 'Input', param }],
       [
         {
@@ -121,7 +144,7 @@ describe('validatePlanningActions', () => {
     };
     expect(() => parseActionParam(param, schema)).toThrow();
     expect(() =>
-      validatePlanningActions(
+      parseActions(
         [{ type: 'Input', param }],
         [
           {
@@ -139,10 +162,7 @@ describe('validatePlanningActions', () => {
     'accepts planning locators before execution resolves them: %j',
     (locate) => {
       expect(() =>
-        validatePlanningActions(
-          [{ type: 'Tap', param: { locate } }],
-          actionSpace,
-        ),
+        parseActions([{ type: 'Tap', param: { locate } }], actionSpace),
       ).not.toThrow();
       const resolved = {
         center: [20, 30],
@@ -163,14 +183,11 @@ describe('validatePlanningActions', () => {
     { locatedPixelResult: { center: [20, 30] } },
   ])('requires a model-facing prompt: %j', (locate) => {
     expect(() =>
-      validatePlanningActions(
-        [{ type: 'Tap', param: { locate } }],
-        actionSpace,
-      ),
+      parseActions([{ type: 'Tap', param: { locate } }], actionSpace),
     ).toThrow('Invalid parameters for action Tap: locate.prompt: Required');
   });
 
-  it('does not validate caller configuration or coordinates in the prompt check', () => {
+  it('discards extra locator options and coordinates in prompt-only mode', () => {
     const locate = {
       prompt: 'submit',
       deepLocate: 'not a boolean',
@@ -179,15 +196,15 @@ describe('validatePlanningActions', () => {
       bbox: ['invalid'],
     };
     const actions = [{ type: 'Tap', param: { locate } }];
-    expect(() => validatePlanningActions(actions, actionSpace)).not.toThrow();
-    expect(actions[0].param.locate).toBe(locate);
+    expect(() => parseActions(actions, actionSpace)).not.toThrow();
+    expect(actions[0].param.locate).toEqual({ prompt: 'submit' });
   });
 
   it.each(['submit', { prompt: 'submit' }])(
     'accepts supported prompt values: %j',
     (prompt) => {
       expect(() =>
-        validatePlanningActions(
+        parseActions(
           [{ type: 'Tap', param: { locate: { prompt } } }],
           actionSpace,
         ),
@@ -199,7 +216,7 @@ describe('validatePlanningActions', () => {
     'rejects invalid prompt values: %j',
     (prompt) => {
       expect(() =>
-        validatePlanningActions(
+        parseActions(
           [{ type: 'Tap', param: { locate: { prompt } } }],
           actionSpace,
         ),
@@ -209,16 +226,13 @@ describe('validatePlanningActions', () => {
 
   it('rejects a string locator instead of treating it as a prompt', () => {
     expect(() =>
-      validatePlanningActions(
-        [{ type: 'Tap', param: { locate: 'submit' } }],
-        actionSpace,
-      ),
+      parseActions([{ type: 'Tap', param: { locate: 'submit' } }], actionSpace),
     ).toThrow('locate: Expected an object with a prompt field');
   });
 
   it('rejects a locator using an unsupported prompt field', () => {
     const actions = [{ type: 'Tap', param: { locate: { label: 'submit' } } }];
-    expect(() => validatePlanningActions(actions, actionSpace)).toThrow(
+    expect(() => parseActions(actions, actionSpace)).toThrow(
       'locate.prompt: Required',
     );
     expect(actions[0].param.locate).toEqual({ label: 'submit' });
@@ -230,15 +244,15 @@ describe('validatePlanningActions', () => {
       expect(() =>
         validateRequiredLocateFields(param, actionSpace[1].paramSchema),
       ).toThrow('locate: Required');
-      expect(() =>
-        validatePlanningActions([{ type: 'Tap', param }], actionSpace),
-      ).toThrow('locate: Required');
+      expect(() => parseActions([{ type: 'Tap', param }], actionSpace)).toThrow(
+        'locate: Required',
+      );
     },
   );
 
   it('rejects unknown actions', () => {
-    expect(() =>
-      validatePlanningActions([{ type: 'Unknown' }], actionSpace),
-    ).toThrow("Action type 'Unknown' is not in the current action space");
+    expect(() => parseActions([{ type: 'Unknown' }], actionSpace)).toThrow(
+      "Action type 'Unknown' is not in the current action space",
+    );
   });
 });

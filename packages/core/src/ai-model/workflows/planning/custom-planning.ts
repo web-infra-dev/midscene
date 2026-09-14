@@ -7,7 +7,6 @@ import type {
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
-import type { ParsedPlanningLocateParameter } from '../../model-adapter/planning-protocol';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
@@ -144,8 +143,6 @@ export async function runCustomPlanning<TParsed>(
         contentSize: preparedImage.contentSize,
       },
       acceptBbox2dAlias: preparedOptions.modelRuntime.adapter.acceptBbox2dAlias,
-      parseRawLocateParameter: (value) =>
-        value as ParsedPlanningLocateParameter,
     });
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {
