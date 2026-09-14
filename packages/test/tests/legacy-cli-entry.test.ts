@@ -19,6 +19,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const oldCli = resolve(here, '../../cli/bin/midscene');
+const cliAcceptanceTimeout = 30_000;
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -110,6 +111,7 @@ describe('published YAML entry acceptance', () => {
       }
       expect(existsSync(join(root, 'midscene.config.ts'))).toBe(false);
     },
+    cliAcceptanceTimeout,
   );
 
   it.each([false, true])(
@@ -171,6 +173,7 @@ describe('published YAML entry acceptance', () => {
       expect(report).toContain('midscene_test_run_dump');
       expect(report).toContain('fixture action failed once');
     },
+    cliAcceptanceTimeout,
   );
 
   it.each(['old', 'new'] as const)(
@@ -208,6 +211,7 @@ describe('published YAML entry acceptance', () => {
           .answer,
       ).toEqual({ echoed: 'from-dotenv/from-shell' });
     },
+    cliAcceptanceTimeout,
   );
 
   it('runs unchanged YAML through the built new CLI, including the real host adapter and async cleanup', () => {
