@@ -281,13 +281,31 @@ web:
     const file = write('a.yaml');
     const config = write('batch.yaml', 'files: [a.yaml]\nretry: 2\n');
     vi.mocked(runTestProject).mockResolvedValue({
+      schemaVersion: 3,
+      runId: 'run-1',
+      startedAt: '2026-09-14T00:00:00.000Z',
+      endedAt: '2026-09-14T00:00:00.000Z',
+      durationMs: 0,
+      status: 'success',
       collectionErrors: [],
       cases: [],
-      summary: { passed: 1, total: 1, failed: 0, notRun: 0 },
+      documents: [],
+      projects: [],
+      summary: {
+        passed: 0,
+        total: 0,
+        failed: 0,
+        notRun: 0,
+        filtered: 0,
+        collectionErrors: 0,
+        documentFailures: 0,
+        projectFailures: 0,
+      },
       resultDir: join(root, 'results'),
       summaryPath: join(root, 'summary.json'),
+      reportDir: join(root, 'reports'),
       exitCode: 0,
-    } as Awaited<ReturnType<typeof runTestProject>>);
+    });
     const io = { log: vi.fn(), error: vi.fn() };
     expect(await runTestCli(['--config', config], io)).toBe(0);
     expect(runTestProject).toHaveBeenCalledWith(

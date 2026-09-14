@@ -1,3 +1,4 @@
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_USE_DOUBAO_VISION,
@@ -16,6 +17,7 @@ import {
 import { ADB } from 'appium-adb';
 import { AndroidAgent, agentFromAdbDevice } from '../../src/agent';
 import { AndroidDevice } from '../../src/device';
+import { androidAgentTestRunnerNodeDefinitions } from '../../src/test-runner-nodes';
 import * as Utils from '../../src/utils';
 
 rs.mock('appium-adb');
@@ -32,24 +34,16 @@ const mockedModelConfig = {
 } as const;
 
 it('declares common and Android Test Runner Nodes', () => {
-  expect(
-    AndroidAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
-  ).toEqual([
-    'aiAct',
-    'aiTap',
-    'aiAssert',
-    'aiBoolean',
-    'aiNumber',
-    'aiString',
-    'aiAsk',
-    'recordToReport',
-    'launch',
-    'terminate',
-    'runAdbShell',
-    'back',
-    'home',
-    'recentApps',
-  ]);
+  const names = AndroidAgent.getTestRunnerNodeDefinitions().map(
+    ({ name }) => name,
+  );
+  expect(names).toEqual(
+    [
+      ...commonAgentTestRunnerNodeDefinitions,
+      ...androidAgentTestRunnerNodeDefinitions,
+    ].map(({ name }) => name),
+  );
+  expect(new Set(names).size).toBe(names.length);
 });
 
 async function createActualAndroidDevice(

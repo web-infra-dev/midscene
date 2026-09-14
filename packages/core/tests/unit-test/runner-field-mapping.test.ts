@@ -117,7 +117,7 @@ describe('shared workflow field semantics', () => {
         observed = result.outputs;
       },
       resolveNode: (name) =>
-        defineNode({
+        defineNode<unknown, unknown>({
           name,
           execute(ctx) {
             if (name === 'phase')
