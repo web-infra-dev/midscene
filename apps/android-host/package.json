@@ -8,6 +8,7 @@
     "runtime": "./scripts/fetch-node-runtime.sh",
     "icons": "python3 ./scripts/make-icons.py",
     "assemble": "pnpm run bundle && ./gradlew assembleDebug",
+    "test": "./gradlew :app:testDebugUnitTest && node --test scripts/check-multi-user.test.mjs",
     "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
     "bootstrap": "./scripts/adb-bootstrap.sh"
   }

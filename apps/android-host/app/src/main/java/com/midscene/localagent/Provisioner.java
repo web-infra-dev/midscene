@@ -20,8 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Two destinations matter:
  * - the agent bundle and JS files go to app-private storage (only the app reads them);
  * - yadb must end up in /data/local/tmp for the shell uid, and the app cannot write
- *   there (SELinux), so it is staged in the app's *external* files directory —
- *   which the shell can read — and copied by the Shizuku user service.
+ *   there (SELinux), so bounded asset bytes go through Binder to UserService.
+ *   No cross-user external storage access is required.
  */
 public final class Provisioner {
 
@@ -50,19 +50,31 @@ public final class Provisioner {
         return RUNNING.containsKey(key);
     }
 
-    /** Payload directory shared with the UI: shell-writable, app-readable. */
+    /** Shell-owned payload directory; reads return via a Binder descriptor pipe. */
     public static File channelDir(Context context) {
-        File external = context.getExternalFilesDir(null);
-        File base = external != null ? external : context.getFilesDir();
-        File dir = new File(base, "channel");
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        return dir;
+        return new File(RuntimePayloads.CHANNEL_ROOT,
+                "u" + (context.getApplicationInfo().uid / 100000));
     }
 
     public static File agentDir(Context context) {
         return new File(context.getFilesDir(), "agent");
+    }
+
+    /** Installation receipt, not a substitute for checking live Shizuku binding. */
+    public static boolean runtimeInstalled(Context context) {
+        File receipt = new File(context.getFilesDir(), "runtime-ready");
+        try {
+            return new File(nodePath(context)).isFile() && cliFile(context).isFile()
+                    && receipt.isFile()
+                    && new String(java.nio.file.Files.readAllBytes(receipt.toPath()),
+                    java.nio.charset.StandardCharsets.UTF_8).trim().equals(runtimeStamp(context));
+        } catch (IOException error) {
+            return false;
+        }
+    }
+
+    private static String runtimeStamp(Context context) {
+        return "userservice-pipe-v2:" + readAssetText(context, "bundle-info.txt");
     }
 
     public static File cliFile(Context context) {
@@ -204,30 +216,6 @@ public final class Provisioner {
         }
     }
 
-    /** Copy the bundled yadb dex into the app's external files directory. */
-    public static File stageYadb(Context context, LogSink log) throws IOException {
-        File external = context.getExternalFilesDir(null);
-        if (external == null) {
-            throw new IOException("external files directory is unavailable");
-        }
-        if (!external.exists() && !external.mkdirs()) {
-            throw new IOException("could not create " + external);
-        }
-
-        File staged = new File(external, "yadb");
-        try (InputStream raw = context.getAssets().open("yadb");
-             FileOutputStream out = new FileOutputStream(staged)) {
-            byte[] buffer = new byte[64 * 1024];
-            int read;
-            while ((read = raw.read(buffer)) > 0) {
-                out.write(buffer, 0, read);
-            }
-        }
-        log.log("staged yadb at " + staged.getAbsolutePath()
-                + " (" + staged.length() + " bytes)");
-        return staged;
-    }
-
     /**
      * Install yadb into /data/local/tmp through the shell channel.
      *
@@ -237,21 +225,22 @@ public final class Provisioner {
      * confusing failure later).
      */
     public static String installYadb(Context context, LogSink log) throws IOException {
-        File staged = stageYadb(context, log);
-
         // Probe rather than wait: a bare "not ready" used to be reported with an
         // empty reason, which told the user nothing about what to fix.
-        ShizukuExecBridge.BindingState state = ShizukuExecBridge.probeBinding(context, 8_000);
+        ShizukuExecBridge.BindingState state = ShizukuExecBridge.probeBinding(context, 30_000);
         if (!state.ready) {
             throw new IOException("yadb install needs the Shizuku user service, which is not "
                     + "ready: " + describeBinding(state));
         }
         log.log("shizuku user service bound as uid " + state.uid);
 
-        String command = String.format(
-                "cp '%s' %s && chmod 644 %s && ls -l %s",
-                staged.getAbsolutePath(), YADB_TARGET, YADB_TARGET, YADB_TARGET);
-        ShizukuExecBridge.Result result = ShizukuExecBridge.exec(command, 30_000);
+        byte[] bytes;
+        try (InputStream raw = context.getAssets().open("yadb")) {
+            bytes = RuntimePayloads.readBounded(raw, RuntimePayloads.MAX_YADB_BYTES);
+        }
+        ShizukuExecBridge.installYadb(bytes);
+        ShizukuExecBridge.Result result = ShizukuExecBridge.exec(
+                "ls -l " + YADB_TARGET, 10_000);
         log.log("shizuku user service: " + result.stdout.trim()
                 + (result.stderr.isEmpty() ? "" : " stderr=" + result.stderr.trim()));
         if (!result.ok()) {
@@ -259,6 +248,50 @@ public final class Provisioner {
                     + (result.stderr.isEmpty() ? "" : ": " + result.stderr.trim()));
         }
         return YADB_TARGET;
+    }
+
+    /** Never report a partial install as a working runtime. */
+    public static void installRuntime(Context context, LogSink log) throws IOException {
+        File receipt = new File(context.getFilesDir(), "runtime-ready");
+        java.nio.file.Files.deleteIfExists(receipt.toPath());
+        extractAgent(context, log);
+        installYadb(context, log);
+        ShellRunner.Result version = ShellRunner.runCli(context, context.getFilesDir(), log, "--version");
+        requireCliSuccess(version.exitCode);
+        // Deliberately exceed Binder's transaction buffer to verify that only
+        // descriptors cross it. Actual Node/HTTP/screenshot coverage follows.
+        String channel = channelDir(context).getAbsolutePath();
+        int expectedBytes = 2 * 1024 * 1024;
+        ShizukuExecBridge.Result write = ShizukuExecBridge.exec(
+                "mkdir -p '" + channel + "' && dd if=/dev/zero of='"
+                        + channel + "/provision-check' bs=65536 count=32", 10_000);
+        if (!write.ok()) {
+            throw new IOException("runtime channel write failed: " + write.stderr);
+        }
+        byte[] read = ShizukuExecBridge.readChannelFile(channel + "/provision-check");
+        if (read.length != expectedBytes || !java.util.Arrays.equals(read, new byte[expectedBytes])) {
+            throw new IOException("runtime channel read verification failed");
+        }
+        ShizukuExecBridge.Result cleanup = ShizukuExecBridge.exec(
+                "rm -f '" + channel + "/provision-check'", 10_000);
+        if (!cleanup.ok()) {
+            throw new IOException("runtime channel test cleanup failed: " + cleanup.stderr);
+        }
+        log.log("verified " + read.length + " byte payload pipe");
+        log.log("verifying on-device bridge and screenshot (no model calls or input actions)");
+        ShellRunner.Result doctor = ShellRunner.runCli(context, context.getFilesDir(), log, "doctor");
+        if (!doctor.ok()) {
+            throw new IOException("runtime doctor failed (exit " + doctor.exitCode + ")");
+        }
+        java.nio.file.Files.write(receipt.toPath(), runtimeStamp(context).getBytes(
+                java.nio.charset.StandardCharsets.UTF_8));
+        log.log("runtime ready: Node + agent + shell uid 2000 + yadb + payload pipe");
+    }
+
+    static void requireCliSuccess(int exitCode) throws IOException {
+        if (exitCode != 0) {
+            throw new IOException("agent CLI verification failed (exit " + exitCode + ")");
+        }
     }
 
     /**

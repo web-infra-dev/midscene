@@ -81,9 +81,9 @@ public final class ShellRunner {
         env.put("TMPDIR", context.getCacheDir().getAbsolutePath());
         env.put("PATH", nativeDir + ":/system/bin:/system/xbin");
         env.put("MIDSCENE_RUN_DIR", new File(context.getFilesDir(), "run").getAbsolutePath());
-        // The file channel is the app's external files directory: the shell uid
-        // writes payloads there and this process reads them back. `doctor` needs
-        // it too, so the CLI reads it from the environment.
+        // The shell owns this directory. The bridge reads via a Binder pipe;
+        // neither Node nor the app needs filesystem access to it. `doctor` also
+        // reads this environment variable.
         env.put("MIDSCENE_FILE_CHANNEL_DIR",
                 Provisioner.channelDir(context).getAbsolutePath());
         // The agent reaches the Shizuku user service through the app's loopback
@@ -101,7 +101,13 @@ public final class ShellRunner {
             throw new IOException("run cancelled before Node started");
         }
         long startedAt = System.currentTimeMillis();
-        Process process = builder.start();
+        Process process;
+        synchronized (EmergencyStop.START_LOCK) {
+            if (EmergencyStop.isRequested()) {
+                throw new IOException("Host is force-stopping; reopen it before running again");
+            }
+            process = builder.start();
+        }
         observer.onProcess(process);
         try {
             StringBuilder output = new StringBuilder();

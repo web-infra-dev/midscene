@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import java.io.IOException;
@@ -245,7 +246,7 @@ public final class ShizukuExecBridge {
                     .tag("user-service")
                     .processNameSuffix("midscene")
                     .debuggable(false)
-                    .version(1);
+                    .version(3);
             ARGS = cached;
         }
         return cached;
@@ -262,6 +263,7 @@ public final class ShizukuExecBridge {
      *              grant, or a bound service that went away.
      */
     public static synchronized void ensureBound(Context context, boolean force) {
+        if (EmergencyStop.isRequested()) return;
         if (context != null) {
             appContext = context.getApplicationContext();
         }
@@ -287,16 +289,25 @@ public final class ShizukuExecBridge {
             return;
         }
 
-        // Guard first: addBinderReceivedListenerSticky fires synchronously when the
-        // binder is already there, so registering before claiming the guard would
-        // re-enter this method until the stack overflows.
+        try {
+            if (Shizuku.getUid() != SHELL_UID) {
+                lastError = "Start Shizuku as shell (ADB), not root; Midscene only accepts uid 2000";
+                return;
+            }
+        } catch (RuntimeException error) {
+            lastError = "Could not verify Shizuku uid: " + error;
+            return;
+        }
+
+        // The binder is already present here. A sticky listener would re-enter
+        // this method and submit the same cold bind twice.
         binding = true;
         bindingStartedAt = System.currentTimeMillis();
         lastError = "";
         if (!listenerRegistered) {
             listenerRegistered = true;
-            Shizuku.addBinderReceivedListenerSticky(() -> {
-                // The binder arrived (or was already present): allow one new attempt.
+            Shizuku.addBinderReceivedListener(() -> {
+                // A new server binder arrived: allow one new attempt.
                 binding = false;
                 ensureBound(app);
             });
@@ -349,7 +360,8 @@ public final class ShizukuExecBridge {
         Shizuku.UserServiceArgs args = userServiceArgs(app);
         String component = app.getPackageName() + "/" + ExecUserService.class.getName();
         try {
-            Log.i(TAG, "bindUserService " + component + " tag=user-service version=1");
+            Log.i(TAG, "bindUserService " + component + " tag=user-service version=3"
+                    + " appUser=" + (android.os.Process.myUid() / 100000));
             Shizuku.bindUserService(args, connection);
         } catch (Throwable error) {
             binding = false;
@@ -403,6 +415,14 @@ public final class ShizukuExecBridge {
 
         IExecService service = SERVICE.get();
         if (service == null) {
+            if (lastError.isEmpty() && android.os.Process.myUid() / 100000 != 0) {
+                lastError = "UserService did not connect for Android user "
+                        + (android.os.Process.myUid() / 100000)
+                        + ". On multi-user ROMs, check that Midscene and Shizuku are also "
+                        + "installed for user 0 (see scripts/check-multi-user.sh). "
+                        + "This is a compatibility hint, not a confirmed cause; inspect "
+                        + "ShizukuServiceStarter logs before changing the installation scope.";
+            }
             return new BindingState(false, binder, authorized, null, lastError,
                     peekServiceStatus(context), null);
         }
@@ -458,6 +478,7 @@ public final class ShizukuExecBridge {
     }
 
     public static Result exec(String command, int timeoutMs) throws IOException {
+        requireExecutionAllowed();
         IExecService service = SERVICE.get();
         if (service == null) {
             throw new IOException("user service not bound"
@@ -474,14 +495,69 @@ public final class ShizukuExecBridge {
     }
 
     public static byte[] execBinary(String command, int timeoutMs) throws IOException {
+        requireExecutionAllowed();
         IExecService service = SERVICE.get();
         if (service == null) {
             throw new IOException("user service not bound");
         }
         try {
-            return service.execBinary(command, timeoutMs);
+            return readPipe(service.execBinary(command, timeoutMs));
         } catch (Exception error) {
             throw new IOException("binary exec over binder failed: " + error, error);
+        }
+    }
+    public static void installYadb(byte[] bytes) throws IOException {
+        requireExecutionAllowed();
+        IExecService service = SERVICE.get();
+        if (service == null) {
+            throw new IOException("user service not bound");
+        }
+        try {
+            service.installYadb(bytes);
+        } catch (Exception error) {
+            throw new IOException("yadb transfer over binder failed", error);
+        }
+    }
+
+    public static byte[] readChannelFile(String path) throws IOException {
+        requireExecutionAllowed();
+        IExecService service = SERVICE.get();
+        if (service == null) {
+            throw new IOException("user service not bound");
+        }
+        try {
+            return readPipe(service.readChannelFile(path));
+        } catch (Exception error) {
+            throw new IOException("channel read over binder failed: " + error, error);
+        }
+    }
+
+    static void destroyForEmergencyStop() {
+        IExecService service = SERVICE.getAndSet(null);
+        if (service != null) {
+            try {
+                service.destroy();
+            } catch (Exception error) {
+                Log.i(TAG, "UserService destroy requested; binder may close before replying", error);
+            }
+        }
+    }
+
+    private static void requireExecutionAllowed() throws IOException {
+        if (EmergencyStop.isRequested()) {
+            throw new IOException("Host is force-stopping");
+        }
+    }
+
+    private static byte[] readPipe(ParcelFileDescriptor descriptor) throws IOException {
+        if (descriptor == null) {
+            throw new IOException("user service returned no payload descriptor");
+        }
+        try (ParcelFileDescriptor.AutoCloseInputStream input =
+                     new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
+            byte[] bytes = RuntimePayloads.readBounded(input, RuntimePayloads.MAX_CHANNEL_BYTES);
+            descriptor.checkError();
+            return bytes;
         }
     }
 }

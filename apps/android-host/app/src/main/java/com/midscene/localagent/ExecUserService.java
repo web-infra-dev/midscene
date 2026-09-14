@@ -1,6 +1,7 @@
 package com.midscene.localagent;
 
 import android.os.RemoteException;
+import android.os.ParcelFileDescriptor;
 
 import org.json.JSONObject;
 
@@ -8,6 +9,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -18,6 +21,50 @@ import java.util.concurrent.TimeUnit;
  * without app_process, a dex, or a file channel.
  */
 public class ExecUserService extends IExecService.Stub {
+    private boolean stopping;
+
+    public ExecUserService() {
+        // Refuse root-started Shizuku, even before the app can probe uid().
+        if (android.os.Process.myUid() != 2000) {
+            throw new SecurityException("Midscene requires shell uid 2000");
+        }
+        File root = new File(RuntimePayloads.CHANNEL_ROOT);
+        try {
+            java.nio.file.Files.createDirectories(root.toPath());
+            java.nio.file.Files.setPosixFilePermissions(root.toPath(),
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+        } catch (IOException error) {
+            throw new IllegalStateException("could not prepare shell channel", error);
+        }
+    }
+
+    @Override
+    public void destroy() {
+        synchronized (this) { stopping = true; }
+        ProcessTree.killChildren();
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
+
+    @Override
+    public void installYadb(byte[] bytes) throws RemoteException {
+        try {
+            RuntimePayloads.installYadb(new File("/data/local/tmp"), bytes);
+        } catch (IOException error) {
+            throw new RemoteException("yadb install failed: " + error);
+        }
+    }
+
+    @Override
+    public ParcelFileDescriptor readChannelFile(String path) throws RemoteException {
+        try {
+            File file = RuntimePayloads.requireChannelFile(
+                    new File(RuntimePayloads.CHANNEL_ROOT,
+                            "u" + (android.os.Binder.getCallingUid() / 100000)), path);
+            return PayloadPipe.open(new FileInputStream(file));
+        } catch (IOException error) {
+            throw new RemoteException("channel read failed: " + error);
+        }
+    }
 
     @Override
     public int uid() {
@@ -39,9 +86,16 @@ public class ExecUserService extends IExecService.Stub {
     }
 
     @Override
-    public byte[] execBinary(String command, int timeoutMs) throws RemoteException {
+    public ParcelFileDescriptor execBinary(String command, int timeoutMs) throws RemoteException {
         try {
-            return run(command, timeoutMs).stdoutBytes;
+            Result result = run(command, timeoutMs);
+            if (result.exitCode != 0) {
+                throw new IOException("command exited " + result.exitCode + ": " + result.stderr);
+            }
+            if (result.stdoutBytes.length > RuntimePayloads.MAX_CHANNEL_BYTES) {
+                throw new IOException("binary command output too large");
+            }
+            return PayloadPipe.open(new ByteArrayInputStream(result.stdoutBytes));
         } catch (Exception error) {
             throw new RemoteException("exec failed: " + error);
         }
@@ -66,7 +120,11 @@ public class ExecUserService extends IExecService.Stub {
         ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
         builder.directory(new File("/"));
         builder.redirectErrorStream(false);
-        Process process = builder.start();
+        Process process;
+        synchronized (this) {
+            if (stopping) throw new IOException("user service is stopping");
+            process = builder.start();
+        }
 
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();

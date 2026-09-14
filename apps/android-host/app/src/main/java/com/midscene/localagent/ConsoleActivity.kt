@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -400,7 +401,44 @@ private fun ConsoleTopBar(
                 )
             }
         }
+        ForceStopButton()
         Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+    }
+}
+
+/** Always available, including when the normal busy state is stale. */
+@Composable
+private fun ForceStopButton() {
+    val context = LocalContext.current
+    var confirm by remember { mutableStateOf(false) }
+    IconButton(onClick = { confirm = true }) {
+        Icon(
+            Icons.Filled.StopCircle,
+            contentDescription = "Force stop / 强制停止",
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(TopBarIcon),
+        )
+    }
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text("强制停止 / Force stop") },
+            text = {
+                Text("结束当前执行进程并关闭 Midscene。之后请手动重新打开。未完成的报告可能丢失；不会清除配置或关闭目标应用。\n\n" +
+                    "Terminates this runtime and closes Midscene. Reopen it manually. The unfinished report may be lost; settings and target apps are kept.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    (context as? android.app.Activity)?.finishAndRemoveTask()
+                    AgentService.forceStop()
+                }) {
+                    Text("停止并关闭 / Stop and close", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirm = false }) { Text("取消 / Cancel") }
+            },
+        )
     }
 }
 
@@ -1756,10 +1794,8 @@ private fun Onboarding(onDone: () -> Unit) {
         context.getSystemService(android.os.PowerManager::class.java)
             ?.isIgnoringBatteryOptimizations(context.packageName) == true
     }
-    val runtimeReady = remember(tick) {
-        File(Provisioner.nodePath(context)).exists() &&
-            Provisioner.cliFile(context).exists() &&
-            File(Provisioner.YADB_TARGET).exists()
+    val runtimeReady = remember(tick, lines.lastOrNull()) {
+        Provisioner.runtimeInstalled(context)
     }
 
     Column(

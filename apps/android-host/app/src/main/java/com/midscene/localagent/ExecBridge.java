@@ -34,7 +34,7 @@ public final class ExecBridge {
     private static final ThreadPoolExecutor REQUESTS = new ThreadPoolExecutor(
             4, 4, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(16));
 
-    static final String PACKAGE = "com.midscene.localagent";
+    private static java.io.File channelRoot;
     private static ServerSocket server;
     private static String token = "";
     private static volatile boolean started;
@@ -51,6 +51,7 @@ public final class ExecBridge {
 
         try {
             token = UUID.randomUUID().toString().replace("-", "");
+            channelRoot = Provisioner.channelDir(context);
             server = new ServerSocket(0, 16, InetAddress.getByName("127.0.0.1"));
             Thread thread = new Thread(ExecBridge::acceptLoop, "exec-bridge");
             thread.setDaemon(true);
@@ -182,9 +183,8 @@ public final class ExecBridge {
         String command = new String(body, 0, read, StandardCharsets.UTF_8);
 
         if (path.startsWith("/read-file")) {
-            // Bulk payloads (screenshots) must not cross Binder: a 1.3MB PNG
-            // exceeds the transaction buffer and kills the user service, so the
-            // app process reads the file the shell wrote and returns raw bytes.
+            // Only a pipe descriptor crosses Binder. The shell reads its own file;
+            // the app never needs access to another Android user's storage.
             try {
                 respond(output, 200, "application/octet-stream", readChannelFile(path));
             } catch (Exception error) {
@@ -234,35 +234,22 @@ public final class ExecBridge {
         }
     }
 
-    /** Read a channel file, restricted to directories this app owns. */
+    /** Restrict the HTTP caller to this Android user's runtime channel. */
     private static byte[] readChannelFile(String path) throws IOException {
         int index = path.indexOf("path=");
         if (index < 0) {
             throw new IOException("missing path");
         }
         String requested = java.net.URLDecoder.decode(
-                path.substring(index + "path=".length()), StandardCharsets.UTF_8);
+                path.substring(index + "path=".length()), StandardCharsets.UTF_8.name());
         java.io.File requestedFile = new java.io.File(requested).getCanonicalFile();
-        String[] allowed = {
-                "/storage/emulated/0/Android/data/" + PACKAGE,
-                "/data/data/" + PACKAGE,
-                "/data/user/0/" + PACKAGE,
-        };
-        boolean permitted = false;
-        for (String prefix : allowed) {
-            if (requestedFile.getPath().startsWith(new java.io.File(prefix).getCanonicalPath()
-                    + java.io.File.separator)) {
-                permitted = true;
-                break;
-            }
+        if (channelRoot == null || !requestedFile.getPath().startsWith(
+                channelRoot.getCanonicalPath() + java.io.File.separator)) {
+            throw new IOException("path outside this user's runtime channel: " + requested);
         }
-        if (!permitted) {
-            throw new IOException("path outside the app sandbox: " + requested);
-        }
-        if (!requestedFile.isFile() || requestedFile.length() > 20L * 1024 * 1024) {
-            throw new IOException("channel file missing or too large: " + requested);
-        }
-        return java.nio.file.Files.readAllBytes(requestedFile.toPath());
+        // Canonical containment and size are checked again by the shell process,
+        // which can actually inspect this directory (the app cannot).
+        return ShizukuExecBridge.readChannelFile(requestedFile.getPath());
     }
 
     private static int parseTimeout(String path, int fallback) {

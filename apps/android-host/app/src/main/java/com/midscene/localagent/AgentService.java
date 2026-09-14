@@ -48,6 +48,7 @@ public class AgentService extends Service {
     public static final String ACTION_RUN_PROMPT = "com.midscene.localagent.RUN_PROMPT";
     public static final String ACTION_PROVISION = "com.midscene.localagent.PROVISION";
     public static final String ACTION_STOP = "com.midscene.localagent.STOP";
+    public static final String ACTION_FORCE_STOP = "com.midscene.localagent.FORCE_STOP";
     public static final String EXTRA_CONFIG_PATH = "configPath";
     public static final String EXTRA_PROMPT = "prompt";
 
@@ -300,6 +301,18 @@ public class AgentService extends Service {
         return !"idle".equals(state);
     }
 
+    /** Called directly by UI; does not depend on delivery to the run service. */
+    public static void forceStop() {
+        AgentService service = instance;
+        if (service != null) {
+            service.stopRequested = true;
+            // Remove START_STICKY ownership before killing the process, otherwise
+            // Android may immediately recreate the supposedly stopped runtime.
+            service.stopSelf();
+        }
+        EmergencyStop.request();
+    }
+
     public static void start(Context context, String action, Intent extras) {
         Intent intent = new Intent(context, AgentService.class).setAction(action);
         if (extras != null) {
@@ -333,19 +346,15 @@ public class AgentService extends Service {
         }
 
         switch (action) {
+            case ACTION_FORCE_STOP:
+                forceStop();
+                break;
             case ACTION_STOP:
                 stopCurrentRun();
                 break;
             case ACTION_PROVISION:
-                runAsync("provision", () -> {
-                    Provisioner.extractAgent(this, AgentService::emit);
-                    try {
-                        Provisioner.installYadb(this, AgentService::emit);
-                    } catch (IOException error) {
-                        emit("yadb provisioning failed: " + error.getMessage());
-                    }
-                    ShellRunner.runCli(this, getFilesDir(), AgentService::emit, "--version");
-                }, "provisioning");
+                runAsync("provision", () -> Provisioner.installRuntime(this, AgentService::emit),
+                        "provisioning");
                 break;
             case ACTION_RUN_PROMPT: {
                 String prompt = intent.getStringExtra(EXTRA_PROMPT);
@@ -411,9 +420,8 @@ public class AgentService extends Service {
      * Device block shared by generated configs.
      *
      * No `displayId`: this build rejects `screencap -p -d 0`, so the transport has
-     * to use its plain form. The channel directory is the app's external files
-     * directory because it must be shell-writable (the shell writes payloads) and
-     * app-readable (this process serves them over the bridge).
+     * to use its plain form. The shell owns the channel directory. Payloads return
+     * to the app through a Binder descriptor pipe, not a shared storage mount.
      */
     private String deviceYaml() {
         return "device:\n"
@@ -599,6 +607,7 @@ public class AgentService extends Service {
     }
 
     private void runAsync(String name, ThrowingRunnable task, String stateLabel) {
+        if (EmergencyStop.isRequested()) return;
         if (isBusy()) {
             emit("[" + name + "] a run is already in progress (" + state + ")");
             return;
@@ -628,8 +637,12 @@ public class AgentService extends Service {
             try {
                 task.run();
             } catch (Exception error) {
-                emit("[" + name + "] failed: " + error);
-                Log.e(TAG, "run failed", error);
+                if (stopRequested) {
+                    emit("[" + name + "] stopped by user");
+                } else {
+                    emit("[" + name + "] failed: " + error);
+                    Log.e(TAG, "run failed", error);
+                }
             } finally {
                 activeProcess = null;
                 state = "idle";
@@ -640,7 +653,8 @@ public class AgentService extends Service {
                     OverlayView.clearTransient();
                     OverlayView.hide();
                 });
-                if (returnToAppAfterRun() && (runKind.equals("prompt") || runKind.equals("config"))) {
+                if (!EmergencyStop.isRequested() && returnToAppAfterRun()
+                        && (runKind.equals("prompt") || runKind.equals("config"))) {
                     bringConsoleToFront();
                 }
             }
