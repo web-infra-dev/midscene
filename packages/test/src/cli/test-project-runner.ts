@@ -1012,7 +1012,7 @@ export async function runTestProject(
       const reportPath = await new TestRunReportAssembler().assembleAsync({
         outputDir: reportDir,
         reportFileName:
-          definition.output.report.fileName ?? `test-run-${runId}`,
+          definition.output.report.fileName ?? `midscene-e2e-${runId}`,
         overwrite: definition.output.report.overwrite,
         sources: collectTestRunReportSources(completedResult),
         buildRunnerDump: (index) => {
