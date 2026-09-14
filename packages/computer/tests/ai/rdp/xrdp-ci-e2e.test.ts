@@ -71,6 +71,14 @@ function decodeRgba(dataUrl: string) {
     throw new Error('RDP screenshot PNG uses an unexpected pixel layout');
   }
 
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (rows[y * rowSize + 1 + x * 4 + 3] !== 0xff) {
+        throw new Error('RDP screenshot contains a transparent desktop pixel');
+      }
+    }
+  }
+
   return {
     width,
     height,

@@ -96,6 +96,7 @@ if(BUILD_TESTING)
   add_executable(
     rdp-screenshot-test
     tests/screenshot_test.cpp
+    src/png.cpp
     src/session.cpp
   )
   target_include_directories(

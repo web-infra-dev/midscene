@@ -9,6 +9,7 @@
 #include <freerdp/gdi/gdi.h>
 
 #include "rdp_helper_framebuffer.hpp"
+#include "rdp_helper_png.hpp"
 
 namespace midscene::rdp {
 
@@ -149,6 +150,45 @@ bool HasColor(const RawFrame& frame, uint8_t color) {
     }
   }
   return true;
+}
+
+uint32_t ReadUint32BigEndian(const std::vector<uint8_t>& bytes,
+                             size_t offset) {
+  return (static_cast<uint32_t>(bytes.at(offset)) << 24U) |
+         (static_cast<uint32_t>(bytes.at(offset + 1)) << 16U) |
+         (static_cast<uint32_t>(bytes.at(offset + 2)) << 8U) |
+         static_cast<uint32_t>(bytes.at(offset + 3));
+}
+
+void TestPngTreatsBgrxPaddingAsOpaque() {
+  RawFrame frame;
+  frame.size = {1, 1};
+  frame.stride = 4;
+  frame.bgra = {0x11, 0x22, 0x33, 0x00};
+
+  const auto png = midscene::rdp::EncodeFrameAsPng(frame);
+  size_t offset = 8;
+  while (offset + 12 <= png.size()) {
+    const size_t length = ReadUint32BigEndian(png, offset);
+    const std::string type(png.begin() + static_cast<std::ptrdiff_t>(offset + 4),
+                           png.begin() + static_cast<std::ptrdiff_t>(offset + 8));
+    if (type == "IDAT") {
+      const size_t data_offset = offset + 8;
+      // The encoder writes one stored DEFLATE block. Its scanline begins
+      // after the two-byte zlib header and five-byte block header.
+      Expect(length >= 12, "encoded PNG IDAT payload is unexpectedly short");
+      Expect(png.at(data_offset + 7) == 0, "PNG scanline filter changed");
+      Expect(png.at(data_offset + 8) == 0x33, "PNG red channel changed");
+      Expect(png.at(data_offset + 9) == 0x22, "PNG green channel changed");
+      Expect(png.at(data_offset + 10) == 0x11, "PNG blue channel changed");
+      Expect(png.at(data_offset + 11) == 0xFF,
+             "BGRX padding was exposed as transparent PNG alpha");
+      return;
+    }
+    offset += 12 + length;
+  }
+
+  throw std::runtime_error("encoded PNG is missing IDAT");
 }
 
 void TestEndPaintPipeline() {
@@ -306,6 +346,7 @@ void TestInvalidFramebuffer() {
 
 int main() {
   try {
+    TestPngTreatsBgrxPaddingAsOpaque();
     TestEndPaintPipeline();
     TestScreenshotWakeTimes();
     TestPartialFirstPaint();
