@@ -269,7 +269,9 @@ describe('test project main-process runner', () => {
     expect(existsSync(join(firstRunDir, 'documents'))).toBe(false);
     expect(existsSync(join(firstRunDir, 'project-0', 'documents'))).toBe(true);
     expect(existsSync(first.reportPath!)).toBe(true);
-    expect(first.reportPath).toContain(join(root, 'midscene_run', 'report'));
+    expect(first.reportPath).toBe(
+      join(root, 'midscene_run', 'report', `midscene-e2e-${first.runId}.html`),
+    );
 
     const second = await runTestProject({ projectRoot: root, resultDir });
     expect(second.runId).not.toBe(first.runId);
