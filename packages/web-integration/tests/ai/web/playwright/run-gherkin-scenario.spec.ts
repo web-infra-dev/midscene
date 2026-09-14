@@ -15,19 +15,19 @@ test('agent.runGherkinScenario runs one Gherkin scenario', async ({
 
   const fixtureDir = path.resolve(__dirname, '__fixtures__/gherkin-scenario');
   await page.goto(pathToFileURL(path.join(fixtureDir, 'index.html')).href);
+  await expect(page.locator('#task-input')).toHaveValue('Review Gherkin API');
 
   const agent = await agentForPage(page);
   await agent.runGherkinScenario(
     `
 Scenario: Create one task
-  When I enter the exact text "Review Gherkin API" into the input with placeholder "Task name"
-  And I click the "Add task" button exactly once
+  When I click the "Add task" button exactly once
   Then the task list should contain "Review Gherkin API"
   And the status text should say "1 task"
 `,
     {
       context:
-        'The page is a small todo app. Perform each requested action exactly as written and do not navigate away from the page.',
+        'The task input is already filled. Click the requested button without changing the input or navigating away from the page.',
       cacheable: false,
     },
   );
