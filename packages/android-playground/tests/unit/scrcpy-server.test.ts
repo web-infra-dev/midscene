@@ -1,3 +1,4 @@
+import { buildScrcpyVideoPacket } from '@/scrcpy-video-sender';
 import { describe, expect, it, rs } from '@rstest/core';
 import ScrcpyServer, {
   appendBoundedScrcpyOutput,
@@ -119,6 +120,32 @@ describe('ScrcpyServer', () => {
       'pushing-server',
       'starting-service',
     ]);
+  });
+
+  it('maps upstream keyframe metadata to the socket contract', () => {
+    const packet = {
+      type: 'data' as const,
+      data: new Uint8Array([1, 2, 3]),
+      keyframe: true,
+    };
+
+    expect(buildScrcpyVideoPacket(packet, 123)).toEqual({
+      data: packet.data,
+      type: 'data',
+      timestamp: 123,
+      keyFrame: true,
+    });
+    expect(
+      buildScrcpyVideoPacket(
+        { type: 'configuration', data: new Uint8Array([9]) },
+        456,
+      ),
+    ).toEqual({
+      data: new Uint8Array([9]),
+      type: 'configuration',
+      timestamp: 456,
+      keyFrame: undefined,
+    });
   });
 
   it('can consume device list updates from an external discovery source', async () => {
