@@ -8,7 +8,7 @@
 
 #include <freerdp/gdi/gdi.h>
 
-#include "rdp_helper_session.hpp"
+#include "rdp_helper_framebuffer.hpp"
 
 namespace midscene::rdp {
 
@@ -17,17 +17,44 @@ namespace midscene::rdp {
 struct RdpScreenshotTestPeer {
   FreeRdpSessionTransport transport;
   freerdp instance{};
-  rdpContext context{};
+  struct TestContext {
+    MidsceneRdpContext base{};
+    RdpScreenshotTestPeer* peer = nullptr;
+  } test_context;
+  MidsceneRdpContext& context = test_context.base;
+  rdpUpdate update{};
+  gdiBitmap primary{};
+  GDI_DC dc{};
+  GDI_WND window{};
+  GDI_RGN invalid{};
+  bool end_paint_ok = true;
+  int end_paint_calls = 0;
+  pEndPaint original_end_paint = nullptr;
   rdpGdi gdi{};
   std::vector<uint8_t> pixels;
 
-  RdpScreenshotTestPeer() : pixels(36 * 8, 255) {
-    gdi.width = 8;
-    gdi.height = 8;
-    gdi.stride = 36;  // Exercise row padding as well as pixel data.
+  RdpScreenshotTestPeer() : pixels(68 * 16, 255) {
+    gdi.width = 16;
+    gdi.height = 16;
+    gdi.stride = 68;  // Exercise row padding as well as pixel data.
     gdi.primary_buffer = pixels.data();
-    context.gdi = &gdi;
-    instance.context = &context;
+    context.context.gdi = &gdi;
+    test_context.peer = this;
+    context.owner = &transport;
+    instance.context = &context.context;
+    gdi.primary = &primary;
+    primary.hdc = &dc;
+    dc.hwnd = &window;
+    window.invalid = &invalid;
+    update.EndPaint = [](rdpContext* context) -> BOOL {
+      auto& peer = *reinterpret_cast<TestContext*>(context)->peer;
+      ++peer.end_paint_calls;
+      peer.window.ninvalid = 0;
+      peer.invalid.null = TRUE;
+      return peer.end_paint_ok ? TRUE : FALSE;
+    };
+    original_end_paint = update.EndPaint;
+    transport.HookEndPaint(&update);
     transport.instance_ = &instance;
     transport.connected_ = true;
     transport.running_ = true;
@@ -39,16 +66,41 @@ struct RdpScreenshotTestPeer {
     transport.instance_ = nullptr;
   }
 
-  void Paint(uint8_t color, int rows = 8) {
+  void Paint(uint8_t color, int rows = 16) {
     std::lock_guard<std::mutex> lock(transport.mutex_);
-    for (int y = 0; y < 8; ++y) {
-      for (int x = 0; x < 8; ++x) {
+    for (int y = 0; y < 16; ++y) {
+      for (int x = 0; x < 16; ++x) {
         const size_t offset = y * gdi.stride + x * 4;
         std::fill_n(pixels.data() + offset, 3, y < rows ? color : 0);
       }
     }
-    transport.MarkFramebufferUpdated();
-    transport.MarkFramePainted();
+    EndPaintLocked(true);
+  }
+
+  void EndPaintLocked(bool invalidated) {
+    window.ninvalid = invalidated ? 1 : 0;
+    invalid.null = invalidated ? FALSE : TRUE;
+    update.EndPaint(&context.context);
+  }
+
+  void InformativePaint(bool invalidated = true) {
+    std::lock_guard<std::mutex> lock(transport.mutex_);
+    for (int y = 0; y < 16; ++y) {
+      for (int x = 0; x < 16; ++x) {
+        const auto offset = y * gdi.stride + x * 4;
+        pixels[offset] = static_cast<uint8_t>(y * 16 + x);
+        pixels[offset + 1] = 128;
+      }
+    }
+    EndPaintLocked(invalidated);
+  }
+
+  std::unique_lock<std::mutex> HoldFrameNotificationLock() {
+    return std::unique_lock<std::mutex>(transport.frame_mutex_);
+  }
+
+  uint64_t Updates() const {
+    return transport.framebuffer_updates_.load();
   }
 
   void ResetConnection() {
@@ -58,6 +110,7 @@ struct RdpScreenshotTestPeer {
     transport.connected_ = true;
     transport.running_ = true;
     transport.session_active_.store(true);
+    transport.original_end_paint_ = original_end_paint;
   }
 
   void LoseSession() {
@@ -98,41 +151,74 @@ bool HasColor(const RawFrame& frame, uint8_t color) {
   return true;
 }
 
+void TestEndPaintPipeline() {
+  RdpScreenshotTestPeer peer;
+  peer.Paint(0);
+  Expect(!peer.transport.HasFramePainted(), "black startup passed readiness");
+  Expect(peer.Updates() == 1, "blank update was not recorded");
+  peer.InformativePaint(false);
+  Expect(!peer.transport.HasFramePainted(), "non-invalidated paint passed readiness");
+  Expect(peer.Updates() == 1, "non-invalidated paint counted as an update");
+  peer.end_paint_ok = false;
+  peer.InformativePaint();
+  Expect(!peer.transport.HasFramePainted(), "failed original callback passed readiness");
+  Expect(peer.Updates() == 1, "failed callback counted as an update");
+  peer.end_paint_ok = true;
+  peer.InformativePaint();
+  Expect(peer.transport.HasFramePainted(), "informative paint did not pass readiness");
+  Expect(peer.Updates() == 2, "invalidation was lost after original callback cleared it");
+  peer.Paint(0);
+  Expect(peer.Updates() == 3, "later black paint did not update settling");
+  Expect(peer.end_paint_calls == 5, "original EndPaint was not chained exactly once");
+  Expect(HasColor(peer.transport.CaptureFrame(), 0), "live black pixels were lost");
+}
+
+void TestScreenshotWakeTimes() {
+  const auto start = std::chrono::steady_clock::time_point{} + 10s;
+  using midscene::rdp::ScreenshotWakeAt;
+  Expect(ScreenshotWakeAt(start, start - 1s) == start + 300ms,
+         "first screenshot must wait even after an old paint");
+  Expect(ScreenshotWakeAt(start, start + 250ms) == start + 550ms,
+         "new paint must extend the quiet window");
+  Expect(ScreenshotWakeAt(start, start + 2900ms) == start + 3s,
+         "continuous updates must not extend the fixed deadline");
+}
+
 void TestPartialFirstPaint() {
   RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
   peer.Paint(64, 2);
-  auto painting = std::async(std::launch::async, [&] {
-    // Keep painting beyond the initial quiet window: each update must extend
-    // settling, while still letting the event-loop mutex make progress.
-    for (int rows = 3; rows <= 6; ++rows) {
-      std::this_thread::sleep_for(100ms);
-      peer.Paint(128, rows);
-    }
-    std::this_thread::sleep_for(100ms);
-    peer.Paint(192);
-  });
+  // The first informative frame is partial; later pixels must replace it even
+  // if both paints arrive before CaptureFrame starts (the old cache bug).
+  peer.Paint(192);
   const auto frame = peer.transport.CaptureFrame();
-  painting.get();
   Expect(HasColor(frame, 192), "first screenshot returned a partial old paint");
 }
 
 void TestLaterScreenshotsDoNotWait() {
   RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
   peer.Paint(64);
   peer.transport.CaptureFrame();
   for (const uint8_t color : {0, 128}) {
     peer.Paint(color);
+    // The fast path must not enter the settling section at all. Holding its
+    // mutex detects that structurally, without a tight wall-time assertion.
+    auto notification_lock = peer.HoldFrameNotificationLock();
     auto capture = std::async(std::launch::async,
                              [&] { return peer.transport.CaptureFrame(); });
-    Expect(capture.wait_for(200ms) == std::future_status::ready,
-           "later screenshot unnecessarily waited for settling");
+    const auto status = capture.wait_for(5s);
+    notification_lock.unlock();
+    Expect(status == std::future_status::ready,
+           "later screenshot unnecessarily entered settling");
     Expect(HasColor(capture.get(), color), "later screenshot returned stale pixels");
   }
 }
 
 void TestContinuousUpdatesHaveDeadline() {
   RdpScreenshotTestPeer peer;
-  peer.Paint(64);
+  peer.InformativePaint();
+  peer.Paint(128);
   std::atomic<bool> stop{false};
   auto painting = std::async(std::launch::async, [&] {
     while (!stop.load()) {
@@ -152,6 +238,7 @@ void TestContinuousUpdatesHaveDeadline() {
 
 void TestBlackFirstScreenshot() {
   RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
   peer.Paint(0);
   Expect(HasColor(peer.transport.CaptureFrame(), 0),
          "black current framebuffer should be returned after initial settling");
@@ -159,9 +246,11 @@ void TestBlackFirstScreenshot() {
 
 void TestReconnectResetsSettling() {
   RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
   peer.Paint(64);
   peer.transport.CaptureFrame();
   peer.ResetConnection();
+  peer.InformativePaint();
   peer.Paint(128);
   auto capture = std::async(std::launch::async,
                            [&] { return peer.transport.CaptureFrame(); });
@@ -172,6 +261,7 @@ void TestReconnectResetsSettling() {
 
 void TestDisconnectWakesScreenshot(uint8_t color) {
   RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
   peer.Paint(color);
   auto capture = std::async(std::launch::async, [&] {
     try {
@@ -193,6 +283,7 @@ void TestDisconnectWakesScreenshot(uint8_t color) {
 void TestInvalidFramebuffer() {
   for (int invalid_case = 0; invalid_case < 4; ++invalid_case) {
     RdpScreenshotTestPeer peer;
+  peer.InformativePaint();
     peer.Paint(64);
     switch (invalid_case) {
       case 0: peer.gdi.primary_buffer = nullptr; break;
@@ -215,6 +306,8 @@ void TestInvalidFramebuffer() {
 
 int main() {
   try {
+    TestEndPaintPipeline();
+    TestScreenshotWakeTimes();
     TestPartialFirstPaint();
     TestLaterScreenshotsDoNotWait();
     TestContinuousUpdatesHaveDeadline();

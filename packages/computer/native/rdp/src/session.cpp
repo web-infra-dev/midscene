@@ -37,16 +37,12 @@
 #include <winpr/synch.h>
 
 #include "rdp_helper_connection_policy.hpp"
+#include "rdp_helper_framebuffer.hpp"
 #include "rdp_helper_session_policy.hpp"
 
 namespace midscene::rdp {
 
 namespace {
-
-struct MidsceneRdpContext {
-  rdpContext context;
-  FreeRdpSessionTransport* owner = nullptr;
-};
 
 struct LocalAddressTcpConnectContext {
   std::string local_address;
@@ -68,8 +64,6 @@ using FdSetSocket = int;
 // never paints within this window is treated as blank/locked and fails fast
 // instead of feeding an all-black screenshot to the caller.
 constexpr int kFirstFrameTimeoutMs = 20'000;
-constexpr auto kScreenshotQuietPeriod = std::chrono::milliseconds(300);
-constexpr auto kScreenshotTimeout = std::chrono::seconds(3);
 // The first frame should prove that real desktop pixels reached the primary
 // buffer without requiring a complex wallpaper or fully loaded app content.
 constexpr size_t kMinInformativeColorCount = 128;
@@ -1093,7 +1087,6 @@ void FreeRdpSessionTransport::Disconnect() {
 
 RawFrame FreeRdpSessionTransport::CaptureFrame() {
   const auto started = std::chrono::steady_clock::now();
-  const auto deadline = started + kScreenshotTimeout;
   for (;;) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (!connected_ || !instance_ || !instance_->context ||
@@ -1115,9 +1108,7 @@ RawFrame FreeRdpSessionTransport::CaptureFrame() {
 
     std::unique_lock<std::mutex> frame_lock(frame_mutex_);
     const auto now = std::chrono::steady_clock::now();
-    const auto quiet_until =
-        std::max(started, last_frame_update_) + kScreenshotQuietPeriod;
-    const auto wake_at = std::min(quiet_until, deadline);
+    const auto wake_at = ScreenshotWakeAt(started, last_frame_update_);
     if (now >= wake_at) {
       auto frame = CopyFramebuffer(*instance_->context->gdi);
       first_screenshot_pending_ = false;
