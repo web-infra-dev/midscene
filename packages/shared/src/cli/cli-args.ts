@@ -7,13 +7,8 @@ import { CLIError } from './cli-error';
 const cliNumberPattern = /^-?\d+(\.\d+)?$/;
 
 export function parseValue(raw: string): unknown {
-  if (raw.startsWith('{') || raw.startsWith('[')) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      // Not valid JSON, treat as string below
-    }
-  }
+  const parsedJson = parseJsonValue(raw);
+  if (parsedJson !== raw) return parsedJson;
 
   if (cliNumberPattern.test(raw)) {
     return Number(raw);
@@ -72,6 +67,7 @@ function parseJsonValue(raw: string): unknown {
   try {
     return JSON.parse(raw);
   } catch {
+    // Preserve malformed JSON for string fields or the later schema error.
     return raw;
   }
 }

@@ -287,6 +287,69 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('preserves JSON-looking text and repeated numeric image names', () => {
+    const def = {
+      name: 'act',
+      description: 'act',
+      schema: {
+        prompt: z.string().optional().default(''),
+        imageName: z.union([z.string(), z.array(z.string())]),
+        payload: z.object({ prompt: z.string() }),
+      },
+      handler: rs.fn(),
+    };
+    expect(
+      parseCliArgs(
+        [
+          '--prompt={"account":"007"}',
+          '--image-name=007',
+          '--image-name=9007199254740993',
+          '--payload={"prompt":"go"}',
+        ],
+        def,
+      ),
+    ).toEqual({
+      prompt: '{"account":"007"}',
+      'image-name': ['007', '9007199254740993'],
+      payload: { prompt: 'go' },
+    });
+  });
+
+  it('retains invalid typed inputs for schema validation to reject', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: {
+        enabled: z.boolean(),
+        timeout: z.number(),
+        payload: z.object({ prompt: z.string() }),
+      },
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(
+      ['--enabled=maybe', '--timeout=slow', '--payload={broken'],
+      def,
+    );
+    expect(parsed).toEqual({
+      enabled: 'maybe',
+      timeout: 'slow',
+      payload: '{broken',
+    });
+    expect(z.object(def.schema).safeParse(parsed).success).toBe(false);
+  });
+
+  it('decodes native enum inputs using the same values as Zod', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: { mode: z.nativeEnum({ '007': 3 }) },
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(['--mode=3'], def);
+    expect(parsed).toEqual({ mode: 3 });
+    expect(z.object(def.schema).safeParse(parsed).success).toBe(true);
+  });
+
   it('accumulates repeated flags into an array', () => {
     expect(
       parseCliArgs([

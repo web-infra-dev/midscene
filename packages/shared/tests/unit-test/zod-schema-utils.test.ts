@@ -127,6 +127,21 @@ describe('zod-schema-utils', () => {
   });
 
   describe('getZodValueKinds', () => {
+    it('uses native enum values rather than guessing from numeric keys', () => {
+      expect(getZodValueKinds(z.nativeEnum({ '007': '123' }))).toEqual(
+        new Set(['string']),
+      );
+      expect(getZodValueKinds(z.nativeEnum({ '007': 3 }))).toEqual(
+        new Set(['number']),
+      );
+      expect(getZodValueKinds(z.nativeEnum({ 0: 'Zero', Zero: 0 }))).toEqual(
+        new Set(['number']),
+      );
+      expect(
+        getZodValueKinds(z.nativeEnum({ 0: 'Zero', Zero: 0, Text: '007' })),
+      ).toEqual(new Set(['number', 'string']));
+    });
+
     it('unwraps fields and identifies scalar kinds', () => {
       expect(getZodValueKinds(z.string().optional())).toEqual(
         new Set(['string']),

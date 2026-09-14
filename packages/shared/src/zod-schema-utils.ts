@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 export type ZodValueKind =
   | 'string'
@@ -46,17 +46,9 @@ function getLiteralValueKind(value: unknown): ZodValueKind {
   return 'unknown';
 }
 
-function getNativeEnumValueKinds(
-  values: Record<string, unknown> | undefined,
-): Set<ZodValueKind> {
-  const enumValues = Object.entries(values ?? {})
-    .filter(([key]) => Number.isNaN(Number(key)))
-    .map(([, value]) => value);
-  return new Set(enumValues.map(getLiteralValueKind));
-}
-
 /**
- * Return every top-level value kind accepted by a Zod field. Unlike
+ * Classify the supported top-level Zod input kinds without running validation.
+ * Unrecognized types return `unknown`; refinements are not evaluated. Unlike
  * `getZodTypeName`, this normalizes enums, literals, and unions so consumers
  * can make type-directed decisions without parsing its display label.
  */
@@ -89,7 +81,11 @@ export function getZodValueKinds(field: unknown): Set<ZodValueKind> {
     case 'ZodLiteral':
       return new Set([getLiteralValueKind(definition.value)]);
     case 'ZodNativeEnum':
-      return getNativeEnumValueKinds(definition.values);
+      return new Set(
+        z.util
+          .getValidEnumValues(definition.values ?? {})
+          .map(getLiteralValueKind),
+      );
     case 'ZodUnion':
       return new Set(
         (definition.options ?? []).flatMap((option) => [
