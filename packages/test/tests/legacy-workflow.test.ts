@@ -427,6 +427,32 @@ tasks:
     expect(result.status).toBe('success');
     expect(calls).toEqual(['second', 'second']);
     expect(result.documents.map((item) => item.attemptIndex)).toEqual([0, 1]);
+    expect(result.reportPath).toBeDefined();
+    expect(result.legacyResults?.[0].report).toBe(result.reportPath);
+    expect(
+      result.legacyResults?.[0].attempts?.map((attempt) => attempt.report),
+    ).toEqual([result.reportPath, result.reportPath]);
+    expect(result.legacyResults?.[0].retryReport).toBe(result.reportPath);
+
+    const summary = JSON.parse(
+      readFileSync(join(root, 'legacy-summary.json'), 'utf8'),
+    );
+    expect(summary.results[0].report).toBe(summary.results[0].retryReport);
+    expect(
+      summary.results[0].attempts.every(
+        (attempt: { report: string }) =>
+          attempt.report === summary.results[0].report,
+      ),
+    ).toBe(true);
+    expect(
+      readFileSync(
+        join(
+          dirname(join(root, 'legacy-summary.json')),
+          summary.results[0].report,
+        ),
+        'utf8',
+      ),
+    ).toContain('midscene_test_run_dump');
   });
 
   it('retries setup in a fresh shared browser context before starting main files', async () => {
