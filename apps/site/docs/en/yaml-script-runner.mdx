@@ -1,9 +1,9 @@
 # YAML script runner
 
-:::info Shared execution with Midscene Test
-Existing projects can keep `tasks/flow`, batch configuration, directory layout, and the `midscene` command. The upgraded entry uses the Test kernel and generates the new Test report page. You can also run original files with `midscene-test ./flow.yaml` or `midscene-test --config ./batch.yaml`, without registering Nodes or rewriting YAML.
+:::info Compatibility remains; migrate to Midscene Test for new work
+This page describes legacy `tasks/flow` YAML. The format remains supported, but it is not recommended for new projects or new cases. Existing cases, batch configuration, directory layout, and the `midscene` command can remain unchanged. The upgraded entry executes them through the Test kernel and generates the new Test report page.
 
-Legacy task continuation, whole-file retries, environment variables, result outputs, and summaries retain their semantics. Native `cases/steps` have different defaults for failure and retry policies; see [YAML field mapping](./midscene-test/extend#map-yaml-fields-to-native-capabilities) when converting manually. Regenerate old HTML reports by rerunning the tests; no report-file conversion is required.
+You can also install `@midscene/test` and run the original files with `midscene-test ./flow.yaml` or `midscene-test --config ./batch.yaml`, without registering Nodes or rewriting YAML. Use native `cases/steps`, TypeScript project configuration, and Nodes for new and refactored work. See [Migrate from legacy YAML](./midscene-test/migrate-from-yaml) for the steps and mappings.
 :::
 
 Midscene defines a YAML-based scripting format so you can quickly author automation scripts, then run them from the command line without extra setup. For more details on YAML scripts, see [Automate with scripts in YAML](./automate-with-scripts-in-yaml).
