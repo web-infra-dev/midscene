@@ -60,15 +60,27 @@ def decode_rgba(data_url):
     return width, height, rgba, png
 
 
-def write_report(output_dir, first_png, second_png, width, height, non_black, elapsed):
+def write_report(
+    output_dir,
+    first_png,
+    second_png,
+    black_png,
+    width,
+    height,
+    non_black,
+    black_ratio,
+    elapsed,
+):
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "first-screenshot.png").write_bytes(first_png)
     (output_dir / "second-screenshot.png").write_bytes(second_png)
+    (output_dir / "black-screenshot.png").write_bytes(black_png)
     summary = {
         "desktopSize": {"width": width, "height": height},
         "firstScreenshotNonBlackRatio": non_black / (width * height),
         "laterScreenshotSeconds": elapsed,
         "laterScreenshotChanged": True,
+        "blackScreenshotNonBlackRatio": black_ratio,
         "result": "passed",
     }
     (output_dir / "summary.json").write_text(
@@ -76,18 +88,20 @@ def write_report(output_dir, first_png, second_png, width, height, non_black, el
     )
     (output_dir / "report.html").write_text(
         f"""<!doctype html>
-<html lang="en"><meta charset="utf-8"><title>Midscene RDP CI report</title>
+<html lang="en"><meta charset="utf-8"><title>Midscene RDP E2E report</title>
 <style>body{{font:16px system-ui;max-width:1100px;margin:40px auto;padding:0 20px}}
 img{{max-width:100%;border:1px solid #ccc}} code{{background:#eee;padding:2px 5px}}</style>
-<h1>Midscene RDP integration report</h1>
+<h1>Midscene RDP E2E report</h1>
 <p><strong>Passed.</strong> Connected to a local xrdp server through the compiled
 <code>rdp-helper</code>, captured the first desktop, sent text input, captured the
 updated desktop, and disconnected cleanly.</p>
 <ul><li>Desktop: {width} × {height}</li>
 <li>First screenshot non-black pixels: {non_black / (width * height):.1%}</li>
-<li>Later screenshot latency: {elapsed:.3f}s</li></ul>
+<li>Later screenshot latency: {elapsed:.3f}s</li>
+<li>Black screenshot non-black pixels: {black_ratio:.1%}</li></ul>
 <h2>First screenshot</h2><img src="first-screenshot.png">
 <h2>After typing</h2><img src="second-screenshot.png">
+<h2>Valid black framebuffer</h2><img src="black-screenshot.png">
 </html>
 """,
         encoding="utf-8",
@@ -146,6 +160,26 @@ def main():
         if elapsed >= 2:
             raise RuntimeError(f"later screenshot unexpectedly settled for {elapsed:.2f}s")
 
+        request(process, "clear", {"type": "clearInput"})
+        request(
+            process,
+            "show-black",
+            {"type": "typeText", "text": "__MIDSCENE_BLACK__"},
+        )
+        time.sleep(0.5)
+        black = request(process, "black-screenshot", {"type": "screenshot"})
+        _, _, black_pixels, black_png = decode_rgba(black["base64"])
+        black_non_black = sum(
+            1
+            for index in range(0, len(black_pixels), 4)
+            if any(black_pixels[index : index + 3])
+        )
+        black_ratio = black_non_black / (width * height)
+        if black_ratio >= 0.01:
+            raise RuntimeError(
+                f"black framebuffer contained {black_ratio:.1%} non-black pixels"
+            )
+
         request(process, "disconnect", {"type": "disconnect"})
         output_dir = os.environ.get("MIDSCENE_XRDP_ARTIFACT_DIR")
         if output_dir:
@@ -153,15 +187,17 @@ def main():
                 Path(output_dir),
                 first_png,
                 second_png,
+                black_png,
                 width,
                 height,
                 non_black,
+                black_ratio,
                 elapsed,
             )
         print(
-            f"xrdp integration passed: {width}x{height}, "
+            f"xrdp E2E passed: {width}x{height}, "
             f"{non_black / (width * height):.1%} non-black, "
-            f"later screenshot {elapsed:.2f}s"
+            f"later screenshot {elapsed:.2f}s, black frame {black_ratio:.1%} non-black"
         )
     finally:
         if process.stdin:
