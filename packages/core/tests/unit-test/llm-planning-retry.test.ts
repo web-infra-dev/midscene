@@ -97,6 +97,199 @@ describe('plan XML parse retry', () => {
     rs.mocked(buildYamlFlowFromPlans).mockClear();
   });
 
+  it.each([
+    '<action-type-param-json>{"locate":{"prompt":"submit"}}</action-param-json>',
+    '<action-param-json>{}</action-param-json>',
+    '<action-param-json>{"locate":null}</action-param-json>',
+    '<action-param-json>{"locate":"submit"}</action-param-json>',
+  ])('retries invalid Tap parameters: %s', async (parameters) => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce(
+        mockAIResponse(`<action-type>Tap</action-type>${parameters}`),
+      )
+      .mockResolvedValueOnce(
+        mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{"locate":{"prompt":"submit"}}</action-param-json>`),
+      );
+
+    const result = await standardPlan('tap submit', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'Tap',
+          description: 'Tap an element',
+          paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+      expect.stringContaining('Invalid parameters for action Tap: locate'),
+    );
+    expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
+    expect(result.actions?.[0]?.param).toEqual({
+      locate: { prompt: 'submit' },
+    });
+  });
+
+  it('retries missing locator prompts before normalizing coordinates', async () => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce(
+        mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{"locate":{"bbox":["invalid"]}}</action-param-json>`),
+      )
+      .mockResolvedValueOnce(
+        mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{"locate":{"prompt":"submit","bbox":[100,200,300,400]}}</action-param-json>`),
+      );
+    const result = await standardPlan('tap submit', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'Tap',
+          description: 'Tap',
+          paramSchema: z.object({ locate: getMidsceneLocationSchema() }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime({
+        ...mockModelConfig('qwen3-vl'),
+        retryInterval: 0,
+      }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: true,
+      effort: 'balance',
+    });
+    expect(callAI).toHaveBeenCalledTimes(2);
+    const feedback = rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content;
+    expect(feedback).toEqual(
+      expect.stringContaining('locate.prompt: Required'),
+    );
+    expect(feedback).not.toEqual(expect.stringContaining('locatedPixelResult'));
+    expect(result.actions?.[0]?.param.locate.locatedPixelResult.center).toEqual(
+      [20, 30],
+    );
+  });
+
+  it('reports parameter validation errors after retries are exhausted', async () => {
+    rs.mocked(callAI).mockResolvedValue(
+      mockAIResponse(`<action-type>Input</action-type>
+<action-param-json>{"value":123}</action-param-json>`),
+    );
+
+    await expect(
+      standardPlan('input text', {
+        context: mockContext(),
+        actionSpace: [
+          {
+            name: 'Input',
+            description: 'Input text',
+            paramSchema: z.object({ value: z.string() }),
+            call: rs.fn(),
+          },
+        ],
+        modelRuntime: getModelRuntime({
+          ...mockModelConfig(),
+          retryInterval: 0,
+        }),
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning: false,
+        effort: 'balance',
+      }),
+    ).rejects.toThrow('Invalid parameters for action Input: value');
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(buildYamlFlowFromPlans).not.toHaveBeenCalled();
+  });
+
+  it('keeps model parameters unchanged in actions and YAML', async () => {
+    const transform = rs.fn((value: string) => value.length);
+    rs.mocked(callAI).mockResolvedValue(
+      mockAIResponse(`<action-type>Input</action-type>
+<action-param-json>{"value":"hello"}</action-param-json>`),
+    );
+    const result = await standardPlan('input hello', {
+      context: mockContext(),
+      actionSpace: [
+        {
+          name: 'Input',
+          description: 'input',
+          paramSchema: z.object({
+            value: z.string().transform(transform),
+            count: z.number().default(1),
+          }),
+          call: rs.fn(),
+        },
+      ],
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    expect(result.actions).toEqual([
+      { type: 'Input', param: { value: 'hello' } },
+    ]);
+    expect(result.yamlFlow).toEqual([{ Input: '', value: 'hello' }]);
+    expect(transform).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry or wrap YAML generation errors', async () => {
+    const error = new Error('YAML generation failed');
+    rs.mocked(callAI).mockResolvedValue(
+      mockAIResponse(`<action-type>Tap</action-type>
+<action-param-json>{}</action-param-json>`),
+    );
+    rs.mocked(buildYamlFlowFromPlans).mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await expect(
+      standardPlan('tap submit', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime({
+          ...mockModelConfig(),
+          retryInterval: 0,
+        }),
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning: false,
+        effort: 'balance',
+      }),
+    ).rejects.toBe(error);
+    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries unknown actions before generating YAML', async () => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce(
+        mockAIResponse('<action-type>Unknown</action-type>'),
+      )
+      .mockResolvedValueOnce(mockAIResponse('<action-type>Tap</action-type>'));
+
+    const result = await standardPlan('tap submit', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+      expect.stringContaining(
+        "Action type 'Unknown' is not in the current action space",
+      ),
+    );
+    expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
+    expect(result.yamlFlow).toEqual([{ Tap: '' }]);
+  });
+
   it('uses the action-only XML protocol for fast effort', async () => {
     rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<action-type>Tap</action-type>

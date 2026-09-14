@@ -26,6 +26,7 @@ import {
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
 import type { PlanOptions } from './types';
+import { validatePlanningActions } from './validate-planning-actions';
 
 const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
@@ -52,7 +53,6 @@ async function callAndParsePlanningResponse(
   response: PlanningCallResponse;
   planFromAI: RawResponsePlanningAIResponse;
   actions: PlanningAction[];
-  yamlFlow: ReturnType<typeof buildYamlFlowFromPlans>;
 }> {
   const {
     messages,
@@ -99,6 +99,7 @@ async function callAndParsePlanningResponse(
       }
 
       const actions = planFromAI.action ? [planFromAI.action] : [];
+      validatePlanningActions(actions, actionSpace);
       normalizePlanningActionLocateFields(actions, {
         actionSpace,
         includeLocateInPlanning,
@@ -107,10 +108,7 @@ async function callAndParsePlanningResponse(
         acceptBbox2dAlias: modelRuntime.adapter.acceptBbox2dAlias,
         parseRawLocateParameter: actionOutputProtocol.parseRawLocateParameter,
       });
-      // dumpActionParam keeps only the locator prompt, so runtime-only
-      // locatedPixelResult fields added during normalization are not serialized.
-      const yamlFlow = buildYamlFlowFromPlans(actions, actionSpace);
-      return { response, planFromAI, actions, yamlFlow };
+      return { response, planFromAI, actions };
     },
     toParseError: (parseError, response) => {
       const errorMessage =
@@ -288,7 +286,6 @@ export async function standardPlan(
     },
     planFromAI,
     actions,
-    yamlFlow,
   } = await callAndParsePlanningResponse({
     messages: msgs,
     modelRuntime,
@@ -303,6 +300,10 @@ export async function standardPlan(
     includeThought,
     includeLog,
   });
+
+  // YAML is derived from validated actions outside the model-response retry scope.
+  // dumpActionParam omits runtime-only locatedPixelResult fields.
+  const yamlFlow = buildYamlFlowFromPlans(actions, opts.actionSpace);
 
   let shouldContinuePlanning = true;
 
