@@ -30,7 +30,9 @@ jobs:
     - name: Install RDP build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake pkg-config freerdp3-dev
+        sudo apt-get install -y \
+          cmake dbus-x11 feh imagemagick openbox pkg-config \
+          freerdp3-dev xorgxrdp xrdp xterm
     - name: Build RDP helper and native tests
       run: |
         cmake -S packages/computer/native/rdp -B /tmp/midscene-rdp-build \
@@ -38,6 +40,46 @@ jobs:
         cmake --build /tmp/midscene-rdp-build --parallel 2
     - name: Test RDP capture and connection policies
       run: ctest --test-dir /tmp/midscene-rdp-build --output-on-failure
+    - name: Start a local RDP desktop
+      env:
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+      run: |
+        sudo useradd --create-home --shell /bin/bash "$MIDSCENE_XRDP_USERNAME"
+        echo "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_PASSWORD" | sudo chpasswd
+        sudo -u "$MIDSCENE_XRDP_USERNAME" mkdir -p \
+          "/home/$MIDSCENE_XRDP_USERNAME/.config/openbox"
+        sudo -u "$MIDSCENE_XRDP_USERNAME" convert \
+          -size 1280x720 gradient:'#123456-#abcdef' \
+          "/home/$MIDSCENE_XRDP_USERNAME/rdp-background.png"
+        sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.xsession" >/dev/null <<'EOF'
+        #!/bin/sh
+        exec openbox-session
+        EOF
+        sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.config/openbox/autostart" >/dev/null <<'EOF'
+        feh --no-fehbg --bg-fill "$HOME/rdp-background.png" &
+        xterm -geometry 80x24+100+100 -title "Midscene RDP CI" &
+        EOF
+        sudo chown -R "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_USERNAME" \
+          "/home/$MIDSCENE_XRDP_USERNAME"
+        sudo chmod +x "/home/$MIDSCENE_XRDP_USERNAME/.xsession"
+        sudo systemctl restart xrdp
+        for attempt in {1..20}; do
+          if nc -z 127.0.0.1 3389; then exit 0; fi
+          sleep 1
+        done
+        sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+        exit 1
+    - name: Test a real RDP protocol session
+      env:
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+      run: >-
+        python3 packages/computer/native/rdp/tests/xrdp_integration_test.py
+        /tmp/midscene-rdp-build/bin/rdp-helper
+    - name: Print xrdp diagnostics
+      if: failure()
+      run: sudo journalctl -u xrdp -u xrdp-sesman --no-pager
 
   main:
     # The viewport e2e relies on the hosted image's Chrome window behavior.
