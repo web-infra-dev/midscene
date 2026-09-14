@@ -721,9 +721,6 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
-      '@midscene/computer':
-        specifier: workspace:*
-        version: link:../computer
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
@@ -788,6 +785,9 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
+      '@midscene/computer':
+        specifier: workspace:*
+        version: link:../computer
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
