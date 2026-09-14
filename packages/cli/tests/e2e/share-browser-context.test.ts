@@ -20,6 +20,12 @@ describe('shareBrowserContext CLI YAML e2e', () => {
   let testOrigin: string;
 
   beforeAll(async () => {
+    // Sleep uses standard UI capture, which reads model configuration even
+    // though these browser-state tests never call a model. Child CLI processes
+    // inherit these placeholders as well.
+    rs.stubEnv('MIDSCENE_MODEL_NAME', 'test-model');
+    rs.stubEnv('MIDSCENE_MODEL_BASE_URL', 'https://example.invalid/v1');
+    rs.stubEnv('MIDSCENE_MODEL_API_KEY', 'test-key');
     server = createServer({
       root: join(__dirname, '../server_root'),
     });
@@ -33,6 +39,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
   });
 
   afterAll(async () => {
+    rs.unstubAllEnvs();
     server.server.closeAllConnections?.();
     await new Promise<void>((resolve, reject) => {
       server.server.close((error: Error | undefined) => {
@@ -112,8 +119,8 @@ describe('shareBrowserContext CLI YAML e2e', () => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
         // The report fixtures exercise the same assertions and can generate
-        // human-readable local reports. CI omits explicit report screenshots
-        // so this regression only fails on browser-state or tab-isolation bugs.
+        // human-readable local reports. CI omits explicit report screenshots;
+        // Sleep nodes still capture their standard before/after snapshots.
         executionScriptDir: generateReportEvidence
           ? undefined
           : join(__dirname, '../share_context_parallel_e2e_scripts'),
