@@ -11,6 +11,9 @@ import android.os.Build;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 /**
@@ -38,6 +41,8 @@ public final class AdbPairing {
      */
     private static final long WARM_PAIRING_TIMEOUT_MS = 20_000;
     private static final long WARM_PAIRING_WAIT_MS = 12_000;
+    /** How many ports one pairing may be attempted at before the failure is reported. */
+    private static final int PAIRING_ATTEMPTS = 3;
     private static final String CHANNEL_ID = "midscene-pairing";
     private static final int NOTIFICATION_ID = 4021;
 
@@ -94,8 +99,8 @@ public final class AdbPairing {
     /** Set by {@link #requestCode}, read when the service builds its notification. */
     private static volatile String pendingPort = "";
 
-    /** The pairing port found while the user was reading the code off the screen. */
-    private static volatile String warmPairingTarget;
+    /** The pairing ports found while the user was reading the code off the screen. */
+    private static volatile List<AdbPortCandidates.Answer> warmPairingAnswers = new ArrayList<>();
 
     private static volatile Thread warmPairingLookup;
 
@@ -114,25 +119,26 @@ public final class AdbPairing {
             // type, and refusing it here would waste the answer already on its way.
             return;
         }
-        warmPairingTarget = null;
+        warmPairingAnswers = new ArrayList<>();
         Context app = context.getApplicationContext();
         Thread lookup = new Thread(
-                () -> warmPairingTarget =
-                        AdbMdns.resolveOnce(app, AdbMdns.TYPE_PAIRING, WARM_PAIRING_TIMEOUT_MS),
+                () -> warmPairingAnswers =
+                        AdbMdns.awaitOnce(app, AdbMdns.TYPE_PAIRING, WARM_PAIRING_TIMEOUT_MS),
                 "adb-pairing-port");
         warmPairingLookup = lookup;
         lookup.start();
     }
 
     /**
-     * The port to pair with: this session's warm answer if there is one, a fresh lookup
-     * otherwise.
+     * The pairing targets to try: this session's warm answers first, then a fresh look.
      *
-     * The lookup from 开始配对 is spent once it has been read, so a retry that follows a
-     * failure looks again from scratch — by then mDNS is warm, which is exactly why the
-     * second manual attempt used to work.
+     * The warm lookup is spent once it has been read, so a retry that follows a failure
+     * looks again from scratch — by then mDNS is warm, which is exactly why the second
+     * manual attempt used to work. The fresh look is not skipped when the warm one found
+     * something: reopening that dialog re-advertises the service on a new port, and the
+     * warm answer can be the previous session's.
      */
-    private static String pairingTarget(Context context) {
+    private static List<String> pairingCandidates(Context context) {
         Thread running = warmPairingLookup;
         if (running != null && running.isAlive()) {
             Log.i(TAG, "waiting for the pairing-port lookup started at 开始配对");
@@ -142,18 +148,29 @@ public final class AdbPairing {
                 Thread.currentThread().interrupt();
             }
         }
-        String warm = warmPairingTarget;
-        warmPairingTarget = null;
+        List<AdbPortCandidates.Answer> warm = warmPairingAnswers;
+        warmPairingAnswers = new ArrayList<>();
         warmPairingLookup = null;
-        if (warm != null) {
-            Log.i(TAG, "pairing port from the lookup started at 开始配对: " + warm);
-            return warm;
+        if (!warm.isEmpty()) {
+            Log.i(TAG, "pairing ports from the lookup started at 开始配对: " + describe(warm));
         }
+        List<AdbPortCandidates.Answer> answers = new ArrayList<>(warm);
         // Nothing was found while the user was typing — usually because the lookup began
         // before that dialog existed. Look now, when it is certainly up. This is the step
         // whose absence made the first attempt fail and the second one work.
-        Log.i(TAG, "no warmed pairing port; looking again now");
-        return AdbMdns.resolveBlocking(context, AdbMdns.TYPE_PAIRING, 4_000);
+        answers.addAll(AdbMdns.collect(context, AdbMdns.TYPE_PAIRING));
+        List<String> targets = AdbPortCandidates.order(answers, Collections.emptyList(),
+                Collections.emptyList());
+        Log.i(TAG, "pairing candidates: " + targets);
+        return targets;
+    }
+
+    private static String describe(List<AdbPortCandidates.Answer> answers) {
+        List<String> described = new ArrayList<>();
+        for (AdbPortCandidates.Answer answer : answers) {
+            described.add(AdbPortCandidates.describe(answer));
+        }
+        return described.toString();
     }
 
     /** The notification the foreground service shows while it waits for the code. */
@@ -166,17 +183,27 @@ public final class AdbPairing {
      *
      * A failed attempt has to stay on screen *and* keep its field: the answer is
      * usually "type it again", and the field it was typed into is right there.
+     *
+     * The field changes meaning once the pairing has been accepted by the device. From
+     * then on the pairing code is spent and the part that moves is the port, so the same
+     * field asks for the port the user is reading off the wireless-debugging screen and
+     * the action connects instead of pairing. Reporting a port that moved as "pairing
+     * failed", with instructions to re-enter the code, was the wrong repair at the wrong
+     * step: it sent the user back through a flow that cannot change the port.
      */
     static Notification buildCodeRequest(Context context, String error) {
         // The service posts this straight to startForeground, and a notification on a
         // channel that does not exist yet is dropped rather than shown.
         ensureChannel(context, context.getSystemService(NotificationManager.class));
+        boolean portMode = LocalAdbBackend.isPaired(context);
         Intent intent = new Intent(context, Receiver.class)
                 .setAction(ACTION_CODE)
                 .putExtra(EXTRA_PORT, pendingPort);
 
         android.app.RemoteInput input = new android.app.RemoteInput.Builder(EXTRA_CODE)
-                .setLabel(context.getString(R.string.pairing_code_label))
+                .setLabel(context.getString(portMode
+                        ? R.string.pairing_port_label
+                        : R.string.pairing_code_label))
                 .build();
         // RemoteInput needs an explicitly mutable PendingIntent from API 31 on;
         // below that the flag does not exist and UPDATE_CURRENT is already mutable.
@@ -194,26 +221,32 @@ public final class AdbPairing {
         Notification.Action action = new Notification.Action.Builder(
                 android.graphics.drawable.Icon.createWithResource(
                         context, android.R.drawable.ic_menu_send),
-                context.getString(R.string.pairing_pair_action), pending)
+                context.getString(portMode
+                        ? R.string.pairing_connect_action
+                        : R.string.pairing_pair_action), pending)
                 .addRemoteInput(input)
                 .setAllowGeneratedReplies(false)
                 .build();
 
+        String instructions = context.getString(portMode
+                ? R.string.pairing_request_big_text_paired
+                : R.string.pairing_request_big_text);
         return new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-                .setContentTitle(context.getString(error == null
-                        ? R.string.pairing_request_title
-                        : R.string.pairing_failed))
-                .setContentText(error == null
-                        ? context.getString(R.string.pairing_request_text)
-                        : error)
+                .setContentTitle(context.getString(error != null
+                        ? R.string.pairing_failed
+                        : (portMode
+                                ? R.string.pairing_connect_title
+                                : R.string.pairing_request_title)))
+                .setContentText(error != null
+                        ? error
+                        : context.getString(portMode
+                                ? R.string.pairing_request_text_paired
+                                : R.string.pairing_request_text))
                 .setStyle(new Notification.BigTextStyle().bigText(
                         // The reason comes first: the instructions are only useful once
                         // the user knows why the last attempt did not take.
-                        error == null
-                                ? context.getString(R.string.pairing_request_big_text)
-                                : error + "\n\n"
-                                        + context.getString(R.string.pairing_request_big_text)))
+                        error == null ? instructions : error + "\n\n" + instructions))
                 .setContentIntent(open)
                 .addAction(action)
                 .setOnlyAlertOnce(true)
@@ -281,11 +314,11 @@ public final class AdbPairing {
      */
     private static boolean connectWithExistingKey(Context context) {
         try {
-            String target = AdbMdns.resolveBlocking(context, AdbMdns.TYPE_CONNECT, 6_000);
-            if (target == null) {
+            List<String> candidates = LocalAdbBackend.connectCandidates(context, null);
+            if (candidates.isEmpty()) {
                 return false;
             }
-            LocalAdbBackend.connect(context, target);
+            LocalAdbBackend.connectFirstWorking(context, candidates);
             return true;
         } catch (Exception error) {
             Log.w(TAG, "the key does not work yet: " + error.getMessage());
@@ -311,20 +344,19 @@ public final class AdbPairing {
     /** Runs the pairing; called on the receiver's worker, never on the main thread. */
     static void pairAndConnect(Context context, String code, String manualPort) {
         try {
-            String target = manualPort;
-            if (target == null || target.trim().isEmpty()) {
-                // The port found while the code was being typed, or a fresh look now
-                // that the dialog is certainly up.
-                target = pairingTarget(context);
-            }
-            if (target == null) {
+            List<String> targets = manualPort == null || manualPort.trim().isEmpty()
+                    // The ports found while the code was being typed, then a fresh look
+                    // now that the dialog is certainly up.
+                    ? pairingCandidates(context)
+                    : Collections.singletonList(LocalAdbBackend.normalize(manualPort));
+            if (targets.isEmpty()) {
                 failPairing(context, context.getString(R.string.pairing_port_missing));
                 return;
             }
             // pair() confirms with the device and records the outcome; it throws with
             // the device's own words when the pairing was refused.
             try {
-                pairWithRetry(context, target, code);
+                pairOverCandidates(context, targets, code);
             } catch (IOException pairingFailed) {
                 if (!connectWithExistingKey(context)) {
                     throw pairingFailed;
@@ -341,8 +373,14 @@ public final class AdbPairing {
                 return;
             }
 
-            String connectTarget = AdbMdns.resolveBlocking(context, AdbMdns.TYPE_CONNECT, 6_000);
-            if (connectTarget == null) {
+            // Paired. What follows is a different problem from pairing: the port this
+            // phone listens on, which the ROM re-picks whenever wireless debugging
+            // restarts and which mDNS can still be answering out of its cache with the
+            // value from before. Every candidate is tried, and each one is verified by
+            // the uid-2000 probe inside connect(), so a stale answer costs one refused
+            // connection instead of the whole pairing.
+            List<String> connectTargets = LocalAdbBackend.connectCandidates(context, null);
+            if (connectTargets.isEmpty()) {
                 // Paired is real progress and worth saying so: the remaining step needs
                 // the wireless-debugging screen, not another pairing code.
                 report(context, context.getString(R.string.pairing_paired_no_port), true);
@@ -350,7 +388,15 @@ public final class AdbPairing {
                 openConsole(context);
                 return;
             }
-            LocalAdbBackend.connect(context, connectTarget);
+            try {
+                LocalAdbBackend.connectFirstWorking(context, connectTargets);
+            } catch (IOException connectFailed) {
+                // Not "pairing failed": the device accepted the code. Saying otherwise
+                // sends the user back to re-type a code that cannot fix a moved port.
+                failPairing(context, context.getString(R.string.pairing_connect_failed,
+                        connectFailed.getMessage()));
+                return;
+            }
             report(context, context.getString(R.string.pairing_connected,
                     LocalAdbBackend.serial(context)), true);
             AgentService.start(context, AgentService.ACTION_PROVISION, null);
@@ -364,37 +410,48 @@ public final class AdbPairing {
     }
 
     /**
-     * Pair, and give a lost race one more look before reporting anything.
+     * Pair at the first candidate port that is actually there.
      *
      * The first attempt is the one that loses races: the pairing port is re-advertised
      * with a new number every time that dialog is (re)opened, so mDNS can hand back the
      * previous session's port, and the adb server this app starts has to be up before a
-     * command can talk to it. A code the device never accepted is still valid, so the
-     * retry is free — and it is what a user does by hand when the first tap does
-     * nothing, which is exactly the behaviour this replaces.
+     * command can talk to it. A code the device never accepted is still valid, so a
+     * retry at another port is free — and it is what a user does by hand when the first
+     * tap does nothing, which is exactly the behaviour this replaces.
+     *
+     * A port that answers and refuses the code is a different failure: the code is
+     * wrong, every other port would refuse it the same way, and trying again would only
+     * spend the device's pairing attempts.
      */
-    private static void pairWithRetry(Context context, String target, String code)
+    private static void pairOverCandidates(Context context, List<String> candidates, String code)
             throws IOException {
-        IOException firstFailure;
-        try {
-            LocalAdbBackend.pair(context, target, code);
-            return;
-        } catch (IOException error) {
-            firstFailure = error;
-            Log.w(TAG, "pairing at " + target + " failed: " + error.getMessage());
+        IOException firstFailure = null;
+        int attempts = 0;
+        for (String candidate : candidates) {
+            if (attempts >= PAIRING_ATTEMPTS) {
+                break;
+            }
+            attempts += 1;
+            try {
+                LocalAdbBackend.pair(context, candidate, code);
+                if (attempts > 1) {
+                    Log.i(TAG, "paired at " + candidate + " after " + candidates.get(0)
+                            + " did not answer");
+                }
+                return;
+            } catch (IOException failure) {
+                Log.w(TAG, "pairing at " + candidate + " failed: " + failure.getMessage());
+                if (firstFailure == null) {
+                    firstFailure = failure;
+                }
+                if (!AdbPairingInput.portDidNotAnswer(failure.getMessage())) {
+                    throw failure;
+                }
+            }
         }
-        String retry = AdbMdns.resolveBlocking(context, AdbMdns.TYPE_PAIRING, 6_000);
-        if (retry == null || retry.equals(target)) {
-            // Nothing new to try: report the first failure, which says more.
-            throw firstFailure;
-        }
-        Log.i(TAG, "pairing failed at " + target + ", trying " + retry);
-        try {
-            LocalAdbBackend.pair(context, retry, code);
-        } catch (IOException secondFailure) {
-            Log.w(TAG, "pairing at " + retry + " also failed: " + secondFailure.getMessage());
-            throw secondFailure;
-        }
+        throw firstFailure != null
+                ? firstFailure
+                : new IOException(context.getString(R.string.pairing_port_missing));
     }
 
     /**
@@ -403,6 +460,11 @@ public final class AdbPairing {
      * The old version only used the stored serial and reported the channel state as
      * a success either way — so a device that had never connected showed "Paired",
      * and the one action that could have fixed it did nothing at all.
+     *
+     * The stored serial is a hint, not an address: it is the port of a previous session,
+     * and wireless debugging hands out a new one whenever it restarts. So it is tried
+     * together with the ports mDNS is advertising now, and when none of them answers it
+     * is forgotten — otherwise every later Reconnect would dial the same dead number.
      */
     static void reconnect(Context context) {
         keepAwake(context);
@@ -411,17 +473,23 @@ public final class AdbPairing {
                 fail(context, context.getString(R.string.pairing_not_paired));
                 return;
             }
-            String target = LocalAdbBackend.serial(context);
-            if (target.isEmpty()) {
-                // Right after pairing, and after wireless debugging has been toggled,
-                // the port is new and nothing has remembered it yet.
-                target = AdbMdns.resolveBlocking(context, AdbMdns.TYPE_CONNECT, 6_000);
-                if (target == null) {
-                    fail(context, context.getString(R.string.pairing_no_port));
-                    return;
-                }
+            if (LocalAdbBackend.reachable(context)) {
+                ActiveExec.Status status = ActiveExec.probe(context);
+                report(context, status.detail, status.ready);
+                AgentService.start(context, AgentService.ACTION_PAIRING_DONE, null);
+                return;
             }
-            LocalAdbBackend.connect(context, target);
+            List<String> candidates = LocalAdbBackend.connectCandidates(context, null);
+            if (candidates.isEmpty()) {
+                fail(context, context.getString(R.string.pairing_no_port));
+                return;
+            }
+            try {
+                LocalAdbBackend.connectFirstWorking(context, candidates);
+            } catch (IOException failed) {
+                LocalAdbBackend.forgetSerial(context);
+                throw failed;
+            }
             ActiveExec.Status status = ActiveExec.probe(context);
             report(context, status.detail, status.ready);
         } catch (Exception error) {
@@ -440,6 +508,10 @@ public final class AdbPairing {
      * or 5555 after {@code adb tcpip 5555} — only has to be connected to. The device
      * then asks the user to approve this app's key, which replaces the pairing code
      * entirely.
+     *
+     * The typed port is tried first and the discovered ones after it: when the user has
+     * just read a port off the wireless-debugging screen, that reading is the freshest
+     * thing this app has.
      */
     static void connectTo(Context context, String target) {
         keepAwake(context);
@@ -448,7 +520,8 @@ public final class AdbPairing {
                 fail(context, context.getString(R.string.pairing_enter_port));
                 return;
             }
-            LocalAdbBackend.connect(context, target.trim());
+            LocalAdbBackend.connectFirstWorking(context,
+                    LocalAdbBackend.connectCandidates(context, target.trim()));
             ActiveExec.Status status = ActiveExec.probe(context);
             report(context, status.detail, status.ready);
         } catch (Exception error) {
@@ -486,17 +559,26 @@ public final class AdbPairing {
                     }
                     // "935436" is the normal form. The port is printed on the same
                     // dialog, so accepting "935436 44221" as well gives the user a way
-                    // through when this phone's mDNS will not answer.
-                    java.util.regex.Matcher parsed = java.util.regex.Pattern
-                            .compile("(\\d{6})\\s*[:\\s]?\\s*(\\d{1,5})?")
-                            .matcher(typed.trim());
-                    if (!parsed.find()) {
+                    // through when this phone's mDNS will not answer. A port on its own
+                    // is the third form, and it belongs to the step after pairing: the
+                    // pairing survived, the port moved, and the user is reading the new
+                    // one off the screen.
+                    AdbPairingInput.Entry entry = AdbPairingInput.parse(typed);
+                    if (entry == null) {
                         failPairing(app, app.getString(R.string.pairing_bad_code));
                         return;
                     }
-                    String manualPort = parsed.group(2) == null
-                            ? intent.getStringExtra(EXTRA_PORT) : parsed.group(2);
-                    pairAndConnect(app, parsed.group(1), manualPort);
+                    if (entry.portOnly()) {
+                        if (!LocalAdbBackend.isPaired(app) && !LocalAdbBackend.hasKey(app)) {
+                            failPairing(app, app.getString(R.string.pairing_need_code));
+                            return;
+                        }
+                        connectTo(app, entry.port());
+                        return;
+                    }
+                    String manualPort = entry.port() == null
+                            ? intent.getStringExtra(EXTRA_PORT) : entry.port();
+                    pairAndConnect(app, entry.code(), manualPort);
                 } catch (Exception error) {
                     // Nothing may escape this thread: an uncaught exception here takes
                     // the whole app down while the user is looking at the notification

@@ -60,10 +60,17 @@
     <string name="pairing_channel">配对</string>
     <string name="pairing_channel_desc">接收无线调试的配对码</string>
     <string name="pairing_code_label">六位配对码</string>
+    <string name="pairing_port_label">端口，如 45215</string>
     <string name="pairing_pair_action">配对</string>
+    <string name="pairing_connect_action">连接</string>
     <string name="pairing_request_title">输入配对码</string>
     <string name="pairing_request_text">输入无线调试页面上显示的六位数字。</string>
     <string name="pairing_request_big_text">保持无线调试页面打开。把「使用配对码配对设备」里的六位数字填到下面并点「配对」；没有反应时，在数字后加上端口。</string>
+    <string name="pairing_connect_title">填入调试端口</string>
+    <string name="pairing_request_text_paired">已配对。请填「IP 地址和端口」里的端口。</string>
+    <string name="pairing_request_big_text_paired">已配对，但这个端口没有响应 —— 无线调试每次重启都会换端口。打开无线调试页面，把「IP 地址和端口」里的端口填到下面并点「连接」；回 Midscene 点「重新连接」也可以。</string>
+    <string name="pairing_connect_failed">已配对，但端口没有响应：%1$s</string>
+    <string name="pairing_need_code">还没有和这台设备配对，请填六位配对码。</string>
     <string name="pairing_paired">配对成功</string>
     <string name="pairing_failed">配对失败</string>
     <string name="pairing_port_missing">没有找到配对端口。请打开配对弹窗后重试。</string>

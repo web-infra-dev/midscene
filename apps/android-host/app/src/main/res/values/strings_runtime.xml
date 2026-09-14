@@ -67,10 +67,17 @@
     <string name="pairing_channel">Pairing</string>
     <string name="pairing_channel_desc">Receives the wireless-debugging pairing code</string>
     <string name="pairing_code_label">6-digit pairing code</string>
+    <string name="pairing_port_label">Port, e.g. 45215</string>
     <string name="pairing_pair_action">Pair</string>
+    <string name="pairing_connect_action">Connect</string>
     <string name="pairing_request_title">Enter the pairing code</string>
     <string name="pairing_request_text">Type the six digits shown on the wireless-debugging screen.</string>
     <string name="pairing_request_big_text">Keep the wireless-debugging screen open. Type the six digits from &quot;Pair device with pairing code&quot; below and tap Pair. If nothing happens, add the port after the digits.</string>
+    <string name="pairing_connect_title">Enter the debugging port</string>
+    <string name="pairing_request_text_paired">Paired. Type the port shown under &quot;IP address &amp; port&quot;.</string>
+    <string name="pairing_request_big_text_paired">Paired, but that port did not answer — wireless debugging picks a new port every time it restarts. Open the wireless-debugging screen, type the port from &quot;IP address &amp; port&quot; below and tap Connect. &quot;Reconnect&quot; in Midscene does the same.</string>
+    <string name="pairing_connect_failed">Paired, but no port answered: %1$s</string>
+    <string name="pairing_need_code">Not paired with this device yet. Type the six-digit pairing code.</string>
     <string name="pairing_paired">Paired</string>
     <string name="pairing_failed">Pairing failed</string>
     <string name="pairing_port_missing">Could not find the pairing port. Open the pairing dialog and try again.</string>

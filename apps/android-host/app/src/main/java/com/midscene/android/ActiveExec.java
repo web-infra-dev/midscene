@@ -3,6 +3,7 @@ package com.midscene.android;
 import android.content.Context;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Which channel the shell commands actually travel on.
@@ -175,9 +176,9 @@ public final class ActiveExec {
                     // and what a pairing the app never recorded leaves behind. The port
                     // is discoverable, so ask and let the device decide whether it
                     // trusts us — "no port remembered" is not "not paired".
-                    String discovered = AdbMdns.resolveBlocking(app, AdbMdns.TYPE_CONNECT, 6_000);
-                    if (discovered != null) {
-                        LocalAdbBackend.connect(app, discovered);
+                    List<String> discovered = LocalAdbBackend.connectCandidates(app, null);
+                    if (!discovered.isEmpty()) {
+                        LocalAdbBackend.connectFirstWorking(app, discovered);
                     }
                 }
                 LocalAdbBackend.connectIfNeeded(app);

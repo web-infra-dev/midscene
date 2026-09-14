@@ -105,6 +105,20 @@ public final class LocalAdbBackend {
                 .edit().putBoolean(KEY_PAIRED, paired).apply();
     }
 
+    /**
+     * Drop the remembered port, and keep the pairing.
+     *
+     * The port is the half that moves: wireless debugging picks a new one whenever it
+     * restarts, and a remembered value that has stopped working is a dead end that every
+     * later reconnect would dial again. Forgetting it makes the next attempt resolve the
+     * current port instead. The key pair is untouched, so no new pairing code is needed
+     * — which is the whole point of separating the two.
+     */
+    public static void forgetSerial(Context context) {
+        context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+                .edit().remove(KEY_SERIAL).apply();
+    }
+
     /** Whether a serial is remembered; being reachable is a separate question. */
     public static boolean configured(Context context) {
         return isPaired(context) && !serial(context).isEmpty();
@@ -211,6 +225,65 @@ public final class LocalAdbBackend {
         return "127.0.0.1:" + value.substring(colon + 1);
     }
 
+    /**
+     * The connect targets to try, best first: what the user typed, then the ports mDNS
+     * is advertising now (this phone's own, newest first), then the port remembered from
+     * the last session, then answers that came from somebody else's device.
+     *
+     * A list rather than one address because no single source is authoritative: mDNS
+     * answers out of a cache that can hold a port the phone has already dropped, and the
+     * remembered port is from a previous session by definition.
+     */
+    public static List<String> connectCandidates(Context context, String typedTarget) {
+        List<String> preferred = new ArrayList<>();
+        String typed = normalize(typedTarget);
+        if (!typed.isEmpty()) {
+            preferred.add(typed);
+        }
+        List<String> fallback = new ArrayList<>();
+        String serial = serial(context);
+        if (!serial.isEmpty()) {
+            fallback.add(serial);
+        }
+        return AdbMdns.candidateTargets(context, AdbMdns.TYPE_CONNECT, preferred, fallback);
+    }
+
+    /**
+     * Connect to the first candidate that answers as uid 2000.
+     *
+     * Every candidate is verified the same way the single-address path always was — a
+     * TCP connection is not an authorized one — so trying a dead port costs one refused
+     * connect (milliseconds) and trying the wrong one cannot silently succeed.
+     *
+     * @return the target that worked
+     * @throws IOException the first candidate's failure, which is the one that says most
+     *                     about the state the caller believed in
+     */
+    public static String connectFirstWorking(Context context, List<String> candidates)
+            throws IOException {
+        if (candidates == null || candidates.isEmpty()) {
+            throw new IOException(context.getString(R.string.adb_error_connection_address));
+        }
+        IOException firstFailure = null;
+        for (String candidate : candidates) {
+            try {
+                connect(context, candidate);
+                if (!candidate.equals(candidates.get(0))) {
+                    android.util.Log.i(TAG, "connected to " + candidate + " after "
+                            + candidates.get(0) + " did not answer");
+                }
+                return candidate;
+            } catch (IOException failure) {
+                if (firstFailure == null) {
+                    firstFailure = failure;
+                }
+                android.util.Log.w(TAG, "candidate " + candidate + " did not connect: "
+                        + failure.getMessage());
+            }
+        }
+        throw firstFailure;
+    }
+
     /** Start the server if it is not running, and wait until it answers. */
     static void startServer(Context context) throws IOException {
         run(context, java.util.Collections.singletonList("start-server"), 30_000);
@@ -271,28 +344,38 @@ public final class LocalAdbBackend {
     /**
      * Re-establish the connection if it is not usable.
      *
-     * Wireless debugging keeps its port for as long as the toggle stays on, but
-     * the adb server this app runs does not survive everything — and the pairing
-     * key makes reconnecting silent, so there is no reason to ask the user.
+     * Wireless debugging keeps its port while the toggle stays on, but the adb server
+     * this app runs does not survive everything — and the pairing key makes reconnecting
+     * silent, so there is no reason to ask the user. The port, though, is re-picked by
+     * the ROM whenever wireless debugging restarts, so a remembered port that no longer
+     * answers is forgotten rather than dialled again on every later attempt.
      */
     public static boolean connectIfNeeded(Context context) throws IOException {
-        String serial = serial(context);
-        if (serial.isEmpty()) {
+        if (serial(context).isEmpty()) {
             return false;
         }
         if (reachable(context)) {
             return true;
         }
+        List<String> candidates = connectCandidates(context, null);
         try {
-            connect(context, serial);
+            connectFirstWorking(context, candidates);
+            return true;
         } catch (IOException firstAttempt) {
             // The most common reason a connect that used to work stops working is
             // that the server was replaced by one holding a different key. Take it
             // back and try once more before reporting anything to the user.
             claimServer(context);
-            connect(context, serial);
+            try {
+                connectFirstWorking(context, candidates);
+                return true;
+            } catch (IOException secondAttempt) {
+                // The other reason is the port itself, and remembering a dead one only
+                // makes the next attempt fail the same way.
+                forgetSerial(context);
+                throw secondAttempt;
+            }
         }
-        return true;
     }
 
     /** Probe the remembered serial without failing when it is not reachable. */
