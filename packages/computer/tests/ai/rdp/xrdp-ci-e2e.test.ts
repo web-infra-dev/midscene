@@ -294,6 +294,18 @@ describe.skipIf(!RUN_XRDP_CI_E2E)('RDP against a local xrdp desktop', () => {
         ).toFixed(2)}% non-black pixels).`,
       });
       expect(blackRatio).toBeLessThan(0.01);
+
+      await agent.callActionInActionSpace('KeyboardPress', {
+        keyName: 'Escape',
+      });
+      const finalRgba = await recordChangedFrame(
+        agent,
+        device,
+        black.rgba,
+        'RDP E2E coverage complete',
+        'Passed authentication, display enumeration, screenshot updates, Input, KeyboardPress, Hover, DoubleClick, RightClick, Scroll, DragAndDrop, Tap, and valid black framebuffer checks.',
+      );
+      expect(nonBlackRatio(finalRgba)).toBeGreaterThan(0.15);
       expect(agent.metrics.calls).toBe(0);
 
       await agent.destroy();
@@ -311,6 +323,7 @@ describe.skipIf(!RUN_XRDP_CI_E2E)('RDP against a local xrdp desktop', () => {
         'Wheel input over RDP',
         'Drag and drop over RDP',
         'Valid black framebuffer',
+        'RDP E2E coverage complete',
       ]) {
         expect(reportHtml).toContain(reportEntry);
       }

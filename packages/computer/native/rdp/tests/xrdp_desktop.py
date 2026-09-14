@@ -14,22 +14,29 @@ root.configure(background="#123456")
 
 canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, highlightthickness=0)
 canvas.pack(fill="both", expand=True)
+desktop_items = []
 for y in range(HEIGHT):
     ratio = y / (HEIGHT - 1)
     red = round(0x12 + (0xAB - 0x12) * ratio)
     green = round(0x34 + (0xCD - 0x34) * ratio)
     blue = round(0x56 + (0xEF - 0x56) * ratio)
-    canvas.create_line(0, y, WIDTH, y, fill=f"#{red:02x}{green:02x}{blue:02x}")
+    desktop_items.append(
+        canvas.create_line(
+            0, y, WIDTH, y, fill=f"#{red:02x}{green:02x}{blue:02x}"
+        )
+    )
 
-canvas.create_text(
-    WIDTH // 2,
-    80,
-    text="Midscene RDP integration test",
-    fill="white",
-    font=("DejaVu Sans", 32, "bold"),
+desktop_items.append(
+    canvas.create_text(
+        WIDTH // 2,
+        80,
+        text="Midscene RDP integration test",
+        fill="white",
+        font=("DejaVu Sans", 32, "bold"),
+    )
 )
 entry = tk.Entry(root, font=("DejaVu Sans Mono", 24), width=36)
-canvas.create_window(WIDTH // 2, 165, window=entry)
+desktop_items.append(canvas.create_window(WIDTH // 2, 165, window=entry))
 entry.focus_force()
 
 status_value = tk.StringVar(value="Ready for RDP input")
@@ -40,7 +47,7 @@ status = tk.Label(
     background="#f4e04d",
     width=34,
 )
-canvas.create_window(WIDTH // 2, 235, window=status)
+desktop_items.append(canvas.create_window(WIDTH // 2, 235, window=status))
 
 
 def set_status(value):
@@ -59,7 +66,7 @@ def action_target(text, x, y, background):
         width=16,
         height=2,
     )
-    canvas.create_window(x, y, window=target)
+    desktop_items.append(canvas.create_window(x, y, window=target))
     return target
 
 
@@ -102,10 +109,18 @@ for scroll_event in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
 
 
 def show_black_framebuffer():
-    for widget in interactive_widgets:
-        widget.destroy()
-    canvas.delete("all")
+    for item in desktop_items:
+        canvas.itemconfigure(item, state="hidden")
     canvas.configure(background="black")
+    root.focus_force()
+
+
+def restore_desktop(_event=None):
+    canvas.configure(background="#123456")
+    set_status("RDP E2E complete")
+    for item in desktop_items:
+        canvas.itemconfigure(item, state="normal")
+    entry.focus_force()
 
 
 black_button = tk.Button(
@@ -114,18 +129,7 @@ black_button = tk.Button(
     command=show_black_framebuffer,
     font=("DejaVu Sans", 18),
 )
-canvas.create_window(WIDTH // 2, 625, window=black_button)
-
-interactive_widgets = [
-    entry,
-    status,
-    hover_target,
-    double_click_target,
-    right_click_target,
-    drag_source,
-    drop_target,
-    scroll_target,
-    black_button,
-]
+desktop_items.append(canvas.create_window(WIDTH // 2, 625, window=black_button))
+root.bind_all("<Escape>", restore_desktop)
 
 root.mainloop()
