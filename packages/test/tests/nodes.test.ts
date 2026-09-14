@@ -101,6 +101,18 @@ describe('nodes', () => {
     expect(io.error).not.toHaveBeenCalled();
   });
 
+  it('continues to require a directory as its positional argument', async () => {
+    const root = createProject();
+    const workflowPath = join(root, 'example.yaml');
+    writeFileSync(workflowPath, 'cases: []');
+    const io = { log: vi.fn(), error: vi.fn() };
+
+    expect(await runTestCli(['nodes', workflowPath], io)).toBe(1);
+    expect(io.error).toHaveBeenCalledWith(
+      `Test project directory does not exist or is not a directory: ${workflowPath}`,
+    );
+  });
+
   it('writes in the test directory when a custom config is specified', async () => {
     const root = createProject();
     mkdirSync(join(root, 'config'));

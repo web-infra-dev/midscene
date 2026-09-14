@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -16,7 +17,7 @@ import {
   discoverTestFiles,
   runTestProject,
 } from '../src/cli';
-import { parseTestCliArgs } from '../src/cli/test-command';
+import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
 interface RunnerState {
   configLoads: number;
@@ -392,6 +393,122 @@ describe('test project main-process runner', () => {
     expect(projectResult.projects[0].fileSelection).toEqual({
       include: ['**/*.{yaml,yml}'],
     });
+  });
+
+  it.each(['yaml', 'yml'])(
+    'runs only an explicit .%s file and discovers config from its ancestors',
+    async (extension) => {
+      const root = createProject();
+      const resultDir = join(root, 'results');
+      const targetPath = join(root, 'cases', `target.${extension}`);
+      writeFileSync(
+        join(root, 'midscene.config.ts'),
+        `export default {
+          projects: [
+            { name: 'selected', files: { include: ['cases/ignored.yaml'] } },
+            { name: 'other' },
+          ],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+        };`,
+      );
+      writeWorkflow(
+        root,
+        `cases/target.${extension}`,
+        'cases: [{ name: target, steps: [{ noop: run }] }]',
+      );
+      writeWorkflow(root, 'cases/ignored.yaml', 'cases: invalid');
+      const errors: string[] = [];
+
+      const exitCode = await runTestCli(
+        [targetPath, '--project', 'selected', '--result-dir', resultDir],
+        { log() {}, error: (message) => errors.push(message) },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(errors).toEqual([]);
+      const [runId] = readdirSync(resultDir);
+      const summary = JSON.parse(
+        readFileSync(join(resultDir, runId, 'summary.json'), 'utf8'),
+      );
+      expect(summary).toMatchObject({
+        projectRoot: root,
+        projects: [
+          {
+            name: 'selected',
+            sourceCount: 1,
+            fileSelection: {
+              include: [`cases/target.${extension}`],
+            },
+            cases: [
+              { name: 'target', sourcePath: `cases/target.${extension}` },
+            ],
+          },
+        ],
+      });
+    },
+  );
+
+  it('uses the file parent as the project root when no config is found', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const targetPath = join(root, 'cases', 'empty.yaml');
+    writeWorkflow(root, 'cases/empty.yaml', 'cases: []');
+
+    const result = await runTestProject({
+      projectRoot: targetPath,
+      resultDir,
+    });
+
+    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.projectRoot).toBe(dirname(targetPath));
+    expect(result.projects[0].sourceCount).toBe(1);
+  });
+
+  it('rejects a missing positional test path', async () => {
+    const root = createProject();
+    const missingPath = join(root, 'missing.yaml');
+    const errors: string[] = [];
+
+    expect(
+      await runTestCli([missingPath], {
+        log() {},
+        error: (message) => errors.push(message),
+      }),
+    ).toBe(1);
+    expect(errors).toEqual([`Test file does not exist: ${missingPath}`]);
+  });
+
+  it('preserves the missing project directory error', async () => {
+    const root = createProject();
+    const missingPath = join(root, 'missing-directory');
+    const errors: string[] = [];
+
+    expect(
+      await runTestCli([missingPath], {
+        log() {},
+        error: (message) => errors.push(message),
+      }),
+    ).toBe(1);
+    expect(errors).toEqual([
+      `Test project directory does not exist or is not a directory: ${missingPath}`,
+    ]);
+  });
+
+  it('rejects a non-YAML positional test file', async () => {
+    const root = createProject();
+    const textPath = join(root, 'notes.txt');
+    writeFileSync(textPath, 'not yaml');
+    const errors: string[] = [];
+
+    expect(
+      await runTestCli([textPath], {
+        log() {},
+        error: (message) => errors.push(message),
+      }),
+    ).toBe(1);
+    expect(errors).toEqual([
+      `Test file must be a .yaml or .yml file: ${textPath}`,
+    ]);
   });
 
   it('reports live document, case, and step progress', async () => {
