@@ -53,6 +53,7 @@ const result = (attemptSteps: StepRunResult[]): TestProjectRunResult => ({
     {
       projectId: 'project-1',
       name: 'web',
+      platform: 'web',
       status: 'success',
       retry: 0,
       fileSelection: { include: ['**/*.yaml'] },

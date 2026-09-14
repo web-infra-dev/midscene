@@ -507,6 +507,7 @@ describe('document resource ownership', () => {
             events.push('second');
             throw new Error('close failed');
           });
+          return undefined;
         },
       },
     }).catch((error) => error);
