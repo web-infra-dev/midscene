@@ -24,7 +24,7 @@ export const callChatCompletionNonStreaming = async ({
   openAIRequestContext,
   modelRuntime,
   messages,
-  requestConfig,
+  requestBodyParams,
   effectiveTimeoutMs,
   abortSignal,
 }: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
@@ -54,9 +54,9 @@ export const callChatCompletionNonStreaming = async ({
         {
           model: modelName,
           messages,
-          ...requestConfig,
+          ...requestBodyParams,
           stream: false,
-        } as any,
+        },
         { signal: attemptSignal },
       );
 

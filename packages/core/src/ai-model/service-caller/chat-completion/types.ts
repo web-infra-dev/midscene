@@ -9,7 +9,7 @@ export type ChatCompletionCallOptions = {
   openAIRequestContext: OpenAIRequestContext;
   modelRuntime: ModelRuntime;
   messages: ChatCompletionMessageParam[];
-  requestConfig: Record<string, unknown>;
+  requestBodyParams: Record<string, unknown>;
   effectiveTimeoutMs: number | null;
   abortSignal?: AbortSignal;
   onChunk?: StreamingCallback;

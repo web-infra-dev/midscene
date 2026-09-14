@@ -50,7 +50,7 @@ export const chat = async ({
     })}`,
   );
 
-  const requestConfig = {
+  const requestBodyParams = {
     ...adapterChatCompletionParams,
     ...(modelConfig.extraBody ?? {}),
   };
@@ -94,7 +94,7 @@ export const chat = async ({
       openAIRequestContext,
       modelRuntime,
       messages: messagesWithImageDetail,
-      requestConfig,
+      requestBodyParams,
       effectiveTimeoutMs,
       abortSignal: options?.abortSignal,
       onChunk: options?.onChunk,

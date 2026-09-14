@@ -22,7 +22,7 @@ export const callChatCompletionStream = async ({
   openAIRequestContext,
   modelRuntime,
   messages,
-  requestConfig,
+  requestBodyParams,
   effectiveTimeoutMs,
   abortSignal,
   onChunk,
@@ -46,10 +46,10 @@ export const callChatCompletionStream = async ({
       {
         model: modelName,
         messages,
-        ...requestConfig,
+        ...requestBodyParams,
         stream: true,
         stream_options: {
-          ...(requestConfig.stream_options as
+          ...(requestBodyParams.stream_options as
             | Record<string, unknown>
             | undefined),
           include_usage: true,
