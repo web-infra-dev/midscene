@@ -63,6 +63,63 @@ describe('YAML sleep', () => {
     }
   });
 
+  it.each(['before', 'after'] as const)(
+    'preserves the standard failure behavior when the %s screenshot fails',
+    async (phase) => {
+      const mockInterface = createMockInterface();
+      const screenshotError = new Error('Screenshot capture unavailable');
+      if (phase === 'before') {
+        mockInterface.screenshotBase64.mockRejectedValue(screenshotError);
+      } else {
+        const screenshot = await mockInterface.screenshotBase64();
+        mockInterface.screenshotBase64.mockReset();
+        mockInterface.screenshotBase64
+          .mockResolvedValueOnce(screenshot)
+          .mockRejectedValue(screenshotError);
+      }
+      const agent = new Agent(mockInterface as unknown as AbstractInterface, {
+        generateReport: false,
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test-model',
+          MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+          MIDSCENE_MODEL_API_KEY: 'test-key',
+        },
+      });
+      const errorLog = rs.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        if (phase === 'before') {
+          await expect(agent.sleep(20)).rejects.toThrow(
+            screenshotError.message,
+          );
+        } else {
+          await expect(agent.sleep(20)).resolves.toBeUndefined();
+        }
+        const task = JSON.parse(agent.dumpDataString()).executions[0].tasks[0];
+        expect(task.subType).toBe('Sleep');
+        expect(task.recorder).toEqual([]);
+        if (phase === 'before') {
+          expect(task.status).toBe('failed');
+          expect(task.errorMessage).toContain(screenshotError.message);
+          expect(task.timing.callActionStart).toBeUndefined();
+          expect(task.timing.callActionEnd).toBeUndefined();
+        } else {
+          expect(task.status).toBe('finished');
+          expect(task.uiContext.screenshot).toBeDefined();
+          expect(
+            task.timing.callActionEnd - task.timing.callActionStart,
+          ).toBeGreaterThanOrEqual(19);
+          expect(errorLog).toHaveBeenCalledWith(
+            'error while capturing screenshot',
+            screenshotError,
+          );
+        }
+      } finally {
+        errorLog.mockRestore();
+        await agent.destroy();
+      }
+    },
+  );
+
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     'records invalid SDK duration %s as a failed task',
     async (duration) => {
