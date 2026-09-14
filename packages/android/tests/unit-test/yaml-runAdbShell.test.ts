@@ -127,7 +127,11 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       onTaskStartTip: undefined,
       _unstableLogContent: rs.fn(async () => ({})),
       getActionSpace: rs.fn(async () => []), // Empty actionSpace, no runAdbShell
-      callActionInActionSpace: rs.fn(),
+      callActionInActionSpace: rs.fn(async (actionName: string) => {
+        throw new Error(
+          `Action type '${actionName}' is not in the current action space.`,
+        );
+      }),
     };
 
     const script: MidsceneYamlScript = {
@@ -155,7 +159,7 @@ describe('YAML runAdbShell support via ActionSpace', () => {
 
     expect(player.status).toBe('error');
     expect(player.taskStatusList[0].error?.message).toContain(
-      'unknown flowItem in yaml',
+      "Action type 'runAdbShell' is not in the current action space",
     );
   });
 
