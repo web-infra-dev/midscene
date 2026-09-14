@@ -1,6 +1,6 @@
 target:
   serve: ./dist
-  url: demo.html
+  url: demo-agent.html
 tasks:
   - name: sidebar task list is rendered
     flow:
