@@ -4,7 +4,7 @@
  *
  * Design rules, each of which came from a failure on a real device:
  *  - dependencies are declared in a staging package.json, so npm resolves the whole
- *    tree (a hand-copied package once shipped without `debug` and died on the phone);
+ *    tree (a hand-copied package once shipped without `debug` and died on the device);
  *  - the install is hoisted and link-free (pnpm's `.pnpm` farm was dereferenced into a
  *    73MB bundle and its links could not be recreated inside the app's sandbox);
  *  - the CLI is started before packaging, so a bundle that cannot run never ships;

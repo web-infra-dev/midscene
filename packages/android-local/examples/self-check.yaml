@@ -20,7 +20,7 @@ name: self-check
 device:
   backend: device-bridge
   yadbPath: /data/local/tmp/yadb
-  fileChannelDir: /storage/emulated/0/Android/data/com.midscene.localagent/files/channel
+  fileChannelDir: /storage/emulated/0/Android/data/com.midscene.android/files/channel
 agent:
   generateReport: true
   resetToHome: false

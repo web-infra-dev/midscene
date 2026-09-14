@@ -109,7 +109,7 @@ Android 14 对 rish 所加载 DEX 的可写性有约束，官方脚本包含检�
 | YAML `javascript` 流程项 | `packages/core/src/yaml/player.ts:450` 支持 `javascript:`，但 `LocalAndroidDevice` 未实现 `evaluateJavaScript`，[`agent.ts:1617`](../../core/src/agent/agent.ts) 会先断言抛错 | 从“待封堵的风险”改判为**功能缺口**（见 5.2） |
 | shell 动作暴露 | `exposeRunAdbShellAction` 默认 `false`（[schema.ts](../src/config/schema.ts)） | 基线已比上一版描述更严，无需重复加固 |
 | Host 侧绑定身份校验 | 除 `Shizuku.checkSelfPermission()` 外，Java/Kotlin 侧没有比对 UID 的代码；`ExecUserService.uid()` 已实现但未被使用 | 升为首版必做（理由见 5.1） |
-| 运行按钮的就绪判断 | [`ConsoleActivity.kt`](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ConsoleActivity.kt) 的运行按钮仅判断 `prompt.isNotBlank() && !busy`，Shizuku 授权与 UserService 就绪不参与判断 | 升为首版必做（理由见 4.2） |
+| 运行按钮的就绪判断 | [`ConsoleActivity.kt`](../../../apps/android-host/app/src/main/java/com/midscene/android/ConsoleActivity.kt) 的运行按钮仅判断 `prompt.isNotBlank() && !busy`，Shizuku 授权与 UserService 就绪不参与判断 | 升为首版必做（理由见 4.2） |
 | 凭据存储 | `ModelEnvFile` 无任何加密代码，API Key 以明文存于 `filesDir/model.env` | 保留为交付模式的前置项，不阻塞内部工具 |
 | 两包边界 | `packages/android-local/package.json` 为 `private: true`，且没有任何包依赖它（roadmap P1-7 的收敛未做） | 端侧能力与既有 Android 包无依赖耦合，可独立演进 |
 | 契约测试归属 | `tests/unit-test/transport-contract.ts` 与 `AdbShellTransport` 均在 `android-local` 内；`packages/android/tests/unit-test/` 无对应文件 | 多后端一致性只在 `android-local` 内部被约束，表述时不要外推 |
@@ -141,7 +141,7 @@ PC 在环（调试与契约对照，非端侧）
 | 本地桥 | Node 与 Android 之间的通信、会话校验、结果传输 | 只服务本次运行；不作为对外接口 |
 | UserService | 固定设备能力的实现 | 与 `android-local` 同属可信实现，不假装能隔离同 UID 代码（见 5.1） |
 
-本地桥保留回环 HTTP 和随机 token，首版不另造 JNI 或新通信协议。当前桥暴露 `/exec`、`/exec-binary`、`/read-file`、`/ready` 四个点位（[ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecBridge.java)），下半段由 `sh -c` 执行（[ExecUserService.java:66](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecUserService.java)）。**在“任务由开发者自写”的前提下，这个形态可以接受**；何时需要改成结构化动作协议见 5.3。
+本地桥保留回环 HTTP 和随机 token，首版不另造 JNI 或新通信协议。当前桥暴露 `/exec`、`/exec-binary`、`/read-file`、`/ready` 四个点位（[ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecBridge.java)），下半段由 `sh -c` 执行（[ExecUserService.java:66](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecUserService.java)）。**在“任务由开发者自写”的前提下，这个形态可以接受**；何时需要改成结构化动作协议见 5.3。
 
 底层复用 `screencap`、`input`、`am` 等命令。yadb 继续保留以覆盖中文输入等能力，属于固定的内部 helper，不是可替换插件；版本、校验和部署位置由 App 管理。UserService 不会消除 yadb 的 `app_process` 成本，后续再评估直接集成输入能力。
 
@@ -166,7 +166,7 @@ PC 在环（调试与契约对照，非端侧）
 
 ### 4.3 可选权限
 
-- Overlay 不是闭环前置条件。**注意：当前引导向导把它做成了第 3 步（[ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ConsoleActivity.kt)），与本节结论不一致，需择一。**
+- Overlay 不是闭环前置条件。**注意：当前引导向导把它做成了第 3 步（[ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/android/ConsoleActivity.kt)），与本节结论不一致，需择一。**
 - 电池优化豁免不强制申请，不通过 shell 静默加入白名单。
 - 通知权限按系统机制请求，不得通过 shell 代授；通知不可见时如实说明，App 内保留停止入口。
 - 不保证任务完成后强制把 App 拉回前台。
@@ -219,14 +219,14 @@ PC 在环（调试与契约对照，非端侧）
 | 当前实现 | 目标变化 | 主要位置 | 影响 |
 | --- | --- | --- | --- |
 | `android-local` 未接入任何 workflow；`test:ai` 选取不存在的 `tests/ai/**`，选不到文件却算通过 | 单测与 `transport-contract` 接入 CI；`test:ai` 要么补目录要么删除 | [`.github/workflows/android-emulator.yml`](../../../.github/workflows/android-emulator.yml)、[`rstest.config.ts`](../rstest.config.ts) | 12 个单测文件只在本地跑，“已通过”无外部保证 |
-| 运行入口只判断 `prompt.isNotBlank() && !busy` | 由真实状态决定：Shizuku 可连接、UID 2000、UserService 就绪、资源有效、模型配置完整 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ConsoleActivity.kt) | 失败点后移，最难诊断 |
-| `ExecUserService.uid()` 已实现但无人调用；`rish.ts` 把 UID 0 与 2000 都算特权成功 | 绑定与执行两侧取真实 UID 并用于判断与报错 | [rish.ts](../src/transport/rish.ts)、[ExecUserService.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecUserService.java) | 身份不符时表现与预期不符，且无提示 |
+| 运行入口只判断 `prompt.isNotBlank() && !busy` | 由真实状态决定：Shizuku 可连接、UID 2000、UserService 就绪、资源有效、模型配置完整 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/android/ConsoleActivity.kt) | 失败点后移，最难诊断 |
+| `ExecUserService.uid()` 已实现但无人调用；`rish.ts` 把 UID 0 与 2000 都算特权成功 | 绑定与执行两侧取真实 UID 并用于判断与报错 | [rish.ts](../src/transport/rish.ts)、[ExecUserService.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecUserService.java) | 身份不符时表现与预期不符，且无提示 |
 | YAML `javascript:` 在端侧触发断言错误（`LocalAndroidDevice` 未实现 `evaluateJavaScript`） | 明确支持，或明确报“本路径不支持”并给出替代写法 | [player.ts](../../core/src/yaml/player.ts)、[device.ts](../src/device.ts) | 与“基于 Midscene 扩展性”的目标直接冲突 |
 | 能力信息只存在于 `describe()` 字符串与文档叙述中 | `doctor` / `getCapabilities()` 输出机器可读的能力与降级原因，与实际行为一致 | [device.ts](../src/device.ts)、[cli.ts](../src/cli.ts) | 使用者无法程序化判断“该降级还是该失败” |
 | 超时、重试与中断语义未定义 | 明确哪些失败可重试、哪些动作幂等、超时后设备状态是否已知 | [errors.ts](../src/transport/errors.ts)、[run.ts](../src/runner/run.ts) | 长时间或反复运行时的抖动无法归因 |
 | 真机记录主要来自模拟器；`doctor` / `run` 在真机上的完整闭环无验收卡 | 至少一台真实设备跑通含中文输入与 `aiAssert` 的任务，并留下验收记录 | [deployment.md](./deployment.md)、[roadmap.md](./roadmap.md) | “端侧能力可用”目前缺少直接证据 |
-| 引导向导把 Overlay 作为第 3 步，与 4.3 的结论不一致 | 择一：保留为可选项，或明确它确为前置 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ConsoleActivity.kt) | 代码与决策记录不一致 |
-| helper 准备失败时仍可能回退 rish；初始化记录失败后仍继续版本检查 | 准备结果反映全部必需资源，失败即保持未就绪并显示原因 | [Provisioner.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/Provisioner.java)、[AgentService.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/AgentService.java) | 状态显示“可运行”但实际会失败 |
+| 引导向导把 Overlay 作为第 3 步，与 4.3 的结论不一致 | 择一：保留为可选项，或明确它确为前置 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/android/ConsoleActivity.kt) | 代码与决策记录不一致 |
+| helper 准备失败时仍可能回退 rish；初始化记录失败后仍继续版本检查 | 准备结果反映全部必需资源，失败即保持未就绪并显示原因 | [Provisioner.java](../../../apps/android-host/app/src/main/java/com/midscene/android/Provisioner.java)、[AgentService.java](../../../apps/android-host/app/src/main/java/com/midscene/android/AgentService.java) | 状态显示“可运行”但实际会失败 |
 | `adb-bootstrap.sh` 部署 rish/dex、尝试静默授权、使用固定等待 | 开发部署流程移除静默授权假设，以明确成功状态代替固定 sleep | [adb-bootstrap.sh](../../../apps/android-host/scripts/adb-bootstrap.sh) | 误导后续使用者 |
 | `@midscene/android` 与 `android-local` 各有一份 ADB 实现（roadmap P1-7 未做） | 按需收敛为单向依赖：纯逻辑（display 解析、坐标/滚动数学）由一处提供 | [adb-shell.ts](../src/transport/adb-shell.ts)、[roadmap.md](./roadmap.md) | 同一件事两处维护，是持续的记忆与评审成本 |
 

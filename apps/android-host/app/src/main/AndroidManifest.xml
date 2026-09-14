@@ -22,17 +22,17 @@
         android:allowBackup="false"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Midscene Local"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MidsceneLocal"
+        android:theme="@style/Theme.Midscene"
         android:usesCleartextTraffic="true">
 
         <!-- Compose console: the product surface. -->
         <activity
             android:name=".ConsoleActivity"
             android:exported="true"
-            android:label="Midscene"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,7 +45,7 @@
         <activity
             android:name=".ReportViewerActivity"
             android:exported="false"
-            android:label="Run artefact" />
+            android:label="@string/report_viewer_label" />
 
         <!--
           Receives the wireless-debugging pairing code from the notification shade.
@@ -59,8 +59,8 @@
             android:name=".AdbPairing$Receiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.midscene.localagent.PAIRING_CODE" />
-                <action android:name="com.midscene.localagent.PAIRING_START" />
+                <action android:name="com.midscene.android.PAIRING_CODE" />
+                <action android:name="com.midscene.android.PAIRING_START" />
             </intent-filter>
         </receiver>
 

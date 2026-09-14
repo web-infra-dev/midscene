@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 悬浮进度与运行通知 -->
+    <string name="progress_phase_working">运行中</string>
+    <string name="progress_phase_starting">正在启动</string>
+    <string name="progress_phase_checking">正在检查</string>
+    <string name="progress_phase_step_done">步骤完成</string>
+    <string name="progress_phase_step_failed">步骤失败</string>
+    <string name="progress_phase_done">已完成</string>
+    <string name="progress_phase_failed">已失败</string>
+    <string name="progress_step">第 %1$s 步</string>
+    <string name="progress_timing_step">本步 %1$s</string>
+    <string name="progress_timing_total">总计 %1$s</string>
+    <string name="progress_script">脚本</string>
+    <string name="progress_script_summary">脚本 · %1$s</string>
+    <string name="progress_script_summary_first">脚本 · %1$s · 首个动作：%2$s</string>
+    <plurals name="progress_script_actions">
+        <item quantity="other">%d 个动作</item>
+    </plurals>
+    <string name="progress_verb_tap">点击</string>
+    <string name="progress_verb_input">输入到</string>
+    <string name="progress_verb_assert">检查</string>
+    <string name="progress_verb_query">读取</string>
+    <string name="progress_verb_act">操作</string>
+    <string name="progress_verb_scroll">滚动</string>
+    <string name="progress_verb_keyboard_press">按键</string>
+    <string name="progress_verb_sleep">等待</string>
+    <string name="progress_verb_shell">执行 shell 命令</string>
+    <string name="progress_action_tap">点击</string>
+    <string name="progress_action_double_tap">双击</string>
+    <string name="progress_action_long_press">长按</string>
+    <string name="progress_action_input">输入</string>
+    <string name="progress_action_keyboard_press">按键</string>
+    <string name="progress_action_scroll">滚动</string>
+    <string name="progress_action_swipe">滑动</string>
+    <string name="progress_action_pinch">双指缩放</string>
+    <string name="progress_action_hover">悬停</string>
+    <string name="progress_action_sleep">等待</string>
+    <string name="progress_action_back">返回</string>
+    <string name="progress_action_home">回到桌面</string>
+    <string name="progress_action_launch">打开</string>
+    <string name="progress_action_shell">执行 shell 命令</string>
+    <string name="progress_action_target">%1$s“%2$s”</string>
+    <string name="progress_action_wait">%1$s %2$s</string>
+    <string name="progress_log_running">正在运行 %1$s</string>
+
+    <!-- Agent 运行通知渠道 -->
+    <string name="notify_channel_agent">Agent 运行</string>
+    <string name="notify_channel_agent_desc">显示设备上 Agent 的运行状态</string>
+    <string name="notify_agent_title">Midscene Agent</string>
+    <string name="notify_state_idle">空闲</string>
+    <string name="notify_state_starting">正在启动</string>
+    <string name="notify_state_stopping">正在停止</string>
+    <string name="notify_state_prompt">指令</string>
+    <string name="notify_state_config">脚本</string>
+    <string name="notify_state_provisioning">初始化</string>
+    <string name="notify_run_starting">正在启动%1$s…</string>
+
+    <!-- 无线调试配对 -->
+    <string name="pairing_channel">配对</string>
+    <string name="pairing_channel_desc">接收无线调试的配对码</string>
+    <string name="pairing_code_label">六位配对码</string>
+    <string name="pairing_pair_action">配对</string>
+    <string name="pairing_request_title">输入配对码</string>
+    <string name="pairing_request_text">输入无线调试页面上显示的六位数字。</string>
+    <string name="pairing_request_big_text">保持无线调试页面打开。把「使用配对码配对设备」里的六位数字填到下面并点「配对」；没有反应时，在数字后加上端口。</string>
+    <string name="pairing_paired">配对成功</string>
+    <string name="pairing_failed">配对失败</string>
+    <string name="pairing_port_missing">没有找到配对端口。请打开配对弹窗后重试。</string>
+    <string name="pairing_paired_no_port">已配对，请打开无线调试后点「重新连接」。</string>
+    <string name="pairing_connected">已连接到 %1$s，Midscene 现在可以控制这台设备。</string>
+    <string name="pairing_not_paired">还没有和这台设备配对。请先点「配对设备」。</string>
+    <string name="pairing_no_port">已配对但端口无响应，请开启无线调试后点「重新连接」。</string>
+    <string name="pairing_reconnect_failed">重新连接失败：%1$s</string>
+    <string name="pairing_enter_port">请输入设备监听的端口，例如 5555。</string>
+    <string name="pairing_no_code">没有收到配对码，请重试。</string>
+    <string name="pairing_failed_detail">配对失败：%1$s</string>
+    <string name="pairing_bad_code">这不是六位配对码，请重试。</string>
+
+    <!-- 执行通道状态 -->
+    <string name="channel_shizuku_bound">Shizuku user service 已绑定，uid %1$d</string>
+    <string name="channel_pairing_incomplete">配对没有完成，请重新配对这台设备。</string>
+    <string name="channel_not_paired">尚未配对。配对一次后，连接会自动续上。</string>
+    <string name="channel_no_connection">已配对但未连接，请开启无线调试后点「重新连接」。</string>
+    <string name="channel_unreachable">adb 无法连接到 %1$s。请保持无线调试开启，然后重试。</string>
+    <string name="channel_adb_ready">adb 回环连接 · %1$s · uid 2000</string>
+    <string name="channel_shizuku_no_binder">Shizuku 没有在运行。请先启动 Shizuku，再重新初始化。</string>
+    <string name="channel_shizuku_not_authorized">本应用还没有在 Shizuku 里授权。请在诊断页点「授权」，然后重新初始化。</string>
+    <string name="channel_shizuku_no_service">Shizuku 已授权，但用户服务未启动；请重试绑定或重启 Shizuku。</string>
+    <string name="channel_line_shizuku_ready">shizuku · uid %1$d</string>
+    <string name="channel_line_adb_not_paired">本机 adb · 尚未配对</string>
+    <string name="channel_line_adb_not_connected">本机 adb · 已配对，尚未连接</string>
+    <string name="channel_line_adb_ready">本机 adb · %1$s · uid 2000</string>
+    <string name="channel_line_adb_unreachable">本机 adb · %1$s · 无法连接</string>
+
+    <!-- adb 通道报错（出现在配对通知与诊断页） -->
+    <string name="adb_error_authorize">已连接到 %1$s 但本应用未获授权。请在设备上同意「允许 USB 调试？」弹窗，然后点「重新连接」。</string>
+    <string name="adb_error_shell_uid">已连接到 %1$s，但 shell 没有以 uid 2000 响应：%2$s</string>
+    <string name="adb_error_connect_failed">adb connect 失败：%1$s</string>
+    <string name="adb_error_pairing_rejected">设备拒绝了配对：%1$s</string>
+    <string name="adb_error_pairing_code">配对码必须是六位数字</string>
+    <string name="adb_error_pairing_address">配对地址为空</string>
+    <string name="adb_error_connection_address">连接地址为空</string>
+</resources>

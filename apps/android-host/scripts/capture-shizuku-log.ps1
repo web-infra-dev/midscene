@@ -48,8 +48,8 @@ param(
     [string]$Mode = 'Repro',
     [switch]$Interactive,
     [int]$SettleSeconds = 20,
-    [string]$Package = 'com.midscene.localagent',
-    [string]$Activity = 'com.midscene.localagent/.ConsoleActivity',
+    [string]$Package = 'com.midscene.android',
+    [string]$Activity = 'com.midscene.android/.ConsoleActivity',
     [string]$OutDir = (Join-Path (Get-Location) 'shizuku-logs'),
     [string]$CaptureFile
 )

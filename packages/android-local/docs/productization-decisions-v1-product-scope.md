@@ -171,13 +171,13 @@ Host、随包交付的 Node 代码及 UserService 共同构成可信实现。上
 | 当前实现 | 目标变化 | 主要位置 |
 | --- | --- | --- |
 | Host 检测 bridge 环境后，仍创建 `RishTransport` | 使用明确的 Host 动作适配器；移除隐式后端选择及用户可覆盖字段 | [run.ts](../src/runner/run.ts)、[schema.ts](../src/config/schema.ts) |
-| 本地桥接受任意命令并转发至 `sh -c` | 改为结构化动作，UserService 做最终参数和范围校验 | [ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecBridge.java)、[ExecUserService.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecUserService.java) |
-| 能力探测将 UID 0 和 2000 均视为特权成功 | 正式 Host 仅接受 UID 2000，身份不符时拒绝运行 | [rish.ts](../src/transport/rish.ts)、[ShizukuExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ShizukuExecBridge.java) |
-| helper 准备失败时仍可能回退 rish | 唯一 UserService 路径，失败保持未就绪并显示原因 | [Provisioner.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/Provisioner.java) |
-| 初始化可能记录 helper 失败后继续运行版本检查 | 准备结果反映所有必需资源状态，失败不得显示为可运行 | [AgentService.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/AgentService.java) |
-| 引导可跳过，资源准备单独操作，模型另行配置 | 统一就绪检查、自动准备、按状态引导用户 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ConsoleActivity.kt) |
-| `/read-file` 允许读取较宽的 App 自有目录 | 限定本次运行资源，禁止任意路径访问 | [ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ExecBridge.java) |
-| 凭据为 `model.env`，任务可携带模型/设备配置 | Host 管理加密凭据和可信配置，任务格式限制字段 | [ShellRunner.java](../../../apps/android-host/app/src/main/java/com/midscene/localagent/ShellRunner.java)、[schema.ts](../src/config/schema.ts) |
+| 本地桥接受任意命令并转发至 `sh -c` | 改为结构化动作，UserService 做最终参数和范围校验 | [ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecBridge.java)、[ExecUserService.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecUserService.java) |
+| 能力探测将 UID 0 和 2000 均视为特权成功 | 正式 Host 仅接受 UID 2000，身份不符时拒绝运行 | [rish.ts](../src/transport/rish.ts)、[ShizukuExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ShizukuExecBridge.java) |
+| helper 准备失败时仍可能回退 rish | 唯一 UserService 路径，失败保持未就绪并显示原因 | [Provisioner.java](../../../apps/android-host/app/src/main/java/com/midscene/android/Provisioner.java) |
+| 初始化可能记录 helper 失败后继续运行版本检查 | 准备结果反映所有必需资源状态，失败不得显示为可运行 | [AgentService.java](../../../apps/android-host/app/src/main/java/com/midscene/android/AgentService.java) |
+| 引导可跳过，资源准备单独操作，模型另行配置 | 统一就绪检查、自动准备、按状态引导用户 | [ConsoleActivity.kt](../../../apps/android-host/app/src/main/java/com/midscene/android/ConsoleActivity.kt) |
+| `/read-file` 允许读取较宽的 App 自有目录 | 限定本次运行资源，禁止任意路径访问 | [ExecBridge.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ExecBridge.java) |
+| 凭据为 `model.env`，任务可携带模型/设备配置 | Host 管理加密凭据和可信配置，任务格式限制字段 | [ShellRunner.java](../../../apps/android-host/app/src/main/java/com/midscene/android/ShellRunner.java)、[schema.ts](../src/config/schema.ts) |
 | 通用 YAML 引擎支持 JavaScript，shell 动作可配置暴露 | 在 Host 入口校验受限任务格式，正式包不开放通用执行 | [player.ts](../../core/src/yaml/player.ts)、[device.ts](../src/device.ts) |
 | bootstrap 部署 rish/dex、尝试静默授权、使用固定等待 | 开发部署流程去除遗留路径；验证实际安装、连接和准备状态 | [adb-bootstrap.sh](../../../apps/android-host/scripts/adb-bootstrap.sh) |
 

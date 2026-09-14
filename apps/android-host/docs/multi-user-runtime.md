@@ -14,7 +14,7 @@
   不切换前台用户，不迁移用户 11 的数据，不在用户 0 运行 Agent。
 - yadb 的小型资产经有大小上限的 Binder 参数传递，由 shell 原子替换固定目标
   `/data/local/tmp/yadb`，最终设为只读。无需读取其他用户的共享存储。
-- 大载荷由 shell 写入 `/data/local/tmp/midscene-localagent/u<userId>`；父目录为
+- 大载荷由 shell 写入 `/data/local/tmp/midscene-android/u<userId>`；父目录为
   shell-only `0700`。通过可靠管道传回，Binder 只传文件描述符，不承载整张截图。
   HTTP 桥仍只监听 loopback，要求进程级 token；文件读取限定当前调用用户的通道，
   校验规范路径和大小（20 MiB），传输有期限及队列上限。
@@ -44,7 +44,7 @@ bash scripts/check-multi-user.sh --serial <device-id> --register-owner
 只有日志出现 `runtime ready: ...` 且没有本轮失败，才算验证完成。
 
 旧 YAML 的 `device.fileChannelDir` 若仍指向 `/storage/emulated/...`，需要显式改为
-`/data/local/tmp/midscene-localagent/u<userId>`；不要覆盖用户已有模型配置。
+`/data/local/tmp/midscene-android/u<userId>`；不要覆盖用户已有模型配置。
 新建 Prompt/Self-check 配置与 `doctor` 会采用新路径。
 
 不要对所有 `peek=-1` 都套用这个修复：先看 `ShizukuServiceStarter` 的实际栈。

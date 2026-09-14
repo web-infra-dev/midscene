@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'midscene-android-host'
+rootProject.name = 'midscene-android'
 include ':app'

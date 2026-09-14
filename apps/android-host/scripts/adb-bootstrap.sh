@@ -18,7 +18,7 @@ SHIZUKU_APK=""
 MODEL_ENV=""
 CONFIG=""
 SKIP_INSTALL=0
-PKG=com.midscene.localagent
+PKG=com.midscene.android
 SHIZUKU_PKG=moe.shizuku.privileged.api
 
 while [[ $# -gt 0 ]]; do

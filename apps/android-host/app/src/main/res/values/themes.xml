@@ -6,7 +6,7 @@
       system bars on the same studio palette. No widget styles live here — the UI is
       Compose.
     -->
-    <style name="Theme.MidsceneLocal" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Midscene" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand</item>
         <item name="colorOnPrimary">@color/on_brand</item>
         <item name="colorPrimaryContainer">@color/brand_container</item>

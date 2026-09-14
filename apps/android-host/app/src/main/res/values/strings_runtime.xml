@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Runtime copy: service notifications, the wireless-debugging pairing flow, the
+  execution-channel status lines, and the vocabulary the progress pill is built from
+  (`ProgressText` / `AndroidWords`). Console screens live in `strings_console.xml`.
+  `values-zh/strings_runtime.xml` is the Chinese counterpart; keep the two in sync.
+-->
+<resources>
+    <!-- Progress pill and run notification -->
+    <string name="progress_phase_working">Working</string>
+    <string name="progress_phase_starting">Starting</string>
+    <string name="progress_phase_checking">Checking</string>
+    <string name="progress_phase_step_done">Step done</string>
+    <string name="progress_phase_step_failed">Step failed</string>
+    <string name="progress_phase_done">Done</string>
+    <string name="progress_phase_failed">Failed</string>
+    <string name="progress_step">Step %1$s</string>
+    <string name="progress_timing_step">Step %1$s</string>
+    <string name="progress_timing_total">Total %1$s</string>
+    <string name="progress_script">Script</string>
+    <string name="progress_script_summary">Script · %1$s</string>
+    <string name="progress_script_summary_first">Script · %1$s · first: %2$s</string>
+    <plurals name="progress_script_actions">
+        <item quantity="one">%d action</item>
+        <item quantity="other">%d actions</item>
+    </plurals>
+    <string name="progress_verb_tap">tap</string>
+    <string name="progress_verb_input">type into</string>
+    <string name="progress_verb_assert">check</string>
+    <string name="progress_verb_query">read</string>
+    <string name="progress_verb_act">act on</string>
+    <string name="progress_verb_scroll">scroll</string>
+    <string name="progress_verb_keyboard_press">press keys</string>
+    <string name="progress_verb_sleep">wait</string>
+    <string name="progress_verb_shell">run a shell command</string>
+    <string name="progress_action_tap">Tap</string>
+    <string name="progress_action_double_tap">Double tap</string>
+    <string name="progress_action_long_press">Long press</string>
+    <string name="progress_action_input">Type</string>
+    <string name="progress_action_keyboard_press">Press</string>
+    <string name="progress_action_scroll">Scroll</string>
+    <string name="progress_action_swipe">Swipe</string>
+    <string name="progress_action_pinch">Pinch</string>
+    <string name="progress_action_hover">Hover</string>
+    <string name="progress_action_sleep">Wait</string>
+    <string name="progress_action_back">Back</string>
+    <string name="progress_action_home">Home</string>
+    <string name="progress_action_launch">Open</string>
+    <string name="progress_action_shell">Run a shell command</string>
+    <string name="progress_action_target">%1$s \"%2$s\"</string>
+    <string name="progress_action_wait">%1$s %2$s</string>
+    <string name="progress_log_running">Running %1$s</string>
+
+    <!-- Agent-run notification channel -->
+    <string name="notify_channel_agent">Agent runs</string>
+    <string name="notify_channel_agent_desc">Shows the state of the on-device agent</string>
+    <string name="notify_agent_title">Midscene agent</string>
+    <string name="notify_state_idle">Idle</string>
+    <string name="notify_state_starting">Starting</string>
+    <string name="notify_state_stopping">Stopping</string>
+    <string name="notify_state_prompt">instruction</string>
+    <string name="notify_state_config">script</string>
+    <string name="notify_state_provisioning">provisioning</string>
+    <string name="notify_run_starting">Starting %1$s…</string>
+
+    <!-- Wireless-debugging pairing -->
+    <string name="pairing_channel">Pairing</string>
+    <string name="pairing_channel_desc">Receives the wireless-debugging pairing code</string>
+    <string name="pairing_code_label">6-digit pairing code</string>
+    <string name="pairing_pair_action">Pair</string>
+    <string name="pairing_request_title">Enter the pairing code</string>
+    <string name="pairing_request_text">Type the six digits shown on the wireless-debugging screen.</string>
+    <string name="pairing_request_big_text">Keep the wireless-debugging screen open. Type the six digits from &quot;Pair device with pairing code&quot; below and tap Pair. If nothing happens, add the port after the digits.</string>
+    <string name="pairing_paired">Paired</string>
+    <string name="pairing_failed">Pairing failed</string>
+    <string name="pairing_port_missing">Could not find the pairing port. Open the pairing dialog and try again.</string>
+    <string name="pairing_paired_no_port">Paired. Open wireless debugging, then tap Reconnect.</string>
+    <string name="pairing_connected">Connected to %1$s. Midscene can drive this device now.</string>
+    <string name="pairing_not_paired">Not paired with this device yet. Use \"Pair this device\" first.</string>
+    <string name="pairing_no_port">Paired, but no port answered. Turn wireless debugging on and tap Reconnect.</string>
+    <string name="pairing_reconnect_failed">Reconnect failed: %1$s</string>
+    <string name="pairing_enter_port">Enter the port the device listens on, for example 5555.</string>
+    <string name="pairing_no_code">No pairing code arrived. Try again.</string>
+    <string name="pairing_failed_detail">Pairing failed: %1$s</string>
+    <string name="pairing_bad_code">That was not a six-digit code. Try again.</string>
+
+    <!-- Execution channel status -->
+    <string name="channel_shizuku_bound">Shizuku user service bound as uid %1$d</string>
+    <string name="channel_pairing_incomplete">Pairing was never completed. Pair this device.</string>
+    <string name="channel_not_paired">Not paired yet. Pair once; the connection renews itself after that.</string>
+    <string name="channel_no_connection">Paired but not connected. Turn wireless debugging on and tap Reconnect.</string>
+    <string name="channel_unreachable">adb is not reachable at %1$s. Keep wireless debugging on, then retry.</string>
+    <string name="channel_adb_ready">adb over loopback · %1$s · uid 2000</string>
+    <string name="channel_shizuku_no_binder">Shizuku is not running. Start Shizuku, then provision again.</string>
+    <string name="channel_shizuku_not_authorized">This app is not authorized in Shizuku. Tap Authorize in Diagnostics, then provision again.</string>
+    <string name="channel_shizuku_no_service">Shizuku is authorized but the user service did not start. Retry the binding, or restart Shizuku.</string>
+    <string name="channel_line_shizuku_ready">shizuku · uid %1$d</string>
+    <string name="channel_line_adb_not_paired">local adb · not paired yet</string>
+    <string name="channel_line_adb_not_connected">local adb · paired, not connected yet</string>
+    <string name="channel_line_adb_ready">local adb · %1$s · uid 2000</string>
+    <string name="channel_line_adb_unreachable">local adb · %1$s · unreachable</string>
+
+    <!-- adb channel errors (surface in the pairing notification and Diagnostics) -->
+    <string name="adb_error_authorize">connected to %1$s but this app is not authorized. Approve the &quot;Allow USB debugging?&quot; prompt on the device, then tap Reconnect.</string>
+    <string name="adb_error_shell_uid">connected to %1$s, but the shell did not answer as uid 2000: %2$s</string>
+    <string name="adb_error_connect_failed">adb connect failed: %1$s</string>
+    <string name="adb_error_pairing_rejected">the device rejected the pairing: %1$s</string>
+    <string name="adb_error_pairing_code">pairing code must be six digits</string>
+    <string name="adb_error_pairing_address">pairing address is empty</string>
+    <string name="adb_error_connection_address">connection address is empty</string>
+</resources>

@@ -1,14 +1,20 @@
-# Midscene Android Host（移动版 Agent）
+# Midscene（Android 移动版 Agent）
+
+应用名 **Midscene**，包名 `com.midscene.android`（Host 源码仍在 `apps/android-host`）。
 
 一个最小可用的 **on-device Agent APK**：APK 内自带 Node 运行时与 Midscene agent，以 shell（uid 2000）
-身份控制本机，**不依赖 Termux，也不依赖 PC**。它是 `docs/deployment.md` 里阶段 C 的第一个切片
-（"移动版 studio" 的执行内核 + 最小界面）。
+身份控制本机，**不依赖 Termux，也不依赖 PC**。手机和平板都是它的目标设备，界面按宽度自适应
+（≥600dp 走平板布局），文案也统一用「设备 / device」，不再写死成手机。它是 `docs/deployment.md`
+里阶段 C 的第一个切片（"移动版 studio" 的执行内核 + 最小界面）。
 
-## 执行通道：phone adb（默认）与 Shizuku（备选）
+界面支持**中英文**：默认英文，跟随系统语言，Android 13+ 还可以在
+设置 → 应用 → Midscene → 语言里单独切换（`res/xml/locales_config.xml`）。
 
-拿到 shell 有两条路，App 里可切换，默认是 **This phone (adb)**：
+## 执行通道：device adb（默认）与 Shizuku（备选）
 
-| | **phone adb**（默认） | **Shizuku**（备选） |
+拿到 shell 有两条路，App 里可切换，默认是 **This device (adb)**：
+
+| | **device adb**（默认） | **Shizuku**（备选） |
 | --- | --- | --- |
 | 依赖 | 开发者选项里的**无线调试** | 另外装官方 Shizuku，并让它以 shell 身份运行 |
 | 授权 | **配对码**（一次性；之后只重连，不再配对） | Shizuku 授权弹窗 |
@@ -18,7 +24,15 @@
 两条通道都到达同一个 uid 2000，`ActiveExec` 是它们之间的接缝；Node 侧完全无感知，只是
 环境变量里多一个 `MIDSCENE_EXEC_CHANNEL` 用于如实上报。
 
-### 配对（phone adb）
+连接有两条不变量，都是踩过的坑（`LocalAdbBackend.connect`）：
+
+- **用刚连上的那个地址去验身份，而不是用"记住的序列号"**。序列号要等设备回了 `uid=2000` 才写进偏好，
+  所以配对后的第一次连接根本没有序列号可用；旧代码在这里 `shell()` 会抛 `IllegalStateException`，
+  直接把进程带走——表现就是"配对成功 → 说没连接 → 点重新连接，连上又断了"（其实是 App 崩了）。
+- **"没有序列号"是一个状态，不是一个 bug**：`deviceArgs` 抛 `IOException`（调用方都会 catch 并如实上报），
+  不再抛运行时异常；配对通知的 worker 线程也补了兜底 catch，任何异常都变成一条失败通知而不是闪退。
+
+### 配对（device adb）
 
 顺序很重要，UI 里也写死了：
 
@@ -29,6 +43,33 @@
 第 1 步必须在第 2 步之前：**打开本 App 会让设置页暂停，而设置页一暂停就关掉配对服务器**。
 这也是配对码要填在通知里、而不是 App 界面里的原因；同样为了这个，App 必须先起前台服务，
 否则 ROM 会把后台进程冻住，连 mDNS 回调带超时一起停摆。
+
+配对这条路上有三处按"第一次就该成功"改过（`AdbPairing`）：
+
+- **点「开始配对」就开始找配对端口**，而不是等配对码提交后才找。第一次 mDNS 查询要从冷启动开始，
+  等填完码再查经常会超时——表现就是"第一次没反应，第二次输入同样的码又能成功"（第二次 mDNS 已经热了）。
+- **失败留在通知里，而且输入框还在**：失败时把原因写回同一条通知（标题变「配对失败」，正文第一行是原因），
+  服务用 `STOP_FOREGROUND_DETACH` 让它留在通知栏，重试只要再点一次「配对」，不必重新走「开始配对」。
+  以前失败会撤掉输入通知、另发一条结果通知，用户很容易什么都没看到，这就是"没反应"的由来。
+- **成功后自动把 Midscene 拉回前台**：配对是在通知栏里完成的，而之后的初始化和「重新连接」都在 App 里。
+
+### 第一次就能配上的关键：别在系统冻结的窗口里跑 adb
+
+配对时 App 必然在后台（前台是设置页的配对弹窗和通知栏）。ColorOS 的 `OplusHansManager` 会在配对广播处理完
+约 3 秒后**冻结整个 App，包括它 fork 出来的 adb 子进程**（实测日志：`freeze uid: 10043 pids: [3991, 7323, 7326]`）。
+于是第一次提交的 `adb pair` 跑到一半就被冻住，用户看到的就是"第一次没反应"；等第二次广播把它解冻，
+前一条命令早就跑完/重来一次就成了——"第二次输入同样的码又能成功"。现在的做法是三条一起上：
+
+| 做法 | 为什么 |
+| --- | --- |
+| 点「开始配对」时先申请**电池优化豁免**（`Battery.requestExemption`，已豁免则跳过） | 加入白名单后系统不再冻结本 App：实测白名单生效期间配对全程零 freeze 事件。多一个系统弹窗，但它是这一步能成功的前提 |
+| 点「开始配对」时就把 **adb server 起好**（`LocalAdbBackend.warmServer`） | 起 server 是第一条配对命令里最慢的一半，提前在"App 还在前台"时做完，提交时只剩一次 `adb pair` |
+| 配对命令报错时**用现有密钥试着连一次**（`connectWithExistingKey`） | 设备才是"有没有配上"的权威：设备已经记下配对、只是我们没收到回复时，这次连接会成功，于是照常继续初始化 |
+
+另外配对端口的查找也修了两处：只做一次查询会在**配对弹窗还没打开**时就超时（所以现在点「开始配对」就开一个
+20s 的长查询，跨过走去设置页的那段路），而"查完没结果"之后必须**再查一次**而不是直接报失败——上一版在这里
+漏了一次重查，正是"第一次失败、第二次成功"的直接来源。`AdbMdns.resolveBlocking` 现在按轮次带间隔重试
+（NsdManager 对同一类型的前一次发现要等它异步注销完，紧接着重试只会同样失败）。
 
 通知里也可以填 `配对码 端口`（端口就在同一个弹窗上），用于 mDNS 失灵时的兜底。
 另外诊断页有 **Address or port** 输入框：如果 adbd 已经在某个端口上监听（ROM 的「网络 ADB」开关，
@@ -52,7 +93,7 @@ lib/arm64/libnodebin.so            ← Node 运行时（作为 native library �
 @midscene/android-local             ← 本仓库的 transport + device 层
     │  回环 HTTP（ExecBridge，带每进程 token）
     ▼
-ActiveExec ──┬─ phone adb：libadbbin.so -P 5038 → 本机 adbd（127.0.0.1:<无线调试端口>）
+ActiveExec ──┬─ device adb：libadbbin.so -P 5038 → 本机 adbd（127.0.0.1:<无线调试端口>）
              └─ Shizuku：AIDL → UserService 进程
     ▼
 shell uid 2000 → screencap / input / am / dumpsys / yadb
@@ -63,7 +104,7 @@ shell uid 2000 → screencap / input / am / dumpsys / yadb
 - **Node 作为 native library**：Android 10+ 禁止从应用私有目录 `execve`，但允许执行 APK 的 `lib/<abi>/`
   下的文件（Shizuku 自己也这么做）。因此 Node 二进制以 `libnodebin.so` 交付，并设置
   `android:extractNativeLibs="true"`（AGP 默认不从 APK 解出 so，而 exec 需要真实文件）。
-  **phone adb 通道用的是同一招**：AOSP `adb` 客户端以 `libadbbin.so` 交付，连同它的 102 个依赖库。
+  **device adb 通道用的是同一招**：AOSP `adb` 客户端以 `libadbbin.so` 交付，连同它的 102 个依赖库。
 - **依赖库重命名**：Android 链接器按**文件名**匹配 `DT_NEEDED`，而 AGP 只打包 `*.so`。
   `scripts/patch-elf-sonames.py`（Node）与 `scripts/patch-adb-sonames.py`（adb）在 `.dynstr` 中把旧 soname
   （`libssl.so.3`、`libz.so.1`、`libzstd.so.1` 等）改写为 `.so` 结尾并把文件重命名；只改 `DT_NEEDED`
@@ -83,7 +124,7 @@ shell uid 2000 → screencap / input / am / dumpsys / yadb
 
 ## 支持的 Android 版本
 
-| Android | 无线调试 | 配对 | phone adb 通道 |
+| Android | 无线调试 | 配对 | device adb 通道 |
 | --- | --- | --- | --- |
 | **11+ (API 30+)** | 有 | 六位配对码 | ✅ 完整可用 |
 | **10 (API 29)**（App 的 minSdk） | **没有这个功能** | — | ⚠️ 配对流程不可用，只能走诊断页的 **Address or port** 连接一个已在监听的 adbd |
@@ -107,7 +148,7 @@ shell uid 2000 → screencap / input / am / dumpsys / yadb
 
 | 设备 | 系统 | 说明 |
 | --- | --- | --- |
-| OnePlus 13T (PKX110) | ColorOS 16 / Android 16 | **phone adb 通道的基准机型**，也是「Shizuku 完全无法授权」的样本：shell 缺 `GRANT_RUNTIME_PERMISSIONS`，且开发者选项里没有「禁止权限监控」开关。已跑通配对 → 连接 → provisioning → 真实模型任务 |
+| OnePlus 13T (PKX110) | ColorOS 16 / Android 16 | **device adb 通道的基准机型**，也是「Shizuku 完全无法授权」的样本：shell 缺 `GRANT_RUNTIME_PERMISSIONS`，且开发者选项里没有「禁止权限监控」开关。已跑通配对 → 连接 → provisioning → 真实模型任务 |
 
 
 启动示例：
@@ -128,7 +169,7 @@ scripts/adb-bootstrap.sh \
 完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过仅 Debug 导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
 
 注意这是 **Shizuku 通道**的无人化路径，它需要人点一次 Shizuku 授权弹窗，而且在抽掉 `GRANT_RUNTIME_PERMISSIONS` 的 ROM 上**永远走不通**。
-**phone adb 通道**没有等价的纯脚本路径：配对码必须由人在无线调试那一屏读出、在通知里输入（原因见上文）。
+**device adb 通道**没有等价的纯脚本路径：配对码必须由人在无线调试那一屏读出、在通知里输入（原因见上文）。
 
 幂等：可加 `--skip-install` 重复执行。
 
@@ -138,10 +179,10 @@ scripts/adb-bootstrap.sh \
 - **授权**：必须走官方 API —— Diagnostics → EXECUTION CHANNEL → `Authorize`（`Shizuku.requestPermission()`）。`pm grant API_V23` 不能绕过（Shizuku 13.x 自建授权存储；真实原因是它还需要 shell 侧的 `GRANT_RUNTIME_PERMISSIONS`，见下）
 - **ColorOS 16 / OnePlus 13T 实测：Shizuku 在本机完全无法授权**。shell uid 没有 `GRANT_RUNTIME_PERMISSIONS`
   （`pm grant` 直接 `SecurityException`），而 Shizuku 正是靠给客户端 grant 那个 `dangerous` 权限来记录授权，
-  所以它弹的是自己的「adb 权限受限」警告而不是授权框。**这台机器上 phone adb 通道是唯一可用的路**。
+  所以它弹的是自己的「adb 权限受限」警告而不是授权框。**这台机器上 device adb 通道是唯一可用的路**。
   ROM 拿掉的只有 `pm grant`/`pm revoke`：`screencap`/`input`/`am`/`dumpsys`/`settings put`/`appops`/yadb 全部照常。
 - **不要恢复 rish**：它在本机应用进程中一律 `Aborted`（前台 Activity / 前台 Service / `run-as` 三种来源都试过），
-  因此提权执行走 Shizuku UserService（`bindUserService` + AIDL）或 phone adb，Node 侧经回环 HTTP 调 App 内的执行桥
+  因此提权执行走 Shizuku UserService（`bindUserService` + AIDL）或 device adb，Node 侧经回环 HTTP 调 App 内的执行桥
 - **导航不再走 View 体系**：旧版手机布局用 `BottomNavigationView`（当时直接用抽象类 `NavigationBarView` 会 inflate 崩溃，平板的具体类 `NavigationRailView` 没暴露这个问题）；现在手机/平板分别是 Compose 的 `NavigationBar` / `NavigationRail`，旧的 `layout/`、`layout-sw600dp/`、`menu/` 资源已删除
 
 ## 构建
@@ -160,7 +201,23 @@ pnpm --filter @midscene/android-local build
 #    不会让你带着一个跑不起来的 APK 上机）
 pnpm assemble                            # 产物 app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# 4) 发给人试用的 release 包（签名、非 debuggable）
+bash scripts/make-release-keystore.sh    # 首次生成 keystore/midscene-release.jks（已 gitignore）
+pnpm assemble:release                    # 产物 app/build/outputs/apk/release/app-release.apk
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
+
+release 包与 debug 包的差别，都是有意为之：
+
+| | debug | release |
+| --- | --- | --- |
+| 签名 | debug key（`~/.android/debug.keystore`） | `keystore/midscene-release.jks`（`scripts/make-release-keystore.sh` 生成，**不入库**；文件不存在时回落到 debug key，保证 `assembleRelease` 不会产出未签名包） |
+| `debuggable` | 是 | 否，所以 `adb run-as` 那条调试/`adb-bootstrap.sh` 通路在 release 上不可用（App 内的「初始化」照常） |
+| `AgentService` 导出 | 是（`src/debug/AndroidManifest.xml` 覆盖，供脚本触发 provisioning） | 否 |
+| 代码压缩 | 不压缩 | 也不压缩：这里反射用得多（Shizuku API、HiddenApiBypass 的 `setSkipScreenshot`），R8 只会帮倒忙 |
+
+换签名（debug ↔ release）安装同一台设备要**先卸载**：签名不同，`adb install -r` 会报 `signatures do not match`，卸载会一并清掉配对与配置。
 
 `fetch-adb-runtime.sh` 的产出是 `jniLibs/arm64-v8a/libadbbin.so` 加上 102 个 `libabsl_*`/`libprotobuf` 等
 依赖库；`patch-adb-sonames.py` 负责把 `libz.so.1`、`libzstd.so.1` 改成 AGP 会打包、且不与 Node 的
@@ -186,25 +243,35 @@ pnpm --filter android-host icons        # 需要 Pillow；写出 ic_launcher_for
 0.67，所以 0.53 才让可见区域里的 mark 和标题栏一样占 0.75。换 launcher/换素材后按同样方法复核——装上去、
 截应用抽屉、量 mark 外轮廓与蓝色方块的比例。
 
-排查解包问题：`adb shell run-as com.midscene.localagent ls -l files/agent/node_modules/@midscene/android-local/dist/lib/cli.js`
-（这就是运行入口读取的路径），以及 `adb shell run-as com.midscene.localagent tail files/run/agent.log`。
+排查解包问题：`adb shell run-as com.midscene.android ls -l files/agent/node_modules/@midscene/android-local/dist/lib/cli.js`
+（这就是运行入口读取的路径），以及 `adb shell run-as com.midscene.android tail files/run/agent.log`。
 
 ## 界面（Compose 控制台）
 
 Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，三个主入口（设置与诊断从右上角进入）。
 **顶栏只有一行，且只有图标按钮**（`ConsoleTopBar`）：左侧品牌标 + 当前页标题 + 一段灰色补充信息，
 右侧是该页自己的动作（统一 20dp 图标、统一 `IconButton` 尺寸）；页面不再自己画第二行标题或按钮行，
-标题下面直接就是内容。
+标题下面直接就是内容。顶栏**没有**全局停止按钮：停止运行是 Run 页自己的动作（`AgentService.ACTION_STOP`），
+不再有"结束整个 Host 进程"的红色按钮。
+
+文案全部走 Android 字符串资源：`res/values/strings.xml`（应用级 + manifest 标签）、
+`res/values/strings_runtime.xml`（通知、配对、执行通道状态、悬浮进度词汇 `ProgressText`/`AndroidWords`）、
+`res/values/strings_console.xml`（控制台与产物查看器），`values-zh/` 下是同名的中文版本。
+`ProgressText` 本身不依赖 Android：它把每个词槽交给注入的 `ProgressText.Words`，运行时装
+`AndroidWords`（资源版），单测与无 Context 的调用方保留内置英文，因此文案可翻译而文本整形逻辑和它的
+单测都不受影响。文案按**能放进一行**来写：按钮（`ActionRow`）和 chip 都是 `maxLines = 1` + 省略号，
+中文长一句就会显示成"重新运行初始设…"，所以按钮名用两到四个字（初始设置、重置全部数据），说明性长句
+只留在会换行的正文里，并且尽量压到两行以内。
 
 | 页签 | 功能 |
 | --- | --- |
-| **Run** | 自然语言指令、Run / Stop、最近一次结果；键盘弹出自动顶起内容 |
+| **Run** | 自然语言指令、Run / Stop（只停这一次运行）、最近一次结果；键盘弹出自动顶起内容 |
 | **Scripts** | `config.yaml` 编辑与运行、Run / Save / Self-check / New template（模板自带正确的 `fileChannelDir`） |
 | **History** | 运行记录卡片列表（状态点、任务名、时间·耗时·通过数）→ 手机弹窗 / **平板右栏报告** → 顶栏切换 **Report / Log** |
 | **Settings → Diagnostics** | runtime 状态（node / agent bundle / yadb / shizuku user service / overlay permission）、Provision、Authorize、Battery / Shizuku / Overlay、服务日志 |
-| **Settings** | 暗色主题、悬浮进度、运行结束返回 App、模型凭据（Form Style / .env Style） |
+| **Settings** | 暗色主题、悬浮进度、运行结束返回 App、模型凭据（Form Style / .env Style）、初始设置、**重置全部数据** |
 
-响应式：手机底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
+响应式：窄屏底部导航；宽度 ≥600dp 切 `NavigationRail`，History 变双栏。
 
 ### History 页
 
@@ -231,7 +298,7 @@ Jetpack Compose（Kotlin 2.0 + Compose BOM），令牌取自 desktop studio，�
 
 | 仍是 View | 为什么 |
 | --- | --- |
-| 报告正文 `WebView` | 报告是自带样式的单文件 HTML，用 `AndroidView` 承载；**内嵌面板与独立查看器共用 `ReportWebView.kt` 这一个实现**（曾经各写一份，独立查看器那份在 WebView 未 attach 时就 `loadUrl`，结果是只画出报告背景、内容永远不渲染——两处合并后修复） |
+| 报告正文 `WebView` | 报告是自带样式的单文件 HTML，用 `AndroidView` 承载；**内嵌面板与独立查看器共用 `ReportWebView.kt` 这一个实现**（曾经各写一份，独立查看器那份在 WebView 未 attach 时就 `loadUrl`，结果是只画出报告背景、内容永远不渲染——两处合并后修复）。报告是**桌面布局**（侧栏 + 详情栏、`html, body { overflow: hidden }`、各栏自己滚动），直接按手机宽度排版会互相压住、右侧内容既看不见也拖不到，所以它不是被直接加载：`reportWrapperFor` 生成一个一屏大小的 wrapper，把报告放进**固定 1024px 宽的 iframe**（iframe 内不适用 viewport meta，因此拿到的是桌面视口），再把这块画布等比缩放到屏幕；整份报告一眼可见，双指缩放看细节，各栏内部照常滚动 |
 | 悬浮进度层 `OverlayView` | 需要 `SurfaceView` 自己的 `SurfaceControl` 才能 `setSkipScreenshot`（见下节），普通 Compose 窗口拿不到这个能力 |
 
 ## 模型凭据：Form 与 .env 两种风格
@@ -282,7 +349,7 @@ App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运
 脚本措辞按**运行时的形态**生成（`SelfCheckScript`，有单测钉住）：
 
 - 导航按机型只说一处：手机"应用内的**底部标签栏**"、平板"**左侧标签栏**"。不写成"左侧或底部"让模型去猜，也不用"导航栏"——Android 上"导航栏"还指系统那一条返回/主页/最近键。
-- 指令框锚在页面**常显的 `INSTRUCTION` 标题**上，占位文案只作次级提示：该输入框会保留上次指令，多数时候根本没有占位文字（实测过一次按占位文字定位失败）。
+- 指令框锚在页面**常显的 `INSTRUCTION` 标题**上，占位文案只作次级提示：该输入框会保留上次指令，多数时候根本没有占位文字（实测过一次按占位文字定位失败）。中英文界面下标题和占位文案不同，所以 `SelfCheckScript.config(...)` 接收**界面当前真正渲染的**这两个字符串（`R.string.run_instruction_label` / `run_instruction_placeholder`），脚本描述的和用户看到的不会漂移。
 - 不用"首页"称呼 Run 页：手机上"首页"会被理解成系统桌面，模型会去找 launcher 而不是眼前这个框。
 
 ## 悬浮窗进度
@@ -312,15 +379,32 @@ App 内 **Scripts → Self-check**：一键写入 `self-check.yaml` 并立即运
 | Diagnostics Provision / Re-authorize | 禁用 | 解包会删掉正在执行的 agent 目录；中途换授权会断掉 shell 通道 |
 | Diagnostics Clean now | 禁用 | 会删掉当前 run 的结果/报告 |
 | History Delete（含详情栏与确认框） | 禁用 | 同上，当前 run 正在写这些文件 |
-| Run 页 Run / Stop | 已按 `isBusy()` 处理 | —— |
+| Run 页 Run / Stop | 已按 `isBusy()` 处理（Stop 只结束当前运行，不关 App） | —— |
+| Settings 重置全部数据 | 禁用 | 重置会删掉正在运行的 agent 目录、凭据与配对 |
 
 运行中的界面会用品牌蓝提示当前是锁定状态（例如 Scripts 页顶部："A run is in progress — the script and its
-buttons are locked until it ends"）。
+buttons are locked until it ends"，中文界面显示对应的中文文案）。
 
 **报告查看**：History → Report 用 WebView 打开 Midscene 生成的单文件 HTML 报告（执行时间线、每一步耗时、
 Record 逐帧回放与视频条、失败原因气泡），与桌面端一致。独立查看器（`ReportViewerActivity`）的**外壳是 Compose**：
 标题 + 返回、跟随控制台的明暗主题，报告解析完成前显示 "Rendering report…"（几 MB 的报告要几秒），文件被清理时显示
 `File not found: <path>`；日志视图同一外壳，等宽、可选中——旧版写死 10sp 深灰，暗色主题下几乎读不出来。
+
+## 重置（回到"刚装好"的样子）
+
+Settings → 设备与初始化 → **重置全部数据**（`DataReset`，二次确认）。用于把运行时退回全新安装状态，
+重新走一遍初始设置；运行中该项禁用。删除顺序是**先设备、后本机**：
+
+| 步骤 | 内容 |
+| --- | --- |
+| 设备侧 helper | 借还在的 shell 通道删 `/data/local/tmp/yadb` 与 `/data/local/tmp/midscene-android`（SELinux 不允许 App 自己写这个目录） |
+| 连接 | 杀掉 App 自带的 adb server（`-P 5038`）；`files/adb-home`（本机 adb 私钥 + known hosts）一并删除，**配对因此失效，需要重新配对** |
+| 本机数据 | `agent/`、`run/`、`runs/`、`midscene_run/`、`model.env`、`config.yaml`、`self-check.yaml`、`runtime-ready`、外部目录里暂存的 yadb |
+| 偏好 | `midscene-ui`（含 `onboarded`）、`midscene-adb`（serial / paired）整份清空 |
+| 服务 | 停掉 `AgentService`，前台通知与 wake lock 一起结束；随后控制台 `recreate()`，直接落到初始设置 |
+
+**保留的**：Shizuku 对本 App 的授权（Shizuku 没有公开的撤销 API，只能在 Shizuku 应用里撤销）、
+设备侧"已配对的设备"列表里那条记录（它记的是旧密钥，留着不影响重新配对）。
 
 ## 守护与保活
 
@@ -354,7 +438,7 @@ APK assets/yadb
 [01:40:47] midscene-local v1.12.6 (node v24.18.0)
 ```
 
-首次使用任何一个需要 Shizuku 的功能时会弹授权框（"Allow Midscene Local to access Shizuku?"），
+首次使用任何一个需要 Shizuku 的功能时会弹授权框（"Allow Midscene to access Shizuku?"），
 选择 **Allow all the time**。
 
 ## 已验证（Android 12 模拟器 / arm64）
@@ -362,7 +446,7 @@ APK assets/yadb
 | 步骤 | 结果 |
 | --- | --- |
 | APK 内 exec Node | ✅ `midscene-local v1.12.6 (node v24.18.0)`（Node 从 `lib/arm64/libnodebin.so` 执行） |
-| Shizuku 授权本 App | ✅ 弹窗针对 `com.midscene.localagent`，授权后以 shell(2000) 工作（Android 14 环境） |
+| Shizuku 授权本 App | ✅ 弹窗针对 `com.midscene.android`，授权后以 shell(2000) 工作（Android 14 环境） |
 | `doctor` | ✅ `uid: 2000`、`privileged: true`、shell/screenshot/input/appManagement/multiDisplay/gestures 全 true |
 | `run config`（aiAct + aiAssert） | ✅ 任务 1 完成真实点击（19.3s，ok）；任务 2 的断言由模型如实判失败（模拟器 launcher 未起来，非链路问题）；结果 JSON 落盘 `files/midscene_run/results/` |
 
@@ -380,7 +464,7 @@ APK assets/yadb
 3. **历史条目只增不删**：详情对话框提供了日志删除；索引清理/导出（部署文档 M2）待补。
 4. **模拟器环境**：2 核模拟器的 launcher 常驻 "Pixel is starting…"，`home`/launcher 相关断言会由模型
    如实判失败——链路正常，真机需复测。
-5. **phone adb 通道的 adb 客户端来自 Termux 的 `android-tools` 包**，和 Node 一样属于「能用但不是产品形态」；
+5. **device adb 通道的 adb 客户端来自 Termux 的 `android-tools` 包**，和 Node 一样属于「能用但不是产品形态」；
    `scripts/fetch-adb-runtime.sh` 里版本已钉死，换成自编译的静态 adb 只需要换掉暂存目录的内容。
 6. **配对会过期，且 UI 还没引导重新配对**：配对关系 7 天不活跃即失效，无线调试被系统关掉（重启、切网络）后
    需要用户重开开关。前者目前只会表现为「连不上」，没有一句「请重新配对」。

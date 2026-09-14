@@ -29,17 +29,17 @@ if (command.join(' ') === 'am get-current-user') {
   if (state.queryError) { console.error('Permission denied'); process.exit(1); }
   const user = command[4];
   const pkg = command[5];
-  const missing = (user === '0' && pkg === 'com.midscene.localagent' && !state.owner)
+  const missing = (user === '0' && pkg === 'com.midscene.android' && !state.owner)
     || (user === '0' && pkg === 'moe.shizuku.privileged.api' && state.noShizukuOwner)
     || (user === '11' && state.noCurrent);
   if (!missing) console.log('package:' + pkg);
   if (state.similarPackage) console.log('package:' + pkg + '.debug');
-} else if (command.join(' ') === 'cmd package install-existing --user 0 com.midscene.localagent') {
+} else if (command.join(' ') === 'cmd package install-existing --user 0 com.midscene.android') {
   if (!state.falseSuccess) {
     state.owner = true;
     fs.writeFileSync(process.env.TEST_STATE, JSON.stringify(state));
   }
-  console.log('Package com.midscene.localagent installed for user: 0');
+  console.log('Package com.midscene.android installed for user: 0');
 } else { console.error('Unexpected adb command: ' + command.join(' ')); process.exit(1); }
 `,
     { mode: 0o755 },
@@ -79,7 +79,7 @@ test('explicit repair only registers the Host for user 0 and verifies it', (t) =
     'install-existing',
     '--user',
     '0',
-    'com.midscene.localagent',
+    'com.midscene.android',
   ]);
 });
 

@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
 done
 [[ -n "$serial" ]] || { echo 'Select a device with --serial' >&2; exit 2; }
 adb_cmd=("${ADB:-adb}" -s "$serial")
-app_package=com.midscene.localagent
+app_package=com.midscene.android
 shizuku_package=moe.shizuku.privileged.api
 current_user=$("${adb_cmd[@]}" shell am get-current-user | tr -d '\r')
 [[ "$current_user" =~ ^[0-9]+$ ]] || { echo 'Cannot resolve Android user' >&2; exit 1; }

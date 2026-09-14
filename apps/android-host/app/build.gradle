@@ -20,16 +20,38 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
 }
 
+/**
+ * Internal release key. `scripts/make-release-keystore.sh` creates it on first use; the
+ * file lives in the gitignored `keystore/`. Without it (a fresh clone that has not run
+ * that script) release builds fall back to the debug key, so `assembleRelease` still
+ * produces something installable instead of failing.
+ */
+// Resolved against the *root* project (`apps/android-host`), where the script puts it:
+// `file(...)` alone would look inside the app module instead.
+def releaseKeystore = rootProject.file(System.getenv('MIDSCENE_KEYSTORE') ?: 'keystore/midscene-release.jks')
+def releaseKeyReady = releaseKeystore.isFile()
+
 android {
-    namespace 'com.midscene.localagent'
+    namespace 'com.midscene.android'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.midscene.localagent'
+        applicationId 'com.midscene.android'
         minSdk 29
         targetSdk 34
         versionCode 1
         versionName '0.1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (releaseKeyReady) {
+                storeFile releaseKeystore
+                storePassword System.getenv('MIDSCENE_KEYSTORE_PASSWORD') ?: 'midscene'
+                keyAlias System.getenv('MIDSCENE_KEY_ALIAS') ?: 'midscene'
+                keyPassword System.getenv('MIDSCENE_KEY_PASSWORD') ?: 'midscene'
+            }
+        }
     }
 
     buildTypes {
@@ -38,7 +60,12 @@ android {
             // in during development (the model key is not typed on screen).
         }
         release {
+            // Signed with the internal key when it exists, and with the debug key
+            // otherwise: a hand-out build has to install, and an unsigned APK does not.
+            signingConfig releaseKeyReady ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
+            // Reflection carries real weight here (Shizuku's API, HiddenApiBypass for
+            // setSkipScreenshot), so nothing is renamed or shrunk away.
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
         }
     }

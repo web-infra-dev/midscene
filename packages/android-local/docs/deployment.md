@@ -362,7 +362,7 @@ Android 12 车机实测：logcat 中**没有任何 `AndroidRuntime` 崩溃栈**�
 | --- | --- |
 | Shizuku 服务端身份 | `shell`（uid 2000），用 Shizuku APK 内的 `lib/arm64/libshizuku.so` 从 adb 启动 |
 | 授权 | 必须走 **Shizuku 自己的授权弹窗**（"Allow all the time"） |
-| 绑定 | `user service connected`；服务进程 `com.midscene.localagent:midscene`，owner 为 **shell** |
+| 绑定 | `user service connected`；服务进程 `com.midscene.android:midscene`，owner 为 **shell** |
 | 冷启动绑定耗时 | **约 10 秒**（模拟器实测，8 次采样） |
 | `doctor` 能力矩阵 | `uid: 2000`、`privileged: true`、`screenshot/input/appManagement: true`、`gestures: true`、`textInput: full` |
 | Provision | yadb 落到 `/data/local/tmp/yadb`，owner `shell`，`-rw-r--r--` |
@@ -388,7 +388,7 @@ Android 12 车机实测：logcat 中**没有任何 `AndroidRuntime` 崩溃栈**�
 
 ```text
 probe: binder=true preV11=false selfPermission=0        ← 授权层正常，与模拟器一致
-bindUserService com.midscene.localagent/.../ExecUserService  ← 请求已发出，Shizuku 接受
+bindUserService com.midscene.android/.../ExecUserService  ← 请求已发出，Shizuku 接受
 peekUserService status=-1                                ← 服务始终未起来
 ```
 
@@ -425,7 +425,7 @@ peekUserService status=-1                                ← 服务始终未起�
 | A16-4 | Shizuku 记录客户端授权的方式正是**授予** `moe.shizuku.manager.permission.API_V23`（`protectionLevel=dangerous`，用 aapt2 在 Shizuku 13.6.0 上核对），所以在该 ROM 上它**永远无法授权任何人**。注意它是 `dangerous` 而不是 `signature`——这正是 `pm grant` 看起来"本该可行"的原因 |
 | A16-5 | 逐项探测 ROM 究竟移除了哪些 shell 能力：`appops`、`pm list users`、`am force-stop`、`dumpsys`、`settings put secure\|global`、`input keyevent`、`screencap`、`am start`、`pm list packages`、`app_process`（yadb）**全部 OK**；只有 `pm grant` / `pm revoke` **FAIL（exit 255）**。ROM 恰好移除了 Shizuku 需要的那一个能力，agent 需要的一个没动 |
 | A16-6 | 开发者选项逐项翻完，该构建**没有「禁止权限监控」开关**（社区称 ColorOS 16 把它隐藏、把系统语言切成英文会以 "Disable system optimization" 出现；本次未验证） |
-| A16-7 | 另外被挡：`pm clear` → `SecurityException: ... does not have permission android.permission.CLEAR_APP_USER_DATA`，改用卸载 + 重装。该 ROM 的 `OplusHansManager` 会主动冻结后台应用（实测 `freeze uid: 10041 com.midscene.localagent ... scene: LcdOn`） |
+| A16-7 | 另外被挡：`pm clear` → `SecurityException: ... does not have permission android.permission.CLEAR_APP_USER_DATA`，改用卸载 + 重装。该 ROM 的 `OplusHansManager` 会主动冻结后台应用（实测 `freeze uid: 10041 com.midscene.android ... scene: LcdOn`） |
 
 ### 9.2 第二条端侧通道：App 驱动设备自身 adbd（A16-8 ~ A16-14）
 

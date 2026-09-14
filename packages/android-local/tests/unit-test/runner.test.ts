@@ -331,7 +331,7 @@ describe('local agent runner', () => {
         // The controller is in front until HOME is pressed, then the launcher is.
         const pkg = homePressed
           ? 'com.example.launcher/.Home'
-          : 'com.midscene.localagent/.MainActivity';
+          : 'com.midscene.android/.MainActivity';
         return {
           stdout: `  mResumedActivity: ActivityRecord{1 u0 ${pkg} t1}`,
           stderr: '',
@@ -343,7 +343,7 @@ describe('local agent runner', () => {
     await runLocalAgentConfig(
       localAgentConfigSchema.parse({
         name: 'home-first',
-        agent: { controllerPackage: 'com.midscene.localagent' },
+        agent: { controllerPackage: 'com.midscene.android' },
         tasks: [{ name: 'x', type: 'aiAct', prompt: 'y' }],
       }),
       {
