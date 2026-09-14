@@ -70,6 +70,7 @@ def write_report(
     non_black,
     black_ratio,
     elapsed,
+    passed,
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "first-screenshot.png").write_bytes(first_png)
@@ -81,20 +82,21 @@ def write_report(
         "laterScreenshotSeconds": elapsed,
         "laterScreenshotChanged": True,
         "blackScreenshotNonBlackRatio": black_ratio,
-        "result": "passed",
+        "result": "passed" if passed else "failed",
     }
     (output_dir / "summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
     )
+    result_label = "Passed" if passed else "Failed"
     (output_dir / "report.html").write_text(
         f"""<!doctype html>
 <html lang="en"><meta charset="utf-8"><title>Midscene RDP E2E report</title>
 <style>body{{font:16px system-ui;max-width:1100px;margin:40px auto;padding:0 20px}}
 img{{max-width:100%;border:1px solid #ccc}} code{{background:#eee;padding:2px 5px}}</style>
 <h1>Midscene RDP E2E report</h1>
-<p><strong>Passed.</strong> Connected to a local xrdp server through the compiled
+<p><strong>{result_label}.</strong> Connected to a local xrdp server through the compiled
 <code>rdp-helper</code>, captured the first desktop, sent text input, captured the
-updated desktop, and disconnected cleanly.</p>
+updated desktop, and requested a valid black framebuffer.</p>
 <ul><li>Desktop: {width} × {height}</li>
 <li>First screenshot non-black pixels: {non_black / (width * height):.1%}</li>
 <li>Later screenshot latency: {elapsed:.3f}s</li>
@@ -160,11 +162,20 @@ def main():
         if elapsed >= 2:
             raise RuntimeError(f"later screenshot unexpectedly settled for {elapsed:.2f}s")
 
-        request(process, "clear", {"type": "clearInput"})
         request(
             process,
-            "show-black",
-            {"type": "typeText", "text": "__MIDSCENE_BLACK__"},
+            "move-to-black-button",
+            {"type": "mouseMove", "x": width // 2, "y": 440},
+        )
+        request(
+            process,
+            "press-black-button",
+            {"type": "mouseButton", "button": "left", "action": "down"},
+        )
+        request(
+            process,
+            "release-black-button",
+            {"type": "mouseButton", "button": "left", "action": "up"},
         )
         time.sleep(0.5)
         black = request(process, "black-screenshot", {"type": "screenshot"})
@@ -175,12 +186,7 @@ def main():
             if any(black_pixels[index : index + 3])
         )
         black_ratio = black_non_black / (width * height)
-        if black_ratio >= 0.01:
-            raise RuntimeError(
-                f"black framebuffer contained {black_ratio:.1%} non-black pixels"
-            )
-
-        request(process, "disconnect", {"type": "disconnect"})
+        passed = black_ratio < 0.01
         output_dir = os.environ.get("MIDSCENE_XRDP_ARTIFACT_DIR")
         if output_dir:
             write_report(
@@ -193,7 +199,14 @@ def main():
                 non_black,
                 black_ratio,
                 elapsed,
+                passed,
             )
+        if not passed:
+            raise RuntimeError(
+                f"black framebuffer contained {black_ratio:.1%} non-black pixels"
+            )
+
+        request(process, "disconnect", {"type": "disconnect"})
         print(
             f"xrdp E2E passed: {width}x{height}, "
             f"{non_black / (width * height):.1%} non-black, "

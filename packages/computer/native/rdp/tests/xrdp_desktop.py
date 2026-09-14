@@ -28,21 +28,24 @@ canvas.create_text(
     fill="white",
     font=("DejaVu Sans", 32, "bold"),
 )
-entry_value = tk.StringVar()
-entry = tk.Entry(
-    root, textvariable=entry_value, font=("DejaVu Sans Mono", 24), width=36
-)
+entry = tk.Entry(root, font=("DejaVu Sans Mono", 24), width=36)
 canvas.create_window(WIDTH // 2, 340, window=entry)
 entry.focus_force()
 
 
-def show_black_framebuffer(*_):
-    if entry_value.get().endswith("__MIDSCENE_BLACK__"):
-        entry.destroy()
-        canvas.delete("all")
-        canvas.configure(background="black")
+def show_black_framebuffer():
+    entry.destroy()
+    black_button.destroy()
+    canvas.delete("all")
+    canvas.configure(background="black")
 
 
-entry_value.trace_add("write", show_black_framebuffer)
+black_button = tk.Button(
+    root,
+    text="Show valid black framebuffer",
+    command=show_black_framebuffer,
+    font=("DejaVu Sans", 18),
+)
+canvas.create_window(WIDTH // 2, 440, window=black_button)
 
 root.mainloop()
