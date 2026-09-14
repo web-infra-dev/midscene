@@ -4,7 +4,7 @@ Custom Nodes turn business operations into steps that test authors can call from
 
 Start with [Create and use test projects](./use) if you do not have a test project yet. For platform setup, Agent integration, and execution settings, see [Configure test projects](./configuration).
 
-- [Register a Node](#register-custom-business-nodes): define an operation, call it from YAML, and verify registration through the generated Markdown reference.
+- [Register a Node](#register-custom-business-nodes): define an operation, call it from YAML, and verify registration through the generated Node Spec.
 - [Node execution arguments](#node-execution-arguments): distinguish business inputs from framework step settings.
 - [Share context across Nodes](#share-context-across-nodes): create, read, and reset shared test data.
 - [Advanced usage](#advanced-usage): return results, handle errors and cancellation, and clean up resources.
@@ -47,7 +47,7 @@ export default defineTestProject({
 
 `inputSchema` is optional, but defining it lets Midscene Test validate parameters before calling `execute()`. In this example, `z.string().min(1)` requires a non-empty name, `.email()` validates the email format, and `z.strictObject()` rejects unknown fields. Invalid input produces a `NodeInputValidationError`.
 
-TypeScript infers the type of `input` from the schema. Field descriptions written with `.describe()` appear in the generated Node reference.
+TypeScript infers the type of `input` from the schema. Field descriptions written with `.describe()` appear in the generated Node Spec.
 
 ### 2. Call the Node from YAML
 
@@ -66,21 +66,21 @@ Midscene Test reads the YAML, finds the Node named `user.create`, and calls its 
 
 The example uses `async execute({ input })` and `await` to wait for the file write. A failed write throws an error and fails the Node. This creates a local fixture; to create a user in your application, replace the file write with your test data API or database call.
 
-### 3. Generate a Markdown reference to verify registration
+### 3. Generate a Node Spec to verify registration
 
-After saving the configuration, generate the Node reference in Markdown:
+After saving the configuration, generate the Node Spec:
 
 ```bash
 pnpm exec midscene-test nodes
 ```
 
-The command loads the project configuration and writes `midscene-node-reference.md` to the current directory. Check that it includes:
+The command loads the project configuration and writes `midscene-node-reference.md` to the current directory. Check that the Spec includes:
 
 - `user.create` in the available Nodes.
 - The description “Create a test user fixture.”
 - The `name` and `email` input fields and their descriptions.
 
-This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the reference for case authors and AI Agents to consult.
+This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the Spec for case authors and AI Agents to consult. For complete usage, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
 
 ## Node execution arguments
 
