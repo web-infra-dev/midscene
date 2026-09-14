@@ -142,9 +142,11 @@ export function buildLegacyYamlResults(
         artifacts.get(document.documentRunId),
       ),
     );
+    // The Test run report is the canonical user-facing report for both the new
+    // command and its legacy YAML summary projection. Per-document Agent
+    // reports remain available as execution artifacts in the Test result.
     if (result.reportPath)
-      for (const attempt of attempts.slice(0, -1))
-        attempt.report = result.reportPath;
+      for (const attempt of attempts) attempt.report = result.reportPath;
     const { attempt: _attempt, ...last } = attempts.at(-1)!;
     return {
       ...last,

@@ -127,22 +127,31 @@ describe('YAML platform setup for native Test projects', () => {
     },
   );
 
-  it('shares one Agent and cleans every owned resource in reverse order', async () => {
+  it('shares one Agent and preserves the platform cleanup plan order', async () => {
     const calls: string[] = [];
     const agent = { runYaml: vi.fn(async () => calls.push('setup')) };
+    let disconnected = false;
     host.createYamlAgent.mockResolvedValue({
       agent,
       freeFn: [
         {
-          name: 'server',
-          fn: async () => {
-            calls.push('server');
-          },
-        },
-        {
           name: 'agent',
           fn: async () => {
             calls.push('agent');
+          },
+        },
+        {
+          name: 'page',
+          fn: async () => {
+            if (disconnected) throw new Error('CDP connection is closed');
+            calls.push('page');
+          },
+        },
+        {
+          name: 'cdp_browser_disconnect',
+          fn: async () => {
+            disconnected = true;
+            calls.push('disconnect');
           },
         },
       ],
@@ -150,7 +159,7 @@ describe('YAML platform setup for native Test projects', () => {
     const teardowns: Array<() => Promise<void>> = [];
     const definition = createYamlProjectSetup({
       file: 'runtime.yaml',
-      script: { android: { deviceId: 'device' } },
+      script: { web: { url: 'https://example.com', cdpEndpoint: 'ws://cdp' } },
       setup: 'tasks:\n  - name: login\n    flow: []',
     });
     const context = await definition.setup({
@@ -161,12 +170,12 @@ describe('YAML platform setup for native Test projects', () => {
     expect(context.agent).toBe(agent);
     expect(host.createYamlAgent).toHaveBeenCalledWith(
       'runtime.yaml',
-      { android: { deviceId: 'device' } },
+      { web: { url: 'https://example.com', cdpEndpoint: 'ws://cdp' } },
       undefined,
     );
     expect(calls).toEqual(['setup']);
     await teardowns[0]();
-    expect(calls).toEqual(['setup', 'agent', 'server']);
+    expect(calls).toEqual(['setup', 'agent', 'page', 'disconnect']);
   });
 
   it('registers teardown before setup YAML can fail and retains all cleanup failures', async () => {
@@ -204,7 +213,7 @@ describe('YAML platform setup for native Test projects', () => {
     ).rejects.toThrow('login failed');
     expect(onTeardown).toHaveBeenCalledTimes(1);
     await expect(onTeardown.mock.calls[0][0]()).rejects.toMatchObject({
-      errors: [second, first],
+      errors: [first, second],
     });
   });
 

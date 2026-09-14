@@ -147,7 +147,10 @@ async function releaseYamlAgent(
   freeFn: Awaited<ReturnType<typeof createYamlAgent>>['freeFn'],
 ): Promise<void> {
   const errors: unknown[] = [];
-  for (const cleanup of [...freeFn].reverse()) {
+  // FreeFn is an ordered cleanup plan produced by the platform launcher. In
+  // particular, Puppeteer must destroy the Agent and close its Page before an
+  // owned Browser is closed or a CDP connection is disconnected.
+  for (const cleanup of freeFn) {
     try {
       await cleanup.fn();
     } catch (error) {
