@@ -2,13 +2,9 @@
 /**
  * Build the JS half of the APK: a flat, link-free tree the app can extract.
  *
- * Design rules, each of which came from a failure on a real device:
- *  - dependencies are declared in a staging package.json, so npm resolves the whole
- *    tree (a hand-copied package once shipped without `debug` and died on the device);
- *  - the install is hoisted and link-free (pnpm's `.pnpm` farm was dereferenced into a
- *    73MB bundle and its links could not be recreated inside the app's sandbox);
- *  - the CLI is started before packaging, so a bundle that cannot run never ships;
- *  - the workspace package is copied in last, after the install, so nothing removes it.
+ * Install the locked runtime dependency tree with pnpm, then replace Midscene
+ * packages with the current workspace builds. The extracted bundle must have
+ * no symlinks because Android's asset extraction cannot recreate them.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -19,6 +15,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const hostRoot = path.resolve(here, '..');
 const repoRoot = path.resolve(hostRoot, '../..');
 const androidLocal = path.join(repoRoot, 'packages/android-local');
+const bundleManifest = path.join(here, 'agent-bundle.package.json');
+const bundleLock = path.join(here, 'agent-bundle.pnpm-lock.yaml');
 const workDir = path.join(hostRoot, 'build/agent-bundle');
 const outFile = path.join(hostRoot, 'app/src/main/assets/agent-bundle.zip');
 const androidLocalVersion = JSON.parse(
@@ -46,52 +44,77 @@ function findLinks(directory, found = []) {
 fs.rmSync(workDir, { recursive: true, force: true });
 fs.mkdirSync(workDir, { recursive: true });
 
-// 2. every runtime dependency, declared up front
+// 2. Verify that the locked dependency manifest still matches this workspace.
 const workspaceManifest = JSON.parse(
   fs.readFileSync(path.join(androidLocal, 'package.json'), 'utf8'),
 );
-const dependencies = {
+const lockedManifest = JSON.parse(fs.readFileSync(bundleManifest, 'utf8'));
+const expected = {
   '@midscene/core': androidLocalVersion,
   '@midscene/shared': androidLocalVersion,
+  ...Object.fromEntries(
+    Object.entries(workspaceManifest.dependencies ?? {}).filter(
+      ([name]) => !name.startsWith('@midscene/'),
+    ),
+  ),
 };
-for (const [name, range] of Object.entries(
-  workspaceManifest.dependencies ?? {},
-)) {
-  if (!name.startsWith('@midscene/')) {
-    dependencies[name] = range;
-  }
+if (JSON.stringify(lockedManifest.dependencies) !== JSON.stringify(expected)) {
+  throw new Error(
+    'agent-bundle.package.json is out of sync with android-local; update its dependencies and lockfile',
+  );
 }
-fs.writeFileSync(
-  path.join(workDir, 'package.json'),
-  `${JSON.stringify(
-    {
-      name: 'midscene-agent-bundle',
-      private: true,
-      version: '1.0.0',
-      dependencies,
-    },
-    null,
-    2,
-  )}\n`,
-);
-console.log(`staging dependencies: ${Object.keys(dependencies).join(', ')}`);
+fs.copyFileSync(bundleManifest, path.join(workDir, 'package.json'));
+fs.copyFileSync(bundleLock, path.join(workDir, 'pnpm-lock.yaml'));
 
-// 3. flat, script-free install (wasm sharp is the only Android-compatible build)
+// 3. Flat, script-free install. The manifest includes sharp's wasm32 build.
 run(
-  'npm',
+  'pnpm',
   [
     'install',
-    '--install-strategy=hoisted',
-    '--cpu=wasm32',
+    '--frozen-lockfile',
+    '--ignore-workspace',
+    '--config.node-linker=hoisted',
     '--ignore-scripts',
-    '--no-audit',
-    '--no-fund',
-    '--loglevel=error',
   ],
   workDir,
 );
 
-// 4. the workspace package last: npm cannot resolve `workspace:*`
+// 4. Use the workspace builds, not the corresponding published packages.
+for (const name of ['core', 'shared']) {
+  const source = path.join(repoRoot, 'packages', name);
+  const destination = path.join(workDir, 'node_modules/@midscene', name);
+  const localManifest = JSON.parse(
+    fs.readFileSync(path.join(source, 'package.json'), 'utf8'),
+  );
+  const installedManifest = JSON.parse(
+    fs.readFileSync(path.join(destination, 'package.json'), 'utf8'),
+  );
+  const externalDependencies = (manifest) =>
+    Object.fromEntries(
+      Object.entries(manifest.dependencies ?? {}).filter(
+        ([dependency]) => !dependency.startsWith('@midscene/'),
+      ),
+    );
+  if (
+    localManifest.version !== androidLocalVersion ||
+    JSON.stringify(externalDependencies(localManifest)) !==
+      JSON.stringify(externalDependencies(installedManifest))
+  ) {
+    throw new Error(
+      `locked ${name} dependencies differ from the workspace build`,
+    );
+  }
+  fs.rmSync(path.join(destination, 'dist'), { recursive: true, force: true });
+  fs.cpSync(path.join(source, 'dist'), path.join(destination, 'dist'), {
+    recursive: true,
+    dereference: true,
+  });
+  fs.copyFileSync(
+    path.join(source, 'package.json'),
+    path.join(destination, 'package.json'),
+  );
+}
+
 const target = path.join(workDir, 'node_modules/@midscene/android-local');
 fs.mkdirSync(target, { recursive: true });
 for (const entry of ['dist', 'package.json', 'bin']) {
@@ -105,9 +128,7 @@ fs.cpSync(path.join(androidLocal, 'examples'), path.join(workDir, 'examples'), {
   dereference: true,
 });
 
-// 5. remove the link farm npm leaves behind (.bin shims, plus anything a package
-// manager linked): the agent only needs the package trees, and links cannot be
-// extracted inside the app's sandbox.
+// 5. Remove command shims and any remaining symlinks before zipping.
 fs.rmSync(path.join(workDir, 'node_modules/.bin'), {
   recursive: true,
   force: true,
@@ -133,15 +154,23 @@ execFileSync(process.execPath, [cli, '--version'], {
   stdio: 'inherit',
 });
 console.log('smoke test passed: the bundled CLI starts');
+execFileSync(
+  process.execPath,
+  ['-e', 'require("sharp").versions.sharp || process.exit(1)'],
+  {
+    cwd: workDir,
+    stdio: 'inherit',
+  },
+);
 
-// 8. yadb (CJK input) ships as a top-level asset, not inside the bundle
+// 7. yadb (CJK input) ships as a top-level asset, not inside the bundle
 const yadbSource = path.join(repoRoot, 'packages/android/bin/yadb');
 if (!fs.existsSync(yadbSource)) {
   throw new Error(`yadb not found at ${yadbSource}`);
 }
 fs.copyFileSync(yadbSource, path.join(hostRoot, 'app/src/main/assets/yadb'));
 
-// 9. zip it and stamp it, so an APK update re-extracts the agent
+// 8. Zip it and stamp it, so an APK update re-extracts the agent.
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.rmSync(outFile, { force: true });
 run(

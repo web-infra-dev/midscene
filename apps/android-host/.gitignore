@@ -1,14 +1,12 @@
 # Build outputs
 build/
+.cache/
+.local-notes/
 .gradle/
 local.properties
 
-# Generated runtime artifacts (large, produced by scripts/)
-#   scripts/fetch-node-runtime.sh  -> app/src/main/jniLibs/arm64-v8a/*.so
+# Generated app assets. Native packages and libraries live in .cache/.
 #   scripts/bundle-agent.mjs       -> app/src/main/assets/agent-bundle.zip
-app/src/main/assets/yadb
-app/src/main/assets/bundle-info.txt
-app/src/main/jniLibs/
 app/src/main/assets/agent-bundle.zip
 app/src/main/assets/yadb
 app/src/main/assets/bundle-info.txt

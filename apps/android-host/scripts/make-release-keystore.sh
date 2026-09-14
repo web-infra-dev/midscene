@@ -5,15 +5,16 @@
 # holding it can sign an APK that Android will accept as an update to an installed
 # Midscene. Hand the devices a build signed with this key and keep the file.
 #
-# Overridable, so a team can keep the real key somewhere safer:
+# Required environment variables:
 #   MIDSCENE_KEYSTORE, MIDSCENE_KEYSTORE_PASSWORD, MIDSCENE_KEY_ALIAS, MIDSCENE_KEY_PASSWORD
 set -euo pipefail
+umask 077
 
 cd "$(dirname "$0")/.."
-keystore="${MIDSCENE_KEYSTORE:-keystore/midscene-release.jks}"
-password="${MIDSCENE_KEYSTORE_PASSWORD:-midscene}"
-alias_name="${MIDSCENE_KEY_ALIAS:-midscene}"
-key_password="${MIDSCENE_KEY_PASSWORD:-$password}"
+keystore="${MIDSCENE_KEYSTORE:?set MIDSCENE_KEYSTORE}"
+password="${MIDSCENE_KEYSTORE_PASSWORD:?set MIDSCENE_KEYSTORE_PASSWORD}"
+alias_name="${MIDSCENE_KEY_ALIAS:?set MIDSCENE_KEY_ALIAS}"
+key_password="${MIDSCENE_KEY_PASSWORD:?set MIDSCENE_KEY_PASSWORD}"
 
 if [[ -f "$keystore" ]]; then
   echo "keystore already exists: $keystore"

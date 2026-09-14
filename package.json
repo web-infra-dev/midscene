@@ -35,8 +35,7 @@
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "npx biome check --diagnostic-level=info --fix"
     ],
-    "package.json": "pnpm run check-dependency-version",
-    "apps/android-host/**": []
+    "package.json": "pnpm run check-dependency-version"
   },
   "keywords": [],
   "author": "",
@@ -46,12 +45,6 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "packageManager": "pnpm@9.3.0",
-  "pnpm": {
-    "supportedArchitectures": {
-      "os": ["current"],
-      "cpu": ["current", "wasm32"]
-    }
-  },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@changesets/cli": "2.24.1",

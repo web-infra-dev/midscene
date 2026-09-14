@@ -82,7 +82,9 @@ internal fun ReportWebView(
                         settings.javaScriptEnabled = true
                         settings.allowFileAccess = true
                         settings.allowFileAccessFromFileURLs = true
-                        settings.allowUniversalAccessFromFileURLs = true
+                        // Reports are self-contained; they do not need file-origin
+                        // JavaScript to request arbitrary network resources.
+                        settings.allowUniversalAccessFromFileURLs = false
                         settings.domStorageEnabled = true
                         // Reading a scaled-down desktop canvas needs zoom.
                         settings.builtInZoomControls = true

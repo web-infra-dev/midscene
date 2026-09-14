@@ -18,7 +18,7 @@ RENAMES = {
 }
 
 FILE_RENAMES = {
-    'libz.so.1.3.1': 'libz.so',
+    'libz.so.1.3.2': 'libz.so',
     'libsqlite3.so.3.53.4': 'libsqlite3.so',
     'libicui18n.so.78.3': 'libicui18n.so',
     'libicuuc.so.78.3': 'libicuuc.so',
@@ -133,8 +133,11 @@ def main():
     for src_name, dst_name in FILE_RENAMES.items():
         src = os.path.join(source, 'lib', src_name)
         if not os.path.exists(src):
-            print(f'missing {src_name}')
-            continue
+            if src_name == 'libz.so.1.3.2':
+                # Preserve --from support for older Termux installations.
+                src = os.path.join(source, 'lib', 'libz.so.1.3.1')
+            if not os.path.exists(src):
+                raise SystemExit(f'missing required Node library: {src}')
         dst = os.path.join(target, dst_name)
         shutil.copy2(src, dst)
         total += os.path.getsize(dst)
@@ -150,7 +153,8 @@ def main():
     print('--- patching DT_NEEDED ---')
     for name in sorted(os.listdir(target)):
         count = patch(os.path.join(target, name))
-        print(f'  {name:20s} {count} entries rewritten')
+        if count:
+            print(f'  {name:20s} {count} entries rewritten')
 
 
 if __name__ == '__main__':

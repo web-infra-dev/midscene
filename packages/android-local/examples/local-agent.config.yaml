@@ -6,7 +6,7 @@
 # config carries the channel directory).
 #
 # Secrets should come from the environment or a secret store in real
-# deployments — see docs/deployment.md.
+# deployments — see apps/android-host/README.md.
 
 name: phone-smoke
 
@@ -18,8 +18,8 @@ device:
   # yadb enables Chinese/emoji input and pinch gestures
   yadbPath: /data/local/tmp/yadb
   appNameMapping:
-    设置: com.android.settings
-    微信: com.tencent.mm
+    Settings: com.android.settings
+    WeChat: com.tencent.mm
 
 agent:
   generateReport: true

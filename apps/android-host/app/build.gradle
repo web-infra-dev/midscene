@@ -20,20 +20,20 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
 }
 
-/**
- * Internal release key. `scripts/make-release-keystore.sh` creates it on first use; the
- * file lives in the gitignored `keystore/`. Without it (a fresh clone that has not run
- * that script) release builds fall back to the debug key, so `assembleRelease` still
- * produces something installable instead of failing.
- */
-// Resolved against the *root* project (`apps/android-host`), where the script puts it:
-// `file(...)` alone would look inside the app module instead.
-def releaseKeystore = rootProject.file(System.getenv('MIDSCENE_KEYSTORE') ?: 'keystore/midscene-release.jks')
-def releaseKeyReady = releaseKeystore.isFile()
+def releaseKeystorePath = System.getenv('MIDSCENE_KEYSTORE')
+def releaseStorePassword = System.getenv('MIDSCENE_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('MIDSCENE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('MIDSCENE_KEY_PASSWORD')
+def releaseKeystore = releaseKeystorePath ? rootProject.file(releaseKeystorePath) : null
+def releaseSigningReady = releaseKeystore?.isFile() && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
 android {
     namespace 'com.midscene.android'
     compileSdk 35
+
+    sourceSets {
+        main.jniLibs.srcDirs = ['../.cache/native']
+    }
 
     defaultConfig {
         applicationId 'com.midscene.android'
@@ -45,11 +45,11 @@ android {
 
     signingConfigs {
         release {
-            if (releaseKeyReady) {
+            if (releaseSigningReady) {
                 storeFile releaseKeystore
-                storePassword System.getenv('MIDSCENE_KEYSTORE_PASSWORD') ?: 'midscene'
-                keyAlias System.getenv('MIDSCENE_KEY_ALIAS') ?: 'midscene'
-                keyPassword System.getenv('MIDSCENE_KEY_PASSWORD') ?: 'midscene'
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
@@ -60,9 +60,7 @@ android {
             // in during development (the model key is not typed on screen).
         }
         release {
-            // Signed with the internal key when it exists, and with the debug key
-            // otherwise: a hand-out build has to install, and an unsigned APK does not.
-            signingConfig releaseKeyReady ? signingConfigs.release : signingConfigs.debug
+            signingConfig releaseSigningReady ? signingConfigs.release : null
             minifyEnabled false
             // Reflection carries real weight here (Shizuku's API, HiddenApiBypass for
             // setSkipScreenshot), so nothing is renamed or shrunk away.
@@ -92,6 +90,17 @@ android {
     }
 }
 
+tasks.register('requireReleaseSigning') {
+    doLast {
+        if (!releaseSigningReady) {
+            throw new GradleException('Release signing requires MIDSCENE_KEYSTORE (an existing file), MIDSCENE_KEYSTORE_PASSWORD, MIDSCENE_KEY_ALIAS, and MIDSCENE_KEY_PASSWORD.')
+        }
+    }
+}
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    dependsOn tasks.named('requireReleaseSigning')
+}
+
 dependencies {
     // Compose: the console is designed rather than assembled from widgets, and the
     // studio palette maps cleanly onto a Material 3 colour scheme.
@@ -116,16 +125,18 @@ tasks.register('verifyRuntimeAssets') {
             'src/main/assets/agent-bundle.zip',
             'src/main/assets/bundle-info.txt',
             'src/main/assets/yadb',
-            'src/main/jniLibs/arm64-v8a/libnodebin.so',
+            '../.cache/native/arm64-v8a/libnodebin.so',
             // The local adb client that drives the device's own adbd. Missing it
             // only breaks the adb channel, which is exactly the kind of failure
             // that should stop the build rather than surface on a phone.
-            'src/main/jniLibs/arm64-v8a/libadbbin.so',
+            '../.cache/native/arm64-v8a/libadbbin.so',
         ]
         def missing = required.findAll { !file(it).isFile() }
         if (!missing.isEmpty()) {
-            throw new GradleException("Missing Android runtime assets: ${missing.join(', ')}. Run pnpm --filter android-host runtime, pnpm --filter android-host adb-runtime and pnpm --filter android-host bundle first.")
+            throw new GradleException("Missing Android runtime assets: ${missing.join(', ')}. Run pnpm --filter android-host assemble to fetch and package them.")
         }
     }
 }
-tasks.named('preBuild').configure { dependsOn tasks.named('verifyRuntimeAssets') }
+tasks.matching { it.name in ['packageDebug', 'packageRelease'] }.configureEach {
+    dependsOn tasks.named('verifyRuntimeAssets')
+}

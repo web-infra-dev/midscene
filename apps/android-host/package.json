@@ -8,9 +8,10 @@
     "runtime": "./scripts/fetch-node-runtime.sh",
     "adb-runtime": "./scripts/fetch-adb-runtime.sh",
     "icons": "python3 ./scripts/make-icons.py",
-    "assemble": "pnpm run bundle && ./gradlew assembleDebug",
-    "assemble:release": "pnpm run bundle && ./gradlew assembleRelease",
-    "test": "./gradlew :app:testDebugUnitTest && node --test scripts/check-multi-user.test.mjs",
+    "assemble": "pnpm exec nx build @midscene/android-local && pnpm run runtime && pnpm run adb-runtime && pnpm run bundle && ./gradlew assembleDebug",
+    "assemble:release": "pnpm exec nx build @midscene/android-local && pnpm run runtime && pnpm run adb-runtime && pnpm run bundle && ./gradlew assembleRelease",
+    "test": "node --test scripts/check-multi-user.test.mjs",
+    "test:android": "./gradlew :app:testDebugUnitTest",
     "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
     "bootstrap": "./scripts/adb-bootstrap.sh"
   }
