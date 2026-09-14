@@ -46,7 +46,7 @@ const cleanupWarning = getDebug('create-yaml-player', { console: true });
 
 async function cleanupFailedPlayerSetup(freeFn: FreeFn[]): Promise<unknown[]> {
   const errors: unknown[] = [];
-  for (const cleanup of [...freeFn].reverse()) {
+  for (const cleanup of freeFn) {
     try {
       await cleanup.fn();
     } catch (error) {
