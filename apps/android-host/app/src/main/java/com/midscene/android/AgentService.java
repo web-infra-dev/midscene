@@ -265,12 +265,18 @@ public class AgentService extends Service {
 
     /**
      * Bar slots, left to right: what the agent is doing, which step, the step itself (in
-     * words), and the timings. The humanising lives in {@link ProgressText}: this method
-     * only knows the state machine.
+     * words), and the run's clock. The humanising lives in {@link ProgressText}: this
+     * method only knows the state machine.
+     *
+     * The first row stays terse on purpose — a counter, one duration — because it shares
+     * its line with the stop control and is read at a glance: `1/1` rather than "Step
+     * 1/1", and the run's elapsed time rather than both clocks. The step's own duration
+     * is the one that had to go: it changes every second and says nothing the elapsed
+     * time does not.
      */
     private static String[] progressLines() {
         long now = System.currentTimeMillis();
-        String chip = ProgressText.stepChip(stepIndex, stepTotal);
+        String chip = ProgressText.stepProgress(stepIndex, stepTotal);
         // A step's own prompt when there is one, otherwise the tail of the last log line;
         // structured events fall through to the previous text rather than raw JSON.
         String detail = stepPrompt.isEmpty()
@@ -281,10 +287,8 @@ public class AgentService extends Service {
         }
         String metrics = "";
         boolean timing = stepStartedAtMs > 0 && !"done".equals(phase) && !"failed".equals(phase);
-        if (timing) {
-            metrics = ProgressText.timings(
-                    now - stepStartedAtMs,
-                    runStartedAtMs > 0 ? now - runStartedAtMs : 0);
+        if (timing && runStartedAtMs > 0) {
+            metrics = ProgressText.duration(now - runStartedAtMs);
         }
         // The last two slots are the start timestamps, so the bar can tick the clock
         // itself: events only arrive per step, and a step can run for half a minute.
@@ -663,6 +667,9 @@ public class AgentService extends Service {
         // Read the switch on every run: a head unit can keep this service alive
         // across a settings change, so the value cannot be cached at startup.
         OverlayView.setShowEnabled(prefs().getBoolean("overlayEnabled", true), this);
+        // Only a task run can be interrupted from the panel: provisioning's worker is what
+        // unpacks Node and the agent, and stopping it half way leaves a broken runtime.
+        OverlayView.setStoppable("prompt".equals(runKind) || "config".equals(runKind));
         phase = "";
         stepIndex = 0;
         stepTotal = 0;

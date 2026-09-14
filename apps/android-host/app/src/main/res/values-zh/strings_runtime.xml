@@ -8,6 +8,9 @@
     <string name="progress_phase_step_failed">步骤失败</string>
     <string name="progress_phase_done">已完成</string>
     <string name="progress_phase_failed">已失败</string>
+    <string name="progress_phase_stopping">正在停止…</string>
+    <!-- 悬浮进度面板上的终止按钮。 -->
+    <string name="progress_stop">停止</string>
     <string name="progress_step">第 %1$s 步</string>
     <string name="progress_timing_step">本步 %1$s</string>
     <string name="progress_timing_total">总计 %1$s</string>

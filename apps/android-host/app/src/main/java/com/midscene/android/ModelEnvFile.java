@@ -32,32 +32,81 @@ public final class ModelEnvFile {
     public static final String MODEL_NAME = "MIDSCENE_MODEL_NAME";
     public static final String MODEL_FAMILY = "MIDSCENE_MODEL_FAMILY";
 
-    /** One Form row. Keys and placeholders mirror the desktop studio's Form tab. */
+    /**
+     * One Form row: the keys and their order mirror the desktop studio's Form tab, with
+     * the app's own wording rather than a vendor's sample values.
+     */
     public static final class Field {
 
         /** How the Form renders the row: masked with a reveal toggle, URL keyboard, … */
         public enum Kind {
             TEXT,
             SECRET,
-            URL
+            URL,
+            /** A value from a fixed list, picked rather than typed. */
+            CHOICE
         }
 
         public final String key;
         public final String placeholder;
         public final Kind kind;
+        /** What a {@link Kind#CHOICE} row accepts; empty for every other kind. */
+        public final List<String> choices;
 
         Field(String key, String placeholder, Kind kind) {
+            this(key, placeholder, kind, Collections.emptyList());
+        }
+
+        Field(String key, String placeholder, Kind kind, List<String> choices) {
             this.key = key;
             this.placeholder = placeholder;
             this.kind = kind;
+            this.choices = Collections.unmodifiableList(new ArrayList<>(choices));
         }
     }
 
+    /**
+     * The model families the agent accepts, in the order its own list uses.
+     *
+     * A copy of `MODEL_FAMILY_VALUES` in `packages/shared/src/env/types.ts`, because the
+     * value is matched verbatim: a picker that offers a name the agent does not know turns
+     * into a failed run instead of a config error, and a typed near-miss ("qwen3vl") is
+     * accepted by the form and rejected by the agent. {@code ModelFamilySyncTest} compares
+     * this list against that file, so a family added or renamed there fails here.
+     */
+    public static final List<String> FAMILY_VALUES = Collections.unmodifiableList(Arrays.asList(
+            "doubao-vision",
+            "doubao-seed",
+            "gemini",
+            "qwen2.5-vl",
+            "qwen3-vl",
+            "qwen3",
+            "qwen3.5",
+            "qwen3.6",
+            "vlm-ui-tars",
+            "vlm-ui-tars-doubao",
+            "vlm-ui-tars-doubao-1.5",
+            "glm-v",
+            "auto-glm",
+            "auto-glm-multilingual",
+            "gpt-5",
+            "gpt-6",
+            "deepseek",
+            "kimi",
+            "kimi3",
+            "xiaomi-mimo"));
+
+    /**
+     * The Form's rows, in the studio's order. The placeholders describe what the row
+     * wants: a real endpoint or model name reads as "this is what you are supposed to
+     * use", and every OpenAI-compatible service is equally valid.
+     */
     public static final List<Field> FIELDS = Collections.unmodifiableList(Arrays.asList(
-            new Field(BASE_URL, "https://dashscope.aliyuncs.com/compatible-mode/v1", Field.Kind.URL),
-            new Field(API_KEY, "sk-...", Field.Kind.SECRET),
-            new Field(MODEL_NAME, "qwen3-vl-plus", Field.Kind.TEXT),
-            new Field(MODEL_FAMILY, "qwen3-vl", Field.Kind.TEXT)));
+            new Field(BASE_URL, "OpenAI-compatible endpoint, usually ending in /v1", Field.Kind.URL),
+            new Field(API_KEY, "The API key your model service issued", Field.Kind.SECRET),
+            new Field(MODEL_NAME, "Model name, exactly as your service lists it", Field.Kind.TEXT),
+            new Field(MODEL_FAMILY, "The family your model belongs to", Field.Kind.CHOICE,
+                    FAMILY_VALUES)));
 
     /**
      * Compatible aliases: the agent resolves these too, so a hand-written `.env` that
@@ -67,15 +116,24 @@ public final class ModelEnvFile {
     private static final List<String> BASE_URL_KEYS = Arrays.asList(BASE_URL, "OPENAI_BASE_URL");
     private static final List<String> MODEL_NAME_KEYS =
             Arrays.asList(MODEL_NAME, "MIDSCENE_MODEL", "OPENAI_MODEL");
+    /** No alias exists for the family: the agent reads this key alone. */
+    private static final List<String> MODEL_FAMILY_KEYS = Collections.singletonList(MODEL_FAMILY);
 
-    /** Shown when no credentials file exists yet: hints, no half-configured keys. */
+    /**
+     * Shown when no credentials file exists yet: what each key wants, with no half-configured
+     * keys and no single vendor's endpoint — the endpoint, key and model name come from
+     * whichever OpenAI-compatible service the user has an account with, and the family says
+     * which UI-localisation strategy that model needs.
+     */
     public static final String TEMPLATE =
             "# Midscene model credentials, one KEY=VALUE per line.\n"
-                    + "# Example (Alibaba DashScope, OpenAI-compatible):\n"
-                    + "# MIDSCENE_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1\n"
-                    + "# MIDSCENE_MODEL_API_KEY=sk-...\n"
-                    + "# MIDSCENE_MODEL_NAME=qwen3-vl-plus\n"
-                    + "# MIDSCENE_MODEL_FAMILY=qwen3-vl\n";
+                    + "# Any OpenAI-compatible vision model works. The endpoint, key and model\n"
+                    + "# name come from your model service; the family tells Midscene how to ask\n"
+                    + "# that model for element locations. Uncomment these lines and fill them in:\n"
+                    + "# MIDSCENE_MODEL_BASE_URL=<endpoint URL, usually ending in /v1>\n"
+                    + "# MIDSCENE_MODEL_API_KEY=<API key issued by that service>\n"
+                    + "# MIDSCENE_MODEL_NAME=<model name, as the service lists it>\n"
+                    + "# MIDSCENE_MODEL_FAMILY=<one family the agent knows, e.g. qwen3-vl, gemini>\n";
 
     /** Parsed file: every usable pair, plus what had to be ignored. */
     public static final class Content {
@@ -189,12 +247,16 @@ public final class ModelEnvFile {
     }
 
     /**
-     * Keys the agent cannot start without, named as the Form shows them. Model family is
-     * deliberately absent: it is optional, and only affects UI localization quality.
+     * Keys the agent cannot work without, named as the Form shows them.
+     *
+     * Model family counts: without it the agent cannot tell which UI-localisation strategy
+     * the model needs, says so on every run, and falls back to asking for coordinates the
+     * model may not produce. It is a required answer with a fixed set of values, which is
+     * why the Form picks it instead of accepting typed text.
      */
     public static List<String> missingKeys(String text) {
         Map<String, String> entries = parse(text).entries;
-        List<String> missing = new ArrayList<>(3);
+        List<String> missing = new ArrayList<>(4);
         if (firstSet(entries, API_KEY_KEYS).isEmpty()) {
             missing.add(API_KEY);
         }
@@ -204,7 +266,42 @@ public final class ModelEnvFile {
         if (firstSet(entries, MODEL_NAME_KEYS).isEmpty()) {
             missing.add(MODEL_NAME);
         }
+        if (firstSet(entries, MODEL_FAMILY_KEYS).isEmpty()) {
+            missing.add(MODEL_FAMILY);
+        }
         return missing;
+    }
+
+    /**
+     * The connection the agent would build from this file, with the compatible aliases
+     * resolved — what a live request has to use, and what the connection test sends.
+     */
+    public static final class Connection {
+        public final String apiKey;
+        public final String baseUrl;
+        public final String model;
+        public final String family;
+
+        Connection(String apiKey, String baseUrl, String model, String family) {
+            this.apiKey = apiKey;
+            this.baseUrl = baseUrl;
+            this.model = model;
+            this.family = family;
+        }
+
+        public boolean complete() {
+            return !apiKey.isEmpty() && !baseUrl.isEmpty() && !model.isEmpty()
+                    && !family.isEmpty();
+        }
+    }
+
+    public static Connection connection(String text) {
+        Map<String, String> entries = parse(text).entries;
+        return new Connection(
+                firstSet(entries, API_KEY_KEYS),
+                firstSet(entries, BASE_URL_KEYS),
+                firstSet(entries, MODEL_NAME_KEYS),
+                firstSet(entries, MODEL_FAMILY_KEYS));
     }
 
     /** Quote only when the value would otherwise not survive a round trip. */

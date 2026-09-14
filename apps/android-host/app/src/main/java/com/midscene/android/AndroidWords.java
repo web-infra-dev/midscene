@@ -60,6 +60,8 @@ final class AndroidWords implements ProgressText.Words {
                 return R.string.progress_phase_done;
             case "phase.failed":
                 return R.string.progress_phase_failed;
+            case "phase.stopping":
+                return R.string.progress_phase_stopping;
             case "progress.step":
                 return R.string.progress_step;
             case "timing.step":

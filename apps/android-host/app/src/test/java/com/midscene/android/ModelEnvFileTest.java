@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -88,18 +89,31 @@ public class ModelEnvFileTest {
     }
 
     @Test
-    public void missingKeysAcceptsCompatibleAliasesAndIgnoresFamily() {
+    public void missingKeysAcceptsCompatibleAliases() {
         assertTrue(ModelEnvFile.missingKeys("").contains("MIDSCENE_MODEL_API_KEY"));
         assertTrue(ModelEnvFile.missingKeys("MIDSCENE_MODEL_API_KEY=sk\n").contains("MIDSCENE_MODEL_BASE_URL"));
         assertTrue(ModelEnvFile.missingKeys("OPENAI_API_KEY=sk\nOPENAI_BASE_URL=https://x/v1\n")
                 .contains("MIDSCENE_MODEL_NAME"));
         assertTrue(ModelEnvFile.missingKeys(
                         "OPENAI_API_KEY=sk\nOPENAI_BASE_URL=https://x/v1\nOPENAI_MODEL=gpt\n")
-                .isEmpty());
+                .contains("MIDSCENE_MODEL_FAMILY"));
         assertTrue(ModelEnvFile.missingKeys(
                         "MIDSCENE_MODEL_API_KEY=sk\nMIDSCENE_MODEL_BASE_URL=https://x/v1\n"
-                                + "MIDSCENE_MODEL_NAME=gpt\n")
+                                + "MIDSCENE_MODEL_NAME=gpt\nMIDSCENE_MODEL_FAMILY=gemini\n")
                 .isEmpty());
+    }
+
+    /**
+     * The family is required, and it is the only key no alias can satisfy: the agent reads
+     * this name alone, and without it every run warns that element localization is
+     * unavailable.
+     */
+    @Test
+    public void familyIsRequired() {
+        String everythingElse = "MIDSCENE_MODEL_API_KEY=sk\nMIDSCENE_MODEL_BASE_URL=https://x/v1\n"
+                + "MIDSCENE_MODEL_NAME=gpt\n";
+        assertEquals(java.util.Collections.singletonList(ModelEnvFile.MODEL_FAMILY),
+                ModelEnvFile.missingKeys(everythingElse));
     }
 
     @Test
@@ -114,17 +128,47 @@ public class ModelEnvFileTest {
     }
 
     @Test
-    public void formFieldsFollowTheDesktopStudioOrderAndHints() {
+    public void formFieldsKeepTheStudioOrderAndKinds() {
         assertEquals(4, ModelEnvFile.FIELDS.size());
         assertEquals(ModelEnvFile.BASE_URL, ModelEnvFile.FIELDS.get(0).key);
         assertEquals(ModelEnvFile.API_KEY, ModelEnvFile.FIELDS.get(1).key);
         assertEquals(ModelEnvFile.MODEL_NAME, ModelEnvFile.FIELDS.get(2).key);
         assertEquals(ModelEnvFile.MODEL_FAMILY, ModelEnvFile.FIELDS.get(3).key);
-        assertEquals("sk-...", ModelEnvFile.FIELDS.get(1).placeholder);
+        assertEquals("The API key your model service issued",
+                ModelEnvFile.FIELDS.get(1).placeholder);
         // Only the key is masked and keyboarded as a secret; the base URL gets a URL keyboard.
         assertEquals(ModelEnvFile.Field.Kind.SECRET, ModelEnvFile.FIELDS.get(1).kind);
         assertEquals(ModelEnvFile.Field.Kind.URL, ModelEnvFile.FIELDS.get(0).kind);
         assertEquals(ModelEnvFile.Field.Kind.TEXT, ModelEnvFile.FIELDS.get(2).kind);
+        // The family is picked from a list rather than typed: the agent matches it verbatim.
+        assertEquals(ModelEnvFile.Field.Kind.CHOICE, ModelEnvFile.FIELDS.get(3).kind);
+        assertEquals(ModelEnvFile.FAMILY_VALUES, ModelEnvFile.FIELDS.get(3).choices);
+        for (ModelEnvFile.Field field : ModelEnvFile.FIELDS.subList(0, 3)) {
+            assertTrue("only a CHOICE row carries options", field.choices.isEmpty());
+        }
+    }
+
+    /**
+     * The hints describe what to fill in; no vendor is held up as the way to do it.
+     *
+     * A concrete endpoint or key sample in a hint reads as a requirement, and every
+     * OpenAI-compatible service is equally valid — that is what this guards against
+     * coming back. Family values are the one place an example belongs: the agent only
+     * accepts the names it knows, so the hint shows a couple of them.
+     */
+    @Test
+    public void noHintNamesAVendor() {
+        for (ModelEnvFile.Field field : ModelEnvFile.FIELDS) {
+            assertNoVendorSample(field.placeholder);
+        }
+        assertNoVendorSample(ModelEnvFile.TEMPLATE);
+    }
+
+    private static void assertNoVendorSample(String text) {
+        String lower = text.toLowerCase(java.util.Locale.ROOT);
+        for (String sample : new String[]{"dashscope", "aliyun", "https://", "sk-"}) {
+            assertFalse(text + " names a vendor sample: " + sample, lower.contains(sample));
+        }
     }
 
     @Test

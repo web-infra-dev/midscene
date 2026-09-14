@@ -113,6 +113,10 @@ public final class ProgressText {
                 return w("phase.done", "Done");
             case "failed":
                 return w("phase.failed", "Failed");
+            case "stopping":
+                // Set when the stop control on the panel is used, before the runner's own
+                // "stopped" line arrives: the tap has to look like it did something.
+                return w("phase.stopping", "Stopping");
             default:
                 // Also carries ready-made sentences ("Starting config…" from the service).
                 return sentenceCase(collapse(phase).replace('-', ' ').replace('_', ' '));

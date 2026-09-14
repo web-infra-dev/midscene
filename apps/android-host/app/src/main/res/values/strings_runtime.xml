@@ -14,6 +14,9 @@
     <string name="progress_phase_step_failed">Step failed</string>
     <string name="progress_phase_done">Done</string>
     <string name="progress_phase_failed">Failed</string>
+    <string name="progress_phase_stopping">Stopping…</string>
+    <!-- The stop control on the floating progress panel. -->
+    <string name="progress_stop">Stop</string>
     <string name="progress_step">Step %1$s</string>
     <string name="progress_timing_step">Step %1$s</string>
     <string name="progress_timing_total">Total %1$s</string>

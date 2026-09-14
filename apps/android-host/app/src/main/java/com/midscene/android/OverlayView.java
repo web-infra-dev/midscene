@@ -25,6 +25,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.MotionEvent;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
@@ -50,9 +51,6 @@ public final class OverlayView {
     private static final int FAIL_COLOR = 0xFFE13E37;
     private static final int CHIP_COLOR = 0xFF1979FF;
     private static final int BEAM_COLOR = 0xFF1979FF;
-    private static final float MAX_CARD_WIDTH_DP = 480f;
-    private static final float MIN_CARD_WIDTH_DP = 148f;
-    private static final float MIN_TOP_INSET_DP = 24f;
     private static final long BOX_TTL_MS = 2500;
     private static final long RIPPLE_MS = 700;
     /**
@@ -103,8 +101,85 @@ public final class OverlayView {
     private static boolean showEnabled = true;
     /** Window alpha actually used, kept so every params push re-asserts the same value. */
     private static float safeAlpha = 0.5f;
+    /** The stop control, in a window of its own so only that rect can take a touch. */
+    private static StopView stopButton;
+    private static WindowManager.LayoutParams stopParams;
+    /** Whether this run may be interrupted at all (see {@link #setStoppable}). */
+    private static boolean stoppable;
+    /** Set by the tap, until the overlay comes down: the panel has to show the tap landed. */
+    private static boolean stopping;
 
     private OverlayView() {
+    }
+
+    /**
+     * The panel's box and its stop control's box, in screen pixels.
+     *
+     * The size is a function of the screen, never of the text. Timings tick ("9s" → "10s"),
+     * a step line grows and shrinks between steps, and a card that was sized to its content
+     * therefore resized and re-centred every second — the twitching this replaces. A fixed
+     * box also gives the stop control a position that does not move under the user's finger.
+     *
+     * Pure arithmetic on purpose: a unit test holds the two properties that matter, that the
+     * box ignores the text and that the button stays inside the card.
+     */
+    static final class Panel {
+
+        static final float WIDTH_DP = 280f;
+        static final float PAD_DP = 13f;
+        static final float ROW_HEIGHT_DP = 19f;
+        static final float DETAIL_HEIGHT_DP = 17f;
+        static final float MIN_TOP_INSET_DP = 24f;
+        static final float BUTTON_WIDTH_DP = 64f;
+        static final float BUTTON_HEIGHT_DP = 26f;
+        private static final float MARGIN_DP = 16f;
+        private static final float ROW_GAP_DP = 5f;
+        private static final float TOP_GAP_DP = 12f;
+        private static final float BUTTON_GAP_DP = 10f;
+
+        final float left;
+        final float top;
+        final float width;
+        final float height;
+        final float buttonLeft;
+        final float buttonTop;
+        final float buttonWidth;
+        final float buttonHeight;
+
+        Panel(int screenWidth, int systemInsetTop, float density) {
+            float margin = MARGIN_DP * density;
+            width = Math.min(WIDTH_DP * density, Math.max(screenWidth - 2 * margin, 0f));
+            // Both rows always exist, empty or not: a card that grew a row when a step
+            // description arrived would move the stop control down by 22dp mid-run.
+            height = (PAD_DP * 2 + ROW_HEIGHT_DP + ROW_GAP_DP + DETAIL_HEIGHT_DP) * density;
+            left = (screenWidth - width) / 2f;
+            top = Math.max(systemInsetTop, MIN_TOP_INSET_DP * density) + TOP_GAP_DP * density;
+            buttonWidth = BUTTON_WIDTH_DP * density;
+            buttonHeight = BUTTON_HEIGHT_DP * density;
+            buttonLeft = left + width - PAD_DP * density - buttonWidth;
+            buttonTop = top + PAD_DP * density + (ROW_HEIGHT_DP * density - buttonHeight) / 2f;
+        }
+
+        float innerLeft(float density) {
+            return left + PAD_DP * density;
+        }
+
+        /** Where the first row's text stops: the stop control owns everything to its right. */
+        float textRight(float density) {
+            return buttonLeft - BUTTON_GAP_DP * density;
+        }
+
+        float buttonRight(float density) {
+            return buttonLeft + buttonWidth;
+        }
+
+        float rowCenterY(float density) {
+            return top + PAD_DP * density + ROW_HEIGHT_DP * density / 2f;
+        }
+
+        float detailCenterY(float density) {
+            return top + (PAD_DP + ROW_HEIGHT_DP + ROW_GAP_DP + DETAIL_HEIGHT_DP / 2f) * density;
+        }
     }
 
     /** Applied when a run starts, from the Settings switches. */
@@ -122,6 +197,20 @@ public final class OverlayView {
         if (pill != null) {
             pill.invalidateVisuals();
         }
+        syncStopButton();
+    }
+
+    /**
+     * Whether the run in flight may be interrupted from the panel.
+     *
+     * Provisioning must not offer it: its worker is what unpacks Node and the agent, and
+     * killing it half way leaves a runtime the next run has to repair. The service decides,
+     * because it knows which kind of work it started.
+     */
+    public static synchronized void setStoppable(boolean value) {
+        stoppable = value;
+        stopping = false;
+        syncStopButton();
     }
 
     /** The element the agent located, in screen pixels; drawn until it fades out. */
@@ -169,7 +258,10 @@ public final class OverlayView {
         try {
             HiddenApiBypass.addHiddenApiExemptions(
                     "Landroid/view/SurfaceControl;",
-                    "Landroid/view/SurfaceControl$Transaction;");
+                    "Landroid/view/SurfaceControl$Transaction;",
+                    // The stop control's window: AttachedSurfaceControl is the public
+                    // handle, and the surface control behind it is a hidden method.
+                    "Landroid/view/ViewRootImpl;");
         } catch (Throwable error) {
             // Plan A still works; nothing else to do.
         }
@@ -232,6 +324,7 @@ public final class OverlayView {
 
         update(text);
         applyVisibility();
+        syncStopButton();
         if (pill != null) {
             pill.startAnimating();
         }
@@ -256,6 +349,7 @@ public final class OverlayView {
     }
 
     public static synchronized void hide() {
+        removeStopButton();
         if (windowManager != null && pill != null) {
             try {
                 windowManager.removeView(pill);
@@ -264,6 +358,7 @@ public final class OverlayView {
             }
         }
         pill = null;
+        stopping = false;
     }
 
     /**
@@ -284,12 +379,14 @@ public final class OverlayView {
         pill.invalidate();
         resizeToContent();
         applyVisibility();
+        syncStopButton();
     }
 
     /** Plan A fallback: hide while a capture runs, when the layer cannot opt out. */
     public static synchronized void setSuppressed(boolean value) {
         suppressed = value;
         applyVisibility();
+        syncStopButton();
     }
 
     private static void applyVisibility() {
@@ -300,6 +397,138 @@ public final class OverlayView {
         boolean hide = !showEnabled || (suppressed && !pill.hiddenFromCapture);
         pill.setVisibility(hide ? View.GONE : View.VISIBLE);
     }
+
+    /**
+     * Put the stop control on screen, take it off, or keep it out of the way.
+     *
+     * The control lives in a window of its own rather than on the pill's surface, and that
+     * is what makes it safe to have: the pill's window is full-screen and inert on purpose
+     * (see {@link #applyTouchTransparency}), so making *it* touchable would put a
+     * screen-sized touch target over whatever the user is trying to reach. A window the size
+     * of one button can only swallow taps on the button.
+     */
+    private static void syncStopButton() {
+        if (windowManager == null || pill == null || !showEnabled || !stoppable) {
+            removeStopButton();
+            return;
+        }
+        Context context = pill.getContext();
+        Panel panel = pill.currentPanel();
+        if (context == null || panel == null) {
+            return;
+        }
+        if (stopButton == null) {
+            stopButton = buildStopButton(context);
+            stopParams = stopButtonParams(panel);
+            try {
+                windowManager.addView(stopButton, stopParams);
+            } catch (Exception error) {
+                stopButton = null;
+                stopParams = null;
+                Log.w(TAG, "could not add the stop control: " + error);
+                return;
+            }
+        } else {
+            placeStopButton(panel);
+        }
+        if (stopping && !stopButton.stopping) {
+            stopButton.setStopping(true);
+        }
+    }
+
+    private static WindowManager.LayoutParams stopButtonParams(Panel panel) {
+        WindowManager.LayoutParams target = new WindowManager.LayoutParams(
+                Math.round(panel.buttonWidth),
+                Math.round(panel.buttonHeight),
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                        : WindowManager.LayoutParams.TYPE_PHONE,
+                // Touchable, unlike the pill: this window *is* the control. NOT_TOUCH_MODAL
+                // keeps every touch outside its rect going to the window behind it.
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        target.gravity = Gravity.TOP | Gravity.START;
+        target.x = Math.round(panel.buttonLeft);
+        target.y = Math.round(panel.buttonTop);
+        // Opaque, unlike the pill: the obscuring rule is about touches aimed at windows
+        // *below* an untrusted one, and the only window below this one in its own rect is
+        // the pill's inert surface. A stop button the user has to squint at is not a button.
+        target.alpha = 1f;
+        return target;
+    }
+
+    private static void placeStopButton(Panel panel) {
+        if (stopParams == null || stopButton == null || windowManager == null) {
+            return;
+        }
+        int x = Math.round(panel.buttonLeft);
+        int y = Math.round(panel.buttonTop);
+        if (stopParams.x == x && stopParams.y == y
+                && stopParams.width == Math.round(panel.buttonWidth)) {
+            return;
+        }
+        stopParams.x = x;
+        stopParams.y = y;
+        stopParams.width = Math.round(panel.buttonWidth);
+        stopParams.height = Math.round(panel.buttonHeight);
+        try {
+            windowManager.updateViewLayout(stopButton, stopParams);
+        } catch (Exception ignored) {
+            // the view is being detached
+        }
+    }
+
+    private static void removeStopButton() {
+        if (windowManager != null && stopButton != null) {
+            try {
+                windowManager.removeView(stopButton);
+            } catch (Exception ignored) {
+                // already detached
+            }
+        }
+        stopButton = null;
+        stopParams = null;
+    }
+
+    /**
+     * The stop control: a real view, so it can be pressed, focused and read out loud.
+     *
+     * Sized and placed by {@link Panel}, which is also what reserves its space in the card,
+     * so the two cannot drift apart.
+     */
+    private static StopView buildStopButton(Context context) {
+        return new StopView(context);
+    }
+
+    /**
+     * Ask the service to stop the run in flight, and say so on the panel.
+     *
+     * The runner reports "stopped" a moment later, and until then a tap that changed
+     * nothing on screen reads as a control that does not work — so the label switches to
+     * "Stopping…" and the button stops accepting taps.
+     */
+    private static void requestStop(Context context) {
+        if (stopping) {
+            return;
+        }
+        stopping = true;
+        if (stopButton != null) {
+            stopButton.setStopping(true);
+        }
+        if (pill != null) {
+            pill.invalidateVisuals();
+        }
+        try {
+            AgentService.start(context, AgentService.ACTION_STOP, null);
+        } catch (RuntimeException error) {
+            Log.w(TAG, "could not ask the service to stop the run: " + error);
+        }
+    }
+
+
 
     /**
      * Make the layer incapable of receiving input, and incapable of shadowing it.
@@ -434,6 +663,121 @@ public final class OverlayView {
 
     static void post(Runnable runnable) {
         new Handler(Looper.getMainLooper()).post(runnable);
+    }
+
+    /**
+     * The stop control: its own surface, its own window, one tap target.
+     *
+     * A surface rather than a styled `TextView` because of what the pill learned the hard
+     * way: only a surface we own can be marked `setSkipScreenshot`, and a capture that
+     * contains our controls is a capture the agent then reasons about (measured: the
+     * button showed up in one of a run's own screenshots before this). The fallback for a
+     * device without the hidden API is the same as the pill's — hide around captures —
+     * which is why this is a SurfaceView and not a plain view.
+     */
+    private static final class StopView extends SurfaceView implements SurfaceHolder.Callback {
+
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint label = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final float density = getResources().getDisplayMetrics().density;
+        private boolean pressed;
+        private boolean stopping;
+        private String text;
+
+        StopView(Context context) {
+            super(context);
+            text = context.getString(R.string.progress_stop);
+            label.setColor(Color.WHITE);
+            label.setTextSize(11.5f * density);
+            label.setFakeBoldText(true);
+            label.setTextAlign(Paint.Align.CENTER);
+            setZOrderOnTop(true);
+            setZOrderMediaOverlay(true);
+            getHolder().setFormat(PixelFormat.TRANSLUCENT);
+            getHolder().addCallback(this);
+            setWillNotDraw(true);
+        }
+
+        void setStopping(boolean value) {
+            stopping = value;
+            text = getContext().getString(
+                    value ? R.string.progress_phase_stopping : R.string.progress_stop);
+            render();
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    pressed = true;
+                    render();
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    pressed = false;
+                    render();
+                    if (!stopping && event.getX() >= 0 && event.getX() <= getWidth()
+                            && event.getY() >= 0 && event.getY() <= getHeight()) {
+                        requestStop(getContext());
+                    }
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    pressed = false;
+                    render();
+                    return true;
+                default:
+                    return super.onTouchEvent(event);
+            }
+        }
+
+        private void render() {
+            SurfaceHolder holder = getHolder();
+            Canvas canvas;
+            try {
+                canvas = holder.lockCanvas();
+            } catch (Exception ignored) {
+                return;
+            }
+            if (canvas == null) {
+                return;
+            }
+            try {
+                int width = getWidth();
+                int height = getHeight();
+                if (width <= 0 || height <= 0) {
+                    return;
+                }
+                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                float radius = height / 2f;
+                fill.setColor(!stopping && pressed ? 0xFFB3261E : (stopping ? 0xFF6B7280 : FAIL_COLOR));
+                canvas.drawRoundRect(new RectF(0f, 0f, width, height), radius, radius, fill);
+                Paint.FontMetrics font = label.getFontMetrics();
+                canvas.drawText(text, width / 2f,
+                        height / 2f - (font.ascent + font.descent) / 2f, label);
+            } finally {
+                holder.unlockCanvasAndPost(canvas);
+            }
+        }
+
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            applySkipScreenshot(getSurfaceControl());
+            render();
+        }
+
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            render();
+        }
+
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            post(this::render);
+        }
     }
 
     /** The bar: drawn on a surface we own so it can opt out of captures. */
@@ -574,12 +918,24 @@ public final class OverlayView {
          * already redraws while the streak animates, so the clock ticks there.
          */
         private String liveMetrics() {
-            if (stepStartedAt <= 0) {
+            if (runStartedAt <= 0) {
+                // No run clock yet (provisioning reports none): the event's own text is
+                // all there is, and it is short by construction.
                 return frozenMetrics;
             }
-            long now = System.currentTimeMillis();
-            return ProgressText.timings(now - stepStartedAt,
-                    runStartedAt > 0 ? now - runStartedAt : 0);
+            return ProgressText.duration(System.currentTimeMillis() - runStartedAt);
+        }
+
+        /**
+         * The geometry the control is drawn with, so the stop window can be placed against
+         * the very same box instead of a second copy of the arithmetic.
+         */
+        Panel currentPanel() {
+            int width = getWidth();
+            if (width <= 0) {
+                return null;
+            }
+            return new Panel(width, systemInsetTop, density);
         }
 
         int measuredWidth() {
@@ -804,63 +1160,44 @@ public final class OverlayView {
 
         /**
          * The status card: state dot, what the agent is doing, which step, the step in
-         * words, and the timings — on two rows inside a centred card.
+         * words, and the timings — on two rows inside a fixed-size card.
          *
-         * It sits *below* the system status bar and is sized to its content. The previous
-         * version was a full-width slab at ~10dp from the top edge, i.e. behind the clock
-         * and the battery icons (the top inset it read was only ever logged), and wide
-         * enough to cover the app's own header underneath.
+         * It sits *below* the system status bar and is a constant box, so nothing on it
+         * moves while the text underneath it changes; the stop control is a view in its own
+         * window, positioned by {@link Panel}, so it lines up with the gap left for it here.
          */
         private void drawBar(Canvas canvas, int width, int height) {
-            float margin = 16 * density;
-            float pad = 13 * density;
+            float pad = Panel.PAD_DP * density;
             float dotSize = 7 * density;
             float dotGap = 8 * density;
-            float rowHeight = 19 * density;
-            float detailHeight = 17 * density;
-            float rowGap = 5 * density;
+            float rowHeight = Panel.ROW_HEIGHT_DP * density;
             float chipGap = 8 * density;
             boolean hasDetail = !detail.isEmpty();
 
-            // Size the card to its content: a one-word state ("Ready") becomes a small
-            // pill instead of a full-width slab, which is also what keeps it from covering
-            // more of the app underneath than it has to. Clamped, so a long step ellipsises
-            // rather than running off the screen.
-            String liveMetrics = liveMetrics();
-            float chipBox = stepChip.isEmpty() ? 0 : chipPaint.measureText(stepChip) + 14 * density;
-            float row1Needed = dotSize + dotGap
-                    + titlePaint.measureText(phase)
-                    + (chipBox > 0 ? chipGap + chipBox : 0)
-                    + (liveMetrics.isEmpty() ? 0 : 12 * density + metricsPaint.measureText(liveMetrics));
-            float contentWidth = Math.max(row1Needed,
-                    hasDetail ? detailPaint.measureText(detail) : 0);
-            float cardWidth = Math.min(
-                    Math.max(contentWidth + pad * 2, MIN_CARD_WIDTH_DP * density),
-                    Math.min(width - 2 * margin, MAX_CARD_WIDTH_DP * density));
-            float left = (width - cardWidth) / 2f;
-            float top = Math.max(systemInsetTop, MIN_TOP_INSET_DP * density) + 12 * density;
-            float cardHeight = pad * 2 + rowHeight + (hasDetail ? rowGap + detailHeight : 0);
-            RectF card = new RectF(left, top, left + cardWidth, top + cardHeight);
+            Panel panel = new Panel(width, systemInsetTop, density);
+            RectF card = new RectF(
+                    panel.left, panel.top, panel.left + panel.width, panel.top + panel.height);
 
             // Dark glass, rounded on every corner: the same language as the border streak.
             float corner = 16 * density;
-            Paint panel = new Paint(Paint.ANTI_ALIAS_FLAG);
-            panel.setShader(new LinearGradient(0, card.top, 0, card.bottom,
+            Paint panelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            panelPaint.setShader(new LinearGradient(0, card.top, 0, card.bottom,
                     0xF20E141C, 0xE60B0F15, Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(card, corner, corner, panel);
+            canvas.drawRoundRect(card, corner, corner, panelPaint);
             Paint hairline = new Paint(Paint.ANTI_ALIAS_FLAG);
             hairline.setStyle(Paint.Style.STROKE);
             hairline.setStrokeWidth(1.2f * density);
             hairline.setColor((BEAM_COLOR & 0x00FFFFFF) | 0x44 << 24);
             canvas.drawRoundRect(card, corner, corner, hairline);
 
-            float innerLeft = left + pad;
-            float innerRight = left + cardWidth - pad;
-            float centerY = top + pad + rowHeight / 2f;
+            float innerLeft = panel.innerLeft(density);
+            float innerRight = panel.textRight(density);
+            float centerY = panel.rowCenterY(density);
+            String liveMetrics = liveMetrics();
 
             // The timings are right-aligned, so they are measured first and everything on
             // that row fits beside them.
-            CharSequence metricsText = ellipsize(liveMetrics, metricsPaint, (cardWidth - 2 * pad) * 0.45f);
+            CharSequence metricsText = ellipsize(liveMetrics, metricsPaint, (innerRight - innerLeft) * 0.45f);
             float metricsWidth = metricsPaint.measureText(metricsText, 0, metricsText.length());
             float row1Right = innerRight - (metricsWidth > 0 ? metricsWidth + 12 * density : 0);
 
@@ -869,10 +1206,13 @@ public final class OverlayView {
             float phaseGap = chipWidth > 0 ? chipGap : 0;
             float textLeft = innerLeft + dotSize + dotGap;
             float phaseSpace = row1Right - textLeft - chipWidth - phaseGap;
-            CharSequence phaseText = ellipsize(phase, titlePaint, phaseSpace);
+            // While stopping, the label says so: the runner's own "stopped" line can be a
+            // second away, and until then the tap would look like it did nothing.
+            CharSequence phaseText = ellipsize(
+                    stopping ? ProgressText.phaseLabel("stopping") : phase, titlePaint, phaseSpace);
             float phaseWidth = titlePaint.measureText(phaseText, 0, phaseText.length());
 
-            int accent = stateColor();
+            int accent = stopping ? FAIL_COLOR : stateColor();
             Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
             halo.setColor((accent & 0x00FFFFFF) | 0x33 << 24);
             canvas.drawCircle(innerLeft + dotSize / 2f, centerY, dotSize, halo);
@@ -900,12 +1240,15 @@ public final class OverlayView {
                         centerY - centered(metricsPaint), metricsPaint);
             }
 
+            // The second row is drawn even when it is empty, so the card's height — and
+            // with it the stop control's position — never depends on the step text.
             if (hasDetail) {
-                CharSequence detailText = ellipsize(detail, detailPaint, cardWidth - 2 * pad);
-                float detailCenter = top + pad + rowHeight + rowGap + detailHeight / 2f;
+                CharSequence detailText = ellipsize(detail, detailPaint, card.width() - 2 * pad);
                 canvas.drawText(detailText, 0, detailText.length(), innerLeft,
-                        detailCenter - centered(detailPaint), detailPaint);
+                        panel.detailCenterY(density) - centered(detailPaint), detailPaint);
             }
+            // The stop control itself is a view in its own window, placed by Panel into the
+            // space this row leaves for it; nothing to draw here.
         }
 
         /** Baseline offset that centres one line of `paint` on a row's centre. */

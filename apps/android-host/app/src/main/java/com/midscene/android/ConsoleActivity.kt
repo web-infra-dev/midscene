@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
@@ -61,12 +62,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -116,6 +122,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -375,7 +382,7 @@ private fun Screen(
                 1 -> ScriptsScreen()
                 3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
                 4 -> DiagnosticsScreen(channelStatus, probing, onRetryBinding)
-                else -> RunScreen(channelStatus, onRetryBinding, onDiagnostics)
+                else -> RunScreen(channelStatus, onRetryBinding, onDiagnostics, onSettings)
             }
         }
     }
@@ -480,6 +487,7 @@ private fun RunScreen(
     channelStatus: ActiveExec.Status?,
     onRetryBinding: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -488,6 +496,17 @@ private fun RunScreen(
     var prompt by remember { mutableStateOf(SetupPrefs.lastInstruction(context)) }
     var busy by remember { mutableStateOf(AgentService.isBusy()) }
     var lastRun by remember { mutableStateOf(store.list().firstOrNull()) }
+    var recent by remember { mutableStateOf(SetupPrefs.recentInstructions(context)) }
+
+    // Read once per visit to this page: credentials are edited in Settings, and coming
+    // back to Run re-composes this screen, so the file is the current answer. The same
+    // question gates the Run button — an agent without a model key cannot do anything,
+    // and a Run that is enabled anyway is how "it just fails" gets reported.
+    val missing = remember {
+        ModelEnvFile.missingKeys(ShellRunner.readText(File(context.filesDir, "model.env")))
+    }
+    val modelReady = missing.isEmpty()
+    val runtimeReady = remember { Provisioner.runtimeInstalled(context) }
 
     DisposableEffect(Unit) {
         val listener = AgentService.LogListener { _ ->
@@ -503,6 +522,7 @@ private fun RunScreen(
     LaunchedEffect(busy) {
         if (!busy) {
             lastRun = store.list().firstOrNull()
+            recent = SetupPrefs.recentInstructions(context)
         }
     }
     LaunchedEffect(Unit) {
@@ -512,6 +532,27 @@ private fun RunScreen(
             if (actual != busy) {
                 busy = actual
             }
+        }
+    }
+
+    /**
+     * Start one instruction; the Run button and the recent list's "run again" are the
+     * same action, so they share it. Recording it here is what puts it in that list.
+     */
+    val startRun: (String) -> Unit = { instruction ->
+        val trimmed = instruction.trim()
+        if (trimmed.isNotEmpty()) {
+            focusManager.clearFocus()
+            SetupPrefs.rememberInstruction(context, trimmed)
+            recent = SetupPrefs.recentInstructions(context)
+            AgentService.start(
+                context,
+                AgentService.ACTION_RUN_PROMPT,
+                Intent().putExtra(AgentService.EXTRA_PROMPT, trimmed),
+            )
+            prompt = ""
+            busy = true
+            keyboard?.hide()
         }
     }
 
@@ -528,6 +569,14 @@ private fun RunScreen(
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // Before the input, because it explains the disabled Run button right below it.
+        // Nothing is drawn once everything is in place.
+        SetupGapsCard(
+            missingModelKeys = missing,
+            runtimeReady = runtimeReady,
+            busy = busy,
+            onOpenSettings = onOpenSettings,
         )
         Card(
             shape = MaterialTheme.shapes.medium,
@@ -569,19 +618,9 @@ private fun RunScreen(
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
-                        onClick = {
-                            focusManager.clearFocus()
-                            SetupPrefs.rememberInstruction(context, prompt.trim())
-                            AgentService.start(
-                                context,
-                                AgentService.ACTION_RUN_PROMPT,
-                                Intent().putExtra(AgentService.EXTRA_PROMPT, prompt.trim()),
-                            )
-                            prompt = ""
-                            busy = true
-                            keyboard?.hide()
-                        },
-                        enabled = prompt.isNotBlank() && !busy && channelStatus?.ready == true,
+                        onClick = { startRun(prompt) },
+                        enabled = prompt.isNotBlank() && !busy &&
+                            channelStatus?.ready == true && modelReady,
                         shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MidsceneColors.Brand,
@@ -593,15 +632,6 @@ private fun RunScreen(
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.run_start), fontWeight = FontWeight.SemiBold)
                     }
-                    OutlinedButton(
-                        onClick = {
-                            AgentService.start(context, AgentService.ACTION_STOP, null)
-                            busy = AgentService.isBusy()
-                        },
-                        enabled = busy,
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier.weight(0.6f),
-                    ) { Text(stringResource(R.string.run_stop)) }
                 }
             }
         }
@@ -613,8 +643,204 @@ private fun RunScreen(
                 onOpenDiagnostics = onOpenDiagnostics,
             )
         }
+        RecentInstructionsCard(
+            instructions = recent,
+            canRun = !busy && channelStatus?.ready == true && modelReady,
+            onRun = startRun,
+            onFill = { prompt = it },
+            onRemove = { instruction ->
+                SetupPrefs.forgetInstruction(context, instruction)
+                recent = SetupPrefs.recentInstructions(context)
+            },
+        )
         lastRun?.let { LastRunCard(it) { path, html -> openArtefact(context, path, html) } }
     }
+    }
+}
+
+/**
+ * What a run still needs, and the way to each fix.
+ *
+ * Shown only while something is missing: a home page that lists "everything is fine"
+ * every time is noise, and the things it lists are exactly the ones with no other
+ * affordance on this page (the shell channel has its own card below).
+ */
+@Composable
+private fun SetupGapsCard(
+    missingModelKeys: List<String>,
+    runtimeReady: Boolean,
+    busy: Boolean,
+    onOpenSettings: () -> Unit,
+) {
+    if (missingModelKeys.isEmpty() && runtimeReady) {
+        return
+    }
+    val context = LocalContext.current
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(stringResource(R.string.run_setup_title))
+            if (missingModelKeys.isNotEmpty()) {
+                SetupGapRow(
+                    text = stringResource(
+                        R.string.run_setup_model,
+                        missingModelKeys.joinToString(", "),
+                    ),
+                    actionLabel = stringResource(R.string.run_setup_open_settings),
+                    onAction = onOpenSettings,
+                )
+            }
+            if (!runtimeReady) {
+                SetupGapRow(
+                    text = stringResource(R.string.run_setup_runtime),
+                    actionLabel = stringResource(R.string.run_setup_install),
+                    onAction = {
+                        AgentService.start(context, AgentService.ACTION_PROVISION, null)
+                    },
+                    enabled = !busy,
+                )
+            }
+        }
+    }
+}
+
+/** One unfinished item: a warning dot, what is missing, and where to fix it. */
+@Composable
+private fun SetupGapRow(
+    text: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    enabled: Boolean = true,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(8.dp).clip(CircleShape).background(MidsceneColors.Error),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onAction, enabled = enabled) {
+            Text(actionLabel, fontSize = 12.sp)
+        }
+    }
+}
+
+/**
+ * The instructions this user has already run, newest first.
+ *
+ * Each row carries a popover rather than a single button: running it again is the
+ * common action, but reusing the text, copying it or dropping the row are the other
+ * three things one wants from a list that is only a convenience. Tapping the row
+ * itself puts the text back in the input, which is the non-destructive default.
+ */
+@Composable
+private fun RecentInstructionsCard(
+    instructions: List<String>,
+    canRun: Boolean,
+    onRun: (String) -> Unit,
+    onFill: (String) -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    if (instructions.isEmpty()) {
+        return
+    }
+    val clipboard = LocalClipboardManager.current
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(vertical = 12.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SectionLabel(stringResource(R.string.run_recent_label))
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    stringResource(R.string.run_recent_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            instructions.forEach { instruction ->
+                var menuOpen by remember(instruction) { mutableStateOf(false) }
+                Row(
+                    Modifier.fillMaxWidth()
+                        .clickable { onFill(instruction) }
+                        .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        instruction,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = stringResource(R.string.run_recent_actions),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.run_recent_run_again)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.PlayArrow,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                },
+                                enabled = canRun,
+                                onClick = {
+                                    menuOpen = false
+                                    onRun(instruction)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.run_recent_fill)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onFill(instruction)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.run_recent_copy)) },
+                                onClick = {
+                                    menuOpen = false
+                                    clipboard.setText(AnnotatedString(instruction))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.run_recent_remove)) },
+                                onClick = {
+                                    menuOpen = false
+                                    onRemove(instruction)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2084,8 +2310,15 @@ private enum class EnvStyle(@StringRes val labelRes: Int) {
 private fun ModelCredentialsCard() {
     val context = LocalContext.current
     val file = remember { File(context.filesDir, "model.env") }
+    val check = rememberConnectionCheck()
     var text by remember {
-        mutableStateOf(ShellRunner.readText(file).ifEmpty { ModelEnvFile.TEMPLATE })
+        // A file with no KEY=VALUE line holds no credentials, whatever comments it
+        // carries: show the current template rather than a comment block an older
+        // version wrote there, which is how a stale vendor example survives an upgrade.
+        val stored = ShellRunner.readText(file)
+        mutableStateOf(
+            if (ModelEnvFile.parse(stored).isEmpty()) ModelEnvFile.TEMPLATE else stored,
+        )
     }
     var style by remember { mutableStateOf(SetupPrefs.envStyle(context, EnvStyle.FORM)) }
     var apiKeyVisible by remember { mutableStateOf(false) }
@@ -2152,6 +2385,8 @@ private fun ModelCredentialsCard() {
 
         Spacer(Modifier.height(10.dp))
         CredentialsStatus(missing)
+        Spacer(Modifier.height(6.dp))
+        ModelConnectionCheck(check, text, enabled = !busy)
         if (busy) {
             Spacer(Modifier.height(4.dp))
             Text(
@@ -2172,6 +2407,12 @@ private fun ModelCredentialsCard() {
                     context.getString(R.string.model_saved_toast),
                     Toast.LENGTH_SHORT,
                 ).show()
+                // Saved configs are the ones worth a live request: whatever the form says,
+                // the answer comes from the endpoint. An incomplete one is not tested —
+                // "fill in all four values first" is what the status line already says.
+                if (ModelEnvFile.missingKeys(text).isEmpty()) {
+                    check.run(text)
+                }
             },
             if (style == EnvStyle.FORM) {
                 // In Form style the fields are the editor, so a pasted `.env` block is
@@ -2185,6 +2426,142 @@ private fun ModelCredentialsCard() {
                 stringResource(R.string.model_paste) to { clipboard.getText()?.text?.let { text = it } }
             },
         )
+    }
+}
+
+/**
+ * The connection test's state: the last outcome, whether one is in flight, and the config
+ * text it came from.
+ *
+ * A result belongs to the values it was produced from. Keeping that text is what makes
+ * editing the base URL after a passing test stop the form claiming the new one works —
+ * the answer to "does this configuration connect" is only ever about one configuration.
+ */
+private class ConnectionCheckState(
+    private val scope: kotlinx.coroutines.CoroutineScope,
+) {
+    var running by mutableStateOf(false)
+        private set
+
+    private var tested by mutableStateOf("")
+    private var outcome by mutableStateOf<ModelConnectionTest.Result?>(null)
+
+    /** The result for [text], or null when [text] is not what was tested. */
+    fun resultFor(text: String): ModelConnectionTest.Result? =
+        outcome?.takeIf { tested == text }
+
+    fun run(text: String) {
+        if (running) {
+            return
+        }
+        tested = text
+        outcome = null
+        running = true
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                ModelConnectionTest.run(ModelEnvFile.connection(text))
+            }
+            outcome = result
+            running = false
+        }
+    }
+}
+
+@Composable
+private fun rememberConnectionCheck(): ConnectionCheckState {
+    val scope = rememberCoroutineScope()
+    return remember { ConnectionCheckState(scope) }
+}
+
+/**
+ * The button that asks the endpoint whether the configuration works, and the answer.
+ *
+ * Costs one request with a small red image in it, which is the smallest thing that can
+ * tell a working vision endpoint from a key that is wrong, a model name the service does
+ * not serve, a base URL missing its `/v1`, or a model that cannot see images at all.
+ */
+@Composable
+private fun ModelConnectionCheck(
+    check: ConnectionCheckState,
+    text: String,
+    enabled: Boolean = true,
+) {
+    val result = check.resultFor(text)
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = { check.run(text) },
+            enabled = enabled && !check.running,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            Text(
+                stringResource(
+                    if (check.running) R.string.model_test_running else R.string.model_test_button,
+                ),
+                fontSize = 12.sp,
+                maxLines = 1,
+            )
+        }
+        if (result != null) {
+            Text(
+                if (result.ok) {
+                    stringResource(R.string.model_test_passed, result.detail, result.elapsedMs)
+                } else {
+                    stringResource(R.string.model_test_failed, connectionFailure(result))
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (result.ok) MidsceneColors.SuccessText else MidsceneColors.Error,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
+ * The failure as a sentence: what kind of refusal it was, plus whatever the service said.
+ *
+ * The network layer reports a [ModelConnectionTest.Failure] and the raw text; the wording
+ * lives here, where the user's language is known.
+ */
+@Composable
+private fun connectionFailure(result: ModelConnectionTest.Result): String {
+    val reason = when (result.failure) {
+        ModelConnectionTest.Failure.INCOMPLETE ->
+            stringResource(R.string.model_test_err_incomplete)
+        ModelConnectionTest.Failure.HOST ->
+            stringResource(R.string.model_test_err_host, result.detail)
+        ModelConnectionTest.Failure.TIMEOUT ->
+            stringResource(R.string.model_test_err_timeout, result.detail)
+        ModelConnectionTest.Failure.NETWORK ->
+            stringResource(R.string.model_test_err_network, result.detail)
+        ModelConnectionTest.Failure.AUTH ->
+            stringResource(R.string.model_test_err_auth, result.httpStatus)
+        ModelConnectionTest.Failure.NOT_FOUND ->
+            stringResource(R.string.model_test_err_not_found, result.httpStatus)
+        ModelConnectionTest.Failure.BAD_REQUEST ->
+            stringResource(R.string.model_test_err_bad_request, result.httpStatus)
+        ModelConnectionTest.Failure.HTTP ->
+            stringResource(R.string.model_test_err_http, result.httpStatus)
+        ModelConnectionTest.Failure.BODY ->
+            stringResource(R.string.model_test_err_body, result.detail)
+        ModelConnectionTest.Failure.EMPTY_REPLY ->
+            stringResource(R.string.model_test_err_empty_reply)
+        null -> ""
+    }
+    // The four status-based reasons carry no text of their own; the service's sentence is
+    // the part that says which key or model name to fix, so it is appended when there is one.
+    val detail = result.detail.trim()
+    val carriesDetail = result.failure == ModelConnectionTest.Failure.AUTH ||
+        result.failure == ModelConnectionTest.Failure.NOT_FOUND ||
+        result.failure == ModelConnectionTest.Failure.BAD_REQUEST ||
+        result.failure == ModelConnectionTest.Failure.HTTP
+    return if (carriesDetail && detail.isNotEmpty()) {
+        stringResource(R.string.model_test_reason_detail, reason, detail)
+    } else {
+        reason
     }
 }
 
@@ -2205,6 +2582,20 @@ private fun ModelEnvFields(
                 ModelEnvFile.MODEL_NAME -> R.string.model_placeholder_model_name
                 ModelEnvFile.MODEL_FAMILY -> R.string.model_placeholder_model_family
                 else -> 0
+            }
+            if (field.kind == ModelEnvFile.Field.Kind.CHOICE) {
+                ChoiceField(
+                    label = field.key,
+                    value = values[field.key] ?: "",
+                    choices = field.choices,
+                    placeholder = if (placeholderRes == 0) {
+                        field.placeholder
+                    } else {
+                        stringResource(placeholderRes)
+                    },
+                    onPick = { onChange(field.key, it) },
+                )
+                return@forEach
             }
             val trailing: (@Composable () -> Unit)? = if (!secret) {
                 null
@@ -2258,6 +2649,60 @@ private fun ModelEnvFields(
     }
 }
 
+/**
+ * A field whose value comes from a fixed list, opened as a dropdown.
+ *
+ * The model family is the reason this exists: the agent matches that value verbatim
+ * against the families it knows, so typed text can be accepted by this form and rejected
+ * by the agent at run time ([ModelEnvFile.FAMILY_VALUES] is kept in step with the agent's
+ * own list by a test). The menu is the same shape as the other rows — same label, same
+ * height — so the picker does not look like a different kind of question.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChoiceField(
+    label: String,
+    value: String,
+    choices: List<String>,
+    placeholder: String,
+    onPick: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            singleLine = true,
+            label = { Text(label, fontSize = 11.sp) },
+            placeholder = { Text(placeholder, fontSize = 12.sp) },
+            textStyle = MaterialTheme.typography.bodySmall,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            choices.forEach { choice ->
+                DropdownMenuItem(
+                    text = { Text(choice, fontSize = 13.sp) },
+                    onClick = {
+                        expanded = false
+                        onPick(choice)
+                    },
+                )
+            }
+        }
+    }
+}
+
 /** Live readiness line: the Form should not let a half-configured agent look done. */
 @Composable
 private fun CredentialsStatus(missing: List<String>) {
@@ -2279,7 +2724,7 @@ private fun CredentialsStatus(missing: List<String>) {
 
 // -------------------------------------------------------------- onboarding
 
-private const val STEP_COUNT = 4
+private const val STEP_COUNT = 5
 
 /**
  * First-run guide.
@@ -2289,8 +2734,10 @@ private const val STEP_COUNT = 4
  * never complete, and the guide has to offer the channel that does work instead
  * of sending the user back to a dialog that will refuse them.
  *
- * Overlay and battery come after the shell channel because neither is needed to
- * run a task — they only make a run nicer to watch and safer to leave alone.
+ * Model credentials are the second step because they are the other half of "this
+ * cannot run yet": a paired device with no model key fails every task, and the guide
+ * used to end without ever asking for one. The remaining steps only make a run nicer
+ * to watch and safer to leave alone, so they come after the two that are required.
  */
 @Composable
 private fun Onboarding(
@@ -2308,6 +2755,31 @@ private fun Onboarding(
     var pairingNote by remember { mutableStateOf(AdbPairing.lastResult) }
     val askForCode = rememberPairingCodeRequest()
     val lines = remember { mutableStateListOf<String>() }
+
+    // The credentials editor, live on this page: what the user types here is what the
+    // agent gets, and the hint below it says whether the three required keys are there.
+    // A file holding only comments is treated as no file: the guide shows the current
+    // template instead of a stale one the previous version left on disk.
+    val modelFile = remember { File(context.filesDir, "model.env") }
+    var modelText by remember {
+        val stored = ShellRunner.readText(modelFile)
+        mutableStateOf(
+            if (ModelEnvFile.parse(stored).isEmpty()) ModelEnvFile.TEMPLATE else stored,
+        )
+    }
+    var apiKeyVisible by remember { mutableStateOf(false) }
+    val modelMissing = remember(modelText) { ModelEnvFile.missingKeys(modelText) }
+    val modelCheck = rememberConnectionCheck()
+    /**
+     * Write the file when it differs from what is on disk. Called by Save and by every
+     * way out of this step: typing credentials and then tapping Next should not throw
+     * them away, which is exactly the "I filled it in and it still does not run" report.
+     */
+    val persistModel = {
+        if (ShellRunner.readText(modelFile) != modelText) {
+            modelFile.writeText(modelText)
+        }
+    }
 
     // Re-read the statuses whenever the user comes back from a system screen —
     // including the notification shade, which is where pairing is confirmed.
@@ -2445,10 +2917,58 @@ private fun Onboarding(
 
         StepCard(
             index = 2,
-            title = stringResource(R.string.onboarding_step2_title),
-            body = stringResource(R.string.onboarding_step2_body),
-            done = overlayReady,
+            title = stringResource(R.string.onboarding_model_title),
+            body = stringResource(R.string.onboarding_model_body),
+            // Filled in is not the same as working: the step is done once a real request to
+            // the endpoint has come back, which is the check the guide used to skip.
+            done = modelMissing.isEmpty() && modelCheck.resultFor(modelText)?.ok == true,
             current = step == 1,
+            actionLabel = stringResource(R.string.common_save),
+            // The fields are the step, so Save stays reachable even once the four keys
+            // are in: changing the model later would otherwise have nothing to commit it.
+            actionAlwaysVisible = true,
+            onAction = {
+                persistModel()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.model_saved_toast),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                if (modelMissing.isEmpty()) {
+                    modelCheck.run(modelText)
+                }
+            },
+            hint = when {
+                modelMissing.isNotEmpty() -> stringResource(
+                    R.string.onboarding_model_hint,
+                    modelMissing.joinToString(", "),
+                )
+                modelCheck.resultFor(modelText)?.ok == true -> stringResource(R.string.model_ready)
+                modelCheck.resultFor(modelText) != null ->
+                    stringResource(R.string.onboarding_model_hint_failed)
+                else -> stringResource(R.string.onboarding_model_hint_untested)
+            },
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ModelEnvFields(
+                        text = modelText,
+                        apiKeyVisible = apiKeyVisible,
+                        onToggleApiKey = { apiKeyVisible = !apiKeyVisible },
+                        onChange = { key, value ->
+                            modelText = ModelEnvFile.setValue(modelText, key, value)
+                        },
+                    )
+                    ModelConnectionCheck(modelCheck, modelText)
+                }
+            },
+        )
+
+        StepCard(
+            index = 3,
+            title = stringResource(R.string.onboarding_step_overlay_title),
+            body = stringResource(R.string.onboarding_step_overlay_body),
+            done = overlayReady,
+            current = step == 2,
             actionLabel = stringResource(R.string.onboarding_allow_overlay),
             onAction = { Overlay.requestPermission(context) },
             hint = if (overlayReady) {
@@ -2459,11 +2979,11 @@ private fun Onboarding(
         )
 
         StepCard(
-            index = 3,
-            title = stringResource(R.string.onboarding_step3_title),
-            body = stringResource(R.string.onboarding_step3_body),
+            index = 4,
+            title = stringResource(R.string.onboarding_step_battery_title),
+            body = stringResource(R.string.onboarding_step_battery_body),
             done = batteryReady,
-            current = step == 2,
+            current = step == 3,
             actionLabel = stringResource(R.string.onboarding_exempt_battery),
             onAction = { Battery.requestExemption(context) },
             hint = if (batteryReady) {
@@ -2474,11 +2994,11 @@ private fun Onboarding(
         )
 
         StepCard(
-            index = 4,
-            title = stringResource(R.string.onboarding_step4_title),
-            body = stringResource(R.string.onboarding_step4_body),
+            index = 5,
+            title = stringResource(R.string.onboarding_step_runtime_title),
+            body = stringResource(R.string.onboarding_step_runtime_body),
             done = runtimeReady,
-            current = step == 3,
+            current = step == 4,
             actionLabel = if (runtimeReady) {
                 stringResource(R.string.onboarding_reprovision)
             } else {
@@ -2513,7 +3033,12 @@ private fun Onboarding(
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
-                onClick = { if (step < STEP_COUNT) step++ else onDone() },
+                onClick = {
+                    // Leaving this page keeps what was typed on it, whichever way the
+                    // user leaves: Next, Start, or Skip.
+                    persistModel()
+                    if (step < STEP_COUNT - 1) step++ else onDone()
+                },
                 shape = MaterialTheme.shapes.small,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MidsceneColors.Brand,
@@ -2534,7 +3059,13 @@ private fun Onboarding(
                 ) { Text(stringResource(R.string.common_back)) }
             }
         }
-        TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = {
+                persistModel()
+                onDone()
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text(stringResource(R.string.onboarding_skip), fontSize = 12.sp)
         }
     }
@@ -2550,6 +3081,17 @@ private fun StepCard(
     actionLabel: String,
     onAction: () -> Unit,
     hint: String,
+    /**
+     * A step whose work is a form rather than a button: the fields live here, between
+     * the explanation and the action row.
+     */
+    content: (@Composable () -> Unit)? = null,
+    /**
+     * Keep the action visible after the step is done. Steps that grant a permission
+     * have nothing left to do once granted; a step that edits a file still has to be
+     * savable when the user comes back to change it.
+     */
+    actionAlwaysVisible: Boolean = false,
 ) {
     Card(
         shape = MaterialTheme.shapes.medium,
@@ -2586,6 +3128,10 @@ private fun StepCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (content != null) {
+                Spacer(Modifier.height(12.dp))
+                content()
+            }
             Spacer(Modifier.height(10.dp))
             Row(
                 Modifier.fillMaxWidth(),
@@ -2602,7 +3148,7 @@ private fun StepCard(
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                if (!done) {
+                if (!done || actionAlwaysVisible) {
                     Button(
                         onClick = onAction,
                         shape = MaterialTheme.shapes.small,
@@ -2734,17 +3280,38 @@ private object SetupPrefs {
         }
         val prefs = context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
         prefs.edit().putString(INSTRUCTION_KEY, prompt).apply()
-        val recent = recentInstructions(context).filter { it != prompt }.toMutableList()
-        recent.add(0, prompt)
-        prefs.edit().putString(RECENT_KEY, recent.take(8).joinToString("\n")).apply()
+        prefs.edit()
+            .putString(
+                RECENT_KEY,
+                RecentInstructions.encode(
+                    RecentInstructions.add(recentInstructions(context), prompt),
+                ),
+            )
+            .apply()
     }
 
+    /**
+     * The instructions already run, newest first. The Run page offers them back with a
+     * popover, so this is a list the user reads, not just the last thing typed.
+     */
     fun recentInstructions(context: android.content.Context): List<String> =
+        RecentInstructions.decode(
+            context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+                .getString(RECENT_KEY, "") ?: "",
+        )
+
+    /** Drop one row from that list; the runs it came from are untouched. */
+    fun forgetInstruction(context: android.content.Context, prompt: String) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
-            .getString(RECENT_KEY, "")
-            ?.split("\n")
-            ?.filter { it.isNotBlank() }
-            ?: emptyList()
+            .edit()
+            .putString(
+                RECENT_KEY,
+                RecentInstructions.encode(
+                    RecentInstructions.remove(recentInstructions(context), prompt),
+                ),
+            )
+            .apply()
+    }
 
     fun onboarded(context: android.content.Context): Boolean =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)

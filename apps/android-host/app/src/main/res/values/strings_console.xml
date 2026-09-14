@@ -16,15 +16,29 @@
 
     <!-- Run -->
     <string name="run_idle_hint">Describe what you want your device to do</string>
-    <string name="run_busy_hint">Running · Stop at any time</string>
+    <string name="run_busy_hint">Running · interrupt it from the floating panel</string>
     <!-- The Run page renders these two, and the self-check script is generated from them. -->
     <string name="run_instruction_label">INSTRUCTION</string>
     <string name="run_instruction_placeholder">For example: Open Settings and search for Wi-Fi</string>
     <string name="run_instruction_input">Instruction input</string>
     <string name="run_start">Run</string>
-    <string name="run_stop">Stop</string>
     <string name="run_last_succeeded">Last run succeeded</string>
     <string name="run_last_failed">Last run reported errors</string>
+    <!-- Shown on the Run page only while something a run needs is still missing. -->
+    <string name="run_setup_title">FINISH THE SETUP</string>
+    <!-- %1$s the model keys that are still empty. -->
+    <string name="run_setup_model">Model credentials — still missing %1$s</string>
+    <string name="run_setup_open_settings">Open settings</string>
+    <string name="run_setup_runtime">The agent runtime is not installed on this device yet.</string>
+    <string name="run_setup_install">Install</string>
+    <!-- Instructions already run, offered back with a per-row popover. -->
+    <string name="run_recent_label">RECENT INSTRUCTIONS</string>
+    <string name="run_recent_hint">Tap to reuse</string>
+    <string name="run_recent_actions">Actions for this instruction</string>
+    <string name="run_recent_run_again">Run again</string>
+    <string name="run_recent_fill">Put back in the input</string>
+    <string name="run_recent_copy">Copy</string>
+    <string name="run_recent_remove">Remove from list</string>
     <!-- %1$s time · %2$d duration · %3$d done tasks / %4$d total tasks. -->
     <plurals name="run_summary">
         <item quantity="one">%1$s · %2$ds · %3$d/%4$d task</item>
@@ -136,7 +150,7 @@
     <string name="settings_open_after_run">Open app after a run</string>
     <string name="settings_open_after_run_hint">Brings Midscene forward when the agent finishes</string>
     <string name="settings_floating_progress">Floating progress</string>
-    <string name="settings_floating_progress_hint">Shows what the agent is doing; hidden during screenshots</string>
+    <string name="settings_floating_progress_hint">Shows what the agent is doing and carries the stop control; hidden during screenshots</string>
     <string name="settings_device_setup">DEVICE &amp; SETUP</string>
     <string name="settings_run_setup_again">Setup guide</string>
     <!-- Reset: back to a fresh install, then the guide above runs again. -->
@@ -159,16 +173,38 @@
     <string name="model_paste">Paste</string>
     <string name="model_hide_key">Hide API key</string>
     <string name="model_show_key">Show API key</string>
-    <string name="model_ready">Ready: model, base URL and API key are set.</string>
+    <string name="model_ready">Ready: base URL, API key, model name and family are set.</string>
     <string name="model_missing">Still missing: %1$s</string>
-    <string name="model_placeholder_base_url">https://dashscope.aliyuncs.com/compatible-mode/v1</string>
-    <string name="model_placeholder_api_key">sk-...</string>
-    <string name="model_placeholder_model_name">qwen3-vl-plus</string>
-    <string name="model_placeholder_model_family">qwen3-vl</string>
+    <!-- Placeholders describe what the field wants. No vendor's endpoint or model name is
+         held up as the example: every OpenAI-compatible service works, and naming one of
+         them reads as a requirement. -->
+    <string name="model_placeholder_base_url">OpenAI-compatible endpoint, usually ending in /v1</string>
+    <string name="model_placeholder_api_key">The API key your model service issued</string>
+    <string name="model_placeholder_model_name">Model name, exactly as your service lists it</string>
+    <string name="model_placeholder_model_family">Choose the family your model belongs to (sets UI localisation)</string>
+
+    <!-- Connection test: one real request to the configured endpoint. -->
+    <string name="model_test_button">Test connection</string>
+    <string name="model_test_running">Testing…</string>
+    <!-- %1$s the model's reply · %2$d how long the round trip took. -->
+    <string name="model_test_passed">Connected · the model answered “%1$s” in %2$d ms</string>
+    <string name="model_test_failed">Not connected — %1$s</string>
+    <string name="model_test_err_incomplete">fill in all four values first</string>
+    <string name="model_test_err_host">the address does not resolve (%1$s)</string>
+    <string name="model_test_err_timeout">the endpoint did not answer in time (%1$s)</string>
+    <string name="model_test_err_network">could not reach the endpoint (%1$s)</string>
+    <string name="model_test_err_auth">the API key was rejected (HTTP %1$d)</string>
+    <string name="model_test_err_not_found">no such endpoint or model name (HTTP %1$d)</string>
+    <string name="model_test_err_bad_request">the service rejected the request (HTTP %1$d)</string>
+    <string name="model_test_err_http">HTTP %1$d</string>
+    <string name="model_test_err_body">the response was not a chat completion: %1$s</string>
+    <string name="model_test_err_empty_reply">the model answered with nothing, which a vision model should not do</string>
+    <!-- %1$s the reason above · %2$s the service's own error text. -->
+    <string name="model_test_reason_detail">%1$s: %2$s</string>
 
     <!-- Onboarding -->
     <string name="onboarding_welcome">Welcome to Midscene</string>
-    <string name="onboarding_welcome_body">Four steps and the device runs tasks on its own.</string>
+    <string name="onboarding_welcome_body">Five steps and the device runs tasks on its own.</string>
     <string name="onboarding_control_label">CONTROL METHOD</string>
     <string name="onboarding_adb_body">Midscene pairs with this device\'s adb over wireless debugging — nothing extra to install.</string>
     <string name="onboarding_shizuku_body">Midscene gets shell access through Shizuku. Install and start Shizuku first.</string>
@@ -183,18 +219,24 @@
     <string name="onboarding_hint_not_connected">Not connected yet</string>
     <string name="onboarding_hint_shizuku_not_running">Shizuku is not running yet</string>
     <string name="onboarding_hint_waiting">Waiting for your permission</string>
-    <string name="onboarding_step2_title">Allow the progress bubble</string>
-    <string name="onboarding_step2_body">A floating pill shows what the agent is doing. It hides during screenshots, so reports stay clean.</string>
+    <string name="onboarding_model_title">Fill in the model credentials</string>
+    <string name="onboarding_model_body">The agent runs on your own model endpoint: an OpenAI-compatible vision model. All four values are needed — the family says how to ask that model for element locations, and is picked from the list. They stay on this device and are injected into the agent process, never into a script.</string>
+    <!-- %1$s the model keys that are still empty. -->
+    <string name="onboarding_model_hint">Still missing %1$s</string>
+    <string name="onboarding_model_hint_untested">Values are in — run the connection test</string>
+    <string name="onboarding_model_hint_failed">The connection test did not pass — see above</string>
+    <string name="onboarding_step_overlay_title">Allow the progress bubble</string>
+    <string name="onboarding_step_overlay_body">A floating pill shows what the agent is doing. It hides during screenshots, so reports stay clean.</string>
     <string name="onboarding_allow_overlay">Allow overlay</string>
     <string name="onboarding_hint_granted">Granted</string>
     <string name="onboarding_hint_not_granted">Not granted yet</string>
-    <string name="onboarding_step3_title">Keep long tasks alive</string>
-    <string name="onboarding_step3_body">Exempt Midscene from battery optimisation so a run survives a locked screen.</string>
+    <string name="onboarding_step_battery_title">Keep long tasks alive</string>
+    <string name="onboarding_step_battery_body">Exempt Midscene from battery optimisation so a run survives a locked screen.</string>
     <string name="onboarding_exempt_battery">Exempt from battery limits</string>
     <string name="onboarding_hint_exempt">Exempt</string>
     <string name="onboarding_hint_still_optimised">Still optimised</string>
-    <string name="onboarding_step4_title">Install the agent runtime</string>
-    <string name="onboarding_step4_body">Unpacks Node, the Midscene agent and the input helper onto the device.</string>
+    <string name="onboarding_step_runtime_title">Install the agent runtime</string>
+    <string name="onboarding_step_runtime_body">Unpacks Node, the Midscene agent and the input helper onto the device.</string>
     <string name="onboarding_reprovision">Re-provision</string>
     <string name="onboarding_install_now">Install now</string>
     <string name="onboarding_hint_needs_step1">Needs step 1 first</string>

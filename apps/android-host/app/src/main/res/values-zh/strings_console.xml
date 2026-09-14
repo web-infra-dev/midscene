@@ -16,15 +16,29 @@
 
     <!-- 运行 -->
     <string name="run_idle_hint">描述你想让设备做什么</string>
-    <string name="run_busy_hint">运行中 · 可随时停止</string>
+    <string name="run_busy_hint">运行中 · 在悬浮面板上可随时中断</string>
     <!-- Run 页显示这两条，自检脚本也由它们生成。 -->
     <string name="run_instruction_label">指令</string>
     <string name="run_instruction_placeholder">例如：打开设置并搜索 Wi-Fi</string>
     <string name="run_instruction_input">指令输入框</string>
     <string name="run_start">运行</string>
-    <string name="run_stop">停止</string>
     <string name="run_last_succeeded">上次运行成功</string>
     <string name="run_last_failed">上次运行发现错误</string>
+    <!-- 只在运行还缺东西时出现在运行页。 -->
+    <string name="run_setup_title">还没配置完</string>
+    <!-- %1$s 还空着的模型配置项。 -->
+    <string name="run_setup_model">模型配置还缺 %1$s</string>
+    <string name="run_setup_open_settings">去设置</string>
+    <string name="run_setup_runtime">这台设备还没安装 Agent 运行环境。</string>
+    <string name="run_setup_install">安装</string>
+    <!-- 已运行过的指令，每行带一个 popover。 -->
+    <string name="run_recent_label">最近执行过的指令</string>
+    <string name="run_recent_hint">点一下填回输入框</string>
+    <string name="run_recent_actions">这条指令的操作</string>
+    <string name="run_recent_run_again">再执行一次</string>
+    <string name="run_recent_fill">填回输入框</string>
+    <string name="run_recent_copy">复制</string>
+    <string name="run_recent_remove">从列表移除</string>
     <!-- %1$s 时间 · %2$d 耗时 · %3$d 已完成任务 / %4$d 任务总数。 -->
     <plurals name="run_summary">
         <item quantity="other">%1$s · %2$ds · %3$d/%4$d 个任务</item>
@@ -132,7 +146,7 @@
     <string name="settings_open_after_run">运行结束后返回应用</string>
     <string name="settings_open_after_run_hint">Agent 执行完成后把 Midscene 切到前台</string>
     <string name="settings_floating_progress">悬浮进度</string>
-    <string name="settings_floating_progress_hint">显示 Agent 正在做什么；截图时隐藏</string>
+    <string name="settings_floating_progress_hint">显示 Agent 正在做什么，中断运行也在这里；截图时隐藏</string>
     <string name="settings_device_setup">设备与初始化</string>
     <string name="settings_run_setup_again">初始设置</string>
     <!-- 重置：回到全新安装状态，再走上面的初始设置。 -->
@@ -155,16 +169,37 @@
     <string name="model_paste">粘贴</string>
     <string name="model_hide_key">隐藏 API Key</string>
     <string name="model_show_key">显示 API Key</string>
-    <string name="model_ready">已就绪：模型、Base URL、API Key 均已配置。</string>
+    <string name="model_ready">已就绪：Base URL、API Key、模型名、模型家族均已配置。</string>
     <string name="model_missing">还缺少：%1$s</string>
-    <string name="model_placeholder_base_url">https://dashscope.aliyuncs.com/compatible-mode/v1</string>
-    <string name="model_placeholder_api_key">sk-...</string>
-    <string name="model_placeholder_model_name">qwen3-vl-plus</string>
-    <string name="model_placeholder_model_family">qwen3-vl</string>
+    <!-- 占位文案只说明这一项要填什么，不拿某一家服务商当范例：任何 OpenAI 兼容服务都能用，
+         只举一家的地址或模型名，读起来像是必须用那一家。 -->
+    <string name="model_placeholder_base_url">OpenAI 兼容的接口地址，一般以 /v1 结尾</string>
+    <string name="model_placeholder_api_key">模型服务提供给你的 API Key</string>
+    <string name="model_placeholder_model_name">模型名称，按服务商文档原样填写</string>
+    <string name="model_placeholder_model_family">选择所用模型所属的家族（决定界面定位方式）</string>
+
+    <!-- 连接测试：真的朝配置的接口发一次请求。 -->
+    <string name="model_test_button">测试连接</string>
+    <string name="model_test_running">测试中…</string>
+    <!-- %1$s 模型回复 · %2$d 往返耗时。 -->
+    <string name="model_test_passed">连接正常 · 模型回复「%1$s」，耗时 %2$d ms</string>
+    <string name="model_test_failed">连接失败 —— %1$s</string>
+    <string name="model_test_err_incomplete">请先把四项配置填完</string>
+    <string name="model_test_err_host">这个地址解析不了（%1$s）</string>
+    <string name="model_test_err_timeout">接口没有在超时前响应（%1$s）</string>
+    <string name="model_test_err_network">连不上这个地址（%1$s）</string>
+    <string name="model_test_err_auth">API Key 被拒绝（HTTP %1$d）</string>
+    <string name="model_test_err_not_found">接口地址或模型名不存在（HTTP %1$d）</string>
+    <string name="model_test_err_bad_request">服务拒绝了这次请求（HTTP %1$d）</string>
+    <string name="model_test_err_http">HTTP %1$d</string>
+    <string name="model_test_err_body">返回的内容不是 chat completion：%1$s</string>
+    <string name="model_test_err_empty_reply">模型什么也没返回，视觉模型不该如此</string>
+    <!-- %1$s 上面的原因 · %2$s 服务返回的原文。 -->
+    <string name="model_test_reason_detail">%1$s：%2$s</string>
 
     <!-- 首次使用引导 -->
     <string name="onboarding_welcome">欢迎使用 Midscene</string>
-    <string name="onboarding_welcome_body">四步设置，设备即可自己执行任务。</string>
+    <string name="onboarding_welcome_body">五步设置，设备即可自己执行任务。</string>
     <string name="onboarding_control_label">控制方式</string>
     <string name="onboarding_adb_body">Midscene 通过无线调试与本机自带的 adb 配对。无需额外安装组件，也不需要系统授予权限。</string>
     <string name="onboarding_shizuku_body">Midscene 通过 Shizuku 获取 shell 权限，请先安装并启动 Shizuku。</string>
@@ -179,18 +214,24 @@
     <string name="onboarding_hint_not_connected">尚未连接</string>
     <string name="onboarding_hint_shizuku_not_running">Shizuku 尚未运行</string>
     <string name="onboarding_hint_waiting">等待你的授权</string>
-    <string name="onboarding_step2_title">允许显示进度悬浮窗</string>
-    <string name="onboarding_step2_body">悬浮胶囊显示 Agent 正在做什么，截图时自动隐藏，不会进报告。</string>
+    <string name="onboarding_model_title">填写模型配置</string>
+    <string name="onboarding_model_body">Agent 跑在你自己的模型服务上：需要一个 OpenAI 兼容的视觉模型，四项都填好设备才算真的能用；模型家族决定它按哪种方式做界面定位，从列表里选。配置只保存在本机，运行时注入 Agent 进程，不会写进脚本。</string>
+    <!-- %1$s 还空着的模型配置项。 -->
+    <string name="onboarding_model_hint">还缺 %1$s</string>
+    <string name="onboarding_model_hint_untested">四项已填好，点「测试连接」验证一下</string>
+    <string name="onboarding_model_hint_failed">连接测试没通过，原因见上方</string>
+    <string name="onboarding_step_overlay_title">允许显示进度悬浮窗</string>
+    <string name="onboarding_step_overlay_body">悬浮胶囊显示 Agent 正在做什么，截图时自动隐藏，不会进报告。</string>
     <string name="onboarding_allow_overlay">允许悬浮窗</string>
     <string name="onboarding_hint_granted">已授权</string>
     <string name="onboarding_hint_not_granted">尚未授权</string>
-    <string name="onboarding_step3_title">让长任务持续运行</string>
-    <string name="onboarding_step3_body">加入电池优化白名单，息屏或后台时运行也能继续。</string>
+    <string name="onboarding_step_battery_title">让长任务持续运行</string>
+    <string name="onboarding_step_battery_body">加入电池优化白名单，息屏或后台时运行也能继续。</string>
     <string name="onboarding_exempt_battery">忽略电池限制</string>
     <string name="onboarding_hint_exempt">已豁免</string>
     <string name="onboarding_hint_still_optimised">仍受电池优化限制</string>
-    <string name="onboarding_step4_title">安装 Agent 运行环境</string>
-    <string name="onboarding_step4_body">把 Node、Midscene Agent 和输入辅助程序解压到设备上。</string>
+    <string name="onboarding_step_runtime_title">安装 Agent 运行环境</string>
+    <string name="onboarding_step_runtime_body">把 Node、Midscene Agent 和输入辅助程序解压到设备上。</string>
     <string name="onboarding_reprovision">重新初始化</string>
     <string name="onboarding_install_now">立即安装</string>
     <string name="onboarding_hint_needs_step1">需先完成第 1 步</string>
