@@ -557,6 +557,15 @@ const locateActionNode = (
 ) =>
   defineAgentActionNode({
     method,
+    description: {
+      aiHover: 'Locate and hover over an element with a Midscene UI Agent.',
+      aiDoubleClick:
+        'Locate and double-click an element with a Midscene UI Agent.',
+      aiRightClick:
+        'Locate and right-click an element with a Midscene UI Agent.',
+      aiClearInput:
+        'Locate an input element and clear its value with a Midscene UI Agent.',
+    }[method],
     stringInputKey: 'prompt',
     inputSchema: aiTapInputSchema,
     toArgs: (input) => [input.prompt, input.options],
@@ -572,11 +581,15 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   locateActionNode('aiClearInput'),
   defineAgentActionNode({
     method: 'aiInput',
+    description:
+      'Locate an input element and enter a value with a Midscene UI Agent.',
     inputSchema: aiInputInputSchema,
     toArgs: (input) => [input.prompt, { ...input.options, value: input.value }],
   }),
   defineAgentActionNode({
     method: 'aiKeyboardPress',
+    description:
+      'Press a key or key combination, optionally targeting a located element.',
     stringInputKey: 'keyName',
     inputSchema: aiKeyboardPressInputSchema,
     toArgs: (input) => [
@@ -586,12 +599,16 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'aiScroll',
+    description:
+      'Scroll the page or a located region with a Midscene UI Agent.',
     stringInputKey: 'prompt',
     inputSchema: aiScrollInputSchema,
     toArgs: (input) => [input.prompt, { ...input.options }],
   }),
   defineAgentActionNode({
     method: 'aiPinch',
+    description:
+      'Perform a pinch-in or pinch-out gesture with a Midscene UI Agent.',
     inputSchema: aiPinchInputSchema,
     toArgs: (input) => [
       input.prompt,
@@ -600,6 +617,7 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'aiLongPress',
+    description: 'Locate and long-press an element with a Midscene UI Agent.',
     stringInputKey: 'prompt',
     inputSchema: aiLongPressInputSchema,
     toArgs: (input) => [input.prompt, input.options],
@@ -607,6 +625,8 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   defineAgentActionNode({
     method: 'callActionInActionSpace',
     name: 'aiDragAndDrop',
+    description:
+      'Locate source and destination elements, then drag the source to the destination.',
     inputSchema: aiDragAndDropInputSchema,
     toArgs: (input) => [
       'DragAndDrop',
@@ -618,6 +638,8 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'aiLocate',
+    description:
+      'Locate an element from a natural-language description and store the result.',
     stringInputKey: 'prompt',
     inputSchema: aiTapInputSchema,
     toArgs: (input, context) => [
@@ -628,6 +650,8 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'aiQuery',
+    description:
+      'Extract structured data from the current interface and store the result.',
     stringInputKey: 'prompt',
     inputSchema: aiQueryInputSchema,
     toArgs: (input, context) => [
@@ -638,6 +662,7 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'aiWaitFor',
+    description: 'Wait until a natural-language condition is satisfied.',
     stringInputKey: 'prompt',
     inputSchema: aiWaitForInputSchema,
     toArgs: (input, context) => [
@@ -648,6 +673,8 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   defineAgentActionNode({
     method: 'evaluateJavaScript',
     name: 'javascript',
+    description:
+      'Evaluate JavaScript in the current interface and store the result.',
     stringInputKey: 'script',
     inputSchema: javascriptInputSchema,
     toArgs: (input) => [input.script],
@@ -655,6 +682,8 @@ const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
   }),
   defineAgentActionNode({
     method: 'runGherkinScenario',
+    description:
+      'Execute a Gherkin scenario with the current Midscene UI Agent.',
     stringInputKey: 'scenario',
     inputSchema: runGherkinScenarioInputSchema,
     toArgs: (input, context) => [
@@ -710,6 +739,8 @@ export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeD
   [
     {
       name: 'sleep',
+      description:
+        'Wait for a fixed number of milliseconds while honoring cancellation.',
       inputSchema: z.strictObject({ ms: z.number().positive() }),
       async execute(_agent, input, { signal }) {
         signal.throwIfAborted();

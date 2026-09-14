@@ -63,6 +63,14 @@ describe('Agent Test Runner Node definitions', () => {
     ]);
   });
 
+  it('documents every common Agent Node', () => {
+    expect(
+      commonAgentTestRunnerNodeDefinitions.filter(
+        (definition) => !definition.description?.trim(),
+      ),
+    ).toEqual([]);
+  });
+
   it('preserves explicit empty context overrides for every AI node', async () => {
     for (const definition of commonAgentTestRunnerNodeDefinitions) {
       if (
