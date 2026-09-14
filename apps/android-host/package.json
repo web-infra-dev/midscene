@@ -13,6 +13,8 @@
     "test": "node --test scripts/check-multi-user.test.mjs",
     "test:android": "./gradlew :app:testDebugUnitTest",
     "install": "adb install -r app/build/outputs/apk/debug/app-debug.apk",
+    "dist:debug": "./gradlew :app:distDebug",
+    "dist:release": "./gradlew :app:distRelease",
     "bootstrap": "./scripts/adb-bootstrap.sh"
   }
 }

@@ -45,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.filled.ViewSidebar
 import androidx.compose.material.icons.filled.Bolt
@@ -294,8 +295,10 @@ private fun ConsoleShell(
             }
             Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                 onSettings = { tab = 3 },
-                onBack = { tab = if (tab == 4) 3 else 0 },
+                // Diagnostics and About are pages *of* Settings, so back goes there.
+                onBack = { tab = if (tab >= 4) 3 else 0 },
                 onDiagnostics = { tab = 4 },
+                onAbout = { tab = 5 },
                 channelStatus = channelStatus,
                 probing = probing,
                 onRetryBinding = retryBinding)
@@ -305,8 +308,9 @@ private fun ConsoleShell(
             Box(Modifier.weight(1f)) {
                 Screen(tab, dark, onDarkChange, reportView, listHidden, toggleList,
                     onSettings = { tab = 3 },
-                    onBack = { tab = if (tab == 4) 3 else 0 },
+                    onBack = { tab = if (tab >= 4) 3 else 0 },
                     onDiagnostics = { tab = 4 },
+                    onAbout = { tab = 5 },
                     channelStatus = channelStatus,
                     probing = probing,
                     onRetryBinding = retryBinding)
@@ -343,6 +347,7 @@ private fun Screen(
     onSettings: () -> Unit,
     onBack: () -> Unit,
     onDiagnostics: () -> Unit,
+    onAbout: () -> Unit,
     channelStatus: ActiveExec.Status?,
     probing: Boolean,
     onRetryBinding: () -> Unit,
@@ -360,6 +365,7 @@ private fun Screen(
                 when (tab) {
                     3 -> R.string.settings_title
                     4 -> R.string.diagnostics_title
+                    5 -> R.string.about_title
                     else -> R.string.app_name
                 },
             ),
@@ -380,8 +386,9 @@ private fun Screen(
         Box(Modifier.weight(1f)) {
             when (tab) {
                 1 -> ScriptsScreen()
-                3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
+                3 -> SettingsScreen(dark, onDarkChange, onDiagnostics, onAbout)
                 4 -> DiagnosticsScreen(channelStatus, probing, onRetryBinding)
+                5 -> AboutScreen()
                 else -> RunScreen(channelStatus, onRetryBinding, onDiagnostics, onSettings)
             }
         }
@@ -2123,10 +2130,171 @@ private fun ActionRow(enabled: Boolean = true, vararg actions: Pair<String, () -
     }
 }
 
+// ------------------------------------------------------------------- about
+
+/**
+ * What this install is.
+ *
+ * A page rather than a row in Settings because every value on it is something a bug
+ * report or a screenshot has to quote — the version *and* the build number (the same two
+ * that name the packaged APK), when it was built, which agent bundle it carries, and what
+ * it is running on. The copy button exists for the same reason: the alternative is a user
+ * retyping four identifiers into a chat.
+ */
+@Composable
+private fun AboutScreen() {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val runtimeInstalled = remember { Provisioner.runtimeInstalled(context) }
+    val bundle = remember { Provisioner.bundleStamp(context) }
+    val versionLine = stringResource(
+        R.string.about_version_line,
+        BuildConfig.VERSION_NAME,
+        BuildConfig.BUILD_NUMBER,
+    )
+    val buildType = stringResource(
+        if (BuildConfig.DEBUG) R.string.about_build_debug else R.string.about_build_release,
+    )
+    val channel = stringResource(
+        if (ActiveExec.channel(context) == ActiveExec.CHANNEL_SHIZUKU) {
+            R.string.channel_shizuku
+        } else {
+            R.string.channel_this_device
+        },
+    )
+    // Not named `android`: that shadows the package for every line below it.
+    val androidVersion = stringResource(
+        R.string.about_android_version,
+        android.os.Build.VERSION.RELEASE,
+        android.os.Build.VERSION.SDK_INT,
+    )
+    val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+        ?: stringResource(R.string.about_unknown)
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        DiagnosticsCard(stringResource(R.string.about_build)) {
+            AboutRow(stringResource(R.string.about_version), versionLine)
+            AboutRow(stringResource(R.string.about_build_time), BuildConfig.BUILD_TIME)
+            AboutRow(stringResource(R.string.about_build_type), buildType)
+            AboutRow(stringResource(R.string.about_package), context.packageName)
+        }
+
+        DiagnosticsCard(stringResource(R.string.about_runtime)) {
+            AboutRow(
+                stringResource(R.string.about_runtime_state),
+                stringResource(
+                    if (runtimeInstalled) R.string.about_runtime_installed
+                    else R.string.about_runtime_missing,
+                ),
+                ready = runtimeInstalled,
+            )
+            AboutRow(
+                stringResource(R.string.about_bundle),
+                bundle.ifEmpty { stringResource(R.string.about_unknown) },
+            )
+            AboutRow(stringResource(R.string.about_channel), channel)
+        }
+
+        DiagnosticsCard(stringResource(R.string.about_device)) {
+            AboutRow(stringResource(R.string.about_device_model), android.os.Build.MODEL)
+            AboutRow(stringResource(R.string.about_android), androidVersion)
+            AboutRow(stringResource(R.string.about_abi), abi)
+        }
+
+        DiagnosticsCard(stringResource(R.string.about_project)) {
+            Row(
+                Modifier.fillMaxWidth().clickable { openHomepage(context) }
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.about_homepage),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    HOMEPAGE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MidsceneColors.Brand,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            ActionRow(
+                enabled = true,
+                stringResource(R.string.about_copy) to {
+                    val runtimeText = if (runtimeInstalled) "installed" else "missing"
+                    clipboard.setText(
+                        AnnotatedString(
+                            listOf(
+                                "${context.getString(R.string.about_app_name)} "
+                                        + "${BuildConfig.VERSION_NAME} (build ${BuildConfig.BUILD_NUMBER})",
+                                "built ${BuildConfig.BUILD_TIME} ($buildType)",
+                                "package ${context.packageName}",
+                                "android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})",
+                                "device ${android.os.Build.MODEL} · $abi",
+                                "runtime $runtimeText · bundle $bundle",
+                                "channel ${ActiveExec.channel(context)}",
+                            ).joinToString("\n"),
+                        ),
+                    )
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.about_copied),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                },
+            )
+        }
+    }
+}
+
+/** One label/value line; a state that can be wrong is coloured like the diagnostics ones. */
+@Composable
+private fun AboutRow(label: String, value: String, ready: Boolean? = null) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(0.42f),
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = when (ready) {
+                null -> MaterialTheme.colorScheme.onSurface
+                true -> MidsceneColors.SuccessText
+                false -> MidsceneColors.Error
+            },
+            modifier = Modifier.weight(0.58f),
+        )
+    }
+}
+
+private const val HOMEPAGE = "midscenejs.com"
+
+private fun openHomepage(context: android.content.Context) {
+    try {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://$HOMEPAGE")),
+        )
+    } catch (error: Exception) {
+        Toast.makeText(context, HOMEPAGE, Toast.LENGTH_SHORT).show()
+    }
+}
+
 // ---------------------------------------------------------------- settings
 
 @Composable
-private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDiagnostics: () -> Unit) {
+private fun SettingsScreen(
+    dark: Boolean,
+    onDarkChange: (Boolean) -> Unit,
+    onDiagnostics: () -> Unit,
+    onAbout: () -> Unit,
+) {
     val context = LocalContext.current
     var overlayOn by remember { mutableStateOf(SetupPrefs.overlayEnabled(context)) }
     var confirmReset by remember { mutableStateOf(false) }
@@ -2175,6 +2343,34 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDia
                     onCheckedChange = {
                         returnAfterRun = it
                         SetupPrefs.setReturnAfterRun(context, it)
+                    },
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            var generateReport: Boolean by remember {
+                mutableStateOf(SetupPrefs.generateReport(context))
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.settings_generate_report),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(R.string.settings_generate_report_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = generateReport,
+                    onCheckedChange = {
+                        generateReport = it
+                        SetupPrefs.setGenerateReport(context, it)
                     },
                 )
             }
@@ -2247,6 +2443,38 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDia
                     stringResource(R.string.settings_reset_locked),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        // Last on the page, and it says what it opens: the version is the thing a bug
+        // report quotes, so it is visible before the tap and not after it.
+        DiagnosticsCard(stringResource(R.string.about_title)) {
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onAbout)
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.about_app_name),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(
+                            R.string.about_version_line,
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.BUILD_NUMBER,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -3213,6 +3441,8 @@ private object SetupPrefs {
     private const val RETURN_KEY = "returnAfterRun"
     private const val LIST_HIDDEN_KEY = "historyListHidden"
     private const val OVERLAY_KEY = "overlayEnabled"
+    /** Same key the service reads when it writes a run config. */
+    private const val REPORT_KEY = "generateReport"
 
     fun returnAfterRun(context: android.content.Context): Boolean =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
@@ -3238,6 +3468,25 @@ private object SetupPrefs {
     fun setReturnAfterRun(context: android.content.Context, value: Boolean) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(RETURN_KEY, value).apply()
+    }
+
+    /**
+     * Whether a run keeps a report (default on).
+     *
+     * A report embeds every screenshot of the run, so it is the one artefact that can
+     * be hundreds of megabytes; turning it off leaves the run's log and its task counts
+     * in History, which is the part that answers "did it work".
+     *
+     * Read by the service through the same file and key when it writes a run config, so
+     * the switch is consulted per run rather than cached while the service lives.
+     */
+    fun generateReport(context: android.content.Context): Boolean =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(REPORT_KEY, true)
+
+    fun setGenerateReport(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(REPORT_KEY, value).apply()
     }
 
     /** Whether the tablet run list is folded away; the choice outlives the activity. */

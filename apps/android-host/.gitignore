@@ -13,3 +13,9 @@ app/src/main/assets/bundle-info.txt
 
 # Internal release signing key: machine-local, never committed.
 keystore/
+
+# Packaged APKs (distRelease / distDebug)
+dist/
+
+# Machine-local release signing values (see local-signing.properties).
+local-signing.properties

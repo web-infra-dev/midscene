@@ -145,6 +145,8 @@
     <string name="settings_dark_theme">深色主题</string>
     <string name="settings_open_after_run">运行结束后返回应用</string>
     <string name="settings_open_after_run_hint">Agent 执行完成后把 Midscene 切到前台</string>
+    <string name="settings_generate_report">生成测试报告</string>
+    <string name="settings_generate_report_hint">报告内嵌每一步的截图，比较占空间；关闭后仍保留日志和任务统计。脚本任务以 config.yaml 为准。</string>
     <string name="settings_floating_progress">悬浮进度</string>
     <string name="settings_floating_progress_hint">显示 Agent 正在做什么，中断运行也在这里；截图时隐藏</string>
     <string name="settings_device_setup">设备与初始化</string>
@@ -226,7 +228,7 @@
     <string name="onboarding_hint_granted">已授权</string>
     <string name="onboarding_hint_not_granted">尚未授权</string>
     <string name="onboarding_step_battery_title">让长任务持续运行</string>
-    <string name="onboarding_step_battery_body">加入电池优化白名单，息屏或后台时运行也能继续。</string>
+    <string name="onboarding_step_battery_body">把 Midscene 加入电池优化白名单，息屏或后台时运行也能继续。</string>
     <string name="onboarding_exempt_battery">忽略电池限制</string>
     <string name="onboarding_hint_exempt">已豁免</string>
     <string name="onboarding_hint_still_optimised">仍受电池优化限制</string>
@@ -251,5 +253,33 @@
     <string name="common_save">保存</string>
     <string name="common_delete">删除</string>
     <string name="common_refresh">刷新</string>
+
+    <!-- 关于页 -->
+    <string name="about_app_name">Midscene Android</string>
+    <string name="about_title">关于</string>
+    <string name="about_version_line">版本 %1$s · build %2$d</string>
+    <string name="about_build">构建信息</string>
+    <string name="about_version">版本</string>
+    <string name="about_build_time">构建时间</string>
+    <string name="about_build_type">构建类型</string>
+    <string name="about_build_debug">调试构建</string>
+    <string name="about_build_release">正式构建</string>
+    <string name="about_package">包名</string>
+    <string name="about_runtime">运行环境</string>
+    <string name="about_runtime_state">Agent 运行环境</string>
+    <string name="about_runtime_installed">已安装</string>
+    <string name="about_runtime_missing">未安装</string>
+    <string name="about_bundle">Agent 包</string>
+    <string name="about_channel">执行通道</string>
+    <string name="about_device">设备</string>
+    <string name="about_device_model">型号</string>
+    <string name="about_android">Android</string>
+    <string name="about_android_version">%1$s（API %2$d）</string>
+    <string name="about_abi">ABI</string>
+    <string name="about_project">项目</string>
+    <string name="about_homepage">项目主页</string>
+    <string name="about_copy">复制版本信息</string>
+    <string name="about_copied">版本信息已复制</string>
+    <string name="about_unknown">未知</string>
 
 </resources>

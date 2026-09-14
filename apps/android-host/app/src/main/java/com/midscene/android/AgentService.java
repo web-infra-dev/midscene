@@ -426,17 +426,15 @@ public class AgentService extends Service {
             throw new IOException("prompt is empty");
         }
         File config = new File(getFilesDir(), "prompt-run.yaml");
-        String yaml = "name: prompt-run\n"
-                + deviceYaml()
-                + "agent:\n"
-                + "  generateReport: true\n"
-                + "  resetToHome: true\n"
-                + "  controllerPackage: " + getPackageName() + "\n"
-                + "  reportDir: ./midscene_run/results\n"
-                + "tasks:\n"
-                + "  - name: " + quoteYaml(safeName(prompt)) + "\n"
-                + "    type: aiAct\n"
-                + "    prompt: " + quoteYaml(prompt) + "\n";
+        // The report switch is read per run, like every other preference here: a head
+        // unit keeps this service alive across a settings change, so a value cached at
+        // startup would be wrong for the rest of the session.
+        String yaml = PromptConfig.yaml(
+                prompt,
+                deviceYaml(),
+                getPackageName(),
+                "./midscene_run/results",
+                prefs().getBoolean("generateReport", true));
         java.nio.file.Files.write(config.toPath(), yaml.getBytes(StandardCharsets.UTF_8));
         emit("prompt config written: " + config.getAbsolutePath());
         runConfig(config.getAbsolutePath());
@@ -845,38 +843,6 @@ public class AgentService extends Service {
             wakeLock.release();
         }
         wakeLock = null;
-    }
-
-    /**
-     * Turn an instruction into a task name.
-     *
-     * Non-ASCII prompts sanitise to nothing but dashes (a Chinese instruction used
-     * to yield "-", and `- name: -` is a YAML sequence marker, not a scalar), so
-     * empty or dash-only results fall back to a fixed name.
-     */
-    private static String safeName(String prompt) {
-        String name = prompt.trim()
-                .replaceAll("[^A-Za-z0-9]+", "-")
-                .replaceAll("^-+", "")
-                .replaceAll("-+$", "")
-                .toLowerCase(Locale.US);
-        if (name.isEmpty()) {
-            name = "task";
-        }
-        if (name.length() <= 40) {
-            return name;
-        }
-        // Prefer a word boundary over a mid-word cut.
-        int cut = name.lastIndexOf('-', 40);
-        return cut > 12 ? name.substring(0, cut) : name.substring(0, 40);
-    }
-
-    private static String quoteYaml(String value) {
-        return "\"" + value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", " ")
-                .replace("\n", "\\n") + "\"";
     }
 
     private interface ThrowingRunnable {

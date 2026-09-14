@@ -20,12 +20,62 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
 }
 
-def releaseKeystorePath = System.getenv('MIDSCENE_KEYSTORE')
-def releaseStorePassword = System.getenv('MIDSCENE_KEYSTORE_PASSWORD')
-def releaseKeyAlias = System.getenv('MIDSCENE_KEY_ALIAS')
-def releaseKeyPassword = System.getenv('MIDSCENE_KEY_PASSWORD')
+/**
+ * Signing values, in order of precedence:
+ *
+ *   1. the environment (what CI sets, and what the README has always documented);
+ *   2. `local-signing.properties` next to this build — machine-local and ignored by git,
+ *      so a release build does not need four exported variables every time.
+ *
+ * The file is the same four names, one per line. A value left as a `<placeholder>` counts
+ * as unset, so a half-filled file fails the signing check with a message that says so
+ * rather than letting Gradle report a keystore password error.
+ */
+def localSigningFile = rootProject.file('local-signing.properties')
+def localSigning = new Properties()
+if (localSigningFile.isFile()) {
+    localSigningFile.withInputStream { localSigning.load(it) }
+}
+def signingValue = { String name ->
+    def value = System.getenv(name)
+    if (value == null || value.trim().isEmpty()) {
+        value = localSigning.getProperty(name)
+    }
+    if (value == null) {
+        return null
+    }
+    def trimmed = value.trim()
+    return (trimmed.isEmpty() || trimmed.startsWith('<')) ? null : trimmed
+}
+
+def releaseKeystorePath = signingValue('MIDSCENE_KEYSTORE')
+def releaseStorePassword = signingValue('MIDSCENE_KEYSTORE_PASSWORD')
+def releaseKeyAlias = signingValue('MIDSCENE_KEY_ALIAS')
+def releaseKeyPassword = signingValue('MIDSCENE_KEY_PASSWORD')
 def releaseKeystore = releaseKeystorePath ? rootProject.file(releaseKeystorePath) : null
 def releaseSigningReady = releaseKeystore?.isFile() && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+/**
+ * Build identity: one number and one timestamp for the artefact, the About page and the
+ * packaged file name, so a phone, a file on disk and a bug report can be matched up
+ * without opening anything.
+ *
+ * The build number is the number of commits this artefact sits on: it grows by itself,
+ * it means the same thing on every machine, and it needs no CI counter to be stored
+ * somewhere. A source tree without git (an exported copy) gets 0.
+ */
+def gitBuildNumber = {
+    try {
+        def process = ['git', 'rev-list', '--count', 'HEAD'].execute(null, rootProject.projectDir)
+        process.waitFor()
+        def text = process.text.trim()
+        return text ? text.toInteger() : 0
+    } catch (Exception ignored) {
+        return 0
+    }
+}()
+def buildTimestamp = new Date().format('yyyyMMdd-HHmmss')
+def buildTimeText = new Date().format('yyyy-MM-dd HH:mm:ss')
 
 android {
     namespace 'com.midscene.android'
@@ -39,8 +89,12 @@ android {
         applicationId 'com.midscene.android'
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName '0.1.0'
+        // 1.0.0 -> 10000: an update has to carry a code the phone can compare.
+        versionCode 10000
+        versionName '1.0.0'
+        // Read by the About page; the same two values name the packaged APK.
+        buildConfigField 'int', 'BUILD_NUMBER', "${gitBuildNumber}"
+        buildConfigField 'String', 'BUILD_TIME', "\"${buildTimeText}\""
     }
 
     signingConfigs {
@@ -79,6 +133,9 @@ android {
 
     buildFeatures {
         viewBinding false
+        // BuildConfig carries the version, the build number and the build time to the
+        // About page (AGP 8 leaves it off unless asked for).
+        buildConfig true
         compose true
         // The Shizuku user service is reached over AIDL.
         aidl true
@@ -90,10 +147,46 @@ android {
     }
 }
 
+/**
+ * Put the shippable APK somewhere a person can find it, named for what it is:
+ * `<version>-build<commits>-<timestamp>.apk`. Debug builds get a `-debug` suffix so the
+ * two can never be confused on a phone.
+ *
+ * The copy is a separate task rather than an output rename because `build/outputs` is
+ * wiped by `clean`, and because the name has to stay stable for whatever reads it next.
+ */
+def distDir = rootProject.file('dist')
+def distName = { String suffix ->
+    "midscene-android-${android.defaultConfig.versionName}-build${gitBuildNumber}-${buildTimestamp}${suffix}.apk"
+}
+tasks.register('distRelease', Copy) {
+    dependsOn 'assembleRelease'
+    from layout.buildDirectory.file('outputs/apk/release/app-release.apk')
+    into distDir
+    rename { distName('') }
+    doLast {
+        logger.lifecycle("release package: " + new File(distDir, distName('')))
+    }
+}
+tasks.register('distDebug', Copy) {
+    dependsOn 'assembleDebug'
+    from layout.buildDirectory.file('outputs/apk/debug/app-debug.apk')
+    into distDir
+    rename { distName('-debug') }
+    doLast {
+        logger.lifecycle("debug package: " + new File(distDir, distName('-debug')))
+    }
+}
+
 tasks.register('requireReleaseSigning') {
     doLast {
         if (!releaseSigningReady) {
-            throw new GradleException('Release signing requires MIDSCENE_KEYSTORE (an existing file), MIDSCENE_KEYSTORE_PASSWORD, MIDSCENE_KEY_ALIAS, and MIDSCENE_KEY_PASSWORD.')
+            throw new GradleException(
+                    'Release signing needs MIDSCENE_KEYSTORE (an existing file), '
+                    + 'MIDSCENE_KEYSTORE_PASSWORD, MIDSCENE_KEY_ALIAS and MIDSCENE_KEY_PASSWORD.\n'
+                    + 'Set them as environment variables, or fill them in once in '
+                    + rootProject.file('local-signing.properties').absolutePath
+                    + ' (machine-local, ignored by git).')
         }
     }
 }

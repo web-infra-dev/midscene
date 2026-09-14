@@ -205,6 +205,11 @@ public final class Provisioner {
         }
     }
 
+    /** The agent bundle this build ships, as the About page shows it. */
+    public static String bundleStamp(Context context) {
+        return readAssetText(context, "bundle-info.txt");
+    }
+
     private static String readAssetText(Context context, String name) {
         try (InputStream raw = context.getAssets().open(name)) {
             byte[] buffer = new byte[1024];

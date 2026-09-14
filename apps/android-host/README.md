@@ -91,10 +91,21 @@ pnpm --filter android-host assemble:release
 ```
 
 The APK is written to
-`apps/android-host/app/build/outputs/apk/release/app-release.apk`. Debug and
-release signatures differ, so replacing a debug installation with a release
-installation requires uninstalling the debug app first; uninstalling removes
-its credentials and pairing key.
+`apps/android-host/app/build/outputs/apk/release/app-release.apk`. For a file
+meant to be handed to someone, `pnpm --filter android-host dist:release` copies
+it to `apps/android-host/dist/` as
+`midscene-android-<version>-build<commits>-<timestamp>.apk` — the version and
+build number are the same two the About page shows, so a phone, a file and a bug
+report can be matched up without opening anything. `dist:debug` does the same
+for a debug build, with a `-debug` suffix. Debug and release signatures differ,
+so replacing a debug installation with a release installation requires
+uninstalling the debug app first; uninstalling removes its credentials and
+pairing key.
+
+For a machine that builds releases more than once, the same four values can live in
+`apps/android-host/local-signing.properties` instead — it is Git-ignored, and the
+environment still takes precedence over it. A value left as `<placeholder>` counts as
+unset, so a half-filled file fails the signing check and the error names the file.
 
 For a local test key, `scripts/make-release-keystore.sh` creates a Git-ignored
 keystore using the same environment variables. Keep the signing key and its

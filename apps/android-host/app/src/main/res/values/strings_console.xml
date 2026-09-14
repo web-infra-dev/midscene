@@ -149,6 +149,8 @@
     <string name="settings_dark_theme">Dark theme</string>
     <string name="settings_open_after_run">Open app after a run</string>
     <string name="settings_open_after_run_hint">Brings Midscene forward when the agent finishes</string>
+    <string name="settings_generate_report">Generate run reports</string>
+    <string name="settings_generate_report_hint">A report embeds every screenshot, so it takes space; off keeps the log and the task counts. Scripts follow their own config.yaml.</string>
     <string name="settings_floating_progress">Floating progress</string>
     <string name="settings_floating_progress_hint">Shows what the agent is doing and carries the stop control; hidden during screenshots</string>
     <string name="settings_device_setup">DEVICE &amp; SETUP</string>
@@ -243,6 +245,34 @@
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Start using Midscene</string>
     <string name="onboarding_skip">Skip setup</string>
+
+    <!-- About page -->
+    <string name="about_app_name">Midscene Android</string>
+    <string name="about_title">About</string>
+    <string name="about_version_line">version %1$s · build %2$d</string>
+    <string name="about_build">BUILD</string>
+    <string name="about_version">Version</string>
+    <string name="about_build_time">Built</string>
+    <string name="about_build_type">Build type</string>
+    <string name="about_build_debug">Debug</string>
+    <string name="about_build_release">Release</string>
+    <string name="about_package">Package</string>
+    <string name="about_runtime">AGENT RUNTIME</string>
+    <string name="about_runtime_state">Agent runtime</string>
+    <string name="about_runtime_installed">Installed</string>
+    <string name="about_runtime_missing">Not installed</string>
+    <string name="about_bundle">Agent bundle</string>
+    <string name="about_channel">Shell channel</string>
+    <string name="about_device">DEVICE</string>
+    <string name="about_device_model">Model</string>
+    <string name="about_android">Android</string>
+    <string name="about_android_version">%1$s (API %2$d)</string>
+    <string name="about_abi">ABI</string>
+    <string name="about_project">PROJECT</string>
+    <string name="about_homepage">Homepage</string>
+    <string name="about_copy">Copy version info</string>
+    <string name="about_copied">Version info copied</string>
+    <string name="about_unknown">unknown</string>
 
     <!-- Report viewer: shared by the History pane and ReportViewerActivity -->
     <string name="report_viewer_rendering">Rendering report…</string>
