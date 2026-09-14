@@ -101,25 +101,21 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     async () => {
       const output = getTmpFile('json');
       const yamlString = `
-    # login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
-
 web:
-  url: https://www.saucedemo.com/
+  serve: ${serverRoot}
+  url: products.html
+  viewportWidth: 1000
+  viewportHeight: 800
   output: ${output}
 
 tasks:
-  - name: login
-    flow:
-      - aiAction: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
-      - aiWaitFor: there are products displayed on the page
-
   - name: extract items info
     flow:
       - aiQuery: >
-          {name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like 'Remove')
+          {name: string, price: number, actionBtnName: string, imageUrl: string}[], return all three products with their exact names, numeric prices, button labels, and image src URLs from the DOM. Do not omit any product.
         name: items
         domIncluded: true
-      - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
+      - aiAssert: The price of 'Trail Jacket' is 49.99
         name: price-assert
 
   - name: run javascript code
@@ -131,23 +127,46 @@ tasks:
     `;
       const path = await saveYaml(yamlString);
       const params = [path];
-      await execa(cliBin, params);
+      // Terminate the CLI before the test timeout so a timed-out attempt cannot
+      // continue making assertions while Rstest starts its retry.
+      await execa(cliBin, params, { timeout: 240_000, killSignal: 'SIGKILL' });
       const result = JSON.parse(readFileSync(output!, 'utf-8'));
-      expect(result.items.length).toBeGreaterThanOrEqual(2);
-      expect(result.items[0].imageUrl).toContain('/assets/');
-      // This test still uses SauceDemo as an online fixture. If it fails again
-      // because that site changes, move it to a local fixture instead of
-      // depending on external deployment details.
-      // Normalize imageUrl to avoid hash changes breaking snapshots.
-      const normalizedItems = result.items.map((item: any) => ({
-        ...item,
-        imageUrl: item.imageUrl?.replace(
-          /\/assets\/(.+)-[A-Za-z0-9_-]{8}\.jpg$/,
-          '/assets/$1.jpg',
-        ),
-      }));
-      expect(normalizedItems).toMatchSnapshot();
-      expect(result['page-title']).toMatchSnapshot();
+      const items = result.items
+        .map(
+          (item: {
+            name: string;
+            price: number;
+            actionBtnName: string;
+            imageUrl: string;
+          }) => ({
+            ...item,
+            imageUrl: new URL(item.imageUrl, 'http://localhost').pathname,
+          }),
+        )
+        .sort((a: { name: string }, b: { name: string }) =>
+          a.name.localeCompare(b.name),
+        );
+      expect(items).toEqual([
+        {
+          name: 'Camp Light',
+          price: 9.99,
+          actionBtnName: 'Add to cart',
+          imageUrl: '/products/light.svg',
+        },
+        {
+          name: 'Trail Backpack',
+          price: 29.99,
+          actionBtnName: 'Add to cart',
+          imageUrl: '/products/backpack.svg',
+        },
+        {
+          name: 'Trail Jacket',
+          price: 49.99,
+          actionBtnName: 'Add to cart',
+          imageUrl: '/products/jacket.svg',
+        },
+      ]);
+      expect(result['page-title']).toBe('Trail Store');
       expect(result['price-assert'].thought).toBeTruthy();
       expect(result['price-assert'].pass).toBeTruthy();
     },
