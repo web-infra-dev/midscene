@@ -31,8 +31,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          cmake dbus-x11 feh imagemagick openbox pkg-config \
-          freerdp3-dev xorgxrdp xrdp xterm
+          cmake dbus-x11 pkg-config python3-tk \
+          freerdp3-dev xorgxrdp xrdp
     - name: Build RDP helper and native tests
       run: |
         cmake -S packages/computer/native/rdp -B /tmp/midscene-rdp-build \
@@ -47,18 +47,12 @@ jobs:
       run: |
         sudo useradd --create-home --shell /bin/bash "$MIDSCENE_XRDP_USERNAME"
         echo "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_PASSWORD" | sudo chpasswd
-        sudo -u "$MIDSCENE_XRDP_USERNAME" mkdir -p \
-          "/home/$MIDSCENE_XRDP_USERNAME/.config/openbox"
-        sudo -u "$MIDSCENE_XRDP_USERNAME" convert \
-          -size 1280x720 gradient:'#123456-#abcdef' \
-          "/home/$MIDSCENE_XRDP_USERNAME/rdp-background.png"
+        sudo install -o "$MIDSCENE_XRDP_USERNAME" -g "$MIDSCENE_XRDP_USERNAME" \
+          packages/computer/native/rdp/tests/xrdp_desktop.py \
+          "/home/$MIDSCENE_XRDP_USERNAME/xrdp_desktop.py"
         sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.xsession" >/dev/null <<'EOF'
         #!/bin/sh
-        exec openbox-session
-        EOF
-        sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.config/openbox/autostart" >/dev/null <<'EOF'
-        feh --no-fehbg --bg-fill "$HOME/rdp-background.png" &
-        xterm -geometry 80x24+100+100 -title "Midscene RDP CI" &
+        exec python3 "$HOME/xrdp_desktop.py"
         EOF
         sudo chown -R "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_USERNAME" \
           "/home/$MIDSCENE_XRDP_USERNAME"
