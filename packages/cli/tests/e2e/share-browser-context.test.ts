@@ -120,7 +120,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
         // The report fixtures exercise the same assertions and can generate
         // human-readable local reports. CI omits explicit report screenshots;
-        // Sleep nodes still capture their standard before/after snapshots.
+        // the dedicated CI fixtures use page timers for popup adoption.
         executionScriptDir: generateReportEvidence
           ? undefined
           : join(__dirname, '../share_context_parallel_e2e_scripts'),
