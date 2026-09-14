@@ -20,14 +20,14 @@ test('agent.runGherkinScenario runs one Gherkin scenario', async ({
   await agent.runGherkinScenario(
     `
 Scenario: Create one task
-  Given the Gherkin Todo Lab page is open and ready for input
-  When I create a task named "Review Gherkin API"
+  When I enter the exact text "Review Gherkin API" into the input with placeholder "Task name"
+  And I click the "Add task" button exactly once
   Then the task list should contain "Review Gherkin API"
   And the status text should say "1 task"
 `,
     {
       context:
-        'The page is a small todo app. Use the input with placeholder "Task name" and the "Add task" button to create tasks.',
+        'The page is a small todo app. Perform each requested action exactly as written and do not navigate away from the page.',
       cacheable: false,
     },
   );
