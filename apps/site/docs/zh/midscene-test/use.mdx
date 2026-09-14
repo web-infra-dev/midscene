@@ -1,8 +1,12 @@
 # 创建和使用测试项目
 
-本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
+本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有原生 Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
 
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
+
+:::info 已有旧版 YAML 项目
+`tasks/flow` 用例和旧版批配置可以不改文件，直接使用 Test 内核运行。旧格式仍兼容，但不建议继续用于新增用例；具体命令、兼容边界和字段转换见[从旧版 YAML 迁移](./migrate-from-yaml)。
+:::
 
 ## 创建项目
 
@@ -15,13 +19,13 @@ pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-按提示安装依赖。命令会生成平台配置、示例用例和 Node 说明书，主要文件如下：
+按提示安装依赖。命令会生成平台配置、示例用例和 Node Spec，主要文件如下：
 
 ```text
 my-tests/
 ├── cases/example.yaml          # 示例用例
 ├── midscene.config.ts          # 平台配置与 Node 注册
-├── midscene-node-reference.md  # 安装后自动生成的 Node 说明书
+├── midscene-node-reference.md  # 安装后自动生成的 Node Spec
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -31,7 +35,7 @@ my-tests/
 创建项目和生成说明书不会运行测试，因此这一步不需要模型 API Key、浏览器或设备。完整参数可通过 `pnpm dlx @midscene/test create --help` 查看。
 
 :::info 安装恢复
-如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node 说明书时，执行 `pnpm run nodes`。
+如果跳过安装或安装失败，可以进入项目目录执行 `pnpm install`。需要重新生成 Node Spec 时，执行 `pnpm run nodes`。
 :::
 
 ### 2. 配置模型与运行环境
@@ -65,7 +69,7 @@ Web 示例打开 `example.com` 并检查页面标题。桌面端示例通过 `ai
 
 ## 了解可用的测试操作
 
-### 内置操作与按需扩展
+### 官方操作与按需扩展
 
 Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
 
@@ -78,27 +82,32 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 - **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
 - **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
 
-创建项目时，脚手架会根据选择的平台注册相应的 Node。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
+创建项目时，脚手架会根据选择的平台显式注册相应的官方 Node。手写 `midscene.config.ts` 时不会隐式注册任何 Node，需要自行配置。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
 
-### 查看项目的操作说明书
+### 生成当前 Project 的 Node Spec
 
-打开项目中的 `midscene-node-reference.md`，可以查看当前可用的 Node、各自的用途和参数写法。这份说明书在安装时自动生成，人类和 AI Agent 都可以根据它编写 YAML 用例。
+不同平台、Execution Project 和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 `midscene-node-reference.md`，它是当前 Project 可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node Spec 编写 YAML 用例。
 
-修改 Node 注册配置后，重新生成说明书：
+脚手架会在安装依赖后自动生成。修改 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node schema，或者升级相关 Midscene 包后，应重新生成：
 
 ```bash
 pnpm run nodes
 ```
 
-也可以指定测试目录和配置文件：
+也可以直接运行命令，并指定测试目录、配置文件或 Execution Project：
 
 ```bash
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
 ```
 
-说明书包含两个部分：Available Nodes 列出可用 Node，Node Details 展示各 Node 的描述和输入结构。说明书和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。
+如果多个 Execution Project 的 Node 定义完全相同，可以生成一份共享 Spec；定义不同时，命令会要求使用 `--project` 选择一个 Project，避免把不同平台的同名能力混在一起。
 
-说明书还会列出用例文件的匹配规则（`Case files`）和配置文件路径（`Config file`），方便用例编写者定位文件。`Case files` 对应各执行项目的 `files.include` 和 `files.exclude`。这两类路径均相对于说明书所在目录。
+生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。Spec 是生成文件，不要手动编辑；配置变化后重新执行命令。
+
+Spec 包含两个部分：Available Nodes 列出可用 Node，Node Details 展示每个 Node 的 description、字符串简写规则和输入结构。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。Spec 和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。
+
+Spec 还会列出用例文件的匹配规则（`Case files`）和配置文件路径（`Config file`），方便用例编写者定位文件。`Case files` 对应各执行项目的 `files.include` 和 `files.exclude`。这两类路径均相对于 Spec 所在目录。
 
 ## 编写 YAML 测试用例
 
@@ -126,7 +135,7 @@ cases:
 
 文档中把整个 YAML 文件称为 Workflow Document（工作流文档），把一个用例称为 Case，把一次 Node 调用称为 Step（步骤）。
 
-示例使用字符串简写：`gotoUrl` 后的文本作为 `url`，`aiAct` 和 `aiAssert` 后的文本作为 `prompt`。需要传入更多参数时，可以使用下文的对象写法。是否支持简写，以项目的 Node 说明书为准。
+示例使用字符串简写：`gotoUrl` 后的文本作为 `url`，`aiAct` 和 `aiAssert` 后的文本作为 `prompt`。需要传入更多参数时，可以使用下文的对象写法。是否支持简写，以项目的 Node Spec 为准。
 
 ### 关键 Node：操作与断言
 
@@ -255,7 +264,7 @@ cases:
 | `afterEach` | 每个用例的每次执行结束后，包括失败和重试 | 清理本次用例创建的数据 |
 | `afterAll` | 当前 YAML 文件的所有用例结束后，执行一次 | 清理本文件共用的测试数据 |
 
-下面的 Web 示例在每个用例开始前打开商城首页，结束后清除 Cookie。`data.prepare` 和 `data.cleanup` 是需要由项目实现和注册的自定义 Node，分别准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 是内置 Node。请替换示例网址和商品名称。
+下面的 Web 示例在每个用例开始前打开商城首页，结束后清除 Cookie。`data.prepare` 和 `data.cleanup` 是需要由项目实现和注册的自定义 Node，分别准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 是 Web 脚手架默认注册的官方 Node。请替换示例网址和商品名称。
 
 ```yaml filename=cases/search.yaml
 beforeAll:
@@ -304,6 +313,19 @@ afterAll
 
 默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
 
+默认情况下，一个 Case 失败后仍会继续运行同文件的下一个 Case。需要让失败停止当前文件时，在 Case 上设置 `onFailure: stop-document`；需要显式保留继续行为时，可以设置 `onFailure: continue`：
+
+```yaml
+cases:
+  - name: 登录是后续用例的前提
+    onFailure: stop-document
+    steps:
+      - aiAct: 登录测试账号
+      - aiAssert: 已进入账号首页
+```
+
+`onFailure` 控制 Case 之间的调度，`continue-on-error` 控制同一阶段内 Step 失败后是否继续，两者作用范围不同。
+
 项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
 ## 运行测试
@@ -340,10 +362,27 @@ pnpm exec midscene-test --project android-smoke --project ios-regression
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-查看某个 Execution Project（执行项目）的操作说明书时，也可以指定 `--project`：
+为某个 Execution Project（执行项目）生成 Node Spec 时，也可以指定 `--project`：
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
+```
+
+### 运行尚未迁移的旧版 YAML
+
+`midscene-test` 也能直接运行顶层使用 `tasks/flow` 的旧版 YAML，以及以 YAML 编写的旧版批配置：
+
+```bash
+pnpm exec midscene-test ./legacy-flow.yaml
+pnpm exec midscene-test --config ./legacy-batch.yaml
+```
+
+旧文件会自动进入兼容路径，不需要注册 Node 或改写配置。新增文件建议使用本页介绍的 `cases/steps`；迁移步骤和字段映射见[从旧版 YAML 迁移](./migrate-from-yaml)。
+
+需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
+
+```bash
+pnpm exec midscene-test --result-dir ./test-results
 ```
 
 当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
