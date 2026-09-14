@@ -365,6 +365,41 @@ describe('parseCliArgs', () => {
     ).toEqual({ mode: 'auto', choice: '007', native: '007' });
   });
 
+  it('recognizes Zod fields without relying on constructor identity', () => {
+    const stringField = z.string();
+    const foreignStringField = {
+      _def: stringField._def,
+      safeParse: stringField.safeParse.bind(stringField),
+    } as unknown as z.ZodTypeAny;
+    expect(foreignStringField).not.toBeInstanceOf(z.ZodString);
+
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema: { deviceId: foreignStringField },
+      handler: rs.fn(),
+    };
+    expect(parseCliArgs(['--deviceId=320336557157'], def)).toEqual({
+      deviceId: '320336557157',
+    });
+  });
+
+  it('preserves raw text for unsupported concrete schemas', () => {
+    const schema = {
+      deviceId: z.intersection(z.string(), z.string()),
+    };
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema,
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(['--deviceId=320336557157'], def);
+
+    expect(parsed).toEqual({ deviceId: '320336557157' });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+  });
+
   it('decodes repeated collection values using their element schemas', () => {
     const schema = {
       values: z.array(z.number()).optional(),

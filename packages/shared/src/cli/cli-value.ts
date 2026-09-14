@@ -3,6 +3,24 @@ import { unwrapZodField } from '../zod-schema-utils';
 
 const cliNumberPattern = /^-?\d+(\.\d+)?$/;
 
+interface CliZodDef {
+  typeName?: z.ZodFirstPartyTypeKind;
+  options?: z.ZodTypeAny[];
+  type?: z.ZodTypeAny;
+  items?: z.ZodTypeAny[];
+  rest?: z.ZodTypeAny | null;
+}
+
+function getFieldDef(field: z.ZodTypeAny): CliZodDef {
+  return (field as z.ZodTypeAny & { _def: CliZodDef })._def;
+}
+
+function getFieldKind(
+  field: z.ZodTypeAny,
+): z.ZodFirstPartyTypeKind | undefined {
+  return getFieldDef(field).typeName;
+}
+
 function parseJsonValue(raw: string): unknown {
   if (!raw.startsWith('{') && !raw.startsWith('[')) return raw;
   try {
@@ -23,8 +41,9 @@ export function parseValue(raw: string): unknown {
 // and a repeated tuple argument must retain its position-specific schema.
 function getInputFields(field: z.ZodTypeAny): z.ZodTypeAny[] {
   const input = unwrapZodField(field) as z.ZodTypeAny;
-  if (input instanceof z.ZodUnion) {
-    return input.options.flatMap(getInputFields);
+  const inputDef = getFieldDef(input);
+  if (inputDef.typeName === z.ZodFirstPartyTypeKind.ZodUnion) {
+    return (inputDef.options ?? []).flatMap(getInputFields);
   }
   return [input];
 }
@@ -33,16 +52,20 @@ function getRepeatedInputFields(
   fields: z.ZodTypeAny[],
   index: number,
 ): z.ZodTypeAny[] {
-  const collections = fields.filter(
-    (field): field is z.ZodArray<z.ZodTypeAny> | z.AnyZodTuple =>
-      field instanceof z.ZodArray || field instanceof z.ZodTuple,
-  );
+  const collections = fields.filter((field) => {
+    const kind = getFieldKind(field);
+    return (
+      kind === z.ZodFirstPartyTypeKind.ZodArray ||
+      kind === z.ZodFirstPartyTypeKind.ZodTuple
+    );
+  });
   if (collections.length === 0) return fields;
   return collections.flatMap((field) => {
+    const fieldDef = getFieldDef(field);
     const item =
-      field instanceof z.ZodArray
-        ? field.element
-        : (field.items[index] ?? field._def.rest);
+      fieldDef.typeName === z.ZodFirstPartyTypeKind.ZodArray
+        ? fieldDef.type
+        : (fieldDef.items?.[index] ?? fieldDef.rest);
     return item ? getInputFields(item) : [];
   });
 }
@@ -53,31 +76,37 @@ function acceptsValue(
   field: z.ZodTypeAny,
   value: unknown,
 ): boolean | undefined {
-  if (field instanceof z.ZodString) {
-    return typeof value === 'string' && field.safeParse(value).success;
+  switch (getFieldKind(field)) {
+    case z.ZodFirstPartyTypeKind.ZodString:
+      return typeof value === 'string' && field.safeParse(value).success;
+    case z.ZodFirstPartyTypeKind.ZodNumber:
+      return typeof value === 'number' && field.safeParse(value).success;
+    case z.ZodFirstPartyTypeKind.ZodBoolean:
+      return typeof value === 'boolean';
+    case z.ZodFirstPartyTypeKind.ZodEnum:
+    case z.ZodFirstPartyTypeKind.ZodNativeEnum:
+    case z.ZodFirstPartyTypeKind.ZodLiteral:
+      return field.safeParse(value).success;
+    case z.ZodFirstPartyTypeKind.ZodArray:
+    case z.ZodFirstPartyTypeKind.ZodTuple:
+      return Array.isArray(value);
+    case z.ZodFirstPartyTypeKind.ZodObject:
+    case z.ZodFirstPartyTypeKind.ZodRecord:
+    case z.ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
+      return (
+        typeof value === 'object' && value !== null && !Array.isArray(value)
+      );
+    default:
+      return undefined;
   }
-  if (field instanceof z.ZodNumber) {
-    return typeof value === 'number' && field.safeParse(value).success;
-  }
-  if (field instanceof z.ZodBoolean) return typeof value === 'boolean';
-  if (
-    field instanceof z.ZodEnum ||
-    field instanceof z.ZodNativeEnum ||
-    field instanceof z.ZodLiteral
-  ) {
-    return field.safeParse(value).success;
-  }
-  if (field instanceof z.ZodArray || field instanceof z.ZodTuple) {
-    return Array.isArray(value);
-  }
-  if (
-    field instanceof z.ZodObject ||
-    field instanceof z.ZodRecord ||
-    field instanceof z.ZodDiscriminatedUnion
-  ) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-  return undefined;
+}
+
+function usesLegacyInference(field: z.ZodTypeAny): boolean {
+  const kind = getFieldKind(field);
+  return (
+    kind === z.ZodFirstPartyTypeKind.ZodAny ||
+    kind === z.ZodFirstPartyTypeKind.ZodUnknown
+  );
 }
 
 /** Decode one CLI token; index is supplied only for repeated options. */
@@ -104,7 +133,5 @@ export function parseCliValue(
     if (fields.some((input) => acceptsValue(input, candidate)))
       return candidate;
   }
-  return fields.some((input) => acceptsValue(input, raw) === undefined)
-    ? parseValue(raw)
-    : raw;
+  return fields.some(usesLegacyInference) ? parseValue(raw) : raw;
 }
