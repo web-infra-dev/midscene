@@ -5,6 +5,7 @@ import type {
   CommandRunnerResult,
 } from './command-runner';
 import type { ShellFileIo } from './shell';
+import type { ExecChannel } from './types';
 
 /**
  * Command execution through the Android host app's loopback bridge.
@@ -39,6 +40,18 @@ export function bridgeFromEnv(
     return undefined;
   }
   return { url, token };
+}
+
+/**
+ * Which channel the host app selected, from the environment it injects.
+ *
+ * Defaults to `shizuku`: an app build that does not set this predates the adb
+ * channel, so Shizuku is the only thing it could have been using.
+ */
+export function channelFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): ExecChannel {
+  return env.MIDSCENE_EXEC_CHANNEL === 'adb' ? 'adb' : 'shizuku';
 }
 
 /** The transport wraps the command in `sh -c`; the bridge runs the payload. */

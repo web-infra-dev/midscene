@@ -47,6 +47,24 @@ public class AgentService extends Service {
     public static final String ACTION_RUN_CONFIG = "com.midscene.localagent.RUN_CONFIG";
     public static final String ACTION_RUN_PROMPT = "com.midscene.localagent.RUN_PROMPT";
     public static final String ACTION_PROVISION = "com.midscene.localagent.PROVISION";
+    /**
+     * Hold the process up while a pairing is in flight, and nothing else.
+     *
+     * Pairing happens entirely while this app is in the background — the user is on
+     * the wireless-debugging screen with the notification shade down — and an
+     * aggressive ROM freezes a cached process, which suspends the main looper. That
+     * kills the mDNS callbacks and their timeout alike, so the pairing sat at
+     * "discovering" until the user gave up. A foreground service is what keeps the
+     * process out of the freezer.
+     */
+    public static final String ACTION_PAIRING = "com.midscene.localagent.PAIRING";
+    /**
+     * Let the process go back to sleep once a pairing attempt is over.
+     *
+     * Without this the "Pairing" foreground service would outlive the attempt and
+     * leave a notification the user cannot dismiss.
+     */
+    public static final String ACTION_PAIRING_DONE = "com.midscene.localagent.PAIRING_DONE";
     public static final String ACTION_STOP = "com.midscene.localagent.STOP";
     public static final String ACTION_FORCE_STOP = "com.midscene.localagent.FORCE_STOP";
     public static final String EXTRA_CONFIG_PATH = "configPath";
@@ -330,6 +348,7 @@ public class AgentService extends Service {
         super.onCreate();
         instance = this;
         runStore = new RunStore(getFilesDir());
+        ActiveExec.install(this);
         ShizukuExecBridge.ensureBound(this);
         ExecBridge.start(this);
         SERVICE_LOG_DIR = new File(getFilesDir(), "run").getAbsolutePath();
@@ -366,6 +385,19 @@ public class AgentService extends Service {
                 runAsync("config", () -> runConfig(configPath), "config");
                 break;
             }
+            case ACTION_PAIRING:
+                // The pairing notification *is* the foreground notification: two
+                // notifications from one app group together, and a grouped one is
+                // rendered collapsed with its input action unreachable.
+                startForegroundCompat(AdbPairing.buildCodeRequest(this));
+                break;
+            case ACTION_PAIRING_DONE:
+                // A provisioning started in the meantime owns the service now.
+                if (!isBusy()) {
+                    stopForeground(true);
+                    stopSelf();
+                }
+                break;
             default:
                 break;
         }
@@ -425,7 +457,7 @@ public class AgentService extends Service {
      */
     private String deviceYaml() {
         return "device:\n"
-                + "  backend: shizuku-userservice\n"
+                + "  backend: device-bridge\n"
                 + "  yadbPath: /data/local/tmp/yadb\n"
                 + "  fileChannelDir: " + Provisioner.channelDir(this).getAbsolutePath() + "\n";
     }
@@ -622,6 +654,9 @@ public class AgentService extends Service {
                 prefs().getBoolean("showElementBox", true),
                 prefs().getBoolean("showTapRipple", true),
                 prefs().getBoolean("demoMode", false));
+        // Read the switch on every run: a head unit can keep this service alive
+        // across a settings change, so the value cannot be cached at startup.
+        OverlayView.setShowEnabled(prefs().getBoolean("overlayEnabled", true), this);
         phase = "";
         stepIndex = 0;
         stepTotal = 0;
@@ -631,7 +666,9 @@ public class AgentService extends Service {
         stepStartedAtMs = 0;
         clearBuffer();
         startOverlayKeepAlive();
-        OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
+        if (prefs().getBoolean("overlayEnabled", true)) {
+            OverlayView.post(() -> OverlayView.show(this, "Starting " + stateLabel + "…"));
+        }
         updateNotification("Starting", stateLabel);
         worker = new Thread(() -> {
             try {
@@ -718,7 +755,10 @@ public class AgentService extends Service {
     }
 
     private void startForegroundCompat(String title, String text) {
-        Notification notification = buildNotification(title, text);
+        startForegroundCompat(buildNotification(title, text));
+    }
+
+    private void startForegroundCompat(Notification notification) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             // Target 34 requires an explicit foreground service type.
             startForeground(NOTIFICATION_ID, notification,

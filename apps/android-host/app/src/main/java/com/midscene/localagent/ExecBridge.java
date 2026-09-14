@@ -19,8 +19,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Loopback HTTP bridge between the bundled Node agent and the Shizuku user service.
  *
- * The Node process cannot call Shizuku itself, so it posts commands here and the
- * app forwards them to {@link ShizukuExecBridge}. Only 127.0.0.1 is bound and every
+ * The Node process cannot reach the privilege channel itself, so it posts commands
+ * here and the app forwards them to whichever backend is selected
+ * ({@link ActiveExec}). Only 127.0.0.1 is bound and every
  * request must carry the per-process token that the app passes to Node in its
  * environment, so nothing else on the device can drive the shell channel.
  *
@@ -34,6 +35,7 @@ public final class ExecBridge {
     private static final ThreadPoolExecutor REQUESTS = new ThreadPoolExecutor(
             4, 4, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(16));
 
+    private static Context appContext;
     private static java.io.File channelRoot;
     private static ServerSocket server;
     private static String token = "";
@@ -47,7 +49,9 @@ public final class ExecBridge {
             return;
         }
         started = true;
-        ShizukuExecBridge.ensureBound(context);
+        appContext = context.getApplicationContext();
+        ActiveExec.install(context);
+        ActiveExec.ensureBound(context);
 
         try {
             token = UUID.randomUUID().toString().replace("-", "");
@@ -195,7 +199,7 @@ public final class ExecBridge {
         }
         if (path.startsWith("/ready")) {
             respond(output, 200, "application/json",
-                    ("{\"ready\":" + ShizukuExecBridge.isReady() + "}").getBytes(StandardCharsets.UTF_8));
+                    ("{\"ready\":" + ActiveExec.isReady(appContext) + "}").getBytes(StandardCharsets.UTF_8));
             return;
         }
 
@@ -214,9 +218,9 @@ public final class ExecBridge {
         try {
             if (path.startsWith("/exec-binary")) {
                 respond(output, 200, "application/octet-stream",
-                        ShizukuExecBridge.execBinary(command, timeoutMs));
+                        ActiveExec.execBinary(appContext, command, timeoutMs));
             } else {
-                ShizukuExecBridge.Result result = ShizukuExecBridge.exec(command, timeoutMs);
+                ActiveExec.Result result = ActiveExec.exec(appContext, command, timeoutMs);
                 org.json.JSONObject json = new org.json.JSONObject();
                 json.put("exitCode", result.exitCode);
                 json.put("stdout", result.stdout);
@@ -249,7 +253,7 @@ public final class ExecBridge {
         }
         // Canonical containment and size are checked again by the shell process,
         // which can actually inspect this directory (the app cannot).
-        return ShizukuExecBridge.readChannelFile(requestedFile.getPath());
+        return ActiveExec.readChannelFile(appContext, requestedFile.getPath());
     }
 
     private static int parseTimeout(String path, int fallback) {

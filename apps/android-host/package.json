@@ -2,10 +2,11 @@
   "name": "android-host",
   "private": true,
   "version": "1.0.0",
-  "description": "On-device Android agent host: ships Node and the Midscene agent inside an APK and drives the phone through Shizuku.",
+  "description": "On-device Android agent host: ships Node and the Midscene agent inside an APK and drives the phone through a shell channel (Shizuku, or the device's own adbd).",
   "scripts": {
     "bundle": "node ./scripts/bundle-agent.mjs",
     "runtime": "./scripts/fetch-node-runtime.sh",
+    "adb-runtime": "./scripts/fetch-adb-runtime.sh",
     "icons": "python3 ./scripts/make-icons.py",
     "assemble": "pnpm run bundle && ./gradlew assembleDebug",
     "test": "./gradlew :app:testDebugUnitTest && node --test scripts/check-multi-user.test.mjs",

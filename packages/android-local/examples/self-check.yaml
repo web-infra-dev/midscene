@@ -18,7 +18,7 @@
 # This file mirrors the template the host app generates; keep the two in sync.
 name: self-check
 device:
-  backend: shizuku-userservice
+  backend: device-bridge
   yadbPath: /data/local/tmp/yadb
   fileChannelDir: /storage/emulated/0/Android/data/com.midscene.localagent/files/channel
 agent:

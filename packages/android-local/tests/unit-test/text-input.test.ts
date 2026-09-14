@@ -44,7 +44,7 @@ describe('sendTextInput channel selection', () => {
     const recorder = createRunRecorder();
 
     await sendTextInput('hello world', {
-      backend: 'shizuku-userservice',
+      backend: 'device-bridge',
       displayArg: '',
       timeoutMs: 1000,
       yadbAvailable: true,
@@ -79,7 +79,7 @@ describe('sendTextInput channel selection', () => {
     const recorder = createRunRecorder();
 
     await sendTextInput('中文输入测试 hello', {
-      backend: 'shizuku-userservice',
+      backend: 'device-bridge',
       displayArg: '',
       timeoutMs: 1000,
       yadbAvailable: true,
@@ -112,7 +112,7 @@ describe('sendTextInput channel selection', () => {
     const recorder = createRunRecorder();
 
     const error = await sendTextInput('中文', {
-      backend: 'shizuku-userservice',
+      backend: 'device-bridge',
       displayArg: '',
       timeoutMs: 1000,
       yadbAvailable: false,
@@ -129,7 +129,7 @@ describe('sendTextInput channel selection', () => {
     const recorder = createRunRecorder();
 
     const error = await sendTextInput('', {
-      backend: 'shizuku-userservice',
+      backend: 'device-bridge',
       displayArg: '',
       timeoutMs: 1000,
       yadbAvailable: true,

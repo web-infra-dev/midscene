@@ -14,7 +14,9 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 host_root="$(cd "${here}/.." && pwd)"
-out_dir="${host_root}/app/src/main/jniLibs"
+# AGP only packages libraries that sit in a per-ABI directory, so the output has
+# to be jniLibs/<abi> — jniLibs itself is not a directory it reads.
+out_dir="${host_root}/app/src/main/jniLibs/arm64-v8a"
 work_dir="${host_root}/build/node-runtime"
 termux_prefix="/data/data/com.termux/files/usr"
 

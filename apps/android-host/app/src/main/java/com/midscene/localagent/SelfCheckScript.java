@@ -28,7 +28,7 @@ public final class SelfCheckScript {
     private static final String TEMPLATE =
             "name: self-check\n"
                     + "device:\n"
-                    + "  backend: shizuku-userservice\n"
+                    + "  backend: device-bridge\n"
                     + "  yadbPath: /data/local/tmp/yadb\n"
                     + "  fileChannelDir: %s\n"
                     + "agent:\n"

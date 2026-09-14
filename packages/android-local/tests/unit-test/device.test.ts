@@ -100,12 +100,13 @@ describe('LocalAndroidDevice wiring', () => {
 
     expect(device.interfaceType).toBe('android');
     expect(device.getCapabilities()).toMatchObject({
-      backend: 'shizuku-userservice',
+      backend: 'device-bridge',
+      channel: 'shizuku',
       uid: 2000,
       privileged: true,
     });
     expect(device.describe()).toBe(
-      'AndroidLocalDevice(backend=shizuku-userservice, uid=2000)',
+      'AndroidLocalDevice(backend=device-bridge, channel=shizuku, uid=2000)',
     );
   });
 

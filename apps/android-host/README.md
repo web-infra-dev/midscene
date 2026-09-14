@@ -1,8 +1,44 @@
 # Midscene Android Host（移动版 Agent）
 
-一个最小可用的 **on-device Agent APK**：APK 内自带 Node 运行时与 Midscene agent，通过 Shizuku（rish）以
-shell 身份控制本机，**不依赖 Termux，也不依赖 PC**。它是 `docs/deployment.md` 里阶段 C 的第一个切片
+一个最小可用的 **on-device Agent APK**：APK 内自带 Node 运行时与 Midscene agent，以 shell（uid 2000）
+身份控制本机，**不依赖 Termux，也不依赖 PC**。它是 `docs/deployment.md` 里阶段 C 的第一个切片
 （"移动版 studio" 的执行内核 + 最小界面）。
+
+## 执行通道：phone adb（默认）与 Shizuku（备选）
+
+拿到 shell 有两条路，App 里可切换，默认是 **This phone (adb)**：
+
+| | **phone adb**（默认） | **Shizuku**（备选） |
+| --- | --- | --- |
+| 依赖 | 开发者选项里的**无线调试** | 另外装官方 Shizuku，并让它以 shell 身份运行 |
+| 授权 | **配对码**（一次性；之后只重连，不再配对） | Shizuku 授权弹窗 |
+| 被 ROM 拦住的可能 | 只依赖 shell 本身 | **整个通道**：部分 ROM 抽掉 shell 的 `GRANT_RUNTIME_PERMISSIONS`，Shizuku 就永远无法授权任何应用（ColorOS 16 实测） |
+| 重启后 | 重开无线调试开关即可，**无需重新配对** | 需要用 PC 或无线调试把 Shizuku server 重新拉起来 |
+
+两条通道都到达同一个 uid 2000，`ActiveExec` 是它们之间的接缝；Node 侧完全无感知，只是
+环境变量里多一个 `MIDSCENE_EXEC_CHANNEL` 用于如实上报。
+
+### 配对（phone adb）
+
+顺序很重要，UI 里也写死了：
+
+1. 在 App 里点 **Start pairing** —— App 会拉起前台服务并发出一条等待输入的通知
+2. 打开 设置 → 开发者选项 → 无线调试 → **使用配对码配对设备**
+3. **下拉通知栏**（不要离开那一屏），把六位数字填进 Midscene 通知，点 **Pair**
+
+第 1 步必须在第 2 步之前：**打开本 App 会让设置页暂停，而设置页一暂停就关掉配对服务器**。
+这也是配对码要填在通知里、而不是 App 界面里的原因；同样为了这个，App 必须先起前台服务，
+否则 ROM 会把后台进程冻住，连 mDNS 回调带超时一起停摆。
+
+通知里也可以填 `配对码 端口`（端口就在同一个弹窗上），用于 mDNS 失灵时的兜底。
+另外诊断页有 **Address or port** 输入框：如果 adbd 已经在某个端口上监听（ROM 的「网络 ADB」开关，
+或曾经执行过 `adb tcpip 5555`），直接连它即可，手机会用经典的「允许 USB 调试吗？」弹窗授权 —— **不需要配对码**。
+
+### 与 PC 同时连接
+
+App 的 adb server 跑在自己专属的 `-P 5038` 上，电脑的是电脑上的 5037，互不干扰。
+实测三方同时在线（App 走回环、电脑走无线连同一个 TLS 端口、电脑再走 USB）互不影响：
+adbd 在 TLS 模式下接受并发客户端。
 
 ## 它是怎么工作的
 
@@ -14,9 +50,12 @@ lib/arm64/libnodebin.so            ← Node 运行时（作为 native library �
     │  agent/node_modules/@midscene/android-local/dist/lib/cli.js  (midscene-local)
     ▼
 @midscene/android-local             ← 本仓库的 transport + device 层
-    │  rish -c …                    （RISH_APPLICATION_ID = 本 App 包名）
+    │  回环 HTTP（ExecBridge，带每进程 token）
     ▼
-Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
+ActiveExec ──┬─ phone adb：libadbbin.so -P 5038 → 本机 adbd（127.0.0.1:<无线调试端口>）
+             └─ Shizuku：AIDL → UserService 进程
+    ▼
+shell uid 2000 → screencap / input / am / dumpsys / yadb
 ```
 
 要点：
@@ -24,10 +63,12 @@ Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
 - **Node 作为 native library**：Android 10+ 禁止从应用私有目录 `execve`，但允许执行 APK 的 `lib/<abi>/`
   下的文件（Shizuku 自己也这么做）。因此 Node 二进制以 `libnodebin.so` 交付，并设置
   `android:extractNativeLibs="true"`（AGP 默认不从 APK 解出 so，而 exec 需要真实文件）。
+  **phone adb 通道用的是同一招**：AOSP `adb` 客户端以 `libadbbin.so` 交付，连同它的 102 个依赖库。
 - **依赖库重命名**：Android 链接器按**文件名**匹配 `DT_NEEDED`，而 AGP 只打包 `*.so`。
-  `scripts/patch-elf-sonames.py` 在 `.dynstr` 中把所有旧 soname（`libssl.so.3`、`libicuuc.so.78`、
-  `libz.so.1` 等）改写为 `.so` 结尾并把文件重命名；只改 `DT_NEEDED` 会与 `.gnu.version_r` 不一致，
-  链接器会报 `cannot find X from verneed[0] in DT_NEEDED list`。
+  `scripts/patch-elf-sonames.py`（Node）与 `scripts/patch-adb-sonames.py`（adb）在 `.dynstr` 中把旧 soname
+  （`libssl.so.3`、`libz.so.1`、`libzstd.so.1` 等）改写为 `.so` 结尾并把文件重命名；只改 `DT_NEEDED`
+  会与 `.gnu.version_r` 不一致，链接器会报 `cannot find X from verneed[0] in DT_NEEDED list`。
+  adb 那套还要避开与 Node 的撞名：`libz.so.1`(9) → `libz_1.so`(9) 等长，Node 保留自己的 `libz.so`。
 - **JS 侧按需解包**：`assets/agent-bundle.zip` 首次运行时解到 `filesDir/agent`；bundle 使用当前 workspace 的构建产物，
   根目录是 staging 安装本身（`node_modules/` + `examples/` + `package.json`），CLI 位于
   `node_modules/@midscene/android-local/dist/lib/cli.js`。该路径只由 `Provisioner.BUNDLE_CLI_PATH` 一处定义，
@@ -36,6 +77,20 @@ Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
   解包完成后写入 `filesDir/agent/.bundle-info` 版本戳，APK 更新后自动重解，未变则跳过（`agent bundle up to date`）。
 - **模型凭据不落在可见配置里**：`filesDir/model.env`（`KEY=VALUE` 行）被注入子进程环境；
   生产版本应改为 Android Keystore（见 `docs/deployment.md` §5）。
+- **adb 的密钥在 App 私有目录**：`filesDir/adb-home/.android/adbkey`。`HOME` 指向这里，
+  所以卸载 App 就等于撤掉这条通道的密钥；配对关系本身记在设备侧，会作为死条目留在
+  无线调试的「已配对的设备」列表里。
+
+## 支持的 Android 版本
+
+| Android | 无线调试 | 配对 | phone adb 通道 |
+| --- | --- | --- | --- |
+| **11+ (API 30+)** | 有 | 六位配对码 | ✅ 完整可用 |
+| **10 (API 29)**（App 的 minSdk） | **没有这个功能** | — | ⚠️ 配对流程不可用，只能走诊断页的 **Address or port** 连接一个已在监听的 adbd |
+
+「不需要配对码」只适用于**非 TLS** 的 adbd 端口（5555 那一族）；无线调试用的是 TLS 端口，
+陌生密钥拿不到授权弹窗，配对是平台强制的。
+
 
 ## 测试设备矩阵
 
@@ -43,10 +98,17 @@ Shizuku server (shell uid 2000) → screencap / input / am / dumpsys / yadb
 
 | AVD | 镜像 | 形态 | 用途 |
 | --- | --- | --- | --- |
-| `Midscene_Phone_API34` | android-34 default | Pixel 7，1080×2400 竖屏 | **Android 14 基准**（rish/DEX 限制、竖屏、可用的 launcher） |
+| `Midscene_Phone_API34` | android-34 default | Pixel 7，1080×2400 竖屏 | **Android 14 基准**（竖屏、可用的 launcher） |
 | `Midscene_Tablet_API34` | android-34 default | Pixel Tablet | `layout-sw600dp` 侧边导航与宽屏布局 |
 | `Midscene_Fast_API32ATD` | android-32 google_atd | Pixel 5，精简 ATD | 快速冒烟回归 |
 | `HaloCanvas_RemoteScreen_API31` | android-31 | 车机双屏 | 对照组（launcher 不可用，仅作参考） |
+
+真机：
+
+| 设备 | 系统 | 说明 |
+| --- | --- | --- |
+| OnePlus 13T (PKX110) | ColorOS 16 / Android 16 | **phone adb 通道的基准机型**，也是「Shizuku 完全无法授权」的样本：shell 缺 `GRANT_RUNTIME_PERMISSIONS`，且开发者选项里没有「禁止权限监控」开关。已跑通配对 → 连接 → provisioning → 真实模型任务 |
+
 
 启动示例：
 
@@ -63,15 +125,23 @@ scripts/adb-bootstrap.sh \
   --config <config.yaml>
 ```
 
-完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 部署 `rish` 与 `rish_shizuku.dex`（Android 14 起 dex 需只读）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过仅 Debug 导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
+完成：安装两个 APK → 启动 Shizuku server（走它自己的 `libshizuku.so`）→ 注入 `model.env`/`config.yaml` 到应用私有目录 → 电池白名单 + 通知授权 → 通过仅 Debug 导出的 `AgentService` action 触发 provisioning（agent bundle + yadb）。
+
+注意这是 **Shizuku 通道**的无人化路径，它需要人点一次 Shizuku 授权弹窗，而且在抽掉 `GRANT_RUNTIME_PERMISSIONS` 的 ROM 上**永远走不通**。
+**phone adb 通道**没有等价的纯脚本路径：配对码必须由人在无线调试那一屏读出、在通知里输入（原因见上文）。
 
 幂等：可加 `--skip-install` 重复执行。
 
 ## Android 14 实测要点（重要）
 
 - **Node v24.18.0 可正常运行**；bundle 版本戳会在 APK 更新后自动重新解包
-- **授权**：必须走官方 API —— Setup → RUNTIME → `Authorize Shizuku`（`Shizuku.requestPermission()`）。rish 调用无法拉起授权弹窗；`pm grant API_V23` 也不能绕过（Shizuku 13.x 自建授权存储）
-- **rish 在本机应用进程中不可用**：前台 Activity / 前台 Service / `run-as` 三种来源都只返回 `Aborted`。因此后续把提权执行改为 **Shizuku UserService**（`bindUserService` + AIDL），Node 侧经回环 HTTP 调 App 内的执行桥
+- **授权**：必须走官方 API —— Diagnostics → EXECUTION CHANNEL → `Authorize`（`Shizuku.requestPermission()`）。`pm grant API_V23` 不能绕过（Shizuku 13.x 自建授权存储；真实原因是它还需要 shell 侧的 `GRANT_RUNTIME_PERMISSIONS`，见下）
+- **ColorOS 16 / OnePlus 13T 实测：Shizuku 在本机完全无法授权**。shell uid 没有 `GRANT_RUNTIME_PERMISSIONS`
+  （`pm grant` 直接 `SecurityException`），而 Shizuku 正是靠给客户端 grant 那个 `dangerous` 权限来记录授权，
+  所以它弹的是自己的「adb 权限受限」警告而不是授权框。**这台机器上 phone adb 通道是唯一可用的路**。
+  ROM 拿掉的只有 `pm grant`/`pm revoke`：`screencap`/`input`/`am`/`dumpsys`/`settings put`/`appops`/yadb 全部照常。
+- **不要恢复 rish**：它在本机应用进程中一律 `Aborted`（前台 Activity / 前台 Service / `run-as` 三种来源都试过），
+  因此提权执行走 Shizuku UserService（`bindUserService` + AIDL）或 phone adb，Node 侧经回环 HTTP 调 App 内的执行桥
 - **导航不再走 View 体系**：旧版手机布局用 `BottomNavigationView`（当时直接用抽象类 `NavigationBarView` 会 inflate 崩溃，平板的具体类 `NavigationRailView` 没暴露这个问题）；现在手机/平板分别是 Compose 的 `NavigationBar` / `NavigationRail`，旧的 `layout/`、`layout-sw600dp/`、`menu/` 资源已删除
 
 ## 构建
@@ -79,16 +149,22 @@ scripts/adb-bootstrap.sh \
 ```bash
 cd apps/android-host
 
-# 1) Node 运行时（从已装 Termux 的设备拉取并改写 soname）
-./scripts/fetch-node-runtime.sh                 # 或 --from <dir>（bin/node + lib/*.so）
+# 1) 两个 native 运行时，都是生成物、都已 gitignore
+./scripts/fetch-node-runtime.sh                 # Node（默认从装了 Termux 的设备拉取；或 --from <dir>）
+./scripts/fetch-adb-runtime.sh                  # adb 客户端 + 102 个依赖库（版本已钉死在脚本里）
 # 2) JS 侧（wasm 版 sharp，保证 android-arm64 可用）
 pnpm --filter @midscene/shared build
 pnpm --filter @midscene/core build
 pnpm --filter @midscene/android-local build
-# 3) APK
+# 3) APK（assemble 会先重打 agent bundle；缺任何 native 运行时 Gradle 会直接报错，
+#    不会让你带着一个跑不起来的 APK 上机）
 pnpm assemble                            # 产物 app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+`fetch-adb-runtime.sh` 的产出是 `jniLibs/arm64-v8a/libadbbin.so` 加上 102 个 `libabsl_*`/`libprotobuf` 等
+依赖库；`patch-adb-sonames.py` 负责把 `libz.so.1`、`libzstd.so.1` 改成 AGP 会打包、且不与 Node 的
+`libz.so` 撞名的形式。
 
 `local.properties` 需要指向 Android SDK（`sdk.dir=...`），`jniLibs/` 与 `agent-bundle.zip` 均为生成物，已在
 `.gitignore` 中忽略（APK 大小随 Node 运行时与 bundle 内容变化）。
@@ -264,7 +340,7 @@ APK assets/yadb
    │  ① App 复制到自己的外部目录（shell 可读）
    ▼
 /storage/emulated/0/Android/data/<pkg>/files/yadb
-   │  ② rish（shell uid 2000）cp → /data/local/tmp/yadb && chmod 644
+   │  ② shell（uid 2000）写入：Shizuku 走 AIDL installYadb，adb 走 `adb push` + chmod
    ▼
 /data/local/tmp/yadb   ← 中文输入 / pinch 即刻可用
 ```
@@ -286,7 +362,7 @@ APK assets/yadb
 | 步骤 | 结果 |
 | --- | --- |
 | APK 内 exec Node | ✅ `midscene-local v1.12.6 (node v24.18.0)`（Node 从 `lib/arm64/libnodebin.so` 执行） |
-| Shizuku 授权本 App | ✅ 弹窗针对 `com.midscene.localagent`，授权后 rish 以 shell(2000) 工作 |
+| Shizuku 授权本 App | ✅ 弹窗针对 `com.midscene.localagent`，授权后以 shell(2000) 工作（Android 14 环境） |
 | `doctor` | ✅ `uid: 2000`、`privileged: true`、shell/screenshot/input/appManagement/multiDisplay/gestures 全 true |
 | `run config`（aiAct + aiAssert） | ✅ 任务 1 完成真实点击（19.3s，ok）；任务 2 的断言由模型如实判失败（模拟器 launcher 未起来，非链路问题）；结果 JSON 落盘 `files/midscene_run/results/` |
 
@@ -304,3 +380,10 @@ APK assets/yadb
 3. **历史条目只增不删**：详情对话框提供了日志删除；索引清理/导出（部署文档 M2）待补。
 4. **模拟器环境**：2 核模拟器的 launcher 常驻 "Pixel is starting…"，`home`/launcher 相关断言会由模型
    如实判失败——链路正常，真机需复测。
+5. **phone adb 通道的 adb 客户端来自 Termux 的 `android-tools` 包**，和 Node 一样属于「能用但不是产品形态」；
+   `scripts/fetch-adb-runtime.sh` 里版本已钉死，换成自编译的静态 adb 只需要换掉暂存目录的内容。
+6. **配对会过期，且 UI 还没引导重新配对**：配对关系 7 天不活跃即失效，无线调试被系统关掉（重启、切网络）后
+   需要用户重开开关。前者目前只会表现为「连不上」，没有一句「请重新配对」。
+7. **Run 按钮只看通道就绪，不看模型凭据**：凭据缺失或写错要到运行时才报错（`pd` 的验收表里已列为待补）。
+8. **小米/华为等 ROM 可能额外限制 `adb shell input`**（如小米需要另开「USB 调试（安全设置）」）。
+   这是**任何 adb 方案都要面对**的问题，不是本实现的缺陷，暂不处理，仅记录。

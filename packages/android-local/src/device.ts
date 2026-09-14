@@ -175,7 +175,7 @@ export class LocalAndroidDevice implements AbstractInterface {
 
   describe(): string {
     const display = this.options.displayId;
-    return `AndroidLocalDevice(backend=${this.transport.backend}${
+    return `AndroidLocalDevice(backend=${this.transport.backend}, channel=${this.transport.channel}${
       this.capabilities?.uid !== undefined && this.capabilities?.uid !== null
         ? `, uid=${this.capabilities.uid}`
         : ''

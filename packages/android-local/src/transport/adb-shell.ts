@@ -21,6 +21,7 @@ import type {
   AndroidTransport,
   DisplayInfo,
   DisplayQueryOptions,
+  ExecChannel,
   InputOptions,
   Point,
   ScreenshotOptions,
@@ -91,6 +92,7 @@ interface AdbOutcome {
  */
 export class AdbShellTransport implements AndroidTransport {
   readonly backend: TransportBackend = 'adb-shell';
+  readonly channel: ExecChannel = 'adb';
 
   private readonly adbPath: string;
   private readonly serial?: string;
@@ -169,6 +171,7 @@ export class AdbShellTransport implements AndroidTransport {
 
     const capabilities: AndroidCapabilities = {
       backend: this.backend,
+      channel: this.channel,
       shell: true,
       screenshot,
       input,
@@ -266,6 +269,7 @@ export class AdbShellTransport implements AndroidTransport {
         return {
           ok: false,
           backend: this.backend,
+          channel: this.channel,
           uid: null,
           latencyMs: 0,
           checkedAt: startedAt,
@@ -277,6 +281,7 @@ export class AdbShellTransport implements AndroidTransport {
       return {
         ok: true,
         backend: this.backend,
+        channel: this.channel,
         uid,
         latencyMs: Date.now() - startedAt,
         checkedAt: Date.now(),
@@ -295,6 +300,7 @@ export class AdbShellTransport implements AndroidTransport {
       return {
         ok: false,
         backend: this.backend,
+        channel: this.channel,
         uid: null,
         latencyMs: Date.now() - startedAt,
         checkedAt: Date.now(),

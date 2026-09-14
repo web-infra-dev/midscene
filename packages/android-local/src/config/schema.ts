@@ -13,22 +13,30 @@ import { z } from 'zod';
  */
 
 export const transportBackendSchema = z.enum([
+  'device-bridge',
+  /**
+   * @deprecated The on-device route used to be called this, back when Shizuku was
+   * the only thing behind it. Accepted so configs written before the rename keep
+   * working; the app writes `device-bridge` now.
+   */
   'shizuku-userservice',
   'adb-shell',
 ]);
 
 export const localAgentDeviceSchema = z.object({
   /**
-   * Which privilege channel to use.
+   * How commands reach the device.
    *
-   * `shizuku-userservice` is the on-device path; the host app selects it by
-   * injecting the bridge environment, so the value is informational there.
+   * `device-bridge` is the on-device path; the host app selects it by injecting
+   * the bridge environment, so the value is informational there. Which shell sits
+   * behind that bridge — a Shizuku user service or the app's own adb client — is
+   * reported by `doctor`, not chosen here.
    * `adb-shell` drives the device from this host instead.
    */
-  backend: transportBackendSchema.default('shizuku-userservice'),
+  backend: transportBackendSchema.default('device-bridge'),
   /** Display used for every operation; default is the device default display. */
   displayId: z.number().int().nonnegative().optional(),
-  /** Directory for the on-device payload channel (backend: shizuku-userservice). */
+  /** Directory for the on-device payload channel (backend: device-bridge). */
   fileChannelDir: z.string().optional(),
   /** adb executable (backend: adb-shell). */
   adbPath: z.string().optional(),

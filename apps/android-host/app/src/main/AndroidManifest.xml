@@ -47,6 +47,23 @@
             android:exported="false"
             android:label="Run artefact" />
 
+        <!--
+          Receives the wireless-debugging pairing code from the notification shade.
+
+          The code cannot be typed into an activity: opening one pauses Settings,
+          and Settings cancels the pairing server on pause. A notification action
+          is the only input that reaches this app while that screen stays up.
+          Not exported — the PendingIntent that targets it is ours.
+        -->
+        <receiver
+            android:name=".AdbPairing$Receiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.midscene.localagent.PAIRING_CODE" />
+                <action android:name="com.midscene.localagent.PAIRING_START" />
+            </intent-filter>
+        </receiver>
+
         <!-- Required by the Shizuku API to receive its binder. -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

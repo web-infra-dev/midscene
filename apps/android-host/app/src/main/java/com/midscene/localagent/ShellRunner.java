@@ -92,6 +92,10 @@ public final class ShellRunner {
         if (!ExecBridge.baseUrl().isEmpty()) {
             env.put("MIDSCENE_EXEC_BRIDGE_URL", ExecBridge.baseUrl());
             env.put("MIDSCENE_EXEC_BRIDGE_TOKEN", ExecBridge.token());
+            // Which shell sits behind that bridge. Without it the agent can only
+            // guess, and it used to guess "shizuku" on every channel — so a log
+            // from an adb-channel run said the run had gone through Shizuku.
+            env.put("MIDSCENE_EXEC_CHANNEL", ActiveExec.channel(context));
         }
         env.putAll(readEnvFile(new File(context.getFilesDir(), "model.env"), sink));
         builder.directory(workingDir);

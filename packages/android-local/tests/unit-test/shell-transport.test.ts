@@ -122,7 +122,7 @@ describe('ShellTransport capability probing', () => {
 
     const capabilities = await transport.getCapabilities();
 
-    expect(capabilities.backend).toBe('shizuku-userservice');
+    expect(capabilities.backend).toBe('device-bridge');
     expect(capabilities.shell).toBe(true);
     expect(capabilities.screenshot).toBe(true);
     expect(capabilities.input).toBe(true);

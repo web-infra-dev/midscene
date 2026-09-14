@@ -84,8 +84,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.LifecycleEventObserver
@@ -202,22 +206,35 @@ private fun ConsoleShell(
     var onboarded by remember { mutableStateOf(SetupPrefs.onboarded(context)) }
     val wide = LocalConfiguration.current.screenWidthDp >= 600
 
-    // Probing is the only thing that proves a shell-uid process is reachable, so
-    // it runs here and both the run gate and Diagnostics read the same answer.
-    var bindState by remember { mutableStateOf<ShizukuExecBridge.BindingState?>(null) }
+    // Probing is the only thing that proves a shell-uid process is reachable, so it
+    // runs here and the run gate, Diagnostics and the first-run guide all read the
+    // same answer. The question it answers is about the *selected* channel: asking
+    // Shizuku on a device driven over adb is what left Run disabled for good.
+    // Runs during the first-run guide too: the guide reads this status to decide what
+    // step one should ask for, so skipping the probe there left it saying "Checking…"
+    // forever and hid a device that was already set up.
+    var channelStatus by remember { mutableStateOf<ActiveExec.Status?>(null) }
     var probing by remember { mutableStateOf(true) }
     var probeTick by remember { mutableStateOf(0) }
     LaunchedEffect(probeTick, onboarded) {
-        if (!onboarded) {
-            return@LaunchedEffect
-        }
         probing = true
-        bindState = withContext(Dispatchers.IO) {
-            ShizukuExecBridge.probeBinding(context, 8_000)
-        }
+        channelStatus = withContext(Dispatchers.IO) { ActiveExec.probe(context) }
         probing = false
     }
     val retryBinding: () -> Unit = { probeTick += 1 }
+
+    // The adb channel finishes coming up in the background, a few seconds after this
+    // screen first draws. Re-probing until it settles keeps the first frame honest
+    // instead of showing "not paired" until the user happens to refresh.
+    LaunchedEffect(Unit) {
+        repeat(8) {
+            delay(3_000)
+            if (channelStatus?.ready == true) {
+                return@LaunchedEffect
+            }
+            channelStatus = withContext(Dispatchers.IO) { ActiveExec.probe(context) }
+        }
+    }
 
 
     // One WebView for the session: reports are several megabytes and re-parsing one
@@ -231,6 +248,9 @@ private fun ConsoleShell(
 
     if (!onboarded) {
         Onboarding(
+            status = channelStatus,
+            probing = probing,
+            onRefresh = retryBinding,
             onDone = {
                 SetupPrefs.setOnboarded(context, true)
                 onboarded = true
@@ -262,7 +282,7 @@ private fun ConsoleShell(
                 onSettings = { tab = 3 },
                 onBack = { tab = if (tab == 4) 3 else 0 },
                 onDiagnostics = { tab = 4 },
-                bindState = bindState,
+                channelStatus = channelStatus,
                 probing = probing,
                 onRetryBinding = retryBinding)
         }
@@ -273,7 +293,7 @@ private fun ConsoleShell(
                     onSettings = { tab = 3 },
                     onBack = { tab = if (tab == 4) 3 else 0 },
                     onDiagnostics = { tab = 4 },
-                    bindState = bindState,
+                    channelStatus = channelStatus,
                     probing = probing,
                     onRetryBinding = retryBinding)
             }
@@ -304,7 +324,7 @@ private fun Screen(
     onSettings: () -> Unit,
     onBack: () -> Unit,
     onDiagnostics: () -> Unit,
-    bindState: ShizukuExecBridge.BindingState?,
+    channelStatus: ActiveExec.Status?,
     probing: Boolean,
     onRetryBinding: () -> Unit,
 ) {
@@ -336,8 +356,8 @@ private fun Screen(
             when (tab) {
                 1 -> ScriptsScreen()
                 3 -> SettingsScreen(dark, onDarkChange, onDiagnostics)
-                4 -> DiagnosticsScreen(bindState, probing, onRetryBinding)
-                else -> RunScreen(bindState, onRetryBinding)
+                4 -> DiagnosticsScreen(channelStatus, probing, onRetryBinding)
+                else -> RunScreen(channelStatus, onRetryBinding, onDiagnostics)
             }
         }
     }
@@ -476,8 +496,9 @@ private fun rememberRunBusy(): Boolean {
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 private fun RunScreen(
-    bindState: ShizukuExecBridge.BindingState?,
+    channelStatus: ActiveExec.Status?,
     onRetryBinding: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -570,7 +591,7 @@ private fun RunScreen(
                             busy = true
                             keyboard?.hide()
                         },
-                        enabled = prompt.isNotBlank() && !busy && bindState?.ready == true,
+                        enabled = prompt.isNotBlank() && !busy && channelStatus?.ready == true,
                         shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MidsceneColors.Brand,
@@ -594,8 +615,13 @@ private fun RunScreen(
                 }
             }
         }
-        if (bindState?.ready != true) {
-            ShizukuBindingHint(state = bindState, probing = false, onRetry = onRetryBinding)
+        if (channelStatus?.ready != true) {
+            ChannelHint(
+                status = channelStatus,
+                probing = false,
+                onRetry = onRetryBinding,
+                onOpenDiagnostics = onOpenDiagnostics,
+            )
         }
         lastRun?.let { LastRunCard(it) { path, html -> openArtefact(context, path, html) } }
     }
@@ -1240,7 +1266,7 @@ private fun RunDetail(
 
 @Composable
 private fun DiagnosticsScreen(
-    bindState: ShizukuExecBridge.BindingState?,
+    channelStatus: ActiveExec.Status?,
     probing: Boolean,
     onRetryBinding: () -> Unit,
 ) {
@@ -1261,26 +1287,33 @@ private fun DiagnosticsScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Diagnostics", style = MaterialTheme.typography.headlineSmall)
+        // No page title here: the top bar already names the page, and a second
+        // heading is exactly the duplicated row the console design removed.
+        ExecutionChannelCard(
+            status = channelStatus,
+            probing = probing,
+            busy = busy,
+            onRefresh = onRetryBinding,
+        )
         DiagnosticsCard("RUNTIME") {
             StatusRow("node", File(Provisioner.nodePath(context)).exists())
             StatusRow("agent bundle", Provisioner.cliFile(context).exists())
             StatusRow("yadb", File(Provisioner.YADB_TARGET).exists())
-            // No answer yet must not read as "missing": the probe binds and waits,
-            // so the first frame has nothing to report.
-            val serviceReady = bindState?.ready == true
+            // The shell channel is whichever one is selected, so the row has to name
+            // it: a fixed "shizuku user service" row reported "missing" forever on a
+            // device that was working over adb.
             StatusRow(
-                "shizuku user service",
-                serviceReady,
+                if (channelStatus?.channel == ActiveExec.CHANNEL_ADB) "shell channel"
+                else "shizuku user service",
+                channelStatus?.ready == true,
                 when {
                     probing -> "checking…"
-                    bindState == null -> "unknown"
+                    channelStatus == null -> "unknown"
                     else -> null
                 },
             )
             StatusRow("overlay permission", OverlayView.canDraw(context))
             Spacer(Modifier.height(10.dp))
-            val authorizeLabel = if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize"
             if (busy) {
                 // Extracting the bundle deletes the agent directory the running CLI is
                 // executing from, so provisioning waits for the run to end.
@@ -1291,24 +1324,42 @@ private fun DiagnosticsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
             }
-            ActionRow(
-                enabled = !busy,
-                "Provision" to { AgentService.start(context, AgentService.ACTION_PROVISION, null) },
-                authorizeLabel to {
-                    if (ShizukuAuth.binderReady()) {
-                        // A grant nobody reacts to leaves the service unbound, so the
-                        // listener rebinds and this re-probes once it lands.
-                        ShizukuAuth.request { onRetryBinding() }
-                    } else {
-                        openShizuku(context)
-                    }
-                },
-            )
-            ShizukuBindingHint(
-                state = bindState,
-                probing = probing,
-                onRetry = onRetryBinding,
-            )
+            val onShizuku = channelStatus?.channel != ActiveExec.CHANNEL_ADB
+            if (onShizuku) {
+                val authorizeLabel =
+                    if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize"
+                ActionRow(
+                    enabled = !busy,
+                    "Provision" to {
+                        AgentService.start(context, AgentService.ACTION_PROVISION, null)
+                    },
+                    authorizeLabel to {
+                        if (ShizukuAuth.binderReady()) {
+                            // A grant nobody reacts to leaves the service unbound, so the
+                            // listener rebinds and this re-probes once it lands.
+                            ShizukuAuth.request { onRetryBinding() }
+                        } else {
+                            openShizuku(context)
+                        }
+                    },
+                )
+            } else {
+                // Authorizing Shizuku is not an action on this channel, and offering it
+                // here is how the app used to send people to a dialog that refuses them.
+                ActionRow(
+                    enabled = !busy,
+                    "Provision" to {
+                        AgentService.start(context, AgentService.ACTION_PROVISION, null)
+                    },
+                )
+            }
+            if (onShizuku) {
+                ShizukuBindingHint(
+                    state = channelStatus?.shizuku,
+                    probing = probing,
+                    onRetry = onRetryBinding,
+                )
+            }
         }
         DiagnosticsCard("DEVICE") {
             ActionRow(
@@ -1350,6 +1401,225 @@ private fun DiagnosticsScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Ask for the pairing code, requesting notification permission first when needed.
+ *
+ * On API 33+ the permission is not optional: the code has to be typed into a
+ * notification, because the pairing port closes the moment this app comes to the
+ * front. Without the permission there is no pairing flow at all.
+ */
+@Composable
+private fun rememberPairingCodeRequest(): () -> Unit {
+    val context = LocalContext.current
+    val notifications = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            AdbPairing.requestCode(context, "")
+        } else {
+            Toast.makeText(
+                context,
+                "Without notifications there is no way to enter the pairing code.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+    return {
+        val needsPermission = android.os.Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            notifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            AdbPairing.requestCode(context, "")
+        }
+    }
+}
+
+/**
+ * Which privilege channel the console drives, and how to get that channel working.
+ *
+ * Two channels exist because no single one covers the phones we have met: Shizuku
+ * is the well-trodden path but some ROMs strip the permission it authorizes with,
+ * and driving the device's own adbd works there without any grant at all. The
+ * choice is explicit rather than automatic — a run's screenshots and taps must all
+ * travel the same privilege path, and a failure is only diagnosable if the app
+ * says which path it was on.
+ */
+@Composable
+private fun ExecutionChannelCard(
+    status: ActiveExec.Status?,
+    probing: Boolean,
+    busy: Boolean,
+    onRefresh: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var channel by remember { mutableStateOf(ActiveExec.channel(context)) }
+    var pairingNote by remember { mutableStateOf(AdbPairing.lastResult) }
+    var manualTarget by remember { mutableStateOf("") }
+
+    // The pairing code is delivered through a notification, so on API 33+ the
+    // permission is not optional — without it there is no way to type the code
+    // while the wireless-debugging screen keeps the pairing port open.
+    val askForCode = rememberPairingCodeRequest()
+
+    DiagnosticsCard("EXECUTION CHANNEL") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChannelChip("This phone (adb)", channel == ActiveExec.CHANNEL_ADB, !busy) {
+                ActiveExec.setChannel(context, ActiveExec.CHANNEL_ADB)
+                channel = ActiveExec.CHANNEL_ADB
+                onRefresh()
+            }
+            ChannelChip("Shizuku", channel == ActiveExec.CHANNEL_SHIZUKU, !busy) {
+                ActiveExec.setChannel(context, ActiveExec.CHANNEL_SHIZUKU)
+                channel = ActiveExec.CHANNEL_SHIZUKU
+                onRefresh()
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            when {
+                probing -> "Checking the channel…"
+                status == null -> "Unknown"
+                else -> status.detail
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (status?.ready == true) MidsceneColors.SuccessText
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        if (channel == ActiveExec.CHANNEL_ADB) {
+            val paired = LocalAdbBackend.isPaired(context)
+            val serial = LocalAdbBackend.serial(context)
+            Text(
+                if (paired) {
+                    "Paired with this device" + if (serial.isEmpty()) "" else " · $serial"
+                } else {
+                    "Not paired yet"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            ActionRow(
+                enabled = !busy,
+                (if (paired) "Reconnect" else "Start pairing") to {
+                    if (paired) {
+                        scope.launch {
+                            withContext(Dispatchers.IO) { AdbPairing.reconnect(context) }
+                            pairingNote = AdbPairing.lastResult
+                            onRefresh()
+                        }
+                    } else {
+                        askForCode()
+                    }
+                },
+                "Refresh" to onRefresh,
+            )
+            Spacer(Modifier.height(14.dp))
+            // The path that needs no pairing code: adbd is already listening on a
+            // known port (an "ADB over network" switch, or 5555 after `adb tcpip
+            // 5555`), and the phone's own "Allow debugging?" prompt authorises this
+            // app's key instead of a code.
+            Text(
+                "Already listening on a port?",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = manualTarget,
+                    onValueChange = { manualTarget = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("Address or port", fontSize = 11.sp) },
+                    placeholder = { Text("5555", fontSize = 12.sp) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                )
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            withContext(Dispatchers.IO) {
+                                AdbPairing.connectTo(context, manualTarget)
+                            }
+                            pairingNote = AdbPairing.lastResult
+                            onRefresh()
+                        }
+                    },
+                    enabled = !busy && manualTarget.isNotBlank(),
+                    shape = MaterialTheme.shapes.small,
+                ) { Text("Connect", fontSize = 12.sp, maxLines = 1) }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "Start pairing first, then open the pairing dialog: opening this app " +
+                    "closes the port the code belongs to — so the six digits are typed " +
+                    "into a notification. Everything after pairing reconnects on its own.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            ActionRow(
+                enabled = !busy,
+                (if (ShizukuAuth.authorized()) "Re-authorize" else "Authorize") to {
+                    if (ShizukuAuth.binderReady()) {
+                        ShizukuAuth.request { onRefresh() }
+                    } else {
+                        openShizuku(context)
+                    }
+                },
+                "Open Shizuku" to { openShizuku(context) },
+            )
+        }
+
+        val note = if (channel == ActiveExec.CHANNEL_ADB) pairingNote else ""
+        if (note.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                note,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** One of two mutually exclusive choices; selected state has to be obvious. */
+@Composable
+private fun RowScope.ChannelChip(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            shape = MaterialTheme.shapes.small,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MidsceneColors.Brand,
+                contentColor = Color.White,
+            ),
+            modifier = Modifier.weight(1f),
+        ) { Text(label, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.weight(1f),
+        ) { Text(label, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
     }
 }
 
@@ -1395,6 +1665,62 @@ private fun StatusRow(label: String, ready: Boolean, status: String? = null) {
  * while the binding had silently failed, and nothing on screen said so or let the
  * user retry without restarting the app.
  */
+/**
+ * Why the selected channel is not usable, and what to do about it.
+ *
+ * This replaced a Shizuku-only hint that told every user to authorize Shizuku
+ * even when the device was being driven over adb, where that advice is both
+ * impossible (the ROM refuses the grant) and irrelevant.
+ */
+@Composable
+private fun ChannelHint(
+    status: ActiveExec.Status?,
+    probing: Boolean,
+    onRetry: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
+) {
+    val context = LocalContext.current
+    Spacer(Modifier.height(8.dp))
+    if (probing || status == null) {
+        Text(
+            "Checking the execution channel…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+
+    Text(status.detail, style = MaterialTheme.typography.bodySmall, color = MidsceneColors.Error)
+
+    // The Shizuku-specific diagnosis only exists on that channel; the raw status
+    // code is the only way to tell "never started" from "started and died".
+    val shizuku = status.shizuku
+    if (shizuku != null && shizuku.binder && shizuku.authorized) {
+        Text(
+            "Shizuku user-service status: ${shizuku.serviceStatus}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
+    Spacer(Modifier.height(8.dp))
+    if (status.channel == ActiveExec.CHANNEL_SHIZUKU) {
+        ActionRow(
+            actions = arrayOf(
+                "Retry binding" to onRetry,
+                "Open Shizuku" to { openShizuku(context) },
+            ),
+        )
+    } else {
+        ActionRow(
+            actions = arrayOf(
+                "Retry connection" to onRetry,
+                "Fix in Diagnostics" to onOpenDiagnostics,
+            ),
+        )
+    }
+}
+
 @Composable
 private fun ShizukuBindingHint(
     state: ShizukuExecBridge.BindingState?,
@@ -1468,7 +1794,7 @@ private fun ActionRow(enabled: Boolean = true, vararg actions: Pair<String, () -
 @Composable
 private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDiagnostics: () -> Unit) {
     val context = LocalContext.current
-    var overlayOn by remember { mutableStateOf(OverlayView.canDraw(context)) }
+    var overlayOn by remember { mutableStateOf(SetupPrefs.overlayEnabled(context)) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -1525,11 +1851,13 @@ private fun SettingsScreen(dark: Boolean, onDarkChange: (Boolean) -> Unit, onDia
                 Switch(
                     checked = overlayOn,
                     onCheckedChange = { wanted ->
+                        overlayOn = wanted
+                        SetupPrefs.setOverlayEnabled(context, wanted)
                         if (wanted && !OverlayView.canDraw(context)) {
+                            // Permission first; the layer stays off until it is granted.
                             Overlay.requestPermission(context)
                         } else {
-                            overlayOn = wanted
-                            if (wanted) OverlayView.show(context, "Ready") else OverlayView.hide()
+                            OverlayView.setShowEnabled(wanted, context)
                         }
                     },
                 )
@@ -1754,25 +2082,38 @@ private const val STEP_COUNT = 4
 /**
  * First-run guide.
  *
- * Authorization is the one part of the setup that cannot be automated: Shizuku
- * only shows its dialog when the app asks for it, the overlay and battery
- * exemptions are system screens, and provisioning needs the shell channel those
- * grants unlock. So the app walks through them in order, shows the live state of
- * each one, and only then hands over the console.
+ * Step one used to be "authorize Shizuku", stated as the only possibility. It is
+ * not: on a ROM that strips the permission Shizuku authorizes with, that step can
+ * never complete, and the guide has to offer the channel that does work instead
+ * of sending the user back to a dialog that will refuse them.
+ *
+ * Overlay and battery come after the shell channel because neither is needed to
+ * run a task — they only make a run nicer to watch and safer to leave alone.
  */
 @Composable
-private fun Onboarding(onDone: () -> Unit) {
+private fun Onboarding(
+    status: ActiveExec.Status?,
+    probing: Boolean,
+    onRefresh: () -> Unit,
+    onDone: () -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(0) }
     var tick by remember { mutableStateOf(0) }
+    var channel by remember { mutableStateOf(ActiveExec.channel(context)) }
+    var pairingNote by remember { mutableStateOf(AdbPairing.lastResult) }
+    val askForCode = rememberPairingCodeRequest()
     val lines = remember { mutableStateListOf<String>() }
 
-    // Re-read the statuses whenever the user comes back from a system screen.
+    // Re-read the statuses whenever the user comes back from a system screen —
+    // including the notification shade, which is where pairing is confirmed.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 tick++
+                onRefresh()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -1788,7 +2129,7 @@ private fun Onboarding(onDone: () -> Unit) {
         onDispose { AgentService.removeListener(listener) }
     }
 
-    val shizukuReady = remember(tick) { ShizukuAuth.authorized() }
+    val channelReady = status?.ready == true
     val overlayReady = remember(tick) { OverlayView.canDraw(context) }
     val batteryReady = remember(tick) {
         context.getSystemService(android.os.PowerManager::class.java)
@@ -1797,6 +2138,7 @@ private fun Onboarding(onDone: () -> Unit) {
     val runtimeReady = remember(tick, lines.lastOrNull()) {
         Provisioner.runtimeInstalled(context)
     }
+    val adbChannel = channel == ActiveExec.CHANNEL_ADB
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -1812,20 +2154,70 @@ private fun Onboarding(onDone: () -> Unit) {
             )
         }
 
+        Column {
+            SectionLabel("HOW MIDSCENE GETS CONTROL")
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChannelChip("This phone (adb)", adbChannel, true) {
+                    ActiveExec.setChannel(context, ActiveExec.CHANNEL_ADB)
+                    channel = ActiveExec.CHANNEL_ADB
+                    onRefresh()
+                }
+                ChannelChip("Shizuku", !adbChannel, true) {
+                    ActiveExec.setChannel(context, ActiveExec.CHANNEL_SHIZUKU)
+                    channel = ActiveExec.CHANNEL_SHIZUKU
+                    onRefresh()
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (adbChannel) {
+                    "Midscene pairs with this phone's own adb over wireless debugging. " +
+                        "Nothing extra to install, and no permission the system has to grant."
+                } else {
+                    "Midscene asks Shizuku for shell access. Install and start Shizuku first; " +
+                        "some ROMs restrict the adb permissions it needs."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         StepCard(
             index = 1,
-            title = "Let Midscene control the phone",
-            body = "Midscene uses Shizuku to tap, type and read the screen. Shizuku has to be " +
-                "running, and this app needs your permission.",
-            done = shizukuReady,
+            title = if (adbChannel) "Pair with this phone" else "Let Midscene control the phone",
+            body = if (adbChannel) {
+                // The order is not a nicety: opening this app pauses the Settings
+                // screen, and Settings cancels the pairing server on pause. A user who
+                // reads the code first and then taps the button is left submitting a
+                // code whose port no longer exists.
+                "1. Tap the button below — this app posts a notification that waits for " +
+                    "the code.\n" +
+                    "2. Open Settings → Developer options → Wireless debugging → " +
+                    "\"Pair device with pairing code\".\n" +
+                    "3. Pull down the notification shade — do not leave that screen — and " +
+                    "type the six digits into the Midscene notification."
+            } else {
+                "Midscene uses Shizuku to tap, type and read the screen. Shizuku has to be " +
+                    "running, and this app needs your permission."
+            },
+            done = channelReady,
             current = step == 0,
             actionLabel = when {
+                adbChannel && LocalAdbBackend.isPaired(context) -> "Reconnect"
+                adbChannel -> "Start pairing"
                 !ShizukuAuth.installed(context) -> "Get Shizuku"
                 !ShizukuAuth.binderReady() -> "Open Shizuku"
                 else -> "Authorize"
             },
             onAction = {
                 when {
+                    adbChannel && LocalAdbBackend.isPaired(context) -> scope.launch {
+                        withContext(Dispatchers.IO) { AdbPairing.reconnect(context) }
+                        pairingNote = AdbPairing.lastResult
+                        onRefresh()
+                    }
+                    adbChannel -> askForCode()
                     !ShizukuAuth.installed(context) ->
                         context.startActivity(
                             Intent(
@@ -1834,12 +2226,19 @@ private fun Onboarding(onDone: () -> Unit) {
                             ),
                         )
                     !ShizukuAuth.binderReady() -> openShizuku(context)
-                    else -> ShizukuAuth.request { tick++ }
+                    else -> ShizukuAuth.request { onRefresh() }
                 }
             },
-            hint = if (shizukuReady) "Authorized"
-            else if (!ShizukuAuth.binderReady()) "Shizuku is not running yet"
-            else "Waiting for your permission",
+            hint = when {
+                channelReady -> status?.detail ?: "Ready"
+                probing -> "Checking…"
+                adbChannel && pairingNote.isNotEmpty() -> pairingNote
+                adbChannel && !LocalAdbBackend.isPaired(context) ->
+                    "Wireless debugging must be on; the code arrives in a notification"
+                adbChannel -> status?.detail ?: "Not connected yet"
+                !ShizukuAuth.binderReady() -> "Shizuku is not running yet"
+                else -> status?.detail ?: "Waiting for your permission"
+            },
         )
 
         StepCard(
@@ -1971,14 +2370,18 @@ private fun StepCard(
             Spacer(Modifier.height(10.dp))
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // weight, not SpaceBetween: with SpaceBetween a long hint takes the
+                // whole row and squeezes the button to zero width, whose label then
+                // wraps one character per line and stretches the card to full screen.
                 Text(
                     hint,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (done) MidsceneColors.SuccessText
                     else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
                 )
                 if (!done) {
                     Button(
@@ -1988,7 +2391,7 @@ private fun StepCard(
                             containerColor = MidsceneColors.Brand,
                             contentColor = Color.White,
                         ),
-                    ) { Text(actionLabel, fontSize = 12.sp) }
+                    ) { Text(actionLabel, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
         }
@@ -2044,10 +2447,28 @@ private object SetupPrefs {
     private const val ONBOARDED_KEY = "onboarded"
     private const val RETURN_KEY = "returnAfterRun"
     private const val LIST_HIDDEN_KEY = "historyListHidden"
+    private const val OVERLAY_KEY = "overlayEnabled"
 
     fun returnAfterRun(context: android.content.Context): Boolean =
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
             .getBoolean(RETURN_KEY, true)
+
+    /**
+     * Whether the floating progress layer may be shown.
+     *
+     * Kept on by default: it is the only progress feedback during a run. Turning it
+     * off has to survive a restart, because on at least one car head unit a
+     * full-screen overlay provoked the launcher's own full-screen mask window and
+     * every tap was swallowed while it was up.
+     */
+    fun overlayEnabled(context: android.content.Context): Boolean =
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .getBoolean(OVERLAY_KEY, true)
+
+    fun setOverlayEnabled(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(OVERLAY_KEY, value).apply()
+    }
 
     fun setReturnAfterRun(context: android.content.Context, value: Boolean) {
         context.getSharedPreferences(FILE, android.content.Context.MODE_PRIVATE)

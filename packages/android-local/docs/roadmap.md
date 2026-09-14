@@ -4,6 +4,10 @@
 > 本表 Phase 0/1 中与 rish 现场相关的任务**保留为已完成的历史记录**，不再作为后续目标；
 > 决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §9。
 
+> **范围变更（2026-09-14，已执行）**：端侧特权通道由「Shizuku UserService 一种」扩为**两条**，新增 **APK 内置 AOSP `adb` → 设备自身 adbd**（无线调试配对，同样 shell UID 2000）。
+> 触发原因：ColorOS 16（OnePlus 13T）移除了 shell 的 `GRANT_RUNTIME_PERMISSIONS`，Shizuku 在该 ROM 上无法授权任何应用。
+> 任务见 §3.5 D7/D8，风险见 §6，Gate 影响见 §7；现场证据见 [deployment.md](./deployment.md) §9（A16 系列），决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §10。
+
 阶段划分与 Gate 沿用调研文档（`research-v0.1.md` §7），此处细化到**可执行任务、产出物与验收方式**，并补上本仓库特有的风险（见 §6）。
 
 > **平台优先级（2026-09 调整）**：**普通安卓手机优先**。Phase 0/1 的所有结论以手机为目标平台；车机/OEM 特权通道（OEM Privileged Transport、多 Display 车机矩阵）降级为 Phase 3 的条件式可选项。
@@ -72,6 +76,9 @@
 | D4 | 结果 JSON（每任务 状态/耗时/错误）+ 退出码约定 | ✅ |
 | D5 | 配置导入导出、结果汇总、失败重试策略 | 计划（M2） |
 | D6 | APK + 内嵌 Node + 配置/脚本/运行/日志 UI | ✅ 完成（M3/M4；Compose 五页签 + 悬浮窗 + 内嵌报告 + 首次引导） |
+| D7 | **端侧第二通道**：APK 内置 AOSP `adb` 配对设备自身 adbd（无线调试回环端口），与 Shizuku 通道并存 | ✅ 完成（OnePlus 13T / ColorOS 16 实测：配对 → 自动发现端口 → `aiAct` ok 18.5s、能力矩阵全绿；见 `deployment.md` §9） |
+| D8 | 通道标识拆分：`backend` 只表示路由，新增 `channel` 表示 shell 提供者；App 注入 `MIDSCENE_EXEC_CHANNEL` | ✅ 完成（200 项单测通过） |
+| D9 | 配对生命周期：过期 / 无线调试被关闭后的重新配对引导，以及 Run 按钮的模型凭据前置校验 | 计划（见 §5.5 B15/B16） |
 
 ## 4. Phase 2：Native Host
 
@@ -106,6 +113,9 @@
 | B9 | **Shizuku 生命周期自愈** | manager 进程被回收后 binder 不再送达（已定位），需要重试/引导闭环；设备重启后授权的恢复 | 中 |
 | B10 | **长稳与恢复** | 8 小时运行、崩溃拉起、历史索引清理/导出 | 中 |
 | B11 | **工程化** | CI（暂缓，按用户要求）、`apps/android-host/project.json` 声明 Nx target、真机自动化脚本沉淀 | 小–中 |
+| **B15** | **配对生命周期与重新配对引导（新增，2026-09-14）** | 配对密钥 7 天无活动失效、无线调试在重启/换 Wi‑Fi 后关闭；UI 需区分「开关被关」与「密钥过期」并给出重新配对路径（当前缺失，见 [productization-decisions.md](./productization-decisions.md) §10.4） | 小–中 |
+| **B16** | **Run 按钮的凭据前置校验（新增）** | 就绪判断目前只看通道，不看模型凭据；缺/无效 API Key 到运行时才暴露（同 [productization-decisions.md](./productization-decisions.md) §4.2 的类别） | 小 |
+| **B17** | **ColorOS 16 机型登记（新增）** | OnePlus 13T（PKX110，ColorOS 16 / Android 16）完成首次主流零售机验收；待 B15/B16 落定后写入受支持设备清单，并注明 **Shizuku 在该机型不可用、工作通道是 adb** | 小 |
 
 ## 6. 风险与对策
 
@@ -123,6 +133,9 @@
 | 上游 rebase 成本 | 中 | 长期维护成本 | 新包零侵入；唯一上游改动（图片后端）保持最小、可上游化 |
 | 无真机/车机访问 | 中 | 权限模型结论不成立 | Phase 0/1 结论标注为「模拟器结论」；G3 必须在目标车机复测 |
 | 「本机化」语义误解 | 中 | 部署预期错误 | 文档明确：非 root 的 Shizuku 仍需 adb/无线调试启动，本机化 ≠ 无需 Shizuku 启动 |
+| ROM 移除 shell 的授权能力（ColorOS 16：shell 无 `GRANT_RUNTIME_PERMISSIONS`，`pm grant`/`pm revoke` exit 255） | 中高 | Shizuku UserService 通道在该 ROM 上完全不可用，端侧闭环不成立 | 已落地第二条通道（APK 内置 adb → 设备自身 adbd）并实机验证（`deployment.md` §9）；Shizuku 保留，失败时如实上报 `channel` 与原因 |
+| 无线调试配对的时效性（重启/换 Wi‑Fi 关闭开关、密钥 7 天无活动失效） | 中 | 第二通道在用户不知情时失效，表现为「连不上」 | B15：区分「开关关闭」与「密钥过期」并给出重新配对引导；配对状态只认设备侧证据 |
+| OEM 对 `adb shell input` 的限制（小米/Redmi 等需「USB 调试（安全设置）」） | 中 | 基于 adb 的通道在个别 ROM 上无法输入 | 本轮明确范围外：它同等影响任何 adb 方案，不作为本实现缺陷跟踪；登记设备时注明（B17） |
 
 ## 7. Gate 状态表
 
@@ -132,6 +145,8 @@
 | G1 Device Closed Loop | 截图 + 输入 + AI 动作闭环稳定 | 对比 Accessibility / MediaProjection 或目标设备 OEM 权限 | **通过**：设备本机完成 `screenshot → aiAssert → aiTap → aiAssert`（复现 2 次，§9.2 C11）；长稳与车机验证待补（C13） |
 | G2 Embedded Node | APK 内 Node runtime 可稳定启动 / 停止 / 恢复 | 评估 sidecar / system daemon；不影响 Transport 接口 | 未开始 |
 | G3 Privilege Model | 确定 Shizuku 是否满足部署与重启要求 | 切换 OEM privileged / system app 路线 | 未开始 |
+
+> **2026-09-14 补记（G3 的输入）**：OnePlus 13T / ColorOS 16 实测表明，Shizuku 在部分主流零售 ROM 上**不可授权**（ROM 移除了 shell 的 `GRANT_RUNTIME_PERMISSIONS`，见 [deployment.md](./deployment.md) A16-2 ~ A16-5），端侧因此已有第二条通道（APK 内置 adb，§3.5 D7）。结论是**权限模型不再单押 Shizuku**，也不需要为这类 ROM 走 OEM privileged 路线；G3 仍需给出最终模型：两条通道的取舍、重启与配对生命周期、设备登记（§5.5 B15/B17）。
 
 ## 8. 验证矩阵（调研文档 §10.1 落地）
 
@@ -144,6 +159,7 @@
 | Agent | `aiTap`、`aiQuery`、`aiAssert`、`aiWaitFor`、scroll、keyboardPress 闭环 |
 | 异常恢复 | rish/Shizuku 断开、Node runtime 异常、模型超时、截图失败后可恢复 |
 | 兼容性 | 目标车机系统版本/SoC + 1–2 台 AOSP/消费设备对照（当前仅有 Android 12 AVD） |
+| 特权通道 | Shizuku UserService 与 APK 内置 adb 两条通道各自在真机跑通一次；ROM 移除 shell 授权能力（ColorOS 16）时改走 adb 通道，且当前 `channel` 可从 `doctor` / 能力矩阵读出（OnePlus 13T / ColorOS 16 已满足，见 `deployment.md` §9） |
 
 ## 9. Phase 0 执行手册与实测结论（本机 Android 12 模拟器）
 

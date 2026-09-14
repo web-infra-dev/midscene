@@ -7,20 +7,36 @@
  */
 
 /**
- * Which privilege channel a transport uses.
+ * How commands travel from the agent to a shell.
  *
- * Two are implemented; the rest are extension points kept in the contract so a
- * future transport does not have to widen this union (see `docs/architecture.md`).
+ * This names the *route*, not the privilege source, because the on-device route
+ * now carries two of them: the app's loopback bridge can be served either by a
+ * Shizuku user service or by the app's own adb client talking to the device's
+ * adbd. Reporting the route as "shizuku-userservice" made every log line from the
+ * adb channel state something untrue; the source is {@link ExecChannel}.
  */
 export type TransportBackend =
-  /** Product: app → loopback bridge → Shizuku UserService (shell UID 2000). */
+  /** Product: agent → app loopback bridge → a shell the app arranged. */
+  | 'device-bridge'
+  /**
+   * @deprecated The old name for `device-bridge`, back when Shizuku was the only
+   * thing behind it. Still accepted in config so existing files keep working.
+   */
   | 'shizuku-userservice'
-  /** Debug and regression baseline: external adb host → shell. */
+  /** Debug and regression baseline: an adb host (PC) drives the device. */
   | 'adb-shell'
   /** Car/head-unit (not implemented): platform signature / priv-app / OEM service. */
   | 'oem-privileged'
   /** Degraded (not implemented): an unprivileged local shell. */
   | 'local-shell';
+
+/**
+ * What actually provides the shell, independent of the route.
+ *
+ * `shizuku` and `adb` both end at uid 2000; they differ in what has to be true on
+ * the phone for that to happen, which is the thing worth printing when a run fails.
+ */
+export type ExecChannel = 'shizuku' | 'adb';
 
 /** A point in device-pixel coordinates on the screen. */
 export interface Point {
@@ -50,6 +66,8 @@ export type TextInputSupport = 'full' | 'ascii-only' | 'none';
 
 export interface AndroidCapabilities {
   backend: TransportBackend;
+  /** Who provides the shell behind that route. */
+  channel: ExecChannel;
   /** `runShell` is usable. */
   shell: boolean;
   screenshot: boolean;
@@ -122,6 +140,7 @@ export interface ActivityTarget {
 export interface TransportHealth {
   ok: boolean;
   backend: TransportBackend;
+  channel: ExecChannel;
   uid: number | null;
   latencyMs: number;
   checkedAt: number;
@@ -135,6 +154,9 @@ export interface TransportHealth {
  */
 export interface AndroidTransport {
   readonly backend: TransportBackend;
+
+  /** What provides the shell: a Shizuku user service, or the device's own adbd. */
+  readonly channel: ExecChannel;
 
   getCapabilities(): Promise<AndroidCapabilities>;
 

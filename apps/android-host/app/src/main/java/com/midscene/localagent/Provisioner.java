@@ -225,23 +225,26 @@ public final class Provisioner {
      * confusing failure later).
      */
     public static String installYadb(Context context, LogSink log) throws IOException {
+        // Bring the channel up first: for the adb channel "configured" is not the
+        // same as "connected", and the difference is the whole reason a first
+        // provisioning used to fail with a message about the wrong thing.
+        ActiveExec.prepare(context);
         // Probe rather than wait: a bare "not ready" used to be reported with an
         // empty reason, which told the user nothing about what to fix.
-        ShizukuExecBridge.BindingState state = ShizukuExecBridge.probeBinding(context, 30_000);
-        if (!state.ready) {
-            throw new IOException("yadb install needs the Shizuku user service, which is not "
-                    + "ready: " + describeBinding(state));
+        if (!ActiveExec.isReady(context)) {
+            throw new IOException("the execution channel is not ready: "
+                    + ActiveExec.describe(context));
         }
-        log.log("shizuku user service bound as uid " + state.uid);
+        log.log("execution channel: " + ActiveExec.describe(context));
 
         byte[] bytes;
         try (InputStream raw = context.getAssets().open("yadb")) {
             bytes = RuntimePayloads.readBounded(raw, RuntimePayloads.MAX_YADB_BYTES);
         }
-        ShizukuExecBridge.installYadb(bytes);
-        ShizukuExecBridge.Result result = ShizukuExecBridge.exec(
+        ActiveExec.installYadb(context, bytes);
+        ActiveExec.Result result = ActiveExec.exec(context,
                 "ls -l " + YADB_TARGET, 10_000);
-        log.log("shizuku user service: " + result.stdout.trim()
+        log.log("yadb: " + result.stdout.trim()
                 + (result.stderr.isEmpty() ? "" : " stderr=" + result.stderr.trim()));
         if (!result.ok()) {
             throw new IOException("yadb install failed (exit " + result.exitCode + ")"
@@ -262,17 +265,17 @@ public final class Provisioner {
         // descriptors cross it. Actual Node/HTTP/screenshot coverage follows.
         String channel = channelDir(context).getAbsolutePath();
         int expectedBytes = 2 * 1024 * 1024;
-        ShizukuExecBridge.Result write = ShizukuExecBridge.exec(
+        ActiveExec.Result write = ActiveExec.exec(context,
                 "mkdir -p '" + channel + "' && dd if=/dev/zero of='"
                         + channel + "/provision-check' bs=65536 count=32", 10_000);
         if (!write.ok()) {
             throw new IOException("runtime channel write failed: " + write.stderr);
         }
-        byte[] read = ShizukuExecBridge.readChannelFile(channel + "/provision-check");
+        byte[] read = ActiveExec.readChannelFile(context, channel + "/provision-check");
         if (read.length != expectedBytes || !java.util.Arrays.equals(read, new byte[expectedBytes])) {
             throw new IOException("runtime channel read verification failed");
         }
-        ShizukuExecBridge.Result cleanup = ShizukuExecBridge.exec(
+        ActiveExec.Result cleanup = ActiveExec.exec(context,
                 "rm -f '" + channel + "/provision-check'", 10_000);
         if (!cleanup.ok()) {
             throw new IOException("runtime channel test cleanup failed: " + cleanup.stderr);
@@ -300,8 +303,11 @@ public final class Provisioner {
      * The reason and the status code are both reported: the reason names the
      * operation that failed, the code says which stage it failed at, and neither
      * alone is enough to tell "never started" from "started and died".
+     *
+     * Package-private because {@link ActiveExec} reports the same sentence for the
+     * Shizuku channel rather than inventing a second wording for it.
      */
-    private static String describeBinding(ShizukuExecBridge.BindingState state) {
+    static String describeBinding(ShizukuExecBridge.BindingState state) {
         StringBuilder message = new StringBuilder();
         if (!state.binder) {
             message.append("Shizuku is not running. Start Shizuku, then provision again.");

@@ -494,7 +494,7 @@ export async function runLocalAgentConfig(
 
   options.onEvent?.({
     type: 'device',
-    message: `connecting via ${transport.backend}`,
+    message: `connecting via ${transport.backend} (${transport.channel})`,
   });
 
   const capabilities = await transport.getCapabilities();

@@ -120,8 +120,9 @@ def main():
     source = sys.argv[1]
     target = sys.argv[2]
 
-    shutil.rmtree(target, ignore_errors=True)
-    os.makedirs(target)
+    # Not rmtree: the adb runtime stages its own libraries in the same directory,
+    # and wiping it would silently drop them from the next build.
+    os.makedirs(target, exist_ok=True)
 
     node_src = os.path.join(source, 'node')
     node_dst = os.path.join(target, 'libnodebin.so')

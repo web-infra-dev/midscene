@@ -42,7 +42,7 @@ function readVersion(): string {
 const USAGE = `midscene-local — on-device Android agent
 
 Usage:
-  midscene-local doctor [--backend shizuku-userservice|adb-shell] [--serial <id>]
+  midscene-local doctor [--backend device-bridge|adb-shell] [--serial <id>]
   midscene-local run <config.yaml|config.json>
   midscene-local --version
   midscene-local --help
@@ -52,9 +52,10 @@ Commands:
   run      Execute the tasks described by a config file.
 
 Backends:
-  shizuku-userservice  (default) On-device path. The host app injects
-                       MIDSCENE_EXEC_BRIDGE_URL/TOKEN; commands reach a Shizuku
-                       user service running as shell (uid 2000).
+  device-bridge        (default) On-device path. The host app injects
+                       MIDSCENE_EXEC_BRIDGE_URL/TOKEN and MIDSCENE_EXEC_CHANNEL;
+                       commands reach uid 2000 through whichever channel that app
+                       selected (a Shizuku user service, or its own adb client).
   adb-shell            Drive the device from this host over adb.
 `;
 
@@ -93,7 +94,7 @@ function parseArgs(argv: string[]) {
 function createTransportFromFlags(
   flags: Record<string, string>,
 ): AndroidTransport {
-  const backend = flags.backend ?? 'shizuku-userservice';
+  const backend = flags.backend ?? 'device-bridge';
 
   if (backend === 'adb-shell') {
     return new AdbShellTransport({
@@ -102,16 +103,18 @@ function createTransportFromFlags(
     });
   }
 
-  if (backend !== 'shizuku-userservice') {
+  // `shizuku-userservice` is what this route was called before the adb channel
+  // existed; a config or a script that still says it means the same thing.
+  if (backend !== 'device-bridge' && backend !== 'shizuku-userservice') {
     throw new Error(
-      `Unknown backend "${backend}"; expected shizuku-userservice or adb-shell`,
+      `Unknown backend "${backend}"; expected device-bridge or adb-shell`,
     );
   }
 
   const bridge = bridgeFromEnv();
   if (!bridge) {
     throw new Error(
-      'The shizuku-userservice backend needs the host app: it must set ' +
+      'The device-bridge backend needs the host app: it must set ' +
         'MIDSCENE_EXEC_BRIDGE_URL and MIDSCENE_EXEC_BRIDGE_TOKEN. From a PC, ' +
         'pass --backend adb-shell --serial <id> instead.',
     );

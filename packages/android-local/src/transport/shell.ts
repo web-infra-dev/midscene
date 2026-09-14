@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getDebug } from '@midscene/shared/logger';
 
+import { channelFromEnv } from './bridge';
 import {
   type CommandRunner,
   CommandRunnerError,
@@ -24,6 +25,7 @@ import {
   buildYadbPinchCommand,
   sendTextInput,
 } from './text-input';
+import type { ExecChannel } from './types';
 import type {
   ActivityTarget,
   AndroidCapabilities,
@@ -138,7 +140,14 @@ interface CommandOutcome {
 }
 
 export class ShellTransport implements AndroidTransport {
-  readonly backend: TransportBackend = 'shizuku-userservice';
+  readonly backend: TransportBackend = 'device-bridge';
+
+  /**
+   * Reported from the environment the host app sets, because only the app knows
+   * which channel it selected. A missing value means an older app build, which
+   * could only have been Shizuku.
+   */
+  readonly channel: ExecChannel = channelFromEnv();
 
   private readonly runner: CommandRunner;
   private readonly semaphore: Semaphore;
@@ -233,6 +242,7 @@ export class ShellTransport implements AndroidTransport {
 
     const capabilities: AndroidCapabilities = {
       backend: this.backend,
+      channel: this.channel,
       shell: true,
       screenshot,
       input,
@@ -357,6 +367,7 @@ export class ShellTransport implements AndroidTransport {
         return {
           ok: false,
           backend: this.backend,
+          channel: this.channel,
           uid: null,
           latencyMs: 0,
           checkedAt: startedAt,
@@ -368,6 +379,7 @@ export class ShellTransport implements AndroidTransport {
       return {
         ok: true,
         backend: this.backend,
+        channel: this.channel,
         uid,
         latencyMs: Date.now() - startedAt,
         checkedAt: Date.now(),
@@ -386,6 +398,7 @@ export class ShellTransport implements AndroidTransport {
       return {
         ok: false,
         backend: this.backend,
+        channel: this.channel,
         uid: null,
         latencyMs: Date.now() - startedAt,
         checkedAt: Date.now(),
@@ -863,6 +876,7 @@ export class ShellTransport implements AndroidTransport {
             {
               code: 'CommandFailed',
               backend: this.backend,
+              channel: this.channel,
               command: `mkdir -p ${this.fileChannelDir}`,
               exitCode: outcome.exitCode,
               stderr: combinedOutputText(outcome).trim(),
@@ -922,6 +936,7 @@ export class ShellTransport implements AndroidTransport {
             {
               code: 'CommandFailed',
               backend: this.backend,
+              channel: this.channel,
               command: fullCommand,
               exitCode: outcome.exitCode,
               stderr: detail,
@@ -1079,7 +1094,7 @@ function requireFileChannelDir(value: string | undefined): string {
       'fileChannelDir is required: it must be a directory the shell uid can ' +
         "write and this process can read (the on-device path uses the app's " +
         'external files directory)',
-      { code: 'InvalidArgument', backend: 'shizuku-userservice' },
+      { code: 'InvalidArgument', backend: 'device-bridge' },
     );
   }
 

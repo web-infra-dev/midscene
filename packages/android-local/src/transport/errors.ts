@@ -1,4 +1,4 @@
-import type { TransportBackend } from './types';
+import type { ExecChannel, TransportBackend } from './types';
 
 /**
  * Unified transport error codes. Upper layers switch on `code` only — they must
@@ -21,6 +21,8 @@ export type AndroidTransportErrorCode =
   | 'InvalidArgument';
 
 export interface AndroidTransportErrorOptions {
+  /** Who was providing the shell when this failed. */
+  channel?: ExecChannel;
   code: AndroidTransportErrorCode;
   backend: TransportBackend;
   /** The exact command that failed, for diagnostics. */

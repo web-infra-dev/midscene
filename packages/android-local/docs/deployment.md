@@ -4,6 +4,10 @@
 > 本文的阶段 A 内容与 A14 系列实测记录**保留为历史证据**（它们记录了 transport 层为何如此实现），不再是目标部署方式。
 > 决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §9。
 
+> **范围变更（2026-09-14，已执行）**：端侧特权通道由「唯一 Shizuku UserService」扩为**两条**，新增 **APK 内置 AOSP `adb` → 设备自身 adbd**（无线调试配对，同样落到 shell UID 2000）。
+> 触发原因是 ColorOS 16 移除了 shell 的 `GRANT_RUNTIME_PERMISSIONS`，Shizuku 在该 ROM 上无法给任何应用授权。**这不是 PC + ADB 路径**：adb 客户端跑在 APK 内、连的是 `127.0.0.1`。
+> 现场证据见本文 **§9（A16 系列）**；决策与执行记录见 [productization-decisions.md](./productization-decisions.md) §10。上一条 2026-09-13 的收敛结论对当时成立，保留为历史记录。
+
 目标形态：**APK 植入的移动版 Agent 管理器** —— 简单版"移动 studio"，
 即"脚本 + 配置管理器"：在手机上管理配置、跑脚本、看结果，不依赖 PC。
 
@@ -18,6 +22,7 @@
 | **B. 宿主调试** | PC + USB 上的 `midscene-local` | 开发机 Node | adb（shell 2000） | ✅ 可用 |
 | **C. APK 内嵌 Agent** | Android Host App（Node 作为 native library + 最小 UI） | 随 APK 交付的 Node（当前取自 Termux 包，见 `apps/android-host/`） | rish（Shizuku 授权给本 App）→ 后续换 UserService | ✅ **M3 切片已在模拟器验证** |
 | **D. 车机/系统应用** | priv-app / 系统服务 | 同上 | platform signature / OEM 服务 | Phase 3（条件式） |
+| **C′. APK + 设备自身 adbd**（2026-09-14 新增，§9） | Android Host App（同 C） | 随 APK 交付的 Node（同 C） | APK 内置 AOSP `adb`（`libadbbin.so`）→ `127.0.0.1:<无线调试端口>` → shell 2000 | ✅ **OnePlus 13T / ColorOS 16 实测**（Shizuku 在该 ROM 无法授权，改走此通道） |
 
 阶段 A 与 C **共用同一个配置与脚本模型**：`midscene-local run config.yaml` 这条命令既是
 今天的 CLI 入口，也是将来 App 内部"运行"按钮调用的地方。
@@ -295,6 +300,8 @@ Node (@midscene/android-local) → HttpShizukuRunner (CommandRunner)
 | M4'' ✅ | **yadb 自动分发**：assets → App 外部目录 → rish cp 到 `/data/local/tmp`（无需 adb push） | ✅ 实测日志 `staged yadb → yadb-installed`，`/data/local/tmp/yadb` 就位 |
 | M4''' ✅ | **生产版 UI**（参考 studio，无预览）：自然语言指令 / YAML 编辑运行 / 历史与报告查看 / 运行时与凭证设置 | ✅ 四页签可用；History → Report 在 WebView 内渲染 Midscene 交互报告（时间线 + 逐帧回放） |
 | M5 | 长稳与恢复（崩溃拉起、权限失效重建、索引清理与导出） | 连续 8 小时任务不死、异常后自恢复 |
+| M6 ✅ | **端侧第二条通道**：APK 内置 AOSP `adb` 配对设备自身 adbd（无线调试回环端口），用于 Shizuku 无法授权的 ROM | ✅ OnePlus 13T / ColorOS 16 实测：配对 → 自动发现连接端口 → 运行时就绪；`aiAct "open the Settings app"` → `status ok` 18.5s + 报告生成；能力矩阵全绿（§9） |
+| M6-a 🔄 | 配对生命周期与状态前置：重新配对引导（7 天无活动 / 无线调试被关闭）、Run 按钮的模型凭据校验 | 未实现：配对过期后 UI 无引导；缺/无效 API Key 仍要到运行时才暴露（见 [productization-decisions.md](./productization-decisions.md) §10.4） |
 
 ## 8. 已知问题：Shizuku UserService 在部分 ROM 上不启动（2026-09 现场记录）
 
@@ -344,6 +351,8 @@ Android 12 车机实测：logcat 中**没有任何 `AndroidRuntime` 崩溃栈**�
 **判断顺序建议**：先用 C 的"最小验证"确定故障是否真在 Shizuku 服务端（见下），再决定是否转 A/B。A/B 不依赖 Shizuku，是能立刻交付的路径。
 
 **C 的最小验证**（不重新引入 rish 代码也能做）：在同版本 Shizuku 下用一个已知可用的第三方 Shizuku 用户服务应用做对照。若它同样起不来，则确认是 ROM/Shizuku 层面的限制，与我们的 APK 无关，此时应直接走 A/B，而不是继续在 UserService 上投入。
+
+> **2026-09-14 补记**：路径 B（无线调试直驱）的**端侧变体**已经落地并实测——`adb` 客户端跑在 APK 内、经回环端口连接设备自身 adbd，不需要 PC（见 §9）。触发它的场景不是车机，而是 ColorOS 16 上 Shizuku 无法授权（§9.1）：那里 ROM 移除的是 shell 的 `GRANT_RUNTIME_PERMISSIONS`，与 Shizuku 服务端启动无关。
 
 ### 8.2 Android 14 模拟器端到端复验（2026-09-13，rish 移除之后）
 
@@ -400,3 +409,66 @@ peekUserService status=-1                                ← 服务始终未起�
 **剩余怀疑（指向 Shizuku 或 ROM，非本项目）**：上游有多个同类报告——[#1198 User services don't work on MediaTek devices](https://github.com/RikkaApps/Shizuku/issues/1198)、[#1171 无法启动用户服务进程](https://github.com/RikkaApps/Shizuku/issues/1171)、[#475 Stuck in Shizuku.bindUserService sometimes](https://github.com/RikkaApps/Shizuku/issues/475)，且多用户环境下 Shizuku 亦有已知问题（如 [aniyomi 的多用户修复](https://github.com/aniyomiorg/aniyomi/commit/c42c7ffd282108de1f25577efc52b7533d58e938)）。本例同时具备"特定 ROM"与"二级用户"两个特征。
 
 **结论**：在 Shizuku 或 ROM 层面解决之前，**该车机不计入支持矩阵**。端侧闭环的验收以已通过的 Android 14 模拟器记录（§8.2）与 Android 12/14 手机记录（§5.6）为准。这台车机若要跑自动化，走 §8.1 的路径 A/B（PC + adb / 无线调试直驱），该路径不经过 Shizuku。
+
+## 9. Android 16 / ColorOS 16 真机现场（2026-09-14，OnePlus 13T）
+
+**被测设备**：OnePlus 13T（PKX110），ColorOS 16 / `PKX110_16.0.10.500(CN01)`，Android 16（API 36），ColorOS 构建号 `V16.1.0`。
+本节新增通道的证据用 `A16-n` 编号，与 §5.6 的 `A14-nn` 系列并列，旧编号不动；**下列每一行 `A16-n` 都指这台设备（OnePlus 13T / ColorOS 16），除非该行另有说明**。原始探测记录与决策见 [productization-decisions.md](./productization-decisions.md) §10。
+
+### 9.1 Shizuku 在 ColorOS 16 上无法授权（A16-1 ~ A16-7）
+
+| # | 结论 |
+| --- | --- |
+| A16-1 | **首次主流零售机验收**：在此之前全部记录来自 Android 12/14 的模拟器与手机；结论不能从模拟器外推，本轮即为验证该前提 |
+| A16-2 | **Shizuku 授权失败**：点授权对话框，得到的是 Shizuku 自己的告警「adb 权限受限 / 这极有可能是你的设备制造商限制了 adb 的权限」，授权对话框根本不出现 |
+| A16-3 | **根因锁定在设备上**：`adb shell pm grant <pkg> android.permission.POST_NOTIFICATIONS` → `java.lang.SecurityException: grantRuntimePermission: Neither user 2000 nor current process has android.permission.GRANT_RUNTIME_PERMISSIONS.` —— `shell` UID（2000）没有 `GRANT_RUNTIME_PERMISSIONS` |
+| A16-4 | Shizuku 记录客户端授权的方式正是**授予** `moe.shizuku.manager.permission.API_V23`（`protectionLevel=dangerous`，用 aapt2 在 Shizuku 13.6.0 上核对），所以在该 ROM 上它**永远无法授权任何人**。注意它是 `dangerous` 而不是 `signature`——这正是 `pm grant` 看起来"本该可行"的原因 |
+| A16-5 | 逐项探测 ROM 究竟移除了哪些 shell 能力：`appops`、`pm list users`、`am force-stop`、`dumpsys`、`settings put secure\|global`、`input keyevent`、`screencap`、`am start`、`pm list packages`、`app_process`（yadb）**全部 OK**；只有 `pm grant` / `pm revoke` **FAIL（exit 255）**。ROM 恰好移除了 Shizuku 需要的那一个能力，agent 需要的一个没动 |
+| A16-6 | 开发者选项逐项翻完，该构建**没有「禁止权限监控」开关**（社区称 ColorOS 16 把它隐藏、把系统语言切成英文会以 "Disable system optimization" 出现；本次未验证） |
+| A16-7 | 另外被挡：`pm clear` → `SecurityException: ... does not have permission android.permission.CLEAR_APP_USER_DATA`，改用卸载 + 重装。该 ROM 的 `OplusHansManager` 会主动冻结后台应用（实测 `freeze uid: 10041 com.midscene.localagent ... scene: LcdOn`） |
+
+### 9.2 第二条端侧通道：App 驱动设备自身 adbd（A16-8 ~ A16-14）
+
+| # | 结论 |
+| --- | --- |
+| A16-8 | ✅ **机制**：AOSP `adb` 客户端（取自 Termux 的 `android-tools`）作为 native library 随 APK 交付——`libadbbin.so` 加 `jniLibs/arm64-v8a/` 里约 102 个依赖库——以 app 身份运行，与设备自身 adbd 在无线调试回环端口上配对并连接 |
+| A16-9 | 独立先例核对：LADB 就是同一套做法（AOSP adb 编入 `jniLibs`、`ProcessBuilder`、`HOME=filesDir`、`useLegacyPackaging=true`） |
+| A16-10 | 设备 shell 侧复现测量：`adb pair 127.0.0.1:<port> <code>` → `Successfully paired`；`adb connect 127.0.0.1:<port>` → `connected`；`shell id` → `uid=2000(shell) ... context=u:r:shell:s0`；`exec-out screencap -p` → 合法 PNG |
+| A16-11 | **配对可持久**：`kill-server` + `start-server` 之后再 `adb connect` 仍然成功，无需重新配对 |
+| A16-12 | **配对有效期（AOSP 约束）**：无线调试在设备重启后、以及 Wi‑Fi/BSSID 变化后关闭（用户需重新打开开关，但**不需要**重新配对）；配对密钥在 7 天无活动后失效（`ADB_ALLOWED_CONNECTION_TIME` 默认 604800000 ms） |
+| A16-13 | ✅ **App 内端到端**：配对 → 自动发现连接端口 → `runtime ready: Node + agent + shell uid 2000 + yadb + payload pipe`；真实模型任务 `aiAct "open the Settings app"` → `status ok`，18.5s，报告生成 |
+| A16-14 | 通道能力矩阵全绿：`shell/screenshot/input/appManagement/multiDisplay/gestures` = true，`textInput: "full"`，`privileged: true`，`uid: 2000`。截图 in-app 实测 **749–901 ms**（对照：同一台手机由 PC 走 USB 驱动为 332 ms） |
+
+### 9.3 配对链路的缺陷与共存实测（A16-15 ~ A16-19）
+
+| # | 结论 |
+| --- | --- |
+| A16-15 | **通知分组**：配对通知与前台服务通知被系统自动归到一组，ColorOS 把成组通知折叠渲染，其 `RemoteInput` 动作因此不可达。修法：**配对通知本身就是前台服务通知**（一条通知，不分组） |
+| A16-16 | **进程冻结**：配对流程全程发生在 App 处于后台时（用户停在设置页、通知栏拉下）。没有前台服务时 ROM 会冻结进程并挂起主 looper，于是 mDNS 回调**和**本该放弃它们的超时都不会触发，配对无限挂住。修法：`Start pairing` 先起前台服务。Shizuku 与同类应用把配对码收到通知里，也是这个原因 |
+| A16-17 | **adb server 归属权**：adb 每个端口只有一个 server，第一个请求它的客户端拥有它（连同该客户端 `HOME` 里的密钥对）。一次手工测试留在 5037 上的 server 让 App 的 `adb pair` 走了别人的密钥，只报 `error: protocol fault (couldn't read status message): Success`。修法：App 自带 server 端口 `-P 5038`，别人无法占用。另：命令前 kill + restart server 会更糟（`protocol fault (couldn't read status length)`，与新 daemon 起来的竞态）；**幂等且等待就绪的 `start-server` 才正确** |
+| A16-18 | **与 PC 共存的实测**：同一台手机上三个客户端同时在线——App → `127.0.0.1:<port>`（自己的 5038 server）、PC 走无线调试连同一个 adbd TLS 端口（PC 的 5037）、同一台 PC 再走 USB。三者同时可用，App 的 provisioning 成功、两条 PC 连接保持可用。结论：TLS 模式下 adbd 接受并发客户端；端侧 server 端口是私有的；`kill-server` 只作用于 App 自己的端口 |
+| A16-19 | **UI 状态缺陷**：「本地存在密钥文件」被当成「已配对」。adb 客户端首次运行就会生成密钥对，**包括设备拒绝了的那次配对**——于是控制台宣布了一次其实失败的配对，随后给出一个什么也做不了的 Reconnect。修法：配对只由**设备侧产出的证据**记录——确认过的 `adb pair`，或一次以 uid 2000 应答的连接 |
+
+### 9.4 通道标识修正（A16-20）
+
+| # | 结论 |
+| --- | --- |
+| A16-20 | `doctor` 在走 adb 通道时报的却是 `"backend": "shizuku-userservice"`——标签不实。修法：拆成两个概念——**`backend` 只表示路由**（`device-bridge` \| `adb-shell`，`shizuku-userservice` 作为 deprecated 别名保留在配置 schema 里），**新增 `channel` 表示 shell 由谁提供**（`shizuku` \| `adb`）；App 注入 `MIDSCENE_EXEC_CHANNEL` 供 agent 如实上报。200 项单测通过；`AndroidLocalDevice(...)` 与能力矩阵现在都带 `channel` |
+
+### 9.5 组合兼容矩阵
+
+| Android | 无线调试 | 配对 | 本方案 |
+| --- | --- | --- | --- |
+| 11+（API 30+） | 有 | 6 位配对码，服务类型 `_adb-tls-pairing._tcp` | 可用 |
+| 10（API 29） | 无此功能 | — | 配对流程不可用；只能手动连接一个已在监听的 adbd 端口（如 `adb tcpip 5555` 之后，或 ROM 自带「网络 ADB」开关） |
+
+- APK 的 `minSdk` 是 29，所以 Android 10 上 App 能装，但配对流程不可能工作。
+- **唯一不需要配对码的情形**：**非 TLS** 的 adbd 端口（5555 族）。设备用经典的「允许 USB 调试吗？」RSA 弹窗授权未知密钥，用户在手机上点确认即可，全程不涉及配对码。
+- **TLS 端口（无线调试）上未知密钥拿不到弹窗**：按平台设计，必须先配对。
+
+### 9.6 明确范围外（本轮决定不做）
+
+- 部分 ROM（尤其小米/Redmi）在用户未额外打开「USB 调试（安全设置）」时会拦截 `adb shell input`。它**同等影响任何基于 adb 的方案**，与本实现无关，因此不作为缺陷跟踪。
+- 不为 ColorOS 16 类 ROM 绕过 Shizuku 的授权限制（不改权限数据库、不代点弹窗、不引入 root/Sui/OEM 特权），理由见 §9.1 与 [productization-decisions.md](./productization-decisions.md) §10.1。
+
+**登记状态**：OnePlus 13T / ColorOS 16 暂不写入支持矩阵。待重新配对引导（7 天过期 / 无线调试被关闭）与运行时前的凭据校验补齐后再登记，登记时须注明 **Shizuku 在该机型不可用、工作通道是 adb**（见 [productization-decisions.md](./productization-decisions.md) §10.4）。
