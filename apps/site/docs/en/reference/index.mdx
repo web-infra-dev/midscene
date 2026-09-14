@@ -50,7 +50,7 @@ All agents share these base options:
   - `cacheDir` — Cache directory. When set, Midscene writes cache files here instead of `<MIDSCENE_RUN_DIR>/cache`. Relative paths are resolved from the current working directory, not from `MIDSCENE_RUN_DIR`. This lets you use separate cache, log, and report directories.
 - `cacheId: string | undefined` (deprecated) — Legacy cache ID for backward compatibility. Prefer `cache.id`.
 - `aiContexts: { default?: string; [apiName]?: string }` — Agent-level AI guidance, such as business facts, decision or interaction rules, constraints, and output requirements. If configured, `default` is the shared fallback for all AI-powered APIs and is used only when neither the current call nor the matching API has its own context. Resolution uses `options.context ?? aiContexts[apiName] ?? aiContexts.default`; only the highest-priority defined value is used, with no automatic merging. An empty string explicitly clears lower-priority user context. Default: `undefined`.
-- `aiActContext: string` (deprecated) — Compatibility option for `aiContexts.aiAct`. `aiContexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `aiContexts.aiAct`. Use `aiContexts.aiAct` in new code. The older `aiActionContext` name is also deprecated and remains available only for compatibility.
+- `aiActContext: string` (deprecated) — Compatibility option for `aiContexts.aiAct`. `aiContexts.aiAct` takes precedence when both are provided; when it is absent, `aiActContext` behaves like `aiContexts.aiAct`. Use `aiContexts.aiAct` in new code. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 - `modelConfig: Record<string, string | number>` — Model configuration for this Agent. When provided, it replaces model-related system environment variables for this Agent. See the detailed configuration section below.
 - `replanningCycleLimit: number` — Maximum number of `aiAct` replanning cycles. Default: `20` for standard models, `40` for UI-TARS models, and `100` for AutoGLM models. Prefer this Agent option; `MIDSCENE_REPLANNING_CYCLE_LIMIT` remains available only for backward compatibility.
 - `waitAfterAction: number` — Delay in milliseconds after each action. This gives the UI time to settle before the next action. Default: `300`.
@@ -1277,7 +1277,7 @@ function setAIActContext(aiActContext: string): void;
 
 - Parameters:
 
-  - `aiActContext: string` — The background knowledge that should be sent to the AI model.
+  - `aiActContext: string` — The background knowledge that should be sent to the AI model. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 - Example:
 

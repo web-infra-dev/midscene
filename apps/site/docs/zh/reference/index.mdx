@@ -50,7 +50,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - `cacheDir`：可选缓存目录路径。配置后，缓存文件会写入该目录，而不是 `<MIDSCENE_RUN_DIR>/cache`。相对路径会基于当前工作目录解析，而不是基于 `MIDSCENE_RUN_DIR`。这样可以把缓存、日志和报告目录拆开。
 - `cacheId: string | undefined`（已废弃）：仅用于向后兼容。推荐使用 `cache.id`。
 - `aiContexts: { default?: string; [apiName]?: string }`：Agent 级 AI 补充信息，可包含业务事实、判断或操作规则、约束以及输出要求。如果配置了 `default`，它会作为所有 AI API 共享的缺省回退值，仅当本次调用和对应 API 都没有自己的 context 时使用。解析规则为 `options.context ?? aiContexts[apiName] ?? aiContexts.default`，只使用优先级最高的已定义值，不会自动合并。空字符串会显式清空低优先级的用户 context。默认值为空。
-- `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`；更早的名称 `aiActionContext` 也已废弃，仅为兼容而保留。
+- `aiActContext: string`（已废弃）：`aiContexts.aiAct` 的兼容配置。两者同时存在时以 `aiContexts.aiAct` 为准；没有 `aiContexts.aiAct` 时，它与 `aiContexts.aiAct` 的作用相同。新代码请使用 `aiContexts.aiAct`。关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 - `modelConfig: Record<string, string | number>`：当前 Agent 的模型配置。传入该参数后，当前 Agent 不再读取系统环境变量中的模型配置。详细用法见下文。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。标准模型默认 20，UI-TARS 模型默认 40，AutoGLM 模型默认 100。推荐通过 Agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `waitAfterAction: number`: 每次动作执行后的等待时间（毫秒）。这让 UI 有时间稳定，然后再执行下一个动作。默认值为 300 毫秒。
@@ -1261,7 +1261,7 @@ function setAIActContext(aiActContext: string): void;
 
 - 参数：
 
-  - `aiActContext: string` - 要发送给 AI 模型的背景知识。
+  - `aiActContext: string` - 要发送给 AI 模型的背景知识。关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 - 示例：
 
