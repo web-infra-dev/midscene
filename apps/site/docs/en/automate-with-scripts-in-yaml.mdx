@@ -111,6 +111,7 @@ agent:
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
 - **aiContexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. If `default` is configured, it is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically merged. Empty strings explicitly clear inherited user context. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](./provide-application-knowledge-to-gui-agent).
+- **aiActContext / aiActionContext**: Deprecated compatibility fields for `aiContexts.aiAct`; both remain supported. Resolution uses `aiContexts.aiAct ?? aiActContext ?? aiActionContext`; an empty string takes precedence over lower-priority aliases. Use `aiContexts.aiAct` in new YAML scripts.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
