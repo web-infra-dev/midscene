@@ -12,7 +12,7 @@ import {
   type OpenAIRequestContext,
   wrapOpenAICompatibleFetch,
 } from './openai-request-context';
-import { createProxyAgent } from './proxy';
+import type { createProxyAgentIfNeeded } from './proxy';
 
 const createAndWrapClient = async ({
   openaiBaseURL,
@@ -29,7 +29,7 @@ const createAndWrapClient = async ({
   openaiExtraConfig: IModelConfig['openaiExtraConfig'];
   createOpenAIClient: IModelConfig['createOpenAIClient'];
   effectiveTimeoutMs: number | null;
-  proxyAgent: Awaited<ReturnType<typeof createProxyAgent>>;
+  proxyAgent: Awaited<ReturnType<typeof createProxyAgentIfNeeded>>;
   executionId: string;
   openAIRequestContext: OpenAIRequestContext;
 }): Promise<OpenAI> => {
@@ -111,11 +111,13 @@ const createAndWrapClient = async ({
 
 export async function createChatClient({
   modelConfig,
+  proxyAgent,
   effectiveTimeoutMs,
   executionId,
   recordEvent,
 }: {
   modelConfig: IModelConfig;
+  proxyAgent: Awaited<ReturnType<typeof createProxyAgentIfNeeded>>;
   effectiveTimeoutMs: number | null;
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
@@ -123,16 +125,8 @@ export async function createChatClient({
   completion: OpenAI.Chat.Completions;
   openAIRequestContext: OpenAIRequestContext;
 }> {
-  const {
-    socksProxy,
-    httpProxy,
-    openaiBaseURL,
-    openaiApiKey,
-    openaiExtraConfig,
-    createOpenAIClient,
-  } = modelConfig;
-
-  const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
+  const { openaiBaseURL, openaiApiKey, openaiExtraConfig, createOpenAIClient } =
+    modelConfig;
 
   const openAIRequestContext: OpenAIRequestContext = {
     recordEvent,

@@ -54,17 +54,24 @@ export async function callAI(
 
   const { config: modelConfig } = modelRuntime;
 
-  const prepared: PreparedModelInput = isCodexAppServerProvider(
-    modelConfig.openaiBaseURL,
-  )
-    ? {
-        protocol: 'codex',
-        input: prepareCodexCall({ messages, modelRuntime, options }),
-      }
-    : {
-        protocol: 'chat-completion',
-        input: prepareChatCompletion({ messages, modelRuntime, options }),
-      };
+  const prepare = async (): Promise<PreparedModelInput> =>
+    isCodexAppServerProvider(modelConfig.openaiBaseURL)
+      ? {
+          protocol: 'codex',
+          input: prepareCodexCall({ messages, modelRuntime, options }),
+        }
+      : {
+          protocol: 'chat-completion',
+          input: await prepareChatCompletion({
+            messages,
+            modelRuntime,
+            options,
+          }),
+        };
+
+  const prepared = options?.abortSignal
+    ? await runWithAbortSignal(options.abortSignal, prepare)
+    : await prepare();
 
   const result = await callModelWithRetry({
     messages,
@@ -106,7 +113,7 @@ type PreparedModelInput =
   | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
   | {
       protocol: 'chat-completion';
-      input: ReturnType<typeof prepareChatCompletion>;
+      input: Awaited<ReturnType<typeof prepareChatCompletion>>;
     };
 
 type ModelCallInput = {

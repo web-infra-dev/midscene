@@ -2,13 +2,14 @@ import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
 import { formatOpenAIAPIErrorDetails } from '../openai-request-context';
+import { createProxyAgentIfNeeded } from '../proxy';
 import type { ModelCallContext, ModelCallResult } from '../types';
 import { AIResponseParseError, stringifyForDebug } from '../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import { applyImageDetail } from './utils';
 
-export const prepareChatCompletion = ({
+export const prepareChatCompletion = async ({
   messages,
   modelRuntime,
   options,
@@ -50,9 +51,15 @@ export const prepareChatCompletion = ({
   // resolution for localization-sensitive tasks.
   const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
 
+  const proxyAgent = await createProxyAgentIfNeeded({
+    socksProxy: modelConfig.socksProxy,
+    httpProxy: modelConfig.httpProxy,
+  });
+
   return {
     messages: messagesWithImageDetail,
     requestParams: requestBodyParams,
+    proxyAgent,
   };
 };
 
@@ -65,7 +72,11 @@ export const chat = async (
     requestSignal,
     effectiveTimeoutMs,
   }: ModelCallContext,
-  { messages, requestParams }: ReturnType<typeof prepareChatCompletion>,
+  {
+    messages,
+    requestParams,
+    proxyAgent,
+  }: Awaited<ReturnType<typeof prepareChatCompletion>>,
 ): Promise<ModelCallResult> => {
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
@@ -74,6 +85,7 @@ export const chat = async (
 
   const { completion, openAIRequestContext } = await createChatClient({
     modelConfig,
+    proxyAgent,
     effectiveTimeoutMs,
     executionId,
     recordEvent,

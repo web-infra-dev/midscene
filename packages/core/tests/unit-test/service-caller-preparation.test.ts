@@ -5,6 +5,11 @@ import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const mockCreate = rs.fn();
 const mockCodexCall = rs.hoisted(() => rs.fn());
+const mockProxy = rs.hoisted(() => rs.fn());
+
+rs.mock('@/ai-model/service-caller/proxy', () => ({
+  createProxyAgentIfNeeded: mockProxy,
+}));
 
 rs.mock('@/ai-model/service-caller/codex/codex-app-server', () => ({
   isCodexAppServerProvider: (url?: string) => url === 'codex://app-server',
@@ -52,6 +57,8 @@ const imageMessage = [
 
 describe('model call parameter preparation', () => {
   beforeEach(() => {
+    rs.clearAllMocks();
+    mockProxy.mockReset().mockResolvedValue(undefined);
     mockCodexCall.mockReset();
     mockCodexCall.mockResolvedValue({
       content: 'ok',
@@ -94,6 +101,8 @@ describe('model call parameter preparation', () => {
               'buildChatCompletionParams',
             );
       const request = protocol === 'codex' ? mockCodexCall : mockCreate;
+      const proxy = {};
+      mockProxy.mockResolvedValue(proxy);
       request.mockRejectedValueOnce(new Error('temporary request failure'));
       try {
         await callAI(imageMessage, runtime);
@@ -108,11 +117,68 @@ describe('model call parameter preparation', () => {
             ? request.mock.calls[1][0]
             : request.mock.calls[1][0].messages;
         expect(firstMessages).toBe(secondMessages);
+        if (protocol === 'chat') {
+          const OpenAI = (await import('openai'))
+            .default as unknown as ReturnType<typeof rs.fn>;
+          expect(mockProxy).toHaveBeenCalledTimes(1);
+          expect(
+            OpenAI.mock.calls.map(
+              ([options]) => options.fetchOptions.dispatcher,
+            ),
+          ).toEqual([proxy, proxy]);
+        } else {
+          expect(mockProxy).not.toHaveBeenCalled();
+        }
       } finally {
         prepare.mockRestore();
       }
     },
   );
+
+  it('does not retry proxy initialization errors', async () => {
+    const failure = new Error('invalid proxy');
+    mockProxy.mockRejectedValue(failure);
+    await expect(
+      callAI(
+        imageMessage,
+        getModelRuntime({
+          ...baseModelConfig,
+          retryCount: 2,
+          retryInterval: 0,
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(mockProxy).toHaveBeenCalledTimes(1);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('cancels proxy preparation without starting a request afterwards', async () => {
+    let finish!: () => void;
+    let notifyStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    mockProxy.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+          notifyStarted();
+        }),
+    );
+    const controller = new AbortController();
+    const reason = new Error('cancelled');
+    const pending = callAI(imageMessage, getModelRuntime(baseModelConfig), {
+      abortSignal: controller.signal,
+    });
+    const rejected = expect(pending).rejects.toBe(reason);
+    await started;
+    controller.abort(reason);
+    await rejected;
+    finish();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockCodexCall).not.toHaveBeenCalled();
+  });
 
   it.each(['chat', 'codex'])(
     'does not retry %s parameter preparation errors',
