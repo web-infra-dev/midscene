@@ -82,12 +82,21 @@ export async function callAI(
     prepared,
   });
 
-  const { rawUsage, timeCost, requestId, responseModelName, ...response } =
-    result;
+  const {
+    rawUsage,
+    timeCost,
+    totalTimeCost,
+    retryCount,
+    requestId,
+    responseModelName,
+    ...response
+  } = result;
 
   const usage = buildUsageInfo({
     usageData: rawUsage,
     timeCost,
+    totalTimeCost,
+    retryCount,
     requestId,
     responseModelName,
     modelName: modelConfig.modelName,
@@ -137,7 +146,8 @@ class NonRetryableModelCallError extends Error {
 
 async function callModelWithRetry(
   input: ModelCallInput,
-): Promise<ModelCallResult> {
+): Promise<ModelCallResult & { totalTimeCost: number; retryCount: number }> {
+  const startTime = Date.now();
   const {
     modelRuntime: { config },
     options,
@@ -149,7 +159,12 @@ async function callModelWithRetry(
   for (let attempt = 1; ; attempt++) {
     options?.abortSignal?.throwIfAborted();
     try {
-      return await callModelOnce(input, attempt);
+      const result = await callModelOnce(input, attempt);
+      return {
+        ...result,
+        totalTimeCost: Date.now() - startTime,
+        retryCount: attempt - 1,
+      };
     } catch (error) {
       options?.abortSignal?.throwIfAborted();
       if (error instanceof NonRetryableModelCallError) {

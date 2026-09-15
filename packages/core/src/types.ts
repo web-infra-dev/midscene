@@ -47,7 +47,12 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   cached_input: number | undefined;
+  /** Duration of the final successful request attempt, in milliseconds. */
   time_cost: number | undefined;
+  /** Request duration including all attempts and retry waits, excluding preparation, in milliseconds. */
+  total_time_cost?: number;
+  /** Request retries performed within this call; excludes semantic parse retries. */
+  retry_count?: number;
   model_name: string | undefined;
   model_description: string | undefined;
   /**

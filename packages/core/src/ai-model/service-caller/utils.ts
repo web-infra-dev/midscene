@@ -96,6 +96,8 @@ export const buildUsageInfo = ({
   usageData,
   requestId,
   timeCost,
+  totalTimeCost,
+  retryCount,
   modelName,
   modelDescription,
   responseModelName,
@@ -105,6 +107,8 @@ export const buildUsageInfo = ({
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
   timeCost?: number;
+  totalTimeCost: number;
+  retryCount: number;
   modelName: string;
   modelDescription: string;
   responseModelName?: string;
@@ -124,6 +128,8 @@ export const buildUsageInfo = ({
     total_tokens: usageData.total_tokens ?? 0,
     cached_input: cachedInputTokens ?? 0,
     time_cost: timeCost ?? 0,
+    total_time_cost: totalTimeCost,
+    retry_count: retryCount,
     model_name: modelName,
     model_description: modelDescription,
     response_model_name: responseModelName,
