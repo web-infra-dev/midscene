@@ -65,7 +65,6 @@ describe('Agent Test Runner Node definitions', () => {
       ]),
     ).toEqual([
       ['sleep', undefined],
-      ['Finalize', undefined],
       ['aiAct', 'prompt'],
       ['aiTap', 'prompt'],
       ['aiAssert', 'prompt'],

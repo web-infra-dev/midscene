@@ -328,7 +328,7 @@ describe('executable legacy YAML configuration contract', () => {
     expect(adapted.sourceConfig).toBe(sourceConfig);
   });
 
-  it('maps task continuation, order and result names to public Cases and Steps', () => {
+  it('maps task continuation and explicit names without preallocating anonymous output keys', () => {
     const adapted = adaptLegacyWorkflow(
       {
         projectId: 'project',
@@ -363,7 +363,7 @@ describe('executable legacy YAML configuration contract', () => {
       adapted.document.cases.flatMap((item) =>
         item.definition.steps.map((step) => step.meta.resultName),
       ),
-    ).toEqual(['named', '0', '1']);
+    ).toEqual(['named', undefined, undefined]);
     const caseIds = adapted.document.cases.map((item) => item.caseId);
     expect(new Set(caseIds).size).toBe(2);
     expect(caseIds.every((id) => /^[a-f0-9]{64}$/.test(id))).toBe(true);

@@ -22,13 +22,13 @@ export interface LegacySummaryArtifact {
   documentRunId: string;
   outputPath?: string;
   reportPath?: string;
-  reportEnabled?: boolean;
 }
 
 export interface LegacySummaryOccurrence {
   file: string;
   projectId: string;
   documentId?: string;
+  reportEnabled: boolean;
   artifacts?: readonly LegacySummaryArtifact[];
 }
 
@@ -147,12 +147,10 @@ export function buildLegacyYamlResults(
     // The Test run report is the canonical user-facing report for both the new
     // command and its legacy YAML summary projection. Per-document Agent
     // reports remain available as execution artifacts in the Test result.
-    if (result.reportPath)
-      for (const [index, attempt] of attempts.entries()) {
-        const artifact = artifacts.get(documents[index].documentRunId);
-        if (artifact?.reportEnabled !== false)
-          attempt.report = result.reportPath;
-      }
+    for (const attempt of attempts) {
+      if (!occurrence.reportEnabled) attempt.report = undefined;
+      else if (result.reportPath) attempt.report = result.reportPath;
+    }
     const { attempt: _attempt, ...last } = attempts.at(-1)!;
     return {
       ...last,

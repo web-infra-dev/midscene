@@ -89,15 +89,15 @@ describe('Agent per-call context option', () => {
       value: 'headphones',
     });
   });
-  it('resolves YAML aliases and their string shortcuts in the common action path', async () => {
+  it('passes canonical action names and parameters through the common action path', async () => {
     const { agent, taskExecutor } = createAgentStub();
     (agent as any).fullActionSpace = [
       { name: 'Launch', interfaceAlias: 'launch' },
       { name: 'CustomAction', interfaceAlias: 'customAction' },
     ];
 
-    await agent.callActionInActionSpace('launch', 'com.example.app');
-    await agent.callActionInActionSpace('customAction', { value: 7 });
+    await agent.callActionInActionSpace('Launch', { uri: 'com.example.app' });
+    await agent.callActionInActionSpace('CustomAction', { value: 7 });
 
     expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
       expect.objectContaining({
@@ -112,7 +112,7 @@ describe('Agent per-call context option', () => {
       }),
     ]);
   });
-  it('normalizes deferred YAML locate aliases after the ActionSpace exists', async () => {
+  it('does not interpret YAML aliases or shorthand in native action calls', async () => {
     const { agent, taskExecutor } = createAgentStub();
     (agent as any).fullActionSpace = [
       {
@@ -130,26 +130,14 @@ describe('Agent per-call context option', () => {
 
     expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
       expect.objectContaining({
-        type: 'Hover',
-        param: {
-          locate: expect.objectContaining({
-            prompt: 'search field',
-            deepLocate: false,
-            cacheable: true,
-          }),
-        },
+        type: 'aiHover',
+        param: 'search field',
       }),
     ]);
     expect(taskExecutor.runPlans.mock.calls[1][1]).toEqual([
       expect.objectContaining({
-        type: 'Hover',
-        param: {
-          locate: expect.objectContaining({
-            prompt: 'menu item',
-            deepLocate: true,
-            cacheable: true,
-          }),
-        },
+        type: 'aiHover',
+        param: { prompt: 'menu item', deepLocate: true },
       }),
     ]);
   });
@@ -169,6 +157,19 @@ describe('Agent per-call context option', () => {
 
     expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
       expect.objectContaining({ type: 'Hover', param: params }),
+    ]);
+  });
+  it('leaves ActionSpace schema validation to execution, without probing it for old grammar', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const safeParse = rs.fn().mockReturnValue({ success: true });
+    (agent as any).fullActionSpace = [
+      { name: 'CustomAction', paramSchema: { safeParse } },
+    ];
+    const params = { value: 7 };
+    await agent.callActionInActionSpace('CustomAction', params);
+    expect(safeParse).not.toHaveBeenCalled();
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({ type: 'CustomAction', param: params }),
     ]);
   });
   it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {

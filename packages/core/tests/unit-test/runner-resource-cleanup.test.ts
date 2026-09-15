@@ -12,6 +12,10 @@ import {
   runWorkflowDocument,
   trackResourceOperation,
 } from '@/test-runner';
+import {
+  enterYamlAction,
+  runInYamlExecutionContext,
+} from '@/yaml/execution-session';
 import { ScriptPlayer } from '@/yaml/player';
 import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { afterEach, describe, expect, rs, test } from '@rstest/core';
@@ -383,9 +387,18 @@ describe('resource-aware cancellation cleanup', () => {
       }),
     );
     player.output = undefined;
-    const execution = player
-      .run({ defaultTimeoutMs: 10 })
-      .catch((error) => error);
+    const controller = new AbortController();
+    // Nested YAML inherits its owning Node's signal without public run options.
+    const execution = runInYamlExecutionContext(async () => {
+      const leaveAction = enterYamlAction(agent, controller.signal);
+      try {
+        return await player.run();
+      } finally {
+        leaveAction();
+      }
+    }).catch((error) => error);
+    await rs.advanceTimersByTimeAsync(10);
+    controller.abort(new Error('owning Node timed out'));
     await rs.advanceTimersByTimeAsync(1100);
     const error = await execution;
     expect(error).toBeInstanceOf(ResourceCleanupDeferredError);

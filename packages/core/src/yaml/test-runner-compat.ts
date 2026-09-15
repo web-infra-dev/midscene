@@ -3,7 +3,6 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlTask,
 } from '@/types';
-import { assert } from '@midscene/shared/utils';
 import { type ZodTypeAny, z } from 'zod';
 import type {
   CollectedCase,
@@ -78,7 +77,7 @@ const buildShortcutActionParam = (
   return undefined;
 };
 
-/** Translate syntax once. Execution only sees public Node inputs. */
+/** Translate known syntax; defer ActionSpace-dependent grammar to the YAML host. */
 export function compileLegacyFlowItem(
   flowItem: MidsceneYamlFlowItem,
   actionSpace: readonly LegacyYamlActionIdentity[] = [],
@@ -179,10 +178,12 @@ export function compileLegacyFlowItem(
       typeof flow.sleep === 'string'
         ? Number.parseInt(flow.sleep, 10)
         : flow.sleep;
-    assert(
-      Number.isFinite(ms) && ms > 0,
-      `ms for sleep must be greater than 0, but got ${flow.sleep}`,
-    );
+    // The old player rejected invalid sleep only when execution reached it.
+    // Keep both that timing and its error message inside the YAML boundary.
+    if (!Number.isFinite(ms) || ms <= 0)
+      return step('legacyValidationError', {
+        message: `ms for sleep must be greater than 0, but got ${flow.sleep}`,
+      });
     return step('sleep', { ms });
   }
   if ('javascript' in flow)
@@ -272,34 +273,23 @@ export function compileLegacyFlowItem(
       promptInput(aiTap?.prompt || prompt || nested, options),
     );
   }
+  if (typeof flow.runAdbShell === 'string' && typeof flow.timeout === 'number')
+    return step(
+      'runAdbShell',
+      { command: flow.runAdbShell, timeout: flow.timeout },
+      true,
+    );
   const action = actionSpace.find(
     (item) =>
       (item.interfaceAlias && Object.hasOwn(flow, item.interfaceAlias)) ||
       Object.hasOwn(flow, item.name),
   );
+  if (!action) return step('legacyAction', { flow }, true);
   const key =
     action?.interfaceAlias && Object.hasOwn(flow, action.interfaceAlias)
       ? action.interfaceAlias
-      : (action?.name ?? Object.keys(flow)[0]);
+      : action.name;
   const value = flow[key];
-  if (key === 'runAdbShell' && typeof flow.timeout === 'number') {
-    // The helper-only timeout can be mapped without acquiring an Android
-    // Agent. Other aliases stay on the public action Node and are resolved by
-    // the Agent's ActionSpace when the Node executes.
-    return step('runAdbShell', { command: value, timeout: flow.timeout }, true);
-  }
-  if (!action) {
-    const siblingParams = Object.fromEntries(
-      Object.entries(flow).filter(([item]) => item !== key),
-    );
-    const hasSiblingParams = Object.keys(siblingParams).length > 0;
-    const params = hasSiblingParams
-      ? value === '' || value === undefined
-        ? siblingParams
-        : { ...siblingParams, prompt: value }
-      : value;
-    return step('action', { name: key, params }, true);
-  }
   if (typeof value === 'string') {
     const shortcut = buildShortcutActionParam(
       action.name,
@@ -346,7 +336,6 @@ export const collectLegacyYamlTask = (
   sourcePath = '<inline-yaml>',
   actionSpace: readonly LegacyYamlActionIdentity[] = [],
 ): CollectedCase => {
-  assert(Array.isArray(task.flow), 'missing flow in task');
   const documentId = legacyDocumentId(sourcePath);
   const projectId = 'legacy-yaml';
   return {
@@ -357,33 +346,19 @@ export const collectLegacyYamlTask = (
     definition: {
       name: task.name,
       onFailure: task.continueOnError ? 'continue' : 'stop-document',
-      steps: task.flow.map((flowItem) =>
-        compileLegacyFlowItem(flowItem, actionSpace),
-      ),
+      steps: Array.isArray(task.flow)
+        ? task.flow.map((flowItem) =>
+            compileLegacyFlowItem(flowItem, actionSpace),
+          )
+        : [
+            {
+              node: 'legacyValidationError',
+              input: { message: 'missing flow in task' },
+              meta: { continueOnError: false },
+            },
+          ],
     },
   };
-};
-
-const assignLegacyResultNames = (
-  cases: readonly CollectedCase[],
-): CollectedCase[] => {
-  let unnamedResultIndex = 0;
-  return cases.map((collectedCase) => ({
-    ...collectedCase,
-    definition: {
-      ...collectedCase.definition,
-      steps: collectedCase.definition.steps.map((step) => {
-        if (!step.meta.captureResult) return step;
-        return {
-          ...step,
-          meta: {
-            ...step.meta,
-            resultName: step.meta.resultName ?? String(unnamedResultIndex++),
-          },
-        };
-      }),
-    },
-  }));
 };
 
 const legacyYamlDocument = (
@@ -399,7 +374,7 @@ const legacyYamlDocument = (
     afterEach: [],
     afterAll: [],
   },
-  cases: assignLegacyResultNames(cases),
+  cases,
 });
 
 /** Compile one legacy task into a one-Case Runner document. */

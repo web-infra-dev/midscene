@@ -13,9 +13,7 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, ifInWorker, uuid } from '@midscene/shared/utils';
 import type {
-  CollectedWorkflowDocument,
   WorkflowDocumentExecutionResult,
-  WorkflowExecutionProject,
   WorkflowExecutionRecord,
 } from '../test-runner';
 import {
@@ -81,7 +79,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     scriptPath?: string,
   ) {
     this.scriptPath = scriptPath;
-    // Invalid input fails before any owned resources are acquired.
+    // Collection validates syntax but defers old task/Step errors until execution.
     collectLegacyYamlDocument(script, scriptPath);
     this.result = {};
 
@@ -257,25 +255,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     await this.flushUnstableLogContent();
   }
 
-  async run(
-    options: {
-      signal?: AbortSignal;
-      defaultTimeoutMs?: number;
-      attemptIndex?: number;
-      document?: CollectedWorkflowDocument;
-      project?: WorkflowExecutionProject;
-    } = {},
-  ) {
-    return runInYamlExecutionContext(() => this.runInContext(options));
+  async run() {
+    return runInYamlExecutionContext(() => this.runInContext());
   }
 
-  private async runInContext(options: {
-    signal?: AbortSignal;
-    defaultTimeoutMs?: number;
-    attemptIndex?: number;
-    document?: CollectedWorkflowDocument;
-    project?: WorkflowExecutionProject;
-  }) {
+  private async runInContext() {
     const startedAt = new Date();
     const runId = uuid();
     this.executionResult = undefined;
@@ -297,10 +281,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     let setupError: unknown;
     let executionError: unknown;
     let cleanupError: unknown;
-    let signal = options.signal;
+    let signal: AbortSignal | undefined;
     let session: ReturnType<typeof enterYamlExecution> | undefined;
     try {
-      options.signal?.throwIfAborted();
       const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(
         platform as T,
       );
@@ -309,7 +292,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       agent._prepareForTestRunner?.();
       freeFn = [...(newFreeFn || [])];
       session = enterYamlExecution(agent);
-      signal ??= currentYamlSignal(agent);
+      signal = currentYamlSignal(agent);
       signal?.throwIfAborted();
       this.actionSpace = await agent.getActionSpace();
       const originalOnTaskStartTip = agent.onTaskStartTip;
@@ -333,9 +316,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
     const document = collectLegacyYamlDocument(
       this.script,
-      options.document?.sourcePath ?? this.scriptPath ?? '<inline-yaml>',
+      this.scriptPath ?? '<inline-yaml>',
       this.actionSpace,
-      options.document,
     );
     const runtime =
       agent && !setupError ? this.createRuntime(agent) : undefined;
@@ -343,10 +325,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       if (runtime && agent) {
         this.executionResult = await runtime.runScript(this.script, {
           document,
-          project: options.project,
-          documentAttemptIndex: options.attemptIndex,
           signal,
-          defaultTimeoutMs: options.defaultTimeoutMs,
           createDocumentRunId: () => runId,
           onCaseStart: (collectedCase) => {
             const taskIndex = collectedCase.caseIndex;
@@ -424,8 +403,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           : [cleanupError];
     this.executionRecord = createLegacyYamlExecutionRecord({
       runId,
-      attemptIndex: options.attemptIndex ?? 0,
-      projectName: options.project?.name,
+      attemptIndex: 0,
       script: this.script,
       document,
       startedAt,

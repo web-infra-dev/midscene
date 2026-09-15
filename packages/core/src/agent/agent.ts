@@ -95,7 +95,6 @@ import {
   defineActionRegisterFileChooserAccept,
   defineActionSleep,
 } from '../device';
-import { normalizeActionSpaceCall } from './action-space-call';
 import { validateAgentCacheInput } from './cache-config';
 import { FileChooserAccepter } from './file-chooser';
 import { Insight } from './insight';
@@ -1020,20 +1019,13 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
-    const { actionType, actionParam } = normalizeActionSpaceCall(
-      type,
-      opt,
-      this.fullActionSpace ?? [],
-    );
     const clonedActionParam =
-      actionParam &&
-      typeof actionParam === 'object' &&
-      !Array.isArray(actionParam)
-        ? { ...actionParam }
-        : actionParam || {};
+      opt && typeof opt === 'object' && !Array.isArray(opt)
+        ? { ...opt }
+        : opt || {};
 
     const actionPlan: PlanningAction<T> = {
-      type: actionType as any,
+      type: type as any,
       // Planning resolves locate/from/to in place. Keep the caller's inputs
       // intact so YAML and Test execution facts retain the original prompts.
       param: clonedActionParam as any,
@@ -1046,8 +1038,8 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     ) as PlanningAction[];
 
     const title = taskTitleStr(
-      actionType as any,
-      locateParamStr((actionParam as any)?.locate || {}),
+      type as any,
+      locateParamStr((opt as any)?.locate || {}),
     );
 
     // assume all operation in action space is related to locating

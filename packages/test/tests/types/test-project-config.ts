@@ -4,6 +4,7 @@ import type {
   aiActOptionsInputSchema,
   locateOptionsInputSchema,
 } from '@midscene/core/agent/test';
+import type { ScriptPlayer } from '@midscene/core/yaml';
 import { HarmonyAgent } from '@midscene/harmony';
 import { runHdcShellInputSchema } from '@midscene/harmony/test';
 import { IOSAgent } from '@midscene/ios';
@@ -106,6 +107,9 @@ type NativeBoundary = [
 ];
 type CaseIdArity = Assert<
   Parameters<typeof createCaseId>['length'] extends 3 ? true : false
+>;
+type LegacyPlayerRunArity = Assert<
+  Parameters<ScriptPlayer<any>['run']>['length'] extends 0 ? true : false
 >;
 type DocumentIdArity = Assert<
   Parameters<typeof createWorkflowDocumentId>['length'] extends 2 ? true : false

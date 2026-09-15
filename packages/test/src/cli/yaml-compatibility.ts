@@ -242,10 +242,14 @@ export async function prepareYamlCompatibility(
             source.sourcePath,
             source.invocationIndex,
           );
+          const workflow = workflows.get(documentId);
           return {
             file: source.absolutePath,
             projectId: prepared.project.projectId,
             documentId,
+            reportEnabled: workflow
+              ? isYamlReportEnabled(workflow.script)
+              : false,
             artifacts: artifacts.get(documentId),
           };
         }),
