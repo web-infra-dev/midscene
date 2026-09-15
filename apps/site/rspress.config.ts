@@ -255,6 +255,10 @@ export default defineConfig(async () => {
             sectionHeaderText: 'Advanced guides',
           },
           {
+            text: 'Provide application knowledge to a GUI Agent',
+            link: '/provide-application-knowledge-to-gui-agent',
+          },
+          {
             text: 'Model debugging & observability',
             link: '/model-debugging-observability',
           },
@@ -425,6 +429,10 @@ export default defineConfig(async () => {
           },
           {
             sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '为 GUI Agent 补充应用知识',
+            link: '/zh/provide-application-knowledge-to-gui-agent',
           },
           {
             text: '模型调试与可观测性',
