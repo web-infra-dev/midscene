@@ -22,6 +22,86 @@ permissions:
 
 
 jobs:
+  rdp-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+    - name: Restore pnpm store
+      id: rdp-pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+    - name: Save pnpm store
+      if: steps.rdp-pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+    - name: Install RDP build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake dbus-x11 pkg-config python3-tk \
+          freerdp3-dev xorgxrdp xrdp
+    - name: Build RDP helper and native tests
+      run: |
+        cmake -S packages/computer/native/rdp -B /tmp/midscene-rdp-build \
+          -DBUILD_TESTING=ON -DRDP_HELPER_OUTPUT_DIR=/tmp/midscene-rdp-build/bin
+        cmake --build /tmp/midscene-rdp-build --parallel 2
+        install -Dm755 /tmp/midscene-rdp-build/bin/rdp-helper \
+          packages/computer/bin/linux/rdp-helper
+    - name: Build report and computer packages
+      run: >-
+        pnpm exec nx run-many --target=build
+        --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+    - name: Test RDP capture and connection policies
+      run: ctest --test-dir /tmp/midscene-rdp-build --output-on-failure
+    - name: Start a local RDP desktop
+      env:
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+      run: |
+        sudo useradd --create-home --shell /bin/bash "$MIDSCENE_XRDP_USERNAME"
+        echo "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_PASSWORD" | sudo chpasswd
+        sudo install -o "$MIDSCENE_XRDP_USERNAME" -g "$MIDSCENE_XRDP_USERNAME" \
+          packages/computer/native/rdp/tests/xrdp_desktop.py \
+          "/home/$MIDSCENE_XRDP_USERNAME/xrdp_desktop.py"
+        sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.xsession" >/dev/null <<'EOF'
+        #!/bin/sh
+        exec python3 "$HOME/xrdp_desktop.py"
+        EOF
+        sudo chown -R "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_USERNAME" \
+          "/home/$MIDSCENE_XRDP_USERNAME"
+        sudo chmod +x "/home/$MIDSCENE_XRDP_USERNAME/.xsession"
+        sudo systemctl restart xrdp
+        for attempt in {1..20}; do
+          if nc -z 127.0.0.1 3389; then exit 0; fi
+          sleep 1
+        done
+        sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+        exit 1
+    - name: Test Midscene RDP end to end against xrdp
+      env:
+        AI_TEST_TYPE: computer-rdp
+        MIDSCENE_XRDP_CI_E2E: '1'
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+        MIDSCENE_REPORT_QUIET: 'true'
+        MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      run: >-
+        pnpm exec nx test @midscene/computer --skip-nx-cache --
+        tests/ai/rdp/xrdp-ci-e2e.test.ts --retry=0
+    - name: Print xrdp diagnostics
+      if: failure()
+      run: sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+    - name: Upload Midscene RDP E2E report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: warn
+        name: rdp-midscene-report
+        path: midscene_run/report/rdp-xrdp-ci-e2e.html
+
   main:
     # The viewport e2e relies on the hosted image's Chrome window behavior.
     runs-on: ubuntu-22.04
