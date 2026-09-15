@@ -2,13 +2,8 @@ import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionCallInput } from '../../model-adapter/types';
 import { createChatClient } from '../openai-client';
 import { formatOpenAIAPIErrorDetails } from '../openai-request-context';
-import { resolveEffectiveTimeoutMs } from '../request-timeout';
 import type { ModelCallContext, ModelCallResult } from '../types';
-import {
-  AIResponseParseError,
-  getLatestResponseAttempt,
-  stringifyForDebug,
-} from '../utils';
+import { AIResponseParseError, stringifyForDebug } from '../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import { applyImageDetail } from './utils';
@@ -19,6 +14,7 @@ export const chat = async ({
   options,
   executionId,
   recordEvent,
+  requestSignal,
 }: ModelCallContext): Promise<ModelCallResult> => {
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
@@ -61,8 +57,6 @@ export const chat = async ({
   // resolution for localization-sensitive tasks.
   const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
 
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig);
-
   const { completion, openAIRequestContext } = await createChatClient({
     modelConfig,
     executionId,
@@ -95,20 +89,19 @@ export const chat = async ({
       modelRuntime,
       messages: messagesWithImageDetail,
       requestBodyParams,
-      effectiveTimeoutMs,
-      abortSignal: options?.abortSignal,
+      requestSignal,
       onChunk: options?.onChunk,
       recordEvent,
     });
 
+    requestSignal.throwIfAborted();
     const timeCost = Date.now() - startTime;
     debugCall(`response reasoning content: ${reasoningContent}`);
     debugCall(`response content: ${content}`);
 
     recordEvent?.({
       type: 'response',
-      attempt: getLatestResponseAttempt(openAIRequestContext),
-      http: openAIRequestContext.httpResponses?.at(-1),
+      http: openAIRequestContext.httpResponse,
       final: {
         content,
         reasoningContent,

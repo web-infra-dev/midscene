@@ -9,6 +9,7 @@ export const callCodex = async ({
   modelRuntime,
   options,
   recordEvent,
+  requestSignal,
 }: ModelCallContext): Promise<ModelCallResult> => {
   const { config: modelConfig, adapter } = modelRuntime;
   let protocolChunkSequence = 0;
@@ -48,10 +49,11 @@ export const callCodex = async ({
       stream: options?.stream,
       onChunk: options?.onChunk,
       params: config,
-      abortSignal: options?.abortSignal,
+      abortSignal: requestSignal,
       imageDetail,
       onRecordEvent: recordCodexEvent,
     });
+    requestSignal.throwIfAborted();
     const { protocolMetadata, usage: rawUsage, ...response } = codexResult;
     const timeCost = Date.now() - codexStartTime;
     recordEvent?.({

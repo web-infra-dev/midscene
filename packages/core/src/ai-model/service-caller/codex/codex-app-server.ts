@@ -804,6 +804,7 @@ class CodexAppServerConnection {
     deadlineAt?: number;
     abortSignal?: AbortSignal;
   }): Promise<T> {
+    abortSignal?.throwIfAborted();
     const requestId = this.nextRequestId++;
 
     await this.sendMessage({
@@ -981,7 +982,9 @@ class CodexAppServerConnectionManager {
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
+      abortSignal?.throwIfAborted();
       const connection = await this.getConnection();
+      abortSignal?.throwIfAborted();
       try {
         return await connection.runTurn({
           messages,

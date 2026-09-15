@@ -10,8 +10,7 @@ export type ChatCompletionCallOptions = {
   modelRuntime: ModelRuntime;
   messages: ChatCompletionMessageParam[];
   requestBodyParams: Record<string, unknown>;
-  effectiveTimeoutMs: number | null;
-  abortSignal?: AbortSignal;
+  requestSignal: AbortSignal;
   onChunk?: StreamingCallback;
   recordEvent?: (event: Record<string, unknown>) => void;
 };

@@ -56,7 +56,7 @@ const createAndWrapClient = async ({
       'x-midscene-execution-id': executionId,
     },
     fetch: wrapOpenAICompatibleFetch(openAIRequestContext),
-    // Midscene already handles retries in callAI(), so disable SDK-level retries
+    // Midscene handles request retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
     // When disabled (timeoutMs === null) fall through to the SDK default so

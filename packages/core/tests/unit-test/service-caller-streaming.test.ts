@@ -31,7 +31,9 @@ const finishChunk = {
 };
 
 describe('service-caller streaming usage', () => {
-  beforeEach(() => mockCreate.mockReset());
+  beforeEach(() => {
+    mockCreate.mockReset();
+  });
 
   it('reads usage after finish_reason and completes only after the stream ends', async () => {
     const events: string[] = [];
@@ -171,5 +173,85 @@ describe('service-caller streaming usage', () => {
     ).rejects.toThrow('stream interrupted');
     expect(onChunk.mock.calls.some(([chunk]) => chunk.isComplete)).toBe(false);
     expect(onUsage).not.toHaveBeenCalled();
+  });
+});
+
+describe('streaming retry boundaries', () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+  });
+  const runtime = () =>
+    getModelRuntime({
+      ...modelConfig,
+      retryCount: 2,
+      retryInterval: 0,
+      timeout: 30,
+    });
+  const httpError = () =>
+    Object.assign(new Error('unavailable'), { status: 503 });
+
+  it('retries failures before delivering a chunk', async () => {
+    mockCreate.mockRejectedValueOnce(httpError()).mockResolvedValueOnce(
+      (async function* () {
+        yield contentChunk;
+      })(),
+    );
+    const onChunk = rs.fn();
+    const response = await callAI(messages, runtime(), {
+      stream: true,
+      onChunk,
+    });
+    expect(response.content).toBe('Hello');
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a stream failure after delivering content', async () => {
+    mockCreate.mockResolvedValueOnce(
+      (async function* () {
+        yield contentChunk;
+        throw httpError();
+      })(),
+    );
+    await expect(
+      callAI(messages, runtime(), { stream: true, onChunk: rs.fn() }),
+    ).rejects.toThrow('unavailable');
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry callback failures with retryable status codes', async () => {
+    mockCreate.mockResolvedValueOnce(
+      (async function* () {
+        yield contentChunk;
+      })(),
+    );
+    await expect(
+      callAI(messages, runtime(), {
+        stream: true,
+        onChunk: () => {
+          throw httpError();
+        },
+      }),
+    ).rejects.toThrow('unavailable');
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('interrupts a stalled body read after a chunk without replaying the stream', async () => {
+    let signal: AbortSignal | undefined;
+    mockCreate.mockImplementation((_body, options) => {
+      signal = options.signal;
+      return (async function* () {
+        yield contentChunk;
+        await new Promise((_resolve, reject) =>
+          signal!.addEventListener('abort', () => reject(signal!.reason), {
+            once: true,
+          }),
+        );
+      })();
+    });
+    await expect(
+      callAI(messages, runtime(), { stream: true, onChunk: rs.fn() }),
+    ).rejects.toThrow('hard timeout');
+    expect(signal?.aborted).toBe(true);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
   });
 });

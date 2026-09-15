@@ -2,15 +2,6 @@ import type { CodeGenerationChunk } from '@/types';
 import { assert } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
-import {
-  buildRequestAbortSignal,
-  restoreHardTimeoutError,
-} from '../request-timeout';
-import {
-  getLatestResponseAttempt,
-  getLatestSuccessfulResponseRequestId,
-  toError,
-} from '../utils';
 import type {
   ChatCompletionCallOptions,
   ChatCompletionCallResult,
@@ -23,8 +14,7 @@ export const callChatCompletionStream = async ({
   modelRuntime,
   messages,
   requestBodyParams,
-  effectiveTimeoutMs,
-  abortSignal,
+  requestSignal,
   onChunk,
   recordEvent,
 }: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
@@ -37,96 +27,86 @@ export const callChatCompletionStream = async ({
   let accumulated = '';
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
-  let requestId: string | null | undefined;
   let responseModelName: string | undefined;
-  const { signal: streamSignal, cleanup: cleanupStreamSignal } =
-    buildRequestAbortSignal(effectiveTimeoutMs, abortSignal);
-  try {
-    const stream = (await completion.create(
-      {
-        model: modelName,
-        messages,
-        ...requestBodyParams,
-        stream: true,
-        stream_options: {
-          ...(requestBodyParams.stream_options as
-            | Record<string, unknown>
-            | undefined),
-          include_usage: true,
-        },
+  requestSignal.throwIfAborted();
+  const stream = (await completion.create(
+    {
+      model: modelName,
+      messages,
+      ...requestBodyParams,
+      stream: true,
+      stream_options: {
+        ...(requestBodyParams.stream_options as
+          | Record<string, unknown>
+          | undefined),
+        include_usage: true,
       },
-      {
-        stream: true,
-        signal: streamSignal,
-      },
-    )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
-      _request_id?: string | null;
-    };
+    },
+    {
+      stream: true,
+      signal: requestSignal,
+    },
+  )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+    _request_id?: string | null;
+  };
 
-    requestId =
-      getLatestSuccessfulResponseRequestId(openAIRequestContext) ??
-      stream._request_id;
-    const streamAttempt = getLatestResponseAttempt(openAIRequestContext);
+  const requestId =
+    stream._request_id ?? openAIRequestContext.responseRequestId?.requestId;
 
-    let chunkSequence = 0;
-    for await (const chunk of stream) {
-      chunkSequence += 1;
-      recordEvent?.({
-        type: 'chunk',
-        attempt: streamAttempt,
-        sequence: chunkSequence,
-        chunk,
-      });
-      const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
-        chunk.choices?.[0]?.delta,
-      );
-      const content = parsedChunk.content || '';
-      const reasoning_content = parsedChunk.reasoning_content || '';
+  let chunkSequence = 0;
+  for await (const chunk of stream) {
+    requestSignal.throwIfAborted();
+    chunkSequence += 1;
+    recordEvent?.({
+      type: 'chunk',
+      sequence: chunkSequence,
+      chunk,
+    });
+    const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
+      chunk.choices?.[0]?.delta,
+    );
+    const content = parsedChunk.content || '';
+    const reasoning_content = parsedChunk.reasoning_content || '';
 
-      // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
-      if (chunk.usage) {
-        usage = chunk.usage;
-      }
-      if (chunk.model) {
-        responseModelName = chunk.model;
-      }
-
-      if (content || reasoning_content) {
-        accumulated += content;
-        accumulatedReasoning += reasoning_content;
-        const chunkData: CodeGenerationChunk = {
-          content,
-          reasoning_content,
-          accumulated,
-          isComplete: false,
-          usage: undefined,
-        };
-        onChunk(chunkData);
-      }
+    // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+    if (chunk.usage) {
+      usage = chunk.usage;
+    }
+    if (chunk.model) {
+      responseModelName = chunk.model;
     }
 
-    const finalAccumulated = resolveContentWithReasoningFallback({
-      content: accumulated,
-      reasoningContent: accumulatedReasoning,
-      useReasoningAsContentFallback:
-        adapter.chatCompletion.useReasoningAsContentFallback,
-    });
-    accumulated = finalAccumulated || '';
-
-    // Send final chunk
-    const finalChunk: CodeGenerationChunk = {
-      content: '',
-      accumulated,
-      reasoning_content: '',
-      isComplete: true,
-      usage,
-    };
-    onChunk(finalChunk);
-  } catch (error) {
-    throw restoreHardTimeoutError(toError(error), streamSignal);
-  } finally {
-    cleanupStreamSignal();
+    if (content || reasoning_content) {
+      accumulated += content;
+      accumulatedReasoning += reasoning_content;
+      const chunkData: CodeGenerationChunk = {
+        content,
+        reasoning_content,
+        accumulated,
+        isComplete: false,
+        usage: undefined,
+      };
+      onChunk(chunkData);
+    }
   }
+
+  const finalAccumulated = resolveContentWithReasoningFallback({
+    content: accumulated,
+    reasoningContent: accumulatedReasoning,
+    useReasoningAsContentFallback:
+      adapter.chatCompletion.useReasoningAsContentFallback,
+  });
+  accumulated = finalAccumulated || '';
+
+  // Send final chunk
+  const finalChunk: CodeGenerationChunk = {
+    content: '',
+    accumulated,
+    reasoning_content: '',
+    isComplete: true,
+    usage,
+  };
+  onChunk(finalChunk);
   return {
     content: accumulated,
     reasoningContent: accumulatedReasoning,

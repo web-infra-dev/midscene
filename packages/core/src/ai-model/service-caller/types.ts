@@ -34,6 +34,7 @@ export type ModelCallResult = Omit<AICallResult, 'usage'> & {
 };
 
 export type ModelCallContext = {
+  requestSignal: AbortSignal;
   messages: ChatCompletionMessageParam[];
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;

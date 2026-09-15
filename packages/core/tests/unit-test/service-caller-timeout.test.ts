@@ -164,10 +164,7 @@ describe('service-caller request timeout', () => {
         message: expect.stringMatching(/AI call hard timeout after 30ms/),
       });
       expect(isHardTimeoutError(err)).toBe(true);
-      expect((err as Error).cause).toMatchObject({
-        code: 'AI_CALL_HARD_TIMEOUT',
-        cause: { message: 'Request was aborted.' },
-      });
+      expect(err).toMatchObject({ code: 'AI_CALL_HARD_TIMEOUT' });
     }
   });
 
@@ -309,7 +306,7 @@ describe('service-caller request timeout', () => {
       /AI model request failed after 1 retry \(2\/2 attempts\)/,
     );
     await expect(promise).rejects.toThrow(/Previous AI call attempt errors/);
-    await expect(promise).rejects.toThrow(/Attempt 1: first failure/);
+    await expect(promise).rejects.toThrow(/Attempt 1: .*first failure/);
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });
 
@@ -425,4 +422,86 @@ describe('service-caller request timeout', () => {
 
     await expect(promise).rejects.toThrow(/user cancelled/);
   });
+});
+
+it('cancels request retry waiting without issuing another request', async () => {
+  rs.useFakeTimers();
+  try {
+    const { callAI } = await import('@/ai-model/service-caller');
+    const { getModelRuntime } = await import('@/ai-model/models');
+    mockCreate.mockReset();
+    mockCreate.mockRejectedValue(new Error('request failed'));
+    const controller = new AbortController();
+    const promise = callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 60_000 })),
+      { abortSignal: controller.signal },
+    );
+    const assertion = expect(promise).rejects.toThrow('stop');
+    await rs.advanceTimersByTimeAsync(0);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    // Only the retry wait remains; the attempt's timeout has been cleaned up.
+    expect(rs.getTimerCount()).toBe(1);
+    controller.abort(new Error('stop'));
+    await assertion;
+    expect(rs.getTimerCount()).toBe(0);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  } finally {
+    rs.useRealTimers();
+  }
+});
+
+it('exposes a typed timeout reason directly from the abort race', async () => {
+  const { AIRequestTimeoutError, buildRequestAbortSignal, runWithAbortSignal } =
+    await import('@/ai-model/service-caller/request-timeout');
+  const { signal, cleanup } = buildRequestAbortSignal(10);
+  try {
+    const promise = runWithAbortSignal(
+      signal,
+      () => new Promise<never>(() => {}),
+    );
+    await expect(promise).rejects.toBeInstanceOf(AIRequestTimeoutError);
+    await expect(promise).rejects.toBe(signal.reason);
+    expect(signal.reason.timeoutMs).toBe(10);
+  } finally {
+    cleanup();
+  }
+});
+
+it('keeps a request failure that wins the race instead of relabelling it as timeout', async () => {
+  const { AIRequestTimeoutError, runWithAbortSignal } = await import(
+    '@/ai-model/service-caller/request-timeout'
+  );
+  const controller = new AbortController();
+  const failure = new Error('connection failed');
+  const promise = runWithAbortSignal(controller.signal, () => {
+    const rejected = Promise.reject(failure);
+    queueMicrotask(() => controller.abort(new AIRequestTimeoutError(10)));
+    return rejected;
+  });
+  await expect(promise).rejects.toBe(failure);
+  expect(controller.signal.aborted).toBe(true);
+});
+
+it('never retries external cancellation even when its reason is a timeout', async () => {
+  const { callAI } = await import('@/ai-model/service-caller');
+  const { getModelRuntime } = await import('@/ai-model/models');
+  const { AIRequestTimeoutError } = await import(
+    '@/ai-model/service-caller/request-timeout'
+  );
+  mockCreate.mockReset();
+  const controller = new AbortController();
+  const reason = new AIRequestTimeoutError(100);
+  mockCreate.mockImplementation(() => {
+    controller.abort(reason);
+    return new Promise<never>(() => {});
+  });
+  await expect(
+    callAI(
+      [{ role: 'user', content: 'hello' }],
+      getModelRuntime(baseConfig({ retryCount: 2, retryInterval: 0 })),
+      { abortSignal: controller.signal },
+    ),
+  ).rejects.toBe(reason);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
 });
