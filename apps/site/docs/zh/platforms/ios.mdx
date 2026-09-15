@@ -85,8 +85,9 @@ Promise.resolve(
 
     // 👀 初始化 Midscene Agent
     const agent = new IOSAgent(page, {
-      aiActionContext:
-        'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+      aiContexts: {
+        aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+      },
     });
     await page.connect();
 
@@ -94,7 +95,9 @@ Promise.resolve(
     // const agent = await agentFromWebDriverAgent({
     //   wdaPort: 8100,
     //   wdaHost: 'localhost',
-    //   aiActionContext: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    //   aiContexts: {
+    //     aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    //   },
     // });
 
     // 👀 直接打开 ebay.com（推荐做法）
@@ -122,6 +125,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 
