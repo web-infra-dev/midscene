@@ -1,5 +1,6 @@
 import { ScriptPlayer } from '@/yaml/player';
 import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
+import { legacyAgentTestRunnerNodeDefinitions } from '@/yaml/test-runner-nodes';
 import { parseYamlScript } from '@/yaml/utils';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
@@ -26,19 +27,139 @@ describe('legacy YAML Test Runner compatibility', () => {
     });
   });
   test.each(['', 'flow: null'])(
-    'rejects a missing flow before acquiring resources: %s',
-    (flow) => {
+    'fails a missing flow only when reaching its task: %s',
+    async (flow) => {
       const script = parseYamlScript(`tasks:
+  - name: first
+    flow: [{ javascript: first }]
   - name: invalid
+    continueOnError: true
     ${flow}
+  - name: third
+    flow: [{ javascript: third }]
 `);
-      const setup = rs.fn();
-      expect(() => new ScriptPlayer(script, setup)).toThrow(
+      const evaluateJavaScript = rs.fn().mockResolvedValue(1);
+      const setup = rs.fn().mockResolvedValue({
+        agent: { evaluateJavaScript, getActionSpace: async () => [] },
+        freeFn: [],
+      });
+      const player = new ScriptPlayer(script, setup);
+      expect(setup).not.toHaveBeenCalled();
+      await player.run();
+      expect(evaluateJavaScript.mock.calls.map(([code]) => code)).toEqual([
+        'first',
+        'third',
+      ]);
+      expect(player.taskStatusList.map((task) => task.status)).toEqual([
+        'done',
+        'error',
+        'done',
+      ]);
+      expect(player.taskStatusList[1].error?.message).toContain(
         'missing flow in task',
       );
-      expect(setup).not.toHaveBeenCalled();
     },
   );
+
+  test.each([false, true])(
+    'keeps invalid sleep at runtime with task continueOnError=%s',
+    async (continueOnError) => {
+      const evaluateJavaScript = rs.fn().mockResolvedValue(1);
+      const player = new ScriptPlayer(
+        {
+          tasks: [
+            { name: 'first', flow: [{ javascript: 'first' }] },
+            { name: 'invalid', continueOnError, flow: [{ sleep: 0 }] },
+            { name: 'third', flow: [{ javascript: 'third' }] },
+          ],
+        },
+        async () => ({
+          agent: { evaluateJavaScript, getActionSpace: async () => [] } as any,
+          freeFn: [],
+        }),
+      );
+      await player.run();
+      expect(evaluateJavaScript.mock.calls.map(([code]) => code)).toEqual(
+        continueOnError ? ['first', 'third'] : ['first'],
+      );
+      expect(player.taskStatusList.map((task) => task.status)).toEqual([
+        'done',
+        'error',
+        continueOnError ? 'done' : 'init',
+      ]);
+      expect(player.status).toBe(continueOnError ? 'done' : 'error');
+    },
+  );
+
+  test('allocates anonymous keys only when the old output actually stores a result', async () => {
+    const values = [0, false, '', null, true, undefined, 42];
+    const player = new ScriptPlayer(
+      {
+        tasks: [
+          {
+            name: 'first',
+            flow: [
+              { launch: 'com.example.app' },
+              { javascript: 'zero' },
+              { javascript: 'named false', name: 'flag' },
+              { javascript: 'empty' },
+            ],
+          },
+          {
+            name: 'failed query',
+            continueOnError: true,
+            flow: [{ aiQuery: 'fail' }],
+          },
+          {
+            name: 'last',
+            flow: [
+              { javascript: 'null' },
+              { javascript: 'overwrite flag', name: 'flag' },
+              { javascript: 'undefined' },
+              { javascript: 'answer' },
+            ],
+          },
+        ],
+      },
+      async () => ({
+        agent: {
+          getActionSpace: async () => [
+            { name: 'Launch', interfaceAlias: 'launch' },
+          ],
+          callActionInActionSpace: async () => undefined,
+          evaluateJavaScript: async () => values.shift(),
+          aiQuery: async () => {
+            throw new Error('query failed');
+          },
+        } as any,
+        freeFn: [],
+      }),
+    );
+    await player.run();
+    expect(player.result).toEqual({
+      '0': 0,
+      '1': '',
+      '2': null,
+      '3': undefined,
+      '4': 42,
+      flag: true,
+    });
+  });
+
+  test('keeps Finalize and deferred grammar nodes exclusive to YAML hosts', () => {
+    const finalize = legacyAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'Finalize',
+    )!;
+    expect(
+      finalize.execute({}, {}, { signal: new AbortController().signal }),
+    ).toBeUndefined();
+    expect(
+      legacyAgentTestRunnerNodeDefinitions.map((node) => node.name),
+    ).toContain('legacyAction');
+    expect(
+      legacyAgentTestRunnerNodeDefinitions.map((node) => node.name),
+    ).toContain('legacyValidationError');
+  });
 
   test('compiles tasks to Cases and flow items to Steps with canonical public Node inputs', () => {
     const document = collectLegacyYamlDocument(
@@ -81,7 +202,7 @@ describe('legacy YAML Test Runner compatibility', () => {
     ]);
   });
 
-  test('keeps runtime ActionSpace aliases on public Nodes without acquiring an Agent', () => {
+  test('keeps unresolved ActionSpace grammar on private YAML Nodes without acquiring an Agent', () => {
     const document = collectLegacyYamlDocument({
       tasks: [
         {
@@ -101,21 +222,19 @@ describe('legacy YAML Test Runner compatibility', () => {
 
     expect(document.cases[0].definition.steps).toEqual([
       {
-        node: 'action',
-        input: { name: 'launch', params: 'com.example.app' },
+        node: 'legacyAction',
+        input: { flow: { launch: 'com.example.app' } },
         meta: {
           continueOnError: false,
           captureResult: true,
-          resultName: '0',
         },
       },
       {
-        node: 'action',
-        input: { name: 'customAction', params: { value: 7 } },
+        node: 'legacyAction',
+        input: { flow: { customAction: '', value: 7 } },
         meta: {
           continueOnError: false,
           captureResult: true,
-          resultName: '1',
         },
       },
       {

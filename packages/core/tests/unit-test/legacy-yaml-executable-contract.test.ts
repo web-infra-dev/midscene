@@ -336,10 +336,9 @@ const contracts: readonly LegacyFlowContract[] = [
     legacyFields: ['<ActionSpace.interfaceAlias>', 'deepLocate'],
     input: { aiHover: 'field', deepLocate: true } as MidsceneYamlFlowItem,
     expected: {
-      node: 'action',
+      node: 'legacyAction',
       input: {
-        name: 'aiHover',
-        params: { prompt: 'field', deepLocate: true },
+        flow: { aiHover: 'field', deepLocate: true },
       },
       meta: resultMeta(),
     },

@@ -55,6 +55,8 @@ describe('createMidsceneNodes', () => {
       'onFailure',
       'uiContext',
       'Finalize',
+      'legacyAction',
+      'legacyValidationError',
     ])
       expect(spec).not.toContain(field);
     expect(spec).toContain('"effort"');

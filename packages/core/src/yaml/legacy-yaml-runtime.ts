@@ -7,8 +7,6 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { z } from 'zod/v4';
-import type { AgentTestRunnerNodeDefinition } from '../agent/test-runner-nodes';
 import {
   type CaseRunOutcome,
   type CollectedWorkflowDocument,
@@ -34,35 +32,6 @@ import {
   legacyAgentTestRunnerNodeDefinitions,
 } from './test-runner-nodes';
 const debug = getDebug('yaml-player');
-
-const legacyRunAdbShellNodeDefinition: AgentTestRunnerNodeDefinition = {
-  name: 'runAdbShell',
-  inputSchema: z.strictObject({
-    command: z.string(),
-    timeout: z.number(),
-  }),
-  async execute(agent, input) {
-    const androidAgent = agent as {
-      runAdbShell?: (
-        command: string,
-        options: { timeout: number },
-      ) => Promise<unknown>;
-      callActionInActionSpace: (
-        name: string,
-        params: Record<string, unknown>,
-      ) => Promise<unknown>;
-    };
-    const command = input.command as string;
-    const timeout = input.timeout as number;
-    const value = androidAgent.runAdbShell
-      ? await androidAgent.runAdbShell(command, { timeout })
-      : await androidAgent.callActionInActionSpace('RunAdbShell', {
-          command,
-          timeout,
-        });
-    return value === undefined ? undefined : { data: value };
-  },
-};
 
 type SetLegacyYamlResult = (
   key: string | undefined,
@@ -131,10 +100,10 @@ const createLegacyYamlNodeResolver = (
   name: string,
 ) => NodeDefinition<Record<string, unknown>, unknown, Agent>) => {
   const definitions = new Map(
-    [
-      ...legacyAgentTestRunnerNodeDefinitions,
-      legacyRunAdbShellNodeDefinition,
-    ].map((definition) => [definition.name, definition]),
+    legacyAgentTestRunnerNodeDefinitions.map((definition) => [
+      definition.name,
+      definition,
+    ]),
   );
   const nodes = new Map<
     string,

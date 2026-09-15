@@ -183,11 +183,12 @@ describe('entry-independent report projection', () => {
       );
       player.output = undefined;
       try {
-        await player.run({ attemptIndex });
+        await player.run();
       } catch (error) {
         expect((error as Error).message).toBe('cleanup failed');
       }
-      records.push(player.executionRecord!);
+      // The file-retry host owns attempt identity, not the public player API.
+      records.push({ ...player.executionRecord!, attemptIndex });
     }
     records.forEach((record, attemptIndex) => {
       const step = record.execution!.cases[0].run!.steps[0];
