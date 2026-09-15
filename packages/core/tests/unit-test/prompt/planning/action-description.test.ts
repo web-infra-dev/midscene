@@ -9,6 +9,7 @@ import {
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
+  ActionSwipeParamSchema,
   defineActionInput,
   defineActionKeyboardPress,
   defineActionScroll,
@@ -530,7 +531,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     });
   });
 
-  it('swipe action explains direct gesture controls', () => {
+  it('swipe action preserves touch-specific guidance by default', () => {
     const swipeAction = defineActionSwipe({
       swipe: async () => {},
       size: async () => ({ width: 1080, height: 2400 }),
@@ -541,6 +542,13 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.description).toContain(
       'adjust a continuous control such as a slider or wheel picker',
     );
+    expect(action.description).toContain('Perform a touch gesture');
+    expect(action.description).not.toContain('desktop UI');
+    expect(swipeAction.paramSchema).toBe(ActionSwipeParamSchema);
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('finger movement') },
+      direction: { description: expect.stringContaining('Finger movement') },
+    });
     expect(swipeAction.interfaceAlias).toBe('aiSwipe');
     expect(action.description).toContain('Choose exactly one movement form:');
     expect(action.description).toContain(
@@ -549,24 +557,24 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.description).toContain('endpoint swipe — provide "end"');
     expect(actionSpaceDescription).toMatchInlineSnapshot(`
       "- type: Swipe
-        description: 'Perform a direct pointer gesture that continuously presses and moves across the UI (using touch on mobile or the primary mouse button on desktop). Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        description: 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
         param:
           start:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Optional starting point of the pointer movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.
+            description: Optional starting point of the finger movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.
           direction:
             type: enum('up', 'down', 'left', 'right')
             optional: true
-            description: Pointer movement direction. Required together with a positive distance for a relative swipe. Omit when using end.
+            description: Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.
           distance:
             type: number
             optional: true
-            description: Positive length of the pointer movement in pixels. Required together with direction for a relative swipe. Omit when using end.
+            description: Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.
           end:
             type: '{ prompt: string /* description of the target element */ }'
             optional: true
-            description: Endpoint of the pointer movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.
+            description: Endpoint of the finger movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.
           duration:
             type: number
             optional: true
@@ -589,6 +597,25 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           }
           </action-param-json>"
     `);
+  });
+
+  it('swipe action uses mouse-specific guidance for desktop input', () => {
+    const swipeAction = defineActionSwipe({
+      swipe: async () => {},
+      size: async () => ({ width: 1920, height: 1080 }),
+      inputMode: 'mouse',
+    });
+    const { actionDescription: action } = buildActionDescriptions(swipeAction);
+
+    expect(action.description).toContain('primary-mouse-button gesture');
+    expect(action.description).toContain('desktop UI');
+    expect(action.description).not.toContain('touch gesture');
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('pointer movement') },
+      direction: {
+        description: expect.stringContaining('Pointer movement'),
+      },
+    });
   });
 });
 
