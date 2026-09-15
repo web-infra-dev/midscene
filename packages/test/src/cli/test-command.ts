@@ -22,6 +22,9 @@ interface ParsedTestArgs {
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
+  paths?: string[];
+  caseIds?: string[];
+  tags?: { include?: string[]; exclude?: string[] };
 }
 
 export const parseTestCliArgs = (
@@ -34,6 +37,10 @@ export const parseTestCliArgs = (
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
+  const paths: string[] = [];
+  const caseIds: string[] = [];
+  const includeTags: string[] = [];
+  const excludeTags: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const token = args[index];
@@ -46,13 +53,24 @@ export const parseTestCliArgs = (
       projectRoot = resolve(cwd, arg);
       continue;
     }
-    if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
+    if (
+      arg === '--config' ||
+      arg === '--result-dir' ||
+      arg === '--project' ||
+      arg === '--file' ||
+      arg === '--case-id' ||
+      arg === '--tag' ||
+      arg === '--exclude-tag'
+    ) {
       const value = inlineValue ?? args[index + 1];
-      if (!value || value.startsWith('--'))
-        throw new Error(`${arg} requires a value.`);
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
-      else projectNames.push(value);
+      else if (arg === '--project') projectNames.push(value);
+      else if (arg === '--file') paths.push(value);
+      else if (arg === '--case-id') caseIds.push(value);
+      else if (arg === '--tag') includeTags.push(value);
+      else excludeTags.push(value);
       if (inlineValue === undefined) index += 1;
     } else {
       throw new Error(`Unknown option: ${token}`);
@@ -65,6 +83,18 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && projectNames.length > 1) {
     throw new Error('nodes accepts only one --project name.');
   }
+  if (
+    command === 'nodes' &&
+    (paths.length > 0 ||
+      caseIds.length > 0 ||
+      includeTags.length > 0 ||
+      excludeTags.length > 0)
+  ) {
+    throw new Error(
+      'nodes does not support --file, --case-id, --tag, or --exclude-tag.',
+    );
+  }
+
   return {
     ...(command ? { command } : {}),
     cwd,
@@ -72,6 +102,16 @@ export const parseTestCliArgs = (
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
+    ...(paths.length > 0 ? { paths } : {}),
+    ...(caseIds.length > 0 ? { caseIds } : {}),
+    ...(includeTags.length > 0 || excludeTags.length > 0
+      ? {
+          tags: {
+            ...(includeTags.length > 0 ? { include: includeTags } : {}),
+            ...(excludeTags.length > 0 ? { exclude: excludeTags } : {}),
+          },
+        }
+      : {}),
   };
 };
 

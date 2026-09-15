@@ -36,6 +36,7 @@ const commonAgent = (
   aiAct: vi.fn(async () => undefined),
   aiTap: vi.fn(async () => undefined),
   aiAssert: vi.fn(async () => undefined),
+  aiWaitFor: vi.fn(async () => undefined),
   aiBoolean: vi.fn(async () => false),
   aiNumber: vi.fn(async () => 0),
   aiString: vi.fn(async () => ''),
@@ -151,8 +152,9 @@ describe('createMidsceneNodes', () => {
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
+    const aiWaitFor = vi.fn(async () => undefined);
     const recordToReport = vi.fn(async () => undefined);
-    const agent = commonAgent({ aiAct, aiAssert, recordToReport });
+    const agent = commonAgent({ aiAct, aiAssert, aiWaitFor, recordToReport });
     const getAgent = vi.fn(
       ({ context }: { context: { uiAgent: MidsceneUIAgent } }) =>
         context.uiAgent,
@@ -180,6 +182,14 @@ describe('createMidsceneNodes', () => {
           meta: { continueOnError: false },
         },
         {
+          node: 'aiWaitFor',
+          input: {
+            prompt: 'The order status becomes paid',
+            options: { timeoutMs: 30_000, checkIntervalMs: 1_000 },
+          },
+          meta: { continueOnError: false },
+        },
+        {
           node: 'recordToReport',
           input: {
             title: 'Order created',
@@ -198,7 +208,7 @@ describe('createMidsceneNodes', () => {
       ...commonAgentTestRunnerNodeDefinitions.map((node) => node.name),
       'wait',
     ]);
-    expect(getAgent).toHaveBeenCalledTimes(3);
+    expect(getAgent).toHaveBeenCalledTimes(4);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
       deepThink: true,
       abortSignal: expect.any(AbortSignal),
@@ -212,12 +222,18 @@ describe('createMidsceneNodes', () => {
         abortSignal: expect.any(AbortSignal),
       },
     );
+    expect(aiWaitFor).toHaveBeenCalledWith('The order status becomes paid', {
+      timeoutMs: 30_000,
+      checkIntervalMs: 1_000,
+      abortSignal: expect.any(AbortSignal),
+    });
     expect(recordToReport).toHaveBeenCalledWith('Order created', {
       content: 'order-1',
     });
     expect(result.steps.map((step) => step.output?.summary)).toEqual([
       'action completed',
       'Assertion passed: The order is paid',
+      'Condition met: The order status becomes paid',
       'Recorded to report: Order created',
     ]);
   });

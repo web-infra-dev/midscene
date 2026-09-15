@@ -1,4 +1,5 @@
 export * from './types';
+export * from './test-executor';
 export * from './test-project';
 export {
   DEFAULT_TEST_FILE_SELECTION,
