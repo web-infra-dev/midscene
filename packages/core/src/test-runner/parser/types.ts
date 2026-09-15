@@ -3,9 +3,6 @@ export type DurationInput = number;
 export interface StepMetaInput {
   timeout?: DurationInput;
   'continue-on-error'?: boolean;
-  resultName?: string;
-  /** JSON Pointer into NodeResult.data; omitted means the complete data. */
-  resultPath?: string;
 }
 
 export interface NormalizedStepMeta {
@@ -14,7 +11,6 @@ export interface NormalizedStepMeta {
   timeoutMs?: number;
   continueOnError: boolean;
   resultName?: string;
-  resultPath?: string;
 }
 
 export type StepValue = string | Record<string, unknown>;
@@ -24,7 +20,6 @@ export type StepInput = Record<string, unknown>;
 export interface CaseInput {
   name?: string;
   tags?: readonly string[];
-  onFailure?: 'continue' | 'stop-document';
   steps: readonly StepInput[];
 }
 
@@ -39,8 +34,6 @@ export interface WorkflowDocumentDefinition {
 export interface CaseDefinition<TStep = StepInput> {
   name: string;
   tags?: readonly string[];
-  /** Applies after retries finish; it never prevents document cleanup. */
-  onFailure?: 'continue' | 'stop-document';
   steps: readonly TStep[];
 }
 
@@ -50,7 +43,10 @@ export interface NormalizedStep {
   meta: NormalizedStepMeta;
 }
 
-export type NormalizedCaseDefinition = CaseDefinition<NormalizedStep>;
+/** Adapter-only policy; native Case inputs do not expose this switch. */
+export type NormalizedCaseDefinition = CaseDefinition<NormalizedStep> & {
+  onFailure?: 'continue' | 'stop-document';
+};
 
 export interface WorkflowDocumentSource {
   projectId: string;

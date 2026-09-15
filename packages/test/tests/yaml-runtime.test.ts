@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectTeardown } from '../src/cli/test-project';
 import {
   type YamlRuntimeContext,
+  createYamlDocumentSetup,
   createYamlProjectSetup,
 } from '../src/runtime';
 
@@ -32,7 +33,7 @@ afterEach(() => {
     rmSync(directory, { recursive: true, force: true });
 });
 
-describe('YAML platform setup for native Test projects', () => {
+describe('YAML compatibility resource host', () => {
   const documentResult = (): WorkflowDocumentRunResult => ({
     documentId: 'document',
     documentRunId: 'run',
@@ -45,16 +46,15 @@ describe('YAML platform setup for native Test projects', () => {
     durationMs: 0,
     beforeAll: [],
     afterAll: [],
-    outputs: { price: 42, check: { pass: false } },
   });
 
   it.each(['page', 'browser', 'harmony'] as const)(
-    'publishes native named results and logs through %s YAML fields',
+    'publishes legacy results and logs through %s YAML fields',
     async (platform) => {
       const directory = temporaryDirectory();
       const output = join(directory, 'result.json');
       const log = join(directory, 'log.json');
-      const definition = createYamlProjectSetup({
+      const definition = createYamlDocumentSetup({
         file: 'runtime.yaml',
         script: {
           [platform]: {
@@ -69,6 +69,7 @@ describe('YAML platform setup for native Test projects', () => {
       };
       await definition.onDocumentResult!(documentResult(), {
         agent: agent as any,
+        results: { price: 42, check: { pass: false } },
       });
       expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual({
         price: 42,
@@ -84,7 +85,7 @@ describe('YAML platform setup for native Test projects', () => {
   it('uses top-level config output for a custom interface and permits disabling logs', async () => {
     const directory = temporaryDirectory();
     const output = join(directory, 'result.json');
-    const definition = createYamlProjectSetup({
+    const definition = createYamlDocumentSetup({
       file: 'runtime.yaml',
       script: {
         interface: { module: './device.mjs' },
@@ -94,21 +95,20 @@ describe('YAML platform setup for native Test projects', () => {
     const agent = { _unstableLogContent: vi.fn() };
     await definition.onDocumentResult!(documentResult(), {
       agent: agent as any,
+      results: { price: 42 },
     });
-    expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual(
-      documentResult().outputs,
-    );
+    expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual({ price: 42 });
     expect(agent._unstableLogContent).not.toHaveBeenCalled();
   });
 
   it.each(['output', 'unstableLogContent'] as const)(
-    'classifies native %s file errors as publication failures',
+    'classifies legacy %s file errors as publication failures',
     async (field) => {
       const directory = temporaryDirectory();
       const blocker = join(directory, 'file');
       writeFileSync(blocker, 'not a directory');
       const path = join(blocker, 'result.json');
-      const definition = createYamlProjectSetup({
+      const definition = createYamlDocumentSetup({
         file: 'runtime.yaml',
         script: {
           config: { output: join(directory, 'result.json'), [field]: path },

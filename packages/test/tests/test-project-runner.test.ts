@@ -307,7 +307,7 @@ describe('test project main-process runner', () => {
     );
   });
 
-  it('can disable final report publication through the public output strategy', async () => {
+  it('rejects native report controls instead of silently disabling the report', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const reportDir = join(root, 'reports');
@@ -327,14 +327,13 @@ describe('test project main-process runner', () => {
       'cases: [{ name: example, steps: [{ noop: run }] }]',
     );
 
-    const result = await runTestProject({ projectRoot: root, resultDir });
-
-    expect(result.status).toBe('success');
-    expect(result.reportPath).toBeUndefined();
+    await expect(
+      runTestProject({ projectRoot: root, resultDir }),
+    ).rejects.toThrow('output.report is not supported');
     expect(existsSync(join(reportDir, 'disabled-report.html'))).toBe(false);
   });
 
-  it('runs a public setupFile before admitting regular documents', async () => {
+  it('does not admit compatibility setupFile/fileConcurrency in a native Project', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
     const state = setRunnerState(resultDir);
@@ -370,13 +369,10 @@ describe('test project main-process runner', () => {
       'cases: [{ name: second, steps: [{ record: second }] }]',
     );
 
-    const result = await runTestProject({ projectRoot: root, resultDir });
-
-    expect(result.status).toBe('success');
-    expect(state.events[0]).toBe('setup');
-    expect(new Set(state.events.slice(1))).toEqual(
-      new Set(['first', 'second']),
-    );
+    await expect(
+      runTestProject({ projectRoot: root, resultDir }),
+    ).rejects.toThrow('projects[0].setupFile is not supported');
+    expect(state.events).toEqual([]);
   });
 
   it('rejects the removed config root field', async () => {

@@ -13,7 +13,7 @@ import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
-  runTestProject,
+  runTestProjectWithYamlCompatibility,
 } from './test-project-runner';
 
 export interface TestCliIO {
@@ -29,6 +29,9 @@ interface ParsedTestArgs {
   configPath?: string;
   resultDir?: string;
   projectNames?: string[];
+}
+
+interface ParsedTestArgsWithYaml extends ParsedTestArgs {
   legacyOptions?: LegacyConfigFactoryOptions;
 }
 
@@ -36,6 +39,17 @@ export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
+  const { legacyOptions: _legacyOptions, ...parsed } = parseTestCliArgsWithYaml(
+    args,
+    cwd,
+  );
+  return parsed;
+};
+
+export const parseTestCliArgsWithYaml = (
+  args: string[],
+  cwd = process.cwd(),
+): ParsedTestArgsWithYaml => {
   const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
@@ -106,7 +120,6 @@ const testCliHelp = `Midscene Test: run native and legacy YAML workflows.
 Usage:
   midscene-test [file.yaml | directory] [options]
   midscene-test --config <midscene.config.ts | batch.yaml> [options]
-  midscene-test --files <file1.yaml> <file2.yaml> ... [options]
   midscene-test nodes [directory] [--config midscene.config.ts]
   midscene-test create --help
 
@@ -117,20 +130,7 @@ Options:
   --help, -h                  Show this help
   --version                   Show the package version
 
-Legacy YAML execution options:
-  --files <paths...>           Execute files or globs in the given order
-  --setup <path>              Run a prerequisite YAML before the main files
-  --concurrent <number>       Maximum concurrent files (default: 1)
-  --retry <number>            Additional whole-file attempts (default: 0)
-  --continue-on-error         Continue after a file fails (default: false)
-  --summary <path>            Write the legacy summary JSON to this path
-  --headed                   Show the browser window
-  --keep-window              Keep the browser open and enable headed mode
-  --share-browser-context    Share a Puppeteer context across files
-  --dotenv-override          Let .env values override shell environment values
-  --dotenv-debug             Log .env loading details
-  --<target>.<field> <value>  Override a platform field, e.g. --web.url <url>
-  --no-<target>.<field>       Set a boolean platform field to false
+Old YAML command options remain supported for compatibility; see the YAML migration guide.
 `;
 
 const assertDirectory = (path: string, label: string): void => {
@@ -226,7 +226,7 @@ export async function runTestCli(
       io.log(version);
       return 0;
     }
-    const options = parseTestCliArgs(args);
+    const options = parseTestCliArgsWithYaml(args);
     if (options.command === 'nodes') {
       await runNodesCommand(options, io);
       return 0;
@@ -237,20 +237,22 @@ export async function runTestCli(
         '--project cannot be combined with legacy YAML execution options.',
       );
     }
-    const result = await runTestProject({
-      ...options,
-      ...(legacyPlan
-        ? {
-            configPath: undefined,
-            projectRoot: legacyPlanProjectRoot(
-              options.projectRoot,
-              options.cwd,
-            ),
-            legacyPlan,
-          }
-        : {}),
-      onProgress: (message) => io.log(message),
-    });
+    const result = await runTestProjectWithYamlCompatibility(
+      {
+        ...options,
+        ...(legacyPlan
+          ? {
+              configPath: undefined,
+              projectRoot: legacyPlanProjectRoot(
+                options.projectRoot,
+                options.cwd,
+              ),
+            }
+          : {}),
+        onProgress: (message) => io.log(message),
+      },
+      { plan: legacyPlan },
+    );
     for (const failure of result.collectionErrors) {
       io.error(
         `midscene-test: ${failure.projectName}/${failure.sourcePath}: ${failure.error.message}`,

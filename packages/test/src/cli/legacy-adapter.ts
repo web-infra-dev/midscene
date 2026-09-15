@@ -3,13 +3,16 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlTargetConfig,
 } from '@midscene/core';
-import { collectLegacyYamlDocument } from '@midscene/core/internal/yaml-runtime';
-import merge from 'lodash.merge';
-import { createCaseId, createWorkflowDocumentId } from '../parser/collect';
 import type {
   CollectedWorkflowDocument,
   WorkflowDocumentSource,
-} from '../parser/types';
+} from '@midscene/core/internal/test-runner';
+import { collectLegacyYamlDocument } from '@midscene/core/internal/yaml-runtime';
+import merge from 'lodash.merge';
+import {
+  createCaseInvocationId as createCaseId,
+  createDocumentInvocationId as createWorkflowDocumentId,
+} from '../parser/identifiers';
 import type { LegacyTestRunPlan } from '../runtime/legacy-config';
 
 export interface LegacyWorkflow {
@@ -24,17 +27,13 @@ export interface AdaptedLegacyExecutionPlan {
     name: string;
     files: {
       include: string[];
-      order: 'listed';
     };
     retry: number;
-    retryScope: 'document';
-    fileConcurrency: number;
-    setupFile?: string;
   };
   bail: number;
 }
 
-/** Map old batch scheduling fields to a public Project without running it. */
+/** Select a Project label; legacy scheduling remains in the compatibility plan. */
 export function adaptLegacyExecutionPlan(
   plan: LegacyTestRunPlan,
   projectRoot: string,
@@ -47,12 +46,8 @@ export function adaptLegacyExecutionPlan(
       name: 'legacy',
       files: {
         include: plan.files.map(projectPath),
-        order: 'listed',
       },
       retry: plan.retry,
-      retryScope: 'document',
-      fileConcurrency: plan.concurrent,
-      ...(plan.setup ? { setupFile: projectPath(plan.setup) } : {}),
     },
   };
 }

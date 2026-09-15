@@ -7,6 +7,29 @@ import {
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('legacy YAML runtime', () => {
+  test.each(['aiTap', 'aiScroll'])(
+    'keeps uiContext for legacy %s without exposing it on native Nodes',
+    async (node) => {
+      const action = rs.fn().mockResolvedValue(undefined);
+      const uiContext = { fixture: true };
+      const runtime = createLegacyYamlRuntime({
+        agent: { [node]: action, dump: { executions: [] } } as any,
+        actionSpace: [],
+        setResult: () => {},
+      });
+      const result = await runtime.runScript({
+        tasks: [
+          { name: 'locate', flow: [{ [node]: 'target', uiContext } as any] },
+        ],
+      });
+      expect(result.cases[0].status).toBe('success');
+      expect(action).toHaveBeenCalledWith(
+        'target',
+        expect.objectContaining({ uiContext }),
+      );
+    },
+  );
+
   test.each([false, true])(
     'owns task continuation without a facade: %s',
     async (continueOnError) => {

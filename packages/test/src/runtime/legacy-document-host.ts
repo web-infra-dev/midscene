@@ -1,9 +1,15 @@
 import { basename, join } from 'node:path';
-import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
+import type {
+  DocumentSetupDefinition,
+  StepResultHandler,
+} from '@midscene/core/internal/test-runner';
+import {
+  getLegacyYamlResultData,
+  legacyAgentTestRunnerNodeDefinitions,
+} from '@midscene/core/internal/yaml-runtime';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { z } from 'zod/v4';
-import type { DocumentSetupDefinition } from '../cli/test-project';
 import { type MidsceneUIAgent, createAgentTestRunnerNodes } from '../midscene';
 import { defineNode } from '../node/define-node';
 import type { NodeDefinition } from '../node/types';
@@ -51,12 +57,14 @@ const runAdbShell = defineNode<
 export interface LegacyYamlDocumentHost {
   documentSetup: DocumentSetupDefinition<YamlRuntimeContext>;
   nodes: readonly NodeDefinition<any, any, YamlRuntimeContext>[];
+  onStepResult: StepResultHandler;
 }
 
 export interface LegacyYamlDocumentArtifact {
   documentRunId: string;
   outputPath?: string;
   reportPath?: string;
+  reportEnabled?: boolean;
 }
 
 export interface LegacyYamlDocumentHostOptions extends YamlSetupOptions {
@@ -65,33 +73,57 @@ export interface LegacyYamlDocumentHostOptions extends YamlSetupOptions {
 
 /**
  * Runtime-only half of legacy YAML support. The adapter has already compiled
- * tasks/flow into public Nodes before this host acquires any platform resource.
+ * tasks/flow into Steps before this host acquires any platform resource.
  */
 export function createLegacyYamlDocumentHost(
   options: LegacyYamlDocumentHostOptions,
 ): LegacyYamlDocumentHost {
   const scriptName = basename(options.file).replace(/\.ya?ml$/i, '');
+  let resultContext: YamlRuntimeContext | undefined;
+  const documentSetup = createYamlDocumentSetup({
+    ...options,
+    defaultOutputPath:
+      options.defaultOutputPath ??
+      (() =>
+        join(getMidsceneRunSubDir('output'), `${scriptName}-${uuid()}.json`)),
+    onDocumentResult: async (document, context) => {
+      await options.onDocumentResult?.(document, context);
+      options.onArtifact?.({
+        documentRunId: document.documentRunId,
+        reportEnabled: options.script.agent?.generateReport !== false,
+        ...(context.outputPath ? { outputPath: context.outputPath } : {}),
+        ...(document.reportPaths?.length
+          ? { reportPath: document.reportPaths.at(-1) }
+          : {}),
+      });
+    },
+  });
   return {
-    documentSetup: createYamlDocumentSetup({
-      ...options,
-      defaultOutputPath:
-        options.defaultOutputPath ??
-        (() =>
-          join(getMidsceneRunSubDir('output'), `${scriptName}-${uuid()}.json`)),
-      onDocumentResult: async (document, context) => {
-        await options.onDocumentResult?.(document, context);
-        options.onArtifact?.({
-          documentRunId: document.documentRunId,
-          ...(context.outputPath ? { outputPath: context.outputPath } : {}),
-          ...(document.reportPaths?.length
-            ? { reportPath: document.reportPaths.at(-1) }
-            : {}),
-        });
+    documentSetup: {
+      ...documentSetup,
+      async setup(ctx) {
+        resultContext = undefined;
+        resultContext = await documentSetup.setup(ctx);
+        return resultContext;
       },
-    }),
+    },
+    onStepResult(_info, result) {
+      if (
+        result.meta.captureResult &&
+        result.meta.resultName !== undefined &&
+        result.output &&
+        Object.hasOwn(result.output, 'data') &&
+        resultContext?.results
+      ) {
+        resultContext.results[result.meta.resultName] = getLegacyYamlResultData(
+          result.node,
+          result.output,
+        );
+      }
+    },
     nodes: [
       ...createAgentTestRunnerNodes<YamlRuntimeContext>(
-        commonAgentTestRunnerNodeDefinitions,
+        legacyAgentTestRunnerNodeDefinitions,
         (ctx) => ctx.context.agent,
       ),
       runAdbShell,

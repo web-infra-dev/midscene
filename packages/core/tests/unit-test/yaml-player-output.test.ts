@@ -104,7 +104,6 @@ tasks: []
           outputs: { value: 42 },
           publicationErrors: [{ code: 'WORKFLOW_PUBLICATION_FAILED' }],
           execution: {
-            document: { outputs: { value: 42 } },
             cases: [
               { run: { steps: [{ status: 'success', output: { data: 42 } }] } },
               { status: 'not-run' },

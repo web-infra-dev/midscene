@@ -158,6 +158,16 @@ steps:
       message: The cart contents do not match the expected result
 ```
 
+For `aiAct`, optional `options.effort` selects planning effort: `fast`, `balance`, or `deepThink`. Omitting it retains the Agent's default behavior. When both `effort` and `deepThink` are provided, `effort` takes precedence. This is an action capability, not a test scheduling option:
+
+```yaml
+steps:
+  - aiAct:
+      prompt: Complete checkout
+      options:
+        effort: deepThink
+```
+
 ### Calling other Nodes
 
 Platform operations and custom business Nodes use the same structure: **put parameters beneath the Node name**. These examples show calls with multiple parameters and with no parameters. Place the snippets inside a case's `steps`:
@@ -313,18 +323,7 @@ When retries are configured, a failed case reruns `beforeEach → steps → afte
 
 By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
 
-By default, a failed Case does not prevent the next Case in the same file from running. Set `onFailure: stop-document` on a Case when its failure should stop the current file. Use `onFailure: continue` to make continuation explicit:
-
-```yaml
-cases:
-  - name: Login is required by later cases
-    onFailure: stop-document
-    steps:
-      - aiAct: Log in with the test account
-      - aiAssert: The account home page is open
-```
-
-`onFailure` controls scheduling between Cases. `continue-on-error` controls whether later Steps in the same phase run after a Step fails. The two settings have different scopes.
+A failed Case does not prevent the next Case from running by default. Use `test.bail` to stop scheduling new work after a failed-case threshold. Put file-wide prerequisites in `beforeAll`; if they fail, the file's Cases do not run. Keep dependent business steps in a single Case rather than relying on another Case's success.
 
 Project setup manages browser and Agent resources; see [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
 

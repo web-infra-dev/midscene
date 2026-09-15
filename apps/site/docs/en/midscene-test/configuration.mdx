@@ -312,14 +312,9 @@ An execution project connects a runtime environment to its cases. Even a single 
 | Setting | Meaning |
 | --- | --- |
 | `projects[].files` | `include` selects YAML files; `exclude` removes matches. Patterns are relative to the test directory. |
-| `projects[].files.order` | `sorted` sorts by path; `listed` preserves include declaration order and repeated file invocations. Defaults to `sorted`. |
 | `projects[].tags` | Includes or excludes cases by tag. |
 | `projects[].variables` | Supplies values for YAML `${variable}` references. |
 | `projects[].retry` | Number of retries for a failed case; defaults to `0`. |
-| `projects[].retryScope` | `case` retries failed Cases; `document` retries the complete YAML file. Defaults to `case`. |
-| `projects[].fileConcurrency` | Number of YAML files that can run concurrently in this Project. Defaults to `1`. |
-| `projects[].setupFile` | One prerequisite YAML file that runs before main files; a failure prevents main files from being scheduled. |
-| `projects[].documentSetup` | Creates document-owned context and resources before each file attempt, including whole-document retries. |
 | `test.testTimeout` | Default timeout for each step in milliseconds; defaults to `120000`. A step's `$` timeout overrides it. |
 | `test.bail` | Stops scheduling new work when the failed-case threshold is reached; `0` disables the threshold. |
 | `output.reportDir` | Report output directory; defaults to `./midscene_run/report`. |
@@ -328,11 +323,9 @@ See [Run tests](./use#run-tests) for CLI project selection and configuration fil
 
 The scaffold generates a configuration that selects `cases/**/*.{yaml,yml}` by default. Without a `files` configuration, Midscene Test recursively searches for `**/*.{yaml,yml}` under the test directory.
 
-`setupFile` must resolve to one file and cannot also be part of the main file list. It differs from the Project's TypeScript `setup`: `setup` creates runtime resources, while `setupFile` is a prerequisite YAML test document.
+Selected files are deduplicated and sorted by path. Retries rerun only the failed Case's `beforeEach → steps → afterEach`, not project setup or file hooks. Files within one Project run sequentially; use separate Projects with independent resources for concurrent execution.
 
-The default `retryScope: 'case'` reruns only the failed Case's `beforeEach → steps → afterEach`. With `document`, Test reruns the complete YAML file, including Cases that passed, `beforeAll`, and `afterAll`. Use `document` when migrating legacy whole-file retries.
-
-When `fileConcurrency` is greater than one, concurrent files still share the context returned by Project `setup`. To create an independent Page or Agent for each file, use `documentSetup` to derive a document context from the Project context and register document cleanup with its `onTeardown()`. Keep `fileConcurrency: 1` for devices that cannot run safely in parallel, or split work into Projects connected to different devices.
+Native Test always generates a combined report. The CLI prints its path after the run. See [View test results](./use#view-test-results) for how to open it.
 
 ### Configure multiple execution projects
 

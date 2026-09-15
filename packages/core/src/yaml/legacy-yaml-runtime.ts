@@ -8,10 +8,7 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod/v4';
-import {
-  type AgentTestRunnerNodeDefinition,
-  commonAgentTestRunnerNodeDefinitions,
-} from '../agent/test-runner-nodes';
+import type { AgentTestRunnerNodeDefinition } from '../agent/test-runner-nodes';
 import {
   type CaseRunOutcome,
   type CollectedWorkflowDocument,
@@ -32,6 +29,10 @@ import {
   collectLegacyYamlDocument,
   collectLegacyYamlTaskDocument,
 } from './test-runner-compat';
+import {
+  getLegacyYamlResultData,
+  legacyAgentTestRunnerNodeDefinitions,
+} from './test-runner-nodes';
 const debug = getDebug('yaml-player');
 
 const legacyRunAdbShellNodeDefinition: AgentTestRunnerNodeDefinition = {
@@ -131,7 +132,7 @@ const createLegacyYamlNodeResolver = (
 ) => NodeDefinition<Record<string, unknown>, unknown, Agent>) => {
   const definitions = new Map(
     [
-      ...commonAgentTestRunnerNodeDefinitions,
+      ...legacyAgentTestRunnerNodeDefinitions,
       legacyRunAdbShellNodeDefinition,
     ].map((definition) => [definition.name, definition]),
   );
@@ -251,7 +252,10 @@ const runLegacyYamlDocument = (
         Object.hasOwn(result.output, 'data')
       ) {
         // Publication follows the recorded action. The Node result is never mutated.
-        await options.setResult(result.meta.resultName, result.output.data);
+        await options.setResult(
+          result.meta.resultName,
+          getLegacyYamlResultData(result.node, result.output),
+        );
       }
       await runOptions?.onStepResult?.(info, result);
     },

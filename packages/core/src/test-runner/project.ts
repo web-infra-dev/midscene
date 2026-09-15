@@ -16,8 +16,6 @@ export type JsonValue =
 export interface TestFileSelection {
   include: readonly string[];
   exclude?: readonly string[];
-  /** listed preserves include-pattern order and repeated file invocations. */
-  order?: 'sorted' | 'listed';
 }
 
 export interface TestTagSelection {
@@ -30,15 +28,9 @@ export interface ExecutionProjectDefinition<TProjectContext = unknown> {
   setup?: ProjectSetupDefinition<TProjectContext>;
   /** Project-local Nodes override global Nodes with the same name. */
   nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
-  /** Acquires context once per document attempt, independently of other files. */
-  documentSetup?: DocumentSetupDefinition<TProjectContext>;
   files?: TestFileSelection;
   tags?: TestTagSelection;
   retry?: number;
-  retryScope?: 'case' | 'document';
-  fileConcurrency?: number;
-  /** One prerequisite document, completed before main files are admitted. */
-  setupFile?: string;
   variables?: Readonly<Record<string, JsonValue>>;
 }
 
@@ -46,13 +38,9 @@ export interface ResolvedExecutionProject<TProjectContext = unknown> {
   readonly projectId: string;
   readonly name: string;
   readonly setup?: ProjectSetupDefinition<TProjectContext>;
-  readonly documentSetup?: DocumentSetupDefinition<TProjectContext>;
   readonly files?: TestFileSelection;
   readonly tags: Readonly<Required<TestTagSelection>>;
   readonly retry: number;
-  readonly retryScope?: 'case' | 'document';
-  readonly fileConcurrency?: number;
-  readonly setupFile?: string;
   readonly variables: Readonly<Record<string, JsonValue>>;
 }
 
@@ -83,11 +71,6 @@ export type ProjectTeardown<TProjectContext = unknown> = (
 export interface ProjectSetupDefinition<TProjectContext = unknown> {
   name: string;
   setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
-  /** Publication belongs to the resource owner and must not retry document actions. */
-  onDocumentResult?(
-    document: WorkflowDocumentRunResult,
-    context: TProjectContext | undefined,
-  ): Awaitable<void>;
 }
 
 export interface DocumentSetupContext<TContext = unknown> {

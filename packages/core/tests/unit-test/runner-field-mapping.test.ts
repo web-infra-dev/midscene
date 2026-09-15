@@ -3,24 +3,18 @@ import {
   type CollectedWorkflowDocument,
   NodeExecutionError,
   type NormalizedStep,
-  WorkflowExecutionFailure,
   defineNode,
   normalizeStep,
   runWorkflowDocument,
 } from '@/test-runner';
 import { describe, expect, test } from '@rstest/core';
 
-const step = (
-  node: string,
-  resultName?: string,
-  resultPath?: string,
-): NormalizedStep => ({
+const step = (node: string, resultName?: string): NormalizedStep => ({
   node,
   input: {},
   meta: {
     continueOnError: false,
     ...(resultName === undefined ? {} : { resultName }),
-    ...(resultPath === undefined ? {} : { resultPath }),
   },
 });
 const document = (): CollectedWorkflowDocument => ({
@@ -100,21 +94,18 @@ describe('shared workflow field semantics', () => {
     expect(result.cases[0].attempts).toHaveLength(2);
   });
 
-  test('aggregates named data in lifecycle and retry execution order with JSON Pointer selection', async () => {
+  test('keeps data per Step across lifecycle and retry attempts without named aggregation', async () => {
     const input = document();
-    input.lifecycle.beforeAll = [step('phase', 'phase', '/value')];
-    input.lifecycle.beforeEach = [step('phase', 'phase', '/value')];
-    input.lifecycle.afterEach = [step('phase', 'phase', '/value')];
-    input.lifecycle.afterAll = [step('phase', 'phase', '/value')];
-    addCase(input, 'retry', [
-      step('value', 'selected', '/a~1b/~0key/0'),
-      step('flaky', 'diagnostic'),
-    ]);
+    input.lifecycle.beforeAll = [step('phase')];
+    input.lifecycle.beforeEach = [step('phase')];
+    input.lifecycle.afterEach = [step('phase')];
+    input.lifecycle.afterAll = [step('phase')];
+    addCase(input, 'retry', [step('value'), step('flaky')]);
     let observed: unknown;
     const result = await runWorkflowDocument(input, {
       retry: 1,
       onDocumentResult: (result) => {
-        observed = result.outputs;
+        observed = result.afterAll[0].output?.data;
       },
       resolveNode: (name) =>
         defineNode<unknown, unknown>({
@@ -142,18 +133,20 @@ describe('shared workflow field semantics', () => {
           },
         }),
     });
-    expect(result.document.outputs).toEqual({
-      phase: 'afterAll',
-      selected: 1,
-      diagnostic: { reason: 'temporary' },
-    });
-    expect(observed).toEqual(result.document.outputs);
+    expect(result.document).not.toHaveProperty('outputs');
+    expect(observed).toEqual({ value: 'afterAll' });
     expect(result.cases[0].attempts?.[0].steps[0].output?.data).toEqual({
       'a/b': { '~key': [0] },
     });
+    expect(result.cases[0].attempts?.[1].steps[0].output?.data).toEqual({
+      'a/b': { '~key': [1] },
+    });
+    expect(result.cases[0].attempts?.[0].steps[1].output?.data).toEqual({
+      reason: 'temporary',
+    });
   });
 
-  test('keeps a failed raw assertion in both Step data and named outputs', async () => {
+  test('keeps a failed raw assertion on its Step, without a document result namespace', async () => {
     const input = document();
     addCase(input, 'assertion', [
       {
@@ -182,9 +175,7 @@ describe('shared workflow field semantics', () => {
       pass: false,
       thought: 'not ready',
     });
-    expect(result.document.outputs).toEqual({
-      check: { pass: false, thought: 'not ready' },
-    });
+    expect(result.document).not.toHaveProperty('outputs');
   });
 
   test('retains raw error output until publication', async () => {
@@ -205,18 +196,18 @@ describe('shared workflow field semantics', () => {
     expect(result.cases[0].run?.steps[0].output).toEqual({
       data: { nested: undefined },
     });
-    expect(result.document.outputs).toEqual({ bad: { nested: undefined } });
+    expect(result.document).not.toHaveProperty('outputs');
   });
 
-  test('a missing result path preserves action success and prevents retries or later actions', async () => {
+  test('result observer failure preserves action success and prevents business retries', async () => {
     const input = document();
-    addCase(input, 'invalid selection', [
-      step('extract', 'value', '/absent'),
-      step('later'),
-    ]);
+    addCase(input, 'invalid selection', [step('extract'), step('later')]);
     const calls: string[] = [];
     const failure = await runWorkflowDocument(input, {
       retry: 2,
+      onStepResult: () => {
+        throw new Error('result observer failed');
+      },
       resolveNode: (name) =>
         defineNode({
           name,
@@ -226,19 +217,20 @@ describe('shared workflow field semantics', () => {
           },
         }),
     }).catch((error) => error);
-    expect(failure).toBeInstanceOf(WorkflowExecutionFailure);
+    expect(failure.code).toBe('WORKFLOW_EXECUTION_FAILURE');
     expect(calls).toEqual(['extract']);
     expect(failure.result.cases[0].run.steps[0].status).toBe('success');
-    expect(failure.result.document.outputs).toEqual({});
+    expect(failure.result.document).not.toHaveProperty('outputs');
   });
 
   test.each([
     { resultName: '' },
     { resultName: 3 },
+    { resultName: 'valid-legacy-name' },
     { resultPath: '/value' },
     { resultName: 'name', resultPath: 'value' },
     { resultName: 'name', resultPath: '/~2' },
-  ])('rejects invalid result metadata %j', (meta) => {
+  ])('rejects all native named-result metadata %j', (meta) => {
     expect(() => normalizeStep({ node: { $: meta } })).toThrow();
   });
 });

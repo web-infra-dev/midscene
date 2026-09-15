@@ -1,16 +1,16 @@
 import {
   WorkflowExecutionFailure,
   runDocumentAttempts,
+  runWorkflowDocument,
 } from '@midscene/core/internal/test-runner';
-import { NodeRegistry } from '../engine/registry';
-import { runWorkflowDocument } from '../engine/run-workflow-document';
 import type {
   CaseRunOutcome,
   StepExecutionInfo,
   StepRunResult,
   WorkflowDocumentExecutionResult,
   WorkflowDocumentRunResult,
-} from '../engine/types';
+} from '@midscene/core/internal/test-runner';
+import { NodeRegistry } from '../engine/registry';
 import { isFatalDeviceError } from '../errors';
 import type { CollectedWorkflowDocument } from '../parser/types';
 import type { CreateYamlPlayerOptions } from '../runtime/create-yaml-player';
@@ -51,10 +51,7 @@ interface DocumentInvocationSinks {
 interface ExecuteDocumentInvocationOptions {
   invocation: PreparedDocumentInvocation;
   project: LoadedExecutionProject<unknown>;
-  definition: Pick<
-    LoadedTestProject<unknown>,
-    'test' | 'hasExplicitTestTimeout'
-  >;
+  definition: Pick<LoadedTestProject<unknown>, 'test'>;
   projectContext: unknown;
   runDir: string;
   signal: AbortSignal;
@@ -62,7 +59,8 @@ interface ExecuteDocumentInvocationOptions {
   legacyPlan?: LegacyTestRunPlan;
   getLegacyPlayerOptions?():
     | CreateYamlPlayerOptions
-    | Promise<CreateYamlPlayerOptions>;
+    | undefined
+    | Promise<CreateYamlPlayerOptions | undefined>;
   shouldBail(): boolean;
   isProjectFatal(): boolean;
   markProjectFatal(): void;
@@ -111,7 +109,7 @@ export async function executeDocumentInvocation(
 ): Promise<void> {
   const { invocation, project, sinks } = options;
   const { document } = invocation;
-  const documentRetry = project.retryScope === 'document';
+  const documentRetry = invocation.kind === 'legacy';
   const artifacts: LegacyYamlDocumentArtifact[] = [];
   const legacyHost =
     invocation.kind === 'legacy'
@@ -162,12 +160,11 @@ export async function executeDocumentInvocation(
           : project.nodes.require.bind(project.nodes),
         project,
         projectContext: options.projectContext,
-        documentSetup: legacyHost?.documentSetup ?? project.documentSetup,
+        documentSetup: legacyHost?.documentSetup,
         retry: documentRetry ? 0 : project.retry,
         signal: options.signal,
         defaultTimeoutMs:
-          invocation.kind === 'legacy' &&
-          !options.definition.hasExplicitTestTimeout
+          invocation.kind === 'legacy'
             ? undefined
             : options.definition.test.testTimeout,
         shouldStop: () =>
@@ -193,8 +190,10 @@ export async function executeDocumentInvocation(
           const indent = info.scope === 'case' ? '      ' : '    ';
           options.onProgress(`${indent}→ ${formatStep(info)}`);
         },
-        onStepResult: (info, result) =>
-          options.onProgress(formatStepResult(info, result)),
+        onStepResult: async (info, result) => {
+          await legacyHost?.onStepResult(info, result);
+          options.onProgress(formatStepResult(info, result));
+        },
         onCaseResult: async (attempt) => {
           await writeCaseAttemptResult(
             options.runDir,

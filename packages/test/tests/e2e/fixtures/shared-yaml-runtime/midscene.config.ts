@@ -18,7 +18,6 @@ export default defineTestProject<YamlRuntimeContext>({
     },
     setup: 'tasks:\n  - name: setup\n    flow:\n      - javascript: setup:once',
   }),
-  legacy: { getOptions: (context) => ({ agent: context!.agent }) },
   nodes: createMidsceneNodes<YamlRuntimeContext>({
     agentClass: Agent,
     getAgent: ({ context }) => context.agent,
