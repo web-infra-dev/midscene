@@ -273,6 +273,52 @@ cases:
 
 Agent 接入和平台资源配置见[配置测试项目](./configuration)。
 
+## 使用 Test Executor 委托用例
+
+用例执行模式提供与基础设施无关的 Executor API。Executor 每次接收一个隔离后的用例，可以在本地运行，也可以委托给其他进程、容器、设备服务或远程执行平台。资源申请和通信由接入方实现；Midscene Test 只负责筛选、调度、重试已分类的基础设施故障，以及汇总结果。
+
+```ts filename=midscene.config.ts
+import {
+  defineTestExecutor,
+  defineTestProject,
+  TestExecutorError,
+  type TestCaseTaskRunResult,
+} from '@midscene/test/config';
+
+const remoteExecutor = defineTestExecutor({
+  name: 'remote-http',
+  async execute(task, { signal, onProgress }) {
+    onProgress(`正在调度 ${task.caseId}`);
+    const response = await fetch(process.env.TEST_EXECUTOR_URL!, {
+      method: 'POST',
+      signal,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(task),
+    });
+    if (!response.ok) {
+      throw new TestExecutorError(`远程执行器返回 ${response.status}`, {
+        kind: 'transport',
+        retryable: response.status >= 500,
+      });
+    }
+    return (await response.json()) as TestCaseTaskRunResult;
+  },
+});
+
+export default defineTestProject({
+  executor: remoteExecutor,
+  test: {
+    executionUnit: 'case',
+    maxConcurrency: 8,
+    executorRetry: 1,
+  },
+});
+```
+
+可预期的基础设施故障应抛出 `TestExecutorError`。只有标记为 `retryable` 的错误才会使用 `executorRetry`；Midscene 业务用例失败仍使用用例自己的 `retry` 配置。资源申请、传输、清理和报告故障会与业务断言失败分开记录。未分类的 Executor 异常会在当前活跃任务结束后停止整轮运行。
+
+Executor 返回的结果必须属于当前调度的项目、文档和用例。Midscene Test 会拒绝身份不匹配的结果，避免远程服务误挂其他用例的结果。框架本身不包含特定平台 SDK，也不会自行申请远程资源。
+
 ## 进阶用法
 
 以下介绍 Node 内部的执行结果、错误处理、取消和资源清理。

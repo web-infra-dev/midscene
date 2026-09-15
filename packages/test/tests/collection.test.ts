@@ -108,6 +108,75 @@ beforeAll:
     expect(document.lifecycle.afterAll[0].input).toEqual({ prompt: 'last' });
   });
 
+  it('collects case resource locks and rejects invalid declarations', () => {
+    const source = createDocument(`
+cases:
+  - name: account case
+    tags: [smoke]
+    resources: [account:main, fixture:conversation]
+    steps:
+      - test.record: body
+`);
+    const document = collectWorkflowDocument(source, {
+      resolveNode: (name) =>
+        [node, documentNode].find((candidate) => candidate.name === name),
+    });
+
+    expect(document.cases[0].definition.resources).toEqual([
+      'account:main',
+      'fixture:conversation',
+    ]);
+
+    for (const resources of ['[account:main, account:main]', '[""]', 'main']) {
+      const invalidSource = createDocument(`
+cases:
+  - name: invalid resources
+    resources: ${resources}
+    steps:
+      - test.record: body
+`);
+      expect(() =>
+        collectWorkflowDocument(invalidSource, {
+          resolveNode: (name) =>
+            [node, documentNode].find((candidate) => candidate.name === name),
+        }),
+      ).toThrow(/resources/);
+    }
+  });
+
+  it('uses an explicit stable case id and rejects an empty id', () => {
+    const source = createDocument(`
+cases:
+  - id: checkout-001
+    name: checkout
+    steps:
+      - test.record: body
+`);
+    const document = collectWorkflowDocument(source, {
+      resolveNode: (name) =>
+        [node, documentNode].find((candidate) => candidate.name === name),
+    });
+
+    expect(document.cases[0]).toMatchObject({
+      caseId: 'checkout-001',
+      definition: { id: 'checkout-001' },
+    });
+
+    const invalidSource = createDocument(`
+cases:
+  - id: ''
+    name: invalid
+    steps:
+      - test.record: body
+`);
+    expect(() =>
+      collectWorkflowDocument(invalidSource, {
+        resolveNode: (name) =>
+          [node, documentNode].find((candidate) => candidate.name === name),
+      }),
+    ).toThrow(/id must be a non-empty string/);
+  });
+
   it('resolves the same node registry in every lifecycle phase', () => {
     const source = createDocument(`
 beforeAll:

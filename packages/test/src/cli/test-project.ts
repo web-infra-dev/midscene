@@ -6,6 +6,7 @@ import { NodeRegistry } from '../engine/registry';
 import type { Awaitable } from '../engine/types';
 import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import type { TestExecutor } from './test-executor';
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue =
@@ -27,12 +28,16 @@ export interface TestOptions {
   maxConcurrency?: number;
   bail?: number;
   testTimeout?: number;
+  executionUnit?: 'project' | 'case';
+  executorRetry?: number;
 }
 
 export interface ResolvedTestOptions {
   maxConcurrency: number;
   bail: number;
   testTimeout: number;
+  executionUnit: 'project' | 'case';
+  executorRetry: number;
 }
 
 export interface TestOutputDefinition {
@@ -101,6 +106,7 @@ export interface TestProjectDefinition<TContext = undefined> {
   test?: TestOptions;
   output?: TestOutputDefinition;
   nodes?: readonly NodeDefinition<any, any, TContext>[];
+  executor?: TestExecutor;
 }
 
 export interface LoadedTestProject<TContext = undefined> {
@@ -109,6 +115,7 @@ export interface LoadedTestProject<TContext = undefined> {
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
   nodes: NodeRegistry;
+  executor?: TestExecutor;
   resolveNode(name: string): NodeDefinition<any, any, TContext> | undefined;
 }
 
@@ -467,24 +474,47 @@ const validateTestOptions = (value: unknown): ResolvedTestOptions => {
   if (value !== undefined && !isRecord(value)) {
     throw new TypeError('Midscene config test must be an object.');
   }
-  const candidate = value ?? {};
+  const candidate = (value ?? {}) as Record<string, unknown>;
+  const executionUnit = candidate.executionUnit ?? 'project';
+  if (executionUnit !== 'project' && executionUnit !== 'case') {
+    throw new TypeError(
+      'Midscene config test.executionUnit must be "project" or "case".',
+    );
+  }
   return Object.freeze({
     maxConcurrency: validatePositiveInteger(
-      (candidate as Record<string, unknown>).maxConcurrency,
+      candidate.maxConcurrency,
       1,
       'test.maxConcurrency',
     ),
-    bail: validateNonNegativeInteger(
-      (candidate as Record<string, unknown>).bail,
-      0,
-      'test.bail',
-    ),
+    bail: validateNonNegativeInteger(candidate.bail, 0, 'test.bail'),
     testTimeout: validatePositiveInteger(
-      (candidate as Record<string, unknown>).testTimeout,
+      candidate.testTimeout,
       120_000,
       'test.testTimeout',
     ),
+    executionUnit,
+    executorRetry: validateNonNegativeInteger(
+      candidate.executorRetry,
+      0,
+      'test.executorRetry',
+    ),
   });
+};
+
+const validateTestExecutor = (value: unknown): TestExecutor | undefined => {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new TypeError('Midscene config executor must be an object.');
+  }
+  rejectUnknownKeys(value, ['name', 'execute'], 'executor');
+  if (typeof value.name !== 'string' || value.name.trim().length === 0) {
+    throw new TypeError('Midscene config executor.name must be non-empty.');
+  }
+  if (typeof value.execute !== 'function') {
+    throw new TypeError('Midscene config executor.execute must be a function.');
+  }
+  return Object.freeze(value as unknown as TestExecutor);
 };
 
 const validateOutputPath = (
@@ -550,7 +580,7 @@ const validateTestProjectDefinition = <TContext>(
   }
   rejectUnknownKeys(
     definition,
-    ['setup', 'projects', 'test', 'output', 'nodes'],
+    ['setup', 'projects', 'test', 'output', 'nodes', 'executor'],
     'root',
   );
   const nodes = new NodeRegistry(
@@ -561,11 +591,19 @@ const validateTestProjectDefinition = <TContext>(
     definition.setup,
     nodes,
   );
+  const test = validateTestOptions(definition.test);
+  const executor = validateTestExecutor(definition.executor);
+  if (executor && test.executionUnit !== 'case') {
+    throw new TypeError(
+      'Midscene config executor requires test.executionUnit to be "case".',
+    );
+  }
   return {
     ...resolvedProjects,
-    test: validateTestOptions(definition.test),
+    test,
     output: validateOutput(definition.output),
     nodes,
+    ...(executor ? { executor } : {}),
     resolveNode: (name) =>
       nodes.get(name) as NodeDefinition<any, any, TContext> | undefined,
   };

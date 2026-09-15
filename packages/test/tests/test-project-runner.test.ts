@@ -11,7 +11,9 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  TestExecutorError,
   createTestRunId,
+  discoverSelectedTestFiles,
   discoverTestConfig,
   discoverTestFiles,
   runTestProject,
@@ -142,6 +144,25 @@ describe('test project main-process runner', () => {
         exclude: ['**/*.draft.yml'],
       }).map((file) => file.slice(root.length + 1)),
     ).toEqual(['flows/a.yaml', 'flows/nested/b.yml']);
+  });
+
+  it('discovers selected files from files and directories without escaping the project', () => {
+    const root = createProject();
+    writeWorkflow(root, 'selected/a.yaml', 'cases: []');
+    writeWorkflow(root, 'selected/nested/b.yml', 'cases: []');
+    writeWorkflow(root, 'other/c.yaml', 'cases: []');
+
+    expect(
+      discoverSelectedTestFiles(root, ['selected', 'selected/a.yaml']).map(
+        (file) => file.slice(root.length + 1),
+      ),
+    ).toEqual(['selected/a.yaml', 'selected/nested/b.yml']);
+    expect(() => discoverSelectedTestFiles(root, ['../outside'])).toThrow(
+      'outside the project',
+    );
+    expect(() => discoverSelectedTestFiles(root, ['missing'])).toThrow(
+      'does not exist',
+    );
   });
 
   it('reports an empty final file selection as a preflight failure', async () => {
@@ -1831,6 +1852,294 @@ afterAll:
     });
   });
 
+  it('schedules isolated cases through an executor with resource locks', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir) as RunnerState & {
+      tasks: Array<Record<string, unknown>>;
+      setupCount: number;
+      teardownCount: number;
+    };
+    state.tasks = [];
+    state.setupCount = 0;
+    state.teardownCount = 0;
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          setup: {
+            name: 'isolated-browser',
+            setup({ onTeardown }) {
+              state.setupCount += 1;
+              onTeardown(() => { state.teardownCount += 1; });
+              return { ready: true };
+            },
+          },
+          test: { executionUnit: 'case', maxConcurrency: 2 },
+          executor: {
+            name: 'probe',
+            async execute(task, context) {
+              state.tasks.push(task);
+              const result = await context.runLocal();
+              return {
+                ...result,
+                artifacts: [{ name: 'report', uri: 'https://example.test/' + task.caseName }],
+                metadata: { worker: task.caseName },
+              };
+            },
+          },
+          nodes: [{
+            name: 'record',
+            stringInputKey: 'value',
+            async execute({ input }) {
+              state.events.push('start:' + input.value);
+              if (input.value === 'first') {
+                await new Promise((resolve) => setTimeout(resolve, 20));
+              }
+              state.events.push('end:' + input.value);
+            },
+          }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'cases.yaml',
+      `
+cases:
+  - name: first
+    resources: [account:main]
+    steps:
+      - record: first
+  - name: second
+    resources: [account:main]
+    steps:
+      - record: second
+  - name: independent
+    steps:
+      - record: independent
+`,
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.summary).toMatchObject({ total: 3, passed: 3, failed: 0 });
+    expect(state.setupCount).toBe(3);
+    expect(state.teardownCount).toBe(3);
+    expect(state.tasks.map((task) => task.caseName)).toEqual([
+      'first',
+      'independent',
+      'second',
+    ]);
+    expect(state.events.indexOf('start:independent')).toBeLessThan(
+      state.events.indexOf('end:first'),
+    );
+    expect(state.events.indexOf('start:second')).toBeGreaterThan(
+      state.events.indexOf('end:first'),
+    );
+    expect(new Set(result.documents.map((item) => item.documentId)).size).toBe(
+      3,
+    );
+    expect(result.cases).toEqual([
+      expect.objectContaining({
+        name: 'first',
+        execution: expect.objectContaining({
+          executor: 'probe',
+          resources: ['account:main'],
+          artifacts: [{ name: 'report', uri: 'https://example.test/first' }],
+          metadata: { worker: 'first' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'second',
+        execution: expect.objectContaining({ executor: 'probe' }),
+      }),
+      expect.objectContaining({
+        name: 'independent',
+        execution: expect.objectContaining({ executor: 'probe' }),
+      }),
+    ]);
+    const summary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(summary.projects[0].cases[0].execution).toMatchObject({
+      executor: 'probe',
+      resources: ['account:main'],
+      artifacts: [{ name: 'report', uri: 'https://example.test/first' }],
+      metadata: { worker: 'first' },
+      lifecycle: { status: 'success' },
+    });
+  });
+
+  it('rejects a case result that does not match the scheduled task', async () => {
+    const root = createProject();
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        export default {
+          test: { executionUnit: 'case' },
+          executor: {
+            name: 'broken',
+            async execute(task, context) {
+              const result = await context.runLocal();
+              return {
+                ...result,
+                case: { ...result.case, caseId: 'another-case' },
+              };
+            },
+          },
+          nodes: [{ name: 'pass', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'case.yaml',
+      'cases: [{ name: one, steps: [{ pass: {} }] }]',
+    );
+
+    await expect(runTestProject({ projectRoot: root })).rejects.toThrow(
+      'does not match task',
+    );
+  });
+
+  it('retries classified executor failures without counting them as case failures', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir) as RunnerState & {
+      TestExecutorError: typeof TestExecutorError;
+      attempts: Record<string, number>;
+    };
+    state.TestExecutorError = TestExecutorError;
+    state.attempts = {};
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        export default {
+          test: {
+            executionUnit: 'case',
+            maxConcurrency: 2,
+            executorRetry: 1,
+          },
+          executor: {
+            name: 'remote-probe',
+            execute(task, context) {
+              const attempt = (state.attempts[task.caseName] ?? 0) + 1;
+              state.attempts[task.caseName] = attempt;
+              if (task.caseName === 'retry' && attempt === 1) {
+                throw new state.TestExecutorError('temporary network issue', {
+                  kind: 'transport',
+                  retryable: true,
+                });
+              }
+              if (task.caseName === 'unavailable') {
+                throw new state.TestExecutorError('no capacity', {
+                  kind: 'provision',
+                });
+              }
+              return context.runLocal();
+            },
+          },
+          nodes: [{ name: 'pass', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'cases.yaml',
+      `
+cases:
+  - name: retry
+    steps: [{ pass: {} }]
+  - name: unavailable
+    steps: [{ pass: {} }]
+  - name: unaffected
+    steps: [{ pass: {} }]
+`,
+    );
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(result.summary).toMatchObject({
+      total: 3,
+      passed: 2,
+      failed: 0,
+      notRun: 1,
+    });
+    expect(state.attempts).toEqual({ retry: 2, unavailable: 1, unaffected: 1 });
+    expect(result.cases[0]).toMatchObject({
+      status: 'success',
+      execution: { executor: 'remote-probe', attempts: 2 },
+    });
+    expect(result.cases[1]).toMatchObject({
+      status: 'not-run',
+      notRunReason: 'executor-failed',
+      execution: {
+        executor: 'remote-probe',
+        attempts: 1,
+        failure: {
+          kind: 'provision',
+          message: 'no capacity',
+          retryable: false,
+        },
+      },
+    });
+    expect(result.cases[2]).toMatchObject({ status: 'success' });
+  });
+
+  it('selects cases by directory, tag, and stable case id', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `export default {
+        nodes: [{
+          name: 'record',
+          stringInputKey: 'value',
+          execute({ input }) {
+            globalThis.__testProjectRunnerState.events.push(input.value);
+          },
+        }],
+      };`,
+    );
+    writeWorkflow(
+      root,
+      'selected/cases.yaml',
+      `
+cases:
+  - id: smoke-selected
+    name: selected
+    tags: [smoke]
+    steps: [{ record: selected }]
+  - name: excluded
+    tags: [smoke, destructive]
+    steps: [{ record: excluded }]
+`,
+    );
+    writeWorkflow(
+      root,
+      'other.yaml',
+      'cases: [{ name: other, tags: [smoke], steps: [{ record: other }] }]',
+    );
+    const caseId = 'smoke-selected';
+
+    const result = await runTestProject({
+      projectRoot: root,
+      resultDir,
+      paths: ['selected'],
+      caseIds: [caseId],
+      tags: { include: ['smoke'], exclude: ['destructive'] },
+    });
+
+    expect(result.summary).toMatchObject({ total: 1, passed: 1, filtered: 1 });
+    expect(result.cases[0].caseId).toBe(caseId);
+    expect(state.events).toEqual(['selected']);
+    await expect(
+      runTestProject({ projectRoot: root, caseIds: ['unknown'] }),
+    ).rejects.toThrow('Unknown Midscene case id: unknown');
+  });
+
   it('rejects scheduling options that are not supported as CLI overrides', () => {
     for (const option of [
       '--parallel',
@@ -1888,5 +2197,29 @@ afterAll:
     expect(() =>
       parseTestCliArgs(['nodes', '--project', 'ios', '--project', 'android']),
     ).toThrow('nodes accepts only one --project name');
+    expect(
+      parseTestCliArgs(
+        [
+          'project',
+          '--file',
+          'cases/im',
+          '--case-id',
+          'case-1',
+          '--tag',
+          'smoke',
+          '--exclude-tag',
+          'destructive',
+        ],
+        '/workspace',
+      ),
+    ).toMatchObject({
+      projectRoot: '/workspace/project',
+      paths: ['cases/im'],
+      caseIds: ['case-1'],
+      tags: { include: ['smoke'], exclude: ['destructive'] },
+    });
+    expect(() => parseTestCliArgs(['nodes', '--file', 'cases/im'])).toThrow(
+      'nodes does not support',
+    );
   });
 });
