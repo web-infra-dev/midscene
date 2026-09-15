@@ -3,8 +3,8 @@ export {
   callAIWithObjectResponse,
   callAIWithStringResponse,
   parseAIObjectResponse,
-} from './call-ai';
-export { callAI } from './call';
+} from './model-call';
+export { callAI } from './call-ai';
 export { createChatClient } from './openai-client';
 export { AIResponseParseError, INTERNAL_CALL_ID_FIELD } from './utils';
 export {
