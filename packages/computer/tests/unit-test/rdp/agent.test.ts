@@ -532,7 +532,7 @@ describe('@midscene/computer RDP device', () => {
     await device.connect();
 
     await expect(
-      device.inputPrimitives.pointer.swipe(
+      device.inputPrimitives.pointer.swipe!(
         { x: 200, y: 500 },
         { x: 700, y: 500 },
       ),

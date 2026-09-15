@@ -583,7 +583,7 @@ describe('ComputerDevice pointer input', () => {
     mockState.libnut.moveMouse.mockClear();
     mockState.libnut.mouseToggle.mockClear();
 
-    await device.inputPrimitives.pointer.swipe(
+    await device.inputPrimitives.pointer.swipe!(
       { x: 200, y: 300 },
       { x: 700, y: 300 },
     );
