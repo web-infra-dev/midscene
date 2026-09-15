@@ -32,8 +32,8 @@ Midscene 提供 `aiAct`、`aiAssert` 等通用 AI 操作，以及设备与浏览
 ### 用声明式语义的 YAML 文件来编写日常用例
 聚焦“测什么” (What to test)，承载业务测试意图。用例编写者可以直接用自然语言描述界面操作（如 `aiAct`）与校验（如 `aiAssert`），同时调用和装配由“确定性工程”所提供的各种业务节点。这有助于专注于业务测试流程，无需关注底层细节，提升了用例的编写效率与长期可维护性。
 
-### 自动生成 Node Spec
-`midscene-test nodes` 能够将当前 Project 实际注册的官方 Node、自定义 Node 及其入参校验规则（Zod Schema）导出为 Markdown 格式的 Node Spec。这免去了手动维护项目 API 手册的成本，方便用例编写者及 AI Agent 直接查阅当前项目的真实能力。
+### 自动生成 Node 说明书
+`midscene-test nodes` 能够将当前 Project 实际注册的官方 Node、自定义 Node 及其入参校验规则（Zod Schema）导出为 Markdown 格式的 Node 说明书。这免去了手动维护项目 API 手册的成本，方便用例编写者及 AI Agent 直接查阅当前项目的真实能力。
 
 ### E2E 项目的工程化诉求
 在实际企业级落地中，E2E 测试项目绝非一次性的、由 AI 驱动的即时验证，而是需要作为长期资产持续运行。因此，它必须面临稳定性、执行速度、可维护性等真实且严苛的工程化诉求。为此，Midscene 提供了配套的工程能力支持，保障测试在实际生产中的稳定高效：
@@ -61,9 +61,9 @@ ecommerce-tests/
 * **`midscene.config.ts`**：由自动化/测试平台开发人员维护，用来实现底层“确定性工程”（编写自定义 Zod Schema 和 Node 的 execute 执行逻辑，配置浏览器/环境等）。
 * **`cases/refund.yaml`**：由业务测试人员（或 AI Agent）维护，用来通过“声明式语义”（结合自然语言和自定义 Node）装配、表达高层业务测试意图。
 
-#### 1. 自动导出的 Node Spec 示例
+#### 1. 自动导出的 Node 说明书示例
 
-在此实战中，工程搭建者编写的 `order.prepare` 自定义节点，经过 `nodes` 工具编译后，会自动出现在 Node Spec 中：
+在此实战中，工程搭建者编写的 `order.prepare` 自定义节点，经过 `nodes` 工具编译后，会自动出现在 Node 说明书中：
 
 ```markdown
 ## order.prepare

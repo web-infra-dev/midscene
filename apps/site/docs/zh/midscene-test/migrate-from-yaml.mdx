@@ -55,7 +55,7 @@ pnpm exec midscene-test --config ./batch.yaml
 2. 使用 `pnpm dlx @midscene/test create` 创建对应平台的 Test 项目，从生成的 `midscene.config.ts` 和 setup 开始配置运行环境。
 3. 将旧批配置映射到 Execution Project，把平台、Agent 和资源创建移入 setup。
 4. 逐个文件把 `tasks/flow` 改为 `cases/steps`，每转换一个文件就单独运行并检查报告。
-5. 运行 `pnpm exec midscene-test nodes --project <name>` 生成当前 Project 的 Node Spec，根据 Spec 校验动作名称、参数和字符串简写。
+5. 运行 `pnpm exec midscene-test nodes --project <name>` 生成当前 Project 的 Node 说明书，根据说明书校验动作名称、参数和字符串简写。
 6. 全部转换后，移除旧批配置和仅供兼容入口使用的命令行参数。
 
 ### 用例结构映射
@@ -111,19 +111,19 @@ cases:
 | --- | --- | --- |
 | `ai`、`aiAction`、`aiAct`、`instruction` | `aiAct.prompt` | 统一使用 `aiAct`。其余选项放入 `options`。 |
 | `aiAssert` | `aiAssert.prompt` | `errorMessage` 改为 `message`，其余提取选项放入 `options`。 |
-| `aiQuery`、`aiNumber`、`aiString`、`aiBoolean`、`aiAsk`、`aiLocate` | 同名 Node 的 `prompt` | 图片与提取选项按 Node Spec 放入 `prompt` 或 `options`。 |
+| `aiQuery`、`aiNumber`、`aiString`、`aiBoolean`、`aiAsk`、`aiLocate` | 同名 Node 的 `prompt` | 图片与提取选项按 Node 说明书放入 `prompt` 或 `options`。 |
 | `aiWaitFor` | `aiWaitFor.prompt` | 旧 `timeout` 对应 Node 输入中的 `options.timeoutMs`。 |
 | `aiTap` | `aiTap.prompt` | 旧的 `locate`、图片和定位选项整理到 `prompt`、`options`。 |
 | `aiScroll` | `aiScroll` | 定位描述作为 `prompt`，滚动参数放入 `options`。 |
 | `aiInput` | `aiInput.value` 和 `aiInput.prompt` | 输入值放入 `value`，定位描述放入 `prompt`。 |
-| `aiKeyboardPress` | `aiKeyboardPress.keyName` 和可选 `prompt` | 具体输入以项目 Node Spec 为准。 |
+| `aiKeyboardPress` | `aiKeyboardPress.keyName` 和可选 `prompt` | 具体输入以项目 Node 说明书为准。 |
 | `sleep` | `sleep.ms` | 例如 `sleep: 1000` 改为 `sleep: { ms: 1000 }`。新用例也可以使用通用 `wait` Node。 |
 | `javascript` | `javascript.script` | 返回值会记录在 Step 结果中。 |
 | `recordToReport`、`logScreenshot` | `recordToReport` | 标题映射到 `title`，`content` 放入 `options.content`。 |
 | `runGherkinScenario` | `runGherkinScenario.scenario` | 兼容入口会关闭该动作的缓存。 |
 | `runAdbShell` | `runAdbShell` | 命令映射到 `command`，旧 `timeout` 保留为 Node 输入。 |
 | `Finalize` | 仅供兼容的规划标记 | 适配器仍接受；原生 Case 中省略，不作为公开 Node。 |
-| 其他平台动作和自定义动作 | 已注册的同名 Node，或通用 `action` Node | 先运行 `midscene-test nodes`，根据目标平台的 Node Spec 改写参数。 |
+| 其他平台动作和自定义动作 | 已注册的同名 Node，或通用 `action` Node | 先运行 `midscene-test nodes`，根据目标平台的 Node 说明书改写参数。 |
 | flow item 的 `name` | Node 的结构化结果 | 兼容入口仍按旧名称写入输出；原生 Test 不提供跨 Step 的命名结果表达式，数据共享应使用自定义 Node 和项目 `context`。 |
 
 ### 具体示例：迁移一个提交订单 Case
@@ -188,7 +188,7 @@ cases:
 5. `ai` 统一为 `aiAct`，`aiAssert.errorMessage` 改为 `aiAssert.message`。
 6. 固定等待改用原生通用 `wait` Node；报告标题与正文分别放入 `recordToReport.title` 和 `options.content`。
 
-这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前 Project 的 `midscene-node-reference.md`。以这份 Node Spec 为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
+这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前 Project 的 `midscene-node-reference.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
 
 ### 脚本和 Agent 配置映射
 
