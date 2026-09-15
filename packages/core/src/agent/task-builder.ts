@@ -23,6 +23,7 @@ import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ActionReadiness, ActionReadyScope } from './action-readiness';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
@@ -92,6 +93,7 @@ interface TaskBuilderDeps {
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
   waitAfterAction?: number;
+  actionReadiness?: ActionReadiness;
 }
 
 interface BuildOptions {
@@ -119,6 +121,7 @@ export class TaskBuilder {
   private readonly actionSpace: DeviceAction[];
 
   private readonly waitAfterAction?: number;
+  private readonly actionReadiness?: ActionReadiness;
 
   constructor({
     interfaceInstance,
@@ -126,12 +129,14 @@ export class TaskBuilder {
     taskCache,
     actionSpace,
     waitAfterAction,
+    actionReadiness,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
     this.waitAfterAction = waitAfterAction;
+    this.actionReadiness = actionReadiness;
   }
 
   public async build(
@@ -277,47 +282,14 @@ export class TaskBuilder {
           );
         });
 
-        setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
-        const delayBeforeRunner = action.delayBeforeRunner ?? 200;
-        try {
-          await Promise.all([
-            (async () => {
-              if (this.interface.beforeInvokeAction) {
-                debug(
-                  `will call "beforeInvokeAction" for interface with action name ${action.name}`,
-                );
-                await this.interface.beforeInvokeAction(action.name, param);
-                debug(
-                  `called "beforeInvokeAction" for interface with action name ${action.name}`,
-                );
-              }
-            })(),
-            delayBeforeRunner > 0
-              ? sleep(delayBeforeRunner)
-              : Promise.resolve(),
-          ]);
-        } catch (originalError: any) {
-          const originalMessage =
-            originalError?.message || String(originalError);
-          throw new Error(
-            `error in running beforeInvokeAction for ${action.name}: ${originalMessage}`,
-            { cause: originalError },
-          );
-        }
-        setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
-
         const { shrunkShotToLogicalRatio } = uiContext;
         if (shrunkShotToLogicalRatio === undefined) {
           throw new Error(
             'shrunkShotToLogicalRatio is not defined in Action task',
           );
         }
-
         const parsedParam = (() => {
-          if (!action.paramSchema) {
-            return param;
-          }
-
+          if (!action.paramSchema) return param;
           try {
             return parseActionParam(param, action.paramSchema, {
               shrunkShotToLogicalRatio,
@@ -330,46 +302,98 @@ export class TaskBuilder {
           }
         })();
 
-        setTimingFieldOnce(timing, 'callActionStart');
+        const execute = async (scope?: ActionReadyScope) => {
+          const useDefaultWait = !scope || scope.mode === 'default';
+          if (scope) taskContext.task.actionReadiness = scope.mode;
+          scope?.throwIfAborted();
+          context.abortSignal?.throwIfAborted();
 
-        debug('calling action', action.name);
-        const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(parsedParam, taskContext);
-        setTimingFieldOnce(timing, 'callActionEnd');
-        debug('called action', action.name, 'result:', actionResult);
-
-        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
-
-        const delayAfterRunner =
-          action.delayAfterRunner ?? this.waitAfterAction ?? 300;
-        if (delayAfterRunner > 0) {
-          await sleep(delayAfterRunner);
-        }
-
-        try {
-          if (this.interface.afterInvokeAction) {
-            debug(
-              `will call "afterInvokeAction" for interface with action name ${action.name}`,
+          setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
+          const delayBeforeRunner = useDefaultWait
+            ? (action.delayBeforeRunner ?? 200)
+            : 0;
+          try {
+            await Promise.all([
+              this.interface.beforeInvokeAction?.(action.name, param),
+              delayBeforeRunner > 0
+                ? sleep(delayBeforeRunner)
+                : Promise.resolve(),
+            ]);
+          } catch (originalError: any) {
+            throw new Error(
+              `error in running beforeInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
+              { cause: originalError },
             );
-            await this.interface.afterInvokeAction(action.name, parsedParam);
-            debug(
-              `called "afterInvokeAction" for interface with action name ${action.name}`,
-            );
+          } finally {
+            setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
           }
-        } catch (originalError: any) {
-          const originalMessage =
-            originalError?.message || String(originalError);
-          throw new Error(
-            `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
-            { cause: originalError },
+
+          scope?.throwIfAborted();
+          context.abortSignal?.throwIfAborted();
+          setTimingFieldOnce(timing, 'callActionStart');
+          debug('calling action', action.name);
+          const actionResult = await action.call.call(
+            this.interface,
+            parsedParam,
+            useDefaultWait
+              ? taskContext
+              : { ...taskContext, skipDefaultWait: true },
           );
-        }
+          setTimingFieldOnce(timing, 'callActionEnd');
+          debug('called action', action.name, 'result:', actionResult);
+          scope?.throwIfAborted();
+          context.abortSignal?.throwIfAborted();
 
-        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
-
-        return {
-          output: actionResult,
+          setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+          setTimingFieldOnce(timing, 'waitForActionReadyStart');
+          try {
+            if (useDefaultWait) {
+              const delayAfterRunner =
+                action.delayAfterRunner ?? this.waitAfterAction ?? 300;
+              if (delayAfterRunner > 0) await sleep(delayAfterRunner);
+              await this.interface.defaultActionWait?.(
+                action.name,
+                parsedParam,
+              );
+            } else {
+              await scope.wait();
+            }
+          } finally {
+            setTimingFieldOnce(timing, 'waitForActionReadyEnd');
+          }
+          scope?.throwIfAborted();
+          context.abortSignal?.throwIfAborted();
+          try {
+            await this.interface.afterInvokeAction?.(action.name, parsedParam);
+          } catch (originalError: any) {
+            throw new Error(
+              `error in running afterInvokeAction for ${action.name}: ${originalError?.message || String(originalError)}`,
+              { cause: originalError },
+            );
+          } finally {
+            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
+          }
+          return { output: actionResult };
         };
+
+        if (!this.actionReadiness) return execute();
+        setTimingFieldOnce(timing, 'createActionWaiterStart');
+        try {
+          return await this.actionReadiness.run(
+            {
+              id: taskContext.task.taskId,
+              name: action.name,
+              param: parsedParam,
+            },
+            context.abortSignal,
+            async (scope) => {
+              setTimingFieldOnce(timing, 'createActionWaiterEnd');
+              return execute(scope);
+            },
+          );
+        } finally {
+          setTimingFieldOnce(timing, 'createActionWaiterEnd');
+        }
       },
     };
 

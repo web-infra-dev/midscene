@@ -529,6 +529,32 @@ describe('AndroidDevice', () => {
   // Launch/Terminate on every mobile platform must expose the SAME `uri` field.
   // The shared tool-generator already rejects non-object schemas, but a future
   // author could still rename the field and silently break CLI ergonomics.
+  it('lets custom action readiness replace the extra scroll settling delay', async () => {
+    const scroll = rs
+      .spyOn(device as any, 'scrollDownRaw')
+      .mockResolvedValue(undefined);
+    const delay = rs.spyOn(CoreUtils, 'sleep').mockResolvedValue(undefined);
+    try {
+      const action = device
+        .actionSpace()
+        .find((item) => item.name === 'Scroll')!;
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {}, skipDefaultWait: true } as ExecutorContext,
+      );
+      expect(scroll).toHaveBeenCalledOnce();
+      expect(delay).not.toHaveBeenCalledWith(500);
+      await action.call(
+        { direction: 'down', scrollType: 'singleAction', distance: 100 },
+        { task: {} } as ExecutorContext,
+      );
+      expect(delay).toHaveBeenCalledWith(500);
+    } finally {
+      scroll.mockRestore();
+      delay.mockRestore();
+    }
+  });
+
   describe('actionSpace platform actions', () => {
     it('includes RunAdbShell by default', () => {
       const actionNames = device.actionSpace().map((action) => action.name);

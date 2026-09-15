@@ -114,13 +114,18 @@ export interface KeyboardInputPrimitives {
       target?: unknown;
       replace?: boolean;
       focusOnly?: boolean;
+      /** @internal Custom readiness replaces optional post-input settling. */
+      skipDefaultWait?: boolean;
     },
   ): Promise<void>;
   clearInput(target?: unknown): Promise<void>;
 }
 
 export interface ScrollInputPrimitives {
-  scroll(param: ActionScrollParam): Promise<void>;
+  scroll(
+    param: ActionScrollParam,
+    opts?: { skipDefaultWait?: boolean },
+  ): Promise<void>;
 }
 
 export interface SystemInputPrimitives {
@@ -196,6 +201,9 @@ export abstract class AbstractInterface {
   abstract describe?(): string;
   abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+
+  /** Platform readiness heuristics, skipped when a custom action waiter takes over. */
+  async defaultActionWait?(_actionName: string, _param: any): Promise<void> {}
 
   // for web only
   registerFileChooserListener?(
@@ -549,7 +557,7 @@ export const defineActionInput = (
       value: 'test@example.com',
       locate: { prompt: 'the email input field' },
     },
-    call: async (param) => {
+    call: async (param, context) => {
       // backward compat: convert deprecated 'append' to 'typeOnly'
       if ((param.mode as string) === 'append') {
         param.mode = 'typeOnly';
@@ -570,6 +578,7 @@ export const defineActionInput = (
         autoDismissKeyboard: param.autoDismissKeyboard,
         keyboardTypeDelay: param.keyboardTypeDelay,
         inputStrategy: param.inputStrategy,
+        ...(context?.skipDefaultWait ? { skipDefaultWait: true } : {}),
       });
     },
   });
@@ -665,8 +674,10 @@ export const defineActionScroll = (
       scrollType: 'singleAction',
       locate: { prompt: 'the center of the product list area' },
     },
-    call: async (param) => {
-      await scroll(param);
+    call: async (param, context) => {
+      if (context?.skipDefaultWait)
+        await scroll(param, { skipDefaultWait: true });
+      else await scroll(param);
     },
   });
 };
