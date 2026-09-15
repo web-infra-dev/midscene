@@ -58,8 +58,8 @@ import {
   getEmptyDumpDescription,
   parseDumpAttributes,
 } from './utils/report-dump';
-import { parseTestRunReportDump } from './utils/test-run-report';
 import { resolveScreenshotFallbackPath } from './utils/screenshot-source';
+import { parseTestRunReportDump } from './utils/test-run-report';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
