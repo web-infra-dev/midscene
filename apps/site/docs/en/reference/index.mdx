@@ -2900,6 +2900,14 @@ This section documents the desktop-specific APIs provided by `@midscene/computer
 
 For common APIs that work across all platforms, see [Common API reference](#common).
 
+### Action space
+
+`ComputerDevice` and `RDPDevice` provide the following pointer actions in addition to text input, keyboard, scrolling, and platform actions:
+
+- `Tap`, `DoubleClick`, `RightClick`, and `Hover` — Standard mouse interactions.
+- `DragAndDrop` — Move one UI element to another element.
+- `Swipe` — Press and continuously move the primary mouse button. Use this for sliders and other controls that require a start point plus an endpoint or direction and distance.
+
 ### Agent factory functions
 
 `agentForComputer(opts?): Promise<ComputerAgent>`
