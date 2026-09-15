@@ -16,6 +16,7 @@ describe('Agent Test Runner Node definitions', () => {
       ['aiAct', 'prompt'],
       ['aiTap', 'prompt'],
       ['aiAssert', 'prompt'],
+      ['aiWaitFor', 'prompt'],
       ['aiBoolean', 'prompt'],
       ['aiNumber', 'prompt'],
       ['aiString', 'prompt'],

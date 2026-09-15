@@ -71,7 +71,7 @@ Midscene Test calls each capability you can invoke from YAML a **Node**.
 
 Nodes can be called from case `steps` or from [lifecycle hooks](#define-the-execution-lifecycle) such as `beforeEach` and `afterEach`, using the same syntax.
 
-All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, and `wait` pauses for a specified duration.
+All platforms provide these common capabilities: `aiAct` operates the interface from natural-language instructions, `aiAssert` checks an expected result, `aiWaitFor` waits for an observable condition, and `wait` pauses for a specified duration.
 
 Alongside these shared capabilities, Midscene provides platform-specific operations. For example:
 
@@ -318,14 +318,21 @@ pnpm exec midscene-test
 
 Generated projects use `files.include` to select `.yaml` and `.yml` files under `cases/`. Without a `files` configuration, Midscene Test recursively searches the test directory for YAML files, ignoring `node_modules` and `.git`.
 
-Pass a specific directory or test case file as an argument to run only that target:
+Use the repeatable `--file` option to run one or more files or directories. Paths are resolved from the test project root:
 
 ```bash
 # Run all test cases in a specific directory
-pnpm exec midscene-test ./cases/smoke
+pnpm exec midscene-test --file ./cases/smoke
 
 # Run one test case file
-pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test --file ./cases/order.yaml
+```
+
+You can also select Cases by stable ID or tags. Repeated options are combined: IDs are matched exactly, included tags use OR matching, and excluded tags always remove a Case.
+
+```bash
+pnpm exec midscene-test --case-id checkout-001 --case-id checkout-002
+pnpm exec midscene-test --tag smoke --exclude-tag destructive
 ```
 
 ### Filter execution targets and configuration files

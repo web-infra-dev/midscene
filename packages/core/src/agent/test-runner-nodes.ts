@@ -207,6 +207,30 @@ export const aiAssertInputSchema = z.strictObject({
   options: aiAssertOptionsInputSchema.optional(),
 });
 
+export const aiWaitForOptionsInputSchema = insightOptionsInputSchema
+  .extend({
+    timeoutMs: z.number().positive().optional(),
+    checkIntervalMs: z.number().positive().optional(),
+  })
+  .superRefine((input, context) => {
+    if (
+      input.timeoutMs !== undefined &&
+      input.checkIntervalMs !== undefined &&
+      input.checkIntervalMs > input.timeoutMs
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkIntervalMs'],
+        message: 'checkIntervalMs must not exceed timeoutMs',
+      });
+    }
+  });
+
+export const aiWaitForInputSchema = z.strictObject({
+  prompt: userPromptInputSchema,
+  options: aiWaitForOptionsInputSchema.optional(),
+});
+
 export const locateOptionsInputSchema = z.strictObject({
   context: z
     .string()
@@ -283,6 +307,8 @@ export type AiActNodeOptions = z.infer<typeof aiActOptionsInputSchema>;
 export type AiActNodeInput = z.infer<typeof aiActInputSchema>;
 export type AiAssertNodeOptions = z.infer<typeof aiAssertOptionsInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type AiWaitForNodeOptions = z.infer<typeof aiWaitForOptionsInputSchema>;
 export type AiTapNodeOptions = z.infer<typeof locateOptionsInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
 export type InsightNodeOptions = z.infer<typeof insightOptionsInputSchema>;
@@ -297,6 +323,7 @@ export type CommonAgentTestRunnerApi = Pick<
   | 'aiAct'
   | 'aiTap'
   | 'aiAssert'
+  | 'aiWaitFor'
   | 'aiBoolean'
   | 'aiNumber'
   | 'aiString'
@@ -377,6 +404,26 @@ const aiAssertNode = defineCommonAgentNode({
   },
 });
 
+const aiWaitForNode = defineCommonAgentNode({
+  method: 'aiWaitFor',
+  description:
+    'Wait until a natural-language condition is met with a Midscene UI Agent.',
+  stringInputKey: 'prompt',
+  inputSchema: aiWaitForInputSchema,
+  toArgs(input, context) {
+    return [
+      input.prompt,
+      {
+        ...input.options,
+        abortSignal: context.signal,
+      },
+    ];
+  },
+  toResult(_output, input) {
+    return { summary: `Condition met: ${promptText(input.prompt)}` };
+  },
+});
+
 const insightNode = (
   method: 'aiBoolean' | 'aiNumber' | 'aiString' | 'aiAsk',
 ) => {
@@ -450,6 +497,7 @@ export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeD
     aiActNode,
     aiTapNode,
     aiAssertNode,
+    aiWaitForNode,
     insightNode('aiBoolean'),
     insightNode('aiNumber'),
     insightNode('aiString'),

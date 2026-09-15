@@ -159,6 +159,51 @@ export const writeTestProjectRunResult = (
         name: outcome.name,
         status: outcome.status,
         ...(outcome.notRunReason ? { notRunReason: outcome.notRunReason } : {}),
+        ...(outcome.execution
+          ? {
+              execution: {
+                executor: outcome.execution.executor,
+                resources: outcome.execution.resources,
+                ...(outcome.execution.attempts === undefined
+                  ? {}
+                  : { attempts: outcome.execution.attempts }),
+                ...(outcome.execution.failure
+                  ? { failure: outcome.execution.failure }
+                  : {}),
+                ...(outcome.execution.artifacts
+                  ? { artifacts: outcome.execution.artifacts }
+                  : {}),
+                ...(outcome.execution.metadata
+                  ? { metadata: outcome.execution.metadata }
+                  : {}),
+                ...(outcome.execution.lifecycle
+                  ? {
+                      lifecycle: {
+                        status: outcome.execution.lifecycle.status,
+                        startedAt: outcome.execution.lifecycle.startedAt,
+                        endedAt: outcome.execution.lifecycle.endedAt,
+                        durationMs: outcome.execution.lifecycle.durationMs,
+                        ...(outcome.execution.lifecycle.setupError
+                          ? {
+                              setupError: errorJson(
+                                outcome.execution.lifecycle.setupError,
+                              ),
+                            }
+                          : {}),
+                        ...(outcome.execution.lifecycle.teardownErrors
+                          ? {
+                              teardownErrors:
+                                outcome.execution.lifecycle.teardownErrors.map(
+                                  errorJson,
+                                ),
+                            }
+                          : {}),
+                      },
+                    }
+                  : {}),
+              },
+            }
+          : {}),
         ...(outcome.attempts
           ? {
               attempts: outcome.attempts.map((attempt) => ({
