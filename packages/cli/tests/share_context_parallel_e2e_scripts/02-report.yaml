@@ -3,7 +3,5 @@ tasks:
     flow:
       - javascript: verifyParallelYamlCase('report')
       - javascript: openParallelYamlPopup('report')
-      # Allow popup adoption without introducing screenshot work into this
-      # concurrent browser-state regression fixture.
-      - javascript: new Promise((resolve) => setTimeout(resolve, 500))
+      - sleep: 500
       - javascript: verifyParallelYamlPopup('report')

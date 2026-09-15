@@ -119,8 +119,8 @@ describe('shareBrowserContext CLI YAML e2e', () => {
       await runFixture({
         scriptDir: join(__dirname, '../share_context_parallel_test_scripts'),
         // The report fixtures exercise the same assertions and can generate
-        // human-readable local reports. CI omits explicit report screenshots;
-        // the dedicated CI fixtures use page timers for popup adoption.
+        // human-readable local reports. Both fixture sets retain YAML Sleep
+        // and its screenshots during concurrent execution.
         executionScriptDir: generateReportEvidence
           ? undefined
           : join(__dirname, '../share_context_parallel_e2e_scripts'),
