@@ -47,17 +47,27 @@ For example, if the Agent can find the price-reduction ranking on its own, there
 
 As model capabilities improve, some guidance may become unnecessary. Review Context periodically against execution results and remove information the Agent can already work out on its own.
 
-## Practices to avoid
+## Common pitfalls
 
-### Provide only a vague test goal
+Avoid the following pitfalls when supplying application knowledge and writing action instructions:
+
+### Do not provide only a vague test goal
 
 A prompt such as “test the ranking page” gives no specific goal, expected result, or necessary application knowledge. The Agent has to guess what to do and how to evaluate the result.
 
-### Describe actions with fixed coordinates and pixel distances
+### Do not describe actions with fixed coordinates and pixel distances
 
 “Tap (424, 815), then drag left by 310 pixels” is tied to the current device and layout. These instructions can fail when the screen size or component position changes, and they limit the Agent's ability to adapt to the current interface.
 
-### Write every tap and wait as a separate instruction
+### Do not inject the entire app knowledge base into every Case
+
+Loading the entire app's extensive knowledge base into every Case increases the cost of interpreting irrelevant information. It also makes the details needed for the current task easier to overlook.
+
+### Do not invent operation paths without checking the interface
+
+Writing paths based on assumptions rather than the actual user interface can introduce nonexistent entry points or actions into the instructions and mislead the GUI Agent. If you do not know the exact path, keep the task goal clear and leave the path unspecified. Let the GUI Agent decide how to complete the task based on the page it sees during execution.
+
+### Do not write every tap and wait as a separate instruction
 
 Chaining multiple `aiTap` calls with fixed-duration `sleep` calls makes execution depend on a predetermined sequence and loading time. This makes it harder to adapt to changes in page state. For example:
 
@@ -79,14 +89,6 @@ Instead, describe the related business actions in one `aiAct` instruction, letti
 The Agent can then close a dialog and continue toward the filtering goal. Compared with a fixed sequence of tap instructions, `aiAct` can adapt its actions to the current interface and handle temporary interruptions like this.
 
 The length of an `aiAct` prompt does not necessarily determine how well it works. What matters is whether it expresses your intent clearly. Clearer intent leaves less for the model to infer, reducing the burden of understanding and planning. Vague intent requires the model to fill in more information and places greater demands on its capabilities.
-
-### Inject the entire app knowledge base into every Case
-
-Loading the entire app's extensive knowledge base into every Case increases the cost of interpreting irrelevant information. It also makes the details needed for the current task easier to overlook.
-
-### Invent operation paths without checking the interface
-
-Writing paths based on assumptions rather than the actual user interface can introduce nonexistent entry points or actions into the instructions and mislead the GUI Agent. If you do not know the exact path, keep the task goal clear and leave the path unspecified. Let the GUI Agent decide how to complete the task based on the page it sees during execution.
 
 ## How to provide context
 
