@@ -80,6 +80,12 @@ export interface PointerPoint {
   y: number;
 }
 
+export type SwipeInputPrimitive = (
+  start: PointerPoint,
+  end: PointerPoint,
+  opts?: { duration?: number; repeat?: number },
+) => Promise<void>;
+
 export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick?(p: PointerPoint): Promise<void>;
@@ -87,19 +93,11 @@ export interface PointerInputPrimitives {
   hover?(p: PointerPoint): Promise<void>;
   longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
-  swipe?(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void>;
+  swipe?: SwipeInputPrimitive;
 }
 
 export interface TouchInputPrimitives {
-  swipe(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void>;
+  swipe: SwipeInputPrimitive;
   pinch?(
     center: PointerPoint,
     opts: { startDistance: number; endDistance: number; duration: number },
@@ -873,7 +871,7 @@ export function normalizeSwipeParam(
 export const normalizeMobileSwipeParam = normalizeSwipeParam;
 
 export const defineActionSwipe = (config: {
-  swipe: TouchInputPrimitives['swipe'];
+  swipe: SwipeInputPrimitive;
   size(): Promise<Size>;
 }): DeviceAction<ActionSwipeParam> => {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
