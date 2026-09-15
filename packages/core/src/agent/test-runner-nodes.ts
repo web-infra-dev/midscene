@@ -433,6 +433,7 @@ const defineCommonAgentNode =
 // existing getAgent() providers. Each Node checks its own method at execution.
 type AgentActionNodeApi = Pick<
   Agent,
+  | 'sleep'
   | 'aiHover'
   | 'aiDoubleClick'
   | 'aiRightClick'
@@ -737,27 +738,16 @@ const recordToReportNode = defineCommonAgentNode({
 
 export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeDefinition[] =
   [
-    {
-      name: 'sleep',
+    defineAgentActionNode({
+      method: 'sleep',
       description:
-        'Wait for a fixed number of milliseconds while honoring cancellation.',
+        'Wait for a fixed number of milliseconds, recording standard UI snapshots and honoring cancellation.',
       inputSchema: z.strictObject({ ms: z.number().positive() }),
-      async execute(_agent, input, { signal }) {
+      toArgs(input, { signal }) {
         signal.throwIfAborted();
-        await new Promise<void>((resolve, reject) => {
-          const abort = () => {
-            clearTimeout(timer);
-            reject(signal.reason);
-          };
-          const timer = setTimeout(() => {
-            signal.removeEventListener('abort', abort);
-            resolve();
-          }, input.ms as number);
-          signal.addEventListener('abort', abort, { once: true });
-        });
-        return undefined;
+        return [input.ms, { abortSignal: signal }];
       },
-    },
+    }),
     {
       name: 'Finalize',
       description: 'Planning marker; no runtime action.',

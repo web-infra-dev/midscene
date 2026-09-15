@@ -252,13 +252,27 @@ describe('YAML platform setup for native Test projects', () => {
       {
         interfaceType: 'fixture',
         actionSpace: () => [],
+        describe: () => 'setup sleep test page',
+        size: async () => ({ width: 1, height: 1 }),
+        screenshotBase64: async () =>
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
         evaluateJavaScript,
         destroy,
       } as any,
-      { generateReport: false, autoPrintReportMsg: false },
+      {
+        generateReport: false,
+        autoPrintReportMsg: false,
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test-model',
+          MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+          MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+          MIDSCENE_MODEL_API_KEY: 'test-key',
+        },
+      },
     );
     host.createYamlAgent.mockResolvedValue({ agent, freeFn: [] });
     const runYaml = vi.spyOn(agent, 'runYaml');
+    const sleep = vi.spyOn(agent, 'sleep');
     const controller = new AbortController();
     const onTeardown = vi.fn();
     const pending = createYamlProjectSetup({
@@ -268,11 +282,19 @@ describe('YAML platform setup for native Test projects', () => {
       setup:
         'tasks:\n  - name: login\n    flow:\n      - sleep: 10000\n      - javascript: must-not-run',
     }).setup({ signal: controller.signal, onTeardown } as any);
-    await vi.waitFor(() => expect(runYaml).toHaveBeenCalledTimes(1));
-    controller.abort(new Error('Stopped setup'));
-    await expect(pending).rejects.toThrow();
-    expect(evaluateJavaScript).not.toHaveBeenCalled();
-    await onTeardown.mock.calls[0][0]();
-    expect(destroy).not.toHaveBeenCalled();
+    const stopped = expect(pending).rejects.toThrow('Stopped setup');
+    try {
+      await vi.waitFor(() => expect(sleep).toHaveBeenCalledTimes(1));
+      expect(runYaml).toHaveBeenCalledTimes(1);
+      controller.abort(new Error('Stopped setup'));
+      await stopped;
+      expect(evaluateJavaScript).not.toHaveBeenCalled();
+      await onTeardown.mock.calls[0][0]();
+      expect(destroy).not.toHaveBeenCalled();
+    } finally {
+      controller.abort(new Error('Stopped setup'));
+      await stopped;
+      await agent.destroy();
+    }
   });
 });

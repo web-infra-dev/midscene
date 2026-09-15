@@ -1208,7 +1208,9 @@ export type ActionSleepParam = {
   timeMs?: number;
 };
 
-export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
+export const defineActionSleep = (
+  abortSignal?: AbortSignal,
+): DeviceAction<ActionSleepParam> => {
   return defineAction<typeof ActionSleepParamSchema, ActionSleepParam>({
     name: 'Sleep',
     description:
@@ -1220,7 +1222,18 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
     call: async (param) => {
       const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
-      await new Promise((resolve) => setTimeout(resolve, duration));
+      abortSignal?.throwIfAborted();
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(abortSignal?.reason);
+        };
+        const timer = setTimeout(() => {
+          abortSignal?.removeEventListener('abort', abort);
+          resolve();
+        }, duration);
+        abortSignal?.addEventListener('abort', abort, { once: true });
+      });
     },
   });
 };
