@@ -2,8 +2,8 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
-import { chat } from './chat-completion/chat-completion';
-import { callCodex } from './codex/call-codex';
+import { chat, prepareChatCompletion } from './chat-completion/chat-completion';
+import { callCodex, prepareCodexCall } from './codex/call-codex';
 import { isCodexAppServerProvider } from './codex/codex-app-server';
 import {
   isModelCallRecordingEnabled,
@@ -54,12 +54,25 @@ export async function callAI(
 
   const { config: modelConfig } = modelRuntime;
 
+  const prepared: PreparedModelInput = isCodexAppServerProvider(
+    modelConfig.openaiBaseURL,
+  )
+    ? {
+        protocol: 'codex',
+        input: prepareCodexCall({ messages, modelRuntime, options }),
+      }
+    : {
+        protocol: 'chat-completion',
+        input: prepareChatCompletion({ messages, modelRuntime, options }),
+      };
+
   const result = await callModelWithRetry({
     messages,
     modelRuntime,
     options,
     executionId,
     internalCallId,
+    prepared,
   });
 
   const { rawUsage, timeCost, requestId, responseModelName, ...response } =
@@ -89,12 +102,20 @@ export async function callAI(
   return { ...response, usage };
 }
 
+type PreparedModelInput =
+  | { protocol: 'codex'; input: ReturnType<typeof prepareCodexCall> }
+  | {
+      protocol: 'chat-completion';
+      input: ReturnType<typeof prepareChatCompletion>;
+    };
+
 type ModelCallInput = {
   messages: ChatCompletionMessageParam[];
   modelRuntime: ModelRuntime;
   options?: CallAIOptions;
   executionId: string;
   internalCallId: string;
+  prepared: PreparedModelInput;
 };
 
 /** Carries the original failure across the retry boundary without replaying output. */
@@ -151,6 +172,7 @@ async function callModelOnce(
     options,
     executionId,
     internalCallId,
+    prepared,
   }: ModelCallInput,
   attempt: number,
 ): Promise<ModelCallResult> {
@@ -196,9 +218,9 @@ async function callModelOnce(
   };
   try {
     return await runWithAbortSignal(requestSignal, () =>
-      isCodexAppServerProvider(modelConfig.openaiBaseURL)
-        ? callCodex(context)
-        : chat(context),
+      prepared.protocol === 'codex'
+        ? callCodex(context, prepared.input)
+        : chat(context, prepared.input),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

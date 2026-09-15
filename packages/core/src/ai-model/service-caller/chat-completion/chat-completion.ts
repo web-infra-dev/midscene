@@ -8,21 +8,13 @@ import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import { applyImageDetail } from './utils';
 
-export const chat = async ({
+export const prepareChatCompletion = ({
   messages,
   modelRuntime,
   options,
-  executionId,
-  recordEvent,
-  requestSignal,
-  effectiveTimeoutMs,
-}: ModelCallContext): Promise<ModelCallResult> => {
+}: Pick<ModelCallContext, 'messages' | 'modelRuntime' | 'options'>) => {
   const debugCall = getDebug('ai:call');
-  const warnCall = getDebug('ai:call', { console: true });
-
   const { config: modelConfig, adapter } = modelRuntime;
-
-  const isStreaming = options?.stream === true;
 
   const modelCallInput: ChatCompletionCallInput = {
     intent: modelConfig.intent,
@@ -58,6 +50,28 @@ export const chat = async ({
   // resolution for localization-sensitive tasks.
   const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
 
+  return {
+    messages: messagesWithImageDetail,
+    requestParams: requestBodyParams,
+  };
+};
+
+export const chat = async (
+  {
+    modelRuntime,
+    options,
+    executionId,
+    recordEvent,
+    requestSignal,
+    effectiveTimeoutMs,
+  }: ModelCallContext,
+  { messages, requestParams }: ReturnType<typeof prepareChatCompletion>,
+): Promise<ModelCallResult> => {
+  const debugCall = getDebug('ai:call');
+  const warnCall = getDebug('ai:call', { console: true });
+  const { config: modelConfig } = modelRuntime;
+  const isStreaming = options?.stream === true;
+
   const { completion, openAIRequestContext } = await createChatClient({
     modelConfig,
     effectiveTimeoutMs,
@@ -89,8 +103,8 @@ export const chat = async ({
       completion,
       openAIRequestContext,
       modelRuntime,
-      messages: messagesWithImageDetail,
-      requestBodyParams,
+      messages,
+      requestBodyParams: requestParams,
       requestSignal,
       onChunk: options?.onChunk,
       recordEvent,
