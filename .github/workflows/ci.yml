@@ -75,6 +75,9 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Build Android Host agent bundle
+      run: pnpm --filter android-host bundle
+
     - name: Check Report build feedback loop
       run: pnpm run check:report-build-feedback-loop
 

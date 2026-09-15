@@ -1,0 +1,21 @@
+# Build outputs
+build/
+.cache/
+.local-notes/
+.gradle/
+local.properties
+
+# Generated app assets. Native packages and libraries live in .cache/.
+#   scripts/bundle-agent.mjs       -> app/src/main/assets/agent-bundle.zip
+app/src/main/assets/agent-bundle.zip
+app/src/main/assets/yadb
+app/src/main/assets/bundle-info.txt
+
+# Internal release signing key: machine-local, never committed.
+keystore/
+
+# Packaged APKs (distRelease / distDebug)
+dist/
+
+# Machine-local release signing values (see local-signing.properties).
+local-signing.properties
