@@ -1888,8 +1888,12 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
    * Initial UI capture failure rejects before waiting; a failed final
    * screenshot does not fail an otherwise completed wait.
    */
-  async sleep(ms: number): Promise<void> {
-    await this.taskExecutor.sleep(ms);
+  async sleep(
+    ms: number,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<void> {
+    options?.abortSignal?.throwIfAborted();
+    await this.taskExecutor.sleep(ms, options?.abortSignal);
   }
 
   async recordToReport(title?: string, opt?: RecordToReportOptions) {

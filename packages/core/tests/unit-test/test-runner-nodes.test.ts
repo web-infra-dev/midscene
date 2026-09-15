@@ -3,6 +3,36 @@ import { Agent } from '../../src/agent/agent';
 import { commonAgentTestRunnerNodeDefinitions } from '../../src/agent/test-runner-nodes';
 
 describe('Agent Test Runner Node definitions', () => {
+  it('forwards sleep through the reportable Agent API with cancellation', async () => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'sleep',
+    )!;
+    const signal = new AbortController().signal;
+    const sleep = rs.fn().mockResolvedValue(undefined);
+    await definition.execute(
+      { sleep },
+      definition.inputSchema.parse({ ms: 20 }),
+      { signal },
+    );
+    expect(sleep).toHaveBeenCalledWith(20, { abortSignal: signal });
+  });
+
+  it('does not dispatch an already-aborted sleep', async () => {
+    const definition = commonAgentTestRunnerNodeDefinitions.find(
+      (node) => node.name === 'sleep',
+    )!;
+    const controller = new AbortController();
+    const reason = new Error('Stopped sleep');
+    controller.abort(reason);
+    const sleep = rs.fn();
+    await expect(
+      definition.execute({ sleep }, definition.inputSchema.parse({ ms: 20 }), {
+        signal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
   it('fails an assertion even when keepRawResponse returns pass: false', async () => {
     const definition = commonAgentTestRunnerNodeDefinitions.find(
       (node) => node.name === 'aiAssert',
