@@ -1,4 +1,3 @@
-import type { MidsceneYamlConfigResult } from '@midscene/core';
 import type {
   CaseRunOutcome,
   ProjectRuntimeResult,
@@ -67,6 +66,4 @@ export interface TestProjectRunResult {
   collectionErrors: readonly TestProjectCollectionError[];
   /** Infrastructure/publication failures; completed Case results stay intact. */
   errors?: readonly WorkflowError[];
-  /** Public old-CLI view, projected from the same document attempts. */
-  legacyResults?: readonly MidsceneYamlConfigResult[];
 }

@@ -7,13 +7,13 @@ import {
   parseTestCliArgsWithYaml as parseTestCliArgs,
   runTestCli,
 } from '../src/cli/test-command';
-import { runTestProjectWithYamlCompatibility as runTestProject } from '../src/cli/test-project-runner';
+import { runTestProjectWithYamlCompatibility as runTestProject } from '../src/cli/yaml-compatibility-runner';
 import {
   createLegacyConfigFactory,
   matchLegacyYamlFiles,
 } from '../src/runtime/legacy-config';
 
-vi.mock('../src/cli/test-project-runner', async (importOriginal) => ({
+vi.mock('../src/cli/yaml-compatibility-runner', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   runTestProjectWithYamlCompatibility: vi.fn(),
 }));

@@ -30,7 +30,7 @@
       "import": "./dist/es/midscene/index.mjs",
       "require": "./dist/lib/midscene/index.js"
     },
-    "./runtime": {
+    "./internal/yaml-runtime": {
       "types": "./dist/types/runtime/index.d.ts",
       "import": "./dist/es/runtime/index.mjs",
       "require": "./dist/lib/runtime/index.js"

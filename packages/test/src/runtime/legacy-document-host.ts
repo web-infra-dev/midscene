@@ -17,6 +17,7 @@ import {
   type YamlRuntimeContext,
   type YamlSetupOptions,
   createYamlDocumentSetup,
+  isYamlReportEnabled,
 } from './yaml-setup';
 
 const runAdbShellInputSchema = z.strictObject({
@@ -90,7 +91,7 @@ export function createLegacyYamlDocumentHost(
       await options.onDocumentResult?.(document, context);
       options.onArtifact?.({
         documentRunId: document.documentRunId,
-        reportEnabled: options.script.agent?.generateReport !== false,
+        reportEnabled: isYamlReportEnabled(options.script),
         ...(context.outputPath ? { outputPath: context.outputPath } : {}),
         ...(document.reportPaths?.length
           ? { reportPath: document.reportPaths.at(-1) }
