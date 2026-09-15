@@ -152,7 +152,7 @@ export default defineTestProject<ProjectContext>({
 
 Midscene Test 内核不隐式注册 Node。`midscene-test create` 生成的配置会调用 `@midscene/test/midscene` 导出的 `createMidsceneNodes()`，注册所选平台的官方 Node。手写配置时，需要将该函数返回的 Node 定义显式放入顶层 `nodes` 或 `projects[].nodes`。
 
-`createMidsceneNodes()` 返回两部分能力：`agentClass.getTestRunnerNodeDefinitions()` 声明的通用 Agent Node 和平台 Node，以及 Test 提供的 `wait` Node。通用能力包含 AI 操作、断言与信息提取、界面定位、报告记录等；平台 Agent 再追加浏览器或设备操作。完整名称和输入字段不在网站中维护重复清单，请以当前 Project 生成的 [Node Spec](./use#生成当前-project-的-node-spec) 为准。
+`createMidsceneNodes()` 返回两部分能力：`agentClass.getTestRunnerNodeDefinitions()` 声明的通用 Agent Node 和平台 Node，以及 Test 提供的 `wait` Node。通用能力包含 AI 操作、断言与信息提取、界面定位、报告记录等；平台 Agent 再追加浏览器或设备操作。完整名称和输入字段不在网站中维护重复清单，请以当前 Project 生成的 [Node 说明书](./use#生成当前-project-的-node-说明书) 为准。
 
 调用 `createMidsceneNodes()` 时，通过 `agentClass` 指定 Agent 类，通过 `getAgent` 回调提供运行时使用的 Agent 实例：
 
@@ -177,7 +177,7 @@ Android/iOS 的注册示例见[配置多个执行项目](#配置多个执行项�
 
 各平台都通过 `createMidsceneNodes()` 注册，使用 `agentClass` 声明平台，通过 `getAgent` 获取实例。项目 `context` 的字段名由你自行定义。
 
-注册后，可在 YAML 中调用这些 Node。参数写法见[其他 Node 的调用模式](./use#其他-node-的调用模式)，具体字段以项目生成的 Node Spec 为准。
+注册后，可在 YAML 中调用这些 Node。参数写法见[其他 Node 的调用模式](./use#其他-node-的调用模式)，具体字段以项目生成的 Node 说明书为准。
 
 ### Playwright
 
@@ -415,17 +415,17 @@ export default defineTestProject<ProjectContext>({
 
 每个项目从开始初始化到完成清理，始终占用一个并发名额。名额释放后，调度器再启动下一个待运行项目。当前调度在同一个 Node.js 进程中异步执行，不会为项目创建独立进程；模块全局变量、外部账号和测试数据仍需由项目实现隔离。
 
-### 为各 Project 生成 Node Spec
+### 为各 Project 生成 Node 说明书
 
-运行 `midscene-test nodes` 可以生成 Node Spec，查看项目中可用的 Node。使用 `--project` 指定执行项目后，Spec 会列出该项目合并全局和局部注册后实际生效的 Node：
+运行 `midscene-test nodes` 可以生成 Node 说明书，查看项目中可用的 Node。使用 `--project` 指定执行项目后，说明书会列出该项目合并全局和局部注册后实际生效的 Node：
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-未指定 Project 时，如果所有 Project 中生效的 Node 定义都相同，命令会生成一份共享 Spec。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
+未指定 Project 时，如果所有 Project 中生效的 Node 定义都相同，命令会生成一份共享说明书。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
 
-Spec 内容与通用命令参数见[生成当前 Project 的 Node Spec](./use#生成当前-project-的-node-spec)。
+说明书内容与通用命令参数见[生成当前 Project 的 Node 说明书](./use#生成当前-project-的-node-说明书)。
 
 ## 超时与取消机制
 
