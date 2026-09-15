@@ -1,10 +1,13 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import {
+  createCaseInvocationId,
+  createDocumentInvocationId,
+} from './identifiers';
 import { normalizeSteps } from './normalize';
 import type {
   CollectedCase,
@@ -41,18 +44,12 @@ export const createCaseId = (
   projectId: string,
   sourcePath: string,
   caseIndex: number,
-): string =>
-  createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath, caseIndex]))
-    .digest('hex');
+): string => createCaseInvocationId(projectId, sourcePath, caseIndex);
 
 export const createWorkflowDocumentId = (
   projectId: string,
   sourcePath: string,
-): string =>
-  createHash('sha256')
-    .update(JSON.stringify([projectId, sourcePath]))
-    .digest('hex');
+): string => createDocumentInvocationId(projectId, sourcePath);
 
 export function collectWorkflowDocument(
   source: WorkflowDocumentSource,

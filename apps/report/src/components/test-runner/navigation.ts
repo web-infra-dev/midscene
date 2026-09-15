@@ -32,8 +32,11 @@ const caseContainsStep = (
 ): boolean =>
   Boolean(
     stepId &&
-      (item.document.beforeAll.some((step) => step.id === stepId) ||
-        item.document.afterAll.some((step) => step.id === stepId) ||
+      ((item.document.attempts ?? [item.document]).some((document) =>
+        [...document.beforeAll, ...document.afterAll].some(
+          (step) => step.id === stepId,
+        ),
+      ) ||
         item.testCase.attempts.some((attempt) =>
           flattenAttemptSteps(attempt).some((step) => step.id === stepId),
         )),

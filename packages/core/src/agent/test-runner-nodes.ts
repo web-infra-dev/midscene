@@ -1,4 +1,9 @@
 import { z } from 'zod/v4';
+import type { TUserPrompt } from '../common';
+import { inputStrategies } from '../device/input-strategy';
+import { NodeExecutionError } from '../test-runner/errors';
+import type { LocateOption, ScrollParam } from '../yaml';
+import { buildDetailedLocateParam } from '../yaml/utils';
 import type { Agent } from './agent';
 
 export interface AgentTestRunnerNodeResult<TData = unknown> {
@@ -144,6 +149,10 @@ export const userPromptInputSchema = z.union([
 ]);
 
 export const aiActOptionsInputSchema = z.strictObject({
+  effort: z
+    .enum(['fast', 'balance', 'deepThink'])
+    .optional()
+    .describe('Action planning effort: fast, balanced, or deeper reasoning.'),
   cacheable: z
     .boolean()
     .optional()
@@ -238,6 +247,105 @@ export const aiTapInputSchema = z.strictObject({
   options: locateOptionsInputSchema.optional(),
 });
 
+export const aiInputInputSchema = z.strictObject({
+  prompt: userPromptInputSchema,
+  value: z.union([z.string(), z.number()]),
+  options: locateOptionsInputSchema
+    .extend({
+      mode: z.enum(['replace', 'clear', 'typeOnly', 'append']).optional(),
+      autoDismissKeyboard: z.boolean().optional(),
+      keyboardTypeDelay: z.number().nonnegative().optional(),
+      inputStrategy: z.enum(inputStrategies).optional(),
+    })
+    .optional(),
+});
+
+export const aiKeyboardPressInputSchema = z.strictObject({
+  prompt: userPromptInputSchema.optional(),
+  keyName: nonBlankText('The key or key combination to press.'),
+  options: locateOptionsInputSchema.optional(),
+});
+
+export const aiScrollInputSchema = z.strictObject({
+  prompt: userPromptInputSchema.optional(),
+  options: locateOptionsInputSchema
+    .extend({
+      direction: z.enum(['down', 'up', 'right', 'left']).optional(),
+      scrollType: z
+        .enum([
+          'singleAction',
+          'scrollToBottom',
+          'scrollToTop',
+          'scrollToRight',
+          'scrollToLeft',
+          'once',
+          'untilBottom',
+          'untilTop',
+          'untilRight',
+          'untilLeft',
+        ])
+        .optional(),
+      distance: z.number().nullable().optional(),
+    })
+    .optional(),
+});
+
+export const aiPinchInputSchema = z.strictObject({
+  prompt: userPromptInputSchema.optional(),
+  direction: z.enum(['in', 'out']),
+  options: locateOptionsInputSchema
+    .extend({
+      distance: z.number().optional(),
+      duration: z.number().nonnegative().optional(),
+    })
+    .optional(),
+});
+
+export const aiLongPressInputSchema = z.strictObject({
+  prompt: userPromptInputSchema,
+  options: locateOptionsInputSchema
+    .extend({ duration: z.number().nonnegative().optional() })
+    .optional(),
+});
+
+export const aiDragAndDropInputSchema = z.strictObject({
+  from: userPromptInputSchema,
+  to: userPromptInputSchema,
+  options: locateOptionsInputSchema.optional(),
+});
+
+export const aiQueryInputSchema = z.strictObject({
+  prompt: z.union([
+    nonBlankText('The extraction request.'),
+    z.record(z.string(), z.string()),
+  ]),
+  options: insightOptionsInputSchema.optional(),
+});
+
+export const aiWaitForInputSchema = z.strictObject({
+  prompt: userPromptInputSchema,
+  options: insightOptionsInputSchema
+    .extend({
+      timeoutMs: z.number().positive().optional(),
+      checkIntervalMs: z.number().positive().optional(),
+    })
+    .optional(),
+});
+
+export const javascriptInputSchema = z.strictObject({
+  script: nonBlankText('JavaScript to evaluate through the current interface.'),
+});
+
+export const runGherkinScenarioInputSchema = z.strictObject({
+  scenario: nonBlankText('The Gherkin scenario to execute.'),
+  options: aiActOptionsInputSchema.optional(),
+});
+
+export const actionInputSchema = z.strictObject({
+  name: nonBlankText('The ActionSpace action name, for example DragAndDrop.'),
+  params: z.unknown().optional(),
+});
+
 export const insightInputSchema = z.strictObject({
   prompt: userPromptInputSchema,
   options: insightOptionsInputSchema.optional(),
@@ -285,6 +393,21 @@ export type AiAssertNodeOptions = z.infer<typeof aiAssertOptionsInputSchema>;
 export type AiAssertNodeInput = z.infer<typeof aiAssertInputSchema>;
 export type AiTapNodeOptions = z.infer<typeof locateOptionsInputSchema>;
 export type AiTapNodeInput = z.infer<typeof aiTapInputSchema>;
+export type AiInputNodeInput = z.infer<typeof aiInputInputSchema>;
+export type AiKeyboardPressNodeInput = z.infer<
+  typeof aiKeyboardPressInputSchema
+>;
+export type AiScrollNodeInput = z.infer<typeof aiScrollInputSchema>;
+export type AiPinchNodeInput = z.infer<typeof aiPinchInputSchema>;
+export type AiLongPressNodeInput = z.infer<typeof aiLongPressInputSchema>;
+export type AiDragAndDropNodeInput = z.infer<typeof aiDragAndDropInputSchema>;
+export type AiQueryNodeInput = z.infer<typeof aiQueryInputSchema>;
+export type AiWaitForNodeInput = z.infer<typeof aiWaitForInputSchema>;
+export type JavascriptNodeInput = z.infer<typeof javascriptInputSchema>;
+export type RunGherkinScenarioNodeInput = z.infer<
+  typeof runGherkinScenarioInputSchema
+>;
+export type ActionNodeInput = z.infer<typeof actionInputSchema>;
 export type InsightNodeOptions = z.infer<typeof insightOptionsInputSchema>;
 export type InsightNodeInput = z.infer<typeof insightInputSchema>;
 export type RecordToReportNodeOptions = z.infer<
@@ -307,8 +430,49 @@ export type CommonAgentTestRunnerApi = Pick<
 const defineCommonAgentNode =
   createAgentTestRunnerNodeDefinition<CommonAgentTestRunnerApi>('an Agent');
 
+// Select the current overloads without expanding the minimum API required by
+// existing getAgent() providers. Each Node checks its own method at execution.
+type AgentActionNodeApi = Pick<
+  Agent,
+  | 'sleep'
+  | 'aiHover'
+  | 'aiDoubleClick'
+  | 'aiRightClick'
+  | 'aiLongPress'
+  | 'aiClearInput'
+  | 'aiPinch'
+  | 'aiLocate'
+  | 'aiQuery'
+  | 'aiWaitFor'
+  | 'evaluateJavaScript'
+  | 'runGherkinScenario'
+  | 'callActionInActionSpace'
+> & {
+  aiInput(
+    prompt: TUserPrompt,
+    options: NonNullable<Parameters<Agent['aiInput']>[2]> & {
+      value: string | number;
+    },
+  ): Promise<void>;
+  aiKeyboardPress(
+    prompt: TUserPrompt | undefined,
+    options: LocateOption & { keyName: string },
+  ): Promise<void>;
+  aiScroll(
+    prompt: TUserPrompt | undefined,
+    options: LocateOption & ScrollParam,
+  ): Promise<void>;
+};
+
+const defineAgentActionNode =
+  createAgentTestRunnerNodeDefinition<AgentActionNodeApi>('an Agent');
+
 const promptText = (prompt: UserPromptNodeInput): string =>
   typeof prompt === 'string' ? prompt : prompt.prompt;
+
+const valueResult = (
+  value: unknown,
+): AgentTestRunnerNodeResult | undefined => ({ data: value });
 
 const aiActNode = defineCommonAgentNode({
   method: 'aiAct',
@@ -352,14 +516,15 @@ const aiAssertNode = defineCommonAgentNode({
       input.prompt,
       input.message,
       {
+        keepRawResponse: true,
         ...input.options,
         abortSignal: context.signal,
       },
     ];
   },
   toResult(output, input) {
-    return {
-      summary: `Assertion passed: ${promptText(input.prompt)}`,
+    const result = {
+      summary: `Assertion ${output?.pass === false ? 'failed' : 'passed'}: ${promptText(input.prompt)}`,
       ...(output === undefined
         ? {}
         : {
@@ -374,63 +539,190 @@ const aiAssertNode = defineCommonAgentNode({
             },
           }),
     };
+    if (output?.pass === false)
+      throw new NodeExecutionError(
+        'aiAssert',
+        new Error(
+          input.message ||
+            output.message ||
+            output.thought ||
+            `Assertion failed: ${promptText(input.prompt)}`,
+        ),
+        result,
+      );
+    return result;
   },
 });
 
-const insightNode = (
-  method: 'aiBoolean' | 'aiNumber' | 'aiString' | 'aiAsk',
-) => {
-  if (method === 'aiBoolean') {
-    return defineCommonAgentNode({
-      method,
-      description: `Run ${method} with a Midscene UI Agent and store its value.`,
-      stringInputKey: 'prompt',
-      inputSchema: insightInputSchema,
-      toArgs: (input) => [input.prompt, input.options],
-      toResult: (value) => ({
-        summary: `${method} returned ${value}`,
-        data: { value },
-      }),
-    });
-  }
-  if (method === 'aiNumber') {
-    return defineCommonAgentNode({
-      method,
-      description: `Run ${method} with a Midscene UI Agent and store its value.`,
-      stringInputKey: 'prompt',
-      inputSchema: insightInputSchema,
-      toArgs: (input) => [input.prompt, input.options],
-      toResult: (value) => ({
-        summary: `${method} returned ${value}`,
-        data: { value },
-      }),
-    });
-  }
-  if (method === 'aiString') {
-    return defineCommonAgentNode({
-      method,
-      description: `Run ${method} with a Midscene UI Agent and store its value.`,
-      stringInputKey: 'prompt',
-      inputSchema: insightInputSchema,
-      toArgs: (input) => [input.prompt, input.options],
-      toResult: (value) => ({
-        summary: `${method} returned ${JSON.stringify(value)}`,
-        data: { value },
-      }),
-    });
-  }
-  return defineCommonAgentNode({
+const locateActionNode = (
+  method: 'aiHover' | 'aiDoubleClick' | 'aiRightClick' | 'aiClearInput',
+) =>
+  defineAgentActionNode({
+    method,
+    description: {
+      aiHover: 'Locate and hover over an element with a Midscene UI Agent.',
+      aiDoubleClick:
+        'Locate and double-click an element with a Midscene UI Agent.',
+      aiRightClick:
+        'Locate and right-click an element with a Midscene UI Agent.',
+      aiClearInput:
+        'Locate an input element and clear its value with a Midscene UI Agent.',
+    }[method],
+    stringInputKey: 'prompt',
+    inputSchema: aiTapInputSchema,
+    toArgs: (input) => [input.prompt, input.options],
+    toResult: (_output, input) => ({
+      summary: `${method}: ${promptText(input.prompt)}`,
+    }),
+  });
+
+const additionalAgentNodes: readonly AgentTestRunnerNodeDefinition[] = [
+  locateActionNode('aiHover'),
+  locateActionNode('aiDoubleClick'),
+  locateActionNode('aiRightClick'),
+  locateActionNode('aiClearInput'),
+  defineAgentActionNode({
+    method: 'aiInput',
+    description:
+      'Locate an input element and enter a value with a Midscene UI Agent.',
+    inputSchema: aiInputInputSchema,
+    toArgs: (input) => [input.prompt, { ...input.options, value: input.value }],
+  }),
+  defineAgentActionNode({
+    method: 'aiKeyboardPress',
+    description:
+      'Press a key or key combination, optionally targeting a located element.',
+    stringInputKey: 'keyName',
+    inputSchema: aiKeyboardPressInputSchema,
+    toArgs: (input) => [
+      input.prompt,
+      { ...input.options, keyName: input.keyName },
+    ],
+  }),
+  defineAgentActionNode({
+    method: 'aiScroll',
+    description:
+      'Scroll the page or a located region with a Midscene UI Agent.',
+    stringInputKey: 'prompt',
+    inputSchema: aiScrollInputSchema,
+    toArgs: (input) => [input.prompt, { ...input.options }],
+  }),
+  defineAgentActionNode({
+    method: 'aiPinch',
+    description:
+      'Perform a pinch-in or pinch-out gesture with a Midscene UI Agent.',
+    inputSchema: aiPinchInputSchema,
+    toArgs: (input) => [
+      input.prompt,
+      { ...input.options, direction: input.direction },
+    ],
+  }),
+  defineAgentActionNode({
+    method: 'aiLongPress',
+    description: 'Locate and long-press an element with a Midscene UI Agent.',
+    stringInputKey: 'prompt',
+    inputSchema: aiLongPressInputSchema,
+    toArgs: (input) => [input.prompt, input.options],
+  }),
+  defineAgentActionNode({
+    method: 'callActionInActionSpace',
+    name: 'aiDragAndDrop',
+    description:
+      'Locate source and destination elements, then drag the source to the destination.',
+    inputSchema: aiDragAndDropInputSchema,
+    toArgs: (input) => [
+      'DragAndDrop',
+      {
+        from: buildDetailedLocateParam(input.from, input.options),
+        to: buildDetailedLocateParam(input.to, input.options),
+      },
+    ],
+  }),
+  defineAgentActionNode({
+    method: 'aiLocate',
+    description:
+      'Locate an element from a natural-language description and store the result.',
+    stringInputKey: 'prompt',
+    inputSchema: aiTapInputSchema,
+    toArgs: (input, context) => [
+      input.prompt,
+      { ...input.options, abortSignal: context.signal },
+    ],
+    toResult: valueResult,
+  }),
+  defineAgentActionNode({
+    method: 'aiQuery',
+    description:
+      'Extract structured data from the current interface and store the result.',
+    stringInputKey: 'prompt',
+    inputSchema: aiQueryInputSchema,
+    toArgs: (input, context) => [
+      input.prompt,
+      { ...input.options, abortSignal: context.signal },
+    ],
+    toResult: valueResult,
+  }),
+  defineAgentActionNode({
+    method: 'aiWaitFor',
+    description: 'Wait until a natural-language condition is satisfied.',
+    stringInputKey: 'prompt',
+    inputSchema: aiWaitForInputSchema,
+    toArgs: (input, context) => [
+      input.prompt,
+      { ...input.options, abortSignal: context.signal },
+    ],
+  }),
+  defineAgentActionNode({
+    method: 'evaluateJavaScript',
+    name: 'javascript',
+    description:
+      'Evaluate JavaScript in the current interface and store the result.',
+    stringInputKey: 'script',
+    inputSchema: javascriptInputSchema,
+    toArgs: (input) => [input.script],
+    toResult: valueResult,
+  }),
+  defineAgentActionNode({
+    method: 'runGherkinScenario',
+    description:
+      'Execute a Gherkin scenario with the current Midscene UI Agent.',
+    stringInputKey: 'scenario',
+    inputSchema: runGherkinScenarioInputSchema,
+    toArgs: (input, context) => [
+      input.scenario,
+      { ...input.options, abortSignal: context.signal },
+    ],
+  }),
+  defineAgentActionNode({
+    method: 'callActionInActionSpace',
+    name: 'action',
+    description:
+      'Call a platform or custom action. Its ActionSpace schema validates params when the action executes.',
+    inputSchema: actionInputSchema,
+    toArgs: (input) => [input.name, input.params],
+    toResult: (value) => (value === undefined ? undefined : valueResult(value)),
+  }),
+];
+
+const insightNode = (method: 'aiBoolean' | 'aiNumber' | 'aiString' | 'aiAsk') =>
+  defineCommonAgentNode({
     method,
     description: `Run ${method} with a Midscene UI Agent and store its value.`,
     stringInputKey: 'prompt',
     inputSchema: insightInputSchema,
-    toArgs: (input) => [input.prompt, input.options],
+    toArgs: (input, context) => [
+      input.prompt,
+      { ...input.options, abortSignal: context.signal },
+    ],
     toResult: (value) => ({
-      summary: `${method} returned ${JSON.stringify(value)}`,
+      summary: `${method} returned ${
+        method === 'aiString' || method === 'aiAsk'
+          ? JSON.stringify(value)
+          : value
+      }`,
       data: { value },
     }),
   });
-};
 
 const recordToReportNode = defineCommonAgentNode({
   method: 'recordToReport',
@@ -447,6 +739,16 @@ const recordToReportNode = defineCommonAgentNode({
 
 export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeDefinition[] =
   [
+    defineAgentActionNode({
+      method: 'sleep',
+      description:
+        'Wait for a fixed number of milliseconds, recording standard UI snapshots and honoring cancellation.',
+      inputSchema: z.strictObject({ ms: z.number().positive() }),
+      toArgs(input, { signal }) {
+        signal.throwIfAborted();
+        return [input.ms, { abortSignal: signal }];
+      },
+    }),
     aiActNode,
     aiTapNode,
     aiAssertNode,
@@ -455,4 +757,5 @@ export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeD
     insightNode('aiString'),
     insightNode('aiAsk'),
     recordToReportNode,
+    ...additionalAgentNodes,
   ];

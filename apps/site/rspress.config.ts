@@ -294,6 +294,10 @@ export default defineConfig(async () => {
             link: '/midscene-test/configuration',
           },
           {
+            text: 'Migrate from legacy YAML',
+            link: '/midscene-test/migrate-from-yaml',
+          },
+          {
             text: 'Develop custom Nodes',
             link: '/midscene-test/extend',
           },
@@ -468,6 +472,10 @@ export default defineConfig(async () => {
           {
             text: '配置测试项目',
             link: '/zh/midscene-test/configuration',
+          },
+          {
+            text: '从旧版 YAML 迁移',
+            link: '/zh/midscene-test/migrate-from-yaml',
           },
           {
             text: '编写自定义 Node',

@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { actionHoverParamSchema } from '@/device';
 import { TaskExecutionError } from '@/task-runner';
 import { describe, expect, it, rs } from '@rstest/core';
 
@@ -75,6 +76,101 @@ const createAgentStub = () => {
 };
 
 describe('Agent per-call context option', () => {
+  it('retains caller inputs when planning resolves an action locator', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const params = { locate: { prompt: 'search field' }, value: 'headphones' };
+    taskExecutor.runPlans.mockImplementationOnce(async (_title, plans: any) => {
+      plans[0].param.locate = { center: [10, 20] };
+      return { output: {} } as any;
+    });
+    await agent.callActionInActionSpace('Input', params);
+    expect(params).toEqual({
+      locate: { prompt: 'search field' },
+      value: 'headphones',
+    });
+  });
+  it('resolves YAML aliases and their string shortcuts in the common action path', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).fullActionSpace = [
+      { name: 'Launch', interfaceAlias: 'launch' },
+      { name: 'CustomAction', interfaceAlias: 'customAction' },
+    ];
+
+    await agent.callActionInActionSpace('launch', 'com.example.app');
+    await agent.callActionInActionSpace('customAction', { value: 7 });
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({
+        type: 'Launch',
+        param: { uri: 'com.example.app' },
+      }),
+    ]);
+    expect(taskExecutor.runPlans.mock.calls[1][1]).toEqual([
+      expect.objectContaining({
+        type: 'CustomAction',
+        param: { value: 7 },
+      }),
+    ]);
+  });
+  it('normalizes deferred YAML locate aliases after the ActionSpace exists', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    (agent as any).fullActionSpace = [
+      {
+        name: 'Hover',
+        interfaceAlias: 'aiHover',
+        paramSchema: actionHoverParamSchema,
+      },
+    ];
+
+    await agent.callActionInActionSpace('aiHover', 'search field');
+    await agent.callActionInActionSpace('aiHover', {
+      prompt: 'menu item',
+      deepLocate: true,
+    });
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({
+        type: 'Hover',
+        param: {
+          locate: expect.objectContaining({
+            prompt: 'search field',
+            deepLocate: false,
+            cacheable: true,
+          }),
+        },
+      }),
+    ]);
+    expect(taskExecutor.runPlans.mock.calls[1][1]).toEqual([
+      expect.objectContaining({
+        type: 'Hover',
+        param: {
+          locate: expect.objectContaining({
+            prompt: 'menu item',
+            deepLocate: true,
+            cacheable: true,
+          }),
+        },
+      }),
+    ]);
+  });
+
+  it('keeps native action params that already satisfy the ActionSpace schema', async () => {
+    const { agent, taskExecutor } = createAgentStub();
+    const params = { locate: { prompt: 'search field' } };
+    (agent as any).fullActionSpace = [
+      {
+        name: 'Hover',
+        interfaceAlias: 'aiHover',
+        paramSchema: actionHoverParamSchema,
+      },
+    ];
+
+    await agent.callActionInActionSpace('Hover', params);
+
+    expect(taskExecutor.runPlans.mock.calls[0][1]).toEqual([
+      expect.objectContaining({ type: 'Hover', param: params }),
+    ]);
+  });
   it('normalizes legacy aiAct context options without overriding aiContexts.aiAct', () => {
     const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
     try {

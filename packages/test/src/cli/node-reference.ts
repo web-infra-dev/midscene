@@ -94,7 +94,9 @@ cases:
             continue-on-error: false
 \`\`\`
 
-A Node may map a string step value to one declared input field. Each Node section states whether it supports this shorthand and names the target field.`;
+A Node may map a string step value to one declared input field. Each Node section states whether it supports this shorthand and names the target field.
+
+Each Node's returned \`data\` is saved on that Step's result. Results are not named or automatically passed to later Steps. A failed Case does not stop later Cases by default; \`test.bail\` controls early stopping across the run.`;
 
 const sortJsonValue = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sortJsonValue);

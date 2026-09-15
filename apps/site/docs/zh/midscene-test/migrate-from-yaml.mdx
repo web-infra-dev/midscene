@@ -1,0 +1,290 @@
+# 从旧版 YAML 迁移
+
+Midscene Test 兼容旧版 `tasks/flow` YAML、批配置和命令行参数。已有项目可以先保持文件不变，把执行入口切到 Test 内核；后续新增或重构用例时，再采用原生 `cases/steps`、TypeScript 项目配置和 Node。
+
+本文把迁移分为两条路径：
+
+- **兼容运行**：不改用例和批配置，只升级执行入口。适合先获得统一调度和新的 Test 报告。
+- **原生迁移**：把旧字段改写为 Test 的文档、Case、Step 和项目配置。适合继续扩展生命周期、自定义 Node、多环境和资源隔离能力。
+
+旧格式仍受支持，但不建议用于新项目。旧版字段的完整参考仍保留在 [YAML 脚本运行器](../yaml-script-runner)和 [YAML 格式的工作流](../automate-with-scripts-in-yaml)中。
+
+## 路径一：不改 YAML，切换到 Test 内核
+
+如果项目已经安装 `@midscene/cli`，升级后可以继续使用原命令。`midscene` 会保留旧输入语义，并通过 Test 内核执行：
+
+```bash
+pnpm exec midscene ./flow.yaml
+pnpm exec midscene --config ./batch.yaml
+```
+
+也可以安装 `@midscene/test`，将命令替换为 `midscene-test`：
+
+```bash
+pnpm add -D @midscene/test
+
+pnpm exec midscene-test ./flow.yaml
+pnpm exec midscene-test --config ./batch.yaml
+```
+
+以下调用方式均保留：
+
+| 旧调用方式 | Test 兼容入口 |
+| --- | --- |
+| `midscene ./flow.yaml` | `midscene-test ./flow.yaml` |
+| `midscene ./flows` | `midscene-test ./flows` |
+| `midscene "./flows/**/*.yaml"` | `midscene-test "./flows/**/*.yaml"` |
+| `midscene --files a.yaml b.yaml` | `midscene-test --files a.yaml b.yaml` |
+| `midscene --config batch.yaml` | `midscene-test --config batch.yaml` |
+
+兼容运行时，Test 按顶层 `tasks` 识别旧格式，不根据文件扩展名判断。原来的平台配置、`agent`、环境变量插值、task continuation、整文件重试、输出文件和 summary 仍按旧语义处理；报告切换为新 Test 页面，旧 HTML 文件无需转换，重新运行即可生成。旧 `agent.generateReport: false` 仍生效；包含原生 Test 文件的运行仍会生成统一总报告。
+
+旧 `--files`、`--setup`、`--concurrent`、`--retry`、`--continue-on-error`、`--summary`、`--headed`、`--keep-window`、`--share-browser-context`、`--dotenv-override`、`--dotenv-debug`、`--<target>.<field>` 和 `--no-<target>.<field>` 仍由兼容入口接受，不是原生 Test 参数，也不出现在 Test 主帮助中。
+
+:::info 兼容边界
+单个 YAML 文件不能同时声明旧版 `tasks` 和原生 `cases`、`beforeAll`、`beforeEach`、`afterEach`、`afterAll`。迁移时应以文件为单位转换。
+
+旧版批配置和旧版命令行参数不能与原生 `midscene.config.ts` 混用。`--project` 和 `midscene-test nodes` 只适用于原生 Test 项目。
+:::
+
+## 路径二：迁移为原生 Test 项目
+
+建议按下面的顺序迁移，保证每一步都可以独立运行和对比结果：
+
+1. 先使用兼容入口运行原项目，保存退出状态、summary 和 Test 报告作为基线。
+2. 使用 `pnpm dlx @midscene/test create` 创建对应平台的 Test 项目，从生成的 `midscene.config.ts` 和 setup 开始配置运行环境。
+3. 将旧批配置映射到 Execution Project，把平台、Agent 和资源创建移入 setup。
+4. 逐个文件把 `tasks/flow` 改为 `cases/steps`，每转换一个文件就单独运行并检查报告。
+5. 运行 `pnpm exec midscene-test nodes --project <name>` 生成当前 Project 的 Node Spec，根据 Spec 校验动作名称、参数和字符串简写。
+6. 全部转换后，移除旧批配置和仅供兼容入口使用的命令行参数。
+
+### 用例结构映射
+
+旧版：
+
+```yaml
+web:
+  url: https://example.com
+
+tasks:
+  - name: 搜索商品
+    continueOnError: true
+    flow:
+      - ai: 搜索马克杯
+      - aiAssert: 搜索结果中包含马克杯
+        errorMessage: 未找到目标商品
+```
+
+原生 Test：
+
+```yaml
+beforeEach:
+  - gotoUrl: https://example.com
+
+cases:
+  - name: 搜索商品
+    steps:
+      - aiAct: 搜索马克杯
+      - aiAssert:
+          prompt: 搜索结果中包含马克杯
+          message: 未找到目标商品
+```
+
+| 旧版字段 | 原生 Test 字段或机制 | 说明 |
+| --- | --- | --- |
+| `tasks` | `cases` | 一个旧 task 对应一个 Case。 |
+| `tasks[].name` | `cases[].name` | 名称直接保留。 |
+| `tasks[].flow` | `cases[].steps` | 一个 flow item 对应一个 Step。 |
+| `tasks[].continueOnError: true` | 原生 Case 的默认继续行为 | 适配器保留旧 task continuation；原生 Test 默认继续下一个 Case。 |
+| 未设置 `continueOnError` | 仅供兼容的失败策略 | 适配器停止当前旧文件。原生没有 `onFailure` 参数；公共前置条件放在 `beforeAll`，有依赖关系的步骤放在同一个 Case。 |
+| 顶层平台字段中的初始页面或应用 | setup 加生命周期 Node | 资源创建放在 setup；每个 Case 都应重新进入初始状态时，使用 `beforeEach` 的 `gotoUrl`、`launch` 等 Node。 |
+| 旧版没有对应字段 | `beforeAll`、`beforeEach`、`afterEach`、`afterAll` | 原生 Test 提供的文件和 Case 生命周期。 |
+| 旧版没有对应字段 | `cases[].tags` | 用于按 Project 选择 Case。 |
+
+保留旧文件即可保留旧失败策略；手写原生 Case 则采用原生语义，不保证调度行为一一等价。Step 的 `$: { continue-on-error: true }` 只让同阶段后续 Step 继续，不控制旧 task 之间的调度，也不会把失败 Case 改为成功。
+
+### flow 动作映射
+
+兼容入口会自动完成下列转换。手动迁移时建议优先采用右侧的原生写法，并以 `midscene-node-reference.md` 中当前项目实际注册的 Node 为准。
+
+| 旧版 flow 字段 | 原生 Test Node / 输入 | 迁移说明 |
+| --- | --- | --- |
+| `ai`、`aiAction`、`aiAct`、`instruction` | `aiAct.prompt` | 统一使用 `aiAct`。其余选项放入 `options`。 |
+| `aiAssert` | `aiAssert.prompt` | `errorMessage` 改为 `message`，其余提取选项放入 `options`。 |
+| `aiQuery`、`aiNumber`、`aiString`、`aiBoolean`、`aiAsk`、`aiLocate` | 同名 Node 的 `prompt` | 图片与提取选项按 Node Spec 放入 `prompt` 或 `options`。 |
+| `aiWaitFor` | `aiWaitFor.prompt` | 旧 `timeout` 对应 Node 输入中的 `options.timeoutMs`。 |
+| `aiTap` | `aiTap.prompt` | 旧的 `locate`、图片和定位选项整理到 `prompt`、`options`。 |
+| `aiScroll` | `aiScroll` | 定位描述作为 `prompt`，滚动参数放入 `options`。 |
+| `aiInput` | `aiInput.value` 和 `aiInput.prompt` | 输入值放入 `value`，定位描述放入 `prompt`。 |
+| `aiKeyboardPress` | `aiKeyboardPress.keyName` 和可选 `prompt` | 具体输入以项目 Node Spec 为准。 |
+| `sleep` | `sleep.ms` | 例如 `sleep: 1000` 改为 `sleep: { ms: 1000 }`。新用例也可以使用通用 `wait` Node。 |
+| `javascript` | `javascript.script` | 返回值会记录在 Step 结果中。 |
+| `recordToReport`、`logScreenshot` | `recordToReport` | 标题映射到 `title`，`content` 放入 `options.content`。 |
+| `runGherkinScenario` | `runGherkinScenario.scenario` | 兼容入口会关闭该动作的缓存。 |
+| `runAdbShell` | `runAdbShell` | 命令映射到 `command`，旧 `timeout` 保留为 Node 输入。 |
+| `Finalize` | 仅供兼容的规划标记 | 适配器仍接受；原生 Case 中省略，不作为公开 Node。 |
+| 其他平台动作和自定义动作 | 已注册的同名 Node，或通用 `action` Node | 先运行 `midscene-test nodes`，根据目标平台的 Node Spec 改写参数。 |
+| flow item 的 `name` | Node 的结构化结果 | 兼容入口仍按旧名称写入输出；原生 Test 不提供跨 Step 的命名结果表达式，数据共享应使用自定义 Node 和项目 `context`。 |
+
+### 具体示例：迁移一个提交订单 Case
+
+下面的旧用例填写收货人、等待提交按钮可用、提交订单并记录结果。它同时使用了 task 失败策略、动作别名、定位输入、动作超时、断言错误消息、固定等待和报告记录：
+
+```yaml filename=flows/submit-order.yaml
+web:
+  url: https://shop.example.com/checkout
+
+tasks:
+  - name: 提交订单
+    continueOnError: true
+    flow:
+      - aiInput: Alice
+        locate: 收货人姓名输入框
+      - aiWaitFor: 提交订单按钮已启用
+        timeout: 10000
+      - ai: 点击提交订单按钮
+      - aiAssert: 页面显示订单提交成功
+        errorMessage: 提交后没有出现成功提示
+      - sleep: 500
+      - recordToReport: 订单提交结果
+        content: 已完成下单流程
+```
+
+迁移成原生 Test 后，同一个 Case 可以写成：
+
+```yaml filename=cases/submit-order.yaml
+beforeEach:
+  - gotoUrl: https://shop.example.com/checkout
+
+cases:
+  - name: 提交订单
+    steps:
+      - aiInput:
+          prompt: 收货人姓名输入框
+          value: Alice
+      - aiWaitFor:
+          prompt: 提交订单按钮已启用
+          options:
+            timeoutMs: 10000
+      - aiAct: 点击提交订单按钮
+      - aiAssert:
+          prompt: 页面显示订单提交成功
+          message: 提交后没有出现成功提示
+      - wait:
+          duration: 500
+          unit: ms
+      - recordToReport:
+          title: 订单提交结果
+          options:
+            content: 已完成下单流程
+```
+
+这里发生了几类转换：
+
+1. `web.url` 不再和用例内容混在一起。浏览器由 Project setup 创建，需要在每个 Case 开始时进入结算页，因此 URL 放到 `beforeEach` 的 `gotoUrl`。
+2. task 变成 Case；原生 Test 默认在 Case 失败后继续，因此这个例子无需额外的继续参数。
+3. `aiInput` 的值和定位描述从同级旧字段拆成 Node 的 `value` 与 `prompt`。
+4. `aiWaitFor.timeout` 是动作自身的等待上限，所以放入 `options.timeoutMs`。如果要限制整个 Step，应另用 `$: { timeout: 10000 }`。
+5. `ai` 统一为 `aiAct`，`aiAssert.errorMessage` 改为 `aiAssert.message`。
+6. 固定等待改用原生通用 `wait` Node；报告标题与正文分别放入 `recordToReport.title` 和 `options.content`。
+
+这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前 Project 的 `midscene-node-reference.md`。以这份 Node Spec 为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
+
+### 脚本和 Agent 配置映射
+
+兼容运行会继续读取旧 YAML 顶层配置。手动改为原生 Test 时，这些字段不再放在 Case YAML 中，而是进入 `midscene.config.ts`、setup 或 Node：
+
+| 旧版脚本字段 | 原生 Test 配置或机制 | 说明 |
+| --- | --- | --- |
+| `target` | Web Project setup | 该字段已废弃；迁移时不要继续使用，按实际模式配置 Playwright、Puppeteer 或 bridge runtime。 |
+| `page`、`browser`、`web` | Web Project setup + Web Node | 浏览器启动、CDP、viewport、Cookie、headers 等连接配置放入 setup；进入页面、设置 Cookie 等可重复动作放入生命周期 Node。 |
+| `android` | Android Project setup + Android Node | 设备 ID、截图和输入策略用于创建 Device/Agent；`launch` 等用例动作放入 `beforeEach` 或 `steps`。 |
+| `ios` | iOS Project setup + iOS Node | WDA 连接和 Device/Agent 创建放入 setup；应用启动和交互使用已注册 Node。 |
+| `harmony` | HarmonyOS Project setup + HarmonyOS Node | HDC 连接、设备参数和应用映射放入 setup；应用与 Shell 操作使用已注册 Node。 |
+| `computer` | Computer Project setup + Computer Node | display 等设备参数放入 setup；界面操作使用已注册 Node。 |
+| `interface` | 自定义 Project setup + `createMidsceneNodes()` | 在 setup 中导入并创建自定义 Interface、Device 和 Agent，再把 Agent 暴露给 Node。 |
+| `agent.generateReport` | 兼容运行的报告设置 | 旧 YAML 仍可关闭自身报告；原生 Test 始终生成统一总报告。 |
+| `agent.reportFileName`、`agent.testId` | 仅供兼容的 Agent 产物设置 | 查看报告时，以 CLI 输出的 `Report:` 路径或 summary 中的报告链接为准。`testId` 已废弃。 |
+| `agent.groupName`、`agent.groupDescription` | Project、Case 名称和报告结构 | 没有同名原生字段；将分组语义放入 Project 名称、Case 名称或 tags。 |
+| `agent.replanningCycleLimit`、`agent.aiContexts`、`agent.aiActContext`、`agent.aiActionContext`、`agent.cache`、`agent.screenshotShrinkFactor` | setup 中的 Agent options | 创建 Agent 时继续传入相应选项，不再写在 Case YAML 中。 |
+| `agent.outputFormat`、`agent.persistExecutionDump`、`agent.autoPrintReportMsg` | Test 报告或 setup 中的 Agent options | 优先采用 Test 的统一报告；只有仍需 Agent 自身行为时才在 setup 中保留对应选项。 |
+| `config.output`，或平台字段中的 `output` | Test 结构化结果 | 兼容入口继续写旧输出文件；原生 Test 使用 `--result-dir`、`summary.json` 和报告。业务数据应由自定义 Node 返回或写入外部存储。 |
+| `config.unstableLogContent` | Test 报告与结构化结果 | 没有同名原生字段；迁移消费方，不再依赖旧的实验性日志内容文件。 |
+| `tasks` | 原生 Workflow Document | 按前文映射为 `cases` 和生命周期钩子。 |
+
+setup 的完整写法和各平台 Node 注册方式见[配置运行环境](./configuration#配置运行环境)。
+
+### 批配置映射
+
+旧版 `batch.yaml`：
+
+```yaml
+files:
+  - flows/cases/**/*.yaml
+setup: flows/setup.yaml
+concurrent: 2
+retry: 1
+continueOnError: false
+summary: result.json
+headed: true
+```
+
+原生 Test 把执行参数放在 `midscene.config.ts`：
+
+```ts filename=midscene.config.ts
+import { defineTestProject } from '@midscene/test/config';
+import { nodes, setup } from './test-runtime';
+
+export default defineTestProject({
+  nodes,
+  projects: [
+    {
+      name: 'default',
+      setup,
+      files: {
+        include: ['flows/cases/**/*.yaml'],
+      },
+      retry: 1,
+    },
+  ],
+  test: {
+    bail: 1,
+  },
+  output: {
+    reportDir: './midscene_run/report',
+  },
+});
+```
+
+| 旧版批配置 | 原生 Test 配置或机制 | 说明 |
+| --- | --- | --- |
+| `files` | `projects[].files.include` | 适配器保留旧顺序和重复调用；原生选择固定去重、排序，没有 `files.order` 开关。 |
+| `setup` | 兼容前置文件；原生 setup / `beforeAll` | YAML 宿主先执行旧 setup 文件；原生在 setup 创建资源，用生命周期 Step 表达文件前置条件，没有 `setupFile` 参数。 |
+| `concurrent` | 兼容文件调度；原生 `test.maxConcurrency` | YAML 宿主保留文件并发；原生并发单位是持有独立资源的 Project，不是同 Project 内的文件。 |
+| `retry` | 兼容整文件重试；原生 `projects[].retry` | 原生只重试失败 Case；确需整文件重放时保留旧文件，没有 `retryScope` 开关。 |
+| `continueOnError: false` | `test.bail: 1` | 失败达到阈值后停止调度新的文件或 Case。已经开始的并发任务仍会完成清理。 |
+| `continueOnError: true` | `test.bail: 0` | 不因失败阈值触发全局停止；适配器另行保留旧 task continuation，原生 Case 默认继续。 |
+| `summary` | Test `summary.json`、报告和编程式 API | 兼容入口仍写旧 summary；原生 Test 没有同名配置，应迁移消费方。可用 `--result-dir` 指定结构化结果目录。 |
+| `shareBrowserContext` | 兼容资源宿主；原生 Project setup | YAML 宿主在共享浏览器上下文上创建独立 Page/Agent；原生通过 setup 在 Project 内共享资源，并发 Project 之间持有独立资源。 |
+| `headed` | 浏览器或设备 setup 的启动参数 | 例如 Playwright 使用 `chromium.launch({ headless: false })`。 |
+| `keepWindow` | setup 的清理策略 | 仅建议本地调试使用；需要由项目决定是否延迟或跳过浏览器 teardown。 |
+| `dotenvOverride`、`dotenvDebug` | 项目的环境变量加载方式 | 原生读取 `process.env`；依赖 `.env` 文件时，在配置文件或启动脚本中显式加载，并在那里设置优先级和调试行为。 |
+| `web`、`android`、`ios`、`harmony`、`computer`、`interface` | Project `setup`、`variables` 和平台注册 Node | 设备连接和 Agent 创建移入 setup；可序列化的环境差异放入 `variables`。 |
+
+这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件、并发文件的调度方式。原生并发应拆成独立 Project，并设置 `test.maxConcurrency`。兼容所需的文件并发和 document setup 留在 YAML 宿主内部，不成为公开 Test 配置。
+
+兼容入口保留旧输出命名规则：显式 flow `name`、未命名提取结果的数字键，以及重复名称的覆盖规则均保留。
+
+## 验证迁移结果
+
+对同一个用例分别运行兼容版本和原生版本，至少核对：
+
+- 进程退出码和失败后是否继续执行。
+- 重试单位是 Case 还是整个文件。
+- 环境变量、平台连接参数和初始页面状态。
+- AI 动作输入、超时和断言失败信息。
+- 业务输出的消费方式，以及新 Test 报告中的 Step 结果。
+- 并发执行时页面、Agent、设备和测试数据是否隔离。
+- 失败、超时和 Ctrl+C 中断后，生命周期钩子与资源清理是否完成。
+
+迁移完成后，新增用例应使用 `cases/steps`。只有尚未迁移的文件继续保留 `tasks/flow`，避免在新代码中继续扩大兼容格式的使用范围。

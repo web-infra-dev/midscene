@@ -44,6 +44,11 @@ const getMockAgent = async () => {
       interfaceAlias: 'aiInput',
       call: rs.fn(),
     },
+    {
+      name: 'KeyboardPress',
+      interfaceAlias: 'aiKeyboardPress',
+      call: rs.fn(),
+    },
   ];
 
   return {
@@ -67,7 +72,11 @@ const getMockAgent = async () => {
       onTaskStartTip: undefined,
       _unstableLogContent: rs.fn(async () => dump),
       dump,
-      callActionInActionSpace: rs.fn(),
+      callActionInActionSpace: rs.fn(async (name: string) => {
+        if (!actionSpace.some((action) => action.name === name)) {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }
+      }),
       getActionSpace: async () => actionSpace,
     } as unknown as PageAgent,
     freeFn: [],
@@ -430,7 +439,6 @@ tasks:
     expect(aiTapCalls).toMatchInlineSnapshot(`
       [
         [
-          "the area contains the image.",
           {
             "convertHttpImage2Base64": true,
             "images": [
@@ -439,10 +447,11 @@ tasks:
                 "url": "https://example.com/image.png",
               },
             ],
+            "prompt": "the area contains the image.",
           },
+          {},
         ],
         [
-          "the area contains the image.",
           {
             "convertHttpImage2Base64": true,
             "images": [
@@ -451,7 +460,9 @@ tasks:
                 "url": "https://example.com/image.png",
               },
             ],
+            "prompt": "the area contains the image.",
           },
+          {},
         ],
       ]
     `);
@@ -792,7 +803,9 @@ tasks:
             call: rs.fn(),
           },
         ],
-        callActionInActionSpace: rs.fn(),
+        callActionInActionSpace: rs.fn(async (name: string) => {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }),
       },
       freeFn: [],
     };

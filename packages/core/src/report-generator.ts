@@ -10,9 +10,12 @@
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import {
   appendFile as appendFileAsync,
+  readFile as readFileAsync,
+  rename as renameAsync,
+  unlink as unlinkAsync,
   writeFile as writeFileAsync,
 } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_REPORT_QUIET,
@@ -25,10 +28,18 @@ import {
   generateAgentReportComment,
   generateDumpScriptTag,
   generateImageScriptTag,
+  generateTestRunReportScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
+import {
+  imageRefFileExtension,
+  normalizeStoredImageRef,
+} from './dump/image-reference';
 import { compactReportDumps } from './dump/report-dump-compactor';
 import { type ImageUrlRef, ReportImageStore } from './dump/screenshot-store';
+import type { WorkflowReportSource } from './test-runner/engine/types';
+import { buildAgentTestRunReportDump } from './test-runner/reporting/agent-report';
+import type { RunReportInput } from './test-runner/reporting/types';
 import {
   type ExecutionDump,
   ReportActionDump,
@@ -65,6 +76,10 @@ export interface IReportGenerator {
    * Wait for all queued write operations to complete.
    */
   flush(): Promise<void>;
+  enableSourceSnapshots?(): void;
+  createSourceSnapshot?(
+    scopeId: string,
+  ): Promise<WorkflowReportSource | undefined>;
 
   /**
    * Finalize the report. Calls flush() internally.
@@ -72,6 +87,12 @@ export interface IReportGenerator {
   finalize(): Promise<string | undefined>;
 
   getReportPath(): string | undefined;
+  /** Publish a single root Runner snapshot into this Agent's existing report. */
+  writeRunnerReport?(
+    input: RunReportInput,
+    scopeId: string,
+    meta: ReportMeta,
+  ): Promise<string | undefined>;
 }
 
 export const nullReportGenerator: IReportGenerator = {
@@ -79,6 +100,7 @@ export const nullReportGenerator: IReportGenerator = {
   flush: async () => {},
   finalize: async () => undefined,
   getReportPath: () => undefined,
+  writeRunnerReport: async () => undefined,
 };
 
 export function assertReportGenerationOptions(opts: {
@@ -231,6 +253,132 @@ export class ReportGenerator implements IReportGenerator {
 
   getReportPath(): string | undefined {
     return this.reportPath;
+  }
+
+  async writeRunnerReport(
+    input: RunReportInput,
+    scopeId: string,
+    meta: ReportMeta,
+  ): Promise<string> {
+    this.writeQueue = this.writeQueue.then(async () => {
+      // This runs at YAML invocation completion, never on progress ticks. Keep
+      // all file I/O asynchronous and publish atomically for an open viewer.
+      const reportMeta = this.lastReportMeta ?? meta;
+      const executions = [...this.executionsByKey.values()];
+      const agentDump = new ReportActionDump({ ...reportMeta, executions });
+      const reportId =
+        this.reportAttributes['data-report-id'] ??
+        this.reportAttributes['data-group-id'] ??
+        this.reportStreamId;
+      const dump = buildAgentTestRunReportDump(input, agentDump, {
+        reportId,
+        scopeId,
+        sourcePath: this.reportPath,
+      });
+      for (const diagnostic of dump.diagnostics ?? [])
+        warnReport(diagnostic.message);
+      const sourceDump = await this.serializeSourceDump();
+      const images: string[] = [];
+      if (this.screenshotMode === 'inline') {
+        for (const ref of sourceDump.images.values()) {
+          const bytes = await readFileAsync(
+            join(dirname(this.reportPath), ref.path!),
+          );
+          images.push(
+            generateImageScriptTag(
+              ref.id,
+              `data:${ref.mimeType};base64,${bytes.toString('base64')}`,
+            ),
+          );
+        }
+      }
+      // Rebuild from the owned dump and image index, never parse this HTML back.
+      const renderedDump =
+        this.screenshotMode === 'inline'
+          ? JSON.stringify(JSON.parse(sourceDump.serialized), (_key, value) => {
+              const ref = normalizeStoredImageRef(value);
+              return ref
+                ? { ...ref, storage: 'inline', path: undefined }
+                : value;
+            })
+          : sourceDump.serialized;
+      const contents = `${getReportTpl()}${this.screenshotMode === 'directory' ? getBaseUrlFixScript() : ''}
+${generateDumpScriptTag(renderedDump, this.getDumpScriptAttributes())}
+${images.join('\n')}
+${generateTestRunReportScriptTag(dump)}
+${generateAgentReportComment(agentDump)}`;
+      mkdirSync(dirname(this.reportPath), { recursive: true });
+      const temporaryPath = `${this.reportPath}.runner-${uuid()}.tmp`;
+      try {
+        await writeFileAsync(temporaryPath, contents);
+        await renameAsync(temporaryPath, this.reportPath);
+      } finally {
+        await unlinkAsync(temporaryPath).catch((error) => {
+          if (error.code !== 'ENOENT') throw error;
+        });
+      }
+      this.initialized = true;
+      if (!this.firstWriteDone) {
+        this.firstWriteDone = true;
+        this.printReportPath();
+      }
+    });
+    await this.flush();
+    return this.reportPath;
+  }
+
+  enableSourceSnapshots(): void {
+    this.screenshotStore.enableFileCopies();
+  }
+
+  private async serializeSourceDump() {
+    this.enableSourceSnapshots();
+    const references = new Map<string, ImageUrlRef>();
+    for (const execution of this.executionsByKey.values()) {
+      for (const screenshot of execution.collectScreenshots())
+        await this.screenshotStore.persist(screenshot);
+      for (const [url, ref] of await this.persistReferenceImages(execution))
+        references.set(url, ref);
+    }
+    const dump = new ReportActionDump({
+      ...(this.lastReportMeta ?? {
+        sdkVersion: '',
+        groupName: 'YAML execution',
+        modelBriefs: [],
+      }),
+      executions: [...this.executionsByKey.values()],
+    });
+    const images = new Map<
+      string,
+      ReturnType<typeof normalizeStoredImageRef> & {}
+    >();
+    const serialized = JSON.stringify(
+      JSON.parse(dump.serializeWithReferenceImages(references)),
+      (_key, value) => {
+        const ref = normalizeStoredImageRef(value);
+        if (!ref) return value;
+        const stored = {
+          ...ref,
+          storage: 'file' as const,
+          path: `./screenshots/${ref.id}.${imageRefFileExtension(ref)}`,
+        };
+        images.set(ref.id, stored);
+        return stored;
+      },
+    );
+    return { serialized, images };
+  }
+
+  async createSourceSnapshot(scopeId: string): Promise<WorkflowReportSource> {
+    // Scope IDs originate in the kernel; never allow a filename to escape the report directory.
+    if (!scopeId || basename(scopeId) !== scopeId)
+      throw new Error('Invalid report scope ID');
+    await this.flush();
+    const { serialized } = await this.serializeSourceDump();
+    const dumpPath = `${this.reportPath}.${scopeId}.json`;
+    mkdirSync(dirname(dumpPath), { recursive: true });
+    await writeFileAsync(dumpPath, serialized, { flag: 'wx' });
+    return { sourcePath: this.reportPath, dumpPath };
   }
 
   private printReportPath(): void {

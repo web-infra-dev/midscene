@@ -94,6 +94,7 @@ const dump: TestRunReportDump = {
     {
       projectId: 'web',
       name: 'Web',
+      platform: 'web',
       status: 'failed',
       retry: 1,
       lifecycle: {

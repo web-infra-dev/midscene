@@ -1,73 +1,38 @@
-export type DurationInput = number;
+export type {
+  DurationInput,
+  StepMetaInput,
+  StepValue,
+  StepInput,
+  CaseInput,
+  WorkflowDocumentDefinition,
+  CaseDefinition,
+} from '@midscene/core/internal/test-runner';
 
-export interface StepMetaInput {
-  timeout?: DurationInput;
-  'continue-on-error'?: boolean;
-}
+import type * as Core from '@midscene/core/internal/test-runner';
 
-export interface NormalizedStepMeta {
-  timeoutMs?: number;
-  continueOnError: boolean;
-}
-
-export type StepValue = string | Record<string, unknown>;
-
-export type StepInput = Record<string, unknown>;
-
-export interface CaseInput {
-  name?: string;
-  tags?: readonly string[];
-  steps: readonly StepInput[];
-}
-
-export interface WorkflowDocumentDefinition {
-  beforeAll?: readonly StepInput[];
-  beforeEach?: readonly StepInput[];
-  cases: readonly CaseDefinition[];
-  afterEach?: readonly StepInput[];
-  afterAll?: readonly StepInput[];
-}
-
-export interface CaseDefinition<TStep = StepInput> {
-  name: string;
-  tags?: readonly string[];
-  steps: readonly TStep[];
-}
-
-export interface NormalizedStep {
-  node: string;
-  input: Record<string, unknown>;
+// Native contracts intentionally exclude metadata compiled by the YAML adapter.
+export type NormalizedStepMeta = Omit<
+  Core.NormalizedStepMeta,
+  'captureResult' | 'resultName'
+>;
+export type NormalizedStep = Omit<Core.NormalizedStep, 'meta'> & {
   meta: NormalizedStepMeta;
-}
-
-export type NormalizedCaseDefinition = CaseDefinition<NormalizedStep>;
-
-export interface WorkflowDocumentSource {
-  projectId: string;
-  projectName?: string;
-  sourcePath: string;
-  absolutePath: string;
-}
-
-export interface CollectedCase {
-  caseId: string;
-  projectId: string;
-  sourcePath: string;
-  caseIndex: number;
+};
+export type NormalizedCaseDefinition = Core.CaseDefinition<NormalizedStep>;
+export type WorkflowDocumentSource = Omit<
+  Core.WorkflowDocumentSource,
+  'invocationIndex'
+>;
+export type CollectedCase = Omit<Core.CollectedCase, 'definition'> & {
   definition: NormalizedCaseDefinition;
-}
-
-export interface CollectedWorkflowDocument {
-  documentId: string;
-  projectId: string;
-  sourcePath: string;
-  lifecycle: CollectedDocumentLifecycle;
+};
+export type CollectedDocumentLifecycle = {
+  [K in keyof Core.CollectedDocumentLifecycle]: readonly NormalizedStep[];
+};
+export type CollectedWorkflowDocument = Omit<
+  Core.CollectedWorkflowDocument,
+  'cases' | 'lifecycle'
+> & {
   cases: readonly CollectedCase[];
-}
-
-export interface CollectedDocumentLifecycle {
-  beforeAll: readonly NormalizedStep[];
-  beforeEach: readonly NormalizedStep[];
-  afterEach: readonly NormalizedStep[];
-  afterAll: readonly NormalizedStep[];
-}
+  lifecycle: CollectedDocumentLifecycle;
+};

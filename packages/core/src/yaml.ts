@@ -4,6 +4,7 @@ import type {
   HarmonyDeviceOpt,
   IOSDeviceOpt,
 } from './device';
+import type { WorkflowExecutionRecord } from './test-runner/execution-record';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
@@ -124,6 +125,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'
+  | 'outputFormat'
   | 'persistExecutionDump'
   | 'autoPrintReportMsg'
   | 'reportFileName'
@@ -393,16 +395,14 @@ export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
   concurrent?: number;
   continueOnError?: boolean;
   /**
-   * Number of times to retry a failed yaml file before marking it as failed.
-   * A value of 2 means each failing case is re-executed up to 2 extra times
-   * (3 attempts in total). Only the cases that failed in the previous attempt
-   * are retried. Defaults to 0 (no retry).
+   * Number of times to retry the complete YAML file after an execution
+   * failure, including tasks that already passed. Defaults to 0 (no retry).
    */
   retry?: number;
   summary?: string;
   /**
-   * Share one BrowserContext and Page across Puppeteer Web yaml files. This is
-   * not supported by bridge mode or non-Web targets.
+   * Share one BrowserContext across Puppeteer Web YAML files, with a separate
+   * Page per file. This is not supported by bridge mode or non-Web targets.
    */
   shareBrowserContext?: boolean;
   /**
@@ -438,6 +438,16 @@ export interface MidsceneYamlConfigAttempt {
   error?: string;
   duration?: number;
   resultType?: MidsceneYamlConfigResultType;
+  /** Complete execution facts, persisted separately from the legacy summary. */
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
 }
 
 export interface MidsceneYamlConfigResult {
@@ -448,6 +458,15 @@ export interface MidsceneYamlConfigResult {
   report?: string | null;
   retryReport?: string | null;
   attempts?: MidsceneYamlConfigAttempt[];
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
   error?: string;
   duration?: number;
   /**

@@ -8,6 +8,16 @@
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
   "imports": {
+    "#yaml-execution-context": {
+      "node": {
+        "import": "./dist/es/yaml/execution-context.node.mjs",
+        "require": "./dist/lib/yaml/execution-context.node.js"
+      },
+      "default": {
+        "import": "./dist/es/yaml/execution-context.stub.mjs",
+        "require": "./dist/lib/yaml/execution-context.stub.js"
+      }
+    },
     "#proxy-deps": {
       "node": {
         "import": "./dist/es/ai-model/service-caller/proxy-deps.node.mjs",
@@ -81,6 +91,16 @@
       "import": "./dist/es/report-stats.mjs",
       "require": "./dist/lib/report-stats.js"
     },
+    "./internal/test-runner": {
+      "types": "./dist/types/test-runner/index.d.ts",
+      "import": "./dist/es/test-runner/index.mjs",
+      "require": "./dist/lib/test-runner/index.js"
+    },
+    "./internal/yaml-runtime": {
+      "types": "./dist/types/yaml-runtime.d.ts",
+      "import": "./dist/es/yaml-runtime.mjs",
+      "require": "./dist/lib/yaml-runtime.js"
+    },
     "./skill": {
       "types": "./dist/types/skill/index.d.ts",
       "import": "./dist/es/skill/index.mjs",
@@ -97,6 +117,8 @@
       "dump": ["./dist/types/dump/index.d.ts"],
       "dump/task-service-dump": ["./dist/types/dump/task-service-dump.d.ts"],
       "report-stats": ["./dist/types/report-stats.d.ts"],
+      "internal/test-runner": ["./dist/types/test-runner/index.d.ts"],
+      "internal/yaml-runtime": ["./dist/types/yaml-runtime.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "agent/test": ["./dist/types/agent/test-runner-nodes.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],

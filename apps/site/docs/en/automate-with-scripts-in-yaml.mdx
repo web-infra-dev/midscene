@@ -2,8 +2,10 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Automate with scripts in YAML
 
-:::info Legacy YAML automation
-This page describes the legacy YAML automation solution. For new test projects, see [Midscene Test overview](./midscene-test/overview). Midscene Test is currently in Beta.
+:::info Compatibility remains; migrate to Midscene Test for new work
+This page documents legacy `tasks/flow` YAML fields. The format remains supported. Existing cases and configuration can keep their files unchanged and continue using `midscene`, or switch directly to `midscene-test` for execution.
+
+The legacy format is not recommended for new projects or new cases. Use native Midscene Test `cases/steps`, lifecycle hooks, and Nodes for new and refactored work. Start with [Midscene Test overview](./midscene-test/overview), then follow [Migrate from legacy YAML](./midscene-test/migrate-from-yaml) to switch the entry or convert fields.
 :::
 
 In most cases, developers write automation scripts just to perform some smoke tests, like checking for the appearance of certain content or verifying that a key user path is accessible. In such situations, maintaining a large test project is unnecessary.

@@ -1,11 +1,19 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import { version } from '../../package.json';
+import type { LegacyConfigFactoryOptions } from '../runtime/legacy-config';
+import {
+  collectLegacyCliOption,
+  createLegacyTestRunPlan,
+  legacyPlanProjectRoot,
+  parseLegacyCliOptions,
+} from './legacy-command';
 import { renderNodeReference, sortNodesForReference } from './node-reference';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
-  runTestProject,
+  runTestProjectWithYamlCompatibility,
 } from './test-project-runner';
 
 export interface TestCliIO {
@@ -23,19 +31,38 @@ interface ParsedTestArgs {
   projectNames?: string[];
 }
 
+interface ParsedTestArgsWithYaml extends ParsedTestArgs {
+  legacyOptions?: LegacyConfigFactoryOptions;
+}
+
 export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
+  const { legacyOptions: _legacyOptions, ...parsed } = parseTestCliArgsWithYaml(
+    args,
+    cwd,
+  );
+  return parsed;
+};
+
+export const parseTestCliArgsWithYaml = (
+  args: string[],
+  cwd = process.cwd(),
+): ParsedTestArgsWithYaml => {
   const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
+  const legacyArgs: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
-    const arg = args[index];
+    const token = args[index];
+    const equal = token.startsWith('-') ? token.indexOf('=') : -1;
+    const arg = equal < 0 ? token : token.slice(0, equal);
+    const inlineValue = equal < 0 ? undefined : token.slice(equal + 1);
     if (!arg.startsWith('-')) {
       if (projectRoot)
         throw new Error('Only one test project directory is allowed.');
@@ -43,14 +70,17 @@ export const parseTestCliArgs = (
       continue;
     }
     if (arg === '--config' || arg === '--result-dir' || arg === '--project') {
-      const value = args[index + 1];
-      if (!value) throw new Error(`${arg} requires a value.`);
+      const value = inlineValue ?? args[index + 1];
+      if (!value || value.startsWith('--'))
+        throw new Error(`${arg} requires a value.`);
       if (arg === '--config') configPath = value;
       else if (arg === '--result-dir') resultDir = resolve(cwd, value);
       else projectNames.push(value);
-      index += 1;
+      if (inlineValue === undefined) index += 1;
     } else {
-      throw new Error(`Unknown option: ${arg}`);
+      const consumed = collectLegacyCliOption(args, index, legacyArgs);
+      if (consumed === undefined) throw new Error(`Unknown option: ${token}`);
+      index = consumed;
     }
   }
 
@@ -60,6 +90,11 @@ export const parseTestCliArgs = (
   if (command === 'nodes' && projectNames.length > 1) {
     throw new Error('nodes accepts only one --project name.');
   }
+  if (command === 'nodes' && legacyArgs.length > 0) {
+    throw new Error(
+      'Legacy YAML execution options are not supported by nodes.',
+    );
+  }
 
   return {
     ...(command ? { command } : {}),
@@ -68,6 +103,9 @@ export const parseTestCliArgs = (
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
+    ...(legacyArgs.length > 0
+      ? { legacyOptions: parseLegacyCliOptions(legacyArgs) }
+      : {}),
   };
 };
 
@@ -76,6 +114,24 @@ const defaultCliIO: TestCliIO = {
   error: console.error,
   write: (message) => process.stdout.write(message),
 };
+
+const testCliHelp = `Midscene Test: run native and legacy YAML workflows.
+
+Usage:
+  midscene-test [file.yaml | directory] [options]
+  midscene-test --config <midscene.config.ts | batch.yaml> [options]
+  midscene-test nodes [directory] [--config midscene.config.ts]
+  midscene-test create --help
+
+Options:
+  --config <path>              Native Test config or legacy batch YAML config
+  --project <name>             Select a native execution Project (repeatable)
+  --result-dir <path>          Store Test result files in this directory
+  --help, -h                  Show this help
+  --version                   Show the package version
+
+Old YAML command options remain supported for compatibility; see the YAML migration guide.
+`;
 
 const assertDirectory = (path: string, label: string): void => {
   if (!existsSync(path) || !statSync(path).isDirectory()) {
@@ -162,21 +218,79 @@ export async function runTestCli(
       await runCreateCommand(args.slice(1), io);
       return 0;
     }
-    const options = parseTestCliArgs(args);
+    if (args.includes('--help') || args.includes('-h')) {
+      io.log(testCliHelp);
+      return 0;
+    }
+    if (args.includes('--version')) {
+      io.log(version);
+      return 0;
+    }
+    const options = parseTestCliArgsWithYaml(args);
     if (options.command === 'nodes') {
       await runNodesCommand(options, io);
       return 0;
     }
-    const result = await runTestProject({
-      ...options,
-      onProgress: (message) => io.log(message),
-    });
+    const legacyPlan = await createLegacyTestRunPlan(options);
+    if (legacyPlan && options.projectNames?.length) {
+      throw new Error(
+        '--project cannot be combined with legacy YAML execution options.',
+      );
+    }
+    const result = await runTestProjectWithYamlCompatibility(
+      {
+        ...options,
+        ...(legacyPlan
+          ? {
+              configPath: undefined,
+              projectRoot: legacyPlanProjectRoot(
+                options.projectRoot,
+                options.cwd,
+              ),
+            }
+          : {}),
+        onProgress: (message) => io.log(message),
+      },
+      { plan: legacyPlan },
+    );
+    for (const failure of result.collectionErrors) {
+      io.error(
+        `midscene-test: ${failure.projectName}/${failure.sourcePath}: ${failure.error.message}`,
+      );
+    }
+    const finalCases = new Map(
+      result.cases.map((outcome) => [outcome.caseId, outcome]),
+    );
+    for (const outcome of finalCases.values()) {
+      if (outcome.status !== 'failed' || !outcome.run) continue;
+      const run = outcome.run;
+      const source = `${run.projectName}/${run.sourcePath} / ${run.name}`;
+      for (const step of [...run.beforeEach, ...run.steps, ...run.afterEach]) {
+        if (step.error) {
+          io.error(
+            `midscene-test: ${source} / ${step.phase}[${step.stepIndex + 1}] ${step.node}: ${step.error.message}`,
+          );
+        }
+      }
+      for (const error of [
+        ...(run.executionErrors ?? []),
+        ...(run.teardownErrors ?? []),
+      ]) {
+        io.error(`midscene-test: ${source}: ${error.message}`);
+      }
+    }
     io.log(
       `midscene-test: ${result.summary.passed}/${result.summary.total} cases passed, ${result.summary.failed} failed, ${result.summary.notRun} not run`,
     );
     io.log(`Results: ${result.resultDir}`);
     io.log(`Summary: ${result.summaryPath}`);
     if (result.reportPath) io.log(`Report: ${result.reportPath}`);
+    if (legacyPlan?.keepWindow && io === defaultCliIO) {
+      setInterval(
+        () => io.log('browser is still running, use ctrl+c to stop it'),
+        5000,
+      );
+    }
     return result.exitCode;
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));

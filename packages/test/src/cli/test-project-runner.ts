@@ -1,41 +1,66 @@
 import { randomUUID } from 'node:crypto';
 import { setMaxListeners } from 'node:events';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
-import { TestRunReportAssembler } from '@midscene/core/report';
-import { globSync } from 'tinyglobby';
-import { createProjectRuntime } from '../engine/project-runtime';
-import { runWorkflowDocument } from '../engine/run-workflow-document';
-import type {
-  CaseRunOutcome,
-  StepExecutionInfo,
-  StepRunResult,
-  WorkflowDocumentRunResult,
-} from '../engine/types';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import {
-  WorkflowError,
-  WorkflowParseError,
-  isFatalDeviceError,
-} from '../errors';
-import { collectWorkflowDocument } from '../parser/collect';
+  WorkflowExecutionFailure,
+  WorkflowPublicationError,
+  asExecutionError,
+  runConcurrentJobs,
+} from '@midscene/core/internal/test-runner';
+import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
-  WorkflowDocumentSource,
-} from '../parser/types';
+} from '@midscene/core/internal/test-runner';
+import type { WorkflowDocumentSource as InternalWorkflowDocumentSource } from '@midscene/core/internal/test-runner';
+import { TestRunReportAssembler } from '@midscene/core/report';
+import { getDebug } from '@midscene/shared/logger';
+import { globSync } from 'tinyglobby';
+import { createProjectRuntime } from '../engine/project-runtime';
+import { WorkflowError, WorkflowParseError } from '../errors';
+import { collectWorkflowDocument } from '../parser/collect';
+import { createDocumentInvocationId as createWorkflowDocumentId } from '../parser/identifiers';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
 } from '../report/test-run-report';
+import type { CreateYamlPlayerOptions } from '../runtime/create-yaml-player';
+import { loadDotenvConfig } from '../runtime/dotenv-loader';
 import {
-  writeCaseAttemptResult,
+  assertBrowserContextUsage,
+  createYamlBatchBrowser,
+  createYamlSharedBrowserProjectSetup,
+} from '../runtime/legacy-browser';
+import {
+  type LegacyTestRunPlan,
+  defaultLegacyConfig,
+  matchLegacyYamlFiles,
+} from '../runtime/legacy-config';
+import { getYamlProjectPlayerOptions } from '../runtime/yaml-setup';
+import {
+  type LegacyInvocationArtifacts,
+  type PreparedDocumentInvocation,
+  executeDocumentInvocation,
+} from './document-invocation';
+import {
+  type LegacyWorkflow,
+  adaptLegacyExecutionPlan,
+} from './legacy-adapter';
+import {
+  collectLegacyWorkflow,
+  isLegacyWorkflowFile,
+} from './legacy-collector';
+import {
+  buildLegacyYamlResults,
+  writeLegacyTestSummary,
+} from './legacy-summary';
+import {
   writeCollectionError,
   writeTestProjectRunResult,
-  writeWorkflowDocumentResult,
 } from './result-store';
 import {
   type LoadedExecutionProject,
-  type ResolvedExecutionProject,
   type TestFileSelection,
   loadTestProject,
   validateTestFileSelection,
@@ -76,40 +101,58 @@ export interface TestProjectRunOptions {
   onProgress?(message: string): void;
 }
 
+/** Compatibility integration only; never part of native Test project configuration. */
+export interface YamlCompatibilityRunOptions {
+  plan?: LegacyTestRunPlan;
+  writeSummary?: boolean;
+  getPlayerOptions?(
+    context: unknown,
+  ): CreateYamlPlayerOptions | Promise<CreateYamlPlayerOptions>;
+}
+
 interface PreparedExecutionProject<TProjectContext = unknown> {
   project: LoadedExecutionProject<TProjectContext>;
   fileSelection: TestFileSelection;
-  sources: readonly WorkflowDocumentSource[];
+  sources: readonly InternalWorkflowDocumentSource[];
   documents: readonly CollectedWorkflowDocument[];
+  invocations: readonly PreparedDocumentInvocation[];
   collectionErrors: readonly TestProjectCollectionError[];
   selectedCaseCount: number;
   filteredCaseCount: number;
 }
 
-export const discoverTestFiles = (
+const discoverResolvedTestFiles = (
   projectRoot: string,
-  selection: TestFileSelection = DEFAULT_TEST_FILE_SELECTION,
+  selection: TestFileSelection,
 ): string[] => {
   const root = resolve(projectRoot);
-  const normalized = validateTestFileSelection(selection);
-  if (!normalized) throw new TypeError('Test file selection is required.');
-
-  const files = globSync(normalized.include, {
-    absolute: true,
-    caseSensitiveMatch: false,
-    cwd: root,
-    dot: true,
-    expandDirectories: false,
-    followSymbolicLinks: false,
-    ignore: [...ALWAYS_IGNORED_PATTERNS, ...(normalized.exclude ?? [])],
-    onlyFiles: true,
-  }).filter((file) => /\.ya?ml$/i.test(file));
+  const match = (patterns: readonly string[]) =>
+    globSync(patterns, {
+      absolute: true,
+      caseSensitiveMatch: false,
+      cwd: root,
+      dot: true,
+      expandDirectories: false,
+      followSymbolicLinks: false,
+      ignore: [...ALWAYS_IGNORED_PATTERNS, ...(selection.exclude ?? [])],
+      onlyFiles: true,
+    }).filter((file) => /\.ya?ml$/i.test(file));
+  const files = match(selection.include);
 
   return [...new Set(files.map((file) => resolve(file)))].sort((a, b) => {
     const relativeA = toPosix(relative(root, a));
     const relativeB = toPosix(relative(root, b));
     return relativeA < relativeB ? -1 : relativeA > relativeB ? 1 : 0;
   });
+};
+
+export const discoverTestFiles = (
+  projectRoot: string,
+  selection: TestFileSelection = DEFAULT_TEST_FILE_SELECTION,
+): string[] => {
+  const normalized = validateTestFileSelection(selection);
+  if (!normalized) throw new TypeError('Test file selection is required.');
+  return discoverResolvedTestFiles(projectRoot, normalized);
 };
 
 export const discoverTestConfig = (projectRoot: string): string | undefined => {
@@ -179,7 +222,7 @@ const asCollectionError = (
 
 const matchesTags = (
   tags: readonly string[],
-  selection: ResolvedExecutionProject['tags'],
+  selection: LoadedExecutionProject['tags'],
 ): boolean => {
   if (selection.exclude.some((tag) => tags.includes(tag))) return false;
   return (
@@ -190,7 +233,7 @@ const matchesTags = (
 
 const filterDocumentCases = (
   document: CollectedWorkflowDocument,
-  project: ResolvedExecutionProject,
+  project: LoadedExecutionProject,
 ): { document?: CollectedWorkflowDocument; filtered: number } => {
   const cases = document.cases.filter((item) =>
     matchesTags(item.definition.tags ?? [], project.tags),
@@ -220,8 +263,12 @@ const asNotRun = (
 const summarize = (
   projects: readonly TestExecutionProjectRunResult[],
 ): TestProjectRunSummary => {
-  const cases = projects.flatMap((project) => project.cases);
-  const documents = projects.flatMap((project) => project.documents);
+  const cases = projects.flatMap((project) =>
+    latestById(project.cases, (item) => item.caseId),
+  );
+  const documents = projects.flatMap((project) =>
+    latestById(project.documents, (item) => item.documentId),
+  );
   return {
     total: cases.length,
     passed: cases.filter((item) => item.status === 'success').length,
@@ -243,38 +290,9 @@ const summarize = (
   };
 };
 
-const stepPosition = (info: StepExecutionInfo) =>
-  info.scope === 'case' ? info.case : info.document;
-
-const formatStep = (info: StepExecutionInfo): string => {
-  const position = stepPosition(info);
-  const phase = position.phase === 'steps' ? 'step' : position.phase;
-  return `${phase} ${position.stepIndex + 1}/${info.stepCount}: ${info.node}`;
-};
-
-const formatStepResult = (
-  info: StepExecutionInfo,
-  result: StepRunResult,
-): string => {
-  const indent = info.scope === 'case' ? '      ' : '    ';
-  const symbol = result.status === 'success' ? '✓' : '✗';
-  const error = result.error ? ` — ${result.error.message}` : '';
-  const continuation = result.continuedAfterError ? '; continuing' : '';
-  return `${indent}${symbol} ${formatStep(info)} (${result.durationMs} ms)${error}${continuation}`;
-};
-
-const caseHasFatalError = (outcome: CaseRunOutcome): boolean =>
-  (outcome.attempts ?? []).some(
-    (attempt) =>
-      [...attempt.beforeEach, ...attempt.steps, ...attempt.afterEach].some(
-        (step) => step.error && isFatalDeviceError(step.error),
-      ) || (attempt.teardownErrors ?? []).some(isFatalDeviceError),
-  );
-
-const documentHasFatalError = (result: WorkflowDocumentRunResult): boolean =>
-  [...result.beforeAll, ...result.afterAll].some(
-    (step) => step.error && isFatalDeviceError(step.error),
-  ) || (result.teardownErrors ?? []).some(isFatalDeviceError);
+const latestById = <T>(items: readonly T[], id: (item: T) => string): T[] => [
+  ...new Map(items.map((item) => [id(item), item])).values(),
+];
 
 const selectProjects = <TProjectContext>(
   projects: readonly LoadedExecutionProject<TProjectContext>[],
@@ -291,21 +309,40 @@ const selectProjects = <TProjectContext>(
   return projects.filter((project) => requested.has(project.name));
 };
 
-const prepareProject = <TProjectContext>(
+const prepareProject = async <TProjectContext>(
   project: LoadedExecutionProject<TProjectContext>,
   projectRoot: string,
   runDir: string,
-): PreparedExecutionProject<TProjectContext> => {
+  cwd: string,
+  singleFile?: string,
+  legacyPlan?: LegacyTestRunPlan,
+): Promise<PreparedExecutionProject<TProjectContext>> => {
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
-  const files = discoverTestFiles(projectRoot, fileSelection);
-  const sources = files.map((absolutePath) => ({
-    projectId: project.projectId,
-    projectName: project.name,
-    sourcePath: toPosix(relative(projectRoot, absolutePath)),
-    absolutePath,
-  }));
+  const setupFile = legacyPlan?.setup ? resolve(legacyPlan.setup) : undefined;
+  const mainFiles = legacyPlan
+    ? legacyPlan.files
+    : singleFile
+      ? [singleFile]
+      : discoverResolvedTestFiles(projectRoot, fileSelection);
+  const files = [
+    ...(setupFile ? [setupFile] : []),
+    ...mainFiles.filter((file) => file !== setupFile),
+  ];
+  const occurrences = new Map<string, number>();
+  const sources = files.map((absolutePath) => {
+    const invocationIndex = occurrences.get(absolutePath) ?? 0;
+    occurrences.set(absolutePath, invocationIndex + 1);
+    return {
+      projectId: project.projectId,
+      projectName: project.name,
+      sourcePath: toPosix(relative(projectRoot, absolutePath)),
+      absolutePath,
+      invocationIndex,
+    };
+  });
   const collectionErrors: TestProjectCollectionError[] = [];
   const documents: CollectedWorkflowDocument[] = [];
+  const legacyWorkflows = new Map<string, LegacyWorkflow>();
   let filteredCaseCount = 0;
 
   if (sources.length === 0) {
@@ -319,17 +356,41 @@ const prepareProject = <TProjectContext>(
       ),
     );
     collectionErrors.push(error);
-    writeCollectionError(runDir, error);
+    await writeCollectionError(runDir, error);
   }
 
   for (const source of sources) {
     try {
+      const legacy = await collectLegacyWorkflow(
+        source,
+        cwd,
+        legacyPlan?.globalConfig,
+      );
+      if (legacy) {
+        // Legacy tasks have no tags. Selection can exclude the whole file,
+        // but must never turn a file retry into independently retried tasks.
+        if (source.absolutePath !== setupFile && !matchesTags([], project.tags))
+          filteredCaseCount += legacy.document.cases.length;
+        else {
+          documents.push(legacy.document);
+          legacyWorkflows.set(legacy.document.documentId, legacy);
+        }
+        continue;
+      }
+      if (legacyPlan)
+        throw new WorkflowParseError(
+          'Legacy batch options require tasks/flow YAML. Use a TypeScript project config for native cases.',
+          { sourcePath: source.sourcePath },
+        );
       const collected = collectWorkflowDocument(source, {
         resolveNode: project.nodes.get.bind(project.nodes),
         variables: project.variables,
         env: process.env,
       });
-      const filtered = filterDocumentCases(collected, project);
+      const filtered =
+        source.absolutePath === setupFile
+          ? { document: collected, filtered: 0 }
+          : filterDocumentCases(collected, project);
       filteredCaseCount += filtered.filtered;
       if (filtered.document) documents.push(filtered.document);
     } catch (error) {
@@ -340,7 +401,7 @@ const prepareProject = <TProjectContext>(
         error,
       );
       collectionErrors.push(collectionError);
-      writeCollectionError(runDir, collectionError);
+      await writeCollectionError(runDir, collectionError);
     }
   }
 
@@ -349,6 +410,12 @@ const prepareProject = <TProjectContext>(
     fileSelection,
     sources,
     documents,
+    invocations: documents.map((document): PreparedDocumentInvocation => {
+      const workflow = legacyWorkflows.get(document.documentId);
+      return workflow
+        ? { kind: 'legacy', document, workflow }
+        : { kind: 'native', document };
+    }),
     collectionErrors,
     selectedCaseCount: documents.reduce(
       (total, document) => total + document.cases.length,
@@ -371,24 +438,109 @@ const notRunSuite = (
 export async function runTestProject(
   options: TestProjectRunOptions = {},
 ): Promise<TestProjectRunResult> {
+  return runTestProjectInternal(options, {});
+}
+
+/** Specialized YAML host entry. Both entries use exactly the same scheduler/kernel. */
+export async function runTestProjectWithYamlCompatibility(
+  options: TestProjectRunOptions,
+  compatibility: YamlCompatibilityRunOptions,
+): Promise<TestProjectRunResult> {
+  return runTestProjectInternal(options, compatibility);
+}
+
+async function runTestProjectInternal(
+  options: TestProjectRunOptions,
+  compatibility: YamlCompatibilityRunOptions,
+): Promise<TestProjectRunResult> {
   const startedAt = new Date();
   const runId = createTestRunId(startedAt);
   const cwd = resolve(options.cwd ?? process.cwd());
   assertDirectory(cwd, 'Test working directory');
-  const cliProjectRoot = options.projectRoot
+  const inputPath = options.projectRoot
     ? resolve(cwd, options.projectRoot)
     : undefined;
+  const singleFile =
+    inputPath && existsSync(inputPath) && statSync(inputPath).isFile()
+      ? inputPath
+      : undefined;
+  if (singleFile && !/\.ya?ml$/i.test(singleFile))
+    throw new Error(
+      `Test input must be a YAML file or project directory: ${singleFile}`,
+    );
+  const cliProjectRoot = singleFile ? dirname(singleFile) : inputPath;
   if (cliProjectRoot) assertDirectory(cliProjectRoot, 'Test project directory');
   const configSearchRoot = cliProjectRoot ?? cwd;
-  const configPath = options.configPath
-    ? resolve(configSearchRoot, options.configPath)
-    : discoverTestConfig(configSearchRoot);
+  // Legacy inputs may sit beside an old batch config named midscene.config.yaml.
+  // Only an explicit config or an actual native config can opt them into Test's
+  // config discovery rules; preserve the old matcher's selected files otherwise.
+  const unconfiguredFiles =
+    !compatibility.plan &&
+    !options.configPath &&
+    !existsSync(join(configSearchRoot, CONFIG_NAME))
+      ? await matchLegacyYamlFiles(singleFile ?? cliProjectRoot ?? cwd)
+      : undefined;
+  const bareLegacyInput =
+    !!unconfiguredFiles?.length &&
+    unconfiguredFiles.every(isLegacyWorkflowFile);
+  const configPath =
+    compatibility.plan || bareLegacyInput
+      ? undefined
+      : options.configPath
+        ? resolve(configSearchRoot, options.configPath)
+        : discoverTestConfig(configSearchRoot);
   if (options.configPath && (!configPath || !existsSync(configPath))) {
     throw new Error(`Midscene config does not exist: ${configPath}`);
   }
 
-  const definition = await loadTestProject(configPath);
+  let legacyPlan = compatibility.plan;
+  if (legacyPlan && options.projectNames?.length)
+    throw new Error(
+      '--project requires a TypeScript project config. Use files in the legacy batch config.',
+    );
+  if (!configPath && !legacyPlan) {
+    const files =
+      unconfiguredFiles ??
+      (await matchLegacyYamlFiles(singleFile ?? cliProjectRoot ?? cwd));
+    if (files.length && files.every(isLegacyWorkflowFile)) {
+      // Bare legacy projects keep the old CLI's file selection and fail-stop
+      // defaults. Explicit native configs retain Test's selection and bail rules.
+      legacyPlan = {
+        ...defaultLegacyConfig,
+        files,
+        summary: `summary-${Date.now()}.json`,
+        bail: 1,
+      };
+    }
+  }
+  if (legacyPlan) loadDotenvConfig({ cwd, ...legacyPlan });
   const projectRoot = cliProjectRoot ?? cwd;
+  let definition = await loadTestProject<unknown>(configPath);
+  if (legacyPlan) {
+    const adapted = adaptLegacyExecutionPlan(legacyPlan, projectRoot);
+    definition = {
+      ...definition,
+      test: {
+        ...definition.test,
+        maxConcurrency: 1,
+        bail: adapted.bail,
+      },
+      projects: [
+        {
+          ...definition.projects[0],
+          ...adapted.project,
+          ...(legacyPlan.shareBrowserContext
+            ? {
+                setup: createYamlSharedBrowserProjectSetup(
+                  legacyPlan,
+                  createYamlBatchBrowser,
+                ),
+              }
+            : {}),
+        },
+      ],
+    };
+  }
 
   const resultDir = options.resultDir
     ? resolve(cwd, options.resultDir)
@@ -402,9 +554,39 @@ export async function runTestProject(
     definition.projects,
     options.projectNames,
   );
-  const preparedProjects = selectedProjects.map((project) =>
-    prepareProject(project, projectRoot, runDir),
+  const preparedProjects: PreparedExecutionProject[] = [];
+  for (const project of selectedProjects) {
+    const prepared = await prepareProject(
+      project,
+      projectRoot,
+      runDir,
+      cwd,
+      singleFile,
+      legacyPlan,
+    );
+    preparedProjects.push(prepared);
+  }
+  const batchInputs = preparedProjects.flatMap((prepared) =>
+    prepared.invocations.flatMap((invocation) =>
+      invocation.kind === 'legacy'
+        ? [
+            {
+              file: invocation.workflow.source.absolutePath,
+              sourceConfig: invocation.workflow.sourceConfig,
+              executionConfig: invocation.workflow.script,
+            },
+          ]
+        : [],
+    ),
   );
+  if (legacyPlan)
+    assertBrowserContextUsage(
+      legacyPlan.setup
+        ? batchInputs.find((input) => input.file === legacyPlan.setup)
+        : undefined,
+      batchInputs,
+      legacyPlan.shareBrowserContext,
+    );
   const progress = options.onProgress ?? (() => {});
   const totalDocuments = preparedProjects.reduce(
     (total, prepared) => total + prepared.documents.length,
@@ -440,14 +622,17 @@ export async function runTestProject(
   process.on('SIGTERM', sigterm);
 
   let failedCaseCount = 0;
+  const legacyArtifacts = new Map<string, LegacyInvocationArtifacts>();
   const bailReached = () =>
     definition.test.bail > 0 && failedCaseCount >= definition.test.bail;
   let hasInfrastructureError = false;
-  let firstInfrastructureError: unknown;
+  const infrastructureErrors: unknown[] = [];
   const recordInfrastructureError = (error: unknown) => {
-    if (hasInfrastructureError) return;
+    const errors =
+      error instanceof WorkflowExecutionFailure ? error.errors : [error];
+    for (const item of errors)
+      if (!infrastructureErrors.includes(item)) infrastructureErrors.push(item);
     hasInfrastructureError = true;
-    firstInfrastructureError = error;
     rootController.abort(error);
   };
   const runInfrastructureCallback = <T>(callback: () => T): T => {
@@ -476,12 +661,17 @@ export async function runTestProject(
     const { project } = prepared;
     const projectFailed =
       prepared.collectionErrors.length > 0 ||
-      cases.some((item) => item.status !== 'success') ||
-      documents.some((item) => item.status === 'failed') ||
+      latestById(cases, (item) => item.caseId).some(
+        (item) => item.status !== 'success',
+      ) ||
+      latestById(documents, (item) => item.documentId).some(
+        (item) => item.status === 'failed',
+      ) ||
       lifecycle?.status === 'failed';
     return {
       projectId: project.projectId,
       name: project.name,
+      platform: legacyPlan ? 'auto' : 'test',
       status: projectFailed ? 'failed' : 'success',
       retry: project.retry,
       fileSelection: prepared.fileSelection,
@@ -520,7 +710,10 @@ export async function runTestProject(
     let lifecycle: TestExecutionProjectRunResult['lifecycle'];
     let projectFatal = false;
 
-    if (prepared.collectionErrors.length > 0) {
+    if (
+      prepared.collectionErrors.length > 0 ||
+      (legacyPlan && totalErrors > 0)
+    ) {
       cases.push(...notRunSuite(prepared, 'project-preflight-failed'));
     } else if (rootController.signal.aborted) {
       cases.push(...notRunSuite(prepared, 'interrupted'));
@@ -533,7 +726,6 @@ export async function runTestProject(
         signal: rootController.signal,
       });
       let hasProjectExecutionError = false;
-      let projectExecutionError: unknown;
       try {
         await runtime.start();
         if (!runtime.canRun) {
@@ -546,10 +738,11 @@ export async function runTestProject(
             ),
           );
         } else {
-          for (const [
-            documentIndex,
-            document,
-          ] of prepared.documents.entries()) {
+          const runDocument = async (
+            invocation: PreparedDocumentInvocation,
+            documentIndex: number,
+          ) => {
+            const { document } = invocation;
             if (
               rootController.signal.aborted ||
               bailReached() ||
@@ -565,134 +758,155 @@ export async function runTestProject(
                   asNotRun(document.documentId, item, project.name, reason),
                 ),
               );
-              continue;
+              return;
             }
             projectProgress(
               `  [document ${documentIndex + 1}/${prepared.documents.length}] ${document.sourcePath}`,
             );
-            const execution = await runWorkflowDocument(document, {
-              resolveNode: project.nodes.require.bind(project.nodes),
+            await executeDocumentInvocation({
+              invocation,
               project,
+              definition,
               projectContext: runtime.context,
-              retry: project.retry,
+              runDir,
               signal: runtime.signal,
-              defaultTimeoutMs: definition.test.testTimeout,
-              shouldStop: () =>
-                rootController.signal.aborted || bailReached() || projectFatal,
-              stopReason: () =>
-                rootController.signal.aborted
-                  ? 'interrupted'
-                  : projectFatal
-                    ? 'fatal-error'
-                    : 'bail',
-              isFatalError: (run) =>
-                [...run.beforeEach, ...run.steps, ...run.afterEach].some(
-                  (step) => step.error && isFatalDeviceError(step.error),
-                ) || (run.teardownErrors ?? []).some(isFatalDeviceError),
-              onCaseStart: (collectedCase) => {
-                projectProgress(
-                  `    [case ${collectedCase.caseIndex + 1}/${document.cases.length}] ${collectedCase.definition.name}`,
-                );
+              rootSignal: rootController.signal,
+              legacyPlan,
+              getLegacyPlayerOptions: compatibility.getPlayerOptions
+                ? () => compatibility.getPlayerOptions!(runtime.context)
+                : () => getYamlProjectPlayerOptions(runtime.context),
+              shouldBail: bailReached,
+              isProjectFatal: () => projectFatal,
+              markProjectFatal: () => {
+                projectFatal = true;
               },
-              onStepStart: (info) => {
-                const indent = info.scope === 'case' ? '      ' : '    ';
-                projectProgress(`${indent}→ ${formatStep(info)}`);
+              addFailedCases: (count) => {
+                failedCaseCount += count;
               },
-              onStepResult: (info, result) =>
-                projectProgress(formatStepResult(info, result)),
-              onCaseResult: (attempt) => {
-                runInfrastructureCallback(() =>
-                  writeCaseAttemptResult(
-                    runDir,
-                    project.projectId,
-                    document.documentId,
-                    attempt,
-                  ),
-                );
-                projectProgress(
-                  `    ${attempt.status === 'success' ? '✓' : '✗'} attempt ${attempt.attemptIndex + 1}/${project.retry + 1}: ${attempt.name} (${attempt.durationMs} ms)`,
-                );
+              onProgress: projectProgress,
+              sinks: {
+                cases,
+                documents,
+                legacyArtifacts,
               },
-              onCaseOutcome: (outcome) => {
-                if (outcome.status === 'failed') failedCaseCount += 1;
-                if (caseHasFatalError(outcome)) projectFatal = true;
-              },
-              onDocumentResult: (documentResult) =>
-                runInfrastructureCallback(() =>
-                  writeWorkflowDocumentResult(runDir, documentResult),
-                ),
             });
-            cases.push(
-              ...execution.cases.map((outcome) => ({
-                ...outcome,
-                documentId: document.documentId,
-              })),
-            );
-            if (documentHasFatalError(execution.document)) {
-              projectFatal = true;
-            }
-            documents.push(execution.document);
+          };
+          let setupFailed = false;
+          const setupCount = legacyPlan?.setup ? 1 : 0;
+          if (setupCount) {
+            await runDocument(prepared.invocations[0], 0);
+            setupFailed =
+              documents.at(-1)?.status === 'failed' ||
+              latestById(cases, (item) => item.caseId).some(
+                (item) => item.status !== 'success',
+              );
           }
+          if (!setupFailed) {
+            await runConcurrentJobs(
+              prepared.invocations.slice(setupCount),
+              {
+                concurrency: legacyPlan?.concurrent ?? 1,
+                shouldStop: () =>
+                  rootController.signal.aborted ||
+                  bailReached() ||
+                  projectFatal,
+              },
+              async (invocation, index) => {
+                try {
+                  await runDocument(invocation, index + setupCount);
+                } catch (error) {
+                  recordInfrastructureError(error);
+                  throw error;
+                }
+              },
+            );
+          }
+          const completed = new Set(cases.map((item) => item.caseId));
+          const reason = setupFailed
+            ? 'project-setup-failed'
+            : rootController.signal.aborted
+              ? 'interrupted'
+              : projectFatal
+                ? 'fatal-error'
+                : 'bail';
+          cases.push(
+            ...notRunSuite(prepared, reason).filter(
+              (item) => !completed.has(item.caseId),
+            ),
+          );
         }
       } catch (error) {
         hasProjectExecutionError = true;
-        projectExecutionError = error;
         recordInfrastructureError(error);
       } finally {
         const hasFailure =
           hasProjectExecutionError ||
-          cases.some((item) => item.status !== 'success') ||
-          documents.some((item) => item.status === 'failed') ||
+          latestById(cases, (item) => item.caseId).some(
+            (item) => item.status !== 'success',
+          ) ||
+          latestById(documents, (item) => item.documentId).some(
+            (item) => item.status === 'failed',
+          ) ||
           projectFatal ||
           rootController.signal.aborted;
         lifecycle = await runtime.finish(hasFailure ? 'failed' : 'success');
       }
-      if (hasProjectExecutionError) throw projectExecutionError;
+      if (hasProjectExecutionError) {
+        const completed = new Set(cases.map((item) => item.caseId));
+        cases.push(
+          ...notRunSuite(prepared, 'interrupted').filter(
+            (item) => !completed.has(item.caseId),
+          ),
+        );
+      }
     }
 
+    const order = new Map(
+      prepared.documents.map((document, index) => [document.documentId, index]),
+    );
+    const documentOrder = (id: string) =>
+      order.get(id) ?? Number.MAX_SAFE_INTEGER;
+    cases.sort(
+      (a, b) =>
+        documentOrder(a.documentId) - documentOrder(b.documentId) ||
+        a.caseIndex - b.caseIndex,
+    );
+    documents.sort(
+      (a, b) =>
+        documentOrder(a.documentId) - documentOrder(b.documentId) ||
+        (a.attemptIndex ?? 0) - (b.attemptIndex ?? 0),
+    );
     return buildProjectResult(prepared, cases, documents, lifecycle);
   };
 
   const projectResults: Array<TestExecutionProjectRunResult | undefined> =
     new Array(preparedProjects.length);
-  let nextProjectIndex = 0;
-  const claimNextProject = (): number | undefined => {
-    if (
-      hasInfrastructureError ||
-      rootController.signal.aborted ||
-      bailReached() ||
-      nextProjectIndex >= preparedProjects.length
-    ) {
-      return undefined;
-    }
-    const projectIndex = nextProjectIndex;
-    nextProjectIndex += 1;
-    return projectIndex;
-  };
-  const worker = async () => {
-    try {
-      while (true) {
-        const projectIndex = claimNextProject();
-        if (projectIndex === undefined) return;
-        projectResults[projectIndex] = await runPreparedProject(
-          preparedProjects[projectIndex],
-          projectIndex,
-        );
-      }
-    } catch (error) {
-      recordInfrastructureError(error);
-    }
-  };
 
   try {
-    await Promise.allSettled(
-      Array.from({ length: effectiveConcurrency }, () => worker()),
+    await runConcurrentJobs(
+      preparedProjects,
+      {
+        concurrency: effectiveConcurrency,
+        shouldStop: () =>
+          hasInfrastructureError ||
+          rootController.signal.aborted ||
+          bailReached(),
+      },
+      async (prepared, index) => {
+        try {
+          projectResults[index] = await runPreparedProject(prepared, index);
+        } catch (error) {
+          recordInfrastructureError(error);
+          throw error;
+        }
+      },
     );
+  } catch (error) {
+    recordInfrastructureError(error);
   } finally {
     process.off('SIGINT', sigint);
     process.off('SIGTERM', sigterm);
   }
-  if (hasInfrastructureError) throw firstInfrastructureError;
 
   const completedProjectResults = preparedProjects.map(
     (prepared, projectIndex) => {
@@ -716,6 +930,7 @@ export async function runTestProject(
 
   const summary = summarize(completedProjectResults);
   const failed =
+    hasInfrastructureError ||
     rootController.signal.aborted ||
     summary.failed > 0 ||
     summary.notRun > 0 ||
@@ -741,23 +956,110 @@ export async function runTestProject(
     collectionErrors: completedProjectResults.flatMap(
       (project) => project.collectionErrors,
     ),
+    ...(hasInfrastructureError
+      ? { errors: infrastructureErrors.map(asExecutionError) }
+      : {}),
   };
-  writeTestProjectRunResult({
-    projectRoot,
-    ...(configPath ? { configPath } : {}),
-    result,
-  });
-  const reportPath = new TestRunReportAssembler().assemble({
-    outputDir: reportDir,
-    reportFileName: `test-run-${runId}`,
-    sources: collectTestRunReportSources(result),
-    buildRunnerDump: (index) => buildTestRunReportDump(result, index),
-  });
-  const completedResult: TestProjectRunResult = { ...result, reportPath };
-  writeTestProjectRunResult({
-    projectRoot,
-    ...(configPath ? { configPath } : {}),
-    result: completedResult,
-  });
+  let completedResult = result;
+  const publish = async (
+    operation: 'write-result' | 'write-report',
+    path: string,
+    callback: () => unknown | Promise<unknown>,
+  ): Promise<boolean> => {
+    try {
+      await callback();
+      return true;
+    } catch (error) {
+      recordInfrastructureError(
+        error instanceof WorkflowPublicationError ||
+          error instanceof WorkflowExecutionFailure
+          ? error
+          : new WorkflowPublicationError(operation, path, error),
+      );
+      completedResult = {
+        ...completedResult,
+        status: 'failed',
+        exitCode: 1,
+        errors: infrastructureErrors.map(asExecutionError),
+      };
+      return false;
+    }
+  };
+  const writeSummary = () =>
+    publish('write-result', summaryPath, () =>
+      writeTestProjectRunResult({
+        projectRoot,
+        ...(configPath ? { configPath } : {}),
+        result: completedResult,
+      }),
+    );
+  const writeReport = () =>
+    publish('write-report', reportDir, async () => {
+      const invocations = preparedProjects.flatMap((item) => item.invocations);
+      if (
+        invocations.length > 0 &&
+        invocations.every(
+          (item) =>
+            item.kind === 'legacy' &&
+            item.workflow.script.agent?.generateReport === false,
+        )
+      )
+        return;
+      const reportPath = await new TestRunReportAssembler().assembleAsync({
+        outputDir: reportDir,
+        reportFileName: `midscene-e2e-${runId}`,
+        overwrite: false,
+        sources: collectTestRunReportSources(completedResult),
+        buildRunnerDump: (index) => {
+          const dump = buildTestRunReportDump(completedResult, index);
+          const warn = getDebug('test-runner:report-assembler', {
+            console: true,
+          });
+          for (const diagnostic of dump.diagnostics ?? [])
+            warn(diagnostic.message);
+          return dump;
+        },
+      });
+      completedResult = { ...completedResult, reportPath };
+    });
+  // Publish each artifact once. The summary includes the report path or its
+  // failure. If the summary itself fails, the thrown result remains authoritative;
+  // do not rebuild an already-published execution report to backfill that error.
+  await writeReport();
+  if (legacyPlan) {
+    const occurrences = preparedProjects.flatMap((prepared) =>
+      prepared.sources.map((source) => ({
+        file: source.absolutePath,
+        projectId: prepared.project.projectId,
+        documentId: createWorkflowDocumentId(
+          source.projectId,
+          source.sourcePath,
+          source.invocationIndex,
+        ),
+        artifacts: legacyArtifacts.get(
+          createWorkflowDocumentId(
+            source.projectId,
+            source.sourcePath,
+            source.invocationIndex,
+          ),
+        ),
+      })),
+    );
+    completedResult = {
+      ...completedResult,
+      legacyResults: buildLegacyYamlResults(completedResult, occurrences),
+    };
+    if (compatibility.writeSummary !== false)
+      await publish('write-result', legacyPlan.summary, () => {
+        return writeLegacyTestSummary(
+          legacyPlan.summary,
+          completedResult,
+          occurrences,
+        );
+      });
+  }
+  await writeSummary();
+  if (hasInfrastructureError)
+    throw new WorkflowExecutionFailure(completedResult, infrastructureErrors);
   return completedResult;
 }

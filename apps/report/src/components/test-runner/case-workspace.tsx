@@ -15,6 +15,8 @@ import { RunnerTracePage } from './agent-trace';
 import { RunnerAttemptTimeline } from './attempt-timeline';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
+  getCaseWorkspaceDocument,
+  getCaseWorkspaceDocumentAttemptIndex,
   getCaseWorkspaceStepGroups,
   getDefaultCaseWorkspaceStep,
 } from './case-workspace-model';
@@ -25,7 +27,6 @@ import {
   type RunnerCaseView,
   type RunnerPositionedVisualFrame,
   type RunnerVisualIndex,
-  flattenAttemptSteps,
   getDefaultVisualFrameForStep,
   getStepForVisualFrame,
   getVisualFrames,
@@ -57,17 +58,34 @@ export function CaseWorkspace({
   onCloseTracePage(): void;
   backLabel: string;
 }): JSX.Element {
+  const initialDocumentAttemptIndex = getCaseWorkspaceDocumentAttemptIndex(
+    item,
+    initialStepId,
+  );
   const initialAttempt =
-    item.testCase.attempts.find((attempt) =>
-      flattenAttemptSteps(attempt).some((step) => step.id === initialStepId),
-    ) ?? item.finalAttempt;
+    initialDocumentAttemptIndex !== undefined
+      ? item.testCase.attempts.find(
+          (attempt) => attempt.attemptIndex === initialDocumentAttemptIndex,
+        )
+      : (item.testCase.attempts.find((attempt) =>
+          getCaseWorkspaceStepGroups(item, attempt).some((group) =>
+            group.steps.some((step) => step.id === initialStepId),
+          ),
+        ) ?? item.finalAttempt);
   const initialWorkspaceSteps = getCaseWorkspaceStepGroups(
     item,
     initialAttempt,
+    initialDocumentAttemptIndex,
   ).flatMap((group) => group.steps);
   const initialStep =
     initialWorkspaceSteps.find((step) => step.id === initialStepId) ??
-    getDefaultCaseWorkspaceStep(item, initialAttempt);
+    getDefaultCaseWorkspaceStep(
+      item,
+      initialAttempt,
+      initialDocumentAttemptIndex,
+    );
+  const [selectedDocumentAttemptIndex, setSelectedDocumentAttemptIndex] =
+    useState(initialDocumentAttemptIndex);
   const [selectedAttemptId, setSelectedAttemptId] = useState(
     initialAttempt?.attemptId,
   );
@@ -80,16 +98,29 @@ export function CaseWorkspace({
   const playbackIndexRef = useRef(0);
 
   useEffect(() => {
-    const nextAttempt =
-      item.testCase.attempts.find((attempt) =>
-        flattenAttemptSteps(attempt).some((step) => step.id === initialStepId),
-      ) ?? item.finalAttempt;
-    const nextSteps = getCaseWorkspaceStepGroups(item, nextAttempt).flatMap(
-      (group) => group.steps,
+    const nextDocumentAttemptIndex = getCaseWorkspaceDocumentAttemptIndex(
+      item,
+      initialStepId,
     );
+    const nextAttempt =
+      nextDocumentAttemptIndex !== undefined
+        ? item.testCase.attempts.find(
+            (attempt) => attempt.attemptIndex === nextDocumentAttemptIndex,
+          )
+        : (item.testCase.attempts.find((attempt) =>
+            getCaseWorkspaceStepGroups(item, attempt).some((group) =>
+              group.steps.some((step) => step.id === initialStepId),
+            ),
+          ) ?? item.finalAttempt);
+    const nextSteps = getCaseWorkspaceStepGroups(
+      item,
+      nextAttempt,
+      nextDocumentAttemptIndex,
+    ).flatMap((group) => group.steps);
     const nextStep =
       nextSteps.find((step) => step.id === initialStepId) ??
-      getDefaultCaseWorkspaceStep(item, nextAttempt);
+      getDefaultCaseWorkspaceStep(item, nextAttempt, nextDocumentAttemptIndex);
+    setSelectedDocumentAttemptIndex(nextDocumentAttemptIndex);
     setSelectedAttemptId(nextAttempt?.attemptId);
     setSelectedStepId(nextStep?.id);
     setPreviewFrameKey(undefined);
@@ -97,15 +128,24 @@ export function CaseWorkspace({
     setInspectorTab('io');
     setTraceDrawerOpen(false);
     setIsPlaying(false);
-  }, [initialStepId, item.finalAttempt, item.key, item.testCase.attempts]);
+  }, [initialStepId, item]);
 
   const selectedAttempt =
-    item.testCase.attempts.find(
-      (attempt) => attempt.attemptId === selectedAttemptId,
-    ) ?? item.finalAttempt;
+    selectedDocumentAttemptIndex !== undefined
+      ? item.testCase.attempts.find(
+          (attempt) => attempt.attemptIndex === selectedDocumentAttemptIndex,
+        )
+      : (item.testCase.attempts.find(
+          (attempt) => attempt.attemptId === selectedAttemptId,
+        ) ?? item.finalAttempt);
   const stepGroups = useMemo(
-    () => getCaseWorkspaceStepGroups(item, selectedAttempt),
-    [item, selectedAttempt],
+    () =>
+      getCaseWorkspaceStepGroups(
+        item,
+        selectedAttempt,
+        selectedDocumentAttemptIndex,
+      ),
+    [item, selectedAttempt, selectedDocumentAttemptIndex],
   );
   const workspaceSteps = useMemo(
     () => stepGroups.flatMap((group) => group.steps),
@@ -114,7 +154,11 @@ export function CaseWorkspace({
 
   const selectedStep =
     workspaceSteps.find((step) => step.id === selectedStepId) ??
-    getDefaultCaseWorkspaceStep(item, selectedAttempt);
+    getDefaultCaseWorkspaceStep(
+      item,
+      selectedAttempt,
+      selectedDocumentAttemptIndex,
+    );
   const visualFrames = useMemo(
     () =>
       getVisualFrames(
@@ -168,9 +212,17 @@ export function CaseWorkspace({
     return () => window.clearInterval(interval);
   }, [isPlaying, positionedFrames]);
 
-  const selectAttempt = (attempt: TestRunReportAttempt) => {
-    const nextStep = getDefaultCaseWorkspaceStep(item, attempt);
-    setSelectedAttemptId(attempt.attemptId);
+  const selectAttempt = (
+    attempt?: TestRunReportAttempt,
+    documentAttemptIndex?: number,
+  ) => {
+    const nextStep = getDefaultCaseWorkspaceStep(
+      item,
+      attempt,
+      documentAttemptIndex,
+    );
+    setSelectedDocumentAttemptIndex(documentAttemptIndex);
+    setSelectedAttemptId(attempt?.attemptId);
     setSelectedStepId(nextStep?.id);
     setPreviewFrameKey(undefined);
     setLockedFrameKey(undefined);
@@ -238,16 +290,51 @@ export function CaseWorkspace({
         item={item}
         standaloneRun={standaloneRun}
         selectedAttempt={selectedAttempt}
+        selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
         backLabel={backLabel}
         onBack={onBack}
         onSelectAttempt={selectAttempt}
+        onSelectDocumentAttempt={(index) =>
+          selectAttempt(
+            item.testCase.attempts.find(
+              (attempt) => attempt.attemptIndex === index,
+            ),
+            index,
+          )
+        }
       />
 
       <LifecycleErrors
-        issues={(selectedAttempt?.teardownErrors ?? []).map((error) => ({
-          label: `Attempt ${selectedAttempt!.attemptIndex + 1}: Case teardown failed`,
-          error,
-        }))}
+        issues={[
+          ...(selectedAttempt?.hostErrors ?? []).map(({ phase, error }) => ({
+            label: `Attempt ${selectedAttempt!.attemptIndex + 1}: ${phase} failed`,
+            error,
+          })),
+          ...(
+            getCaseWorkspaceDocument(
+              item,
+              selectedAttempt,
+              selectedDocumentAttemptIndex,
+            ).hostErrors ?? []
+          ).map(({ phase, error }) => ({
+            label: `Document ${phase} failed`,
+            error,
+          })),
+          ...(selectedAttempt?.teardownErrors ?? []).map((error) => ({
+            label: `Attempt ${selectedAttempt!.attemptIndex + 1}: Case teardown failed`,
+            error,
+          })),
+          ...(
+            getCaseWorkspaceDocument(
+              item,
+              selectedAttempt,
+              selectedDocumentAttemptIndex,
+            ).teardownErrors ?? []
+          ).map((error) => ({
+            label: 'Document teardown failed',
+            error,
+          })),
+        ]}
       />
       {workspaceSteps.length > 0 ? (
         <>
