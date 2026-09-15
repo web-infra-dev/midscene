@@ -1,19 +1,20 @@
 import {
-  type JpegBase64DataUrl,
-  convertBase64ImageToJpeg,
+  type WebpBase64DataUrl,
+  convertBase64ImageToWebp,
   imageInfoOfBase64,
-  resizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp,
 } from '@midscene/shared/img';
 import type { Size } from '../types';
 
-const SCREENSHOT_JPEG_QUALITY = 90;
+const SCREENSHOT_WEBP_QUALITY = 90;
+const SCREENSHOT_WEBP_EFFORT = 1;
 
 export interface PrepareRawScreenshotOptions {
   shrinkFactor?: number;
 }
 
 export interface PreparedScreenshot {
-  base64: JpegBase64DataUrl;
+  base64: WebpBase64DataUrl;
   originalSize: Size;
   shotSize: Size;
 }
@@ -58,10 +59,11 @@ export async function prepareRawScreenshot(
       : { ...originalSize };
   assertValidSize(shotSize, 'prepared screenshot dimensions');
 
-  const base64 = await resizeBase64ImageToJpeg(screenshotBase64, {
+  const base64 = await resizeBase64ImageToWebp(screenshotBase64, {
     sourceSize: originalSize,
     targetSize: shotSize,
-    jpegQuality: SCREENSHOT_JPEG_QUALITY,
+    webpQuality: SCREENSHOT_WEBP_QUALITY,
+    webpEffort: SCREENSHOT_WEBP_EFFORT,
   });
 
   return {
@@ -72,16 +74,19 @@ export async function prepareRawScreenshot(
 }
 
 /**
- * Prepare a screenshot for persistence when only JPEG output is required.
+ * Prepare a screenshot for persistence when only WebP output is required.
  * Unscaled frames avoid dimension reads; scaled frames use the full pipeline.
  */
 export async function prepareScreenshotForPersistence(
   screenshotBase64: string,
   options?: PrepareRawScreenshotOptions,
-): Promise<JpegBase64DataUrl> {
+): Promise<WebpBase64DataUrl> {
   const shrinkFactor = options?.shrinkFactor ?? 1;
   if (shrinkFactor === 1) {
-    return convertBase64ImageToJpeg(screenshotBase64, SCREENSHOT_JPEG_QUALITY);
+    return convertBase64ImageToWebp(screenshotBase64, {
+      webpQuality: SCREENSHOT_WEBP_QUALITY,
+      webpEffort: SCREENSHOT_WEBP_EFFORT,
+    });
   }
   return (await prepareRawScreenshot(screenshotBase64, options)).base64;
 }

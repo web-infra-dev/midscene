@@ -65,6 +65,7 @@ describe('prepareModelImage', () => {
     expect(paddingToMatchBlockByBase64).toHaveBeenCalledWith(
       'original-image',
       28,
+      'webp',
     );
     expect(image).toEqual({
       imageBase64: 'padded-image',
@@ -76,6 +77,24 @@ describe('prepareModelImage', () => {
         width: 101,
         height: 77,
       },
+    });
+  });
+
+  it('does not decode or encode an image that already matches the block size', async () => {
+    const image = await prepareModelImage({
+      imageBase64: 'already-aligned-webp',
+      width: 112,
+      height: 84,
+      policy: {
+        padBlockSize: 28,
+      },
+    });
+
+    expect(paddingToMatchBlockByBase64).not.toHaveBeenCalled();
+    expect(image).toEqual({
+      imageBase64: 'already-aligned-webp',
+      preparedSize: { width: 112, height: 84 },
+      contentSize: { width: 112, height: 84 },
     });
   });
 });
@@ -122,6 +141,7 @@ describe('buildSearchAreaConfig', () => {
     expect(cropByRect).toHaveBeenCalledWith(
       'full-screenshot',
       expect.any(Object),
+      'webp',
     );
     expect(cropCalls).toEqual([
       {
@@ -131,7 +151,7 @@ describe('buildSearchAreaConfig', () => {
         height: 400,
       },
     ]);
-    expect(scaleImage).toHaveBeenCalledWith('cropped-image', 2);
+    expect(scaleImage).toHaveBeenCalledWith('cropped-image', 2, 'webp');
     expect(searchArea).toEqual({
       sourceRect: {
         left: 300,

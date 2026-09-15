@@ -6,14 +6,16 @@ const pngDataUrl =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVR4nGMQqbiDFTEMpAQAorNDgTX/VEoAAAAASUVORK5CYII=';
 const jpegDataUrl =
   'data:image/jpeg;base64,/9j/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAADAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJ0AWYyP/9k=';
+const webpDataUrl =
+  'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
 
 describe('prepareRawScreenshot', () => {
-  it('normalizes a PNG to JPEG without changing its dimensions', async () => {
+  it('normalizes a PNG to WebP without changing its dimensions', async () => {
     const prepared = await prepareRawScreenshot(pngDataUrl);
 
     expect(prepared.originalSize).toEqual({ width: 8, height: 6 });
     expect(prepared.shotSize).toEqual({ width: 8, height: 6 });
-    expect(prepared.base64).toMatch(/^data:image\/jpeg;base64,/);
+    expect(prepared.base64).toMatch(/^data:image\/webp;base64,/);
     await expect(imageInfoOfBase64(prepared.base64)).resolves.toEqual(
       prepared.shotSize,
     );
@@ -26,21 +28,29 @@ describe('prepareRawScreenshot', () => {
 
     expect(prepared.originalSize).toEqual({ width: 8, height: 6 });
     expect(prepared.shotSize).toEqual({ width: 4, height: 3 });
-    expect(prepared.base64).toMatch(/^data:image\/jpeg;base64,/);
+    expect(prepared.base64).toMatch(/^data:image\/webp;base64,/);
     await expect(imageInfoOfBase64(prepared.base64)).resolves.toEqual(
       prepared.shotSize,
     );
   });
 
-  it('keeps JPEG dimensions while preserving the JPEG output contract', async () => {
+  it('converts JPEG to the final WebP output contract', async () => {
     const prepared = await prepareRawScreenshot(jpegDataUrl);
 
-    expect(prepared.base64).toBe(jpegDataUrl);
+    expect(prepared.base64).toMatch(/^data:image\/webp;base64,/);
     expect(prepared.originalSize).toEqual({ width: 4, height: 3 });
     expect(prepared.shotSize).toEqual(prepared.originalSize);
     await expect(imageInfoOfBase64(prepared.base64)).resolves.toEqual(
       prepared.shotSize,
     );
+  });
+
+  it('reuses an unchanged WebP byte-for-byte', async () => {
+    const prepared = await prepareRawScreenshot(webpDataUrl);
+
+    expect(prepared.base64).toBe(webpDataUrl);
+    expect(prepared.originalSize).toEqual({ width: 2, height: 3 });
+    expect(prepared.shotSize).toEqual(prepared.originalSize);
   });
 
   it.each([0, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(

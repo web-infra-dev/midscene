@@ -9,6 +9,7 @@ import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from './model-call-recorder';
+import { prepareModelMessagesImageInput } from './model-image-input';
 import type { AICallResult, CallAIOptions, ModelCallContext } from './types';
 import { buildUsageInfo, nextInternalCallId } from './utils';
 
@@ -35,6 +36,10 @@ export async function callAI(
   const internalCallId = nextInternalCallId();
 
   const { config: modelConfig } = modelRuntime;
+  const modelMessages = await prepareModelMessagesImageInput(
+    messages,
+    modelConfig.imageInputFormat,
+  );
 
   const recordEvent = isModelCallRecordingEnabled()
     ? (event: Record<string, unknown>) => {
@@ -51,7 +56,7 @@ export async function callAI(
     : undefined;
 
   const context: ModelCallContext = {
-    messages,
+    messages: modelMessages,
     modelRuntime,
     options,
     executionId,

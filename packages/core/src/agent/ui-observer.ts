@@ -186,7 +186,7 @@ interface BufferedFrame extends DeviceFrameRef {
 function isImageDataUrl(value: unknown): value is string {
   return (
     typeof value === 'string' &&
-    /^data:image\/(?:png|jpe?g);base64,/i.test(value)
+    /^data:image\/(?:png|jpe?g|webp);base64,/i.test(value)
   );
 }
 

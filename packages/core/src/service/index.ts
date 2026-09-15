@@ -33,7 +33,7 @@ import {
   compositeElementInfoImg,
   compositePointMarkerImg,
   cropByRect,
-  resizeBase64ImageToJpeg,
+  resizeBase64ImageToWebp,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -474,6 +474,7 @@ export default class Service {
           inputImgBase64: screenshotBase64,
           size: shotSize,
           point: targetPoint!,
+          outputFormat: 'webp',
         })
       : await compositeElementInfoImg({
           inputImgBase64: screenshotBase64,
@@ -485,6 +486,7 @@ export default class Service {
           ],
           borderThickness: getDescribeMarkerBorderThickness(targetRect),
           centerPoint: true,
+          outputFormat: 'webp',
         });
 
     const shouldDeepDescribe = opt?.deepDescribe;
@@ -494,7 +496,11 @@ export default class Service {
       const contextImages = await Promise.all(
         contextAreas.map(async (area) => {
           debug('describe: cropping deep context area', area);
-          const croppedResult = await cropByRect(screenshotBase64, area.rect);
+          const croppedResult = await cropByRect(
+            screenshotBase64,
+            area.rect,
+            'webp',
+          );
           const cropSize = {
             width: croppedResult.width,
             height: croppedResult.height,
@@ -508,6 +514,7 @@ export default class Service {
                   x: targetPoint!.x - area.rect.left,
                   y: targetPoint!.y - area.rect.top,
                 },
+                outputFormat: 'webp',
               })
             : await compositeElementInfoImg({
                 inputImgBase64: croppedResult.imageBase64,
@@ -519,12 +526,13 @@ export default class Service {
                 ],
                 borderThickness: getDescribeMarkerBorderThickness(targetInCrop),
                 centerPoint: true,
+                outputFormat: 'webp',
               });
           const resizeSize = getDescribeDeepLocateResizeSize(croppedResult);
           return {
             kind: area.kind,
             imageBase64: resizeSize
-              ? await resizeBase64ImageToJpeg(markedCropPayload, {
+              ? await resizeBase64ImageToWebp(markedCropPayload, {
                   sourceSize: cropSize,
                   targetSize: resizeSize,
                 })
