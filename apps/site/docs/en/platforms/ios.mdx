@@ -85,8 +85,9 @@ Promise.resolve(
 
     // 👀 Initialize Midscene agent
     const agent = new IOSAgent(page, {
-      aiActionContext:
-        'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+      aiContexts: {
+        aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+      },
     });
     await page.connect();
 
@@ -94,7 +95,9 @@ Promise.resolve(
     // const agent = await agentFromWebDriverAgent({
     //   wdaPort: 8100,
     //   wdaHost: 'localhost',
-    //   aiActionContext: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    //   aiContexts: {
+    //     aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    //   },
     // });
 
     // 👀 Directly open ebay.com webpage (recommended approach)
@@ -122,6 +125,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 

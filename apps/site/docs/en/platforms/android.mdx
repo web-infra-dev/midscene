@@ -118,8 +118,9 @@ Promise.resolve(
     const device = new AndroidDevice(devices[0].udid);
 
     const agent = new AndroidAgent(device, {
-      aiActionContext:
-        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      aiContexts: {
+        aiAct: 'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      },
     });
     await device.connect();
 
@@ -137,6 +138,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
 
 ### Run the script
 

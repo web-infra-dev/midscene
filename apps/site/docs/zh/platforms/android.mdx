@@ -118,8 +118,9 @@ Promise.resolve(
     const device = new AndroidDevice(devices[0].udid);
 
     const agent = new AndroidAgent(device, {
-      aiActionContext:
-        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      aiContexts: {
+        aiAct: 'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      },
     });
     await device.connect();
 
@@ -137,6 +138,8 @@ Promise.resolve(
   })(),
 );
 ```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
 
 ### 运行脚本
 
