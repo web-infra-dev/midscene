@@ -211,6 +211,247 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('preserves numeric-looking values for string-compatible fields', () => {
+    const refinement = rs.fn(() => true);
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema: {
+        deviceId: z.string().refine(refinement),
+        mode: z.enum(['123', 'safe']),
+        literal: z.literal('007'),
+        stringOrNumber: z.union([z.string(), z.number()]),
+      },
+      cli: {
+        options: {
+          deviceId: {
+            preferredName: 'device-id',
+          },
+        },
+      },
+      handler: rs.fn(),
+    };
+
+    expect(
+      parseCliArgs(
+        [
+          '--device-id',
+          '0009007199254740993',
+          '--mode=123',
+          '--literal',
+          '007',
+          '--string-or-number',
+          '42',
+        ],
+        def,
+      ),
+    ).toEqual({
+      'device-id': '0009007199254740993',
+      mode: '123',
+      literal: '007',
+      'string-or-number': '42',
+    });
+    expect(refinement).not.toHaveBeenCalled();
+  });
+
+  it('decodes values according to non-string schema fields', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: {
+        timeout: z.number(),
+        enabled: z.boolean(),
+        attempts: z.literal(3),
+        payload: z.union([z.string(), z.object({ prompt: z.string() })]),
+      },
+      handler: rs.fn(),
+    };
+
+    expect(
+      parseCliArgs(
+        [
+          '--timeout=-2.5',
+          '--enabled=false',
+          '--attempts',
+          '3',
+          '--payload',
+          '{"prompt":"go"}',
+        ],
+        def,
+      ),
+    ).toEqual({
+      timeout: -2.5,
+      enabled: false,
+      attempts: 3,
+      payload: { prompt: 'go' },
+    });
+  });
+
+  it('preserves JSON-looking text and repeated numeric image names', () => {
+    const def = {
+      name: 'act',
+      description: 'act',
+      schema: {
+        prompt: z.string().optional().default(''),
+        imageName: z.union([z.string(), z.array(z.string())]),
+        payload: z.object({ prompt: z.string() }),
+      },
+      handler: rs.fn(),
+    };
+    expect(
+      parseCliArgs(
+        [
+          '--prompt={"account":"007"}',
+          '--image-name=007',
+          '--image-name=9007199254740993',
+          '--payload={"prompt":"go"}',
+        ],
+        def,
+      ),
+    ).toEqual({
+      prompt: '{"account":"007"}',
+      'image-name': ['007', '9007199254740993'],
+      payload: { prompt: 'go' },
+    });
+  });
+
+  it('retains invalid typed inputs for schema validation to reject', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: {
+        enabled: z.boolean(),
+        timeout: z.number(),
+        payload: z.object({ prompt: z.string() }),
+      },
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(
+      ['--enabled=maybe', '--timeout=slow', '--payload={broken'],
+      def,
+    );
+    expect(parsed).toEqual({
+      enabled: 'maybe',
+      timeout: 'slow',
+      payload: '{broken',
+    });
+    expect(z.object(def.schema).safeParse(parsed).success).toBe(false);
+  });
+
+  it('decodes native enum inputs using the same values as Zod', () => {
+    const def = {
+      name: 'configure',
+      description: 'configure',
+      schema: { mode: z.nativeEnum({ '007': 3 }) },
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(['--mode=3'], def);
+    expect(parsed).toEqual({ mode: 3 });
+    expect(z.object(def.schema).safeParse(parsed).success).toBe(true);
+  });
+
+  it('keeps numeric branches reachable beside restricted strings', () => {
+    const schema = {
+      mode: z.union([z.literal('auto'), z.number()]),
+      choice: z.union([z.enum(['auto', '007']), z.number()]),
+      native: z.nativeEnum({ 0: 'Zero', Zero: 0, Text: '007' }),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(['--mode=42', '--choice=3', '--native=0'], def);
+    expect(parsed).toEqual({ mode: 42, choice: 3, native: 0 });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(
+      parseCliArgs(['--mode=auto', '--choice=007', '--native=007'], def),
+    ).toEqual({ mode: 'auto', choice: '007', native: '007' });
+  });
+
+  it('recognizes Zod fields without relying on constructor identity', () => {
+    const stringField = z.string();
+    const foreignStringField = {
+      _def: stringField._def,
+      safeParse: stringField.safeParse.bind(stringField),
+    } as unknown as z.ZodTypeAny;
+    expect(foreignStringField).not.toBeInstanceOf(z.ZodString);
+
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema: { deviceId: foreignStringField },
+      handler: rs.fn(),
+    };
+    expect(parseCliArgs(['--deviceId=320336557157'], def)).toEqual({
+      deviceId: '320336557157',
+    });
+  });
+
+  it('preserves raw text for unsupported concrete schemas', () => {
+    const schema = {
+      deviceId: z.intersection(z.string(), z.string()),
+    };
+    const def = {
+      name: 'connect',
+      description: 'connect',
+      schema,
+      handler: rs.fn(),
+    };
+    const parsed = parseCliArgs(['--deviceId=320336557157'], def);
+
+    expect(parsed).toEqual({ deviceId: '320336557157' });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+  });
+
+  it('decodes repeated collection values using their element schemas', () => {
+    const schema = {
+      values: z.array(z.number()).optional(),
+      pair: z.tuple([z.number(), z.string()]),
+      flags: z.array(z.boolean()),
+      names: z.array(z.string()),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(
+      [
+        '--values=1',
+        '--values=2',
+        '--pair=3',
+        '--pair=007',
+        '--flags=true',
+        '--flags=false',
+        '--names=007',
+        '--names=9007199254740993',
+      ],
+      def,
+    );
+    expect(parsed).toEqual({
+      values: [1, 2],
+      pair: [3, '007'],
+      flags: [true, false],
+      names: ['007', '9007199254740993'],
+    });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(parseCliArgs(['--values=[1,2]', '--pair=[3,"007"]'], def)).toEqual({
+      values: [1, 2],
+      pair: [3, '007'],
+    });
+  });
+
+  it('selects collection branches for repeated union inputs and tuple rest items', () => {
+    const schema = {
+      values: z.union([z.string(), z.array(z.number())]),
+      tuple: z.tuple([z.string()]).rest(z.number()),
+    };
+    const def = { name: 'demo', description: 'demo', schema, handler: rs.fn() };
+    const parsed = parseCliArgs(
+      ['--values=1', '--values=2', '--tuple=007', '--tuple=3', '--tuple=4'],
+      def,
+    );
+    expect(parsed).toEqual({ values: [1, 2], tuple: ['007', 3, 4] });
+    expect(z.object(schema).safeParse(parsed).success).toBe(true);
+    expect(parseCliArgs(['--values=007'], def)).toEqual({ values: '007' });
+    expect(parseCliArgs(['--tuple=["007",3]', '--tuple=4'], def)).toEqual({
+      tuple: ['007', 3, 4],
+    });
+  });
+
   it('accumulates repeated flags into an array', () => {
     expect(
       parseCliArgs([
@@ -1048,7 +1289,7 @@ describe('runToolsCLI', () => {
     rs.restoreAllMocks();
   });
 
-  it('canonicalizes preferredName/aliases for namespaced fields', async () => {
+  it('canonicalizes aliases while preserving numeric-looking strings', async () => {
     const handler = rs.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'ok' }],
       isError: false,
@@ -1077,11 +1318,11 @@ describe('runToolsCLI', () => {
 
     await runToolsCLI(tools, 'midscene-android', {
       stripPrefix: 'android_',
-      argv: ['connect', '--device-id', 'emulator-5554'],
+      argv: ['connect', '--deviceId', '320336557157'],
     });
 
     expect(handler).toHaveBeenCalledWith({
-      'android.deviceId': 'emulator-5554',
+      'android.deviceId': '320336557157',
     });
     rs.restoreAllMocks();
   });
