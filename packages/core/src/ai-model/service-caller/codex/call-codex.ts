@@ -1,5 +1,5 @@
-import { applyImageDetail } from '../chat-completion/utils';
 import type { ModelCallContext, ModelCallResult } from '../types';
+import { applyImageDetail } from '../utils';
 import {
   type CodexAppServerRecordEvent,
   callAIWithCodexAppServer,

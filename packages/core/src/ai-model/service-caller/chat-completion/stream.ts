@@ -2,10 +2,8 @@ import type { CodeGenerationChunk } from '@/types';
 import { assert } from '@midscene/shared/utils';
 import type OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
-import type {
-  ChatCompletionCallOptions,
-  ChatCompletionCallResult,
-} from './types';
+import type { OpenAIProtocolCallResult } from '../types';
+import type { ChatCompletionCallOptions } from './types';
 import { resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionStream = async ({
@@ -17,7 +15,7 @@ export const callChatCompletionStream = async ({
   requestSignal,
   onChunk,
   recordEvent,
-}: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
+}: ChatCompletionCallOptions): Promise<OpenAIProtocolCallResult> => {
   assert(
     typeof onChunk === 'function',
     'onChunk is required when stream is true',

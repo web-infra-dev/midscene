@@ -2,7 +2,8 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
-import { chat, prepareChatCompletion } from './chat-completion/chat-completion';
+import { callOpenAI } from './call-openai';
+import { prepareChatCompletion } from './chat-completion/chat-completion';
 import { callCodex, prepareCodexCall } from './codex/call-codex';
 import { isCodexAppServerProvider } from './codex/codex-app-server';
 import {
@@ -242,7 +243,7 @@ async function callModelOnce(
     return await runWithAbortSignal(requestSignal, () =>
       prepared.protocol === 'codex'
         ? callCodex(context, prepared.input)
-        : chat(context, prepared.input),
+        : callOpenAI(context, prepared.input),
     );
   } catch (error) {
     options?.abortSignal?.throwIfAborted();

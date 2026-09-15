@@ -1,9 +1,7 @@
-import { AIResponseParseError } from '../utils';
-import type {
-  ChatCompletionCallOptions,
-  ChatCompletionCallResult,
-} from './types';
-import { hasUsableText, resolveContentWithReasoningFallback } from './utils';
+import type { OpenAIProtocolCallResult } from '../types';
+import { AIResponseParseError, hasUsableText } from '../utils';
+import type { ChatCompletionCallOptions } from './types';
+import { resolveContentWithReasoningFallback } from './utils';
 
 export const callChatCompletionNonStreaming = async ({
   completion,
@@ -12,7 +10,7 @@ export const callChatCompletionNonStreaming = async ({
   messages,
   requestBodyParams,
   requestSignal,
-}: ChatCompletionCallOptions): Promise<ChatCompletionCallResult> => {
+}: ChatCompletionCallOptions): Promise<OpenAIProtocolCallResult> => {
   const {
     config: { modelName },
     adapter,

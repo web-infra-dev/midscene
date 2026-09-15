@@ -4,7 +4,6 @@ import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
-import { applyImageDetail } from '@/ai-model/service-caller/chat-completion/utils';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -16,6 +15,7 @@ import {
   AIRequestTimeoutError,
   runWithAbortSignal,
 } from '@/ai-model/service-caller/request-timeout';
+import { applyImageDetail } from '@/ai-model/service-caller/utils';
 import type { CodeGenerationChunk } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
