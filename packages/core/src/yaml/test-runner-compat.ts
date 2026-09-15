@@ -174,13 +174,17 @@ export function compileLegacyFlowItem(
       }),
     );
   }
-  if ('sleep' in flow)
-    return step('sleep', {
-      ms:
-        typeof flow.sleep === 'string'
-          ? Number.parseInt(flow.sleep, 10)
-          : flow.sleep,
-    });
+  if ('sleep' in flow) {
+    const ms =
+      typeof flow.sleep === 'string'
+        ? Number.parseInt(flow.sleep, 10)
+        : flow.sleep;
+    assert(
+      Number.isFinite(ms) && ms > 0,
+      `ms for sleep must be greater than 0, but got ${flow.sleep}`,
+    );
+    return step('sleep', { ms });
+  }
   if ('javascript' in flow)
     return step('javascript', { script: flow.javascript }, true);
   if ('recordToReport' in flow || 'logScreenshot' in flow)

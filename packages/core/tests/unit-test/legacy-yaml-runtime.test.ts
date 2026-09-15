@@ -1,3 +1,4 @@
+import { Agent } from '@/agent';
 import type { MidsceneYamlScript } from '@/types';
 import {
   createLegacyYamlRuntime,
@@ -124,17 +125,46 @@ describe('legacy YAML runtime', () => {
   });
 
   test('aborts sleep without waiting for its timer', async () => {
+    const agent = new Agent(
+      {
+        interfaceType: 'fixture',
+        actionSpace: () => [],
+        describe: () => 'sleep test page',
+        size: async () => ({ width: 1, height: 1 }),
+        screenshotBase64: async () =>
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+      } as any,
+      {
+        generateReport: false,
+        modelConfig: {
+          MIDSCENE_MODEL_NAME: 'test-model',
+          MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+          MIDSCENE_MODEL_BASE_URL: 'https://example.invalid/v1',
+          MIDSCENE_MODEL_API_KEY: 'test-key',
+        },
+      },
+    );
+    const uiContext = await agent.getUIContext();
+    rs.spyOn(agent, 'getUIContext').mockResolvedValue(uiContext);
+    const sleep = rs.spyOn(agent, 'sleep');
     const runtime = createLegacyYamlRuntime({
-      agent: { dump: { executions: [] } } as any,
+      agent,
       actionSpace: [],
       setResult: () => {},
     });
-    const result = await runtime.runScript(
-      { tasks: [{ name: 'sleep', flow: [{ sleep: 60_000 }] }] },
-      { defaultTimeoutMs: 10 },
-    );
-    await runtime.waitForIdle();
-    expect(result.cases[0].run?.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    try {
+      const result = await runtime.runScript(
+        { tasks: [{ name: 'sleep', flow: [{ sleep: 60_000 }] }] },
+        { defaultTimeoutMs: 10 },
+      );
+      await runtime.waitForIdle();
+      expect(sleep).toHaveBeenCalledWith(60_000, {
+        abortSignal: expect.any(AbortSignal),
+      });
+      expect(result.cases[0].run?.steps[0].error?.code).toBe('STEP_TIMEOUT');
+    } finally {
+      await agent.destroy();
+    }
   });
 
   test('runs a legacy script without going through the ScriptPlayer facade', async () => {
