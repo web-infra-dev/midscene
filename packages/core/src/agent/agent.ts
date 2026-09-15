@@ -1733,6 +1733,18 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     }
   }
 
+  /**
+   * Wait for a finite, positive duration in milliseconds and record it as a
+   * Sleep task with the standard UI snapshots. Does not invoke device action
+   * hooks or call a model, but standard UI capture requires valid model
+   * configuration. Recorded elapsed time includes screenshot overhead.
+   * Initial UI capture failure rejects before waiting; a failed final
+   * screenshot does not fail an otherwise completed wait.
+   */
+  async sleep(ms: number): Promise<void> {
+    await this.taskExecutor.sleep(ms);
+  }
+
   async recordToReport(title?: string, opt?: RecordToReportOptions) {
     const now = Date.now();
     const screenshots = opt?.screenshots;
