@@ -10,6 +10,7 @@ export const createMockMidsceneAgent = () => {
     aiAct: vi.fn<MidsceneUIAgent['aiAct']>(unexpectedCall),
     aiTap: vi.fn<MidsceneUIAgent['aiTap']>(unexpectedCall),
     aiAssert: vi.fn<MidsceneUIAgent['aiAssert']>(unexpectedCall),
+    aiWaitFor: vi.fn<MidsceneUIAgent['aiWaitFor']>(unexpectedCall),
     aiBoolean: vi.fn<MidsceneUIAgent['aiBoolean']>(unexpectedCall),
     aiNumber: vi.fn<MidsceneUIAgent['aiNumber']>(unexpectedCall),
     aiString: vi.fn<MidsceneUIAgent['aiString']>(unexpectedCall),
