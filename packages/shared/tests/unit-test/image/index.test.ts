@@ -330,7 +330,7 @@ describe('image utils', () => {
     expect(markedInfo).toEqual(originalInfo);
   });
 
-  it('compositePointMarkerImg uses red target and blue locator callout markers without covering the target point', async () => {
+  it('compositePointMarkerImg uses red and blue centered reticle markers without covering the target point', async () => {
     const inputBuffer = await sharp({
       create: {
         width: 120,
@@ -400,29 +400,29 @@ describe('image utils', () => {
       targetPointOffset,
       targetPointOffset + 3,
     );
-    const rightEdgeOffset = (60 * info.width + 90) * info.channels;
-    const lowerEdgeOffset = (75 * info.width + 60) * info.channels;
-    const circleBottomOffset = (90 * info.width + 60) * info.channels;
-    const [rightR, rightG, rightB] = data.slice(
-      rightEdgeOffset,
-      rightEdgeOffset + 3,
+    // The reticle ring (radius 14) is centered exactly on the point.
+    const ringRightOffset = (60 * info.width + 74) * info.channels;
+    const ringBottomOffset = (74 * info.width + 60) * info.channels;
+    // Pixels beyond the ring/crosshair area stay untouched.
+    const outsideOffset = (100 * info.width + 60) * info.channels;
+    const [ringRightR, ringRightG, ringRightB] = data.slice(
+      ringRightOffset,
+      ringRightOffset + 3,
     );
-    const [lowerR, lowerG, lowerB] = data.slice(
-      lowerEdgeOffset,
-      lowerEdgeOffset + 3,
+    const [ringBottomR, ringBottomG, ringBottomB] = data.slice(
+      ringBottomOffset,
+      ringBottomOffset + 3,
     );
-    const [circleBottomR, circleBottomG, circleBottomB] = data.slice(
-      circleBottomOffset,
-      circleBottomOffset + 3,
+    const [outsideR, outsideG, outsideB] = data.slice(
+      outsideOffset,
+      outsideOffset + 3,
     );
     expect(targetR).toBeGreaterThan(245);
     expect(targetG).toBeGreaterThan(245);
     expect(targetB).toBeGreaterThan(245);
-    expect(isRedMarkerPixel(rightR, rightG, rightB)).toBe(true);
-    expect(isRedMarkerPixel(lowerR, lowerG, lowerB)).toBe(true);
-    expect(isRedMarkerPixel(circleBottomR, circleBottomG, circleBottomB)).toBe(
-      false,
-    );
+    expect(isRedMarkerPixel(ringRightR, ringRightG, ringRightB)).toBe(true);
+    expect(isRedMarkerPixel(ringBottomR, ringBottomG, ringBottomB)).toBe(true);
+    expect(isRedMarkerPixel(outsideR, outsideG, outsideB)).toBe(false);
     expect(redDominantPixels).toBeGreaterThan(20);
     expect(blueCalloutPixels).toBe(0);
     expect(locatorBlueCalloutPixels).toBeGreaterThan(20);
