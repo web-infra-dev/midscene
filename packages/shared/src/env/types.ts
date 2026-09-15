@@ -501,8 +501,11 @@ export interface IModelConfig {
    */
   extraBody?: Record<string, unknown>;
   /**
-   * Timeout for API calls in milliseconds.
-   * If not set, uses OpenAI SDK default (10 minutes).
+   * Midscene hard timeout per model request in milliseconds, including body reads.
+   * Must be finite and non-negative. Defaults to 180000 (180 seconds).
+   * Each retry gets a fresh timeout; retry delays are excluded.
+   * Set to 0 to disable only the Midscene hard timeout.
+   * SDK and network timeouts may still apply; callers can cancel via AbortSignal.
    */
   timeout?: number;
   /**

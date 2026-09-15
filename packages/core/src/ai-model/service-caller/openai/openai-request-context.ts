@@ -5,29 +5,21 @@ const MAX_FETCH_ERROR_LENGTH = 4000;
 
 const debugOpenAIFetch = getDebug('ai:call');
 
-export interface OpenAIErrorResponseContext {
+export interface OpenAIRequestContext {
   recordEvent?: (event: Record<string, unknown>) => void;
-  responseRequestIds?: Array<{
-    attempt: number;
+  responseRequestId?: {
     requestId: string;
     status: number;
     ok: boolean;
-  }>;
-  rawResponseBodies?: Array<{
-    attempt: number;
-    body: string;
-  }>;
-  fetchErrors?: Array<{
-    attempt: number;
-    error: string;
-  }>;
-  httpResponses?: Array<{
-    attempt: number;
+  };
+  rawResponseBody?: string;
+  fetchError?: string;
+  httpResponse?: {
     status: number;
     ok: boolean;
     headers: Array<[string, string]>;
     body?: string;
-  }>;
+  };
 }
 
 function headersToEntries(
@@ -97,20 +89,17 @@ function getDefaultFetch(): typeof fetch {
 }
 
 export function wrapOpenAICompatibleFetch(
-  context: OpenAIErrorResponseContext,
+  context: OpenAIRequestContext,
 ): typeof fetch {
   const baseFetch = getDefaultFetch();
-  let attempt = 0;
 
   return async (input, init) => {
-    attempt += 1;
     if (context.recordEvent) {
       // Midscene does not expose a custom fetch hook. The OpenAI SDK therefore
       // always invokes this wrapper with standard Fetch API input and init.
       const request = new Request(input, init);
       context.recordEvent({
         type: 'request',
-        attempt,
         request: {
           url: request.url,
           method: request.method,
@@ -127,14 +116,9 @@ export function wrapOpenAICompatibleFetch(
     } catch (error) {
       const fetchErrorSummary = formatFetchErrorForReport(error);
       debugOpenAIFetch('OpenAI-compatible fetch failed', fetchErrorSummary);
-      context.fetchErrors ??= [];
-      context.fetchErrors.push({
-        attempt,
-        error: fetchErrorSummary,
-      });
+      context.fetchError = fetchErrorSummary;
       context.recordEvent?.({
         type: 'error',
-        attempt,
         error: fetchErrorSummary,
       });
       throw error;
@@ -145,13 +129,11 @@ export function wrapOpenAICompatibleFetch(
       response.headers.get('x-model-request-id');
 
     if (requestId) {
-      context.responseRequestIds ??= [];
-      context.responseRequestIds.push({
-        attempt,
+      context.responseRequestId = {
         requestId,
         status: response.status,
         ok: response.ok,
-      });
+      };
     }
 
     if (!response.ok) {
@@ -163,13 +145,7 @@ export function wrapOpenAICompatibleFetch(
         .text()
         .catch(() => undefined);
 
-      if (rawResponseBody !== undefined) {
-        context.rawResponseBodies ??= [];
-        context.rawResponseBodies.push({
-          attempt,
-          body: rawResponseBody,
-        });
-      }
+      context.rawResponseBody = rawResponseBody;
     }
 
     if (context.recordEvent) {
@@ -183,14 +159,12 @@ export function wrapOpenAICompatibleFetch(
             .text()
             .catch(() => undefined);
       const httpResponse = {
-        attempt,
         status: response.status,
         ok: response.ok,
         headers: headersToEntries(response.headers),
         ...(body === undefined ? {} : { body }),
       };
-      context.httpResponses ??= [];
-      context.httpResponses.push(httpResponse);
+      context.httpResponse = httpResponse;
       if (!response.ok) {
         context.recordEvent({ type: 'error', ...httpResponse });
       }
@@ -202,57 +176,25 @@ export function wrapOpenAICompatibleFetch(
 
 export function formatOpenAIAPIErrorDetails(
   _error: unknown,
-  context: OpenAIErrorResponseContext,
+  context: OpenAIRequestContext,
 ): string {
   const details: string[] = [];
 
-  if (context.rawResponseBodies?.length === 1) {
+  if (context.rawResponseBody !== undefined) {
     details.push(
-      `OpenAI raw error response body: ${truncateErrorResponseBody(
-        context.rawResponseBodies[0].body,
-      )}`,
-    );
-  } else if (context.rawResponseBodies?.length) {
-    const rawResponseBodyDetails = context.rawResponseBodies
-      .map(
-        ({ attempt, body }) =>
-          `Attempt ${attempt}: ${truncateErrorResponseBody(body)}`,
-      )
-      .join('\n');
-
-    details.push(
-      `OpenAI raw error response bodies:\n${rawResponseBodyDetails}`,
+      `OpenAI raw error response body: ${truncateErrorResponseBody(context.rawResponseBody)}`,
     );
   }
 
-  const errorResponseRequestIds = context.responseRequestIds?.filter(
-    ({ ok }) => !ok,
-  );
-  if (errorResponseRequestIds?.length === 1) {
-    const { attempt, requestId, status } = errorResponseRequestIds[0];
+  if (context.responseRequestId && !context.responseRequestId.ok) {
+    const { requestId, status } = context.responseRequestId;
     details.push(
-      `OpenAI error response request ID (attempt ${attempt}, status ${status}): ${requestId}`,
+      `OpenAI error response request ID (status ${status}): ${requestId}`,
     );
-  } else if (errorResponseRequestIds?.length) {
-    const requestIdDetails = errorResponseRequestIds
-      .map(
-        ({ attempt, requestId, status }) =>
-          `Attempt ${attempt} (status ${status}): ${requestId}`,
-      )
-      .join('\n');
-    details.push(`OpenAI error response request IDs:\n${requestIdDetails}`);
   }
 
-  if (context.fetchErrors?.length === 1) {
-    details.push(
-      `OpenAI fetch error (attempt ${context.fetchErrors[0].attempt}): ${context.fetchErrors[0].error}`,
-    );
-  } else if (context.fetchErrors?.length) {
-    const fetchErrorDetails = context.fetchErrors
-      .map(({ attempt, error }) => `Attempt ${attempt}: ${error}`)
-      .join('\n');
-
-    details.push(`OpenAI fetch errors:\n${fetchErrorDetails}`);
+  if (context.fetchError !== undefined) {
+    details.push(`OpenAI fetch error: ${context.fetchError}`);
   }
 
   if (!details.length) {
