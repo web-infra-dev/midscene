@@ -96,9 +96,7 @@ cases:
 
 A Node may map a string step value to one declared input field. Each Node section states whether it supports this shorthand and names the target field.
 
-Cases default to \`onFailure: continue\`. Set \`onFailure: stop-document\` to stop later Cases in the same file after retries are exhausted; cleanup hooks still run. Project \`bail\` controls stopping across files.
-
-Optional \`$.resultName\` saves the Node's returned \`data\` in the document's \`outputs\`. With \`$.resultPath\`, select a value using a JSON Pointer relative to \`data\` (for example, \`/value\`). Later producers overwrite the same name in actual execution order, including hooks and retries. Named results are not automatically passed to later Steps.`;
+Each Node's returned \`data\` is saved on that Step's result. Results are not named or automatically passed to later Steps. A failed Case does not stop later Cases by default; \`test.bail\` controls early stopping across the run.`;
 
 const sortJsonValue = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sortJsonValue);

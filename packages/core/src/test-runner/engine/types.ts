@@ -92,8 +92,6 @@ export interface WorkflowDocumentRunResult {
   durationMs: number;
   beforeAll: StepRunResult[];
   afterAll: StepRunResult[];
-  /** Named Node data, in execution order across lifecycle steps and attempts. */
-  outputs?: Readonly<Record<string, unknown>>;
   executionErrors?: WorkflowError[];
   /** Host lifecycle failures; these are not authored workflow hooks. */
   hostErrors?: WorkflowHostError[];

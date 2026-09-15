@@ -13,7 +13,7 @@ import type { TestRunReportDump } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { TestProjectDefinition } from '../src/cli/test-project';
-import { runTestProject } from '../src/cli/test-project-runner';
+import { runTestProjectWithYamlCompatibility } from '../src/cli/test-project-runner';
 import { createMidsceneNodes } from '../src/midscene';
 
 // Use the published Node runtime, including its actual report writer.
@@ -74,7 +74,6 @@ describe('borrowed Agent report collection', () => {
         getAgent: (ctx) => ctx.context.agent,
       }),
       setup: { name: 'shared-agent', setup: () => ({ agent }) },
-      legacy: { getOptions: (context) => ({ agent: context!.agent }) },
     };
     writeFileSync(
       join(root, 'midscene.config.ts'),
@@ -92,7 +91,10 @@ describe('borrowed Agent report collection', () => {
       join(root, '03-native.yaml'),
       'cases:\n  - name: native last\n    steps:\n      - recordToReport: last snapshot\n',
     );
-    const result = await runTestProject({ projectRoot: root });
+    const result = await runTestProjectWithYamlCompatibility(
+      { projectRoot: root },
+      { getPlayerOptions: () => ({ agent }) },
+    );
     expect(result.collectionErrors).toEqual([]);
     expect(result.status).toBe('success');
     expect(result.summary).toMatchObject({ total: 3, passed: 3 });

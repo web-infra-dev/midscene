@@ -88,7 +88,6 @@ export function executionRecordToResult(
       ...(record.reportSources?.length
         ? { reportSources: [...record.reportSources] }
         : {}),
-      outputs: record.outputs,
     },
     cases:
       record.execution?.cases ??

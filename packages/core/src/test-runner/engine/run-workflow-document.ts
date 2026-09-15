@@ -1,4 +1,3 @@
-import { WorkflowError } from '../errors';
 import type { CollectedCase, CollectedWorkflowDocument } from '../parser/types';
 import { createDocumentRuntime } from './document-runtime';
 import {
@@ -10,7 +9,6 @@ import type {
   CaseRunOutcome,
   CaseRunResult,
   RunWorkflowDocumentOptions,
-  StepResultHandler,
   WorkflowDocumentExecutionResult,
   WorkflowDocumentRunResult,
 } from './types';
@@ -46,49 +44,6 @@ export async function runWorkflowDocument<TContext = undefined>(
       'Workflow document retry must be a non-negative integer.',
     );
   }
-  const outputs = new Map<string, unknown>();
-  const onStepResult: StepResultHandler = async (info, result) => {
-    const errors: unknown[] = [];
-    try {
-      // Observers see the already-recorded, validated Node result.
-      await options.onStepResult?.(info, result);
-    } catch (error) {
-      errors.push(error);
-    }
-    try {
-      const { resultName, resultPath } = result.meta;
-      if (resultName !== undefined && result.output?.data !== undefined) {
-        let value: unknown = result.output.data;
-        // Selecting data is an engine concern: Node-specific wrappers such as
-        // { value } must not leak into the naming or publication machinery.
-        for (const token of resultPath ? resultPath.slice(1).split('/') : []) {
-          const key = token.replace(/~1/g, '/').replace(/~0/g, '~');
-          if (
-            typeof value !== 'object' ||
-            value === null ||
-            !Object.prototype.hasOwnProperty.call(value, key)
-          ) {
-            throw new WorkflowError(
-              `Cannot select result path "${resultPath}" for "${resultName}".`,
-              {
-                code: 'RESULT_SELECTION_FAILED',
-                details: { resultName, resultPath },
-              },
-            );
-          }
-          value = (value as Record<string, unknown>)[key];
-        }
-        // The last completed producer wins, including lifecycle steps and
-        // retry attempts. Failed attempts remain visible in their own records.
-        outputs.set(resultName, value);
-      }
-    } catch (error) {
-      errors.push(error);
-    }
-    if (errors.length === 1) throw errors[0];
-    if (errors.length)
-      throw new AggregateError(errors, 'Step result collection failed');
-  };
   const runtime = createDocumentRuntime(document, {
     documentSetup: options.documentSetup,
     documentAttemptIndex: options.documentAttemptIndex,
@@ -98,9 +53,8 @@ export async function runWorkflowDocument<TContext = undefined>(
     signal,
     defaultTimeoutMs: options.defaultTimeoutMs,
     onStepStart: options.onStepStart,
-    onStepResult,
+    onStepResult: options.onStepResult,
     onResult: async (result) => {
-      result.outputs = Object.freeze(Object.fromEntries(outputs));
       await options.documentSetup?.onDocumentResult?.(result, runtime.context);
       await options.onDocumentResult?.(result);
     },
@@ -168,7 +122,7 @@ export async function runWorkflowDocument<TContext = undefined>(
             signal: runtime.signal,
             defaultTimeoutMs: options.defaultTimeoutMs,
             onStepStart: options.onStepStart,
-            onStepResult,
+            onStepResult: options.onStepResult,
             onResult: options.onCaseResult,
             reportScopeId: options.resolveCaseReportScopeId?.(
               collectedCase,
@@ -262,7 +216,6 @@ export async function runWorkflowDocument<TContext = undefined>(
       `Workflow document "${document.sourcePath}" did not produce a result.`,
     );
   }
-  documentResult.outputs = Object.freeze(Object.fromEntries(outputs));
   if (executionErrors.length) {
     const completed = new Set(cases.map((outcome) => outcome.caseId));
     cases.push(

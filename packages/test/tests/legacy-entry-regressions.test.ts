@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { version } from '../package.json';
-import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
+import {
+  parseTestCliArgsWithYaml as parseTestCliArgs,
+  runTestCli,
+} from '../src/cli/test-command';
 import { runTestProject } from '../src/cli/test-project-runner';
 
 // Exercise the real Node host without letting Vite resolve browser-only WASM.
@@ -209,8 +212,10 @@ export default class Device {
         expect.stringContaining('midscene-test nodes'),
       );
       expect(io.log).toHaveBeenCalledWith(
-        expect.stringContaining('--no-<target>.<field>'),
+        expect.stringContaining('YAML migration guide'),
       );
+      expect(io.log.mock.calls[0][0]).not.toContain('--concurrent');
+      expect(io.log.mock.calls[0][0]).not.toContain('--no-<target>.<field>');
       expect(io.error).not.toHaveBeenCalled();
     },
   );

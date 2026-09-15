@@ -4,11 +4,8 @@ import { require as tsxRequire } from 'tsx/cjs/api';
 import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
 import type { NodeDefinition } from '../node/types';
-import type { CreateYamlPlayerOptions } from '../runtime/create-yaml-player';
 
 import type {
-  DocumentSetupDefinition,
-  ExecutionProjectDefinition,
   JsonValue,
   ProjectSetupDefinition,
   ResolvedExecutionProject,
@@ -16,11 +13,8 @@ import type {
   TestTagSelection,
 } from '@midscene/core/internal/test-runner';
 export type {
-  DocumentSetupDefinition,
-  ExecutionProjectDefinition,
   JsonPrimitive,
   JsonValue,
-  DocumentSetupContext,
   ProjectSetupContext,
   ProjectSetupDefinition,
   ProjectTeardown,
@@ -29,6 +23,14 @@ export type {
   TestFileSelection,
   TestTagSelection,
 } from '@midscene/core/internal/test-runner';
+import type { ExecutionProjectDefinition as CoreExecutionProjectDefinition } from '@midscene/core/internal/test-runner';
+
+export type ExecutionProjectDefinition<TContext = unknown> = Omit<
+  CoreExecutionProjectDefinition<TContext>,
+  'nodes'
+> & {
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
+};
 
 export interface TestOptions {
   maxConcurrency?: number;
@@ -44,35 +46,16 @@ export interface ResolvedTestOptions {
 
 export interface TestOutputDefinition {
   reportDir?: string;
-  report?: {
-    enabled?: boolean;
-    fileName?: string;
-    overwrite?: boolean;
-  };
 }
 
 export interface ResolvedTestOutputDefinition {
   reportDir: string;
-  report: {
-    enabled: boolean;
-    fileName?: string;
-    overwrite: boolean;
-  };
 }
 
 const projectIdFromIndex = (index: number): string => `project-${index}`;
 
-export interface LegacyWorkflowOptions<TContext = undefined> {
-  /** Explicitly share setup-owned resources with legacy YAML documents. */
-  getOptions(
-    context: TContext | undefined,
-  ): CreateYamlPlayerOptions | Promise<CreateYamlPlayerOptions>;
-}
-
 export interface TestProjectDefinition<TContext = undefined> {
-  legacy?: LegacyWorkflowOptions<TContext>;
   setup?: ProjectSetupDefinition<TContext>;
-  documentSetup?: DocumentSetupDefinition<TContext>;
   projects?: readonly ExecutionProjectDefinition<TContext>[];
   test?: TestOptions;
   output?: TestOutputDefinition;
@@ -86,11 +69,8 @@ export interface LoadedExecutionProject<TProjectContext = unknown>
 }
 
 export interface LoadedTestProject<TContext = undefined> {
-  legacy?: LegacyWorkflowOptions<TContext>;
   projects: readonly LoadedExecutionProject<TContext>[];
   hasExplicitProjects: boolean;
-  /** Legacy files retain their own action timeouts unless explicitly overridden. */
-  hasExplicitTestTimeout: boolean;
   test: ResolvedTestOptions;
   output: ResolvedTestOutputDefinition;
   nodes: NodeRegistry;
@@ -207,16 +187,7 @@ export const validateTestFileSelection = (
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
-  rejectUnknownKeys(value, ['include', 'exclude', 'order'], label);
-  if (
-    value.order !== undefined &&
-    value.order !== 'sorted' &&
-    value.order !== 'listed'
-  ) {
-    throw new TypeError(
-      `Midscene config ${label}.order must be sorted or listed.`,
-    );
-  }
+  rejectUnknownKeys(value, ['include', 'exclude'], label);
   const include = validatePatterns(value.include, 'include', label);
   const exclude =
     value.exclude === undefined
@@ -225,7 +196,6 @@ export const validateTestFileSelection = (
   return Object.freeze({
     include: Object.freeze(include),
     ...(exclude ? { exclude: Object.freeze(exclude) } : {}),
-    ...(value.order ? { order: value.order as 'sorted' | 'listed' } : {}),
   });
 };
 
@@ -332,20 +302,12 @@ const validateSetup = <TSetup>(
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
-  rejectUnknownKeys(value, ['name', 'setup', 'onDocumentResult'], label);
+  rejectUnknownKeys(value, ['name', 'setup'], label);
   if (typeof value.name !== 'string' || value.name.trim().length === 0) {
     throw new TypeError(`Midscene config ${label}.name must be non-empty.`);
   }
   if (typeof value.setup !== 'function') {
     throw new TypeError(`Midscene config ${label}.setup must be a function.`);
-  }
-  if (
-    value.onDocumentResult !== undefined &&
-    typeof value.onDocumentResult !== 'function'
-  ) {
-    throw new TypeError(
-      `Midscene config ${label}.onDocumentResult must be a function.`,
-    );
   }
   return value as unknown as TSetup;
 };
@@ -379,7 +341,6 @@ const validateNonNegativeInteger = (
 const validateExecutionProjects = <TProjectContext>(
   value: unknown,
   defaultSetup: unknown,
-  defaultDocumentSetup: unknown,
   globalNodes: NodeRegistry,
 ): {
   projects: readonly LoadedExecutionProject<TProjectContext>[];
@@ -390,9 +351,6 @@ const validateExecutionProjects = <TProjectContext>(
       defaultSetup,
       'setup',
     );
-    const documentSetup = validateSetup<
-      DocumentSetupDefinition<TProjectContext>
-    >(defaultDocumentSetup, 'documentSetup');
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
@@ -400,7 +358,6 @@ const validateExecutionProjects = <TProjectContext>(
           projectId: projectIdFromIndex(0),
           name: 'default',
           ...(setup ? { setup } : {}),
-          ...(documentSetup ? { documentSetup } : {}),
           tags: Object.freeze({ include: [], exclude: [] }),
           retry: 0,
           variables: Object.freeze({}),
@@ -408,11 +365,6 @@ const validateExecutionProjects = <TProjectContext>(
         }),
       ]),
     };
-  }
-  if (defaultDocumentSetup !== undefined) {
-    throw new TypeError(
-      'Midscene config documentSetup cannot be used together with projects. Move documentSetup to projects[].documentSetup.',
-    );
   }
   if (defaultSetup !== undefined) {
     throw new TypeError(
@@ -432,19 +384,7 @@ const validateExecutionProjects = <TProjectContext>(
     }
     rejectUnknownKeys(
       candidate,
-      [
-        'name',
-        'setup',
-        'nodes',
-        'documentSetup',
-        'files',
-        'tags',
-        'retry',
-        'retryScope',
-        'fileConcurrency',
-        'setupFile',
-        'variables',
-      ],
+      ['name', 'setup', 'nodes', 'files', 'tags', 'retry', 'variables'],
       label,
     );
     if (
@@ -470,18 +410,6 @@ const validateExecutionProjects = <TProjectContext>(
       ...globalNodes.definitions().filter((node) => !localNodes.has(node.name)),
       ...localNodes.definitions(),
     ]);
-    if (
-      candidate.retryScope !== undefined &&
-      candidate.retryScope !== 'case' &&
-      candidate.retryScope !== 'document'
-    ) {
-      throw new TypeError(
-        `Midscene config ${label}.retryScope must be case or document.`,
-      );
-    }
-    if (candidate.setupFile !== undefined) {
-      validatePatterns([candidate.setupFile], 'include', `${label}.setupFile`);
-    }
     return Object.freeze({
       projectId: projectIdFromIndex(index),
       name: candidate.name,
@@ -489,23 +417,7 @@ const validateExecutionProjects = <TProjectContext>(
       ...(files ? { files } : {}),
       tags: validateTagSelection(candidate.tags, `${label}.tags`),
       retry: validateNonNegativeInteger(candidate.retry, 0, `${label}.retry`),
-      retryScope: (candidate.retryScope ?? 'case') as 'case' | 'document',
-      fileConcurrency: validatePositiveInteger(
-        candidate.fileConcurrency,
-        1,
-        `${label}.fileConcurrency`,
-      ),
-      ...(candidate.setupFile
-        ? { setupFile: candidate.setupFile as string }
-        : {}),
       variables: validateVariables(candidate.variables, `${label}.variables`),
-      ...(candidate.documentSetup === undefined
-        ? {}
-        : {
-            documentSetup: validateSetup<
-              DocumentSetupDefinition<TProjectContext>
-            >(candidate.documentSetup, `${label}.documentSetup`)!,
-          }),
       ...(candidate.setup === undefined
         ? {}
         : {
@@ -560,42 +472,13 @@ const validateOutput = (value: unknown): ResolvedTestOutputDefinition => {
     throw new TypeError('Midscene config output must be an object.');
   }
   const candidate = (value ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(candidate, ['reportDir', 'report'], 'output');
-  if (candidate.report !== undefined && !isRecord(candidate.report))
-    throw new TypeError('Midscene config output.report must be an object.');
-  const report = (candidate.report ?? {}) as Record<string, unknown>;
-  rejectUnknownKeys(
-    report,
-    ['enabled', 'fileName', 'overwrite'],
-    'output.report',
-  );
-  if (report.enabled !== undefined && typeof report.enabled !== 'boolean')
-    throw new TypeError(
-      'Midscene config output.report.enabled must be boolean.',
-    );
-  if (report.overwrite !== undefined && typeof report.overwrite !== 'boolean')
-    throw new TypeError(
-      'Midscene config output.report.overwrite must be boolean.',
-    );
+  rejectUnknownKeys(candidate, ['reportDir'], 'output');
   return Object.freeze({
     reportDir: validateOutputPath(
       candidate.reportDir,
       './midscene_run/report',
       'output.reportDir',
     ),
-    report: Object.freeze({
-      enabled: (report.enabled as boolean | undefined) ?? true,
-      ...(report.fileName === undefined
-        ? {}
-        : {
-            fileName: validateOutputPath(
-              report.fileName,
-              '',
-              'output.report.fileName',
-            ),
-          }),
-      overwrite: (report.overwrite as boolean | undefined) ?? true,
-    }),
   });
 };
 
@@ -635,35 +518,20 @@ const validateTestProjectDefinition = <TContext>(
   }
   rejectUnknownKeys(
     definition,
-    ['setup', 'documentSetup', 'projects', 'test', 'output', 'nodes', 'legacy'],
+    ['setup', 'projects', 'test', 'output', 'nodes'],
     'root',
   );
-  if (definition.legacy !== undefined) {
-    if (
-      !isRecord(definition.legacy) ||
-      typeof definition.legacy.getOptions !== 'function'
-    ) {
-      throw new TypeError(
-        'Midscene config legacy.getOptions must be a function.',
-      );
-    }
-    rejectUnknownKeys(definition.legacy, ['getOptions'], 'legacy');
-  }
   const nodes = new NodeRegistry(
     definition.nodes as NodeDefinition[] | undefined,
   );
   const resolvedProjects = validateExecutionProjects<TContext>(
     definition.projects,
     definition.setup,
-    definition.documentSetup,
     nodes,
   );
   return {
     ...resolvedProjects,
-    legacy: definition.legacy as LegacyWorkflowOptions<TContext> | undefined,
     test: validateTestOptions(definition.test),
-    hasExplicitTestTimeout:
-      isRecord(definition.test) && definition.test.testTimeout !== undefined,
     output: validateOutput(definition.output),
     nodes,
     resolveNode: (name) =>

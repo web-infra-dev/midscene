@@ -25,6 +25,20 @@ export interface YamlRuntimeContext {
   agent: Agent;
   /** Resolved output owned by this runtime scope, when configured. */
   outputPath?: string;
+  /** Old YAML result view, owned by the compatibility host, never native Test. */
+  results?: Record<string, unknown>;
+}
+
+// A non-enumerable compatibility marker also works across CJS/ESM host entries.
+const projectAgentKey = Symbol.for('@midscene/test/yaml-project-agent');
+
+/** Explicit YAML resource ownership is registered by the compatibility setup helper. */
+export function getYamlProjectPlayerOptions(
+  context: unknown,
+): CreateYamlPlayerOptions | undefined {
+  if (typeof context !== 'object' || context === null) return undefined;
+  const agent = (context as { [projectAgentKey]?: Agent })[projectAgentKey];
+  return agent ? { agent } : undefined;
 }
 
 export interface YamlSetupOptions {
@@ -41,7 +55,7 @@ export interface YamlSetupOptions {
         | Promise<CreateYamlPlayerOptions | undefined>);
   /** Optional setup script, executed whenever this scope acquires its Agent. */
   setup?: string;
-  /** Supplies the Test-native output path when the YAML target omits one. */
+  /** Supplies a fallback legacy output path when the YAML target omits one. */
   defaultOutputPath?: (
     context: DocumentSetupContext<unknown>,
   ) => string | undefined;
@@ -53,7 +67,7 @@ export interface YamlSetupOptions {
 
 /** Explicitly share one Agent across the Project, including file retries. */
 export function createYamlProjectSetup(
-  options: YamlSetupOptions,
+  options: Omit<YamlSetupOptions, 'onDocumentResult' | 'defaultOutputPath'>,
 ): ProjectSetupDefinition<YamlRuntimeContext> {
   if (typeof options.options === 'function') {
     throw new TypeError(
@@ -78,9 +92,10 @@ export function createYamlProjectSetup(
       const outputPath = outputConfig.output
         ? resolve(process.cwd(), outputConfig.output)
         : undefined;
-      return { agent, ...(outputPath ? { outputPath } : {}) };
+      const context = { agent, ...(outputPath ? { outputPath } : {}) };
+      Object.defineProperty(context, projectAgentKey, { value: agent });
+      return context;
     },
-    onDocumentResult: createYamlDocumentResultPublisher(options, outputConfig),
   };
 }
 
@@ -109,12 +124,14 @@ export function createYamlDocumentSetup(
         >[number][] = [];
         const errors: unknown[] = [];
         try {
-          const reportPath = await agent.flushReport?.();
-          if (reportPath) reportPaths.push(reportPath);
-          const source = await agent._createReportSource?.(
-            ctx.document.documentRunId,
-          );
-          if (source) reportSources.push(source);
+          if (options.script.agent?.generateReport !== false) {
+            const reportPath = await agent.flushReport?.();
+            if (reportPath) reportPaths.push(reportPath);
+            const source = await agent._createReportSource?.(
+              ctx.document.documentRunId,
+            );
+            if (source) reportSources.push(source);
+          }
         } catch (error) {
           errors.push(error);
         }
@@ -137,7 +154,11 @@ export function createYamlDocumentSetup(
         : options.defaultOutputPath
           ? options.defaultOutputPath(ctx)
           : undefined;
-      return { agent, ...(outputPath ? { outputPath } : {}) };
+      return {
+        agent,
+        results: Object.create(null) as Record<string, unknown>,
+        ...(outputPath ? { outputPath } : {}),
+      };
     },
     onDocumentResult: createYamlDocumentResultPublisher(options, outputConfig),
   };
@@ -203,7 +224,7 @@ function createYamlDocumentResultPublisher(
       }
     };
     const outputPath = context?.outputPath ?? outputConfig.output;
-    if (outputPath) await write(outputPath, document.outputs ?? {});
+    if (outputPath) await write(outputPath, context?.results ?? {});
     if (outputConfig.unstableLogContent && context) {
       const path =
         typeof outputConfig.unstableLogContent === 'string'

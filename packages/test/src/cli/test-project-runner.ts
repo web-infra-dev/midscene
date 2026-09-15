@@ -8,25 +8,24 @@ import {
   asExecutionError,
   runConcurrentJobs,
 } from '@midscene/core/internal/test-runner';
+import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
+import type {
+  CollectedCase,
+  CollectedWorkflowDocument,
+} from '@midscene/core/internal/test-runner';
+import type { WorkflowDocumentSource as InternalWorkflowDocumentSource } from '@midscene/core/internal/test-runner';
 import { TestRunReportAssembler } from '@midscene/core/report';
 import { getDebug } from '@midscene/shared/logger';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
-import type { WorkflowDocumentRunResult } from '../engine/types';
 import { WorkflowError, WorkflowParseError } from '../errors';
-import {
-  collectWorkflowDocument,
-  createWorkflowDocumentId,
-} from '../parser/collect';
-import type {
-  CollectedCase,
-  CollectedWorkflowDocument,
-  WorkflowDocumentSource,
-} from '../parser/types';
+import { collectWorkflowDocument } from '../parser/collect';
+import { createDocumentInvocationId as createWorkflowDocumentId } from '../parser/identifiers';
 import {
   buildTestRunReportDump,
   collectTestRunReportSources,
 } from '../report/test-run-report';
+import type { CreateYamlPlayerOptions } from '../runtime/create-yaml-player';
 import { loadDotenvConfig } from '../runtime/dotenv-loader';
 import {
   assertBrowserContextUsage,
@@ -38,6 +37,7 @@ import {
   defaultLegacyConfig,
   matchLegacyYamlFiles,
 } from '../runtime/legacy-config';
+import { getYamlProjectPlayerOptions } from '../runtime/yaml-setup';
 import {
   type LegacyInvocationArtifacts,
   type PreparedDocumentInvocation,
@@ -99,16 +99,21 @@ export interface TestProjectRunOptions {
   resultDir?: string;
   projectNames?: readonly string[];
   onProgress?(message: string): void;
-  /** Legacy input semantics, executed by the same document scheduler. */
-  legacyPlan?: LegacyTestRunPlan;
-  /** Public legacy BatchRunner may delegate without writing its own summary twice. */
-  writeLegacySummary?: boolean;
+}
+
+/** Compatibility integration only; never part of native Test project configuration. */
+export interface YamlCompatibilityRunOptions {
+  plan?: LegacyTestRunPlan;
+  writeSummary?: boolean;
+  getPlayerOptions?(
+    context: unknown,
+  ): CreateYamlPlayerOptions | Promise<CreateYamlPlayerOptions>;
 }
 
 interface PreparedExecutionProject<TProjectContext = unknown> {
   project: LoadedExecutionProject<TProjectContext>;
   fileSelection: TestFileSelection;
-  sources: readonly WorkflowDocumentSource[];
+  sources: readonly InternalWorkflowDocumentSource[];
   documents: readonly CollectedWorkflowDocument[];
   invocations: readonly PreparedDocumentInvocation[];
   collectionErrors: readonly TestProjectCollectionError[];
@@ -132,19 +137,6 @@ const discoverResolvedTestFiles = (
       ignore: [...ALWAYS_IGNORED_PATTERNS, ...(selection.exclude ?? [])],
       onlyFiles: true,
     }).filter((file) => /\.ya?ml$/i.test(file));
-  if (selection.order === 'listed')
-    return selection.include.flatMap((pattern) => {
-      const absolute = resolve(root, pattern);
-      if (
-        existsSync(absolute) &&
-        statSync(absolute).isFile() &&
-        /\.ya?ml$/i.test(absolute)
-      )
-        return [absolute];
-      return match([pattern])
-        .map((file) => resolve(file))
-        .sort();
-    });
   const files = match(selection.include);
 
   return [...new Set(files.map((file) => resolve(file)))].sort((a, b) => {
@@ -326,12 +318,12 @@ const prepareProject = async <TProjectContext>(
   legacyPlan?: LegacyTestRunPlan,
 ): Promise<PreparedExecutionProject<TProjectContext>> => {
   const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
-  const setupFile = project.setupFile
-    ? resolve(projectRoot, project.setupFile)
-    : undefined;
-  const mainFiles = singleFile
-    ? [singleFile]
-    : discoverResolvedTestFiles(projectRoot, fileSelection);
+  const setupFile = legacyPlan?.setup ? resolve(legacyPlan.setup) : undefined;
+  const mainFiles = legacyPlan
+    ? legacyPlan.files
+    : singleFile
+      ? [singleFile]
+      : discoverResolvedTestFiles(projectRoot, fileSelection);
   const files = [
     ...(setupFile ? [setupFile] : []),
     ...mainFiles.filter((file) => file !== setupFile),
@@ -446,6 +438,21 @@ const notRunSuite = (
 export async function runTestProject(
   options: TestProjectRunOptions = {},
 ): Promise<TestProjectRunResult> {
+  return runTestProjectInternal(options, {});
+}
+
+/** Specialized YAML host entry. Both entries use exactly the same scheduler/kernel. */
+export async function runTestProjectWithYamlCompatibility(
+  options: TestProjectRunOptions,
+  compatibility: YamlCompatibilityRunOptions,
+): Promise<TestProjectRunResult> {
+  return runTestProjectInternal(options, compatibility);
+}
+
+async function runTestProjectInternal(
+  options: TestProjectRunOptions,
+  compatibility: YamlCompatibilityRunOptions,
+): Promise<TestProjectRunResult> {
   const startedAt = new Date();
   const runId = createTestRunId(startedAt);
   const cwd = resolve(options.cwd ?? process.cwd());
@@ -468,7 +475,7 @@ export async function runTestProject(
   // Only an explicit config or an actual native config can opt them into Test's
   // config discovery rules; preserve the old matcher's selected files otherwise.
   const unconfiguredFiles =
-    !options.legacyPlan &&
+    !compatibility.plan &&
     !options.configPath &&
     !existsSync(join(configSearchRoot, CONFIG_NAME))
       ? await matchLegacyYamlFiles(singleFile ?? cliProjectRoot ?? cwd)
@@ -477,7 +484,7 @@ export async function runTestProject(
     !!unconfiguredFiles?.length &&
     unconfiguredFiles.every(isLegacyWorkflowFile);
   const configPath =
-    options.legacyPlan || bareLegacyInput
+    compatibility.plan || bareLegacyInput
       ? undefined
       : options.configPath
         ? resolve(configSearchRoot, options.configPath)
@@ -486,7 +493,7 @@ export async function runTestProject(
     throw new Error(`Midscene config does not exist: ${configPath}`);
   }
 
-  let legacyPlan = options.legacyPlan;
+  let legacyPlan = compatibility.plan;
   if (legacyPlan && options.projectNames?.length)
     throw new Error(
       '--project requires a TypeScript project config. Use files in the legacy batch config.',
@@ -765,9 +772,9 @@ export async function runTestProject(
               signal: runtime.signal,
               rootSignal: rootController.signal,
               legacyPlan,
-              getLegacyPlayerOptions: definition.legacy
-                ? () => definition.legacy!.getOptions(runtime.context)
-                : undefined,
+              getLegacyPlayerOptions: compatibility.getPlayerOptions
+                ? () => compatibility.getPlayerOptions!(runtime.context)
+                : () => getYamlProjectPlayerOptions(runtime.context),
               shouldBail: bailReached,
               isProjectFatal: () => projectFatal,
               markProjectFatal: () => {
@@ -777,12 +784,6 @@ export async function runTestProject(
                 failedCaseCount += count;
               },
               onProgress: projectProgress,
-              onDocumentResult: async (result) => {
-                await project.setup?.onDocumentResult?.(
-                  result,
-                  runtime.context,
-                );
-              },
               sinks: {
                 cases,
                 documents,
@@ -791,7 +792,7 @@ export async function runTestProject(
             });
           };
           let setupFailed = false;
-          const setupCount = project.setupFile ? 1 : 0;
+          const setupCount = legacyPlan?.setup ? 1 : 0;
           if (setupCount) {
             await runDocument(prepared.invocations[0], 0);
             setupFailed =
@@ -804,7 +805,7 @@ export async function runTestProject(
             await runConcurrentJobs(
               prepared.invocations.slice(setupCount),
               {
-                concurrency: project.fileConcurrency ?? 1,
+                concurrency: legacyPlan?.concurrent ?? 1,
                 shouldStop: () =>
                   rootController.signal.aborted ||
                   bailReached() ||
@@ -994,12 +995,20 @@ export async function runTestProject(
     );
   const writeReport = () =>
     publish('write-report', reportDir, async () => {
-      if (!definition.output.report.enabled) return;
+      const invocations = preparedProjects.flatMap((item) => item.invocations);
+      if (
+        invocations.length > 0 &&
+        invocations.every(
+          (item) =>
+            item.kind === 'legacy' &&
+            item.workflow.script.agent?.generateReport === false,
+        )
+      )
+        return;
       const reportPath = await new TestRunReportAssembler().assembleAsync({
         outputDir: reportDir,
-        reportFileName:
-          definition.output.report.fileName ?? `midscene-e2e-${runId}`,
-        overwrite: definition.output.report.overwrite,
+        reportFileName: `midscene-e2e-${runId}`,
+        overwrite: false,
         sources: collectTestRunReportSources(completedResult),
         buildRunnerDump: (index) => {
           const dump = buildTestRunReportDump(completedResult, index);
@@ -1040,7 +1049,7 @@ export async function runTestProject(
       ...completedResult,
       legacyResults: buildLegacyYamlResults(completedResult, occurrences),
     };
-    if (options.writeLegacySummary !== false)
+    if (compatibility.writeSummary !== false)
       await publish('write-result', legacyPlan.summary, () => {
         return writeLegacyTestSummary(
           legacyPlan.summary,

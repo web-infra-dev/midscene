@@ -10,3 +10,7 @@ export {
   runInYamlExecutionContext,
 } from './yaml/execution-session';
 export { collectLegacyYamlDocument } from './yaml/test-runner-compat';
+export {
+  getLegacyYamlResultData,
+  legacyAgentTestRunnerNodeDefinitions,
+} from './yaml/test-runner-nodes';

@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { MidsceneYamlScript } from '@midscene/core';
 import type * as CoreRuntime from '@midscene/core';
+import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adaptLegacyExecutionPlan,
@@ -20,12 +21,25 @@ import {
 import { collectLegacyWorkflow } from '../src/cli/legacy-collector';
 import { loadTestProject } from '../src/cli/test-project';
 import * as projectLoader from '../src/cli/test-project';
-import { runTestProject } from '../src/cli/test-project-runner';
+import {
+  type TestProjectRunOptions,
+  runTestProject as runNativeTestProject,
+  runTestProjectWithYamlCompatibility,
+} from '../src/cli/test-project-runner';
 import * as browserRuntime from '../src/runtime/legacy-browser';
 import {
   type LegacyTestRunPlan,
   defaultLegacyConfig,
 } from '../src/runtime/legacy-config';
+
+// Tests explicitly exercise the dedicated compatibility host, not native config.
+const runTestProject = ({
+  legacyPlan,
+  ...options
+}: TestProjectRunOptions & { legacyPlan?: LegacyTestRunPlan }) =>
+  legacyPlan
+    ? runTestProjectWithYamlCompatibility(options, { plan: legacyPlan })
+    : runNativeTestProject(options);
 
 // Exercise the published Node runtime; Vite must not resolve browser-only WASM.
 const require = createRequire(import.meta.url);
@@ -138,12 +152,8 @@ describe('zero-config legacy format routing', () => {
         name: 'legacy',
         files: {
           include: ['nested/first.yaml', 'nested/first.yaml'],
-          order: 'listed',
         },
         retry: 2,
-        retryScope: 'document',
-        fileConcurrency: 3,
-        setupFile: 'setup.yaml',
       },
     });
   });
@@ -196,10 +206,16 @@ describe('zero-config legacy format routing', () => {
       `export default {
       nodes: [],
       setup: { name: 'shared', setup() { return { headed: true }; } },
-      legacy: { getOptions(context) { return { headed: context.headed }; } },
     };`,
     );
-    const result = await runTestProject({ projectRoot: root });
+    const result = await runTestProjectWithYamlCompatibility(
+      { projectRoot: root },
+      {
+        getPlayerOptions: (context) => ({
+          headed: (context as { headed: boolean }).headed,
+        }),
+      },
+    );
     expect(result.status).toBe('success');
     expect(host.createYamlAgent).toHaveBeenCalledWith(
       join(root, 'old.yaml'),
@@ -240,6 +256,75 @@ describe('zero-config legacy format routing', () => {
     expect(host.createYamlAgent).not.toHaveBeenCalled();
   });
 
+  it.each(['aiTap', 'aiScroll'])(
+    'accepts old %s uiContext only through the YAML host',
+    async (node) => {
+      const action = vi.fn(async () => undefined);
+      host.createYamlAgent.mockResolvedValue({
+        agent: { [node]: action },
+        freeFn: [],
+      });
+      const file = write(
+        'locate.yaml',
+        `agent: { generateReport: false }\ntasks:\n  - name: locate\n    flow:\n      - ${node}: target\n        uiContext: { fixture: true }\n`,
+      );
+      const result = await runTestProject({ projectRoot: file, cwd: root });
+      expect(result.status).toBe('success');
+      expect(action).toHaveBeenCalledWith(
+        'target',
+        expect.objectContaining({ uiContext: { fixture: true } }),
+      );
+    },
+  );
+
+  it('keeps an unchanged YAML report-disable intent inside the compatibility host', async () => {
+    const file = write(
+      'disabled.yaml',
+      `agent: { generateReport: false, reportFileName: disabled }\n${oldYaml}`,
+    );
+    const result = await runTestProject({ projectRoot: file, cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.reportPath).toBeUndefined();
+    expect(result.legacyResults?.[0].report).toBeUndefined();
+    expect(result.documents[0].reportPaths).toBeUndefined();
+    expect(existsSync(join(root, 'disabled'))).toBe(false);
+    expect(
+      JSON.parse(readFileSync(result.legacyResults![0].output!, 'utf8')).answer,
+    ).toEqual({ value: 'first' });
+  });
+
+  it('does not add a combined report link to disabled YAML in a mixed legacy batch', async () => {
+    write('01-disabled.yaml', `agent: { generateReport: false }\n${oldYaml}`);
+    write('02-enabled.yaml', oldYaml);
+    const result = await runTestProject({ projectRoot: root, cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.reportPath).toBeDefined();
+    expect(result.legacyResults).toHaveLength(2);
+    expect(result.legacyResults![0].report).toBeUndefined();
+    expect(result.legacyResults![1].report).toBe(result.reportPath);
+  });
+
+  it('does not let disabled legacy reporting switch off a mixed native run', async () => {
+    write('01-disabled.yaml', `agent: { generateReport: false }\n${oldYaml}`);
+    write(
+      '02-native.yaml',
+      'cases: [{ name: native, steps: [{ noop: run }] }]',
+    );
+    write(
+      'midscene.config.ts',
+      `export default { nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }] };`,
+    );
+    const result = await runTestProject({ projectRoot: root, cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.summary.passed).toBe(3);
+    expect(result.reportPath).toBe(
+      join(root, 'midscene_run/report', `midscene-e2e-${result.runId}.html`),
+    );
+    expect(existsSync(result.reportPath!)).toBe(true);
+    expect(result.documents[0].reportPaths).toBeUndefined();
+    expect(result.documents[0]).not.toHaveProperty('outputs');
+  });
+
   it('runs a single unchanged YAML file without a test config or Node registration', async () => {
     const file = write('old.yaml', oldYaml);
     write(
@@ -255,7 +340,10 @@ describe('zero-config legacy format routing', () => {
       expect.objectContaining({ web: { url: 'https://example.com' } }),
       { headed: false, keepWindow: false },
     );
-    expect(result.documents[0].outputs?.answer).toEqual({ value: 'first' });
+    expect(result.documents[0]).not.toHaveProperty('outputs');
+    expect(
+      JSON.parse(readFileSync(result.legacyResults![0].output!, 'utf8')).answer,
+    ).toEqual({ value: 'first' });
     expect(readFileSync(result.reportPath!, 'utf8')).toContain(
       'midscene_test_run_dump',
     );
@@ -279,7 +367,7 @@ describe('zero-config legacy format routing', () => {
     write('old.yaml', oldYaml);
     write(
       'midscene.config.ts',
-      `export default { nodes: [], projects: [{ name: 'retry', retry: 1, retryScope: 'document' }] };`,
+      `export default { nodes: [], projects: [{ name: 'retry', retry: 1 }] };`,
     );
     failOnce = true;
     const result = await runTestProject({ projectRoot: root });
@@ -301,7 +389,10 @@ describe('zero-config legacy format routing', () => {
     for (const fact of facts)
       expect(existsSync(join(dirname(result.summaryPath), fact))).toBe(true);
     const sources = result.documents.flatMap(
-      (item) => item.reportSources?.map((source) => source.dumpPath) ?? [],
+      (item) =>
+        (item as WorkflowDocumentRunResult).reportSources?.map(
+          (source) => source.dumpPath,
+        ) ?? [],
     );
     expect(new Set(sources).size).toBe(2);
     for (const source of sources) expect(existsSync(source)).toBe(true);

@@ -3,8 +3,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLegacyTestRunPlan } from '../src/cli/legacy-command';
-import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
-import { runTestProject } from '../src/cli/test-project-runner';
+import {
+  parseTestCliArgsWithYaml as parseTestCliArgs,
+  runTestCli,
+} from '../src/cli/test-command';
+import { runTestProjectWithYamlCompatibility as runTestProject } from '../src/cli/test-project-runner';
 import {
   createLegacyConfigFactory,
   matchLegacyYamlFiles,
@@ -12,7 +15,7 @@ import {
 
 vi.mock('../src/cli/test-project-runner', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  runTestProject: vi.fn(),
+  runTestProjectWithYamlCompatibility: vi.fn(),
 }));
 
 let root: string;
@@ -219,6 +222,16 @@ web:
     ).rejects.toThrow('cannot be combined');
   });
 
+  it('does not silently discard an implicitly discovered native config when old flags are supplied', async () => {
+    write('midscene.config.ts', 'export default { nodes: [] };');
+    write('legacy.yaml');
+    await expect(
+      createLegacyTestRunPlan(
+        parseTestCliArgs(['legacy.yaml', '--retry', '1'], root),
+      ),
+    ).rejects.toThrow('cannot be combined');
+  });
+
   it('loads .env before interpolation and honors the old override switch', async () => {
     vi.stubEnv('MIDSCENE_LEGACY_COMMAND_TEST_VALUE', 'shell');
     write('.env', 'MIDSCENE_LEGACY_COMMAND_TEST_VALUE=dotenv\n');
@@ -311,7 +324,9 @@ web:
     expect(runTestProject).toHaveBeenCalledWith(
       expect.objectContaining({
         configPath: undefined,
-        legacyPlan: expect.objectContaining({
+      }),
+      expect.objectContaining({
+        plan: expect.objectContaining({
           files: [resolve(file)],
           retry: 2,
           bail: 1,

@@ -264,12 +264,8 @@ describe('executable legacy YAML configuration contract', () => {
         name: 'legacy',
         files: {
           include: ['suite/b.yaml', 'suite/a.yaml'],
-          order: 'listed',
         },
         retry: 2,
-        retryScope: 'document',
-        fileConcurrency: 3,
-        setupFile: 'suite/setup.yaml',
       },
     });
   });

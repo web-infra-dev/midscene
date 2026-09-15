@@ -2,7 +2,6 @@ import { z } from 'zod/v4';
 import type { TUserPrompt } from '../common';
 import { inputStrategies } from '../device/input-strategy';
 import { NodeExecutionError } from '../test-runner/errors';
-import type { UIContext } from '../types';
 import type { LocateOption, ScrollParam } from '../yaml';
 import { buildDetailedLocateParam } from '../yaml/utils';
 import type { Agent } from './agent';
@@ -150,7 +149,10 @@ export const userPromptInputSchema = z.union([
 ]);
 
 export const aiActOptionsInputSchema = z.strictObject({
-  effort: z.enum(['fast', 'balance', 'deepThink']).optional(),
+  effort: z
+    .enum(['fast', 'balance', 'deepThink'])
+    .optional()
+    .describe('Action planning effort: fast, balanced, or deeper reasoning.'),
   cacheable: z
     .boolean()
     .optional()
@@ -215,7 +217,6 @@ export const aiAssertInputSchema = z.strictObject({
 });
 
 export const locateOptionsInputSchema = z.strictObject({
-  uiContext: z.custom<UIContext>().optional(),
   context: z
     .string()
     .optional()
@@ -719,7 +720,7 @@ const insightNode = (method: 'aiBoolean' | 'aiNumber' | 'aiString' | 'aiAsk') =>
           ? JSON.stringify(value)
           : value
       }`,
-      data: value,
+      data: { value },
     }),
   });
 
@@ -748,12 +749,6 @@ export const commonAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeD
         return [input.ms, { abortSignal: signal }];
       },
     }),
-    {
-      name: 'Finalize',
-      description: 'Planning marker; no runtime action.',
-      inputSchema: z.strictObject({}),
-      execute: () => undefined,
-    },
     aiActNode,
     aiTapNode,
     aiAssertNode,

@@ -1,5 +1,9 @@
 import { AndroidAgent } from '@midscene/android';
 import { runAdbShellInputSchema } from '@midscene/android/test';
+import type {
+  aiActOptionsInputSchema,
+  locateOptionsInputSchema,
+} from '@midscene/core/agent/test';
 import { HarmonyAgent } from '@midscene/harmony';
 import { runHdcShellInputSchema } from '@midscene/harmony/test';
 import { IOSAgent } from '@midscene/ios';
@@ -7,10 +11,30 @@ import {
   type RunWdaRequestNodeInput,
   runWdaRequestInputSchema,
 } from '@midscene/ios/test';
-import { defineNode, z } from '@midscene/test';
 import {
+  type CaseDefinition,
+  type CreateDocumentRuntimeOptions,
+  type NodeExecutionContext,
+  type NodeScopeTeardownResult,
+  type NormalizedStepMeta,
+  type RunCollectedCaseOptions,
+  type RunWorkflowDocumentOptions,
+  type WorkflowDocumentRuntime,
+  type WorkflowDocumentSource,
+  type createCaseId,
+  type createWorkflowDocumentId,
+  defineNode,
+  z,
+} from '@midscene/test';
+import {
+  type ExecutionProjectDefinition,
   type LoadedExecutionProject,
+  type LoadedTestProject,
+  type ProjectSetupDefinition,
+  type TestFileSelection,
+  type TestOutputDefinition,
   type TestProjectDefinition,
+  type TestProjectRunOptions,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
@@ -30,6 +54,81 @@ import {
 interface ProjectContext {
   baseURL: string;
 }
+
+// Compatibility controls must not silently become native Test parameters.
+type Assert<T extends true> = T;
+type Absent<T, K extends PropertyKey> = Extract<keyof T, K> extends never
+  ? true
+  : false;
+type NativeBoundary = [
+  Assert<Absent<TestProjectDefinition, 'legacy' | 'documentSetup'>>,
+  Assert<Absent<LoadedTestProject, 'legacy' | 'hasExplicitTestTimeout'>>,
+  Assert<
+    Absent<
+      ExecutionProjectDefinition,
+      'retryScope' | 'fileConcurrency' | 'setupFile' | 'documentSetup'
+    >
+  >,
+  Assert<Absent<TestOutputDefinition, 'report'>>,
+  Assert<Absent<TestFileSelection, 'order'>>,
+  Assert<Absent<ProjectSetupDefinition, 'onDocumentResult'>>,
+  Assert<Absent<CaseDefinition, 'onFailure'>>,
+  Assert<
+    Absent<NormalizedStepMeta, 'resultName' | 'resultPath' | 'captureResult'>
+  >,
+  Assert<Absent<NodeExecutionContext['$'], 'resultName' | 'captureResult'>>,
+  Assert<Absent<NodeScopeTeardownResult, 'reportSources'>>,
+  Assert<Absent<TestProjectRunOptions, 'legacyPlan' | 'writeLegacySummary'>>,
+  Assert<Absent<RunCollectedCaseOptions, 'reportScopeId'>>,
+  Assert<
+    Absent<
+      RunWorkflowDocumentOptions,
+      'documentSetup' | 'documentAttemptIndex' | 'resolveCaseReportScopeId'
+    >
+  >,
+  Assert<
+    Absent<
+      CreateDocumentRuntimeOptions,
+      'documentSetup' | 'documentAttemptIndex'
+    >
+  >,
+  Assert<Absent<WorkflowDocumentRuntime, 'signal'>>,
+  Assert<
+    Absent<
+      Awaited<ReturnType<WorkflowDocumentRuntime['start']>>,
+      'reportSources' | 'reportScopeId'
+    >
+  >,
+  Assert<Absent<WorkflowDocumentSource, 'invocationIndex'>>,
+  Assert<Absent<z.output<typeof locateOptionsInputSchema>, 'uiContext'>>,
+];
+type CaseIdArity = Assert<
+  Parameters<typeof createCaseId>['length'] extends 3 ? true : false
+>;
+type DocumentIdArity = Assert<
+  Parameters<typeof createWorkflowDocumentId>['length'] extends 2 ? true : false
+>;
+type ApprovedEffort = z.output<typeof aiActOptionsInputSchema>;
+const effortOptions: ApprovedEffort = { effort: 'deepThink' };
+void effortOptions;
+// @ts-expect-error Report naming is deliberately not a native configuration option.
+defineTestProject({ output: { report: { fileName: 'custom' } } });
+defineTestProject({
+  projects: [
+    {
+      name: 'native',
+      nodes: [
+        {
+          name: 'business',
+          execute(ctx) {
+            // @ts-expect-error Adapter result bindings are not public Node metadata.
+            ctx.$.resultName;
+          },
+        },
+      ],
+    },
+  ],
+});
 
 const requestNode = defineNode<
   { path: string },

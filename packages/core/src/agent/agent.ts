@@ -1435,9 +1435,9 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         const resolvedEffort =
           opt?.effort ?? (opt?.deepThink === true ? 'deepThink' : 'balance');
 
-        if (opt?.effort !== undefined) {
+        if (opt?.effort !== undefined && opt.deepThink !== undefined) {
           warn(
-            'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+            'When both "effort" and "deepThink" are provided, "effort" takes precedence.',
           );
         }
 
