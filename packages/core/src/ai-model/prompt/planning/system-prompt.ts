@@ -274,16 +274,21 @@ ${
 
 ### Interpreting Scroll and Swipe Directions
 
-The user's description of a scrolling or swiping direction may be ambiguous. A direction may refer to the off-screen content the user wants to see, the movement of the currently visible content, or the physical movement of a finger, pointer, or scroll wheel. Do not mechanically copy a direction word from the user's instruction. Infer the intended result from the user's goal, the object being manipulated, the current UI, and common usage in the user's language.
+Scroll and swipe directions can be ambiguous: they may refer to off-screen content to reveal, visible content movement, or the physical movement of a finger, pointer, or scroll wheel. Infer the intended result from the user's goal, the interaction target, the current UI, and common usage in the user's language, rather than mechanically copying the user's direction word.
+
+In the current Action Space, \`direction\` has the following meanings:
+
+- Scroll follows the traditional mouse-wheel convention (with natural scrolling disabled). Its direction refers to the off-screen content to reveal; under this convention, it matches the wheel movement direction and is opposite to the content movement direction.
+- Swipe follows the finger-movement convention. Its direction refers to finger movement; for controls where content follows the finger, it matches the content movement direction and is opposite to the direction from which off-screen content is revealed.
 
 Use the following priority order:
 
-1. If the user states a goal or expected result, prioritize that result even when a direction word may conflict with it. For example, for "scroll the date picker down to increase the date", choose the direction that actually increases the date in the current UI.
-2. If the user explicitly identifies the moving object or describes a movement path, interpret the direction as that object's physical movement. For example, "swipe the finger to the right" means moving the finger to the right, and "swipe the finger from the bottom of the screen to the top" means a bottom-to-top movement.
-3. If neither the result nor the moving object is explicit, infer the intent from the interaction target and common usage in the user's language. For content-browsing surfaces such as pages, lists, feeds, and documents, the direction usually refers to the off-screen content the user wants to see. For example, the Chinese expression "往下滑一下页面" and the English expression "scroll down the page" usually mean revealing content below the current viewport. By contrast, the English expression "swipe down on the screen" usually means moving a finger downward.
-4. If the intent remains ambiguous, interpret scroll directions as the direction of the off-screen content the user wants to reveal: "scroll down" means revealing content below the current viewport. Interpret swipe directions as the direction of finger movement: "swipe down" means moving the finger downward.
+1. Prioritize the user's goal or expected result, even when it conflicts with a direction word. For example, for "swipe the date picker down to increase the date", if dates increase from top to bottom, use Swipe up to move a larger date from below into the selected position.
+2. Otherwise, if the user specifies a moving object or movement path, follow that object's physical movement. For example, "swipe the finger to the left" means Swipe left; "move the page content from top to bottom" means moving content downward, corresponding to Swipe down on a page where content follows the finger.
+3. Otherwise, consider the interaction target and common usage in the user's language. For content browsing, such as pages and lists, scroll directions usually refer to the off-screen content the user wants to see. For directly manipulated controls, such as sliders and wheel pickers, swipe directions usually refer to the intended movement of the control's movable part. For example, the Chinese "往下滑一下页面" and English "scroll down the page" usually mean revealing content below, corresponding to Scroll down; the Chinese "向右滑动滑块" and English "slide the slider to the right" usually mean moving the slider right, corresponding to Swipe right if using Swipe.
+4. If the intent remains ambiguous, use the Scroll and Swipe direction definitions above.
 
-After interpreting the user's intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Scrolling and swiping actions do not always express movement through a \`direction\` parameter; some also support specifying a start and an end point. When using \`direction\`, ensure its value matches the intended result according to the selected Action's definition.
+After interpreting the intent, choose an appropriate Action from the current Action Space and use its supported parameters to achieve the intended result. Some actions support start and end points instead of \`direction\`. When using \`direction\`, ensure its value achieves the intended result according to the selected Action's definition.
 
 ${includeLocateInPlanning ? locateGroundingRules() : ''}
 

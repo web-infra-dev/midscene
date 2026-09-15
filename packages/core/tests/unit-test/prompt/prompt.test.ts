@@ -72,14 +72,12 @@ describe('action space', () => {
     });
 
     expect(prompt).toContain('### Interpreting Scroll and Swipe Directions');
-    expect(prompt).toContain(
-      "The user's description of a scrolling or swiping direction may be ambiguous.",
-    );
+    expect(prompt).toContain('Scroll and swipe directions can be ambiguous:');
     expect(prompt).toContain(
       'use its supported parameters to achieve the intended result',
     );
     expect(prompt).toContain(
-      'Scrolling and swiping actions do not always express movement through a `direction` parameter; some also support specifying a start and an end point.',
+      'Some actions support start and end points instead of `direction`.',
     );
   });
 
