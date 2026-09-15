@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { createConfig } from '@/config-factory';
 import { runYamlBatch } from '@/yaml-batch-executor';
+import type { IReportActionDump } from '@midscene/core';
 import { resolveWebTarget } from '@midscene/core/yaml';
+import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { afterAll, beforeAll, describe, expect, rs, test } from '@rstest/core';
 import { execa } from 'execa';
 import { createServer } from 'http-server';
@@ -56,6 +58,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     targetSource,
     targetDeclaredInIndex = true,
     expectedScripts,
+    expectSleepScreenshots = false,
   }: {
     scriptDir: string;
     executionScriptDir?: string;
@@ -63,6 +66,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     targetSource: 'page' | 'browser' | 'web';
     targetDeclaredInIndex?: boolean;
     expectedScripts: string[];
+    expectSleepScreenshots?: boolean;
   }) => {
     const indexYamlPath = join(scriptDir, indexFile);
     const previousCwd = process.cwd();
@@ -93,6 +97,42 @@ describe('shareBrowserContext CLI YAML e2e', () => {
         generateSummary: false,
         printExecutionPlan: false,
       });
+
+      if (expectSleepScreenshots) {
+        for (const result of results.filter(
+          (result) => basename(result.file) !== '00-setup.yaml',
+        )) {
+          expect(result.report).toBeTruthy();
+          const html = readFileSync(result.report!, 'utf-8');
+          const dumps = [
+            ...html.matchAll(
+              /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g,
+            ),
+          ];
+          expect(dumps.length).toBeGreaterThan(0);
+          const dump = JSON.parse(
+            antiEscapeScriptTag(dumps[dumps.length - 1][1]),
+          ) as IReportActionDump;
+          const sleeps = dump.executions.flatMap((execution) =>
+            execution.tasks.filter((task) => task.subType === 'Sleep'),
+          );
+          expect(sleeps).toHaveLength(1);
+          const [sleep] = sleeps;
+          expect(sleep.status).toBe('finished');
+          expect(sleep.uiContext?.screenshot).toMatchObject({
+            type: 'midscene_screenshot_ref',
+          });
+          expect(sleep.recorder).toEqual([
+            expect.objectContaining({
+              type: 'screenshot',
+              timing: 'after-calling',
+              screenshot: expect.objectContaining({
+                type: 'midscene_screenshot_ref',
+              }),
+            }),
+          ]);
+        }
+      }
 
       expect(results).toHaveLength(expectedScripts.length);
       expect(results.every((result) => result.success)).toBe(true);
@@ -126,6 +166,7 @@ describe('shareBrowserContext CLI YAML e2e', () => {
           : join(__dirname, '../share_context_parallel_e2e_scripts'),
         indexFile,
         targetSource,
+        expectSleepScreenshots: true,
         expectedScripts: [
           '00-setup.yaml',
           '01-search.yaml',

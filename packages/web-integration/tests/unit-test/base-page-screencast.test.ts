@@ -152,6 +152,7 @@ describe('Page startMjpegStream', () => {
     const mockPage = {
       bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      browser: rs.fn().mockReturnValue({}),
       screenshot: rs.fn().mockResolvedValue(jpegBase64(1280, 720)),
       url: () => 'http://example.com',
       target: () => ({
@@ -240,6 +241,7 @@ describe('Page startMjpegStream', () => {
     const mockPage = {
       bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 768 }),
+      browser: rs.fn().mockReturnValue({}),
       screenshot: rs.fn().mockResolvedValue('cmVmcmVzaA=='),
       url: () => 'http://example.com',
       target: () => ({
@@ -314,7 +316,9 @@ describe('Page startMjpegStream', () => {
 
   it('force-pushes a final screenshot after navigation replaces the preview with a transient frame', async () => {
     const mockPage = {
+      bringToFront: rs.fn().mockResolvedValue(undefined),
       evaluate: rs.fn().mockResolvedValue({ width: 1280, height: 720 }),
+      browser: rs.fn().mockReturnValue({}),
       screenshot: rs.fn().mockResolvedValue(jpegBase64(1280, 720)),
       url: () => 'http://example.com',
     } as any;
