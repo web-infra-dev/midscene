@@ -215,6 +215,17 @@ export const findAllMidsceneLocatorField = (
   return [];
 };
 
+export function validateRequiredLocateFields(
+  param: Record<string, any> | undefined,
+  schema: z.ZodType<any> | undefined,
+): void {
+  for (const field of findAllMidsceneLocatorField(schema, true)) {
+    if (!param?.[field]) {
+      throw new Error(`${field}: Required locate field is not provided`);
+    }
+  }
+}
+
 export const dumpActionParam = (
   jsonObject: Record<string, any>,
   zodSchema: z.ZodType<any>,

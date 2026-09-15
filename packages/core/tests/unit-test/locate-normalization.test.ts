@@ -1,6 +1,6 @@
-import type { ParsedPlanningLocateParameter } from '@/ai-model/model-adapter/planning-protocol';
 import { createLocateResultCodec } from '@/ai-model/shared/model-locate-result';
 import { normalizePlanningActionLocateFields } from '@/ai-model/workflows/planning/locate-normalization';
+import { parsePlanningActions } from '@/ai-model/workflows/planning/parse-planning-actions';
 import { getMidsceneLocationSchema } from '@/common';
 import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
@@ -28,9 +28,6 @@ const locateResultContext = {
   },
 };
 
-const parseRawLocateParameter = (value: unknown) =>
-  value as ParsedPlanningLocateParameter;
-
 describe('normalizePlanningActionLocateFields', () => {
   it('leaves actions unchanged when the planned action is outside the action space', () => {
     const toPixelResult = rs.fn();
@@ -49,7 +46,6 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelResult,
       } as any,
       locateResultContext,
-      parseRawLocateParameter,
     });
 
     expect(toPixelResult).not.toHaveBeenCalled();
@@ -86,7 +82,6 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelResult,
       } as any,
       locateResultContext,
-      parseRawLocateParameter,
     });
 
     expect(toPixelResult).toHaveBeenCalledWith([50, 60], locateResultContext);
@@ -125,7 +120,6 @@ describe('normalizePlanningActionLocateFields', () => {
       } as any,
       locateResultContext,
       acceptBbox2dAlias: true,
-      parseRawLocateParameter,
     });
 
     expect(toPixelResult).toHaveBeenCalledWith(
@@ -156,7 +150,8 @@ describe('normalizePlanningActionLocateFields', () => {
       },
     ];
 
-    normalizePlanningActionLocateFields(actions, {
+    parsePlanningActions(actions, {
+      parseRawLocateParameter: parseProtocolLocateParameter,
       actionSpace,
       includeLocateInPlanning: true,
       locateResultCodec: {
@@ -164,7 +159,6 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelResult,
       } as any,
       locateResultContext,
-      parseRawLocateParameter: parseProtocolLocateParameter,
     });
 
     expect(parseProtocolLocateParameter).toHaveBeenCalledWith(
@@ -199,7 +193,6 @@ describe('normalizePlanningActionLocateFields', () => {
         toPixelResult,
       } as any,
       locateResultContext,
-      parseRawLocateParameter,
     });
 
     expect(toPixelResult).not.toHaveBeenCalled();
@@ -245,7 +238,6 @@ it.each(['bbox', 'point'] as const)(
       includeLocateInPlanning: true,
       locateResultCodec: codec,
       locateResultContext,
-      parseRawLocateParameter,
     });
     expect(parseRawLocateValue).toHaveBeenCalledTimes(1);
     expect(actions[0].param.locate.locatedPixelResult.center).toEqual([
