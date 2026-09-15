@@ -79,7 +79,7 @@ describe('action space', () => {
     );
   });
 
-  it('planning prompt recommends swipe for touch sliders', async () => {
+  it('planning prompt recommends swipe for touch and desktop sliders', async () => {
     const prompt = await buildStandardPlanningSystemPrompt({
       ...defaultPlanningProtocolOptions,
       actionSpace: mockActionSpace,
@@ -90,7 +90,7 @@ describe('action space', () => {
       "If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action",
     );
     expect(prompt).toContain(
-      'such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
+      'such as a slider on touch or desktop interfaces, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint',
     );
   });
 

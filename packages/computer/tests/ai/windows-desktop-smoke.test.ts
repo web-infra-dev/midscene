@@ -30,6 +30,8 @@ const FIXTURE_PATH = path.join(
 );
 const REPORT_FILE_NAME = 'windows-desktop-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
+const SWIPE_REPORT_FILE_NAME = 'windows-desktop-swipe';
+const SWIPE_REPORT_HTML_FILE_NAME = `${SWIPE_REPORT_FILE_NAME}.html`;
 const FIXTURE_READY_TIMEOUT_MS = 30_000;
 const STATE_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
@@ -54,6 +56,7 @@ interface FixtureMetadata {
   doubleClickButton: Bounds;
   textBox: Bounds;
   scroll: Bounds;
+  slider: Bounds;
 }
 
 interface FixtureState {
@@ -65,6 +68,7 @@ interface FixtureState {
   wheelEventCount: number;
   wheelDelta: number;
   scrollValue: number;
+  sliderValue: number;
 }
 
 interface PixelChannels {
@@ -174,6 +178,7 @@ function normalizeMetadata(value: unknown): FixtureMetadata {
     ),
     textBox: normalizeBounds(rawTextBox, 'fixture.textBox'),
     scroll: normalizeBounds(rawScroll, 'fixture.scroll'),
+    slider: normalizeBounds(raw.slider, 'fixture.slider'),
   };
 }
 
@@ -204,6 +209,7 @@ function normalizeState(value: unknown): FixtureState {
       raw.scrollY ?? raw.scrollValue ?? 0,
       'state.scrollValue',
     ),
+    sliderValue: asFiniteNumber(raw.sliderValue ?? 0, 'state.sliderValue'),
   };
 }
 
@@ -482,7 +488,7 @@ async function stopFixture(
 }
 
 describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
-  it('drives a visible WinForms app without calling a model and emits evidence', async () => {
+  it('drives WinForms controls and verifies an AI-planned swipe', async () => {
     const diagnosticsEnv = process.env.MIDSCENE_WINDOWS_DIAGNOSTICS_DIR;
     if (!diagnosticsEnv) {
       throw new Error(
@@ -500,24 +506,33 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
     const reportFile = path.join(runDir, 'report', REPORT_HTML_FILE_NAME);
+    const swipeReportFile = path.join(
+      runDir,
+      'report',
+      SWIPE_REPORT_HTML_FILE_NAME,
+    );
 
     let fixtureProcess: ChildProcessWithoutNullStreams | undefined;
     let device: ComputerDevice | undefined;
     let selectedDisplayDevice: ComputerDevice | undefined;
     let missingDisplayDevice: ComputerDevice | undefined;
     let agent: ComputerAgent<ComputerDevice> | undefined;
+    let swipeDevice: ComputerDevice | undefined;
+    let swipeAgent: ComputerAgent<ComputerDevice> | undefined;
     let fixtureStdout = '';
     let fixtureStderr = '';
     const evidence: Record<string, unknown> = {
       platform: process.platform,
       diagnosticsDir,
       reportFile,
+      swipeReportFile,
     };
 
     await mkdir(diagnosticsDir, { recursive: true });
     await rm(readyFile, { force: true });
     await rm(stateFile, { force: true });
     await rm(reportFile, { force: true });
+    await rm(swipeReportFile, { force: true });
 
     try {
       const startedFixture = spawn(
@@ -570,6 +585,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
       expect(metadata.screen.width).toBeGreaterThan(0);
       expect(metadata.screen.height).toBeGreaterThan(0);
       expect(metadata.screenDeviceName).toMatch(/^\\\\\.\\DISPLAY\d+$/i);
+      expect(metadata.slider.width).toBeGreaterThan(100);
+      expect(metadata.slider.height).toBeGreaterThan(20);
       expect(metadata.form.left).toBeGreaterThanOrEqual(metadata.screen.left);
       expect(metadata.form.top).toBeGreaterThanOrEqual(metadata.screen.top);
       expect(metadata.form.left + metadata.form.width).toBeLessThanOrEqual(
@@ -855,6 +872,54 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         locateHitSources: reportLocateTasks.map((task) => task.hitBy?.from),
         modelCalls: agent.metrics.calls,
       };
+
+      swipeDevice = new ComputerDevice({});
+      await swipeDevice.connect();
+      swipeAgent = new ComputerAgent(swipeDevice, {
+        aiActionContext:
+          'You are validating desktop pointer gestures in a Windows CI fixture.',
+        groupName: 'Windows desktop Swipe AI E2E',
+        groupDescription:
+          'Model-planned Swipe action against a real WinForms TrackBar',
+        reportFileName: SWIPE_REPORT_FILE_NAME,
+        autoPrintReportMsg: false,
+        generateReport: true,
+        waitAfterAction: 300,
+      });
+
+      await swipeAgent.aiAct(
+        'Drag the slider labeled "DRAG SLIDER TO THE RIGHT" all the way to the right.',
+      );
+      const swipedState = await waitForJson(
+        stateFile,
+        normalizeState,
+        (state) => state.sliderValue >= 90,
+        STATE_TIMEOUT_MS,
+        startedFixture,
+      );
+      expect(swipedState.sliderValue).toBeGreaterThanOrEqual(90);
+      expect(swipeAgent.metrics.calls).toBeGreaterThan(0);
+
+      const swipeDump = JSON.parse(swipeAgent.dumpDataString()) as ReportDump;
+      const swipeTasks = (swipeDump.executions ?? []).flatMap(
+        (execution) => execution.tasks ?? [],
+      );
+      expect(
+        swipeTasks.some(
+          (task) => task.type === 'Action Space' && task.subType === 'Swipe',
+        ),
+      ).toBe(true);
+
+      evidence.swipe = {
+        finalValue: swipedState.sliderValue,
+        modelCalls: swipeAgent.metrics.calls,
+        usedSwipeAction: true,
+      };
+
+      await swipeAgent.destroy();
+      expect(swipeAgent.reportFile).toBe(swipeReportFile);
+      const swipeReportHtml = await readFile(swipeReportFile, 'utf8');
+      expect(swipeReportHtml).not.toContain('REPLACE_ME_WITH_REPORT_HTML');
     } catch (error) {
       evidence.error =
         error instanceof Error
@@ -873,6 +938,19 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           await device.destroy();
         } catch (error) {
           evidence.deviceDestroyError = String(error);
+        }
+      }
+      if (swipeAgent) {
+        try {
+          await swipeAgent.destroy();
+        } catch (error) {
+          evidence.swipeAgentDestroyError = String(error);
+        }
+      } else if (swipeDevice) {
+        try {
+          await swipeDevice.destroy();
+        } catch (error) {
+          evidence.swipeDeviceDestroyError = String(error);
         }
       }
       await selectedDisplayDevice?.destroy().catch((error) => {
