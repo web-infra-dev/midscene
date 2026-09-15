@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import { describe, expect, it, vi } from 'vitest';
 import { NodeRegistry, createDocumentRuntime, defineNode } from '../src';
+import { renderNodeReference } from '../src/cli/node-reference';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 import { type MidsceneUIAgent, createMidsceneNodes } from '../src/midscene';
 import type {
@@ -38,6 +39,57 @@ const testAgentClass = {
 };
 
 describe('createMidsceneNodes', () => {
+  it('documents approved effort, without YAML metadata or planning markers in the native Spec', async () => {
+    const aiAct = vi.fn(async () => undefined);
+    const registry = new NodeRegistry(
+      createMidsceneNodes({
+        getAgent: () => commonAgent({ aiAct }),
+        agentClass: testAgentClass,
+      }),
+    );
+    const spec = renderNodeReference(registry.definitions()).markdown;
+    for (const field of [
+      'resultName',
+      'resultPath',
+      'captureResult',
+      'onFailure',
+      'uiContext',
+      'Finalize',
+    ])
+      expect(spec).not.toContain(field);
+    expect(spec).toContain('"effort"');
+    expect(spec).toContain('"deepThink"');
+    for (const effort of ['fast', 'balance', 'deepThink']) {
+      const result = await runCollectedCase(
+        collected([
+          {
+            node: 'aiAct',
+            input: { prompt: 'Checkout', options: { effort } },
+            meta: { continueOnError: false },
+          },
+        ]),
+        { resolveNode: registry.require.bind(registry) },
+      );
+      expect(result.status).toBe('success');
+      expect(aiAct).toHaveBeenLastCalledWith(
+        'Checkout',
+        expect.objectContaining({ effort }),
+      );
+    }
+    expect(
+      registry.require('aiLocate').inputSchema!.safeParse({
+        prompt: 'Submit',
+        options: { uiContext: {} },
+      }).success,
+    ).toBe(false);
+    for (const node of ['aiTap', 'aiScroll'])
+      expect(
+        registry.require(node).inputSchema!.safeParse({
+          prompt: 'Submit',
+          options: { uiContext: {} },
+        }).success,
+      ).toBe(false);
+  });
   it('maps case inputs to one Agent from setup context', async () => {
     const aiAct = vi.fn(async () => 'action completed');
     const aiAssert = vi.fn(async () => undefined);
@@ -307,10 +359,10 @@ describe('createMidsceneNodes', () => {
       expect.objectContaining({ deepLocate: true }),
     );
     expect(result.steps.slice(1, 5).map((step) => step.output?.data)).toEqual([
-      true,
-      42,
-      'ready',
-      'details',
+      { value: true },
+      { value: 42 },
+      { value: 'ready' },
+      { value: 'details' },
     ]);
     expect(aiAssert).toHaveBeenCalledWith(
       'The result is visible',

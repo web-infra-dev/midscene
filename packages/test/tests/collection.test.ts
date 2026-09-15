@@ -41,7 +41,7 @@ describe('workflow document collection', () => {
     execute() {},
   });
 
-  it('collects Case failure policy and generic named result selection', () => {
+  it('rejects compatibility-only Case controls in native documents', () => {
     const source = createDocument(`
 cases:
   - name: extract
@@ -53,20 +53,9 @@ cases:
             resultName: price
             resultPath: /value
 `);
-    const result = collectWorkflowDocument(source, { resolveNode: () => node });
-    expect(result.cases[0].definition).toMatchObject({
-      onFailure: 'stop-document',
-      steps: [
-        {
-          input: { prompt: 'price' },
-          meta: {
-            continueOnError: false,
-            resultName: 'price',
-            resultPath: '/value',
-          },
-        },
-      ],
-    });
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('unsupported field "onFailure"');
   });
 
   it('rejects unknown Case failure policies before executing steps', () => {
@@ -75,7 +64,7 @@ cases:
     );
     expect(() =>
       collectWorkflowDocument(source, { resolveNode: () => node }),
-    ).toThrow('onFailure must be continue or stop-document');
+    ).toThrow('unsupported field "onFailure"');
   });
 
   it('collects and normalizes every case with stable positional ids', () => {

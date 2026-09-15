@@ -82,6 +82,12 @@ describe('step normalization', () => {
     [{ timeout: 0 }, 'positive number'],
     [{ 'continue-on-error': 'yes' }, 'boolean'],
     [{ retries: 3 }, 'unsupported engine metadata'],
+    [{ resultName: 'price' }, 'unsupported engine metadata'],
+    [
+      { resultName: 'price', resultPath: '/value' },
+      'unsupported engine metadata',
+    ],
+    [{ captureResult: true }, 'unsupported engine metadata'],
   ])('rejects invalid engine metadata %j', (meta, message) => {
     expect(() => normalizeStep({ node: { $: meta } })).toThrow(message);
   });

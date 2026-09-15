@@ -5,6 +5,7 @@ import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
 } from '@midscene/core';
+import type { CaseRunOutcome } from '@midscene/core/internal/test-runner';
 import {
   WorkflowExecutionFailure,
   WorkflowPublicationError,
@@ -21,6 +22,7 @@ export interface LegacySummaryArtifact {
   documentRunId: string;
   outputPath?: string;
   reportPath?: string;
+  reportEnabled?: boolean;
 }
 
 export interface LegacySummaryOccurrence {
@@ -62,7 +64,7 @@ function legacyAttempt(
     ),
   ];
   const stoppedOnFailure = failedCases.some(
-    (outcome) => outcome.onFailure === 'stop-document',
+    (outcome) => (outcome as CaseRunOutcome).onFailure === 'stop-document',
   );
   const resultType =
     document.status === 'success' && failedCases.length === 0
@@ -146,7 +148,11 @@ export function buildLegacyYamlResults(
     // command and its legacy YAML summary projection. Per-document Agent
     // reports remain available as execution artifacts in the Test result.
     if (result.reportPath)
-      for (const attempt of attempts) attempt.report = result.reportPath;
+      for (const [index, attempt] of attempts.entries()) {
+        const artifact = artifacts.get(documents[index].documentRunId);
+        if (artifact?.reportEnabled !== false)
+          attempt.report = result.reportPath;
+      }
     const { attempt: _attempt, ...last } = attempts.at(-1)!;
     return {
       ...last,
@@ -157,7 +163,7 @@ export function buildLegacyYamlResults(
         (total, attempt) => total + (attempt.duration ?? 0),
         0,
       ),
-      ...(attempts.length > 1 && result.reportPath
+      ...(attempts.length > 1 && last.report && result.reportPath
         ? { retryReport: result.reportPath }
         : {}),
     };

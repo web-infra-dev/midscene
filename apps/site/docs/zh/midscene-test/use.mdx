@@ -158,6 +158,16 @@ steps:
       message: 加购后购物车内容不符合预期
 ```
 
+`aiAct` 支持可选的 `options.effort`，用于选择规划投入程度：`fast`、`balance` 或 `deepThink`。省略时沿用 Agent 默认行为；同时提供 `deepThink` 时，`effort` 优先。这是动作能力，不是测试调度参数：
+
+```yaml
+steps:
+  - aiAct:
+      prompt: 完成结算
+      options:
+        effort: deepThink
+```
+
 ### 其他 Node 的调用模式
 
 平台操作和自定义业务 Node 使用相同的调用结构：**Node 名称下面填写参数**。下面展示多参数和无参数两种常见形式，这些片段可以放入用例的 `steps` 中：
@@ -313,18 +323,7 @@ afterAll
 
 默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
 
-默认情况下，一个 Case 失败后仍会继续运行同文件的下一个 Case。需要让失败停止当前文件时，在 Case 上设置 `onFailure: stop-document`；需要显式保留继续行为时，可以设置 `onFailure: continue`：
-
-```yaml
-cases:
-  - name: 登录是后续用例的前提
-    onFailure: stop-document
-    steps:
-      - aiAct: 登录测试账号
-      - aiAssert: 已进入账号首页
-```
-
-`onFailure` 控制 Case 之间的调度，`continue-on-error` 控制同一阶段内 Step 失败后是否继续，两者作用范围不同。
+默认情况下，一个 Case 失败后仍会继续执行下一个 Case。需要提前停止调度时，通过 `test.bail` 设置失败用例数阈值。文件级前置条件放在 `beforeAll`，失败后该文件的 Case 不再执行；有依赖关系的业务步骤放在同一个 Case 中，不要依赖另一条 Case 成功。
 
 项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 

@@ -9,12 +9,7 @@ export type ResolveNodeForNormalization = (
   name: string,
 ) => StringInputNodeDefinition | undefined;
 
-const supportedMetaKeys = new Set([
-  'timeout',
-  'continue-on-error',
-  'resultName',
-  'resultPath',
-]);
+const supportedMetaKeys = new Set(['timeout', 'continue-on-error']);
 
 function isMapping(value: unknown): value is Record<string, unknown> {
   return (
@@ -70,34 +65,9 @@ function normalizeMeta(value: unknown, index: number): NormalizedStepMeta {
     );
   }
 
-  const { resultName, resultPath } = value;
-  if (
-    resultName !== undefined &&
-    (typeof resultName !== 'string' || !resultName.trim())
-  ) {
-    throw new WorkflowParseError(
-      `${formatStep(index)} "$.resultName" must be a non-empty string.`,
-      { index },
-    );
-  }
-  if (
-    resultPath !== undefined &&
-    (resultName === undefined ||
-      typeof resultPath !== 'string' ||
-      (resultPath !== '' && !resultPath.startsWith('/')) ||
-      /~(?:[^01]|$)/.test(resultPath))
-  ) {
-    throw new WorkflowParseError(
-      `${formatStep(index)} "$.resultPath" requires resultName and must be a JSON Pointer.`,
-      { index },
-    );
-  }
-
   return {
     ...(timeout === undefined ? {} : { timeoutMs: timeout }),
     continueOnError: continueOnError ?? false,
-    ...(resultName === undefined ? {} : { resultName: resultName as string }),
-    ...(resultPath === undefined ? {} : { resultPath: resultPath as string }),
   };
 }
 

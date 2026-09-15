@@ -307,14 +307,9 @@ steps:
 | 配置项 | 含义 |
 | --- | --- |
 | `projects[].files` | `include` 选择 YAML 文件，`exclude` 排除匹配文件。匹配规则相对于测试目录。 |
-| `projects[].files.order` | `sorted` 按路径排序；`listed` 保留 include 规则的声明顺序和重复文件调用。默认为 `sorted`。 |
 | `projects[].tags` | 根据标签包含或排除用例。 |
 | `projects[].variables` | 为 YAML 中的 `${variable}` 引用提供值。 |
 | `projects[].retry` | 用例失败后的重试次数，默认为 `0`。 |
-| `projects[].retryScope` | `case` 重试失败 Case，`document` 重试整个 YAML 文件。默认为 `case`。 |
-| `projects[].fileConcurrency` | 当前 Project 内同时运行的 YAML 文件数，默认为 `1`。 |
-| `projects[].setupFile` | 在主文件之前执行的一个前置 YAML 文件；失败时不再调度主文件。 |
-| `projects[].documentSetup` | 每次文件执行（包括整文件重试）前创建文件独享的 context 和资源。 |
 | `test.testTimeout` | 每个步骤的默认超时时间，单位为毫秒，默认为 `120000`。步骤中的 `$` 超时配置可覆盖此值。 |
 | `test.bail` | 达到失败用例数阈值后停止调度新任务，`0` 表示不启用阈值。 |
 | `output.reportDir` | 报告输出目录，默认为 `./midscene_run/report`。 |
@@ -323,11 +318,9 @@ steps:
 
 脚手架生成的配置默认选择 `cases/**/*.{yaml,yml}`。未配置 `files` 时，Midscene Test 会在测试目录下按 `**/*.{yaml,yml}` 递归查找用例文件。
 
-`setupFile` 必须匹配一个文件，并且不能同时出现在主文件列表中。它与 Project 的 TypeScript `setup` 不同：`setup` 创建运行时资源，`setupFile` 是先执行的一份 YAML 测试文档。
+选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。同一 Project 内文件顺序执行；需要并发时，使用持有独立资源的多个 Project。
 
-默认的 `retryScope: 'case'` 只重新执行失败 Case 的 `beforeEach → steps → afterEach`。设置为 `document` 后，会重新执行整个 YAML 文件，包括已通过的 Case、`beforeAll` 和 `afterAll`。如果正在从旧版 YAML 的整文件重试迁移，应使用 `document`。
-
-开启 `fileConcurrency` 时，Project `setup` 返回的 context 仍由并发文件共享。需要为每个文件创建独立 Page 或 Agent 时，使用 `documentSetup` 从 Project context 派生文件 context，并通过它的 `onTeardown()` 注册文件级清理。设备不能安全并发时，应保持 `fileConcurrency: 1`，或拆分为连接不同设备的多个 Project。
+原生 Test 始终生成统一总报告。报告路径会在运行结束后由 CLI 输出，查看方式见[查看测试结果](./use#查看测试结果)。
 
 ### 配置多个执行项目
 

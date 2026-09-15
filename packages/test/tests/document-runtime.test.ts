@@ -1,10 +1,13 @@
+import {
+  type DocumentSetupContext,
+  runWorkflowDocument,
+} from '@midscene/core/internal/test-runner';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type CollectedWorkflowDocument,
   NodeRegistry,
   createDocumentRuntime,
   defineNode,
-  runWorkflowDocument,
 } from '../src';
 import { runCollectedCase } from '../src/engine/run-collected-case';
 
@@ -419,11 +422,7 @@ describe('document resource ownership', () => {
     });
     const documentSetup = {
       name: 'session',
-      setup(
-        ctx: import('../src/cli/test-project').DocumentSetupContext<{
-          id: number;
-        }>,
-      ) {
+      setup(ctx: DocumentSetupContext<{ id: number }>) {
         expect(ctx.projectContext).toBe(shared);
         expect(ctx.document.attemptIndex).toBe(next);
         const context = { id: ++next };

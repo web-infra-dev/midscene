@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import type { MidsceneYamlTargetConfig } from '@midscene/core';
+import type { WorkflowDocumentSource } from '@midscene/core/internal/test-runner';
 import { parseYamlScript } from '@midscene/core/yaml';
 import { JSON_SCHEMA, load } from 'js-yaml';
 import { WorkflowParseError } from '../errors';
-import type { WorkflowDocumentSource } from '../parser/types';
 import { loadDotenvConfig } from '../runtime/dotenv-loader';
 import { type LegacyWorkflow, adaptLegacyWorkflow } from './legacy-adapter';
 

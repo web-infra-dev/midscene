@@ -2,7 +2,7 @@ import { executionRecordsToReportInput } from '@/test-runner';
 import { ScriptPlayer } from '@/yaml/player';
 import { expect, test } from '@rstest/core';
 
-test('keeps named and unnamed legacy results in the common execution result', async () => {
+test('keeps legacy named output on the player, not in the common document namespace', async () => {
   const player = new ScriptPlayer(
     {
       tasks: [
@@ -29,13 +29,11 @@ test('keeps named and unnamed legacy results in the common execution result', as
   const record = player.executionRecord!;
   const input = executionRecordsToReportInput([record], { runId: 'root' });
 
-  expect(input.projects[0].documents[0].outputs).toEqual({
-    0: 42,
-    answer: 7,
-  });
+  expect(player.result).toEqual({ 0: 42, answer: 7 });
+  expect(input.projects[0].documents[0]).not.toHaveProperty('outputs');
   expect(record.outputs).toEqual(player.result);
-  expect(record.execution?.document.outputs).toEqual({
-    0: 42,
-    answer: 7,
-  });
+  expect(record.execution?.document).not.toHaveProperty('outputs');
+  expect(
+    record.execution?.cases[0].run?.steps.map((step) => step.output?.data),
+  ).toEqual([42, 7]);
 });

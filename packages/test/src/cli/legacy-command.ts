@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { midsceneYamlTargetKeys } from '@midscene/core/yaml';
 import { loadDotenvConfig } from '../runtime/dotenv-loader';
 import { parseLegacyArguments } from '../runtime/legacy-arguments';
@@ -101,6 +101,16 @@ export async function createLegacyTestRunPlan(options: {
       'Legacy YAML CLI options cannot be combined with a native TypeScript config.',
     );
   const overrides = options.legacyOptions ?? {};
+  const searchRoot =
+    input && existsSync(input)
+      ? statSync(input).isDirectory()
+        ? input
+        : dirname(input)
+      : options.cwd;
+  if (!yamlConfig && existsSync(join(searchRoot, 'midscene.config.ts')))
+    throw new Error(
+      'Legacy YAML CLI options cannot be combined with a native TypeScript config. Configure native Test in midscene.config.ts instead.',
+    );
   // Load before config interpolation; apply a config's override policy again
   // before collecting its scripts so .env and shell precedence stay explicit.
   loadDotenvConfig({ cwd: options.cwd, ...overrides });
