@@ -1,5 +1,6 @@
 import { executionRecordsToReportInput } from '@/test-runner';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { expect, test } from '@rstest/core';
 
 test('keeps legacy named output on the player, not in the common document namespace', async () => {
@@ -26,7 +27,7 @@ test('keeps legacy named output on the player, not in the common document namesp
   );
   player.output = undefined;
   await player.run();
-  const record = player.executionRecord!;
+  const record = getLegacyYamlPlayerState(player).executionRecord!;
   const input = executionRecordsToReportInput([record], { runId: 'root' });
 
   expect(player.result).toEqual({ 0: 42, answer: 7 });

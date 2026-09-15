@@ -7,6 +7,7 @@ import {
   runWorkflowDocument,
 } from '@/test-runner';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { describe, expect, test } from '@rstest/core';
 
@@ -241,7 +242,7 @@ describe('execution facts survive infrastructure failures', () => {
     );
     player.output = undefined;
     await expect(player.run()).rejects.toThrow('legacy callback failed');
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       execution: { cases: [{ run: { steps: [{ status: 'success' }] } }] },
     });

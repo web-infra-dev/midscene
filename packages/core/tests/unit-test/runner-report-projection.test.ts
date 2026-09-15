@@ -3,6 +3,7 @@ import { type RunReportInput, buildTestRunReportDump } from '@/test-runner';
 import { executionRecordsToReportInput } from '@/test-runner';
 import { createLegacyYamlRuntime } from '@/yaml/legacy-yaml-runtime';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { describe, expect, test } from '@rstest/core';
 
 const index: TestRunReportSourceIndex = {
@@ -109,7 +110,7 @@ describe('entry-independent report projection', () => {
     player.output = undefined;
     await player.run();
     const record = {
-      ...player.executionRecord!,
+      ...getLegacyYamlPlayerState(player).executionRecord!,
       status: 'failed' as const,
       publicationErrors: [new Error('record file unavailable')],
     };
@@ -140,9 +141,12 @@ describe('entry-independent report projection', () => {
     );
     player.output = undefined;
     await player.run();
-    const input = executionRecordsToReportInput([player.executionRecord!], {
-      runId: 'root',
-    });
+    const input = executionRecordsToReportInput(
+      [getLegacyYamlPlayerState(player).executionRecord!],
+      {
+        runId: 'root',
+      },
+    );
     const dump = buildTestRunReportDump(input, index);
     expect(dump.status).toBe('failed');
     expect(dump.summary).toMatchObject({
@@ -188,7 +192,10 @@ describe('entry-independent report projection', () => {
         expect((error as Error).message).toBe('cleanup failed');
       }
       // The file-retry host owns attempt identity, not the public player API.
-      records.push({ ...player.executionRecord!, attemptIndex });
+      records.push({
+        ...getLegacyYamlPlayerState(player).executionRecord!,
+        attemptIndex,
+      });
     }
     records.forEach((record, attemptIndex) => {
       const step = record.execution!.cases[0].run!.steps[0];

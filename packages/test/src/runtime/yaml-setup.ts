@@ -11,9 +11,10 @@ import type {
 import { WorkflowPublicationError } from '@midscene/core/internal/test-runner';
 import {
   enterYamlAction,
+  isYamlReportEnabled,
   runInYamlExecutionContext,
 } from '@midscene/core/internal/yaml-runtime';
-import { resolveWebTarget, resolveYamlOutputConfig } from '@midscene/core/yaml';
+import { resolveYamlOutputConfig } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   type CreateYamlPlayerOptions,
@@ -32,13 +33,7 @@ export interface YamlRuntimeContext {
 // A non-enumerable compatibility marker also works across CJS/ESM host entries.
 const projectAgentKey = Symbol.for('@midscene/test/yaml-project-agent');
 
-/** Match the launcher's old web-target options followed by explicit Agent overrides. */
-export function isYamlReportEnabled(script: YamlAgentConfig): boolean {
-  return (
-    (script.agent?.generateReport ??
-      resolveWebTarget(script)?.target.generateReport) !== false
-  );
-}
+export { isYamlReportEnabled } from '@midscene/core/internal/yaml-runtime';
 
 /** Explicit YAML resource ownership is registered by the compatibility setup helper. */
 export function getYamlProjectPlayerOptions(

@@ -19,6 +19,7 @@ import type {
 import { createAgent, getReportFileName } from '@midscene/core/agent';
 import type { Agent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
+import { getLegacyYamlPlayerState } from '@midscene/core/internal/yaml-runtime';
 import { processCacheConfig } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { Browser, BrowserContext, Page } from 'puppeteer';
@@ -148,7 +149,8 @@ export async function createYamlPlayer(
     file,
   );
 
-  player.fallbackReportFileName = preference.reportFileName;
+  getLegacyYamlPlayerState(player).fallbackReportFileName =
+    preference.reportFileName;
   return player;
 }
 

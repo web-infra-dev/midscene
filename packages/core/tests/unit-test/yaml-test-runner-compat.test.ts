@@ -1,4 +1,5 @@
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { legacyAgentTestRunnerNodeDefinitions } from '@/yaml/test-runner-nodes';
 import { parseYamlScript } from '@/yaml/utils';
@@ -288,12 +289,16 @@ describe('legacy YAML Test Runner compatibility', () => {
       'done',
     ]);
     expect(player.taskStatusList[0].error).toBe(failure);
-    expect(player.executionResult?.cases.map((item) => item.status)).toEqual([
-      'failed',
-      'success',
-    ]);
-    expect(player.executionResult?.cases[0].run?.reportScopeId).toBe(
-      player.executionResult?.document.documentRunId,
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases.map(
+        (item) => item.status,
+      ),
+    ).toEqual(['failed', 'success']);
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases[0].run
+        ?.reportScopeId,
+    ).toBe(
+      getLegacyYamlPlayerState(player).executionResult?.document.documentRunId,
     );
     expect(player.result.second).toBe('second task result');
   });
@@ -323,11 +328,14 @@ describe('legacy YAML Test Runner compatibility', () => {
       'error',
       'init',
     ]);
-    expect(player.executionResult?.cases.map((item) => item.status)).toEqual([
-      'failed',
-      'not-run',
-    ]);
-    expect(player.executionResult?.cases[1].notRunReason).toBe('bail');
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases.map(
+        (item) => item.status,
+      ),
+    ).toEqual(['failed', 'not-run']);
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases[1].notRunReason,
+    ).toBe('bail');
     expect(agent.evaluateJavaScript).toHaveBeenCalledTimes(1);
   });
 
@@ -359,7 +367,9 @@ describe('legacy YAML Test Runner compatibility', () => {
 
     await player.run();
 
-    expect(player.executionResult?.cases[0].run?.steps[0]).toMatchObject({
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases[0].run?.steps[0],
+    ).toMatchObject({
       node: 'aiAct',
       status: 'success',
       report: {
@@ -395,7 +405,9 @@ describe('legacy YAML Test Runner compatibility', () => {
 
     await player.playTask(taskStatus, agent as any);
 
-    expect(player.executionResult?.cases[0]).toMatchObject({
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.cases[0],
+    ).toMatchObject({
       name: 'direct task',
       status: 'success',
       run: {
