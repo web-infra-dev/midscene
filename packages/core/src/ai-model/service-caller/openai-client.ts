@@ -13,7 +13,6 @@ import {
   wrapOpenAICompatibleFetch,
 } from './openai-request-context';
 import { createProxyAgent } from './proxy';
-import { resolveEffectiveTimeoutMs } from './request-timeout';
 
 const createAndWrapClient = async ({
   openaiBaseURL,
@@ -59,8 +58,8 @@ const createAndWrapClient = async ({
     // Midscene handles request retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
-    // When disabled (timeoutMs === null) fall through to the SDK default so
-    // only the caller-provided abortSignal can cancel the request.
+    // Disabling the Midscene hard timeout leaves the SDK timeout at its
+    // configured value or default; it does not disable SDK/network timeouts.
     ...(effectiveTimeoutMs !== null ? { timeout: effectiveTimeoutMs } : {}),
     dangerouslyAllowBrowser: true,
   };
@@ -112,10 +111,12 @@ const createAndWrapClient = async ({
 
 export async function createChatClient({
   modelConfig,
+  effectiveTimeoutMs,
   executionId,
   recordEvent,
 }: {
   modelConfig: IModelConfig;
+  effectiveTimeoutMs: number | null;
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
@@ -129,12 +130,10 @@ export async function createChatClient({
     openaiApiKey,
     openaiExtraConfig,
     createOpenAIClient,
-    timeout,
   } = modelConfig;
 
   const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
 
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
   const openAIRequestContext: OpenAIRequestContext = {
     recordEvent,
   };

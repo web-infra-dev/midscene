@@ -331,6 +331,34 @@ describe('codex app-server provider helper', () => {
     expect(queuedEvents).not.toHaveBeenCalled();
   });
 
+  it.each([0, 25])(
+    'does not create a turn deadline from timeout %s',
+    async (timeout) => {
+      await setupCodexServer();
+      const now = Date.now();
+      const clock = rs.spyOn(Date, 'now').mockReturnValue(now);
+      const controller = new AbortController();
+      const result = await callAIWithCodexAppServer(
+        [{ role: 'user', content: 'hello' }],
+        { ...baseModelConfig, timeout },
+        {
+          abortSignal: controller.signal,
+          onRecordEvent: (event) => {
+            if (
+              event.type === 'request' &&
+              event.protocol.method === 'turn/start'
+            ) {
+              // Passing ten minutes must not add a provider-owned model deadline.
+              clock.mockReturnValue(now + 600_001);
+            }
+          },
+        },
+      );
+      expect(result.content).toBe('hello');
+      expect(controller.signal.aborted).toBe(false);
+    },
+  );
+
   it('reports Codex JSON-RPC requests, responses, and turn notifications', async () => {
     await setupCodexServer();
 

@@ -1,5 +1,3 @@
-import type { IModelConfig } from '@midscene/shared/env';
-
 /**
  * Default hard timeout (ms) applied to every AI HTTP call.
  *
@@ -10,8 +8,9 @@ import type { IModelConfig } from '@midscene/shared/env';
  * Override per intent via `MIDSCENE_MODEL_TIMEOUT`,
  * `MIDSCENE_INSIGHT_MODEL_TIMEOUT`, or `MIDSCENE_PLANNING_MODEL_TIMEOUT`.
  * Set the env var (or `modelConfig.timeout`) to `0` to disable the hard
- * timeout entirely; only a caller-provided `abortSignal` will cancel the
- * request in that case.
+ * timeout. SDK and network timeouts still apply, and a caller-provided
+ * `abortSignal` can still cancel the request. Each retry gets a fresh timeout;
+ * retry waiting is not included in that timeout.
  */
 export const DEFAULT_AI_CALL_TIMEOUT_MS = 180_000;
 
@@ -33,13 +32,11 @@ export class AIRequestTimeoutError extends Error {
  * Resolve the hard request timeout for an AI call.
  * Returns `null` when the user explicitly opted out (`timeout === 0`).
  */
-export function resolveEffectiveTimeoutMs(
-  modelConfig: Pick<IModelConfig, 'timeout'>,
-): number | null {
-  const { timeout } = modelConfig;
-  if (typeof timeout !== 'number') return DEFAULT_AI_CALL_TIMEOUT_MS;
-  if (timeout <= 0) return null;
-  return timeout;
+export function resolveEffectiveTimeoutMs(timeout?: number): number | null {
+  if (timeout === undefined) {
+    return DEFAULT_AI_CALL_TIMEOUT_MS;
+  }
+  return timeout === 0 ? null : timeout;
 }
 
 /**

@@ -7,7 +7,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { CodexAppServerParamsResult } from '../../model-adapter/types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
-const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+const CODEX_INTERRUPT_TIMEOUT_MS = 5_000;
 const CODEX_DEFAULT_PROCESS_START_TIMEOUT_MS = 15 * 1000;
 const CODEX_DEFAULT_CLEANUP_TIMEOUT_MS = 8 * 1000;
 const CODEX_TEXT_INPUT_MAX_LENGTH = 256 * 1024;
@@ -408,8 +408,6 @@ class CodexAppServerConnection {
     imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
-    const timeoutMs = modelConfig.timeout || CODEX_DEFAULT_TIMEOUT_MS;
-    const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
     const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
@@ -468,7 +466,6 @@ class CodexAppServerConnection {
       const threadStartResponse = await this.request<CodexThreadStartResponse>({
         method: 'thread/start',
         params: threadStartParams,
-        deadlineAt,
         abortSignal,
       });
       onRecordEvent?.({
@@ -501,7 +498,6 @@ class CodexAppServerConnection {
       const turnStartResponse = await this.request<CodexTurnStartResponse>({
         method: 'turn/start',
         params: turnStartParams,
-        deadlineAt,
         abortSignal,
       });
       onRecordEvent?.({
@@ -520,7 +516,7 @@ class CodexAppServerConnection {
 
       let turnStatus: string | undefined;
       while (!turnStatus) {
-        const message = await this.nextMessage({ deadlineAt, abortSignal });
+        const message = await this.nextMessage({ abortSignal });
 
         if (this.isResponseMessage(message)) {
           // No concurrent requests in adapter runtime.
@@ -663,7 +659,7 @@ class CodexAppServerConnection {
             threadId,
             turnId,
           },
-          deadlineAt: Date.now() + 5_000,
+          deadlineAt: Date.now() + CODEX_INTERRUPT_TIMEOUT_MS,
         }).catch(() => {});
       }
       throw error;

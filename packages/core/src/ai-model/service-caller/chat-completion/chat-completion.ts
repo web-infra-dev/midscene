@@ -15,6 +15,7 @@ export const chat = async ({
   executionId,
   recordEvent,
   requestSignal,
+  effectiveTimeoutMs,
 }: ModelCallContext): Promise<ModelCallResult> => {
   const debugCall = getDebug('ai:call');
   const warnCall = getDebug('ai:call', { console: true });
@@ -59,6 +60,7 @@ export const chat = async ({
 
   const { completion, openAIRequestContext } = await createChatClient({
     modelConfig,
+    effectiveTimeoutMs,
     executionId,
     recordEvent,
   });

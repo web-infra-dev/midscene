@@ -1,6 +1,10 @@
 import { describe, expect, it } from '@rstest/core';
 import { version } from '../../../package.json';
-import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
+import {
+  DEFAULT_MODEL_CONFIG_KEYS,
+  INSIGHT_MODEL_CONFIG_KEYS,
+  PLANNING_MODEL_CONFIG_KEYS,
+} from '../../../src/env/constants';
 import {
   getUITarsModelVersion,
   legacyConfigToModelFamily,
@@ -16,6 +20,39 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
   MODEL_FAMILY_VALUES,
 } from '../../../src/env/types';
+
+describe.each([
+  DEFAULT_MODEL_CONFIG_KEYS,
+  INSIGHT_MODEL_CONFIG_KEYS,
+  PLANNING_MODEL_CONFIG_KEYS,
+])('timeout validation for $timeout', (keys) => {
+  it('leaves an unset timeout undefined', () => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: {} }).timeout,
+    ).toBeUndefined();
+  });
+
+  it.each(['0', '1', '180000', '0.5', ' 100 '])(
+    'accepts the finite non-negative value %s',
+    (value) => {
+      expect(
+        parseOpenaiSdkConfig({ keys, provider: { [keys.timeout]: value } })
+          .timeout,
+      ).toBe(Number(value));
+    },
+  );
+
+  it.each(['-1', 'NaN', 'Infinity', '-Infinity', 'abc', '', '   ', '1e309'])(
+    'rejects the invalid value %s',
+    (value) => {
+      expect(() =>
+        parseOpenaiSdkConfig({ keys, provider: { [keys.timeout]: value } }),
+      ).toThrow(
+        `${keys.timeout} must be a finite number greater than or equal to 0`,
+      );
+    },
+  );
+});
 
 describe('getUITarsModelVersion', () => {
   it('should return undefined when model family is missing', () => {

@@ -35,10 +35,9 @@ describe('service-caller request timeout', () => {
       await import('@/ai-model/service-caller/request-timeout');
 
     expect(DEFAULT_AI_CALL_TIMEOUT_MS).toBe(180_000);
-    expect(resolveEffectiveTimeoutMs({})).toBe(180_000);
-    expect(resolveEffectiveTimeoutMs({ timeout: 12_345 })).toBe(12_345);
-    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
-    expect(resolveEffectiveTimeoutMs({ timeout: -1 })).toBeNull();
+    expect(resolveEffectiveTimeoutMs()).toBe(180_000);
+    expect(resolveEffectiveTimeoutMs(12_345)).toBe(12_345);
+    expect(resolveEffectiveTimeoutMs(0)).toBeNull();
   });
 
   it('identifies hard-timeout errors both directly and through cause chains', async () => {
@@ -372,7 +371,7 @@ describe('service-caller request timeout', () => {
       '@/ai-model/service-caller/request-timeout'
     );
 
-    expect(resolveEffectiveTimeoutMs({ timeout: 0 })).toBeNull();
+    expect(resolveEffectiveTimeoutMs(0)).toBeNull();
 
     mockCreate.mockResolvedValue({
       choices: [{ message: { content: 'ok' } }],

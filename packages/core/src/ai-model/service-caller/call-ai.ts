@@ -169,8 +169,9 @@ async function callModelOnce(
         });
       }
     : undefined;
+  const effectiveTimeoutMs = resolveEffectiveTimeoutMs(modelConfig.timeout);
   const { signal: requestSignal, cleanup } = buildRequestAbortSignal(
-    resolveEffectiveTimeoutMs(modelConfig),
+    effectiveTimeoutMs,
     options?.abortSignal,
   );
   let deliveredChunk = false;
@@ -181,6 +182,7 @@ async function callModelOnce(
     executionId,
     recordEvent,
     requestSignal,
+    effectiveTimeoutMs,
     options: onChunk
       ? {
           ...options,
