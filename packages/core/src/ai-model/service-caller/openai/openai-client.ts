@@ -7,12 +7,12 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
-import { getVersion } from '../../utils';
+import { getVersion } from '../../../utils';
+import type { createProxyAgentIfNeeded } from '../proxy';
 import {
   type OpenAIRequestContext,
   wrapOpenAICompatibleFetch,
 } from './openai-request-context';
-import type { createProxyAgentIfNeeded } from './proxy';
 
 const createAndWrapClient = async ({
   openaiBaseURL,

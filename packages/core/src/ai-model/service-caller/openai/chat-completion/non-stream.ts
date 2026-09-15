@@ -1,5 +1,5 @@
-import type { OpenAIProtocolCallResult } from '../types';
-import { AIResponseParseError, hasUsableText } from '../utils';
+import type { OpenAIProtocolCallResult } from '../../types';
+import { AIResponseParseError, hasUsableText } from '../../utils';
 import type { ChatCompletionCallOptions } from './types';
 import { resolveContentWithReasoningFallback } from './utils';
 

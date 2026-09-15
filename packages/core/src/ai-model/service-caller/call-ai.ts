@@ -2,14 +2,14 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert, uuid } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
-import { callOpenAI } from './call-openai';
-import { prepareChatCompletion } from './chat-completion/chat-completion';
 import { callCodex, prepareCodexCall } from './codex/call-codex';
 import { isCodexAppServerProvider } from './codex/codex-app-server';
 import {
   isModelCallRecordingEnabled,
   recordModelCallEvent,
 } from './model-call-recorder';
+import { callOpenAI } from './openai/call-openai';
+import { prepareChatCompletion } from './openai/chat-completion/chat-completion';
 import {
   buildRequestAbortSignal,
   resolveEffectiveTimeoutMs,

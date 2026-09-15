@@ -41,7 +41,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records non-2xx raw response body without changing the response', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-request-context'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const context = {};
     const responseBody = JSON.stringify({
@@ -73,7 +73,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('does not record successful response bodies', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-request-context'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const context = {};
     const response = new Response(JSON.stringify({ ok: true }), {
@@ -90,7 +90,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('does not include request headers in model record events', async () => {
     const { wrapOpenAICompatibleFetch } = await import(
-      '@/ai-model/service-caller/openai-request-context'
+      '@/ai-model/service-caller/openai/openai-request-context'
     );
     const events: Array<Record<string, unknown>> = [];
     const context = {
@@ -218,7 +218,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('keeps request details isolated between attempts', async () => {
     const { wrapOpenAICompatibleFetch, formatOpenAIAPIErrorDetails } =
-      await import('@/ai-model/service-caller/openai-request-context');
+      await import('@/ai-model/service-caller/openai/openai-request-context');
     const firstContext = {};
     const secondContext = {};
     globalThis.fetch = rs
@@ -246,7 +246,7 @@ describe('service-caller OpenAI error handling', () => {
 
   it('records and reports original fetch errors before rethrowing them', async () => {
     const { formatOpenAIAPIErrorDetails, wrapOpenAICompatibleFetch } =
-      await import('@/ai-model/service-caller/openai-request-context');
+      await import('@/ai-model/service-caller/openai/openai-request-context');
     const context = {};
     const cause = Object.assign(
       new Error(

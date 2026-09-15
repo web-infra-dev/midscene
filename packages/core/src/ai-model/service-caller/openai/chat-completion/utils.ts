@@ -1,5 +1,5 @@
 import { getDebug } from '@midscene/shared/logger';
-import { hasUsableText } from '../utils';
+import { hasUsableText } from '../../utils';
 
 export const resolveContentWithReasoningFallback = ({
   content,

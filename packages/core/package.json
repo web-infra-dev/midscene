@@ -10,12 +10,12 @@
   "imports": {
     "#proxy-deps": {
       "node": {
-        "import": "./dist/es/ai-model/service-caller/proxy-deps.node.mjs",
-        "require": "./dist/lib/ai-model/service-caller/proxy-deps.node.js"
+        "import": "./dist/es/ai-model/service-caller/proxy/proxy-deps.node.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy/proxy-deps.node.js"
       },
       "default": {
-        "import": "./dist/es/ai-model/service-caller/proxy-deps.stub.mjs",
-        "require": "./dist/lib/ai-model/service-caller/proxy-deps.stub.js"
+        "import": "./dist/es/ai-model/service-caller/proxy/proxy-deps.stub.mjs",
+        "require": "./dist/lib/ai-model/service-caller/proxy/proxy-deps.stub.js"
       }
     }
   },

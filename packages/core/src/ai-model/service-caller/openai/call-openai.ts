@@ -1,16 +1,16 @@
 import { getDebug } from '@midscene/shared/logger';
+import type {
+  ModelCallContext,
+  ModelCallResult,
+  OpenAIProtocolCallOptions,
+} from '../types';
+import { AIResponseParseError } from '../utils';
 import {
   callChatCompletion,
   type prepareChatCompletion,
 } from './chat-completion/chat-completion';
 import { createChatClient } from './openai-client';
 import { formatOpenAIAPIErrorDetails } from './openai-request-context';
-import type {
-  ModelCallContext,
-  ModelCallResult,
-  OpenAIProtocolCallOptions,
-} from './types';
-import { AIResponseParseError } from './utils';
 
 export async function callOpenAI(
   {

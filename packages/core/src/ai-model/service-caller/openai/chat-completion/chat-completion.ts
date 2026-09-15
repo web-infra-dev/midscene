@@ -1,8 +1,8 @@
 import { getDebug } from '@midscene/shared/logger';
-import type { ChatCompletionCallInput } from '../../model-adapter/types';
-import { createProxyAgentIfNeeded } from '../proxy';
-import type { ModelCallContext, OpenAIProtocolCallResult } from '../types';
-import { applyImageDetail, stringifyForDebug } from '../utils';
+import type { ChatCompletionCallInput } from '../../../model-adapter/types';
+import { createProxyAgentIfNeeded } from '../../proxy';
+import type { ModelCallContext, OpenAIProtocolCallResult } from '../../types';
+import { applyImageDetail, stringifyForDebug } from '../../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import type { ChatCompletionCallOptions } from './types';
