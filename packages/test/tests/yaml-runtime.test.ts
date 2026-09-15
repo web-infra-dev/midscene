@@ -2,17 +2,31 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type {
+  MidsceneYamlScript,
+  ScreenshotItem as ScreenshotItemType,
+  UIContext,
+} from '@midscene/core';
 import type { Agent as AgentType } from '@midscene/core/agent';
+import {
+  NodeRegistry,
+  runWorkflowDocument,
+} from '@midscene/core/internal/test-runner';
 import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
+import { collectLegacyYamlDocument } from '@midscene/core/internal/yaml-runtime';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectTeardown } from '../src/cli/test-project';
 import {
   type YamlRuntimeContext,
+  createLegacyYamlDocumentHost,
   createYamlDocumentSetup,
   createYamlProjectSetup,
 } from '../src/runtime';
 
 const require = createRequire(import.meta.url);
+const { ScreenshotItem } = require('@midscene/core') as {
+  ScreenshotItem: typeof ScreenshotItemType;
+};
 const { Agent } = require('@midscene/core/agent') as {
   Agent: typeof AgentType;
 };
@@ -34,6 +48,53 @@ afterEach(() => {
 });
 
 describe('YAML compatibility resource host', () => {
+  it('passes a valid aiLocate uiContext through the Test compatibility host and shared kernel', async () => {
+    const directory = temporaryDirectory();
+    const uiContext: UIContext = {
+      screenshot: ScreenshotItem.create(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+        Date.now(),
+      ),
+      shotSize: { width: 1, height: 1 },
+      shrunkShotToLogicalRatio: 1,
+      _isFrozen: true,
+    };
+    const element = { center: [10, 10] };
+    const agent = {
+      aiLocate: vi.fn(
+        async (_prompt: string, _options: { uiContext?: UIContext }) => element,
+      ),
+    };
+    host.createYamlAgent.mockResolvedValue({ agent, freeFn: [] });
+    const output = join(directory, 'result.json');
+    const script: MidsceneYamlScript = {
+      agent: { generateReport: false },
+      config: { output },
+      tasks: [{ name: 'locate', flow: [{ aiLocate: 'button', uiContext }] }],
+    };
+    const compatibility = createLegacyYamlDocumentHost({
+      file: 'locate.yaml',
+      script,
+    });
+    const registry = new NodeRegistry(compatibility.nodes);
+    const execution = await runWorkflowDocument(
+      collectLegacyYamlDocument(script, 'locate.yaml'),
+      {
+        documentSetup: compatibility.documentSetup,
+        resolveNode: registry.require.bind(registry),
+        onStepResult: compatibility.onStepResult,
+      },
+    );
+    expect(execution.document.status).toBe('success');
+    expect(execution.cases[0].status).toBe('success');
+    expect(agent.aiLocate).toHaveBeenCalledWith(
+      'button',
+      expect.objectContaining({ uiContext }),
+    );
+    expect(agent.aiLocate.mock.calls[0][1].uiContext).toBe(uiContext);
+    expect(JSON.parse(readFileSync(output, 'utf8'))).toEqual({ '0': element });
+  });
+
   const documentResult = (): WorkflowDocumentRunResult => ({
     documentId: 'document',
     documentRunId: 'run',

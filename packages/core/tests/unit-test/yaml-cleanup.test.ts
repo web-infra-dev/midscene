@@ -1,6 +1,7 @@
 import type { Agent } from '@/agent/agent';
 import { runFreeFnCleanup } from '@/yaml/cleanup';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('YAML resource cleanup', () => {
@@ -52,8 +53,10 @@ describe('YAML resource cleanup', () => {
 
     await expect(player.run()).rejects.toBe(cleanupError);
     expect(player.status).toBe('error');
-    expect(player.executionResult?.document.status).toBe('success');
-    expect(player.executionRecord).toMatchObject({
+    expect(
+      getLegacyYamlPlayerState(player).executionResult?.document.status,
+    ).toBe('success');
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       cleanupErrors: [cleanupError],
     });
@@ -66,11 +69,13 @@ describe('YAML resource cleanup', () => {
     });
     await player.run();
     expect(player.errorInSetup).toBe(failure);
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       setupError: failure,
     });
-    expect(player.executionRecord?.execution).toBeUndefined();
+    expect(
+      getLegacyYamlPlayerState(player).executionRecord?.execution,
+    ).toBeUndefined();
   });
 
   test('cleans up an acquired Agent if discovering its actions fails', async () => {
@@ -86,7 +91,7 @@ describe('YAML resource cleanup', () => {
     }));
     await player.run();
     expect(cleanup).toHaveBeenCalledTimes(1);
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       setupError: failure,
     });
@@ -111,7 +116,7 @@ describe('YAML resource cleanup', () => {
       ],
     }));
     await expect(player.run()).rejects.toBe(cleanupError);
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       setupError,
       cleanupErrors: [cleanupError],

@@ -84,16 +84,15 @@ const legacyValidationErrorNodeDefinition: AgentTestRunnerNodeDefinition = {
 
 // These legacy fields are accepted only by YAML hosts, never native Node specs.
 const legacyLocateFields = { uiContext: z.custom<UIContext>().optional() };
+const legacyLocateInputSchema = aiTapInputSchema.extend({
+  options: aiTapInputSchema.shape.options
+    .unwrap()
+    .extend(legacyLocateFields)
+    .optional(),
+});
 const legacyInputSchemas = new Map<string, z.ZodObject>([
-  [
-    'aiTap',
-    aiTapInputSchema.extend({
-      options: aiTapInputSchema.shape.options
-        .unwrap()
-        .extend(legacyLocateFields)
-        .optional(),
-    }),
-  ],
+  ['aiTap', legacyLocateInputSchema],
+  ['aiLocate', legacyLocateInputSchema],
   [
     'aiScroll',
     aiScrollInputSchema.extend({

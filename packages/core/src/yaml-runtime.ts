@@ -9,6 +9,8 @@ export {
   enterYamlExecution,
   runInYamlExecutionContext,
 } from './yaml/execution-session';
+export { getLegacyYamlPlayerState } from './yaml/player-state';
+export { isYamlReportEnabled } from './yaml/report-policy';
 export { collectLegacyYamlDocument } from './yaml/test-runner-compat';
 export {
   getLegacyYamlResultData,

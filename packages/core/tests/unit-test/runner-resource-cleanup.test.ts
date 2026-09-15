@@ -17,6 +17,7 @@ import {
   runInYamlExecutionContext,
 } from '@/yaml/execution-session';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { collectLegacyYamlDocument } from '@/yaml/test-runner-compat';
 import { afterEach, describe, expect, rs, test } from '@rstest/core';
 
@@ -402,7 +403,7 @@ describe('resource-aware cancellation cleanup', () => {
     await rs.advanceTimersByTimeAsync(1100);
     const error = await execution;
     expect(error).toBeInstanceOf(ResourceCleanupDeferredError);
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       cleanupErrors: [{ code: 'RESOURCE_CLEANUP_DEFERRED' }],
     });

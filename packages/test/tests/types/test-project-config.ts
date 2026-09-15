@@ -104,6 +104,12 @@ type NativeBoundary = [
   >,
   Assert<Absent<WorkflowDocumentSource, 'invocationIndex'>>,
   Assert<Absent<z.output<typeof locateOptionsInputSchema>, 'uiContext'>>,
+  Assert<
+    Absent<
+      ScriptPlayer<any>,
+      'executionResult' | 'executionRecord' | 'fallbackReportFileName'
+    >
+  >,
 ];
 type CaseIdArity = Assert<
   Parameters<typeof createCaseId>['length'] extends 3 ? true : false

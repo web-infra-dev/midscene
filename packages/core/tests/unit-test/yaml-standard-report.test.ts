@@ -7,7 +7,9 @@ import { mergeReportFiles } from '@/report-cli';
 import { ReportGenerator } from '@/report-generator';
 import type { TestRunReportDump } from '@/test-run-report';
 import { ExecutionDump } from '@/types';
+import type { MidsceneYamlScript } from '@/types';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   afterEach,
@@ -78,12 +80,63 @@ const readHtmlDump = (html: string): TestRunReportDump => {
 const readDump = (path: string) => readHtmlDump(readFileSync(path, 'utf8'));
 
 describe('old YAML entries publish standard Runner reports', () => {
+  test.each(
+    (['web', 'page', 'browser', 'target'] as const).flatMap((source) =>
+      [
+        { targetEnabled: false, agentEnabled: undefined, enabled: false },
+        { targetEnabled: true, agentEnabled: undefined, enabled: true },
+        { targetEnabled: false, agentEnabled: true, enabled: true },
+        { targetEnabled: true, agentEnabled: false, enabled: false },
+      ].map((policy) => ({ source, ...policy })),
+    ),
+  )(
+    'respects $source report=$targetEnabled with Agent override=$agentEnabled when setup fails',
+    async ({ source, targetEnabled, agentEnabled, enabled }) => {
+      const error = new Error('setup failed');
+      const script: MidsceneYamlScript = {
+        [source]: { url: 'about:blank', generateReport: targetEnabled },
+        ...(agentEnabled === undefined
+          ? {}
+          : { agent: { generateReport: agentEnabled } }),
+        tasks: [],
+      };
+      const player = new ScriptPlayer(script, async () => {
+        throw error;
+      });
+      const reportPath = join(directory, 'fallback.html');
+      const create = rs.spyOn(ReportGenerator, 'create').mockImplementation(
+        () =>
+          new ReportGenerator({
+            reportPath,
+            screenshotMode: 'inline',
+            autoPrint: false,
+          }),
+      );
+      await player.run();
+      const record = getLegacyYamlPlayerState(player).executionRecord!;
+      expect(player.status).toBe('error');
+      expect(record.setupError).toBe(error);
+      expect(record.reportSources ?? []).toHaveLength(enabled ? 1 : 0);
+      expect(
+        readdirSync(directory).filter((file) => file.endsWith('.html')),
+      ).toEqual(enabled ? ['fallback.html'] : []);
+      if (enabled) {
+        expect(create).toHaveBeenCalledTimes(1);
+        expect(player.reportFile).toBe(reportPath);
+        expect(readDump(reportPath).status).toBe('failed');
+      } else {
+        expect(create).not.toHaveBeenCalled();
+        expect(player.reportFile).toBeUndefined();
+      }
+    },
+  );
+
   test('uses the host-reserved report name even if no Agent could be created', async () => {
     const error = new Error('setup failed');
     const player = new ScriptPlayer({ tasks: [] }, async () => {
       throw error;
     });
-    player.fallbackReportFileName = 'host-reserved';
+    getLegacyYamlPlayerState(player).fallbackReportFileName = 'host-reserved';
     const create = rs.spyOn(ReportGenerator, 'create').mockImplementation(
       (name) =>
         new ReportGenerator({
@@ -95,7 +148,9 @@ describe('old YAML entries publish standard Runner reports', () => {
     await player.run();
     expect(create).toHaveBeenCalledWith('host-reserved', {});
     expect(player.reportFile).toBe(join(directory, 'host-reserved.html'));
-    expect(player.executionRecord?.setupError).toBe(error);
+    expect(getLegacyYamlPlayerState(player).executionRecord?.setupError).toBe(
+      error,
+    );
     expect(readDump(player.reportFile!).status).toBe('failed');
   });
   test('rejects independent public runs without changing the active Agent or its report', async () => {
@@ -265,7 +320,9 @@ describe('old YAML entries publish standard Runner reports', () => {
     await player.run();
     expect(publish).toHaveBeenCalledTimes(1);
     expect(destroy).not.toHaveBeenCalled();
-    expect(player.executionRecord?.children).toHaveLength(1);
+    expect(
+      getLegacyYamlPlayerState(player).executionRecord?.children,
+    ).toHaveLength(1);
     expect(readDump(player.reportFile!).summary.total).toBe(1);
     await agent.destroy();
   });
@@ -365,7 +422,7 @@ describe('old YAML entries publish standard Runner reports', () => {
     }));
     player.output = undefined;
     await expect(player.run()).rejects.toBe(failure);
-    expect(player.executionRecord).toMatchObject({
+    expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
       status: 'failed',
       reportError: failure,
     });

@@ -6,6 +6,7 @@ import { ReportGenerator } from '../report-generator';
 import type { WorkflowExecutionRecord } from '../test-runner';
 import { executionRecordsToReportInput } from '../test-runner/reporting/execution-record';
 import { getVersion } from '../utils';
+import { isYamlReportEnabled } from './report-policy';
 
 interface PublishLegacyYamlReportOptions {
   agent: Agent | null;
@@ -34,7 +35,8 @@ export async function publishLegacyYamlReport(
     if (source) record = Object.freeze({ ...record, reportSources: [source] });
     return { record, reportFile };
   }
-  if (ifInBrowser || ifInWorker) return { record };
+  if (ifInBrowser || ifInWorker || !isYamlReportEnabled(options.script))
+    return { record };
 
   const generator = ReportGenerator.create(
     options.fallbackReportFileName ??

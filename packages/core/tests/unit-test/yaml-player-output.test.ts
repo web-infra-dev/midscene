@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ScriptPlayer } from '@/yaml/player';
+import { getLegacyYamlPlayerState } from '@/yaml/player-state';
 import { parseYamlScript, resolveYamlOutputConfig } from '@/yaml/utils';
 import { describe, expect, rs, test } from '@rstest/core';
 
@@ -99,7 +100,7 @@ tasks: []
         await expect(player.run()).rejects.toThrow('write-result');
         expect(evaluateJavaScript).toHaveBeenCalledTimes(1);
         expect(player.result).toEqual({ value: 42 });
-        expect(player.executionRecord).toMatchObject({
+        expect(getLegacyYamlPlayerState(player).executionRecord).toMatchObject({
           status: 'failed',
           outputs: { value: 42 },
           publicationErrors: [{ code: 'WORKFLOW_PUBLICATION_FAILED' }],

@@ -1,17 +1,30 @@
 import { Agent } from '@/agent';
-import type { MidsceneYamlScript } from '@/types';
+import { commonAgentTestRunnerNodeDefinitions } from '@/agent/test-runner-nodes';
+import { ScreenshotItem } from '@/screenshot-item';
+import type { MidsceneYamlScript, UIContext } from '@/types';
 import {
   createLegacyYamlRuntime,
   legacyYamlOutcomeError,
 } from '@/yaml/legacy-yaml-runtime';
+import { ScriptPlayer } from '@/yaml/player';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
+const createUIContext = (): UIContext => ({
+  screenshot: ScreenshotItem.create(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=',
+    Date.now(),
+  ),
+  shotSize: { width: 1, height: 1 },
+  shrunkShotToLogicalRatio: 1,
+  _isFrozen: true,
+});
+
 describe('legacy YAML runtime', () => {
-  test.each(['aiTap', 'aiScroll'])(
+  test.each(['aiTap', 'aiScroll', 'aiLocate'])(
     'keeps uiContext for legacy %s without exposing it on native Nodes',
     async (node) => {
       const action = rs.fn().mockResolvedValue(undefined);
-      const uiContext = { fixture: true };
+      const uiContext = createUIContext();
       const runtime = createLegacyYamlRuntime({
         agent: { [node]: action, dump: { executions: [] } } as any,
         actionSpace: [],
@@ -27,8 +40,39 @@ describe('legacy YAML runtime', () => {
         'target',
         expect.objectContaining({ uiContext }),
       );
+      expect(action.mock.calls[0][1].uiContext).toBe(uiContext);
+      const native = commonAgentTestRunnerNodeDefinitions.find(
+        (definition) => definition.name === node,
+      )!;
+      expect(
+        native.inputSchema.safeParse({
+          prompt: 'target',
+          options: { uiContext },
+        }).success,
+      ).toBe(false);
     },
   );
+
+  test('passes a valid aiLocate uiContext through the public ScriptPlayer facade', async () => {
+    const uiContext = createUIContext();
+    const element = { center: [10, 10] };
+    const aiLocate = rs.fn().mockResolvedValue(element);
+    const player = new ScriptPlayer(
+      {
+        agent: { generateReport: false },
+        tasks: [{ name: 'locate', flow: [{ aiLocate: 'button', uiContext }] }],
+      },
+      async () => ({
+        agent: { aiLocate, getActionSpace: async () => [] } as any,
+        freeFn: [],
+      }),
+    );
+    await player.run();
+    expect(player.status).toBe('done');
+    expect(player.taskStatusList[0].status).toBe('done');
+    expect(aiLocate.mock.calls[0][1].uiContext).toBe(uiContext);
+    expect(player.result).toEqual({ '0': element });
+  });
 
   test.each([false, true])(
     'owns task continuation without a facade: %s',

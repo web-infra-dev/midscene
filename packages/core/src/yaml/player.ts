@@ -12,10 +12,7 @@ import type {
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, ifInWorker, uuid } from '@midscene/shared/utils';
-import type {
-  WorkflowDocumentExecutionResult,
-  WorkflowExecutionRecord,
-} from '../test-runner';
+import type { WorkflowDocumentExecutionResult } from '../test-runner';
 import {
   WorkflowExecutionFailure,
   WorkflowPublicationError,
@@ -34,6 +31,10 @@ import {
   createLegacyYamlRuntime,
   legacyYamlOutcomeError,
 } from './legacy-yaml-runtime';
+import {
+  getLegacyYamlPlayerState,
+  initializeLegacyYamlPlayerState,
+} from './player-state';
 import { collectLegacyYamlDocument } from './test-runner-compat';
 import { resolveWebTarget, resolveYamlOutputConfig } from './utils';
 
@@ -57,12 +58,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public output?: string | null;
   public unstableLogContent?: string | null;
   public errorInSetup?: Error;
-  /** @internal Runner result backing this compatibility facade. */
-  public executionResult?: WorkflowDocumentExecutionResult;
-  /** @internal Complete invocation, including setup and cleanup failures. */
-  public executionRecord?: WorkflowExecutionRecord;
-  /** @internal Host-resolved name, also used when setup fails before an Agent exists. */
-  public fallbackReportFileName?: string;
   private interfaceAgent: Agent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
@@ -81,6 +76,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     this.scriptPath = scriptPath;
     // Collection validates syntax but defers old task/Step errors until execution.
     collectLegacyYamlDocument(script, scriptPath);
+    initializeLegacyYamlPlayerState(this);
     this.result = {};
 
     this.target =
@@ -233,7 +229,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           ? declaredIndex
           : 0;
 
-    this.executionResult = await this.createRuntime(agent).runTask(
+    const state = getLegacyYamlPlayerState(this);
+    state.executionResult = await this.createRuntime(agent).runTask(
       taskStatus,
       taskIndex,
       {
@@ -245,7 +242,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       },
     );
 
-    const outcome = this.executionResult.cases[0];
+    const outcome = state.executionResult.cases[0];
     if (!outcome || outcome.status === 'not-run') {
       throw new Error(`Task "${taskStatus.name}" did not run.`);
     }
@@ -262,8 +259,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   private async runInContext() {
     const startedAt = new Date();
     const runId = uuid();
-    this.executionResult = undefined;
-    this.executionRecord = undefined;
+    const state = getLegacyYamlPlayerState(this);
+    state.executionResult = undefined;
+    state.executionRecord = undefined;
     this.publicationErrors = [];
     const { android, ios, harmony, computer } = this.script;
     const webEnv = resolveWebTarget(this.script)?.target;
@@ -323,7 +321,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       agent && !setupError ? this.createRuntime(agent) : undefined;
     try {
       if (runtime && agent) {
-        this.executionResult = await runtime.runScript(this.script, {
+        state.executionResult = await runtime.runScript(this.script, {
           document,
           signal,
           createDocumentRunId: () => runId,
@@ -354,7 +352,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             await this.setTaskStatus(taskIndex, 'error', error);
           },
         });
-        const stoppedOnFailure = this.executionResult.cases.some(
+        const stoppedOnFailure = state.executionResult.cases.some(
           (outcome) =>
             outcome.status === 'failed' &&
             !this.taskStatusList[outcome.caseIndex]?.continueOnError,
@@ -366,7 +364,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     } catch (error) {
       executionError = error;
       if (error instanceof WorkflowExecutionFailure)
-        this.executionResult = error.result as WorkflowDocumentExecutionResult;
+        state.executionResult = error.result as WorkflowDocumentExecutionResult;
       this.setPlayerStatus('error', error as Error);
     }
 
@@ -401,14 +399,14 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         : cleanupError === undefined
           ? []
           : [cleanupError];
-    this.executionRecord = createLegacyYamlExecutionRecord({
+    state.executionRecord = createLegacyYamlExecutionRecord({
       runId,
       attemptIndex: 0,
       script: this.script,
       document,
       startedAt,
       endedAt,
-      execution: this.executionResult,
+      execution: state.executionResult,
       setupError,
       executionError,
       cleanupErrors,
@@ -423,28 +421,28 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       try {
         const published = await publishLegacyYamlReport({
           agent,
-          record: this.executionRecord,
+          record: state.executionRecord,
           runId,
           script: this.script,
           scriptPath: this.scriptPath,
-          fallbackReportFileName: this.fallbackReportFileName,
+          fallbackReportFileName: state.fallbackReportFileName,
         });
         this.reportFile = published.reportFile;
-        this.executionRecord = published.record;
+        state.executionRecord = published.record;
       } catch (error) {
         reportError = error;
         this.setPlayerStatus(
           'error',
           (setupError ?? executionError ?? cleanupError ?? error) as Error,
         );
-        this.executionRecord = Object.freeze({
-          ...this.executionRecord,
+        state.executionRecord = Object.freeze({
+          ...state.executionRecord,
           status: 'failed',
           reportError: error,
         });
       }
     }
-    session?.finish(this.executionRecord);
+    session?.finish(state.executionRecord);
     if (reportError) {
       const errors = [
         setupError,
