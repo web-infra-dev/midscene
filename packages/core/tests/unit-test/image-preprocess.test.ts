@@ -7,7 +7,12 @@ import {
 } from '@midscene/shared/img';
 import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
+import * as imgActual from '@midscene/shared/img' with {
+  rstest: 'importActual',
+};
+
 rs.mock('@midscene/shared/img', () => ({
+  ...imgActual,
   compositeElementInfoImg: rs.fn(),
   cropByRect: rs.fn(),
   paddingToMatchBlockByBase64: rs.fn(),

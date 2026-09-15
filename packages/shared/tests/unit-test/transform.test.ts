@@ -105,16 +105,21 @@ describe('normalizeBase64Image', () => {
 });
 
 describe('normalizeScreenshotBase64', () => {
+  const webpBody =
+    'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+
   it('accepts PNG, JPEG, and WebP data urls', () => {
     expect(
-      normalizeScreenshotBase64(' data:image/png;base64,aaa\r\nbbb '),
-    ).toBe('data:image/png;base64,aaabbb');
+      normalizeScreenshotBase64(
+        ' data:image/png;base64,iVBORw0KGgo\r\nAAAANSUhEUgAAAAUA ',
+      ),
+    ).toBe('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA');
     expect(normalizeScreenshotBase64('data:image/jpeg;base64,/9j/4AAQ')).toBe(
       'data:image/jpeg;base64,/9j/4AAQ',
     );
     expect(
-      normalizeScreenshotBase64('data:image/webp;base64,UklGRjQAAA=='),
-    ).toBe('data:image/webp;base64,UklGRjQAAA==');
+      normalizeScreenshotBase64(`data:image/webp;base64,${webpBody}`),
+    ).toBe(`data:image/webp;base64,${webpBody}`);
   });
 
   it('normalizes jpg data urls to jpeg', () => {
@@ -124,8 +129,8 @@ describe('normalizeScreenshotBase64', () => {
   });
 
   it('recognizes raw PNG base64', () => {
-    expect(normalizeScreenshotBase64(' iVBORw0KGgo aaa\r\nbbb ')).toBe(
-      'data:image/png;base64,iVBORw0KGgoaaabbb',
+    expect(normalizeScreenshotBase64(' iVBORw0KGgo AAAANSUhEUgAAAAUA ')).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
     );
   });
 
@@ -136,9 +141,11 @@ describe('normalizeScreenshotBase64', () => {
   });
 
   it('recognizes raw WebP base64', () => {
-    expect(normalizeScreenshotBase64(' UklGRjQAAA BXRUJQ ')).toBe(
-      'data:image/webp;base64,UklGRjQAAABXRUJQ',
-    );
+    expect(
+      normalizeScreenshotBase64(
+        ` ${webpBody.slice(0, 20)} ${webpBody.slice(20)} `,
+      ),
+    ).toBe(`data:image/webp;base64,${webpBody}`);
   });
 
   it('uses the provided label in validation errors', () => {

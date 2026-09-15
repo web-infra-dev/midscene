@@ -28,9 +28,56 @@ function createTask(overrides: Record<string, unknown> = {}) {
 }
 
 describe('report-markdown', () => {
+  it('exports WebP screenshots with matching MIME types and file extensions', () => {
+    const webpDataUrl =
+      'data:image/webp;base64,UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAMAAMASJQBOl0AAjNAA/v4icv1difCfoP7mxzi2QwAA';
+    const execution: IExecutionDump = {
+      logTime: 1710000000000,
+      name: 'webp execution',
+      tasks: [
+        createTask({
+          uiContext: {
+            screenshot: ScreenshotItem.create(webpDataUrl, 1710000000000),
+          },
+          recorder: [
+            {
+              type: 'screenshot',
+              ts: 1710000000050,
+              screenshot: {
+                type: 'midscene_screenshot_ref',
+                id: 'webp-recorder',
+                capturedAt: 1710000000050,
+                mimeType: 'image/webp',
+                storage: 'file',
+                path: './screenshots/webp-recorder.webp',
+              },
+            },
+          ],
+        }),
+      ],
+    };
+
+    const result = executionToMarkdown(execution);
+
+    expect(result.attachments).toHaveLength(2);
+    expect(result.attachments[0]).toMatchObject({
+      mimeType: 'image/webp',
+      base64Data: webpDataUrl,
+    });
+    expect(result.attachments[1]).toMatchObject({
+      mimeType: 'image/webp',
+      sourceRef: { path: './screenshots/webp-recorder.webp' },
+    });
+    expect(
+      result.attachments.every(({ suggestedFileName }) =>
+        suggestedFileName.endsWith('.webp'),
+      ),
+    ).toBe(true);
+  });
+
   it('handles single execution markdown with screenshot file links', () => {
     const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,Zm9v',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
       1710000000000,
     );
     const execution: IExecutionDump = {
@@ -174,7 +221,7 @@ describe('report-markdown', () => {
 
   it('uses timing fallback fields and custom screenshot directory', () => {
     const screenshot = ScreenshotItem.create(
-      'data:image/png;base64,Zm9v',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
       1710000000000,
     );
 
@@ -401,7 +448,7 @@ describe('report-markdown', () => {
           taskId: 'task-recorder-string',
           uiContext: {
             screenshot: {
-              base64: 'data:image/png;base64,bWFpbg==',
+              base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
               capturedAt: 1710000000000,
             },
             shotSize: { width: 800, height: 600 },
@@ -411,7 +458,7 @@ describe('report-markdown', () => {
               type: 'screenshot',
               ts: 1710000000050,
               timing: 'after action',
-              screenshot: 'data:image/png;base64,cmVjb3JkZXI=',
+              screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYA',
             },
           ],
         }),
@@ -425,10 +472,10 @@ describe('report-markdown', () => {
     expect(result.markdown).toContain('timing=after action');
     expect(result.attachments).toHaveLength(2);
     expect(result.attachments[0].base64Data).toBe(
-      'data:image/png;base64,bWFpbg==',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
     );
     expect(result.attachments[1].base64Data).toBe(
-      'data:image/png;base64,cmVjb3JkZXI=',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYA',
     );
     expect(result.attachments[1].suggestedFileName).toContain('recorder-1');
     expect(result.attachments[1].suggestedFileName).not.toBe(
