@@ -13,8 +13,8 @@ import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
-  runTestProjectWithYamlCompatibility,
 } from './test-project-runner';
+import { runTestProjectWithYamlCompatibility } from './yaml-compatibility-runner';
 
 export interface TestCliIO {
   log(message: string): void;

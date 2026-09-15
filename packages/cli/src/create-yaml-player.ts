@@ -4,4 +4,4 @@ export {
   type CreateYamlPlayerOptions,
   type SingleYamlExecutionResult,
   type YamlStaticServer,
-} from '@midscene/test/runtime';
+} from '@midscene/test/internal/yaml-runtime';

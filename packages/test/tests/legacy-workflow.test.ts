@@ -9,37 +9,78 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import type { MidsceneYamlScript } from '@midscene/core';
+import { dirname, join, resolve } from 'node:path';
+import type {
+  MidsceneYamlConfigResult,
+  MidsceneYamlScript,
+} from '@midscene/core';
 import type * as CoreRuntime from '@midscene/core';
 import type { WorkflowDocumentRunResult } from '@midscene/core/internal/test-runner';
+import { WorkflowExecutionFailure } from '@midscene/core/internal/test-runner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adaptLegacyExecutionPlan,
   adaptLegacyWorkflow,
 } from '../src/cli/legacy-adapter';
 import { collectLegacyWorkflow } from '../src/cli/legacy-collector';
+import { prepareTestRun } from '../src/cli/prepare-test-run';
 import { loadTestProject } from '../src/cli/test-project';
 import * as projectLoader from '../src/cli/test-project';
 import {
   type TestProjectRunOptions,
   runTestProject as runNativeTestProject,
-  runTestProjectWithYamlCompatibility,
 } from '../src/cli/test-project-runner';
+import type { TestProjectRunResult } from '../src/cli/types';
+import { runTestProjectWithYamlCompatibility } from '../src/cli/yaml-compatibility-runner';
 import * as browserRuntime from '../src/runtime/legacy-browser';
 import {
   type LegacyTestRunPlan,
   defaultLegacyConfig,
 } from '../src/runtime/legacy-config';
 
-// Tests explicitly exercise the dedicated compatibility host, not native config.
-const runTestProject = ({
+type RunWithLegacySummary = TestProjectRunResult & {
+  legacyResults?: MidsceneYamlConfigResult[];
+};
+
+// Check the old contract in its published summary, not in the native Test DTO.
+const runTestProject = async ({
   legacyPlan,
   ...options
-}: TestProjectRunOptions & { legacyPlan?: LegacyTestRunPlan }) =>
-  legacyPlan
+}: TestProjectRunOptions & {
+  legacyPlan?: LegacyTestRunPlan;
+}): Promise<RunWithLegacySummary> => {
+  const result = await (legacyPlan
     ? runTestProjectWithYamlCompatibility(options, { plan: legacyPlan })
-    : runNativeTestProject(options);
+    : runNativeTestProject(options));
+  expect(result).not.toHaveProperty('legacyResults');
+  const outputDir = join(root, 'midscene_run', 'output');
+  const summaryPath = legacyPlan
+    ? resolve(outputDir, legacyPlan.summary)
+    : existsSync(outputDir)
+      ? readdirSync(outputDir)
+          .filter((name) => /^summary-\d+\.json$/.test(name))
+          .map((name) => join(outputDir, name))[0]
+      : undefined;
+  if (!summaryPath || !existsSync(summaryPath)) return result;
+  const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+  const absolute = (path?: string) =>
+    path ? resolve(dirname(summaryPath), path) : undefined;
+  return {
+    ...result,
+    legacyResults: summary.results.map((item: any) => ({
+      ...item,
+      file: absolute(item.script),
+      output: absolute(item.output),
+      report: absolute(item.report),
+      retryReport: absolute(item.retryReport),
+      attempts: item.attempts?.map((attempt: any) => ({
+        ...attempt,
+        output: absolute(attempt.output),
+        report: absolute(attempt.report),
+      })),
+    })),
+  };
+};
 
 // Exercise the published Node runtime; Vite must not resolve browser-only WASM.
 const require = createRequire(import.meta.url);
@@ -256,6 +297,107 @@ describe('zero-config legacy format routing', () => {
     expect(host.createYamlAgent).not.toHaveBeenCalled();
   });
 
+  it('resolves mixed inputs into syntax-independent policies without acquiring resources', async () => {
+    write('01-old.yaml', oldYaml);
+    write(
+      '02-native.yaml',
+      'cases: [{ name: native, steps: [{ noop: run }] }]',
+    );
+    write(
+      'midscene.config.ts',
+      `export default {
+      nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      test: { testTimeout: 1234 },
+      projects: [{ name: 'mixed', retry: 2 }],
+    };`,
+    );
+    const prepared = await prepareTestRun({ cwd: root });
+    const [old, native] = prepared.projects[0].invocations;
+    expect(old.retry).toEqual({ scope: 'document', count: 2 });
+    expect(old.defaultTimeoutMs).toBeUndefined();
+    expect(old.bindings.documentSetup).toBeDefined();
+    expect(native.retry).toEqual({ scope: 'case', count: 2 });
+    expect(native.defaultTimeoutMs).toBe(1234);
+    expect(native.bindings.documentSetup).toBeUndefined();
+    for (const invocation of [old, native]) {
+      expect(invocation).not.toHaveProperty('kind');
+      expect(invocation).not.toHaveProperty('workflow');
+      expect(invocation).not.toHaveProperty('legacyPlan');
+    }
+    expect(prepared.projects[0].documentConcurrency).toBe(1);
+    expect(host.createYamlAgent).not.toHaveBeenCalled();
+  });
+
+  it('supports an unchanged batch YAML config through the existing public runTestProject API', async () => {
+    write('old.yaml', oldYaml);
+    write(
+      'batch.yaml',
+      'files: [old.yaml]\nretry: 1\nsummary: old-summary.json\n',
+    );
+    failOnce = true;
+    const result = await runNativeTestProject({
+      cwd: root,
+      configPath: 'batch.yaml',
+    });
+    expect(result).not.toHaveProperty('legacyResults');
+    expect(result.status).toBe('success');
+    expect(calls).toEqual(['first', 'second', 'first', 'second']);
+    expect(result.documents.map((document) => document.attemptIndex)).toEqual([
+      0, 1,
+    ]);
+    const summaryPath = join(root, 'midscene_run/output/old-summary.json');
+    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({ successful: 1, failed: 0 });
+    expect(join(dirname(summaryPath), summary.results[0].report)).toBe(
+      result.reportPath,
+    );
+    expect(readFileSync(result.reportPath!, 'utf8')).toContain(
+      'midscene_test_run_dump',
+    );
+    expect(existsSync(join(root, 'midscene.config.ts'))).toBe(false);
+  });
+
+  it('supports old file patterns without adding public scheduling options', async () => {
+    write('a.yaml', oldYaml);
+    write('b.yaml', oldYaml);
+    const result = await runNativeTestProject({
+      cwd: root,
+      projectRoot: '*.yaml',
+    });
+    expect(result.status).toBe('success');
+    expect(result.documents).toHaveLength(2);
+    expect(result.summary.passed).toBe(4);
+  });
+
+  it('selects legacy tasks as one file without inheriting native Case tags', async () => {
+    write('01-old.yaml', oldYaml);
+    write(
+      '02-native.yaml',
+      'cases: [{ name: native, tags: [smoke], steps: [{ noop: run }] }]',
+    );
+    write(
+      'midscene.config.ts',
+      `export default {
+      nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+      projects: [{ name: 'smoke', tags: { include: ['smoke'] } }],
+    };`,
+    );
+    const result = await runNativeTestProject({ cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.summary).toMatchObject({ total: 1, passed: 1, filtered: 2 });
+    expect(host.createYamlAgent).not.toHaveBeenCalled();
+  });
+
+  it('retains the old resource lifecycle for an empty tasks document', async () => {
+    write('empty.yaml', 'agent: { generateReport: false }\ntasks: []\n');
+    const result = await runNativeTestProject({ cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.documents).toHaveLength(1);
+    expect(result.summary.total).toBe(0);
+    expect(result.reportPath).toBeUndefined();
+    expect(host.createYamlAgent).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['aiTap', 'aiScroll'])(
     'accepts old %s uiContext only through the YAML host',
     async (node) => {
@@ -291,6 +433,33 @@ describe('zero-config legacy format routing', () => {
     expect(
       JSON.parse(readFileSync(result.legacyResults![0].output!, 'utf8')).answer,
     ).toEqual({ value: 'first' });
+  });
+
+  it.each(['web', 'page', 'browser', 'target'])(
+    'preserves report-disable intent inherited from the old %s target',
+    async (target) => {
+      const file = write(
+        'disabled.yaml',
+        oldYaml.replace('web:\n', `${target}:\n  generateReport: false\n`),
+      );
+      const result = await runTestProject({ projectRoot: file, cwd: root });
+      expect(result.status).toBe('success');
+      expect(result.reportPath).toBeUndefined();
+      expect(result.documents[0].reportPaths).toBeUndefined();
+      expect(result.legacyResults![0].report).toBeUndefined();
+      expect(calls).toEqual(['first', 'second']);
+    },
+  );
+
+  it('keeps explicit Agent report intent ahead of old target defaults', async () => {
+    const file = write(
+      'enabled.yaml',
+      `agent: { generateReport: true }\n${oldYaml.replace('web:\n', 'web:\n  generateReport: false\n')}`,
+    );
+    const result = await runTestProject({ projectRoot: file, cwd: root });
+    expect(result.status).toBe('success');
+    expect(result.reportPath).toBeDefined();
+    expect(result.legacyResults![0].report).toBe(result.reportPath);
   });
 
   it('does not add a combined report link to disabled YAML in a mixed legacy batch', async () => {
@@ -596,6 +765,64 @@ tasks:
       notRunReason: 'project-setup-failed',
     });
     expect(result.exitCode).toBe(1);
+  });
+
+  it('does not reset the shared browser for a retried business file', async () => {
+    const setup = write('setup.yaml', script('third'));
+    const main = write('main.yaml', script('second'));
+    failOnce = true;
+    const options = { browser: {}, browserContext: {} };
+    const reset = vi.fn(async () => {});
+    const close = vi.fn(async () => {});
+    vi.spyOn(browserRuntime, 'createYamlBatchBrowser').mockResolvedValue({
+      options,
+      reset,
+      close,
+    });
+    const result = await runTestProject({
+      cwd: root,
+      legacyPlan: plan([main], { setup, retry: 1, shareBrowserContext: true }),
+    });
+    expect(result.status).toBe('success');
+    expect(calls).toEqual(['third', 'second', 'second']);
+    expect(reset).not.toHaveBeenCalled();
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(
+      host.createYamlAgent.mock.calls.every(
+        (call) => call[2]?.browserContext === options.browserContext,
+      ),
+    ).toBe(true);
+  });
+
+  it('treats an old summary write failure as publication failure without replaying successful actions', async () => {
+    const file = write('old.yaml', oldYaml);
+    const summaryDirectory = join(root, 'summary-directory');
+    mkdirSync(summaryDirectory);
+    const failure = await runTestProject({
+      cwd: root,
+      legacyPlan: plan([file], { retry: 2, summary: summaryDirectory }),
+    }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(WorkflowExecutionFailure);
+    if (!(failure instanceof WorkflowExecutionFailure))
+      throw new Error('Expected publication failure');
+    const result = failure.result as TestProjectRunResult;
+    expect(calls).toEqual(['first', 'second']);
+    expect(result.status).toBe('failed');
+    expect(result.exitCode).toBe(1);
+    expect(result.summary).toMatchObject({ total: 2, passed: 2, failed: 0 });
+    expect(result.documents).toHaveLength(1);
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({
+        code: 'WORKFLOW_PUBLICATION_FAILED',
+        details: { operation: 'write-result', path: summaryDirectory },
+      }),
+    );
+    expect(readFileSync(result.reportPath!, 'utf8')).toContain(
+      'midscene_test_run_dump',
+    );
+    const finalSummary = JSON.parse(readFileSync(result.summaryPath, 'utf8'));
+    expect(finalSummary.status).toBe('failed');
+    expect(finalSummary.errors[0].code).toBe('WORKFLOW_PUBLICATION_FAILED');
   });
 
   it('applies global target options and keeps partialFailed distinct in the legacy summary', async () => {

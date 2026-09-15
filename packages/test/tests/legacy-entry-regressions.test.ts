@@ -136,7 +136,9 @@ export default class Device {
     writeFileSync(join(root, 'midscene.config.yaml'), 'files: [task.yaml]\n');
     await expect(
       runTestProject({ cwd: root, projectRoot: root }),
-    ).rejects.toThrow('Only midscene.config.ts is supported');
+    ).rejects.toThrow(
+      'Only midscene.config.ts and midscene.config.mjs are supported.',
+    );
   });
 
   it('keeps explicit native configuration authoritative for a legacy file', async () => {
@@ -167,7 +169,9 @@ export default class Device {
     writeFileSync(join(root, 'midscene.config.yaml'), 'files: [native.yaml]\n');
     await expect(
       runTestProject({ cwd: root, projectRoot: file }),
-    ).rejects.toThrow('Only midscene.config.ts is supported');
+    ).rejects.toThrow(
+      'Only midscene.config.ts and midscene.config.mjs are supported.',
+    );
   });
 
   it('preserves native config conflicts when midscene.config.ts exists', async () => {
@@ -180,7 +184,9 @@ export default class Device {
     writeFileSync(join(root, 'midscene.config.yaml'), 'files: [task.yaml]\n');
     await expect(
       runTestProject({ cwd: root, projectRoot: file }),
-    ).rejects.toThrow('Only midscene.config.ts is supported');
+    ).rejects.toThrow(
+      'Only midscene.config.ts and midscene.config.mjs are supported.',
+    );
   });
 
   it.each([

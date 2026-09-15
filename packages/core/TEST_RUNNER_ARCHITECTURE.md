@@ -11,13 +11,14 @@ configuration as the legacy host.
   Agent-owned Node descriptions, legacy input adaptation, execution records,
   and report projection.
 - `@midscene/test` owns native project configuration, discovery and scheduling,
-  custom Node registration, and run publication. Its `/runtime` entry owns
-  platform initialization and its cleanup stack, and exposes both the shared
-  YAML host and native Project setup. The runtime implementation has no CLI or
-  scheduler dependency. Platform packages are optional peers and loaded only
-  for the selected target.
+  custom Node registration, and run publication. Its private
+  `internal/yaml-runtime` integration entry owns platform initialization and its
+  cleanup stack; it is not a native Test SDK API. The runtime implementation has
+  no CLI or scheduler dependency. Platform packages are optional peers and loaded
+  only for the selected target.
 - `@midscene/cli` keeps the existing CLI, Rstest scheduling, batch options, and
-  public entry points. It reuses the host through `@midscene/test/runtime` and
+  public entry points. It reuses the host through
+  `@midscene/test/internal/yaml-runtime` and
   consumes Core execution facts. The host is part of the existing Test package;
   it does not require a separate package or release pipeline.
 - The report viewer consumes the same logical document/Case/attempt model from
@@ -29,10 +30,20 @@ The parser-neutral kernel is exported through `internal/test-runner`; YAML
 format compilation and nested YAML ownership use the separate
 `internal/yaml-runtime` integration surface.
 
-After collection, Test scheduling operates on a prepared document invocation.
-The scheduler owns admission, concurrency and bail; native and legacy adapters
-own only their format-specific execution and result persistence. Both adapters
-feed the same Case, document and execution-record sinks. The legacy
+The existing `runTestProject` entry resolves input formats internally. Preparation
+owns config resolution, collection and validation; YAML compatibility interprets
+old fields and returns a syntax-independent prepared plan. Shared scheduling and
+document execution consume resolved retry scopes, concurrency, prerequisite
+Documents and lifecycle bindings. They do not import YAML configuration, inspect
+format discriminators, or read browser/Agent compatibility fields.
+
+YAML compatibility is concentrated at three boundaries: input conversion,
+resource-host bindings, and old result/summary projection. Native Test configuration,
+Nodes and formal run results do not expose compatibility controls. The private
+CLI integration publishes the old summary without adding compatibility fields to
+the Test run return value. Existing old CLI APIs retain their result shape through
+their own facade. All invocations feed the same Case, document and execution-record
+sinks. The legacy
 `ScriptPlayer` remains an API facade, while record construction and report
 publication live in dedicated host projections.
 
@@ -45,9 +56,10 @@ used to fail when reaching a task still fails at that task, so earlier actions
 and continuation remain observable. The native parser and its JSON result
 contract remain independent.
 
-Native retry remains per Case. Native `testTimeout` remains a Step default;
-an explicitly configured default also applies to legacy execution. These
-policies do not require separate engines.
+Native retry remains per Case, while legacy retry remains per Document.
+Native `testTimeout` remains a Step default; legacy execution preserves its old
+timeout defaults and action-level wait limits. These policies are resolved before
+execution and do not require separate engines or new native Test parameters.
 
 Legacy document parsing retains environment interpolation before YAML parsing.
 Format discovery must not reject syntax accepted after interpolation. Native
@@ -96,6 +108,17 @@ Report and output publication belong to the host. Preserve each completed
 execution before a fallible artifact operation. Protect conflicting paths and
 shared resources through publication and any deferred cleanup; unrelated
 invocations should not require a global serialization gate.
+
+Native Test always requests an aggregate report named `midscene-e2e-{runId}`.
+Legacy report-disable intent is resolved by compatibility preparation, not by a
+native `output.report.enabled` option. A disabled legacy Document cannot disable
+the aggregate report of a mixed native run or acquire a report link in the old
+summary. Both hosts use the new report projection and renderer.
+
+Publication runs in order: aggregate report, optional host artifacts (including
+the old YAML summary), then the final Test summary. Every publication goes through
+the same error coordinator. A host artifact failure cannot return success, start
+another business attempt, or bypass final Test summary publication.
 
 ## Verification contracts
 

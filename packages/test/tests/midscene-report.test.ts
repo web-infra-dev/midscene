@@ -13,7 +13,7 @@ import type { TestRunReportDump } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { TestProjectDefinition } from '../src/cli/test-project';
-import { runTestProjectWithYamlCompatibility } from '../src/cli/test-project-runner';
+import { runTestProjectWithYamlCompatibility } from '../src/cli/yaml-compatibility-runner';
 import { createMidsceneNodes } from '../src/midscene';
 
 // Use the published Node runtime, including its actual report writer.
@@ -24,7 +24,7 @@ const { Agent, ReportGenerator } =
 // resolution for its transitive Node-only platform dependencies.
 vi.mock('../src/runtime/create-yaml-player', async () => {
   const { createRequire } = await import('node:module');
-  return createRequire(import.meta.url)('@midscene/test/runtime');
+  return createRequire(import.meta.url)('@midscene/test/internal/yaml-runtime');
 });
 const roots: string[] = [];
 const state = globalThis as typeof globalThis & {

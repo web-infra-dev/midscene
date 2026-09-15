@@ -21,10 +21,6 @@ export {
 } from './legacy-config';
 export { parseLegacyArguments } from './legacy-arguments';
 export {
-  runTestProjectWithYamlCompatibility,
-  type YamlCompatibilityRunOptions,
-} from '../cli/test-project-runner';
-export {
   buildLegacySummaryData,
   getLegacyExecutionSummary,
   type LegacyExecutionSummary,

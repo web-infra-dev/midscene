@@ -35,6 +35,7 @@ import {
   type TestOutputDefinition,
   type TestProjectDefinition,
   type TestProjectRunOptions,
+  type TestProjectRunResult,
   defineProjectSetup,
   defineTestProject,
   loadTestProject,
@@ -79,6 +80,7 @@ type NativeBoundary = [
   Assert<Absent<NodeExecutionContext['$'], 'resultName' | 'captureResult'>>,
   Assert<Absent<NodeScopeTeardownResult, 'reportSources'>>,
   Assert<Absent<TestProjectRunOptions, 'legacyPlan' | 'writeLegacySummary'>>,
+  Assert<Absent<TestProjectRunResult, 'legacyResults'>>,
   Assert<Absent<RunCollectedCaseOptions, 'reportScopeId'>>,
   Assert<
     Absent<

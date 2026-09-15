@@ -1,11 +1,11 @@
 import { fileURLToPath } from 'node:url';
 import { Agent } from '@midscene/core/agent';
 import { defineTestProject } from '@midscene/test/config';
-import { createMidsceneNodes } from '@midscene/test/midscene';
 import {
   type YamlRuntimeContext,
   createYamlProjectSetup,
-} from '@midscene/test/runtime';
+} from '@midscene/test/internal/yaml-runtime';
+import { createMidsceneNodes } from '@midscene/test/midscene';
 
 export default defineTestProject<YamlRuntimeContext>({
   setup: createYamlProjectSetup({
