@@ -1,3 +1,4 @@
+import { applyImageDetail } from '../chat-completion/utils';
 import type { ModelCallContext, ModelCallResult } from '../types';
 import {
   type CodexAppServerRecordEvent,
@@ -45,14 +46,18 @@ export const callCodex = async ({
       },
       requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
     });
-    const codexResult = await callAIWithCodexAppServer(messages, modelConfig, {
-      stream: options?.stream,
-      onChunk: options?.onChunk,
-      params: config,
-      abortSignal: requestSignal,
-      imageDetail,
-      onRecordEvent: recordCodexEvent,
-    });
+    const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
+    const codexResult = await callAIWithCodexAppServer(
+      messagesWithImageDetail,
+      modelConfig,
+      {
+        stream: options?.stream,
+        onChunk: options?.onChunk,
+        params: config,
+        abortSignal: requestSignal,
+        onRecordEvent: recordCodexEvent,
+      },
+    );
     requestSignal.throwIfAborted();
     const { protocolMetadata, usage: rawUsage, ...response } = codexResult;
     const timeCost = Date.now() - codexStartTime;

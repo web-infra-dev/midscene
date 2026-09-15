@@ -228,7 +228,6 @@ const extractTextFromMessage = (
 
 const extractImageInputs = (
   message: ChatCompletionMessageParam,
-  imageDetailOverride?: CodexImageDetail,
 ): Array<CodexImageInput | CodexLocalImageInput> => {
   const content = (message as any).content;
   if (!Array.isArray(content)) return [];
@@ -244,11 +243,9 @@ const extractImageInputs = (
         : partType === 'input_image'
           ? toNonEmptyString(part.image_url || part.url)
           : undefined;
-    const imageDetail =
-      imageDetailOverride ??
-      toCodexImageDetail(
-        partType === 'image_url' ? part.image_url?.detail : part.detail,
-      );
+    const imageDetail = toCodexImageDetail(
+      partType === 'image_url' ? part.image_url?.detail : part.detail,
+    );
 
     if (!imageUrl) continue;
 
@@ -282,7 +279,6 @@ const extractImageInputs = (
 
 export const buildCodexTurnPayloadFromMessages = (
   messages: ChatCompletionMessageParam[],
-  imageDetailOverride?: CodexImageDetail,
 ): {
   developerInstructions?: string;
   input: CodexTurnInput[];
@@ -308,7 +304,7 @@ export const buildCodexTurnPayloadFromMessages = (
     }
 
     if (role === 'user') {
-      imageInputs.push(...extractImageInputs(message, imageDetailOverride));
+      imageInputs.push(...extractImageInputs(message));
     }
   }
 
@@ -396,7 +392,6 @@ class CodexAppServerConnection {
     onChunk,
     params,
     abortSignal,
-    imageDetail,
     onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
@@ -405,15 +400,12 @@ class CodexAppServerConnection {
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     const isStreaming = !!(stream && onChunk);
 
-    const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
-      messages,
-      imageDetail,
-    );
+    const { developerInstructions, input } =
+      buildCodexTurnPayloadFromMessages(messages);
 
     let threadId: string | undefined;
     let turnId: string | undefined;
@@ -965,7 +957,6 @@ class CodexAppServerConnectionManager {
     onChunk,
     params,
     abortSignal,
-    imageDetail,
     onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
@@ -974,7 +965,6 @@ class CodexAppServerConnectionManager {
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
@@ -989,7 +979,6 @@ class CodexAppServerConnectionManager {
           onChunk,
           params,
           abortSignal,
-          imageDetail,
           onRecordEvent,
         });
       } catch (error) {
@@ -1032,7 +1021,6 @@ export async function callAIWithCodexAppServer(
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   },
 ): Promise<CodexTurnResult> {
@@ -1049,7 +1037,6 @@ export async function callAIWithCodexAppServer(
     onChunk: options?.onChunk,
     params: options?.params,
     abortSignal: options?.abortSignal,
-    imageDetail: options?.imageDetail,
     onRecordEvent: options?.onRecordEvent,
   });
 }

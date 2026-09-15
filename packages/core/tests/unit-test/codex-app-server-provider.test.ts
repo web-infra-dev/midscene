@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
+import { applyImageDetail } from '@/ai-model/service-caller/chat-completion/utils';
 import {
   __shutdownCodexAppServerForTests,
   buildCodexTurnPayloadFromMessages,
@@ -238,7 +239,13 @@ describe('codex app-server provider helper', () => {
       },
     ];
 
-    const payload = buildCodexTurnPayloadFromMessages(messages, 'original');
+    const payload = buildCodexTurnPayloadFromMessages(
+      applyImageDetail({ messages, imageDetail: 'original' }),
+    );
+    expect(
+      (messages[0].content as Array<{ image_url: { detail: string } }>)[0]
+        .image_url.detail,
+    ).toBe('high');
 
     expect(payload.input).toContainEqual({
       type: 'localImage',
