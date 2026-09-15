@@ -89,6 +89,15 @@ async function callAndParsePlanningResponse(
         actionSpace,
         logSource: includeLog ? 'model' : 'action',
       });
+      if (
+        !planFromAI.action &&
+        planFromAI.finalizeSuccess === undefined &&
+        !planFromAI.error
+      ) {
+        throw new Error(
+          'Incomplete planning response: provide an action, <complete>, or <error>. A <planning> explanation alone is not sufficient.',
+        );
+      }
       if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
         warnLog(
           'Planning response included both an action and <complete>; ignoring <complete> output.',
