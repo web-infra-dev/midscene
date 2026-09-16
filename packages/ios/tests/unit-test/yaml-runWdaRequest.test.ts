@@ -91,11 +91,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
       onTaskStartTip: undefined,
       _unstableLogContent: rs.fn(async () => ({})),
       getActionSpace: rs.fn(async () => []), // Empty actionSpace, no runWdaRequest
-      callActionInActionSpace: rs.fn(async (actionName: string) => {
-        throw new Error(
-          `Action type '${actionName}' is not in the current action space.`,
-        );
-      }),
+      callActionInActionSpace: rs.fn(),
     };
 
     const script: MidsceneYamlScript = {
@@ -126,7 +122,7 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
 
     expect(player.status).toBe('error');
     expect(player.taskStatusList[0].error?.message).toContain(
-      "Action type 'runWdaRequest' is not in the current action space",
+      'unknown flowItem in yaml',
     );
   });
 
