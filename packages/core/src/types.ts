@@ -148,7 +148,7 @@ export interface UiNode {
 }
 
 export interface UITreeSnapshot {
-  platform: 'android';
+  platform: 'android' | 'ios';
   capturedAt: number;
   root: UiNode;
 }

@@ -1,0 +1,165 @@
+{
+  "value": {
+    "type": "Application",
+    "label": " ",
+    "name": " ",
+    "value": null,
+    "isVisible": "1",
+    "isEnabled": 1,
+    "isAccessible": 0,
+    "isFocused": 0,
+    "rawIdentifier": null,
+    "rect": { "x": 0, "y": 0, "width": 393, "height": 852 },
+    "children": [
+      {
+        "type": "Window",
+        "label": null,
+        "name": null,
+        "value": null,
+        "isVisible": "1",
+        "isEnabled": 1,
+        "rect": { "x": 0, "y": 0, "width": 393, "height": 852 },
+        "children": [
+          {
+            "type": "Other",
+            "label": "Main container",
+            "name": "Main container",
+            "value": null,
+            "isVisible": "1",
+            "isEnabled": 1,
+            "rect": { "x": 0, "y": 0, "width": 393, "height": 852 },
+            "children": [
+              {
+                "type": "Button",
+                "label": "Save",
+                "name": "Save",
+                "value": 1,
+                "isVisible": "1",
+                "isEnabled": 1,
+                "rawIdentifier": "save-button",
+                "rect": { "x": 20, "y": 100, "width": 100, "height": 44 },
+                "children": []
+              },
+              {
+                "type": "Other",
+                "label": null,
+                "name": null,
+                "value": null,
+                "isVisible": "0",
+                "isEnabled": 1,
+                "rect": { "x": 0, "y": 200, "width": 393, "height": 50 },
+                "children": [
+                  {
+                    "type": "StaticText",
+                    "label": "Nested visible label",
+                    "name": "Nested visible label",
+                    "value": null,
+                    "isVisible": "1",
+                    "isEnabled": 1,
+                    "rect": { "x": 16, "y": 210, "width": 200, "height": 30 },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "Image",
+                "label": "Decorative",
+                "name": "Decorative",
+                "value": null,
+                "isVisible": "0",
+                "isEnabled": 1,
+                "rect": { "x": 0, "y": 0, "width": 1, "height": 1 },
+                "children": []
+              },
+              {
+                "type": "Other",
+                "label": "Deep chain",
+                "name": "Deep chain",
+                "value": null,
+                "isVisible": "1",
+                "isEnabled": 1,
+                "rect": { "x": 0, "y": 400, "width": 393, "height": 400 },
+                "children": [
+                  {
+                    "type": "Other",
+                    "label": "Level 1",
+                    "name": "Level 1",
+                    "isVisible": "1",
+                    "isEnabled": 1,
+                    "rect": { "x": 0, "y": 400, "width": 393, "height": 400 },
+                    "children": [
+                      {
+                        "type": "Other",
+                        "label": "Level 2",
+                        "name": "Level 2",
+                        "isVisible": "1",
+                        "isEnabled": 1,
+                        "rect": {
+                          "x": 0,
+                          "y": 400,
+                          "width": 393,
+                          "height": 400
+                        },
+                        "children": [
+                          {
+                            "type": "Other",
+                            "label": "Level 3",
+                            "name": "Level 3",
+                            "isVisible": "1",
+                            "isEnabled": 1,
+                            "rect": {
+                              "x": 0,
+                              "y": 400,
+                              "width": 393,
+                              "height": 400
+                            },
+                            "children": [
+                              {
+                                "type": "StaticText",
+                                "label": "Deep leaf",
+                                "name": "Deep leaf",
+                                "isVisible": "1",
+                                "isEnabled": 1,
+                                "rect": {
+                                  "x": 10,
+                                  "y": 410,
+                                  "width": 100,
+                                  "height": 20
+                                },
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Other",
+                "label": "No rect node",
+                "name": "No rect node",
+                "value": null,
+                "isVisible": "1",
+                "isEnabled": 1,
+                "children": []
+              },
+              {
+                "type": "Switch",
+                "label": "Airplane mode",
+                "name": "Airplane mode",
+                "value": false,
+                "isVisible": "1",
+                "isEnabled": 1,
+                "rect": { "x": 20, "y": 300, "width": 51, "height": 31 },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "sessionId": "fixture-session"
+}

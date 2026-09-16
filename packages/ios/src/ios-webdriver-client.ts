@@ -24,6 +24,75 @@ type FindElementIdsOptions = {
   deadline?: number;
 };
 
+export interface WdaSourceRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A node in the accessibility tree returned by WDA's
+ * `GET /session/{id}/source?format=json` endpoint. This is WDA's internal
+ * snapshot JSON (verified against WebDriverAgent 16.x): visibility and
+ * enabled flags are serialized as `'1'`/`'0'` strings (isEnabled may also
+ * arrive as numeric 1/0), type names are bare (`Button`, not
+ * `XCUIElementTypeButton`), and `rect` uses logical points. WDA versions
+ * may attach extras (frame, traits, customActions, …), which the index
+ * signature absorbs.
+ */
+export interface WdaSourceNode {
+  type: string;
+  label?: string | null;
+  name?: string | null;
+  value?: string | number | boolean | null;
+  rect?: WdaSourceRect | null;
+  /** '1' = visible, '0' = invisible (WDA serializes as a string). */
+  isVisible?: string;
+  /** 1 = enabled, 0 = disabled (numeric or '1'/'0' string depending on WDA version). */
+  isEnabled?: number | string;
+  /** Accessibility identifier (when set on the element). */
+  rawIdentifier?: string | null;
+  children?: WdaSourceNode[];
+  [key: string]: unknown;
+}
+
+function isWdaSourceNode(value: unknown): value is WdaSourceNode {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as WdaSourceNode).type === 'string'
+  );
+}
+
+/**
+ * Normalize the envelope of a `/source?format=json` response. WDA has
+ * shipped both `{ value: <root node> }` and `{ value: { tree: <root node> } }`
+ * shapes across versions, so both are unwrapped.
+ * @throws when the response is not a recognizable source tree.
+ */
+export function unwrapSourceEnvelope(response: unknown): WdaSourceNode {
+  if (isWdaSourceNode(response)) {
+    return response;
+  }
+  if (typeof response === 'object' && response !== null) {
+    const value = (response as { value?: unknown }).value;
+    if (isWdaSourceNode(value)) {
+      return value;
+    }
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      isWdaSourceNode((value as { tree?: unknown }).tree)
+    ) {
+      return (value as { tree: WdaSourceNode }).tree;
+    }
+  }
+  throw new Error(
+    'Unrecognized WDA /source?format=json response shape: expected a node or a { value: node } / { value: { tree: node } } envelope',
+  );
+}
+
 export class IOSWebDriverClient extends WebDriverClient {
   async launchApp(bundleId: string): Promise<void> {
     this.ensureSession();
@@ -907,6 +976,27 @@ export class IOSWebDriverClient extends WebDriverClient {
 
     debugIOS('No screen scale found');
     return null;
+  }
+
+  /**
+   * Fetch the full accessibility tree via `GET /source?format=json`.
+   * Honors the appium settings applied in setupIOSSession
+   * (`snapshotMaxDepth`, `elementResponseAttributes`).
+   * @throws when the response shape is not a recognizable source tree.
+   */
+  async getAccessibilitySource(): Promise<WdaSourceNode> {
+    this.ensureSession();
+
+    const response = await this.makeRequest(
+      'GET',
+      `/session/${this.sessionId}/source?format=json`,
+    );
+    const root = unwrapSourceEnvelope(response);
+    debugIOS(
+      `Fetched accessibility source: root type=${root.type}, ` +
+        `children=${root.children?.length ?? 0}`,
+    );
+    return root;
   }
 
   async createSession(capabilities?: any): Promise<any> {

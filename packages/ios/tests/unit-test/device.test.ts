@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { WDAManager } from '@midscene/webdriver';
@@ -9,6 +11,10 @@ import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 rs.mock('../../src/utils');
 rs.mock('../../src/ios-webdriver-client');
 rs.mock('@midscene/webdriver');
+
+const axTreeFixture = JSON.parse(
+  readFileSync(path.join(__dirname, 'fixtures/wda-source.json'), 'utf8'),
+).value;
 
 const mockExecutorContext = { task: {} } as ExecutorContext;
 const getInternalTextInput = (target: IOSDevice) =>
@@ -51,6 +57,7 @@ describe('IOSDevice', () => {
       dismissKeyboard: rs.fn().mockResolvedValue(true),
       isKeyboardVisible: rs.fn().mockResolvedValue(false),
       makeRequest: rs.fn().mockResolvedValue(null),
+      executeRequest: rs.fn().mockResolvedValue({}),
       sessionInfo: {
         sessionId: 'test-session-id',
         capabilities: {},
@@ -66,6 +73,11 @@ describe('IOSDevice', () => {
 
     // Add getScreenScale mock for new DPR detection
     mockWdaClient.getScreenScale = rs.fn().mockResolvedValue(2);
+
+    // Add AX tree source mock for getUITree tests
+    mockWdaClient.getAccessibilitySource = rs
+      .fn()
+      .mockResolvedValue(axTreeFixture);
 
     MockedWdaClient.mockImplementation(() => mockWdaClient);
 
@@ -912,6 +924,132 @@ describe('IOSDevice', () => {
       await expect(
         terminateAction!.call({ uri: '' }, {} as any),
       ).rejects.toThrow('Terminate requires a non-empty uri parameter');
+    });
+  });
+
+  describe('AX tree capture', () => {
+    it('getUITree returns an ios snapshot pruned from the WDA source', async () => {
+      await device.connect();
+      const snapshot = await device.getUITree();
+      expect(snapshot.platform).toBe('ios');
+      expect(snapshot.capturedAt).toBeGreaterThan(0);
+      expect(snapshot.root.type).toBe('Application');
+      // Invisible leaf pruned, visible descendants of invisible containers kept.
+      const findLabel = (node: any, label: string): any => {
+        if (node.attrs?.label === label) return node;
+        for (const child of node.children ?? []) {
+          const found = findLabel(child, label);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      expect(findLabel(snapshot.root, 'Decorative')).toBeUndefined();
+      expect(findLabel(snapshot.root, 'Nested visible label')).toBeDefined();
+    });
+
+    it('does not cache by default: every getUITree call refetches', async () => {
+      await device.connect();
+      await device.getUITree();
+      await device.getUITree();
+      expect(mockWdaClient.getAccessibilitySource).toHaveBeenCalledTimes(2);
+    });
+
+    it('serves repeated calls from the cache when axTree.cache.enabled', async () => {
+      const cachedDevice = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        axTree: { cache: { enabled: true } },
+      });
+      await cachedDevice.connect();
+      const first = await cachedDevice.getUITree();
+      const second = await cachedDevice.getUITree();
+      expect(mockWdaClient.getAccessibilitySource).toHaveBeenCalledTimes(1);
+      expect(second).toBe(first);
+      await cachedDevice.destroy();
+    });
+
+    it.each([
+      [
+        'tap',
+        (d: IOSDevice) => d.inputPrimitives.pointer.tap({ x: 10, y: 10 }),
+      ],
+      [
+        'doubleClick',
+        (d: IOSDevice) =>
+          d.inputPrimitives.pointer.doubleClick({ x: 10, y: 10 }),
+      ],
+      [
+        'longPress',
+        (d: IOSDevice) => d.inputPrimitives.pointer.longPress({ x: 10, y: 10 }),
+      ],
+      [
+        'swipe',
+        (d: IOSDevice) =>
+          d.inputPrimitives.touch.swipe({ x: 10, y: 10 }, { x: 10, y: 100 }),
+      ],
+      [
+        'pinch',
+        (d: IOSDevice) =>
+          d.inputPrimitives.touch.pinch(
+            { x: 100, y: 100 },
+            { startDistance: 50, endDistance: 20, duration: 300 },
+          ),
+      ],
+      [
+        'typeText',
+        (d: IOSDevice) => d.inputPrimitives.keyboard.typeText('hello'),
+      ],
+      ['launch', (d: IOSDevice) => d.launch('com.apple.Preferences')],
+      ['terminate', (d: IOSDevice) => d.terminate('com.apple.Preferences')],
+      ['home', (d: IOSDevice) => d.home()],
+      ['appSwitcher', (d: IOSDevice) => d.appSwitcher()],
+      ['hideKeyboard', (d: IOSDevice) => d.hideKeyboard()],
+      [
+        'openUrl',
+        (d: IOSDevice) => d.openUrl('https://example.com', { waitTime: 0 }),
+      ],
+      [
+        'openUrlViaSafari',
+        (d: IOSDevice) => d.openUrlViaSafari('https://example.com'),
+      ],
+      [
+        'runWdaRequest',
+        (d: IOSDevice) => d.runWdaRequest('GET', '/source?format=json'),
+      ],
+    ])('invalidates the AX tree cache after %s', async (_name, act) => {
+      const cachedDevice = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        axTree: { cache: { enabled: true } },
+      });
+      await cachedDevice.connect();
+      await cachedDevice.getUITree();
+      expect(mockWdaClient.getAccessibilitySource).toHaveBeenCalledTimes(1);
+
+      await act(cachedDevice);
+
+      await cachedDevice.getUITree();
+      expect(mockWdaClient.getAccessibilitySource).toHaveBeenCalledTimes(2);
+      await cachedDevice.destroy();
+    });
+
+    it('refetches when the TTL backstop expires', async () => {
+      const cachedDevice = new IOSDevice({
+        wdaPort: DEFAULT_WDA_PORT,
+        axTree: { cache: { enabled: true, ttlMs: 1 } },
+      });
+      await cachedDevice.connect();
+      await cachedDevice.getUITree();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await cachedDevice.getUITree();
+      expect(mockWdaClient.getAccessibilitySource).toHaveBeenCalledTimes(2);
+      await cachedDevice.destroy();
+    });
+
+    it('keeps getElementsNodeTree as an empty-tree stub', async () => {
+      await device.connect();
+      await expect(device.getElementsNodeTree()).resolves.toEqual({
+        node: null,
+        children: [],
+      });
     });
   });
 });

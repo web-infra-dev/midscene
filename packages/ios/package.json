@@ -48,7 +48,8 @@
     "test": "rstest",
     "test:u": "rstest -u",
     "test:ai": "AI_TEST_TYPE=iOS rstest",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS rstest"
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS rstest",
+    "benchmark:ax-tree": "tsx scripts/benchmark-ax-tree.ts"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

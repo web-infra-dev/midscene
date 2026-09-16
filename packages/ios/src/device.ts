@@ -6,6 +6,7 @@ import {
   type InterfaceType,
   type Point,
   type Size,
+  type UITreeSnapshot,
   z,
 } from '@midscene/core';
 import {
@@ -31,6 +32,7 @@ import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 import { MjpegFrameSource } from './mjpeg-frame-source';
+import { AX_TREE_DEFAULT_MAX_DEPTH, captureIOSUITree } from './ui-tree-capture';
 
 // Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
@@ -61,6 +63,13 @@ export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  /**
+   * Last captured AX tree, kept when `axTree.cache.enabled` is opt-in.
+   * The snapshot is read-only for consumers; it is replaced wholesale on
+   * refetch, never mutated.
+   */
+  private cachedAxTree: UITreeSnapshot | null = null;
+  private cachedAxTreeAt = 0;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -137,7 +146,7 @@ export class IOSDevice implements AbstractInterface {
         }
       },
       pinch: async (center, opts) => {
-        this.invalidatePendingKeyboardFollowUp('pinch');
+        this.invalidateCachedUiState('pinch');
         await this.wdaBackend.pinch(
           Math.round(center.x),
           Math.round(center.y),
@@ -158,6 +167,25 @@ export class IOSDevice implements AbstractInterface {
     }
     debugDevice(`Discarding pending keyboard follow-up: ${reason}`);
     this.pendingKeyboardFollowUp = undefined;
+  }
+
+  private invalidateAxTreeCache(reason: string): void {
+    if (!this.cachedAxTree) {
+      return;
+    }
+    debugDevice(`AX tree cache invalidated: ${reason}`);
+    this.cachedAxTree = null;
+    this.cachedAxTreeAt = 0;
+  }
+
+  /**
+   * Invalidate every cached piece of UI state after a UI-mutating action.
+   * Keyboard follow-ups and the AX tree cache always invalidate together
+   * so no cache outlives the action that dirtied the screen.
+   */
+  private invalidateCachedUiState(reason: string): void {
+    this.invalidatePendingKeyboardFollowUp(reason);
+    this.invalidateAxTreeCache(reason);
   }
 
   private registerPendingKeyboardFollowUp(target?: PointerPoint): void {
@@ -221,13 +249,13 @@ export class IOSDevice implements AbstractInterface {
   }
 
   private async tapPoint(point: PointerPoint): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('tap');
+    this.invalidateCachedUiState('tap');
     debugDevice(`tap at coordinates (${point.x}, ${point.y})`);
     await this.wdaBackend.tap(Math.round(point.x), Math.round(point.y));
   }
 
   private async doubleTapPoint(point: PointerPoint): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('double tap');
+    this.invalidateCachedUiState('double tap');
     await this.wdaBackend.doubleTap(Math.round(point.x), Math.round(point.y));
   }
 
@@ -235,7 +263,7 @@ export class IOSDevice implements AbstractInterface {
     point: PointerPoint,
     duration = 1000,
   ): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('long press');
+    this.invalidateCachedUiState('long press');
     await this.wdaBackend.longPress(
       Math.round(point.x),
       Math.round(point.y),
@@ -248,7 +276,7 @@ export class IOSDevice implements AbstractInterface {
     end: PointerPoint,
     duration = 500,
   ): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('swipe');
+    this.invalidateCachedUiState('swipe');
     await this.wdaBackend.swipe(
       Math.round(start.x),
       Math.round(start.y),
@@ -259,7 +287,7 @@ export class IOSDevice implements AbstractInterface {
   }
 
   private async clearInputAt(point?: PointerPoint): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('clear input');
+    this.invalidateCachedUiState('clear input');
     if (point) {
       await this.tapPoint(point);
       await sleep(100);
@@ -281,7 +309,7 @@ export class IOSDevice implements AbstractInterface {
       input: this.inputPrimitives,
       size: () => this.size(),
       sleep: async (timeMs: number) => {
-        this.invalidatePendingKeyboardFollowUp('sleep action');
+        this.invalidateCachedUiState('sleep action');
         await sleep(timeMs);
       },
       getDefaultAutoDismissKeyboard: () => this.options?.autoDismissKeyboard,
@@ -293,7 +321,7 @@ export class IOSDevice implements AbstractInterface {
     const customActions = (this.customActions || []).map((action) => ({
       ...action,
       call: async (param: any, context?: ExecutorContext) => {
-        this.invalidatePendingKeyboardFollowUp(`custom action ${action.name}`);
+        this.invalidateCachedUiState(`custom action ${action.name}`);
         return await action.call(param, context);
       },
     }));
@@ -382,7 +410,7 @@ export class IOSDevice implements AbstractInterface {
       `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
     );
 
-    this.invalidatePendingKeyboardFollowUp('connect');
+    this.invalidateCachedUiState('connect');
     debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
     try {
@@ -445,7 +473,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   public async launch(uri: string): Promise<IOSDevice> {
-    this.invalidatePendingKeyboardFollowUp('launch');
+    this.invalidateCachedUiState('launch');
     this.uri = uri;
 
     try {
@@ -477,7 +505,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * Supports app name resolution via setAppNameMapping when provided.
    */
   public async terminate(bundleId: string): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('terminate');
+    this.invalidateCachedUiState('terminate');
     const resolved = this.resolveBundleId(bundleId) ?? bundleId;
     try {
       debugDevice(`Terminating app: ${resolved}`);
@@ -499,6 +527,50 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       node: null,
       children: [],
     };
+  }
+
+  /**
+   * Capture the current accessibility (AX) tree via WDA `/source?format=json`,
+   * pruned into Midscene's UiNode format.
+   *
+   * When `axTree.cache.enabled` is set, repeated calls are served from the
+   * last snapshot until a UI-mutating action (tap/swipe/type/launch/…)
+   * invalidates it; an optional `axTree.cache.ttlMs` backstop refetches
+   * stale entries even without an intervening action. The cache is
+   * disabled by default.
+   *
+   * The returned snapshot is shared on cache hits — treat it as read-only.
+   */
+  async getUITree(): Promise<UITreeSnapshot> {
+    assert(
+      !this.destroyed,
+      `IOSDevice ${this.deviceId} has been destroyed and cannot capture the UI tree`,
+    );
+
+    const axTreeOptions = this.options?.axTree;
+    const cacheEnabled = axTreeOptions?.cache?.enabled ?? false;
+    const ttlMs = axTreeOptions?.cache?.ttlMs;
+
+    if (cacheEnabled && this.cachedAxTree) {
+      const age = Date.now() - this.cachedAxTreeAt;
+      if (ttlMs === undefined || age < ttlMs) {
+        debugDevice(`getUITree: cache hit (age=${age}ms)`);
+        return this.cachedAxTree;
+      }
+      debugDevice(`getUITree: cache TTL expired (age=${age}ms), refetching`);
+      this.cachedAxTree = null;
+    }
+
+    const snapshot = await captureIOSUITree(this.wdaBackend, {
+      maxDepth: axTreeOptions?.maxDepth ?? AX_TREE_DEFAULT_MAX_DEPTH,
+      includeInvisible: axTreeOptions?.includeInvisible ?? false,
+    });
+
+    if (cacheEnabled) {
+      this.cachedAxTree = snapshot;
+      this.cachedAxTreeAt = Date.now();
+    }
+    return snapshot;
   }
 
   private async initializeDevicePixelRatio(): Promise<void> {
@@ -652,7 +724,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       this.options,
     ),
   ): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('new text input');
+    this.invalidateCachedUiState('new text input');
     if (!text) return;
 
     const shouldAutoDismissKeyboard =
@@ -706,9 +778,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : undefined;
     let focusRestorePoint: PointerPoint | undefined;
     if (explicitTargetPoint) {
-      this.invalidatePendingKeyboardFollowUp(
-        'keyboard press has an explicit target',
-      );
+      this.invalidateCachedUiState('keyboard press has an explicit target');
       focusRestorePoint = explicitTargetPoint;
     } else {
       focusRestorePoint = this.consumePendingKeyboardFollowUp(key);
@@ -1009,12 +1079,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // iOS specific methods
   async home(): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('home');
+    this.invalidateCachedUiState('home');
     await this.wdaBackend.pressHomeButton();
   }
 
   async appSwitcher(): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('app switcher');
+    this.invalidateCachedUiState('app switcher');
     await this.wdaBackend.appSwitcher();
   }
 
@@ -1027,7 +1097,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * @throws When communication with WebDriverAgent fails.
    */
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
-    this.invalidatePendingKeyboardFollowUp('hide keyboard');
+    this.invalidateCachedUiState('hide keyboard');
     try {
       debugDevice(
         keyNames && keyNames.length > 0
@@ -1061,7 +1131,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       waitTime?: number;
     },
   ): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('open URL');
+    this.invalidateCachedUiState('open URL');
     const opts = {
       useSafariAsBackup: true,
       waitTime: 2000,
@@ -1093,7 +1163,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * @param url The URL to open
    */
   async openUrlViaSafari(url: string): Promise<void> {
-    this.invalidatePendingKeyboardFollowUp('open URL via Safari');
+    this.invalidateCachedUiState('open URL via Safari');
     try {
       debugDevice(`Opening URL via Safari: ${url}`);
 
@@ -1145,7 +1215,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     endpoint: string,
     data?: any,
   ): Promise<TResult> {
-    this.invalidatePendingKeyboardFollowUp('raw WDA request');
+    this.invalidateCachedUiState('raw WDA request');
     return await this.wdaBackend.executeRequest<TResult>(
       method,
       endpoint,
@@ -1158,7 +1228,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       return;
     }
 
-    this.invalidatePendingKeyboardFollowUp('destroy');
+    this.invalidateCachedUiState('destroy');
     try {
       // Stop the MJPEG frame source if it was started.
       this.mjpegFrameSource?.stop();

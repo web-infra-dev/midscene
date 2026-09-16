@@ -219,6 +219,38 @@ export type IOSDeviceOpt = {
   wdaMjpegFrameSource?: {
     enabled?: boolean;
   };
+  /**
+   * Accessibility (AX) tree capture options for iOS. The tree is fetched
+   * from WDA's `/source?format=json` endpoint and pruned into Midscene's
+   * UiNode format. Capture itself is opt-in via `getUITree()`; these
+   * options only tune its behavior.
+   */
+  axTree?: {
+    /**
+     * Cache the last captured tree and serve repeated `getUITree()` calls
+     * from it. The cache is invalidated after every UI-mutating action
+     * (tap / swipe / type / launch / …). Disabled by default.
+     */
+    cache?: {
+      enabled?: boolean;
+      /**
+       * Optional TTL backstop in milliseconds. When set, stale entries are
+       * refetched even without an intervening action. By default the cache
+       * is action-invalidated only.
+       */
+      ttlMs?: number;
+    };
+    /**
+     * Pruning depth limit. Nodes at this depth keep their attributes but
+     * lose their children. @default 30
+     */
+    maxDepth?: number;
+    /**
+     * Keep `visible === false` nodes. By default invisible leaves are
+     * pruned while invisible containers with visible descendants are kept.
+     */
+    includeInvisible?: boolean;
+  };
 } & IOSDeviceInputOpt;
 
 /**
