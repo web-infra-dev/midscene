@@ -94,6 +94,11 @@ export interface ChatCompletionCallContext {
 
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original';
 
+export type ResolveImageDetail = (input: {
+  intent?: TIntent;
+  requiresOriginalImageDetail?: boolean;
+}) => ImageDetail | undefined;
+
 export interface CodexAppServerCallInput {
   intent?: TIntent;
   requiresOriginalImageDetail?: boolean;
@@ -104,8 +109,6 @@ export interface CodexAppServerParamsResult {
   config: {
     effort?: string;
   };
-  /** Applied to image input items rather than turn/start parameters. */
-  imageDetail?: ImageDetail;
 }
 
 export type BuildCodexAppServerParams = (
@@ -134,7 +137,6 @@ export interface ChatCompletionAdapter {
   buildChatCompletionParams(
     input: ChatCompletionCallInput,
   ): ChatCompletionParamsResult;
-  resolveImageDetail(input: ChatCompletionCallInput): ImageDetail | undefined;
   extractContentAndReasoning: ExtractContentAndReasoning;
   useReasoningAsContentFallback: boolean;
   replayRawAssistantMessage: boolean;
@@ -159,9 +161,6 @@ export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
   ) => ChatCompletionParamsResult;
-  resolveImageDetail?: (
-    input: ChatCompletionCallContext,
-  ) => ImageDetail | undefined;
   useReasoningAsContentFallback?: boolean;
   /**
    * Replay the provider's original assistant message in later planning turns.
@@ -282,6 +281,7 @@ export type LocateDefinition =
 export interface ModelAdapter {
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  resolveImageDetail: ResolveImageDetail;
   buildCodexAppServerParams: BuildCodexAppServerParams;
   acceptBbox2dAlias: boolean;
   imagePreprocess: ImagePreprocessPolicy;
@@ -310,6 +310,7 @@ export interface ModelRuntime {
 export interface ModelAdapterDefinition {
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  resolveImageDetail?: ResolveImageDetail;
   buildCodexAppServerParams?: BuildCodexAppServerParams;
   /**
    * Temporary compatibility for models that may occasionally return

@@ -14,7 +14,10 @@ import type {
   ModelAdapter,
   ModelAdapterDefinition,
   PlanningAdapter,
+  ResolveImageDetail,
 } from './types';
+
+const defaultImageDetail = (_input: unknown) => undefined;
 
 function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],
@@ -41,6 +44,7 @@ function resolveImagePreprocess(
 export class ResolvedModelAdapter implements ModelAdapter {
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly resolveImageDetail: ResolveImageDetail;
   readonly buildCodexAppServerParams: BuildCodexAppServerParams;
   readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
@@ -51,6 +55,7 @@ export class ResolvedModelAdapter implements ModelAdapter {
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.resolveImageDetail = config.resolveImageDetail ?? defaultImageDetail;
     this.buildCodexAppServerParams =
       config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
     this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;

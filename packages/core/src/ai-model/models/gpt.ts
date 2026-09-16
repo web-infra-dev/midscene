@@ -4,18 +4,13 @@ import type {
   ChatCompletionParamsResult,
   CodexAppServerCallInput,
   CodexAppServerParamsResult,
-  ImageDetail,
   ModelAdapterDefinition,
   ReasoningInput,
+  ResolveImageDetail,
 } from '../model-adapter/types';
 import { isLocateIntent } from './utils/intent';
 
-const originalImageDetailForDefaultIntent = (
-  input: Pick<
-    CodexAppServerCallInput,
-    'intent' | 'requiresOriginalImageDetail'
-  >,
-): ImageDetail | undefined =>
+const originalImageDetailForDefaultIntent: ResolveImageDetail = (input) =>
   isLocateIntent(input.intent) || input.requiresOriginalImageDetail
     ? 'original'
     : undefined;
@@ -41,14 +36,12 @@ const buildGpt5CodexAppServerParams = (
   input: CodexAppServerCallInput,
 ): CodexAppServerParamsResult => ({
   config: { effort: resolveGpt5ReasoningEffort(input.userConfig ?? {}) },
-  imageDetail: originalImageDetailForDefaultIntent(input),
 });
 
 const buildGpt6CodexAppServerParams = (
   input: CodexAppServerCallInput,
 ): CodexAppServerParamsResult => ({
   config: { effort: resolveGpt6ReasoningEffort(input.userConfig ?? {}) },
-  imageDetail: originalImageDetailForDefaultIntent(input),
 });
 
 const buildGpt5ChatCompletionParams = (
@@ -106,11 +99,11 @@ const buildGpt6ChatCompletionParams = (
 
 export const gptAdapters = {
   'gpt-5': {
+    resolveImageDetail: originalImageDetailForDefaultIntent,
     buildCodexAppServerParams: buildGpt5CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['reasoningBudget'],
       buildChatCompletionParams: buildGpt5ChatCompletionParams,
-      resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
       element: {
@@ -121,11 +114,11 @@ export const gptAdapters = {
     },
   },
   'gpt-6': {
+    resolveImageDetail: originalImageDetailForDefaultIntent,
     buildCodexAppServerParams: buildGpt6CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildChatCompletionParams: buildGpt6ChatCompletionParams,
-      resolveImageDetail: originalImageDetailForDefaultIntent,
     },
     locate: {
       element: {

@@ -11,13 +11,17 @@ export const prepareCodexCall = ({
   options,
 }: Pick<ModelCallContext, 'messages' | 'modelRuntime' | 'options'>) => {
   const { config: modelConfig, adapter } = modelRuntime;
-  const { config, imageDetail } = adapter.buildCodexAppServerParams({
+  const { config } = adapter.buildCodexAppServerParams({
     intent: modelConfig.intent,
     userConfig: {
       reasoningEnabled: modelConfig.reasoningEnabled,
       reasoningEffort: modelConfig.reasoningEffort,
       reasoningBudget: modelConfig.reasoningBudget,
     },
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+  });
+  const imageDetail = adapter.resolveImageDetail({
+    intent: modelConfig.intent,
     requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
   });
   const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
