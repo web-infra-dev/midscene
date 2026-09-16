@@ -98,6 +98,79 @@ describe('plan XML parse retry', () => {
   });
 
   it.each([
+    '<planning>I need to tap the menu again.</planning>',
+    '<log>Tap the menu</log>',
+    '',
+    '<error> </error>',
+    '<complete>true</complete>',
+  ])('retries incomplete planning responses: %s', async (content) => {
+    rs.mocked(callAI)
+      .mockResolvedValueOnce(mockAIResponse(content))
+      .mockResolvedValueOnce(
+        mockAIResponse('<complete success="true">Done</complete>'),
+      );
+    const result = await standardPlan('tap the menu', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(rs.mocked(callAI).mock.calls[1]?.[0]?.at(-1)?.content).toEqual(
+      expect.stringContaining('Incomplete planning response'),
+    );
+    expect(result.finalizeSuccess).toBe(true);
+    expect(buildYamlFlowFromPlans).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    '<complete success="true">Done</complete>',
+    '<complete success="false">Unable to finish</complete>',
+    '<error>Cannot perform this action</error>',
+  ])('accepts valid responses without actions: %s', async (content) => {
+    rs.mocked(callAI).mockResolvedValueOnce(mockAIResponse(content));
+    const result = await standardPlan('tap the menu', {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime({ ...mockModelConfig(), retryInterval: 0 }),
+      conversationHistory: new ConversationHistory(),
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    });
+    expect(callAI).toHaveBeenCalledTimes(1);
+    expect(result.actions).toEqual([]);
+    if (content.startsWith('<complete')) {
+      expect(result.shouldContinuePlanning).toBe(false);
+      expect(result.finalizeSuccess).toBe(content.includes('success="true"'));
+    } else {
+      expect(result.error).toBe('Cannot perform this action');
+    }
+  });
+
+  it('fails after exhausting retries for planning-only responses', async () => {
+    rs.mocked(callAI).mockResolvedValue(
+      mockAIResponse('<planning>Tap the menu</planning>'),
+    );
+    await expect(
+      standardPlan('tap the menu', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime({
+          ...mockModelConfig(),
+          retryInterval: 0,
+        }),
+        conversationHistory: new ConversationHistory(),
+        includeLocateInPlanning: false,
+        effort: 'balance',
+      }),
+    ).rejects.toThrow('Incomplete planning response');
+    expect(callAI).toHaveBeenCalledTimes(2);
+    expect(buildYamlFlowFromPlans).not.toHaveBeenCalled();
+  });
+
+  it.each([
     '<action-type-param-json>{"locate":{"prompt":"submit"}}</action-param-json>',
     '<action-param-json>{}</action-param-json>',
     '<action-param-json>{"locate":null}</action-param-json>',
@@ -480,7 +553,7 @@ describe('plan XML parse retry', () => {
       })
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Task completed</log>
-<complete>true</complete>`),
+<complete success="true">Done</complete>`),
       );
 
     const options = {
@@ -514,7 +587,9 @@ describe('plan XML parse retry', () => {
         rawChoiceMessage: rawAssistantMessage,
       })
       .mockResolvedValueOnce(
-        mockAIResponse('<log>Task completed</log>\n<complete>true</complete>'),
+        mockAIResponse(
+          '<log>Task completed</log>\n<complete success="true">Done</complete>',
+        ),
       );
 
     const options = {
