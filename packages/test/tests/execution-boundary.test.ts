@@ -79,5 +79,8 @@ describe('native Test execution boundary', () => {
     const internal = require('@midscene/test/internal/yaml-runtime');
     expect(internal.createYamlPlayer).toBeTypeOf('function');
     expect(internal).not.toHaveProperty('runTestProjectWithYamlCompatibility');
+    expect(require('@midscene/core/yaml')).not.toHaveProperty(
+      'parseLegacyYamlScript',
+    );
   });
 });

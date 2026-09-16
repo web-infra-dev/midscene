@@ -204,6 +204,8 @@ describe('old YAML behavior across the public Test entry and ScriptPlayer', () =
     { invalid: 'sleep', continueOnError: true },
     { invalid: 'missing flow', continueOnError: false },
     { invalid: 'missing flow', continueOnError: true },
+    { invalid: 'empty step', continueOnError: false },
+    { invalid: 'empty step', continueOnError: true },
   ])(
     'keeps $invalid at its task, with continuation=$continueOnError, in a retried batch',
     async ({ invalid, continueOnError }) => {
@@ -214,7 +216,11 @@ describe('old YAML behavior across the public Test entry and ScriptPlayer', () =
           {
             name: 'invalid',
             continueOnError,
-            ...(invalid === 'sleep' ? { flow: [{ sleep: 0 }] } : {}),
+            ...(invalid === 'sleep'
+              ? { flow: [{ sleep: 0 }] }
+              : invalid === 'empty step'
+                ? { flow: [null] }
+                : {}),
           },
           { name: 'third', flow: [{ javascript: 'third' }] },
         ],
@@ -324,6 +330,143 @@ describe('old YAML behavior across the public Test entry and ScriptPlayer', () =
 });
 
 describe('disabled report policy survives missing or failed artifacts', () => {
+  it.each(['web', 'page', 'browser', 'target'])(
+    'keeps a disabled batch %s report off when every document fails collection',
+    async (target) => {
+      write('invalid.yaml', { tasks: 'not-an-array' });
+      write('batch.yaml', {
+        files: ['invalid.yaml'],
+        [target]: { generateReport: false },
+        summary: 'old-summary.json',
+      });
+      const result = await runTestProject({
+        cwd: root,
+        configPath: 'batch.yaml',
+      });
+      expect(result.collectionErrors).toHaveLength(1);
+      expect(result.reportPath).toBeUndefined();
+      expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+      expect(
+        readSummary('old-summary.json').data.results[0],
+      ).not.toHaveProperty('report');
+      expect(
+        readdirSync(join(root, 'midscene_run')).filter(
+          (entry) => entry === 'report',
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it('keeps disabled file Agent reports off when every batch document fails collection', async () => {
+    write('invalid.yaml', {
+      agent: { generateReport: false },
+      tasks: 'not-an-array',
+    });
+    write('batch.yaml', {
+      files: ['invalid.yaml'],
+      summary: 'old-summary.json',
+    });
+    const result = await runTestProject({
+      cwd: root,
+      configPath: 'batch.yaml',
+    });
+    expect(result.collectionErrors).toHaveLength(1);
+    expect(result.reportPath).toBeUndefined();
+    expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+    expect(readSummary('old-summary.json').data.results[0]).not.toHaveProperty(
+      'report',
+    );
+  });
+
+  it.each(['agent', 'web', 'page', 'browser', 'target'])(
+    'retains the file %s report intent before legacy task validation fails',
+    async (target) => {
+      const file = write('invalid.yaml', {
+        [target]: { generateReport: false },
+        tasks: 'not-an-array',
+      });
+      const result = await runTestProject({ cwd: root, projectRoot: file });
+      expect(result.collectionErrors).toHaveLength(1);
+      expect(result.reportPath).toBeUndefined();
+      expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retains a literal disabled file report when environment interpolation fails', async () => {
+    vi.stubEnv('MIDSCENE_TEST_MISSING_REPORT_ENV', undefined);
+    const file = join(root, 'invalid.yaml');
+    writeFileSync(
+      file,
+      'agent:\n  generateReport: false\nweb:\n  url: ${MIDSCENE_TEST_MISSING_REPORT_ENV}\ntasks: []\n',
+    );
+    const result = await runTestProject({ cwd: root, projectRoot: file });
+    expect(result.collectionErrors).toHaveLength(1);
+    expect(result.reportPath).toBeUndefined();
+    expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'uses the resolved environment report flag before task validation (enabled: %s)',
+    async (enabled) => {
+      vi.stubEnv('MIDSCENE_TEST_REPORT_ENABLED', String(enabled));
+      const file = join(root, 'invalid.yaml');
+      writeFileSync(
+        file,
+        'agent:\n  generateReport: ${MIDSCENE_TEST_REPORT_ENABLED}\ntasks: not-an-array\n',
+      );
+      const result = await runTestProject({ cwd: root, projectRoot: file });
+      expect(result.collectionErrors).toHaveLength(1);
+      expect(Boolean(result.reportPath)).toBe(enabled);
+      expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { fileConfig: { web: { generateReport: false } }, enabled: true },
+    { fileConfig: { agent: { generateReport: false } }, enabled: false },
+  ])(
+    'preserves file Agent priority and batch target overrides during collection failure (enabled: $enabled)',
+    async ({ fileConfig, enabled }) => {
+      write('invalid.yaml', { ...fileConfig, tasks: 'not-an-array' });
+      write('batch.yaml', {
+        files: ['invalid.yaml'],
+        web: { generateReport: true },
+        summary: 'old-summary.json',
+      });
+      const result = await runTestProject({
+        cwd: root,
+        configPath: 'batch.yaml',
+      });
+      expect(result.collectionErrors).toHaveLength(1);
+      expect(Boolean(result.reportPath)).toBe(enabled);
+      expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still creates the default native report when every native document fails collection', async () => {
+    const file = write('native.yaml', { cases: 'not-an-array' });
+    const result = await runTestProject({ cwd: root, projectRoot: file });
+    expect(result.collectionErrors).toHaveLength(1);
+    expect(result.reportPath).toBeDefined();
+    expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+  });
+
+  it('keeps a native collection-failure report in a mixed run with disabled legacy reports', async () => {
+    write('legacy.yaml', {
+      agent: { generateReport: false },
+      tasks: [{ name: 'old case', flow: [] }],
+    });
+    write('native.yaml', { cases: 'not-an-array' });
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      'export default { nodes: [] };',
+    );
+    const result = await runTestProject({ cwd: root });
+    expect(result.collectionErrors).toHaveLength(1);
+    expect(result.reportPath).toBeDefined();
+    expect(launcher.createYamlAgent).not.toHaveBeenCalled();
+  });
+
   it.each([
     { phase: 'setup', target: 'agent' },
     { phase: 'execute', target: 'agent' },

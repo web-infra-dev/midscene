@@ -118,7 +118,6 @@ export async function prepareTestRun(
       ),
     );
   adapter.validate(projects);
-  const invocations = projects.flatMap((project) => project.invocations);
   return {
     startedAt,
     runId,
@@ -131,9 +130,7 @@ export async function prepareTestRun(
     definition,
     projects,
     preflightScope: adapter.preflightScope,
-    reportEnabled:
-      invocations.length === 0 ||
-      invocations.some((item) => item.reportEnabled),
+    reportEnabled: adapter.resolveReportEnabled(),
     publications: adapter.publications(projects),
     onProgress: options.onProgress ?? (() => {}),
   };
