@@ -38,6 +38,7 @@ it('declares common and Android Test Runner Nodes', () => {
     'aiAct',
     'aiTap',
     'aiAssert',
+    'aiWaitFor',
     'aiBoolean',
     'aiNumber',
     'aiString',

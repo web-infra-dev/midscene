@@ -34,6 +34,7 @@ it('declares common and iOS Test Runner Nodes', () => {
     'aiAct',
     'aiTap',
     'aiAssert',
+    'aiWaitFor',
     'aiBoolean',
     'aiNumber',
     'aiString',
