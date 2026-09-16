@@ -43,7 +43,10 @@ export const prepareChatCompletion = async ({
     ...(modelConfig.extraBody ?? {}),
   };
 
-  const imageDetail = adapter.chatCompletion.resolveImageDetail(modelCallInput);
+  const imageDetail = adapter.resolveImageDetail({
+    intent: modelConfig.intent,
+    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+  });
 
   // Some adapters request original image detail to preserve screenshot
   // resolution for localization-sensitive tasks.

@@ -146,21 +146,18 @@ describe('gpt model adapter', () => {
       'reasoningBudget',
     ]);
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'default',
-        userConfig: {},
       }),
     ).toBe('original');
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
       }),
     ).toBeUndefined();
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
         requiresOriginalImageDetail: true,
       }),
     ).toBe('original');

@@ -163,7 +163,7 @@ describe('GPT image detail handling', () => {
       expected: 'original',
     },
   ] as const)(
-    'resolves Codex image detail independently for %j',
+    'uses the model image detail policy for Codex with %j',
     async ({ intent, requiresOriginalImageDetail, expected }) => {
       for (const modelFamily of ['gpt-5', 'gpt-6'] as const) {
         const runtime = getModelRuntime({
@@ -172,19 +172,19 @@ describe('GPT image detail handling', () => {
           intent,
           openaiBaseURL: 'codex://app-server',
         });
-        const chatDetailSpy = rs.spyOn(
-          runtime.adapter.chatCompletion,
-          'resolveImageDetail',
-        );
+        const imageDetailSpy = rs.spyOn(runtime.adapter, 'resolveImageDetail');
         try {
           await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
           expect(
             mockCodexCall.mock.calls.at(-1)?.[0][0].content[0].image_url.detail,
           ).toBe(expected ?? 'high');
           expect(imageMessage[0].content[0].image_url?.detail).toBe('high');
-          expect(chatDetailSpy).not.toHaveBeenCalled();
+          expect(imageDetailSpy).toHaveBeenCalledExactlyOnceWith({
+            intent,
+            requiresOriginalImageDetail,
+          });
         } finally {
-          chatDetailSpy.mockRestore();
+          imageDetailSpy.mockRestore();
         }
       }
     },
