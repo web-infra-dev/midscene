@@ -84,9 +84,9 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 
 创建项目时，脚手架会根据选择的平台显式注册相应的官方 Node。手写 `midscene.config.ts` 时不会隐式注册任何 Node，需要自行配置。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
 
-### 生成当前 Project 的 Node 说明书
+### 生成当前项目的 Node 说明书
 
-不同平台、Execution Project 和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 `midscene-node-reference.md`，它是当前 Project 可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
+不同平台、执行项目和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 `midscene-node-reference.md`，它是当前项目可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
 
 脚手架会在安装依赖后自动生成。修改 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node schema，或者升级相关 Midscene 包后，应重新生成：
 
@@ -94,14 +94,14 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 pnpm run nodes
 ```
 
-也可以直接运行命令，并指定测试目录、配置文件或 Execution Project：
+也可以直接运行命令，并指定测试目录、配置文件或执行项目：
 
 ```bash
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-如果多个 Execution Project 的 Node 定义完全相同，可以生成一份共享说明书；定义不同时，命令会要求使用 `--project` 选择一个 Project，避免把不同平台的同名能力混在一起。
+如果多个执行项目的 Node 定义完全相同，可以生成一份共享说明书；定义不同时，命令会要求使用 `--project` 选择一个项目，避免把不同平台的同名能力混在一起。
 
 生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。说明书是生成文件，不要手动编辑；配置变化后重新执行命令。
 
@@ -158,7 +158,7 @@ steps:
       message: 加购后购物车内容不符合预期
 ```
 
-`aiAct` 支持可选的 `options.effort`，用于选择规划投入程度：`fast`、`balance` 或 `deepThink`。省略时沿用 Agent 默认行为；同时提供 `deepThink` 时，`effort` 优先。这是动作能力，不是测试调度参数：
+`aiAct` 支持可选的 `options.effort`，用于选择规划投入程度：`fast`、`balance` 或 `deepThink`。省略时沿用 Agent 默认行为；同时提供 `deepThink` 时，`effort` 优先。例如：
 
 ```yaml
 steps:
@@ -226,7 +226,7 @@ steps:
 
 `continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
 
-### 使用 Project 变量与环境变量
+### 使用项目变量与环境变量
 
 Midscene Test 会在执行前递归解析 Node input：
 
@@ -240,12 +240,12 @@ steps:
         count: ${orderCount}
 ```
 
-- `${name}` 读取当前 Execution Project 的 `variables`；独占整个标量时保留原始 JSON 类型。
+- `${name}` 读取当前执行项目的 `variables`；独占整个标量时保留原始 JSON 类型。
 - `${{ENV_NAME}}` 读取环境变量，结果始终是字符串。
 - 对象或数组变量可以作为完整值使用，但不能嵌入更长的字符串。
 - 未定义变量会在收集阶段失败。变量只解析 Node input，不解析 `$`。
 
-Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过 Execution Project 的 `context` 显式提供。
+Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过执行项目的 `context` 显式提供。
 
 ### 使用 tags 筛选 Case
 
@@ -257,7 +257,7 @@ cases:
       - aiAct: 完成下单
 ```
 
-框架维护者在每个 Execution Project 中配置 `tags.include` 与 `tags.exclude`。exclude 始终优先；include 非空时，Case 命中任意一个 include tag 即会被选中。
+框架维护者在每个执行项目中配置 `tags.include` 与 `tags.exclude`。exclude 始终优先；include 非空时，Case 命中任意一个 include tag 即会被选中。
 
 ## 定义执行生命周期
 
@@ -351,17 +351,17 @@ pnpm exec midscene-test ./cases/order.yaml
 
 ### 过滤运行目标与配置文件
 
-如果项目配置了多个运行平台或环境，你可以指定仅运行特定的 Execution Project，或者通过命令行指定自定义配置文件：
+如果项目配置了多个运行平台或环境，你可以指定仅运行特定的执行项目，或者通过命令行指定自定义配置文件：
 
 ```bash
-# 只运行名为 android-smoke 和 ios-regression 的 Execution Project
+# 只运行名为 android-smoke 和 ios-regression 的执行项目
 pnpm exec midscene-test --project android-smoke --project ios-regression
 
 # 使用指定的配置文件运行测试
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-为某个 Execution Project（执行项目）生成 Node 说明书时，也可以指定 `--project`：
+为某个执行项目生成 Node 说明书时，也可以指定 `--project`：
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
@@ -388,7 +388,7 @@ pnpm exec midscene-test --result-dir ./test-results
 
 ## 查看测试结果
 
-每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看 Project、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
+每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
 报告默认保存在：
 
