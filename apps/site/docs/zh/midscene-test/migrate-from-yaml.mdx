@@ -53,9 +53,9 @@ pnpm exec midscene-test --config ./batch.yaml
 
 1. 先使用兼容入口运行原项目，保存退出状态、summary 和 Test 报告作为基线。
 2. 使用 `pnpm dlx @midscene/test create` 创建对应平台的 Test 项目，从生成的 `midscene.config.ts` 和 setup 开始配置运行环境。
-3. 将旧批配置映射到 Execution Project，把平台、Agent 和资源创建移入 setup。
+3. 将旧批配置映射到执行项目，把平台、Agent 和资源创建移入 setup。
 4. 逐个文件把 `tasks/flow` 改为 `cases/steps`，每转换一个文件就单独运行并检查报告。
-5. 运行 `pnpm exec midscene-test nodes --project <name>` 生成当前 Project 的 Node 说明书，根据说明书校验动作名称、参数和字符串简写。
+5. 运行 `pnpm exec midscene-test nodes --project <name>` 生成当前项目的 Node 说明书，根据说明书校验动作名称、参数和字符串简写。
 6. 全部转换后，移除旧批配置和仅供兼容入口使用的命令行参数。
 
 ### 用例结构映射
@@ -99,7 +99,7 @@ cases:
 | 未设置 `continueOnError` | 仅供兼容的失败策略 | 适配器停止当前旧文件。原生没有 `onFailure` 参数；公共前置条件放在 `beforeAll`，有依赖关系的步骤放在同一个 Case。 |
 | 顶层平台字段中的初始页面或应用 | setup 加生命周期 Node | 资源创建放在 setup；每个 Case 都应重新进入初始状态时，使用 `beforeEach` 的 `gotoUrl`、`launch` 等 Node。 |
 | 旧版没有对应字段 | `beforeAll`、`beforeEach`、`afterEach`、`afterAll` | 原生 Test 提供的文件和 Case 生命周期。 |
-| 旧版没有对应字段 | `cases[].tags` | 用于按 Project 选择 Case。 |
+| 旧版没有对应字段 | `cases[].tags` | 用于按项目选择 Case。 |
 
 保留旧文件即可保留旧失败策略；手写原生 Case 则采用原生语义，不保证调度行为一一等价。Step 的 `$: { continue-on-error: true }` 只让同阶段后续 Step 继续，不控制旧 task 之间的调度，也不会把失败 Case 改为成功。
 
@@ -181,14 +181,14 @@ cases:
 
 这里发生了几类转换：
 
-1. `web.url` 不再和用例内容混在一起。浏览器由 Project setup 创建，需要在每个 Case 开始时进入结算页，因此 URL 放到 `beforeEach` 的 `gotoUrl`。
+1. `web.url` 不再和用例内容混在一起。浏览器由项目的 `setup` 创建，需要在每个 Case 开始时进入结算页，因此 URL 放到 `beforeEach` 的 `gotoUrl`。
 2. task 变成 Case；原生 Test 默认在 Case 失败后继续，因此这个例子无需额外的继续参数。
 3. `aiInput` 的值和定位描述从同级旧字段拆成 Node 的 `value` 与 `prompt`。
 4. `aiWaitFor.timeout` 是动作自身的等待上限，所以放入 `options.timeoutMs`。如果要限制整个 Step，应另用 `$: { timeout: 10000 }`。
 5. `ai` 统一为 `aiAct`，`aiAssert.errorMessage` 改为 `aiAssert.message`。
 6. 固定等待改用原生通用 `wait` Node；报告标题与正文分别放入 `recordToReport.title` 和 `options.content`。
 
-这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前 Project 的 `midscene-node-reference.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
+这个例子只调整输入结构，没有改变业务执行顺序。实际迁移时应先运行 `pnpm exec midscene-test nodes --project <name>`，生成当前项目的 `midscene-node-reference.md`。以这份 Node 说明书为准确认 `gotoUrl`、`aiInput`、`aiWaitFor` 等 Node 是否可用以及参数如何填写，不要根据其他平台的示例推测。
 
 ### 脚本和 Agent 配置映射
 
@@ -196,16 +196,16 @@ cases:
 
 | 旧版脚本字段 | 原生 Test 配置或机制 | 说明 |
 | --- | --- | --- |
-| `target` | Web Project setup | 该字段已废弃；迁移时不要继续使用，按实际模式配置 Playwright、Puppeteer 或 bridge runtime。 |
-| `page`、`browser`、`web` | Web Project setup + Web Node | 浏览器启动、CDP、viewport、Cookie、headers 等连接配置放入 setup；进入页面、设置 Cookie 等可重复动作放入生命周期 Node。 |
-| `android` | Android Project setup + Android Node | 设备 ID、截图和输入策略用于创建 Device/Agent；`launch` 等用例动作放入 `beforeEach` 或 `steps`。 |
-| `ios` | iOS Project setup + iOS Node | WDA 连接和 Device/Agent 创建放入 setup；应用启动和交互使用已注册 Node。 |
-| `harmony` | HarmonyOS Project setup + HarmonyOS Node | HDC 连接、设备参数和应用映射放入 setup；应用与 Shell 操作使用已注册 Node。 |
-| `computer` | Computer Project setup + Computer Node | display 等设备参数放入 setup；界面操作使用已注册 Node。 |
-| `interface` | 自定义 Project setup + `createMidsceneNodes()` | 在 setup 中导入并创建自定义 Interface、Device 和 Agent，再把 Agent 暴露给 Node。 |
+| `target` | Web 项目的 `setup` | 该字段已废弃；迁移时不要继续使用，按实际模式配置 Playwright、Puppeteer 或 bridge runtime。 |
+| `page`、`browser`、`web` | Web 项目的 `setup` + Web Node | 浏览器启动、CDP、viewport、Cookie、headers 等连接配置放入 setup；进入页面、设置 Cookie 等可重复动作放入生命周期 Node。 |
+| `android` | Android 项目的 `setup` + Android Node | 设备 ID、截图和输入策略用于创建 Device/Agent；`launch` 等用例动作放入 `beforeEach` 或 `steps`。 |
+| `ios` | iOS 项目的 `setup` + iOS Node | WDA 连接和 Device/Agent 创建放入 setup；应用启动和交互使用已注册 Node。 |
+| `harmony` | HarmonyOS 项目的 `setup` + HarmonyOS Node | HDC 连接、设备参数和应用映射放入 setup；应用与 Shell 操作使用已注册 Node。 |
+| `computer` | Computer 项目的 `setup` + Computer Node | display 等设备参数放入 setup；界面操作使用已注册 Node。 |
+| `interface` | 自定义项目的 `setup` + `createMidsceneNodes()` | 在 setup 中导入并创建自定义 Interface、Device 和 Agent，再把 Agent 暴露给 Node。 |
 | `agent.generateReport` | 兼容运行的报告设置 | 旧 YAML 仍可关闭自身报告；原生 Test 始终生成统一总报告。 |
 | `agent.reportFileName`、`agent.testId` | 仅供兼容的 Agent 产物设置 | 查看报告时，以 CLI 输出的 `Report:` 路径或 summary 中的报告链接为准。`testId` 已废弃。 |
-| `agent.groupName`、`agent.groupDescription` | Project、Case 名称和报告结构 | 没有同名原生字段；将分组语义放入 Project 名称、Case 名称或 tags。 |
+| `agent.groupName`、`agent.groupDescription` | 项目、Case 名称和报告结构 | 没有同名原生字段；将分组语义放入项目名称、Case 名称或 tags。 |
 | `agent.replanningCycleLimit`、`agent.aiContexts`、`agent.aiActContext`、`agent.aiActionContext`、`agent.cache`、`agent.screenshotShrinkFactor` | setup 中的 Agent options | 创建 Agent 时继续传入相应选项，不再写在 Case YAML 中。 |
 | `agent.outputFormat`、`agent.persistExecutionDump`、`agent.autoPrintReportMsg` | Test 报告或 setup 中的 Agent options | 优先采用 Test 的统一报告；只有仍需 Agent 自身行为时才在 setup 中保留对应选项。 |
 | `config.output`，或平台字段中的 `output` | Test 结构化结果 | 兼容入口继续写旧输出文件；原生 Test 使用 `--result-dir`、`summary.json` 和报告。业务数据应由自定义 Node 返回或写入外部存储。 |
@@ -260,18 +260,18 @@ export default defineTestProject({
 | --- | --- | --- |
 | `files` | `projects[].files.include` | 适配器保留旧顺序和重复调用；原生选择固定去重、排序，没有 `files.order` 开关。 |
 | `setup` | 兼容前置文件；原生 setup / `beforeAll` | YAML 宿主先执行旧 setup 文件；原生在 setup 创建资源，用生命周期 Step 表达文件前置条件，没有 `setupFile` 参数。 |
-| `concurrent` | 兼容文件调度；原生 `test.maxConcurrency` | YAML 宿主保留文件并发；原生并发单位是持有独立资源的 Project，不是同 Project 内的文件。 |
+| `concurrent` | 兼容文件调度；原生 `test.maxConcurrency` | YAML 宿主保留文件并发；原生并发单位是持有独立资源的项目，不是同一项目内的文件。 |
 | `retry` | 兼容整文件重试；原生 `projects[].retry` | 原生只重试失败 Case；确需整文件重放时保留旧文件，没有 `retryScope` 开关。 |
 | `continueOnError: false` | `test.bail: 1` | 失败达到阈值后停止调度新的文件或 Case。已经开始的并发任务仍会完成清理。 |
 | `continueOnError: true` | `test.bail: 0` | 不因失败阈值触发全局停止；适配器另行保留旧 task continuation，原生 Case 默认继续。 |
 | `summary` | Test `summary.json`、报告和编程式 API | 兼容入口仍写旧 summary；原生 Test 没有同名配置，应迁移消费方。可用 `--result-dir` 指定结构化结果目录。 |
-| `shareBrowserContext` | 兼容资源宿主；原生 Project setup | YAML 宿主在共享浏览器上下文上创建独立 Page/Agent；原生通过 setup 在 Project 内共享资源，并发 Project 之间持有独立资源。 |
+| `shareBrowserContext` | 兼容资源宿主；原生项目的 `setup` | YAML 宿主在共享浏览器上下文上创建独立 Page/Agent；原生通过 setup 在项目内共享资源，并发项目之间持有独立资源。 |
 | `headed` | 浏览器或设备 setup 的启动参数 | 例如 Playwright 使用 `chromium.launch({ headless: false })`。 |
 | `keepWindow` | setup 的清理策略 | 仅建议本地调试使用；需要由项目决定是否延迟或跳过浏览器 teardown。 |
 | `dotenvOverride`、`dotenvDebug` | 项目的环境变量加载方式 | 原生读取 `process.env`；依赖 `.env` 文件时，在配置文件或启动脚本中显式加载，并在那里设置优先级和调试行为。 |
-| `web`、`android`、`ios`、`harmony`、`computer`、`interface` | Project `setup`、`variables` 和平台注册 Node | 设备连接和 Agent 创建移入 setup；可序列化的环境差异放入 `variables`。 |
+| `web`、`android`、`ios`、`harmony`、`computer`、`interface` | 项目的 `setup`、`variables` 和平台注册 Node | 设备连接和 Agent 创建移入 setup；可序列化的环境差异放入 `variables`。 |
 
-这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件、并发文件的调度方式。原生并发应拆成独立 Project，并设置 `test.maxConcurrency`。兼容所需的文件并发和 document setup 留在 YAML 宿主内部，不成为公开 Test 配置。
+这个原生示例只迁移了文件选择和 Case 重试，不保留旧前置文件、并发文件的调度方式。原生并发应拆成独立项目，并设置 `test.maxConcurrency`。兼容所需的文件并发和 document setup 留在 YAML 宿主内部，不成为公开 Test 配置。
 
 兼容入口保留旧输出命名规则：显式 flow `name`、未命名提取结果的数字键，以及重复名称的覆盖规则均保留。
 

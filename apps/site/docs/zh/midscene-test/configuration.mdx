@@ -4,7 +4,7 @@
 
 ## 配置文件结构
 
-使用 `defineTestProject()` 定义并导出项目配置。Execution Project（执行项目）负责选择用例并提供运行环境。
+使用 `defineTestProject()` 定义并导出项目配置。执行项目负责选择用例并提供运行环境。
 
 Midscene Test 支持以下配置文件：
 
@@ -21,7 +21,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 | --- | --- |
 | `setup` | 为隐式的默认执行项目创建共享资源。 |
 | `nodes` | 注册所有执行项目共享的 Node。 |
-| `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各 Project 中，不再配置顶层 setup。 |
+| `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各项目中，不再配置顶层 setup。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
 | `output` | 设置报告输出目录。 |
 
@@ -152,7 +152,7 @@ export default defineTestProject<ProjectContext>({
 
 Midscene Test 内核不隐式注册 Node。`midscene-test create` 生成的配置会调用 `@midscene/test/midscene` 导出的 `createMidsceneNodes()`，注册所选平台的官方 Node。手写配置时，需要将该函数返回的 Node 定义显式放入顶层 `nodes` 或 `projects[].nodes`。
 
-`createMidsceneNodes()` 返回两部分能力：`agentClass.getTestRunnerNodeDefinitions()` 声明的通用 Agent Node 和平台 Node，以及 Test 提供的 `wait` Node。通用能力包含 AI 操作、断言与信息提取、界面定位、报告记录等；平台 Agent 再追加浏览器或设备操作。完整名称和输入字段不在网站中维护重复清单，请以当前 Project 生成的 [Node 说明书](./use#生成当前-project-的-node-说明书) 为准。
+`createMidsceneNodes()` 返回两部分能力：`agentClass.getTestRunnerNodeDefinitions()` 声明的通用 Agent Node 和平台 Node，以及 Test 提供的 `wait` Node。通用能力包含 AI 操作、断言与信息提取、界面定位、报告记录等；平台 Agent 再追加浏览器或设备操作。完整名称和输入字段不在网站中维护重复清单，请以当前项目生成的 [Node 说明书](./use#生成当前项目的-node-说明书) 为准。
 
 调用 `createMidsceneNodes()` 时，通过 `agentClass` 指定 Agent 类，通过 `getAgent` 回调提供运行时使用的 Agent 实例：
 
@@ -318,17 +318,17 @@ steps:
 
 脚手架生成的配置默认选择 `cases/**/*.{yaml,yml}`。未配置 `files` 时，Midscene Test 会在测试目录下按 `**/*.{yaml,yml}` 递归查找用例文件。
 
-选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。同一 Project 内文件顺序执行；需要并发时，使用持有独立资源的多个 Project。
+选中的文件会去重并按路径排序。重试只重新执行失败 Case 的 `beforeEach → steps → afterEach`，不重跑项目 setup 或文件钩子。同一项目内文件顺序执行；需要并发时，使用持有独立资源的多个项目。
 
 原生 Test 始终生成统一总报告。报告路径会在运行结束后由 CLI 输出，查看方式见[查看测试结果](./use#查看测试结果)。
 
 ### 配置多个执行项目
 
-如果需要在不同浏览器或设备上运行测试，可以通过 `defineTestProject()` 配置多个 Execution Project。
+如果需要在不同浏览器或设备上运行测试，可以通过 `defineTestProject()` 配置多个执行项目。
 
-顶层 `nodes` 注册的 Node 对所有 Project 生效，省略时默认为 `[]`。在单个 Project 中，也可以通过与 `setup`、`files` 平级的 `nodes` 字段注册局部 Node。局部 Node 仅对当前 Project 生效，并整体覆盖同名的全局定义；其余全局 Node 仍可使用。同一注册层内出现重复名称时，框架会报错。
+顶层 `nodes` 注册的 Node 对所有项目生效，省略时默认为 `[]`。在单个项目中，也可以通过与 `setup`、`files` 平级的 `nodes` 字段注册局部 Node。局部 Node 仅对当前项目生效，并整体覆盖同名的全局定义；其余全局 Node 仍可使用。同一注册层内出现重复名称时，框架会报错。
 
-同时配置 Android 和 iOS 项目时，应在各 Project 中注册对应平台 Agent 的官方 Node。下面的示例从 `./setup` 导入两个独立的 setup，各自管理资源并返回 `{ agent }`，从 `./nodes` 导入共享业务 Node：
+同时配置 Android 和 iOS 项目时，应在各项目中注册对应平台 Agent 的官方 Node。下面的示例从 `./setup` 导入两个独立的 setup，各自管理资源并返回 `{ agent }`，从 `./nodes` 导入共享业务 Node：
 
 ```ts filename=midscene.config.ts
 import { AndroidAgent } from '@midscene/android';
@@ -372,7 +372,7 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // 同时运行的 Execution Project 数量上限
+    maxConcurrency: 1, // 同时运行的执行项目数量上限
     bail: 0,           // 大于 0 时，失败用例数达到此值后停止调度新任务
     testTimeout: 120_000,
   },
@@ -382,7 +382,7 @@ export default defineTestProject<ProjectContext>({
 });
 ```
 
-两个 Project 可以使用同一份 YAML 文件。收集用例、校验输入和执行测试时，`launch` 等平台 Node 都使用当前 Project 中生效的定义。一个 Project 的局部 Node 不会影响其他 Project。
+两个项目可以使用同一份 YAML 文件。收集用例、校验输入和执行测试时，`launch` 等平台 Node 都使用当前项目中生效的定义。一个项目的局部 Node 不会影响其他项目。
 
 ### 并发与资源隔离
 
@@ -415,7 +415,7 @@ export default defineTestProject<ProjectContext>({
 
 每个项目从开始初始化到完成清理，始终占用一个并发名额。名额释放后，调度器再启动下一个待运行项目。当前调度在同一个 Node.js 进程中异步执行，不会为项目创建独立进程；模块全局变量、外部账号和测试数据仍需由项目实现隔离。
 
-### 为各 Project 生成 Node 说明书
+### 为各项目生成 Node 说明书
 
 运行 `midscene-test nodes` 可以生成 Node 说明书，查看项目中可用的 Node。使用 `--project` 指定执行项目后，说明书会列出该项目合并全局和局部注册后实际生效的 Node：
 
@@ -423,9 +423,9 @@ export default defineTestProject<ProjectContext>({
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-未指定 Project 时，如果所有 Project 中生效的 Node 定义都相同，命令会生成一份共享说明书。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
+未指定项目时，如果所有项目中生效的 Node 定义都相同，命令会生成一份共享说明书。如果定义不同，命令会报错，并提示你通过 `--project` 选择项目，避免混合不同项目中的同名定义。
 
-说明书内容与通用命令参数见[生成当前 Project 的 Node 说明书](./use#生成当前-project-的-node-说明书)。
+说明书内容与通用命令参数见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
 
 ## 超时与取消机制
 
