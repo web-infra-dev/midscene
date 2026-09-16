@@ -2,7 +2,9 @@ import { waitForRetry } from '@/ai-model/service-caller/request-timeout';
 import { callAiAndParseWithRetry } from '@/ai-model/service-caller/semantic-retry';
 import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-afterEach(() => rs.useRealTimers());
+afterEach(() => {
+  rs.useRealTimers();
+});
 
 describe('cancellable retry waiting', () => {
   it('rejects immediately when cancelled during the wait', async () => {
