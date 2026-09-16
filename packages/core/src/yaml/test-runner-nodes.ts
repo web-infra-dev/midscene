@@ -2,12 +2,10 @@ import { assert } from '@midscene/shared/utils';
 import { z } from 'zod/v4';
 import {
   type AgentTestRunnerNodeDefinition,
-  aiScrollInputSchema,
-  aiTapInputSchema,
   commonAgentTestRunnerNodeDefinitions,
 } from '../agent/test-runner-nodes';
 import type { NodeResult } from '../test-runner/node/types';
-import type { DeviceAction, MidsceneYamlFlowItem, UIContext } from '../types';
+import type { DeviceAction, MidsceneYamlFlowItem } from '../types';
 import { compileLegacyFlowItem } from './test-runner-compat';
 
 /** Planning-only marker accepted by the old YAML grammar, not a native Test Node. */
@@ -82,34 +80,60 @@ const legacyValidationErrorNodeDefinition: AgentTestRunnerNodeDefinition = {
   },
 };
 
-// These legacy fields are accepted only by YAML hosts, never native Node specs.
-const legacyLocateFields = { uiContext: z.custom<UIContext>().optional() };
-const legacyLocateInputSchema = aiTapInputSchema.extend({
-  options: aiTapInputSchema.shape.options
-    .unwrap()
-    .extend(legacyLocateFields)
-    .optional(),
+// The old player checked YAML grammar, then passed options through to Agent.
+// Validate only the compiled envelope here: native field whitelists, positive
+// wait durations and nonempty image arrays must not narrow the legacy grammar.
+// compileLegacyFlowItem preserves the old checks at their task execution phase;
+// Agent/ActionSpace remain responsible for validating the business parameters.
+const legacyPromptInputSchema = z.strictObject({
+  prompt: z.unknown(),
+  options: z.record(z.string(), z.unknown()).optional(),
 });
 const legacyInputSchemas = new Map<string, z.ZodObject>([
-  ['aiTap', legacyLocateInputSchema],
-  ['aiLocate', legacyLocateInputSchema],
-  [
+  ...[
+    'aiAct',
+    'aiTap',
+    'aiLocate',
+    'aiQuery',
+    'aiNumber',
+    'aiString',
+    'aiBoolean',
+    'aiAsk',
+    'aiWaitFor',
     'aiScroll',
-    aiScrollInputSchema.extend({
-      options: aiScrollInputSchema.shape.options
-        .unwrap()
-        .extend(legacyLocateFields)
-        .optional(),
+  ].map((name): [string, z.ZodObject] => [name, legacyPromptInputSchema]),
+  ['aiAssert', legacyPromptInputSchema.extend({ message: z.unknown() })],
+  ['javascript', z.strictObject({ script: z.unknown() })],
+  [
+    'runGherkinScenario',
+    z.strictObject({
+      scenario: z.unknown(),
+      options: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ],
+  ['sleep', z.strictObject({ ms: z.number().positive() })],
+  ['action', z.strictObject({ name: z.string(), params: z.unknown() })],
+  [
+    'recordToReport',
+    z.strictObject({
+      title: z.unknown(),
+      options: z.record(z.string(), z.unknown()).optional(),
     }),
   ],
 ]);
+const sharedDefinitions = new Map(
+  commonAgentTestRunnerNodeDefinitions.map((definition) => [
+    definition.name,
+    definition,
+  ]),
+);
 export const legacyAgentTestRunnerNodeDefinitions: readonly AgentTestRunnerNodeDefinition[] =
   [
-    ...commonAgentTestRunnerNodeDefinitions.map((definition) => ({
-      ...definition,
-      inputSchema:
-        legacyInputSchemas.get(definition.name) ?? definition.inputSchema,
-    })),
+    ...Array.from(legacyInputSchemas, ([name, inputSchema]) => {
+      const definition = sharedDefinitions.get(name);
+      assert(definition, `Missing shared Agent Node for legacy YAML: ${name}`);
+      return { ...definition, inputSchema };
+    }),
     legacyFinalizeNodeDefinition,
     legacyRunAdbShellNodeDefinition,
     legacyActionNodeDefinition,

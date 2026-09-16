@@ -6,7 +6,7 @@ import { parseYamlScript } from '@/yaml/utils';
 import { describe, expect, rstest as rs, test } from '@rstest/core';
 
 describe('legacy YAML Test Runner compatibility', () => {
-  test('accepts the historical progress hint while forwarding actual aiAct options', () => {
+  test('passes historical aiAct options through the private YAML boundary', () => {
     const document = collectLegacyYamlDocument({
       tasks: [
         {
@@ -24,7 +24,11 @@ describe('legacy YAML Test Runner compatibility', () => {
     });
     expect(document.cases[0].definition.steps[0].input).toEqual({
       prompt: 'Open the cart',
-      options: { effort: 'balance', cacheable: false },
+      options: {
+        aiActionProgressTips: ['Opening'],
+        effort: 'balance',
+        cacheable: false,
+      },
     });
   });
   test.each(['', 'flow: null'])(
@@ -196,7 +200,7 @@ describe('legacy YAML Test Runner compatibility', () => {
         node: 'aiWaitFor',
         input: {
           prompt: 'Order submitted',
-          options: { timeoutMs: 30_000 },
+          options: { timeout: 30_000, timeoutMs: 30_000 },
         },
         meta: { continueOnError: false },
       },

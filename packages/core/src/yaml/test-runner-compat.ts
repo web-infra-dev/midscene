@@ -84,20 +84,6 @@ export function compileLegacyFlowItem(
 ): NormalizedStep {
   const raw = flowItem as Record<string, any>;
   const { name, ...flow } = raw;
-  const promptInput = (value: any, options: Record<string, any>) => {
-    const { images, convertHttpImage2Base64, ...rest } = options;
-    const prompt =
-      images !== undefined || convertHttpImage2Base64 !== undefined
-        ? {
-            ...(typeof value === 'string' ? { prompt: value } : value),
-            ...(images === undefined ? {} : { images }),
-            ...(convertHttpImage2Base64 === undefined
-              ? {}
-              : { convertHttpImage2Base64 }),
-          }
-        : value;
-    return { prompt, options: rest };
-  };
   const step = (
     node: string,
     input: Record<string, unknown>,
@@ -117,34 +103,47 @@ export function compileLegacyFlowItem(
         : {}),
     },
   });
+  const invalid = (message: string) =>
+    step('legacyValidationError', { message });
   if ('Finalize' in flow) return step('Finalize', {});
   if ('aiAct' in flow || 'aiAction' in flow || 'ai' in flow) {
-    // This historical UI hint was never consumed by Agent.aiAct. Accept it
-    // at the YAML boundary without extending the common action contract.
-    const {
-      aiAct,
-      aiAction,
-      ai,
-      instruction,
-      aiActionProgressTips: _tips,
-      ...options
-    } = flow;
-    return step('aiAct', {
-      prompt: instruction || aiAct || aiAction || ai,
-      options,
-    });
+    const { aiAct, aiAction, ai, instruction, ...options } = raw;
+    const actionPrompt = aiAct ?? aiAction ?? ai;
+    const hasPrompt = (value: any) =>
+      (typeof value === 'string' && value) ||
+      (value &&
+        typeof value === 'object' &&
+        typeof value.prompt === 'string' &&
+        value.prompt);
+    const prompt = hasPrompt(instruction)
+      ? instruction
+      : hasPrompt(actionPrompt)
+        ? actionPrompt
+        : undefined;
+    return prompt
+      ? step('aiAct', { prompt, options })
+      : invalid('missing prompt for ai (aiAct)');
   }
-  if ('runGherkinScenario' in flow)
-    return step('runGherkinScenario', {
-      scenario: flow.runGherkinScenario,
-      options: { cacheable: false },
-    });
+  if ('runGherkinScenario' in flow) {
+    return flow.runGherkinScenario
+      ? step('runGherkinScenario', {
+          scenario: flow.runGherkinScenario,
+          options: { cacheable: false },
+        })
+      : invalid('missing scenario for runGherkinScenario');
+  }
   if ('aiAssert' in flow) {
     const { aiAssert: prompt, errorMessage: message, ...options } = flow;
+    if (!prompt) return invalid('missing prompt for aiAssert');
+    if (Object.hasOwn(raw, 'observe'))
+      return invalid(
+        '`observe` is not supported in YAML aiAssert. Use agent.startObserving() from code instead.',
+      );
     return step(
       'aiAssert',
       {
-        ...promptInput(prompt, { ...options, keepRawResponse: true }),
+        prompt,
+        options: { ...options, keepRawResponse: true },
         message,
       },
       true,
@@ -160,18 +159,24 @@ export function compileLegacyFlowItem(
   ]) {
     if (node in flow) {
       const { [node]: prompt, ...options } = flow;
-      return step(node, promptInput(prompt, options), true);
+      if (!prompt) return invalid(`missing prompt for ${node}`);
+      if (Object.hasOwn(raw, 'observe'))
+        return invalid(
+          '`observe` is not supported in YAML flow items. Use agent.startObserving() from code instead.',
+        );
+      return step(node, { prompt, options }, true);
     }
   }
   if ('aiWaitFor' in flow) {
-    const { aiWaitFor: prompt, timeout, ...options } = flow;
-    return step(
-      'aiWaitFor',
-      promptInput(prompt, {
+    const { aiWaitFor: prompt, timeout, ...options } = raw;
+    if (!prompt) return invalid('missing prompt for aiWaitFor');
+    return step('aiWaitFor', {
+      prompt,
+      options: {
         ...options,
-        ...(timeout === undefined ? {} : { timeoutMs: timeout }),
-      }),
-    );
+        ...(timeout === undefined ? {} : { timeout, timeoutMs: timeout }),
+      },
+    });
   }
   if ('sleep' in flow) {
     const ms =
@@ -181,9 +186,9 @@ export function compileLegacyFlowItem(
     // The old player rejected invalid sleep only when execution reached it.
     // Keep both that timing and its error message inside the YAML boundary.
     if (!Number.isFinite(ms) || ms <= 0)
-      return step('legacyValidationError', {
-        message: `ms for sleep must be greater than 0, but got ${flow.sleep}`,
-      });
+      return invalid(
+        `ms for sleep must be greater than 0, but got ${flow.sleep}`,
+      );
     return step('sleep', { ms });
   }
   if ('javascript' in flow)
@@ -194,7 +199,7 @@ export function compileLegacyFlowItem(
       options: { content: flow.content || '' },
     });
   if ('aiInput' in flow) {
-    const { aiInput, value: rawValue, ...options } = flow;
+    const { aiInput, value: rawValue, ...options } = raw;
     const prompt = options.locate || aiInput || '';
     const value = options.locate ? aiInput || rawValue : rawValue;
     return step('action', {
@@ -209,12 +214,15 @@ export function compileLegacyFlowItem(
     });
   }
   if ('aiKeyboardPress' in flow) {
-    const { aiKeyboardPress, ...options } = flow;
-    const prompt =
-      options.locate ?? (options.keyName ? aiKeyboardPress : undefined);
+    const { aiKeyboardPress, ...options } = raw;
+    const prompt = options.locate
+      ? options.locate
+      : options.keyName
+        ? aiKeyboardPress
+        : undefined;
     const keyName = options.locate
       ? aiKeyboardPress
-      : (options.keyName ?? aiKeyboardPress);
+      : options.keyName || aiKeyboardPress;
     return step('action', {
       name: 'KeyboardPress',
       params: {
@@ -227,51 +235,31 @@ export function compileLegacyFlowItem(
     });
   }
   if ('aiScroll' in flow) {
-    const { aiScroll, locate, ...options } = flow;
-    return step(
-      'aiScroll',
-      promptInput(locate ?? aiScroll ?? undefined, options),
-    );
+    const { aiScroll, locate, ...options } = raw;
+    return step('aiScroll', {
+      prompt: locate ?? aiScroll ?? undefined,
+      options,
+    });
   }
   if ('aiTap' in flow) {
-    const { aiTap, prompt, locate, ...options } = flow;
+    const { aiTap, prompt, locate, ...tapOptions } = raw;
     const nested =
       locate ??
       (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
-    if (typeof aiTap === 'string' && aiTap)
-      return step('aiTap', promptInput(aiTap, options));
-    if (
-      aiTap &&
-      typeof aiTap === 'object' &&
-      typeof aiTap.prompt === 'string'
-    ) {
-      const { prompt: nestedPrompt, ...nestedOptions } = aiTap;
-      return step(
-        'aiTap',
-        promptInput(nestedPrompt, { ...nestedOptions, ...options }),
-      );
-    }
-    if (nested && typeof nested === 'object' && nested.prompt) {
+    let locatePrompt: any;
+    let options = tapOptions;
+    if (typeof aiTap === 'string' && aiTap) {
+      locatePrompt = aiTap;
+    } else if (nested && typeof nested === 'object' && nested.prompt) {
       const { prompt: nestedPrompt, ...nestedOptions } = nested;
-      const { images, convertHttpImage2Base64, ...locateOptions } =
-        nestedOptions;
-      return step('aiTap', {
-        prompt: images
-          ? {
-              prompt: nestedPrompt,
-              images,
-              ...(convertHttpImage2Base64 === undefined
-                ? {}
-                : { convertHttpImage2Base64 }),
-            }
-          : nestedPrompt,
-        options: { ...locateOptions, ...options },
-      });
+      locatePrompt = nestedPrompt;
+      options = { ...nestedOptions, ...tapOptions };
+    } else {
+      locatePrompt = aiTap?.prompt || prompt || nested;
     }
-    return step(
-      'aiTap',
-      promptInput(aiTap?.prompt || prompt || nested, options),
-    );
+    return locatePrompt
+      ? step('aiTap', { prompt: locatePrompt, options })
+      : invalid('missing prompt for aiTap');
   }
   if (typeof flow.runAdbShell === 'string' && typeof flow.timeout === 'number')
     return step(
