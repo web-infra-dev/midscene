@@ -11,6 +11,8 @@ export type BrowserAgentAdapter<Page, NewPageEvent> = {
   isPageClosed(page: Page): boolean;
   isPageAllowed?(page: Page): boolean;
   bringToFront(page: Page): Promise<void> | void;
+  pageTitle(page: Page): Promise<string> | string;
+  pageUrl(page: Page): string;
   onNewPage(handler: (event: NewPageEvent) => void): void;
   offNewPage(handler: (event: NewPageEvent) => void): void;
   resolveNewPage(event: NewPageEvent): Page | Promise<Page | null> | null;
@@ -88,6 +90,46 @@ export function resolveBrowserAgentRuntimeOptions({
   };
 }
 
+export type BrowserAgentPageSummary = {
+  index: number;
+  active: boolean;
+  title: string;
+  url: string;
+};
+
+export type BrowserAgentPageSelector = {
+  index?: number;
+  title?: string;
+  url?: string;
+};
+
+const normalizeOptionalText = (value: string | undefined) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toLowerCase() : undefined;
+};
+
+const pageSummaryMatches = (
+  summary: BrowserAgentPageSummary,
+  title: string | undefined,
+  url: string | undefined,
+) =>
+  (!title || summary.title.toLowerCase().includes(title)) &&
+  (!url || summary.url.toLowerCase().includes(url));
+
+const describeSelector = (selector: BrowserAgentPageSelector) => {
+  const parts: string[] = [];
+  if (selector.index !== undefined) {
+    parts.push(`index ${selector.index}`);
+  }
+  if (selector.title?.trim()) {
+    parts.push(`title "${selector.title.trim()}"`);
+  }
+  if (selector.url?.trim()) {
+    parts.push(`url "${selector.url.trim()}"`);
+  }
+  return parts.join(', ');
+};
+
 export class BrowserPageManager<Page, NewPageEvent> {
   private readonly agentName: string;
   private readonly adapter: BrowserAgentAdapter<Page, NewPageEvent>;
@@ -121,6 +163,17 @@ export class BrowserPageManager<Page, NewPageEvent> {
     return this.adapter.pages();
   }
 
+  async pageSummaries(): Promise<BrowserAgentPageSummary[]> {
+    const pages = await this.adapter.pages();
+    const activePage = this.activePage;
+
+    return Promise.all(
+      pages.map((page, index) =>
+        this.pageSummary(page, index, page === activePage),
+      ),
+    );
+  }
+
   async newPage() {
     const page = await this.adapter.newPage();
     await this.setActivePage(page);
@@ -147,6 +200,76 @@ export class BrowserPageManager<Page, NewPageEvent> {
     }
   }
 
+  async setActivePageBySelector(
+    selector: BrowserAgentPageSelector,
+  ): Promise<BrowserAgentPageSummary> {
+    const selectorIndex = selector.index;
+    const title = normalizeOptionalText(selector.title);
+    const url = normalizeOptionalText(selector.url);
+
+    if (selectorIndex === undefined && !title && !url) {
+      throw new Error(
+        `[midscene] SetActivePage requires index, title, or url for ${this.agentName}.`,
+      );
+    }
+
+    const pages = await this.adapter.pages();
+
+    if (selectorIndex !== undefined) {
+      const page = pages[selectorIndex];
+      if (!page || this.adapter.isPageClosed(page)) {
+        throw new Error(
+          `[midscene] Cannot find ${this.agentName} page with index ${selectorIndex}. Available page indexes: ${pages
+            .map((_, index) => index)
+            .join(', ')}`,
+        );
+      }
+
+      const summary = await this.pageSummary(page, selectorIndex, true);
+      if (!pageSummaryMatches(summary, title, url)) {
+        const textSelector = describeSelector({
+          title: selector.title,
+          url: selector.url,
+        });
+        throw new Error(
+          `[midscene] ${this.agentName} page at index ${selectorIndex} does not match ${textSelector}. Run ListBrowserPages again before selecting a page.`,
+        );
+      }
+
+      await this.setActivePage(page);
+      return summary;
+    }
+
+    const matchedPages: Array<{ page: Page; index: number }> = [];
+    for (let index = 0; index < pages.length; index++) {
+      const page = pages[index];
+      if (this.adapter.isPageClosed(page)) {
+        continue;
+      }
+
+      const summary = await this.pageSummary(page, index, false);
+      if (pageSummaryMatches(summary, title, url)) {
+        matchedPages.push({ page, index });
+      }
+    }
+
+    if (matchedPages.length === 0) {
+      throw new Error(
+        `[midscene] Cannot find ${this.agentName} page matching ${describeSelector(selector)}.`,
+      );
+    }
+
+    if (matchedPages.length > 1) {
+      throw new Error(
+        `[midscene] Multiple ${this.agentName} pages matched ${describeSelector(selector)}. Use ListBrowserPages and pass an index to SetActivePage.`,
+      );
+    }
+
+    const { page, index } = matchedPages[0];
+    await this.setActivePage(page);
+    return this.pageSummary(page, index, true);
+  }
+
   async waitForNewPage(
     action?: () => Promise<unknown> | unknown,
     opts?: { timeout?: number },
@@ -164,6 +287,19 @@ export class BrowserPageManager<Page, NewPageEvent> {
 
   destroy() {
     this.adapter.offNewPage(this.newPageHandler);
+  }
+
+  private async pageSummary(
+    page: Page,
+    index: number,
+    active: boolean,
+  ): Promise<BrowserAgentPageSummary> {
+    return {
+      index,
+      active,
+      title: await this.adapter.pageTitle(page),
+      url: this.adapter.pageUrl(page),
+    };
   }
 
   private async followNewPage(event: NewPageEvent) {

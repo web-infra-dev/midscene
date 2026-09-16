@@ -5,6 +5,11 @@ import {
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
+import {
+  BrowserPageManagerSlot,
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
+} from '@/common/browser-page-actions';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
@@ -25,6 +30,8 @@ const createPlaywrightBrowserAdapter = (
   newPage: () => context.newPage(),
   isPageClosed: (page) => page.isClosed(),
   bringToFront: (page) => page.bringToFront(),
+  pageTitle: (page) => page.title(),
+  pageUrl: (page) => page.url(),
   onNewPage: (handler) => context.on('page', handler),
   offNewPage: (handler) => context.off('page', handler),
   resolveNewPage: (page) => page,
@@ -53,10 +60,27 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
 
   readonly testRunner?: PlaywrightTestRunnerOptions;
 
-  private readonly pageManager: BrowserPageManager<
+  private readonly pageManagerSlot: BrowserPageManagerSlot<
     PlaywrightPage,
     PlaywrightPage
   >;
+
+  protected get pageManager() {
+    return this.pageManagerSlot.requireCurrent();
+  }
+
+  protected set pageManager(pageManager: BrowserPageManager<
+    PlaywrightPage,
+    PlaywrightPage
+  >) {
+    this.replacePageManager(pageManager);
+  }
+
+  protected replacePageManager(
+    pageManager: BrowserPageManager<PlaywrightPage, PlaywrightPage>,
+  ) {
+    this.pageManagerSlot.replace(pageManager);
+  }
 
   constructor(
     context: PlaywrightBrowserContext,
@@ -84,9 +108,21 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
       newPageTimeout,
     });
     const { forceChromeSelectRendering } = agentOpts;
+    const pageManagerSlot = new BrowserPageManagerSlot<
+      PlaywrightPage,
+      PlaywrightPage
+    >('PlaywrightBrowserAgent');
+    const browserActions = createBrowserAgentPageActions({
+      agentName: 'PlaywrightBrowserAgent',
+      getPageManager: () => pageManagerSlot.requireCurrent(),
+    });
     const webPage = new PlaywrightWebPage(initialPage, {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
+      customActions: appendBrowserAgentPageActions(
+        agentOpts.customActions,
+        browserActions,
+      ),
     });
     const pageManager = new BrowserPageManager({
       agentName: 'PlaywrightBrowserAgent',
@@ -99,8 +135,9 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
       newPageTimeout: runtimeOptions.newPageTimeout,
       debug,
     });
+    pageManagerSlot.initialize(pageManager);
     super(webPage, agentOpts);
-    this.pageManager = pageManager;
+    this.pageManagerSlot = pageManagerSlot;
     this.testRunner = opts?.testRunner;
 
     applyForceChromeSelectRendering(
