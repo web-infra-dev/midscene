@@ -3,7 +3,6 @@ import {
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
 import {
-  BrowserPageManagerSlot,
   appendBrowserAgentPageActions,
   createBrowserAgentPageActions,
 } from '@/common/browser-page-actions';
@@ -40,7 +39,7 @@ function createManager(options?: {
   newPage?: PageMock;
   pages?: PageMock[];
   activePage?: PageMock;
-  pageTitle?: (page: PageMock) => string;
+  pageTitle?: (page: PageMock) => string | Promise<string>;
   pageUrl?: (page: PageMock) => string;
 }) {
   let activePage =
@@ -149,6 +148,48 @@ describe('BrowserPageManager', () => {
     );
   });
 
+  it('skips a page that closes while its title is being read', async () => {
+    const closing = createPage('closing');
+    const docs = createPage('docs', { title: 'Docs' });
+    const ctx = createManager({
+      pages: [closing, docs],
+      pageTitle: async (page) => {
+        if (page === closing) {
+          closing.closed = true;
+          throw new Error('page closed');
+        }
+        return page.title;
+      },
+    });
+
+    await expect(ctx.manager.pageSummaries()).resolves.toEqual([
+      {
+        index: 0,
+        active: false,
+        title: 'Docs',
+        url: 'https://example.com/docs',
+      },
+    ]);
+    await expect(
+      ctx.manager.setActivePageBySelector({ title: 'docs' }),
+    ).resolves.toMatchObject({ title: 'Docs', active: true });
+
+    const closingDuringSelection = createPage('closing');
+    const selectorCtx = createManager({
+      pages: [closingDuringSelection, docs],
+      pageTitle: async (page) => {
+        if (page === closingDuringSelection) {
+          closingDuringSelection.closed = true;
+          throw new Error('page closed');
+        }
+        return page.title;
+      },
+    });
+    await expect(
+      selectorCtx.manager.setActivePageBySelector({ title: 'docs' }),
+    ).resolves.toMatchObject({ title: 'Docs', active: true });
+  });
+
   it('sets the active page by selector', async () => {
     const initial = createPage('initial', {
       title: 'Home',
@@ -231,7 +272,6 @@ describe('BrowserPageManager', () => {
     });
     const ctx = createManager({ pages: [initial, docs] });
     const actions = createBrowserAgentPageActions({
-      agentName: 'TestBrowserAgent',
       getPageManager: () => ctx.manager,
     });
 
@@ -256,7 +296,7 @@ describe('BrowserPageManager', () => {
       },
     ]);
     expect(taskContext.task.planningFeedback).toBe(
-      'ListBrowserPages indexes 0-1; active 0 (0-based). Use SetActivePage:\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
+      'ListBrowserPages 0-1 of 2; active 0 (0-based). Use SetActivePage.\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
     );
 
     await actions[1].call({ index: 1 }, {} as any);
@@ -272,7 +312,6 @@ describe('BrowserPageManager', () => {
     );
     const ctx = createManager({ pages, activePage: pages[2] });
     const actions = createBrowserAgentPageActions({
-      agentName: 'TestBrowserAgent',
       getPageManager: () => ctx.manager,
     });
     const taskContext = { task: {} } as any;
@@ -287,29 +326,34 @@ describe('BrowserPageManager', () => {
     }
   });
 
-  it('uses the current page manager after the manager is replaced', async () => {
-    const firstPage = createPage('first');
-    const secondPage = createPage('second');
-    const first = createManager({
-      pages: [firstPage],
-      autoFollowNewPage: true,
-    });
-    const second = createManager({ pages: [secondPage] });
-    const pageManagerSlot = new BrowserPageManagerSlot<PageMock, NewPageEvent>(
-      'TestBrowserAgent',
+  it('paginates large page lists without losing page identities', async () => {
+    const pages = Array.from({ length: 100 }, (_, index) =>
+      createPage(`page-${index}`),
     );
-    pageManagerSlot.initialize(first.manager);
+    const ctx = createManager({ pages, activePage: pages[99] });
     const actions = createBrowserAgentPageActions({
-      agentName: 'TestBrowserAgent',
-      getPageManager: () => pageManagerSlot.requireCurrent(),
+      getPageManager: () => ctx.manager,
     });
+    const taskContext = { task: {} } as any;
 
-    pageManagerSlot.replace(second.manager);
-    await actions[1].call({ index: 0 }, {} as any);
+    const firstPage = await actions[0].call(undefined, taskContext);
+    expect(firstPage).toHaveLength(8);
+    expect(taskContext.task.planningFeedback).toContain(
+      'Next: ListBrowserPages({offset:8})',
+    );
+    expect(taskContext.task.planningFeedback).toContain(' 7|page-7|');
+    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
 
-    expect(first.handlers.size).toBe(0);
-    expect(secondPage.bringToFront).toHaveBeenCalledTimes(1);
-    expect(firstPage.bringToFront).not.toHaveBeenCalled();
+    const lastPage = await actions[0].call({ offset: 96 }, taskContext);
+    expect(lastPage.map(({ index }: { index: number }) => index)).toEqual([
+      96, 97, 98, 99,
+    ]);
+    expect(taskContext.task.planningFeedback).toContain('*99|page-99|');
+    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
+
+    await expect(actions[0].call({ offset: 100 }, taskContext)).rejects.toThrow(
+      'offset 100 is out of range',
+    );
   });
 
   it('keeps custom actions ahead of browser page actions', () => {
@@ -319,7 +363,6 @@ describe('BrowserPageManager', () => {
       call: rs.fn(),
     };
     const browserActions = createBrowserAgentPageActions({
-      agentName: 'TestBrowserAgent',
       getPageManager: () => createManager().manager,
     });
 

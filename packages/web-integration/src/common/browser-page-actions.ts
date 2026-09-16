@@ -6,6 +6,7 @@ import type {
 } from './browser-agent';
 
 const maxPlanningFeedbackLength = 500;
+const pageListSize = 8;
 const maxTitleLength = 48;
 
 const normalizeFeedbackValue = (value: string) =>
@@ -21,13 +22,25 @@ const truncateFeedbackValue = (value: string, maxLength: number) => {
   return maxLength === 1 ? '…' : `${value.slice(0, maxLength - 1)}…`;
 };
 
-const buildPlanningFeedback = (summaries: BrowserAgentPageSummary[]) => {
-  if (summaries.length === 0) {
+const buildPlanningFeedback = (
+  summaries: BrowserAgentPageSummary[],
+  total: number,
+  offset: number,
+  activeIndex: number | undefined,
+) => {
+  if (total === 0) {
     return 'ListBrowserPages: no open pages.';
   }
 
-  const activeIndex = summaries.find(({ active }) => active)?.index ?? 'none';
-  const header = `ListBrowserPages indexes 0-${summaries.length - 1}; active ${activeIndex} (0-based). Use SetActivePage:\n`;
+  const nextOffset = offset + summaries.length;
+  const continuation =
+    nextOffset < total
+      ? ` Next: ListBrowserPages({offset:${nextOffset}}).`
+      : '';
+  const header = `ListBrowserPages ${offset}-${nextOffset - 1} of ${total}; active ${activeIndex ?? 'none'} (0-based). Use SetActivePage.${continuation}\n`;
+  if (summaries.length === 0) {
+    return header.trimEnd();
+  }
   const prefixes = summaries.map(
     ({ index, active }) => `${active ? '*' : ' '}${index}|`,
   );
@@ -35,12 +48,6 @@ const buildPlanningFeedback = (summaries: BrowserAgentPageSummary[]) => {
     (maxPlanningFeedbackLength - header.length - summaries.length + 1) /
       summaries.length,
   );
-
-  const minimumLineLength =
-    Math.max(...prefixes.map(({ length }) => length)) + 1;
-  if (lineBudget < minimumLineLength) {
-    return header.trimEnd();
-  }
 
   const lines = summaries.map((summary, index) => {
     const fieldBudget = lineBudget - prefixes[index].length - 1;
@@ -76,49 +83,43 @@ const setActivePageParamSchema: z.ZodType<BrowserAgentPageSelector> = z.object({
     .describe('Case-insensitive page URL substring to match.'),
 });
 
-export class BrowserPageManagerSlot<Page, NewPageEvent> {
-  private currentManager?: BrowserPageManager<Page, NewPageEvent>;
-
-  constructor(private readonly agentName: string) {}
-
-  requireCurrent() {
-    if (!this.currentManager) {
-      throw new Error(
-        `[midscene] ${this.agentName} page manager is not initialized.`,
-      );
-    }
-    return this.currentManager;
-  }
-
-  initialize(pageManager: BrowserPageManager<Page, NewPageEvent>) {
-    if (this.currentManager) {
-      throw new Error(
-        `[midscene] ${this.agentName} page manager is already initialized.`,
-      );
-    }
-    this.currentManager = pageManager;
-  }
-
-  replace(pageManager: BrowserPageManager<Page, NewPageEvent>) {
-    this.requireCurrent().destroy();
-    this.currentManager = pageManager;
-  }
-}
+const listBrowserPagesParamSchema = z
+  .object({
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe('0-based starting position. Omit for the first page.'),
+  })
+  .optional();
 
 export const createBrowserAgentPageActions = <Page, NewPageEvent>(options: {
-  agentName: string;
   getPageManager: () => BrowserPageManager<Page, NewPageEvent>;
 }): DeviceAction<any>[] => [
   {
     name: 'ListBrowserPages',
     description:
-      'List all open browser pages/tabs and show which one is currently active. Use this before switching pages when a task refers to another tab or window.',
-    call: async (_param, context) => {
+      'List open browser pages/tabs in groups of 8 and show which one is active. Use offset to see the next group before switching pages.',
+    paramSchema: listBrowserPagesParamSchema,
+    call: async (param, context) => {
       const summaries = await options.getPageManager().pageSummaries();
-      if (context?.task) {
-        context.task.planningFeedback = buildPlanningFeedback(summaries);
+      const offset = param?.offset ?? 0;
+      if (summaries.length > 0 && offset >= summaries.length) {
+        throw new Error(
+          `[midscene] ListBrowserPages offset ${offset} is out of range for ${summaries.length} pages. Start again with offset 0.`,
+        );
       }
-      return summaries;
+      const visibleSummaries = summaries.slice(offset, offset + pageListSize);
+      if (context?.task) {
+        context.task.planningFeedback = buildPlanningFeedback(
+          visibleSummaries,
+          summaries.length,
+          offset,
+          summaries.find(({ active }) => active)?.index,
+        );
+      }
+      return visibleSummaries;
     },
   },
   {

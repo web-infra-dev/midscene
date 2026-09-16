@@ -164,14 +164,19 @@ export class BrowserPageManager<Page, NewPageEvent> {
   }
 
   async pageSummaries(): Promise<BrowserAgentPageSummary[]> {
-    const pages = await this.adapter.pages();
+    const pages = await this.openPages();
     const activePage = this.activePage;
 
-    return Promise.all(
+    const summaries = await Promise.all(
       pages.map((page, index) =>
-        this.pageSummary(page, index, page === activePage),
+        this.tryPageSummary(page, index, page === activePage),
       ),
     );
+    return summaries
+      .filter(
+        (summary): summary is BrowserAgentPageSummary => summary !== undefined,
+      )
+      .map((summary, index) => ({ ...summary, index }));
   }
 
   async newPage() {
@@ -213,7 +218,7 @@ export class BrowserPageManager<Page, NewPageEvent> {
       );
     }
 
-    const pages = await this.adapter.pages();
+    const pages = await this.openPages();
 
     if (selectorIndex !== undefined) {
       const page = pages[selectorIndex];
@@ -225,7 +230,12 @@ export class BrowserPageManager<Page, NewPageEvent> {
         );
       }
 
-      const summary = await this.pageSummary(page, selectorIndex, true);
+      const summary = await this.tryPageSummary(page, selectorIndex, true);
+      if (!summary) {
+        throw new Error(
+          `[midscene] ${this.agentName} page at index ${selectorIndex} closed while reading its metadata. Run ListBrowserPages again.`,
+        );
+      }
       if (!pageSummaryMatches(summary, title, url)) {
         const textSelector = describeSelector({
           title: selector.title,
@@ -240,16 +250,19 @@ export class BrowserPageManager<Page, NewPageEvent> {
       return summary;
     }
 
-    const matchedPages: Array<{ page: Page; index: number }> = [];
+    const matchedPages: Array<{
+      page: Page;
+      summary: BrowserAgentPageSummary;
+    }> = [];
     for (let index = 0; index < pages.length; index++) {
       const page = pages[index];
       if (this.adapter.isPageClosed(page)) {
         continue;
       }
 
-      const summary = await this.pageSummary(page, index, false);
-      if (pageSummaryMatches(summary, title, url)) {
-        matchedPages.push({ page, index });
+      const summary = await this.tryPageSummary(page, index, false);
+      if (summary && pageSummaryMatches(summary, title, url)) {
+        matchedPages.push({ page, summary });
       }
     }
 
@@ -265,9 +278,9 @@ export class BrowserPageManager<Page, NewPageEvent> {
       );
     }
 
-    const { page, index } = matchedPages[0];
+    const { page, summary } = matchedPages[0];
     await this.setActivePage(page);
-    return this.pageSummary(page, index, true);
+    return { ...summary, active: true };
   }
 
   async waitForNewPage(
@@ -287,6 +300,27 @@ export class BrowserPageManager<Page, NewPageEvent> {
 
   destroy() {
     this.adapter.offNewPage(this.newPageHandler);
+  }
+
+  private async openPages(): Promise<Page[]> {
+    const pages = await this.adapter.pages();
+    return pages.filter((page) => !this.adapter.isPageClosed(page));
+  }
+
+  private async tryPageSummary(
+    page: Page,
+    index: number,
+    active: boolean,
+  ): Promise<BrowserAgentPageSummary | undefined> {
+    try {
+      const summary = await this.pageSummary(page, index, active);
+      return this.adapter.isPageClosed(page) ? undefined : summary;
+    } catch (error) {
+      if (this.adapter.isPageClosed(page)) {
+        return undefined;
+      }
+      throw error;
+    }
   }
 
   private async pageSummary(
