@@ -1,5 +1,6 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import type {
+  BuildResponsesParams,
   ChatCompletionCallContext,
   ChatCompletionParamsResult,
   CodexAppServerCallInput,
@@ -43,6 +44,50 @@ const buildGpt6CodexAppServerParams = (
 ): CodexAppServerParamsResult => ({
   config: { effort: resolveGpt6ReasoningEffort(input.userConfig ?? {}) },
 });
+
+const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  if (userConfig.temperature !== undefined) {
+    commonOverrideConfig.temperature = userConfig.temperature;
+  }
+
+  if (userConfig.responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt5ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      reasoning: { effort: effectiveReasoningEffort },
+    },
+  };
+};
+
+const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
+  const { midsceneDefaults, userConfig, expectedJsonObjectResponse } = input;
+  const { responseFormat } = userConfig;
+  const commonOverrideConfig: Record<string, unknown> = {};
+  // GPT-6 does not support temperature; omit it from the serialized request.
+  commonOverrideConfig.temperature = undefined;
+  if (responseFormat !== 'none' && expectedJsonObjectResponse) {
+    commonOverrideConfig.text = { format: { type: 'json_object' } };
+  }
+
+  const effectiveReasoningEffort = resolveGpt6ReasoningEffort(userConfig);
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      reasoning: { effort: effectiveReasoningEffort },
+    },
+  };
+};
 
 const buildGpt5ChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -99,7 +144,12 @@ const buildGpt6ChatCompletionParams = (
 
 export const gptAdapters = {
   'gpt-5': {
+    supportedApiTypes: ['chat-completion', 'responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
+    responses: {
+      unsupportedUserConfig: ['reasoningBudget'],
+      buildResponsesParams: buildGpt5ResponsesParams,
+    },
     buildCodexAppServerParams: buildGpt5CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['reasoningBudget'],
@@ -114,7 +164,12 @@ export const gptAdapters = {
     },
   },
   'gpt-6': {
+    supportedApiTypes: ['chat-completion', 'responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
+    responses: {
+      unsupportedUserConfig: ['temperature', 'reasoningBudget'],
+      buildResponsesParams: buildGpt6ResponsesParams,
+    },
     buildCodexAppServerParams: buildGpt6CodexAppServerParams,
     chatCompletion: {
       unsupportedUserConfig: ['temperature', 'reasoningBudget'],

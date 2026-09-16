@@ -53,6 +53,8 @@ export type AIUsageInfo = Record<string, any> & {
   total_time_cost?: number;
   /** Request retries performed within this call; excludes semantic parse retries. */
   retry_count?: number;
+  /** Actual protocol used for the model call, resolved by Midscene. */
+  api_type?: 'chat-completion' | 'responses' | 'codex';
   model_name: string | undefined;
   model_description: string | undefined;
   /**

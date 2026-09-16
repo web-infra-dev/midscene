@@ -521,7 +521,7 @@ describe('Agent with custom OpenAI client', () => {
         'default',
       );
 
-      // Simulate what createChatClient does
+      // Simulate invoking the custom client hook.
       const baseClient = { chat: { completions: { create: rs.fn() } } };
       const options = {
         baseURL: config.openaiBaseURL,
