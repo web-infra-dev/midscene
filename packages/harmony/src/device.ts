@@ -32,6 +32,7 @@ import {
 } from '@midscene/shared/utils';
 import { HdcClient } from './hdc';
 import { resolveHarmonyKeyCodes } from './keycode';
+import { resolveSwipeSpeed } from './swipe';
 
 type KeyboardDismissStrategy = 'esc-first' | 'back-first';
 
@@ -108,17 +109,11 @@ export class HarmonyDevice implements AbstractInterface {
     },
     touch: {
       swipe: async (start, end, opts) => {
-        const duration = opts?.duration;
+        const speed = resolveSwipeSpeed(start, end, opts?.duration);
         const repeatCount = opts?.repeat ?? 1;
         const hdc = await this.getHdc();
         for (let i = 0; i < repeatCount; i++) {
-          await hdc.swipe(
-            start.x,
-            start.y,
-            end.x,
-            end.y,
-            duration ? Math.round(duration) : undefined,
-          );
+          await hdc.swipe(start.x, start.y, end.x, end.y, speed);
         }
       },
     },

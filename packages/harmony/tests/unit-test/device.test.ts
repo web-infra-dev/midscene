@@ -220,6 +220,21 @@ describe('HarmonyDevice', () => {
     });
   });
 
+  describe('swipe', () => {
+    it('should pass the converted speed to HDC for every repeat', async () => {
+      await device.connect();
+      await device.inputPrimitives.touch.swipe(
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { duration: 300, repeat: 2 },
+      );
+
+      expect(mockHdc.swipe).toHaveBeenCalledTimes(2);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(1, 0, 0, 300, 0, 1000);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(2, 0, 0, 300, 0, 1000);
+    });
+  });
+
   describe('inputText', () => {
     beforeEach(async () => {
       await device.connect();
