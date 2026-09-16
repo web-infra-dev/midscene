@@ -178,6 +178,103 @@ const removedFragments: Partial<Record<PlanningAblationPart, string[]>> = {
 
 describe('independent Planning prompt parts', () => {
   it.each([true, false])(
+    'omits the action-guidelines heading when all its rules are disabled (inline Locate: %s)',
+    async (includeLocateInPlanning) => {
+      const result = await buildStandardPlanningSystemPrompt({
+        actionSpace: actions,
+        planningProtocol,
+        ablation: ['adbPreference', 'sliderSwipe', 'incrementalEdit'],
+        ...(includeLocateInPlanning
+          ? { includeLocateInPlanning: true, locatePromptSpec }
+          : { includeLocateInPlanning: false }),
+      });
+      expect(result).not.toContain('### Action Guidelines');
+      expect(result).toContain('### Supporting actions list');
+      expect(result).toContain('description: Input the value');
+      expect(result.includes('## Important Notes for Locating Elements:')).toBe(
+        includeLocateInPlanning,
+      );
+    },
+  );
+
+  it.each(['adbPreference', 'sliderSwipe', 'incrementalEdit'] as const)(
+    'keeps the action-guidelines section when only %s is enabled',
+    async (part) => {
+      const result = await prompt(
+        PLANNING_ABLATION_PARTS.filter((other) => other !== part).join(','),
+      );
+      expect(result).toContain('### Action Guidelines');
+      for (const fragment of removedFragments[part]!) {
+        expect(result).toContain(fragment);
+      }
+    },
+  );
+
+  it('does not leave an action-guidelines heading when the only enabled rule requires an unavailable action', async () => {
+    const result = await buildStandardPlanningSystemPrompt({
+      actionSpace: [defineActionTap(rs.fn())],
+      planningProtocol,
+      includeLocateInPlanning: false,
+      ablation: ['sliderSwipe', 'incrementalEdit'],
+    });
+    expect(result).not.toContain('### Action Guidelines');
+    expect(result).not.toContain('prefer using the RunAdbShell action');
+  });
+
+  it('gives the recovery example a section when log guidance is disabled', async () => {
+    const result = await prompt('log');
+    expect(result).toContain(
+      "### Recovery Example\n\n- Previous actions failed to find the 'Yes' button, i will try again",
+    );
+    expect(result).not.toContain('### Log to give user feedback');
+    expect(result).not.toContain('<log>');
+    expect(await prompt('')).not.toContain('### Recovery Example');
+    const withoutRecovery = await prompt('log,recoveryGuidance');
+    expect(withoutRecovery).not.toContain('### Recovery Example');
+    expect(withoutRecovery).not.toContain(
+      componentExamples.recoveryGuidance[0],
+    );
+  });
+
+  it.each([true, false])(
+    'does not leave empty sections across single switches, switch pairs and all-off (inline Locate: %s)',
+    async (includeLocateInPlanning) => {
+      const combinations: PlanningAblationPart[][] = [
+        [],
+        [...PLANNING_ABLATION_PARTS],
+      ];
+      for (const [index, part] of PLANNING_ABLATION_PARTS.entries()) {
+        combinations.push(
+          [part],
+          PLANNING_ABLATION_PARTS.filter((other) => other !== part),
+        );
+        for (const other of PLANNING_ABLATION_PARTS.slice(index + 1)) {
+          combinations.push([part, other]);
+        }
+      }
+      for (const ablation of combinations) {
+        const result = await buildStandardPlanningSystemPrompt({
+          actionSpace: actions,
+          planningProtocol,
+          ablation,
+          ...(includeLocateInPlanning
+            ? { includeLocateInPlanning: true, locatePromptSpec }
+            : { includeLocateInPlanning: false }),
+        });
+        const headings = [...result.matchAll(/^#{1,6} .+$/gm)];
+        const emptyHeadings = headings.filter((heading, index) => {
+          const end = headings[index + 1]?.index ?? result.length;
+          return !result.slice(heading.index! + heading[0].length, end).trim();
+        });
+        expect({
+          ablation,
+          emptyHeadings: emptyHeadings.map(([heading]) => heading),
+        }).toEqual({ ablation, emptyHeadings: [] });
+      }
+    },
+  );
+
+  it.each([true, false])(
     'keeps action descriptions and format examples when optional prompt parts are disabled (inline Locate: %s)',
     async (includeLocateInPlanning) => {
       const result = await buildStandardPlanningSystemPrompt({

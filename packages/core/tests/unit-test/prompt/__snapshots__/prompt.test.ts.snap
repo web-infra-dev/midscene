@@ -2556,6 +2556,8 @@ ONLY if the task is not complete: Think what the next action is according to the
     }
     </action-param-json>
 
+### Recovery Example
+
 - Previous actions failed to find the 'Yes' button, i will try again
 
 

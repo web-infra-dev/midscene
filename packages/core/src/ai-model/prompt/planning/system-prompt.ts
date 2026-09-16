@@ -79,6 +79,18 @@ export async function buildStandardPlanningSystemPrompt(
   const renderLogContent = (content: string, fallbackContent = '') =>
     includeLog ? content : fallbackContent;
 
+  const actionGuidelines = `${
+    hasRunAdbShell && planningPartEnabled(ablation, 'adbPreference')
+      ? "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action."
+      : ''
+  }
+${renderPart('sliderSwipe', '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.')}
+${renderPart(
+  'incrementalEdit',
+  `- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
+- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.`,
+)}`;
+
   const completionCheckStepNumber = includeMemory ? 3 : 2;
   const actionStepNumber = completionCheckStepNumber + 1;
 
@@ -296,19 +308,7 @@ ${renderPart('recoveryGuidance', '- Make sure the previous actions are completed
 - Give just the next ONE action you should do (if any)
 ${renderPart('recoveryGuidance', '- If there are some error messages reported by the previous actions, don\'t give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.')}
 
-### Action Guidelines
-
-${
-  hasRunAdbShell && planningPartEnabled(ablation, 'adbPreference')
-    ? "- If the user's task can be completed with the RunAdbShell action, prefer using the RunAdbShell action."
-    : ''
-}
-${renderPart('sliderSwipe', '- For touch continuous controls that set a value along a track, such as a slider, prefer Swipe from the current handle or filled position to the requested track endpoint instead of tapping the endpoint.')}
-${renderPart(
-  'incrementalEdit',
-  `- When editing existing text in a UI field, preserve all existing text by moving the cursor and typing/deleting the minimal necessary characters.
-- For insert/prepend/append edits, use CursorMove when the caret must be adjusted precisely, then use Input with mode "typeOnly" for inserted characters and KeyboardPress for newlines or deletion. If the caret lands in the wrong position, recover with CursorMove, KeyboardPress, or undo and retry cursor placement; do not switch to replace as a fallback for cursor placement failures.`,
-)}
+${actionGuidelines.trim() ? `### Action Guidelines\n\n${actionGuidelines}` : ''}
 
 ${includeLocateInPlanning ? renderPart('groundingGuidance', locateGroundingRules()) : ''}
 
@@ -328,7 +328,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 **Examples:**
 - <log>Click the login button</log>
 - <log>Scroll to find the 'Yes' button in popup</log>
-`)}${renderPart('recoveryGuidance', `- ${renderLogContent('<log>')}Previous actions failed to find the 'Yes' button, i will try again${renderLogContent('</log>')}\n`)}${renderLogContent('- <log>Go back to find the login button</log>')}
+`)}${renderPart('recoveryGuidance', `${includeLog ? '' : '### Recovery Example\n\n'}- ${renderLogContent('<log>')}Previous actions failed to find the 'Yes' button, i will try again${renderLogContent('</log>')}\n`)}${renderLogContent('- <log>Go back to find the login button</log>')}
 
 ### If there is some action to do ...
 
