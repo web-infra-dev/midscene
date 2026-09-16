@@ -259,14 +259,14 @@ tasks:
       fileChooserAccept: ['./fixtures/image1.jpg', './fixtures/image2.png'],
     });
     expect(agent.aiTap).toHaveBeenCalledWith(
+      'Choose file button with an image prompt',
       {
-        prompt: 'Choose file button with an image prompt',
         images: [
           { name: 'Upload icon', url: 'https://example.com/upload.png' },
         ],
         convertHttpImage2Base64: true,
+        fileChooserAccept: './fixtures/document.pdf',
       },
-      { fileChooserAccept: './fixtures/document.pdf' },
     );
     expect(agent.aiScroll).toHaveBeenCalledWith('Results list', {
       scrollType: 'singleAction',
@@ -278,6 +278,7 @@ tasks:
     });
     expect(agent.aiWaitFor).toHaveBeenCalledWith('The page shows results', {
       abortSignal: expect.any(AbortSignal),
+      timeout: 1000,
       timeoutMs: 1000,
     });
     expect(agent.aiAssert).toHaveBeenCalledWith(
@@ -286,11 +287,11 @@ tasks:
         images: [
           { name: 'Target logo', url: 'https://example.com/target.png' },
         ],
-        convertHttpImage2Base64: true,
       },
       'Target image is not visible',
       {
         keepRawResponse: true,
+        convertHttpImage2Base64: true,
         abortSignal: expect.any(AbortSignal),
       },
     );
