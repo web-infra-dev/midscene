@@ -19,6 +19,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
+import { clampPointerPointToSize } from '../pointer';
 import {
   formatRdpServerAddress,
   normalizeRdpConnectionConfig,
@@ -106,7 +107,10 @@ export class RDPDevice implements AbstractInterface {
         await this.performPointerDrag(from, to);
       },
       swipe: async (from, to, opts) => {
-        await this.performPointerDrag(from, to, opts?.duration);
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -407,14 +411,21 @@ export class RDPDevice implements AbstractInterface {
     to: PointerPoint,
     duration?: number,
   ): Promise<void> {
-    await this.movePointer(Math.round(from.x), Math.round(from.y), {
-      steps: SMOOTH_MOVE_STEPS_TAP,
-      stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-    });
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.movePointer(
+      Math.round(boundedFrom.x),
+      Math.round(boundedFrom.y),
+      {
+        steps: SMOOTH_MOVE_STEPS_TAP,
+        stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+      },
+    );
     await this.backend.mouseButton('left', 'down');
     try {
       await sleep(DRAG_HOLD_DURATION);
-      await this.movePointer(Math.round(to.x), Math.round(to.y), {
+      await this.movePointer(Math.round(boundedTo.x), Math.round(boundedTo.y), {
         steps: SMOOTH_MOVE_STEPS_DRAG,
         stepDelayMs:
           duration === undefined

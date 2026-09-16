@@ -505,7 +505,7 @@ describe('@midscene/computer RDP device', () => {
       {
         start: createLocate([300, 500], 'slider handle'),
         direction: 'right',
-        distance: 400,
+        distance: 2_000,
         duration: 300,
       },
       mockExecutorContext,
@@ -521,7 +521,7 @@ describe('@midscene/computer RDP device', () => {
     expect(backend.calls.findLast((call) => call.name === 'mouseMove')).toEqual(
       {
         name: 'mouseMove',
-        args: [700, 500],
+        args: [1919, 500],
       },
     );
   });

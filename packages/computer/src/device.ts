@@ -36,6 +36,7 @@ import {
   US_SHIFTED_CHARACTER_KEYS,
   resolveShiftedKey,
 } from './keyboard-layout';
+import { clampPointerPointToSize } from './pointer';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -882,7 +883,10 @@ export class ComputerDevice implements AbstractInterface {
         await this.performPointerDrag(from, to);
       },
       swipe: async (from, to, opts) => {
-        await this.performPointerDrag(from, to, opts?.duration);
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -1003,14 +1007,17 @@ export class ComputerDevice implements AbstractInterface {
     to: Point,
     duration?: number,
   ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
     await this.moveDisplayPointer(
-      from,
+      boundedFrom,
       'Mouse did not reach the drag start target',
     );
     await this.inputDriver.withMouseButton('left', async () => {
       await this.inputDriver.delay(100);
       await this.moveDisplayPointer(
-        to,
+        boundedTo,
         'Mouse did not reach the drag end target',
         {
           // Native desktop toolkits commonly use the first motion beyond

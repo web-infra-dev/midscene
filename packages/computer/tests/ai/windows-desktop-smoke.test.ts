@@ -1,6 +1,5 @@
-import type { ChildProcessWithoutNullStreams } from 'node:child_process';
-import { execFile, spawn } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseDumpScript } from '@midscene/core';
 import {
@@ -18,58 +17,20 @@ import {
   ComputerDevice,
   checkComputerEnvironment,
 } from '../../src';
+import {
+  type WindowsFixtureBounds as Bounds,
+  type RunningWindowsDesktopFixture,
+  startWindowsDesktopFixture,
+  stopWindowsDesktopFixture,
+  waitForWindowsFixtureState,
+} from './windows-desktop-fixture';
 
 const RUN_LIVE_SMOKE =
   process.platform === 'win32' &&
   process.env.MIDSCENE_WINDOWS_DESKTOP_SMOKE === '1';
 
-const FIXTURE_PATH = path.join(
-  __dirname,
-  'fixtures',
-  'windows-desktop-smoke-app.ps1',
-);
 const REPORT_FILE_NAME = 'windows-desktop-smoke';
 const REPORT_HTML_FILE_NAME = `${REPORT_FILE_NAME}.html`;
-const SWIPE_REPORT_FILE_NAME = 'windows-desktop-swipe';
-const SWIPE_REPORT_HTML_FILE_NAME = `${SWIPE_REPORT_FILE_NAME}.html`;
-const FIXTURE_READY_TIMEOUT_MS = 30_000;
-const STATE_TIMEOUT_MS = 15_000;
-const POLL_INTERVAL_MS = 100;
-
-interface Bounds {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-interface FixtureMetadata {
-  userInteractive: boolean;
-  sessionId: number;
-  processId?: number;
-  visible: boolean;
-  dpi: number;
-  screenDeviceName: string;
-  screen: Bounds;
-  form: Bounds;
-  button: Bounds;
-  doubleClickButton: Bounds;
-  textBox: Bounds;
-  scroll: Bounds;
-  slider: Bounds;
-}
-
-interface FixtureState {
-  visible: boolean;
-  clickCount: number;
-  doubleClickCount: number;
-  text: string;
-  lastKey: string;
-  wheelEventCount: number;
-  wheelDelta: number;
-  scrollValue: number;
-  sliderValue: number;
-}
 
 interface PixelChannels {
   r: number;
@@ -109,151 +70,6 @@ interface ReportExecution {
 
 interface ReportDump {
   executions?: ReportExecution[];
-}
-
-function sleep(timeMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, timeMs));
-}
-
-function asFiniteNumber(value: unknown, label: string): number {
-  const numberValue = Number(value);
-  if (!Number.isFinite(numberValue)) {
-    throw new Error(`${label} must be a finite number, got ${String(value)}`);
-  }
-  return numberValue;
-}
-
-function normalizeBounds(value: unknown, label: string): Bounds {
-  if (!value || typeof value !== 'object') {
-    throw new Error(`${label} bounds are missing`);
-  }
-
-  const raw = value as Record<string, unknown>;
-  const left = asFiniteNumber(raw.left ?? raw.x, `${label}.left`);
-  const top = asFiniteNumber(raw.top ?? raw.y, `${label}.top`);
-  const width = asFiniteNumber(raw.width, `${label}.width`);
-  const height = asFiniteNumber(raw.height, `${label}.height`);
-
-  if (width <= 0 || height <= 0) {
-    throw new Error(`${label} bounds must be positive, got ${width}x${height}`);
-  }
-
-  return { left, top, width, height };
-}
-
-function asRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object') {
-    throw new Error(`${label} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function normalizeMetadata(value: unknown): FixtureMetadata {
-  const raw = asRecord(value, 'fixture metadata');
-  const rawScreen = asRecord(raw.screen, 'fixture.screen');
-  const rawForm = asRecord(raw.form, 'fixture.form');
-  const rawButton = asRecord(raw.button, 'fixture.button');
-  const rawDoubleClickButton = asRecord(
-    raw.doubleClickButton,
-    'fixture.doubleClickButton',
-  );
-  const rawTextBox = asRecord(raw.textBox, 'fixture.textBox');
-  const rawScroll = asRecord(raw.scroll, 'fixture.scroll');
-  return {
-    userInteractive: raw.userInteractive === true,
-    sessionId: asFiniteNumber(raw.sessionId, 'fixture.sessionId'),
-    processId:
-      raw.processId === undefined
-        ? undefined
-        : asFiniteNumber(raw.processId, 'fixture.processId'),
-    visible: raw.visible === true || rawForm.visible === true,
-    dpi: asFiniteNumber(raw.dpi, 'fixture.dpi'),
-    screenDeviceName: String(rawScreen.deviceName ?? ''),
-    screen: normalizeBounds(rawScreen, 'fixture.screen'),
-    form: normalizeBounds(rawForm, 'fixture.form'),
-    button: normalizeBounds(rawButton, 'fixture.button'),
-    doubleClickButton: normalizeBounds(
-      rawDoubleClickButton,
-      'fixture.doubleClickButton',
-    ),
-    textBox: normalizeBounds(rawTextBox, 'fixture.textBox'),
-    scroll: normalizeBounds(rawScroll, 'fixture.scroll'),
-    slider: normalizeBounds(raw.slider, 'fixture.slider'),
-  };
-}
-
-function normalizeState(value: unknown): FixtureState {
-  if (!value || typeof value !== 'object') {
-    throw new Error('fixture state must be an object');
-  }
-
-  const raw = value as Record<string, unknown>;
-  return {
-    visible: raw.visible === true,
-    clickCount: asFiniteNumber(raw.clickCount ?? 0, 'state.clickCount'),
-    doubleClickCount: asFiniteNumber(
-      raw.doubleClickCount ?? 0,
-      'state.doubleClickCount',
-    ),
-    text: String(raw.text ?? ''),
-    lastKey: String(raw.lastKey ?? ''),
-    wheelEventCount: asFiniteNumber(
-      raw.wheelEventCount ?? 0,
-      'state.wheelEventCount',
-    ),
-    wheelDelta: asFiniteNumber(
-      raw.lastWheelDelta ?? raw.wheelDelta ?? 0,
-      'state.wheelDelta',
-    ),
-    scrollValue: asFiniteNumber(
-      raw.scrollY ?? raw.scrollValue ?? 0,
-      'state.scrollValue',
-    ),
-    sliderValue: asFiniteNumber(raw.sliderValue ?? 0, 'state.sliderValue'),
-  };
-}
-
-async function readJsonFile(filePath: string): Promise<unknown> {
-  return JSON.parse(await readFile(filePath, 'utf8'));
-}
-
-async function waitForJson<T>(
-  filePath: string,
-  normalize: (value: unknown) => T,
-  predicate: (value: T) => boolean,
-  timeoutMs: number,
-  childProcess?: ChildProcessWithoutNullStreams,
-): Promise<T> {
-  const deadline = Date.now() + timeoutMs;
-  let lastError: unknown;
-
-  while (Date.now() < deadline) {
-    if (childProcess && childProcess.exitCode !== null) {
-      throw new Error(
-        `fixture exited before ${path.basename(filePath)} was ready (exit code ${childProcess.exitCode})`,
-      );
-    }
-
-    try {
-      const value = normalize(await readJsonFile(filePath));
-      if (predicate(value)) {
-        return value;
-      }
-    } catch (error) {
-      // The fixture updates JSON asynchronously. Missing or partially-written
-      // files are expected while polling; retain the latest error for timeout
-      // diagnostics instead of weakening the final assertion.
-      lastError = error;
-    }
-
-    await sleep(POLL_INTERVAL_MS);
-  }
-
-  throw new Error(
-    `timed out after ${timeoutMs}ms waiting for ${filePath}${
-      lastError instanceof Error ? `: ${lastError.message}` : ''
-    }`,
-  );
 }
 
 function toDisplayLocalBounds(bounds: Bounds, screen: Bounds): Bounds {
@@ -470,25 +286,8 @@ function latestExecutions(dumps: ReportDump[]): ReportExecution[] {
   return Array.from(byKey.values());
 }
 
-async function stopFixture(
-  fixtureProcess: ChildProcessWithoutNullStreams | undefined,
-): Promise<void> {
-  if (
-    !fixtureProcess ||
-    fixtureProcess.exitCode !== null ||
-    fixtureProcess.signalCode !== null
-  ) {
-    return;
-  }
-  const exitPromise = new Promise<void>((resolve) =>
-    fixtureProcess.once('exit', () => resolve()),
-  );
-  fixtureProcess.kill();
-  await Promise.race([exitPromise, sleep(5_000)]);
-}
-
 describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
-  it('drives WinForms controls and verifies an AI-planned swipe', async () => {
+  it('drives a visible WinForms app without calling a model and emits evidence', async () => {
     const diagnosticsEnv = process.env.MIDSCENE_WINDOWS_DIAGNOSTICS_DIR;
     if (!diagnosticsEnv) {
       throw new Error(
@@ -497,81 +296,28 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
     }
 
     const diagnosticsDir = path.resolve(diagnosticsEnv);
-    const readyFile = path.join(diagnosticsDir, 'fixture-ready.json');
-    const stateFile = path.join(diagnosticsDir, 'fixture-state.json');
-    const fixtureStdoutFile = path.join(diagnosticsDir, 'fixture.stdout.log');
-    const fixtureStderrFile = path.join(diagnosticsDir, 'fixture.stderr.log');
     const screenshotFile = path.join(diagnosticsDir, 'desktop.png');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
     const evidenceFile = path.join(diagnosticsDir, 'evidence.json');
     const runDir = path.resolve(process.env.MIDSCENE_RUN_DIR || 'midscene_run');
     const reportFile = path.join(runDir, 'report', REPORT_HTML_FILE_NAME);
-    const swipeReportFile = path.join(
-      runDir,
-      'report',
-      SWIPE_REPORT_HTML_FILE_NAME,
-    );
 
-    let fixtureProcess: ChildProcessWithoutNullStreams | undefined;
+    let fixture: RunningWindowsDesktopFixture | undefined;
     let device: ComputerDevice | undefined;
     let selectedDisplayDevice: ComputerDevice | undefined;
     let missingDisplayDevice: ComputerDevice | undefined;
     let agent: ComputerAgent<ComputerDevice> | undefined;
-    let swipeDevice: ComputerDevice | undefined;
-    let swipeAgent: ComputerAgent<ComputerDevice> | undefined;
-    let fixtureStdout = '';
-    let fixtureStderr = '';
     const evidence: Record<string, unknown> = {
       platform: process.platform,
       diagnosticsDir,
       reportFile,
-      swipeReportFile,
     };
 
-    await mkdir(diagnosticsDir, { recursive: true });
-    await rm(readyFile, { force: true });
-    await rm(stateFile, { force: true });
     await rm(reportFile, { force: true });
-    await rm(swipeReportFile, { force: true });
 
     try {
-      const startedFixture = spawn(
-        'powershell.exe',
-        [
-          '-NoProfile',
-          '-STA',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-File',
-          FIXTURE_PATH,
-          '-ReadyFile',
-          readyFile,
-          '-StateFile',
-          stateFile,
-        ],
-        {
-          windowsHide: false,
-          stdio: 'pipe',
-        },
-      );
-      fixtureProcess = startedFixture;
-      startedFixture.stdin.end();
-      startedFixture.stdout.setEncoding('utf8');
-      startedFixture.stderr.setEncoding('utf8');
-      startedFixture.stdout.on('data', (chunk: string) => {
-        fixtureStdout += chunk;
-      });
-      startedFixture.stderr.on('data', (chunk: string) => {
-        fixtureStderr += chunk;
-      });
-
-      const metadata = await waitForJson(
-        readyFile,
-        normalizeMetadata,
-        (value) => value.visible,
-        FIXTURE_READY_TIMEOUT_MS,
-        startedFixture,
-      );
+      fixture = await startWindowsDesktopFixture(diagnosticsDir, 'fixture');
+      const { metadata } = fixture;
       evidence.fixture = metadata;
 
       expect(metadata.userInteractive).toBe(true);
@@ -608,7 +354,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         metadata.scroll.top + metadata.scroll.height,
       );
       if (metadata.processId !== undefined) {
-        expect(metadata.processId).toBe(startedFixture.pid);
+        expect(metadata.processId).toBe(fixture.process.pid);
       }
 
       const displays = await ComputerDevice.listDisplays();
@@ -714,12 +460,9 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           'green smoke button detected in the captured screenshot',
         ),
       });
-      const clickedState = await waitForJson(
-        stateFile,
-        normalizeState,
+      const clickedState = await waitForWindowsFixtureState(
+        fixture,
         (state) => state.clickCount >= 1,
-        STATE_TIMEOUT_MS,
-        startedFixture,
       );
       expect(clickedState.clickCount).toBe(1);
 
@@ -729,12 +472,9 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           'right-side double-click target detected in the captured screenshot',
         ),
       });
-      const doubleClickedState = await waitForJson(
-        stateFile,
-        normalizeState,
+      const doubleClickedState = await waitForWindowsFixtureState(
+        fixture,
         (state) => state.doubleClickCount >= 2,
-        STATE_TIMEOUT_MS,
-        startedFixture,
       );
       expect(doubleClickedState.doubleClickCount).toBe(2);
 
@@ -747,12 +487,9 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           'yellow text box detected in the captured screenshot',
         ),
       });
-      const inputState = await waitForJson(
-        stateFile,
-        normalizeState,
+      const inputState = await waitForWindowsFixtureState(
+        fixture,
         (state) => state.text === inputText,
-        STATE_TIMEOUT_MS,
-        startedFixture,
       );
       expect(inputState.text).toBe(inputText);
 
@@ -763,12 +500,8 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           'yellow text box detected in the captured screenshot',
         ),
       });
-      const keyState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) => /enter|return/i.test(state.lastKey),
-        STATE_TIMEOUT_MS,
-        startedFixture,
+      const keyState = await waitForWindowsFixtureState(fixture, (state) =>
+        /enter|return/i.test(state.lastKey),
       );
       expect(keyState.lastKey).toMatch(/enter|return/i);
 
@@ -781,15 +514,12 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           'purple scroll panel detected in the captured screenshot',
         ),
       });
-      const scrolledState = await waitForJson(
-        stateFile,
-        normalizeState,
+      const scrolledState = await waitForWindowsFixtureState(
+        fixture,
         (state) =>
           state.wheelEventCount > 0 &&
           state.wheelDelta !== 0 &&
           state.scrollValue > 0,
-        STATE_TIMEOUT_MS,
-        startedFixture,
       );
       evidence.finalState = scrolledState;
       expect(scrolledState.visible).toBe(true);
@@ -802,12 +532,9 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         direction: 'up',
         distance: 100,
       });
-      const untargetedScrollState = await waitForJson(
-        stateFile,
-        normalizeState,
+      const untargetedScrollState = await waitForWindowsFixtureState(
+        fixture,
         (state) => state.wheelEventCount > scrolledState.wheelEventCount,
-        STATE_TIMEOUT_MS,
-        startedFixture,
       );
       evidence.untargetedScrollState = untargetedScrollState;
       expect(untargetedScrollState.wheelEventCount).toBeGreaterThan(
@@ -872,54 +599,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
         locateHitSources: reportLocateTasks.map((task) => task.hitBy?.from),
         modelCalls: agent.metrics.calls,
       };
-
-      swipeDevice = new ComputerDevice({});
-      await swipeDevice.connect();
-      swipeAgent = new ComputerAgent(swipeDevice, {
-        aiActionContext:
-          'You are validating desktop pointer gestures in a Windows CI fixture.',
-        groupName: 'Windows desktop Swipe AI E2E',
-        groupDescription:
-          'Model-planned Swipe action against a real WinForms TrackBar',
-        reportFileName: SWIPE_REPORT_FILE_NAME,
-        autoPrintReportMsg: false,
-        generateReport: true,
-        waitAfterAction: 300,
-      });
-
-      await swipeAgent.aiAct(
-        'Drag the slider labeled "DRAG SLIDER TO THE RIGHT" all the way to the right.',
-      );
-      const swipedState = await waitForJson(
-        stateFile,
-        normalizeState,
-        (state) => state.sliderValue >= 90,
-        STATE_TIMEOUT_MS,
-        startedFixture,
-      );
-      expect(swipedState.sliderValue).toBeGreaterThanOrEqual(90);
-      expect(swipeAgent.metrics.calls).toBeGreaterThan(0);
-
-      const swipeDump = JSON.parse(swipeAgent.dumpDataString()) as ReportDump;
-      const swipeTasks = (swipeDump.executions ?? []).flatMap(
-        (execution) => execution.tasks ?? [],
-      );
-      expect(
-        swipeTasks.some(
-          (task) => task.type === 'Action Space' && task.subType === 'Swipe',
-        ),
-      ).toBe(true);
-
-      evidence.swipe = {
-        finalValue: swipedState.sliderValue,
-        modelCalls: swipeAgent.metrics.calls,
-        usedSwipeAction: true,
-      };
-
-      await swipeAgent.destroy();
-      expect(swipeAgent.reportFile).toBe(swipeReportFile);
-      const swipeReportHtml = await readFile(swipeReportFile, 'utf8');
-      expect(swipeReportHtml).not.toContain('REPLACE_ME_WITH_REPORT_HTML');
     } catch (error) {
       evidence.error =
         error instanceof Error
@@ -940,38 +619,20 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Windows desktop live smoke', () => {
           evidence.deviceDestroyError = String(error);
         }
       }
-      if (swipeAgent) {
-        try {
-          await swipeAgent.destroy();
-        } catch (error) {
-          evidence.swipeAgentDestroyError = String(error);
-        }
-      } else if (swipeDevice) {
-        try {
-          await swipeDevice.destroy();
-        } catch (error) {
-          evidence.swipeDeviceDestroyError = String(error);
-        }
-      }
       await selectedDisplayDevice?.destroy().catch((error) => {
         evidence.selectedDisplayDestroyError = String(error);
       });
       await missingDisplayDevice?.destroy().catch((error) => {
         evidence.missingDisplayDestroyError = String(error);
       });
-      await stopFixture(fixtureProcess).catch((error) => {
+      await stopWindowsDesktopFixture(fixture).catch((error) => {
         evidence.fixtureStopError = String(error);
       });
-
-      await Promise.all([
-        writeFile(fixtureStdoutFile, fixtureStdout, 'utf8'),
-        writeFile(fixtureStderrFile, fixtureStderr, 'utf8'),
-        writeFile(
-          evidenceFile,
-          `${JSON.stringify(evidence, null, 2)}\n`,
-          'utf8',
-        ),
-      ]);
+      await writeFile(
+        evidenceFile,
+        `${JSON.stringify(evidence, null, 2)}\n`,
+        'utf8',
+      );
     }
   });
 });

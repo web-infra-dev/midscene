@@ -80,11 +80,21 @@ export interface PointerPoint {
   y: number;
 }
 
+/** Low-level swipe gesture implemented by touch or pointer-backed devices. */
 export type SwipeInputPrimitive = (
   start: PointerPoint,
   end: PointerPoint,
   opts?: { duration?: number; repeat?: number },
 ) => Promise<void>;
+
+/** The physical input source used to execute and describe a swipe. */
+export type SwipeInputMode = 'touch' | 'mouse';
+
+/** A resolved swipe capability and the input semantics exposed to the model. */
+export interface ResolvedSwipeInputPrimitive {
+  swipe: SwipeInputPrimitive;
+  inputMode: SwipeInputMode;
+}
 
 export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
@@ -138,6 +148,23 @@ export interface InputPrimitives {
   touch?: TouchInputPrimitives;
   scroll?: ScrollInputPrimitives;
   system?: SystemInputPrimitives;
+}
+
+/**
+ * Resolve the canonical swipe capability for an input collection.
+ * Touch remains preferred for devices that expose both capabilities; desktop
+ * devices can fall back to a pointer-backed primary-button gesture.
+ */
+export function resolveSwipeInputPrimitive(
+  input: Pick<InputPrimitives, 'pointer' | 'touch'>,
+): ResolvedSwipeInputPrimitive | undefined {
+  if (input.touch?.swipe) {
+    return { swipe: input.touch.swipe, inputMode: 'touch' };
+  }
+  if (input.pointer?.swipe) {
+    return { swipe: input.pointer.swipe, inputMode: 'mouse' };
+  }
+  return undefined;
 }
 
 export interface MobileInputPrimitives extends InputPrimitives {
@@ -752,8 +779,6 @@ export const defineActionLongPress = (
   });
 };
 
-export type SwipeInputMode = 'touch' | 'mouse';
-
 function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
   const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
 
@@ -1174,11 +1199,7 @@ export function defineActionsFromInputPrimitives(
     actions.push(defineActionScroll(scroll.scroll));
   }
 
-  const swipeConfig = touch?.swipe
-    ? { swipe: touch.swipe, inputMode: 'touch' as const }
-    : pointer?.swipe
-      ? { swipe: pointer.swipe, inputMode: 'mouse' as const }
-      : undefined;
+  const swipeConfig = resolveSwipeInputPrimitive({ pointer, touch });
   if (swipeConfig && options.size && options.includeSwipe !== false) {
     actions.push(defineActionSwipe({ ...swipeConfig, size: options.size }));
   }
