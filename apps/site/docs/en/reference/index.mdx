@@ -2902,11 +2902,20 @@ For common APIs that work across all platforms, see [Common API reference](#comm
 
 ### Action space
 
-`ComputerDevice` and `RDPDevice` provide the following pointer actions in addition to text input, keyboard, scrolling, and platform actions:
+`ComputerDevice` and `RDPDevice` provide the following actions to the Midscene Agent:
 
-- `Tap`, `DoubleClick`, `RightClick`, and `Hover` — Standard mouse interactions.
-- `DragAndDrop` — Move one UI element to another element.
+- `Tap` — Left-click a target.
+- `DoubleClick` — Double-click a target.
+- `RightClick` — Right-click a target.
+- `Hover` — Move the pointer to a target and hover over it.
+- `DragAndDrop` — Drag from one location and drop at another.
+- `Input` — Enter text with `replace`, `typeOnly`, and `clear` modes (`append` is a deprecated alias for `typeOnly`).
+- `ClearInput` — Clear the contents of an input field.
+- `KeyboardPress` — Press a key or key combination, optionally focusing a target first.
+- `CursorMove` — Move the text cursor left or right within an input field or text area.
+- `Scroll` — Scroll the screen or a specific area, including helpers to reach the top, bottom, left, or right boundary.
 - `Swipe` — Press and continuously move the primary mouse button. Use this for sliders and other controls that require a start point plus an endpoint or direction and distance.
+- `ListDisplays` — List available displays. A local device returns connected displays; an RDP device returns the current remote session as one display.
 
 ### Agent factory functions
 
@@ -3155,7 +3164,7 @@ Instant actions provide direct control once Midscene locates an element:
 
 ### Action space
 
-`ComputerDevice` supports the following actions.
+`ComputerDevice` and `RDPDevice` support the following actions. They expose the same default action names while using their respective local or RDP input backends.
 
 **Mouse actions**
 
@@ -3214,6 +3223,19 @@ Drag from one location and drop at another.
 ```typescript
 await agent.aiAct('drag the file to the folder');
 ```
+
+<a id="desktop-swipe"></a>
+
+**Swipe**
+
+Press and continuously move the primary mouse button. Describe the control with a start point and endpoint, or describe the gesture with a direction and distance. Use this action for direct gesture interactions such as sliders, not for browsing off-screen content.
+
+```typescript
+await agent.aiAct('swipe the volume slider 300 pixels to the right');
+await agent.aiAct('move the progress slider all the way to the right');
+```
+
+Use `Scroll` when the goal is to browse off-screen content.
 
 **Keyboard actions**
 

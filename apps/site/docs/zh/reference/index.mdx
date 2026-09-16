@@ -2857,11 +2857,20 @@ console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
 
 ### Action Space（动作空间）
 
-除文本输入、键盘、滚动和平台操作外，`ComputerDevice` 与 `RDPDevice` 还提供以下指针操作：
+`ComputerDevice` 与 `RDPDevice` 提供以下动作，Midscene Agent 在规划任务时可以使用这些操作：
 
-- `Tap`、`DoubleClick`、`RightClick` 和 `Hover` —— 常规鼠标操作。
-- `DragAndDrop` —— 将一个 UI 元素拖到另一个元素上。
+- `Tap` —— 左键点击目标。
+- `DoubleClick` —— 双击目标。
+- `RightClick` —— 右键点击目标。
+- `Hover` —— 将鼠标移动到目标上并悬停。
+- `DragAndDrop` —— 从一个位置拖拽并放到另一个位置。
+- `Input` —— 输入文本，支持 `replace`、`typeOnly` 和 `clear` 模式（`append` 是 `typeOnly` 的已废弃别名）。
+- `ClearInput` —— 清空输入框内容。
+- `KeyboardPress` —— 按下指定按键或组合键，可选先聚焦目标。
+- `CursorMove` —— 在输入框或文本区域中向左或向右移动文本光标。
+- `Scroll` —— 滚动屏幕或指定区域，支持滚动到顶、底、左、右边界。
 - `Swipe` —— 按住鼠标主键并连续移动。适用于滑块，以及需要通过起点加终点或方向与距离来操作的控件。
+- `ListDisplays` —— 列出可用显示器。本机设备返回已连接的显示器；RDP 设备将当前远程会话作为单个显示器返回。
 
 ### Agent 工厂函数
 
@@ -3111,7 +3120,7 @@ function destroy(): Promise<void>;
 
 ### 桌面端操作与限制
 
-`ComputerDevice` 支持以下操作：
+`ComputerDevice` 与 `RDPDevice` 支持以下操作。两者共享默认动作名称，但会调用各自的本机或 RDP 输入后端。
 
 **鼠标操作**
 
@@ -3170,6 +3179,19 @@ await agent.aiHover('菜单项「Products」');
 ```typescript
 await agent.aiAct('将文件拖到文件夹');
 ```
+
+<a id="desktop-swipe滑动"></a>
+
+**Swipe（滑动）**
+
+按住鼠标主键并连续移动。可以用起点和终点描述控件，也可以用方向和距离描述手势；该动作适用于滑块等直接手势交互，不用于浏览屏幕外内容。
+
+```typescript
+await agent.aiAct('将音量滑块从当前位置向右滑动 300 像素');
+await agent.aiAct('把进度条滑块拖到最右侧');
+```
+
+如需浏览屏幕外内容，请使用 `Scroll`。
 
 **键盘操作**
 
