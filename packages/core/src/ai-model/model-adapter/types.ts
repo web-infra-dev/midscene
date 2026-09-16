@@ -3,6 +3,7 @@ import type { AIUsageInfo } from '@/types';
 import type {
   IModelConfig,
   TIntent,
+  TModelApiType,
   TModelReasoningEnabled,
   TModelResponseFormat,
 } from '@midscene/shared/env';
@@ -55,17 +56,18 @@ export interface MidsceneChatCompletionDefaults {
   temperature: number;
 }
 
-export interface ChatCompletionCallUserConfig extends ReasoningInput {
+export interface ModelRequestUserConfig extends ReasoningInput {
   temperature?: number;
   responseFormat?: TModelResponseFormat;
 }
 
-export type ChatCompletionUnsupportedUserConfig =
-  keyof ChatCompletionCallUserConfig;
+// Chat Completions and Responses declare unsupported fields independently.
+// Their lists may currently match, but parameter support can differ by protocol.
+export type UnsupportedUserConfig = keyof ModelRequestUserConfig;
 
-export interface ChatCompletionCallInput {
+export interface ModelRequestConfigInput {
   intent?: TIntent;
-  userConfig?: ChatCompletionCallUserConfig;
+  userConfig?: ModelRequestUserConfig;
   /**
    * Number of preceding semantic parsing failures for this request.
    * This is execution context, not part of the user's model configuration.
@@ -85,7 +87,7 @@ export interface ChatCompletionCallInput {
 
 export interface ChatCompletionCallContext {
   intent?: TIntent;
-  userConfig: ChatCompletionCallUserConfig;
+  userConfig: ModelRequestUserConfig;
   semanticRetryAttempt?: number;
   requiresOriginalImageDetail?: boolean;
   expectedJsonObjectResponse?: boolean;
@@ -93,6 +95,31 @@ export interface ChatCompletionCallContext {
 }
 
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original';
+
+export interface MidsceneResponsesDefaults {
+  temperature: number;
+}
+
+export interface ResponsesCallContext extends ModelRequestConfigInput {
+  userConfig: ModelRequestUserConfig;
+  midsceneDefaults: MidsceneResponsesDefaults;
+}
+
+export type BuildResponsesParams = (input: ResponsesCallContext) => {
+  config: Record<string, unknown>;
+};
+
+export interface ResponsesAdapter {
+  unsupportedUserConfig: UnsupportedUserConfig[];
+  buildResponsesParams(
+    input: ModelRequestConfigInput,
+  ): ReturnType<BuildResponsesParams>;
+}
+
+export interface ResponsesDefinition {
+  unsupportedUserConfig?: UnsupportedUserConfig[];
+  buildResponsesParams?: BuildResponsesParams;
+}
 
 export type ResolveImageDetail = (input: {
   intent?: TIntent;
@@ -133,9 +160,9 @@ export type ExtractContentAndReasoning = (
 ) => ContentAndReasoning;
 
 export interface ChatCompletionAdapter {
-  unsupportedUserConfig: ChatCompletionUnsupportedUserConfig[];
+  unsupportedUserConfig: UnsupportedUserConfig[];
   buildChatCompletionParams(
-    input: ChatCompletionCallInput,
+    input: ModelRequestConfigInput,
   ): ChatCompletionParamsResult;
   extractContentAndReasoning: ExtractContentAndReasoning;
   useReasoningAsContentFallback: boolean;
@@ -157,7 +184,7 @@ type ChatCompletionMessageExtraction =
     };
 
 export type ChatCompletionDefinition = ChatCompletionMessageExtraction & {
-  unsupportedUserConfig?: ChatCompletionUnsupportedUserConfig[];
+  unsupportedUserConfig?: UnsupportedUserConfig[];
   buildChatCompletionParams?: (
     input: ChatCompletionCallContext,
   ) => ChatCompletionParamsResult;
@@ -279,8 +306,10 @@ export type LocateDefinition =
   | CustomLocateDefinition;
 
 export interface ModelAdapter {
+  supportedApiTypes: TModelApiType[];
   jsonParser: JsonParser;
   chatCompletion: ChatCompletionAdapter;
+  responses: ResponsesAdapter;
   resolveImageDetail: ResolveImageDetail;
   buildCodexAppServerParams: BuildCodexAppServerParams;
   acceptBbox2dAlias: boolean;
@@ -308,8 +337,11 @@ export interface ModelRuntime {
 }
 
 export interface ModelAdapterDefinition {
+  /** API protocols adapted for this model. Defaults to Chat Completions only. */
+  supportedApiTypes?: TModelApiType[];
   jsonParser?: JsonParserPreset | JsonParser;
   chatCompletion?: ChatCompletionDefinition;
+  responses?: ResponsesDefinition;
   resolveImageDetail?: ResolveImageDetail;
   buildCodexAppServerParams?: BuildCodexAppServerParams;
   /**

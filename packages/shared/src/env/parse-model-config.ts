@@ -246,6 +246,18 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig: normalizeOpenaiExtraConfig(openaiExtraConfig),
     extraBody,
+    apiType: (() => {
+      const value = provider[keys.apiType];
+      if (value === undefined) {
+        return undefined;
+      }
+      if (value === 'chat-completion' || value === 'responses') {
+        return value;
+      }
+      throw new Error(
+        `${keys.apiType} must be one of: chat-completion, responses. Got: ${value}`,
+      );
+    })(),
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,

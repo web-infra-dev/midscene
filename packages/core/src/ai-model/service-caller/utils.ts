@@ -95,6 +95,7 @@ export function appendAIRequestFailureSummary<T extends Error>(
 }
 
 export const buildUsageInfo = ({
+  apiType,
   usageData,
   requestId,
   timeCost,
@@ -106,6 +107,7 @@ export const buildUsageInfo = ({
   slot,
   internalCallId,
 }: {
+  apiType: NonNullable<AIUsageInfo['api_type']>;
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
   timeCost?: number;
@@ -125,6 +127,7 @@ export const buildUsageInfo = ({
 
   return {
     ...usageData,
+    api_type: apiType,
     prompt_tokens: usageData.prompt_tokens ?? 0,
     completion_tokens: usageData.completion_tokens ?? 0,
     total_tokens: usageData.total_tokens ?? 0,

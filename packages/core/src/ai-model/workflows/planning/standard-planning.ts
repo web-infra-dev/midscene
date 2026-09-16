@@ -370,6 +370,7 @@ export async function standardPlan(
   // verbatim in later turns. Keep this opt-in per model adapter so that an
   // unverified provider does not receive non-standard response fields.
   if (
+    modelRuntime.config.apiType !== 'responses' &&
     modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
     rawChoiceMessage
   ) {

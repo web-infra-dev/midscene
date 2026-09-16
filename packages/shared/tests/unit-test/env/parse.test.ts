@@ -176,3 +176,26 @@ describe('parseOpenaiSdkConfig', () => {
     expect(result.temperature).toBeUndefined();
   });
 });
+
+describe.each([
+  DEFAULT_MODEL_CONFIG_KEYS,
+  INSIGHT_MODEL_CONFIG_KEYS,
+  PLANNING_MODEL_CONFIG_KEYS,
+])('API type for $apiType', (keys) => {
+  it('preserves an unspecified API type', () => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: {} }).apiType,
+    ).toBeUndefined();
+  });
+  it.each(['chat-completion', 'responses'])('accepts %s', (value) => {
+    expect(
+      parseOpenaiSdkConfig({ keys, provider: { [keys.apiType]: value } })
+        .apiType,
+    ).toBe(value);
+  });
+  it('rejects invalid protocol names', () => {
+    expect(() =>
+      parseOpenaiSdkConfig({ keys, provider: { [keys.apiType]: 'response' } }),
+    ).toThrow(keys.apiType);
+  });
+});

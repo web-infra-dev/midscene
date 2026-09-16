@@ -612,6 +612,47 @@ describe('plan XML parse retry', () => {
     });
   });
 
+  it('does not replay Responses output items as Chat Completions messages', async () => {
+    const firstResponse =
+      '<log>Tap button</log>\n<action-type>Tap</action-type>';
+    const rawAssistantMessage = {
+      role: 'assistant' as const,
+      content: firstResponse,
+      reasoning_content: 'Provider-specific reasoning state.',
+    };
+    const conversationHistory = new ConversationHistory();
+    rs.mocked(callAI)
+      .mockResolvedValueOnce({
+        ...mockAIResponse(firstResponse),
+        rawChoiceMessage: [rawAssistantMessage],
+      })
+      .mockResolvedValueOnce(
+        mockAIResponse('<log>Task completed</log>\n<complete>true</complete>'),
+      );
+
+    const options = {
+      context: mockContext(),
+      actionSpace: mockActionSpace(),
+      modelRuntime: getModelRuntime({
+        ...mockModelConfig('kimi3'),
+        apiType: 'responses',
+      }),
+      conversationHistory,
+      includeLocateInPlanning: false,
+      effort: 'balance',
+    } as const;
+
+    await standardPlan('tap the button', options);
+    await standardPlan('tap the button', options);
+
+    const secondRequestMessages = rs.mocked(callAI).mock.calls[1]?.[0];
+    expect(secondRequestMessages).not.toContainEqual([rawAssistantMessage]);
+    expect(secondRequestMessages).toContainEqual({
+      role: 'assistant',
+      content: [{ type: 'text', text: firstResponse }],
+    });
+  });
+
   it('preserves retry request errors instead of reporting them as XML parse errors', async () => {
     const requestError = new Error('failed to call AI model service');
     rs.mocked(callAI)
