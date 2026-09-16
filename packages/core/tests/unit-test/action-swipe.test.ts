@@ -1,5 +1,9 @@
 import { parseActionParam } from '@/ai-model';
-import { ActionSwipeParamSchema, normalizeMobileSwipeParam } from '@/device';
+import {
+  ActionSwipeParamSchema,
+  normalizeMobileSwipeParam,
+  normalizeSwipeParam,
+} from '@/device';
 import { describe, expect, it } from '@rstest/core';
 
 describe('Swipe Action Parameter Validation', () => {
@@ -39,16 +43,16 @@ describe('Swipe Action Parameter Validation', () => {
     });
   });
 
-  describe('normalizeMobileSwipeParam', () => {
+  describe('normalizeSwipeParam', () => {
     it('uses the screen center when an endpoint swipe omits start', () => {
-      const result = normalizeMobileSwipeParam({ end: endpoint }, screenSize);
+      const result = normalizeSwipeParam({ end: endpoint }, screenSize);
 
       expect(result.startPoint).toEqual({ x: 200, y: 400 });
       expect(result.endPoint).toEqual({ x: 100, y: 200 });
     });
 
     it('normalizes a relative swipe with a positive distance', () => {
-      const result = normalizeMobileSwipeParam(
+      const result = normalizeSwipeParam(
         { direction: 'up', distance: 150 },
         screenSize,
       );
@@ -59,7 +63,7 @@ describe('Swipe Action Parameter Validation', () => {
 
     it('rejects combining end with direction', () => {
       expect(() =>
-        normalizeMobileSwipeParam(
+        normalizeSwipeParam(
           {
             end: endpoint,
             direction: 'up',
@@ -71,7 +75,7 @@ describe('Swipe Action Parameter Validation', () => {
 
     it('rejects combining end with distance', () => {
       expect(() =>
-        normalizeMobileSwipeParam(
+        normalizeSwipeParam(
           {
             end: endpoint,
             distance: 150,
@@ -83,23 +87,24 @@ describe('Swipe Action Parameter Validation', () => {
 
     it('rejects an incomplete relative swipe', () => {
       expect(() =>
-        normalizeMobileSwipeParam({ direction: 'up' }, screenSize),
+        normalizeSwipeParam({ direction: 'up' }, screenSize),
       ).toThrow(/requires both "direction" and a positive "distance"/);
-      expect(() =>
-        normalizeMobileSwipeParam({ distance: 150 }, screenSize),
-      ).toThrow(/requires both "direction" and a positive "distance"/);
+      expect(() => normalizeSwipeParam({ distance: 150 }, screenSize)).toThrow(
+        /requires both "direction" and a positive "distance"/,
+      );
     });
 
     it('rejects a non-positive distance when called directly', () => {
       expect(() =>
-        normalizeMobileSwipeParam({ direction: 'up', distance: 0 }, screenSize),
+        normalizeSwipeParam({ direction: 'up', distance: 0 }, screenSize),
       ).toThrow(/"distance" must be a positive number/);
       expect(() =>
-        normalizeMobileSwipeParam(
-          { direction: 'up', distance: -100 },
-          screenSize,
-        ),
+        normalizeSwipeParam({ direction: 'up', distance: -100 }, screenSize),
       ).toThrow(/"distance" must be a positive number/);
+    });
+
+    it('keeps the mobile-named compatibility alias', () => {
+      expect(normalizeMobileSwipeParam).toBe(normalizeSwipeParam);
     });
   });
 });

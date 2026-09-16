@@ -8,6 +8,7 @@ import type {
 import {
   type AbstractInterface,
   type ComputerInputPrimitives,
+  type PointerPoint,
   type ResolvedTextInputOptions,
   defineAction,
   defineActionsFromInputPrimitives,
@@ -18,6 +19,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { getDebug } from '@midscene/shared/logger';
 import type { ComputerDeviceInputOpt, DisplayInfo } from '../device';
+import { clampPointerPointToSize } from '../pointer';
 import {
   formatRdpServerAddress,
   normalizeRdpConnectionConfig,
@@ -102,18 +104,13 @@ export class RDPDevice implements AbstractInterface {
         });
       },
       dragAndDrop: async (from, to) => {
-        await this.movePointer(Math.round(from.x), Math.round(from.y), {
-          steps: SMOOTH_MOVE_STEPS_TAP,
-          stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
-        });
-        await this.backend.mouseButton('left', 'down');
-        await sleep(DRAG_HOLD_DURATION);
-        await this.movePointer(Math.round(to.x), Math.round(to.y), {
-          steps: SMOOTH_MOVE_STEPS_DRAG,
-          stepDelayMs: SMOOTH_MOVE_DELAY_DRAG,
-        });
-        await sleep(DRAG_HOLD_DURATION);
-        await this.backend.mouseButton('left', 'up');
+        await this.performPointerDrag(from, to);
+      },
+      swipe: async (from, to, opts) => {
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -286,7 +283,9 @@ export class RDPDevice implements AbstractInterface {
 
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...defineActionsFromInputPrimitives(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives, {
+        size: () => this.size(),
+      }),
       defineAction({
         name: 'ListDisplays',
         description: 'List all available displays/monitors',
@@ -404,6 +403,38 @@ export class RDPDevice implements AbstractInterface {
 
     if (options?.settleDelayMs) {
       await sleep(options.settleDelayMs);
+    }
+  }
+
+  private async performPointerDrag(
+    from: PointerPoint,
+    to: PointerPoint,
+    duration?: number,
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.movePointer(
+      Math.round(boundedFrom.x),
+      Math.round(boundedFrom.y),
+      {
+        steps: SMOOTH_MOVE_STEPS_TAP,
+        stepDelayMs: SMOOTH_MOVE_DELAY_TAP,
+      },
+    );
+    await this.backend.mouseButton('left', 'down');
+    try {
+      await sleep(DRAG_HOLD_DURATION);
+      await this.movePointer(Math.round(boundedTo.x), Math.round(boundedTo.y), {
+        steps: SMOOTH_MOVE_STEPS_DRAG,
+        stepDelayMs:
+          duration === undefined
+            ? SMOOTH_MOVE_DELAY_DRAG
+            : Math.max(0, Math.round(duration / SMOOTH_MOVE_STEPS_DRAG)),
+      });
+      await sleep(DRAG_HOLD_DURATION);
+    } finally {
+      await this.backend.mouseButton('left', 'up');
     }
   }
 

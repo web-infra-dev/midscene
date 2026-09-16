@@ -576,6 +576,32 @@ describe('ComputerDevice pointer input', () => {
     );
   });
 
+  it('honors duration and repeat for held desktop swipe gestures', async () => {
+    const device = await createConnectedDevice();
+    const inputDriver = (device as any).inputDriver;
+    rs.spyOn(inputDriver, 'delay').mockResolvedValue(undefined);
+    mockState.libnut.moveMouse.mockClear();
+    mockState.libnut.mouseToggle.mockClear();
+
+    await device.inputPrimitives.pointer.swipe!(
+      { x: 200, y: 300 },
+      { x: 700, y: 300 },
+      { duration: 400, repeat: 2 },
+    );
+
+    expect(mockState.libnut.moveMouse.mock.calls.at(0)).toEqual([200, 300]);
+    expect(mockState.libnut.moveMouse.mock.calls.at(-1)).toEqual([700, 300]);
+    expect(mockState.libnut.mouseToggle.mock.calls).toEqual([
+      ['down', 'left'],
+      ['up', 'left'],
+      ['down', 'left'],
+      ['up', 'left'],
+    ]);
+    expect(
+      inputDriver.delay.mock.calls.filter(([delay]: [number]) => delay === 20),
+    ).toHaveLength(40);
+  });
+
   it('does not trust a self-consistent libnut position outside screenshot space', async () => {
     const device = await createConnectedDeviceForPlatform('win32');
 

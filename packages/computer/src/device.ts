@@ -36,6 +36,7 @@ import {
   US_SHIFTED_CHARACTER_KEYS,
   resolveShiftedKey,
 } from './keyboard-layout';
+import { clampPointerPointToSize } from './pointer';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -879,26 +880,13 @@ export class ComputerDevice implements AbstractInterface {
         await this.inputDriver.delay(MOUSE_MOVE_EFFECT_WAIT);
       },
       dragAndDrop: async (from, to) => {
-        await this.moveDisplayPointer(
-          from,
-          'Mouse did not reach the drag start target',
-        );
-        await this.inputDriver.withMouseButton('left', async () => {
-          await this.inputDriver.delay(100);
-          await this.moveDisplayPointer(
-            to,
-            'Mouse did not reach the drag end target',
-            {
-              // Native desktop toolkits commonly use the first motion beyond
-              // their threshold to enter drag mode. Keep emitting held-button
-              // motions so the drop target can observe the active drag before
-              // the button is released.
-              smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
-              smoothDelay: SMOOTH_MOVE_DELAY_DRAG,
-            },
-          );
-          await this.inputDriver.delay(100);
-        });
+        await this.performPointerDrag(from, to);
+      },
+      swipe: async (from, to, opts) => {
+        const repeatCount = opts?.repeat ?? 1;
+        for (let index = 0; index < repeatCount; index++) {
+          await this.performPointerDrag(from, to, opts?.duration);
+        }
       },
     },
     keyboard: {
@@ -1012,6 +1000,39 @@ export class ComputerDevice implements AbstractInterface {
     smooth?: { smoothSteps: number; smoothDelay: number },
   ): Promise<Point> {
     return this.moveGlobalPointer(this.toGlobalPoint(point), context, smooth);
+  }
+
+  private async performPointerDrag(
+    from: Point,
+    to: Point,
+    duration?: number,
+  ): Promise<void> {
+    const screenSize = await this.size();
+    const boundedFrom = clampPointerPointToSize(from, screenSize);
+    const boundedTo = clampPointerPointToSize(to, screenSize);
+    await this.moveDisplayPointer(
+      boundedFrom,
+      'Mouse did not reach the drag start target',
+    );
+    await this.inputDriver.withMouseButton('left', async () => {
+      await this.inputDriver.delay(100);
+      await this.moveDisplayPointer(
+        boundedTo,
+        'Mouse did not reach the drag end target',
+        {
+          // Native desktop toolkits commonly use the first motion beyond
+          // their threshold to enter drag mode. Keep emitting held-button
+          // motions so the drop target can observe the active drag before
+          // the button is released.
+          smoothSteps: SMOOTH_MOVE_STEPS_DRAG,
+          smoothDelay:
+            duration === undefined
+              ? SMOOTH_MOVE_DELAY_DRAG
+              : Math.max(0, Math.round(duration / SMOOTH_MOVE_STEPS_DRAG)),
+        },
+      );
+      await this.inputDriver.delay(100);
+    });
   }
 
   private async focusKeyboardTarget(
@@ -1762,7 +1783,9 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionSpace(): DeviceAction<any>[] {
     const defaultActions: DeviceAction<any>[] = [
-      ...defineActionsFromInputPrimitives(this.inputPrimitives),
+      ...defineActionsFromInputPrimitives(this.inputPrimitives, {
+        size: () => this.size(),
+      }),
     ];
 
     const platformActions = Object.values(createPlatformActions());
