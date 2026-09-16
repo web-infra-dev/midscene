@@ -587,7 +587,9 @@ describe('plan XML parse retry', () => {
         rawChoiceMessage: rawAssistantMessage,
       })
       .mockResolvedValueOnce(
-        mockAIResponse('<log>Task completed</log>\n<complete success="true">Done</complete>'),
+        mockAIResponse(
+          '<log>Task completed</log>\n<complete success="true">Done</complete>',
+        ),
       );
 
     const options = {
