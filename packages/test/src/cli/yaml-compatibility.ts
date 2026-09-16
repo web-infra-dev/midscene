@@ -59,6 +59,7 @@ interface YamlRunPreparation {
   preflightScope: 'project' | 'run';
   configure(definition: LoadedTestProject<unknown>): LoadedTestProject<unknown>;
   projectOptions: ProjectPreparationOptions;
+  resolveReportEnabled(): boolean;
   validate(projects: readonly PreparedExecutionProject[]): void;
   publications(
     projects: readonly PreparedExecutionProject[],
@@ -103,6 +104,7 @@ export async function prepareYamlCompatibility(
   if (plan) loadDotenvConfig({ cwd: input.cwd, ...plan });
 
   const workflows = new Map<string, LegacyWorkflow>();
+  const reportPolicies = new Map<string, boolean>();
   const artifacts = new Map<string, LegacyYamlDocumentArtifact[]>();
   const projectOptions: ProjectPreparationOptions = {
     ...(plan
@@ -116,10 +118,20 @@ export async function prepareYamlCompatibility(
         ? { files: [input.singleFile] }
         : {}),
     async collectDocument(source, project) {
+      const documentId = createDocumentInvocationId(
+        source.projectId,
+        source.sourcePath,
+        source.invocationIndex,
+      );
+      reportPolicies.set(
+        documentId,
+        isYamlReportEnabled(plan?.globalConfig ?? {}),
+      );
       const workflow = await collectLegacyWorkflow(
         source,
         input.cwd,
         plan?.globalConfig,
+        (enabled) => reportPolicies.set(documentId, enabled),
       );
       if (!workflow) {
         if (plan)
@@ -186,6 +198,12 @@ export async function prepareYamlCompatibility(
     usesDefaultConfiguration: !!plan,
     preflightScope: plan ? 'run' : 'project',
     projectOptions,
+    resolveReportEnabled() {
+      const policies = [...reportPolicies.values()];
+      return policies.length
+        ? policies.some(Boolean)
+        : isYamlReportEnabled(plan?.globalConfig ?? {});
+    },
     configure(definition) {
       if (!plan) return definition;
       const adapted = adaptLegacyExecutionPlan(plan, input.projectRoot);

@@ -137,6 +137,17 @@ const accepted = [
 
 const forbidden = [
   ...[
+    { id: 'empty step', input: null },
+    { id: 'undefined step', input: undefined },
+    { id: 'string step', input: 'invalid' },
+    { id: 'numeric step', input: 42 },
+    { id: 'boolean step', input: false },
+    { id: 'array step', input: [] },
+  ].map((contract) => ({
+    ...contract,
+    error: 'flow item must be an object',
+  })),
+  ...[
     'aiAssert',
     'aiQuery',
     'aiNumber',
@@ -381,6 +392,47 @@ const createRealAgent = () =>
   );
 
 describe('legacy inputs reach the real Agent before model execution', () => {
+  test('preserves the real Agent assertion diagnostic with a custom YAML error message', async () => {
+    const agent = createRealAgent();
+    rs.spyOn(agent.taskExecutor, 'createTypeQueryExecution').mockResolvedValue({
+      output: false,
+      thought: 'the success toast is missing',
+      runner: new TaskRunner('stubbed assertion', () => agent.getUIContext()),
+    });
+    const player = new ScriptPlayer(
+      {
+        agent: { generateReport: false },
+        tasks: [
+          {
+            name: 'assertion',
+            flow: [
+              {
+                aiAssert: 'a success toast is visible',
+                errorMessage: 'submission failed',
+              },
+            ],
+          },
+        ],
+      },
+      async () => ({ agent, freeFn: [] }),
+    );
+    try {
+      await player.run();
+      expect(player.taskStatusList[0].status).toBe('error');
+      expect(player.taskStatusList[0].error?.message).toBe(
+        'Assertion failed: submission failed\nReason: the success toast is missing',
+      );
+      expect(player.result['0']).toEqual({
+        pass: false,
+        thought: 'the success toast is missing',
+        message:
+          'Assertion failed: submission failed\nReason: the success toast is missing',
+      });
+    } finally {
+      await agent.destroy();
+    }
+  });
+
   test.each([
     { timeout: 0 },
     { checkIntervalMs: 0 },

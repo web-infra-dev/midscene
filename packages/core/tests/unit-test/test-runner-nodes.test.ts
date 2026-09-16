@@ -54,6 +54,37 @@ describe('Agent Test Runner Node definitions', () => {
     ).rejects.toThrow('not matched');
   });
 
+  it.each([
+    {
+      message: 'Assertion failed: custom message\nReason: missing toast',
+      expected: 'Assertion failed: custom message\nReason: missing toast',
+    },
+    { message: undefined, expected: 'custom message' },
+  ])(
+    'preserves the Agent assertion diagnostic and falls back to the requested message',
+    async ({ message, expected }) => {
+      const definition = commonAgentTestRunnerNodeDefinitions.find(
+        (node) => node.name === 'aiAssert',
+      )!;
+      const aiAssert = rs
+        .fn()
+        .mockResolvedValue({ pass: false, thought: 'missing toast', message });
+      const input = definition.inputSchema.parse({
+        prompt: 'success toast',
+        message: 'custom message',
+      });
+      const signal = new AbortController().signal;
+      await expect(
+        definition.execute({ aiAssert }, input, { signal }),
+      ).rejects.toThrow(expected);
+      expect(aiAssert).toHaveBeenCalledWith(
+        'success toast',
+        'custom message',
+        expect.objectContaining({ keepRawResponse: true, abortSignal: signal }),
+      );
+    },
+  );
+
   it('exposes the complete common Agent capability set', () => {
     expect(Agent.getTestRunnerNodeDefinitions()).toBe(
       commonAgentTestRunnerNodeDefinitions,

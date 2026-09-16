@@ -177,6 +177,16 @@ describe('legacy input compatibility through the public Test entry', () => {
   );
 
   it.each([
+    ...[
+      { id: 'empty step', input: null },
+      { id: 'string step', input: 'invalid' },
+      { id: 'numeric step', input: 42 },
+      { id: 'boolean step', input: false },
+      { id: 'array step', input: [] },
+    ].map((contract) => ({
+      ...contract,
+      error: 'flow item must be an object',
+    })),
     {
       id: 'assert observe',
       input: { aiAssert: 'ready', observe: false },
@@ -237,5 +247,50 @@ describe('legacy input compatibility through the public Test entry', () => {
       'callActionInActionSpace',
     ] as const)
       expect(agent[node]).not.toHaveBeenCalled();
+  });
+
+  it('retains full custom assertion diagnostics in Test results, legacy output and summary', async () => {
+    const diagnostic =
+      'Assertion failed: submission failed\nReason: the success toast is missing';
+    agent.aiAssert.mockResolvedValue({
+      pass: false,
+      thought: 'the success toast is missing',
+      message: diagnostic,
+    });
+    const result = await run([
+      {
+        name: 'assertion',
+        flow: [
+          {
+            aiAssert: 'success toast',
+            errorMessage: 'submission failed',
+            name: 'assertion',
+          },
+        ],
+      },
+    ]);
+    expect(result.collectionErrors).toEqual([]);
+    expect(result.cases[0].status).toBe('failed');
+    expect(result.cases[0].run?.steps[0].error?.message).toContain(diagnostic);
+    expect(readLegacyOutput()).toEqual({
+      assertion: {
+        pass: false,
+        thought: 'the success toast is missing',
+        message: diagnostic,
+      },
+    });
+    const outputDir = join(root, 'midscene_run', 'output');
+    const summary = JSON.parse(
+      readFileSync(
+        join(
+          outputDir,
+          readdirSync(outputDir).find((file) =>
+            /^summary-\d+\.json$/.test(file),
+          )!,
+        ),
+        'utf8',
+      ),
+    );
+    expect(summary.results[0].error).toContain(diagnostic);
   });
 });

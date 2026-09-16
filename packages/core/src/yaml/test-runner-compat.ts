@@ -82,6 +82,16 @@ export function compileLegacyFlowItem(
   flowItem: MidsceneYamlFlowItem,
   actionSpace: readonly LegacyYamlActionIdentity[] = [],
 ): NormalizedStep {
+  if (
+    typeof flowItem !== 'object' ||
+    flowItem === null ||
+    Array.isArray(flowItem)
+  )
+    return {
+      node: 'legacyValidationError',
+      input: { message: 'flow item must be an object' },
+      meta: { continueOnError: false },
+    };
   const raw = flowItem as Record<string, any>;
   const { name, ...flow } = raw;
   const step = (

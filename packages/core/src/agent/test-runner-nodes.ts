@@ -543,8 +543,8 @@ const aiAssertNode = defineCommonAgentNode({
       throw new NodeExecutionError(
         'aiAssert',
         new Error(
-          input.message ||
-            output.message ||
+          output.message ||
+            input.message ||
             output.thought ||
             `Assertion failed: ${promptText(input.prompt)}`,
         ),
