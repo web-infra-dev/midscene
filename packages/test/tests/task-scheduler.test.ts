@@ -98,4 +98,22 @@ describe('case task scheduler', () => {
     await activeFinished.promise;
     await expect(run).rejects.toThrow('executor failed');
   });
+
+  it('releases resources and rejects when an executor throws synchronously', async () => {
+    const started: string[] = [];
+    const run = runTaskPool({
+      tasks: [
+        { id: 'failed', resources: ['account:main'] },
+        { id: 'not-started', resources: ['account:main'] },
+      ],
+      maxConcurrency: 1,
+      run: (task) => {
+        started.push(task.id);
+        throw new Error('synchronous executor failure');
+      },
+    });
+
+    await expect(run).rejects.toThrow('synchronous executor failure');
+    expect(started).toEqual(['failed']);
+  });
 });

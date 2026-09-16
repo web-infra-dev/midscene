@@ -5,6 +5,7 @@ import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
 import type { NodeDefinition } from '../node/types';
+import { isSafeResultPathSegment } from '../result-path-segment';
 import { normalizeSteps } from './normalize';
 import type {
   CollectedCase,
@@ -149,10 +150,10 @@ export function collectWorkflowDocument(
     );
     if (
       definition.id !== undefined &&
-      (typeof definition.id !== 'string' || definition.id.trim().length === 0)
+      !isSafeResultPathSegment(definition.id)
     ) {
       throw new WorkflowParseError(
-        `Case ${caseIndex + 1} id must be a non-empty string.`,
+        `Case ${caseIndex + 1} id must start with an ASCII letter or number, contain only letters, numbers, dots, underscores, or hyphens, and be at most 128 characters.`,
         { caseIndex },
       );
     }

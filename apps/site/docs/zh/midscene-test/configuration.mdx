@@ -399,6 +399,8 @@ export default defineTestProject<ProjectContext>({
 
 拥有相同资源键的用例会相互等待，其他用例仍可并发。资源键由项目自行定义，只负责互斥，不会自动申请资源。
 
+显式设置的用例 `id` 也会作为单层结果目录名，因此最长 128 个字符，以 ASCII 字母或数字开头，并且只能包含字母、数字、点、下划线和连字符。省略 `id` 时，Midscene 会根据 Project、源文件路径和用例位置生成安全、稳定的 ID。
+
 默认情况下，用例调度在同一个 Node.js 进程内异步运行。如需把隔离后的用例委托给其他进程、容器、设备服务或远程执行平台，可以配置自定义 [Test Executor](./extend#使用-test-executor-委托用例)。Midscene Test 不依赖任何特定的基础设施提供方。
 
 ### 为各 Project 生成 Markdown 说明书

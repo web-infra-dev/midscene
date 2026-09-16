@@ -10,8 +10,10 @@ import {
 import { defineNode, z } from '@midscene/test';
 import {
   type LoadedExecutionProject,
+  TestExecutorError,
   type TestProjectDefinition,
   defineProjectSetup,
+  defineTestExecutor,
   defineTestProject,
   loadTestProject,
 } from '@midscene/test/config';
@@ -132,6 +134,28 @@ defineTestProject<ProjectContext>({
 
 defineTestProject({});
 defineTestProject({ projects: [{ name: 'empty' }] });
+
+const remoteExecutor = defineTestExecutor({
+  name: 'remote',
+  async execute(task, context) {
+    task.caseId satisfies string;
+    task.resources satisfies readonly string[];
+    context.signal satisfies AbortSignal;
+    context.onProgress('provisioning');
+    if (task.retry < 0) {
+      throw new TestExecutorError('unavailable', {
+        kind: 'provision',
+        retryable: true,
+      });
+    }
+    return context.runLocal();
+  },
+});
+
+defineTestProject({
+  test: { executionUnit: 'case', maxConcurrency: 4, executorRetry: 2 },
+  executor: remoteExecutor,
+});
 
 declare const loadedExecutionProject: LoadedExecutionProject<ProjectContext>;
 loadedExecutionProject.nodes.names() satisfies string[];

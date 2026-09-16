@@ -66,7 +66,8 @@ export async function runTaskPool<TTask extends ResourceTask, TResult>(
         const task = options.tasks[taskIndex];
         for (const resource of task.resources) activeResources.add(resource);
         active += 1;
-        Promise.resolve(options.run(task, taskIndex))
+        Promise.resolve()
+          .then(() => options.run(task, taskIndex))
           .then((result) => {
             results[taskIndex] = result;
           })
