@@ -1,0 +1,40 @@
+# Midscene on-device self-check: a short UI tour of this app, driven by the app itself.
+#
+# Every step is an aiTap/aiInput, so one run measures exactly what "locate then act"
+# costs, tab by tab. The app must stay in the foreground (resetToHome is off), which is
+# also why there is no launch step: the user starts this from the console.
+#
+# The wording names one place per form factor — the console nav is a bottom tab bar on
+# phones and a left tab rail on tablets — and locates the instruction box by the
+# "INSTRUCTION" label the Run page always shows. Two traps this avoids:
+#   * naming both bars at once ("左侧导航栏或底部导航栏") makes the model guess;
+#   * "导航栏" alone also means the *system* back/home/recents bar on Android, and "首页"
+#     for the instruction box reads as the Android home screen, so the model goes looking
+#     for the launcher instead of a field that is already on screen.
+# The box keeps the last instruction, so its placeholder is often absent: it is named only
+# as a secondary hint. ConsoleActivity generates the same script (see SelfCheckScript.java),
+# naming just the bar the running device has.
+#
+# This file mirrors the template the host app generates; keep the two in sync.
+name: self-check
+device:
+  backend: device-bridge
+  yadbPath: /data/local/tmp/yadb
+  fileChannelDir: /storage/emulated/0/Android/data/com.midscene.android/files/channel
+agent:
+  generateReport: true
+  resetToHome: false
+  reportDir: ./midscene_run/results
+tasks:
+  - name: 01-tab-tour-and-input
+    type: yaml
+    script: |
+      tasks:
+        - name: tab-tour-and-input
+          flow:
+            - aiTap: "Midscene 应用内的标签栏（手机在屏幕底部，平板在屏幕左侧）里的 Scripts 标签"
+            - aiTap: "Midscene 应用内的标签栏（手机在屏幕底部，平板在屏幕左侧）里的 History 标签"
+            - aiTap: "Midscene 应用内的标签栏（手机在屏幕底部，平板在屏幕左侧）里的 Run 标签"
+            - aiTap: "Run 页里 INSTRUCTION 标题下方的指令输入框（可能已有一段指令文字；空白时框内灰字提示是 \"For example: Open Settings and search for Wi-Fi\"）"
+            - aiInput: "Run 页里 INSTRUCTION 标题下方的指令输入框（可能已有一段指令文字；空白时框内灰字提示是 \"For example: Open Settings and search for Wi-Fi\"）"
+              value: "open the settings app and search for Wi-Fi"
