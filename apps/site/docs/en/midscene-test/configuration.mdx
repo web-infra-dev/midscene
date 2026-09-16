@@ -430,6 +430,8 @@ export default defineTestProject<ProjectContext>({
 
 Cases with a shared resource key wait for each other; unrelated Cases can still run concurrently. Resource keys are project-defined strings and do not provision resources by themselves.
 
+An explicit Case `id` is also used as a single result-directory segment. It must be at most 128 characters, start with an ASCII letter or number, and contain only letters, numbers, dots, underscores, or hyphens. When `id` is omitted, Midscene generates a safe stable ID from the Project, source path, and Case position.
+
 By default, case scheduling runs asynchronously in the same Node.js process. To delegate isolated Cases to another process, container, device service, or remote runner, configure a custom [Test Executor](./extend#delegate-cases-with-a-test-executor). Midscene Test has no dependency on a specific infrastructure provider.
 
 ### Generate a Markdown reference for each Project

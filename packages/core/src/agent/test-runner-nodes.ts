@@ -209,8 +209,18 @@ export const aiAssertInputSchema = z.strictObject({
 
 export const aiWaitForOptionsInputSchema = insightOptionsInputSchema
   .extend({
-    timeoutMs: z.number().positive().optional(),
-    checkIntervalMs: z.number().positive().optional(),
+    timeoutMs: z
+      .number()
+      .positive()
+      .optional()
+      .describe('Maximum wait time in milliseconds. Defaults to 15000.'),
+    checkIntervalMs: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        'Delay between AI condition checks in milliseconds. Defaults to 3000 and must not exceed timeoutMs.',
+      ),
   })
   .superRefine((input, context) => {
     if (

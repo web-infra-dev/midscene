@@ -144,7 +144,7 @@ cases:
     }
   });
 
-  it('uses an explicit stable case id and rejects an empty id', () => {
+  it('uses an explicit stable case id and rejects unsafe ids', () => {
     const source = createDocument(`
 cases:
   - id: checkout-001
@@ -174,7 +174,24 @@ cases:
         resolveNode: (name) =>
           [node, documentNode].find((candidate) => candidate.name === name),
       }),
-    ).toThrow(/id must be a non-empty string/);
+    ).toThrow(/id must start with an ASCII letter or number/);
+
+    for (const unsafeId of [
+      '../escape',
+      'nested/case',
+      'nested\\case',
+      ' case',
+    ]) {
+      const unsafeSource = createDocument(
+        `cases:\n  - id: '${unsafeId}'\n    name: invalid\n    steps:\n      - tap: submit\n`,
+      );
+      expect(() =>
+        collectWorkflowDocument(unsafeSource, {
+          resolveNode: (name) =>
+            [node, documentNode].find((candidate) => candidate.name === name),
+        }),
+      ).toThrow(/id must start with an ASCII letter or number/);
+    }
   });
 
   it('resolves the same node registry in every lifecycle phase', () => {
