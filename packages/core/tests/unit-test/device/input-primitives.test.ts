@@ -5,6 +5,53 @@ import { describe, expect, it, rs } from '@rstest/core';
 const mockExecutorContext = { task: {} } as ExecutorContext;
 
 describe('defineActionsFromInputPrimitives', () => {
+  it('uses desktop guidance for a pointer swipe', async () => {
+    const pointerSwipe = rs.fn();
+    const actions = defineActionsFromInputPrimitives(
+      {
+        pointer: {
+          tap: rs.fn(),
+          swipe: pointerSwipe,
+        },
+      },
+      { size: async () => ({ width: 1920, height: 1080 }) },
+    );
+    const swipeAction = actions.find((action) => action.name === 'Swipe');
+
+    expect(swipeAction?.description).toContain('primary-mouse-button gesture');
+    await swipeAction?.call({ direction: 'right', distance: 100 });
+    expect(pointerSwipe).toHaveBeenCalledWith(
+      { x: 960, y: 540 },
+      { x: 1060, y: 540 },
+      { duration: 300 },
+    );
+  });
+
+  it('keeps touch swipe behavior and guidance when both inputs exist', async () => {
+    const pointerSwipe = rs.fn();
+    const touchSwipe = rs.fn();
+    const actions = defineActionsFromInputPrimitives(
+      {
+        pointer: {
+          tap: rs.fn(),
+          swipe: pointerSwipe,
+        },
+        touch: { swipe: touchSwipe },
+      },
+      { size: async () => ({ width: 400, height: 800 }) },
+    );
+    const swipeAction = actions.find((action) => action.name === 'Swipe');
+
+    expect(swipeAction?.description).toContain('Perform a touch gesture');
+    await swipeAction?.call({ direction: 'up', distance: 100 });
+    expect(touchSwipe).toHaveBeenCalledWith(
+      { x: 200, y: 400 },
+      { x: 200, y: 300 },
+      { duration: 300 },
+    );
+    expect(pointerSwipe).not.toHaveBeenCalled();
+  });
+
   it('should expose configured system input primitives as actions', async () => {
     const backButton = rs.fn();
     const homeButton = rs.fn();

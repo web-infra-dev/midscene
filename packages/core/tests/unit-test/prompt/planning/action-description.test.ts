@@ -9,6 +9,7 @@ import {
 import { parseModelResponseJson } from '@/ai-model/shared/json';
 import type { LocateResultPromptSpec } from '@/ai-model/shared/model-locate-result';
 import {
+  ActionSwipeParamSchema,
   defineActionInput,
   defineActionKeyboardPress,
   defineActionScroll,
@@ -530,18 +531,25 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     });
   });
 
-  it('swipe action explains direct gesture controls', () => {
+  it('swipe action preserves touch-specific guidance by default', () => {
+    const swipeAction = defineActionSwipe({
+      swipe: async () => {},
+      size: async () => ({ width: 1080, height: 2400 }),
+    });
     const { actionDescription: action, actionSpaceDescription } =
-      buildActionDescriptions(
-        defineActionSwipe({
-          swipe: async () => {},
-          size: async () => ({ width: 1080, height: 2400 }),
-        }),
-      );
+      buildActionDescriptions(swipeAction);
 
     expect(action.description).toContain(
       'adjust a continuous control such as a slider or wheel picker',
     );
+    expect(action.description).toContain('Perform a touch gesture');
+    expect(action.description).not.toContain('desktop UI');
+    expect(swipeAction.paramSchema).toBe(ActionSwipeParamSchema);
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('finger movement') },
+      direction: { description: expect.stringContaining('Finger movement') },
+    });
+    expect(swipeAction.interfaceAlias).toBe('aiSwipe');
     expect(action.description).toContain('Choose exactly one movement form:');
     expect(action.description).toContain(
       'relative swipe — provide "direction" and a positive "distance"',
@@ -589,6 +597,25 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           }
           </action-param-json>"
     `);
+  });
+
+  it('swipe action uses mouse-specific guidance for desktop input', () => {
+    const swipeAction = defineActionSwipe({
+      swipe: async () => {},
+      size: async () => ({ width: 1920, height: 1080 }),
+      inputMode: 'mouse',
+    });
+    const { actionDescription: action } = buildActionDescriptions(swipeAction);
+
+    expect(action.description).toContain('primary-mouse-button gesture');
+    expect(action.description).toContain('desktop UI');
+    expect(action.description).not.toContain('touch gesture');
+    expect(action.param).toMatchObject({
+      start: { description: expect.stringContaining('pointer movement') },
+      direction: {
+        description: expect.stringContaining('Pointer movement'),
+      },
+    });
   });
 });
 

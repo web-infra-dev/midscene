@@ -2855,6 +2855,14 @@ console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
 
 有关适用于所有平台的通用 API，请参阅 [通用 API 参考](#common)。
 
+### Action Space（动作空间）
+
+除文本输入、键盘、滚动和平台操作外，`ComputerDevice` 与 `RDPDevice` 还提供以下指针操作：
+
+- `Tap`、`DoubleClick`、`RightClick` 和 `Hover` —— 常规鼠标操作。
+- `DragAndDrop` —— 将一个 UI 元素拖到另一个元素上。
+- `Swipe` —— 按住鼠标主键并连续移动。适用于滑块，以及需要通过起点加终点或方向与距离来操作的控件。
+
 ### Agent 工厂函数
 
 `agentForComputer(opts?): Promise<ComputerAgent>`

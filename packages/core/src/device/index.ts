@@ -80,6 +80,12 @@ export interface PointerPoint {
   y: number;
 }
 
+export type SwipeInputPrimitive = (
+  start: PointerPoint,
+  end: PointerPoint,
+  opts?: { duration?: number; repeat?: number },
+) => Promise<void>;
+
 export interface PointerInputPrimitives {
   tap(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   doubleClick?(p: PointerPoint): Promise<void>;
@@ -87,14 +93,11 @@ export interface PointerInputPrimitives {
   hover?(p: PointerPoint): Promise<void>;
   longPress?(p: PointerPoint, opts?: { duration?: number }): Promise<void>;
   dragAndDrop?(from: PointerPoint, to: PointerPoint): Promise<void>;
+  swipe?: SwipeInputPrimitive;
 }
 
 export interface TouchInputPrimitives {
-  swipe(
-    start: PointerPoint,
-    end: PointerPoint,
-    opts?: { duration?: number; repeat?: number },
-  ): Promise<void>;
+  swipe: SwipeInputPrimitive;
   pinch?(
     center: PointerPoint,
     opts: { startDistance: number; endDistance: number; duration: number },
@@ -749,41 +752,51 @@ export const defineActionLongPress = (
   });
 };
 
-export const ActionSwipeParamSchema = z.object({
-  start: getMidsceneLocationSchema()
-    .optional()
-    .describe(
-      'Optional starting point of the finger movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.',
-    ),
-  direction: z
-    .enum(['up', 'down', 'left', 'right'])
-    .optional()
-    .describe(
-      'Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.',
-    ),
-  distance: z
-    .number()
-    .positive()
-    .optional()
-    .describe(
-      'Positive length of the finger movement in pixels. Required together with direction for a relative swipe. Omit when using end.',
-    ),
-  end: getMidsceneLocationSchema()
-    .optional()
-    .describe(
-      'Endpoint of the finger movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.',
-    ),
-  duration: z
-    .number()
-    .default(300)
-    .describe('Duration of the swipe gesture in milliseconds'),
-  repeat: z
-    .number()
-    .optional()
-    .describe(
-      'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
-    ),
-});
+export type SwipeInputMode = 'touch' | 'mouse';
+
+function createActionSwipeParamSchema(inputMode: SwipeInputMode) {
+  const movementSource = inputMode === 'touch' ? 'finger' : 'pointer';
+
+  return z.object({
+    start: getMidsceneLocationSchema()
+      .optional()
+      .describe(
+        `Optional starting point of the ${movementSource} movement. Available in both relative and endpoint forms. If omitted, the center of the page is used.`,
+      ),
+    direction: z
+      .enum(['up', 'down', 'left', 'right'])
+      .optional()
+      .describe(
+        `${movementSource === 'finger' ? 'Finger' : 'Pointer'} movement direction. Required together with a positive distance for a relative swipe. Omit when using end.`,
+      ),
+    distance: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        `Positive length of the ${movementSource} movement in pixels. Required together with direction for a relative swipe. Omit when using end.`,
+      ),
+    end: getMidsceneLocationSchema()
+      .optional()
+      .describe(
+        `Endpoint of the ${movementSource} movement. Use for an endpoint swipe, optionally with start. Do not provide direction or distance when using end.`,
+      ),
+    duration: z
+      .number()
+      .default(300)
+      .describe('Duration of the swipe gesture in milliseconds'),
+    repeat: z
+      .number()
+      .optional()
+      .describe(
+        'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+      ),
+  });
+}
+
+// Preserve the historical touch-oriented public schema. Desktop actions use
+// an equivalent schema with mouse-specific descriptions at definition time.
+export const ActionSwipeParamSchema = createActionSwipeParamSchema('touch');
 
 export type ActionSwipeParam = {
   start?: LocateResultElement;
@@ -794,7 +807,7 @@ export type ActionSwipeParam = {
   repeat?: number;
 };
 
-export function normalizeMobileSwipeParam(
+export function normalizeSwipeParam(
   param: ActionSwipeParam,
   screenSize: { width: number; height: number },
 ): {
@@ -864,22 +877,33 @@ export function normalizeMobileSwipeParam(
   return { startPoint, endPoint, duration, repeatCount };
 }
 
+/** @deprecated Use {@link normalizeSwipeParam} instead. */
+export const normalizeMobileSwipeParam = normalizeSwipeParam;
+
 export const defineActionSwipe = (config: {
-  swipe: TouchInputPrimitives['swipe'];
+  swipe: SwipeInputPrimitive;
   size(): Promise<Size>;
+  inputMode?: SwipeInputMode;
 }): DeviceAction<ActionSwipeParam> => {
+  const inputMode = config.inputMode ?? 'touch';
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
-    paramSchema: ActionSwipeParamSchema,
+      inputMode === 'touch'
+        ? 'Perform a touch gesture that directly manipulates the UI (e.g., adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it). For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".'
+        : 'Perform a primary-mouse-button gesture that continuously presses and moves the pointer across the desktop UI. Use it to adjust a continuous control such as a slider or wheel picker, switch between paged cards or images, follow an on-screen swipe gesture to continue or dismiss, or swipe an item to delete it. For browsing off-screen content in a page or scrollable region, use Scroll instead. Choose exactly one movement form: (1) relative swipe — provide "direction" and a positive "distance"; or (2) endpoint swipe — provide "end". "start" is optional for both forms and defaults to the center of the page. Do not combine "end" with "direction" or "distance".',
+    interfaceAlias: 'aiSwipe',
+    paramSchema:
+      inputMode === 'touch'
+        ? ActionSwipeParamSchema
+        : createActionSwipeParamSchema(inputMode),
     sample: {
       start: { prompt: 'center of the notification' },
       end: { prompt: 'upper edge of the screen' },
     },
     call: async (param) => {
       const { startPoint, endPoint, duration, repeatCount } =
-        normalizeMobileSwipeParam(param, await config.size());
+        normalizeSwipeParam(param, await config.size());
       for (let i = 0; i < repeatCount; i++) {
         await config.swipe(startPoint, endPoint, { duration });
       }
@@ -1150,8 +1174,13 @@ export function defineActionsFromInputPrimitives(
     actions.push(defineActionScroll(scroll.scroll));
   }
 
-  if (touch?.swipe && options.size && options.includeSwipe !== false) {
-    actions.push(defineActionSwipe({ swipe: touch.swipe, size: options.size }));
+  const swipeConfig = touch?.swipe
+    ? { swipe: touch.swipe, inputMode: 'touch' as const }
+    : pointer?.swipe
+      ? { swipe: pointer.swipe, inputMode: 'mouse' as const }
+      : undefined;
+  if (swipeConfig && options.size && options.includeSwipe !== false) {
+    actions.push(defineActionSwipe({ ...swipeConfig, size: options.size }));
   }
 
   if (touch?.pinch && options.size && options.includePinch !== false) {
