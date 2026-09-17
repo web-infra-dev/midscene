@@ -48,7 +48,7 @@ import type {
   TestProjectRunSummary,
 } from './types';
 
-const CONFIG_NAME = 'midscene.config.ts';
+const CONFIG_NAMES = ['midscene.config.ts', 'midscene.config.mjs'] as const;
 const CONFIG_PREFIX = 'midscene.config.';
 const ALWAYS_IGNORED_PATTERNS = [
   '.git/**',
@@ -117,17 +117,31 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
   const candidates = readdirSync(root)
     .filter((name) => name.startsWith(CONFIG_PREFIX))
     .sort();
-  const unsupported = candidates.filter((name) => name !== CONFIG_NAME);
+  const supported = candidates.filter((name) =>
+    CONFIG_NAMES.includes(name as (typeof CONFIG_NAMES)[number]),
+  );
+  const unsupported = candidates.filter(
+    (name) => !CONFIG_NAMES.includes(name as (typeof CONFIG_NAMES)[number]),
+  );
   if (unsupported.length > 0) {
     throw new Error(
       [
         `Unsupported or conflicting Midscene configs found in ${root}:`,
         ...candidates.map((name) => `- ${name}`),
-        `Only ${CONFIG_NAME} is supported.`,
+        `Only ${CONFIG_NAMES.join(' and ')} are supported.`,
       ].join('\n'),
     );
   }
-  return candidates.includes(CONFIG_NAME) ? join(root, CONFIG_NAME) : undefined;
+  if (supported.length > 1) {
+    throw new Error(
+      [
+        `Multiple Midscene configs found in ${root}:`,
+        ...supported.map((name) => `- ${name}`),
+        'Pass --config <path> to select one explicitly.',
+      ].join('\n'),
+    );
+  }
+  return supported[0] ? join(root, supported[0]) : undefined;
 };
 
 const defaultResultDir = (projectRoot: string): string =>

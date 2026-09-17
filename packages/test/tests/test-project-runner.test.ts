@@ -81,12 +81,36 @@ describe('test project main-process runner', () => {
     ).toBe('20260807090504-12345678');
   });
 
-  it('discovers only midscene.config.ts', () => {
+  it('discovers midscene.config.ts', () => {
     const root = createProject();
     const configPath = join(root, 'midscene.config.ts');
     writeFileSync(configPath, 'export default { nodes: [] };');
 
     expect(discoverTestConfig(root)).toBe(configPath);
+  });
+
+  it('discovers midscene.config.mjs', () => {
+    const root = createProject();
+    const configPath = join(root, 'midscene.config.mjs');
+    writeFileSync(configPath, 'export default { nodes: [] };');
+
+    expect(discoverTestConfig(root)).toBe(configPath);
+  });
+
+  it('requires an explicit config when both supported names exist', () => {
+    const root = createProject();
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      'export default { nodes: [] };',
+    );
+    writeFileSync(
+      join(root, 'midscene.config.mjs'),
+      'export default { nodes: [] };',
+    );
+
+    expect(() => discoverTestConfig(root)).toThrow(
+      'Pass --config <path> to select one explicitly.',
+    );
   });
 
   it.each(['js', 'cjs', 'mts', 'cts', 'tsx'])(
@@ -100,7 +124,7 @@ describe('test project main-process runner', () => {
       writeFileSync(join(root, `midscene.config.${extension}`), 'unsupported');
 
       expect(() => discoverTestConfig(root)).toThrow(
-        'Only midscene.config.ts is supported.',
+        'Only midscene.config.ts and midscene.config.mjs are supported.',
       );
     },
   );
