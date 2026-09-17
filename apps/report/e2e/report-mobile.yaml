@@ -9,7 +9,28 @@ tasks:
     flow:
       - sleep: 2000
       - aiAssert: The narrow report shows a Steps and Player switch at the top. Steps is selected, and the task list is visible without a side-by-side player pane.
-      - aiTap: a visible task row in the Steps list, not the Steps or Player switch
+      - javascript: |
+          (function () {
+            const row = document.querySelector('.tasks-table .task-row');
+            if (!(row instanceof HTMLElement)) {
+              throw new Error('No task row found in the mobile Steps list');
+            }
+            row.click();
+            return { selectedTaskId: row.getAttribute('data-task-id') };
+          })()
+        name: selectMobileTaskRow
+      - sleep: 500
+      - javascript: |
+          (function () {
+            const playerButton = document.querySelector(
+              '.mobile-report-tabs button[aria-pressed="true"]',
+            );
+            if (playerButton?.textContent?.trim() !== 'Player') {
+              throw new Error('Task selection did not switch to Player');
+            }
+            return { selectedPane: 'Player' };
+          })()
+        name: assertMobilePaneSwitch
       - aiAssert: Player is now selected, and the report's Record timeline and player area are visible instead of the task list.
       - aiTap: the Steps button in the top report view switch
       - aiAssert: Steps is selected again, and the task list is visible.
