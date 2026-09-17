@@ -1,4 +1,4 @@
-# Migrate from legacy YAML
+# Migrate to Midscene Test
 
 Midscene Test supports legacy `tasks/flow` YAML, batch configuration, and command-line options. An existing project can first keep its files unchanged and move execution to the Test kernel. New or refactored cases can then adopt native `cases/steps`, TypeScript project configuration, and Nodes.
 
@@ -7,7 +7,7 @@ There are two migration paths:
 - **Compatibility execution**: keep cases and batch configuration unchanged and replace only the execution entry. Use this path to adopt the shared scheduler and new Test report first.
 - **Native migration**: rewrite legacy fields as Test Documents, Cases, Steps, and project configuration. Use this path to extend lifecycle hooks, custom Nodes, multiple environments, and resource isolation.
 
-The legacy format remains supported but is not recommended for new projects. Its complete reference remains available in [YAML script runner](../yaml-script-runner) and [Workflow in YAML format](../automate-with-scripts-in-yaml).
+The legacy format remains supported but is not recommended for new projects. Its complete reference remains available in [YAML script runner](./yaml-script-runner) and [Workflow in YAML format](./automate-with-scripts-in-yaml).
 
 ## Path 1: use the Test kernel without changing YAML
 
@@ -212,7 +212,7 @@ Compatibility execution continues to read top-level legacy YAML configuration. I
 | `config.unstableLogContent` | Test report and structured results | There is no same-name native field. Migrate consumers away from the legacy experimental log-content file. |
 | `tasks` | Native Workflow Document | Map it to `cases` and lifecycle hooks as described above. |
 
-See [Configure the runtime environment](./configuration#configure-the-runtime-environment) for complete setup and platform Node registration examples.
+See [Configure the runtime environment](./midscene-test/configuration#configure-the-runtime-environment) for complete setup and platform Node registration examples.
 
 ### Batch configuration mapping
 

@@ -230,6 +230,25 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
+            sectionHeaderText: 'Midscene Test (Beta)',
+          },
+          {
+            text: 'Overview',
+            link: '/midscene-test/overview',
+          },
+          {
+            text: 'Create and use test projects',
+            link: '/midscene-test/use',
+          },
+          {
+            text: 'Configure test projects',
+            link: '/midscene-test/configuration',
+          },
+          {
+            text: 'Develop custom Nodes',
+            link: '/midscene-test/extend',
+          },
+          {
             sectionHeaderText: 'YAML automation',
           },
           {
@@ -239,6 +258,10 @@ export default defineConfig(async () => {
           {
             text: 'Workflow in YAML format',
             link: '/automate-with-scripts-in-yaml',
+          },
+          {
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: 'Reference',
@@ -277,29 +300,6 @@ export default defineConfig(async () => {
           {
             text: 'Cache AI plans & DOM locators',
             link: '/caching',
-          },
-          {
-            sectionHeaderText: 'Midscene Test (Beta)',
-          },
-          {
-            text: 'Overview',
-            link: '/midscene-test/overview',
-          },
-          {
-            text: 'Create and use test projects',
-            link: '/midscene-test/use',
-          },
-          {
-            text: 'Configure test projects',
-            link: '/midscene-test/configuration',
-          },
-          {
-            text: 'Migrate from legacy YAML',
-            link: '/midscene-test/migrate-from-yaml',
-          },
-          {
-            text: 'Develop custom Nodes',
-            link: '/midscene-test/extend',
           },
           {
             sectionHeaderText: 'Resources',
@@ -410,6 +410,25 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
+            sectionHeaderText: 'Midscene Test (Beta)',
+          },
+          {
+            text: '概览',
+            link: '/zh/midscene-test/overview',
+          },
+          {
+            text: '创建和使用测试项目',
+            link: '/zh/midscene-test/use',
+          },
+          {
+            text: '配置测试项目',
+            link: '/zh/midscene-test/configuration',
+          },
+          {
+            text: '编写自定义 Node',
+            link: '/zh/midscene-test/extend',
+          },
+          {
             sectionHeaderText: 'YAML 自动化',
           },
           {
@@ -419,6 +438,10 @@ export default defineConfig(async () => {
           {
             text: 'YAML 格式的工作流',
             link: '/zh/automate-with-scripts-in-yaml',
+          },
+          {
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
             sectionHeaderText: '参考文档',
@@ -457,29 +480,6 @@ export default defineConfig(async () => {
           {
             text: '缓存 AI 规划与 DOM 定位',
             link: '/zh/caching',
-          },
-          {
-            sectionHeaderText: 'Midscene Test (Beta)',
-          },
-          {
-            text: '概览',
-            link: '/zh/midscene-test/overview',
-          },
-          {
-            text: '创建和使用测试项目',
-            link: '/zh/midscene-test/use',
-          },
-          {
-            text: '配置测试项目',
-            link: '/zh/midscene-test/configuration',
-          },
-          {
-            text: '从旧版 YAML 迁移',
-            link: '/zh/midscene-test/migrate-from-yaml',
-          },
-          {
-            text: '编写自定义 Node',
-            link: '/zh/midscene-test/extend',
           },
           {
             sectionHeaderText: '资源',

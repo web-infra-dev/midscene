@@ -5,7 +5,7 @@ This guide starts with project creation, then covers running an example, learnin
 For the overall design, see [Midscene Test overview](./overview). To implement business operations, see [Develop custom Nodes](./extend). For runtime environments and execution settings, see [Configure test projects](./configuration).
 
 :::info Existing legacy YAML projects
-Existing `tasks/flow` cases and legacy batch configuration can run through the Test kernel without changing their files. The format remains supported but is not recommended for new cases. See [Migrate from legacy YAML](./migrate-from-yaml) for commands, compatibility boundaries, and field mappings.
+Existing `tasks/flow` cases and legacy batch configuration can run through the Test kernel without changing their files. The format remains supported but is not recommended for new cases. See [Migrate to Midscene Test](../migrate-to-midscene-test) for commands, compatibility boundaries, and field mappings.
 :::
 
 ## Create a project
@@ -376,7 +376,7 @@ pnpm exec midscene-test ./legacy-flow.yaml
 pnpm exec midscene-test --config ./legacy-batch.yaml
 ```
 
-The files enter the compatibility path automatically; they do not require Node registration or configuration rewrites. Use the `cases/steps` format described on this page for new files. See [Migrate from legacy YAML](./migrate-from-yaml) for migration steps and field mappings.
+The files enter the compatibility path automatically; they do not require Node registration or configuration rewrites. Use the `cases/steps` format described on this page for new files. See [Migrate to Midscene Test](../migrate-to-midscene-test) for migration steps and field mappings.
 
 Use `--result-dir` to write structured run results to a specific directory:
 

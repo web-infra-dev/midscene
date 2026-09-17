@@ -1,0 +1,5 @@
+:::info 兼容保留，建议迁移到 Midscene Test
+本文介绍旧版 `tasks/flow` YAML。该格式仍然兼容，但不建议用于新项目或新增用例。已有用例、批配置、目录结构和 `midscene` 命令可以保持不变；升级后的入口由 Test 内核执行，并生成新的 Test 报告页面。
+
+也可以安装 `@midscene/test`，直接用 `midscene-test ./flow.yaml` 或 `midscene-test --config ./batch.yaml` 运行原文件，无需注册 Node 或改写 YAML。后续新增和重构建议采用 Midscene Test 的原生 `cases/steps`、生命周期、TypeScript 项目配置和 Node。先阅读 [Midscene Test 概览](../midscene-test/overview)，再按照[迁移到 Midscene Test](../migrate-to-midscene-test)切换入口或转换字段。
+:::

@@ -1,4 +1,4 @@
-# 从旧版 YAML 迁移
+# 迁移到 Midscene Test
 
 Midscene Test 兼容旧版 `tasks/flow` YAML、批配置和命令行参数。已有项目可以先保持文件不变，把执行入口切到 Test 内核；后续新增或重构用例时，再采用原生 `cases/steps`、TypeScript 项目配置和 Node。
 
@@ -7,7 +7,7 @@ Midscene Test 兼容旧版 `tasks/flow` YAML、批配置和命令行参数。已
 - **兼容运行**：不改用例和批配置，只升级执行入口。适合先获得统一调度和新的 Test 报告。
 - **原生迁移**：把旧字段改写为 Test 的文档、Case、Step 和项目配置。适合继续扩展生命周期、自定义 Node、多环境和资源隔离能力。
 
-旧格式仍受支持，但不建议用于新项目。旧版字段的完整参考仍保留在 [YAML 脚本运行器](../yaml-script-runner)和 [YAML 格式的工作流](../automate-with-scripts-in-yaml)中。
+旧格式仍受支持，但不建议用于新项目。旧版字段的完整参考仍保留在 [YAML 脚本运行器](./yaml-script-runner)和 [YAML 格式的工作流](./automate-with-scripts-in-yaml)中。
 
 ## 路径一：不改 YAML，切换到 Test 内核
 
@@ -212,7 +212,7 @@ cases:
 | `config.unstableLogContent` | Test 报告与结构化结果 | 没有同名原生字段；迁移消费方，不再依赖旧的实验性日志内容文件。 |
 | `tasks` | 原生 Workflow Document | 按前文映射为 `cases` 和生命周期钩子。 |
 
-setup 的完整写法和各平台 Node 注册方式见[配置运行环境](./configuration#配置运行环境)。
+setup 的完整写法和各平台 Node 注册方式见[配置运行环境](./midscene-test/configuration#配置运行环境)。
 
 ### 批配置映射
 

@@ -1,0 +1,5 @@
+:::info Compatibility remains; migrate to Midscene Test for new work
+This page describes legacy `tasks/flow` YAML. The format remains supported, but it is not recommended for new projects or new cases. Existing cases, batch configuration, directory layout, and the `midscene` command can remain unchanged. The upgraded entry executes them through the Test kernel and generates the new Test report page.
+
+You can also install `@midscene/test` and run the original files with `midscene-test ./flow.yaml` or `midscene-test --config ./batch.yaml`, without registering Nodes or rewriting YAML. Use native Midscene Test `cases/steps`, lifecycle hooks, TypeScript project configuration, and Nodes for new and refactored work. Start with [Midscene Test overview](../midscene-test/overview), then follow [Migrate to Midscene Test](../migrate-to-midscene-test) to switch the entry or convert fields.
+:::
