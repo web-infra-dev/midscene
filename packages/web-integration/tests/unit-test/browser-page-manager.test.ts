@@ -2,10 +2,16 @@ import {
   BrowserPageManager,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
+import {
+  appendBrowserAgentPageActions,
+  createBrowserAgentPageActions,
+} from '@/common/browser-page-actions';
 import { describe, expect, it, rs } from '@rstest/core';
 
 type PageMock = {
   id: string;
+  title: string;
+  url: string;
   closed?: boolean;
   bringToFront: ReturnType<typeof rs.fn>;
 };
@@ -15,19 +21,33 @@ type NewPageEvent = {
   page?: PageMock | null;
 };
 
-const createPage = (id: string): PageMock => ({
+const createPage = (
+  id: string,
+  options?: {
+    title?: string;
+    url?: string;
+  },
+): PageMock => ({
   id,
+  title: options?.title ?? id,
+  url: options?.url ?? `https://example.com/${id}`,
   bringToFront: rs.fn(),
 });
 
 function createManager(options?: {
   autoFollowNewPage?: boolean;
   newPage?: PageMock;
+  pages?: PageMock[];
+  activePage?: PageMock;
+  pageTitle?: (page: PageMock) => string | Promise<string>;
+  pageUrl?: (page: PageMock) => string;
 }) {
-  let activePage = createPage('initial');
+  let activePage =
+    options?.activePage ?? options?.pages?.[0] ?? createPage('initial');
   const handlers = new Set<(event: NewPageEvent) => void>();
   const debug = rs.fn();
   const newPage = options?.newPage ?? createPage('created');
+  const pages = options?.pages ?? [activePage];
 
   const manager = new BrowserPageManager<PageMock, NewPageEvent>({
     agentName: 'TestBrowserAgent',
@@ -39,10 +59,15 @@ function createManager(options?: {
       activePage = page;
     },
     adapter: {
-      pages: () => [activePage],
-      newPage: async () => newPage,
+      pages: () => pages,
+      newPage: async () => {
+        pages.push(newPage);
+        return newPage;
+      },
       isPageClosed: (page) => Boolean(page.closed),
       bringToFront: (page) => page.bringToFront(),
+      pageTitle: options?.pageTitle ?? ((page) => page.title),
+      pageUrl: options?.pageUrl ?? ((page) => page.url),
       onNewPage: (handler) => {
         handlers.add(handler);
       },
@@ -79,6 +104,278 @@ describe('BrowserPageManager', () => {
     expect(page.id).toBe('created');
     expect(ctx.activePage).toBe(page);
     expect(page.bringToFront).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists browser pages with the active page marker', async () => {
+    const initial = createPage('initial', {
+      title: 'Home',
+      url: 'https://example.com/home',
+    });
+    const docs = createPage('docs', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const ctx = createManager({
+      pages: [initial, docs],
+      activePage: docs,
+    });
+
+    await expect(ctx.manager.pageSummaries()).resolves.toEqual([
+      {
+        index: 0,
+        active: false,
+        title: 'Home',
+        url: 'https://example.com/home',
+      },
+      {
+        index: 1,
+        active: true,
+        title: 'Docs',
+        url: 'https://example.com/docs',
+      },
+    ]);
+  });
+
+  it('reports page metadata failures instead of returning blank values', async () => {
+    const ctx = createManager({
+      pageTitle: () => {
+        throw new Error('title unavailable');
+      },
+    });
+
+    await expect(ctx.manager.pageSummaries()).rejects.toThrow(
+      'title unavailable',
+    );
+  });
+
+  it('skips a page that closes while its title is being read', async () => {
+    const closing = createPage('closing');
+    const docs = createPage('docs', { title: 'Docs' });
+    const ctx = createManager({
+      pages: [closing, docs],
+      pageTitle: async (page) => {
+        if (page === closing) {
+          closing.closed = true;
+          throw new Error('page closed');
+        }
+        return page.title;
+      },
+    });
+
+    await expect(ctx.manager.pageSummaries()).resolves.toEqual([
+      {
+        index: 0,
+        active: false,
+        title: 'Docs',
+        url: 'https://example.com/docs',
+      },
+    ]);
+    await expect(
+      ctx.manager.setActivePageBySelector({ title: 'docs' }),
+    ).resolves.toMatchObject({ title: 'Docs', active: true });
+
+    const closingDuringSelection = createPage('closing');
+    const selectorCtx = createManager({
+      pages: [closingDuringSelection, docs],
+      pageTitle: async (page) => {
+        if (page === closingDuringSelection) {
+          closingDuringSelection.closed = true;
+          throw new Error('page closed');
+        }
+        return page.title;
+      },
+    });
+    await expect(
+      selectorCtx.manager.setActivePageBySelector({ title: 'docs' }),
+    ).resolves.toMatchObject({ title: 'Docs', active: true });
+  });
+
+  it('sets the active page by selector', async () => {
+    const initial = createPage('initial', {
+      title: 'Home',
+      url: 'https://example.com/home',
+    });
+    const docs = createPage('docs', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const ctx = createManager({ pages: [initial, docs] });
+
+    const summary = await ctx.manager.setActivePageBySelector({
+      title: 'docs',
+    });
+
+    expect(ctx.activePage).toBe(docs);
+    expect(summary).toEqual({
+      index: 1,
+      active: true,
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    expect(docs.bringToFront).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates title and url when they accompany an index selector', async () => {
+    const initial = createPage('initial', {
+      title: 'Home',
+      url: 'https://example.com/home',
+    });
+    const docs = createPage('docs', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const ctx = createManager({ pages: [initial, docs] });
+
+    await expect(
+      ctx.manager.setActivePageBySelector({
+        index: 1,
+        title: 'docs',
+        url: '/docs',
+      }),
+    ).resolves.toMatchObject({ index: 1, title: 'Docs' });
+
+    await expect(
+      ctx.manager.setActivePageBySelector({ index: 0, title: 'Docs' }),
+    ).rejects.toThrow(
+      '[midscene] TestBrowserAgent page at index 0 does not match title "Docs". Run ListBrowserPages again before selecting a page.',
+    );
+    expect(ctx.activePage).toBe(docs);
+    expect(initial.bringToFront).not.toHaveBeenCalled();
+  });
+
+  it('rejects ambiguous title or url selectors', async () => {
+    const first = createPage('first', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const second = createPage('second', {
+      title: 'API Docs',
+      url: 'https://example.com/api',
+    });
+    const ctx = createManager({ pages: [first, second] });
+
+    await expect(
+      ctx.manager.setActivePageBySelector({ title: 'docs' }),
+    ).rejects.toThrow(
+      '[midscene] Multiple TestBrowserAgent pages matched title "docs". Use ListBrowserPages and pass an index to SetActivePage.',
+    );
+  });
+
+  it('creates browser page actions for AI page selection', async () => {
+    const initial = createPage('initial', {
+      title: 'Home',
+      url: 'https://example.com/home',
+    });
+    const docs = createPage('docs', {
+      title: 'Docs',
+      url: 'https://example.com/docs',
+    });
+    const ctx = createManager({ pages: [initial, docs] });
+    const actions = createBrowserAgentPageActions({
+      getPageManager: () => ctx.manager,
+    });
+
+    expect(actions.map((action) => action.name)).toEqual([
+      'ListBrowserPages',
+      'SetActivePage',
+    ]);
+    const taskContext = { task: {} } as any;
+    const summaries = await actions[0].call(undefined, taskContext);
+    expect(summaries).toEqual([
+      {
+        index: 0,
+        active: true,
+        title: 'Home',
+        url: 'https://example.com/home',
+      },
+      {
+        index: 1,
+        active: false,
+        title: 'Docs',
+        url: 'https://example.com/docs',
+      },
+    ]);
+    expect(taskContext.task.planningFeedback).toBe(
+      'ListBrowserPages 0-1 of 2; active 0 (0-based). Use SetActivePage.\n*0|Home|https://example.com/home\n 1|Docs|https://example.com/docs',
+    );
+
+    await actions[1].call({ index: 1 }, {} as any);
+    expect(ctx.activePage).toBe(docs);
+  });
+
+  it('fits every page index within the core planning feedback limit', async () => {
+    const pages = Array.from({ length: 6 }, (_, index) =>
+      createPage(`page-${index}`, {
+        title: `Page ${index} ${'title '.repeat(12)}`,
+        url: `https://example.com/${index}/${'long-path/'.repeat(12)}`,
+      }),
+    );
+    const ctx = createManager({ pages, activePage: pages[2] });
+    const actions = createBrowserAgentPageActions({
+      getPageManager: () => ctx.manager,
+    });
+    const taskContext = { task: {} } as any;
+
+    await actions[0].call(undefined, taskContext);
+
+    const feedback = taskContext.task.planningFeedback as string;
+    expect(feedback.length).toBeLessThanOrEqual(500);
+    for (const [index] of pages.entries()) {
+      const marker = index === 2 ? '*' : ' ';
+      expect(feedback).toContain(`${marker}${index}|`);
+    }
+  });
+
+  it('paginates large page lists without losing page identities', async () => {
+    const pages = Array.from({ length: 100 }, (_, index) =>
+      createPage(`page-${index}`),
+    );
+    const ctx = createManager({ pages, activePage: pages[99] });
+    const actions = createBrowserAgentPageActions({
+      getPageManager: () => ctx.manager,
+    });
+    const taskContext = { task: {} } as any;
+
+    const firstPage = await actions[0].call(undefined, taskContext);
+    expect(firstPage).toHaveLength(8);
+    expect(taskContext.task.planningFeedback).toContain(
+      'Next: ListBrowserPages({offset:8})',
+    );
+    expect(taskContext.task.planningFeedback).toContain(' 7|page-7|');
+    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
+
+    const lastPage = await actions[0].call({ offset: 96 }, taskContext);
+    expect(lastPage.map(({ index }: { index: number }) => index)).toEqual([
+      96, 97, 98, 99,
+    ]);
+    expect(taskContext.task.planningFeedback).toContain('*99|page-99|');
+    expect(taskContext.task.planningFeedback.length).toBeLessThanOrEqual(500);
+
+    await expect(actions[0].call({ offset: 100 }, taskContext)).rejects.toThrow(
+      'offset 100 is out of range',
+    );
+  });
+
+  it('keeps custom actions ahead of browser page actions', () => {
+    const customAction = {
+      name: 'SetActivePage',
+      description: 'custom action',
+      call: rs.fn(),
+    };
+    const browserActions = createBrowserAgentPageActions({
+      getPageManager: () => createManager().manager,
+    });
+
+    const actions = appendBrowserAgentPageActions(
+      [customAction],
+      browserActions,
+    );
+
+    expect(actions.map((action) => action.name)).toEqual([
+      'SetActivePage',
+      'ListBrowserPages',
+    ]);
+    expect(actions[0]).toBe(customAction);
   });
 
   it('auto-follows matching new page events', async () => {

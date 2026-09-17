@@ -41,6 +41,8 @@ const createBrowserHarness = () => {
         closeOrder.push(name);
       }),
       bringToFront: rs.fn().mockResolvedValue(undefined),
+      title: rs.fn().mockResolvedValue(name),
+      url: rs.fn().mockReturnValue(`https://example.com/${name}`),
       evaluate: rs.fn().mockResolvedValue(undefined),
     });
     return { page, target };
@@ -125,6 +127,22 @@ describe('PuppeteerPageOwnership', () => {
       ownedNewPage.page,
     ]);
     expect(agent.activePage).toBe(ownedNewPage.page);
+
+    const actions = agent.interface.actionSpace();
+    const listPages = actions.find(
+      (action) => action.name === 'ListBrowserPages',
+    );
+    const setActivePage = actions.find(
+      (action) => action.name === 'SetActivePage',
+    );
+    expect(listPages).toBeDefined();
+    expect(setActivePage).toBeDefined();
+    await expect(listPages!.call(undefined, {} as any)).resolves.toMatchObject([
+      { index: 0, title: 'first-root' },
+      { index: 1, title: 'owned-new-page' },
+    ]);
+    await setActivePage!.call({ index: 0 }, {} as any);
+    expect(agent.activePage).toBe(firstRoot.page);
 
     ownership.release();
   });
