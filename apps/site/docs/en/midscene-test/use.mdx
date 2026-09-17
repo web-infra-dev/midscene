@@ -328,7 +328,7 @@ pnpm exec midscene-test --file ./cases/smoke
 pnpm exec midscene-test --file ./cases/order.yaml
 ```
 
-You can also select Cases by stable ID or tags. Repeated options are combined: IDs are matched exactly, included tags use OR matching, and excluded tags always remove a Case.
+You can also select Cases by ID or tags. Repeated options are combined: IDs are matched exactly, included tags use OR matching, and excluded tags always remove a Case. Use explicit Case IDs for persisted CI or scheduler selections; generated IDs change when a Case moves within its file.
 
 ```bash
 pnpm exec midscene-test --case-id checkout-001 --case-id checkout-002

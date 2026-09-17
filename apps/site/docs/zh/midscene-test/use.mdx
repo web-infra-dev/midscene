@@ -328,7 +328,7 @@ pnpm exec midscene-test --file ./cases/smoke
 pnpm exec midscene-test --file ./cases/order.yaml
 ```
 
-还可以通过稳定的用例 ID 或标签筛选。重复参数会组合生效：ID 精确匹配，包含标签使用 OR 关系，排除标签始终会移除对应的用例。
+还可以通过用例 ID 或标签筛选。重复参数会组合生效：ID 精确匹配，包含标签使用 OR 关系，排除标签始终会移除对应的用例。在 CI 或调度器中持久化选择时应使用显式用例 ID；自动生成的 ID 会随用例在文件中的位置变化。
 
 ```bash
 pnpm exec midscene-test --case-id checkout-001 --case-id checkout-002
