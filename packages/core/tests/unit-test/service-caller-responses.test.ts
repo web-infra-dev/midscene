@@ -133,7 +133,7 @@ describe('Responses protocol', () => {
         { role: 'system', content: 'Return JSON.' },
         {
           role: 'assistant',
-          content: [{ type: 'input_text', text: 'Previous answer' }],
+          content: 'Previous answer',
         },
         {
           role: 'user',
@@ -442,6 +442,14 @@ describe('Responses protocol', () => {
   });
 
   it('rejects unsupported message parts rather than silently dropping them', () => {
+    expect(() =>
+      toResponsesInput([
+        {
+          role: 'assistant',
+          content: [{ type: 'refusal', refusal: 'Cannot answer' }],
+        },
+      ]),
+    ).toThrow('refusal');
     expect(() =>
       toResponsesInput([
         { role: 'tool', content: 'result', tool_call_id: 'call-test' },
