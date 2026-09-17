@@ -161,7 +161,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 ```
 
 `agentClass` is the sole source of Agent-backed Node definitions. The factory throws during registration if the class does not expose
-`getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent register their common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
+`getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, PuppeteerAgent, PuppeteerPageAgent, PuppeteerBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent register their common and platform Node definitions together. The base Agent and ComputerAgent only provide common Agent Nodes.
 
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
@@ -213,6 +213,31 @@ beforeEach:
 ```
 
 For navigation parameters and URL resolution, see [Navigate with gotoUrl](./use#navigate-with-gotourl).
+
+### Puppeteer
+
+Puppeteer exposes the same `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize` Node names. Install the `puppeteer` peer dependency and pass `PuppeteerAgent` (or `PuppeteerBrowserAgent`) to `createMidsceneNodes()`:
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+Cookie references and result redaction behave the same on both browser integrations. Puppeteer supports `domcontentloaded`, `load`, `networkidle0`, and `networkidle2` for `gotoUrl.waitUntil`. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 

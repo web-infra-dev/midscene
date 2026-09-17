@@ -160,7 +160,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-`agentClass` 是 Agent Node 定义的唯一来源。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时注册通用 Node 定义和对应的平台 Node 定义。基础 Agent、其他 Web Agent 和 ComputerAgent 仅提供通用 Agent Node。
+`agentClass` 是 Agent Node 定义的唯一来源。如果该类没有提供 `getTestRunnerNodeDefinitions()`，工厂会在注册阶段抛出异常。传入 PlaywrightAgent、PlaywrightPageAgent、PlaywrightBrowserAgent、PuppeteerAgent、PuppeteerPageAgent、PuppeteerBrowserAgent、AndroidAgent、IOSAgent 或 HarmonyAgent 时，会同时注册通用 Node 定义和对应的平台 Node 定义。基础 Agent 和 ComputerAgent 仅提供通用 Agent Node。
 
 Android/iOS 的注册示例见[配置多个执行项目](#配置多个执行项目)。
 
@@ -209,6 +209,31 @@ beforeEach:
 ```
 
 导航参数和路径解析规则见[使用 gotoUrl 导航](./use#使用-gotourl-导航)。
+
+### Puppeteer
+
+Puppeteer 提供同名的 `gotoUrl`、`setCookies`、`clearCookies` 和 `setViewportSize` Node。安装 `puppeteer` 同级依赖，并把 `PuppeteerAgent`（或 `PuppeteerBrowserAgent`）传给 `createMidsceneNodes()`：
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+两种浏览器接入使用相同的 Cookie 引用和结果脱敏规则。Puppeteer 的 `gotoUrl.waitUntil` 支持 `domcontentloaded`、`load`、`networkidle0` 和 `networkidle2`。相对 URL 会先基于 `testRunner.baseURL` 解析；没有配置时，再基于当前 HTTP(S) 页面地址解析。
 
 ### Android
 

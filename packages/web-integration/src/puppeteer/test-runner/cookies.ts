@@ -5,7 +5,8 @@ import {
   setCookiesInputSchema,
 } from '@/common/test-runner/cookies';
 import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
-import { requirePlaywrightAgent, throwIfAborted } from './utils';
+import type { CookieParam } from 'puppeteer';
+import { requirePuppeteerAgent, throwIfAborted } from './utils';
 
 export { setCookiesInputSchema };
 export type { SetCookiesNodeInput, SetCookiesNodeResult };
@@ -24,7 +25,7 @@ export const setCookiesNode: AgentTestRunnerNodeDefinition<
     const ctx = {
       ...executionContext,
       input,
-      context: requirePlaywrightAgent(agent),
+      context: requirePuppeteerAgent(agent),
     };
     throwIfAborted(ctx.signal, 'setCookies');
     const { cookies, result } = await resolveCookieInput(
@@ -35,7 +36,9 @@ export const setCookiesNode: AgentTestRunnerNodeDefinition<
 
     throwIfAborted(ctx.signal, 'setCookies');
     try {
-      await ctx.context.interface.underlyingPage.context().addCookies(cookies);
+      await ctx.context.interface.underlyingPage.setCookie(
+        ...(cookies as CookieParam[]),
+      );
     } catch {
       throw new Error(
         `Failed to set ${cookies.length} browser cookie(s); the browser error was redacted because it may contain cookie values.`,

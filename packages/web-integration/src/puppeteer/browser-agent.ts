@@ -5,6 +5,7 @@ import {
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
 import type { WebPageAgentOpt } from '@/web-element';
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   Browser as PuppeteerBrowser,
@@ -13,6 +14,8 @@ import type {
 } from 'puppeteer';
 import { createPuppeteerBrowserPageManager } from './browser-page-manager';
 import { PuppeteerWebPage } from './page';
+import { puppeteerAgentTestRunnerNodeDefinitions } from './test-runner/agent-nodes';
+import type { PuppeteerTestRunnerOptions } from './test-runner/types';
 
 const debug = getDebug('puppeteer:browser-agent');
 
@@ -20,6 +23,7 @@ export type PuppeteerBrowserAgentOpt = Omit<
   WebPageAgentOpt,
   'forceSameTabNavigation'
 > & {
+  testRunner?: PuppeteerTestRunnerOptions;
   autoFollowNewPage?: boolean;
   newPageTimeout?: number;
 };
@@ -29,6 +33,15 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...WebAgentCore.getTestRunnerNodeDefinitions(),
+      ...puppeteerAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
+  readonly testRunner?: PuppeteerTestRunnerOptions;
+
   protected pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
 
   constructor(
@@ -68,6 +81,7 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       debug,
     });
     super(webPage, agentOpts);
+    this.testRunner = opts?.testRunner;
     this.pageManager = pageManager;
 
     applyForceChromeSelectRendering(
