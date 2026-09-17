@@ -44,19 +44,19 @@ describe('test executor result validation', () => {
         ...validResult(),
         case: { ...validResult().case, status: 'maybe' },
       }),
-    ).toThrow('invalid case status');
+    ).toThrow('invalid transport data');
     expect(() =>
       assertTestCaseTaskRunResult(task, {
         ...validResult(),
         artifacts: [{ name: 'report', uri: 42 }],
       }),
-    ).toThrow('invalid artifacts');
+    ).toThrow('invalid transport data');
     expect(() =>
       assertTestCaseTaskRunResult(task, {
         ...validResult(),
         metadata: { worker: { nested: true } },
       }),
-    ).toThrow('invalid metadata');
+    ).toThrow('invalid transport data');
     expect(() =>
       assertTestCaseTaskRunResult(task, {
         ...validResult(),
@@ -71,6 +71,49 @@ describe('test executor result validation', () => {
           ],
         },
       }),
-    ).toThrow('invalid case attempts');
+    ).toThrow('invalid transport data');
+  });
+
+  it('rejects success without a completed final attempt', () => {
+    expect(() =>
+      assertTestCaseTaskRunResult(task, {
+        case: {
+          ...validResult().case,
+          status: 'success',
+          notRunReason: undefined,
+          attempts: [],
+        },
+      }),
+    ).toThrow('inconsistent success result');
+  });
+
+  it('rejects local report paths from transport data', () => {
+    expect(() =>
+      assertTestCaseTaskRunResult(task, {
+        case: {
+          ...validResult().case,
+          status: 'success',
+          notRunReason: undefined,
+          run: {
+            caseId: task.caseId,
+            runId: 'attempt-1',
+            projectName: task.projectName,
+            attemptIndex: 0,
+            name: task.caseName,
+            sourcePath: task.sourcePath,
+            caseIndex: task.caseIndex,
+            status: 'success',
+            beforeEach: [],
+            steps: [],
+            afterEach: [],
+            startedAt: '2026-09-17T00:00:00.000Z',
+            endedAt: '2026-09-17T00:00:01.000Z',
+            durationMs: 1_000,
+            reportPaths: ['/etc/passwd'],
+          },
+          attempts: [],
+        },
+      }),
+    ).toThrow('invalid transport data');
   });
 });
