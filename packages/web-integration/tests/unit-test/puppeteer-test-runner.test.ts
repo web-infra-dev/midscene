@@ -85,6 +85,44 @@ describe('Puppeteer test runner entry', () => {
     });
   });
 
+  it('maps portable networkidle navigation to Puppeteer networkidle0', async () => {
+    const goto = rs.fn().mockResolvedValue(null);
+    const page = {
+      goto,
+      url: rs.fn().mockReturnValue('https://example.com/ready'),
+      title: rs.fn().mockResolvedValue('Ready'),
+    } as unknown as Page;
+    await node('gotoUrl').execute(
+      { interface: { underlyingPage: page } },
+      gotoUrlInputSchema.parse({
+        url: 'https://example.com/ready',
+        waitUntil: 'networkidle',
+      }),
+      { signal: new AbortController().signal },
+    );
+
+    expect(goto).toHaveBeenCalledWith('https://example.com/ready', {
+      waitUntil: 'networkidle0',
+      timeout: 60_000,
+    });
+  });
+
+  it('reports the Playwright-only commit lifecycle explicitly', async () => {
+    const page = {
+      url: rs.fn().mockReturnValue('about:blank'),
+    } as unknown as Page;
+    await expect(
+      node('gotoUrl').execute(
+        { interface: { underlyingPage: page } },
+        gotoUrlInputSchema.parse({
+          url: 'https://example.com',
+          waitUntil: 'commit',
+        }),
+        { signal: new AbortController().signal },
+      ),
+    ).rejects.toThrow('Puppeteer does not support');
+  });
+
   it('sets cookies without exposing their values in the result', async () => {
     const setCookie = rs.fn().mockResolvedValue(undefined);
     const page = { setCookie } as unknown as Page;

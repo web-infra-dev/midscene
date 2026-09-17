@@ -237,7 +237,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 });
 ```
 
-Cookie references and result redaction behave the same on both browser integrations. Puppeteer supports `domcontentloaded`, `load`, `networkidle0`, and `networkidle2` for `gotoUrl.waitUntil`. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
+The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Cookie references and result redaction also behave the same on both integrations. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 

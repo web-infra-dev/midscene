@@ -1,9 +1,9 @@
 import type { BrowserContext, Page } from 'playwright';
 import type {
   CookieProfileContext,
-  WebCookieSourceOptions,
   WebNodeContext,
 } from '../../common/test-runner/cookies';
+import type { WebTestRunnerOptions } from '../../common/test-runner/driver';
 
 type Awaitable<T> = T | Promise<T>;
 
@@ -19,7 +19,7 @@ export type PlaywrightCookieProfileContext<TContext> =
 
 /** Dependencies and source resolvers used by the Playwright preset Nodes. */
 export interface PlaywrightTestRunnerOptions
-  extends WebCookieSourceOptions<PlaywrightTestRunnerAgent> {
+  extends WebTestRunnerOptions<PlaywrightTestRunnerAgent> {
   /**
    * Return the environment used by setCookies. Defaults to process.env when
    * omitted.

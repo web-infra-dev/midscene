@@ -1,8 +1,8 @@
 import type {
   CookieProfileContext,
-  WebCookieSourceOptions,
   WebNodeContext,
 } from '@/common/test-runner/cookies';
+import type { WebTestRunnerOptions } from '@/common/test-runner/driver';
 import type { CookieParam, Page } from 'puppeteer';
 
 export type PuppeteerCookie = CookieParam;
@@ -12,9 +12,7 @@ export type PuppeteerCookieProfileContext<TContext> =
 
 /** Dependencies and source resolvers used by the Puppeteer preset Nodes. */
 export interface PuppeteerTestRunnerOptions
-  extends WebCookieSourceOptions<PuppeteerTestRunnerAgent> {
-  /** Base URL used to resolve relative gotoUrl inputs before first navigation. */
-  baseURL?: string;
+  extends WebTestRunnerOptions<PuppeteerTestRunnerAgent> {
   getCookieProfile?(
     input: PuppeteerCookieProfileContext<PuppeteerTestRunnerAgent>,
   ): readonly PuppeteerCookie[] | Promise<readonly PuppeteerCookie[]>;
