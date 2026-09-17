@@ -518,7 +518,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
     expect(action.param).toMatchObject({
       direction: {
         description: expect.stringContaining(
-          '"down" reveals content below the current viewport',
+          'want to see content below the current viewport -> "down"',
         ),
       },
     });
@@ -566,7 +566,7 @@ describe('buildActionDescription and serializeActionDescriptions', () => {
           direction:
             type: enum('up', 'down', 'left', 'right')
             optional: true
-            description: Finger movement direction. Required together with a positive distance for a relative swipe. Omit when using end.
+            description: 'Finger movement direction. Quick mapping: move the finger or content upward -> "up"; downward -> "down"; leftward -> "left"; rightward -> "right". Required together with a positive distance for a relative swipe. Omit when using end.'
           distance:
             type: number
             optional: true
