@@ -20,6 +20,24 @@ export function toResponsesInput(
         `Responses does not support ${message.role} messages in this caller`,
       );
     }
+    if (message.role === 'assistant') {
+      return {
+        role: message.role,
+        content:
+          typeof message.content === 'string'
+            ? message.content
+            : (message.content ?? [])
+                .map((part) => {
+                  if (part.type !== 'text') {
+                    throw new Error(
+                      `Responses does not support ${part.type} assistant history in this caller`,
+                    );
+                  }
+                  return part.text;
+                })
+                .join(''),
+      };
+    }
     return {
       role: message.role,
       content:
