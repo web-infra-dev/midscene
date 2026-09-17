@@ -122,11 +122,24 @@ describe('GPT image detail handling', () => {
         }),
       );
       expect(mockCodexCall).toHaveBeenCalledWith(
-        imageMessage,
+        [
+          {
+            ...imageMessage[0],
+            content: [
+              {
+                ...imageMessage[0].content[0],
+                image_url: {
+                  ...imageMessage[0].content[0].image_url,
+                  detail: 'original',
+                },
+              },
+              ...imageMessage[0].content.slice(1),
+            ],
+          },
+        ],
         expect.anything(),
         expect.objectContaining({
           params: { effort: reasoningEffort ?? 'medium' },
-          imageDetail: 'original',
         }),
       );
       expect(mockCreate).not.toHaveBeenCalled();
@@ -165,9 +178,10 @@ describe('GPT image detail handling', () => {
         );
         try {
           await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
-          expect(mockCodexCall.mock.calls.at(-1)?.[2].imageDetail).toBe(
-            expected,
-          );
+          expect(
+            mockCodexCall.mock.calls.at(-1)?.[0][0].content[0].image_url.detail,
+          ).toBe(expected ?? 'high');
+          expect(imageMessage[0].content[0].image_url?.detail).toBe('high');
           expect(chatDetailSpy).not.toHaveBeenCalled();
         } finally {
           chatDetailSpy.mockRestore();

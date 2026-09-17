@@ -1,7 +1,8 @@
 import type { AIUsageInfo } from '@/types';
 import type OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type { ImageDetail } from '../model-adapter/types';
 import type { ModelRuntime } from '../models';
-import type { OpenAIErrorResponseContext } from './openai-error';
 
 // Error class that preserves usage and rawResponse when AI call parsing fails
 export class AIResponseParseError extends Error {
@@ -48,20 +49,6 @@ export function stringifyForDebug(value: unknown): string {
   } catch (_error) {
     return String(value);
   }
-}
-
-export function getLatestSuccessfulResponseRequestId(
-  context: OpenAIErrorResponseContext,
-): string | undefined {
-  return context.responseRequestIds?.reduce<string | undefined>(
-    (latestRequestId, response) =>
-      response.ok ? response.requestId : latestRequestId,
-    undefined,
-  );
-}
-
-export function getLatestResponseAttempt(context: OpenAIErrorResponseContext) {
-  return context.httpResponses?.at(-1)?.attempt ?? 1;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -111,6 +98,8 @@ export const buildUsageInfo = ({
   usageData,
   requestId,
   timeCost,
+  totalTimeCost,
+  retryCount,
   modelName,
   modelDescription,
   responseModelName,
@@ -120,6 +109,8 @@ export const buildUsageInfo = ({
   usageData?: OpenAI.CompletionUsage;
   requestId?: string | null;
   timeCost?: number;
+  totalTimeCost: number;
+  retryCount: number;
   modelName: string;
   modelDescription: string;
   responseModelName?: string;
@@ -139,6 +130,8 @@ export const buildUsageInfo = ({
     total_tokens: usageData.total_tokens ?? 0,
     cached_input: cachedInputTokens ?? 0,
     time_cost: timeCost ?? 0,
+    total_time_cost: totalTimeCost,
+    retry_count: retryCount,
     model_name: modelName,
     model_description: modelDescription,
     response_model_name: responseModelName,
@@ -153,3 +146,43 @@ export const buildUsageInfo = ({
     [INTERNAL_CALL_ID_FIELD]: internalCallId,
   } satisfies AIUsageInfo;
 };
+
+export const applyImageDetail = ({
+  imageDetail,
+  messages,
+}: {
+  imageDetail?: ImageDetail;
+  messages: ChatCompletionMessageParam[];
+}): ChatCompletionMessageParam[] => {
+  if (!imageDetail) {
+    return messages;
+  }
+
+  return messages.map((msg) => {
+    if (!Array.isArray(msg.content)) {
+      return msg;
+    }
+
+    const content = msg.content.map((part) => {
+      if (part && part.type === 'image_url' && part.image_url?.url) {
+        return {
+          ...part,
+          image_url: {
+            ...part.image_url,
+            detail: imageDetail,
+          },
+        };
+      }
+      return part;
+    });
+
+    return {
+      ...msg,
+      content,
+    } as ChatCompletionMessageParam;
+  });
+};
+
+export const hasUsableText = (
+  value: string | null | undefined,
+): value is string => typeof value === 'string' && value.trim().length > 0;

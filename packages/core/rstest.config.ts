@@ -29,7 +29,7 @@ export default defineConfig({
       // '#proxy-deps' subpath import to the Node source implementation.
       '#proxy-deps': path.resolve(
         __dirname,
-        'src/ai-model/service-caller/proxy-deps.node.ts',
+        'src/ai-model/service-caller/proxy/proxy-deps.node.ts',
       ),
     },
   },
