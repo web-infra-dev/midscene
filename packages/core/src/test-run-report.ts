@@ -259,6 +259,26 @@ export interface TestRunReportAttempt {
   scopeReportIds?: string[];
 }
 
+export interface TestRunReportArtifact {
+  name: string;
+  uri: string;
+  mediaType?: string;
+}
+
+export interface TestRunReportCaseExecution {
+  executor: string;
+  resources: string[];
+  attempts?: number;
+  failure?: {
+    kind: 'provision' | 'transport' | 'cleanup' | 'report' | 'unknown';
+    message: string;
+    retryable: boolean;
+  };
+  lifecycle?: TestRunReportProjectLifecycle;
+  artifacts?: TestRunReportArtifact[];
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
 export interface TestRunReportCase {
   plan?: TestRunReportCasePlan;
   caseId: string;
@@ -267,6 +287,7 @@ export interface TestRunReportCase {
   status: TestRunReportCaseStatus;
   notRunReason?: string;
   attempts: TestRunReportAttempt[];
+  execution?: TestRunReportCaseExecution;
 }
 
 export interface TestRunReportDocument {

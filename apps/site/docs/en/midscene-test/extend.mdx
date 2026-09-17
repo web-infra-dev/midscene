@@ -317,7 +317,9 @@ export default defineTestProject({
 
 Throw `TestExecutorError` for expected infrastructure failures. Only errors marked `retryable` use `executorRetry`; a failed Midscene Case continues to use the Case's own `retry` setting. Provision, transport, cleanup, and report failures are recorded separately from business assertion failures. Unexpected Executor errors stop the run after active tasks finish.
 
-The returned result must belong to the scheduled project, document, and Case. Midscene Test rejects mismatched identities so a remote service cannot accidentally attach another Case's result. The framework does not contain provider-specific SDKs or provision remote resources on its own.
+The returned result is a JSON-safe transport DTO and must belong to the scheduled project, document, and Case. Midscene Test validates the complete result, including attempt order and final status, before it enters result storage. It rejects mismatched identities so a remote service cannot accidentally attach another Case's result.
+
+Remote data cannot return local `reportPaths`. If an Executor adapter downloads or produces a Midscene report, save it under `outputDir`, call `materializeReport(localPath)`, and return the resulting opaque value in `reportRefs`. Midscene only resolves references created for the current task, so a remote response cannot make the main process read an arbitrary local file. The framework does not contain provider-specific SDKs or provision remote resources on its own.
 
 ## Advanced usage
 
