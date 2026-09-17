@@ -122,6 +122,56 @@ const isolateWebDependency = (root: string) => {
 };
 
 describe('generated project integration', () => {
+  it.each([
+    {
+      format: 'ESM',
+      entry: join(packageRoot, 'dist/es/cli/index.mjs'),
+      loadEntry: (entry: string) =>
+        `const { loadTestProject } = await import(${JSON.stringify(pathToFileURL(entry).href)});`,
+    },
+    {
+      format: 'CommonJS',
+      entry: join(packageRoot, 'dist/lib/cli/index.js'),
+      loadEntry: (entry: string) =>
+        `const { loadTestProject } = require(${JSON.stringify(entry)});`,
+    },
+  ])(
+    'loads a native ESM config from the built $format config entry',
+    async ({ entry, loadEntry }) => {
+      const cwd = temp();
+      const configPath = join(cwd, 'config.mjs');
+      writeFileSync(
+        configPath,
+        `
+          const configUrl = import.meta.url;
+          await Promise.resolve();
+          export default {
+            nodes: [],
+            projects: [{ name: 'esm', variables: { configUrl } }],
+          };
+        `,
+      );
+
+      await execFileAsync(process.execPath, [
+        '--input-type=commonjs',
+        '-e',
+        `
+          (async () => {
+            const assert = require('node:assert/strict');
+            ${loadEntry(entry)}
+            const project = await loadTestProject(${JSON.stringify(configPath)});
+            const configUrl = new URL(project.projects[0].variables.configUrl);
+            assert.equal(configUrl.protocol, 'file:');
+            assert.equal(configUrl.pathname.endsWith('/config.mjs'), true);
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+        `,
+      ]);
+    },
+  );
+
   it.each(createPackageManagers)(
     'generates and refreshes the reference on a manual %s install after skipping installation',
     async (packageManager) => {

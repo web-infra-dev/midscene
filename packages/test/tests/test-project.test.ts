@@ -457,14 +457,42 @@ describe('test project config', () => {
     await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
-  it('loads a JavaScript ESM config without a TypeScript transform', async () => {
+  it('loads a JavaScript ESM config', async () => {
     const { directory } = createConfig('export default { nodes: [] };');
     const path = join(directory, 'config.mjs');
-    writeFileSync(path, 'export default { nodes: [] };');
+    writeFileSync(
+      path,
+      `
+        const configUrl = import.meta.url;
+        await Promise.resolve();
+        export default {
+          nodes: [],
+          projects: [{ name: 'esm', variables: { configUrl } }],
+        };
+      `,
+    );
 
     await expect(loadTestProject(path)).resolves.toMatchObject({
-      projects: [{ name: 'default' }],
+      projects: [{ name: 'esm' }],
     });
+  });
+
+  it('does not transform TypeScript syntax in a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      'const config: { nodes: unknown[] } = { nodes: [] }; export default config;',
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.cause.message).toMatch(
+      /Expected a semicolon|Unexpected token/,
+    );
   });
 
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(

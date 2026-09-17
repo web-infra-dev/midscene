@@ -18,10 +18,13 @@ afterEach(() => {
   }
 });
 
-const createConfig = (source: string): string => {
+const createConfig = (
+  source: string,
+  filename = 'midscene.config.ts',
+): string => {
   const directory = mkdtempSync(join(tmpdir(), 'project-nodes-cli-'));
   directories.push(directory);
-  writeFileSync(join(directory, 'midscene.config.ts'), source);
+  writeFileSync(join(directory, filename), source);
   return directory;
 };
 
@@ -37,6 +40,25 @@ const scopedConfig = `
 `;
 
 describe('Project-scoped Node references', () => {
+  it('loads a JavaScript ESM config through the CLI --config option', async () => {
+    const root = createConfig(
+      `export default {
+        nodes: [{ name: 'esm.node', description: 'Loaded from ESM', execute() {} }],
+      };`,
+      'config.mjs',
+    );
+
+    expect(
+      await runTestCli(['nodes', root, '--config', 'config.mjs'], {
+        log() {},
+        error() {},
+      }),
+    ).toBe(0);
+    expect(
+      readFileSync(join(root, 'midscene-node-reference.md'), 'utf8'),
+    ).toContain('### `esm.node`');
+  });
+
   it('requires selection when effective Node sets differ', async () => {
     const root = createConfig(scopedConfig);
     const errors: string[] = [];
