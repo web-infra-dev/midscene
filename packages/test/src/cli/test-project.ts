@@ -571,13 +571,14 @@ const validateTestProjectDefinition = <TContext>(
   };
 };
 
-const assertTypeScriptConfig = (absolutePath: string): void => {
-  if (!absolutePath.endsWith('.ts')) {
+const assertSupportedConfig = (absolutePath: string): '.ts' | '.mjs' => {
+  if (!absolutePath.endsWith('.ts') && !absolutePath.endsWith('.mjs')) {
     const extension = absolutePath.match(/(\.[^./\\]+)$/)?.[1] ?? '(none)';
     throw new TypeError(
-      `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+      `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
     );
   }
+  return absolutePath.endsWith('.mjs') ? '.mjs' : '.ts';
 };
 
 const canRetryWithCjsLoader = (error: unknown): error is Error => {
@@ -602,16 +603,19 @@ export async function loadTestProject<TContext = undefined>(
   }
 
   const absolutePath = resolve(configPath);
-  assertTypeScriptConfig(absolutePath);
+  const extension = assertSupportedConfig(absolutePath);
   let loaded: unknown;
   try {
-    loaded = await tsImport(pathToFileURL(absolutePath).href, {
-      parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
-      tsconfig: false,
-    });
+    loaded =
+      extension === '.mjs'
+        ? await import(pathToFileURL(absolutePath).href)
+        : await tsImport(pathToFileURL(absolutePath).href, {
+            parentURL: pathToFileURL(`${dirname(absolutePath)}${sep}`).href,
+            tsconfig: false,
+          });
   } catch (error) {
     try {
-      if (!canRetryWithCjsLoader(error)) throw error;
+      if (extension === '.mjs' || !canRetryWithCjsLoader(error)) throw error;
       loaded = tsxRequire(absolutePath, pathToFileURL(absolutePath));
     } catch (fallbackError) {
       const message =

@@ -4,7 +4,16 @@
 
 ## Configuration structure
 
-In `midscene.config.ts`, use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
+Use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
+
+Midscene Test supports the following configuration files:
+
+| How the configuration is selected | Supported file | Loading behavior |
+| --- | --- | --- |
+| Automatic discovery, when no configuration path is provided | `midscene.config.ts` or `midscene.config.mjs` | `.ts` is transformed from TypeScript; `.mjs` is loaded by Node.js as native ESM |
+| An explicit path passed through the CLI's `--config <path>` option or `loadTestProject(path)` | `.ts` or `.mjs` | `.ts` is transformed from TypeScript; `.mjs` is loaded by Node.js as native ESM without TypeScript transformation |
+
+Midscene Test loads `midscene.config.ts` or `midscene.config.mjs` by default. If both files exist, it reports a conflict instead of choosing one silently; use `--config <path>` to select the intended file explicitly.
 
 Create browser or device resources in `setup` and register the corresponding Agent Nodes through `nodes`. These determine the capabilities available to each execution project.
 
@@ -443,7 +452,7 @@ import {
 } from '@midscene/test';
 ```
 
-- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. Midscene Test does not support synchronous loading.
+- **`loadTestProject(path)`**: asynchronously loads an explicitly provided TypeScript (`.ts`) or JavaScript ESM (`.mjs`) project configuration. Without `--config`, the CLI discovers `midscene.config.ts` or `midscene.config.mjs`; if both exist, it asks you to select one explicitly. Midscene Test does not support synchronous loading.
 - **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project.
 - **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
 - **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
