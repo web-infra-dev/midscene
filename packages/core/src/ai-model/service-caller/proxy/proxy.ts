@@ -18,7 +18,7 @@ const sanitizeProxyUrl = (url: string): string => {
   }
 };
 
-export const createProxyAgent = async ({
+export const createProxyAgentIfNeeded = async ({
   socksProxy,
   httpProxy,
 }: {

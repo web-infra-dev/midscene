@@ -7,7 +7,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { CodexAppServerParamsResult } from '../../model-adapter/types';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
-const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+const CODEX_INTERRUPT_TIMEOUT_MS = 5_000;
 const CODEX_DEFAULT_PROCESS_START_TIMEOUT_MS = 15 * 1000;
 const CODEX_DEFAULT_CLEANUP_TIMEOUT_MS = 8 * 1000;
 const CODEX_TEXT_INPUT_MAX_LENGTH = 256 * 1024;
@@ -228,7 +228,6 @@ const extractTextFromMessage = (
 
 const extractImageInputs = (
   message: ChatCompletionMessageParam,
-  imageDetailOverride?: CodexImageDetail,
 ): Array<CodexImageInput | CodexLocalImageInput> => {
   const content = (message as any).content;
   if (!Array.isArray(content)) return [];
@@ -244,11 +243,9 @@ const extractImageInputs = (
         : partType === 'input_image'
           ? toNonEmptyString(part.image_url || part.url)
           : undefined;
-    const imageDetail =
-      imageDetailOverride ??
-      toCodexImageDetail(
-        partType === 'image_url' ? part.image_url?.detail : part.detail,
-      );
+    const imageDetail = toCodexImageDetail(
+      partType === 'image_url' ? part.image_url?.detail : part.detail,
+    );
 
     if (!imageUrl) continue;
 
@@ -282,7 +279,6 @@ const extractImageInputs = (
 
 export const buildCodexTurnPayloadFromMessages = (
   messages: ChatCompletionMessageParam[],
-  imageDetailOverride?: CodexImageDetail,
 ): {
   developerInstructions?: string;
   input: CodexTurnInput[];
@@ -308,7 +304,7 @@ export const buildCodexTurnPayloadFromMessages = (
     }
 
     if (role === 'user') {
-      imageInputs.push(...extractImageInputs(message, imageDetailOverride));
+      imageInputs.push(...extractImageInputs(message));
     }
   }
 
@@ -396,7 +392,6 @@ class CodexAppServerConnection {
     onChunk,
     params,
     abortSignal,
-    imageDetail,
     onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
@@ -405,17 +400,12 @@ class CodexAppServerConnection {
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
-    const timeoutMs = modelConfig.timeout || CODEX_DEFAULT_TIMEOUT_MS;
-    const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
-    const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
-      messages,
-      imageDetail,
-    );
+    const { developerInstructions, input } =
+      buildCodexTurnPayloadFromMessages(messages);
 
     let threadId: string | undefined;
     let turnId: string | undefined;
@@ -468,7 +458,6 @@ class CodexAppServerConnection {
       const threadStartResponse = await this.request<CodexThreadStartResponse>({
         method: 'thread/start',
         params: threadStartParams,
-        deadlineAt,
         abortSignal,
       });
       onRecordEvent?.({
@@ -501,7 +490,6 @@ class CodexAppServerConnection {
       const turnStartResponse = await this.request<CodexTurnStartResponse>({
         method: 'turn/start',
         params: turnStartParams,
-        deadlineAt,
         abortSignal,
       });
       onRecordEvent?.({
@@ -520,7 +508,7 @@ class CodexAppServerConnection {
 
       let turnStatus: string | undefined;
       while (!turnStatus) {
-        const message = await this.nextMessage({ deadlineAt, abortSignal });
+        const message = await this.nextMessage({ abortSignal });
 
         if (this.isResponseMessage(message)) {
           // No concurrent requests in adapter runtime.
@@ -663,7 +651,7 @@ class CodexAppServerConnection {
             threadId,
             turnId,
           },
-          deadlineAt: Date.now() + 5_000,
+          deadlineAt: Date.now() + CODEX_INTERRUPT_TIMEOUT_MS,
         }).catch(() => {});
       }
       throw error;
@@ -804,6 +792,7 @@ class CodexAppServerConnection {
     deadlineAt?: number;
     abortSignal?: AbortSignal;
   }): Promise<T> {
+    abortSignal?.throwIfAborted();
     const requestId = this.nextRequestId++;
 
     await this.sendMessage({
@@ -968,7 +957,6 @@ class CodexAppServerConnectionManager {
     onChunk,
     params,
     abortSignal,
-    imageDetail,
     onRecordEvent,
   }: {
     messages: ChatCompletionMessageParam[];
@@ -977,11 +965,12 @@ class CodexAppServerConnectionManager {
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   }): Promise<CodexTurnResult> {
     return this.runner.run(async () => {
+      abortSignal?.throwIfAborted();
       const connection = await this.getConnection();
+      abortSignal?.throwIfAborted();
       try {
         return await connection.runTurn({
           messages,
@@ -990,7 +979,6 @@ class CodexAppServerConnectionManager {
           onChunk,
           params,
           abortSignal,
-          imageDetail,
           onRecordEvent,
         });
       } catch (error) {
@@ -1033,7 +1021,6 @@ export async function callAIWithCodexAppServer(
     onChunk?: StreamingCallback;
     params?: CodexAppServerParamsResult['config'];
     abortSignal?: AbortSignal;
-    imageDetail?: CodexImageDetail;
     onRecordEvent?: (event: CodexAppServerRecordEvent) => void;
   },
 ): Promise<CodexTurnResult> {
@@ -1050,7 +1037,6 @@ export async function callAIWithCodexAppServer(
     onChunk: options?.onChunk,
     params: options?.params,
     abortSignal: options?.abortSignal,
-    imageDetail: options?.imageDetail,
     onRecordEvent: options?.onRecordEvent,
   });
 }

@@ -3,9 +3,9 @@ export {
   callAIWithObjectResponse,
   callAIWithStringResponse,
   parseAIObjectResponse,
-} from './call-ai';
-export { callAI } from './call';
-export { createChatClient } from './openai-client';
+} from './model-call';
+export { callAI } from './call-ai';
+export { createChatClient } from './openai/openai-client';
 export { AIResponseParseError, INTERNAL_CALL_ID_FIELD } from './utils';
 export {
   extractJSONFromCodeBlock,

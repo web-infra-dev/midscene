@@ -2,19 +2,17 @@ import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
-  type TModelFamily,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import OpenAI from 'openai';
-import { getVersion } from '../../utils';
+import { getVersion } from '../../../utils';
+import type { createProxyAgentIfNeeded } from '../proxy';
 import {
-  type OpenAIErrorResponseContext,
+  type OpenAIRequestContext,
   wrapOpenAICompatibleFetch,
-} from './openai-error';
-import { createProxyAgent } from './proxy';
-import { resolveEffectiveTimeoutMs } from './request-timeout';
+} from './openai-request-context';
 
 const createAndWrapClient = async ({
   openaiBaseURL,
@@ -24,16 +22,16 @@ const createAndWrapClient = async ({
   effectiveTimeoutMs,
   proxyAgent,
   executionId,
-  openAIErrorResponseContext,
+  openAIRequestContext,
 }: {
   openaiBaseURL: IModelConfig['openaiBaseURL'];
   openaiApiKey: IModelConfig['openaiApiKey'];
   openaiExtraConfig: IModelConfig['openaiExtraConfig'];
   createOpenAIClient: IModelConfig['createOpenAIClient'];
   effectiveTimeoutMs: number | null;
-  proxyAgent: Awaited<ReturnType<typeof createProxyAgent>>;
+  proxyAgent: Awaited<ReturnType<typeof createProxyAgentIfNeeded>>;
   executionId: string;
-  openAIErrorResponseContext: OpenAIErrorResponseContext;
+  openAIRequestContext: OpenAIRequestContext;
 }): Promise<OpenAI> => {
   const warnClient = getDebug('ai:call', { console: true });
 
@@ -56,12 +54,12 @@ const createAndWrapClient = async ({
       'x-midscene-version': getVersion(),
       'x-midscene-execution-id': executionId,
     },
-    fetch: wrapOpenAICompatibleFetch(openAIErrorResponseContext),
-    // Midscene already handles retries in callAI(), so disable SDK-level retries
+    fetch: wrapOpenAICompatibleFetch(openAIRequestContext),
+    // Midscene handles request retries in callAI(), so disable SDK-level retries
     // to avoid duplicate attempts and duplicated backoff latency.
     maxRetries: 0,
-    // When disabled (timeoutMs === null) fall through to the SDK default so
-    // only the caller-provided abortSignal can cancel the request.
+    // Disabling the Midscene hard timeout leaves the SDK timeout at its
+    // configured value or default; it does not disable SDK/network timeouts.
     ...(effectiveTimeoutMs !== null ? { timeout: effectiveTimeoutMs } : {}),
     dangerouslyAllowBrowser: true,
   };
@@ -113,36 +111,24 @@ const createAndWrapClient = async ({
 
 export async function createChatClient({
   modelConfig,
+  proxyAgent,
+  effectiveTimeoutMs,
   executionId,
   recordEvent,
 }: {
   modelConfig: IModelConfig;
+  proxyAgent: Awaited<ReturnType<typeof createProxyAgentIfNeeded>>;
+  effectiveTimeoutMs: number | null;
   executionId: string;
   recordEvent?: (event: Record<string, unknown>) => void;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
-  modelName: string;
-  modelDescription: string;
-  modelFamily: TModelFamily | undefined;
-  openAIErrorResponseContext: OpenAIErrorResponseContext;
+  openAIRequestContext: OpenAIRequestContext;
 }> {
-  const {
-    socksProxy,
-    httpProxy,
-    modelName,
-    openaiBaseURL,
-    openaiApiKey,
-    openaiExtraConfig,
-    modelDescription,
-    modelFamily,
-    createOpenAIClient,
-    timeout,
-  } = modelConfig;
+  const { openaiBaseURL, openaiApiKey, openaiExtraConfig, createOpenAIClient } =
+    modelConfig;
 
-  const proxyAgent = await createProxyAgent({ socksProxy, httpProxy });
-
-  const effectiveTimeoutMs = resolveEffectiveTimeoutMs({ timeout });
-  const openAIErrorResponseContext: OpenAIErrorResponseContext = {
+  const openAIRequestContext: OpenAIRequestContext = {
     recordEvent,
   };
 
@@ -154,14 +140,11 @@ export async function createChatClient({
     effectiveTimeoutMs,
     proxyAgent,
     executionId,
-    openAIErrorResponseContext,
+    openAIRequestContext,
   });
 
   return {
     completion: openai.chat.completions,
-    modelName,
-    modelDescription,
-    modelFamily,
-    openAIErrorResponseContext,
+    openAIRequestContext,
   };
 }

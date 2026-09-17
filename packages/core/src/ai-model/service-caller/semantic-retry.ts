@@ -1,4 +1,5 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import { waitForRetry } from './request-timeout';
 
 export function withSemanticRetryFeedback(
   messages: ChatCompletionMessageParam[],
@@ -72,21 +73,21 @@ export async function callAiAndParseWithRetry<Response, Parsed>({
     retryAttempt: number,
     previousParseError?: unknown,
   ): Promise<Parsed> => {
+    abortSignal?.throwIfAborted();
     const response = await callAi(retryAttempt, previousParseError);
 
     try {
-      return await parseResponse(response);
+      const parsed = await parseResponse(response);
+      abortSignal?.throwIfAborted();
+      return parsed;
     } catch (error) {
-      if (remainingRetries > 0 && !abortSignal?.aborted) {
+      abortSignal?.throwIfAborted();
+      if (remainingRetries > 0) {
         onParseRetry?.(error, response);
         if (normalizedRetryInterval > 0) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, normalizedRetryInterval),
-          );
+          await waitForRetry(normalizedRetryInterval, abortSignal);
         }
-        if (abortSignal?.aborted) {
-          throw toParseError(error, response);
-        }
+        abortSignal?.throwIfAborted();
         return callAndParseOnce(remainingRetries - 1, retryAttempt + 1, error);
       }
       throw toParseError(error, response);
