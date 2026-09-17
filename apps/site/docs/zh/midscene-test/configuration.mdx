@@ -10,10 +10,10 @@ Midscene Test 支持以下配置文件：
 
 | 配置文件的选择方式 | 支持的文件 | 加载方式 |
 | --- | --- | --- |
-| 未指定配置路径，由 Midscene Test 自动查找 | 仅支持 `midscene.config.ts` | 先转换 TypeScript，再加载配置 |
+| 未指定配置路径，由 Midscene Test 自动查找 | `midscene.config.ts` 或 `midscene.config.mjs` | `.ts` 会先经过 TypeScript 转换；`.mjs` 由 Node.js 作为原生 ESM 直接加载 |
 | 通过 CLI 的 `--config <路径>` 或 `loadTestProject(路径)` 显式指定 | `.ts` 或 `.mjs` | `.ts` 会先经过 TypeScript 转换；`.mjs` 由 Node.js 作为原生 ESM 直接加载，不经过 TypeScript 转换 |
 
-一般情况下，在项目根目录创建 `midscene.config.ts`，运行 Midscene Test 时无需传入 `--config`。如果配置已经由其他构建流程输出为 JavaScript，可以使用 `.mjs`，但必须显式传入文件路径。Midscene Test 不会自动查找名为 `midscene.config.mjs` 的文件。
+Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。如果两个文件同时存在，Midscene Test 会报告冲突，而不是静默选择其中一个；此时可以通过 `--config <路径>` 明确指定要使用的文件。
 
 在 `setup` 中创建浏览器或设备资源，并通过 `nodes` 注册对应 Agent 的 Node。这些资源和 Node 决定各执行项目可用的能力。
 
@@ -446,7 +446,7 @@ import {
 } from '@midscene/test';
 ```
 
-* **`loadTestProject(path)`**：异步加载显式指定的 TypeScript（`.ts`）或 JavaScript ESM（`.mjs`）项目配置。CLI 未收到显式路径时，只会自动查找 `midscene.config.ts`。Midscene Test 不支持同步加载。
+* **`loadTestProject(path)`**：异步加载显式指定的 TypeScript（`.ts`）或 JavaScript ESM（`.mjs`）项目配置。CLI 未收到 `--config` 时，会自动查找 `midscene.config.ts` 或 `midscene.config.mjs`；如果两者同时存在，则要求明确指定一个。Midscene Test 不支持同步加载。
 * **`runTestProject()`**：异步发现、运行并汇总整个项目。
 * **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
 * **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。
