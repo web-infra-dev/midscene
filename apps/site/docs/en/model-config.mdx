@@ -14,6 +14,29 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
 
+## Protocol type {#model-api-type}
+
+Midscene uses OpenAI's Chat Completions protocol by default and also supports the Responses protocol. These are different ways to send requests to models; your use of the Midscene Agent API stays the same. Chat Completions was introduced earlier than Responses and currently has broader support.
+
+Select the protocol through an environment variable: `chat-completion` (the default) or `responses`. For example, to use Responses:
+
+```bash
+MIDSCENE_MODEL_API_TYPE="responses"
+```
+
+When configuring separate Planning or Insight models, use the corresponding environment variables. Each model can use a different protocol:
+
+```bash
+MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
+MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+```
+
+Keep in mind:
+
+- Some models or providers may not yet support the Responses protocol. Check with your model provider before using it.
+- Even the Chat Completions and Responses APIs from the same provider may use different Base URLs. Confirm the endpoint for each protocol with your provider.
+- Midscene may not yet support some providers' Responses API implementations. Confirm compatibility with Midscene before using them.
+
 ## Advanced settings (optional)
 
 If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_MODEL_*` settings in this section only take effect for the Insight or Planning intent when you configure the corresponding `MIDSCENE_INSIGHT_MODEL_*` or `MIDSCENE_PLANNING_MODEL_*` setting.

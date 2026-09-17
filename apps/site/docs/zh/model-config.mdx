@@ -13,6 +13,29 @@
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
 
+## 协议类型 {#model-api-type}
+
+Midscene 默认使用 OpenAI 的 Chat Completions 协议，同时也支持 Responses 协议。两者是向模型发送请求的不同方式，不影响 Midscene Agent API 的使用。Chat Completions 是 OpenAI 较早推出的协议，Responses 是后推出的协议，目前 Chat Completions 的支持范围更广。
+
+通过环境变量选择协议：`chat-completion`（默认）或 `responses`。例如，使用 Responses 协议：
+
+```bash
+MIDSCENE_MODEL_API_TYPE="responses"
+```
+
+为 Planning 或 Insight 单独配置模型时，使用对应的环境变量，各模型的协议可以分别设置：
+
+```bash
+MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
+MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+```
+
+注意事项：
+
+- 部分模型或供应商可能尚不支持 Responses 协议，使用前请向模型供应商确认支持情况。
+- 即使是同一供应商提供的 Chat Completions 和 Responses API，也可能使用不同的 Base URL，请向模型供应商确认对应的接入地址。
+- Midscene 对部分模型供应商的 Responses API 可能尚未完成适配，使用前请确认 Midscene 的兼容性支持。
+
 ## 高阶配置（可选）
 
 如果你为 Insight 或 Planning 配置了独立模型，那么本节中的模型相关 `MIDSCENE_MODEL_*` 配置需要使用对应的 `MIDSCENE_INSIGHT_MODEL_*` 或 `MIDSCENE_PLANNING_MODEL_*` 配置才能在 Insight 或 Planning 意图时生效。
