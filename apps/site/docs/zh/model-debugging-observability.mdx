@@ -14,13 +14,22 @@
 MIDSCENE_MODEL_BASE_URL='替换为你的 baseUrl'
 MIDSCENE_MODEL_API_KEY='替换为你的 API Key'
 MIDSCENE_MODEL_NAME='替换为你的 model name'
+# MIDSCENE_MODEL_API_TYPE="responses" # 使用 Responses API 时取消本行注释；默认使用 Chat API。
 
-curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
+if [ "$MIDSCENE_MODEL_API_TYPE" = "responses" ]; then
+  model_endpoint="responses"
+  model_input_field="input"
+else
+  model_endpoint="chat/completions"
+  model_input_field="messages"
+fi
+
+curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/${model_endpoint}" \
   -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
   "model": "'"${MIDSCENE_MODEL_NAME}"'",
-  "messages": [
+  "'"${model_input_field}"'": [
     {
       "role": "user",
       "content": "What is 1+1?"
@@ -59,7 +68,7 @@ npx @midscene/cli@latest model verify
 
 ### Base URL 或模型名称不正确
 
-确认 `MIDSCENE_MODEL_BASE_URL` 指向服务商的 API 接入地址。该地址通常以 `/v1` 等版本号结尾。请勿添加 `/chat/completion`，底层 SDK 会自动添加请求路径。
+确认 `MIDSCENE_MODEL_BASE_URL` 指向服务商的 API 接入地址。该地址通常以 `/v1` 等版本号结尾。请勿添加 `/chat/completions` 或 `/responses`，底层 SDK 会根据所选 API 类型自动添加请求路径。
 
 同时确认 `MIDSCENE_MODEL_NAME` 与该接入地址提供的模型一致。
 

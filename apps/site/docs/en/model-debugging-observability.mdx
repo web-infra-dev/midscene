@@ -14,13 +14,22 @@ The following `curl` request checks whether the Base URL, API key, and model nam
 MIDSCENE_MODEL_BASE_URL='replace with your baseUrl'
 MIDSCENE_MODEL_API_KEY='replace with your API key'
 MIDSCENE_MODEL_NAME='replace with your model name'
+# MIDSCENE_MODEL_API_TYPE="responses" # Uncomment this line to use Responses API; defaults to Chat API.
 
-curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/chat/completions" \
+if [ "$MIDSCENE_MODEL_API_TYPE" = "responses" ]; then
+  model_endpoint="responses"
+  model_input_field="input"
+else
+  model_endpoint="chat/completions"
+  model_input_field="messages"
+fi
+
+curl -X POST "${MIDSCENE_MODEL_BASE_URL%/}/${model_endpoint}" \
   -H "Authorization: Bearer ${MIDSCENE_MODEL_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
   "model": "'"${MIDSCENE_MODEL_NAME}"'",
-  "messages": [
+  "'"${model_input_field}"'": [
     {
       "role": "user",
       "content": "What is 1+1?"
@@ -59,7 +68,7 @@ See [Supported models and setup](./model-common-config) for the correct model fa
 
 ### Base URL or model name is incorrect
 
-Confirm that `MIDSCENE_MODEL_BASE_URL` points to the provider's API endpoint. It commonly ends with a version such as `/v1`. Do not append `/chat/completion`, because the underlying SDK adds the request path.
+Confirm that `MIDSCENE_MODEL_BASE_URL` points to the provider's API endpoint. It commonly ends with a version such as `/v1`. Do not append `/chat/completions` or `/responses`; the underlying SDK adds the request path based on the selected API type.
 
 Also confirm that `MIDSCENE_MODEL_NAME` matches a model available from that endpoint.
 

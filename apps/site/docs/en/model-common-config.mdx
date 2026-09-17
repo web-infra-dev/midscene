@@ -264,6 +264,40 @@ MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
 ```
 
   </ModelConfigTab>
+
+  <ModelConfigTab type="default" apiType="responses">
+
+```bash
+MIDSCENE_MODEL_API_TYPE="responses"
+MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
+MIDSCENE_MODEL_API_KEY="sk-..."
+MIDSCENE_MODEL_NAME="gpt-6-astra"
+MIDSCENE_MODEL_FAMILY="gpt-6"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="planning" apiType="responses">
+
+```bash
+MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
+MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
+MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."
+MIDSCENE_PLANNING_MODEL_NAME="gpt-6-astra"
+MIDSCENE_PLANNING_MODEL_FAMILY="gpt-6"
+```
+
+  </ModelConfigTab>
+  <ModelConfigTab type="insight" apiType="responses">
+
+```bash
+MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+MIDSCENE_INSIGHT_MODEL_BASE_URL="https://api.openai.com/v1" # OpenAI API endpoint; or your compatible endpoint
+MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."
+MIDSCENE_INSIGHT_MODEL_NAME="gpt-6-astra"
+MIDSCENE_INSIGHT_MODEL_FAMILY="gpt-6"
+```
+
+  </ModelConfigTab>
 </ModelConfigTabs>
 
 **Fast mode**
@@ -307,7 +341,7 @@ When using GPT-5, note the following:
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` and later models. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while some smaller GPT-5 variants, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 - According to OpenAI, GPT-5 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
-- With Azure OpenAI, Azure may not handle `"detail": "original"` correctly, causing click-coordinate offsets. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
+- Azure OpenAI's Chat Completions API may not handle `"detail": "original"` correctly, causing click-coordinate offsets. If you encounter this issue, you can switch to the Responses API. See [Clicks are offset when using Azure OpenAI](./faq#clicks-are-offset-when-using-azure-openai).
 - If you use an older GPT-5 model, we recommend using it only as the planning model and pairing it with another multimodal model for localization. See the [multi-model combination example](#multi-model-combination-example).
 
 ### Moonshot Kimi Series {#kimi}
