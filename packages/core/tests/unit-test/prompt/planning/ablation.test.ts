@@ -68,6 +68,11 @@ const componentExamples = {
     "if the next step is to click a button but it's not visible",
   ],
   subGoals: [
+    'distinguish what must be achieved from how to achieve it',
+    'the observable target state, including the target object, affected scope, and required properties',
+    'Choose the implementation actions in each planning step based on the current UI',
+    'Keep necessary navigation or preparation as prerequisite sub-goals',
+    'Preserve operations and ordering explicitly requested by the user',
     'If the user wants to "log in to a system',
     'After logging in and seeing the to-do items',
   ],

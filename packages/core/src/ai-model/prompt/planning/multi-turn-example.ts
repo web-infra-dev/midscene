@@ -14,11 +14,11 @@ import { buildSubGoalsText } from './sub-goals-text';
 
 const sampleNameSubGoal = {
   index: 1,
-  description: "Fill in the Name field with 'John'",
+  description: "The Name field contains 'John'",
 };
 const sampleEmailSubGoal = {
   index: 2,
-  description: "Fill in the Email field with 'john@example.com'",
+  description: "The Email field contains 'john@example.com'",
 };
 const sampleReturnEmailSubGoal = {
   index: 3,
@@ -147,7 +147,7 @@ ${buildPlanningResponseExample({
   prefix,
   planning: includeThought
     ? `The Name field is now focused. I need to type 'John' into this field. ${renderSubGoalsContent(
-        'Current sub-goal is running, will be completed after input.',
+        "The current sub-goal remains running until the Name field shows 'John'.",
         "After this, I'll need to fill the Email field as well.",
       )}`
     : undefined,
@@ -218,7 +218,7 @@ ${buildPlanningResponseExample({
   prefix,
   planning: includeThought
     ? `The Email field is now focused. I'll enter 'john@example.com'. ${renderSubGoalsContent(
-        'After this, sub-goal 2 will be complete and my task will be done.',
+        "Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.",
         'After this, both required fields will be filled and my task will be complete.',
       )}`
     : undefined,

@@ -400,7 +400,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -447,8 +451,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -753,8 +757,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -773,10 +777,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -784,7 +788,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -799,10 +803,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -832,10 +836,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -843,7 +847,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -858,10 +862,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field
@@ -885,7 +889,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -932,8 +940,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -1250,8 +1258,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -1271,10 +1279,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -1282,7 +1290,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -1297,10 +1305,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -1331,10 +1339,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -1342,7 +1350,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -1357,10 +1365,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field
@@ -1384,7 +1392,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -1431,8 +1443,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -1737,8 +1749,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -1757,10 +1769,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -1768,7 +1780,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -1783,10 +1795,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -1816,10 +1828,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -1827,7 +1839,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -1842,10 +1854,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field
@@ -1869,7 +1881,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -1916,8 +1932,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -2234,8 +2250,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -2255,10 +2271,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -2266,7 +2282,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -2281,10 +2297,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -2315,10 +2331,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -2326,7 +2342,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -2341,10 +2357,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field
@@ -2711,7 +2727,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -2758,8 +2778,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -3076,8 +3096,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -3097,10 +3117,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -3108,7 +3128,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -3123,10 +3143,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -3157,10 +3177,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -3168,7 +3188,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -3183,10 +3203,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field
@@ -3210,7 +3230,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 ## Step 1: Observe and Plan (related tags: <planning>, <update-plan-content>, <mark-sub-goal-done>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.
 
 ### Observation Guidelines
 
@@ -3257,8 +3281,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 <planning>...</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 
@@ -3563,8 +3587,8 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 
 <planning>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</planning>
 <update-plan-content>
-  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
-  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="1" status="pending">The Name field contains 'John'</sub-goal>
+  <sub-goal index="2" status="pending">The Email field contains 'john@example.com'</sub-goal>
   <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
 </update-plan-content>
 <log>Click on the Name field to start filling the form</log>
@@ -3583,10 +3607,10 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 
@@ -3594,7 +3618,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</planning>
+<planning>The Name field is now focused. I need to type 'John' into this field. The current sub-goal remains running until the Name field shows 'John'.</planning>
 <log>Typing 'John' into the Name field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -3609,10 +3633,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (running)
-2. Fill in the Email field with 'john@example.com' (pending)
+1. The Name field contains 'John' (running)
+2. The Email field contains 'john@example.com' (pending)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Name field with 'John'
+Current sub-goal is: The Name field contains 'John'
 Actions performed for current sub-goal:
 - Click on the Name field to start filling the form
 - Typing 'John' into the Name field
@@ -3642,10 +3666,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 
@@ -3653,7 +3677,7 @@ Actions performed for current sub-goal:
 
 **Your response:**
 
-<planning>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</planning>
+<planning>The Email field is now focused. I'll enter 'john@example.com'. Sub-goal 2 remains running until the Email field shows 'john@example.com'. I still need to return the filled email address afterward.</planning>
 <log>Typing email address into the Email field</log>
 <action-type>Input</action-type>
 <action-param-json>
@@ -3668,10 +3692,10 @@ Actions performed for current sub-goal:
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
 
 Sub-goals:
-1. Fill in the Name field with 'John' (finished)
-2. Fill in the Email field with 'john@example.com' (running)
+1. The Name field contains 'John' (finished)
+2. The Email field contains 'john@example.com' (running)
 3. Return the filled email address (pending)
-Current sub-goal is: Fill in the Email field with 'john@example.com'
+Current sub-goal is: The Email field contains 'john@example.com'
 Actions performed for current sub-goal:
 - Moving to the Email field
 - Typing email address into the Email field

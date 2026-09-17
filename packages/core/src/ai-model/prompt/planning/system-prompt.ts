@@ -103,7 +103,11 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
   )}
 
 First, observe the current screenshot${renderPart('log', ' and previous logs')}${renderSubGoalsContent(
-    ", then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.",
+    `, then break down the user's instruction into high-level sub-goals that distinguish what must be achieved from how to achieve it.
+- For outcome requests, describe the observable target state, including the target object, affected scope, and required properties. Choose the implementation actions in each planning step based on the current UI, rather than encoding an assumed action sequence in the sub-goal.
+- Keep necessary navigation or preparation as prerequisite sub-goals when useful.
+- Preserve operations and ordering explicitly requested by the user instead of substituting a broader outcome.
+Update the status of sub-goals based on what you see in the current screenshot.`,
     ' to understand the current state.',
   )}
 
@@ -161,8 +165,8 @@ If the user wants to "log in to a system using username and password, complete a
 
 ${renderThoughtContent('<planning>...</planning>')}
 <update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
+  <sub-goal index="1" status="pending">The user is logged in to the system</sub-goal>
+  <sub-goal index="2" status="pending">All to-do items are completed</sub-goal>
   <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
 </update-plan-content>
 

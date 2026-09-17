@@ -369,8 +369,8 @@ describe('system prompts', () => {
     });
 
     // Should contain sub-goal example content
-    expect(prompt).toContain('Log in to the system');
-    expect(prompt).toContain('Complete all to-do items');
+    expect(prompt).toContain('The user is logged in to the system');
+    expect(prompt).toContain('All to-do items are completed');
     expect(prompt).toContain('Submit the registration form');
     expect(prompt).toContain('status="finished|pending"');
   });
@@ -389,8 +389,8 @@ describe('system prompts', () => {
     });
 
     // Should not contain sub-goal example content
-    expect(prompt).not.toContain('Log in to the system');
-    expect(prompt).not.toContain('Complete all to-do items');
+    expect(prompt).not.toContain('The user is logged in to the system');
+    expect(prompt).not.toContain('All to-do items are completed');
     expect(prompt).not.toContain('Submit the registration form');
   });
 
@@ -485,7 +485,16 @@ describe('system prompts', () => {
     // Multi-turn example should contain sub-goal related content
     expect(prompt).toContain('## Multi-turn Conversation Example');
     expect(prompt).toContain(
-      '<sub-goal index="1" status="pending">Fill in the Name field',
+      '<sub-goal index="1" status="pending">The Name field contains',
+    );
+    expect(prompt).toContain(
+      "Current sub-goal is: The Name field contains 'John'",
+    );
+    expect(prompt).toContain(
+      'Click on the Name field to start filling the form',
+    );
+    expect(prompt).toContain(
+      "The current sub-goal remains running until the Name field shows 'John'.",
     );
     expect(prompt).toContain('<mark-sub-goal-done>');
     expect(prompt).toContain("<memory>Name field has been filled with 'John'");
@@ -511,7 +520,7 @@ describe('system prompts', () => {
 
     // Multi-turn example should exist but without sub-goal tags
     expect(prompt).toContain('## Multi-turn Conversation Example');
-    expect(prompt).not.toContain('Fill in the Name field');
+    expect(prompt).not.toContain('The Name field contains');
     expect(prompt).not.toContain(
       "<memory>Name field has been filled with 'John'",
     );
