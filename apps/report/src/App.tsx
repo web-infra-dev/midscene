@@ -1,5 +1,6 @@
 import './App.less';
 
+import { InfoCircleOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
@@ -129,6 +130,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       window.matchMedia('(max-width: 1024px), (pointer: coarse)').matches,
   );
   const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
@@ -162,6 +164,16 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       isDarkMode ? 'dark' : 'light',
     );
   }, [isDarkMode]);
+
+  useEffect(() => {
+    if (!mobileDetailOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileDetailOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileDetailOpen]);
 
   useEffect(() => {
     if (dumps && dumps.length > 0) {
@@ -304,19 +316,34 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       );
     }
     return (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel autoPlay={autoPlay} />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
+      <>
+        <PanelGroup
+          autoSaveId="page-detail-layout-v2"
+          className="desktop-detail-layout"
+          direction="horizontal"
+        >
+          <Panel className="player-panel" defaultSize={75} maxSize={95}>
+            <div className="main-content-container">
+              <DetailPanel autoPlay={autoPlay} />
+            </div>
+          </Panel>
+          <PanelResizeHandle className="resize-handle" />
+          <Panel className="information-panel" maxSize={95}>
+            <div className="main-side">
+              <DetailSide />
+            </div>
+          </Panel>
+        </PanelGroup>
+        <dialog
+          id="mobile-detail-drawer"
+          className={`mobile-detail-drawer ${mobileDetailOpen ? 'is-open' : ''}`}
+          open={mobileDetailOpen}
+          aria-label="Step information"
+          aria-hidden={!mobileDetailOpen}
+        >
+          <DetailSide onClose={() => setMobileDetailOpen(false)} />
+        </dialog>
+      </>
     );
   };
 
@@ -360,7 +387,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             type="button"
             className={mobilePane === 'steps' ? 'is-active' : ''}
             aria-pressed={mobilePane === 'steps'}
-            onClick={() => setMobilePane('steps')}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('steps');
+            }}
           >
             Steps
           </button>
@@ -368,7 +398,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             type="button"
             className={mobilePane === 'player' ? 'is-active' : ''}
             aria-pressed={mobilePane === 'player'}
-            onClick={() => setMobilePane('player')}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('player');
+            }}
           >
             Player
           </button>
@@ -394,7 +427,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               void handleDownloadReportMarkdownZip()
             }
             onReportCaseChange={resetMarkdownImageSelection}
-            onTaskClick={() => setMobilePane('player')}
+            onTaskClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('player');
+            }}
           />
         </div>
         <div
@@ -430,18 +466,34 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             />
           ) : (
             <>
-              <button
-                type="button"
-                className="main-right-header"
-                aria-expanded={!timelineCollapsed}
-                onClick={() => setTimelineCollapsed((collapsed) => !collapsed)}
-              >
-                <RecordVideocameraIcon
-                  aria-hidden="true"
-                  className="main-right-header-icon"
-                />
-                <span>Record</span>
-              </button>
+              <div className="main-right-toolbar">
+                <button
+                  type="button"
+                  className="main-right-header"
+                  aria-expanded={!timelineCollapsed}
+                  onClick={() =>
+                    setTimelineCollapsed((collapsed) => !collapsed)
+                  }
+                >
+                  <RecordVideocameraIcon
+                    aria-hidden="true"
+                    className="main-right-header-icon"
+                  />
+                  <span>Record</span>
+                </button>
+                {!replayAllMode && (
+                  <button
+                    type="button"
+                    className="mobile-detail-trigger"
+                    aria-controls="mobile-detail-drawer"
+                    aria-expanded={mobileDetailOpen}
+                    onClick={() => setMobileDetailOpen(true)}
+                  >
+                    <InfoCircleOutlined aria-hidden="true" />
+                    <span>Information</span>
+                  </button>
+                )}
+              </div>
               {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
               <div className="main-content">{content}</div>
             </>

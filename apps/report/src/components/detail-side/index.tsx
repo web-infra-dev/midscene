@@ -3,6 +3,7 @@
 import './index.less';
 
 import {
+  CloseOutlined,
   DownOutlined,
   FileImageOutlined,
   RadiusSettingOutlined,
@@ -252,7 +253,7 @@ const objectWithoutKeys = (
     {} as Record<string, unknown>,
   );
 
-const DetailSide = (): JSX.Element => {
+const DetailSide = ({ onClose }: { onClose?: () => void }): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
@@ -1103,6 +1104,16 @@ const DetailSide = (): JSX.Element => {
     <div className="detail-side">
       <div className="info-tabs">
         <div className="info-tab">Information</div>
+        {onClose && (
+          <button
+            type="button"
+            className="detail-side-close"
+            aria-label="Close step information"
+            onClick={onClose}
+          >
+            <CloseOutlined aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="info-content">
         <details open>

@@ -28,9 +28,71 @@ tasks:
             if (playerButton?.textContent?.trim() !== 'Player') {
               throw new Error('Task selection did not switch to Player');
             }
-            return { selectedPane: 'Player' };
+            const informationPanel = document.querySelector(
+              '.desktop-detail-layout > .information-panel',
+            );
+            if (
+              informationPanel instanceof HTMLElement &&
+              getComputedStyle(informationPanel).display !== 'none'
+            ) {
+              throw new Error('Desktop information panel is visible on mobile');
+            }
+            const drawer = document.querySelector('#mobile-detail-drawer');
+            if (drawer?.getAttribute('aria-hidden') !== 'true') {
+              throw new Error('Mobile information drawer should start closed');
+            }
+            const recordLabel = document.querySelector(
+              '.main-right-header span',
+            );
+            if (
+              !(recordLabel instanceof HTMLElement) ||
+              recordLabel.getBoundingClientRect().left < 0
+            ) {
+              throw new Error('Record label is clipped by the information trigger');
+            }
+            return { selectedPane: 'Player', detailDrawer: 'closed' };
           })()
         name: assertMobilePaneSwitch
-      - aiAssert: Player is selected. The Steps task list is hidden, and the report player content is visible.
+      - aiAssert: Player is selected. The Steps task list is hidden, the report player content is visible, and there is an Information button in the Record header.
+      - javascript: |
+          (function () {
+            const trigger = document.querySelector('.mobile-detail-trigger');
+            if (!(trigger instanceof HTMLButtonElement)) {
+              throw new Error('Mobile information trigger is missing');
+            }
+            trigger.click();
+          })()
+        name: openMobileInformation
+      - sleep: 250
+      - javascript: |
+          (function () {
+            const drawer = document.querySelector('#mobile-detail-drawer');
+            const close = drawer?.querySelector('.detail-side-close');
+            if (!(drawer instanceof HTMLElement) || !(close instanceof HTMLButtonElement)) {
+              throw new Error('Mobile information drawer or close button is missing');
+            }
+            const bounds = drawer.getBoundingClientRect();
+            if (drawer.getAttribute('aria-hidden') !== 'false') {
+              throw new Error('Mobile information drawer did not open');
+            }
+            if (Math.abs(bounds.width - window.innerWidth) > 1) {
+              throw new Error(
+                `Mobile information drawer is ${bounds.width}px wide; expected ${window.innerWidth}px`,
+              );
+            }
+            close.click();
+            return { drawerWidth: bounds.width };
+          })()
+        name: assertAndCloseMobileInformation
+      - sleep: 250
+      - javascript: |
+          (function () {
+            const drawer = document.querySelector('#mobile-detail-drawer');
+            if (drawer?.getAttribute('aria-hidden') !== 'true') {
+              throw new Error('Mobile information drawer did not close');
+            }
+            return { detailDrawer: 'closed' };
+          })()
+        name: assertMobileInformationClosed
       - aiTap: the Steps button in the top report view switch
       - aiAssert: Steps is selected again, and the task list is visible.

@@ -78,7 +78,23 @@ describe('sidebar layout', () => {
       'padding: 0 12px max(20px, env(safe-area-inset-bottom));',
     );
     expect(source).toContain('onTaskClick?.()');
-    expect(appSource).toContain("onTaskClick={() => setMobilePane('player')}");
+    expect(appSource).toMatch(
+      /onTaskClick=\{\(\) => \{[\s\S]*?setMobileDetailOpen\(false\);[\s\S]*?setMobilePane\('player'\);/,
+    );
+    expect(appSource).toContain('className="mobile-detail-trigger"');
+    expect(appSource).toContain('id="mobile-detail-drawer"');
+    expect(appStyles).toMatch(
+      /\.desktop-detail-layout > \.information-panel,[\s\S]*?display: none;/,
+    );
+    expect(appStyles).toMatch(
+      /\.mobile-detail-drawer\s*{[\s\S]*?width: 100%;[\s\S]*?transform: translateX\(100%\);/,
+    );
+    expect(appStyles).toMatch(
+      /\.main-right-toolbar\s*{[\s\S]*?\.main-right-header\s*{[\s\S]*?flex: 1;[\s\S]*?width: auto;/,
+    );
+    expect(appStyles).toMatch(
+      /\.page-side,\s*\.main-right\s*{[\s\S]*?border-radius: 16px 16px 0 0;/,
+    );
     expect(source).toMatch(
       /window\.matchMedia\(\s*'\(max-width: 1024px\), \(pointer: coarse\)'/s,
     );
