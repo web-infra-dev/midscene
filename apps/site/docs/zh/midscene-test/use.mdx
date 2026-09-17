@@ -368,10 +368,12 @@ midscene_run/report/test-run-<runId>.html
 
 | 选择器 | 定位目标 |
 | --- | --- |
-| `first` | 第一个执行的 Step |
-| `last` | 最后一个执行的 Step |
-| `first-error` | 第一个失败的 Step，包括失败的重试记录 |
-| `last-error` | 最后一个失败的 Step，包括失败的重试记录 |
+| `first` | 最早开始执行的 Step |
+| `last` | 最晚执行完成的 Step |
+| `first-error` | 最早开始执行的失败 Step，包括失败的重试记录 |
+| `last-error` | 最晚执行完成的失败 Step，包括失败的重试记录 |
+
+URL 没有指定 Case 路由时，选择器会搜索整份报告。URL 同时包含 `runner-page=case`、`runner-project` 和 `runner-case` 时，选择器只搜索这个 Case。没有匹配的 Step 时，报告会显示提示，并且不会打开无关的 Agent 执行详情。
 
 例如，以下 URL 会打开报告中最后一个失败的 Step：
 

@@ -368,10 +368,12 @@ Use the `runner-step` URL hash parameter to open a report at a specific Step. In
 
 | Selector | Target |
 | --- | --- |
-| `first` | First executed Step |
-| `last` | Last executed Step |
-| `first-error` | First failed Step, including failed retry attempts |
-| `last-error` | Last failed Step, including failed retry attempts |
+| `first` | Earliest started Step |
+| `last` | Most recently completed Step |
+| `first-error` | Earliest started failed Step, including failed retry attempts |
+| `last-error` | Most recently completed failed Step, including failed retry attempts |
+
+Without an explicit Case route, selectors search the complete report. When the URL includes `runner-page=case`, `runner-project`, and `runner-case`, the selector searches only that Case. If no Step matches, the report shows an informational message and does not open an unrelated Agent trace.
 
 For example, this URL opens the last failed Step in a report:
 
