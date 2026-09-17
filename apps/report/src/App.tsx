@@ -133,6 +133,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
   );
   const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
+  const [isMobileReport, setIsMobileReport] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
+  );
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
@@ -167,6 +172,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       isDarkMode ? 'dark' : 'light',
     );
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_REPORT_MEDIA_QUERY);
+    const updateMobileReport = () => setIsMobileReport(mediaQuery.matches);
+    updateMobileReport();
+    mediaQuery.addEventListener('change', updateMobileReport);
+    return () => mediaQuery.removeEventListener('change', updateMobileReport);
+  }, []);
 
   useEffect(() => {
     if (!mobileDetailOpen) return;
@@ -285,6 +298,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setSelectedMarkdownImagePath(markdownPath);
     setSelectedMarkdownImageRequestId((current) => current + 1);
   };
+  const openMobilePlayer = () => {
+    setMobileDetailOpen(false);
+    setMobilePane('player');
+  };
 
   useMarkdownScrollSync({
     enabled: reportViewMode === 'markdown' && Boolean(readyReportMarkdown),
@@ -381,7 +398,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = renderContent();
+    // On phones the Player must not mount behind the Steps pane. In
+    // particular, autoPlay starts inside the Player hook and display:none
+    // cannot pause its requestAnimationFrame loop.
+    const shouldMountPlayerPane = !isMobileReport || mobilePane === 'player';
+    const content = shouldMountPlayerPane ? renderContent() : null;
 
     mainContent = (
       <div className="main-layout">
@@ -430,10 +451,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               void handleDownloadReportMarkdownZip()
             }
             onReportCaseChange={resetMarkdownImageSelection}
-            onTaskClick={() => {
-              setMobileDetailOpen(false);
-              setMobilePane('player');
-            }}
+            onOpenPlayer={openMobilePlayer}
           />
         </div>
         <div
@@ -460,47 +478,48 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         <div
           className={`main-right ${mobilePane === 'steps' ? 'mobile-pane-hidden' : ''}`}
         >
-          {reportViewMode === 'markdown' ? (
-            <AgentScreenshotView
-              markdownView={reportMarkdownView}
-              selectedMarkdownImagePath={selectedMarkdownImagePath}
-              selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
-              scrollContainerRef={screenshotScrollRef}
-            />
-          ) : (
-            <>
-              <div className="main-right-toolbar">
-                <button
-                  type="button"
-                  className="main-right-header"
-                  aria-expanded={!timelineCollapsed}
-                  onClick={() =>
-                    setTimelineCollapsed((collapsed) => !collapsed)
-                  }
-                >
-                  <RecordVideocameraIcon
-                    aria-hidden="true"
-                    className="main-right-header-icon"
-                  />
-                  <span>Record</span>
-                </button>
-                {!replayAllMode && (
+          {shouldMountPlayerPane &&
+            (reportViewMode === 'markdown' ? (
+              <AgentScreenshotView
+                markdownView={reportMarkdownView}
+                selectedMarkdownImagePath={selectedMarkdownImagePath}
+                selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+                scrollContainerRef={screenshotScrollRef}
+              />
+            ) : (
+              <>
+                <div className="main-right-toolbar">
                   <button
                     type="button"
-                    className="mobile-detail-trigger"
-                    aria-controls="mobile-detail-drawer"
-                    aria-expanded={mobileDetailOpen}
-                    onClick={() => setMobileDetailOpen(true)}
+                    className="main-right-header"
+                    aria-expanded={!timelineCollapsed}
+                    onClick={() =>
+                      setTimelineCollapsed((collapsed) => !collapsed)
+                    }
                   >
-                    <InfoCircleOutlined aria-hidden="true" />
-                    <span>Information</span>
+                    <RecordVideocameraIcon
+                      aria-hidden="true"
+                      className="main-right-header-icon"
+                    />
+                    <span>Record</span>
                   </button>
-                )}
-              </div>
-              {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-              <div className="main-content">{content}</div>
-            </>
-          )}
+                  {!replayAllMode && (
+                    <button
+                      type="button"
+                      className="mobile-detail-trigger"
+                      aria-controls="mobile-detail-drawer"
+                      aria-expanded={mobileDetailOpen}
+                      onClick={() => setMobileDetailOpen(true)}
+                    >
+                      <InfoCircleOutlined aria-hidden="true" />
+                      <span>Information</span>
+                    </button>
+                  )}
+                </div>
+                {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+                <div className="main-content">{content}</div>
+              </>
+            ))}
         </div>
       </div>
     );

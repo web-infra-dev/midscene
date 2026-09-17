@@ -90,9 +90,22 @@ describe('sidebar layout', () => {
     expect(appStyles).toContain(
       'padding: 0 12px max(20px, env(safe-area-inset-bottom));',
     );
-    expect(source).toContain('onTaskClick?.()');
+    expect(source.match(/onOpenPlayer\?\.\(\)/g)).toHaveLength(3);
     expect(appSource).toMatch(
-      /onTaskClick=\{\(\) => \{[\s\S]*?setMobileDetailOpen\(false\);[\s\S]*?setMobilePane\('player'\);/,
+      /const openMobilePlayer = \(\) => \{[\s\S]*?setMobileDetailOpen\(false\);[\s\S]*?setMobilePane\('player'\);/,
+    );
+    expect(appSource).toContain('onOpenPlayer={openMobilePlayer}');
+    expect(appSource).toMatch(
+      /const shouldMountPlayerPane = !isMobileReport \|\| mobilePane === 'player';/,
+    );
+    expect(appSource).toContain(
+      'const content = shouldMountPlayerPane ? renderContent() : null;',
+    );
+    expect(appSource).toMatch(
+      /\{shouldMountPlayerPane &&[\s\S]*?reportViewMode === 'markdown'/,
+    );
+    expect(appSource).toContain(
+      "mediaQuery.addEventListener('change', updateMobileReport)",
     );
     expect(appSource).toContain('className="mobile-detail-trigger"');
     expect(appSource).toContain('id="mobile-detail-drawer"');

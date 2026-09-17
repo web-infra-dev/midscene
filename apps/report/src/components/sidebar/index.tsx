@@ -58,7 +58,7 @@ interface SidebarProps {
   onCopyReportMarkdown?: () => void;
   onDownloadReportMarkdownZip?: () => void;
   onReportCaseChange?: () => void;
-  onTaskClick?: () => void;
+  onOpenPlayer?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -76,7 +76,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     onCopyReportMarkdown,
     onDownloadReportMarkdownZip,
     onReportCaseChange,
-    onTaskClick,
+    onOpenPlayer,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -674,7 +674,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
                     setPlayingTaskId(null); // Clear playing state when user clicks a task
-                    onTaskClick?.();
+                    onOpenPlayer?.();
                   }}
                   onMouseEnter={(event) => {
                     if (
@@ -866,7 +866,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       <div className="agent-markdown-sidebar">
         <MarkdownSource
           markdown={reportMarkdownView.markdown}
-          onImageClick={onMarkdownImageClick}
+          onImageClick={(markdownPath) => {
+            onMarkdownImageClick?.(markdownPath);
+            onOpenPlayer?.();
+          }}
           scrollContainerRef={markdownScrollContainerRef}
         />
       </div>
@@ -920,6 +923,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           aria-label="Replay all tasks"
           onClick={() => {
             setReplayAllMode?.(true);
+            onOpenPlayer?.();
           }}
         >
           <PlayIcon />
