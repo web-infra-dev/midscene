@@ -1,5 +1,6 @@
 import './App.less';
 
+import { InfoCircleOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
@@ -58,6 +59,9 @@ import {
   parseDumpAttributes,
 } from './utils/report-dump';
 import { parseTestRunReportDump } from './utils/test-run-report';
+
+const MOBILE_REPORT_MEDIA_QUERY =
+  '(max-width: 640px), (max-width: 932px) and (max-height: 500px) and (pointer: coarse)';
 
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
@@ -123,7 +127,18 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
   });
   const dump = useExecutionDump((store) => store.dump);
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
+  );
+  const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
+  const [isMobileReport, setIsMobileReport] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
+  );
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
@@ -157,6 +172,24 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       isDarkMode ? 'dark' : 'light',
     );
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_REPORT_MEDIA_QUERY);
+    const updateMobileReport = () => setIsMobileReport(mediaQuery.matches);
+    updateMobileReport();
+    mediaQuery.addEventListener('change', updateMobileReport);
+    return () => mediaQuery.removeEventListener('change', updateMobileReport);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileDetailOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileDetailOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileDetailOpen]);
 
   useEffect(() => {
     if (dumps && dumps.length > 0) {
@@ -265,6 +298,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     setSelectedMarkdownImagePath(markdownPath);
     setSelectedMarkdownImageRequestId((current) => current + 1);
   };
+  const openMobilePlayer = () => {
+    setMobileDetailOpen(false);
+    setMobilePane('player');
+  };
 
   useMarkdownScrollSync({
     enabled: reportViewMode === 'markdown' && Boolean(readyReportMarkdown),
@@ -299,19 +336,34 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       );
     }
     return (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel autoPlay={autoPlay} />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
+      <>
+        <PanelGroup
+          autoSaveId="page-detail-layout-v2"
+          className="desktop-detail-layout"
+          direction="horizontal"
+        >
+          <Panel className="player-panel" defaultSize={75} maxSize={95}>
+            <div className="main-content-container">
+              <DetailPanel autoPlay={autoPlay} />
+            </div>
+          </Panel>
+          <PanelResizeHandle className="resize-handle" />
+          <Panel className="information-panel" maxSize={95}>
+            <div className="main-side">
+              <DetailSide />
+            </div>
+          </Panel>
+        </PanelGroup>
+        <dialog
+          id="mobile-detail-drawer"
+          className={`mobile-detail-drawer ${mobileDetailOpen ? 'is-open' : ''}`}
+          open={mobileDetailOpen}
+          aria-label="Step information"
+          aria-hidden={!mobileDetailOpen}
+        >
+          <DetailSide onClose={() => setMobileDetailOpen(false)} />
+        </dialog>
+      </>
     );
   };
 
@@ -346,11 +398,42 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = renderContent();
+    // On phones the Player must not mount behind the Steps pane. In
+    // particular, autoPlay starts inside the Player hook and display:none
+    // cannot pause its requestAnimationFrame loop.
+    const shouldMountPlayerPane = !isMobileReport || mobilePane === 'player';
+    const content = shouldMountPlayerPane ? renderContent() : null;
 
     mainContent = (
       <div className="main-layout">
-        <div className="page-side" style={{ width: sidebarWidth }}>
+        <nav className="mobile-report-tabs" aria-label="Report view">
+          <button
+            type="button"
+            className={mobilePane === 'steps' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'steps'}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('steps');
+            }}
+          >
+            Steps
+          </button>
+          <button
+            type="button"
+            className={mobilePane === 'player' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'player'}
+            onClick={() => {
+              setMobileDetailOpen(false);
+              setMobilePane('player');
+            }}
+          >
+            Player
+          </button>
+        </nav>
+        <div
+          className={`page-side ${mobilePane === 'player' ? 'mobile-pane-hidden' : ''}`}
+          style={{ width: sidebarWidth }}
+        >
           <Sidebar
             dumps={dumps}
             proModeEnabled={proModeEnabled}
@@ -368,6 +451,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               void handleDownloadReportMarkdownZip()
             }
             onReportCaseChange={resetMarkdownImageSelection}
+            onOpenPlayer={openMobilePlayer}
           />
         </div>
         <div
@@ -391,32 +475,51 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             document.addEventListener('mouseup', onMouseUp);
           }}
         />
-        <div className="main-right">
-          {reportViewMode === 'markdown' ? (
-            <AgentScreenshotView
-              markdownView={reportMarkdownView}
-              selectedMarkdownImagePath={selectedMarkdownImagePath}
-              selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
-              scrollContainerRef={screenshotScrollRef}
-            />
-          ) : (
-            <>
-              <button
-                type="button"
-                className="main-right-header"
-                aria-expanded={!timelineCollapsed}
-                onClick={() => setTimelineCollapsed((collapsed) => !collapsed)}
-              >
-                <RecordVideocameraIcon
-                  aria-hidden="true"
-                  className="main-right-header-icon"
-                />
-                <span>Record</span>
-              </button>
-              {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-              <div className="main-content">{content}</div>
-            </>
-          )}
+        <div
+          className={`main-right ${mobilePane === 'steps' ? 'mobile-pane-hidden' : ''}`}
+        >
+          {shouldMountPlayerPane &&
+            (reportViewMode === 'markdown' ? (
+              <AgentScreenshotView
+                markdownView={reportMarkdownView}
+                selectedMarkdownImagePath={selectedMarkdownImagePath}
+                selectedMarkdownImageRequestId={selectedMarkdownImageRequestId}
+                scrollContainerRef={screenshotScrollRef}
+              />
+            ) : (
+              <>
+                <div className="main-right-toolbar">
+                  <button
+                    type="button"
+                    className="main-right-header"
+                    aria-expanded={!timelineCollapsed}
+                    onClick={() =>
+                      setTimelineCollapsed((collapsed) => !collapsed)
+                    }
+                  >
+                    <RecordVideocameraIcon
+                      aria-hidden="true"
+                      className="main-right-header-icon"
+                    />
+                    <span>Record</span>
+                  </button>
+                  {!replayAllMode && (
+                    <button
+                      type="button"
+                      className="mobile-detail-trigger"
+                      aria-controls="mobile-detail-drawer"
+                      aria-expanded={mobileDetailOpen}
+                      onClick={() => setMobileDetailOpen(true)}
+                    >
+                      <InfoCircleOutlined aria-hidden="true" />
+                      <span>Information</span>
+                    </button>
+                  )}
+                </div>
+                {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+                <div className="main-content">{content}</div>
+              </>
+            ))}
         </div>
       </div>
     );
