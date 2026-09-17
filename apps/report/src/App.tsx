@@ -123,7 +123,12 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
   });
   const dump = useExecutionDump((store) => store.dump);
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 1024px), (pointer: coarse)').matches,
+  );
+  const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
   const [reportViewMode, setReportViewMode] = useState<ReportViewMode>('human');
   const [selectedMarkdownImagePath, setSelectedMarkdownImagePath] = useState<
     string | null
@@ -350,7 +355,28 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
     mainContent = (
       <div className="main-layout">
-        <div className="page-side" style={{ width: sidebarWidth }}>
+        <nav className="mobile-report-tabs" aria-label="Report view">
+          <button
+            type="button"
+            className={mobilePane === 'steps' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'steps'}
+            onClick={() => setMobilePane('steps')}
+          >
+            Steps
+          </button>
+          <button
+            type="button"
+            className={mobilePane === 'player' ? 'is-active' : ''}
+            aria-pressed={mobilePane === 'player'}
+            onClick={() => setMobilePane('player')}
+          >
+            Player
+          </button>
+        </nav>
+        <div
+          className={`page-side ${mobilePane === 'player' ? 'mobile-pane-hidden' : ''}`}
+          style={{ width: sidebarWidth }}
+        >
           <Sidebar
             dumps={dumps}
             proModeEnabled={proModeEnabled}
@@ -368,6 +394,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               void handleDownloadReportMarkdownZip()
             }
             onReportCaseChange={resetMarkdownImageSelection}
+            onTaskClick={() => setMobilePane('player')}
           />
         </div>
         <div
@@ -391,7 +418,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             document.addEventListener('mouseup', onMouseUp);
           }}
         />
-        <div className="main-right">
+        <div
+          className={`main-right ${mobilePane === 'steps' ? 'mobile-pane-hidden' : ''}`}
+        >
           {reportViewMode === 'markdown' ? (
             <AgentScreenshotView
               markdownView={reportMarkdownView}

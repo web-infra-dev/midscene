@@ -58,6 +58,7 @@ interface SidebarProps {
   onCopyReportMarkdown?: () => void;
   onDownloadReportMarkdownZip?: () => void;
   onReportCaseChange?: () => void;
+  onTaskClick?: () => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
@@ -75,6 +76,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     onCopyReportMarkdown,
     onDownloadReportMarkdownZip,
     onReportCaseChange,
+    onTaskClick,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -672,6 +674,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
                     setPlayingTaskId(null); // Clear playing state when user clicks a task
+                    onTaskClick?.();
                   }}
                   onMouseEnter={(event) => {
                     const rect = event.currentTarget.getBoundingClientRect();

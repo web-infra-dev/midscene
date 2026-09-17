@@ -11,6 +11,10 @@ const appStyles = readFileSync(
   new URL('../../App.less', import.meta.url),
   'utf8',
 );
+const appSource = readFileSync(
+  new URL('../../App.tsx', import.meta.url),
+  'utf8',
+);
 const screenshotStyles = readFileSync(
   new URL('../agent-screenshot-view/index.less', import.meta.url),
   'utf8',
@@ -58,5 +62,18 @@ describe('sidebar layout', () => {
       /\.icon-button\s*{[^}]*border: 0;[^}]*background: transparent;/s,
     );
     expect(styles).toMatch(/\.icon-button\s*{[\s\S]*?&:focus-visible\s*{/);
+  });
+
+  it('provides mobile steps and player panes with a safe-area bottom inset', () => {
+    expect(appStyles).toContain(
+      '@media (max-width: 1024px), (pointer: coarse)',
+    );
+    expect(appStyles).toMatch(/\.mobile-report-tabs\s*{[\s\S]*?display: grid;/);
+    expect(appStyles).toMatch(/\.mobile-pane-hidden\s*{[\s\S]*?display: none;/);
+    expect(appStyles).toContain(
+      'padding: 0 12px max(20px, env(safe-area-inset-bottom));',
+    );
+    expect(source).toContain('onTaskClick?.()');
+    expect(appSource).toContain("onTaskClick={() => setMobilePane('player')}");
   });
 });
