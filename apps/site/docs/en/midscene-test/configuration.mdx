@@ -4,9 +4,16 @@
 
 ## Configuration structure
 
-In `midscene.config.ts`, use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
+Use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
 
-For a config already built as JavaScript, pass its `.mjs` path to the CLI's `--config` option or to `loadTestProject()`. The `.mjs` file is loaded as native ESM; it is not transformed as TypeScript. The default `midscene.config.ts` workflow remains unchanged.
+Midscene Test supports the following configuration files:
+
+| How the configuration is selected | Supported file | Loading behavior |
+| --- | --- | --- |
+| Automatic discovery, when no configuration path is provided | `midscene.config.ts` only | Transformed from TypeScript and loaded |
+| An explicit path passed through the CLI's `--config <path>` option or `loadTestProject(path)` | `.ts` or `.mjs` | `.ts` is transformed from TypeScript; `.mjs` is loaded by Node.js as native ESM without TypeScript transformation |
+
+For a typical project, create `midscene.config.ts` in the project root and run Midscene Test without `--config`. Use `.mjs` when another build step already emits the configuration as JavaScript, and pass that file explicitly. A file named `midscene.config.mjs` is not discovered automatically.
 
 Create browser or device resources in `setup` and register the corresponding Agent Nodes through `nodes`. These determine the capabilities available to each execution project.
 
@@ -445,7 +452,7 @@ import {
 } from '@midscene/test';
 ```
 
-- **`loadTestProject()`**: asynchronously loads a TypeScript (`.ts`) or JavaScript ESM (`.mjs`) project configuration. Midscene Test does not support synchronous loading.
+- **`loadTestProject(path)`**: asynchronously loads an explicitly provided TypeScript (`.ts`) or JavaScript ESM (`.mjs`) project configuration. Without an explicit path, the CLI discovers only `midscene.config.ts`. Midscene Test does not support synchronous loading.
 - **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project.
 - **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
 - **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
