@@ -362,6 +362,29 @@ With external screenshot storage, the report is a directory containing `index.ht
 
 Set `output.reportDir` in `midscene.config.ts` to change the report directory.
 
+### Link to a report Step
+
+Use the `runner-step` URL hash parameter to open a report at a specific Step. In addition to a concrete Step ID, reports accept portable selectors that do not depend on generated run IDs:
+
+| Selector | Target |
+| --- | --- |
+| `first` | First executed Step |
+| `last` | Last executed Step |
+| `first-error` | First failed Step, including failed retry attempts |
+| `last-error` | Last failed Step, including failed retry attempts |
+
+For example, this URL opens the last failed Step in a report:
+
+```text
+https://example.com/report/index.html#runner-step=last-error
+```
+
+Add `runner-trace=page` to open the Step's Agent trace as a full page when the Step has associated Agent details:
+
+```text
+https://example.com/report/index.html#runner-step=last-error&runner-trace=page
+```
+
 ## Test case design conventions
 
 Midscene Test uses sequential execution and explicit state sharing to make each Node's inputs, execution context, and dependencies clear. YAML cases follow these design choices:

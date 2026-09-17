@@ -523,6 +523,81 @@ describe('Midscene Test hybrid report model', () => {
     });
   });
 
+  it('resolves portable first, last, and error Step links', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+
+    expect(
+      resolveRunnerNavigation('#runner-step=first', cases, projects),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:passed',
+      deepLinkedStepId: 'open',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last', cases, projects),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:failed',
+      deepLinkedStepId: 'assert',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=first-error', cases, projects),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:retried',
+      deepLinkedStepId: 'demo.passOnRetry',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last-error', cases, projects),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:failed',
+      deepLinkedStepId: 'assert',
+    });
+  });
+
+  it('lets a portable Step selector override stale Case route parameters', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=last-error',
+        cases,
+        projects,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:failed',
+      deepLinkedStepId: 'assert',
+    });
+  });
+
+  it('includes document lifecycle Steps in portable links', () => {
+    const lifecycleDump = structuredClone(dump);
+    const [document] = lifecycleDump.projects[0].documents;
+    document.beforeAll = [step('document:beforeAll:0')];
+    document.afterAll = [step('document:afterAll:0', 'failed')];
+    const cases = flattenRunnerCases(lifecycleDump);
+    const projects = groupRunnerProjects(lifecycleDump, cases);
+
+    expect(
+      resolveRunnerNavigation('#runner-step=first', cases, projects),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:beforeAll:0',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last', cases, projects),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:afterAll:0',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last-error', cases, projects),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:afterAll:0',
+    });
+  });
+
   it('uses the same filters within a single project without changing its health', () => {
     const projects = groupRunnerProjects(dump, flattenRunnerCases(dump));
     const selected = projects[0];
