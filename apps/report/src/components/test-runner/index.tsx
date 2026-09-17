@@ -6,7 +6,7 @@ import {
   globalThemeConfig,
   useGlobalPreference,
 } from '@midscene/visualizer';
-import { App as AntdApp, ConfigProvider, theme } from 'antd';
+import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
@@ -17,6 +17,7 @@ import {
 import { CaseWorkspace } from './case-workspace';
 import {
   type RunnerCaseView,
+  buildRunnerStepIndex,
   buildRunnerVisualIndex,
   flattenRunnerCases,
   getDefaultExpandedProjectKeys,
@@ -50,6 +51,10 @@ export default function TestRunnerReport({
     () => groupRunnerProjects(dump, cases),
     [cases, dump],
   );
+  const stepIndex = useMemo(
+    () => buildRunnerStepIndex(dump, cases),
+    [cases, dump],
+  );
   const visualIndex = useMemo(() => buildRunnerVisualIndex(reports), [reports]);
   const [caseDisplayMode, setCaseDisplayMode] =
     useState<RunnerCaseDisplayMode>('compact');
@@ -60,17 +65,19 @@ export default function TestRunnerReport({
       ),
   );
   const [navigation, setNavigation] = useState<RunnerNavigationState>(() =>
-    resolveRunnerNavigation(window.location.hash, cases, projects),
+    resolveRunnerNavigation(window.location.hash, cases, projects, stepIndex),
   );
   const mainRef = useRef<HTMLElement>(null);
   const overviewReturnStateRef = useRef<{
     scrollTop: number;
     caseKey?: string;
   }>({ scrollTop: 0 });
-  const { page, selectedCaseKey, deepLinkedStepId } = navigation;
+  const { page, selectedCaseKey, deepLinkedStepId, unmatchedStepSelector } =
+    navigation;
   const selectedCase = cases.find((item) => item.key === selectedCaseKey);
   const tracePage =
     page === 'case' &&
+    Boolean(deepLinkedStepId) &&
     new URLSearchParams(window.location.hash.slice(1)).get('runner-trace') ===
       'page';
 
@@ -84,7 +91,12 @@ export default function TestRunnerReport({
   useEffect(() => {
     const syncNavigationFromUrl = () => {
       setNavigation(
-        resolveRunnerNavigation(window.location.hash, cases, projects),
+        resolveRunnerNavigation(
+          window.location.hash,
+          cases,
+          projects,
+          stepIndex,
+        ),
       );
       window.requestAnimationFrame(() => {
         if (mainRef.current) mainRef.current.scrollTop = 0;
@@ -96,7 +108,7 @@ export default function TestRunnerReport({
       window.removeEventListener('popstate', syncNavigationFromUrl);
       window.removeEventListener('hashchange', syncNavigationFromUrl);
     };
-  }, [cases, projects]);
+  }, [cases, projects, stepIndex]);
 
   const restoreView = ({
     scrollTop = 0,
@@ -130,7 +142,9 @@ export default function TestRunnerReport({
     if (nextHash !== (window.location.hash || '#')) {
       window.history.pushState({ midsceneRunnerRoute: true }, '', nextHash);
     }
-    setNavigation(resolveRunnerNavigation(nextHash, cases, projects));
+    setNavigation(
+      resolveRunnerNavigation(nextHash, cases, projects, stepIndex),
+    );
     restoreView(viewState);
   };
   const openCase = (item: RunnerCaseView, stepId?: string) => {
@@ -200,6 +214,14 @@ export default function TestRunnerReport({
             tabIndex={-1}
             aria-label="Test report content"
           >
+            {unmatchedStepSelector ? (
+              <Alert
+                className="runner-step-selector-alert"
+                type="info"
+                showIcon
+                message={`No Step matches runner-step=${unmatchedStepSelector}.`}
+              />
+            ) : null}
             {page === 'case' && selectedCase ? (
               <CaseWorkspace
                 key={selectedCase.key}

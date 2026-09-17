@@ -23,6 +23,29 @@ export interface RunnerCaseView {
   finalAttempt?: TestRunReportAttempt;
 }
 
+export type RunnerStepSelector =
+  | 'first'
+  | 'last'
+  | 'first-error'
+  | 'last-error';
+
+export interface RunnerStepTarget {
+  item: RunnerCaseView;
+  step: TestRunReportStep;
+}
+
+const runnerStepSelectors = new Set<RunnerStepSelector>([
+  'first',
+  'last',
+  'first-error',
+  'last-error',
+]);
+
+export const isRunnerStepSelector = (
+  value: string | undefined,
+): value is RunnerStepSelector =>
+  Boolean(value && runnerStepSelectors.has(value as RunnerStepSelector));
+
 export interface RunnerCaseSearchMatch {
   label: string;
   snippet: string;
@@ -167,6 +190,81 @@ export const flattenRunnerCases = (
     }
   }
   return result;
+};
+
+export const getRunnerCaseStepTargets = (
+  item: RunnerCaseView,
+): RunnerStepTarget[] => [
+  ...item.document.beforeAll.map((step) => ({ item, step })),
+  ...item.testCase.attempts.flatMap((attempt) =>
+    flattenAttemptSteps(attempt).map((step) => ({ item, step })),
+  ),
+  ...item.document.afterAll.map((step) => ({ item, step })),
+];
+
+/** Build the report-wide Step index while preserving each Step's display owner. */
+export const buildRunnerStepIndex = (
+  dump: TestRunReportDump,
+  cases: readonly RunnerCaseView[],
+): RunnerStepTarget[] => {
+  const caseByKey = new Map(cases.map((item) => [item.key, item]));
+  const result: RunnerStepTarget[] = [];
+
+  for (const project of dump.projects) {
+    for (const document of project.documents) {
+      const documentCases = document.cases.flatMap((testCase) => {
+        const key = `${project.projectId}:${document.documentId}:${testCase.caseId}`;
+        const item = caseByKey.get(key);
+        return item ? [item] : [];
+      });
+      const firstCase = documentCases[0];
+      const lastCase = documentCases.at(-1);
+      if (!firstCase || !lastCase) continue;
+
+      result.push(
+        ...document.beforeAll.map((step) => ({ item: firstCase, step })),
+      );
+      for (const item of documentCases) {
+        result.push(
+          ...item.testCase.attempts.flatMap((attempt) =>
+            flattenAttemptSteps(attempt).map((step) => ({ item, step })),
+          ),
+        );
+      }
+      result.push(
+        ...document.afterAll.map((step) => ({ item: lastCase, step })),
+      );
+    }
+  }
+
+  return result;
+};
+
+/** Resolve portable selectors by actual execution time, with report order as a tie-breaker. */
+export const resolveRunnerStepSelector = (
+  targets: readonly RunnerStepTarget[],
+  selector: RunnerStepSelector,
+): RunnerStepTarget | undefined => {
+  const candidates = selector.endsWith('-error')
+    ? targets.filter((target) => target.step.status === 'failed')
+    : targets;
+  const selectsFirst = selector.startsWith('first');
+  const timeKey = selectsFirst ? 'startedAt' : 'endedAt';
+
+  return candidates.reduce<RunnerStepTarget | undefined>(
+    (selected, candidate) => {
+      if (!selected) return candidate;
+      const selectedTime = timestamp(selected.step[timeKey]);
+      const candidateTime = timestamp(candidate.step[timeKey]);
+      if (candidateTime === undefined) return selected;
+      if (selectedTime === undefined) return candidate;
+      const shouldReplace = selectsFirst
+        ? candidateTime < selectedTime
+        : candidateTime >= selectedTime;
+      return shouldReplace ? candidate : selected;
+    },
+    undefined,
+  );
 };
 
 export const getRunnerHealth = (

@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
+  buildRunnerStepIndex,
   buildRunnerVisualIndex,
   filterAndSortRunnerProjectBreakdown,
   flattenRunnerCases,
@@ -328,58 +329,84 @@ describe('Midscene Test hybrid report model', () => {
     ];
     const cases = flattenRunnerCases(singleDump);
     const projects = groupRunnerProjects(singleDump, cases);
-    expect(resolveRunnerNavigation('', cases, projects)).toMatchObject({
+    const stepIndex = buildRunnerStepIndex(singleDump, cases);
+    expect(
+      resolveRunnerNavigation('', cases, projects, stepIndex),
+    ).toMatchObject({
       page: 'case',
       selectedCaseKey: cases[0].key,
     });
     expect(
-      resolveRunnerNavigation('#runner-page=overview', cases, projects).page,
+      resolveRunnerNavigation(
+        '#runner-page=overview',
+        cases,
+        projects,
+        stepIndex,
+      ).page,
     ).toBe('case');
     expect(
       resolveRunnerNavigation(
         '#runner-page=project&runner-project=web',
         cases,
         projects,
+        stepIndex,
       ).page,
     ).toBe('case');
+    const allCases = flattenRunnerCases(dump);
     expect(
-      resolveRunnerNavigation('', flattenRunnerCases(dump), projects).page,
+      resolveRunnerNavigation(
+        '',
+        allCases,
+        projects,
+        buildRunnerStepIndex(dump, allCases),
+      ).page,
     ).toBe('overview');
     expect(
-      resolveRunnerNavigation('', cases, [
-        ...projects,
-        { ...projects[0], key: 'other' },
-      ]).page,
+      resolveRunnerNavigation(
+        '',
+        cases,
+        [...projects, { ...projects[0], key: 'other' }],
+        stepIndex,
+      ).page,
     ).toBe('overview');
-    expect(resolveRunnerNavigation('', [], projects).page).toBe('overview');
+    expect(resolveRunnerNavigation('', [], projects, []).page).toBe('overview');
   });
 
   it('does not treat a filtered multi-case report as a standalone case', () => {
     const filteredCases = flattenRunnerCases(dump).slice(0, 1);
     const projects = groupRunnerProjects(dump, filteredCases);
     expect(isSingleCaseReport(projects)).toBe(false);
-    expect(resolveRunnerNavigation('', filteredCases, projects).page).toBe(
-      'overview',
-    );
+    expect(
+      resolveRunnerNavigation(
+        '',
+        filteredCases,
+        projects,
+        buildRunnerStepIndex(dump, filteredCases),
+      ).page,
+    ).toBe('overview');
   });
 
   it('routes multi-case reports between overview and case detail only', () => {
     const cases = flattenRunnerCases(dump);
     const projects = groupRunnerProjects(dump, cases);
+    const stepIndex = buildRunnerStepIndex(dump, cases);
     expect(
       resolveRunnerNavigation(
         '#runner-page=project&runner-project=web',
         cases,
         projects,
+        stepIndex,
       ),
     ).toEqual({ page: 'overview' });
     const target = cases[0];
     const hash = `#runner-page=case&runner-project=${encodeURIComponent(target.project.projectId)}&runner-case=${encodeURIComponent(target.key)}`;
-    expect(resolveRunnerNavigation(hash, cases, projects)).toMatchObject({
+    expect(
+      resolveRunnerNavigation(hash, cases, projects, stepIndex),
+    ).toMatchObject({
       page: 'case',
       selectedCaseKey: target.key,
     });
-    expect(resolveRunnerNavigation('#', cases, projects)).toEqual({
+    expect(resolveRunnerNavigation('#', cases, projects, stepIndex)).toEqual({
       page: 'overview',
     });
   });
@@ -391,11 +418,13 @@ describe('Midscene Test hybrid report model', () => {
     ];
     const cases = flattenRunnerCases(singleDump);
     const projects = groupRunnerProjects(singleDump, cases);
+    const stepIndex = buildRunnerStepIndex(singleDump, cases);
     expect(
       resolveRunnerNavigation(
         '#runner-step=demo.passOnRetry&runner-trace=page',
         cases,
         projects,
+        stepIndex,
       ),
     ).toMatchObject({
       page: 'case',
@@ -406,6 +435,7 @@ describe('Midscene Test hybrid report model', () => {
         '#runner-page=overview&runner-step=missing',
         cases,
         projects,
+        stepIndex,
       ),
     ).toMatchObject({
       page: 'case',
@@ -507,6 +537,7 @@ describe('Midscene Test hybrid report model', () => {
   it('preserves step deep links when choosing the initial page', () => {
     const cases = flattenRunnerCases(dump);
     const projects = groupRunnerProjects(dump, cases);
+    const stepIndex = buildRunnerStepIndex(dump, cases);
     const target = cases.find((item) => item.finalAttempt?.steps.length);
     if (!target?.finalAttempt) throw new Error('Fixture needs a step');
     const stepId = target.finalAttempt.steps[0].id;
@@ -515,11 +546,205 @@ describe('Midscene Test hybrid report model', () => {
         `#runner-step=${encodeURIComponent(stepId)}`,
         cases,
         projects,
+        stepIndex,
       ),
     ).toMatchObject({
       page: 'case',
       selectedCaseKey: target.key,
       deepLinkedStepId: stepId,
+    });
+  });
+
+  it('resolves portable first, last, and error Step links', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+    const stepIndex = buildRunnerStepIndex(dump, cases);
+
+    expect(
+      resolveRunnerNavigation('#runner-step=first', cases, projects, stepIndex),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:passed',
+      deepLinkedStepId: 'open',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last', cases, projects, stepIndex),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:failed',
+      deepLinkedStepId: 'assert',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=first-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:retried',
+      deepLinkedStepId: 'demo.passOnRetry',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=last-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:failed',
+      deepLinkedStepId: 'assert',
+    });
+  });
+
+  it('resolves portable Step links by execution time across concurrent Projects', () => {
+    const concurrentDump = structuredClone(dump);
+    const buildProject = (
+      projectId: string,
+      stepId: string,
+      startedAt: string,
+      endedAt: string,
+    ) => {
+      const project = structuredClone(dump.projects[0]);
+      project.projectId = projectId;
+      const [document] = project.documents;
+      document.documentId = `${projectId}-document`;
+      const testCase = structuredClone(document.cases[0]);
+      testCase.caseId = `${projectId}-case`;
+      const targetStep = testCase.attempts[0].steps[0];
+      targetStep.id = stepId;
+      targetStep.status = 'failed';
+      targetStep.startedAt = startedAt;
+      targetStep.endedAt = endedAt;
+      document.beforeAll = [];
+      document.cases = [testCase];
+      document.afterAll = [];
+      return project;
+    };
+    concurrentDump.projects = [
+      buildProject('alpha', 'alpha-step', at(2), at(10)),
+      buildProject('beta', 'beta-step', at(1), at(3)),
+    ];
+    const cases = flattenRunnerCases(concurrentDump);
+    const projects = groupRunnerProjects(concurrentDump, cases);
+    const stepIndex = buildRunnerStepIndex(concurrentDump, cases);
+
+    expect(
+      resolveRunnerNavigation('#runner-step=first', cases, projects, stepIndex),
+    ).toMatchObject({
+      selectedCaseKey: 'beta:beta-document:beta-case',
+      deepLinkedStepId: 'beta-step',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last', cases, projects, stepIndex),
+    ).toMatchObject({
+      selectedCaseKey: 'alpha:alpha-document:alpha-case',
+      deepLinkedStepId: 'alpha-step',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=first-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({ deepLinkedStepId: 'beta-step' });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=last-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({ deepLinkedStepId: 'alpha-step' });
+  });
+
+  it('reports an unmatched error selector without selecting an unrelated trace', () => {
+    const passingDump = structuredClone(dump);
+    passingDump.projects[0].documents[0].cases = [
+      passingDump.projects[0].documents[0].cases[0],
+    ];
+    const cases = flattenRunnerCases(passingDump);
+    const projects = groupRunnerProjects(passingDump, cases);
+    const stepIndex = buildRunnerStepIndex(passingDump, cases);
+
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=last-error&runner-trace=page',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toEqual({
+      page: 'case',
+      selectedCaseKey: 'web:document:passed',
+      deepLinkedStepId: undefined,
+      unmatchedStepSelector: 'last-error',
+    });
+  });
+
+  it('scopes a portable Step selector to an explicit Case route', () => {
+    const cases = flattenRunnerCases(dump);
+    const projects = groupRunnerProjects(dump, cases);
+    const stepIndex = buildRunnerStepIndex(dump, cases);
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=last',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:passed',
+      deepLinkedStepId: 'open',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-page=case&runner-project=web&runner-case=web%3Adocument%3Apassed&runner-step=last-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({
+      page: 'case',
+      selectedCaseKey: 'web:document:passed',
+      deepLinkedStepId: undefined,
+      unmatchedStepSelector: 'last-error',
+    });
+  });
+
+  it('includes document lifecycle Steps in portable links', () => {
+    const lifecycleDump = structuredClone(dump);
+    const [document] = lifecycleDump.projects[0].documents;
+    document.beforeAll = [step('document:beforeAll:0')];
+    document.afterAll = [step('document:afterAll:0', 'failed')];
+    const cases = flattenRunnerCases(lifecycleDump);
+    const projects = groupRunnerProjects(lifecycleDump, cases);
+    const stepIndex = buildRunnerStepIndex(lifecycleDump, cases);
+
+    expect(
+      resolveRunnerNavigation('#runner-step=first', cases, projects, stepIndex),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:beforeAll:0',
+    });
+    expect(
+      resolveRunnerNavigation('#runner-step=last', cases, projects, stepIndex),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:afterAll:0',
+    });
+    expect(
+      resolveRunnerNavigation(
+        '#runner-step=last-error',
+        cases,
+        projects,
+        stepIndex,
+      ),
+    ).toMatchObject({
+      deepLinkedStepId: 'document:afterAll:0',
     });
   });
 

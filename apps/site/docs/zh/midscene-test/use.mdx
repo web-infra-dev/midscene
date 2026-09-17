@@ -362,6 +362,31 @@ midscene_run/report/test-run-<runId>.html
 
 通过 `midscene.config.ts` 中的 `output.reportDir` 可以修改报告目录。
 
+### 链接到报告中的 Step
+
+使用 URL Hash 参数 `runner-step`，可以直接打开报告中的指定 Step。除了具体的 Step ID，报告还支持不依赖运行 ID 的通用选择器：
+
+| 选择器 | 定位目标 |
+| --- | --- |
+| `first` | 最早开始执行的 Step |
+| `last` | 最晚执行完成的 Step |
+| `first-error` | 最早开始执行的失败 Step，包括失败的重试记录 |
+| `last-error` | 最晚执行完成的失败 Step，包括失败的重试记录 |
+
+URL 没有指定 Case 路由时，选择器会搜索整份报告。URL 同时包含 `runner-page=case`、`runner-project` 和 `runner-case` 时，选择器只搜索这个 Case。没有匹配的 Step 时，报告会显示提示，并且不会打开无关的 Agent 执行详情。
+
+例如，以下 URL 会打开报告中最后一个失败的 Step：
+
+```text
+https://example.com/report/index.html#runner-step=last-error
+```
+
+如果该 Step 关联了 Agent 执行详情，可以增加 `runner-trace=page`，直接以整页方式打开 Agent 执行详情：
+
+```text
+https://example.com/report/index.html#runner-step=last-error&runner-trace=page
+```
+
 ## 用例设计约定
 
 Midscene Test 通过顺序执行和显式共享状态，让每个 Node 的输入、执行上下文和依赖关系更清晰。YAML 用例遵循以下设计：

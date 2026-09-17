@@ -6,7 +6,11 @@ import {
 import {
   type RunnerCaseView,
   type RunnerProjectView,
-  flattenAttemptSteps,
+  type RunnerStepSelector,
+  type RunnerStepTarget,
+  getRunnerCaseStepTargets,
+  isRunnerStepSelector,
+  resolveRunnerStepSelector,
 } from './model';
 
 type RunnerPage = RunnerRoute['page'];
@@ -15,6 +19,7 @@ export interface RunnerNavigationState {
   page: RunnerPage;
   selectedCaseKey?: string;
   deepLinkedStepId?: string;
+  unmatchedStepSelector?: RunnerStepSelector;
 }
 
 export const isSingleCaseReport = (
@@ -26,66 +31,74 @@ export const isSingleCaseReport = (
     0,
   ) === 1;
 
-const caseContainsStep = (
-  item: RunnerCaseView,
-  stepId: string | undefined,
-): boolean =>
-  Boolean(
-    stepId &&
-      (item.document.beforeAll.some((step) => step.id === stepId) ||
-        item.document.afterAll.some((step) => step.id === stepId) ||
-        item.testCase.attempts.some((attempt) =>
-          flattenAttemptSteps(attempt).some((step) => step.id === stepId),
-        )),
-  );
+const resolveRunnerStepTarget = (
+  stepReference: string | undefined,
+  targets: readonly RunnerStepTarget[],
+): RunnerStepTarget | undefined => {
+  if (!stepReference) return undefined;
+  return isRunnerStepSelector(stepReference)
+    ? resolveRunnerStepSelector(targets, stepReference)
+    : targets.find((target) => target.step.id === stepReference);
+};
 
 export const resolveRunnerNavigation = (
   hash: string,
   cases: readonly RunnerCaseView[],
   projects: readonly RunnerProjectView[],
+  stepIndex: readonly RunnerStepTarget[],
 ): RunnerNavigationState => {
   const route = runnerRouteFromHash(hash);
-  const stepId = runnerStepIdFromHash(hash);
+  const stepReference = runnerStepIdFromHash(hash);
+  const stepSelector = isRunnerStepSelector(stepReference)
+    ? stepReference
+    : undefined;
+  const selectedRouteCase =
+    route.page === 'case'
+      ? cases.find(
+          (item) =>
+            item.key === route.caseKey &&
+            item.project.projectId === route.projectId,
+        )
+      : undefined;
+  const targetPool = selectedRouteCase
+    ? getRunnerCaseStepTargets(selectedRouteCase)
+    : stepIndex;
+  const stepTarget = resolveRunnerStepTarget(stepReference, targetPool);
+  const unmatchedStepSelector =
+    stepSelector && !stepTarget ? stepSelector : undefined;
+
+  if (selectedRouteCase) {
+    return {
+      page: 'case',
+      selectedCaseKey: selectedRouteCase.key,
+      deepLinkedStepId: stepTarget?.step.id,
+      ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
+    };
+  }
 
   if (isSingleCaseReport(projects) && cases.length === 1) {
     const [onlyCase] = cases;
     return {
       page: 'case',
       selectedCaseKey: onlyCase.key,
-      deepLinkedStepId: caseContainsStep(onlyCase, stepId) ? stepId : undefined,
+      deepLinkedStepId: stepTarget?.step.id,
+      ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
     };
-  }
-
-  if (route.page === 'case') {
-    const selectedCase = cases.find(
-      (item) =>
-        item.key === route.caseKey &&
-        item.project.projectId === route.projectId,
-    );
-    if (selectedCase) {
-      return {
-        page: 'case',
-        selectedCaseKey: selectedCase.key,
-        deepLinkedStepId: caseContainsStep(selectedCase, stepId)
-          ? stepId
-          : undefined,
-      };
-    }
   }
 
   const hasExplicitPage = new URLSearchParams(
     hash.startsWith('#') ? hash.slice(1) : '',
   ).has('runner-page');
-  if (!hasExplicitPage && stepId) {
-    const linkedCase = cases.find((item) => caseContainsStep(item, stepId));
-    if (linkedCase) {
-      return {
-        page: 'case',
-        selectedCaseKey: linkedCase.key,
-        deepLinkedStepId: stepId,
-      };
-    }
+  if (!hasExplicitPage && stepTarget) {
+    return {
+      page: 'case',
+      selectedCaseKey: stepTarget.item.key,
+      deepLinkedStepId: stepTarget.step.id,
+    };
   }
 
-  return { page: 'overview' };
+  return {
+    page: 'overview',
+    ...(unmatchedStepSelector ? { unmatchedStepSelector } : {}),
+  };
 };
