@@ -119,6 +119,19 @@ const dump: TestRunReportDump = {
               name: 'Passed immediately',
               caseIndex: 0,
               status: 'success',
+              execution: {
+                executor: 'remote-sandbox',
+                resources: ['account:main'],
+                attempts: 2,
+                artifacts: [
+                  {
+                    name: 'worker-log',
+                    uri: 'https://example.test/log',
+                    mediaType: 'text/plain',
+                  },
+                ],
+                metadata: { worker: 'sandbox-1' },
+              },
               attempts: [
                 attempt('passed-1', 0, 'success', 3, 4, [
                   step('open', 'success', { title: 'Open the page' }),
@@ -450,6 +463,10 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
+    expect(regular).toContain('remote-sandbox');
+    expect(regular).toContain('account:main');
+    expect(regular).toContain('worker-log');
+    expect(regular).toContain('sandbox-1');
   });
 
   it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {

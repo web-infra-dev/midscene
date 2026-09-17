@@ -44,6 +44,56 @@ export function CaseWorkspaceHeader({
           </div>
         </div>
       </div>
+      {item.testCase.execution ? (
+        <section
+          className="runner-executor-details"
+          aria-label="Executor details"
+        >
+          <dl>
+            <div>
+              <dt>Executor</dt>
+              <dd>{item.testCase.execution.executor}</dd>
+            </div>
+            <div>
+              <dt>Executor attempts</dt>
+              <dd>{item.testCase.execution.attempts ?? 1}</dd>
+            </div>
+            <div>
+              <dt>Resources</dt>
+              <dd>{item.testCase.execution.resources.join(', ') || 'None'}</dd>
+            </div>
+            {item.testCase.execution.failure ? (
+              <div>
+                <dt>Executor failure</dt>
+                <dd>
+                  {item.testCase.execution.failure.kind}:{' '}
+                  {item.testCase.execution.failure.message}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          {item.testCase.execution.artifacts?.length ? (
+            <div className="runner-executor-artifacts">
+              <strong>Artifacts</strong>
+              <ul>
+                {item.testCase.execution.artifacts.map((artifact) => (
+                  <li key={`${artifact.name}:${artifact.uri}`}>
+                    <span>{artifact.name}</span>
+                    <code>{artifact.uri}</code>
+                    {artifact.mediaType ? <em>{artifact.mediaType}</em> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {item.testCase.execution.metadata ? (
+            <div className="runner-executor-metadata">
+              <strong>Metadata</strong>
+              <code>{JSON.stringify(item.testCase.execution.metadata)}</code>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       {item.testCase.attempts.length > 1 ? (
         <section className="runner-attempt-switcher" aria-label="Attempts">
