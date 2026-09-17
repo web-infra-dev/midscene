@@ -1276,6 +1276,9 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
 };
 
 export type { DeviceAction } from '../types';
+export type { ActionScrollParam, LocateResultElement, Size } from '../types';
+export { getMidsceneLocationSchema } from '../common';
+export { z };
 export {
   inputStrategies,
   type InputStrategy,
