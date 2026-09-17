@@ -19,6 +19,10 @@ const screenshotStyles = readFileSync(
   new URL('../agent-screenshot-view/index.less', import.meta.url),
   'utf8',
 );
+const hoverPreviewStyles = readFileSync(
+  new URL('../global-hover-preview/index.less', import.meta.url),
+  'utf8',
+);
 
 describe('sidebar layout', () => {
   it('keeps report overview spacing independent of the active view', () => {
@@ -75,5 +79,11 @@ describe('sidebar layout', () => {
     );
     expect(source).toContain('onTaskClick?.()');
     expect(appSource).toContain("onTaskClick={() => setMobilePane('player')}");
+    expect(source).toMatch(
+      /window\.matchMedia\(\s*'\(max-width: 1024px\), \(pointer: coarse\)'/s,
+    );
+    expect(hoverPreviewStyles).toMatch(
+      /\.global-hover-preview\s*{[^}]*pointer-events: none;/s,
+    );
   });
 });

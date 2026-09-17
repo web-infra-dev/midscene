@@ -677,6 +677,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     onTaskClick?.();
                   }}
                   onMouseEnter={(event) => {
+                    if (
+                      window.matchMedia(
+                        '(max-width: 1024px), (pointer: coarse)',
+                      ).matches
+                    ) {
+                      return;
+                    }
                     const rect = event.currentTarget.getBoundingClientRect();
                     const x = rect.left + rect.width;
                     const y = rect.top;
