@@ -23,6 +23,21 @@ const hoverPreviewStyles = readFileSync(
   new URL('../global-hover-preview/index.less', import.meta.url),
   'utf8',
 );
+const detailPanelStyles = readFileSync(
+  new URL('../detail-panel/index.less', import.meta.url),
+  'utf8',
+);
+const detailPanelSource = readFileSync(
+  new URL('../detail-panel/index.tsx', import.meta.url),
+  'utf8',
+);
+const playgroundSource = readFileSync(
+  new URL('../open-in-playground/index.tsx', import.meta.url),
+  'utf8',
+);
+
+const mobileReportMediaQuery =
+  '@media (max-width: 640px), (max-width: 932px) and (max-height: 500px) and (pointer: coarse)';
 
 describe('sidebar layout', () => {
   it('keeps report overview spacing independent of the active view', () => {
@@ -69,9 +84,7 @@ describe('sidebar layout', () => {
   });
 
   it('provides mobile steps and player panes with a safe-area bottom inset', () => {
-    expect(appStyles).toContain(
-      '@media (max-width: 1024px), (pointer: coarse)',
-    );
+    expect(appStyles).toContain(mobileReportMediaQuery);
     expect(appStyles).toMatch(/\.mobile-report-tabs\s*{[\s\S]*?display: grid;/);
     expect(appStyles).toMatch(/\.mobile-pane-hidden\s*{[\s\S]*?display: none;/);
     expect(appStyles).toContain(
@@ -95,11 +108,37 @@ describe('sidebar layout', () => {
     expect(appStyles).toMatch(
       /\.page-side,\s*\.main-right\s*{[\s\S]*?border-radius: 16px 16px 0 0;/,
     );
-    expect(source).toMatch(
-      /window\.matchMedia\(\s*'\(max-width: 1024px\), \(pointer: coarse\)'/s,
+    expect(appSource).toMatch(
+      /window\.matchMedia\(MOBILE_REPORT_MEDIA_QUERY\)/,
     );
     expect(hoverPreviewStyles).toMatch(
       /\.global-hover-preview\s*{[^}]*pointer-events: none;/s,
+    );
+  });
+
+  it('limits the compact report layout and controls to phone-sized screens', () => {
+    expect(appSource).toContain(
+      "'(max-width: 640px), (max-width: 932px) and (max-height: 500px) and (pointer: coarse)'",
+    );
+    expect(appStyles).not.toContain(
+      '@media (max-width: 1024px), (pointer: coarse)',
+    );
+    expect(appStyles).toMatch(/\.main-layout\s*{[\s\S]*?padding-top: 64px;/);
+    expect(appStyles).toMatch(/\.mobile-report-tabs\s*{[\s\S]*?top: 8px;/);
+    expect(appStyles).toMatch(
+      /\.mobile-report-tabs\s*{[\s\S]*?padding: 2px;[\s\S]*?button\s*{[\s\S]*?height: 44px;/,
+    );
+    expect(detailPanelStyles).toContain(mobileReportMediaQuery);
+    expect(detailPanelStyles).toMatch(
+      /\.copy-json-label,\s*\.open-in-playground-trigger\s*{\s*display: none;/,
+    );
+    expect(detailPanelStyles).toMatch(
+      /\.copy-json-link\s*{[\s\S]*?width: 48px;[\s\S]*?height: 48px;/,
+    );
+    expect(detailPanelSource).toContain('aria-label="Copy JSON"');
+    expect(detailPanelSource).toContain('className="copy-json-label"');
+    expect(playgroundSource.match(/open-in-playground-trigger/g)).toHaveLength(
+      2,
     );
   });
 });

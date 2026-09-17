@@ -11,6 +11,20 @@ tasks:
       - aiAssert: The narrow report shows a Steps and Player switch at the top. Steps is selected, and the task list is visible without a side-by-side player pane.
       - javascript: |
           (function () {
+            const tabs = document.querySelector('.mobile-report-tabs');
+            const steps = document.querySelector('.main-layout > .page-side');
+            if (!(tabs instanceof HTMLElement) || !(steps instanceof HTMLElement)) {
+              throw new Error('Mobile report tabs or Steps pane is missing');
+            }
+            const gap = steps.getBoundingClientRect().top - tabs.getBoundingClientRect().bottom;
+            if (Math.abs(gap - 8) > 1) {
+              throw new Error(`Expected an 8px gap below mobile tabs, received ${gap}px`);
+            }
+            return { tabsToContentGap: gap };
+          })()
+        name: assertMobileTabSpacing
+      - javascript: |
+          (function () {
             const row = document.querySelector('.tasks-table .task-row');
             if (!(row instanceof HTMLElement)) {
               throw new Error('No task row found in the mobile Steps list');
@@ -94,5 +108,47 @@ tasks:
             return { detailDrawer: 'closed' };
           })()
         name: assertMobileInformationClosed
+      - javascript: |
+          (function () {
+            const jsonView = Array.from(
+              document.querySelectorAll('.ant-segmented-item'),
+            ).find((item) => item.textContent?.includes('JSON View'));
+            if (!(jsonView instanceof HTMLElement)) {
+              throw new Error('JSON View control is missing');
+            }
+            jsonView.click();
+            const copy = document.querySelector('.copy-json-link');
+            const copyLabel = document.querySelector('.copy-json-label');
+            const playground = document.querySelector(
+              '.open-in-playground-trigger',
+            );
+            if (!(copy instanceof HTMLButtonElement)) {
+              throw new Error('Copy JSON is not a button');
+            }
+            const copyBounds = copy.getBoundingClientRect();
+            if (copy.getAttribute('aria-label') !== 'Copy JSON') {
+              throw new Error('Copy JSON icon button is missing its accessible label');
+            }
+            if (
+              !(copyLabel instanceof HTMLElement) ||
+              getComputedStyle(copyLabel).display !== 'none'
+            ) {
+              throw new Error('Copy JSON text should be hidden on mobile');
+            }
+            if (copyBounds.width < 44 || copyBounds.height < 44) {
+              throw new Error('Copy JSON mobile touch target is too small');
+            }
+            if (
+              playground instanceof HTMLElement &&
+              getComputedStyle(playground).display !== 'none'
+            ) {
+              throw new Error('Open in Playground should be hidden on mobile');
+            }
+            return {
+              copyButtonSize: [copyBounds.width, copyBounds.height],
+              playground: 'hidden',
+            };
+          })()
+        name: assertMobileJsonActions
       - aiTap: the Steps button in the top report view switch
       - aiAssert: Steps is selected again, and the task list is visible.

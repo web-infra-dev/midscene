@@ -60,6 +60,9 @@ import {
 } from './utils/report-dump';
 import { parseTestRunReportDump } from './utils/test-run-report';
 
+const MOBILE_REPORT_MEDIA_QUERY =
+  '(max-width: 640px), (max-width: 932px) and (max-height: 500px) and (pointer: coarse)';
+
 // Shared image cache across all test cases — resolved images are cached by id
 const imageCache = new Map<string, string>();
 
@@ -127,7 +130,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const [timelineCollapsed, setTimelineCollapsed] = useState(
     () =>
       typeof window !== 'undefined' &&
-      window.matchMedia('(max-width: 1024px), (pointer: coarse)').matches,
+      window.matchMedia(MOBILE_REPORT_MEDIA_QUERY).matches,
   );
   const [mobilePane, setMobilePane] = useState<'steps' | 'player'>('steps');
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
