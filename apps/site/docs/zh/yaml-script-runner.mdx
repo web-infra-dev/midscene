@@ -1,10 +1,8 @@
+import LegacyYamlNotice from './common/legacy-yaml-notice.mdx';
+
 # YAML 脚本运行器
 
-:::info 兼容保留，建议迁移到 Midscene Test
-本文介绍旧版 `tasks/flow` YAML。该格式仍然兼容，但不建议用于新项目或新增用例。已有用例、批配置、目录结构和 `midscene` 命令可以保持不变；升级后的入口由 Test 内核执行，并生成新的 Test 报告页面。
-
-也可以安装 `@midscene/test`，直接用 `midscene-test ./flow.yaml` 或 `midscene-test --config ./batch.yaml` 运行原文件，无需注册 Node 或改写 YAML。后续新增和重构建议采用原生 `cases/steps`、TypeScript 项目配置和 Node。具体步骤见[从旧版 YAML 迁移](./midscene-test/migrate-from-yaml)。
-:::
+<LegacyYamlNotice />
 
 Midscene 定义了一种 YAML 格式的脚本，方便开发者快速编写自动化脚本，并提供了对应的命令行工具来快速执行这些脚本。
 

@@ -5,7 +5,7 @@
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
 
 :::info 已有旧版 YAML 项目
-`tasks/flow` 用例和旧版批配置可以不改文件，直接使用 Test 内核运行。旧格式仍兼容，但不建议继续用于新增用例；具体命令、兼容边界和字段转换见[从旧版 YAML 迁移](./migrate-from-yaml)。
+`tasks/flow` 用例和旧版批配置可以不改文件，直接使用 Test 内核运行。旧格式仍兼容，但不建议继续用于新增用例；具体命令、兼容边界和字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
 :::
 
 ## 创建项目
@@ -376,7 +376,7 @@ pnpm exec midscene-test ./legacy-flow.yaml
 pnpm exec midscene-test --config ./legacy-batch.yaml
 ```
 
-旧文件会自动进入兼容路径，不需要注册 Node 或改写配置。新增文件建议使用本页介绍的 `cases/steps`；迁移步骤和字段映射见[从旧版 YAML 迁移](./migrate-from-yaml)。
+旧文件会自动进入兼容路径，不需要注册 Node 或改写配置。新增文件建议使用本页介绍的 `cases/steps`；迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
 
 需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
 

@@ -1,12 +1,9 @@
+import LegacyYamlNotice from './common/legacy-yaml-notice.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 # 使用 YAML 格式的自动化脚本
 
-:::info 兼容保留，建议迁移到 Midscene Test
-本文介绍旧版 `tasks/flow` YAML 字段。该格式仍然兼容，已有用例和配置可以不改文件，继续使用 `midscene`，或直接切换为 `midscene-test` 执行。
-
-旧格式不建议用于新项目或新增用例。后续新增和重构建议采用 Midscene Test 的原生 `cases/steps`、生命周期和 Node。先阅读 [Midscene Test 概览](./midscene-test/overview)，再按照[从旧版 YAML 迁移](./midscene-test/migrate-from-yaml)切换入口或转换字段。
-:::
+<LegacyYamlNotice />
 
 在大多数情况下，开发者编写自动化脚本只是为了执行一些简单流程，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。此时维护一个大型测试项目会显得毫无必要。
 
