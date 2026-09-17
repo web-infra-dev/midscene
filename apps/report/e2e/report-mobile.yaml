@@ -31,6 +31,6 @@ tasks:
             return { selectedPane: 'Player' };
           })()
         name: assertMobilePaneSwitch
-      - aiAssert: Player is now selected, and the report's Record timeline and player area are visible instead of the task list.
+      - aiAssert: Player is selected. The Steps task list is hidden, and the report player content is visible.
       - aiTap: the Steps button in the top report view switch
       - aiAssert: Steps is selected again, and the task list is visible.
