@@ -11,7 +11,6 @@
     "test": "rstest",
     "test:watch": "rstest --watch",
     "generate-demo": "node scripts/generate-demo-report.mjs",
-    "generate-mobile-example": "node scripts/generate-mobile-example.mjs",
     "e2e": "pnpm --dir ../.. exec nx run-many --target=build --projects=\"@midscene/report,@midscene/cli\" --verbose && node ../../scripts/validate-core-report-template.mjs && node scripts/generate-demo-report.mjs && node ../../packages/cli/bin/midscene ./e2e/ --concurrent 2"
   },
   "nx": {
