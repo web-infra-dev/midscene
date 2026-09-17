@@ -457,6 +457,16 @@ describe('test project config', () => {
     await expect(loadTestProject(path)).rejects.toThrow(message);
   });
 
+  it('loads a JavaScript ESM config without a TypeScript transform', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(path, 'export default { nodes: [] };');
+
+    await expect(loadTestProject(path)).resolves.toMatchObject({
+      projects: [{ name: 'default' }],
+    });
+  });
+
   it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
     'rejects the %s extension',
     async (extension) => {
@@ -465,7 +475,7 @@ describe('test project config', () => {
       writeFileSync(path, 'export default { nodes: [] };');
 
       await expect(loadTestProject(path)).rejects.toThrow(
-        `Unsupported Midscene config extension: ${extension}. Supported extension: .ts.`,
+        `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
       );
     },
   );

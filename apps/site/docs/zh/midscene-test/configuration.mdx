@@ -6,6 +6,8 @@
 
 在 `midscene.config.ts` 中，使用 `defineTestProject()` 定义并导出项目配置。Execution Project（执行项目）负责选择用例并提供运行环境。
 
+如果配置已构建为 JavaScript，可以通过 CLI 的 `--config` 参数或 `loadTestProject()` 传入 `.mjs` 文件路径。`.mjs` 会作为原生 ESM 加载，不经过 TypeScript 转换；默认的 `midscene.config.ts` 用法不变。
+
 在 `setup` 中创建浏览器或设备资源，并通过 `nodes` 注册对应 Agent 的 Node。这些资源和 Node 决定各执行项目可用的能力。
 
 | 字段 | 用途 |
@@ -437,7 +439,7 @@ import {
 } from '@midscene/test';
 ```
 
-* **`loadTestProject()`**：异步加载 `midscene.config.ts` 中的 TypeScript 项目配置（Midscene Test 不支持同步加载）。
+* **`loadTestProject()`**：异步加载 TypeScript（`.ts`）或 JavaScript ESM（`.mjs`）项目配置（Midscene Test 不支持同步加载）。
 * **`runTestProject()`**：异步发现、运行并汇总整个项目。
 * **`CaseRunner` / `createCaseRunner()`**：直接执行纯对象形式的单个用例（不含文件解析和生命周期控制）。
 * **`runWorkflowDocument()`**：执行单个文档的完整生命周期及内部全部 Case。

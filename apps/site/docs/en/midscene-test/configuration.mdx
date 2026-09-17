@@ -6,6 +6,8 @@
 
 In `midscene.config.ts`, use `defineTestProject()` to define and export your project configuration. An Execution Project selects cases and supplies their runtime environment.
 
+For a config already built as JavaScript, pass its `.mjs` path to the CLI's `--config` option or to `loadTestProject()`. The `.mjs` file is loaded as native ESM; it is not transformed as TypeScript. The default `midscene.config.ts` workflow remains unchanged.
+
 Create browser or device resources in `setup` and register the corresponding Agent Nodes through `nodes`. These determine the capabilities available to each execution project.
 
 | Field | Purpose |
@@ -443,7 +445,7 @@ import {
 } from '@midscene/test';
 ```
 
-- **`loadTestProject()`**: asynchronously loads the TypeScript project configuration from `midscene.config.ts`. Midscene Test does not support synchronous loading.
+- **`loadTestProject()`**: asynchronously loads a TypeScript (`.ts`) or JavaScript ESM (`.mjs`) project configuration. Midscene Test does not support synchronous loading.
 - **`runTestProject()`**: asynchronously discovers, runs, and summarizes the entire project.
 - **`CaseRunner` / `createCaseRunner()`**: directly runs one test case represented as a plain object, without file parsing or lifecycle management.
 - **`runWorkflowDocument()`**: runs the complete lifecycle and every Case in one document.
