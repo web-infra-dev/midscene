@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { setMaxListeners } from 'node:events';
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { TestRunReportAssembler } from '@midscene/core/report';
 import { globSync } from 'tinyglobby';
 import { createProjectRuntime } from '../engine/project-runtime';
@@ -128,6 +128,17 @@ export const discoverTestConfig = (projectRoot: string): string | undefined => {
     );
   }
   return candidates.includes(CONFIG_NAME) ? join(root, CONFIG_NAME) : undefined;
+};
+
+const discoverTestConfigFromFile = (testFile: string): string | undefined => {
+  let directory = dirname(testFile);
+  while (true) {
+    const configPath = discoverTestConfig(directory);
+    if (configPath) return configPath;
+    const parent = dirname(directory);
+    if (parent === directory) return undefined;
+    directory = parent;
+  }
 };
 
 const defaultResultDir = (projectRoot: string): string =>
@@ -295,9 +306,14 @@ const prepareProject = <TProjectContext>(
   project: LoadedExecutionProject<TProjectContext>,
   projectRoot: string,
   runDir: string,
+  testFile?: string,
 ): PreparedExecutionProject<TProjectContext> => {
-  const fileSelection = project.files ?? DEFAULT_TEST_FILE_SELECTION;
-  const files = discoverTestFiles(projectRoot, fileSelection);
+  const fileSelection = testFile
+    ? { include: [toPosix(relative(projectRoot, testFile))] }
+    : (project.files ?? DEFAULT_TEST_FILE_SELECTION);
+  const files = testFile
+    ? [testFile]
+    : discoverTestFiles(projectRoot, fileSelection);
   const sources = files.map((absolutePath) => ({
     projectId: project.projectId,
     projectName: project.name,
@@ -375,20 +391,40 @@ export async function runTestProject(
   const runId = createTestRunId(startedAt);
   const cwd = resolve(options.cwd ?? process.cwd());
   assertDirectory(cwd, 'Test working directory');
-  const cliProjectRoot = options.projectRoot
+  const testPath = options.projectRoot
     ? resolve(cwd, options.projectRoot)
     : undefined;
-  if (cliProjectRoot) assertDirectory(cliProjectRoot, 'Test project directory');
-  const configSearchRoot = cliProjectRoot ?? cwd;
+  if (testPath && !existsSync(testPath)) {
+    if (/\.ya?ml$/i.test(testPath)) {
+      throw new Error(`Test file does not exist: ${testPath}`);
+    }
+    assertDirectory(testPath, 'Test project directory');
+  }
+  const testPathStats = testPath ? statSync(testPath) : undefined;
+  const testFile = testPathStats?.isFile() ? testPath : undefined;
+  if (testFile && !/\.ya?ml$/i.test(testFile)) {
+    throw new Error(`Test file must be a .yaml or .yml file: ${testFile}`);
+  }
+  if (testPath && !testPathStats?.isDirectory() && !testFile) {
+    throw new Error(`Test path is not a directory or YAML file: ${testPath}`);
+  }
+  const cliProjectRoot = testPathStats?.isDirectory() ? testPath : undefined;
+  const configSearchRoot = testFile
+    ? dirname(testFile)
+    : (cliProjectRoot ?? cwd);
   const configPath = options.configPath
     ? resolve(configSearchRoot, options.configPath)
-    : discoverTestConfig(configSearchRoot);
+    : testFile
+      ? discoverTestConfigFromFile(testFile)
+      : discoverTestConfig(configSearchRoot);
   if (options.configPath && (!configPath || !existsSync(configPath))) {
     throw new Error(`Midscene config does not exist: ${configPath}`);
   }
 
   const definition = await loadTestProject(configPath);
-  const projectRoot = cliProjectRoot ?? cwd;
+  const projectRoot =
+    cliProjectRoot ??
+    (configPath ? dirname(configPath) : testFile ? dirname(testFile) : cwd);
 
   const resultDir = options.resultDir
     ? resolve(cwd, options.resultDir)
@@ -403,7 +439,7 @@ export async function runTestProject(
     options.projectNames,
   );
   const preparedProjects = selectedProjects.map((project) =>
-    prepareProject(project, projectRoot, runDir),
+    prepareProject(project, projectRoot, runDir, testFile),
   );
   const progress = options.onProgress ?? (() => {});
   const totalDocuments = preparedProjects.reduce(
