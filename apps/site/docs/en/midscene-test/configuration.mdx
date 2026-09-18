@@ -170,7 +170,7 @@ const midsceneNodes = createMidsceneNodes<ProjectContext>({
 ```
 
 `agentClass` is the sole source of Agent-backed Node definitions. The factory throws during registration if the class does not expose
-`getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent register their common and platform Node definitions together. The base Agent, other Web Agents, and ComputerAgent only provide common Agent Nodes.
+`getTestRunnerNodeDefinitions()`. PlaywrightAgent, PlaywrightPageAgent, PlaywrightBrowserAgent, PuppeteerAgent, PuppeteerPageAgent, PuppeteerBrowserAgent, AndroidAgent, IOSAgent, and HarmonyAgent register their common and platform Node definitions together. The base Agent and ComputerAgent only provide common Agent Nodes.
 
 For an Android/iOS registration example, see [Configure multiple execution projects](#configure-multiple-execution-projects).
 
@@ -222,6 +222,31 @@ beforeEach:
 ```
 
 For navigation parameters and URL resolution, see [Navigate with gotoUrl](./use#navigate-with-gotourl).
+
+### Puppeteer
+
+Puppeteer exposes the same `gotoUrl`, `setCookies`, `clearCookies`, and `setViewportSize` Node names. Install the `puppeteer` peer dependency and pass `PuppeteerAgent` (or `PuppeteerBrowserAgent`) to `createMidsceneNodes()`:
+
+```bash
+pnpm add -D puppeteer
+```
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import { createMidsceneNodes } from '@midscene/test/midscene';
+
+const midsceneNodes = createMidsceneNodes<ProjectContext>({
+  agentClass: PuppeteerAgent,
+  getAgent: ({ context }) => {
+    context.agent ??= new PuppeteerAgent(context.page, {
+      testRunner: { baseURL: 'https://example.com' },
+    });
+    return context.agent;
+  },
+});
+```
+
+The Playwright and Puppeteer integrations use the same Web Node schemas and execution implementation. Browser-specific code is limited to a driver adapter. For portable YAML, use `domcontentloaded`, `load`, or `networkidle` for `gotoUrl.waitUntil`; the Puppeteer adapter maps `networkidle` to `networkidle0`. Existing engine-specific values remain supported: Playwright accepts `commit`, while Puppeteer accepts `networkidle0` and `networkidle2`. Using one of those values with the other driver produces an explicit error. Cookie references and result redaction also behave the same on both integrations. Relative URLs resolve against `testRunner.baseURL`, then against the current HTTP(S) page URL.
 
 ### Android
 
