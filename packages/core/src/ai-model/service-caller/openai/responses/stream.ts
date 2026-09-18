@@ -64,7 +64,7 @@ export async function callResponsesStream({
       'empty content from AI model',
       result.content,
       undefined,
-      result.rawChoiceMessage,
+      result.rawAssistantOutput,
     );
   }
   onChunk({

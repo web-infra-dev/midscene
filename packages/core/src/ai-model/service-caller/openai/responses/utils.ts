@@ -105,7 +105,7 @@ export function parseResponse(response: Response): OpenAIProtocolCallResult {
   return {
     content,
     reasoningContent,
-    rawChoiceMessage: response.output,
+    rawAssistantOutput: response.output,
     rawUsage: mapResponsesUsage(response.usage),
     responseModelName: response.model,
   };

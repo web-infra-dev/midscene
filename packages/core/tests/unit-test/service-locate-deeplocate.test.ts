@@ -175,7 +175,7 @@ describe('service.locate deepLocate routing', () => {
 
   it('records search-area model data when section locate fails', async () => {
     const service = new Service(createFakeContext());
-    const rawChoiceMessage = {
+    const rawAssistantOutput = {
       content: '{"bbox":["invalid bbox"]}',
       role: 'assistant',
     };
@@ -196,7 +196,7 @@ describe('service.locate deepLocate routing', () => {
       searchAreaConfig: undefined,
       error: 'invalid bbox data',
       rawResponse: '{"bbox":["invalid bbox"]}',
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
     });
 
@@ -216,7 +216,7 @@ describe('service.locate deepLocate routing', () => {
       error: 'cannot find search area for "target": invalid bbox data',
       taskInfo: {
         searchAreaRawResponse: '{"bbox":["invalid bbox"]}',
-        searchAreaRawChoiceMessage: rawChoiceMessage,
+        searchAreaRawChoiceMessage: rawAssistantOutput,
         searchAreaUsage: usage,
       },
     });

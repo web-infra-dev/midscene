@@ -31,7 +31,7 @@ export async function AiLocateSection(options: {
   searchAreaConfig?: SearchAreaConfig;
   error?: string;
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription } = options;
@@ -146,7 +146,7 @@ export async function AiLocateSection(options: {
           parseErrorMessage,
           response.content,
           response.usage,
-          response.rawChoiceMessage,
+          response.rawAssistantOutput,
           response.reasoning_content,
         );
       },
@@ -166,7 +166,7 @@ export async function AiLocateSection(options: {
         searchAreaConfig: undefined,
         error: callError.message,
         rawResponse: callError.rawResponse,
-        rawChoiceMessage: callError.rawChoiceMessage,
+        rawAssistantOutput: callError.rawAssistantOutput,
         usage: callError.usage,
       };
     }
@@ -186,7 +186,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig: undefined,
       error: sectionError,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   }
@@ -214,7 +214,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig,
       error: sectionError,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   } catch (error) {
@@ -229,7 +229,7 @@ export async function AiLocateSection(options: {
       searchAreaConfig: undefined,
       error: errorMessage,
       rawResponse: result.content,
-      rawChoiceMessage: result.rawChoiceMessage,
+      rawAssistantOutput: result.rawAssistantOutput,
       usage: result.usage,
     };
   }

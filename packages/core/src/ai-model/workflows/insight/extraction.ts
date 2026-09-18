@@ -124,7 +124,7 @@ export async function AiExtractElementInfo<T>(options: {
         content: rawResponse,
         usage,
         reasoning_content,
-        rawChoiceMessage,
+        rawAssistantOutput,
       } = response;
       const parseResult = parseInsightResponse<T>(
         rawResponse,
@@ -134,7 +134,7 @@ export async function AiExtractElementInfo<T>(options: {
       return {
         parseResult,
         rawResponse,
-        rawChoiceMessage,
+        rawAssistantOutput,
         usage,
         reasoning_content,
       };
@@ -146,7 +146,7 @@ export async function AiExtractElementInfo<T>(options: {
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
       );
     },
     parseRetryTimes: modelRuntime.config.retryCount,

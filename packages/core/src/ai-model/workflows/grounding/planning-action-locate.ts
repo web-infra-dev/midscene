@@ -75,7 +75,7 @@ export function resolvePlanningTapLocator<TParsed>(
     let errors: string[] = [];
     let reasoningContent = '';
     let rawResponse = '';
-    let rawChoiceMessage: unknown;
+    let rawAssistantOutput: unknown;
     let usage: LocateModelResponse['usage'];
 
     try {
@@ -88,7 +88,7 @@ export function resolvePlanningTapLocator<TParsed>(
       );
 
       rawResponse = planningResponse.rawResponse ?? '';
-      rawChoiceMessage = planningResponse.rawChoiceMessage;
+      rawAssistantOutput = planningResponse.rawAssistantOutput;
       usage = planningResponse.usage;
       reasoningContent = planningResponse.log;
 
@@ -105,7 +105,7 @@ export function resolvePlanningTapLocator<TParsed>(
       return {
         locatedPixelResult,
         rawResponse,
-        rawChoiceMessage,
+        rawAssistantOutput,
         usage,
         reasoningContent,
       };
@@ -114,7 +114,7 @@ export function resolvePlanningTapLocator<TParsed>(
         error instanceof Error ? error.message : String(error);
       if (error instanceof AIResponseParseError) {
         rawResponse = error.rawResponse;
-        rawChoiceMessage = error.rawChoiceMessage;
+        rawAssistantOutput = error.rawAssistantOutput;
         usage = error.usage;
       }
       errors = [
@@ -125,7 +125,7 @@ export function resolvePlanningTapLocator<TParsed>(
 
     return {
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoningContent,
       errors,

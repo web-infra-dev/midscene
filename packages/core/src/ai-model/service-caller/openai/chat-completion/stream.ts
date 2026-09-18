@@ -99,7 +99,7 @@ export const callChatCompletionStream = async ({
   return {
     content: accumulated,
     reasoningContent: accumulatedReasoning,
-    rawChoiceMessage: undefined,
+    rawAssistantOutput: undefined,
     rawUsage: usage,
     requestId,
     responseModelName,

@@ -549,7 +549,7 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawChoiceMessage: rawAssistantMessage,
+        rawAssistantOutput: rawAssistantMessage,
       })
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Task completed</log>
@@ -584,7 +584,7 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawChoiceMessage: rawAssistantMessage,
+        rawAssistantOutput: rawAssistantMessage,
       })
       .mockResolvedValueOnce(
         mockAIResponse(
@@ -624,7 +624,7 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawChoiceMessage: [rawAssistantMessage],
+        rawAssistantOutput: [rawAssistantMessage],
       })
       .mockResolvedValueOnce(
         mockAIResponse(
