@@ -226,7 +226,7 @@ page:
 - `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
 - `--retry <number>`：失败脚本的额外尝试次数。只有失败的脚本会被重试，可缓解网络波动或大模型输出不稳定导致的偶发失败。默认 `0`。Puppeteer Web setup retry 使用全新的 BrowserContext 和 Page，主脚本 retry 则保留成功的 setup 上下文。其他 target 每次 retry 会创建新的 player 和 Agent，但不会重置底层运行环境。
 - `--share-browser-context`：在多个 Puppeteer Web 脚本之间共享同一个 BrowserContext（Cookies、同源 `localStorage` 等），同时每个 YAML 使用独立 Page。即使 `--concurrent 1`，`sessionStorage`、DOM、URL、`window.name` 等页面级状态也不会共享。同一批次中的 setup 和主脚本必须全部使用 Puppeteer Web target；不支持桥接模式和非 Web target。由于 Browser 只会创建或连接一次，浏览器级选项（`cdpEndpoint`、`chromeArgs`、`acceptInsecureCerts` 和 `downloadPath`）必须放在批次配置的全局 Web target 中，不能放在单个 setup 或主脚本中。默认关闭。
-- `--reuse-page`：让多个 Puppeteer Web 脚本复用同一个 Page，可保留 `sessionStorage`、当前标签页和 `window.name` 等页面级状态。必须同时设置 `--share-browser-context` 和 `--concurrent 1`。默认关闭。
+- `--reuse-page`：让多个 Puppeteer Web 脚本复用同一个 Page 对象，可保留 `sessionStorage` 和 `window.name` 等页面级状态。必须同时设置 `--share-browser-context` 和 `--concurrent 1`。默认关闭。
 - `--summary <filename>`：指定生成的 JSON 总结报告路径。
 - `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
 - `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
@@ -319,7 +319,7 @@ retry: 2
 `shareBrowserContext` 遵循浏览器原生的存储边界，不会在 Page 之间复制或同步 `sessionStorage`。如果 setup 只把登录态写入 `sessionStorage`，主脚本将无法继承该登录态。需要让多个脚本看到前置状态时，请优先使用 Cookies、同源 `localStorage` 或服务端状态。脚本并发运行时，共享状态的写入可能发生竞争，需要显式协调。
 :::
 
-如果串行流程必须接着使用 setup 打开的标签页，可以显式开启 Page 复用：
+如果串行流程必须接着使用 setup 创建的 Page，可以显式开启 Page 复用：
 
 ```yaml
 setup: ./scripts/login.yaml
@@ -331,7 +331,7 @@ reusePage: true
 concurrent: 1
 ```
 
-主脚本仍会应用自己的 Web target 配置，并打开其中设置的 `url`，但导航会发生在 setup 创建的同一个 Page 中。
+主脚本仍会应用自己的 Web target 配置，并打开其中设置的 `url`，但导航会发生在 setup 创建的同一个 Page 对象中。在 `browser` 模式下，弹窗或新标签页操作后来打开的 Page 不会替换这个被复用的 Page。
 
 `setup` 也支持桥接模式、Android、iOS、HarmonyOS、Computer 和自定义 Interface target。这些 target 应省略 `shareBrowserContext`。retry 会创建新的脚本 player 和 Agent，但不会自动重置底层浏览器配置、设备、桌面会话或自定义 Interface；如果 retry 必须从干净环境开始，需要由 setup 脚本显式恢复环境。
 

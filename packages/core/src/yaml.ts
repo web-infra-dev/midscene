@@ -407,8 +407,10 @@ export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
    */
   shareBrowserContext?: boolean;
   /**
-   * Reuse one Page across sequential Puppeteer Web yaml files. Requires
-   * `shareBrowserContext: true` and `concurrent: 1`.
+   * Reuse the same Page object across sequential Puppeteer Web yaml files,
+   * preserving page-scoped state such as sessionStorage and window.name.
+   * Each file still navigates that Page to its configured URL. Requires
+   * `shareBrowserContext: true` and `concurrent: 1`. Defaults to false.
    */
   reusePage?: boolean;
   /**
