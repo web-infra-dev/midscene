@@ -22,6 +22,7 @@ Midscene Test 默认会加载 `midscene.config.ts` 或 `midscene.config.mjs`。�
 | `setup` | 为隐式的默认执行项目创建共享资源。 |
 | `nodes` | 注册所有执行项目共享的 Node。 |
 | `projects` | 声明具名执行项目，分别配置 setup 和用例选择规则。使用此字段时，将 setup 放在各 Project 中，不再配置顶层 setup。 |
+| `executor` | 可选。将隔离后的单个用例委托给其他进程或服务。要求设置 `test.executionUnit: 'case'`。 |
 | `test` | 设置并发数、失败阈值和默认步骤超时。 |
 | `output` | 设置报告输出目录。 |
 
@@ -151,7 +152,7 @@ export default defineTestProject<ProjectContext>({
 ### 通用 AI 操作与 Agent 接入
 
 使用 `@midscene/test/midscene` 导出的 `createMidsceneNodes()`，可以注册以下通用 Node：`aiAct`、`aiTap`、
-`aiAssert`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、
+`aiAssert`、`aiWaitFor`、`aiBoolean`、`aiNumber`、`aiString`、`aiAsk`、
 `recordToReport` 和 `wait`。
 
 调用 `createMidsceneNodes()` 时，通过 `agentClass` 指定 Agent 类，通过 `getAgent` 回调提供运行时使用的 Agent 实例：
@@ -368,9 +369,11 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // 同时运行的 Execution Project 数量上限
+    executionUnit: 'project', // 使用 'case' 时逐个隔离并调度用例
+    maxConcurrency: 1, // 同时运行的调度单元数量上限
     bail: 0,           // 大于 0 时，失败用例数达到此值后停止调度新任务
     testTimeout: 120_000,
+    executorRetry: 0,  // 仅重试已分类的执行器故障，不重试用例失败
   },
   output: {
     reportDir: './midscene_run/report',
@@ -382,34 +385,32 @@ export default defineTestProject<ProjectContext>({
 
 ### 并发与资源隔离
 
-并发调度的单位是执行项目，`test.maxConcurrency` 设置同时运行的项目数量上限，默认值为 `1`。单个项目内的 YAML 文件、用例和步骤顺序执行。只有一个执行项目时，增大此值也不会让该项目内的用例并发。
+`test.executionUnit` 用于选择调度单元。默认值 `project` 保留共享项目生命周期：`setup` 只运行一次，项目内的 YAML 文件和用例顺序执行；`test.maxConcurrency` 限制同时运行的项目数。
 
-需要让不同用例同时执行时，可以按目录或标签将用例分配到多个项目，并为每个项目创建独立资源。下面沿用前面 Playwright 示例中的 setup 和 Node 定义，替换其 `defineTestProject()` 配置，让下单与账号用例并发运行：
+设置 `executionUnit: 'case'` 后，每个用例会被单独隔离和调度。每个用例都有自己的项目 `setup`、文档 `beforeAll`/`afterAll` 和项目清理。`maxConcurrency` 限制同时运行的用例数。如果两个用例不能同时使用同一个账号、设备或其他独占资源，可以为它们声明相同的 `resources`：
+
+```yaml
+cases:
+  - id: update-profile
+    name: 修改个人资料
+    resources: [account:member]
+    steps:
+      - aiAct: 将昵称修改为 Midscene User
+```
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
+  setup: playwrightSetup,
   nodes: midsceneNodes,
-  projects: [
-    {
-      name: 'checkout',
-      setup: playwrightSetup,
-      files: { include: ['cases/checkout/**/*.{yaml,yml}'] },
-    },
-    {
-      name: 'account',
-      setup: playwrightSetup,
-      files: { include: ['cases/account/**/*.{yaml,yml}'] },
-    },
-  ],
-  test: { maxConcurrency: 2 },
+  test: { executionUnit: 'case', maxConcurrency: 4 },
 });
 ```
 
-两个项目分别调用 `playwrightSetup`，各自创建浏览器、页面和 `context`。`checkout` 项目内部顺序执行下单用例，`account` 项目内部顺序执行账号用例，两个项目可以同时推进。设备测试同理：并发项目应连接不同设备，避免同时操作同一个设备。
+拥有相同资源键的用例会相互等待，其他用例仍可并发。资源键由项目自行定义，只负责互斥，不会自动申请资源。
 
-框架不会自动把用例均分到不同项目。两个项目如果匹配同一个 YAML 文件，该文件会在两个项目中各运行一次，适合在不同平台或环境上重复验证。希望分批并发时，应使用互不重叠的 `files` 或 `tags` 选择规则。
+显式设置的用例 `id` 也会作为单层结果目录名，因此最长 128 个字符，以 ASCII 字母或数字开头，并且只能包含字母、数字、点、下划线和连字符。省略 `id` 时，Midscene 会根据 Project、源文件路径和用例位置生成安全、确定性的 ID。由于自动值包含用例位置，插入或调整用例顺序会改变它。在 CI 或外部调度器中持久化 `--case-id` 选择前，应先声明显式 `id`。
 
-每个项目从开始初始化到完成清理，始终占用一个并发名额。名额释放后，调度器再启动下一个待运行项目。当前调度在同一个 Node.js 进程中异步执行，不会为项目创建独立进程；模块全局变量、外部账号和测试数据仍需由项目实现隔离。
+默认情况下，用例调度在同一个 Node.js 进程内异步运行。如需把隔离后的用例委托给其他进程、容器、设备服务或远程执行平台，可以配置自定义 [Test Executor](./extend#使用-test-executor-委托用例)。Midscene Test 不依赖任何特定的基础设施提供方。
 
 ### 为各 Project 生成 Markdown 说明书
 

@@ -71,7 +71,7 @@ Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点�
 
 Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afterEach` 等[生命周期钩子](#定义执行生命周期)中调用，写法相同。
 
-所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`wait` 等待指定时长。
+所有平台都提供以下常用能力：`aiAct` 根据自然语言操作界面，`aiAssert` 检查预期结果，`aiWaitFor` 等待可观察条件成立，`wait` 等待指定时长。
 
 在这些通用能力之外，Midscene 还为各个平台预置了专用操作。例如：
 
@@ -318,14 +318,21 @@ pnpm exec midscene-test
 
 生成的项目通过 `files.include` 选择 `cases/` 下的 `.yaml` 和 `.yml` 文件。未配置 `files` 时，Midscene Test 会递归查找测试目录下的 YAML 文件，自动忽略 `node_modules` 和 `.git`。
 
-如果你只想执行特定目录或特定用例文件，可以将其作为参数传入：
+使用可重复传入的 `--file` 运行一个或多个文件或目录。路径相对于测试项目根目录解析：
 
 ```bash
 # 运行指定目录下的所有用例
-pnpm exec midscene-test ./cases/smoke
+pnpm exec midscene-test --file ./cases/smoke
 
 # 运行单个指定的用例文件
-pnpm exec midscene-test ./cases/order.yaml
+pnpm exec midscene-test --file ./cases/order.yaml
+```
+
+还可以通过用例 ID 或标签筛选。重复参数会组合生效：ID 精确匹配，包含标签使用 OR 关系，排除标签始终会移除对应的用例。在 CI 或调度器中持久化选择时应使用显式用例 ID；自动生成的 ID 会随用例在文件中的位置变化。
+
+```bash
+pnpm exec midscene-test --case-id checkout-001 --case-id checkout-002
+pnpm exec midscene-test --tag smoke --exclude-tag destructive
 ```
 
 ### 过滤运行目标与配置文件

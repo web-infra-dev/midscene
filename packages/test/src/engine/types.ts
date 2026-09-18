@@ -161,7 +161,8 @@ export interface CaseRunOutcome {
     | 'project-setup-failed'
     | 'interrupted'
     | 'bail'
-    | 'fatal-error';
+    | 'fatal-error'
+    | 'executor-failed';
 }
 
 export interface WorkflowDocumentExecutionResult {

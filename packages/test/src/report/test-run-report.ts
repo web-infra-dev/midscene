@@ -200,6 +200,55 @@ const buildCase = (
   attempts: (outcome.attempts ?? (outcome.run ? [outcome.run] : [])).map(
     (attempt) => buildAttempt(attempt, context),
   ),
+  ...(outcome.execution
+    ? {
+        execution: {
+          executor: outcome.execution.executor,
+          resources: [...outcome.execution.resources],
+          ...(outcome.execution.attempts === undefined
+            ? {}
+            : { attempts: outcome.execution.attempts }),
+          ...(outcome.execution.failure
+            ? { failure: { ...outcome.execution.failure } }
+            : {}),
+          ...(outcome.execution.lifecycle
+            ? {
+                lifecycle: {
+                  status: outcome.execution.lifecycle.status,
+                  startedAt: outcome.execution.lifecycle.startedAt,
+                  endedAt: outcome.execution.lifecycle.endedAt,
+                  durationMs: outcome.execution.lifecycle.durationMs,
+                  ...(outcome.execution.lifecycle.setupError
+                    ? {
+                        setupError: sanitizeReportError(
+                          outcome.execution.lifecycle.setupError,
+                        ),
+                      }
+                    : {}),
+                  ...(outcome.execution.lifecycle.teardownErrors?.length
+                    ? {
+                        teardownErrors:
+                          outcome.execution.lifecycle.teardownErrors.map(
+                            sanitizeReportError,
+                          ),
+                      }
+                    : {}),
+                },
+              }
+            : {}),
+          ...(outcome.execution.artifacts
+            ? {
+                artifacts: outcome.execution.artifacts.map((artifact) => ({
+                  ...artifact,
+                })),
+              }
+            : {}),
+          ...(outcome.execution.metadata
+            ? { metadata: { ...outcome.execution.metadata } }
+            : {}),
+        },
+      }
+    : {}),
 });
 
 const buildDocument = (

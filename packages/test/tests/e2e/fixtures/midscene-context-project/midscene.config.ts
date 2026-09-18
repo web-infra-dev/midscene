@@ -69,6 +69,9 @@ export default defineTestProject<FixtureContext>({
           async aiAssert() {
             throw new Error('aiAssert is not used by this fixture.');
           },
+          async aiWaitFor() {
+            throw new Error('aiWaitFor is not used by this fixture.');
+          },
           async aiTap() {
             throw new Error('aiTap is not used by this fixture.');
           },

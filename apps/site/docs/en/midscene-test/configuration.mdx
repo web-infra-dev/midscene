@@ -22,6 +22,7 @@ Create browser or device resources in `setup` and register the corresponding Age
 | `setup` | Creates shared resources for the implicit default project. |
 | `nodes` | Registers Nodes shared by all execution projects. |
 | `projects` | Declares named execution projects, each with its own setup and case selection. When using this field, place setup in each project instead of at the top level. |
+| `executor` | Optionally delegates each isolated Case to another process or service. Requires `test.executionUnit: 'case'`. |
 | `test` | Sets concurrency, the failure threshold, and the default step timeout. |
 | `output` | Sets the report output directory. |
 
@@ -151,7 +152,7 @@ Each execution project calls its own `setup`. Even if projects reference the sam
 ### Common AI operations and Agent integration
 
 Use `createMidsceneNodes()` from `@midscene/test/midscene` to register the following common Nodes: `aiAct`, `aiTap`,
-`aiAssert`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `recordToReport`,
+`aiAssert`, `aiWaitFor`, `aiBoolean`, `aiNumber`, `aiString`, `aiAsk`, `recordToReport`,
 and `wait`.
 
 When calling `createMidsceneNodes()`, use `agentClass` to specify the Agent class and a `getAgent` callback to supply the Agent instance at runtime:
@@ -374,9 +375,11 @@ export default defineTestProject<ProjectContext>({
     },
   ],
   test: {
-    maxConcurrency: 1, // Maximum number of active Execution Projects
+    executionUnit: 'project', // Use 'case' to isolate and schedule each Case
+    maxConcurrency: 1, // Maximum number of active scheduling units
     bail: 0, // Stop scheduling new tasks after this many failed cases when > 0
     testTimeout: 120_000,
+    executorRetry: 0, // Retry classified executor failures, not Case failures
   },
   output: {
     reportDir: './midscene_run/report',
@@ -388,34 +391,32 @@ Both Projects can use the same YAML file. During case collection, input validati
 
 ### Concurrency and isolation
 
-The scheduling unit is an execution project. `test.maxConcurrency` limits the number of active projects and defaults to `1`. YAML files, cases, and steps within a project run sequentially. Increasing this setting does not make cases within a single project concurrent.
+`test.executionUnit` selects the scheduling unit. Its default value, `project`, preserves the shared-project lifecycle: `setup` runs once and YAML files and Cases within a project run sequentially. `test.maxConcurrency` then limits the number of active projects.
 
-To run different cases concurrently, assign them to multiple projects using directories or tags, and create separate resources for each project. Reuse the setup and Node definitions from the Playwright example above and replace its `defineTestProject()` configuration with the following to run checkout and account cases concurrently:
+Set `executionUnit: 'case'` to isolate and schedule every Case independently. Each Case gets its own project `setup`, document `beforeAll`/`afterAll`, and project cleanup. `maxConcurrency` limits active Cases. Add `resources` to a Case when two Cases must not use the same account, device, or other exclusive resource at the same time:
+
+```yaml
+cases:
+  - id: update-profile
+    name: Update profile
+    resources: [account:member]
+    steps:
+      - aiAct: Change the nickname to Midscene User
+```
 
 ```ts filename=midscene.config.ts
 export default defineTestProject<ProjectContext>({
+  setup: playwrightSetup,
   nodes: midsceneNodes,
-  projects: [
-    {
-      name: 'checkout',
-      setup: playwrightSetup,
-      files: { include: ['cases/checkout/**/*.{yaml,yml}'] },
-    },
-    {
-      name: 'account',
-      setup: playwrightSetup,
-      files: { include: ['cases/account/**/*.{yaml,yml}'] },
-    },
-  ],
-  test: { maxConcurrency: 2 },
+  test: { executionUnit: 'case', maxConcurrency: 4 },
 });
 ```
 
-Both projects call `playwrightSetup` separately, creating their own browser, page, and `context`. The `checkout` project runs checkout cases sequentially, and the `account` project runs account cases sequentially, while the two projects can progress concurrently. For device tests, concurrent projects should connect to different devices to avoid controlling the same device at the same time.
+Cases with a shared resource key wait for each other; unrelated Cases can still run concurrently. Resource keys are project-defined strings and do not provision resources by themselves.
 
-The framework does not automatically divide cases between projects. If two projects match the same YAML file, each project runs that file once. This is useful for validating the same cases on different platforms or environments. To distribute cases for concurrent execution, use non-overlapping `files` or `tags` selection rules.
+An explicit Case `id` is also used as a single result-directory segment. It must be at most 128 characters, start with an ASCII letter or number, and contain only letters, numbers, dots, underscores, or hyphens. When `id` is omitted, Midscene generates a safe deterministic ID from the Project, source path, and Case position. Because the generated value includes the Case position, inserting or reordering Cases changes it. Declare an explicit `id` before persisting `--case-id` selections in CI or external schedulers.
 
-A project occupies a concurrency slot from initialization through cleanup. Once a slot is released, the scheduler starts the next pending project. Scheduling currently uses asynchronous execution within the same Node.js process, without creating a separate process per project. Project implementations must still isolate module globals, external accounts, and test data.
+By default, case scheduling runs asynchronously in the same Node.js process. To delegate isolated Cases to another process, container, device service, or remote runner, configure a custom [Test Executor](./extend#delegate-cases-with-a-test-executor). Midscene Test has no dependency on a specific infrastructure provider.
 
 ### Generate a Markdown reference for each Project
 

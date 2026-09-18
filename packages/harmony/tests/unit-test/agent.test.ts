@@ -35,6 +35,7 @@ it('declares common and Harmony Test Runner Nodes', () => {
     'aiAct',
     'aiTap',
     'aiAssert',
+    'aiWaitFor',
     'aiBoolean',
     'aiNumber',
     'aiString',
