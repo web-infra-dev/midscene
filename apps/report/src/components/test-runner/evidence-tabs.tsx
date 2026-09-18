@@ -1,11 +1,12 @@
 import type { TestRunReportStep } from '@midscene/core';
+import type { ReactNode } from 'react';
 import {
   ReportValue,
   formatDuration,
   formatTimestamp,
 } from './view-primitives';
 
-export type RunnerInspectorTab = 'io' | 'logs';
+export type RunnerInspectorTab = 'record' | 'io' | 'logs';
 
 function InputOutput({ step }: { step: TestRunReportStep }): JSX.Element {
   return (
@@ -64,16 +65,19 @@ export function EvidenceTabs({
   step,
   tab,
   onChange,
+  recordContent,
 }: {
   step: TestRunReportStep;
   tab: RunnerInspectorTab;
   onChange(tab: RunnerInspectorTab): void;
+  recordContent: ReactNode;
 }): JSX.Element {
   return (
     <>
       <div className="runner-detail-inspector-tabs" role="tablist">
         {(
           [
+            ['record', 'Record'],
             ['io', 'Input & output'],
             ['logs', 'Events'],
           ] as const
@@ -91,6 +95,7 @@ export function EvidenceTabs({
         ))}
       </div>
       <div className="runner-detail-inspector-content">
+        {tab === 'record' ? recordContent : null}
         {tab === 'io' ? <InputOutput step={step} /> : null}
         {tab === 'logs' ? <RuntimeEvents step={step} /> : null}
       </div>

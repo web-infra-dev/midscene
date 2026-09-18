@@ -1,4 +1,8 @@
-import { DownOutlined, RightOutlined, WarningFilled } from '@ant-design/icons';
+import {
+  CaretDownFilled,
+  CaretRightFilled,
+  WarningFilled,
+} from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
 import { useId } from 'react';
 import {
@@ -11,7 +15,6 @@ import {
   getCaseFailure,
 } from './model';
 import {
-  CaseStatus,
   type RunnerCaseDisplayMode,
   caseStatusLabel,
   formatDuration,
@@ -64,12 +67,14 @@ function ProjectBreakdownCase({
         onClick={() => onOpen(item, failure?.id)}
         aria-label={`Open ${item.testCase.name} in project ${item.project.name}${
           failure ? ' at the failed Step' : ''
-        }`}
+        } · ${caseStatusLabel(item.status)}`}
       >
-        <span className={`runner-project-tree-branch is-${item.status}`} />
         <div className="runner-project-tree-case-main">
           <div className="runner-project-tree-case-title">
-            <CaseStatus status={item.status} quiet />
+            <span
+              className={`runner-project-tree-branch is-${item.status}`}
+              aria-hidden="true"
+            />
             <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
               <h3>{item.testCase.name}</h3>
             </Tooltip>
@@ -129,19 +134,19 @@ function ProjectBreakdownNode({
 
   return (
     <li className={`runner-project-tree-node${expanded ? ' is-expanded' : ''}`}>
-      <div className="runner-project-tree-root">
-        <button
-          type="button"
-          className="runner-project-tree-toggle"
-          onClick={onToggle}
-          aria-controls={childGroupId}
-          aria-expanded={expanded}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} project ${
-            item.project.name
-          }`}
-        >
+      <button
+        type="button"
+        className="runner-project-tree-root"
+        onClick={onToggle}
+        aria-controls={childGroupId}
+        aria-expanded={expanded}
+        aria-label={`${expanded ? 'Collapse' : 'Expand'} project ${
+          item.project.name
+        }`}
+      >
+        <span className="runner-project-tree-toggle">
           <span className="runner-project-tree-chevron">
-            {expanded ? <DownOutlined /> : <RightOutlined />}
+            {expanded ? <CaretDownFilled /> : <CaretRightFilled />}
           </span>
           <span className="runner-project-tree-identity">
             <span
@@ -157,44 +162,36 @@ function ProjectBreakdownNode({
               </span>
             </Tooltip>
             <span className="runner-project-tree-meta">
-              {item.cases.length} {item.cases.length === 1 ? 'case' : 'cases'}
+              {item.project.platform}
             </span>
           </span>
-        </button>
-        <div
+        </span>
+        <span
           className="runner-project-tree-stats"
           aria-label={`${item.project.name} overview`}
         >
           <span>
-            <strong>
-              {item.passedCount}/{item.cases.length}
-            </strong>
-            <small>passed</small>
+            <strong>{item.cases.length}</strong>
           </span>
-          {item.failedCount ? (
-            <span className="is-failed">
-              <strong>{item.failedCount}</strong>
-              <small>failed</small>
-            </span>
-          ) : null}
-          {item.retryPassedCount ? (
-            <span className="is-warning">
-              <strong>{item.retryPassedCount}</strong>
-              <small>retried</small>
-            </span>
-          ) : null}
-          {item.notRunCount ? (
-            <span>
-              <strong>{item.notRunCount}</strong>
-              <small>not run</small>
-            </span>
-          ) : null}
+          <span>
+            <strong>{item.passedCount}</strong>
+          </span>
+          <span className="runner-project-tree-result">
+            {item.failedCount ? (
+              <b className="is-failed">{item.failedCount} failed</b>
+            ) : item.retryPassedCount ? (
+              <b className="is-warning">{item.retryPassedCount} retried</b>
+            ) : item.notRunCount ? (
+              <b>{item.notRunCount} not run</b>
+            ) : (
+              <b className="is-passed">Passed</b>
+            )}
+          </span>
           <span>
             <strong>{formatDuration(item.durationMs)}</strong>
-            <small>duration</small>
           </span>
-        </div>
-      </div>
+        </span>
+      </button>
       {expanded ? (
         <ul
           className={`runner-project-tree-children is-${caseDisplayMode}`}
@@ -240,10 +237,6 @@ export function ProjectBreakdownTree({
   onResetFilters(): void;
   onOpenCase(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
-  const visibleCaseCount = projects.reduce(
-    (total, item) => total + item.cases.length,
-    0,
-  );
   const toggleProject = (key: string) => {
     const next = new Set(expandedProjectKeys);
     if (next.has(key)) next.delete(key);
@@ -271,30 +264,13 @@ export function ProjectBreakdownTree({
 
   return (
     <>
-      <div className="runner-project-tree-summary">
-        <span>
-          <strong>{projects.length}</strong>{' '}
-          {projects.length === 1 ? 'project' : 'projects'} ·{' '}
-          <strong>{visibleCaseCount}</strong>{' '}
-          {visibleCaseCount === 1 ? 'case' : 'cases'}
-        </span>
-        <div>
-          <button
-            type="button"
-            onClick={() =>
-              onExpandedProjectKeysChange(
-                new Set(projects.map((item) => item.item.key)),
-              )
-            }
-          >
-            Expand all
-          </button>
-          <button
-            type="button"
-            onClick={() => onExpandedProjectKeysChange(new Set())}
-          >
-            Collapse all
-          </button>
+      <div className="runner-project-tree-header" aria-hidden="true">
+        <span>Project name</span>
+        <div className="runner-project-tree-columns">
+          <span>Case</span>
+          <span>Passed</span>
+          <span>Result</span>
+          <span>Duration</span>
         </div>
       </div>
       <ul

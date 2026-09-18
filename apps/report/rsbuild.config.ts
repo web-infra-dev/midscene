@@ -100,6 +100,13 @@ export default defineConfig({
   tools: {
     rspack: {
       module: {
+        rules: [
+          {
+            test: /\.(woff2|png|svg)$/,
+            include: path.join(__dirname, 'src/components/test-runner/assets'),
+            type: 'asset/inline',
+          },
+        ],
         parser: {
           javascript: {
             dynamicImportMode: 'eager',

@@ -1,11 +1,12 @@
 import { CloseCircleFilled, SearchOutlined } from '@ant-design/icons';
-import { Input, Select } from 'antd';
+import { Input } from 'antd';
 import { useMemo } from 'react';
 import type {
   RunnerBreakdownSort,
   RunnerBreakdownStatus,
   RunnerCaseView,
 } from './model';
+import { Select } from './select';
 
 export function CaseFilters({
   cases,
@@ -15,6 +16,9 @@ export function CaseFilters({
   onQueryChange,
   onStatusChange,
   onSortChange,
+  allProjectsExpanded,
+  canToggleProjects,
+  onToggleProjects,
 }: {
   cases: readonly RunnerCaseView[];
   query: string;
@@ -23,6 +27,9 @@ export function CaseFilters({
   onQueryChange(value: string): void;
   onStatusChange(value: RunnerBreakdownStatus): void;
   onSortChange(value: RunnerBreakdownSort): void;
+  allProjectsExpanded: boolean;
+  canToggleProjects: boolean;
+  onToggleProjects(): void;
 }): JSX.Element {
   const statusCounts = useMemo(
     () => ({
@@ -42,25 +49,7 @@ export function CaseFilters({
       className="runner-breakdown-toolbar"
       aria-label="Filter and sort Project breakdown"
     >
-      <Input
-        prefix={<SearchOutlined />}
-        suffix={
-          <button
-            type="button"
-            className={`runner-search-clear${query ? '' : ' is-hidden'}`}
-            aria-label="Clear breakdown search"
-            aria-hidden={!query}
-            disabled={!query}
-            onClick={() => onQueryChange('')}
-          >
-            <CloseCircleFilled />
-          </button>
-        }
-        placeholder="Search projects, cases, errors, IDs, or steps"
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-      />
-      <Select
+      <Select<RunnerBreakdownStatus>
         aria-label="Filter breakdown by status"
         value={status}
         onChange={(value: RunnerBreakdownStatus) => onStatusChange(value)}
@@ -91,7 +80,7 @@ export function CaseFilters({
           },
         ]}
       />
-      <Select
+      <Select<RunnerBreakdownSort>
         aria-label="Sort Project breakdown"
         value={sort}
         onChange={(value: RunnerBreakdownSort) => onSortChange(value)}
@@ -102,6 +91,39 @@ export function CaseFilters({
           { label: 'Project / case name', value: 'name' },
         ]}
       />
+      <Input
+        prefix={<SearchOutlined />}
+        suffix={
+          <button
+            type="button"
+            className={`runner-search-clear${query ? '' : ' is-hidden'}`}
+            aria-label="Clear breakdown search"
+            aria-hidden={!query}
+            disabled={!query}
+            onClick={() => onQueryChange('')}
+          >
+            <CloseCircleFilled />
+          </button>
+        }
+        placeholder="Search projects, cases, and details"
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+      />
+      <button
+        type="button"
+        className="runner-project-expansion-toggle"
+        aria-label={
+          allProjectsExpanded ? 'Collapse all projects' : 'Expand all projects'
+        }
+        title={
+          allProjectsExpanded ? 'Collapse all projects' : 'Expand all projects'
+        }
+        aria-pressed={allProjectsExpanded}
+        disabled={!canToggleProjects}
+        onClick={onToggleProjects}
+      >
+        <span className="runner-project-expansion-icon" aria-hidden="true" />
+      </button>
     </div>
   );
 }

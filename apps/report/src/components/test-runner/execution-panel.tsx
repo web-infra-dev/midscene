@@ -1,12 +1,9 @@
-import {
-  BugOutlined,
-  DatabaseOutlined,
-  EyeOutlined,
-  SettingOutlined,
-  ThunderboltFilled,
-  UnorderedListOutlined,
-} from '@ant-design/icons';
+import { EyeOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { TestRunReportStep } from '@midscene/core';
+import agentIcon from './assets/step-agent.svg';
+import dataIcon from './assets/step-data.svg';
+import errorIcon from './assets/step-error.svg';
+import hookIcon from './assets/step-hook.svg';
 import type { RunnerStepGroup } from './case-workspace-model';
 import { getStepDisplayName } from './model';
 import { StepStatus, formatDuration } from './view-primitives';
@@ -14,11 +11,14 @@ import { StepStatus, formatDuration } from './view-primitives';
 function RunnerStepTypeIcon({
   step,
 }: { step: TestRunReportStep }): JSX.Element {
-  if (step.status === 'failed') return <BugOutlined />;
-  if (step.agentDetails?.length) return <ThunderboltFilled />;
+  if (step.status === 'failed')
+    return <img src={errorIcon} width={16} height={16} alt="" />;
+  if (step.agentDetails?.length)
+    return <img src={agentIcon} width={16} height={16} alt="" />;
   if (step.node.toLocaleLowerCase().includes('assert')) return <EyeOutlined />;
-  if (step.phase !== 'steps') return <SettingOutlined />;
-  return <DatabaseOutlined />;
+  if (step.phase !== 'steps')
+    return <img src={hookIcon} width={16} height={16} alt="" />;
+  return <img src={dataIcon} width={16} height={16} alt="" />;
 }
 
 export function RunnerExecutionPanel({
@@ -52,6 +52,7 @@ export function RunnerExecutionPanel({
                 type="button"
                 className={selectedStepId === step.id ? 'is-selected' : ''}
                 key={step.id}
+                aria-pressed={selectedStepId === step.id}
                 onClick={() => onSelect(step)}
               >
                 <span
@@ -70,8 +71,19 @@ export function RunnerExecutionPanel({
                   <RunnerStepTypeIcon step={step} />
                 </span>
                 <span className="runner-detail-step-copy">
-                  <strong>{step.node}</strong>
-                  <small>{getStepDisplayName(step)}</small>
+                  <strong>
+                    {step.node}
+                    {step.agentDetails?.length ? (
+                      <span
+                        className="runner-detail-recording-icon"
+                        role="img"
+                        aria-label="Has recording"
+                      />
+                    ) : null}
+                  </strong>
+                  <small title={getStepDisplayName(step)}>
+                    {getStepDisplayName(step)}
+                  </small>
                 </span>
                 <span className="runner-detail-step-tail">
                   <StepStatus status={step.status} />

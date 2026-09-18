@@ -91,6 +91,19 @@ export const getDefaultExpandedProjectKeys = (
       .map(({ item }) => item.key),
   );
 
+export const toggleAllRunnerProjectKeys = (
+  visibleKeys: readonly string[],
+  expandedKeys: ReadonlySet<string>,
+): Set<string> => {
+  const collapse = visibleKeys.every((key) => expandedKeys.has(key));
+  const next = new Set(expandedKeys);
+  for (const key of visibleKeys) {
+    if (collapse) next.delete(key);
+    else next.add(key);
+  }
+  return next;
+};
+
 interface ScreenshotLike {
   base64: string;
   capturedAt?: number;

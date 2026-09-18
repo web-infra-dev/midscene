@@ -1,5 +1,4 @@
 import './index.less';
-import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import type { TestRunReportDump } from '@midscene/core';
 import {
   Logo,
@@ -9,6 +8,8 @@ import {
 import { Alert, App as AntdApp, ConfigProvider, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ThemeDarkIcon from '../../icons/theme-dark.svg?react';
+import ThemeLightIcon from '../../icons/theme-light.svg?react';
 import type { PlaywrightTasks } from '../../types';
 import {
   type RunnerRoute,
@@ -30,7 +31,10 @@ import {
   resolveRunnerNavigation,
 } from './navigation';
 import { RunOverview } from './run-overview';
+import { getSelectTheme } from './select';
 import type { RunnerCaseDisplayMode } from './view-primitives';
+
+const reportTheme = globalThemeConfig();
 
 interface TestRunnerReportProps {
   dump: TestRunReportDump;
@@ -181,8 +185,15 @@ export default function TestRunnerReport({
   return (
     <ConfigProvider
       theme={{
-        ...globalThemeConfig(),
+        ...reportTheme,
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        components: {
+          ...reportTheme.components,
+          Select: {
+            ...reportTheme.components?.Select,
+            ...getSelectTheme(isDarkMode),
+          },
+        },
       }}
     >
       <AntdApp component={false}>
@@ -204,7 +215,7 @@ export default function TestRunnerReport({
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 aria-label="Toggle theme"
               >
-                {isDarkMode ? <SunOutlined /> : <MoonOutlined />}
+                {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
               </button>
             </div>
           </header>

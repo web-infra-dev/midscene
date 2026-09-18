@@ -35,6 +35,31 @@ import {
 
 import { LifecycleErrors } from './lifecycle-errors';
 
+export function getWorkspaceStepSummary(steps: readonly TestRunReportStep[]): {
+  total: number;
+  passed: number;
+  failed: number;
+  timeout: number;
+} {
+  const timeout = steps.filter((step) => {
+    if (step.status !== 'failed' || !step.error) return false;
+    return /timeout|timed out/i.test(
+      [step.error.code, step.error.name, step.error.message]
+        .filter(Boolean)
+        .join(' '),
+    );
+  }).length;
+  const failed =
+    steps.filter((step) => step.status === 'failed').length - timeout;
+
+  return {
+    total: steps.length,
+    passed: steps.filter((step) => step.status === 'success').length,
+    failed,
+    timeout,
+  };
+}
+
 export function CaseWorkspace({
   item,
   standaloneRun,
@@ -92,8 +117,9 @@ export function CaseWorkspace({
   const [selectedStepId, setSelectedStepId] = useState(initialStep?.id);
   const [previewFrameKey, setPreviewFrameKey] = useState<string>();
   const [lockedFrameKey, setLockedFrameKey] = useState<string>();
-  const [inspectorTab, setInspectorTab] = useState<RunnerInspectorTab>('io');
-  const [traceDrawerOpen, setTraceDrawerOpen] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<RunnerInspectorTab>(
+    initialStep?.agentDetails?.length ? 'record' : 'io',
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const playbackIndexRef = useRef(0);
 
@@ -125,8 +151,7 @@ export function CaseWorkspace({
     setSelectedStepId(nextStep?.id);
     setPreviewFrameKey(undefined);
     setLockedFrameKey(undefined);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
+    setInspectorTab(nextStep?.agentDetails?.length ? 'record' : 'io');
     setIsPlaying(false);
   }, [initialStepId, item]);
 
@@ -150,6 +175,10 @@ export function CaseWorkspace({
   const workspaceSteps = useMemo(
     () => stepGroups.flatMap((group) => group.steps),
     [stepGroups],
+  );
+  const stepSummary = useMemo(
+    () => getWorkspaceStepSummary(workspaceSteps),
+    [workspaceSteps],
   );
 
   const selectedStep =
@@ -203,8 +232,7 @@ export function CaseWorkspace({
         setSelectedStepId(nextFrame.stepId);
         updateRunnerStepHash(nextFrame.stepId);
       }
-      setInspectorTab('io');
-      setTraceDrawerOpen(false);
+      setInspectorTab('record');
       playbackIndexRef.current += 1;
     };
     advance();
@@ -226,8 +254,7 @@ export function CaseWorkspace({
     setSelectedStepId(nextStep?.id);
     setPreviewFrameKey(undefined);
     setLockedFrameKey(undefined);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
+    setInspectorTab(nextStep?.agentDetails?.length ? 'record' : 'io');
     setIsPlaying(false);
     clearRunnerStepHash();
   };
@@ -235,8 +262,7 @@ export function CaseWorkspace({
     setSelectedStepId(step.id);
     setPreviewFrameKey(undefined);
     setLockedFrameKey(getDefaultVisualFrameForStep(step, visualFrames)?.key);
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
+    setInspectorTab(step.agentDetails?.length ? 'record' : 'io');
     setIsPlaying(false);
     updateRunnerStepHash(step.id);
   };
@@ -248,8 +274,7 @@ export function CaseWorkspace({
       setSelectedStepId(owningStep.id);
       updateRunnerStepHash(owningStep.id);
     }
-    setInspectorTab('io');
-    setTraceDrawerOpen(false);
+    setInspectorTab(owningStep?.agentDetails?.length ? 'record' : 'io');
     setIsPlaying(false);
   };
   const selectInspectorTab = (tab: RunnerInspectorTab) => {
@@ -302,6 +327,7 @@ export function CaseWorkspace({
             index,
           )
         }
+        stepSummary={stepSummary}
       />
 
       <LifecycleErrors
@@ -338,19 +364,6 @@ export function CaseWorkspace({
       />
       {workspaceSteps.length > 0 ? (
         <>
-          {selectedAttempt && (
-            <RunnerAttemptTimeline
-              attempt={selectedAttempt}
-              frames={positionedFrames}
-              selectedStepId={selectedStep?.id}
-              previewFrameKey={previewFrameKey}
-              lockedFrameKey={lockedFrameKey}
-              isPlaying={isPlaying}
-              onPreview={setPreviewFrameKey}
-              onSelectFrame={selectFrame}
-              onTogglePlay={togglePlayback}
-            />
-          )}
           <div className="runner-detail-debug-workbench">
             <RunnerExecutionPanel
               groups={stepGroups}
@@ -366,11 +379,24 @@ export function CaseWorkspace({
                 activeFrame={activeFrame}
                 activePosition={activePosition}
                 tab={inspectorTab}
-                traceDrawerOpen={traceDrawerOpen}
                 reports={reports}
                 renderAgentReport={renderAgentReport}
+                timeline={
+                  selectedAttempt ? (
+                    <RunnerAttemptTimeline
+                      attempt={selectedAttempt}
+                      frames={positionedFrames}
+                      selectedStepId={selectedStep?.id}
+                      previewFrameKey={previewFrameKey}
+                      lockedFrameKey={lockedFrameKey}
+                      isPlaying={isPlaying}
+                      onPreview={setPreviewFrameKey}
+                      onSelectFrame={selectFrame}
+                      onTogglePlay={togglePlayback}
+                    />
+                  ) : undefined
+                }
                 onTabChange={selectInspectorTab}
-                onTraceDrawerOpenChange={setTraceDrawerOpen}
               />
             ) : (
               <div className="runner-select-step-hint">

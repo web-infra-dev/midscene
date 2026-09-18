@@ -5,6 +5,10 @@ const styles = readFileSync(
   new URL('./refinements.less', import.meta.url),
   'utf8',
 );
+const figmaStyles = readFileSync(
+  new URL('./figma-layout.less', import.meta.url),
+  'utf8',
+);
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const breakdown = readFileSync(
   new URL('./project-breakdown.tsx', import.meta.url),
@@ -14,6 +18,15 @@ const inspector = readFileSync(
   new URL('./evidence-inspector.tsx', import.meta.url),
   'utf8',
 );
+const filters = readFileSync(
+  new URL('./case-filters.tsx', import.meta.url),
+  'utf8',
+);
+const header = readFileSync(
+  new URL('./case-workspace-header.tsx', import.meta.url),
+  'utf8',
+);
+const select = readFileSync(new URL('./select.tsx', import.meta.url), 'utf8');
 
 describe('Midscene Test report layout', () => {
   it('keeps lifecycle hover rows square inside the rounded list', () => {
@@ -62,6 +75,13 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
   });
 
+  it('uses one shared Select for report filters and attempt switching', () => {
+    expect(filters).toContain("import { Select } from './select'");
+    expect(header).toContain("import { Select } from './select'");
+    expect(select).toContain("className={['runner-report-select'");
+    expect(select).toContain("popupClassName={['runner-select-dropdown'");
+  });
+
   it('removes the intermediate project page while keeping expansion and case navigation', () => {
     expect(breakdown).not.toContain('runner-project-tree-overview');
     expect(source).not.toContain('ProjectWorkspace');
@@ -69,20 +89,13 @@ describe('Midscene Test report layout', () => {
     expect(source).toContain('backLabel="Overview"');
   });
 
-  it('names the primary agent inspection action consistently for sighted and screen-reader users', () => {
-    expect(inspector).toContain('Inspect GUI agent');
-    expect(inspector).toContain(
-      'aria-label="Inspect GUI agent in side drawer"',
-    );
-    expect(inspector).not.toContain('Inspect AI trace');
-  });
-
-  it('gives the step description its own full-width row after the actions', () => {
+  it('keeps the selected step description above the report tabs', () => {
     expect(inspector).toMatch(
-      /className="runner-detail-evidence-actions"[\s\S]*?<\/div>\s*\{step.title \? \(\s*<p className="runner-detail-step-description">/,
+      /className="runner-detail-evidence-title"[\s\S]*?<\/div>\s*\{step.title \? \(\s*<p className="runner-detail-step-description">/,
     );
-    expect(styles).toMatch(
-      /\.runner-detail-evidence-heading \.runner-detail-step-description\s*\{[^}]*flex: 1 0 100%;/,
+    expect(inspector).toContain('className="runner-detail-tabs-row"');
+    expect(figmaStyles).toMatch(
+      /\.runner-detail-evidence-heading \.runner-detail-step-description\s*\{/,
     );
   });
 

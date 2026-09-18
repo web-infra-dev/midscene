@@ -7,6 +7,7 @@ import { describe, expect, it } from '@rstest/core';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PlaywrightTasks } from '../../types';
+import { getWorkspaceStepSummary } from './case-workspace';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
   buildRunnerStepIndex,
@@ -22,6 +23,7 @@ import {
   getStepForVisualFrame,
   groupRunnerProjects,
   positionAttemptVisualFrames,
+  toggleAllRunnerProjectKeys,
 } from './model';
 import { isSingleCaseReport, resolveRunnerNavigation } from './navigation';
 import { RunSummary } from './run-summary';
@@ -323,6 +325,29 @@ describe('Midscene Test hybrid report model', () => {
     ]);
   });
 
+  it('expands every visible project from a partial selection without changing hidden projects', () => {
+    const expanded = new Set(['first', 'hidden']);
+    expect(toggleAllRunnerProjectKeys(['first', 'second'], expanded)).toEqual(
+      new Set(['first', 'second', 'hidden']),
+    );
+    expect(expanded).toEqual(new Set(['first', 'hidden']));
+  });
+
+  it('collapses all visible projects and preserves expansion outside the current filter', () => {
+    expect(
+      toggleAllRunnerProjectKeys(
+        ['first', 'second'],
+        new Set(['first', 'second', 'hidden']),
+      ),
+    ).toEqual(new Set(['hidden']));
+  });
+
+  it('preserves expansion when no project matches the filters', () => {
+    expect(toggleAllRunnerProjectKeys([], new Set(['hidden']))).toEqual(
+      new Set(['hidden']),
+    );
+  });
+
   it('opens a single-project single-case report directly in case detail', () => {
     const singleDump = structuredClone(dump);
     singleDump.projects[0].documents[0].cases = [
@@ -496,7 +521,7 @@ describe('Midscene Test hybrid report model', () => {
       'aria-label="Percentage of all cases passed">50%</span>',
     );
     expect(markup).not.toContain('runner-overview-outcome-message');
-    expect(markup).toContain('Review 1 failed case');
+    expect(markup).toContain('aria-label="Review case results"');
   });
 
   it('does not invent a pass percentage for an empty run', () => {
@@ -516,23 +541,50 @@ describe('Midscene Test hybrid report model', () => {
 
   it('keeps attempt comparison in standalone reports with retries', () => {
     const item = flattenRunnerCases(dump)[1];
+    const props = {
+      item,
+      standaloneRun: dump,
+      selectedAttempt: item.finalAttempt,
+      backLabel: 'Overview',
+      onBack() {},
+      onSelectAttempt() {},
+    };
     const markup = renderToStaticMarkup(
-      createElement(CaseWorkspaceHeader, {
-        item,
-        standaloneRun: dump,
-        selectedAttempt: item.finalAttempt,
-        backLabel: 'Overview',
-        onBack() {},
-        onSelectAttempt() {},
-      }),
+      createElement(CaseWorkspaceHeader, props),
     );
     expect(markup).not.toContain('runner-back-button');
-    expect(markup).toContain('Attempt 1');
     expect(markup).toContain('Attempt 2');
     expect(markup).not.toContain('Original failure');
     expect(markup).not.toContain('Final result');
     expect(markup).not.toContain('· failed');
-    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('aria-label="Attempts"');
+    expect(markup).toContain('role="combobox"');
+    const firstAttemptMarkup = renderToStaticMarkup(
+      createElement(CaseWorkspaceHeader, {
+        ...props,
+        selectedAttempt: item.testCase.attempts[0],
+      }),
+    );
+    expect(firstAttemptMarkup).toContain('Attempt 1');
+    expect(firstAttemptMarkup).toContain('is-failed');
+  });
+
+  it('keeps timeout failures separate in the detail step summary', () => {
+    expect(
+      getWorkspaceStepSummary([
+        step('passed'),
+        step('failed', 'failed', {
+          error: { name: 'Error', message: 'Regular failure' },
+        }),
+        step('timeout', 'failed', {
+          error: {
+            name: 'StepTimeoutError',
+            code: 'STEP_TIMEOUT',
+            message: 'Step timed out after 1000ms.',
+          },
+        }),
+      ]),
+    ).toEqual({ total: 3, passed: 1, failed: 1, timeout: 1 });
   });
 
   it('preserves step deep links when choosing the initial page', () => {

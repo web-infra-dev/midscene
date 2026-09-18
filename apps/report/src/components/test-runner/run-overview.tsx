@@ -11,6 +11,7 @@ import {
   type RunnerProjectView,
   type RunnerVisualIndex,
   filterAndSortRunnerProjectBreakdown,
+  toggleAllRunnerProjectKeys,
 } from './model';
 import { ProjectBreakdownTree } from './project-breakdown';
 import { RunSummary } from './run-summary';
@@ -61,6 +62,10 @@ export function RunOverview({
     setBreakdownStatus('all');
     setBreakdownSort('attention');
   };
+  const visibleProjectKeys = breakdownProjects.map(({ item }) => item.key);
+  const allProjectsExpanded =
+    visibleProjectKeys.length > 0 &&
+    visibleProjectKeys.every((key) => expandedProjectKeys.has(key));
   const hasActiveBreakdownFilters =
     Boolean(breakdownQuery.trim()) ||
     breakdownStatus !== 'all' ||
@@ -112,20 +117,32 @@ export function RunOverview({
       >
         <div className="runner-section-heading">
           <h2>Projects and cases</h2>
+        </div>
+        <div className="runner-breakdown-controls">
           <CaseDensitySwitch
             value={caseDisplayMode}
             onChange={onCaseDisplayModeChange}
           />
+          <CaseFilters
+            cases={cases}
+            query={breakdownQuery}
+            status={breakdownStatus}
+            sort={breakdownSort}
+            onQueryChange={setBreakdownQuery}
+            onStatusChange={setBreakdownStatus}
+            onSortChange={setBreakdownSort}
+            allProjectsExpanded={allProjectsExpanded}
+            canToggleProjects={visibleProjectKeys.length > 0}
+            onToggleProjects={() =>
+              onExpandedProjectKeysChange(
+                toggleAllRunnerProjectKeys(
+                  visibleProjectKeys,
+                  expandedProjectKeys,
+                ),
+              )
+            }
+          />
         </div>
-        <CaseFilters
-          cases={cases}
-          query={breakdownQuery}
-          status={breakdownStatus}
-          sort={breakdownSort}
-          onQueryChange={setBreakdownQuery}
-          onStatusChange={setBreakdownStatus}
-          onSortChange={setBreakdownSort}
-        />
         <ProjectBreakdownTree
           visualIndex={visualIndex}
           projects={breakdownProjects}

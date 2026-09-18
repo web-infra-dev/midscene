@@ -9,6 +9,7 @@ import {
 import { describe, expect, it } from '@rstest/core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CaseWorkspace } from './case-workspace';
+import { CaseWorkspaceHeader } from './case-workspace-header';
 import {
   getCaseWorkspaceDocument,
   getCaseWorkspaceDocumentAttemptIndex,
@@ -213,9 +214,22 @@ describe('whole-file retry report projection and viewer', () => {
         />,
       );
       expect(html).toContain('aria-label="File attempts"');
+      expect(html).toContain('role="combobox"');
       expect(html).toContain('File attempt 1');
-      expect(html).toContain('File attempt 2');
       expect(html).toContain(`${failure} failed`);
+
+      const retryHeader = renderToStaticMarkup(
+        <CaseWorkspaceHeader
+          item={item}
+          selectedDocumentAttemptIndex={1}
+          backLabel="Overview"
+          onBack={() => {}}
+          onSelectAttempt={() => {}}
+          onSelectDocumentAttempt={() => {}}
+        />,
+      );
+      expect(retryHeader).toContain('File attempt 2');
+      expect(retryHeader).toContain('is-success');
     },
   );
 });
