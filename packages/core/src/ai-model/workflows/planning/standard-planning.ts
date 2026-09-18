@@ -124,7 +124,7 @@ async function callAndParsePlanningResponse(
         `XML parse error: ${errorMessage}`,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -289,7 +289,7 @@ export async function standardPlan(
       content: rawResponse,
       usage,
       reasoning_content,
-      rawChoiceMessage,
+      rawAssistantOutput,
     },
     planFromAI,
     actions,
@@ -328,7 +328,7 @@ export async function standardPlan(
     ...planFromAI,
     actions,
     rawResponse,
-    rawChoiceMessage,
+    rawAssistantOutput,
     usage,
     reasoning_content,
     yamlFlow,
@@ -372,9 +372,11 @@ export async function standardPlan(
   if (
     modelRuntime.config.apiType !== 'responses' &&
     modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawChoiceMessage
+    rawAssistantOutput
   ) {
-    conversationHistory.append(rawChoiceMessage as ChatCompletionMessageParam);
+    conversationHistory.append(
+      rawAssistantOutput as ChatCompletionMessageParam,
+    );
   } else {
     conversationHistory.append({
       role: 'assistant',

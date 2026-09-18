@@ -15,19 +15,19 @@ const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 
@@ -105,7 +105,7 @@ describe('createAutoGlmPlanner messages', () => {
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: { role: 'assistant', content: 'raw choice' } as any,
     });
 
     const result = await runAutoGlmPlanning(
@@ -160,7 +160,7 @@ describe('createAutoGlmPlanner messages', () => {
         }),
       ]),
     );
-    expect(result.rawChoiceMessage).toEqual({
+    expect(result.rawAssistantOutput).toEqual({
       role: 'assistant',
       content: 'raw choice',
     });

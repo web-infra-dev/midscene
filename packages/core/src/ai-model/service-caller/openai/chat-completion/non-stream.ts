@@ -31,7 +31,7 @@ export const callChatCompletionNonStreaming = async ({
     );
   }
 
-  const rawChoiceMessage = result.choices[0].message;
+  const rawAssistantOutput = result.choices[0].message;
   const parsedMessage = extractContentAndReasoning(result.choices[0].message);
   const reasoningContent = parsedMessage.reasoning_content;
   const content = resolveContentWithReasoningFallback({
@@ -45,14 +45,14 @@ export const callChatCompletionNonStreaming = async ({
       'empty content from AI model',
       content || '',
       undefined,
-      rawChoiceMessage,
+      rawAssistantOutput,
     );
   }
 
   return {
     content,
     reasoningContent,
-    rawChoiceMessage,
+    rawAssistantOutput,
     rawUsage: result.usage,
     requestId,
     responseModelName: result.model,

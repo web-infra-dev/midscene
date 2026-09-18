@@ -21,7 +21,7 @@ export async function callResponsesNonStreaming({
       'empty content from AI model',
       result.content,
       undefined,
-      result.rawChoiceMessage,
+      result.rawAssistantOutput,
     );
   }
   return {

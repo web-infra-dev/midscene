@@ -12,21 +12,21 @@ export class AIResponseParseError extends Error {
    * full provider response or choices[0].message.
    */
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   reasoningContent?: string;
 
   constructor(
     message: string,
     rawResponse: string,
     usage?: AIUsageInfo,
-    rawChoiceMessage?: unknown,
+    rawAssistantOutput?: unknown,
     reasoningContent?: string,
   ) {
     super(message);
     this.name = 'AIResponseParseError';
     this.rawResponse = rawResponse;
     this.usage = usage;
-    this.rawChoiceMessage = rawChoiceMessage;
+    this.rawAssistantOutput = rawAssistantOutput;
     this.reasoningContent = reasoningContent;
   }
 }

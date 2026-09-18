@@ -15,19 +15,19 @@ const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: unknown;
 
     constructor(
       message: string,
       rawResponse?: string,
       usage?: unknown,
-      rawChoiceMessage?: unknown,
+      rawAssistantOutput?: unknown,
     ) {
       super(message);
       this.name = 'AIResponseParseError';
       this.rawResponse = rawResponse;
       this.usage = usage;
-      this.rawChoiceMessage = rawChoiceMessage;
+      this.rawAssistantOutput = rawAssistantOutput;
     }
   }
 

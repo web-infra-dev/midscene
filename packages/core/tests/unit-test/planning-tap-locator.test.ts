@@ -80,7 +80,7 @@ describe('resolvePlanningTapLocator', () => {
       actions,
       shouldContinuePlanning: false,
       rawResponse: 'raw planning response',
-      rawChoiceMessage: { role: 'assistant' },
+      rawAssistantOutput: { role: 'assistant' },
       usage: { total_tokens: 3 } as any,
       log: 'planner reasoning',
     });
@@ -125,7 +125,7 @@ describe('resolvePlanningTapLocator', () => {
     expect(result).toEqual({
       locatedPixelResult,
       rawResponse: 'raw planning response',
-      rawChoiceMessage: { role: 'assistant' },
+      rawAssistantOutput: { role: 'assistant' },
       usage: { total_tokens: 3 },
       reasoningContent: 'planner reasoning',
     });
@@ -151,7 +151,7 @@ describe('resolvePlanningTapLocator', () => {
 
     expect(result).toEqual({
       rawResponse: 'raw planning response',
-      rawChoiceMessage: undefined,
+      rawAssistantOutput: undefined,
       usage: undefined,
       reasoningContent: 'planner reasoning',
       errors: ['No locatedPixelResult found in planner response'],
@@ -159,14 +159,14 @@ describe('resolvePlanningTapLocator', () => {
   });
 
   it('preserves raw response metadata from planner parse errors', async () => {
-    const rawChoiceMessage = { role: 'assistant', content: 'bad response' };
+    const rawAssistantOutput = { role: 'assistant', content: 'bad response' };
     const usage = { total_tokens: 5 } as any;
     rs.mocked(runCustomPlanning).mockRejectedValueOnce(
       new AIResponseParseError(
         'Parse error: malformed response',
         'raw malformed response',
         usage,
-        rawChoiceMessage,
+        rawAssistantOutput,
       ),
     );
 
@@ -182,7 +182,7 @@ describe('resolvePlanningTapLocator', () => {
 
     expect(result).toEqual({
       rawResponse: 'raw malformed response',
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoningContent: '',
       errors: ['Parse error: malformed response'],

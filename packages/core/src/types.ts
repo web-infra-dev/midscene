@@ -225,7 +225,7 @@ export interface ServiceTaskInfo {
    * full provider response or choices[0].message.
    */
   rawResponse?: unknown;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   usage?: AIUsageInfo;
   searchArea?: Rect;
   /**
@@ -408,7 +408,7 @@ export interface PlanningAIResponse
    * full provider response or choices[0].message.
    */
   rawResponse?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;

@@ -22,7 +22,7 @@ export interface CallAIOptions {
 export type AICallResult = {
   content: string;
   reasoning_content?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   usage?: AIUsageInfo;
   isStreamed: boolean;
 };
@@ -56,7 +56,7 @@ export type OpenAIProtocolCallOptions = {
 export type OpenAIProtocolCallResult = {
   content: string;
   reasoningContent: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   rawUsage?: OpenAI.CompletionUsage;
   requestId?: string | null;
   responseModelName?: string;

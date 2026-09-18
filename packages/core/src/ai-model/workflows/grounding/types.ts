@@ -46,7 +46,7 @@ export interface LocateResult {
     errors?: string[];
   };
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }
@@ -55,7 +55,7 @@ export interface LocateModelResponse {
   /** Target center and optional original bbox in locate-image pixels, before crop mapping. */
   locatedPixelResult?: PixelLocateResult;
   rawResponse: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: unknown;
   usage?: AIUsageInfo;
   reasoningContent?: string;
   errors?: string[];

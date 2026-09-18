@@ -118,7 +118,7 @@ export async function runCustomPlanning<TParsed>(
   };
 
   const messages = buildCustomPlanningMessages(input, config.messages);
-  const { content, usage, rawChoiceMessage } = await callAIWithStringResponse(
+  const { content, usage, rawAssistantOutput } = await callAIWithStringResponse(
     messages,
     preparedOptions.modelRuntime,
     {
@@ -153,7 +153,7 @@ export async function runCustomPlanning<TParsed>(
       errorMessage,
       JSON.stringify(content, undefined, 2),
       usage,
-      rawChoiceMessage,
+      rawAssistantOutput,
     );
   }
 
@@ -176,6 +176,6 @@ export async function runCustomPlanning<TParsed>(
     usage,
     shouldContinuePlanning,
     rawResponse: JSON.stringify(content, undefined, 2),
-    rawChoiceMessage,
+    rawAssistantOutput,
   };
 }
