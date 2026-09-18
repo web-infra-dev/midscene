@@ -105,7 +105,10 @@ describe('createAutoGlmPlanner messages', () => {
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
-      rawAssistantOutput: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'raw choice' },
+      } as any,
     });
 
     const result = await runAutoGlmPlanning(
@@ -161,8 +164,8 @@ describe('createAutoGlmPlanner messages', () => {
       ]),
     );
     expect(result.rawAssistantOutput).toEqual({
-      role: 'assistant',
-      content: 'raw choice',
+      type: 'chat-completion',
+      rawValue: { role: 'assistant', content: 'raw choice' },
     });
     expect(conversationHistory.snapshot()).toHaveLength(2);
     expect(conversationHistory.snapshot()[1]).toMatchObject({

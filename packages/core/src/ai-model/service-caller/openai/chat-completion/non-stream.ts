@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { OpenAIProtocolCallResult } from '../../types';
 import { AIResponseParseError, hasUsableText } from '../../utils';
 import type { ChatCompletionCallOptions } from './types';
@@ -31,7 +32,10 @@ export const callChatCompletionNonStreaming = async ({
     );
   }
 
-  const rawAssistantOutput = result.choices[0].message;
+  const rawAssistantOutput: RawAssistantOutput = {
+    type: 'chat-completion',
+    rawValue: result.choices[0].message,
+  };
   const parsedMessage = extractContentAndReasoning(result.choices[0].message);
   const reasoningContent = parsedMessage.reasoning_content;
   const content = resolveContentWithReasoningFallback({

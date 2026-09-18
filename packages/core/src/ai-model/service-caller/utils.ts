@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -12,14 +13,14 @@ export class AIResponseParseError extends Error {
    * full provider response or choices[0].message.
    */
   rawResponse: string;
-  rawAssistantOutput?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   reasoningContent?: string;
 
   constructor(
     message: string,
     rawResponse: string,
     usage?: AIUsageInfo,
-    rawAssistantOutput?: unknown,
+    rawAssistantOutput?: RawAssistantOutput,
     reasoningContent?: string,
   ) {
     super(message);

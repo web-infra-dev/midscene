@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo, Rect, UIContext } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -31,7 +32,7 @@ export async function AiLocateSection(options: {
   searchAreaConfig?: SearchAreaConfig;
   error?: string;
   rawResponse: string;
-  rawAssistantOutput?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription } = options;

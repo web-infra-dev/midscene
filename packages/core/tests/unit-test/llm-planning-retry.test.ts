@@ -542,6 +542,7 @@ describe('plan XML parse retry', () => {
 <action-type>Tap</action-type>`;
     const rawAssistantMessage = {
       role: 'assistant' as const,
+      refusal: null,
       content: firstResponse,
       reasoning_content: 'The button is visible in the center of the screen.',
     };
@@ -549,7 +550,10 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawAssistantOutput: rawAssistantMessage,
+        rawAssistantOutput: {
+          type: 'chat-completion',
+          rawValue: rawAssistantMessage,
+        },
       })
       .mockResolvedValueOnce(
         mockAIResponse(`<log>Task completed</log>
@@ -577,6 +581,7 @@ describe('plan XML parse retry', () => {
       '<log>Tap button</log>\n<action-type>Tap</action-type>';
     const rawAssistantMessage = {
       role: 'assistant' as const,
+      refusal: null,
       content: firstResponse,
       reasoning_content: 'Provider-specific reasoning state.',
     };
@@ -584,7 +589,10 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawAssistantOutput: rawAssistantMessage,
+        rawAssistantOutput: {
+          type: 'chat-completion',
+          rawValue: rawAssistantMessage,
+        },
       })
       .mockResolvedValueOnce(
         mockAIResponse(
@@ -617,6 +625,7 @@ describe('plan XML parse retry', () => {
       '<log>Tap button</log>\n<action-type>Tap</action-type>';
     const rawAssistantMessage = {
       role: 'assistant' as const,
+      refusal: null,
       content: firstResponse,
       reasoning_content: 'Provider-specific reasoning state.',
     };
@@ -624,7 +633,20 @@ describe('plan XML parse retry', () => {
     rs.mocked(callAI)
       .mockResolvedValueOnce({
         ...mockAIResponse(firstResponse),
-        rawAssistantOutput: [rawAssistantMessage],
+        rawAssistantOutput: {
+          type: 'responses',
+          rawValue: [
+            {
+              type: 'message',
+              id: 'msg-test',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                { type: 'output_text', text: firstResponse, annotations: [] },
+              ],
+            },
+          ],
+        },
       })
       .mockResolvedValueOnce(
         mockAIResponse(

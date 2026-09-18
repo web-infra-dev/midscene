@@ -176,8 +176,12 @@ describe('service.locate deepLocate routing', () => {
   it('records search-area model data when section locate fails', async () => {
     const service = new Service(createFakeContext());
     const rawAssistantOutput = {
-      content: '{"bbox":["invalid bbox"]}',
-      role: 'assistant',
+      type: 'chat-completion' as const,
+      rawValue: {
+        content: '{"bbox":["invalid bbox"]}',
+        role: 'assistant' as const,
+        refusal: null,
+      },
     };
     const usage: AIUsageInfo = {
       prompt_tokens: 12,

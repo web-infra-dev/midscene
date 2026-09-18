@@ -42,6 +42,16 @@ export {
   GroupedActionDump,
 } from './dump/report-action-dump';
 
+export type RawAssistantOutput =
+  | {
+      type: 'chat-completion';
+      rawValue: OpenAI.Chat.Completions.ChatCompletionMessage;
+    }
+  | {
+      type: 'responses';
+      rawValue: OpenAI.Responses.ResponseOutputItem[];
+    };
+
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
@@ -225,7 +235,7 @@ export interface ServiceTaskInfo {
    * full provider response or choices[0].message.
    */
   rawResponse?: unknown;
-  rawAssistantOutput?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   searchArea?: Rect;
   /**
@@ -408,7 +418,7 @@ export interface PlanningAIResponse
    * full provider response or choices[0].message.
    */
   rawResponse?: string;
-  rawAssistantOutput?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
