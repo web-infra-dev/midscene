@@ -7,10 +7,22 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import yaml from 'js-yaml';
+import yaml, { type Type as YamlType } from 'js-yaml';
 import { buildLocatePromptWithContext } from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
+
+const yamlTypes = (
+  yaml as typeof yaml & {
+    types: Record<'null' | 'bool' | 'int' | 'float', YamlType>;
+  }
+).types;
+
+// Keep implicit scalars as text while preserving support for the explicit tags
+// accepted by JSON_SCHEMA, such as !!int and !!bool.
+const rawTextSchema = yaml.FAILSAFE_SCHEMA.extend({
+  explicit: [yamlTypes.null, yamlTypes.bool, yamlTypes.int, yamlTypes.float],
+});
 
 const topLevelTasksPattern = /^tasks\s*:/;
 const topLevelYamlKeyPattern = /^[^\s#][^:]*:/;
@@ -26,6 +38,71 @@ export type ResolvedWebTarget = {
 export type WebTargetConfig = Partial<
   Record<WebTargetSource, Partial<MidsceneYamlScriptWebEnv>>
 >;
+
+type YamlRecord = Record<string, unknown>;
+
+function isYamlRecord(value: unknown): value is YamlRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOwnYamlProperty(value: YamlRecord, property: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, property);
+}
+
+function preserveAiInputTextValues(
+  typedScript: MidsceneYamlScript,
+  textScript: unknown,
+): void {
+  if (!isYamlRecord(textScript) || !Array.isArray(textScript.tasks)) {
+    return;
+  }
+  const textTasks = textScript.tasks;
+
+  typedScript.tasks.forEach((typedTask, taskIndex) => {
+    const textTask = textTasks[taskIndex];
+    if (
+      !isYamlRecord(typedTask) ||
+      !Array.isArray(typedTask.flow) ||
+      !isYamlRecord(textTask)
+    ) {
+      return;
+    }
+
+    const textFlow = textTask.flow;
+    if (!Array.isArray(textFlow)) {
+      return;
+    }
+
+    typedTask.flow.forEach((typedFlowItem, flowItemIndex) => {
+      const textFlowItem = textFlow[flowItemIndex];
+      if (!isYamlRecord(typedFlowItem) || !isYamlRecord(textFlowItem)) {
+        return;
+      }
+
+      if (!hasOwnYamlProperty(typedFlowItem, 'aiInput')) {
+        return;
+      }
+
+      // Current format: aiInput is the locate prompt and value is the text.
+      if (
+        hasOwnYamlProperty(typedFlowItem, 'value') &&
+        hasOwnYamlProperty(textFlowItem, 'value')
+      ) {
+        typedFlowItem.value = textFlowItem.value;
+        return;
+      }
+
+      // Legacy format: aiInput is the text and the sibling locate field is the
+      // locate prompt.
+      if (
+        hasOwnYamlProperty(typedFlowItem, 'locate') &&
+        hasOwnYamlProperty(textFlowItem, 'aiInput')
+      ) {
+        typedFlowItem.aiInput = textFlowItem.aiInput;
+      }
+    });
+  });
+}
 
 const webTargetSources: WebTargetSource[] = [
   'page',
@@ -262,6 +339,12 @@ export function parseYamlScript(
     Array.isArray(obj.tasks),
     `property "tasks" must be an array in yaml script, but got ${obj.tasks}`,
   );
+
+  const textObj = yaml.load(interpolatedContent, {
+    schema: rawTextSchema,
+  });
+  preserveAiInputTextValues(obj, textObj);
+
   return obj;
 }
 
