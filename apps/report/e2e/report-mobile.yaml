@@ -1,6 +1,6 @@
 target:
   serve: ./dist
-  url: demo.html
+  url: demo-agent.html
   viewportWidth: 390
   viewportHeight: 844
   deviceScaleFactor: 1
