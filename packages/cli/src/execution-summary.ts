@@ -30,6 +30,7 @@ export interface ExecutionPlanConfig {
   retry?: number;
   summary: string;
   shareBrowserContext?: boolean;
+  reusePage?: boolean;
   headed: boolean;
   keepWindow: boolean;
 }
@@ -412,6 +413,7 @@ export function printExecutionPlan(config: ExecutionPlanConfig): void {
   console.log(
     `   Share browser context: ${config.shareBrowserContext ?? false}`,
   );
+  console.log(`   Reuse browser page: ${config.reusePage ?? false}`);
   console.log(`   Summary output: ${config.summary}`);
 }
 

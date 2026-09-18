@@ -200,7 +200,87 @@ describe('BatchRunner', () => {
       );
     });
 
-    test('retries only a failed file while reusing the shared browser context', async () => {
+    test('reuses the setup page for a sequential batch when reusePage is true', async () => {
+      const pagesByFile = new Map<string, unknown>();
+      rs.mocked(createYamlPlayer).mockImplementation(
+        async (file, _script, options) => {
+          pagesByFile.set(file as string, options?.page);
+          return createMockPlayer();
+        },
+      );
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        setup: 'login.yml',
+        files: ['web-format.yml'],
+        concurrent: 1,
+        shareBrowserContext: true,
+        reusePage: true,
+      });
+      await runner.run();
+
+      const browserInstance = (await rs.mocked(puppeteer.launch).mock.results[0]
+        .value) as any;
+      const browserContext = (await browserInstance.createBrowserContext.mock
+        .results[0].value) as any;
+      expect(browserContext.newPage).toHaveBeenCalledTimes(1);
+      expect(pagesByFile.get('login.yml')).toBeDefined();
+      expect(pagesByFile.get('web-format.yml')).toBe(
+        pagesByFile.get('login.yml'),
+      );
+    });
+
+    test('rejects reusePage without shareBrowserContext', async () => {
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        concurrent: 1,
+        shareBrowserContext: false,
+        reusePage: true,
+      });
+
+      await expect(runner.run()).rejects.toThrow(
+        'reusePage requires shareBrowserContext: true',
+      );
+    });
+
+    test('rejects reusePage for concurrent batches', async () => {
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        concurrent: 2,
+        shareBrowserContext: true,
+        reusePage: true,
+      });
+
+      await expect(runner.run()).rejects.toThrow(
+        'reusePage requires concurrent: 1',
+      );
+    });
+
+    test('closes the context when shared page creation fails', async () => {
+      const browserContext = {
+        close: rs.fn().mockResolvedValue(undefined),
+        newPage: rs.fn().mockRejectedValue(new Error('page creation failed')),
+      };
+      const browser = {
+        close: rs.fn().mockResolvedValue(undefined),
+        createBrowserContext: rs.fn().mockResolvedValue(browserContext),
+      };
+      rs.mocked(puppeteer.launch).mockResolvedValueOnce(browser as any);
+
+      const runner = new BatchRunner({
+        ...mockBatchConfig,
+        files: ['web.yml'],
+        concurrent: 1,
+        shareBrowserContext: true,
+        reusePage: true,
+      });
+
+      await expect(runner.run()).rejects.toThrow('page creation failed');
+      expect(browserContext.close).toHaveBeenCalledTimes(1);
+      expect(browser.close).toHaveBeenCalledTimes(1);
+    });
+
+    test('retries only a failed file while reusing the shared page', async () => {
       rs.mocked(parseYamlScript).mockReturnValue({
         ...mockYamlScript,
         agent: { reportFileName: 'custom-report' },
@@ -220,7 +300,9 @@ describe('BatchRunner', () => {
       try {
         const runner = new BatchRunner({
           ...mockBatchConfig,
+          concurrent: 1,
           shareBrowserContext: true,
+          reusePage: true,
           files: ['retry.yml'],
           retry: 1,
         });
@@ -238,8 +320,8 @@ describe('BatchRunner', () => {
         expect(firstOptions?.browserContext).toBe(
           secondOptions?.browserContext,
         );
-        expect(firstOptions?.page).toBeUndefined();
-        expect(secondOptions?.page).toBeUndefined();
+        expect(firstOptions?.page).toBeDefined();
+        expect(firstOptions?.page).toBe(secondOptions?.page);
         const browserInstance = (await rs.mocked(puppeteer.launch).mock
           .results[0].value) as any;
         expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
@@ -777,6 +859,8 @@ describe('BatchRunner', () => {
       const creationCountByFile = new Map<string, number>();
       const setupBrowserContexts: unknown[] = [];
       const mainBrowserContexts: unknown[] = [];
+      const setupPages: unknown[] = [];
+      const mainPages: unknown[] = [];
       const browsers: unknown[] = [];
       rs.mocked(createYamlPlayer).mockImplementation(
         async (file, _, options) => {
@@ -786,8 +870,10 @@ describe('BatchRunner', () => {
           browsers.push(options?.browser);
           if (fileName === 'login.yml') {
             setupBrowserContexts.push(options?.browserContext);
+            setupPages.push(options?.page);
           } else {
             mainBrowserContexts.push(options?.browserContext);
+            mainPages.push(options?.page);
           }
           const shouldSucceed = fileName !== 'login.yml' || creationCount > 1;
           const player = createMockPlayer(shouldSucceed);
@@ -802,7 +888,12 @@ describe('BatchRunner', () => {
         },
       );
 
-      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+      const runner = new BatchRunner({
+        ...setupConfig,
+        concurrent: 1,
+        retry: 1,
+        reusePage: true,
+      });
       const results = await runner.run();
 
       expect(runOrder[0]).toBe('login.yml');
@@ -826,6 +917,10 @@ describe('BatchRunner', () => {
         setupBrowserContexts[1],
         setupBrowserContexts[1],
       ]);
+      expect(setupPages).toHaveLength(2);
+      expect(setupPages[0]).toBeDefined();
+      expect(setupPages[0]).not.toBe(setupPages[1]);
+      expect(mainPages).toEqual([setupPages[1], setupPages[1]]);
       expect(browsers.every((candidate) => candidate === browserInstance)).toBe(
         true,
       );
