@@ -23,7 +23,10 @@ import puppeteer, {
   type BrowserContextOptions,
   type Page,
 } from 'puppeteer';
-import { createYamlPlayer } from './create-yaml-player';
+import {
+  type CreateYamlPlayerOptions,
+  createYamlPlayer,
+} from './create-yaml-player';
 import {
   createExecutedYamlResult,
   createNotExecutedYamlResult,
@@ -93,13 +96,7 @@ interface BatchFileContext {
   sourceConfig: MidsceneYamlScript;
   executionConfig: MidsceneYamlScript;
   outputPath?: string;
-  options: {
-    headed?: boolean;
-    keepWindow?: boolean;
-    browser?: Browser;
-    browserContext?: BrowserContext;
-    page?: Page;
-  };
+  options: CreateYamlPlayerOptions;
 }
 
 type BatchRuntimeTarget =
@@ -510,12 +507,7 @@ class YamlBatchExecutor {
   private async createFileContext(
     file: string,
     fileConfig: MidsceneYamlScript,
-    options: {
-      headed?: boolean;
-      keepWindow?: boolean;
-      browser?: Browser;
-      page?: Page;
-    },
+    options: CreateYamlPlayerOptions,
     caseId: string,
   ): Promise<BatchFileContext> {
     const { globalConfig } = this.config;

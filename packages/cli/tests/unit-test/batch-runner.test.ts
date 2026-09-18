@@ -280,7 +280,7 @@ describe('BatchRunner', () => {
       expect(browser.close).toHaveBeenCalledTimes(1);
     });
 
-    test('retries only a failed file while reusing the shared browser context', async () => {
+    test('retries only a failed file while reusing the shared page', async () => {
       rs.mocked(parseYamlScript).mockReturnValue({
         ...mockYamlScript,
         agent: { reportFileName: 'custom-report' },
@@ -300,7 +300,9 @@ describe('BatchRunner', () => {
       try {
         const runner = new BatchRunner({
           ...mockBatchConfig,
+          concurrent: 1,
           shareBrowserContext: true,
+          reusePage: true,
           files: ['retry.yml'],
           retry: 1,
         });
@@ -318,8 +320,8 @@ describe('BatchRunner', () => {
         expect(firstOptions?.browserContext).toBe(
           secondOptions?.browserContext,
         );
-        expect(firstOptions?.page).toBeUndefined();
-        expect(secondOptions?.page).toBeUndefined();
+        expect(firstOptions?.page).toBeDefined();
+        expect(firstOptions?.page).toBe(secondOptions?.page);
         const browserInstance = (await rs.mocked(puppeteer.launch).mock
           .results[0].value) as any;
         expect(browserInstance.createBrowserContext).toHaveBeenCalledTimes(1);
@@ -857,6 +859,8 @@ describe('BatchRunner', () => {
       const creationCountByFile = new Map<string, number>();
       const setupBrowserContexts: unknown[] = [];
       const mainBrowserContexts: unknown[] = [];
+      const setupPages: unknown[] = [];
+      const mainPages: unknown[] = [];
       const browsers: unknown[] = [];
       rs.mocked(createYamlPlayer).mockImplementation(
         async (file, _, options) => {
@@ -866,8 +870,10 @@ describe('BatchRunner', () => {
           browsers.push(options?.browser);
           if (fileName === 'login.yml') {
             setupBrowserContexts.push(options?.browserContext);
+            setupPages.push(options?.page);
           } else {
             mainBrowserContexts.push(options?.browserContext);
+            mainPages.push(options?.page);
           }
           const shouldSucceed = fileName !== 'login.yml' || creationCount > 1;
           const player = createMockPlayer(shouldSucceed);
@@ -882,7 +888,12 @@ describe('BatchRunner', () => {
         },
       );
 
-      const runner = new BatchRunner({ ...setupConfig, retry: 1 });
+      const runner = new BatchRunner({
+        ...setupConfig,
+        concurrent: 1,
+        retry: 1,
+        reusePage: true,
+      });
       const results = await runner.run();
 
       expect(runOrder[0]).toBe('login.yml');
@@ -906,6 +917,10 @@ describe('BatchRunner', () => {
         setupBrowserContexts[1],
         setupBrowserContexts[1],
       ]);
+      expect(setupPages).toHaveLength(2);
+      expect(setupPages[0]).toBeDefined();
+      expect(setupPages[0]).not.toBe(setupPages[1]);
+      expect(mainPages).toEqual([setupPages[1], setupPages[1]]);
       expect(browsers.every((candidate) => candidate === browserInstance)).toBe(
         true,
       );
