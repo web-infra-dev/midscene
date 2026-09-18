@@ -1,0 +1,14 @@
+web:
+  url: ${SHARED_BROWSER_TEST_ORIGIN}/share-context-test.html
+
+tasks:
+  - name: Check setup page state
+    flow:
+      - javascript: |
+          if (sessionStorage.getItem('sessionId') !== 'setup-session') {
+            throw new Error('Setup sessionStorage was not preserved');
+          }
+          if (window.name !== 'setup-page') {
+            throw new Error(`Setup window.name was not preserved: ${window.name}`);
+          }
+          sessionStorage.setItem('sessionId', 'first-main');

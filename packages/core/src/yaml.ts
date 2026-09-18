@@ -401,10 +401,15 @@ export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
   retry?: number;
   summary?: string;
   /**
-   * Share one BrowserContext and Page across Puppeteer Web yaml files. This is
-   * not supported by bridge mode or non-Web targets.
+   * Share one BrowserContext across Puppeteer Web yaml files. Each yaml file
+   * uses an independent Page unless `reusePage` is enabled.
    */
   shareBrowserContext?: boolean;
+  /**
+   * Reuse one Page across sequential Puppeteer Web yaml files. Requires
+   * `shareBrowserContext: true` and `concurrent: 1`.
+   */
+  reusePage?: boolean;
   /**
    * A setup yaml file that runs before the main `files`. A setup failure aborts
    * the whole batch and the main files are marked as not executed. Puppeteer
