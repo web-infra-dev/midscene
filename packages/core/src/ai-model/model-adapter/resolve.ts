@@ -5,6 +5,7 @@ import { resolveInsight } from './insight';
 import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
+import { resolveResponses } from './responses';
 import type {
   BuildCodexAppServerParams,
   ChatCompletionAdapter,
@@ -14,7 +15,11 @@ import type {
   ModelAdapter,
   ModelAdapterDefinition,
   PlanningAdapter,
+  ResolveImageDetail,
+  ResponsesAdapter,
 } from './types';
+
+const defaultImageDetail = (_input: unknown) => undefined;
 
 function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],
@@ -39,8 +44,11 @@ function resolveImagePreprocess(
 }
 
 export class ResolvedModelAdapter implements ModelAdapter {
+  readonly supportedApiTypes: ModelAdapter['supportedApiTypes'];
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly resolveImageDetail: ResolveImageDetail;
+  readonly responses: ResponsesAdapter;
   readonly buildCodexAppServerParams: BuildCodexAppServerParams;
   readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
@@ -49,8 +57,11 @@ export class ResolvedModelAdapter implements ModelAdapter {
   readonly locate: LocateAdapter;
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
+    this.supportedApiTypes = config.supportedApiTypes ?? ['chat-completion'];
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.resolveImageDetail = config.resolveImageDetail ?? defaultImageDetail;
+    this.responses = resolveResponses(config.responses);
     this.buildCodexAppServerParams =
       config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
     this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;

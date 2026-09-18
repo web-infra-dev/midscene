@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo, StreamingCallback } from '@/types';
 import type OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -22,7 +23,7 @@ export interface CallAIOptions {
 export type AICallResult = {
   content: string;
   reasoning_content?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   usage?: AIUsageInfo;
   isStreamed: boolean;
 };
@@ -56,7 +57,7 @@ export type OpenAIProtocolCallOptions = {
 export type OpenAIProtocolCallResult = {
   content: string;
   reasoningContent: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
   rawUsage?: OpenAI.CompletionUsage;
   requestId?: string | null;
   responseModelName?: string;

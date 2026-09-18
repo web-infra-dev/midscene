@@ -9,8 +9,8 @@ import { resolveContentWithReasoningFallback } from './utils';
 export const callChatCompletionStream = async ({
   completion,
   openAIRequestContext,
-  modelRuntime,
-  messages,
+  extractContentAndReasoning,
+  useReasoningAsContentFallback,
   requestBodyParams,
   requestSignal,
   onChunk,
@@ -20,8 +20,6 @@ export const callChatCompletionStream = async ({
     typeof onChunk === 'function',
     'onChunk is required when stream is true',
   );
-  const { adapter } = modelRuntime;
-  const { modelName } = modelRuntime.config;
   let accumulated = '';
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
@@ -29,14 +27,10 @@ export const callChatCompletionStream = async ({
   requestSignal.throwIfAborted();
   const stream = (await completion.create(
     {
-      model: modelName,
-      messages,
       ...requestBodyParams,
       stream: true,
       stream_options: {
-        ...(requestBodyParams.stream_options as
-          | Record<string, unknown>
-          | undefined),
+        ...requestBodyParams.stream_options,
         include_usage: true,
       },
     },
@@ -60,9 +54,7 @@ export const callChatCompletionStream = async ({
       sequence: chunkSequence,
       chunk,
     });
-    const parsedChunk = adapter.chatCompletion.extractContentAndReasoning(
-      chunk.choices?.[0]?.delta,
-    );
+    const parsedChunk = extractContentAndReasoning(chunk.choices?.[0]?.delta);
     const content = parsedChunk.content || '';
     const reasoning_content = parsedChunk.reasoning_content || '';
 
@@ -91,8 +83,7 @@ export const callChatCompletionStream = async ({
   const finalAccumulated = resolveContentWithReasoningFallback({
     content: accumulated,
     reasoningContent: accumulatedReasoning,
-    useReasoningAsContentFallback:
-      adapter.chatCompletion.useReasoningAsContentFallback,
+    useReasoningAsContentFallback,
   });
   accumulated = finalAccumulated || '';
 
@@ -108,7 +99,7 @@ export const callChatCompletionStream = async ({
   return {
     content: accumulated,
     reasoningContent: accumulatedReasoning,
-    rawChoiceMessage: undefined,
+    rawAssistantOutput: undefined,
     rawUsage: usage,
     requestId,
     responseModelName,

@@ -1,3 +1,4 @@
+import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -18,7 +19,7 @@ export type AIObjectResponse<T> = {
   contentString: string;
   usage?: AIUsageInfo;
   reasoning_content?: string;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
 };
 
 export function parseAIObjectResponse<T>(
@@ -37,7 +38,7 @@ export function parseAIObjectResponse<T>(
     contentString: response.content,
     usage: response.usage,
     reasoning_content: response.reasoning_content,
-    rawChoiceMessage: response.rawChoiceMessage,
+    rawAssistantOutput: response.rawAssistantOutput,
   };
 }
 
@@ -76,7 +77,7 @@ export async function callAIWithObjectResponse<T>(
         errorMessage,
         response.content,
         response.usage,
-        response.rawChoiceMessage,
+        response.rawAssistantOutput,
         response.reasoning_content,
       );
     },
@@ -93,12 +94,12 @@ export async function callAIWithStringResponse(
 ): Promise<{
   content: string;
   usage?: AIUsageInfo;
-  rawChoiceMessage?: unknown;
+  rawAssistantOutput?: RawAssistantOutput;
 }> {
-  const { content, usage, rawChoiceMessage } = await callAI(
+  const { content, usage, rawAssistantOutput } = await callAI(
     msgs,
     modelRuntime,
     options,
   );
-  return { content, usage, rawChoiceMessage };
+  return { content, usage, rawAssistantOutput };
 }

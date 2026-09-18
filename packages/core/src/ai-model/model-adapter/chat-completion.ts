@@ -1,3 +1,4 @@
+import { getTemperatureWithSemanticRetry } from './temperature-with-semantic-retry';
 import type {
   ChatCompletionAdapter,
   ChatCompletionCallContext,
@@ -5,8 +6,6 @@ import type {
   MidsceneChatCompletionDefaults,
   ModelAdapterDefinition,
 } from './types';
-
-const defaultImageDetail = (_input: unknown) => undefined;
 
 const defaultChatCompletionParams = ({
   midsceneDefaults,
@@ -64,8 +63,6 @@ export function resolveChatCompletion(
 ): ChatCompletionAdapter {
   const buildChatCompletionParams =
     chatCompletion?.buildChatCompletionParams ?? defaultChatCompletionParams;
-  const resolveImageDetail =
-    chatCompletion?.resolveImageDetail ?? defaultImageDetail;
   const unsupportedUserConfig = chatCompletion?.unsupportedUserConfig ?? [];
   const extractContentAndReasoning =
     resolveExtractContentAndReasoning(chatCompletion);
@@ -83,30 +80,18 @@ export function resolveChatCompletion(
         midsceneDefaults: midsceneChatCompletionDefaults,
       };
       const params = buildChatCompletionParams(context);
-      const retryAttempt = input.semanticRetryAttempt ?? 0;
-      // Only perturb the default deterministic request after a semantic parse
-      // failure: preserve an explicit user temperature, and avoid adding a
-      // temperature to adapters whose normal parameters do not include one.
-      if (
-        retryAttempt > 0 &&
-        input.userConfig?.temperature === undefined &&
-        params.config.temperature === 0
-      ) {
-        return {
-          config: {
-            ...params.config,
-            temperature: 0.2,
-          },
-        };
-      }
-      return params;
+      return {
+        ...params,
+        config: {
+          ...params.config,
+          temperature: getTemperatureWithSemanticRetry({
+            temperature: params.config.temperature,
+            userTemperature: input.userConfig?.temperature,
+            semanticRetryAttempt: input.semanticRetryAttempt,
+          }),
+        },
+      };
     },
-    resolveImageDetail: (input) =>
-      resolveImageDetail({
-        ...input,
-        userConfig: input.userConfig ?? {},
-        midsceneDefaults: midsceneChatCompletionDefaults,
-      }),
     extractContentAndReasoning,
     useReasoningAsContentFallback,
     replayRawAssistantMessage,

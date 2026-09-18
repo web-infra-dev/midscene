@@ -10,9 +10,32 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"`; see [Use Codex App Server](./model-common-config#use-codex-app-server-oauth-no-api-key) |
-| `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completion` here since the underlying sdk will add it automatically |
+| `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completions` or `/responses` here since the underlying sdk will add it automatically |
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
+
+## Protocol type {#model-api-type}
+
+Midscene uses OpenAI's Chat Completions protocol by default and also supports the Responses protocol. These are different ways to send requests to models; your use of the Midscene Agent API stays the same. Chat Completions was introduced earlier than Responses and currently has broader support.
+
+Select the protocol through an environment variable: `chat-completion` (the default) or `responses`. For example, to use Responses:
+
+```bash
+MIDSCENE_MODEL_API_TYPE="responses"
+```
+
+When configuring separate Planning or Insight models, use the corresponding environment variables. Each model can use a different protocol:
+
+```bash
+MIDSCENE_PLANNING_MODEL_API_TYPE="responses"
+MIDSCENE_INSIGHT_MODEL_API_TYPE="responses"
+```
+
+Keep in mind:
+
+- Some models or providers may not yet support the Responses protocol. Check with your model provider before using it.
+- Even the Chat Completions and Responses APIs from the same provider may use different Base URLs. Confirm the endpoint for each protocol with your provider.
+- Midscene may not yet support some providers' Responses API implementations. Confirm compatibility with Midscene before using them.
 
 ## Advanced settings (optional)
 
@@ -20,6 +43,7 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 
 | Name | Description |
 |------|-------------|
+| `MIDSCENE_MODEL_API_TYPE` | HTTP protocol: `chat-completion` (default) or `responses`. The latter requires a provider that supports the Responses API. |
 | `MIDSCENE_MODEL_TIMEOUT` | Hard timeout per AI API request in milliseconds (default intent). Defaults to `180000` (180 seconds). Covers the full request lifetime, including reading the response body. Each retry starts a fresh timeout using the same configuration; retry delays are excluded, so the total call duration may exceed this value. Set to `0` to disable only the Midscene hard timeout. SDK and underlying network timeouts may still apply, and callers can cancel requests with an `AbortSignal`. |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure). Retries occur when the model request encounters an HTTP error or when the model response cannot be structurally parsed |
@@ -27,11 +51,11 @@ If you configure a dedicated Insight or Planning model, model-related `MIDSCENE_
 | `MIDSCENE_MODEL_REASONING_ENABLED` | Controls whether model-native thinking is enabled. Midscene disables it by default. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_EFFORT` | Controls model-native thinking effort, supported by some models. Common values: `low`, `medium`, `high`. See [Model-native thinking](#model-native-reasoning) |
 | `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number), supported by some models. See [Model-native thinking](#model-native-reasoning) |
-| `MIDSCENE_MODEL_RESPONSE_FORMAT` | Structured response strategy: `auto` (default) lets Midscene automatically use `response_format` in appropriate scenarios to specify a structured output format (usually JSON), making the model response as suitable for structured parsing as possible; `none` does not set `response_format`, for models that do not support structured output. |
+| `MIDSCENE_MODEL_RESPONSE_FORMAT` | Structured response strategy: `auto` (default) lets Midscene automatically use `response_format` (Chat Completions) or `text.format` (Responses) in appropriate scenarios to specify a structured output format (usually JSON), making the model response as suitable for structured parsing as possible; `none` does not set those format parameters, for models that do not support structured output. |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config. Use `defaultHeaders` for custom auth headers; `extra_headers` and `extraHeaders` are accepted as aliases |
-| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each chat completion request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every `completion.create()` call sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
+| `MIDSCENE_MODEL_EXTRA_BODY_JSON` | JSON blob merged into each model request body. Unlike `MIDSCENE_MODEL_INIT_CONFIG_JSON` (which configures the SDK client), this is spread into every protocol request sent to the model, e.g. enabling thinking mode in vLLM: `'{"chat_template_kwargs":{"enable_thinking":true}}'` |
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
 
@@ -42,7 +66,8 @@ Set the following if the Insight intent needs a different model:
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
+| `MIDSCENE_INSIGHT_MODEL_API_TYPE` | HTTP protocol: `chat-completion` (default) or `responses`. |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
 | `MIDSCENE_INSIGHT_MODEL_FAMILY` | Model family |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; hard timeout per request for the Insight intent in milliseconds |
@@ -62,7 +87,8 @@ Set the following if the Planning intent needs a different model:
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_PLANNING_MODEL_API_KEY` | API key |
-| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
+| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completions` or `/responses`) |
+| `MIDSCENE_PLANNING_MODEL_API_TYPE` | HTTP protocol: `chat-completion` (default) or `responses`. |
 | `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
 | `MIDSCENE_PLANNING_MODEL_FAMILY` | Model family |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; hard timeout per request for the Planning intent in milliseconds |

@@ -5,6 +5,48 @@ import { describe, expect, it } from '@rstest/core';
 const gpt5Adapter = new ResolvedModelAdapter(gptAdapters['gpt-5'], 'gpt-5');
 const gpt6Adapter = new ResolvedModelAdapter(gptAdapters['gpt-6'], 'gpt-6');
 
+describe.each(['gpt-5', 'gpt-6'] as const)(
+  '%s Responses JSON mode',
+  (family) => {
+    const adapter = new ResolvedModelAdapter(gptAdapters[family], family);
+
+    it.each([
+      {
+        responseFormat: undefined,
+        expectedJsonObjectResponse: true,
+        enabled: true,
+      },
+      {
+        responseFormat: 'auto',
+        expectedJsonObjectResponse: true,
+        enabled: true,
+      },
+      {
+        responseFormat: 'none',
+        expectedJsonObjectResponse: true,
+        enabled: false,
+      },
+      {
+        responseFormat: 'auto',
+        expectedJsonObjectResponse: false,
+        enabled: false,
+      },
+    ] as const)(
+      'handles %j',
+      ({ responseFormat, expectedJsonObjectResponse, enabled }) => {
+        const { config } = adapter.responses.buildResponsesParams({
+          userConfig: { responseFormat },
+          expectedJsonObjectResponse,
+        });
+        expect(config.text).toEqual(
+          enabled ? { format: { type: 'json_object' } } : undefined,
+        );
+        expect(config).not.toHaveProperty('response_format');
+      },
+    );
+  },
+);
+
 describe('GPT Codex App Server parameters', () => {
   it.each([
     {},
@@ -146,21 +188,18 @@ describe('gpt model adapter', () => {
       'reasoningBudget',
     ]);
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'default',
-        userConfig: {},
       }),
     ).toBe('original');
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
       }),
     ).toBeUndefined();
     expect(
-      gpt5Adapter.chatCompletion.resolveImageDetail({
+      gpt5Adapter.resolveImageDetail({
         intent: 'planning',
-        userConfig: {},
         requiresOriginalImageDetail: true,
       }),
     ).toBe('original');

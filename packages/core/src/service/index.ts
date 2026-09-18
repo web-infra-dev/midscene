@@ -14,6 +14,7 @@ import {
 import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
+import type { RawAssistantOutput } from '@/types';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -68,7 +69,7 @@ interface LocateSearchAreaResult {
   trace: {
     sourceRect?: Rect;
     rawResponse?: string;
-    rawChoiceMessage?: unknown;
+    rawAssistantOutput?: RawAssistantOutput;
     usage?: AIUsageInfo;
   };
 }
@@ -128,7 +129,7 @@ export default class Service {
         ...(this.taskInfo ? this.taskInfo : {}),
         durationMs: Date.now() - searchAreaStartTime,
         searchAreaRawResponse: searchArea.trace.rawResponse,
-        searchAreaRawChoiceMessage: searchArea.trace.rawChoiceMessage,
+        searchAreaRawChoiceMessage: searchArea.trace.rawAssistantOutput,
         searchAreaUsage: searchArea.trace.usage,
       };
       const dump = createServiceDump({
@@ -147,7 +148,7 @@ export default class Service {
     const {
       parseResult,
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       usage,
       reasoning_content,
     } = await AiLocateElement({
@@ -163,12 +164,12 @@ export default class Service {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       formatResponse: parseResult,
       usage,
       searchArea: searchArea.trace.sourceRect,
       searchAreaRawResponse: searchArea.trace.rawResponse,
-      searchAreaRawChoiceMessage: searchArea.trace.rawChoiceMessage,
+      searchAreaRawChoiceMessage: searchArea.trace.rawAssistantOutput,
       searchAreaUsage: searchArea.trace.usage,
       reasoning_content,
     };
@@ -269,7 +270,7 @@ export default class Service {
           error: searchAreaResponse.error || 'unknown search area error',
           trace: {
             rawResponse: searchAreaResponse.rawResponse,
-            rawChoiceMessage: searchAreaResponse.rawChoiceMessage,
+            rawAssistantOutput: searchAreaResponse.rawAssistantOutput,
             usage: searchAreaResponse.usage,
           },
         };
@@ -280,7 +281,7 @@ export default class Service {
         trace: {
           sourceRect: searchAreaConfig.sourceRect,
           rawResponse: searchAreaResponse.rawResponse,
-          rawChoiceMessage: searchAreaResponse.rawChoiceMessage,
+          rawAssistantOutput: searchAreaResponse.rawAssistantOutput,
           usage: searchAreaResponse.usage,
         },
       };
@@ -318,7 +319,7 @@ export default class Service {
           rect: firstPassLocateResult.parseResult.element?.rect,
           rawResponse: firstPassLocateResult.rawResponse,
         }),
-        rawChoiceMessage: firstPassLocateResult.rawChoiceMessage,
+        rawAssistantOutput: firstPassLocateResult.rawAssistantOutput,
         usage: firstPassLocateResult.usage,
       },
     };
@@ -347,7 +348,7 @@ export default class Service {
       ReturnType<typeof AiExtractElementInfo<T>>
     >['parseResult'];
     let rawResponse: string;
-    let rawChoiceMessage: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
     let reasoning_content: string | undefined;
 
@@ -363,7 +364,7 @@ export default class Service {
       });
       parseResult = result.parseResult;
       rawResponse = result.rawResponse;
-      rawChoiceMessage = result.rawChoiceMessage;
+      rawAssistantOutput = result.rawAssistantOutput;
       usage = result.usage;
       reasoning_content = result.reasoning_content;
     } catch (error) {
@@ -374,7 +375,7 @@ export default class Service {
           ...(this.taskInfo ? this.taskInfo : {}),
           durationMs: timeCost,
           rawResponse: error.rawResponse,
-          rawChoiceMessage: error.rawChoiceMessage,
+          rawAssistantOutput: error.rawAssistantOutput,
           usage: error.usage,
         };
         const dump = createServiceDump({
@@ -394,7 +395,7 @@ export default class Service {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse,
-      rawChoiceMessage,
+      rawAssistantOutput,
       formatResponse: parseResult,
       usage,
       reasoning_content,

@@ -3,6 +3,7 @@ import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 import { ModelConfigManager } from '../../../src/env/model-config-manager';
 import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
+  MIDSCENE_INSIGHT_MODEL_API_TYPE,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_INSIGHT_MODEL_NAME,
@@ -11,6 +12,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_API_TYPE,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_FAMILY,
@@ -21,6 +23,7 @@ import {
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
+  MIDSCENE_PLANNING_MODEL_API_TYPE,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_PLANNING_MODEL_NAME,
@@ -49,6 +52,30 @@ describe('ModelConfigManager', () => {
     [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://plan.openai.com/v1',
     [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
   };
+
+  it('keeps protocol choices independent across configured slots', () => {
+    const manager = new ModelConfigManager({
+      ...baseMap,
+      [MIDSCENE_MODEL_API_TYPE]: 'responses',
+      [MIDSCENE_INSIGHT_MODEL_API_TYPE]: 'chat-completion',
+      [MIDSCENE_PLANNING_MODEL_API_TYPE]: 'responses',
+    });
+    expect(manager.getModelConfig('default').apiType).toBe('responses');
+    expect(manager.getModelConfig('insight').apiType).toBe('chat-completion');
+    expect(manager.getModelConfig('planning').apiType).toBe('responses');
+  });
+
+  it('carries the default protocol when an intent falls back to the default model', () => {
+    const manager = new ModelConfigManager({
+      [MIDSCENE_MODEL_NAME]: 'test-model',
+      [MIDSCENE_MODEL_BASE_URL]: 'https://example.test/v1',
+      [MIDSCENE_MODEL_API_KEY]: 'test-key',
+      [MIDSCENE_MODEL_FAMILY]: 'gpt-5',
+      [MIDSCENE_MODEL_API_TYPE]: 'responses',
+    });
+    expect(manager.getModelConfig('insight').apiType).toBe('responses');
+    expect(manager.getModelConfig('planning').apiType).toBe('responses');
+  });
 
   it('initializes from provided config map (isolated mode)', () => {
     const manager = new ModelConfigManager(baseMap);

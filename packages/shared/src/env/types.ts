@@ -35,9 +35,12 @@ export const MIDSCENE_MODEL_REASONING_ENABLED =
   'MIDSCENE_MODEL_REASONING_ENABLED';
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
+export const MIDSCENE_MODEL_API_TYPE = 'MIDSCENE_MODEL_API_TYPE';
 export const MIDSCENE_MODEL_RESPONSE_FORMAT = 'MIDSCENE_MODEL_RESPONSE_FORMAT';
 
 export type TModelReasoningEnabled = boolean | 'default';
+export type TModelApiType = 'chat-completion' | 'responses';
+
 export type TModelResponseFormat = 'none' | 'auto';
 
 /**
@@ -122,6 +125,8 @@ export const MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED =
   'MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED';
 export const MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET =
   'MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET';
+export const MIDSCENE_INSIGHT_MODEL_API_TYPE =
+  'MIDSCENE_INSIGHT_MODEL_API_TYPE';
 export const MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT =
   'MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT';
 
@@ -154,6 +159,8 @@ export const MIDSCENE_PLANNING_MODEL_REASONING_ENABLED =
   'MIDSCENE_PLANNING_MODEL_REASONING_ENABLED';
 export const MIDSCENE_PLANNING_MODEL_REASONING_BUDGET =
   'MIDSCENE_PLANNING_MODEL_REASONING_BUDGET';
+export const MIDSCENE_PLANNING_MODEL_API_TYPE =
+  'MIDSCENE_PLANNING_MODEL_API_TYPE';
 export const MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT =
   'MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
@@ -235,6 +242,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_REASONING_BUDGET,
+  MIDSCENE_MODEL_API_TYPE,
   MIDSCENE_MODEL_RESPONSE_FORMAT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
@@ -264,6 +272,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
   MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
+  MIDSCENE_INSIGHT_MODEL_API_TYPE,
   MIDSCENE_INSIGHT_MODEL_RESPONSE_FORMAT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
@@ -281,6 +290,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
   MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
+  MIDSCENE_PLANNING_MODEL_API_TYPE,
   MIDSCENE_PLANNING_MODEL_RESPONSE_FORMAT,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
@@ -354,6 +364,7 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_INSIGHT_MODEL_API_TYPE]?: TModelApiType;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
@@ -373,6 +384,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_PLANNING_MODEL_API_TYPE]?: TModelApiType;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
@@ -400,6 +412,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_API_KEY]?: string;
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   [MIDSCENE_MODEL_EXTRA_BODY_JSON]?: string;
+  [MIDSCENE_MODEL_API_TYPE]?: TModelApiType;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
@@ -493,10 +506,11 @@ export interface IModelConfig {
   openaiBaseURL?: string;
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
+  apiType?: TModelApiType;
   /**
-   * Extra body parameters merged into each chat completion request body.
+   * Extra body parameters merged into each model request body.
    * Unlike openaiExtraConfig (which configures the OpenAI client instance),
-   * this is spread directly into the completion.create() call body.
+   * this is spread directly into the protocol request body.
    * Example: { "chat_template_kwargs": { "enable_thinking": true } }
    */
   extraBody?: Record<string, unknown>;

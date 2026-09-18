@@ -28,6 +28,44 @@ function createTestPlannerDefinition(): CustomPlanningDefinition<null> {
 }
 
 describe('model adapter registry', () => {
+  it('keeps unsupported user config independent for each protocol', () => {
+    const adapter = new ResolvedModelAdapter(
+      {
+        chatCompletion: { unsupportedUserConfig: ['temperature'] },
+        responses: { unsupportedUserConfig: ['reasoningBudget'] },
+      },
+      'test',
+    );
+    expect(adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'temperature',
+    ]);
+    expect(adapter.responses.unsupportedUserConfig).toEqual([
+      'reasoningBudget',
+    ]);
+    expect(
+      new ResolvedModelAdapter({}, 'test').responses.unsupportedUserConfig,
+    ).toEqual([]);
+  });
+
+  it('defaults to Chat Completions while keeping the Responses implementation', () => {
+    const adapter = new ResolvedModelAdapter({}, 'test');
+    expect(adapter.supportedApiTypes).toEqual(['chat-completion']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
+  it('allows declaring Responses support without a custom implementation', () => {
+    const adapter = new ResolvedModelAdapter(
+      { supportedApiTypes: ['responses'] },
+      'test',
+    );
+    expect(adapter.supportedApiTypes).toEqual(['responses']);
+    expect(adapter.responses.buildResponsesParams({}).config).toEqual({
+      temperature: 0,
+    });
+  });
+
   it('resolves the default adapter when modelFamily is not configured', () => {
     const adapter = getModelAdapter();
 
@@ -145,7 +183,7 @@ describe('ResolvedModelAdapter', () => {
     ).toEqual({
       config: { temperature: 0.7 },
     });
-    expect(adapter.chatCompletion.resolveImageDetail({})).toBeUndefined();
+    expect(adapter.resolveImageDetail({})).toBeUndefined();
     expect(adapter.imagePreprocess).toEqual({});
     expect(adapter.planning).toMatchObject({
       kind: 'standard',

@@ -139,7 +139,10 @@ Action: click(start_box='(500,500)')`,
       content: `Thought: Click submit
 Action: click(start_box='(500,500)')`,
       usage: { total_tokens: 33 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'raw choice' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'raw choice' },
+      } as any,
     });
 
     const result = await runUiTarsPlanning(
@@ -190,9 +193,9 @@ Action: click(start_box='(500,500)')`,
       content: expect.stringContaining('Click submit'),
     });
     expect(result.usage).toEqual({ total_tokens: 33 });
-    expect(result.rawChoiceMessage).toEqual({
-      role: 'assistant',
-      content: 'raw choice',
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'chat-completion',
+      rawValue: { role: 'assistant', content: 'raw choice' },
     });
   });
 
@@ -200,7 +203,10 @@ Action: click(start_box='(500,500)')`,
     rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'Thought: I know what to do, but no action line.',
       usage: { total_tokens: 5 } as any,
-      rawChoiceMessage: { role: 'assistant', content: 'bad response' } as any,
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'bad response' },
+      } as any,
     });
 
     await expect(
@@ -212,7 +218,10 @@ Action: click(start_box='(500,500)')`,
     ).rejects.toMatchObject({
       name: 'AIResponseParseError',
       rawResponse: '"Thought: I know what to do, but no action line."',
-      rawChoiceMessage: { role: 'assistant', content: 'bad response' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: 'bad response' },
+      },
       usage: { total_tokens: 5 },
     });
   });

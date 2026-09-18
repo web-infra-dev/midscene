@@ -5,12 +5,17 @@ import {
   type ReactElement,
   type ReactNode,
   isValidElement,
+  useState,
 } from 'react';
+import './ModelConfigTabs.css';
+
+type ModelApiType = 'chat-completion' | 'responses';
 
 type ModelConfigTabType = 'default' | 'planning' | 'insight';
 
 interface ModelConfigTabProps {
   type: ModelConfigTabType;
+  apiType?: ModelApiType;
   children: ReactNode;
 }
 
@@ -22,6 +27,13 @@ export function ModelConfigTab({ children }: ModelConfigTabProps) {
 
 export function ModelConfigTabs({ children }: { children: ReactNode }) {
   const lang = useLang();
+  const [apiType, setApiType] = useState<ModelApiType>('chat-completion');
+  const helpText =
+    lang === 'zh'
+      ? '了解 Chat 和 Responses API 的区别'
+      : 'Learn about Chat and Responses APIs';
+  const helpHref = `${lang === 'zh' ? '/zh' : ''}/model-config#model-api-type`;
+
   const labels: Record<ModelConfigTabType, string> =
     lang === 'zh'
       ? {
@@ -41,7 +53,10 @@ export function ModelConfigTabs({ children }: { children: ReactNode }) {
       child.type === ModelConfigTab,
   );
 
-  const tabTypes = tabs.map((tab) => tab.props.type);
+  const availableTabs = tabs.filter(
+    (tab) => (tab.props.apiType ?? 'chat-completion') === apiType,
+  );
+  const tabTypes = availableTabs.map((tab) => tab.props.type);
   if (!tabTypes.includes('default')) {
     throw new Error('ModelConfigTabs requires a default model configuration.');
   }
@@ -53,19 +68,46 @@ export function ModelConfigTabs({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Tabs defaultValue="default">
-      {tabOrder.map((type) => {
-        const tab = tabs.find((item) => item.props.type === type);
-        if (!tab) {
-          return null;
-        }
+    <div className="model-config-tabs">
+      {tabs.some((tab) => tab.props.apiType === 'responses') && (
+        <fieldset
+          className="model-api-selector"
+          aria-label={lang === 'zh' ? 'API 类型' : 'API type'}
+        >
+          {(['chat-completion', 'responses'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={apiType === value}
+              onClick={() => setApiType(value)}
+            >
+              {value === 'responses' ? 'Responses' : 'Chat'}
+            </button>
+          ))}
+          <a
+            className="model-api-help"
+            href={helpHref}
+            aria-label={helpText}
+            title={helpText}
+          >
+            ?
+          </a>
+        </fieldset>
+      )}
+      <Tabs defaultValue="default">
+        {tabOrder.map((type) => {
+          const tab = availableTabs.find((item) => item.props.type === type);
+          if (!tab) {
+            return null;
+          }
 
-        return (
-          <Tab key={type} label={labels[type]} value={type}>
-            {tab.props.children}
-          </Tab>
-        );
-      })}
-    </Tabs>
+          return (
+            <Tab key={type} label={labels[type]} value={type}>
+              {tab.props.children}
+            </Tab>
+          );
+        })}
+      </Tabs>
+    </div>
   );
 }
