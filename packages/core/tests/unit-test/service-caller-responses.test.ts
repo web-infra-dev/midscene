@@ -156,6 +156,7 @@ describe('Responses protocol', () => {
     });
     expect(result).toMatchObject({
       content: 'hello',
+      rawAssistantOutput: { type: 'responses', rawValue: response().output },
       reasoning_content: 'thinking',
       isStreamed: false,
       usage: {
@@ -206,6 +207,10 @@ describe('Responses protocol', () => {
       },
     });
     expect(onChunk.mock.calls[2][0].usage).not.toHaveProperty('slot');
+    expect(result.rawAssistantOutput).toEqual({
+      type: 'responses',
+      rawValue: response().output,
+    });
     expect(result.usage?.request_id).toBe('req-stream');
     expect(runtime.onUsage).toHaveBeenCalledExactlyOnceWith(result.usage);
   });

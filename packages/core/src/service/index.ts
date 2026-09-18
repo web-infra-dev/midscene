@@ -14,6 +14,7 @@ import {
 import { mergeSearchAreaResults } from '@/ai-model/workflows/grounding/search-area';
 import type { SearchAreaConfig } from '@/ai-model/workflows/grounding/types';
 import { AiExtractElementInfo } from '@/ai-model/workflows/insight';
+import type { RawAssistantOutput } from '@/types';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -68,7 +69,7 @@ interface LocateSearchAreaResult {
   trace: {
     sourceRect?: Rect;
     rawResponse?: string;
-    rawAssistantOutput?: unknown;
+    rawAssistantOutput?: RawAssistantOutput;
     usage?: AIUsageInfo;
   };
 }
@@ -347,7 +348,7 @@ export default class Service {
       ReturnType<typeof AiExtractElementInfo<T>>
     >['parseResult'];
     let rawResponse: string;
-    let rawAssistantOutput: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
     let reasoning_content: string | undefined;
 

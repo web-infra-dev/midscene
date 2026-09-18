@@ -370,13 +370,10 @@ export async function standardPlan(
   // verbatim in later turns. Keep this opt-in per model adapter so that an
   // unverified provider does not receive non-standard response fields.
   if (
-    modelRuntime.config.apiType !== 'responses' &&
     modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawAssistantOutput
+    rawAssistantOutput?.type === 'chat-completion'
   ) {
-    conversationHistory.append(
-      rawAssistantOutput as ChatCompletionMessageParam,
-    );
+    conversationHistory.append(rawAssistantOutput.rawValue);
   } else {
     conversationHistory.append({
       role: 'assistant',

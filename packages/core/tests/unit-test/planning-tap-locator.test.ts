@@ -80,7 +80,10 @@ describe('resolvePlanningTapLocator', () => {
       actions,
       shouldContinuePlanning: false,
       rawResponse: 'raw planning response',
-      rawAssistantOutput: { role: 'assistant' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: null, refusal: null },
+      },
       usage: { total_tokens: 3 } as any,
       log: 'planner reasoning',
     });
@@ -125,7 +128,10 @@ describe('resolvePlanningTapLocator', () => {
     expect(result).toEqual({
       locatedPixelResult,
       rawResponse: 'raw planning response',
-      rawAssistantOutput: { role: 'assistant' },
+      rawAssistantOutput: {
+        type: 'chat-completion',
+        rawValue: { role: 'assistant', content: null, refusal: null },
+      },
       usage: { total_tokens: 3 },
       reasoningContent: 'planner reasoning',
     });
@@ -159,7 +165,14 @@ describe('resolvePlanningTapLocator', () => {
   });
 
   it('preserves raw response metadata from planner parse errors', async () => {
-    const rawAssistantOutput = { role: 'assistant', content: 'bad response' };
+    const rawAssistantOutput = {
+      type: 'chat-completion' as const,
+      rawValue: {
+        role: 'assistant' as const,
+        content: 'bad response',
+        refusal: null,
+      },
+    };
     const usage = { total_tokens: 5 } as any;
     rs.mocked(runCustomPlanning).mockRejectedValueOnce(
       new AIResponseParseError(

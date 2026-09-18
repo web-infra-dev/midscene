@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@/device';
+import type { RawAssistantOutput } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { z } from 'zod';
@@ -75,7 +76,7 @@ export function resolvePlanningTapLocator<TParsed>(
     let errors: string[] = [];
     let reasoningContent = '';
     let rawResponse = '';
-    let rawAssistantOutput: unknown;
+    let rawAssistantOutput: RawAssistantOutput | undefined;
     let usage: LocateModelResponse['usage'];
 
     try {
