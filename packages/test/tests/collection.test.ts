@@ -41,6 +41,32 @@ describe('workflow document collection', () => {
     execute() {},
   });
 
+  it('rejects compatibility-only Case controls in native documents', () => {
+    const source = createDocument(`
+cases:
+  - name: extract
+    onFailure: stop-document
+    steps:
+      - test.record:
+          prompt: price
+          $:
+            resultName: price
+            resultPath: /value
+`);
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('unsupported field "onFailure"');
+  });
+
+  it('rejects unknown Case failure policies before executing steps', () => {
+    const source = createDocument(
+      'cases:\n  - name: invalid\n    onFailure: stop-all\n    steps:\n      - test.record: value',
+    );
+    expect(() =>
+      collectWorkflowDocument(source, { resolveNode: () => node }),
+    ).toThrow('unsupported field "onFailure"');
+  });
+
   it('collects and normalizes every case with stable positional ids', () => {
     const source = createDocument(`
 cases:

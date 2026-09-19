@@ -1,9 +1,11 @@
 # Midscene Test 概览
 
-:::info 项目状态说明（Beta）
-Midscene Test 是由 `@midscene/test` 提供的 AI 端到端测试框架，将声明式用例与可编程扩展分离，用于替代原有的 YAML 自动化方案。
+Midscene Test 是面向 AI 驱动的端到端（E2E）测试的新框架。
 
-目前该方案正处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
+它由 `@midscene/test` 提供，将声明式用例与可编程扩展分离：用 YAML 和自然语言描述测试流程，用 TypeScript 扩展业务操作和测试工程能力。
+
+:::info 项目状态说明（Beta）
+Midscene Test 用于替代原有的 YAML 自动化方案，目前处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
 
 （如果您仍在使用旧版方案，请查阅 [YAML 脚本运行器](../yaml-script-runner)）
 :::
@@ -25,15 +27,15 @@ Midscene Test 是由 `@midscene/test` 提供的 AI 端到端测试框架，将�
 为了应对上述问题，Midscene 的测试框架着重提供了以下能力：
 
 ### 基础原子能力与定制扩展能力
-Midscene 提供了开箱即用的内置原子能力（不仅包含 `aiAct`、`aiAssert` 等 AI 交互，还包括环境初始化、设备与浏览器配置等），支持零配置快速上手。
+Midscene 提供 `aiAct`、`aiAssert` 等通用 AI 操作，以及设备与浏览器等平台操作。`midscene-test create` 生成的脚手架会按所选平台显式注册这些官方 Node；手写配置时需要自行注册。
 
 为了应对复杂的业务场景，Midscene 支持通过 TypeScript 自定义原子节点（自定义 Node）。你可以将业务接口、数据准备或特定工具链进行封装，并在 YAML 用例中直接调用。这在保持 YAML 脚本简洁的同时，也使测试工程能够应对定制化的业务场景。
 
 ### 用声明式语义的 YAML 文件来编写日常用例
 聚焦“测什么” (What to test)，承载业务测试意图。用例编写者可以直接用自然语言描述界面操作（如 `aiAct`）与校验（如 `aiAssert`），同时调用和装配由“确定性工程”所提供的各种业务节点。这有助于专注于业务测试流程，无需关注底层细节，提升了用例的编写效率与长期可维护性。
 
-### 自动生成 Markdown 说明书
-提供 `nodes` 描述工具，能够将注册的自定义 Node 及其入参校验规则（Zod Schema）一键自动编译导出为标准的 Markdown 说明文档。这免去了手动维护专属框架 API 手册的成本，方便用例编写者及 AI Agent 直接按需阅读与消费这些定制能力。
+### 自动生成 Node 说明书
+`midscene-test nodes` 能够将当前项目实际注册的官方 Node、自定义 Node 及其入参校验规则（Zod Schema）导出为 Markdown 格式的 Node 说明书。这免去了手动维护项目 API 手册的成本，方便用例编写者及 AI Agent 直接查阅当前项目的真实能力。
 
 ### E2E 项目的工程化诉求
 在实际企业级落地中，E2E 测试项目绝非一次性的、由 AI 驱动的即时验证，而是需要作为长期资产持续运行。因此，它必须面临稳定性、执行速度、可维护性等真实且严苛的工程化诉求。为此，Midscene 提供了配套的工程能力支持，保障测试在实际生产中的稳定高效：
@@ -63,7 +65,7 @@ ecommerce-tests/
 
 #### 1. 自动导出的 Node 说明书示例
 
-在此实战中，工程搭建者编写的 `order.prepare` 自定义节点，经过 `nodes` 工具编译后，会自动生成如下 Markdown 说明书：
+在此实战中，工程搭建者编写的 `order.prepare` 自定义节点，经过 `nodes` 工具编译后，会自动出现在 Node 说明书中：
 
 ```markdown
 ## order.prepare
@@ -124,3 +126,4 @@ afterEach:
 * 阅读[编写自定义 Node](./extend)，实现业务操作并在 Node 之间共享数据。
 * 阅读[配置测试项目](./configuration)，管理运行资源和配置多个执行项目。
 * 阅读 [为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)，了解如何补充必要的应用知识，帮助 GUI Agent 更稳定地执行任务。
+* 已有 `tasks/flow` YAML 项目可先无改动切换执行入口，再按[迁移到 Midscene Test](../migrate-to-midscene-test)逐步采用原生 Test 格式。

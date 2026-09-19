@@ -1,8 +1,12 @@
 # Create and use test projects
 
-This guide starts with project creation, then covers running an example, learning the available test operations, writing YAML cases, and inspecting results. If you already have a project, start with [Understand available test operations](#understand-available-test-operations).
+This guide starts with project creation, then covers running an example, learning the available test operations, writing YAML cases, and inspecting results. If you already have a native Test project, start with [Understand available test operations](#understand-available-test-operations).
 
 For the overall design, see [Midscene Test overview](./overview). To implement business operations, see [Develop custom Nodes](./extend). For runtime environments and execution settings, see [Configure test projects](./configuration).
+
+:::info Existing legacy YAML projects
+Existing `tasks/flow` cases and legacy batch configuration can run through the Test kernel without changing their files. The format remains supported but is not recommended for new cases. See [Migrate to Midscene Test](../migrate-to-midscene-test) for commands, compatibility boundaries, and field mappings.
+:::
 
 ## Create a project
 
@@ -15,13 +19,13 @@ pnpm dlx @midscene/test create my-tests --platform web --package-manager pnpm
 cd my-tests
 ```
 
-Follow the prompt to install dependencies. The command generates platform configuration, an example case, and a Node reference. The main files are:
+Follow the prompt to install dependencies. The command generates platform configuration, an example case, and a Node Spec. The main files are:
 
 ```text
 my-tests/
 ├── cases/example.yaml          # Example case
 ├── midscene.config.ts          # Platform configuration and Node registration
-├── midscene-node-reference.md  # Node reference generated after installation
+├── midscene-node-reference.md  # Node Spec generated after installation
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -31,7 +35,7 @@ my-tests/
 Creation and reference generation do not run tests, so this step does not require a model API Key, browser, or device. For all arguments, run `pnpm dlx @midscene/test create --help`.
 
 :::info Installation recovery
-If installation was skipped or failed, enter the project directory and run `pnpm install`. To regenerate the Node reference, run `pnpm run nodes`.
+If installation was skipped or failed, enter the project directory and run `pnpm install`. To regenerate the Node Spec, run `pnpm run nodes`.
 :::
 
 ### 2. Configure the model and runtime environment
@@ -65,7 +69,7 @@ After the run finishes, view the test run report to inspect the results of each 
 
 ## Understand available test operations
 
-### Built-in operations and extensions
+### Official operations and extensions
 
 Midscene Test calls each capability you can invoke from YAML a **Node**.
 
@@ -78,27 +82,32 @@ Alongside these shared capabilities, Midscene provides platform-specific operati
 - **Web**: `gotoUrl` opens a page, `setCookies` sets cookies, and `setViewportSize` adjusts the browser viewport.
 - **Android**: `launch` starts an app, `back` goes back, `home` returns to the home screen, and `runAdbShell` executes an ADB shell command.
 
-The project scaffold registers the Nodes for your selected platform. Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
+The project scaffold explicitly registers the official Nodes for the selected platform. A handwritten `midscene.config.ts` does not register any Nodes implicitly. Developers can also add custom operations, such as preparing a test order through a business API. See [Register custom business Nodes](./extend#register-custom-business-nodes).
 
-### Read the project operation reference
+### Generate the current Project's Node Spec
 
-Open the project's `midscene-node-reference.md` to see the available Nodes, what they do, and how to specify their inputs. This reference is generated during installation so both people and AI Agents can use it to write YAML cases.
+The Nodes registered by different platforms, Execution Projects, and package versions can differ. Do not infer the current project's capabilities from another project's examples. `midscene-test nodes` generates `midscene-node-reference.md` from the effective registry. This Node Spec is the source of truth for the current Project's Node names, input fields, and string shorthand. Both people and AI Agents should use it when writing YAML cases.
 
-After changing Node registrations, regenerate the reference:
+The scaffold generates the Spec after dependency installation. Regenerate it after changing `agentClass`, top-level `nodes`, `projects[].nodes`, or a Node schema, and after upgrading relevant Midscene packages:
 
 ```bash
 pnpm run nodes
 ```
 
-You can also specify a test directory or a custom configuration file:
+You can also run the command directly and specify a test directory, configuration file, or Execution Project:
 
 ```bash
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
 ```
 
-The reference has two sections: Available Nodes lists the Nodes you can use, and Node Details provides their descriptions and input schemas. Both the reference and terminal output list `aiAct` and `aiAssert` first, followed by the remaining Nodes in name order. Input schemas are converted from Zod `inputSchema` to standard JSON Schema.
+When multiple Execution Projects have identical Node definitions, the command can generate one shared Spec. When their definitions differ, it requires `--project` to select one Project instead of mixing same-named capabilities from different platforms.
 
-The reference also lists case file patterns (`Case files`) and the configuration file path (`Config file`) to help case authors locate their files. `Case files` corresponds to each execution project's `files.include` and `files.exclude`. Both sets of paths are relative to the reference file's directory.
+The command loads project configuration and Node definitions only. It does not run setup or cases and does not call `getAgent`, so it does not need to start a browser, connect a device, or call a model. The Spec is generated output; do not edit it manually. Regenerate it after configuration changes.
+
+The Spec has two sections: Available Nodes lists the Nodes you can use, and Node Details provides each Node's description, string shorthand, and input schema. Input schemas are converted from Zod `inputSchema` to standard JSON Schema. Both the Spec and terminal output list `aiAct` and `aiAssert` first, followed by the remaining Nodes in name order.
+
+The Spec also lists case file patterns (`Case files`) and the configuration file path (`Config file`) to help case authors locate their files. `Case files` corresponds to each execution project's `files.include` and `files.exclude`. Both sets of paths are relative to the Spec's directory.
 
 ## Write YAML test cases
 
@@ -126,7 +135,7 @@ The file has these parts:
 
 This documentation calls the whole YAML file a Workflow Document, an individual test a Case, and one Node invocation a Step.
 
-The example uses string shorthand: text after `gotoUrl` becomes `url`, while text after `aiAct` and `aiAssert` becomes `prompt`. To supply additional parameters, use the object form shown below. Check the project Node reference for shorthand support.
+The example uses string shorthand: text after `gotoUrl` becomes `url`, while text after `aiAct` and `aiAssert` becomes `prompt`. To supply additional parameters, use the object form shown below. Check the project Node Spec for shorthand support.
 
 ### Key Nodes: actions and assertions
 
@@ -147,6 +156,16 @@ steps:
   - aiAssert:
       prompt: The cart contains one mug
       message: The cart contents do not match the expected result
+```
+
+For `aiAct`, optional `options.effort` selects planning effort: `fast`, `balance`, or `deepThink`. Omitting it retains the Agent's default behavior. When both `effort` and `deepThink` are provided, `effort` takes precedence. This is an action capability, not a test scheduling option:
+
+```yaml
+steps:
+  - aiAct:
+      prompt: Complete checkout
+      options:
+        effort: deepThink
 ```
 
 ### Calling other Nodes
@@ -255,7 +274,7 @@ Lifecycle hooks prepare the environment, reset state, or clean up data around te
 | `afterEach` | After every execution of a case, including failures and retries | Clean up data created during that execution |
 | `afterAll` | Once after all cases in the current YAML file | Clean up data shared by the file's cases |
 
-This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are built-in Nodes. Replace the example URL and product names with your application details.
+This Web example opens the store home page before each case and clears cookies afterward. `data.prepare` and `data.cleanup` are custom Nodes your project must implement and register to prepare and remove test products. `gotoUrl`, `clearCookies`, `aiAct`, and `aiAssert` are official Nodes registered by the Web scaffold. Replace the example URL and product names with your application details.
 
 ```yaml filename=cases/search.yaml
 beforeAll:
@@ -304,6 +323,8 @@ When retries are configured, a failed case reruns `beforeEach → steps → afte
 
 By default, a failed step stops the remaining steps in that phase. Set [`continue-on-error`](#configure-timeouts-and-error-handling) to continue with later steps in the same phase; this does not turn a failure into a success. Cleanup Nodes should handle partially completed setup.
 
+A failed Case does not prevent the next Case from running by default. Use `test.bail` to stop scheduling new work after a failed-case threshold. Put file-wide prerequisites in `beforeAll`; if they fail, the file's Cases do not run. Keep dependent business steps in a single Case rather than relying on another Case's success.
+
 Project setup manages browser and Agent resources; see [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup). For resources created inside a Node, see [Resource lifecycle and cleanup](./extend#resource-lifecycle-and-cleanup).
 
 ## Run tests
@@ -340,10 +361,27 @@ pnpm exec midscene-test --project android-smoke --project ios-regression
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-To generate the operation reference for a specific Execution Project, also use `--project`:
+To generate the Node Spec for a specific Execution Project, also use `--project`:
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
+```
+
+### Run legacy YAML that has not been migrated
+
+`midscene-test` can directly run legacy YAML with top-level `tasks/flow`, as well as legacy YAML batch configuration:
+
+```bash
+pnpm exec midscene-test ./legacy-flow.yaml
+pnpm exec midscene-test --config ./legacy-batch.yaml
+```
+
+The files enter the compatibility path automatically; they do not require Node registration or configuration rewrites. Use the `cases/steps` format described on this page for new files. See [Migrate to Midscene Test](../migrate-to-midscene-test) for migration steps and field mappings.
+
+Use `--result-dir` to write structured run results to a specific directory:
+
+```bash
+pnpm exec midscene-test --result-dir ./test-results
 ```
 
 The CLI exits with code `1` when a test case fails, a document cannot be parsed, or an error occurs during collection.
@@ -355,7 +393,7 @@ After each run, the CLI prints the results and a `Report:` path. Open the HTML r
 Reports are saved to:
 
 ```text
-midscene_run/report/test-run-<runId>.html
+midscene_run/report/midscene-e2e-<runId>.html
 ```
 
 With external screenshot storage, the report is a directory containing `index.html` and `screenshots/`. Copy or upload the whole directory.

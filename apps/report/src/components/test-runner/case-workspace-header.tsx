@@ -7,16 +7,20 @@ import { CaseStatus, StepStatus, formatDuration } from './view-primitives';
 export function CaseWorkspaceHeader({
   item,
   selectedAttempt,
+  selectedDocumentAttemptIndex,
   backLabel,
   onBack,
   onSelectAttempt,
+  onSelectDocumentAttempt,
   standaloneRun,
 }: {
   item: RunnerCaseView;
   selectedAttempt?: TestRunReportAttempt;
+  selectedDocumentAttemptIndex?: number;
   backLabel: string;
   onBack(): void;
   onSelectAttempt(attempt: TestRunReportAttempt): void;
+  onSelectDocumentAttempt?(attemptIndex: number): void;
   standaloneRun?: TestRunReportDump;
 }): JSX.Element {
   return (
@@ -37,15 +41,43 @@ export function CaseWorkspaceHeader({
             <span>{item.project.name}</span>
             <span>{item.document.sourcePath}</span>
             <span>
-              {item.testCase.attempts.length}{' '}
-              {item.testCase.attempts.length === 1 ? 'attempt' : 'attempts'}
+              {item.document.attempts?.length ?? item.testCase.attempts.length}{' '}
+              {(item.document.attempts?.length ??
+                item.testCase.attempts.length) === 1
+                ? 'attempt'
+                : 'attempts'}
             </span>
             <span>{formatDuration(item.durationMs)} total</span>
           </div>
         </div>
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
-      {item.testCase.attempts.length > 1 ? (
+      {item.document.attempts ? (
+        <section className="runner-attempt-switcher" aria-label="File attempts">
+          {item.document.attempts.map((attempt) => (
+            <button
+              type="button"
+              key={attempt.documentRunId}
+              aria-label={`File attempt ${attempt.attemptIndex! + 1}, ${attempt.status}`}
+              aria-pressed={
+                selectedDocumentAttemptIndex === attempt.attemptIndex
+              }
+              className={
+                selectedDocumentAttemptIndex === attempt.attemptIndex
+                  ? 'is-selected'
+                  : ''
+              }
+              onClick={() => onSelectDocumentAttempt?.(attempt.attemptIndex!)}
+            >
+              <StepStatus status={attempt.status} />
+              <span>
+                <strong>File attempt {attempt.attemptIndex! + 1}</strong>
+                <small>{formatDuration(attempt.durationMs ?? 0)}</small>
+              </span>
+            </button>
+          ))}
+        </section>
+      ) : item.testCase.attempts.length > 1 ? (
         <section className="runner-attempt-switcher" aria-label="Attempts">
           {item.testCase.attempts.map((attempt) => (
             <button

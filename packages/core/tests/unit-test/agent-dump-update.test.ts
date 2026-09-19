@@ -1,4 +1,5 @@
 import { Agent } from '@/agent';
+import { trackResourceOperation } from '@/test-runner';
 import type { ExecutionDump, ReportMeta } from '@/types';
 import {
   MIDSCENE_MODEL_API_KEY,
@@ -34,6 +35,27 @@ function createLargeBase64DataUri(byteSize: number): string {
 describe('Agent dump update screenshot serialization', () => {
   afterEach(() => {
     rs.clearAllMocks();
+  });
+
+  it('waits for tracked Runner operations before destroying its interface', async () => {
+    let finish!: () => void;
+    const operation = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const destroy = rs.fn(async () => {});
+    const agent = new Agent(
+      { ...createMockInterface(), destroy },
+      { modelConfig, generateReport: false },
+    );
+    trackResourceOperation(agent, operation, new AbortController().signal);
+
+    const disposal = agent.destroy();
+    await Promise.resolve();
+    expect(destroy).not.toHaveBeenCalled();
+
+    finish();
+    await disposal;
+    expect(destroy).toHaveBeenCalledOnce();
   });
 
   it('passes report attributes to report generator updates', async () => {

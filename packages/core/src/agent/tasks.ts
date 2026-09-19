@@ -345,9 +345,9 @@ export class TaskExecutor {
     };
   }
 
-  async sleep(ms: number): Promise<void> {
+  async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
     const session = this.createExecutionSession('Sleep');
-    const action = defineActionSleep();
+    const action = defineActionSleep(abortSignal);
     await session.appendAndRun({
       type: 'Action Space',
       subType: action.name,

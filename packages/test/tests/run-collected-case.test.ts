@@ -74,7 +74,7 @@ describe('runCollectedCase', () => {
     });
   });
 
-  it('rejects Node output data that is not JSON-compatible', async () => {
+  it('keeps API output intact before publication', async () => {
     const registry = new NodeRegistry([
       defineNode({
         name: 'invalid-output',
@@ -89,11 +89,8 @@ describe('runCollectedCase', () => {
     });
 
     expect(result.steps[0]).toMatchObject({
-      status: 'failed',
-      error: {
-        code: 'NODE_EXECUTION_ERROR',
-        message: expect.stringContaining('contains undefined'),
-      },
+      status: 'success',
+      output: { data: { missing: undefined } },
     });
   });
 

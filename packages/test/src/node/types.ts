@@ -1,116 +1,50 @@
+export type {
+  NodeResult,
+  NodeReportTrace,
+  NodeReportCollector,
+  NodeExecutionReturn,
+  NodeInputSchema,
+} from '@midscene/core/internal/test-runner';
+
+import type * as Core from '@midscene/core/internal/test-runner';
 import type { z } from 'zod/v4';
-import type {
-  NodeCaseContext,
-  NodeDocumentContext,
-  NodeScopeTeardown,
-} from '../engine/types';
+import type { NodeScopeTeardown } from '../engine/types';
 import type { NormalizedStepMeta } from '../parser/types';
 
-export interface NodeResult<TData = unknown> {
-  /** Human-readable summary for reports. */
-  summary?: string;
-
-  /** Structured data included in the step result. */
-  data?: TData;
-}
-
-/** A stable reference from one test Step to report detail data. */
-export interface NodeReportTrace {
-  type: 'midscene-execution';
-  executionId: string;
-}
-
-/** Collects report references produced while the current Step is executing. */
-export interface NodeReportCollector {
-  addTrace(trace: NodeReportTrace): void;
-}
-
-interface NodeExecutionContextBase<TInput = unknown, TContext = unknown> {
-  /** The validated node input without `$`. */
-  input: TInput;
-
-  /** The normalized engine metadata for this step. */
-  $: Readonly<NormalizedStepMeta>;
-
-  /** The timeout and cancellation signal for this step. */
-  signal: AbortSignal;
-
-  /** Resources shared by the current workflow document. */
-  context: TContext;
-
-  /** Register resource cleanup for the current case attempt or document. */
-  onTeardown(teardown: NodeScopeTeardown): void;
-
-  /** Attach report detail references to the current Step result. */
-  report: NodeReportCollector;
-}
-
+type NativeNodeContext<T> = T extends unknown
+  ? Omit<T, '$' | 'onTeardown'> & {
+      $: Readonly<NormalizedStepMeta>;
+      onTeardown(teardown: NodeScopeTeardown): void;
+    }
+  : never;
 export type NodeExecutionContext<
   TInput = unknown,
   TContext = unknown,
-> = NodeExecutionContextBase<TInput, TContext> &
-  (
-    | {
-        /** The node is running for one case. */
-        scope: 'case';
-
-        /** Identity and phase information for the case being executed. */
-        case: NodeCaseContext;
-
-        document?: never;
-      }
-    | {
-        /** The node is running for the workflow document. */
-        scope: 'document';
-
-        /** Identity and phase information for the document being executed. */
-        document: NodeDocumentContext;
-
-        case?: never;
-      }
-  );
-
-export type NodeExecutionReturn<TData = unknown> =
-  // biome-ignore lint/suspicious/noConfusingVoidType: RFC 0001 allows async nodes to resolve without a result.
-  Promise<NodeResult<TData> | void> | NodeResult<TData> | void;
-
-export type NodeInputSchema = z.ZodObject;
-
-export interface DefineNodeOptions<
+> = NativeNodeContext<Core.NodeExecutionContext<TInput, TContext>>;
+export type DefineNodeOptions<
   TInput = unknown,
   TData = unknown,
   TContext = unknown,
-> {
-  name: string;
-  title?: string;
-  description?: string;
-  /** Object field populated by string shorthand. Omit or set false to disable it. */
-  stringInputKey?: string | false;
-  inputSchema?: NodeInputSchema;
+> = Omit<Core.DefineNodeOptions<TInput, TData, TContext>, 'execute'> & {
   execute(
-    execution: NodeExecutionContext<TInput, TContext>,
-  ): NodeExecutionReturn<TData>;
-}
-
+    ctx: NodeExecutionContext<TInput, TContext>,
+  ): Core.NodeExecutionReturn<TData>;
+};
+export type NodeDefinition<
+  TInput = unknown,
+  TData = unknown,
+  TContext = unknown,
+> = DefineNodeOptions<TInput, TData, TContext>;
 export type DefineNodeWithSchemaOptions<
-  TSchema extends NodeInputSchema,
+  TSchema extends Core.NodeInputSchema,
   TData = unknown,
   TContext = unknown,
 > = Omit<
   DefineNodeOptions<z.output<TSchema>, TData, TContext>,
   'inputSchema'
-> & {
-  inputSchema: TSchema;
-};
-
-export interface NodeDefinition<
-  TInput = unknown,
-  TData = unknown,
-  TContext = unknown,
-> extends DefineNodeOptions<TInput, TData, TContext> {}
-
+> & { inputSchema: TSchema };
 export type NodeDefinitionWithSchema<
-  TSchema extends NodeInputSchema,
+  TSchema extends Core.NodeInputSchema,
   TData = unknown,
   TContext = unknown,
 > = NodeDefinition<z.output<TSchema>, TData, TContext> & {

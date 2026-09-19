@@ -502,7 +502,10 @@ describe('launch server', () => {
     expect(serverResult).toBeDefined();
 
     const serverAddress = serverResult.server.address();
-    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+    if (!serverAddress || typeof serverAddress === 'string') {
+      throw new Error('Expected the static server to expose a TCP address.');
+    }
+    const staticServerUrl = `http://${serverAddress.address}:${serverAddress.port}`;
 
     const contents = await fetch(`${staticServerUrl}/index.html`);
     expect(contents.status).toBe(200);

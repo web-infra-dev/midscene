@@ -1,13 +1,21 @@
-import type {
-  ProjectSetupDefinition,
-  ResolvedExecutionProject,
-} from '../cli/test-project';
-import type { WorkflowError } from '../errors';
-import type {
-  NodeDefinition,
-  NodeReportTrace,
-  NodeResult,
-} from '../node/types';
+export type {
+  Awaitable,
+  CaseNodePhase,
+  DocumentNodePhase,
+  NodeExecutionPhase,
+  CaseExecutionContext,
+  NodeCaseContext,
+  NodeDocumentContext,
+  StepExecutionInfo,
+  StepStartHandler,
+  CaseRunStatus,
+  ProjectRuntimeOptions,
+  ProjectRuntimeResult,
+  ProjectRuntime,
+} from '@midscene/core/internal/test-runner';
+
+import type * as Core from '@midscene/core/internal/test-runner';
+import type { NodeDefinition } from '../node/types';
 import type {
   CollectedCase,
   CollectedWorkflowDocument,
@@ -15,227 +23,110 @@ import type {
   NormalizedStepMeta,
 } from '../parser/types';
 
-export type Awaitable<T> = T | Promise<T>;
-
-export interface NodeScopeTeardownResult {
-  /** Absolute paths to Midscene reports produced by this execution scope. */
-  reportPaths?: readonly string[];
-}
-
-// biome-ignore lint/suspicious/noConfusingVoidType: teardown callbacks may intentionally return no result.
-export type NodeScopeTeardown = () => Awaitable<NodeScopeTeardownResult | void>;
-
-export type CaseNodePhase = 'beforeEach' | 'steps' | 'afterEach';
-export type DocumentNodePhase = 'beforeAll' | 'afterAll';
-export type NodeExecutionPhase = CaseNodePhase | DocumentNodePhase;
-
-export interface StepRunResult<TOutputData = unknown> {
-  phase: NodeExecutionPhase;
-  stepIndex: number;
-  node: string;
-  input: unknown;
-  meta: NormalizedStepMeta;
-  status: 'success' | 'failed';
-  continuedAfterError: boolean;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-  output?: NodeResult<TOutputData>;
-  error?: WorkflowError;
-  report?: {
-    traces: readonly NodeReportTrace[];
-  };
-}
-
-export interface CaseRunResult {
-  caseId: string;
-  runId: string;
-  projectName: string;
-  attemptIndex: number;
-  name: string;
-  sourcePath: string;
-  caseIndex: number;
-  status: 'success' | 'failed';
+// Type-only native facade; execution facts and ownership controls stay in core.
+export type StepRunResult<TData = unknown> = Omit<
+  Core.StepRunResult<TData>,
+  'meta'
+> & { meta: NormalizedStepMeta };
+export type CaseRunResult = Omit<
+  Core.CaseRunResult,
+  'beforeEach' | 'steps' | 'afterEach' | 'reportSources' | 'reportScopeId'
+> & {
   beforeEach: StepRunResult[];
   steps: StepRunResult[];
   afterEach: StepRunResult[];
-  teardownErrors?: WorkflowError[];
-  reportPaths?: string[];
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-}
-
-export interface WorkflowDocumentRunResult {
-  documentId: string;
-  documentRunId: string;
-  projectId: string;
-  projectName: string;
-  sourcePath: string;
-  status: 'success' | 'failed';
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
+};
+export type WorkflowDocumentRunResult = Omit<
+  Core.WorkflowDocumentRunResult,
+  'beforeAll' | 'afterAll' | 'reportSources' | 'reportScopeId'
+> & {
   beforeAll: StepRunResult[];
   afterAll: StepRunResult[];
-  teardownErrors?: WorkflowError[];
-  reportPaths?: string[];
-}
-
-export interface CaseExecutionContext {
-  readonly caseId: string;
-  readonly runId: string;
-  readonly projectName: string;
-  readonly attemptIndex: number;
-  readonly name: string;
-  readonly sourcePath: string;
-  readonly caseIndex: number;
-}
-
-export interface NodeCaseContext extends CaseExecutionContext {
-  readonly phase: CaseNodePhase;
-  readonly stepIndex: number;
-}
-
-export interface NodeDocumentContext {
-  readonly documentId: string;
-  readonly documentRunId: string;
-  readonly projectId: string;
-  readonly projectName: string;
-  readonly sourcePath: string;
-  readonly phase: DocumentNodePhase;
-  readonly stepIndex: number;
-}
-
-export type StepExecutionInfo =
-  | {
-      scope: 'case';
-      node: string;
-      stepCount: number;
-      case: NodeCaseContext;
-      document?: never;
-    }
-  | {
-      scope: 'document';
-      node: string;
-      stepCount: number;
-      document: NodeDocumentContext;
-      case?: never;
-    };
-
-export type StepStartHandler = (info: StepExecutionInfo) => Awaitable<unknown>;
+};
+export type CaseRunOutcome = Omit<
+  Core.CaseRunOutcome,
+  'onFailure' | 'run' | 'attempts'
+> & {
+  run?: CaseRunResult;
+  attempts?: readonly CaseRunResult[];
+};
+export type WorkflowDocumentExecutionResult = {
+  document: WorkflowDocumentRunResult;
+  cases: readonly CaseRunOutcome[];
+};
 export type StepResultHandler = (
-  info: StepExecutionInfo,
+  info: Core.StepExecutionInfo,
   result: StepRunResult,
-) => Awaitable<unknown>;
-
-export interface RunCollectedCaseOptions<TContext = undefined> {
+) => Core.Awaitable<unknown>;
+export type NodeScopeTeardownResult = Omit<
+  Core.NodeScopeTeardownResult,
+  'reportSources'
+>;
+// biome-ignore lint/suspicious/noConfusingVoidType: teardown callbacks may intentionally return no result.
+type NodeScopeTeardownOutput = NodeScopeTeardownResult | void;
+export type NodeScopeTeardown = () => Core.Awaitable<NodeScopeTeardownOutput>;
+export type RunCollectedCaseOptions<TContext = undefined> = Omit<
+  Core.RunCollectedCaseOptions<TContext>,
+  | 'reportScopeId'
+  | 'resolveNode'
+  | 'beforeEach'
+  | 'afterEach'
+  | 'onStepResult'
+  | 'onResult'
+> & {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
   beforeEach?: readonly NormalizedStep[];
   afterEach?: readonly NormalizedStep[];
-  context?: TContext;
-  projectName?: string;
-  attemptIndex?: number;
-  signal?: AbortSignal;
-  defaultTimeoutMs?: number;
-  onStepStart?: StepStartHandler;
   onStepResult?: StepResultHandler;
-  onResult?(result: CaseRunResult): Awaitable<unknown>;
-  createRunId?(): string;
-}
-
-export type CaseRunStatus = 'success' | 'failed' | 'not-run';
-
-export interface CaseRunOutcome {
-  caseId: string;
-  projectName: string;
-  name: string;
-  sourcePath: string;
-  caseIndex: number;
-  status: CaseRunStatus;
-  run?: CaseRunResult;
-  attempts?: readonly CaseRunResult[];
-  notRunReason?:
-    | 'document-start-failed'
-    | 'project-preflight-failed'
-    | 'project-setup-failed'
-    | 'interrupted'
-    | 'bail'
-    | 'fatal-error';
-}
-
-export interface WorkflowDocumentExecutionResult {
-  document: WorkflowDocumentRunResult;
-  cases: readonly CaseRunOutcome[];
-}
-
-export interface RunWorkflowDocumentOptions<TContext = undefined> {
+  onResult?(result: CaseRunResult): Core.Awaitable<unknown>;
+};
+export type RunWorkflowDocumentOptions<TContext = undefined> = Omit<
+  Core.RunWorkflowDocumentOptions<TContext>,
+  | 'documentSetup'
+  | 'documentAttemptIndex'
+  | 'resolveCaseReportScopeId'
+  | 'resolveNode'
+  | 'onStepResult'
+  | 'onCaseStart'
+  | 'isFatalError'
+  | 'onCaseResult'
+  | 'onCaseOutcome'
+  | 'onDocumentResult'
+  | 'createCaseRunId'
+  | 'createDocumentRunId'
+> & {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
-  project?: ResolvedExecutionProject<TContext>;
-  projectContext?: TContext;
-  retry?: number;
-  signal?: AbortSignal;
-  defaultTimeoutMs?: number;
-  shouldStop?(): boolean;
-  stopReason?(): NonNullable<CaseRunOutcome['notRunReason']>;
-  isFatalError?(result: CaseRunResult): boolean;
-  onCaseStart?(collectedCase: CollectedCase): Awaitable<void>;
-  onStepStart?: StepStartHandler;
   onStepResult?: StepResultHandler;
-  onCaseResult?(result: CaseRunResult): Awaitable<unknown>;
-  onCaseOutcome?(result: CaseRunOutcome): Awaitable<unknown>;
-  onDocumentResult?(result: WorkflowDocumentRunResult): Awaitable<unknown>;
+  onCaseStart?(collectedCase: CollectedCase): Core.Awaitable<void>;
+  isFatalError?(result: CaseRunResult): boolean;
+  onCaseResult?(result: CaseRunResult): Core.Awaitable<unknown>;
+  onCaseOutcome?(result: CaseRunOutcome): Core.Awaitable<unknown>;
+  onDocumentResult?(result: WorkflowDocumentRunResult): Core.Awaitable<unknown>;
   createCaseRunId?(collectedCase: CollectedCase, attemptIndex: number): string;
   createDocumentRunId?(document: CollectedWorkflowDocument): string;
-}
-
-export interface CreateDocumentRuntimeOptions<TContext = undefined> {
+};
+export type CreateDocumentRuntimeOptions<TContext = undefined> = Omit<
+  Core.CreateDocumentRuntimeOptions<TContext>,
+  | 'documentSetup'
+  | 'documentAttemptIndex'
+  | 'resolveNode'
+  | 'onStepResult'
+  | 'onResult'
+> & {
   resolveNode(name: string): NodeDefinition<any, any, TContext>;
-  project?: ResolvedExecutionProject<TContext>;
-  projectContext?: TContext;
-  signal?: AbortSignal;
-  defaultTimeoutMs?: number;
-  onStepStart?: StepStartHandler;
   onStepResult?: StepResultHandler;
-  onResult?(result: WorkflowDocumentRunResult): Awaitable<unknown>;
-  createDocumentRunId?(): string;
-}
-
-export interface WorkflowDocumentRuntime<TContext = undefined> {
-  readonly context: TContext;
-  readonly canRunCases: boolean;
+  onResult?(result: WorkflowDocumentRunResult): Core.Awaitable<unknown>;
+};
+export type WorkflowDocumentRuntime<TContext = undefined> = Omit<
+  Core.WorkflowDocumentRuntime<TContext>,
+  'signal' | 'start' | 'finish'
+> & {
   start(): Promise<WorkflowDocumentRunResult>;
   finish(): Promise<WorkflowDocumentRunResult>;
-}
-
-export interface ProjectRuntimeOptions<TProjectContext = unknown> {
-  project: ResolvedExecutionProject<TProjectContext>;
-  setup?: ProjectSetupDefinition<TProjectContext>;
-  signal?: AbortSignal;
-}
-
-export interface ProjectRuntimeResult<TProjectContext = unknown> {
-  projectName: string;
-  status: 'success' | 'failed';
-  setupError?: WorkflowError;
-  teardownErrors?: readonly WorkflowError[];
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-}
-
-export interface ProjectRuntime<TProjectContext = unknown> {
-  readonly context: TProjectContext | undefined;
-  readonly signal: AbortSignal;
-  readonly canRun: boolean;
-  start(): Promise<ProjectRuntimeResult<TProjectContext>>;
-  finish(
-    status?: 'success' | 'failed',
-  ): Promise<ProjectRuntimeResult<TProjectContext>>;
-  abort(reason?: unknown): void;
-}
-
-export interface CaseRunnerOptions<TContext = undefined> {
+};
+export type CaseRunnerOptions<TContext = undefined> = Omit<
+  Core.CaseRunnerOptions<TContext>,
+  'nodes'
+> & {
   nodes?: readonly NodeDefinition<any, any, TContext>[];
-  context?: TContext;
-}
+};
