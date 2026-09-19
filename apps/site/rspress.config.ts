@@ -230,10 +230,10 @@ export default defineConfig(async () => {
             link: '/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test (Beta)',
+            sectionHeaderText: 'Test Framework (Beta)',
           },
           {
-            text: 'Overview',
+            text: 'Midscene Test overview',
             link: '/midscene-test/overview',
           },
           {
@@ -410,10 +410,10 @@ export default defineConfig(async () => {
             link: '/zh/platforms/desktop',
           },
           {
-            sectionHeaderText: 'Midscene Test (Beta)',
+            sectionHeaderText: '测试框架 (Beta)',
           },
           {
-            text: '概览',
+            text: 'Midscene Test 概览',
             link: '/zh/midscene-test/overview',
           },
           {
