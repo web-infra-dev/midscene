@@ -35,6 +35,7 @@ export type PlanningActionDescriptionBuildInput = {
   action: DeviceAction<any>;
   locateFieldDescription: string;
   actionOutputExample?: string;
+  projectDescription?: (description: string) => string;
 };
 
 export type PlanningActionSpaceFormat = 'yaml' | 'jsonl';
@@ -53,6 +54,8 @@ export type PlanningActionSpaceProtocol = {
 
 export type StandardPlanningProtocol = {
   responsePrefix?: string;
+  /** Opt in only when action descriptions honor projectDescription and replay can preserve action tags. */
+  supportsPlanningAblation?: boolean;
   actionSpaceProtocol: PlanningActionSpaceProtocol;
   actionOutputProtocol: PlanningActionOutputProtocol;
 };

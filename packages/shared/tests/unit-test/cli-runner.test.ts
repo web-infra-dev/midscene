@@ -433,42 +433,16 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
-  it('strips a global --deep-think flag and applies act defaults', async () => {
-    const handler = rs
-      .fn()
-      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+  it('rejects the removed --deep-think flag before running the act tool', async () => {
+    const handler = rs.fn();
     const tools = createMockTools([{ name: 'act', handler }]);
-    tools.setToolDefaults = rs.fn();
     const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
-
-    await runToolsCLI(tools, 'test-cli', {
-      argv: ['--deep-think', 'act', '--prompt', 'open settings'],
-    });
-
-    expect(tools.setToolDefaults).toHaveBeenCalledWith({
-      act: { deepThink: true },
-    });
-    expect(handler).toHaveBeenCalledTimes(1);
-    consoleSpy.mockRestore();
-  });
-
-  it('merges defaults when both flags are present', async () => {
-    const handler = rs
-      .fn()
-      .mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
-    const tools = createMockTools([{ name: 'act', handler }]);
-    tools.setToolDefaults = rs.fn();
-    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
-
-    await runToolsCLI(tools, 'test-cli', {
-      argv: ['act', '--deep-locate', '--deep-think', '--prompt', 'go'],
-    });
-
-    expect(tools.setToolDefaults).toHaveBeenCalledWith({
-      locate: { deepLocate: true },
-      act: { deepLocate: true, deepThink: true },
-    });
-    expect(handler).toHaveBeenCalledTimes(1);
+    await expect(
+      runToolsCLI(tools, 'test-cli', {
+        argv: ['act', '--deep-think', '--prompt', 'open settings'],
+      }),
+    ).rejects.toThrow();
+    expect(handler).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 

@@ -108,6 +108,7 @@ interface TaskBuilderDeps {
 interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
+  disableGroundingGuidance?: boolean;
   abortSignal?: AbortSignal;
 }
 
@@ -117,6 +118,7 @@ interface PlanBuildContext {
   defaultModel: ModelRuntime;
   cacheable?: boolean;
   deepLocate?: boolean;
+  disableGroundingGuidance?: boolean;
   abortSignal?: AbortSignal;
 }
 
@@ -160,6 +162,7 @@ export class TaskBuilder {
       defaultModel,
       cacheable,
       deepLocate: options?.deepLocate,
+      disableGroundingGuidance: options?.disableGroundingGuidance,
       abortSignal: options?.abortSignal,
     };
 
@@ -393,7 +396,13 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, defaultModel, deepLocate, abortSignal } = context;
+    const {
+      cacheable,
+      defaultModel,
+      deepLocate,
+      abortSignal,
+      disableGroundingGuidance,
+    } = context;
 
     let locateParam = normalizeLocateParam(detailedLocateParam);
 
@@ -556,6 +565,9 @@ export class TaskBuilder {
               {
                 context: uiContext,
                 planLocatedElement,
+                ...(disableGroundingGuidance
+                  ? { disableGroundingGuidance }
+                  : {}),
               },
               defaultModel,
               abortSignal,

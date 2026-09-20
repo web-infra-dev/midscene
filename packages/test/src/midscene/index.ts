@@ -14,7 +14,6 @@ import type {
 export interface MidsceneAiActOptions {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
-  deepThink?: 'unset' | boolean;
   deepLocate?: boolean;
   context?: string;
   abortSignal?: AbortSignal;
@@ -132,10 +131,6 @@ const aiActOptionsInputSchema = z.strictObject({
     .union([z.string(), z.array(z.string())])
     .optional()
     .describe('Accepted file types for a file chooser.'),
-  deepThink: z
-    .union([z.literal('unset'), z.boolean()])
-    .optional()
-    .describe('Whether to enable deep thinking for this action.'),
   deepLocate: z
     .boolean()
     .optional()

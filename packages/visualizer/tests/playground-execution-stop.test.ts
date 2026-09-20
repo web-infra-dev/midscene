@@ -15,7 +15,6 @@ const { allScriptsFromDumpMock, envConfigMock } = rs.hoisted(() => ({
     alwaysRefreshScreenInfo: false,
     autoDismissKeyboard: false,
     deepLocate: undefined,
-    deepThink: 'unset' as const,
     domIncluded: false,
     imeStrategy: undefined,
     screenshotStrategy: undefined as 'auto' | 'always-yadb' | undefined,

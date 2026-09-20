@@ -78,7 +78,6 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     ...overrides,
-    effort: overrides.effort ?? 'balance',
   };
 }
 

@@ -27,8 +27,8 @@ import {
 } from '../../utils/markdown-export';
 import {
   hasDeepLocateFlag,
-  hasDeepThinkFlag,
   hasObserverAssertionFlag,
+  hasSubGoalsFlag,
 } from '../../utils/report-task-tags';
 import { anchorIdForTask } from '../../utils/task-anchor';
 import ReportOverview from '../report-overview';
@@ -230,10 +230,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
-  const getDeepThinkTag = (task: ExecutionTask) => {
-    return hasDeepThinkFlag(task) ? (
+  const getSubGoalsTag = (task: ExecutionTask) => {
+    return hasSubGoalsFlag(task) ? (
       <Tag
-        className="deepthink-tag"
+        className="subgoals-tag"
         bordered={false}
         style={{
           padding: '0 4px',
@@ -242,7 +242,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           lineHeight: '16px',
         }}
       >
-        DeepThink
+        Sub-goals
       </Tag>
     ) : null;
   };
@@ -571,7 +571,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getXPathTag(task)}
-            {getDeepThinkTag(task)}
+            {getSubGoalsTag(task)}
             {getObservedTag(task)}
           </div>
         );

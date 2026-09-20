@@ -16,7 +16,6 @@ Commands:
 Global Options:
   --verbose     Print progress while the command is running. act and record print readable progress by default. Use --verbose=jsonl for structured events.
   --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
-  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower).
 
 Run "test-cli <command> --help" for more info."
 `;
@@ -33,6 +32,5 @@ Options:
 
 Global Options:
   --verbose     Print progress while the command is running. act and record print readable progress by default. Use --verbose=jsonl for structured events.
-  --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower).
-  --deep-think  Plan the act tool with deep thinking (richer context and sub-goal decomposition, a bit slower)."
+  --deep-locate Force deep locate for every locating operation (better precision for small/ambiguous targets, a bit slower)."
 `;

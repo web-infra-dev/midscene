@@ -48,7 +48,6 @@ export interface ExecutionReportDisplay {
 
 export interface ExecutionOptions {
   deepLocate?: boolean;
-  deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
   planningStrategy?: 'fast' | 'standard';

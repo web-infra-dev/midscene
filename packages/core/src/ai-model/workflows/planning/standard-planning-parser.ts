@@ -60,7 +60,12 @@ type XMLPlanningResponseParseResult = {
 export function parseXMLPlanningResponse(
   xmlString: string,
   actionOutputTagNames: PlanningActionOutputProtocol['actionOutputTagNames'],
-  options: { includeThought: boolean },
+  options: {
+    includeThought: boolean;
+    includeMemory?: boolean;
+    includeSubGoals?: boolean;
+    includeLog?: boolean;
+  },
 ): XMLPlanningResponseParseResult {
   // Use <planning> instead of <thought> to avoid colliding with Gemini thought
   // summaries, which may also be emitted as <thought> in OpenAI-compatible
@@ -68,8 +73,12 @@ export function parseXMLPlanningResponse(
   const thought = options.includeThought
     ? extractXMLTag(xmlString, 'planning')
     : undefined;
-  const memory = extractXMLTag(xmlString, 'memory');
-  const log = extractXMLTag(xmlString, 'log') || '';
+  const memory =
+    options.includeMemory === false
+      ? undefined
+      : extractXMLTag(xmlString, 'memory');
+  const log =
+    options.includeLog === false ? '' : extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
 
   const completeGoalRegex =
@@ -83,8 +92,14 @@ export function parseXMLPlanningResponse(
     finalizeMessage = completeGoalMatch[2]?.trim() || undefined;
   }
 
-  const updatePlanContent = extractXMLTag(xmlString, 'update-plan-content');
-  const markSubGoalDone = extractXMLTag(xmlString, 'mark-sub-goal-done');
+  const updatePlanContent =
+    options.includeSubGoals === false
+      ? undefined
+      : extractXMLTag(xmlString, 'update-plan-content');
+  const markSubGoalDone =
+    options.includeSubGoals === false
+      ? undefined
+      : extractXMLTag(xmlString, 'mark-sub-goal-done');
   const updateSubGoals = updatePlanContent
     ? parseSubGoalsFromXML(updatePlanContent)
     : undefined;
@@ -109,9 +124,11 @@ export function parseXMLPlanningResponse(
 
 type ParseStandardPlanningResponseOptions = {
   includeThought: boolean;
+  includeMemory?: boolean;
+  includeSubGoals?: boolean;
   actionOutputProtocol: PlanningActionOutputProtocol;
   actionSpace: DeviceAction<any>[];
-  logSource?: 'model' | 'action';
+  logSource?: 'model' | 'action' | 'none';
 };
 
 function buildNonActionPlanningLog(
@@ -142,7 +159,12 @@ export function parseStandardPlanningResponse(
   const { parsed, rawActionOutput } = parseXMLPlanningResponse(
     xmlString,
     options.actionOutputProtocol.actionOutputTagNames,
-    { includeThought: options.includeThought },
+    {
+      includeThought: options.includeThought,
+      includeMemory: options.includeMemory,
+      includeSubGoals: options.includeSubGoals,
+      includeLog: options.logSource !== 'none',
+    },
   );
   const response: RawResponsePlanningAIResponse = {
     ...parsed,

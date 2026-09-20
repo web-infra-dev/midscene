@@ -191,55 +191,6 @@ describe('common utilities', () => {
       });
     });
 
-    it('should warn for non-aiAct deepThink without mutating params', async () => {
-      // NOTE: This test documents intentional migration-period behavior.
-      // deepThink in non-aiAct options triggers a warning but is NOT stripped,
-      // because executeAction is a low-level utility that should not silently
-      // mutate caller-provided options. The filtering responsibility belongs to
-      // upstream callers (playground/report layer) before reaching this point.
-      // TODO: Remove this test and the corresponding warning once migration is complete.
-      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
-      const mockCallAction = rs.fn().mockResolvedValue('action result');
-      const activeAgent = createMockPlaygroundAgent({
-        callActionInActionSpace: mockCallAction,
-      });
-
-      const action: DeviceAction<unknown> = {
-        name: 'Tap',
-        interfaceAlias: 'aiTap',
-        description: 'Tap action',
-        call: rs.fn(),
-      };
-
-      const value: FormValue = {
-        type: 'aiTap',
-        prompt: 'tap login button',
-      };
-
-      await executeAction(activeAgent, 'aiTap', [action], value, {
-        deepLocate: false,
-        deepThink: true,
-        requestId: 'req-1',
-      });
-
-      const actionParams = mockCallAction.mock.calls[0][1];
-      expect(actionParams.deepThink).toBe(true);
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
-        {
-          actionType: 'aiTap',
-          options: {
-            deepLocate: false,
-            deepThink: true,
-            requestId: 'req-1',
-          },
-          requestId: 'req-1',
-        },
-      );
-
-      warnSpy.mockRestore();
-    });
-
     it('should not pass report display metadata to action-space actions', async () => {
       const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
@@ -274,7 +225,7 @@ describe('common utilities', () => {
       );
     });
 
-    it('should keep deepThink for aiAct action without warning', async () => {
+    it('should forward locate options for aiAct without a planning mode', async () => {
       const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const mockCallAction = rs.fn().mockResolvedValue('action result');
       const activeAgent = createMockPlaygroundAgent({
@@ -295,21 +246,16 @@ describe('common utilities', () => {
 
       await executeAction(activeAgent, 'aiAct', [action], value, {
         deepLocate: false,
-        deepThink: true,
         requestId: 'req-2',
       });
 
       const actionParams = mockCallAction.mock.calls[0][1];
-      expect(actionParams.deepThink).toBe(true);
-      expect(warnSpy).not.toHaveBeenCalledWith(
-        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct/runMarkdown during migration.',
-        expect.anything(),
-      );
-
+      expect(actionParams.deepLocate).toBe(false);
+      expect(actionParams).not.toHaveProperty('deepThink');
       warnSpy.mockRestore();
     });
 
-    it('should keep deepThink for runMarkdown without warning', async () => {
+    it('should forward locate options for runMarkdown without a planning mode', async () => {
       const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const mockRunMarkdown = rs.fn().mockResolvedValue('markdown result');
       const activeAgent: PlaygroundAgent = {
@@ -328,7 +274,6 @@ describe('common utilities', () => {
         value,
         {
           deepLocate: false,
-          deepThink: true,
           requestId: 'req-3',
         },
       );
@@ -336,7 +281,6 @@ describe('common utilities', () => {
       expect(result).toBe('markdown result');
       expect(mockRunMarkdown).toHaveBeenCalledWith('/tmp/recording.md', {
         deepLocate: false,
-        deepThink: true,
         requestId: 'req-3',
       });
       expect(warnSpy).not.toHaveBeenCalled();

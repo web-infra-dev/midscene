@@ -114,9 +114,7 @@ describe('AndroidMidsceneTools', () => {
     expect(agentFromAdbDevice).toHaveBeenCalledWith('act-target-device', {
       autoDismissKeyboard: false,
     });
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {});
   });
 
   it('passes common agent behavior args to agent creation', async () => {

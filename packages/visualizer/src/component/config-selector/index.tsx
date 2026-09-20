@@ -8,7 +8,6 @@ import {
   alwaysRefreshScreenInfoTip,
   autoDismissKeyboardTip,
   deepLocateTip,
-  deepThinkTip,
   domIncludedTip,
   imeStrategyTip,
   keyboardDismissStrategyTip,
@@ -23,7 +22,6 @@ import {
 
 interface ConfigSelectorProps {
   showDeepLocateOption: boolean;
-  showDeepThinkOption: boolean;
   enableTracking: boolean;
   showDataExtractionOptions: boolean;
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
@@ -34,7 +32,6 @@ interface ConfigSelectorProps {
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   showDeepLocateOption = false,
-  showDeepThinkOption = false,
   enableTracking = false,
   showDataExtractionOptions = false,
   hideDomAndScreenshotOptions = false,
@@ -50,8 +47,6 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   );
   const deepLocate = useEnvConfig((state) => state.deepLocate);
   const setDeepLocate = useEnvConfig((state) => state.setDeepLocate);
-  const deepThink = useEnvConfig((state) => state.deepThink);
-  const setDeepThink = useEnvConfig((state) => state.setDeepThink);
   const screenshotIncluded = useEnvConfig((state) => state.screenshotIncluded);
   const setScreenshotIncluded = useEnvConfig(
     (state) => state.setScreenshotIncluded,
@@ -91,7 +86,6 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   if (
     !enableTracking &&
     !showDeepLocateOption &&
-    !showDeepThinkOption &&
     !showDataExtractionOptions &&
     !hasDeviceOptions
   ) {
@@ -154,30 +148,6 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
           </Checkbox>
         ),
         key: 'deep-locate-config',
-      });
-    }
-
-    if (showDeepThinkOption) {
-      items.push({
-        label: (
-          <div style={{ padding: '4px 0' }}>
-            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
-              {deepThinkTip}
-            </div>
-            <Radio.Group
-              size="small"
-              value={deepThink}
-              onChange={(e) => setDeepThink(e.target.value)}
-            >
-              <Tooltip title="Controlled by MIDSCENE_MODEL_REASONING_ENABLED env variable">
-                <Radio value={'unset'}>Auto</Radio>
-              </Tooltip>
-              <Radio value={true}>On</Radio>
-              <Radio value={false}>Off</Radio>
-            </Radio.Group>
-          </div>
-        ),
-        key: 'deep-think-config',
       });
     }
 

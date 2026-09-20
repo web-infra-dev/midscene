@@ -28,6 +28,7 @@ export const createQwenPlanningProtocol: StandardPlanningProtocolFactory = ({
   const parseActionOutput = createQwenPlanningActionOutputParser(jsonParser);
 
   return {
+    supportsPlanningAblation: true,
     actionSpaceProtocol: {
       title: 'Tools',
       format: 'jsonl',

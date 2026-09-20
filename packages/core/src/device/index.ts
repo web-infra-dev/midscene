@@ -17,6 +17,11 @@ import type {
   UIContext,
   UITreeSnapshot,
 } from '../types';
+import {
+  INCREMENTAL_EDIT_GUIDANCE,
+  SLIDER_SWIPE_EXAMPLE,
+  USER_REQUEST_ONLY_GUIDANCE,
+} from './action-guidance';
 import { type InputStrategy, inputStrategies } from './input-strategy';
 
 export interface FileChooserHandler {
@@ -505,13 +510,13 @@ export const actionInputParamSchema = z.object({
     .enum(['replace', 'clear', 'typeOnly'])
     .default('replace')
     .describe(
-      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first, and should be set explicitly for incremental edits after moving the cursor; "clear" - clear the field without inputting new text.',
+      `Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first${INCREMENTAL_EDIT_GUIDANCE}; "clear" - clear the field without inputting new text.`,
     ),
   autoDismissKeyboard: z
     .boolean()
     .optional()
     .describe(
-      'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+      `If true, the keyboard will be dismissed after the input is completed.${USER_REQUEST_ONLY_GUIDANCE}`,
     ),
   keyboardTypeDelay: z
     .number()
@@ -519,13 +524,13 @@ export const actionInputParamSchema = z.object({
     .nonnegative()
     .optional()
     .describe(
-      'Delay in milliseconds between keystrokes when typing. Passed through from device/user configuration. Do not set it unless the user asks you to do so.',
+      `Delay in milliseconds between keystrokes when typing. Passed through from device/user configuration.${USER_REQUEST_ONLY_GUIDANCE}`,
     ),
   inputStrategy: z
     .enum(inputStrategies)
     .optional()
     .describe(
-      'Text input strategy: "legacy" (default) preserves the current platform behavior; "sequential" enters one Unicode code point at a time; "bulk" sends the complete text through one platform input operation when supported and requires keyboardTypeDelay to be omitted or set to 0. Do not set it unless the user asks you to do so.',
+      `Text input strategy: "legacy" (default) preserves the current platform behavior; "sequential" enters one Unicode code point at a time; "bulk" sends the complete text through one platform input operation when supported and requires keyboardTypeDelay to be omitted or set to 0.${USER_REQUEST_ONLY_GUIDANCE}`,
     ),
 });
 export type ActionInputParam = {
@@ -854,8 +859,7 @@ export const defineActionSwipe = (config: {
 }): DeviceAction<ActionSwipeParam> => {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
-    description:
-      'Perform a touch gesture for interactions beyond regular scrolling (e.g., adjust a continuous control such as a slider, flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.',
+    description: `Perform a touch gesture for interactions beyond regular scrolling (e.g., ${SLIDER_SWIPE_EXAMPLE}flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "start" + "end" for precise endpoint movement.`,
     paramSchema: ActionSwipeParamSchema,
     sample: {
       start: { prompt: 'center of the notification' },

@@ -54,7 +54,10 @@ const getZodObjectShape = (
     : actualSchema.shape;
 };
 
-const buildQwenJsonSchema = (field: unknown): QwenJsonSchema => {
+const buildQwenJsonSchema = (
+  field: unknown,
+  projectDescription: (description: string) => string,
+): QwenJsonSchema => {
   const schema = unwrapZodField(field) as {
     _def?: {
       typeName?: string;
@@ -90,7 +93,7 @@ const buildQwenJsonSchema = (field: unknown): QwenJsonSchema => {
     case 'ZodArray':
       return {
         type: 'array',
-        items: buildQwenJsonSchema(schema._def.type),
+        items: buildQwenJsonSchema(schema._def.type, projectDescription),
       };
     case 'ZodObject': {
       const shapeEntries = Object.entries(getZodObjectShape(schema) ?? {});
@@ -102,8 +105,10 @@ const buildQwenJsonSchema = (field: unknown): QwenJsonSchema => {
             return [
               name,
               {
-                ...buildQwenJsonSchema(nestedField),
-                ...(description ? { description } : {}),
+                ...buildQwenJsonSchema(nestedField, projectDescription),
+                ...(description
+                  ? { description: projectDescription(description) }
+                  : {}),
               },
             ];
           }),
@@ -118,7 +123,9 @@ const buildQwenJsonSchema = (field: unknown): QwenJsonSchema => {
     }
     case 'ZodUnion':
       return {
-        anyOf: (schema._def.options ?? []).map(buildQwenJsonSchema),
+        anyOf: (schema._def.options ?? []).map((option) =>
+          buildQwenJsonSchema(option, projectDescription),
+        ),
       };
     default:
       return { type: 'object' };
@@ -128,6 +135,7 @@ const buildQwenJsonSchema = (field: unknown): QwenJsonSchema => {
 export const buildQwenActionDescription = ({
   action,
   locateFieldDescription,
+  projectDescription = (description) => description,
 }: PlanningActionDescriptionBuildInput): QwenFunctionDefinition => {
   const shapeEntries = Object.entries(
     getZodObjectShape(action.paramSchema) ?? {},
@@ -139,13 +147,19 @@ export const buildQwenActionDescription = ({
       return [
         name,
         {
-          ...(isLocator ? { type: 'string' } : buildQwenJsonSchema(field)),
+          ...(isLocator
+            ? { type: 'string' }
+            : buildQwenJsonSchema(field, projectDescription)),
           description: isLocator
             ? [
-                description || `Target element for ${action.name}.`,
+                projectDescription(
+                  description || `Target element for ${action.name}.`,
+                ),
                 locateFieldDescription,
               ].join(' ')
-            : description || `Parameter ${name} for ${action.name}.`,
+            : projectDescription(
+                description || `Parameter ${name} for ${action.name}.`,
+              ),
         },
       ];
     }),
@@ -155,7 +169,9 @@ export const buildQwenActionDescription = ({
     type: 'function',
     function: {
       name: action.name,
-      description: action.description || 'No description provided.',
+      description: projectDescription(
+        action.description || 'No description provided.',
+      ),
       parameters: {
         type: 'object',
         properties,

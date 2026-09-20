@@ -47,7 +47,6 @@ describe.skipIf(hasModelFamily)('automation - llm planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -67,7 +66,6 @@ describe.skipIf(hasModelFamily)('automation - llm planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -117,7 +115,6 @@ describe('planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
@@ -137,7 +134,6 @@ describe('planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       },
     );
     expect(actions).toBeTruthy();
@@ -156,7 +152,6 @@ describe('planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       },
     );
 
@@ -175,7 +170,6 @@ describe('planning', () => {
         modelRuntime: modelRuntime(),
         conversationHistory: new ConversationHistory(),
         includeLocateInPlanning: true,
-        effort: 'balance',
       },
     );
 

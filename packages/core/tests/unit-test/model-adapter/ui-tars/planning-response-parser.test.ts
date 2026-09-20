@@ -41,7 +41,6 @@ function createPlanOptions(): PlanOptions {
     modelRuntime,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
-    effort: 'balance',
   };
 }
 

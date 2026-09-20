@@ -123,9 +123,7 @@ describe('Android CLI integration', () => {
     expect(agentFromAdbDevice).toHaveBeenCalledWith('act-device', {
       autoDismissKeyboard: false,
     });
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {});
   });
 
   it('threads common agent behavior args through the generated CLI', async () => {
@@ -160,9 +158,7 @@ describe('Android CLI integration', () => {
       aiActContext: 'accept permission dialogs',
       screenshotShrinkFactor: 2,
     });
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {});
   });
 
   it('enables scrcpy when --use-scrcpy is provided', async () => {
@@ -248,7 +244,7 @@ describe('Android CLI integration', () => {
     // The aiAction call must not carry the init args — they are agent-level,
     // not action-level. `sanitizeToolArgs` is what strips them.
     const [, actionOpts] = mockAgent.aiAction.mock.calls[0];
-    expect(actionOpts).toEqual({ deepThink: false });
+    expect(actionOpts).toEqual({});
   });
 
   it('renders bare flags first in single-platform command help', async () => {

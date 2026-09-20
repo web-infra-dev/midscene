@@ -1,3 +1,4 @@
+import { parsePlanningAblation } from '@/ai-model/workflows/planning/ablation';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 import * as planningActual from '@/ai-model/workflows/planning' with {
@@ -105,36 +106,43 @@ describe('TaskExecutor concurrency isolation', () => {
 
   it.each([
     {
-      effort: 'balance' as const,
+      disabled: '',
       useDefaultAsPlanning: true,
-      expectedIncludeLocateInPlanning: true,
-      expectedImagesIncludeCount: 1,
+      expectedLocate: false,
+      expectedImages: 2,
     },
     {
-      effort: 'balance' as const,
+      disabled: 'separateLocate',
+      useDefaultAsPlanning: true,
+      expectedLocate: true,
+      expectedImages: 2,
+    },
+    {
+      disabled: 'screenshotHistory',
+      useDefaultAsPlanning: true,
+      expectedLocate: false,
+      expectedImages: 1,
+    },
+    {
+      disabled:
+        'subGoals,memory,observationGuidance,screenshotHistory,separateLocate,crossPageNavigation',
+      useDefaultAsPlanning: true,
+      expectedLocate: true,
+      expectedImages: 1,
+    },
+    {
+      disabled: 'separateLocate',
       useDefaultAsPlanning: false,
-      expectedIncludeLocateInPlanning: false,
-      expectedImagesIncludeCount: 1,
-    },
-    {
-      effort: 'fast' as const,
-      useDefaultAsPlanning: true,
-      expectedIncludeLocateInPlanning: true,
-      expectedImagesIncludeCount: 1,
-    },
-    {
-      effort: 'deepThink' as const,
-      useDefaultAsPlanning: true,
-      expectedIncludeLocateInPlanning: false,
-      expectedImagesIncludeCount: 2,
+      expectedLocate: false,
+      expectedImages: 2,
     },
   ])(
-    'derives planning options for $effort effort',
+    'derives runtime options from $disabled components',
     async ({
-      effort,
+      disabled,
       useDefaultAsPlanning,
-      expectedIncludeLocateInPlanning,
-      expectedImagesIncludeCount,
+      expectedLocate,
+      expectedImages,
     }) => {
       rs.mocked(standardPlan).mockResolvedValue({
         actions: [],
@@ -145,31 +153,34 @@ describe('TaskExecutor concurrency isolation', () => {
         finalizeSuccess: true,
         finalizeMessage: 'done',
       });
-
-      const resolvedPlanningModel = useDefaultAsPlanning
-        ? defaultModel()
-        : planningModel();
+      const ablation = parsePlanningAblation(disabled);
       const result = await taskExecutor.action(
         'prompt',
-        resolvedPlanningModel,
+        useDefaultAsPlanning ? defaultModel() : planningModel(),
         defaultModel(),
         undefined,
+        false,
         undefined,
         undefined,
-        effort,
+        undefined,
+        undefined,
+        undefined,
+        ablation,
       );
-
       expect(standardPlan).toHaveBeenCalledWith(
         { text: 'prompt', referenceImages: [] },
         expect.objectContaining({
-          effort,
-          includeLocateInPlanning: expectedIncludeLocateInPlanning,
-          imagesIncludeCount: expectedImagesIncludeCount,
+          ablation,
+          includeLocateInPlanning: expectedLocate,
+          imagesIncludeCount: expectedImages,
         }),
       );
-      expect(result.runner.tasks[0].param).toEqual(
-        expect.objectContaining({ effort }),
-      );
+      expect(result.runner.tasks[0].param).toMatchObject({
+        includeSubGoals: !ablation.includes('subGoals'),
+        includeLocateInPlanning: expectedLocate,
+        imagesIncludeCount: expectedImages,
+      });
+      expect(result.runner.tasks[0].param).not.toHaveProperty('effort');
     },
   );
 

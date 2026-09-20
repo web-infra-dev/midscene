@@ -207,6 +207,33 @@ describe('PlaygroundServer manual interaction APIs', () => {
     );
   });
 
+  test('POST /execute rejects removed Planning modes before calling the agent', async () => {
+    const agent = { interface: { actionSpace: () => [] }, aiAct: rs.fn() };
+    const server = new PlaygroundServer(agent as any);
+    try {
+      await server.launch(6110);
+      const execute = getRouteHandler(server, 'post', '/execute');
+      for (const mode of [
+        { deepThink: true },
+        { deepThink: false },
+        { effort: 'deepThink' },
+      ]) {
+        const response = createMockResponse();
+        await execute(
+          { body: { type: 'aiAct', prompt: 'open settings', ...mode } },
+          response,
+        );
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+          error: expect.stringContaining('MIDSCENE_PLANNING_DISABLE_PARTS'),
+        });
+      }
+      expect(agent.aiAct).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
   test('POST /execute reads the persisted report after replay execution', async () => {
     const dump = {
       sdkVersion: 'test',

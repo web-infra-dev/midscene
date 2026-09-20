@@ -6,67 +6,28 @@ import type {
 import { describe, expect, it } from '@rstest/core';
 import {
   hasDeepLocateFlag,
-  hasDeepThinkFlag,
   hasObserverAssertionFlag,
+  hasSubGoalsFlag,
 } from '../src/utils/report-task-tags';
 
 describe('report task tag flags', () => {
-  it('shows DeepThink for deepThink effort in aiAct planning task dump params', () => {
-    const task = {
-      type: 'Planning',
-      taskId: 'plan-deep-think',
-      status: 'finished',
-      param: {
-        effort: 'deepThink',
-      },
-    } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-      param: Pick<ExecutionTaskPlanningParam, 'effort'>;
-    };
-
-    expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(true);
-  });
-
-  it.each(['balance', 'fast'] as const)(
-    'does not show DeepThink for %s effort',
-    (effort) => {
+  it.each([true, false])(
+    'reads the sub-goals component from the planning dump: %s',
+    (enabled) => {
       const task = {
         type: 'Planning',
-        taskId: `plan-${effort}`,
+        taskId: 'plan-components',
         status: 'finished',
-        param: { effort },
+        param: { includeSubGoals: enabled },
       } satisfies Pick<ExecutionTask, 'type' | 'taskId' | 'status'> & {
-        param: Pick<ExecutionTaskPlanningParam, 'effort'>;
+        param: Pick<ExecutionTaskPlanningParam, 'includeSubGoals'>;
       };
-
-      expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
+      expect(hasSubGoalsFlag(task as ExecutionTask)).toBe(enabled);
+      expect(
+        hasSubGoalsFlag({ ...task, subType: 'Locate' } as ExecutionTask),
+      ).toBe(false);
     },
   );
-
-  it('does not read the legacy planning deepThink dump field', () => {
-    const task = {
-      type: 'Planning',
-      taskId: 'plan-legacy-deep-think',
-      status: 'finished',
-      param: { deepThink: true },
-    };
-
-    expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
-  });
-
-  it('does not treat deprecated locate deepThink as aiAct deepThink', () => {
-    const task = {
-      type: 'Planning',
-      subType: 'Locate',
-      taskId: 'locate-old-alias',
-      status: 'finished',
-      param: {
-        prompt: 'target button',
-        deepThink: true,
-      },
-    };
-
-    expect(hasDeepThinkFlag(task as ExecutionTask)).toBe(false);
-  });
 
   it('consumes deepLocate from locate task dump params', () => {
     const task = {

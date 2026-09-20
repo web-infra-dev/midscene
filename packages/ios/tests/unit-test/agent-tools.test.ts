@@ -99,9 +99,7 @@ describe('IOSMidsceneTools', () => {
         wdaPort: 8101,
       }),
     );
-    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {
-      deepThink: false,
-    });
+    expect(mockAgent.aiAction).toHaveBeenCalledWith('open settings', {});
   });
 
   it('exposes ios init args on action and common tool schemas', async () => {

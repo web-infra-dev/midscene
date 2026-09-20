@@ -50,7 +50,10 @@ describe('grounding locate not-found parsing', () => {
     const result = await AiLocateElement({
       context: createFakeContext(),
       targetElementDescription: 'top-right menu button',
-      modelRuntime: getModelRuntime({ ...modelConfig, modelFamily: 'qwen3' }),
+      modelRuntime: getModelRuntime({
+        ...modelConfig,
+        modelFamily: 'qwen3-vl',
+      }),
     });
 
     expect(callAI).toHaveBeenCalledTimes(2);

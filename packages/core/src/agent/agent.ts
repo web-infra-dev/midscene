@@ -1,5 +1,9 @@
 import { type ModelRuntime, getModelRuntime } from '@/ai-model/models';
 import { INTERNAL_CALL_ID_FIELD } from '@/ai-model/service-caller';
+import {
+  readPlanningAblation,
+  validatePlanningAblation,
+} from '@/ai-model/workflows/planning/ablation';
 import { IS_REPORT_BUILD } from '@/constants';
 import yaml from 'js-yaml';
 import type { TUserPrompt } from '../ai-model/index';
@@ -16,9 +20,7 @@ import {
   type AgentOpt,
   type AgentProgressListener,
   type AgentWaitForOpt,
-  type AiActEffort,
   type AssertOptions,
-  type DeepThinkOption,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -120,8 +122,6 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
-  effort?: AiActEffort;
-  deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
   context?: string;
@@ -1136,43 +1136,21 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
     const runAiAct = async () => {
       const planningModel = this.resolveModelRuntime('planning');
       const defaultModel = this.resolveModelRuntime('default');
+      const ablation = readPlanningAblation();
+      validatePlanningAblation(ablation, planningModel, defaultModel);
+      if (ablation.length && this.taskCache && opt?.cacheable !== false) {
+        throw new Error(
+          'Planning ablation requires caches to be disabled in every experiment arm (MIDSCENE_CACHE=false, without an explicit cache configuration).',
+        );
+      }
       const aiActContext =
         opt?.context !== undefined ? opt.context : this.aiActContext;
       const cachePrompt = buildPromptWithContext(taskPrompt, aiActContext);
-      // Resolve the public planning controls at the API boundary. Internal
-      // aiAct plumbing only uses effort from this point onward. The explicit
-      // effort option takes precedence over deepThink when both are provided.
-      const effort: AiActEffort = (() => {
-        const resolvedEffort =
-          opt?.effort ?? (opt?.deepThink === true ? 'deepThink' : 'balance');
-
-        if (opt?.effort !== undefined) {
-          warn(
-            'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
-          );
-        }
-
-        if (
-          resolvedEffort === 'fast' &&
-          planningModel.adapter.planning.kind === 'custom'
-        ) {
-          throw new Error(
-            `The "fast" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}).`,
-          );
-        }
-
-        if (
-          resolvedEffort === 'deepThink' &&
-          planningModel.adapter.planning.kind === 'custom'
-        ) {
-          warn(
-            `The "deepThink" aiAct effort is not supported with custom planning adapters (modelFamily: ${planningModel.config.modelFamily ?? 'unknown'}). It will be ignored.`,
-          );
-          return 'balance';
-        }
-
-        return resolvedEffort;
-      })();
+      if (opt && ('deepThink' in opt || 'effort' in opt)) {
+        throw new Error(
+          'aiAct no longer accepts deepThink or effort. Configure components with MIDSCENE_PLANNING_DISABLE_PARTS instead.',
+        );
+      }
 
       let deepLocate = opt?.deepLocate;
       if (
@@ -1229,11 +1207,11 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
         aiActContext,
         cacheable,
         replanningCycleLimit,
-        effort,
         undefined,
         deepLocate,
         abortSignal,
         internalReportDisplay,
+        ablation,
       );
 
       // update cache

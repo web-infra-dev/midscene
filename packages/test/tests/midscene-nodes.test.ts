@@ -41,7 +41,7 @@ describe('createMidsceneNodes', () => {
       collected([
         {
           node: 'aiAct',
-          input: { prompt: 'Create an order', options: { deepThink: true } },
+          input: { prompt: 'Create an order', options: { cacheable: false } },
           meta: { continueOnError: false },
         },
         {
@@ -75,7 +75,7 @@ describe('createMidsceneNodes', () => {
     ]);
     expect(getAgent).toHaveBeenCalledTimes(3);
     expect(aiAct).toHaveBeenCalledWith('Create an order', {
-      deepThink: true,
+      cacheable: false,
       context: undefined,
       abortSignal: expect.any(AbortSignal),
     });
@@ -291,6 +291,17 @@ describe('createMidsceneNodes', () => {
       message: expect.stringContaining('input validation failed'),
       details: { node: 'aiAssert' },
     });
+
+    for (const removed of [{ deepThink: true }, { effort: 'deepThink' }]) {
+      const invalidMode = await run(
+        'aiAct',
+        { prompt: 'Click submit', options: removed },
+        { aiAct: vi.fn() } as unknown as MidsceneUIAgent,
+      );
+      expect(invalidMode.steps[0].error).toMatchObject({
+        code: 'NODE_INPUT_VALIDATION_ERROR',
+      });
+    }
 
     const missingMethod = await run(
       'aiAct',

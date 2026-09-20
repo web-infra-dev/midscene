@@ -10,19 +10,19 @@ describe('mergeToolDefaults', () => {
   it('merges locate and act bags with b winning', () => {
     expect(
       mergeToolDefaults(
-        { locate: { deepLocate: true }, act: { deepThink: true } },
+        { locate: { deepLocate: true }, act: { cacheable: true } },
         { locate: { deepLocate: false }, act: { deepLocate: true } },
       ),
     ).toEqual({
       locate: { deepLocate: false },
-      act: { deepThink: true, deepLocate: true },
+      act: { cacheable: true, deepLocate: true },
     });
   });
 
   it('omits empty bags', () => {
     expect(mergeToolDefaults({}, {})).toEqual({});
-    expect(mergeToolDefaults({ act: { deepThink: true } }, {})).toEqual({
-      act: { deepThink: true },
+    expect(mergeToolDefaults({ act: { cacheable: true } }, {})).toEqual({
+      act: { cacheable: true },
     });
   });
 });
@@ -42,7 +42,7 @@ describe('resolveToolDefaults', () => {
   it('merges every enabled flag', () => {
     expect(resolveToolDefaults(() => true)).toEqual({
       locate: { deepLocate: true },
-      act: { deepLocate: true, deepThink: true },
+      act: { deepLocate: true },
     });
   });
 });
@@ -73,21 +73,12 @@ describe('stripBehaviorFlags', () => {
     });
   });
 
-  it('merges defaults when several behavior flags are present', () => {
+  it('leaves the removed deep-think flag for the strict command parser to reject', () => {
     expect(
-      stripBehaviorFlags([
-        'act',
-        '--deep-locate',
-        '--deep-think',
-        '--prompt',
-        'go',
-      ]),
+      stripBehaviorFlags(['act', '--deep-locate', '--deep-think']),
     ).toEqual({
-      rawArgs: ['act', '--prompt', 'go'],
-      toolDefaults: {
-        locate: { deepLocate: true },
-        act: { deepLocate: true, deepThink: true },
-      },
+      rawArgs: ['act', '--deep-think'],
+      toolDefaults: { locate: { deepLocate: true }, act: { deepLocate: true } },
     });
   });
 

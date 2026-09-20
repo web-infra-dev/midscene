@@ -165,9 +165,7 @@ const schemaUsesPlainTextValue = (
     });
   }
 
-  return options.some((option) =>
-    schemaUsesPlainTextValue(option, content),
-  );
+  return options.some((option) => schemaUsesPlainTextValue(option, content));
 };
 
 const parseParameterValue = (
