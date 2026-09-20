@@ -5,7 +5,7 @@
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
 
 :::info 已有旧版 YAML 项目
-`tasks/flow` 用例和旧版批配置可以不改文件，直接使用 Test 内核运行。旧格式仍兼容，但不建议继续用于新增用例；具体命令、兼容边界和字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+这里的“旧版 YAML”特指由 `midscene` 执行的 `tasks/flow` 用例及 YAML 批配置，不包括原生 `cases/steps` Test 文件。旧链路只做兼容维护和必要修复，不再新增能力；现有项目可以继续运行，新项目和新增用例推荐使用 Midscene Test。两条链路共用执行内核和新的报告页面，具体命令边界与字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
 :::
 
 ## 创建项目
@@ -367,16 +367,16 @@ pnpm exec midscene-test --config ./config/midscene.config.ts
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### 运行尚未迁移的旧版 YAML
+### 尚未迁移的旧版 YAML 继续使用旧命令
 
-`midscene-test` 也能直接运行顶层使用 `tasks/flow` 的旧版 YAML，以及以 YAML 编写的旧版批配置：
+顶层使用 `tasks/flow` 的旧文件和 YAML 批配置继续使用 `midscene`：
 
 ```bash
-pnpm exec midscene-test ./legacy-flow.yaml
-pnpm exec midscene-test --config ./legacy-batch.yaml
+pnpm exec midscene ./legacy-flow.yaml
+pnpm exec midscene --config ./legacy-batch.yaml
 ```
 
-旧文件会自动进入兼容路径，不需要注册 Node 或改写配置。新增文件建议使用本页介绍的 `cases/steps`；迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+`midscene-test` 不会自动识别或执行这些旧文件，也不接受旧批配置和旧 CLI 参数。一个文件完整转换为 `cases/steps` 后，才能改用 `midscene-test`。迁移期间，两类文件可以放在同一仓库的不同目录，但同一次命令只能选择一种格式。迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
 
 需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
 

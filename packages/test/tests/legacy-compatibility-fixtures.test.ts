@@ -10,12 +10,16 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, 'fixtures/legacy-compatibility');
-const testCli = resolve(here, '../bin/midscene-test');
+const legacyCli = resolve(here, '../../cli/bin/midscene');
+const cliAcceptanceTimeout = 30_000;
+vi.setConfig({ testTimeout: cliAcceptanceTimeout });
 const roots: string[] = [];
+
+afterAll(() => vi.resetConfig());
 
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -58,16 +62,20 @@ const runFixture = (
   cwd = fixture.root,
 ) => {
   const summaryPath = join(fixture.root, 'summary.json');
-  execFileSync(process.execPath, [testCli, ...args, '--summary', summaryPath], {
-    cwd,
-    env: fixture.env,
-    timeout: 20_000,
-    stdio: 'pipe',
-  });
+  execFileSync(
+    process.execPath,
+    [legacyCli, ...args, '--summary', summaryPath],
+    {
+      cwd,
+      env: fixture.env,
+      timeout: 20_000,
+      stdio: 'pipe',
+    },
+  );
   return JSON.parse(readFileSync(summaryPath, 'utf8'));
 };
 
-describe('legacy YAML fixtures migrated from midscene-demo', () => {
+describe('representative legacy YAML fixtures through the legacy command', () => {
   it('preserves falsy, unnamed and overwritten JavaScript results', () => {
     const fixture = prepareFixture('outputs-scalars');
     const summary = runFixture(fixture, ['flow.yaml']);

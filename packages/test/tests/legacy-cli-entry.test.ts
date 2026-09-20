@@ -4,7 +4,6 @@ import {
   existsSync,
   mkdtempSync,
   readFileSync,
-  readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -176,9 +175,9 @@ describe('published YAML entry acceptance', () => {
     cliAcceptanceTimeout,
   );
 
-  it.each(['old', 'new'] as const)(
-    'loads the existing .env without overriding shell values (%s CLI)',
-    (entry) => {
+  it(
+    'loads the existing .env without overriding shell values',
+    () => {
       const { root, file, env } = fixture();
       writeFileSync(
         join(root, '.env'),
@@ -198,14 +197,12 @@ describe('published YAML entry acceptance', () => {
         LEGACY_ACCEPTANCE_SHELL: 'from-shell',
       };
       Reflect.deleteProperty(childEnv, 'LEGACY_ACCEPTANCE_FILE');
-      execFileSync(
-        process.execPath,
-        [
-          entry === 'old' ? oldCli : resolve(here, '../bin/midscene-test'),
-          file,
-        ],
-        { cwd: root, env: childEnv, timeout: 20000, stdio: 'pipe' },
-      );
+      execFileSync(process.execPath, [oldCli, file], {
+        cwd: root,
+        env: childEnv,
+        timeout: 20000,
+        stdio: 'pipe',
+      });
       expect(
         JSON.parse(readFileSync(join(root, 'legacy-output.json'), 'utf8'))
           .answer,
@@ -214,25 +211,26 @@ describe('published YAML entry acceptance', () => {
     cliAcceptanceTimeout,
   );
 
-  it('runs unchanged YAML through the built new CLI, including the real host adapter and async cleanup', () => {
+  it('runs unchanged YAML through the legacy command and generates the new report', () => {
     const { root, file, env } = fixture();
-    execFileSync(
-      process.execPath,
-      [resolve(here, '../bin/midscene-test'), file],
-      { cwd: root, env, timeout: 20000, stdio: 'pipe' },
-    );
+    const summaryPath = join(root, 'summary.json');
+    execFileSync(process.execPath, [oldCli, file, '--summary', summaryPath], {
+      cwd: root,
+      env,
+      timeout: 20000,
+      stdio: 'pipe',
+    });
     expect(readFileSync(join(root, 'closed.txt'), 'utf8')).toBe('closed');
     expect(
       JSON.parse(readFileSync(join(root, 'legacy-output.json'), 'utf8')).answer,
     ).toEqual({ echoed: 'unchanged code' });
     expect(existsSync(join(root, 'midscene.config.ts'))).toBe(false);
-    const resultDir = join(root, '.midscene/test-results');
-    const runDir = join(resultDir, readdirSync(resultDir)[0]);
-    const summary = JSON.parse(
-      readFileSync(join(runDir, 'summary.json'), 'utf8'),
+    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+    expect(summary.summary).toMatchObject({ total: 1, failed: 0 });
+    const report = readFileSync(
+      resolve(root, summary.results[0].report),
+      'utf8',
     );
-    expect(summary.summary).toMatchObject({ total: 1, passed: 1 });
-    const report = readFileSync(resolve(runDir, summary.report), 'utf8');
     expect(report).toContain('midscene_test_run_dump');
     expect(report).toContain('old task');
     const scriptElements = [
@@ -253,17 +251,47 @@ describe('published YAML entry acceptance', () => {
     const agentScripts = scriptElements.filter((match) =>
       /(?:^|\s)type="midscene_web_dump"/.test(match[1]),
     );
-    const source = agentScripts.find((item) =>
-      item[1].includes(
-        `data-report-id="${encodeURIComponent(detail.reportId)}"`,
-      ),
-    );
+    const source = agentScripts.find((item) => {
+      const encodedReportId =
+        /(?:^|\s)(?:data-report-id|data-group-id)="([^"]*)"/.exec(item[1])?.[1];
+      return (
+        encodedReportId !== undefined &&
+        decodeURIComponent(encodedReportId) === detail.reportId
+      );
+    });
     expect(source).toBeDefined();
     const agentDump = JSON.parse(antiEscapeScriptTag(source![2]));
     expect(agentDump.executions).toContainEqual(
       expect.objectContaining({ id: detail.executionId }),
     );
     expect(report).toContain('midscene_screenshot_ref');
+  });
+
+  it('rejects native Test files before creating platform resources', () => {
+    const { root, env } = fixture();
+    const native = join(root, 'native.yaml');
+    writeFileSync(
+      native,
+      'cases:\n  - name: native\n    steps:\n      - aiAct: run\n',
+    );
+
+    let failure: unknown;
+    try {
+      execFileSync(process.execPath, [oldCli, native], {
+        cwd: root,
+        env,
+        timeout: 20000,
+        stdio: 'pipe',
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({ status: 1 });
+    const stderr = String((failure as { stderr?: Buffer }).stderr);
+    expect(stderr).toContain('midscene only runs legacy tasks/flow YAML');
+    expect(stderr).toContain('midscene-test');
+    expect(existsSync(join(root, 'closed.txt'))).toBe(false);
   });
 
   it('keeps the old framework API and default report standard without a new config', () => {
@@ -285,29 +313,26 @@ describe('published YAML entry acceptance', () => {
     );
   });
 
-  it('reports async interface cleanup failure as a failed new CLI run', () => {
+  it('reports async interface cleanup failure as a failed legacy CLI run', () => {
     const { root, file, env } = fixture(true);
+    const summaryPath = join(root, 'summary.json');
     let failure: unknown;
     try {
-      execFileSync(
-        process.execPath,
-        [resolve(here, '../bin/midscene-test'), file],
-        { cwd: root, env, timeout: 20000, stdio: 'pipe' },
-      );
+      execFileSync(process.execPath, [oldCli, file, '--summary', summaryPath], {
+        cwd: root,
+        env,
+        timeout: 20000,
+        stdio: 'pipe',
+      });
     } catch (error) {
       failure = error;
     }
     expect(failure).toMatchObject({ status: 1 });
     expect(readFileSync(join(root, 'closed.txt'), 'utf8')).toBe('closed');
-    const resultDir = join(root, '.midscene/test-results');
-    const runDir = join(resultDir, readdirSync(resultDir)[0]);
-    const summary = JSON.parse(
-      readFileSync(join(runDir, 'summary.json'), 'utf8'),
-    );
-    expect(summary.status).toBe('failed');
-    expect(summary.summary.documentFailures).toBe(1);
-    expect(readFileSync(resolve(runDir, summary.report), 'utf8')).toContain(
-      'fixture cleanup failed',
-    );
+    const summary = JSON.parse(readFileSync(summaryPath, 'utf8'));
+    expect(summary.summary.failed).toBe(1);
+    expect(
+      readFileSync(resolve(root, summary.results[0].report), 'utf8'),
+    ).toContain('fixture cleanup failed');
   });
 });

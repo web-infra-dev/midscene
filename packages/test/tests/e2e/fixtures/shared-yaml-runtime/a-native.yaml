@@ -1,4 +1,0 @@
-cases:
-  - name: native before legacy
-    steps:
-      - javascript: native:first

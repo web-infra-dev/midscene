@@ -238,6 +238,27 @@ describe('runYamlCase', () => {
     );
   });
 
+  test('preserves report metadata when player cleanup rejects', async () => {
+    const cleanupError = new Error('cleanup failed');
+    const player = createPlayer();
+    player.run.mockImplementation(async () => {
+      player.status = 'error';
+      player.errorInSetup = cleanupError;
+      throw cleanupError;
+    });
+    rs.mocked(createYamlPlayer).mockResolvedValue(player as any);
+
+    const result = await runYamlCaseResult({ file: 'cleanup-failed.yaml' });
+
+    expect(result).toMatchObject({
+      success: false,
+      executed: true,
+      report: '/tmp/report.html',
+      resultType: 'failed',
+      error: 'cleanup failed',
+    });
+  });
+
   test('throws task failures with report and output paths', async () => {
     const root = createTempDir();
     const output = join(root, 'output.json');

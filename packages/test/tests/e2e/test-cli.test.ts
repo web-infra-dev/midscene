@@ -105,128 +105,25 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
-  it('runs an unchanged batch config through both commands with matching legacy results and new reports', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'legacy-batch-parity-'));
+  it('rejects legacy workflows and batch configs with the matching-command guidance', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'strict-test-entry-'));
     temporaryDirectories.push(root);
-    const device = join(root, 'device.mjs');
-    writeFileSync(
-      device,
-      `
-      import { appendFileSync } from 'node:fs';
-      let setupAttempts = 0;
-      export default class Device {
-        interfaceType = 'custom';
-        actionSpace() { return []; }
-        async evaluateJavaScript(script) {
-          appendFileSync(process.env.WORKFLOW_E2E_LOG, script + '\\n');
-          if (script === 'setup' && setupAttempts++ === 0) throw new Error('retry setup');
-          return {answer: script};
-        }
-        async destroy() {}
-      }
-    `,
-    );
-    for (const name of ['setup', 'a', 'b']) {
-      writeFileSync(
-        join(root, `${name}.yaml`),
-        `
-agent: {reportFileName: ${name}, autoPrintReportMsg: false}
-config: {output: ${JSON.stringify(join(root, `${name}.json`))}}
-tasks:
-  - name: ${name}
-    flow:
-      - javascript: ${name}
-        name: answer
-`,
-      );
-    }
+    const legacy = join(root, 'flow.yaml');
+    writeFileSync(legacy, 'tasks:\n  - name: old\n    flow: []\n');
     const config = join(root, 'batch.yaml');
-    writeFileSync(
-      config,
-      `
-files: [b.yaml, a.yaml, b.yaml]
-setup: setup.yaml
-retry: 1
-interface: {module: ${JSON.stringify(device)}}
-`,
-    );
-    const summaries: any[] = [];
-    for (const [name, command] of [
-      ['test', cliPath],
-      ['old', join(packageRoot, '../cli/bin/midscene')],
-    ]) {
-      const summary = join(root, `${name}-summary.json`);
-      const log = join(root, `${name}.log`);
-      await execFileAsync(
-        process.execPath,
-        [command, '--config', config, '--summary', summary],
-        {
-          cwd: root,
-          env: {
-            ...process.env,
-            WORKFLOW_E2E_LOG: log,
-            MIDSCENE_RUN_DIR: join(root, name),
-          },
-          maxBuffer: 4 * 1024 * 1024,
-        },
-      );
-      expect(readFileSync(log, 'utf8').trim().split('\n')).toEqual([
-        'setup',
-        'setup',
-        'b',
-        'a',
-        'b',
-      ]);
-      const data = JSON.parse(readFileSync(summary, 'utf8'));
-      for (const entry of data.results) {
-        expect(readFileSync(resolve(root, entry.report), 'utf8')).toContain(
-          'type="midscene_test_run_dump"',
-        );
-        expect(
-          JSON.parse(readFileSync(resolve(root, entry.output), 'utf8')).answer,
-        ).toEqual({ answer: basename(entry.script, '.yaml') });
-      }
-      summaries.push(
-        data.results.map((entry: any) => ({
-          script: basename(entry.script),
-          resultType: entry.resultType,
-          attempts: entry.attempts.map((attempt: any) => ({
-            attempt: attempt.attempt,
-            resultType: attempt.resultType,
-          })),
-        })),
-      );
-    }
-    expect(summaries[0]).toEqual(summaries[1]);
-  });
+    writeFileSync(config, 'files: [flow.yaml]\n');
 
-  it('runs native and unchanged legacy documents on one shared YAML runtime', async () => {
-    const projectRoot = join(__dirname, 'fixtures', 'shared-yaml-runtime');
-    const { resultDir, executionLog } = temporaryRun('shared-yaml-runtime-');
-    const execution = await execFileAsync(
-      process.execPath,
-      [cliPath, projectRoot, '--result-dir', resultDir],
-      {
-        cwd: packageRoot,
-        env: {
-          ...process.env,
-          WORKFLOW_E2E_LOG: executionLog,
-          MIDSCENE_RUN_DIR: join(resultDir, 'runtime'),
-        },
-      },
+    const workflowFailure = await runFailure([legacy]);
+    expect(workflowFailure.stderr).toContain(
+      'Legacy tasks/flow YAML is not supported by midscene-test',
     );
-    expect(execution.stdout).toContain('3/3 cases passed');
-    expect(readFileSync(executionLog, 'utf8').trim().split('\n')).toEqual([
-      'device:created',
-      'setup:once',
-      'native:first',
-      'legacy:middle',
-      'native:last',
-      'device:destroyed',
-    ]);
-    const summary = JSON.parse(readFileSync(summaryPathFor(resultDir), 'utf8'));
-    expect(summary.status).toBe('success');
-    expect(summary.summary).toMatchObject({ total: 3, passed: 3, failed: 0 });
+    expect(workflowFailure.stderr).toContain('midscene');
+
+    const configFailure = await runFailure(['--config', config]);
+    expect(configFailure.stderr).toContain(
+      'midscene-test --config only accepts a native TypeScript or JavaScript project config',
+    );
+    expect(configFailure.stderr).toContain('midscene --config');
   });
 
   it('publishes only the midscene-test bin', () => {

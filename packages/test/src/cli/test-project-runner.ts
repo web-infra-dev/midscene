@@ -11,7 +11,7 @@ export {
   discoverTestFiles,
 } from './project-preparation';
 
-/** Existing user entry: input formats are resolved internally before execution. */
+/** Native Test entry for cases/steps workflow documents. */
 export async function runTestProject(
   options: TestProjectRunOptions = {},
 ): Promise<TestProjectRunResult> {

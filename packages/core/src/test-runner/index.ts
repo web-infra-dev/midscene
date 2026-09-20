@@ -10,6 +10,7 @@ export * from './errors';
 export * from './execution-record';
 export * from './node';
 export * from './parser/normalize';
+export * from './parser/document-format';
 export * from './parser/types';
 export * from './project';
 export * from './reporting/types';

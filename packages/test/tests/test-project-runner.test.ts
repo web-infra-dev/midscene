@@ -8,7 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
   createTestRunId,
@@ -16,7 +16,7 @@ import {
   discoverTestFiles,
   runTestProject,
 } from '../src/cli';
-import { parseTestCliArgs } from '../src/cli/test-command';
+import { parseTestCliArgs, runTestCli } from '../src/cli/test-command';
 
 interface RunnerState {
   configLoads: number;
@@ -1639,6 +1639,66 @@ cases:
     });
   });
 
+  it('does not start any selected Project when a legacy file is mixed into a native run', async () => {
+    const root = createProject();
+    const resultDir = join(root, 'results');
+    const state = setRunnerState(resultDir);
+    writeFileSync(
+      join(root, 'midscene.config.ts'),
+      `
+        const state = globalThis.__testProjectRunnerState;
+        const setup = {
+          name: 'must-not-start',
+          setup() {
+            state.events.push('project-setup');
+            return {};
+          },
+        };
+        export default {
+          projects: [
+            { name: 'native', setup, files: { include: ['native.yaml'] } },
+            { name: 'legacy', setup, files: { include: ['legacy.yaml'] } },
+          ],
+          nodes: [{ name: 'noop', stringInputKey: 'prompt', execute() {} }],
+        };
+      `,
+    );
+    writeWorkflow(
+      root,
+      'native.yaml',
+      'cases: [{ name: native, steps: [{ noop: run }] }]',
+    );
+    writeWorkflow(root, 'legacy.yaml', 'tasks: [{ name: old, flow: [] }]');
+
+    const result = await runTestProject({ projectRoot: root, resultDir });
+
+    expect(state.events).toEqual([]);
+    expect(result).toMatchObject({
+      status: 'failed',
+      summary: { total: 1, notRun: 1, collectionErrors: 1 },
+      projects: [
+        {
+          name: 'native',
+          cases: [
+            { status: 'not-run', notRunReason: 'project-preflight-failed' },
+          ],
+        },
+        {
+          name: 'legacy',
+          collectionErrors: [
+            {
+              error: {
+                message: expect.stringContaining(
+                  'Legacy tasks/flow YAML is not supported by midscene-test',
+                ),
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('runs projects in config order with setup once and full-case retry', async () => {
     const root = createProject();
     const resultDir = join(root, 'results');
@@ -1926,7 +1986,14 @@ afterAll:
   });
 
   it('rejects scheduling options that are not supported as CLI overrides', () => {
-    for (const option of ['--parallel', '--max-concurrency', '--bail']) {
+    for (const option of [
+      '--parallel',
+      '--max-concurrency',
+      '--bail',
+      '--retry',
+      '--headed',
+      '--files',
+    ]) {
       expect(() => parseTestCliArgs([option], '/workspace')).toThrow(
         `Unknown option: ${option}`,
       );
@@ -1977,5 +2044,15 @@ afterAll:
     expect(() =>
       parseTestCliArgs(['nodes', '--project', 'ios', '--project', 'android']),
     ).toThrow('nodes accepts only one --project name');
+  });
+
+  it('documents only the native Test command surface', async () => {
+    const io = { log: vi.fn(), error: vi.fn() };
+    expect(await runTestCli(['--help'], io)).toBe(0);
+    const help = io.log.mock.calls.flat().join('\n');
+    expect(help).toContain('native cases/steps Test projects');
+    expect(help).toContain('Legacy tasks/flow YAML');
+    expect(help).not.toContain('batch.yaml');
+    expect(help).not.toContain('Old YAML command options remain supported');
   });
 });

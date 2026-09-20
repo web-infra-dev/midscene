@@ -1,62 +1,53 @@
 # Migrate to Midscene Test
 
-Midscene Test supports legacy `tasks/flow` YAML, batch configuration, and command-line options. An existing project can first keep its files unchanged and move execution to the Test kernel. New or refactored cases can then adopt native `cases/steps`, TypeScript project configuration, and Nodes.
+Legacy YAML and native Midscene Test share the same underlying execution kernel and report page, but they have separate user-facing entries. The `midscene` command owns legacy `tasks/flow` files, YAML batch configuration, and legacy CLI options. The `midscene-test` command owns native `cases/steps` files, TypeScript or JavaScript project configuration, lifecycle hooks, and Nodes.
+
+:::info What “legacy YAML” means
+In this guide, “legacy YAML” specifically means the YAML automation protocol from `@midscene/cli`, not every YAML file. It typically has these characteristics: the workflow has top-level `tasks` and sequences actions through `tasks[].flow`; platform, Agent, and output configuration is written directly in workflow YAML; batch execution uses YAML configuration with fields such as `files`, `setup`, `concurrent`, and `retry`; and the entry command is `midscene`. A file with top-level `cases/steps` and lifecycle hooks that runs through `midscene-test` is native Test YAML, not legacy YAML.
+
+The legacy path receives compatibility maintenance and necessary fixes only. It will not receive new syntax, capabilities, configuration fields, or CLI options. Use native Midscene Test for new projects, new cases, and future capability development; existing legacy projects can continue to run and migrate gradually.
+:::
 
 There are two migration paths:
 
-- **Compatibility execution**: keep cases and batch configuration unchanged and replace only the execution entry. Use this path to adopt the shared scheduler and new Test report first.
-- **Native migration**: rewrite legacy fields as Test Documents, Cases, Steps, and project configuration. Use this path to extend lifecycle hooks, custom Nodes, multiple environments, and resource isolation.
+- **Upgrade in place**: keep legacy cases, batch configuration, directory layout, and the `midscene` command unchanged. This adopts the shared execution kernel and new report without changing the input contract.
+- **Native migration**: rewrite complete files as Test Documents, Cases, and Steps; replace batch YAML with project configuration; then switch those files to `midscene-test`.
 
-The legacy format remains supported but is not recommended for new projects. Its complete reference remains available in [YAML script runner](./yaml-script-runner) and [Workflow in YAML format](./automate-with-scripts-in-yaml).
+The complete legacy field reference remains available in [YAML script runner](./yaml-script-runner) and [Workflow in YAML format](./automate-with-scripts-in-yaml) for maintaining and migrating existing projects.
 
-## Path 1: use the Test kernel without changing YAML
+## Path 1: upgrade legacy execution in place
 
-If the project already uses `@midscene/cli`, upgrade it and keep the existing command. `midscene` preserves the legacy input contract while executing through the Test kernel:
+If the project already uses `@midscene/cli`, upgrade it and keep the existing command. `midscene` preserves the legacy input contract while executing through the shared kernel and generating the new report page:
 
 ```bash
 pnpm exec midscene ./flow.yaml
 pnpm exec midscene --config ./batch.yaml
 ```
 
-Alternatively, install `@midscene/test` and replace the command with `midscene-test`:
+Platform configuration, `agent`, environment interpolation, task continuation, whole-file retries, output files, and summary retain their legacy semantics. Reports use the new Test page; existing HTML files need no conversion, so rerun to regenerate them. Legacy `agent.generateReport: false` remains respected.
 
-```bash
-pnpm add -D @midscene/test
+Legacy flags such as `--files`, `--setup`, `--concurrent`, `--retry`, `--continue-on-error`, `--summary`, `--headed`, `--keep-window`, `--share-browser-context`, `--dotenv-override`, `--dotenv-debug`, `--<target>.<field>`, and `--no-<target>.<field>` remain accepted by `midscene`. They are not `midscene-test` options and do not appear in its help.
 
-pnpm exec midscene-test ./flow.yaml
-pnpm exec midscene-test --config ./batch.yaml
-```
+:::info Command and file boundaries
+- `midscene` accepts only legacy `tasks/flow` workflow files and YAML batch configuration.
+- `midscene-test` accepts only native `cases/steps` workflow files and TypeScript or JavaScript project configuration.
+- A YAML file cannot mix legacy `tasks` with native `cases` or lifecycle hooks.
+- One command invocation cannot select both formats. During gradual migration, keep them in separate directories or file selections and run two commands.
+- `--project`, `--result-dir`, and `midscene-test nodes` apply only to native Test projects. Legacy scheduling and platform flags remain on `midscene`.
 
-The following invocation forms remain available:
-
-| Legacy invocation | Test compatibility entry |
-| --- | --- |
-| `midscene ./flow.yaml` | `midscene-test ./flow.yaml` |
-| `midscene ./flows` | `midscene-test ./flows` |
-| `midscene "./flows/**/*.yaml"` | `midscene-test "./flows/**/*.yaml"` |
-| `midscene --files a.yaml b.yaml` | `midscene-test --files a.yaml b.yaml` |
-| `midscene --config batch.yaml` | `midscene-test --config batch.yaml` |
-
-During compatibility execution, Test detects the legacy format by its top-level `tasks` field, not its filename extension. Platform configuration, `agent`, environment interpolation, task continuation, whole-file retries, output files, and summary retain their legacy semantics. Reports use the new Test page; existing HTML files need no conversion, so rerun to regenerate them. Legacy `agent.generateReport: false` remains respected. A run containing native Test files still produces its combined report.
-
-Legacy flags such as `--files`, `--setup`, `--concurrent`, `--retry`, `--continue-on-error`, `--summary`, `--headed`, `--keep-window`, `--share-browser-context`, `--dotenv-override`, `--dotenv-debug`, `--<target>.<field>`, and `--no-<target>.<field>` remain accepted only at the compatibility entry. They are not native Test options and are omitted from its main help.
-
-:::info Compatibility boundaries
-A YAML file cannot mix legacy `tasks` with native `cases`, `beforeAll`, `beforeEach`, `afterEach`, or `afterAll`. Convert one complete file at a time.
-
-Legacy batch configuration and legacy command-line options cannot be combined with a native `midscene.config.ts`. `--project` and `midscene-test nodes` apply only to native Test projects.
+Both commands validate this boundary before creating browser, device, or Agent resources. They report the wrong-format files and point to the matching command instead of silently rerouting them.
 :::
 
 ## Path 2: migrate to a native Test project
 
 Use the following order so each step can be run and compared independently:
 
-1. Run the existing project through the compatibility entry and save its exit status, summary, and Test report as a baseline.
+1. Run the existing project with `midscene` and save its exit status, summary, and new report as a baseline.
 2. Use `pnpm dlx @midscene/test create` to create a Test project for the target platform. Start with the generated `midscene.config.ts` and setup.
 3. Map the legacy batch configuration to an Execution Project. Move platform, Agent, and resource creation into setup.
-4. Convert `tasks/flow` files to `cases/steps` one at a time. Run each converted file and inspect its report.
+4. Convert one complete `tasks/flow` file to `cases/steps`, move it into the native file selection, and run it with `midscene-test`. Keep unconverted files on `midscene`.
 5. Run `pnpm exec midscene-test nodes --project <name>` to generate the current Project's Node Spec, then validate action names, inputs, and string shorthand against it.
-6. After all files are converted, remove the legacy batch configuration and compatibility-only command-line options.
+6. After all files are converted, remove the legacy batch configuration, legacy command, and legacy-only command-line options.
 
 ### Case structure mapping
 
@@ -95,8 +86,8 @@ cases:
 | `tasks` | `cases` | One legacy task becomes one Case. |
 | `tasks[].name` | `cases[].name` | Preserve the name. |
 | `tasks[].flow` | `cases[].steps` | One flow item becomes one Step. |
-| `tasks[].continueOnError: true` | Native Case continuation default | The adapter preserves legacy task continuation. Native Test continues to the next Case by default. |
-| Omitted `continueOnError` | Compatibility-only failure policy | The adapter stops the legacy file. There is no native `onFailure` option: put shared prerequisites in `beforeAll` or dependent steps in one Case. |
+| `tasks[].continueOnError: true` | Native Case continuation default | `midscene` preserves legacy task continuation. Native Test continues to the next Case by default. |
+| Omitted `continueOnError` | Legacy failure policy | `midscene` stops the legacy file. There is no native `onFailure` option: put shared prerequisites in `beforeAll` or dependent steps in one Case. |
 | Initial page or app in a top-level platform field | setup plus lifecycle Nodes | Create resources in setup. Use `gotoUrl`, `launch`, or another Node in `beforeEach` when every Case must return to an initial state. |
 | No legacy equivalent | `beforeAll`, `beforeEach`, `afterEach`, `afterAll` | Native file and Case lifecycle hooks. |
 | No legacy equivalent | `cases[].tags` | Select Cases per Execution Project. |
@@ -105,7 +96,7 @@ Keeping old files unchanged preserves their failure policy. Rewriting them as na
 
 ### Flow action mapping
 
-The compatibility entry performs the following translations automatically. For a manual migration, prefer the native form in the right column and use the Nodes registered in the project's `midscene-node-reference.md` as the source of truth.
+The legacy runtime keeps accepting the fields in the left column and adapts them internally to the shared kernel. That internal adaptation is not a native Test input contract. When migrating a file, write the native form in the right column and use the Nodes registered in the project's `midscene-node-reference.md` as the source of truth.
 
 | Legacy flow field | Native Test Node / input | Migration notes |
 | --- | --- | --- |
@@ -120,11 +111,11 @@ The compatibility entry performs the following translations automatically. For a
 | `sleep` | `sleep.ms` | For example, change `sleep: 1000` to `sleep: { ms: 1000 }`. New cases can also use the common `wait` Node. |
 | `javascript` | `javascript.script` | Its return value is recorded in the Step result. |
 | `recordToReport`, `logScreenshot` | `recordToReport` | Map the title to `title` and `content` to `options.content`. |
-| `runGherkinScenario` | `runGherkinScenario.scenario` | Compatibility execution disables caching for this action. |
+| `runGherkinScenario` | `runGherkinScenario.scenario` | Legacy execution disables caching for this action. |
 | `runAdbShell` | `runAdbShell` | Map the command to `command`; preserve legacy `timeout` as Node input. |
-| `Finalize` | Compatibility-only planning marker | Accepted by the adapter; omit it when writing native Cases. It is not a public Node. |
+| `Finalize` | Legacy-only planning marker | Accepted by the legacy runtime; omit it when writing native Cases. It is not a public Node. |
 | Other platform and custom actions | A registered same-name Node, or the generic `action` Node | Run `midscene-test nodes` first and rewrite inputs according to the target platform's Node Spec. |
-| Flow item `name` | Structured Node result | Compatibility execution still writes named legacy outputs. Native Test has no named cross-Step result expression; share data through custom Nodes and the project `context`. |
+| Flow item `name` | Structured Node result | `midscene` still writes named legacy outputs. Native Test has no named cross-Step result expression; share data through custom Nodes and the project `context`. |
 
 ### Concrete example: migrate one order-submission Case
 
@@ -192,7 +183,7 @@ This example changes the input structure without changing business execution ord
 
 ### Script and Agent configuration mapping
 
-Compatibility execution continues to read top-level legacy YAML configuration. In a manual native migration, move these fields out of Case YAML and into `midscene.config.ts`, setup, or Nodes:
+`midscene` continues to read top-level legacy YAML configuration. In a native migration, move these fields out of Case YAML and into `midscene.config.ts`, setup, or Nodes:
 
 | Legacy script field | Native Test configuration or mechanism | Notes |
 | --- | --- | --- |
@@ -203,12 +194,12 @@ Compatibility execution continues to read top-level legacy YAML configuration. I
 | `harmony` | HarmonyOS Project setup plus HarmonyOS Nodes | Put HDC connection, device settings, and application mappings in setup. Use registered Nodes for application and shell actions. |
 | `computer` | Computer Project setup plus Computer Nodes | Put display and device settings in setup. Use registered Nodes for UI actions. |
 | `interface` | Custom Project setup plus `createMidsceneNodes()` | Import and create the custom Interface, Device, and Agent in setup, then expose the Agent to Nodes. |
-| `agent.generateReport` | Report settings for compatibility execution | Old YAML can disable its report. Native Test always generates a combined report. |
-| `agent.reportFileName`, `agent.testId` | Compatibility-only Agent artifact settings | Open the report using the `Report:` path printed by the CLI or the report link in the summary. `testId` remains deprecated. |
+| `agent.generateReport` | Legacy report setting | Old YAML can disable its report. Native Test always generates a combined report. |
+| `agent.reportFileName`, `agent.testId` | Legacy Agent artifact settings | Open the report using the path printed by the CLI or the report link in the summary. `testId` remains deprecated. |
 | `agent.groupName`, `agent.groupDescription` | Project and Case names plus report structure | There is no same-name native field. Express grouping through Project names, Case names, or tags. |
 | `agent.replanningCycleLimit`, `agent.aiContexts`, `agent.aiActContext`, `agent.aiActionContext`, `agent.cache`, `agent.screenshotShrinkFactor` | Agent options in setup | Continue passing the relevant options when creating the Agent instead of placing them in Case YAML. |
 | `agent.outputFormat`, `agent.persistExecutionDump`, `agent.autoPrintReportMsg` | Test reporting or Agent options in setup | Prefer the combined Test report. Preserve an Agent option in setup only when its Agent-specific behavior is still required. |
-| `config.output`, or `output` under a platform field | Test structured results | Compatibility execution still writes legacy output files. Native Test uses `--result-dir`, `summary.json`, and the report. Return business data from custom Nodes or write it to external storage. |
+| `config.output`, or `output` under a platform field | Test structured results | `midscene` still writes legacy output files. Native Test uses `--result-dir`, `summary.json`, and the report. Return business data from custom Nodes or write it to external storage. |
 | `config.unstableLogContent` | Test report and structured results | There is no same-name native field. Migrate consumers away from the legacy experimental log-content file. |
 | `tasks` | Native Workflow Document | Map it to `cases` and lifecycle hooks as described above. |
 
@@ -258,26 +249,26 @@ export default defineTestProject({
 
 | Legacy batch setting | Native Test configuration or mechanism | Notes |
 | --- | --- | --- |
-| `files` | `projects[].files.include` | The adapter preserves old order and repeated invocations. Native selection is sorted and deduplicated, with no `files.order` switch. |
-| `setup` | Compatibility prerequisite file; native setup / `beforeAll` | The YAML host runs the old setup file first. In native Test, create resources in setup and express file prerequisites as lifecycle Steps; there is no `setupFile` option. |
-| `concurrent` | Compatibility file scheduler; native `test.maxConcurrency` | The YAML host preserves file concurrency. Native concurrency is between independent Projects, not files inside one Project. |
-| `retry` | Compatibility whole-file retry; native `projects[].retry` | Native retries only a failed Case. Keep legacy files unchanged when whole-file replay is required; there is no `retryScope` switch. |
+| `files` | `projects[].files.include` | `midscene` preserves old order and repeated invocations. Native selection is sorted and deduplicated, with no `files.order` switch. |
+| `setup` | Legacy prerequisite file; native setup / `beforeAll` | The legacy host runs the old setup file first. In native Test, create resources in setup and express file prerequisites as lifecycle Steps; there is no `setupFile` option. |
+| `concurrent` | Legacy file scheduler; native `test.maxConcurrency` | `midscene` preserves file concurrency. Native concurrency is between independent Projects, not files inside one Project. |
+| `retry` | Legacy whole-file retry; native `projects[].retry` | Native retries only a failed Case. Keep legacy files on `midscene` when whole-file replay is required; there is no `retryScope` switch. |
 | `continueOnError: false` | `test.bail: 1` | Stop scheduling new files or Cases when the failure threshold is reached. Concurrent work that has already started still completes cleanup. |
-| `continueOnError: true` | `test.bail: 0` | Disable global failure-threshold stopping. The adapter separately preserves old task continuation; native Cases continue by default. |
-| `summary` | Test `summary.json`, report, and programmatic APIs | Compatibility execution still writes the legacy summary. Native Test has no same-name setting; migrate consumers and use `--result-dir` to select the structured result directory. |
-| `shareBrowserContext` | Compatibility resource host; native Project setup | The YAML host creates independent Pages/Agents over the shared browser context. Native Test shares resources within a Project through setup and uses independent resources between concurrent Projects. |
+| `continueOnError: true` | `test.bail: 0` | Disable global failure-threshold stopping. `midscene` separately preserves old task continuation; native Cases continue by default. |
+| `summary` | Test `summary.json`, report, and programmatic APIs | `midscene` still writes the legacy summary. Native Test has no same-name setting; migrate consumers and use `--result-dir` to select the structured result directory. |
+| `shareBrowserContext` | Legacy resource host; native Project setup | The legacy host creates independent Pages/Agents over the shared browser context. Native Test shares resources within a Project through setup and uses independent resources between concurrent Projects. |
 | `headed` | Browser or device setup launch settings | For example, Playwright uses `chromium.launch({ headless: false })`. |
 | `keepWindow` | setup cleanup policy | Use only for local debugging; the project must decide whether to delay or skip browser teardown. |
 | `dotenvOverride`, `dotenvDebug` | Project environment-loading policy | Native Test reads `process.env`. If you rely on an `.env` file, load it explicitly in the config or launch script and configure precedence and debugging there. |
 | `web`, `android`, `ios`, `harmony`, `computer`, `interface` | Project `setup`, `variables`, and registered platform Nodes | Move device connection and Agent creation into setup; keep serializable environment differences in `variables`. |
 
-This native example selects files and adopts Case retries; it does not preserve the old setup-file or concurrent-file scheduling. For parallel native execution, split files across independent Projects and use `test.maxConcurrency`. Compatibility-only file concurrency and document setup remain inside the YAML host, not public Test configuration.
+This native example selects files and adopts Case retries; it does not preserve the old setup-file or concurrent-file scheduling. For parallel native execution, split files across independent Projects and use `test.maxConcurrency`. Legacy file concurrency and document setup stay behind the `midscene` entry and are not public Test configuration.
 
-Compatibility execution preserves legacy output naming: explicit flow `name` values, numeric keys for unnamed extracted results, and the existing overwrite behavior for duplicate names.
+The `midscene` entry preserves legacy output naming: explicit flow `name` values, numeric keys for unnamed extracted results, and the existing overwrite behavior for duplicate names.
 
 ## Validate the migration
 
-Run the compatibility and native versions of each case and compare at least:
+Run the legacy version with `midscene` and the converted version with `midscene-test`, then compare at least:
 
 - Process exit status and continuation after a failure.
 - Whether retries apply to one Case or the complete file.

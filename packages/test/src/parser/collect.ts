@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
+import { classifyWorkflowDocumentFormat } from '@midscene/core/internal/test-runner';
 import { JSON_SCHEMA, load as loadYaml } from 'js-yaml';
 import type { JsonValue } from '../cli/test-project';
 import { WorkflowParseError } from '../errors';
@@ -24,6 +25,25 @@ export interface CollectWorkflowDocumentOptions {
 
 const isMapping = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+export class NativeWorkflowFormatError extends WorkflowParseError {
+  readonly actualFormat: 'legacy' | 'legacy-batch' | 'mixed';
+
+  constructor(
+    actualFormat: 'legacy' | 'legacy-batch' | 'mixed',
+    sourcePath: string,
+  ) {
+    super(
+      actualFormat === 'legacy'
+        ? `Legacy tasks/flow YAML is not supported by midscene-test: ${sourcePath}. Run it with \`midscene ${sourcePath}\`, or migrate the file to cases/steps.`
+        : actualFormat === 'legacy-batch'
+          ? `Legacy YAML batch configuration is not a midscene-test workflow document: ${sourcePath}. Run it with \`midscene --config ${sourcePath}\`, or migrate it to a native project config.`
+          : `A workflow file cannot mix legacy tasks/flow with native cases/steps or lifecycle hooks: ${sourcePath}. Keep the formats in separate files and run each file with its matching command.`,
+      { sourcePath, actualFormat, expectedFormat: 'native' },
+    );
+    this.actualFormat = actualFormat;
+  }
+}
 
 const rejectUnknownKeys = (
   value: Record<string, unknown>,
@@ -70,6 +90,10 @@ export function collectWorkflowDocument(
 
   if (!isMapping(parsed)) {
     throw new WorkflowParseError('Workflow document must be a mapping.');
+  }
+  const format = classifyWorkflowDocumentFormat(parsed);
+  if (format === 'legacy' || format === 'legacy-batch' || format === 'mixed') {
+    throw new NativeWorkflowFormatError(format, source.sourcePath);
   }
   rejectUnknownKeys(
     parsed,

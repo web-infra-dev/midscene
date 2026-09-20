@@ -5,7 +5,7 @@ Midscene Test 是面向 AI 驱动的端到端（E2E）测试的新框架。
 它由 `@midscene/test` 提供，将声明式用例与可编程扩展分离：用 YAML 和自然语言描述测试流程，用 TypeScript 扩展业务操作和测试工程能力。
 
 :::info 项目状态说明（Beta）
-Midscene Test 用于替代原有的 YAML 自动化方案，目前处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
+Midscene Test 用于替代原有的 YAML 自动化方案，目前处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。旧 `tasks/flow` YAML 链路已进入维护状态，只保留兼容和必要修复，不再新增能力；新项目和新增用例推荐使用 Midscene Test。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
 
 （如果您仍在使用旧版方案，请查阅 [YAML 脚本运行器](../yaml-script-runner)）
 :::
@@ -126,4 +126,4 @@ afterEach:
 * 阅读[编写自定义 Node](./extend)，实现业务操作并在 Node 之间共享数据。
 * 阅读[配置测试项目](./configuration)，管理运行资源和配置多个执行项目。
 * 阅读 [为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)，了解如何补充必要的应用知识，帮助 GUI Agent 更稳定地执行任务。
-* 已有 `tasks/flow` YAML 项目可先无改动切换执行入口，再按[迁移到 Midscene Test](../migrate-to-midscene-test)逐步采用原生 Test 格式。
+* 已有 `tasks/flow` YAML 项目可以继续使用 `midscene` 命令，无需改文件即可获得共享内核和新报告；完整转换文件及配置后，再切换到 `midscene-test`。详见[迁移到 Midscene Test](../migrate-to-midscene-test)。

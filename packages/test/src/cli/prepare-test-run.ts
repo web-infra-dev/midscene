@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { NativeWorkflowFormatError } from '../parser/collect';
 import type {
   PreparedExecutionProject,
   PreparedTestRunPlan,
@@ -13,10 +14,6 @@ import {
   selectProjects,
 } from './project-preparation';
 import { loadTestProject } from './test-project';
-import {
-  type YamlCompatibilityRunOptions,
-  prepareYamlCompatibility,
-} from './yaml-compatibility';
 
 const padDatePart = (value: number): string => String(value).padStart(2, '0');
 
@@ -55,46 +52,35 @@ const resolveRunInput = (options: TestProjectRunOptions): TestRunInput => {
     throw new Error(
       `Test input must be a YAML file or project directory: ${singleFile}`,
     );
-  const filePattern =
-    inputPath && !existsSync(inputPath) && /[*?{}[\]]/.test(inputPath)
-      ? inputPath
-      : undefined;
   const cliProjectRoot = singleFile ? dirname(singleFile) : inputPath;
-  if (cliProjectRoot && !filePattern)
-    assertDirectory(cliProjectRoot, 'Test project directory');
-  const projectRoot = filePattern ? cwd : (cliProjectRoot ?? cwd);
+  if (cliProjectRoot) assertDirectory(cliProjectRoot, 'Test project directory');
+  const projectRoot = cliProjectRoot ?? cwd;
   return {
     cwd,
     projectRoot,
     configSearchRoot: projectRoot,
     ...(singleFile ? { singleFile } : {}),
-    ...(filePattern ? { filePattern } : {}),
   };
 };
 
 /** Composition boundary only: execution receives no raw input syntax or host options. */
 export async function prepareTestRun(
   options: TestProjectRunOptions,
-  compatibility?: YamlCompatibilityRunOptions,
 ): Promise<PreparedTestRunPlan> {
   const startedAt = new Date();
   const runId = createTestRunId(startedAt);
   const input = resolveRunInput(options);
-  const adapter = await prepareYamlCompatibility(input, options, compatibility);
-  const configPath = adapter.usesDefaultConfiguration
-    ? undefined
-    : options.configPath
-      ? resolve(input.configSearchRoot, options.configPath)
-      : discoverTestConfig(input.configSearchRoot);
-  if (
-    !adapter.usesDefaultConfiguration &&
-    options.configPath &&
-    !existsSync(configPath!)
-  )
+  const configPath = options.configPath
+    ? resolve(input.configSearchRoot, options.configPath)
+    : discoverTestConfig(input.configSearchRoot);
+  if (options.configPath && /\.ya?ml$/i.test(configPath!)) {
+    throw new Error(
+      `midscene-test --config only accepts a native TypeScript or JavaScript project config: ${configPath}. Run legacy batch YAML with \`midscene --config ${options.configPath}\`.`,
+    );
+  }
+  if (options.configPath && !existsSync(configPath!))
     throw new Error(`Midscene config does not exist: ${configPath}`);
-  const definition = adapter.configure(
-    await loadTestProject<unknown>(configPath),
-  );
+  const definition = await loadTestProject<unknown>(configPath);
   const resultDir = options.resultDir
     ? resolve(input.cwd, options.resultDir)
     : join(input.projectRoot, '.midscene', 'test-results');
@@ -114,10 +100,14 @@ export async function prepareTestRun(
         input.projectRoot,
         runDir,
         definition.test.testTimeout,
-        adapter.projectOptions,
+        input.singleFile ? { files: [input.singleFile] } : undefined,
       ),
     );
-  adapter.validate(projects);
+  const hasFormatMismatch = projects.some((project) =>
+    project.collectionErrors.some(
+      ({ error }) => error instanceof NativeWorkflowFormatError,
+    ),
+  );
   return {
     startedAt,
     runId,
@@ -129,9 +119,11 @@ export async function prepareTestRun(
     reportDir,
     definition,
     projects,
-    preflightScope: adapter.preflightScope,
-    reportEnabled: adapter.resolveReportEnabled(),
-    publications: adapter.publications(projects),
+    // A wrong-format file invalidates the complete command invocation. Other
+    // native collection failures retain the existing per-Project isolation.
+    preflightScope: hasFormatMismatch ? 'run' : 'project',
+    reportEnabled: true,
+    publications: [],
     onProgress: options.onProgress ?? (() => {}),
   };
 }

@@ -1,20 +1,13 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { version } from '../../package.json';
-import type { LegacyConfigFactoryOptions } from '../runtime/legacy-config';
-import {
-  collectLegacyCliOption,
-  createLegacyTestRunPlan,
-  legacyPlanProjectRoot,
-  parseLegacyCliOptions,
-} from './legacy-command';
 import { renderNodeReference, sortNodesForReference } from './node-reference';
 import { loadTestProject } from './test-project';
 import {
   DEFAULT_TEST_FILE_SELECTION,
   discoverTestConfig,
+  runTestProject,
 } from './test-project-runner';
-import { runTestProjectWithYamlCompatibility } from './yaml-compatibility-runner';
 
 export interface TestCliIO {
   log(message: string): void;
@@ -31,32 +24,16 @@ interface ParsedTestArgs {
   projectNames?: string[];
 }
 
-interface ParsedTestArgsWithYaml extends ParsedTestArgs {
-  legacyOptions?: LegacyConfigFactoryOptions;
-}
-
 export const parseTestCliArgs = (
   args: string[],
   cwd = process.cwd(),
 ): ParsedTestArgs => {
-  const { legacyOptions: _legacyOptions, ...parsed } = parseTestCliArgsWithYaml(
-    args,
-    cwd,
-  );
-  return parsed;
-};
-
-export const parseTestCliArgsWithYaml = (
-  args: string[],
-  cwd = process.cwd(),
-): ParsedTestArgsWithYaml => {
   const command = args[0] === 'nodes' ? args[0] : undefined;
   const commandOffset = command ? 1 : 0;
   let projectRoot: string | undefined;
   let configPath: string | undefined;
   let resultDir: string | undefined;
   const projectNames: string[] = [];
-  const legacyArgs: string[] = [];
 
   for (let index = commandOffset; index < args.length; index += 1) {
     const token = args[index];
@@ -78,9 +55,7 @@ export const parseTestCliArgsWithYaml = (
       else projectNames.push(value);
       if (inlineValue === undefined) index += 1;
     } else {
-      const consumed = collectLegacyCliOption(args, index, legacyArgs);
-      if (consumed === undefined) throw new Error(`Unknown option: ${token}`);
-      index = consumed;
+      throw new Error(`Unknown option: ${token}`);
     }
   }
 
@@ -90,12 +65,6 @@ export const parseTestCliArgsWithYaml = (
   if (command === 'nodes' && projectNames.length > 1) {
     throw new Error('nodes accepts only one --project name.');
   }
-  if (command === 'nodes' && legacyArgs.length > 0) {
-    throw new Error(
-      'Legacy YAML execution options are not supported by nodes.',
-    );
-  }
-
   return {
     ...(command ? { command } : {}),
     cwd,
@@ -103,9 +72,6 @@ export const parseTestCliArgsWithYaml = (
     configPath,
     resultDir,
     ...(projectNames.length > 0 ? { projectNames } : {}),
-    ...(legacyArgs.length > 0
-      ? { legacyOptions: parseLegacyCliOptions(legacyArgs) }
-      : {}),
   };
 };
 
@@ -115,22 +81,22 @@ const defaultCliIO: TestCliIO = {
   write: (message) => process.stdout.write(message),
 };
 
-const testCliHelp = `Midscene Test: run native and legacy YAML workflows.
+const testCliHelp = `Midscene Test: run native cases/steps Test projects.
 
 Usage:
   midscene-test [file.yaml | directory] [options]
-  midscene-test --config <midscene.config.ts | batch.yaml> [options]
+  midscene-test --config <midscene.config.ts> [options]
   midscene-test nodes [directory] [--config midscene.config.ts]
   midscene-test create --help
 
 Options:
-  --config <path>              Native Test config or legacy batch YAML config
+  --config <path>              Native TypeScript or JavaScript Test config
   --project <name>             Select a native execution Project (repeatable)
   --result-dir <path>          Store Test result files in this directory
   --help, -h                  Show this help
   --version                   Show the package version
 
-Old YAML command options remain supported for compatibility; see the YAML migration guide.
+Legacy tasks/flow YAML and its CLI options belong to the midscene command.
 `;
 
 const assertDirectory = (path: string, label: string): void => {
@@ -154,6 +120,11 @@ const runNodesCommand = async (
   const configPath = options.configPath
     ? resolve(configSearchRoot, options.configPath)
     : discoverTestConfig(configSearchRoot);
+  if (options.configPath && /\.ya?ml$/i.test(configPath!)) {
+    throw new Error(
+      `midscene-test nodes --config only accepts a native TypeScript or JavaScript project config: ${configPath}.`,
+    );
+  }
   if (options.configPath && (!configPath || !existsSync(configPath))) {
     throw new Error(`Midscene config does not exist: ${configPath}`);
   }
@@ -226,33 +197,15 @@ export async function runTestCli(
       io.log(version);
       return 0;
     }
-    const options = parseTestCliArgsWithYaml(args);
+    const options = parseTestCliArgs(args);
     if (options.command === 'nodes') {
       await runNodesCommand(options, io);
       return 0;
     }
-    const legacyPlan = await createLegacyTestRunPlan(options);
-    if (legacyPlan && options.projectNames?.length) {
-      throw new Error(
-        '--project cannot be combined with legacy YAML execution options.',
-      );
-    }
-    const result = await runTestProjectWithYamlCompatibility(
-      {
-        ...options,
-        ...(legacyPlan
-          ? {
-              configPath: undefined,
-              projectRoot: legacyPlanProjectRoot(
-                options.projectRoot,
-                options.cwd,
-              ),
-            }
-          : {}),
-        onProgress: (message) => io.log(message),
-      },
-      { plan: legacyPlan },
-    );
+    const result = await runTestProject({
+      ...options,
+      onProgress: (message) => io.log(message),
+    });
     for (const failure of result.collectionErrors) {
       io.error(
         `midscene-test: ${failure.projectName}/${failure.sourcePath}: ${failure.error.message}`,
@@ -285,12 +238,6 @@ export async function runTestCli(
     io.log(`Results: ${result.resultDir}`);
     io.log(`Summary: ${result.summaryPath}`);
     if (result.reportPath) io.log(`Report: ${result.reportPath}`);
-    if (legacyPlan?.keepWindow && io === defaultCliIO) {
-      setInterval(
-        () => io.log('browser is still running, use ctrl+c to stop it'),
-        5000,
-      );
-    }
     return result.exitCode;
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));

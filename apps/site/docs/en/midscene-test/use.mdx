@@ -5,7 +5,7 @@ This guide starts with project creation, then covers running an example, learnin
 For the overall design, see [Midscene Test overview](./overview). To implement business operations, see [Develop custom Nodes](./extend). For runtime environments and execution settings, see [Configure test projects](./configuration).
 
 :::info Existing legacy YAML projects
-Existing `tasks/flow` cases and legacy batch configuration can run through the Test kernel without changing their files. The format remains supported but is not recommended for new cases. See [Migrate to Midscene Test](../migrate-to-midscene-test) for commands, compatibility boundaries, and field mappings.
+Here, “legacy YAML” specifically means `tasks/flow` cases and YAML batch configuration executed by `midscene`; it does not include native `cases/steps` Test files. The legacy path receives compatibility maintenance and necessary fixes only, with no new capabilities. Existing projects can continue to run, while new projects and cases should use Midscene Test. Both paths share the execution kernel and new report page. See [Migrate to Midscene Test](../migrate-to-midscene-test) for command boundaries and field mappings.
 :::
 
 ## Create a project
@@ -367,16 +367,16 @@ To generate the Node Spec for a specific Execution Project, also use `--project`
 pnpm exec midscene-test nodes --project android-smoke
 ```
 
-### Run legacy YAML that has not been migrated
+### Keep unmigrated legacy YAML on the legacy command
 
-`midscene-test` can directly run legacy YAML with top-level `tasks/flow`, as well as legacy YAML batch configuration:
+Run top-level `tasks/flow` files and legacy YAML batch configuration with `midscene`:
 
 ```bash
-pnpm exec midscene-test ./legacy-flow.yaml
-pnpm exec midscene-test --config ./legacy-batch.yaml
+pnpm exec midscene ./legacy-flow.yaml
+pnpm exec midscene --config ./legacy-batch.yaml
 ```
 
-The files enter the compatibility path automatically; they do not require Node registration or configuration rewrites. Use the `cases/steps` format described on this page for new files. See [Migrate to Midscene Test](../migrate-to-midscene-test) for migration steps and field mappings.
+`midscene-test` does not auto-detect or execute these files, and it does not accept legacy batch configuration or legacy CLI options. Convert a complete file to `cases/steps` before running it with `midscene-test`. Both kinds of files may coexist in separate directories while a repository is being migrated, but one command invocation must select only one format. See [Migrate to Midscene Test](../migrate-to-midscene-test) for migration steps and field mappings.
 
 Use `--result-dir` to write structured run results to a specific directory:
 

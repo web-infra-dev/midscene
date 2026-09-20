@@ -77,7 +77,6 @@ export interface TestRunInput {
   projectRoot: string;
   configSearchRoot: string;
   singleFile?: string;
-  filePattern?: string;
 }
 
 export interface PreparedTestRunPlan {
