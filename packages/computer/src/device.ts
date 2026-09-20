@@ -37,6 +37,15 @@ import {
   resolveShiftedKey,
 } from './keyboard-layout';
 import { clampPointerPointToSize } from './pointer';
+import {
+  type WindowsCoordinateContext,
+  type WindowsDisplayGeometry,
+  assertLegacyWindowsCoordinateCompatibility,
+  discoverWindowsDisplays,
+  readPhysicalWindowsSystemDpi,
+  readWindowsDisplayGeometries,
+  resolveWindowsDisplayGeometryFromList,
+} from './windows-display';
 import { runWindowsPhysicalPixelPowershell } from './windows-dpi';
 import {
   WindowsPointerDriver,
@@ -109,10 +118,8 @@ export interface DarwinDisplayGeometry extends DisplayGeometry {
   cgDisplayId: number;
 }
 
-export interface WindowsDisplayGeometry extends DisplayGeometry {
-  id: string;
-  name: string;
-}
+export type { WindowsDisplayGeometry } from './windows-display';
+export { resolveWindowsDisplayGeometryFromList } from './windows-display';
 
 export interface Point {
   x: number;
@@ -207,38 +214,6 @@ const EDGE_SCROLL_SPEC: Record<EdgeScrollType, EdgeScrollStrategy> = {
 
 function escapePowershellSingleQuoted(value: string): string {
   return value.replace(/'/g, "''");
-}
-
-/** Enumerate Windows monitors and their physical-pixel bounds via PowerShell
- * (screenshot-desktop's .bat-based listDisplays is broken under Claude Code —
- * see #2150). */
-export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
-  const script = `
-Add-Type -AssemblyName System.Windows.Forms
-$s = [System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-  $b = $_.Bounds
-  [PSCustomObject]@{
-    id = $_.DeviceName
-    name = $_.DeviceName
-    primary = $_.Primary
-    bounds = [PSCustomObject]@{ x = $b.X; y = $b.Y; width = $b.Width; height = $b.Height }
-  }
-}
-ConvertTo-Json @($s) -Compress
-`.trim();
-  const output = runWindowsPhysicalPixelPowershell(script).trim();
-  if (!output) {
-    throw new Error('Windows display enumeration returned no data');
-  }
-  const parsed: unknown = JSON.parse(output);
-  if (!Array.isArray(parsed)) {
-    throw new Error('Windows display enumeration returned invalid data');
-  }
-  const displays = parsed.filter(isWindowsDisplayGeometry);
-  if (displays.length !== parsed.length || displays.length === 0) {
-    throw new Error('Windows display enumeration returned invalid geometry');
-  }
-  return displays;
 }
 
 function listWindowsDisplays(
@@ -396,20 +371,6 @@ function isDisplayBounds(value: unknown): value is DisplayBounds {
   );
 }
 
-function isWindowsDisplayGeometry(
-  value: unknown,
-): value is WindowsDisplayGeometry {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as WindowsDisplayGeometry;
-  return (
-    typeof candidate.id === 'string' &&
-    candidate.id.length > 0 &&
-    typeof candidate.name === 'string' &&
-    typeof candidate.primary === 'boolean' &&
-    isDisplayBounds(candidate.bounds)
-  );
-}
-
 function isDarwinDisplayGeometry(
   value: unknown,
 ): value is DarwinDisplayGeometry {
@@ -520,17 +481,6 @@ export function resolveDarwinDisplayGeometryFromList(
 }
 
 /** @internal exported for unit tests — do not consume from outside this package */
-export function resolveWindowsDisplayGeometryFromList(
-  displayId: string | undefined,
-  displays: WindowsDisplayGeometry[],
-): WindowsDisplayGeometry | undefined {
-  if (!displays.length) return undefined;
-  if (displayId === undefined || displayId === '') {
-    return displays.find((display) => display.primary) || displays[0];
-  }
-  return displays.find((display) => display.id === displayId);
-}
-
 function resolveDisplayGeometry(
   displayId: string | undefined,
   windowsDisplays?: WindowsDisplayGeometry[],
@@ -765,6 +715,9 @@ export class ComputerDevice implements AbstractInterface {
   private options?: ComputerDeviceOpt;
   private displayId?: string;
   private displayGeometry?: DisplayGeometry;
+  private windowsCoordinateContext: WindowsCoordinateContext = {
+    mode: 'physical',
+  };
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -954,6 +907,30 @@ export class ComputerDevice implements AbstractInterface {
       process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
+  private usesPhysicalWindowsCoordinates(): boolean {
+    return (
+      process.platform === 'win32' &&
+      this.windowsCoordinateContext.mode === 'physical'
+    );
+  }
+
+  private assertLegacyWindowsCoordinateCompatibility(
+    screenshotBase64: string,
+  ): void {
+    if (
+      process.platform !== 'win32' ||
+      this.windowsCoordinateContext.mode !== 'legacy'
+    ) {
+      return;
+    }
+    assertLegacyWindowsCoordinateCompatibility({
+      geometry: this.displayGeometry,
+      systemDpi: this.windowsCoordinateContext.systemDpi,
+      screenshotBase64,
+      inputSize: this.inputDriver.getScreenSize(),
+    });
+  }
+
   private async moveGlobalPointer(
     point: Point,
     context: string,
@@ -966,7 +943,7 @@ export class ComputerDevice implements AbstractInterface {
       x: Math.round(point.x),
       y: Math.round(point.y),
     };
-    if (process.platform === 'win32') {
+    if (this.usesPhysicalWindowsCoordinates()) {
       const actual = this.windowsPointerDriver.moveTo(target, {
         smoothSteps: smooth?.smoothSteps,
         smoothDelayMs: smooth?.smoothDelay,
@@ -1068,7 +1045,7 @@ export class ComputerDevice implements AbstractInterface {
       // screenshot-desktop's Windows listDisplays uses the same broken polyglot
       // .bat as its capture path (#2150); enumerate via PowerShell instead.
       if (process.platform === 'win32') {
-        return listWindowsDisplays();
+        return listWindowsDisplays(discoverWindowsDisplays().geometries);
       }
       const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
       return displays.map((d) => ({
@@ -1124,10 +1101,18 @@ export class ComputerDevice implements AbstractInterface {
 
       // Load libnut on first connect
       libnut = await getLibnut();
-      const windowsDisplayGeometries =
-        process.platform === 'win32'
-          ? readWindowsDisplayGeometries()
-          : undefined;
+      const windowsDisplayDiscovery =
+        process.platform === 'win32' ? discoverWindowsDisplays() : undefined;
+      const windowsDisplayGeometries = windowsDisplayDiscovery?.geometries;
+      if (windowsDisplayDiscovery?.coordinateMode === 'legacy') {
+        warnDevice(
+          'Windows display enumeration returned no data in the Per-Monitor V2 DPI context; using the legacy Windows coordinate path for this device connection.',
+        );
+      }
+      this.windowsCoordinateContext =
+        windowsDisplayDiscovery?.coordinateMode === 'legacy'
+          ? { mode: 'legacy', systemDpi: readPhysicalWindowsSystemDpi() }
+          : { mode: 'physical' };
       this.displayGeometry = resolveDisplayGeometry(
         this.displayId,
         windowsDisplayGeometries,
@@ -1148,6 +1133,7 @@ Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
 Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
+${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordinateContext.mode}` : ''}
 `;
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
@@ -1194,19 +1180,21 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       timeoutPromise,
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
+    this.assertLegacyWindowsCoordinateCompatibility(base64);
 
-    // Step 2: Verify pointer control. Windows capture, display enumeration,
-    // movement, and observation all use physical pixels.
+    // Step 2: Verify pointer control. The primary Windows path uses physical
+    // pixels throughout; the guarded compatibility path uses legacy logical
+    // coordinates throughout.
     console.log('[HealthCheck] Verifying mouse control...');
-    const startPos =
-      process.platform === 'win32'
-        ? this.windowsPointerDriver.getPosition()
-        : this.inputDriver.getMousePos();
+    const usePhysicalWindowsCoordinates = this.usesPhysicalWindowsCoordinates();
+    const startPos = usePhysicalWindowsCoordinates
+      ? this.windowsPointerDriver.getPosition()
+      : this.inputDriver.getMousePos();
     console.log(
       `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
     );
 
-    if (process.platform === 'win32') {
+    if (usePhysicalWindowsCoordinates) {
       if (!this.displayGeometry) {
         throw new Error('Windows display geometry is unavailable');
       }
@@ -1320,7 +1308,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     // through PowerShell instead — System.Drawing.CopyFromScreen works in
     // virtual-desktop coordinates, so it captures any monitor (including
     // secondary displays at negative offsets) without csc/.bat/.NET source.
-    if (process.platform === 'win32') {
+    if (this.usesPhysicalWindowsCoordinates()) {
       return this.screenshotViaPowershell();
     }
 
@@ -1622,7 +1610,7 @@ $g.Dispose(); $bmp.Dispose(); $ms.Dispose()
   }
 
   private resolveUntargetedScrollPoint(screenSize: Size): Point {
-    if (process.platform === 'win32') {
+    if (this.usesPhysicalWindowsCoordinates()) {
       const activeWindowRect = this.windowsPointerDriver.getActiveWindowRect();
       if (activeWindowRect) {
         const activeWindowCenter = {

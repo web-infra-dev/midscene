@@ -42,6 +42,20 @@ $midsceneSetDpiMethod.SetImplementationFlags(
   $midsceneSetDpiMethod.GetMethodImplementationFlags() -bor
   [System.Reflection.MethodImplAttributes]::PreserveSig
 )
+$midsceneGetDpiForSystemMethod = $midsceneType.DefinePInvokeMethod(
+  'GetDpiForSystem',
+  'user32.dll',
+  $midsceneMethodAttributes,
+  [System.Reflection.CallingConventions]::Standard,
+  [uint32],
+  [System.Type[]]@(),
+  [System.Runtime.InteropServices.CallingConvention]::Winapi,
+  [System.Runtime.InteropServices.CharSet]::None
+)
+$midsceneGetDpiForSystemMethod.SetImplementationFlags(
+  $midsceneGetDpiForSystemMethod.GetMethodImplementationFlags() -bor
+  [System.Reflection.MethodImplAttributes]::PreserveSig
+)
 $midsceneGetForegroundWindowMethod = $midsceneType.DefinePInvokeMethod(
   'GetForegroundWindow',
   'user32.dll',
@@ -79,19 +93,8 @@ if ($midscenePreviousDpiContext -eq [System.IntPtr]::Zero) {
 }
 `.trim();
 
-/**
- * Execute Windows desktop geometry and pointer work in one physical-pixel
- * boundary. Callers supply only the operation body, so they cannot forget the
- * Per-Monitor V2 preamble when adding another coordinate-bearing Win32 API.
- */
-export function runWindowsPhysicalPixelPowershell(script: string): string {
-  const physicalPixelScript = `$ProgressPreference = 'SilentlyContinue'
-$ErrorActionPreference = 'Stop'
-${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
-${script}`;
-  const encoded = Buffer.from(physicalPixelScript, 'utf16le').toString(
-    'base64',
-  );
+function runWindowsPowershellScript(script: string): string {
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
   return execFileSync(
     'powershell.exe',
     ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
@@ -102,4 +105,28 @@ ${script}`;
       windowsHide: true,
     },
   );
+}
+
+/**
+ * Execute a Windows PowerShell script without changing its DPI-awareness
+ * context. This is reserved for compatibility paths where a display driver
+ * does not expose monitors after entering Per-Monitor V2 mode.
+ */
+export function runWindowsPowershell(script: string): string {
+  return runWindowsPowershellScript(`$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
+${script}`);
+}
+
+/**
+ * Execute Windows desktop geometry and pointer work in one physical-pixel
+ * boundary. Callers supply only the operation body, so they cannot forget the
+ * Per-Monitor V2 preamble when adding another coordinate-bearing Win32 API.
+ */
+export function runWindowsPhysicalPixelPowershell(script: string): string {
+  const physicalPixelScript = `$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
+${WINDOWS_PHYSICAL_PIXEL_POWERSHELL_PREAMBLE}
+${script}`;
+  return runWindowsPowershellScript(physicalPixelScript);
 }
