@@ -42,6 +42,7 @@ const createPageMock = (
     removeScriptToEvaluateOnNewDocument: rs.fn().mockResolvedValue(undefined),
     goto: rs.fn().mockResolvedValue(undefined),
     waitForNetworkIdle: rs.fn().mockResolvedValue(undefined),
+    waitForSelector: rs.fn().mockResolvedValue(undefined),
     close: rs.fn().mockResolvedValue(undefined),
     browser: rs.fn(() => owningBrowser),
     browserContext: rs.fn(() => owningBrowserContext),
@@ -385,6 +386,40 @@ describe('launchPuppeteerPage', () => {
       (agent.page as unknown as { waitForNetworkIdleTimeout: number })
         .waitForNetworkIdleTimeout,
     ).toBe(4321);
+  });
+
+  it.each(['page', 'browser'] as const)(
+    'forwards action readiness in %s mode without running it during launch',
+    async (mode) => {
+      const createWaiter = rs.fn(() => 'skip' as const);
+      const { agent } = await puppeteerAgentForTarget(
+        {
+          url: 'https://example.com',
+          mode,
+          waitForNetworkIdle: { timeout: 4321 },
+        },
+        { generateReport: false, waitForActionReady: { createWaiter } },
+      );
+      expect(agent.opts.waitForActionReady?.createWaiter).toBe(createWaiter);
+      expect(createWaiter).not.toHaveBeenCalled();
+      expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith({
+        timeout: 4321,
+      });
+      await agent.page.defaultActionWait('Tap', {});
+      expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith(
+        expect.objectContaining({ timeout: 4321 }),
+      );
+      await agent.destroy();
+    },
+  );
+
+  it('keeps the launcher initial network-idle wait', async () => {
+    const { agent } = await puppeteerAgentForTarget(
+      { url: 'https://example.com', waitForNetworkIdle: { timeout: 1234 } },
+      { generateReport: false },
+    );
+    expect(pageMock.waitForNetworkIdle).toHaveBeenCalledWith({ timeout: 1234 });
+    await agent.destroy();
   });
 
   it('requires browser mode for autoFollowNewPage', async () => {

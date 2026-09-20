@@ -1299,12 +1299,14 @@ export class Page<
     }
   }
 
-  async afterInvokeAction(name: string, param: any): Promise<void> {
+  async defaultActionWait(name: string, _param: any): Promise<void> {
     await Promise.all([
       this.waitForNavigation('afterInvokeAction', name),
       this.waitForNetworkIdle('afterInvokeAction', name),
     ]);
+  }
 
+  async afterInvokeAction(name: string, param: any): Promise<void> {
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
