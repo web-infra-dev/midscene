@@ -54,7 +54,12 @@ function isWindowsDisplayGeometry(
 
 function readWindowsDisplayGeometriesWith(
   runPowershell: (script: string) => string,
+  context: 'physical' | 'legacy',
 ): WindowsDisplayGeometry[] {
+  const serializeScreens =
+    context === 'legacy'
+      ? 'ConvertTo-Json -InputObject $screens -Compress'
+      : '[Console]::Out.Write((ConvertTo-Json -InputObject $screens -Compress))';
   const script = `
 Add-Type -AssemblyName System.Windows.Forms
 $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
@@ -71,12 +76,12 @@ $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
     }
   }
 })
-[Console]::Out.Write((ConvertTo-Json -InputObject $screens -Compress))
+${serializeScreens}
 `.trim();
   const output = runPowershell(script).trim();
   if (!output) {
     throw new WindowsDisplayEnumerationEmptyError(
-      'Windows display enumeration returned no data',
+      `Windows ${context} display enumeration returned no data`,
     );
   }
 
@@ -90,14 +95,17 @@ $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
   }
   if (displays.length === 0) {
     throw new WindowsDisplayEnumerationEmptyError(
-      'Windows display enumeration returned no displays',
+      `Windows ${context} display enumeration returned no displays`,
     );
   }
   return displays;
 }
 
 export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
-  return readWindowsDisplayGeometriesWith(runWindowsPhysicalPixelPowershell);
+  return readWindowsDisplayGeometriesWith(
+    runWindowsPhysicalPixelPowershell,
+    'physical',
+  );
 }
 
 export function discoverWindowsDisplays(): WindowsDisplayDiscovery {
@@ -110,7 +118,10 @@ export function discoverWindowsDisplays(): WindowsDisplayDiscovery {
     if (!(error instanceof WindowsDisplayEnumerationEmptyError)) {
       throw error;
     }
-    const geometries = readWindowsDisplayGeometriesWith(runWindowsPowershell);
+    const geometries = readWindowsDisplayGeometriesWith(
+      runWindowsPowershell,
+      'legacy',
+    );
     return { geometries, coordinateMode: 'legacy' };
   }
 }

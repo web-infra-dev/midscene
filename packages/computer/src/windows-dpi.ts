@@ -107,13 +107,24 @@ function runWindowsPowershellScript(script: string): string {
   );
 }
 
+function runWindowsPowershellCommand(script: string): string {
+  return execFileSync('powershell.exe', ['-NoProfile', '-Command', script], {
+    encoding: 'utf8',
+    timeout: POWERSHELL_TIMEOUT_MS,
+    maxBuffer: POWERSHELL_MAX_BUFFER,
+    windowsHide: true,
+  });
+}
+
 /**
  * Execute a Windows PowerShell script without changing its DPI-awareness
- * context. This is reserved for compatibility paths where a display driver
- * does not expose monitors after entering Per-Monitor V2 mode.
+ * context. The compatibility path deliberately uses the plain `-Command`
+ * invocation that affected users have verified can enumerate their displays;
+ * it must not share the encoded, non-interactive transport used by the
+ * physical-pixel path.
  */
 export function runWindowsPowershell(script: string): string {
-  return runWindowsPowershellScript(`$ProgressPreference = 'SilentlyContinue'
+  return runWindowsPowershellCommand(`$ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 ${script}`);
 }

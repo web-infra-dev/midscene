@@ -24,8 +24,9 @@ const mockState = rs.hoisted(() => {
     | { x: number; y: number; width: number; height: number }
     | undefined;
   let windowsCursorTransform = (x: number, y: number) => ({ x, y });
-  // Windows screenshot/listDisplays go through `powershell.exe -EncodedCommand`
-  // now (issue #2150); answer based on which script is being run.
+  // The physical path uses `-EncodedCommand`; the legacy display fallback
+  // intentionally matches the affected user's working `-NoProfile -Command`
+  // invocation. Answer based on which script is being run.
   const execFileSync = rs.fn(
     (
       file?: string,
@@ -36,10 +37,13 @@ const mockState = rs.hoisted(() => {
     ): string | Buffer | undefined => {
       if (file === 'powershell.exe' && args) {
         const idx = args.indexOf('-EncodedCommand');
+        const commandIdx = args.indexOf('-Command');
         const script =
           idx >= 0
             ? Buffer.from(args[idx + 1], 'base64').toString('utf16le')
-            : '';
+            : commandIdx >= 0
+              ? args[commandIdx + 1]
+              : '';
         if (script.includes('CopyFromScreen')) {
           return FAKE_PNG_BASE64;
         }
@@ -527,10 +531,25 @@ describe('ComputerInputDriver native arg handling', () => {
 describe('ComputerDevice Windows display compatibility', () => {
   it('uses the complete legacy Windows path when physical display enumeration is empty', async () => {
     mockState.setPhysicalWindowsDisplayOutput('');
-    const device = await createConnectedDeviceForPlatform('win32');
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const { ComputerDevice } = await import('../../src/device');
+    const device = new ComputerDevice();
+
+    await device.connect();
 
     expect(device.describe()).toContain('Windows Coordinate Mode: legacy');
     expect(mockState.screenshot).toHaveBeenCalled();
+    expect(
+      mockState.execFileSync.mock.calls.some(
+        ([file, args]) =>
+          file === 'powershell.exe' &&
+          args?.[0] === '-NoProfile' &&
+          args?.[1] === '-Command' &&
+          args[2]?.includes('[System.Windows.Forms.Screen]::AllScreens'),
+      ),
+    ).toBe(true);
+
+    mockState.libnut.moveMouse.mockClear();
 
     await device.inputPrimitives.pointer!.tap({ x: 400, y: 300 });
 
