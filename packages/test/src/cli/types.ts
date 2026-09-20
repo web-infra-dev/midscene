@@ -4,10 +4,24 @@ import type {
   WorkflowDocumentRunResult,
 } from '../engine/types';
 import type { WorkflowError } from '../errors';
+import type { TestCaseArtifact } from './test-executor';
 import type { TestFileSelection, TestTagSelection } from './test-project';
 
 export type TestProjectCaseRunResult = CaseRunOutcome & {
   documentId: string;
+  execution?: {
+    executor: string;
+    resources: readonly string[];
+    lifecycle?: ProjectRuntimeResult;
+    artifacts?: readonly TestCaseArtifact[];
+    metadata?: Readonly<Record<string, string | number | boolean | null>>;
+    attempts?: number;
+    failure?: {
+      kind: 'provision' | 'transport' | 'cleanup' | 'report' | 'unknown';
+      message: string;
+      retryable: boolean;
+    };
+  };
 };
 
 export interface TestProjectCollectionError {

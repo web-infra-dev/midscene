@@ -273,6 +273,54 @@ The registered callback runs after the case's `afterEach` phase, even when no `a
 
 For Agent integration and platform resources, see [Configure test projects](./configuration).
 
+## Delegate Cases with a Test Executor
+
+Case execution mode exposes a provider-neutral Executor API. An Executor receives one isolated Case and may run it locally or delegate it to another process, container, device service, or remote runner. Resource provisioning and transport remain in your integration; Midscene Test only selects, schedules, retries classified infrastructure failures, and aggregates results.
+
+```ts filename=midscene.config.ts
+import {
+  defineTestExecutor,
+  defineTestProject,
+  TestExecutorError,
+  type TestCaseTaskRunResult,
+} from '@midscene/test/config';
+
+const remoteExecutor = defineTestExecutor({
+  name: 'remote-http',
+  async execute(task, { signal, onProgress }) {
+    onProgress(`Dispatching ${task.caseId}`);
+    const response = await fetch(process.env.TEST_EXECUTOR_URL!, {
+      method: 'POST',
+      signal,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(task),
+    });
+    if (!response.ok) {
+      throw new TestExecutorError(`Remote runner returned ${response.status}`, {
+        kind: 'transport',
+        retryable: response.status >= 500,
+      });
+    }
+    return (await response.json()) as TestCaseTaskRunResult;
+  },
+});
+
+export default defineTestProject({
+  executor: remoteExecutor,
+  test: {
+    executionUnit: 'case',
+    maxConcurrency: 8,
+    executorRetry: 1,
+  },
+});
+```
+
+Throw `TestExecutorError` for expected infrastructure failures. Only errors marked `retryable` use `executorRetry`; a failed Midscene Case continues to use the Case's own `retry` setting. Provision, transport, cleanup, and report failures are recorded separately from business assertion failures. Unexpected Executor errors stop the run after active tasks finish.
+
+The returned result is a JSON-safe transport DTO and must belong to the scheduled project, document, and Case. Midscene Test validates the complete result, including attempt order and final status, before it enters result storage. It rejects mismatched identities so a remote service cannot accidentally attach another Case's result.
+
+Remote data cannot return local `reportPaths`. If an Executor adapter downloads or produces a Midscene report, save it under `outputDir`, call `materializeReport(localPath)`, and return the resulting opaque value in `reportRefs`. Midscene only resolves references created for the current task, so a remote response cannot make the main process read an arbitrary local file. The framework does not contain provider-specific SDKs or provision remote resources on its own.
+
 ## Advanced usage
 
 This section covers execution results, errors, cancellation, and cleanup within a Node.

@@ -137,6 +137,7 @@ describe('test project config', () => {
       },
     ]);
     expect(loaded.test.maxConcurrency).toBe(1);
+    expect(loaded.test.executionUnit).toBe('project');
   });
 
   it('defaults omitted global and Project Nodes to empty registries', async () => {
@@ -301,7 +302,17 @@ describe('test project config', () => {
             files: { include: ['ios/**/*.yaml'], exclude: [] },
           },
         ],
-        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
+        test: {
+          maxConcurrency: 2,
+          bail: 2,
+          testTimeout: 30000,
+          executionUnit: 'case',
+          executorRetry: 2,
+        },
+        executor: {
+          name: 'remote',
+          execute(_task, context) { return context.runLocal(); },
+        },
         output: { reportDir: './out/report' },
         nodes: [],
       };
@@ -341,7 +352,10 @@ describe('test project config', () => {
       maxConcurrency: 2,
       bail: 2,
       testTimeout: 30000,
+      executionUnit: 'case',
+      executorRetry: 2,
     });
+    expect(loaded.executor?.name).toBe('remote');
     expect(loaded.output).toEqual({ reportDir: './out/report' });
   });
 
@@ -451,6 +465,26 @@ describe('test project config', () => {
       'negative bail',
       'test: { bail: -1 }',
       'test.bail must be a non-negative integer',
+    ],
+    [
+      'invalid execution unit',
+      `test: { executionUnit: 'document' }`,
+      'test.executionUnit must be "project" or "case"',
+    ],
+    [
+      'negative executor retry',
+      'test: { executorRetry: -1 }',
+      'test.executorRetry must be a non-negative integer',
+    ],
+    [
+      'executor without case isolation',
+      `executor: { name: 'remote', execute() {} }`,
+      'executor requires test.executionUnit to be "case"',
+    ],
+    [
+      'executor without execute',
+      `test: { executionUnit: 'case' }, executor: { name: 'remote' }`,
+      'executor.execute must be a function',
     ],
   ])('rejects invalid %s configuration', async (_name, field, message) => {
     const { path } = createConfig(`export default { ${field}, nodes: [] };`);

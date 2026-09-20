@@ -86,6 +86,19 @@ const result = (attemptSteps: StepRunResult[]): TestProjectRunResult => ({
           sourcePath: 'case.yaml',
           caseIndex: 0,
           status: 'success',
+          execution: {
+            executor: 'remote',
+            resources: ['account:main'],
+            attempts: 2,
+            artifacts: [
+              {
+                name: 'worker-log',
+                uri: 'https://example.test/log',
+                mediaType: 'text/plain',
+              },
+            ],
+            metadata: { worker: 'sandbox-1' },
+          },
           attempts: [
             {
               caseId: 'case-1',
@@ -183,6 +196,19 @@ describe('Midscene Test report manifest', () => {
       accessToken: '[REDACTED]',
     });
     expect(manifest.metrics.modelTimeMs).toBe(500);
+    expect(manifest.projects[0].documents[0].cases[0].execution).toEqual({
+      executor: 'remote',
+      resources: ['account:main'],
+      attempts: 2,
+      artifacts: [
+        {
+          name: 'worker-log',
+          uri: 'https://example.test/log',
+          mediaType: 'text/plain',
+        },
+      ],
+      metadata: { worker: 'sandbox-1' },
+    });
   });
 
   it('does not guess when a trace cannot be resolved', () => {
