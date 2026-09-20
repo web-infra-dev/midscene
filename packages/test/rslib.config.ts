@@ -31,6 +31,7 @@ export default defineConfig({
       index: './src/index.ts',
       'test-cli': './src/test-cli.ts',
       'cli/index': './src/cli/index.ts',
+      'runtime/index': './src/runtime/index.ts',
       'midscene/index': './src/midscene/index.ts',
     },
     tsconfigPath: 'tsconfig.build.json',

@@ -117,6 +117,28 @@ export function resolveWebTarget(
   };
 }
 
+/** Legacy output settings apply to every host, including native Test setup.
+ * Target-local values keep their original priority; config supplies defaults.
+ */
+export function resolveYamlOutputConfig(
+  script: Omit<MidsceneYamlScript, 'tasks'>,
+): {
+  output?: string;
+  unstableLogContent?: boolean | string;
+} {
+  const target =
+    resolveWebTarget(script)?.target ??
+    script.android ??
+    script.ios ??
+    script.harmony ??
+    script.computer;
+  return {
+    output: target?.output ?? script.config?.output,
+    unstableLogContent:
+      target?.unstableLogContent ?? script.config?.unstableLogContent,
+  };
+}
+
 function interpolateEnvVarRefs(
   value: string,
   keepUnresolvedRefs = false,
@@ -236,6 +258,15 @@ export function parseYamlScript(
   content: string,
   filePath?: string,
 ): MidsceneYamlScript {
+  return parseLegacyYamlScript(content, filePath);
+}
+
+/** Internal collection observer; the public parser keeps its original signature. */
+export function parseLegacyYamlScript(
+  content: string,
+  filePath?: string,
+  onConfig?: (config: Omit<MidsceneYamlScript, 'tasks'>) => void,
+): MidsceneYamlScript {
   let processedContent = content;
   if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
     let matchedDeviceId;
@@ -255,6 +286,7 @@ export function parseYamlScript(
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
 
+  if (obj && typeof obj === 'object' && !Array.isArray(obj)) onConfig?.(obj);
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   resolveWebTarget(obj);
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);

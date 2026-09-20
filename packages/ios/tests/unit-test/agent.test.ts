@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { commonAgentTestRunnerNodeDefinitions } from '@midscene/core/agent/test';
 import {
   MIDSCENE_IOS_DEVICE_CLASS_OVERRIDE,
   MIDSCENE_MODEL_NAME,
@@ -9,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { IOSAgent, agentFromWebDriverAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
+import { iosAgentTestRunnerNodeDefinitions } from '../../src/test-runner-nodes';
 
 // Mock dependencies
 rs.mock('../../src/device');
@@ -28,23 +30,14 @@ const mockedModelConfig = {
 } as const;
 
 it('declares common and iOS Test Runner Nodes', () => {
-  expect(
-    IOSAgent.getTestRunnerNodeDefinitions().map(({ name }) => name),
-  ).toEqual([
-    'aiAct',
-    'aiTap',
-    'aiAssert',
-    'aiBoolean',
-    'aiNumber',
-    'aiString',
-    'aiAsk',
-    'recordToReport',
-    'launch',
-    'terminate',
-    'runWdaRequest',
-    'home',
-    'appSwitcher',
-  ]);
+  const names = IOSAgent.getTestRunnerNodeDefinitions().map(({ name }) => name);
+  expect(names).toEqual(
+    [
+      ...commonAgentTestRunnerNodeDefinitions,
+      ...iosAgentTestRunnerNodeDefinitions,
+    ].map(({ name }) => name),
+  );
+  expect(new Set(names).size).toBe(names.length);
 });
 
 describe('IOSAgent', () => {

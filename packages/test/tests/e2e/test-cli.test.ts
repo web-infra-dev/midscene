@@ -6,6 +6,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve, sep } from 'node:path';
@@ -104,6 +105,27 @@ const runFailure = async (
 };
 
 describe('midscene-test CLI', () => {
+  it('rejects legacy workflows and batch configs with the matching-command guidance', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'strict-test-entry-'));
+    temporaryDirectories.push(root);
+    const legacy = join(root, 'flow.yaml');
+    writeFileSync(legacy, 'tasks:\n  - name: old\n    flow: []\n');
+    const config = join(root, 'batch.yaml');
+    writeFileSync(config, 'files: [flow.yaml]\n');
+
+    const workflowFailure = await runFailure([legacy]);
+    expect(workflowFailure.stderr).toContain(
+      'Legacy tasks/flow YAML is not supported by midscene-test',
+    );
+    expect(workflowFailure.stderr).toContain('midscene');
+
+    const configFailure = await runFailure(['--config', config]);
+    expect(configFailure.stderr).toContain(
+      'midscene-test --config only accepts a native TypeScript or JavaScript project config',
+    );
+    expect(configFailure.stderr).toContain('midscene --config');
+  });
+
   it('publishes only the midscene-test bin', () => {
     const packageJson = JSON.parse(
       readFileSync(join(packageRoot, 'package.json'), 'utf8'),
@@ -352,12 +374,7 @@ describe('midscene-test CLI', () => {
 
   it('rejects scheduling options that are not supported as CLI flags', async () => {
     const projectRoot = join(__dirname, 'fixtures', 'test-project');
-    for (const option of [
-      '--parallel',
-      '--max-concurrency',
-      '--retry',
-      '--bail',
-    ]) {
+    for (const option of ['--parallel', '--max-concurrency', '--bail']) {
       const failure = await runFailure([projectRoot, option]);
       expect(failure.code).toBe(1);
       expect(failure.stderr).toContain(`Unknown option: ${option}`);

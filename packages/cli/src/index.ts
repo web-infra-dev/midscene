@@ -12,6 +12,10 @@ import { pickYamlTargetConfig } from './config-options';
 import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
 import { runModelCommand } from './model-command';
+import {
+  assertLegacyBatchConfigPath,
+  assertLegacyWorkflowSelection,
+} from './workflow-format';
 
 Promise.resolve(
   (async () => {
@@ -78,6 +82,7 @@ Promise.resolve(
     let config;
 
     if (configFile) {
+      assertLegacyBatchConfigPath(configFile);
       config = await createConfig(configFile, configOptions);
       console.log(`   Config file: ${configFile}`);
     } else if (cmdFiles && cmdFiles.length > 0) {
@@ -97,6 +102,11 @@ Promise.resolve(
       console.error('Could not create a valid configuration.');
       process.exit(1);
     }
+
+    assertLegacyWorkflowSelection([
+      ...(config.setup ? [config.setup] : []),
+      ...config.files,
+    ]);
 
     loadDotenvConfig({
       dotenvDebug: config.dotenvDebug,

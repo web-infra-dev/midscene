@@ -1,8 +1,12 @@
 # 创建和使用测试项目
 
-本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
+本文从创建项目开始，介绍如何运行示例、了解可用的测试操作、编写 YAML 用例和查看运行结果。已有原生 Test 项目的读者可以直接从[了解可用的测试操作](#了解可用的测试操作)开始。
 
 整体设计见 [Midscene Test 概览](./overview)。业务操作的实现方式见[编写自定义 Node](./extend)，运行环境和执行参数见[配置测试项目](./configuration)。
+
+:::info 已有旧版 YAML 项目
+这里的“旧版 YAML”特指由 `midscene` 执行的 `tasks/flow` 用例及 YAML 批配置，不包括原生 `cases/steps` Test 文件。旧链路只做兼容维护和必要修复，不再新增能力；现有项目可以继续运行，新项目和新增用例推荐使用 Midscene Test。两条链路共用执行内核和新的报告页面，具体命令边界与字段转换见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+:::
 
 ## 创建项目
 
@@ -65,7 +69,7 @@ Web 示例打开 `example.com` 并检查页面标题。桌面端示例通过 `ai
 
 ## 了解可用的测试操作
 
-### 内置操作与按需扩展
+### 官方操作与按需扩展
 
 Midscene Test 将每一种可在 YAML 中调用的能力称为 **Node（节点）**。
 
@@ -78,25 +82,30 @@ Node 既可以在用例的 `steps` 中调用，也可以在 `beforeEach`、`afte
 - **Web**：`gotoUrl` 打开网页、`setCookies` 设置 Cookie、`setViewportSize` 调整浏览器视口大小。
 - **Android**：`launch` 启动应用、`back` 返回上一页、`home` 返回主屏幕、`runAdbShell` 执行 ADB 命令。
 
-创建项目时，脚手架会根据选择的平台注册相应的 Node。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
+创建项目时，脚手架会根据选择的平台显式注册相应的官方 Node。手写 `midscene.config.ts` 时不会隐式注册任何 Node，需要自行配置。开发者也可以按需扩展，例如通过业务接口准备测试订单，详见[注册自定义业务 Node](./extend#注册自定义业务-node)。
 
-### 查看项目的操作说明书
+### 生成当前项目的 Node 说明书
 
-打开项目中的 `midscene-node-reference.md`，可以查看当前可用的 Node、各自的用途和参数写法。这份说明书在安装时自动生成，人类和 AI Agent 都可以根据它编写 YAML 用例。
+不同平台、执行项目和项目版本实际注册的 Node 可能不同。不要根据其他项目的示例推测当前项目的可用能力；`midscene-test nodes` 根据最终生效的注册结果生成 `midscene-node-reference.md`，它是当前项目可用 Node 名称、输入字段和字符串简写方式的事实来源。人类和 AI Agent 都应根据这份 Node 说明书编写 YAML 用例。
 
-修改 Node 注册配置后，重新生成说明书：
+脚手架会在安装依赖后自动生成。修改 `agentClass`、顶层 `nodes`、`projects[].nodes`、Node schema，或者升级相关 Midscene 包后，应重新生成：
 
 ```bash
 pnpm run nodes
 ```
 
-也可以指定测试目录和配置文件：
+也可以直接运行命令，并指定测试目录、配置文件或执行项目：
 
 ```bash
 pnpm exec midscene-test nodes ./e2e --config ./config/midscene.config.ts
+pnpm exec midscene-test nodes --project android-smoke
 ```
 
-说明书包含两个部分：Available Nodes 列出可用 Node，Node Details 展示各 Node 的描述和输入结构。说明书和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。
+如果多个执行项目的 Node 定义完全相同，可以生成一份共享说明书；定义不同时，命令会要求使用 `--project` 选择一个项目，避免把不同平台的同名能力混在一起。
+
+生成命令只加载项目配置和 Node 定义，不执行 setup、用例或 `getAgent`，因此不需要启动浏览器、连接设备或调用模型。说明书是生成文件，不要手动编辑；配置变化后重新执行命令。
+
+说明书包含两个部分：Available Nodes 列出可用 Node，Node Details 展示每个 Node 的 description、字符串简写规则和输入结构。输入结构由 Zod `inputSchema` 转换为标准 JSON Schema。说明书和终端输出均优先列出 `aiAct`、`aiAssert`，其余 Node 按名称排序。
 
 说明书还会列出用例文件的匹配规则（`Case files`）和配置文件路径（`Config file`），方便用例编写者定位文件。`Case files` 对应各执行项目的 `files.include` 和 `files.exclude`。这两类路径均相对于说明书所在目录。
 
@@ -147,6 +156,16 @@ steps:
   - aiAssert:
       prompt: 购物车中有一件马克杯
       message: 加购后购物车内容不符合预期
+```
+
+`aiAct` 支持可选的 `options.effort`，用于选择规划投入程度：`fast`、`balance` 或 `deepThink`。省略时沿用 Agent 默认行为；同时提供 `deepThink` 时，`effort` 优先。例如：
+
+```yaml
+steps:
+  - aiAct:
+      prompt: 完成结算
+      options:
+        effort: deepThink
 ```
 
 ### 其他 Node 的调用模式
@@ -207,7 +226,7 @@ steps:
 
 `continue-on-error` 只控制 Midscene Test 是否继续执行。只要有 Step 失败，Case 的最终状态就是 `failed`。
 
-### 使用 Project 变量与环境变量
+### 使用项目变量与环境变量
 
 Midscene Test 会在执行前递归解析 Node input：
 
@@ -221,12 +240,12 @@ steps:
         count: ${orderCount}
 ```
 
-- `${name}` 读取当前 Execution Project 的 `variables`；独占整个标量时保留原始 JSON 类型。
+- `${name}` 读取当前执行项目的 `variables`；独占整个标量时保留原始 JSON 类型。
 - `${{ENV_NAME}}` 读取环境变量，结果始终是字符串。
 - 对象或数组变量可以作为完整值使用，但不能嵌入更长的字符串。
 - 未定义变量会在收集阶段失败。变量只解析 Node input，不解析 `$`。
 
-Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过 Execution Project 的 `context` 显式提供。
+Workflow YAML 不提供 `set`、`saveAs` 或 Step 输出表达式。每个 Step 独立运行，不会自动接收前序 Step 的结果。如需共享必要信息，请通过执行项目的 `context` 显式提供。
 
 ### 使用 tags 筛选 Case
 
@@ -238,7 +257,7 @@ cases:
       - aiAct: 完成下单
 ```
 
-框架维护者在每个 Execution Project 中配置 `tags.include` 与 `tags.exclude`。exclude 始终优先；include 非空时，Case 命中任意一个 include tag 即会被选中。
+框架维护者在每个执行项目中配置 `tags.include` 与 `tags.exclude`。exclude 始终优先；include 非空时，Case 命中任意一个 include tag 即会被选中。
 
 ## 定义执行生命周期
 
@@ -255,7 +274,7 @@ cases:
 | `afterEach` | 每个用例的每次执行结束后，包括失败和重试 | 清理本次用例创建的数据 |
 | `afterAll` | 当前 YAML 文件的所有用例结束后，执行一次 | 清理本文件共用的测试数据 |
 
-下面的 Web 示例在每个用例开始前打开商城首页，结束后清除 Cookie。`data.prepare` 和 `data.cleanup` 是需要由项目实现和注册的自定义 Node，分别准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 是内置 Node。请替换示例网址和商品名称。
+下面的 Web 示例在每个用例开始前打开商城首页，结束后清除 Cookie。`data.prepare` 和 `data.cleanup` 是需要由项目实现和注册的自定义 Node，分别准备和清理测试商品；`gotoUrl`、`clearCookies`、`aiAct` 和 `aiAssert` 是 Web 脚手架默认注册的官方 Node。请替换示例网址和商品名称。
 
 ```yaml filename=cases/search.yaml
 beforeAll:
@@ -304,6 +323,8 @@ afterAll
 
 默认情况下，一个阶段中的步骤失败后，该阶段的剩余步骤不再执行。需要继续执行同阶段的后续步骤时，可设置 [`continue-on-error`](#设置超时和错误处理)；这不会把失败结果改为成功。清理 Node 应能处理准备步骤只完成了一部分的情况。
 
+默认情况下，一个 Case 失败后仍会继续执行下一个 Case。需要提前停止调度时，通过 `test.bail` 设置失败用例数阈值。文件级前置条件放在 `beforeAll`，失败后该文件的 Case 不再执行；有依赖关系的业务步骤放在同一个 Case 中，不要依赖另一条 Case 成功。
+
 项目 setup 管理浏览器和 Agent 等资源，详见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。Node 内部创建的资源，见[资源的生命周期与清理](./extend#资源的生命周期与清理)。
 
 ## 运行测试
@@ -330,32 +351,49 @@ pnpm exec midscene-test ./cases/order.yaml
 
 ### 过滤运行目标与配置文件
 
-如果项目配置了多个运行平台或环境，你可以指定仅运行特定的 Execution Project，或者通过命令行指定自定义配置文件：
+如果项目配置了多个运行平台或环境，你可以指定仅运行特定的执行项目，或者通过命令行指定自定义配置文件：
 
 ```bash
-# 只运行名为 android-smoke 和 ios-regression 的 Execution Project
+# 只运行名为 android-smoke 和 ios-regression 的执行项目
 pnpm exec midscene-test --project android-smoke --project ios-regression
 
 # 使用指定的配置文件运行测试
 pnpm exec midscene-test --config ./config/midscene.config.ts
 ```
 
-查看某个 Execution Project（执行项目）的操作说明书时，也可以指定 `--project`：
+为某个执行项目生成 Node 说明书时，也可以指定 `--project`：
 
 ```bash
 pnpm exec midscene-test nodes --project android-smoke
+```
+
+### 尚未迁移的旧版 YAML 继续使用旧命令
+
+顶层使用 `tasks/flow` 的旧文件和 YAML 批配置继续使用 `midscene`：
+
+```bash
+pnpm exec midscene ./legacy-flow.yaml
+pnpm exec midscene --config ./legacy-batch.yaml
+```
+
+`midscene-test` 不会自动识别或执行这些旧文件，也不接受旧批配置和旧 CLI 参数。一个文件完整转换为 `cases/steps` 后，才能改用 `midscene-test`。迁移期间，两类文件可以放在同一仓库的不同目录，但同一次命令只能选择一种格式。迁移步骤和字段映射见[迁移到 Midscene Test](../migrate-to-midscene-test)。
+
+需要把结构化运行结果写到指定目录时，使用 `--result-dir`：
+
+```bash
+pnpm exec midscene-test --result-dir ./test-results
 ```
 
 当发生用例运行失败、文档解析失败或收集阶段发生错误时，CLI 会返回退出码 `1`。
 
 ## 查看测试结果
 
-每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看 Project、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
+每次运行结束后，CLI 会打印执行结果和 `Report:` 路径。打开 HTML 报告，即可查看项目、Case、重试记录、截图、Step 输入输出、错误及关联的 Agent 执行详情。
 
 报告默认保存在：
 
 ```text
-midscene_run/report/test-run-<runId>.html
+midscene_run/report/midscene-e2e-<runId>.html
 ```
 
 使用外置截图时，报告是包含 `index.html` 和 `screenshots/` 的目录，复制或上传时需保留整个目录。

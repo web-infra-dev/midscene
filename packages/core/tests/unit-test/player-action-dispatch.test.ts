@@ -104,6 +104,36 @@ describe('player action dispatch ordering', () => {
     expect(player.result.services).toBe('adb-result');
   });
 
+  it('should preserve RunAdbShell timeout through the ActionSpace fallback', async () => {
+    const actionSpace = [
+      {
+        name: 'RunAdbShell',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: runAdbShellParamSchema.extend({
+          timeout: z.number().optional(),
+        }),
+      },
+    ];
+    const player = createPlayerWithActionSpace(actionSpace);
+    const agent = {
+      callActionInActionSpace: rs.fn().mockResolvedValue('shell output'),
+    } as any;
+    const taskStatus = {
+      name: 'test',
+      flow: [{ runAdbShell: 'dumpsys activity', timeout: 60_000 }],
+      index: 0,
+      status: 'running' as const,
+      totalSteps: 1,
+    };
+
+    await player.playTask(taskStatus, agent);
+
+    expect(agent.callActionInActionSpace).toHaveBeenCalledWith('RunAdbShell', {
+      command: 'dumpsys activity',
+      timeout: 60_000,
+    });
+  });
+
   it('should not treat uppercase RunAdbShell as the YAML timeout helper', async () => {
     const actionSpace = [
       {
