@@ -133,6 +133,29 @@ const contracts: readonly LegacyFlowContract[] = [
     },
   },
   {
+    id: 'tap-structured-prompt',
+    legacyFields: ['aiTap'],
+    input: {
+      aiTap: {
+        prompt: 'button',
+        images: [{ name: 'reference', url: 'data:image/png;base64,fixture' }],
+        convertHttpImage2Base64: false,
+      },
+    } as MidsceneYamlFlowItem,
+    expected: {
+      node: 'aiTap',
+      input: {
+        prompt: {
+          prompt: 'button',
+          images: [{ name: 'reference', url: 'data:image/png;base64,fixture' }],
+          convertHttpImage2Base64: false,
+        },
+        options: {},
+      },
+      meta: { continueOnError: false },
+    },
+  },
+  {
     id: 'tap-nested-locate-and-deep-think-alias',
     legacyFields: ['aiTap', 'locate', 'prompt', 'deepThink'],
     input: {
@@ -459,6 +482,17 @@ const frozenAgentCalls: Readonly<Record<string, FrozenAgentCall | null>> = {
         fileChooserAccept: ['./fixture.txt'],
         uiContext: { fixture: true },
       },
+    ],
+  },
+  'tap-structured-prompt': {
+    method: 'aiTap',
+    args: [
+      {
+        prompt: 'button',
+        images: [{ name: 'reference', url: 'data:image/png;base64,fixture' }],
+        convertHttpImage2Base64: false,
+      },
+      {},
     ],
   },
   'tap-nested-locate-and-deep-think-alias': {

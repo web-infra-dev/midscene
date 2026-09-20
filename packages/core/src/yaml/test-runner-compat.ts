@@ -264,8 +264,22 @@ export function compileLegacyFlowItem(
       const { prompt: nestedPrompt, ...nestedOptions } = nested;
       locatePrompt = nestedPrompt;
       options = { ...nestedOptions, ...tapOptions };
+    } else if (
+      aiTap &&
+      typeof aiTap === 'object' &&
+      typeof aiTap.prompt === 'string' &&
+      aiTap.prompt
+    ) {
+      // Keep structured prompt data such as images inside the private YAML
+      // adapter. A prompt-only object retains the existing normalized string
+      // form used by cached-plan and variable-like legacy inputs.
+      locatePrompt =
+        Object.hasOwn(aiTap, 'images') ||
+        Object.hasOwn(aiTap, 'convertHttpImage2Base64')
+          ? aiTap
+          : aiTap.prompt;
     } else {
-      locatePrompt = aiTap?.prompt || prompt || nested;
+      locatePrompt = prompt || nested;
     }
     return locatePrompt
       ? step('aiTap', { prompt: locatePrompt, options })
