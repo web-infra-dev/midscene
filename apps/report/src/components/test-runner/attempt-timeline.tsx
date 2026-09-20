@@ -7,6 +7,8 @@ import type { TestRunReportAttempt } from '@midscene/core';
 import { formatTimelineTime } from '../timeline/timeline-scale';
 import type { RunnerPositionedVisualFrame } from './model';
 
+export type RunnerAttemptTimelineVariant = 'standalone' | 'detail' | 'overview';
+
 export function RunnerTimelinePlaybackControl({
   frameCount,
   isPlaying,
@@ -44,33 +46,33 @@ export function RunnerAttemptTimeline({
   previewFrameKey,
   lockedFrameKey,
   isPlaying,
-  embedded = false,
+  variant = 'standalone',
   onPreview,
   onSelectFrame,
   onTogglePlay,
 }: {
-  attempt: TestRunReportAttempt;
+  attempt?: TestRunReportAttempt;
   frames: readonly RunnerPositionedVisualFrame[];
   selectedStepId?: string;
   previewFrameKey?: string;
   lockedFrameKey?: string;
-  isPlaying: boolean;
-  embedded?: boolean;
+  isPlaying?: boolean;
+  variant?: RunnerAttemptTimelineVariant;
   onPreview(frameKey: string | undefined): void;
   onSelectFrame(frame: RunnerPositionedVisualFrame): void;
-  onTogglePlay(): void;
+  onTogglePlay?(): void;
 }): JSX.Element {
-  const measuredDurationMs = Math.max(
-    0,
-    Date.parse(attempt.endedAt) - Date.parse(attempt.startedAt),
-  );
+  const measuredDurationMs = attempt
+    ? Math.max(0, Date.parse(attempt.endedAt) - Date.parse(attempt.startedAt))
+    : 0;
   const timelineDurationMs = Math.max(
     1,
-    attempt.durationMs,
+    attempt?.durationMs ?? 0,
     measuredDurationMs,
     frames.at(-1)?.offsetMs ?? 0,
   );
-  const tickRatios = embedded
+  const isEmbedded = variant !== 'standalone';
+  const tickRatios = isEmbedded
     ? [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
     : [0, 0.25, 0.5, 0.75, 1];
   const ticks = tickRatios.map((ratio) => ratio * timelineDurationMs);
@@ -80,10 +82,10 @@ export function RunnerAttemptTimeline({
 
   return (
     <section
-      className={`runner-detail-timeline-card ${embedded ? 'is-embedded' : ''}`}
+      className={`runner-detail-timeline-card is-${variant}`}
       aria-label="Attempt visual timeline"
     >
-      {!embedded ? (
+      {!isEmbedded ? (
         <div className="runner-detail-timeline-toolbar">
           <span>
             <PictureOutlined />
@@ -92,11 +94,13 @@ export function RunnerAttemptTimeline({
           </span>
           <span>
             <small>{frames.length} captured frames</small>
-            <RunnerTimelinePlaybackControl
-              frameCount={frames.length}
-              isPlaying={isPlaying}
-              onTogglePlay={onTogglePlay}
-            />
+            {onTogglePlay ? (
+              <RunnerTimelinePlaybackControl
+                frameCount={frames.length}
+                isPlaying={Boolean(isPlaying)}
+                onTogglePlay={onTogglePlay}
+              />
+            ) : null}
           </span>
         </div>
       ) : null}
@@ -111,7 +115,9 @@ export function RunnerAttemptTimeline({
                 key={`${tick}-${index}`}
                 style={{ left: `${tickRatios[index] * 100}%` }}
               >
-                {embedded ? `${Math.round(tick)}ms` : formatTimelineTime(tick)}
+                {isEmbedded
+                  ? `${Math.round(tick)}ms`
+                  : formatTimelineTime(tick)}
               </span>
             ))}
           </div>
@@ -184,8 +190,9 @@ export function RunnerAttemptTimeline({
         <div className="runner-detail-no-visual">
           <PictureOutlined />
           <span>
-            No visual evidence was captured in this Attempt. The execution steps
-            and runtime data are still available below.
+            {variant === 'overview'
+              ? 'No visual evidence for this attempt'
+              : 'No visual evidence was captured in this Attempt. The execution steps and runtime data are still available below.'}
           </span>
         </div>
       )}

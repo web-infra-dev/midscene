@@ -319,7 +319,7 @@
     cursor: default;
   }
 
-  .runner-detail-step-panel > .runner-detail-timeline-card.is-embedded {
+  .runner-detail-step-panel > .runner-detail-timeline-card.is-detail {
     height: 120px;
     min-height: 120px;
     margin: 8px 8px 0;
@@ -330,7 +330,7 @@
     box-shadow: none;
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-track {
+  .runner-detail-timeline-card.is-detail .runner-detail-timeline-track {
     height: 120px;
     min-height: 120px;
     padding: 0;
@@ -338,22 +338,22 @@
     border-radius: 16px;
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-axis {
+  .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis {
     height: 28px;
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-axis span {
+  .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis span {
     top: 2px;
     color: var(--runner-text);
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-lane {
+  .runner-detail-timeline-card.is-detail .runner-detail-timeline-lane {
     height: 92px;
     border-bottom: 0;
     background: var(--runner-surface);
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-frame {
+  .runner-detail-timeline-card.is-detail .runner-detail-timeline-frame {
     top: 0;
     width: 126px;
     height: 86px;
@@ -363,12 +363,13 @@
     box-shadow: none;
   }
 
-  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-frame:hover,
-  .runner-detail-timeline-card.is-embedded
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
+    .runner-detail-timeline-frame:hover,
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
     .runner-detail-timeline-frame:focus-visible,
-  .runner-detail-timeline-card.is-embedded
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
     .runner-detail-timeline-frame.is-preview,
-  .runner-detail-timeline-card.is-embedded
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
     .runner-detail-timeline-frame.is-selected {
     border: 1px solid #b5cbff;
     background: var(--runner-primary-soft);
@@ -376,12 +377,12 @@
     transform: translateX(-50%);
   }
 
-  .runner-detail-timeline-card.is-embedded
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
     .runner-detail-timeline-frame.is-selected {
     padding: 0;
   }
 
-  .runner-detail-timeline-card.is-embedded
+  .runner-detail-timeline-card:is(.is-detail, .is-overview)
     .runner-detail-timeline-frame
     > span {
     display: none;

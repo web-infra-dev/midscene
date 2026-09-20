@@ -52,7 +52,7 @@ const renderTimeline = ({
       previewFrameKey={previewFrameKey}
       lockedFrameKey={lockedFrameKey}
       isPlaying={false}
-      embedded
+      variant="detail"
       onPreview={() => {}}
       onSelectFrame={() => {}}
       onTogglePlay={() => {}}
@@ -84,5 +84,22 @@ describe('attempt timeline', () => {
     expect(html).toContain('left:clamp(228px, 60%, calc(100% - 228px))');
     expect(html).toContain('alt="Preview of Second frame"');
     expect(html).toContain('src="data:image/png;base64,second"');
+  });
+
+  it('uses the same interactive frame markup in the overview density', () => {
+    const html = renderToStaticMarkup(
+      <RunnerAttemptTimeline
+        attempt={attempt}
+        frames={frames}
+        previewFrameKey="frame-1"
+        variant="overview"
+        onPreview={() => {}}
+        onSelectFrame={() => {}}
+      />,
+    );
+
+    expect(html).toContain('runner-detail-timeline-card is-overview');
+    expect(html).toContain('runner-detail-timeline-preview-callout');
+    expect(html).toContain('aria-label="First frame at 100ms"');
   });
 });

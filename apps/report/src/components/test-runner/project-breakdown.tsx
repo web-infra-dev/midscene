@@ -4,7 +4,8 @@ import {
   WarningFilled,
 } from '@ant-design/icons';
 import { Button, Empty, Tooltip } from 'antd';
-import { useId } from 'react';
+import { useId, useMemo, useState } from 'react';
+import { RunnerAttemptTimeline } from './attempt-timeline';
 import {
   type RunnerCaseStatus,
   type RunnerCaseView,
@@ -13,13 +14,13 @@ import {
   type RunnerVisualIndex,
   getAllAttemptVisualFrames,
   getCaseFailure,
+  positionAttemptVisualFrames,
 } from './model';
 import {
   type RunnerCaseDisplayMode,
   caseStatusLabel,
   formatDuration,
 } from './view-primitives';
-import { VisualTimeline } from './visual-timeline';
 
 export const projectDisplayStatus = (
   item: RunnerProjectView,
@@ -41,8 +42,16 @@ function ProjectBreakdownCase({
   displayMode: RunnerCaseDisplayMode;
   onOpen(item: RunnerCaseView, stepId?: string): void;
 }): JSX.Element {
+  const [previewFrameKey, setPreviewFrameKey] = useState<string>();
   const failure = getCaseFailure(item.testCase);
   const attemptCount = item.testCase.attempts.length;
+  const positionedFrames = useMemo(() => {
+    if (!item.finalAttempt) return [];
+    return positionAttemptVisualFrames(
+      item.finalAttempt,
+      getAllAttemptVisualFrames(item.finalAttempt, visualIndex),
+    );
+  }, [item.finalAttempt, visualIndex]);
   const issue = failure
     ? {
         label: `Step ${failure.node}`,
@@ -61,55 +70,61 @@ function ProjectBreakdownCase({
       }`}
       data-case-key={item.key}
     >
-      <button
-        type="button"
-        className="runner-project-tree-case"
-        onClick={() => onOpen(item, failure?.id)}
-        aria-label={`Open ${item.testCase.name} in project ${item.project.name}${
-          failure ? ' at the failed Step' : ''
-        } · ${caseStatusLabel(item.status)}`}
-      >
-        <div className="runner-project-tree-case-main">
-          <div className="runner-project-tree-case-title">
-            <span
-              className={`runner-project-tree-branch is-${item.status}`}
-              aria-hidden="true"
-            />
-            <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
-              <h3>{item.testCase.name}</h3>
-            </Tooltip>
-          </div>
-          <div className="runner-project-tree-case-meta-row">
-            <Tooltip title={item.document.sourcePath} mouseEnterDelay={0.25}>
-              <span>{item.document.sourcePath}</span>
-            </Tooltip>
-            <span>
-              {attemptCount} {attemptCount === 1 ? 'attempt' : 'attempts'}
-            </span>
-            <time>{formatDuration(item.durationMs)}</time>
-          </div>
-          <div
-            className={`runner-project-tree-case-issue${issue ? '' : ' is-empty'}`}
-          >
-            {issue ? (
-              <Tooltip title={issue.detail} mouseEnterDelay={0.25}>
-                <span>
-                  <WarningFilled />
-                  {issue.label}
-                </span>
+      <div className="runner-project-tree-case">
+        <button
+          type="button"
+          className="runner-project-tree-case-open"
+          onClick={() => onOpen(item, failure?.id)}
+          aria-label={`Open ${item.testCase.name} in project ${item.project.name}${
+            failure ? ' at the failed Step' : ''
+          } · ${caseStatusLabel(item.status)}`}
+        >
+          <div className="runner-project-tree-case-main">
+            <div className="runner-project-tree-case-title">
+              <span
+                className={`runner-project-tree-branch is-${item.status}`}
+                aria-hidden="true"
+              />
+              <Tooltip title={item.testCase.name} mouseEnterDelay={0.25}>
+                <h3>{item.testCase.name}</h3>
               </Tooltip>
-            ) : null}
+            </div>
+            <div className="runner-project-tree-case-meta-row">
+              <Tooltip title={item.document.sourcePath} mouseEnterDelay={0.25}>
+                <span>{item.document.sourcePath}</span>
+              </Tooltip>
+              <span>
+                {attemptCount} {attemptCount === 1 ? 'attempt' : 'attempts'}
+              </span>
+              <time>{formatDuration(item.durationMs)}</time>
+            </div>
+            <div
+              className={`runner-project-tree-case-issue${issue ? '' : ' is-empty'}`}
+            >
+              {issue ? (
+                <Tooltip title={issue.detail} mouseEnterDelay={0.25}>
+                  <span>
+                    <WarningFilled />
+                    {issue.label}
+                  </span>
+                </Tooltip>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </button>
         {displayMode === 'detailed' ? (
           <div className="runner-case-evidence-preview">
-            <VisualTimeline
-              frames={getAllAttemptVisualFrames(item.finalAttempt, visualIndex)}
-              durationMs={item.finalAttempt?.durationMs}
+            <RunnerAttemptTimeline
+              attempt={item.finalAttempt}
+              frames={positionedFrames}
+              previewFrameKey={previewFrameKey}
+              variant="overview"
+              onPreview={setPreviewFrameKey}
+              onSelectFrame={(frame) => onOpen(item, frame.stepId)}
             />
           </div>
         ) : null}
-      </button>
+      </div>
     </li>
   );
 }

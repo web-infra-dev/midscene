@@ -949,130 +949,6 @@
     content: '•';
   }
 
-  .runner-visual-timeline {
-    position: relative;
-    min-width: 0;
-    width: 100%;
-    height: 86px;
-    overflow: hidden;
-    border-top: 1px solid var(--runner-border);
-    border-bottom: 1px solid var(--runner-border);
-    background: var(--runner-surface-muted);
-  }
-
-  .runner-visual-timeline-grid {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .runner-visual-timeline-grid > span {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    border-left: 1px solid var(--runner-border);
-  }
-
-  .runner-visual-timeline-grid small {
-    position: absolute;
-    top: 5px;
-    right: 6px;
-    color: var(--runner-subtle);
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .runner-visual-timeline-track {
-    position: absolute;
-    top: 25px;
-    right: 0;
-    bottom: 5px;
-    left: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .runner-visual-timeline-track > li {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 92px;
-    list-style: none;
-  }
-
-  .runner-visual-timeline-track > li:hover {
-    z-index: 100;
-  }
-
-  .runner-visual-timeline-frame {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-    border: 1px solid var(--runner-border-strong);
-    border-radius: 2px;
-    background: #111318;
-    box-shadow: 1px 0 2px rgba(31, 35, 41, 0.16);
-    transition:
-      border-color 0.12s ease,
-      transform 0.12s ease;
-  }
-
-  .runner-visual-timeline-frame:hover {
-    border-color: var(--runner-primary);
-    box-shadow: 0 0 0 1px var(--runner-primary);
-    transform: translateY(-2px);
-  }
-
-  .runner-visual-timeline-frame img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .runner-visual-frame-index {
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
-    display: grid;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    color: #fff;
-    border-radius: 999px;
-    background: rgba(17, 19, 24, 0.76);
-    font-size: 14px;
-    line-height: 16px;
-    text-align: center;
-    place-items: center;
-  }
-
-  .runner-no-visual {
-    display: flex;
-    min-height: 150px;
-    align-items: center;
-    justify-content: center;
-    margin-top: 18px;
-    gap: 8px;
-    color: var(--runner-subtle);
-    border: 1px dashed var(--runner-border-strong);
-    border-radius: 10px;
-    background: var(--runner-surface-muted);
-    font-size: 14px;
-  }
-
-  .runner-no-visual.is-compact {
-    min-height: 58px;
-    margin: 0;
-    padding: 8px;
-    font-size: 14px;
-    text-align: center;
-  }
-
   .runner-diagnostics {
     display: grid;
     gap: 10px;
@@ -2138,56 +2014,6 @@
   }
 }
 
-.runner-frame-preview-tooltip {
-  max-width: min(720px, 72vw);
-
-  .ant-tooltip-inner {
-    max-width: min(720px, 72vw);
-    padding: 0;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
-    background: #111318;
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
-  }
-
-  .runner-frame-preview {
-    width: min(640px, 68vw);
-    margin: 0;
-  }
-
-  .runner-frame-preview img {
-    display: block;
-    width: 100%;
-    max-height: min(520px, 65vh);
-    object-fit: contain;
-    background: #111318;
-  }
-
-  .runner-frame-preview figcaption {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    padding: 10px 12px;
-    gap: 9px;
-    color: #d9dce1;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 14px;
-  }
-
-  .runner-frame-preview figcaption span {
-    color: #8f959e;
-    flex-shrink: 0;
-  }
-
-  .runner-frame-preview figcaption strong {
-    overflow: hidden;
-    font-weight: 500;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
 .test-runner-report[data-theme='dark'] {
   color-scheme: dark;
   --runner-scroll-thumb: #59616d;
@@ -2492,10 +2318,6 @@
 
     .runner-attempt-switcher > button {
       min-width: 132px;
-    }
-
-    .runner-visual-timeline-track > li {
-      width: 78px;
     }
 
     .runner-detail-case-header {

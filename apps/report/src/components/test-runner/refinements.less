@@ -157,26 +157,9 @@
     overflow-wrap: anywhere;
   }
 
-  .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-    grid-template-columns: 12px minmax(0, 1.25fr) minmax(0, 1fr);
-    min-height: 112px;
-    padding-block: 12px;
-  }
-
   .runner-project-tree-case-issue {
     min-width: 0;
     font-size: 14px;
-  }
-
-  .runner-case-evidence-preview {
-    min-width: 0;
-    padding-inline: 12px;
-  }
-
-  .runner-case-evidence-preview .runner-visual-timeline {
-    height: 84px;
-    border: 1px solid var(--runner-border);
-    border-radius: 8px;
   }
 
   .runner-project-filter-reset {
@@ -188,16 +171,6 @@
 
 @media (max-width: 860px) {
   .test-runner-report {
-    .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-      grid-template-columns: 12px minmax(0, 1fr);
-    }
-
-    .runner-case-evidence-preview {
-      grid-column: 2 / -1;
-      grid-row: 2;
-      padding: 10px 14px 0 10px;
-    }
-
     .runner-project-tree-case-item.is-detailed .runner-project-tree-case-issue {
       display: flex;
     }

@@ -112,7 +112,7 @@ export function CaseWorkspace({
                   previewFrameKey={previewFrameKey}
                   lockedFrameKey={lockedFrameKey}
                   isPlaying={isPlaying}
-                  embedded
+                  variant="detail"
                   onPreview={setPreviewFrameKey}
                   onSelectFrame={selectFrame}
                   onTogglePlay={togglePlayback}

@@ -351,6 +351,7 @@
   .runner-project-tree {
     margin-top: 0;
     padding: 0 20px;
+    overflow: visible;
     border-color: var(--runner-border);
     border-radius: 0 0 16px 16px;
     box-shadow: none;
@@ -478,7 +479,32 @@
   .runner-project-tree-case {
     grid-template-columns: minmax(0, 1fr);
     min-height: 48px;
-    border-top: 1px solid var(--runner-border);
+    align-items: stretch;
+    border-top: 0;
+    border-bottom: 1px solid var(--runner-border);
+    cursor: default;
+  }
+
+  .runner-project-tree-case-open {
+    display: grid;
+    min-width: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    color: inherit;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .runner-project-tree-case-open:focus-visible {
+    z-index: 1;
+    outline: 2px solid
+      color-mix(in srgb, var(--runner-primary) 36%, transparent);
+    outline-offset: -2px;
   }
 
   .runner-project-tree-branch {
@@ -510,12 +536,93 @@
   }
 
   .runner-project-tree-case-item.is-detailed .runner-project-tree-case {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 112px;
+    grid-template-columns: 34.87% minmax(0, 1fr);
+    min-height: 100px;
+    padding: 10px 0;
+    gap: 4px;
+  }
+
+  .runner-project-tree-case-item.is-detailed {
+    z-index: 0;
+  }
+
+  .runner-project-tree-case-item.is-detailed:hover,
+  .runner-project-tree-case-item.is-detailed:focus-within {
+    z-index: 10;
+  }
+
+  .runner-project-tree-case-item.is-detailed .runner-project-tree-case-open {
+    min-height: 76px;
+  }
+
+  .runner-project-tree-case-item.is-detailed .runner-project-tree-case-main {
+    display: grid;
+    min-height: 76px;
+    grid-template-rows: repeat(3, 24px);
+    align-content: center;
+    padding: 0 12px 0 28px;
+    gap: 2px;
   }
 
   .runner-project-tree-case-item.is-detailed .runner-case-evidence-preview {
-    grid-column: 1 / -1;
-    padding: 8px 12px 12px 48px;
+    min-width: 0;
+    height: 76px;
+    padding: 0;
+  }
+
+  .runner-case-evidence-preview .runner-detail-timeline-card.is-overview {
+    height: 76px;
+    min-height: 76px;
+    margin: 0;
+    overflow: visible;
+    border: 1px solid var(--runner-border);
+    border-radius: 8px;
+    background: #fcfcfc;
+    box-shadow: none;
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-timeline-track {
+    height: 74px;
+    min-height: 74px;
+    padding: 0;
+    overflow: visible;
+    border-radius: 8px;
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-timeline-axis {
+    height: 23px;
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-timeline-axis span {
+    top: 1px;
+    color: var(--runner-text);
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-timeline-lane {
+    height: 51px;
+    border-bottom: 0;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-timeline-frame {
+    top: 0;
+    width: 88px;
+    height: 50px;
+    padding: 0;
+    border-color: var(--runner-border);
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .runner-detail-timeline-card.is-overview
+    .runner-detail-timeline-frame
+    > span {
+    display: none;
+  }
+
+  .runner-detail-timeline-card.is-overview .runner-detail-no-visual {
+    min-height: 74px;
+    padding: 8px;
+    font-size: 12px;
   }
 }

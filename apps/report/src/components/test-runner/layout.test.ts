@@ -88,7 +88,18 @@ describe('Midscene Test report layout', () => {
 
   it('keeps case rows clickable without a separate Inspect affordance', () => {
     expect(breakdown).not.toContain('runner-project-tree-case-cta');
+    expect(breakdown).toContain('className="runner-project-tree-case-open"');
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
+  });
+
+  it('shares the interactive attempt timeline between overview and detail', () => {
+    expect(breakdown).toContain(
+      "import { RunnerAttemptTimeline } from './attempt-timeline'",
+    );
+    expect(breakdown).toContain('variant="overview"');
+    expect(breakdown).toContain('positionAttemptVisualFrames(');
+    expect(breakdown).not.toContain('VisualTimeline');
+    expect(workspace).toContain('variant="detail"');
   });
 
   it('uses one shared Select for report filters and attempt switching', () => {
@@ -146,9 +157,7 @@ describe('Midscene Test report layout', () => {
     expect(timeline).toContain('aria-pressed={isSelected}');
     expect(timeline).toContain('runner-detail-timeline-preview-callout');
     expect(timeline).toContain('previewFrame.frame.screenshot.base64');
-    expect(timeline).toContain(
-      'frames.find((item) => item.stepId === selectedStepId)?.frame.key',
-    );
+    expect(timeline).toContain('item.stepId === selectedStepId');
   });
 
   it('keeps the interactive timeline visible inside Execution', () => {
