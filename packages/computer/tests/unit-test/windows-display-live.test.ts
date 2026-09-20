@@ -1,12 +1,12 @@
+import { describe, expect, it } from '@rstest/core';
 import {
   type WindowsDisplayGeometry,
   discoverWindowsDisplays,
-} from '@/windows-display';
+} from '../../src/windows-display';
 import {
   runWindowsPhysicalPixelPowershell,
   runWindowsPowershell,
-} from '@/windows-dpi';
-import { describe, expect, it } from '@rstest/core';
+} from '../../src/windows-dpi';
 
 const DISPLAY_ENUMERATION_SCRIPT = `
 Add-Type -AssemblyName System.Windows.Forms

@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
-import { assertLegacyWindowsCoordinateCompatibility } from '@/windows-display';
 import { describe, expect, it } from '@rstest/core';
+import { assertLegacyWindowsCoordinateCompatibility } from '../../src/windows-display';
 
 function pngDataUri(width: number, height: number): string {
   const buffer = Buffer.alloc(24);
@@ -57,10 +57,8 @@ describe('Windows legacy coordinate compatibility', () => {
     expect(() =>
       assertLegacyWindowsCoordinateCompatibility({
         geometry: {
-          ...primaryGeometry,
-          id: '\\\\.\\DISPLAY7',
-          name: '\\\\.\\DISPLAY7',
           primary: false,
+          bounds: primaryGeometry.bounds,
         },
         systemDpi: 96,
         screenshotBase64: pngDataUri(1920, 1080),
