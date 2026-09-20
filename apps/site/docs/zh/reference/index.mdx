@@ -134,7 +134,7 @@ function aiAct(
   prompt: string | object,
   options?: {
     cacheable?: boolean;
-    deepThink?: 'unset' | true | false;
+    deepThink?: 'unset' | 'auto' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
     fileChooserAllowedDir?: string;
@@ -150,7 +150,7 @@ function ai(prompt: string, options?: Object): Promise<string | undefined>; // �
   - `prompt: string | object` - 用自然语言描述的操作目标和断言条件，或[使用图片作为提示词](#使用图片作为提示词)。断言条件不是必填项。
   - `options?: object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](../caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `deepThink?: 'unset' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
+    - `deepThink?: 'unset' | 'auto' | true | false` - 控制 Midscene 在 `aiAct` 执行规划时的具体实现。详见 [`deepThink` 规划模式](#aiact-deepthink)。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `context?: string` - 本次调用的额外上下文。详见[单次调用上下文](#单次调用上下文)。
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer 或 Chrome extension Bridge mode）中可用。该选项不受 `fileChooserAllowedDir` 限制。
@@ -196,7 +196,17 @@ await agent.aiAct('完成 github 账号注册的表单填写。地区必须选�
 - 默认情况下，`aiAct` 会在同一次规划请求中完成下一步规划和目标元素定位。
 - 设置为 `true` 后，`aiAct` 会更注重任务拆解，并将任务规划和元素定位分为不同的模型调用。复杂任务可能因此更加稳定，但模型调用次数和延迟也会增加。
 
-`deepThink` 支持 `'unset' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
+`deepThink` 支持 `'unset' | 'auto' | true | false`。`'unset'` 是兼容旧写法的取值，与 `false` 的行为相同。
+
+设置 `deepThink: 'auto'` 时，Midscene 会在开始规划前额外调用一次当前配置的 Planning 模型，根据任务、最终生效的用户 context、初始截图和参考图片，判断是否开启深度思考。选定的模式在本次 `aiAct` 中保持不变。目标和值明确的直接操作倾向于普通规划；需要追踪依赖目标、跨页面记忆、比较信息或处理条件分支的任务倾向于深度思考。
+
+报告会单独记录 `Planning / DeepThink` 步骤，包含判断结果、理由、token 用量和耗时，不占用 replanning 次数。命中可执行的计划缓存时跳过判断；缓存执行失败而回退到规划时，会先执行判断。判断结果无效或模型请求失败时，本次调用报错，不会静默选择模式。`auto` 仅支持标准 Planning 适配器，不支持 UI-TARS、AutoGLM 等自定义 Planner。显式设置的实验性 `effort` 仍优先于 `deepThink`。
+
+```ts
+await agent.aiAct('比较可选套餐，选择满足我要求的一款', {
+  deepThink: 'auto',
+});
+```
 
 `deepThink` 不控制模型原生思考。相关环境变量请参考[模型原生思考](../model-config#model-native-reasoning)。
 
@@ -1189,7 +1199,7 @@ function runGherkinScenario(
   options?: {
     context?: string;
     abortSignal?: AbortSignal;
-    deepThink?: 'unset' | true | false;
+    deepThink?: 'unset' | 'auto' | true | false;
     deepLocate?: boolean;
   },
 ): Promise<void>;
@@ -1201,7 +1211,7 @@ function runGherkinScenario(
   - `options?: object` - 可选的运行选项
     - `context?: string` - 应用于本次运行每个步骤的 AI 补充信息。对于每个映射后的 API 调用，它会覆盖 Agent 的 API 级 context 和 `aiContexts.default`
     - `abortSignal?: AbortSignal` - 用于中止本次运行的可选信号
-    - `deepThink?: 'unset' | true | false` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
+    - `deepThink?: 'unset' | 'auto' | true | false` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
     - `deepLocate?: boolean` - 传给 `Given` 和 `When` 步骤对应的 `aiAct`
 
 - 返回值：

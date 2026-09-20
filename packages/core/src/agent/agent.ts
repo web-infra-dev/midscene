@@ -147,6 +147,7 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   fileChooserAllowedDir?: string;
   effort?: AiActEffort;
+  /** Use auto to select a fixed planning mode with one model call before execution. */
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
   abortSignal?: AbortSignal;
@@ -1304,13 +1305,27 @@ export class Agent<InterfaceType extends AbstractInterface = AbstractInterface>
       // Resolve the public planning controls at the API boundary. Internal
       // aiAct plumbing only uses effort from this point onward. The explicit
       // effort option takes precedence over deepThink when both are provided.
-      const effort: AiActEffort = (() => {
+      const effort: AiActEffort | 'auto' = (() => {
         const resolvedEffort =
-          opt?.effort ?? (opt?.deepThink === true ? 'deepThink' : 'balance');
+          opt?.effort ??
+          (opt?.deepThink === 'auto'
+            ? 'auto'
+            : opt?.deepThink === true
+              ? 'deepThink'
+              : 'balance');
 
         if (opt?.effort !== undefined) {
           warn(
             'The "effort" option is experimental and not yet open for public use. Do not use it. When both "effort" and "deepThink" are provided, "effort" takes precedence.',
+          );
+        }
+
+        if (
+          resolvedEffort === 'auto' &&
+          planningModel.adapter.planning.kind === 'custom'
+        ) {
+          throw new Error(
+            'deepThink: "auto" requires a standard planning adapter.',
           );
         }
 

@@ -213,7 +213,7 @@ export type ThinkingLevel = 'off' | 'medium' | 'high';
 
 export type AiActEffort = 'fast' | 'balance' | 'deepThink';
 
-export type DeepThinkOption = 'unset' | true | false;
+export type DeepThinkOption = 'unset' | 'auto' | true | false;
 
 export interface ServiceTaskInfo {
   durationMs: number;

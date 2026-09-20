@@ -3,6 +3,7 @@ import type { ModelRuntime } from '@/ai-model/models';
 import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
+import { decideDeepThink } from '@/ai-model/workflows/planning/auto-deep-think';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -398,7 +399,7 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort = 'balance',
+    effort: AiActEffort | 'auto' = 'balance',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -469,7 +470,7 @@ export class TaskExecutor {
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    effort: AiActEffort = 'balance',
+    effort: AiActEffort | 'auto' = 'balance',
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
@@ -506,16 +507,6 @@ export class TaskExecutor {
     const runner = session.getRunner();
     planningModel = { ...planningModel, executionId: runner.id };
     defaultModel = { ...defaultModel, executionId: runner.id };
-
-    const noIndividualLocateModel = planningModel.config.slot === 'default';
-    const includeLocateInPlanning =
-      effort !== 'deepThink' && noIndividualLocateModel;
-    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
-
-    debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
-      effort,
-      noIndividualLocateModel,
-    });
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -565,6 +556,64 @@ export class TaskExecutor {
         return promise;
       };
     })();
+
+    if (effort === 'auto') {
+      const decisionResult = await session.appendAndRun({
+        type: 'Planning',
+        subType: 'DeepThink',
+        param: { userInstruction: userPrompt, aiActContext, deepThink: 'auto' },
+        executor: async ({ task, uiContext }) => {
+          assert(uiContext, 'uiContext is required for deepThink auto');
+          try {
+            const preparedUserPrompt = await getPreparedUserPrompt();
+            setTimingFieldOnce(task.timing, 'callAiStart');
+            const response = await decideDeepThink(preparedUserPrompt, {
+              context: uiContext,
+              actionContext: renderAIContext(aiActContext),
+              modelRuntime: planningModel,
+              abortSignal,
+            });
+            task.usage = withUsageIntent(response.usage, 'planning');
+            task.log = {
+              rawResponse: response.content,
+              rawChoiceMessage: response.rawChoiceMessage,
+            };
+            task.reasoning_content = response.reasoning_content;
+            const selectedEffort = response.decision.deepThink
+              ? 'deepThink'
+              : 'balance';
+            return {
+              output: { ...response.decision, effort: selectedEffort },
+              thought: response.decision.reason,
+            };
+          } catch (error) {
+            if (error instanceof AIResponseParseError) {
+              task.usage = withUsageIntent(error.usage, 'planning');
+              task.log = {
+                rawResponse: error.rawResponse,
+                rawChoiceMessage: error.rawChoiceMessage,
+              };
+              task.reasoning_content = error.reasoningContent;
+            }
+            throw error;
+          } finally {
+            setTimingFieldOnce(task.timing, 'callAiEnd');
+          }
+        },
+      });
+      assert(decisionResult?.output, 'deepThink auto decision is required');
+      effort = decisionResult.output.deepThink ? 'deepThink' : 'balance';
+    }
+
+    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const includeLocateInPlanning =
+      effort !== 'deepThink' && noIndividualLocateModel;
+    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+
+    debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
+      effort,
+      noIndividualLocateModel,
+    });
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -759,7 +808,9 @@ export class TaskExecutor {
       const plans = planResult?.actions || [];
       yamlFlow.push(...(planResult?.yamlFlow || []));
 
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
+      let executables: Awaited<
+        ReturnType<TaskExecutor['convertPlanToExecutable']>
+      >;
       try {
         executables = await this.convertPlanToExecutable(
           plans,
