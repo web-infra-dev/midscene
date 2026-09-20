@@ -21,6 +21,11 @@ export interface WindowsDisplayDiscovery {
   geometries: WindowsDisplayGeometry[];
 }
 
+interface WindowsDisplayEnumerationRunners {
+  physical: (script: string) => string;
+  legacy: (script: string) => string;
+}
+
 export type WindowsCoordinateContext =
   | { mode: 'physical' }
   | { mode: 'legacy'; systemDpi: number };
@@ -108,10 +113,18 @@ export function readWindowsDisplayGeometries(): WindowsDisplayGeometry[] {
   );
 }
 
-export function discoverWindowsDisplays(): WindowsDisplayDiscovery {
+export function discoverWindowsDisplays(
+  runners: WindowsDisplayEnumerationRunners = {
+    physical: runWindowsPhysicalPixelPowershell,
+    legacy: runWindowsPowershell,
+  },
+): WindowsDisplayDiscovery {
   try {
     return {
-      geometries: readWindowsDisplayGeometries(),
+      geometries: readWindowsDisplayGeometriesWith(
+        runners.physical,
+        'physical',
+      ),
       coordinateMode: 'physical',
     };
   } catch (error) {
@@ -119,7 +132,7 @@ export function discoverWindowsDisplays(): WindowsDisplayDiscovery {
       throw error;
     }
     const geometries = readWindowsDisplayGeometriesWith(
-      runWindowsPowershell,
+      runners.legacy,
       'legacy',
     );
     return { geometries, coordinateMode: 'legacy' };

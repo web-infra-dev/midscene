@@ -45,6 +45,10 @@ describe.skipIf(process.platform !== 'win32')(
         runWindowsPhysicalPixelPowershell(DISPLAY_ENUMERATION_SCRIPT),
       );
       const discovery = discoverWindowsDisplays();
+      const forcedFallbackDiscovery = discoverWindowsDisplays({
+        physical: () => '',
+        legacy: runWindowsPowershell,
+      });
 
       console.info(
         '[Windows display enumeration diagnostics]',
@@ -52,6 +56,8 @@ describe.skipIf(process.platform !== 'win32')(
           legacyDisplayCount: legacyDisplays.length,
           physicalDisplayCount: physicalDisplays.length,
           selectedCoordinateMode: discovery.coordinateMode,
+          forcedFallbackCoordinateMode: forcedFallbackDiscovery.coordinateMode,
+          forcedFallbackDisplayCount: forcedFallbackDiscovery.geometries.length,
           legacyDisplays,
           physicalDisplays,
         }),
@@ -62,6 +68,8 @@ describe.skipIf(process.platform !== 'win32')(
       expect(discovery.coordinateMode).toBe(
         physicalDisplays.length === 0 ? 'legacy' : 'physical',
       );
+      expect(forcedFallbackDiscovery.coordinateMode).toBe('legacy');
+      expect(forcedFallbackDiscovery.geometries).toEqual(legacyDisplays);
     });
   },
 );
