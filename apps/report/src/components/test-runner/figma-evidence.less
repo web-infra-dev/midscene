@@ -1,0 +1,307 @@
+.test-runner-report {
+  .runner-detail-evidence-panel {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .runner-detail-evidence-heading {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .runner-detail-evidence-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-detail-evidence-title h2 {
+    margin: 0;
+    color: #000;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+  }
+
+  .runner-detail-evidence-title .runner-status-pill {
+    min-height: 20px;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+
+  .runner-detail-evidence-heading .runner-detail-step-description {
+    margin: 8px 0 0;
+    color: var(--runner-muted);
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  .runner-detail-inspector {
+    margin-top: 24px;
+    border: 0;
+    background: transparent;
+  }
+
+  .runner-detail-tabs-row {
+    position: relative;
+  }
+
+  .runner-detail-inspector-tabs {
+    display: flex;
+    width: fit-content;
+    min-height: 32px;
+    padding: 0;
+    gap: 24px;
+    border: 0;
+    background: transparent;
+  }
+
+  .runner-detail-inspector-tabs button {
+    flex: 0 0 auto;
+    min-width: 0;
+    height: 32px;
+    padding: 0;
+    color: #7d7d7d;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .runner-detail-inspector-tabs button.is-selected {
+    color: #000;
+  }
+
+  .runner-detail-inspector-tabs button.is-selected::after {
+    background: var(--runner-text);
+  }
+
+  .runner-detail-inspector-tabs button::after {
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  .runner-detail-trace-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .runner-detail-trace-actions .ant-btn {
+    height: 32px;
+    border-color: var(--runner-border-strong);
+    border-radius: 12px;
+    background: var(--runner-surface);
+    box-shadow: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .runner-detail-trace-actions .runner-detail-trace-open {
+    color: var(--runner-text);
+  }
+
+  .runner-detail-inspector-content {
+    min-height: 0;
+    padding: 24px 0 0;
+  }
+
+  .runner-detail-record-view {
+    display: grid;
+    gap: 12px;
+  }
+
+  .runner-detail-timeline-card {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+    box-shadow: none;
+  }
+
+  .runner-detail-timeline-toolbar {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .runner-detail-timeline-track {
+    min-height: 120px;
+  }
+
+  .runner-detail-screenshot-stage {
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-screenshot-toolbar {
+    min-height: 40px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--runner-border);
+  }
+
+  .runner-detail-screenshot-canvas {
+    min-height: 420px;
+    max-height: 620px;
+    padding: 12px;
+    background: #fafafa;
+  }
+
+  .runner-detail-screenshot-canvas img {
+    border-radius: 8px;
+  }
+
+  .runner-detail-screenshot-caption {
+    min-height: 32px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--runner-border);
+    font-size: 12px;
+  }
+
+  .runner-detail-io-grid {
+    display: block;
+    padding: 0 20px;
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-io-grid > section {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    min-height: 0;
+    padding: 16px 0;
+    gap: 24px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .runner-detail-io-grid > section + section {
+    border-top: 1px solid var(--runner-border);
+  }
+
+  .runner-detail-io-grid h4 {
+    margin: 0;
+    padding: 0;
+    color: var(--runner-subtle);
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+  }
+
+  .runner-detail-io-body {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    color: #000;
+    background: transparent;
+    font-family: Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .runner-detail-io-grid .runner-json-block pre {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .runner-detail-io-grid p {
+    margin: 8px 0 0;
+    color: inherit;
+    font: inherit;
+  }
+
+  .runner-detail-inline-trace {
+    overflow: hidden;
+    border: 1px solid var(--runner-border);
+    border-radius: 16px;
+  }
+
+  .runner-detail-inline-trace .runner-detail-trace-view {
+    height: 840px;
+  }
+
+  .runner-detail-inline-trace .page-side {
+    width: 320px !important;
+    height: 100%;
+    margin: 0;
+    border-right: 1px solid var(--runner-border);
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-inline-trace .main-layout > .resize-handle {
+    display: none;
+  }
+
+  .runner-detail-inline-trace .main-right {
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .main-right .main-content {
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .report-overview {
+    display: none;
+  }
+
+  .runner-detail-inline-trace .player-container {
+    padding: 24px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .runner-detail-inline-trace .canvas-container {
+    border-radius: 12px;
+  }
+
+  .runner-detail-inline-trace .tasks-table .column-time {
+    font-family: 'Report Inter', sans-serif;
+  }
+
+  .runner-detail-inline-trace .total-summary-row:not(:has(.column-prompt)) {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .summary-cell {
+      width: 100% !important;
+      flex: 1 0 100% !important;
+    }
+
+    .summary-time-values {
+      width: 100%;
+      grid-template-columns: 1fr auto;
+      justify-items: start;
+      row-gap: 8px;
+    }
+  }
+
+  .runner-detail-raw-context {
+    display: none;
+  }
+}

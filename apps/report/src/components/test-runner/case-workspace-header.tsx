@@ -1,31 +1,9 @@
 import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import type { TestRunReportAttempt, TestRunReportDump } from '@midscene/core';
-import { Tag } from 'antd';
+import { AttemptSelect } from './attempt-select';
 import type { RunnerCaseView } from './model';
-import { Select } from './select';
 import { SingleCaseRunInfo } from './single-case-run-info';
-import { CaseStatus, StepStatus, formatDuration } from './view-primitives';
-
-function AttemptOptionLabel({
-  title,
-  status,
-}: {
-  title: string;
-  status: TestRunReportAttempt['status'];
-}): JSX.Element {
-  return (
-    <span className="runner-attempt-option">
-      <span>{title}</span>
-      <Tag
-        className="runner-attempt-option-status"
-        color={status === 'success' ? 'success' : 'error'}
-        bordered={false}
-      >
-        {status === 'success' ? 'Passed' : 'Failed'}
-      </Tag>
-    </span>
-  );
-}
+import { CaseStatus, formatDuration } from './view-primitives';
 
 export function CaseWorkspaceHeader({
   item,
@@ -53,13 +31,6 @@ export function CaseWorkspaceHeader({
     timeout: number;
   };
 }): JSX.Element {
-  const selectedDocumentAttempt = item.document.attempts?.find(
-    (attempt) => attempt.attemptIndex === selectedDocumentAttemptIndex,
-  );
-  const attemptStatus =
-    selectedDocumentAttempt?.status ?? selectedAttempt?.status;
-  const attemptDuration =
-    selectedDocumentAttempt?.durationMs ?? selectedAttempt?.durationMs ?? 0;
   const visibleStepSummary = stepSummary ?? {
     total: 0,
     passed: 0,
@@ -105,61 +76,13 @@ export function CaseWorkspaceHeader({
       </div>
       {standaloneRun && <SingleCaseRunInfo dump={standaloneRun} />}
       <div className="runner-case-run-bar">
-        {item.document.attempts ? (
-          <div className="runner-attempt-select-shell">
-            <span className={`is-${attemptStatus}`}>{attemptStatus}</span>
-            <Select<number>
-              aria-label="File attempts"
-              popupMatchSelectWidth={false}
-              optionLabelProp="title"
-              value={selectedDocumentAttemptIndex}
-              onChange={(attemptIndex: number) =>
-                onSelectDocumentAttempt?.(attemptIndex)
-              }
-              options={item.document.attempts.map((attempt) => {
-                const title = `File attempt ${attempt.attemptIndex! + 1} (${formatDuration(attempt.durationMs ?? 0)})`;
-                return {
-                  value: attempt.attemptIndex,
-                  title,
-                  label: (
-                    <AttemptOptionLabel title={title} status={attempt.status} />
-                  ),
-                };
-              })}
-            />
-          </div>
-        ) : item.testCase.attempts.length > 1 ? (
-          <div className="runner-attempt-select-shell">
-            <span className={`is-${attemptStatus}`}>{attemptStatus}</span>
-            <Select<string>
-              aria-label="Attempts"
-              popupMatchSelectWidth={false}
-              optionLabelProp="title"
-              value={selectedAttempt?.attemptId}
-              onChange={(attemptId: string) => {
-                const attempt = item.testCase.attempts.find(
-                  (candidate) => candidate.attemptId === attemptId,
-                );
-                if (attempt) onSelectAttempt(attempt);
-              }}
-              options={item.testCase.attempts.map((attempt) => {
-                const title = `Attempt ${attempt.attemptIndex + 1} (${formatDuration(attempt.durationMs)})`;
-                return {
-                  value: attempt.attemptId,
-                  title,
-                  label: (
-                    <AttemptOptionLabel title={title} status={attempt.status} />
-                  ),
-                };
-              })}
-            />
-          </div>
-        ) : (
-          <span className="runner-single-attempt-label">
-            {attemptStatus ? <StepStatus status={attemptStatus} /> : null}
-            Attempt 1 ({formatDuration(attemptDuration)})
-          </span>
-        )}
+        <AttemptSelect
+          item={item}
+          selectedAttempt={selectedAttempt}
+          selectedDocumentAttemptIndex={selectedDocumentAttemptIndex}
+          onSelectAttempt={onSelectAttempt}
+          onSelectDocumentAttempt={onSelectDocumentAttempt}
+        />
         <dl className="runner-case-step-summary">
           <div>
             <dt>Total</dt>

@@ -9,6 +9,10 @@ const figmaStyles = readFileSync(
   new URL('./figma-layout.less', import.meta.url),
   'utf8',
 );
+const figmaEvidenceStyles = readFileSync(
+  new URL('./figma-evidence.less', import.meta.url),
+  'utf8',
+);
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
 const breakdown = readFileSync(
   new URL('./project-breakdown.tsx', import.meta.url),
@@ -24,6 +28,10 @@ const filters = readFileSync(
 );
 const header = readFileSync(
   new URL('./case-workspace-header.tsx', import.meta.url),
+  'utf8',
+);
+const attemptSelect = readFileSync(
+  new URL('./attempt-select.tsx', import.meta.url),
   'utf8',
 );
 const select = readFileSync(new URL('./select.tsx', import.meta.url), 'utf8');
@@ -77,9 +85,26 @@ describe('Midscene Test report layout', () => {
 
   it('uses one shared Select for report filters and attempt switching', () => {
     expect(filters).toContain("import { Select } from './select'");
-    expect(header).toContain("import { Select } from './select'");
+    expect(header).toContain(
+      "import { AttemptSelect } from './attempt-select'",
+    );
+    expect(attemptSelect).toContain("import { Select } from './select'");
     expect(select).toContain("className={['runner-report-select'");
     expect(select).toContain("popupClassName={['runner-select-dropdown'");
+  });
+
+  it('keeps the Figma overrides split by page responsibility', () => {
+    for (const partial of [
+      'figma-shell.less',
+      'figma-overview.less',
+      'figma-detail.less',
+      'figma-evidence.less',
+      'figma-theme.less',
+      'figma-responsive.less',
+      'select.less',
+    ]) {
+      expect(figmaStyles).toContain(`@import './${partial}'`);
+    }
   });
 
   it('removes the intermediate project page while keeping expansion and case navigation', () => {
@@ -94,7 +119,7 @@ describe('Midscene Test report layout', () => {
       /className="runner-detail-evidence-title"[\s\S]*?<\/div>\s*\{step.title \? \(\s*<p className="runner-detail-step-description">/,
     );
     expect(inspector).toContain('className="runner-detail-tabs-row"');
-    expect(figmaStyles).toMatch(
+    expect(figmaEvidenceStyles).toMatch(
       /\.runner-detail-evidence-heading \.runner-detail-step-description\s*\{/,
     );
   });
