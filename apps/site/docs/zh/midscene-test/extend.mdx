@@ -4,7 +4,7 @@
 
 尚未创建测试项目时，请先阅读[创建和使用测试项目](./use)。平台环境、Agent 接入和运行参数见[配置测试项目](./configuration)。
 
-- [注册 Node](#注册自定义业务-node)：定义操作、在 YAML 中调用，并通过生成 Markdown 说明书验证注册。
+- [注册 Node](#注册自定义业务-node)：定义操作、在 YAML 中调用，并通过生成 Node 说明书验证注册。
 - [Node 执行参数](#node-执行参数)：区分业务参数与框架的步骤配置。
 - [跨 Node 共享上下文](#跨-node-共享上下文)：创建、读取和重置共享测试数据。
 - [进阶用法](#进阶用法)：返回结果、处理错误与取消，以及清理资源。
@@ -66,9 +66,9 @@ Midscene Test 读取 YAML，找到名为 `user.create` 的 Node，并调用它�
 
 示例使用 `async execute({ input })` 和 `await` 等待文件写入。写入失败时会抛出错误，使 Node 执行失败。这里创建的是本地测试数据文件；需要在业务系统中创建用户时，将文件写入替换为测试数据接口或数据库调用即可。
 
-### 3. 生成 Markdown 说明书，验证注册
+### 3. 生成 Node 说明书，验证注册
 
-保存配置后，生成 Markdown 格式的 Node 说明书：
+保存配置后，生成 Node 说明书：
 
 ```bash
 pnpm exec midscene-test nodes
@@ -80,7 +80,7 @@ pnpm exec midscene-test nodes
 - “创建测试用户数据文件。”这一操作说明。
 - `name`、`email` 两个输入字段及其描述。
 
-这一步验证 Node 是否已注册、输入 schema 是否可以导出，不会执行 Node 或创建用户数据。修改 Node 定义或注册配置后，可以重新生成说明书，供用例作者和 AI Agent 查阅。
+这一步验证 Node 是否已注册、输入 schema 是否可以导出，不会执行 Node 或创建用户数据。修改 Node 定义或注册配置后，可以重新生成说明书，供用例作者和 AI Agent 查阅。完整使用方法见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
 
 ## Node 执行参数
 

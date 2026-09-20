@@ -33,7 +33,7 @@ export const parseProcessArgs = async (): Promise<{
       'dot-notation': true, // Enable dot notation to parse --web.userAgent as nested object
     })
     .usage(
-      `Midscene.js helps you automate browser actions, assertions, and data extraction by AI. 
+      `Midscene legacy YAML runner executes tasks/flow scripts with AI.
 Homepage: https://midscenejs.com
 Github: https://github.com/web-infra-dev/midscene
 
@@ -56,7 +56,7 @@ Usage:
       config: {
         type: 'string',
         description:
-          'Path to a configuration file. Options in this file are used as defaults.',
+          'Path to a legacy YAML batch configuration file. Options in this file are used as defaults.',
       },
       summary: {
         type: 'string',
@@ -113,7 +113,9 @@ Examples:
   $0 script.yaml --android.device-id emulator-5554 --android.ime-strategy yadb-for-non-ascii
   $0 script.yaml --android.device-id emulator-5554 --android.screenshot-strategy always-yadb
   $0 script.yaml --harmony.device-id 127.0.0.1:5555
-  $0 script.yaml --ios.wda-port 8100 --ios.auto-dismiss-keyboard`)
+  $0 script.yaml --ios.wda-port 8100 --ios.auto-dismiss-keyboard
+
+Native cases/steps Test projects use the midscene-test command.`)
     .wrap(yargs().terminalWidth());
 
   const argv = await args.argv;

@@ -3,25 +3,34 @@ import { pathToFileURL } from 'node:url';
 import { require as tsxRequire } from 'tsx/cjs/api';
 import { tsImport } from 'tsx/esm/api';
 import { NodeRegistry } from '../engine/registry';
-import type { Awaitable } from '../engine/types';
-import type { WorkflowError } from '../errors';
 import type { NodeDefinition } from '../node/types';
 
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue =
-  | JsonPrimitive
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
+import type {
+  JsonValue,
+  ProjectSetupDefinition,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+export type {
+  JsonPrimitive,
+  JsonValue,
+  ProjectSetupContext,
+  ProjectSetupDefinition,
+  ProjectTeardown,
+  ProjectTeardownContext,
+  ResolvedExecutionProject,
+  TestFileSelection,
+  TestTagSelection,
+} from '@midscene/core/internal/test-runner';
+import type { ExecutionProjectDefinition as CoreExecutionProjectDefinition } from '@midscene/core/internal/test-runner';
 
-export interface TestFileSelection {
-  include: readonly string[];
-  exclude?: readonly string[];
-}
-
-export interface TestTagSelection {
-  include?: readonly string[];
-  exclude?: readonly string[];
-}
+export type ExecutionProjectDefinition<TContext = unknown> = Omit<
+  CoreExecutionProjectDefinition<TContext>,
+  'nodes'
+> & {
+  nodes?: readonly NodeDefinition<any, any, TContext>[];
+};
 
 export interface TestOptions {
   maxConcurrency?: number;
@@ -43,57 +52,7 @@ export interface ResolvedTestOutputDefinition {
   reportDir: string;
 }
 
-export interface ExecutionProjectDefinition<TProjectContext = unknown> {
-  name: string;
-  setup?: ProjectSetupDefinition<TProjectContext>;
-  /** Project-local Nodes override global Nodes with the same name. */
-  nodes?: readonly NodeDefinition<any, any, TProjectContext>[];
-  files?: TestFileSelection;
-  tags?: TestTagSelection;
-  retry?: number;
-  variables?: Readonly<Record<string, JsonValue>>;
-}
-
-export interface ResolvedExecutionProject<TProjectContext = unknown> {
-  readonly projectId: string;
-  readonly name: string;
-  readonly setup?: ProjectSetupDefinition<TProjectContext>;
-  readonly files?: TestFileSelection;
-  readonly tags: Readonly<Required<TestTagSelection>>;
-  readonly retry: number;
-  readonly variables: Readonly<Record<string, JsonValue>>;
-}
-
-export interface LoadedExecutionProject<TProjectContext = unknown>
-  extends ResolvedExecutionProject<TProjectContext> {
-  /** Effective Nodes: globals plus project-local overrides. */
-  readonly nodes: NodeRegistry;
-}
-
 const projectIdFromIndex = (index: number): string => `project-${index}`;
-
-export interface ProjectSetupContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly env: Readonly<NodeJS.ProcessEnv>;
-  readonly signal: AbortSignal;
-  onTeardown(teardown: ProjectTeardown<TProjectContext>): void;
-}
-
-export interface ProjectTeardownContext<TProjectContext = unknown> {
-  readonly project: ResolvedExecutionProject<TProjectContext>;
-  readonly context: TProjectContext | undefined;
-  readonly status: 'success' | 'failed';
-  readonly setupError?: WorkflowError;
-}
-
-export type ProjectTeardown<TProjectContext = unknown> = (
-  ctx: ProjectTeardownContext<TProjectContext>,
-) => Awaitable<void>;
-
-export interface ProjectSetupDefinition<TProjectContext = unknown> {
-  name: string;
-  setup(ctx: ProjectSetupContext<TProjectContext>): Awaitable<TProjectContext>;
-}
 
 export interface TestProjectDefinition<TContext = undefined> {
   setup?: ProjectSetupDefinition<TContext>;
@@ -101,6 +60,12 @@ export interface TestProjectDefinition<TContext = undefined> {
   test?: TestOptions;
   output?: TestOutputDefinition;
   nodes?: readonly NodeDefinition<any, any, TContext>[];
+}
+
+export interface LoadedExecutionProject<TProjectContext = unknown>
+  extends ResolvedExecutionProject<TProjectContext> {
+  /** Effective Nodes: globals plus project-local overrides. */
+  readonly nodes: NodeRegistry;
 }
 
 export interface LoadedTestProject<TContext = undefined> {
@@ -222,6 +187,7 @@ export const validateTestFileSelection = (
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
   }
+  rejectUnknownKeys(value, ['include', 'exclude'], label);
   const include = validatePatterns(value.include, 'include', label);
   const exclude =
     value.exclude === undefined
@@ -328,10 +294,10 @@ const validateVariables = (
   return deepFreezeJson(value as Record<string, JsonValue>);
 };
 
-const validateProjectSetup = <TProjectContext>(
+const validateSetup = <TSetup>(
   value: unknown,
   label: string,
-): ProjectSetupDefinition<TProjectContext> | undefined => {
+): TSetup | undefined => {
   if (value === undefined) return undefined;
   if (!isRecord(value)) {
     throw new TypeError(`Midscene config ${label} must be an object.`);
@@ -343,7 +309,7 @@ const validateProjectSetup = <TProjectContext>(
   if (typeof value.setup !== 'function') {
     throw new TypeError(`Midscene config ${label}.setup must be a function.`);
   }
-  return value as unknown as ProjectSetupDefinition<TProjectContext>;
+  return value as unknown as TSetup;
 };
 
 const validatePositiveInteger = (
@@ -381,7 +347,10 @@ const validateExecutionProjects = <TProjectContext>(
   hasExplicitProjects: boolean;
 } => {
   if (value === undefined) {
-    const setup = validateProjectSetup<TProjectContext>(defaultSetup, 'setup');
+    const setup = validateSetup<ProjectSetupDefinition<TProjectContext>>(
+      defaultSetup,
+      'setup',
+    );
     return {
       hasExplicitProjects: false,
       projects: Object.freeze([
@@ -434,7 +403,6 @@ const validateExecutionProjects = <TProjectContext>(
     if (candidate.nodes !== undefined && !Array.isArray(candidate.nodes)) {
       throw new TypeError(`Midscene config ${label}.nodes must be an array.`);
     }
-    // Validate each scope before merging so duplicates within one scope still fail.
     const localNodes = new NodeRegistry(
       candidate.nodes as NodeDefinition[] | undefined,
     );
@@ -453,7 +421,7 @@ const validateExecutionProjects = <TProjectContext>(
       ...(candidate.setup === undefined
         ? {}
         : {
-            setup: validateProjectSetup<TProjectContext>(
+            setup: validateSetup<ProjectSetupDefinition<TProjectContext>>(
               candidate.setup,
               `${label}.setup`,
             )!,
