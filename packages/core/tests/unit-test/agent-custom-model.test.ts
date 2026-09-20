@@ -698,6 +698,44 @@ describe('Agent with custom OpenAI client', () => {
       expect(actionSpy.mock.calls[0][6]).toBe('deepThink');
     });
 
+    it.each([
+      { deepThink: 'auto' as const, effort: undefined, expected: 'auto' },
+      {
+        deepThink: 'auto' as const,
+        effort: 'balance' as const,
+        expected: 'balance',
+      },
+      { deepThink: false as const, effort: undefined, expected: 'balance' },
+      { deepThink: 'unset' as const, effort: undefined, expected: 'balance' },
+    ])(
+      'resolves deepThink=$deepThink with effort=$effort to $expected',
+      async ({ deepThink, effort, expected }) => {
+        const agent = new Agent(createMockInterface(), {
+          modelConfig: defaultModelConfig,
+        });
+        const actionSpy = rs
+          .spyOn((agent as any).taskExecutor, 'action')
+          .mockResolvedValue({ output: { yamlFlow: [] } });
+        rs.spyOn(console, 'warn').mockImplementation(() => undefined);
+        await agent.aiAct('Task', { deepThink, effort });
+        expect(actionSpy.mock.calls[0][6]).toBe(expected);
+      },
+    );
+
+    it('rejects auto for a custom planning adapter before execution', async () => {
+      const agent = new Agent(createMockInterface(), {
+        modelConfig: {
+          ...defaultModelConfig,
+          [MIDSCENE_MODEL_FAMILY]: 'auto-glm',
+        },
+      });
+      const actionSpy = rs.spyOn((agent as any).taskExecutor, 'action');
+      await expect(agent.aiAct('Task', { deepThink: 'auto' })).rejects.toThrow(
+        'requires a standard planning adapter',
+      );
+      expect(actionSpy).not.toHaveBeenCalled();
+    });
+
     it('should use the unified experimental warning for fast effort', async () => {
       const mockInterface = createMockInterface();
       const agent = new Agent(mockInterface, {

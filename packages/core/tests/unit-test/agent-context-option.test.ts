@@ -113,6 +113,39 @@ describe('Agent per-call context option', () => {
     }
   });
 
+  it.each([false, true])(
+    'auto bypasses classification on cache hits and resolves after a failed cache (fails=%s)',
+    async (cacheFails) => {
+      const { agent, taskExecutor, taskCache } = createAgentStub();
+      taskCache.matchPlanCache.mockReturnValue({
+        cacheUsable: true,
+        cacheContent: { yamlWorkflow: 'tasks: []' },
+      });
+      const loadYaml = rs.fn().mockResolvedValue(undefined);
+      (taskExecutor as any).loadYamlFlowAsPlanning = loadYaml;
+      const runYaml = rs.spyOn(agent, 'runYaml');
+      if (cacheFails) {
+        runYaml.mockRejectedValue(new Error('Stale cache'));
+      } else {
+        runYaml.mockResolvedValue({ result: {} });
+      }
+      const warn = rs.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        await agent.aiAct('Task', { deepThink: 'auto' });
+        expect(loadYaml).toHaveBeenCalledTimes(1);
+        expect(runYaml).toHaveBeenCalledTimes(1);
+        if (cacheFails) {
+          expect(taskExecutor.action.mock.calls[0][6]).toBe('auto');
+        } else {
+          expect(taskExecutor.action).not.toHaveBeenCalled();
+        }
+      } finally {
+        warn.mockRestore();
+        runYaml.mockRestore();
+      }
+    },
+  );
+
   it('uses a per-call aiAct context when no Agent aiContexts are configured', async () => {
     const { agent, taskExecutor } = createAgentStub();
     (agent as any).opts.aiContexts = {};
