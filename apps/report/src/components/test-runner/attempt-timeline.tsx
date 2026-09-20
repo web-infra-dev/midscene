@@ -7,6 +7,36 @@ import type { TestRunReportAttempt } from '@midscene/core';
 import { formatTimelineTime } from '../timeline/timeline-scale';
 import type { RunnerPositionedVisualFrame } from './model';
 
+export function RunnerTimelinePlaybackControl({
+  frameCount,
+  isPlaying,
+  compact = false,
+  onTogglePlay,
+}: {
+  frameCount: number;
+  isPlaying: boolean;
+  compact?: boolean;
+  onTogglePlay(): void;
+}): JSX.Element {
+  const action = isPlaying ? 'Pause' : 'Play';
+
+  return (
+    <button
+      type="button"
+      className={`runner-detail-timeline-control ${
+        compact ? 'is-compact' : ''
+      }`}
+      disabled={!frameCount}
+      aria-label={`${action} timeline of ${frameCount} captured frames`}
+      title={`${action} visual timeline`}
+      onClick={onTogglePlay}
+    >
+      {isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+      {compact ? null : action}
+    </button>
+  );
+}
+
 export function RunnerAttemptTimeline({
   attempt,
   frames,
@@ -14,6 +44,7 @@ export function RunnerAttemptTimeline({
   previewFrameKey,
   lockedFrameKey,
   isPlaying,
+  embedded = false,
   onPreview,
   onSelectFrame,
   onTogglePlay,
@@ -24,6 +55,7 @@ export function RunnerAttemptTimeline({
   previewFrameKey?: string;
   lockedFrameKey?: string;
   isPlaying: boolean;
+  embedded?: boolean;
   onPreview(frameKey: string | undefined): void;
   onSelectFrame(frame: RunnerPositionedVisualFrame): void;
   onTogglePlay(): void;
@@ -38,36 +70,36 @@ export function RunnerAttemptTimeline({
     measuredDurationMs,
     frames.at(-1)?.offsetMs ?? 0,
   );
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(
-    (ratio) => ratio * timelineDurationMs,
-  );
+  const tickRatios = embedded
+    ? [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+    : [0, 0.25, 0.5, 0.75, 1];
+  const ticks = tickRatios.map((ratio) => ratio * timelineDurationMs);
   const previewFrame = frames.find(
     (item) => item.frame.key === previewFrameKey,
   );
 
   return (
     <section
-      className="runner-detail-timeline-card"
+      className={`runner-detail-timeline-card ${embedded ? 'is-embedded' : ''}`}
       aria-label="Attempt visual timeline"
     >
-      <div className="runner-detail-timeline-toolbar">
-        <span>
-          <PictureOutlined />
-          <strong>Visual timeline</strong>
-          <small>Hover to preview</small>
-        </span>
-        <span>
-          <small>{frames.length} captured frames</small>
-          <button
-            type="button"
-            disabled={!frames.length}
-            onClick={onTogglePlay}
-          >
-            {isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-        </span>
-      </div>
+      {!embedded ? (
+        <div className="runner-detail-timeline-toolbar">
+          <span>
+            <PictureOutlined />
+            <strong>Visual timeline</strong>
+            <small>Hover to preview</small>
+          </span>
+          <span>
+            <small>{frames.length} captured frames</small>
+            <RunnerTimelinePlaybackControl
+              frameCount={frames.length}
+              isPlaying={isPlaying}
+              onTogglePlay={onTogglePlay}
+            />
+          </span>
+        </div>
+      ) : null}
       {frames.length ? (
         <div
           className="runner-detail-timeline-track"
@@ -75,28 +107,35 @@ export function RunnerAttemptTimeline({
         >
           <div className="runner-detail-timeline-axis" aria-hidden="true">
             {ticks.map((tick, index) => (
-              <span key={`${tick}-${index}`} style={{ left: `${index * 25}%` }}>
-                {formatTimelineTime(tick)}
+              <span
+                key={`${tick}-${index}`}
+                style={{ left: `${tickRatios[index] * 100}%` }}
+              >
+                {embedded ? `${Math.round(tick)}ms` : formatTimelineTime(tick)}
               </span>
             ))}
           </div>
           <div className="runner-detail-timeline-lane">
             {ticks.map((tick, index) => (
-              <i key={`${tick}-${index}`} style={{ left: `${index * 25}%` }} />
+              <i
+                key={`${tick}-${index}`}
+                style={{ left: `${tickRatios[index] * 100}%` }}
+              />
             ))}
             {frames.map((item, index) => {
               const isPreview = item.frame.key === previewFrameKey;
-              const isLocked = item.frame.key === lockedFrameKey;
-              const isSelectedStep = item.stepId === selectedStepId;
+              const isSelected = item.stepId
+                ? item.stepId === selectedStepId
+                : item.frame.key === lockedFrameKey;
               return (
                 <button
                   type="button"
                   aria-label={`${item.frame.label} at ${formatTimelineTime(
                     item.offsetMs,
                   )}`}
-                  aria-pressed={isLocked}
+                  aria-pressed={isSelected}
                   className={`runner-detail-timeline-frame ${
-                    isSelectedStep || isLocked ? 'is-selected' : ''
+                    isSelected ? 'is-selected' : ''
                   } ${isPreview ? 'is-preview' : ''}`}
                   key={`${item.frame.key}-${index}`}
                   style={{
@@ -109,7 +148,7 @@ export function RunnerAttemptTimeline({
                   onMouseEnter={() => onPreview(item.frame.key)}
                 >
                   <img
-                    alt="Captured application state"
+                    alt={item.frame.label || 'Captured application state'}
                     loading="lazy"
                     src={item.frame.screenshot.base64}
                   />
@@ -118,18 +157,26 @@ export function RunnerAttemptTimeline({
               );
             })}
             {previewFrame ? (
-              <div
+              <figure
                 className="runner-detail-timeline-preview-callout"
                 style={{
-                  left: `${Math.max(
-                    7,
-                    Math.min(78, previewFrame.offsetPercent),
-                  )}%`,
+                  left: `clamp(228px, ${Math.max(
+                    5,
+                    Math.min(95, previewFrame.offsetPercent),
+                  )}%, calc(100% - 228px))`,
                 }}
               >
-                <strong>{previewFrame.frame.label}</strong>
-                <small>{formatTimelineTime(previewFrame.offsetMs)}</small>
-              </div>
+                <img
+                  alt={`Preview of ${
+                    previewFrame.frame.label || 'captured application state'
+                  }`}
+                  src={previewFrame.frame.screenshot.base64}
+                />
+                <figcaption>
+                  <strong>{previewFrame.frame.label}</strong>
+                  <small>{formatTimelineTime(previewFrame.offsetMs)}</small>
+                </figcaption>
+              </figure>
             ) : null}
           </div>
         </div>

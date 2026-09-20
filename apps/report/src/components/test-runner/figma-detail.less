@@ -266,7 +266,7 @@
 
   .runner-detail-step-panel {
     width: 100%;
-    height: 420px;
+    height: 548px;
     min-height: 0;
     overflow: hidden;
     border: 0;
@@ -280,6 +280,111 @@
     min-height: 48px;
     padding: 0 20px;
     border-bottom: 1px solid var(--runner-border);
+  }
+
+  .runner-detail-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-detail-timeline-control.is-compact {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    color: var(--runner-muted);
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+  }
+
+  .runner-detail-timeline-control.is-compact:hover,
+  .runner-detail-timeline-control.is-compact:focus-visible {
+    color: var(--runner-text);
+    outline: none;
+    background: color-mix(
+      in srgb,
+      var(--runner-control-bg) 72%,
+      var(--runner-surface)
+    );
+  }
+
+  .runner-detail-timeline-control.is-compact:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .runner-detail-step-panel > .runner-detail-timeline-card.is-embedded {
+    height: 120px;
+    min-height: 120px;
+    margin: 8px 8px 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 16px;
+    background: var(--runner-surface-muted);
+    box-shadow: none;
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-track {
+    height: 120px;
+    min-height: 120px;
+    padding: 0;
+    overflow: visible;
+    border-radius: 16px;
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-axis {
+    height: 28px;
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-axis span {
+    top: 2px;
+    color: var(--runner-text);
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-lane {
+    height: 92px;
+    border-bottom: 0;
+    background: var(--runner-surface);
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-frame {
+    top: 0;
+    width: 126px;
+    height: 86px;
+    padding: 0;
+    border-color: var(--runner-border);
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .runner-detail-timeline-card.is-embedded .runner-detail-timeline-frame:hover,
+  .runner-detail-timeline-card.is-embedded
+    .runner-detail-timeline-frame:focus-visible,
+  .runner-detail-timeline-card.is-embedded
+    .runner-detail-timeline-frame.is-preview,
+  .runner-detail-timeline-card.is-embedded
+    .runner-detail-timeline-frame.is-selected {
+    border: 1px solid #b5cbff;
+    background: var(--runner-primary-soft);
+    box-shadow: none;
+    transform: translateX(-50%);
+  }
+
+  .runner-detail-timeline-card.is-embedded
+    .runner-detail-timeline-frame.is-selected {
+    padding: 0;
+  }
+
+  .runner-detail-timeline-card.is-embedded
+    .runner-detail-timeline-frame
+    > span {
+    display: none;
   }
 
   .runner-detail-step-scroll {
@@ -362,6 +467,7 @@
   .runner-detail-step-group > button.is-selected {
     border-color: #b5cbff;
     background: var(--runner-primary-soft);
+    box-shadow: none;
   }
 
   .runner-detail-step-type {

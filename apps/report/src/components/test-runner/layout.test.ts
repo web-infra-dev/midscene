@@ -22,6 +22,14 @@ const inspector = readFileSync(
   new URL('./evidence-inspector.tsx', import.meta.url),
   'utf8',
 );
+const workspace = readFileSync(
+  new URL('./case-workspace.tsx', import.meta.url),
+  'utf8',
+);
+const executionPanel = readFileSync(
+  new URL('./execution-panel.tsx', import.meta.url),
+  'utf8',
+);
 const filters = readFileSync(
   new URL('./case-filters.tsx', import.meta.url),
   'utf8',
@@ -124,7 +132,7 @@ describe('Midscene Test report layout', () => {
     );
   });
 
-  it('keeps timeline preview hints concise without changing frame selection', () => {
+  it('shows a large timeline preview and keeps one frame paired with the selected step', () => {
     const timeline = readFileSync(
       new URL('./attempt-timeline.tsx', import.meta.url),
       'utf8',
@@ -135,6 +143,20 @@ describe('Midscene Test report layout', () => {
     );
     expect(timeline).not.toContain('click to lock');
     expect(timeline).toContain('onClick={() => onSelectFrame(item)}');
-    expect(timeline).toContain('aria-pressed={isLocked}');
+    expect(timeline).toContain('aria-pressed={isSelected}');
+    expect(timeline).toContain('runner-detail-timeline-preview-callout');
+    expect(timeline).toContain('previewFrame.frame.screenshot.base64');
+    expect(timeline).toContain(
+      'frames.find((item) => item.stepId === selectedStepId)?.frame.key',
+    );
+  });
+
+  it('keeps the interactive timeline visible inside Execution', () => {
+    expect(workspace).toContain('<RunnerAttemptTimeline');
+    expect(workspace).toContain('<RunnerTimelinePlaybackControl');
+    expect(executionPanel).toMatch(
+      /className="runner-detail-panel-heading"[\s\S]*?\{timeline\}[\s\S]*?className="runner-detail-step-scroll"/,
+    );
+    expect(inspector).not.toContain('timeline?: ReactNode');
   });
 });

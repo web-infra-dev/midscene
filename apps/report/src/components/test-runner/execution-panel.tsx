@@ -1,5 +1,6 @@
 import { EyeOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { TestRunReportStep } from '@midscene/core';
+import type { ReactNode } from 'react';
 import agentIcon from './assets/step-agent.svg';
 import dataIcon from './assets/step-data.svg';
 import errorIcon from './assets/step-error.svg';
@@ -24,10 +25,14 @@ function RunnerStepTypeIcon({
 export function RunnerExecutionPanel({
   groups,
   selectedStepId,
+  timeline,
+  timelineControl,
   onSelect,
 }: {
   groups: readonly RunnerStepGroup[];
   selectedStepId?: string;
+  timeline?: ReactNode;
+  timelineControl?: ReactNode;
   onSelect(step: TestRunReportStep): void;
 }): JSX.Element {
   const stepCount = groups.reduce(
@@ -41,8 +46,12 @@ export function RunnerExecutionPanel({
           <UnorderedListOutlined />
           <strong>Execution</strong>
         </span>
-        <small>{stepCount} steps</small>
+        <span className="runner-detail-panel-meta">
+          {timelineControl}
+          <small>{stepCount} steps</small>
+        </span>
       </div>
+      {timeline}
       <div className="runner-detail-step-scroll">
         {groups.map((group) => (
           <section className="runner-detail-step-group" key={group.label}>

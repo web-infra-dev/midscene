@@ -3,7 +3,10 @@ import type { TestRunReportDump } from '@midscene/core';
 import type { ReactNode } from 'react';
 import type { PlaywrightTasks } from '../../types';
 import { RunnerTracePage } from './agent-trace';
-import { RunnerAttemptTimeline } from './attempt-timeline';
+import {
+  RunnerAttemptTimeline,
+  RunnerTimelinePlaybackControl,
+} from './attempt-timeline';
 import { CaseWorkspaceHeader } from './case-workspace-header';
 import { getCaseWorkspaceLifecycleIssues } from './case-workspace-model';
 import { RunnerEvidenceInspector } from './evidence-inspector';
@@ -100,6 +103,32 @@ export function CaseWorkspace({
           <RunnerExecutionPanel
             groups={stepGroups}
             selectedStepId={selectedStep?.id}
+            timeline={
+              selectedAttempt ? (
+                <RunnerAttemptTimeline
+                  attempt={selectedAttempt}
+                  frames={positionedFrames}
+                  selectedStepId={selectedStep?.id}
+                  previewFrameKey={previewFrameKey}
+                  lockedFrameKey={lockedFrameKey}
+                  isPlaying={isPlaying}
+                  embedded
+                  onPreview={setPreviewFrameKey}
+                  onSelectFrame={selectFrame}
+                  onTogglePlay={togglePlayback}
+                />
+              ) : undefined
+            }
+            timelineControl={
+              selectedAttempt ? (
+                <RunnerTimelinePlaybackControl
+                  frameCount={positionedFrames.length}
+                  isPlaying={isPlaying}
+                  compact
+                  onTogglePlay={togglePlayback}
+                />
+              ) : undefined
+            }
             onSelect={selectStep}
           />
           {selectedStep ? (
@@ -113,21 +142,6 @@ export function CaseWorkspace({
               tab={inspectorTab}
               reports={reports}
               renderAgentReport={renderAgentReport}
-              timeline={
-                selectedAttempt ? (
-                  <RunnerAttemptTimeline
-                    attempt={selectedAttempt}
-                    frames={positionedFrames}
-                    selectedStepId={selectedStep.id}
-                    previewFrameKey={previewFrameKey}
-                    lockedFrameKey={lockedFrameKey}
-                    isPlaying={isPlaying}
-                    onPreview={setPreviewFrameKey}
-                    onSelectFrame={selectFrame}
-                    onTogglePlay={togglePlayback}
-                  />
-                ) : undefined
-              }
               onTabChange={selectInspectorTab}
             />
           ) : (

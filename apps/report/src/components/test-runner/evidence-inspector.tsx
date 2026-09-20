@@ -40,7 +40,6 @@ export function RunnerEvidenceInspector({
   tab,
   reports,
   renderAgentReport,
-  timeline,
   onTabChange,
 }: {
   item: RunnerCaseView;
@@ -51,7 +50,6 @@ export function RunnerEvidenceInspector({
   tab: RunnerInspectorTab;
   reports: PlaywrightTasks[];
   renderAgentReport(reports: PlaywrightTasks[]): ReactNode;
-  timeline?: ReactNode;
   onTabChange(tab: RunnerInspectorTab): void;
 }): JSX.Element {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
@@ -126,7 +124,6 @@ export function RunnerEvidenceInspector({
                 </div>
               ) : (
                 <div className="runner-detail-record-view">
-                  {timeline}
                   <section className="runner-detail-screenshot-stage">
                     <div className="runner-detail-screenshot-toolbar">
                       <span>
