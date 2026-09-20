@@ -20,6 +20,7 @@ import {
 import { getReportFileName } from './agent/report-file-name';
 import {
   DATA_SCREENSHOT_MODE_ATTR,
+  type ReportDumpScanResult,
   extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
   generateAgentReportComment,
@@ -810,6 +811,26 @@ export interface CollectedReportExecutions {
   executions: IExecutionDump[];
 }
 
+export interface CollectDedupedExecutionsOptions {
+  rejectTruncatedDump?: boolean;
+}
+
+function rejectTruncatedDumpIfNeeded(
+  scanResult: ReportDumpScanResult,
+  htmlPath: string,
+  options: CollectDedupedExecutionsOptions,
+): void {
+  if (!options.rejectTruncatedDump || !scanResult.incompleteDumpReason) return;
+
+  const detail =
+    scanResult.incompleteDumpReason === 'opening-tag'
+      ? 'unfinished opening tag'
+      : 'missing closing tag';
+  throw new Error(
+    `Report dump is truncated or incomplete in ${htmlPath}: ${detail}`,
+  );
+}
+
 /**
  * Collect executions from a report HTML, deduplicating by stable id while
  * keeping only the latest occurrence. Old-format executions without id are
@@ -817,12 +838,13 @@ export interface CollectedReportExecutions {
  */
 export function collectDedupedExecutions(
   htmlPath: string,
+  options: CollectDedupedExecutionsOptions = {},
 ): CollectedReportExecutions {
   let baseDump: ReportActionDump | null = null;
   let executionSerial = 0;
   const latestSerialByExecutionId = new Map<string, number>();
 
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  const firstScanResult = streamDumpScriptsSync(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -837,10 +859,11 @@ export function collectDedupedExecutions(
     }
     return false;
   });
+  rejectTruncatedDumpIfNeeded(firstScanResult, htmlPath, options);
 
   const executions: IExecutionDump[] = [];
   executionSerial = 0;
-  streamDumpScriptsSync(htmlPath, (dumpScript) => {
+  const secondScanResult = streamDumpScriptsSync(htmlPath, (dumpScript) => {
     if (!dumpScript.openTag.includes('data-group-id')) {
       return false;
     }
@@ -865,6 +888,7 @@ export function collectDedupedExecutions(
 
     return false;
   });
+  rejectTruncatedDumpIfNeeded(secondScanResult, htmlPath, options);
 
   if (!baseDump) {
     throw new Error(`No report dump scripts found in ${htmlPath}`);
