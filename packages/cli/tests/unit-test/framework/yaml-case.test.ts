@@ -19,7 +19,7 @@ const createPlayer = (overrides: Record<string, any> = {}) => ({
   status: 'done',
   output: '/tmp/output.json',
   reportFile: '/tmp/report.html',
-  errorInSetup: undefined,
+  errorInSetup: undefined as Error | undefined,
   taskStatusList: [],
   run: rs.fn().mockResolvedValue(undefined),
   ...overrides,
