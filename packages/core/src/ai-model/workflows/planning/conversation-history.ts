@@ -251,11 +251,11 @@ export class ConversationHistory {
     return buildSubGoalsText(this.subGoals);
   }
 
-  // Historical log management methods (used in non-deepThink mode)
+  // Execution results, independent of planning mode and sub-goal lifecycle.
 
   /**
    * Append a log entry to the historical logs list.
-   * Used in non-deepThink mode to track executed steps across planning rounds.
+   * Records executor outcomes across planning rounds in every planning mode.
    */
   appendHistoricalLog(log: string): void {
     if (log) {
@@ -273,7 +273,7 @@ export class ConversationHistory {
     }
 
     const logLines = this.historicalLogs.map((log) => `- ${log}`).join('\n');
-    return `Here are the steps that have been executed:\n${logLines}`;
+    return `Action execution results (not proof of task completion):\n${logLines}`;
   }
 
   // Memory management methods

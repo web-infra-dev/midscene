@@ -4,6 +4,7 @@ import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { standardPlan } from '@/ai-model/workflows/planning';
 import { decideDeepThink } from '@/ai-model/workflows/planning/auto-deep-think';
+import { buildPlanningActionLog } from '@/ai-model/workflows/planning/planning-action-log';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -254,6 +255,38 @@ export class TaskExecutor {
     return feedbackMessages.length > 0
       ? feedbackMessages.join('\n\n')
       : undefined;
+  }
+
+  private recordActionResults(
+    conversationHistory: ConversationHistory,
+    tasks: ExecutionTask[],
+  ): void {
+    for (const task of tasks) {
+      if (task.type !== 'Action Space') continue;
+
+      let result: string;
+      switch (task.status) {
+        case 'finished':
+          result = 'Returned successfully (effect unverified)';
+          break;
+        case 'failed':
+          result = `Failed (effects may be partial): ${task.errorMessage}`;
+          break;
+        case 'cancelled':
+          result = 'Not executed (cancelled)';
+          break;
+        default:
+          continue;
+      }
+
+      const action = buildPlanningActionLog(
+        { type: task.subType ?? task.type, param: task.param },
+        this.getActionSpace(),
+      );
+      conversationHistory.appendHistoricalLog(
+        `${truncatePlanningFeedback(action)} — ${truncatePlanningFeedback(result)}`,
+      );
+    }
   }
 
   /**
@@ -920,6 +953,12 @@ export class TaskExecutor {
         );
       } finally {
         activeActionReporter = undefined;
+        if (planningModel.adapter.planning.kind === 'standard') {
+          this.recordActionResults(
+            conversationHistory,
+            runner.tasks.slice(taskCountBeforeRun),
+          );
+        }
       }
 
       if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
@@ -961,7 +1000,7 @@ export class TaskExecutor {
 
       if (!conversationHistory.pendingFeedbackMessage) {
         const timeString = await this.getTimeString();
-        conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
+        this.setPendingFeedbackMessage(conversationHistory, timeString);
       }
     }
 

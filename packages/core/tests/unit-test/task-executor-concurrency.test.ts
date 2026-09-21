@@ -103,6 +103,136 @@ describe('TaskExecutor concurrency isolation', () => {
     rs.useRealTimers();
   });
 
+  it.each(['balance', 'deepThink', 'fast'] as const)(
+    'records completed, failed and cancelled actions after execution in %s mode',
+    async (effort) => {
+      let history: Parameters<typeof standardPlan>[1]['conversationHistory'];
+      const seenResults: string[] = [];
+      const cancelledAction = rs.fn();
+      rs.mocked(taskExecutor.convertPlanToExecutable)
+        .mockResolvedValueOnce({
+          tasks: [
+            {
+              type: 'Action Space',
+              subType: 'Noop',
+              param: {},
+              executor: async () => {
+                // Neither the model's preamble nor a success entry is recorded
+                // while the action is still executing.
+                expect(history.historicalLogsToText()).toBe('');
+              },
+            },
+            {
+              type: 'Action Space',
+              subType: 'Noop',
+              param: {},
+              executor: async () => {
+                throw new Error('device timeout');
+              },
+            },
+            {
+              type: 'Action Space',
+              subType: 'Noop',
+              param: {},
+              executor: cancelledAction,
+            },
+          ],
+        })
+        .mockResolvedValue({ tasks: [] });
+
+      rs.mocked(standardPlan).mockImplementation(async (_instruction, opts) => {
+        history = opts.conversationHistory;
+        seenResults.push(history.historicalLogsToText());
+        history.resetPendingFeedbackMessageIfExists();
+        if (seenResults.length === 1) {
+          history.setSubGoals([
+            { index: 1, description: 'First goal', status: 'pending' },
+            { index: 2, description: 'Second goal', status: 'pending' },
+          ]);
+          return {
+            actions: [{ type: 'Noop', param: {} }],
+            yamlFlow: [],
+            shouldContinuePlanning: true,
+            log: 'All work has succeeded',
+            rawResponse: '',
+          };
+        }
+        history.markSubGoalFinished(1);
+        expect(history.historicalLogsToText()).toBe(seenResults[1]);
+        return {
+          actions: [],
+          yamlFlow: [],
+          shouldContinuePlanning: seenResults.length === 2,
+          log: '',
+          rawResponse: '',
+        };
+      });
+
+      await taskExecutor.action(
+        'perform actions',
+        planningModel(),
+        defaultModel(),
+        undefined,
+        false,
+        3,
+        effort,
+      );
+
+      const expected = [
+        'Action execution results (not proof of task completion):',
+        '- Noop — Returned successfully (effect unverified)',
+        '- Noop — Failed (effects may be partial): device timeout',
+        '- Noop — Not executed (cancelled)',
+      ].join('\n');
+      expect(seenResults).toEqual(['', expected, expected]);
+      expect(cancelledAction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not describe an action as executed when its prerequisite locate fails', async () => {
+    const action = rs.fn();
+    const seenResults: string[] = [];
+    rs.mocked(taskExecutor.convertPlanToExecutable)
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            type: 'Planning',
+            subType: 'Locate',
+            param: {},
+            executor: async () => {
+              throw new Error('target not found');
+            },
+          },
+          {
+            type: 'Action Space',
+            subType: 'Noop',
+            param: {},
+            executor: action,
+          },
+        ],
+      })
+      .mockResolvedValue({ tasks: [] });
+    rs.mocked(standardPlan).mockImplementation(async (_instruction, opts) => {
+      seenResults.push(opts.conversationHistory.historicalLogsToText());
+      opts.conversationHistory.resetPendingFeedbackMessageIfExists();
+      return {
+        actions: seenResults.length === 1 ? [{ type: 'Noop', param: {} }] : [],
+        yamlFlow: [],
+        shouldContinuePlanning: seenResults.length === 1,
+        log: 'Clicked target',
+        rawResponse: '',
+      };
+    });
+
+    await taskExecutor.action('click target', planningModel(), defaultModel());
+
+    expect(action).not.toHaveBeenCalled();
+    expect(seenResults).toEqual([
+      '',
+      'Action execution results (not proof of task completion):\n- Noop — Not executed (cancelled)',
+    ]);
+  });
+
   it.each([
     {
       effort: 'balance' as const,

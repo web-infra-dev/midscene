@@ -218,12 +218,13 @@ export async function standardPlan(
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
-  // Build sub-goal status text to include in the message
-  // In planning deep-think mode: show full sub-goals with logs
-  // Otherwise: show historical execution logs
-  const executionProgressText = includeSubGoals
-    ? conversationHistory.subGoalsToText()
-    : conversationHistory.historicalLogsToText();
+  // Executor records are independent of sub-goals and survive plan updates.
+  const executionProgressText = [
+    includeSubGoals ? conversationHistory.subGoalsToText() : '',
+    conversationHistory.historicalLogsToText(),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
   const executionProgressSection = executionProgressText
     ? `\n\n${executionProgressText}`
     : conversationHistory.pendingFeedbackMessage
@@ -240,7 +241,7 @@ export async function standardPlan(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
+          text: `${conversationHistory.pendingFeedbackMessage}. Here is the latest screenshot. Use the execution results and current observation to continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
           type: 'image_url',
@@ -337,10 +338,8 @@ export async function standardPlan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: The plan log is recorded before its action has executed, so a failed
-  // action may still appear in the next round as an action already performed.
-  // Move this write to the successful action execution path in TaskExecutor.action.
-  // Update sub-goals in conversation history only in planning deep-think mode.
+  // Model logs are progress preambles, not execution evidence. TaskExecutor
+  // records action outcomes after execution, independently of sub-goal updates.
   if (includeSubGoals) {
     if (planFromAI.updateSubGoals?.length) {
       conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
@@ -349,15 +348,6 @@ export async function standardPlan(
       for (const index of planFromAI.markFinishedIndexes) {
         conversationHistory.markSubGoalFinished(index);
       }
-    }
-    // Append the planning log to the currently running sub-goal
-    if (planFromAI.log) {
-      conversationHistory.appendSubGoalLog(planFromAI.log);
-    }
-  } else {
-    // Without planning deep-think mode, accumulate logs as historical execution steps.
-    if (planFromAI.log) {
-      conversationHistory.appendHistoricalLog(planFromAI.log);
     }
   }
 

@@ -635,6 +635,82 @@ describe('plan XML parse retry', () => {
     expect(callAI).toHaveBeenCalledTimes(2);
   });
 
+  it.each(['balance', 'deepThink', 'fast'] as const)(
+    'keeps planned log text out of execution results in %s mode',
+    async (effort) => {
+      const history = new ConversationHistory();
+      rs.mocked(callAI).mockResolvedValueOnce(
+        mockAIResponse(`<planning>Tap the button next</planning>
+<log>The form has been submitted</log>
+<update-plan-content><sub-goal index="1" status="pending">Submit the form</sub-goal></update-plan-content>
+<action-type>Tap</action-type>`),
+      );
+
+      const result = await standardPlan('tap the button', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort,
+      });
+
+      if (effort !== 'fast') {
+        expect(result.log).toBe('The form has been submitted');
+      }
+      expect(history.historicalLogsToText()).toBe('');
+      expect(history.subGoalsToText()).not.toContain(
+        'The form has been submitted',
+      );
+    },
+  );
+
+  it.each(['balance', 'deepThink'] as const)(
+    'includes executor results without claiming a failed action succeeded in %s mode',
+    async (effort) => {
+      const history = new ConversationHistory();
+      history.appendHistoricalLog('Input - value: 60 — Failed: timeout');
+      history.setSubGoals([
+        { index: 1, description: 'Set font size', status: 'pending' },
+      ]);
+      history.markSubGoalFinished(1);
+      history.appendMemory('Slide 14 title is Target audience');
+      history.pendingFeedbackMessage = 'Error executing running tasks: timeout';
+      rs.mocked(callAI).mockResolvedValueOnce(
+        mockAIResponse(
+          '<planning>Retry</planning><log>Tap</log><action-type>Tap</action-type>',
+        ),
+      );
+
+      await standardPlan('set font size', {
+        context: mockContext(),
+        actionSpace: mockActionSpace(),
+        modelRuntime: getModelRuntime(mockModelConfig()),
+        conversationHistory: history,
+        includeLocateInPlanning: false,
+        effort,
+      });
+
+      const messages = rs.mocked(callAI).mock.calls[0][0];
+      const latestMessage = messages.at(-1);
+      const textPart = Array.isArray(latestMessage?.content)
+        ? latestMessage.content.find((part) => part.type === 'text')
+        : undefined;
+      expect(textPart?.text).toContain('Input - value: 60 — Failed: timeout');
+      expect(textPart?.text).toContain('Slide 14 title is Target audience');
+      expect(textPart?.text).not.toContain(
+        'The previous action has been executed',
+      );
+      expect(textPart?.text).not.toContain('No previous actions');
+      if (effort === 'deepThink') {
+        expect(textPart?.text).toContain('Set font size (finished)');
+      }
+      expect(messages[0].content).toContain(
+        'A successful return is not proof that the requested UI state was reached.',
+      );
+    },
+  );
+
   it('should tell the model when no previous aiAct actions have been executed', async () => {
     rs.mocked(callAI).mockResolvedValueOnce(
       mockAIResponse(`<log>Tap button</log>

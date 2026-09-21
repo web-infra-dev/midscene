@@ -578,7 +578,7 @@ describe('ConversationHistory', () => {
     history.appendHistoricalLog('Typed username into the input');
 
     expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
-      "Here are the steps that have been executed:
+      "Action execution results (not proof of task completion):
       - Clicked the login button
       - Typed username into the input"
     `);
@@ -591,7 +591,7 @@ describe('ConversationHistory', () => {
     history.appendHistoricalLog('');
 
     expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
-      "Here are the steps that have been executed:
+      "Action execution results (not proof of task completion):
       - Valid step"
     `);
   });
@@ -603,7 +603,7 @@ describe('ConversationHistory', () => {
     history.appendHistoricalLog('Step 3: Entered search query');
 
     expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
-      "Here are the steps that have been executed:
+      "Action execution results (not proof of task completion):
       - Step 1: Navigated to page
       - Step 2: Clicked search button
       - Step 3: Entered search query"

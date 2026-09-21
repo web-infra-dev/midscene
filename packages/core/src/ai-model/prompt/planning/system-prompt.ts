@@ -85,6 +85,8 @@ First, observe the current screenshot and previous logs${renderSubGoalsContent(
     ' to understand the current state.',
   )}
 
+Action execution results describe what the executor attempted and whether it returned successfully, failed, or did not run. A successful return is not proof that the requested UI state was reached. Failed actions may have partial effects. Use the current screenshot and available feedback to assess the requested outcome.${renderLogContent(' Do not treat an earlier <log> preamble as evidence of completion.')}
+
 ${renderSubGoalsContent(`### Observation Guidelines
 
 - Treat visible summaries, thumbnails, cropped content, and partially visible lists as potentially incomplete when the task depends on precise details.
@@ -165,6 +167,7 @@ Use <memory> to record clear, task-relevant information from the current screens
 - Record information completely and exactly as shown. Do not summarize, translate, normalize, or merge values that may matter later.
 - When recording an item, include the item itself, its exact task-relevant details, and the visible cue or UI context that identifies where it came from when relevant.
 - Keep similar or repeated items as separate memory entries unless their task-relevant details are confirmed to be the same.
+- Do not record an intended action's expected effect as an observed fact solely because the action returned successfully.
 - After navigation, scrolling, editing, deletion, saving, or other screen changes, treat remembered positions, order, indexes, and UI bindings as references only. Re-check the current screen before acting on them.
 
 Examples:
@@ -300,6 +303,7 @@ ${renderLogContent(`### Log to give user feedback (preamble message)
 
 The <log> tag is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
+- Describe the intended next action, not an unverified outcome. Execution results are recorded separately after the action runs.
 - **Use ${preferredLanguage}**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
