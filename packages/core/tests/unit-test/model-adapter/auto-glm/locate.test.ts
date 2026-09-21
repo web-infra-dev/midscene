@@ -194,15 +194,16 @@ describe('Auto-GLM custom locate', () => {
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          role: 'user',
-          content: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
+          type: 'input-message',
+          message: expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'image',
                 url: 'data:image/png;base64,CROP==',
               }),
-            }),
-          ]),
+            ]),
+          }),
         }),
       ]),
     );
@@ -278,10 +279,8 @@ describe('Auto-GLM custom locate', () => {
           role: 'user',
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REFERENCE==',
-              }),
+              type: 'image',
+              url: 'data:image/png;base64,REFERENCE==',
             }),
           ]),
         }),

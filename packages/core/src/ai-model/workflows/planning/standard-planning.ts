@@ -1,3 +1,4 @@
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -5,7 +6,6 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { buildYamlFlowFromPlans } from '../../../common';
 import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import { buildStandardPlanningSystemPrompt } from '../../prompt/planning';
@@ -14,6 +14,7 @@ import {
   callAiAndParseWithRetry,
   withSemanticRetryFeedback,
 } from '../../service-caller/semantic-retry';
+import type { ModelCallMessages } from '../../service-caller/types';
 import type {
   LocateResultCodec,
   LocateResultContext,
@@ -21,7 +22,7 @@ import type {
 import { planningModelFamilyRequiredForLocateMessage } from '../../shared/model-locate-result/errors';
 import {
   type PreparedUserPrompt,
-  preparedReferenceImagesToChatMessages,
+  preparedReferenceImagesToMessages,
 } from '../../shared/multimodal-prompt';
 import { parsePlanningActions } from './parse-planning-actions';
 import { parseStandardPlanningResponse } from './standard-planning-parser';
@@ -35,7 +36,7 @@ const noPreviousActionsText =
 type PlanningCallResponse = Awaited<ReturnType<typeof callAI>>;
 
 type CallAndParsePlanningResponseOptions = {
-  messages: ChatCompletionMessageParam[];
+  messages: ModelCallMessages;
   modelRuntime: PlanOptions['modelRuntime'];
   abortSignal?: AbortSignal;
   includeLocateInPlanning: boolean;
@@ -200,10 +201,10 @@ export async function standardPlan(
 
   const actionContext = opts.actionContext ? `${opts.actionContext}\n` : '';
 
-  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+  const referenceImageMessages = preparedReferenceImagesToMessages(
     userInstruction.referenceImages,
   );
-  const instruction: ChatCompletionMessageParam[] = [
+  const instruction: ConversationMessage[] = [
     {
       role: 'user',
       content: [
@@ -216,7 +217,7 @@ export async function standardPlan(
     ...referenceImageMessages,
   ];
 
-  let latestFeedbackMessage: ChatCompletionMessageParam;
+  let latestFeedbackMessage: ConversationMessage;
 
   // Build sub-goal status text to include in the message
   // In planning deep-think mode: show full sub-goals with logs
@@ -243,11 +244,8 @@ export async function standardPlan(
           text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
@@ -262,23 +260,20 @@ export async function standardPlan(
           text: `This is the current screenshot.${memoriesSection}${executionProgressSection}`,
         },
         {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image',
+          url: imagePayload,
         },
       ],
     };
   }
-  conversationHistory.append(latestFeedbackMessage);
+  conversationHistory.appendMessage(latestFeedbackMessage);
 
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
-  const msgs: ChatCompletionMessageParam[] = [
+  const msgs: ModelCallMessages = [
     { role: 'system', content: systemPrompt },
     ...instruction,
     ...historyLog,
@@ -366,16 +361,20 @@ export async function standardPlan(
     conversationHistory.appendMemory(planFromAI.memory);
   }
 
-  // Some model providers require opaque assistant fields to be replayed
-  // verbatim in later turns. Keep this opt-in per model adapter so that an
-  // unverified provider does not receive non-standard response fields.
-  if (
-    modelRuntime.adapter.chatCompletion.replayRawAssistantMessage &&
-    rawAssistantOutput?.type === 'chat-completion'
-  ) {
-    conversationHistory.append(rawAssistantOutput.rawValue);
+  const shouldReplayRawOutput =
+    (rawAssistantOutput?.type === 'responses' &&
+      modelRuntime.adapter.responses.replayRawAssistantOutput) ||
+    (rawAssistantOutput?.type === 'chat-completion' &&
+      modelRuntime.adapter.chatCompletion.replayRawAssistantMessage);
+  if (rawAssistantOutput && shouldReplayRawOutput) {
+    conversationHistory.appendModelOutput(rawAssistantOutput);
   } else {
-    conversationHistory.append({
+    if (!rawAssistantOutput) {
+      debug(
+        'Raw assistant output is unavailable; saving only response text in conversation history.',
+      );
+    }
+    conversationHistory.appendMessage({
       role: 'assistant',
       content: [
         {

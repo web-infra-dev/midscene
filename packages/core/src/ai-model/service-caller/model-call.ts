@@ -1,7 +1,6 @@
 import type { RawAssistantOutput } from '@/types';
 import type { AIUsageInfo } from '@/types';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ModelRuntime } from '../models';
 import { type JsonParserSource, assertJsonObject } from '../shared/json';
 import { callAI } from './call-ai';
@@ -10,7 +9,7 @@ import {
   withSemanticRetryFeedback,
 } from './semantic-retry';
 import type { CallAIOptions } from './types';
-import type { AIArgs } from './types';
+import type { ModelCallMessages } from './types';
 import { AIResponseParseError } from './utils';
 
 export type AIObjectResponse<T> = {
@@ -43,7 +42,7 @@ export function parseAIObjectResponse<T>(
 }
 
 export async function callAIWithObjectResponse<T>(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: {
     abortSignal?: AbortSignal;
@@ -88,7 +87,7 @@ export async function callAIWithObjectResponse<T>(
 }
 
 export async function callAIWithStringResponse(
-  msgs: AIArgs,
+  msgs: ModelCallMessages,
   modelRuntime: ModelRuntime,
   options?: Pick<CallAIOptions, 'abortSignal' | 'requiresOriginalImageDetail'>,
 ): Promise<{

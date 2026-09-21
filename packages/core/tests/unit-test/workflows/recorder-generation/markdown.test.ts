@@ -111,13 +111,13 @@ describe('markdown-generator', () => {
     const userContent = Array.isArray(prompt[1].content)
       ? prompt[1].content
       : [];
-    const imagePart = userContent.find((part) => part.type === 'image_url');
-    expect(imagePart?.type).toBe('image_url');
-    if (imagePart?.type !== 'image_url') {
+    const imagePart = userContent.find((part) => part.type === 'image');
+    expect(imagePart?.type).toBe('image');
+    if (imagePart?.type !== 'image') {
       throw new Error('Expected a compressed screenshot in the prompt');
     }
-    expect(imagePart.image_url.url).toMatch(/^data:image\/jpeg;base64,/);
-    await expect(imageInfoOfBase64(imagePart.image_url.url)).resolves.toEqual({
+    expect(imagePart.url).toMatch(/^data:image\/jpeg;base64,/);
+    await expect(imageInfoOfBase64(imagePart.url)).resolves.toEqual({
       width: 768,
       height: 384,
     });
@@ -441,7 +441,7 @@ describe('markdown-generator', () => {
       .map((part) => part.text)
       .join('\n');
 
-    expect(content.some((part) => part.type === 'image_url')).toBe(false);
+    expect(content.some((part) => part.type === 'image')).toBe(false);
     expect(text).not.toContain('./screenshots/event-001-navigation.png');
     expect(text).toContain('"hashId": "nav-oversized"');
   });

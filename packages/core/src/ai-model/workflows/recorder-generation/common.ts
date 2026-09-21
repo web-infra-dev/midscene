@@ -8,6 +8,7 @@ import {
   getMidsceneRecorderEventDescription,
   getMidsceneRecorderSemantic,
 } from '@midscene/shared/recorder';
+import type { MessageContent } from '../../service-caller/types';
 
 export interface EventCounts {
   navigation: number;
@@ -357,7 +358,7 @@ export const createMessageContent = (
   screenshots: string[] = [],
   includeScreenshots = true,
 ) => {
-  const messageContent: any[] = [
+  const messageContent: MessageContent[] = [
     {
       type: 'text',
       text: promptText,
@@ -372,10 +373,8 @@ export const createMessageContent = (
 
     screenshots.forEach((screenshot) => {
       messageContent.push({
-        type: 'image_url',
-        image_url: {
-          url: screenshot,
-        },
+        type: 'image',
+        url: screenshot,
       });
     });
   }

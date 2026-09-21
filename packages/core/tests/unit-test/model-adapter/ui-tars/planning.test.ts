@@ -4,6 +4,7 @@ import { getModelRuntime } from '@/ai-model/models';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
 import { createUiTarsPlanner } from '@/ai-model/models/ui-tars/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
@@ -70,6 +71,9 @@ async function runUiTarsPlanning(
     resolveCustomPlanningDefinition(createUiTarsPlanner(uiTarsModelVersion)),
   );
 }
+
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
 
 describe('createUiTarsPlanner', () => {
   beforeEach(() => {
@@ -182,13 +186,15 @@ Action: click(start_box='(500,500)')`,
         expect.objectContaining({
           role: 'user',
           content: expect.arrayContaining([
-            expect.objectContaining({ type: 'image_url' }),
+            expect.objectContaining({ type: 'image' }),
           ]),
         }),
       ]),
     );
     expect(conversationHistory.snapshot()).toHaveLength(2);
-    expect(conversationHistory.snapshot()[1]).toMatchObject({
+    expect(
+      toChatMessages(conversationHistory.snapshot(), resolveImageDetail)[1],
+    ).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('Click submit'),
     });

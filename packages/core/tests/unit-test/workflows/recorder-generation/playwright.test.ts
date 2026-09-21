@@ -277,10 +277,8 @@ describe('playwright-generator', () => {
         text: 'Test prompt',
       });
       expect(content[2]).toEqual({
-        type: 'image_url',
-        image_url: {
-          url: 'data:image/png;base64,screenshot1',
-        },
+        type: 'image',
+        url: 'data:image/png;base64,screenshot1',
       });
     });
   });
@@ -411,7 +409,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       const messageContent = userMessage.content as any[];
 
       const imageMessages = messageContent.filter(
-        (msg) => msg.type === 'image_url',
+        (msg) => msg.type === 'image',
       );
       expect(imageMessages).toHaveLength(2);
     });

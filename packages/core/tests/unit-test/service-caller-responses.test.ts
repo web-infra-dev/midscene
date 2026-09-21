@@ -1,9 +1,11 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import { callAI } from '@/ai-model/service-caller';
 import { toResponsesInput } from '@/ai-model/service-caller/openai/responses/utils';
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 // Exercise the real SDK and HTTP wrapper without making model API calls.
 const fetchMock = rs.fn<typeof fetch>();
@@ -19,7 +21,7 @@ const config: IModelConfig = {
   retryCount: 0,
   retryInterval: 0,
 };
-const messages: ChatCompletionMessageParam[] = [
+const messages: ConversationMessage[] = [
   { role: 'system', content: 'Return JSON.' },
   { role: 'assistant', content: [{ type: 'text', text: 'Previous answer' }] },
   {
@@ -27,8 +29,8 @@ const messages: ChatCompletionMessageParam[] = [
     content: [
       { type: 'text', text: 'Inspect this image' },
       {
-        type: 'image_url',
-        image_url: { url: 'data:image/png;base64,AA==', detail: 'high' },
+        type: 'image',
+        url: 'data:image/png;base64,AA==',
       },
     ],
   },
@@ -49,11 +51,13 @@ const response = (text = 'hello') => ({
     {
       type: 'reasoning',
       id: 'rs-test',
+      encrypted_content: 'encrypted-test-state',
       summary: [{ type: 'summary_text', text: 'thinking' }],
     },
     {
       type: 'message',
       id: 'msg-test',
+      phase: 'final_answer',
       role: 'assistant',
       status: 'completed',
       content: [{ type: 'output_text', text, annotations: [] }],
@@ -90,6 +94,9 @@ afterEach(() => {
   rs.unstubAllGlobals();
 });
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('Responses protocol', () => {
   it('rejects an unadapted API type before initialization and retries', async () => {
     const createClient = rs.fn();
@@ -104,6 +111,52 @@ describe('Responses protocol', () => {
     );
     expect(createClient).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'replays complete output in the next request (stream=%s)',
+    async (stream) => {
+      const runtime = getModelRuntime(config);
+      fetchMock.mockResolvedValueOnce(
+        stream ? sseResponse([delta, completed]) : jsonResponse(response()),
+      );
+      const history = new ConversationHistory({
+        initialMessages: messages.map((message) => ({
+          type: 'input-message',
+          message,
+        })),
+      });
+      const first = await callAI(history.snapshot(), runtime, {
+        stream,
+        onChunk: rs.fn(),
+      });
+      expect(first.rawAssistantOutput).toBeDefined();
+      history.appendModelOutput(first.rawAssistantOutput!);
+      history.appendMessage({
+        role: 'user',
+        content: 'Continue with the next step.',
+      });
+      await callAI(history.snapshot(), runtime);
+      expect(requestBody(1).store).toBe(false);
+      expect(requestBody(1)).not.toHaveProperty('previous_response_id');
+      expect(requestBody(1).include).toBeUndefined();
+      expect(requestBody(1).input).toEqual([
+        ...requestBody(0).input,
+        ...response().output,
+        { role: 'user', content: 'Continue with the next step.' },
+      ]);
+    },
+  );
+
+  it.each([
+    ['message.input_image.image_url'],
+    ['message.input_image.image_url', 'reasoning.encrypted_content'],
+  ])('preserves user include fields %j', async (...include) => {
+    await callAI(
+      messages,
+      getModelRuntime({ ...config, extraBody: { include } }),
+    );
+    expect(requestBody().include).toEqual(include);
   });
 
   it('sends text, images and history through the SDK and reports normalized usage once', async () => {
@@ -126,7 +179,7 @@ describe('Responses protocol', () => {
       model: 'test-model',
       stream: false,
       store: false,
-      reasoning: { effort: 'high' },
+      reasoning: { effort: 'high', context: 'current_turn' },
       text: { format: { type: 'json_object' } },
       max_output_tokens: 200,
       input: [
@@ -151,8 +204,8 @@ describe('Responses protocol', () => {
     expect(requestBody()).not.toHaveProperty('response_format');
     expect(requestBody()).not.toHaveProperty('reasoning_effort');
     expect(messages[2].content).toContainEqual({
-      type: 'image_url',
-      image_url: { url: 'data:image/png;base64,AA==', detail: 'high' },
+      type: 'image',
+      url: 'data:image/png;base64,AA==',
     });
     expect(result).toMatchObject({
       content: 'hello',
@@ -394,7 +447,7 @@ describe('Responses protocol', () => {
       { expectedJsonObjectResponse: true },
     );
     expect(requestBody()).toMatchObject({
-      reasoning: { effort: 'low' },
+      reasoning: { effort: 'low', context: 'current_turn' },
       text: { format: { type: 'text' } },
     });
     expect(requestBody()).not.toHaveProperty('temperature');
@@ -430,48 +483,50 @@ describe('Responses protocol', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects unsupported messages before entering request retries', async () => {
-    const runtime = getModelRuntime({ ...config, retryCount: 2 });
-    const createClient = rs.fn();
-    runtime.config.createOpenAIClient = createClient;
-    await expect(
-      callAI(
-        [{ role: 'tool', content: 'result', tool_call_id: 'call-test' }],
-        runtime,
+  it('converts text messages and joins assistant text parts', () => {
+    expect(
+      toResponsesInput(
+        [
+          { role: 'system', content: 'System instructions' },
+          { role: 'user', content: 'User request' },
+          { role: 'assistant', content: 'Previous response' },
+          {
+            type: 'input-message',
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'First part' },
+                { type: 'text', text: ' second part' },
+              ],
+            },
+          },
+        ],
+        resolveImageDetail,
       ),
-    ).rejects.toThrow(
-      'Responses does not support tool messages in this caller',
-    );
-    expect(createClient).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    ).toEqual([
+      { role: 'system', content: 'System instructions' },
+      { role: 'user', content: 'User request' },
+      { role: 'assistant', content: 'Previous response' },
+      { role: 'assistant', content: 'First part second part' },
+    ]);
   });
 
-  it('rejects unsupported message parts rather than silently dropping them', () => {
+  it('rejects Chat Completions raw output in Responses history', () => {
     expect(() =>
-      toResponsesInput([
-        {
-          role: 'assistant',
-          content: [{ type: 'refusal', refusal: 'Cannot answer' }],
-        },
-      ]),
-    ).toThrow('refusal');
-    expect(() =>
-      toResponsesInput([
-        { role: 'tool', content: 'result', tool_call_id: 'call-test' },
-      ]),
-    ).toThrow('tool');
-    expect(() =>
-      toResponsesInput([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'input_audio',
-              input_audio: { data: 'AA==', format: 'wav' },
+      toResponsesInput(
+        [
+          {
+            type: 'model-output',
+            output: {
+              type: 'chat-completion',
+              rawValue: { role: 'assistant', content: 'Answer', refusal: null },
             },
-          ],
-        },
-      ]),
-    ).toThrow('input_audio');
+          },
+        ],
+        resolveImageDetail,
+      ),
+    ).toThrow(
+      'Cannot replay Chat Completions output in a Responses conversation',
+    );
   });
 });

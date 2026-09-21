@@ -41,11 +41,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,

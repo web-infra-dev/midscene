@@ -110,6 +110,7 @@ export type BuildResponsesParams = (input: ResponsesCallContext) => {
 };
 
 export interface ResponsesAdapter {
+  replayRawAssistantOutput: boolean;
   unsupportedUserConfig: UnsupportedUserConfig[];
   buildResponsesParams(
     input: ModelRequestConfigInput,
@@ -117,14 +118,17 @@ export interface ResponsesAdapter {
 }
 
 export interface ResponsesDefinition {
+  /** Replay complete output items in later turns. Defaults to false. */
+  replayRawAssistantOutput?: boolean;
   unsupportedUserConfig?: UnsupportedUserConfig[];
   buildResponsesParams?: BuildResponsesParams;
 }
 
 export type ResolveImageDetail = (input: {
+  imageDetail?: ImageDetail;
   intent?: TIntent;
   requiresOriginalImageDetail?: boolean;
-}) => ImageDetail | undefined;
+}) => ImageDetail;
 
 export interface CodexAppServerCallInput {
   intent?: TIntent;

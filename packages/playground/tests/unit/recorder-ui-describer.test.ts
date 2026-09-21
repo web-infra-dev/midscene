@@ -123,8 +123,8 @@ describe('recorder-ui-describer', () => {
     const call = rs.mocked(callAIWithObjectResponse).mock.calls[0];
     const userContent = call[0][1].content as any[];
     const highlightedScreenshot = userContent.find(
-      (item) => item.type === 'image_url',
-    )?.image_url.url;
+      (item) => item.type === 'image',
+    )?.url;
 
     expect(result.event.screenshotWithBox).toBeTruthy();
     expect(result.event.screenshotWithBox).not.toBe(fixtureScreenshot);

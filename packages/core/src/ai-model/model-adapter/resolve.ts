@@ -19,7 +19,8 @@ import type {
   ResponsesAdapter,
 } from './types';
 
-const defaultImageDetail = (_input: unknown) => undefined;
+const defaultImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+  imageDetail ?? 'high';
 
 function resolveJsonParser(
   jsonParser: ModelAdapterDefinition['jsonParser'],

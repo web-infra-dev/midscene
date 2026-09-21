@@ -36,11 +36,8 @@ const imageMessage = [
     role: 'user' as const,
     content: [
       {
-        type: 'image_url' as const,
-        image_url: {
-          url: 'https://example.com/shot.png',
-          detail: 'high' as const,
-        },
+        type: 'image' as const,
+        url: 'https://example.com/shot.png',
       },
       {
         type: 'text' as const,
@@ -122,21 +119,7 @@ describe('GPT image detail handling', () => {
         }),
       );
       expect(mockCodexCall).toHaveBeenCalledWith(
-        [
-          {
-            ...imageMessage[0],
-            content: [
-              {
-                ...imageMessage[0].content[0],
-                image_url: {
-                  ...imageMessage[0].content[0].image_url,
-                  detail: 'original',
-                },
-              },
-              ...imageMessage[0].content.slice(1),
-            ],
-          },
-        ],
+        imageMessage,
         expect.anything(),
         expect.objectContaining({
           params: { effort: reasoningEffort ?? 'medium' },
@@ -155,7 +138,7 @@ describe('GPT image detail handling', () => {
     {
       intent: 'planning',
       requiresOriginalImageDetail: false,
-      expected: undefined,
+      expected: 'high',
     },
     {
       intent: 'planning',
@@ -176,10 +159,13 @@ describe('GPT image detail handling', () => {
         try {
           await callAI(imageMessage, runtime, { requiresOriginalImageDetail });
           expect(
-            mockCodexCall.mock.calls.at(-1)?.[0][0].content[0].image_url.detail,
-          ).toBe(expected ?? 'high');
-          expect(imageMessage[0].content[0].image_url?.detail).toBe('high');
+            mockCodexCall.mock.calls
+              .at(-1)?.[2]
+              ?.resolveImageDetail?.({ imageDetail: undefined }),
+          ).toBe(expected);
+          expect(imageMessage[0].content[0]).not.toHaveProperty('detail');
           expect(imageDetailSpy).toHaveBeenCalledExactlyOnceWith({
+            imageDetail: undefined,
             intent,
             requiresOriginalImageDetail,
           });

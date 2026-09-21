@@ -25,6 +25,7 @@ export function resolveResponses(
   const buildResponsesParams =
     responses?.buildResponsesParams ?? buildDefaultResponsesParams;
   return {
+    replayRawAssistantOutput: responses?.replayRawAssistantOutput ?? false,
     unsupportedUserConfig: responses?.unsupportedUserConfig ?? [],
     buildResponsesParams: (input) => {
       const context = {

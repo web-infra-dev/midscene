@@ -183,7 +183,7 @@ describe('ResolvedModelAdapter', () => {
     ).toEqual({
       config: { temperature: 0.7 },
     });
-    expect(adapter.resolveImageDetail({})).toBeUndefined();
+    expect(adapter.resolveImageDetail({})).toBe('high');
     expect(adapter.imagePreprocess).toEqual({});
     expect(adapter.planning).toMatchObject({
       kind: 'standard',

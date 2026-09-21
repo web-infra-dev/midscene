@@ -1,11 +1,13 @@
 import { getDebug } from '@midscene/shared/logger';
+import type { ResolveImageDetail } from '../../../model-adapter/types';
 import type { ModelRequestConfigInput } from '../../../model-adapter/types';
 import { createProxyAgentIfNeeded } from '../../proxy';
 import type { ModelCallContext, OpenAIProtocolCallResult } from '../../types';
-import { applyImageDetail, stringifyForDebug } from '../../utils';
+import { stringifyForDebug } from '../../utils';
 import { callChatCompletionNonStreaming } from './non-stream';
 import { callChatCompletionStream } from './stream';
 import type { ChatCompletionCallOptions } from './types';
+import { toChatMessages } from './utils';
 
 export const prepareChatCompletion = async ({
   messages,
@@ -38,18 +40,16 @@ export const prepareChatCompletion = async ({
     })}`,
   );
 
-  const imageDetail = adapter.resolveImageDetail({
-    intent: modelConfig.intent,
-    requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
-  });
-
-  // Some adapters request original image detail to preserve screenshot
-  // resolution for localization-sensitive tasks.
-  const messagesWithImageDetail = applyImageDetail({ imageDetail, messages });
+  const resolveImageDetail: ResolveImageDetail = ({ imageDetail }) =>
+    adapter.resolveImageDetail({
+      imageDetail,
+      intent: modelConfig.intent,
+      requiresOriginalImageDetail: options?.requiresOriginalImageDetail,
+    });
 
   const requestBodyParams: ChatCompletionCallOptions['requestBodyParams'] = {
     model: modelConfig.modelName,
-    messages: messagesWithImageDetail,
+    messages: toChatMessages(messages, resolveImageDetail),
     ...adapterChatCompletionParams,
     ...(modelConfig.extraBody ?? {}),
   };

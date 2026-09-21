@@ -154,11 +154,8 @@ async function runVisionConnectivityCheck(
               text: 'What is the main content of this image ? It is a photo or a form ?',
             },
             {
-              type: 'image_url',
-              image_url: {
-                url: CONNECTIVITY_FIXTURE_IMAGE,
-                detail: 'high',
-              },
+              type: 'image',
+              url: CONNECTIVITY_FIXTURE_IMAGE,
             },
           ],
         },

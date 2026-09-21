@@ -242,10 +242,10 @@ describe('service.describe', () => {
       text?: string;
       image_url?: { url: string; detail: string };
     }>;
-    expect(content.filter((item) => item.type === 'image_url')).toHaveLength(2);
-    expect(
-      content.filter((item) => item.type === 'image_url')[0]?.image_url?.url,
-    ).toBe('data:image/png;base64,boxed');
+    expect(content.filter((item) => item.type === 'image')).toHaveLength(2);
+    expect(content.filter((item) => item.type === 'image')[0]?.url).toBe(
+      'data:image/png;base64,boxed',
+    );
     expect(content.map((item) => item.text).filter(Boolean)).toEqual([
       'Use these images together to describe the real UI target marked by the temporary callout. Do not describe the marker itself.',
       'Image 1: full screenshot overview with the target marker, for page position and ownership context.',

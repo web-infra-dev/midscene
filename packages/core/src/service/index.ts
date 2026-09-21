@@ -4,7 +4,8 @@ import {
   AIResponseParseError,
   callAIWithObjectResponse,
 } from '@/ai-model/service-caller';
-import type { AIArgs } from '@/ai-model/service-caller/types';
+import type { ModelCallMessages } from '@/ai-model/service-caller/types';
+import type { MessageContent } from '@/ai-model/service-caller/types';
 import { defaultModelFamilyRequiredForLocateMessage } from '@/ai-model/shared/model-locate-result/errors';
 import {
   AiLocateElement,
@@ -38,7 +39,6 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   createServiceDump,
@@ -489,7 +489,7 @@ export default class Service {
         });
 
     const shouldDeepDescribe = opt?.deepDescribe;
-    let imageContent: ChatCompletionContentPart[];
+    let imageContent: MessageContent[];
     if (shouldDeepDescribe) {
       const contextAreas = getDescribeDeepContextAreas(targetRect, shotSize);
       const contextImages = await Promise.all(
@@ -533,20 +533,18 @@ export default class Service {
           };
         }),
       );
-      const contextImageContent =
-        contextImages.flatMap<ChatCompletionContentPart>((item, index) => [
+      const contextImageContent = contextImages.flatMap<MessageContent>(
+        (item, index) => [
           {
             type: 'text',
             text: `Image ${index + 2}: focused detail crop around the target, for reading text, icon shape, and exact local boundaries.`,
           },
           {
-            type: 'image_url',
-            image_url: {
-              url: item.imageBase64,
-              detail: 'high',
-            },
+            type: 'image',
+            url: item.imageBase64,
           },
-        ]);
+        ],
+      );
 
       imageContent = [
         {
@@ -558,11 +556,8 @@ export default class Service {
           text: 'Image 1: full screenshot overview with the target marker, for page position and ownership context.',
         },
         {
-          type: 'image_url' as const,
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image' as const,
+          url: imagePayload,
         },
         ...contextImageContent,
       ];
@@ -573,16 +568,13 @@ export default class Service {
           text: 'Full screenshot with a temporary callout marking the target:',
         },
         {
-          type: 'image_url' as const,
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
+          type: 'image' as const,
+          url: imagePayload,
         },
       ];
     }
 
-    const msgs: AIArgs = [
+    const msgs: ModelCallMessages = [
       { role: 'system', content: systemPrompt },
       {
         role: 'user',

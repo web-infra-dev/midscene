@@ -1,6 +1,12 @@
 import { ConversationHistory } from '@/ai-model';
+import type { ConversationEntry } from '@/ai-model/service-caller/types';
+import type { ConversationMessage } from '@/ai-model/service-caller/types';
 import { describe, expect, it } from '@rstest/core';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
+
+const historyMessages = (entries: ConversationEntry[]) =>
+  entries.map((entry) =>
+    entry.type === 'input-message' ? entry.message : entry.output.rawValue,
+  );
 
 const userMessage = (content: string) => ({
   role: 'user' as const,
@@ -16,7 +22,7 @@ const userMessageWithImage = (text: string, imageUrl: string) => ({
   role: 'user' as const,
   content: [
     { type: 'text' as const, text },
-    { type: 'image_url' as const, image_url: { url: imageUrl } },
+    { type: 'image' as const, url: imageUrl },
   ],
 });
 
@@ -26,14 +32,40 @@ const ignoredImagePlaceholder = {
 };
 
 describe('ConversationHistory', () => {
+  it('stores explicit entries and exports Chat output without losing provider fields', () => {
+    const message = userMessage('question');
+    const rawValue = {
+      role: 'assistant' as const,
+      content: 'answer',
+      refusal: null,
+      reasoning_content: 'provider reasoning',
+    };
+    const output = {
+      type: 'model-output' as const,
+      output: { type: 'chat-completion' as const, rawValue },
+    };
+    const history = new ConversationHistory({
+      initialMessages: [{ type: 'input-message', message }],
+    });
+    history.appendModelOutput(output.output);
+    const entries = [{ type: 'input-message', message }, output];
+    expect(history.snapshot()).toEqual(entries);
+    expect([...history]).toEqual(entries);
+    expect(history.toJSON()).toEqual(entries);
+    expect(historyMessages(history.snapshot())).toEqual([message, rawValue]);
+  });
+
   it('resets state and seeds new messages', () => {
     const history = new ConversationHistory();
-    history.append(assistantMessage('greet'));
-    history.append(userMessage('question'));
+    history.appendMessage(assistantMessage('greet'));
+    history.appendMessage(userMessage('question'));
 
-    history.seed([assistantMessage('seeded'), userMessage('follow-up')]);
+    history.seed([
+      { type: 'input-message', message: assistantMessage('seeded') },
+      { type: 'input-message', message: userMessage('follow-up') },
+    ]);
 
-    expect(history.snapshot()).toEqual([
+    expect(historyMessages(history.snapshot())).toEqual([
       assistantMessage('seeded'),
       userMessage('follow-up'),
     ]);
@@ -42,8 +74,8 @@ describe('ConversationHistory', () => {
 
   it('reset clears messages, memories, and subGoals', () => {
     const history = new ConversationHistory();
-    history.append(userMessage('msg1'));
-    history.append(assistantMessage('msg2'));
+    history.appendMessage(userMessage('msg1'));
+    history.appendMessage(assistantMessage('msg2'));
     history.appendMemory('Memory from task 1');
     history.appendMemory('Another memory');
     history.setSubGoals([
@@ -59,7 +91,7 @@ describe('ConversationHistory', () => {
     history.reset();
 
     expect(history.length).toBe(0);
-    expect(history.snapshot()).toEqual([]);
+    expect(historyMessages(history.snapshot())).toEqual([]);
     expect(history.getMemories()).toEqual([]);
     expect(history.memoriesToText()).toBe('');
     expect(history.subGoalsToText()).toBe('');
@@ -86,31 +118,33 @@ describe('ConversationHistory', () => {
 
   it('returns independent snapshot copies', () => {
     const history = new ConversationHistory();
-    history.append(assistantMessage('hello'));
-    const snapshot = history.snapshot();
+    history.appendMessage(assistantMessage('hello'));
+    const snapshot = historyMessages(history.snapshot());
     snapshot.push(userMessage('mutated'));
 
     expect(history.length).toBe(1);
-    expect(history.snapshot()).toEqual([assistantMessage('hello')]);
+    expect(historyMessages(history.snapshot())).toEqual([
+      assistantMessage('hello'),
+    ]);
   });
 
   it('returns image messages without modification', () => {
     const history = new ConversationHistory();
 
-    const messageWithTwoImages: ChatCompletionMessageParam = {
+    const messageWithTwoImages: ConversationMessage = {
       role: 'user',
       content: [
         { type: 'text', text: 'Look at these' },
-        { type: 'image_url', image_url: { url: 'data:image1' } },
-        { type: 'image_url', image_url: { url: 'data:image2' } },
+        { type: 'image', url: 'data:image1' },
+        { type: 'image', url: 'data:image2' },
       ],
     };
 
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(assistantMessage('ack1'));
-    history.append(messageWithTwoImages);
+    history.appendMessage(userMessageWithImage('first', 'data:image1'));
+    history.appendMessage(assistantMessage('ack1'));
+    history.appendMessage(messageWithTwoImages);
 
-    const snapshot = history.snapshot();
+    const snapshot = historyMessages(history.snapshot());
 
     expect(snapshot[0]).toEqual(userMessageWithImage('first', 'data:image1'));
     expect(snapshot[1]).toEqual(assistantMessage('ack1'));
@@ -120,20 +154,20 @@ describe('ConversationHistory', () => {
   it('replaces older images with text when exceeding the maxImages limit', () => {
     const history = new ConversationHistory();
 
-    const messageWithTwoImages: ChatCompletionMessageParam = {
+    const messageWithTwoImages: ConversationMessage = {
       role: 'user',
       content: [
         { type: 'text', text: 'More images' },
-        { type: 'image_url', image_url: { url: 'data:image2' } },
-        { type: 'image_url', image_url: { url: 'data:image3' } },
+        { type: 'image', url: 'data:image2' },
+        { type: 'image', url: 'data:image3' },
       ],
     };
 
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(assistantMessage('ack'));
-    history.append(messageWithTwoImages);
+    history.appendMessage(userMessageWithImage('first', 'data:image1'));
+    history.appendMessage(assistantMessage('ack'));
+    history.appendMessage(messageWithTwoImages);
 
-    const snapshotWithLimit = history.snapshot(1);
+    const snapshotWithLimit = historyMessages(history.snapshot(1));
 
     expect(snapshotWithLimit[0]).toEqual({
       role: 'user',
@@ -143,13 +177,13 @@ describe('ConversationHistory', () => {
       role: 'user',
       content: [
         { type: 'text', text: 'More images' },
-        { type: 'image_url', image_url: { url: 'data:image2' } },
+        { type: 'image', url: 'data:image2' },
         ignoredImagePlaceholder,
       ],
     });
 
     // Original history remains unchanged
-    const snapshotWithoutLimit = history.snapshot();
+    const snapshotWithoutLimit = historyMessages(history.snapshot());
     expect(snapshotWithoutLimit[0]).toEqual(
       userMessageWithImage('first', 'data:image1'),
     );
@@ -697,15 +731,15 @@ describe('ConversationHistory', () => {
 
   it('does not compress when message count is below threshold', () => {
     const history = new ConversationHistory();
-    history.append(userMessage('msg1'));
-    history.append(userMessage('msg2'));
-    history.append(userMessage('msg3'));
+    history.appendMessage(userMessage('msg1'));
+    history.appendMessage(userMessage('msg2'));
+    history.appendMessage(userMessage('msg3'));
 
     const result = history.compressHistory(5, 2);
 
     expect(result).toBe(false);
     expect(history.length).toBe(3);
-    expect(history.snapshot()).toEqual([
+    expect(historyMessages(history.snapshot())).toEqual([
       userMessage('msg1'),
       userMessage('msg2'),
       userMessage('msg3'),
@@ -714,9 +748,9 @@ describe('ConversationHistory', () => {
 
   it('does not compress when message count equals threshold', () => {
     const history = new ConversationHistory();
-    history.append(userMessage('msg1'));
-    history.append(userMessage('msg2'));
-    history.append(userMessage('msg3'));
+    history.appendMessage(userMessage('msg1'));
+    history.appendMessage(userMessage('msg2'));
+    history.appendMessage(userMessage('msg3'));
 
     const result = history.compressHistory(3, 2);
 
@@ -727,7 +761,7 @@ describe('ConversationHistory', () => {
   it('compresses history when message count exceeds threshold', () => {
     const history = new ConversationHistory();
     for (let i = 1; i <= 25; i++) {
-      history.append(userMessage(`msg${i}`));
+      history.appendMessage(userMessage(`msg${i}`));
     }
 
     const result = history.compressHistory(20, 10);
@@ -740,12 +774,12 @@ describe('ConversationHistory', () => {
   it('keeps the most recent messages after compression', () => {
     const history = new ConversationHistory();
     for (let i = 1; i <= 25; i++) {
-      history.append(userMessage(`msg${i}`));
+      history.appendMessage(userMessage(`msg${i}`));
     }
 
     history.compressHistory(20, 10);
 
-    const snapshot = history.snapshot();
+    const snapshot = historyMessages(history.snapshot());
     // First message should be the placeholder
     expect(snapshot[0]).toEqual({
       role: 'user',
@@ -759,15 +793,15 @@ describe('ConversationHistory', () => {
 
   it('preserves message order after compression', () => {
     const history = new ConversationHistory();
-    history.append(userMessage('old1'));
-    history.append(assistantMessage('old2'));
-    history.append(userMessage('old3'));
-    history.append(assistantMessage('keep1'));
-    history.append(userMessage('keep2'));
+    history.appendMessage(userMessage('old1'));
+    history.appendMessage(assistantMessage('old2'));
+    history.appendMessage(userMessage('old3'));
+    history.appendMessage(assistantMessage('keep1'));
+    history.appendMessage(userMessage('keep2'));
 
     history.compressHistory(4, 2);
 
-    const snapshot = history.snapshot();
+    const snapshot = historyMessages(history.snapshot());
     expect(snapshot).toEqual([
       {
         role: 'user',
@@ -780,18 +814,65 @@ describe('ConversationHistory', () => {
 
   it('handles compression with image messages', () => {
     const history = new ConversationHistory();
-    history.append(userMessageWithImage('old', 'data:old-image'));
-    history.append(assistantMessage('old response'));
-    history.append(userMessageWithImage('new', 'data:new-image'));
+    history.appendMessage(userMessageWithImage('old', 'data:old-image'));
+    history.appendMessage(assistantMessage('old response'));
+    history.appendMessage(userMessageWithImage('new', 'data:new-image'));
 
     history.compressHistory(2, 1);
 
-    const snapshot = history.snapshot();
+    const snapshot = historyMessages(history.snapshot());
     expect(snapshot.length).toBe(2);
     expect(snapshot[0]).toEqual({
       role: 'user',
       content: '(2 previous conversation messages have been omitted)',
     });
     expect(snapshot[1]).toEqual(userMessageWithImage('new', 'data:new-image'));
+  });
+});
+
+describe('Responses output history', () => {
+  it('keeps output items together while trimming old input images in a snapshot', () => {
+    const history = new ConversationHistory();
+    history.appendMessage(
+      userMessageWithImage('before', 'data:image/png;base64,OLD'),
+    );
+    const output = {
+      type: 'model-output' as const,
+      output: {
+        type: 'responses' as const,
+        rawValue: [
+          {
+            type: 'reasoning' as const,
+            id: 'rs-test',
+            summary: [],
+            encrypted_content: 'opaque-state',
+          },
+        ],
+      },
+    };
+    history.appendModelOutput(output.output);
+    history.appendMessage(
+      userMessageWithImage('after', 'data:image/png;base64,NEW'),
+    );
+    const snapshot = history.snapshot(1);
+    expect(snapshot[1]).toEqual(output);
+    expect(snapshot[0]).toEqual({
+      type: 'input-message',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'before' },
+          { type: 'text', text: '(image ignored due to size optimization)' },
+        ],
+      },
+    });
+    expect(snapshot[2]).toEqual({
+      type: 'input-message',
+      message: userMessageWithImage('after', 'data:image/png;base64,NEW'),
+    });
+    expect(history.snapshot()[0]).toEqual({
+      type: 'input-message',
+      message: userMessageWithImage('before', 'data:image/png;base64,OLD'),
+    });
   });
 });

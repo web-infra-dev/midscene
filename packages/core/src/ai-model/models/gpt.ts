@@ -14,7 +14,7 @@ import { isLocateIntent } from './utils/intent';
 const originalImageDetailForDefaultIntent: ResolveImageDetail = (input) =>
   isLocateIntent(input.intent) || input.requiresOriginalImageDetail
     ? 'original'
-    : undefined;
+    : (input.imageDetail ?? 'high');
 
 const resolveGpt5ReasoningEffort = ({
   reasoningEnabled,
@@ -63,7 +63,9 @@ const buildGpt5ResponsesParams: BuildResponsesParams = (input) => {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      reasoning: { effort: effectiveReasoningEffort },
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
     },
   };
 };
@@ -84,7 +86,9 @@ const buildGpt6ResponsesParams: BuildResponsesParams = (input) => {
     config: {
       ...midsceneDefaults,
       ...commonOverrideConfig,
-      reasoning: { effort: effectiveReasoningEffort },
+      // Use current-turn reasoning only. Switching to all_turns requires
+      // responses.replayRawAssistantOutput to preserve reasoning history.
+      reasoning: { effort: effectiveReasoningEffort, context: 'current_turn' },
     },
   };
 };
@@ -147,6 +151,7 @@ export const gptAdapters = {
     supportedApiTypes: ['chat-completion', 'responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
     responses: {
+      replayRawAssistantOutput: false,
       unsupportedUserConfig: ['reasoningBudget'],
       buildResponsesParams: buildGpt5ResponsesParams,
     },
@@ -167,6 +172,7 @@ export const gptAdapters = {
     supportedApiTypes: ['chat-completion', 'responses'],
     resolveImageDetail: originalImageDetailForDefaultIntent,
     responses: {
+      replayRawAssistantOutput: false,
       unsupportedUserConfig: ['temperature', 'reasoningBudget'],
       buildResponsesParams: buildGpt6ResponsesParams,
     },

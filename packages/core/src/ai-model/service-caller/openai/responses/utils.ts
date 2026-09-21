@@ -1,64 +1,56 @@
 import type OpenAI from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type {
   Response,
   ResponseInput,
+  ResponseInputImage,
   ResponseUsage,
 } from 'openai/resources/responses/responses';
-import type { OpenAIProtocolCallResult } from '../../types';
+import type { ResolveImageDetail } from '../../../model-adapter/types';
+import type { ModelCallMessages, OpenAIProtocolCallResult } from '../../types';
 
 export function toResponsesInput(
-  messages: ChatCompletionMessageParam[],
+  messages: ModelCallMessages,
+  resolveImageDetail: ResolveImageDetail,
 ): ResponseInput {
-  return messages.map((message) => {
-    if (
-      message.role !== 'system' &&
-      message.role !== 'user' &&
-      message.role !== 'assistant'
-    ) {
-      throw new Error(
-        `Responses does not support ${message.role} messages in this caller`,
-      );
+  return messages.flatMap((entry): ResponseInput => {
+    if ('type' in entry && entry.type === 'model-output') {
+      if (entry.output.type !== 'responses') {
+        throw new Error(
+          'Cannot replay Chat Completions output in a Responses conversation',
+        );
+      }
+      return entry.output.rawValue;
+    }
+    const message = 'role' in entry ? entry : entry.message;
+    if (typeof message.content === 'string') {
+      return [{ role: message.role, content: message.content }];
     }
     if (message.role === 'assistant') {
-      return {
-        role: message.role,
-        content:
-          typeof message.content === 'string'
-            ? message.content
-            : (message.content ?? [])
-                .map((part) => {
-                  if (part.type !== 'text') {
-                    throw new Error(
-                      `Responses does not support ${part.type} assistant history in this caller`,
-                    );
-                  }
-                  return part.text;
-                })
-                .join(''),
-      };
+      return [
+        {
+          role: message.role,
+          content: message.content.map((part) => part.text).join(''),
+        },
+      ];
     }
-    return {
-      role: message.role,
-      content:
-        typeof message.content === 'string'
-          ? message.content
-          : (message.content ?? []).map((part) => {
-              if (part.type === 'text') {
-                return { type: 'input_text' as const, text: part.text };
-              }
-              if (part.type === 'image_url') {
-                return {
-                  type: 'input_image' as const,
-                  image_url: part.image_url.url,
-                  detail: part.image_url.detail ?? 'auto',
-                };
-              }
-              throw new Error(
-                `Responses does not support ${part.type} input in this caller`,
-              );
-            }),
-    };
+    return [
+      {
+        role: message.role,
+        content: message.content.map((part) => {
+          if (part.type === 'text') {
+            return { type: 'input_text' as const, text: part.text };
+          }
+          return {
+            type: 'input_image' as const,
+            image_url: part.url,
+            // The installed SDK does not yet type `original`.
+            detail: resolveImageDetail({
+              imageDetail: part.detail,
+            }) as ResponseInputImage['detail'],
+          };
+        }),
+      },
+    ];
   });
 }
 

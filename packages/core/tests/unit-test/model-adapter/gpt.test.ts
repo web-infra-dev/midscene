@@ -5,6 +5,19 @@ import { describe, expect, it } from '@rstest/core';
 const gpt5Adapter = new ResolvedModelAdapter(gptAdapters['gpt-5'], 'gpt-5');
 const gpt6Adapter = new ResolvedModelAdapter(gptAdapters['gpt-6'], 'gpt-6');
 
+it.each(['gpt-5', 'gpt-6'] as const)(
+  '%s uses current-turn reasoning with text-only history',
+  (family) => {
+    const adapter = new ResolvedModelAdapter(gptAdapters[family], family);
+    expect(adapter.responses.replayRawAssistantOutput).toBe(false);
+    expect(adapter.chatCompletion.replayRawAssistantMessage).toBe(false);
+    expect(
+      adapter.responses.buildResponsesParams({ userConfig: {} }).config
+        .reasoning,
+    ).toMatchObject({ context: 'current_turn' });
+  },
+);
+
 describe.each(['gpt-5', 'gpt-6'] as const)(
   '%s Responses JSON mode',
   (family) => {
@@ -196,7 +209,7 @@ describe('gpt model adapter', () => {
       gpt5Adapter.resolveImageDetail({
         intent: 'planning',
       }),
-    ).toBeUndefined();
+    ).toBe('high');
     expect(
       gpt5Adapter.resolveImageDetail({
         intent: 'planning',
@@ -317,3 +330,15 @@ describe('gpt model adapter', () => {
     expect(result.config.response_format).toBeUndefined();
   });
 });
+
+it.each(['low', 'auto', 'high'] as const)(
+  'preserves per-image %s detail unless GPT requires original',
+  (imageDetail) => {
+    expect(
+      gpt5Adapter.resolveImageDetail({ intent: 'planning', imageDetail }),
+    ).toBe(imageDetail);
+    expect(
+      gpt5Adapter.resolveImageDetail({ intent: 'default', imageDetail }),
+    ).toBe('original');
+  },
+);

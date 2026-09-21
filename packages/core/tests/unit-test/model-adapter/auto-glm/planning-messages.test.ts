@@ -3,6 +3,7 @@ import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { toChatMessages } from '@/ai-model/service-caller/openai/chat-completion/utils';
 import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
 import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
@@ -93,6 +94,9 @@ async function runAutoGlmPlanning(
   );
 }
 
+const resolveImageDetail = new ResolvedModelAdapter({}, 'test')
+  .resolveImageDetail;
+
 describe('createAutoGlmPlanner messages', () => {
   beforeEach(() => {
     rs.mocked(callAIWithStringResponse).mockReset();
@@ -154,10 +158,8 @@ describe('createAutoGlmPlanner messages', () => {
           role: 'user',
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: 'image_url',
-              image_url: expect.objectContaining({
-                url: 'data:image/png;base64,REF==',
-              }),
+              type: 'image',
+              url: 'data:image/png;base64,REF==',
             }),
           ]),
         }),
@@ -168,7 +170,9 @@ describe('createAutoGlmPlanner messages', () => {
       rawValue: { role: 'assistant', content: 'raw choice' },
     });
     expect(conversationHistory.snapshot()).toHaveLength(2);
-    expect(conversationHistory.snapshot()[1]).toMatchObject({
+    expect(
+      toChatMessages(conversationHistory.snapshot(), resolveImageDetail)[1],
+    ).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('do(action="Tap", element=[500,500])'),
     });
