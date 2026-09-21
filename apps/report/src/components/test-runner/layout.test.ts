@@ -97,7 +97,7 @@ describe('Midscene Test report layout', () => {
       expect(baseStyles).toContain(token);
     }
     expect(figmaDetailStyles).toMatch(
-      /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px;[^}]*gap: 8px;/s,
+      /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px 4px 4px;[^}]*gap: 8px;/s,
     );
     expect(attemptSelect).toContain(
       'attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null',
