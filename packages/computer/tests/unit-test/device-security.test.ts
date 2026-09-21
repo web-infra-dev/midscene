@@ -18,7 +18,6 @@ const mockState = rs.hoisted(() => {
   let physicalWindowsDisplayOutput: string | undefined;
   let legacyScreenshotSize = { width: 800, height: 600 };
   let libnutScreenSize = { width: 800, height: 600 };
-  const physicalWindowsSystemDpi = 96;
   let windowsCursorPos = { x: 10, y: 20 };
   let windowsActiveWindowRect:
     | { x: number; y: number; width: number; height: number }
@@ -61,9 +60,6 @@ const mockState = rs.hoisted(() => {
             );
           }
           return `${windowsCursorPos.x},${windowsCursorPos.y}`;
-        }
-        if (script.includes('GetDpiForSystem()')) {
-          return String(physicalWindowsSystemDpi);
         }
         if (
           script.includes('SetThreadDpiAwarenessContext') &&
@@ -548,6 +544,11 @@ describe('ComputerDevice Windows display compatibility', () => {
           args[2]?.includes('[System.Windows.Forms.Screen]::AllScreens'),
       ),
     ).toBe(true);
+    expect(
+      mockState.execFileSync.mock.calls.some(([, args]) =>
+        args?.some((arg) => arg.includes('::GetDpiForSystem()')),
+      ),
+    ).toBe(false);
 
     mockState.libnut.moveMouse.mockClear();
 

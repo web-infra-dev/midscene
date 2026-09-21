@@ -22,29 +22,16 @@ describe('Windows legacy coordinate compatibility', () => {
     expect(() =>
       assertLegacyWindowsCoordinateCompatibility({
         geometry: primaryGeometry,
-        systemDpi: 96,
         screenshotBase64: pngDataUri(1920, 1080),
         inputSize: { width: 1920, height: 1080 },
       }),
     ).not.toThrow();
   });
 
-  it('rejects non-100% display scaling', () => {
-    expect(() =>
-      assertLegacyWindowsCoordinateCompatibility({
-        geometry: primaryGeometry,
-        systemDpi: 120,
-        screenshotBase64: pngDataUri(1920, 1080),
-        inputSize: { width: 1920, height: 1080 },
-      }),
-    ).toThrow(/requires 100% display scaling \(96 DPI\), got 120 DPI/);
-  });
-
   it('rejects inconsistent screenshot and input coordinates', () => {
     expect(() =>
       assertLegacyWindowsCoordinateCompatibility({
         geometry: primaryGeometry,
-        systemDpi: 96,
         screenshotBase64: pngDataUri(1600, 900),
         inputSize: { width: 1920, height: 1080 },
       }),
@@ -60,7 +47,6 @@ describe('Windows legacy coordinate compatibility', () => {
           primary: false,
           bounds: primaryGeometry.bounds,
         },
-        systemDpi: 96,
         screenshotBase64: pngDataUri(1920, 1080),
         inputSize: { width: 1920, height: 1080 },
       }),

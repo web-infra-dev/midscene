@@ -42,7 +42,6 @@ import {
   type WindowsDisplayGeometry,
   assertLegacyWindowsCoordinateCompatibility,
   discoverWindowsDisplays,
-  readPhysicalWindowsSystemDpi,
   readWindowsDisplayGeometries,
   resolveWindowsDisplayGeometryFromList,
 } from './windows-display';
@@ -925,7 +924,6 @@ export class ComputerDevice implements AbstractInterface {
     }
     assertLegacyWindowsCoordinateCompatibility({
       geometry: this.displayGeometry,
-      systemDpi: this.windowsCoordinateContext.systemDpi,
       screenshotBase64,
       inputSize: this.inputDriver.getScreenSize(),
     });
@@ -1111,7 +1109,7 @@ export class ComputerDevice implements AbstractInterface {
       }
       this.windowsCoordinateContext =
         windowsDisplayDiscovery?.coordinateMode === 'legacy'
-          ? { mode: 'legacy', systemDpi: readPhysicalWindowsSystemDpi() }
+          ? { mode: 'legacy' }
           : { mode: 'physical' };
       this.displayGeometry = resolveDisplayGeometry(
         this.displayId,

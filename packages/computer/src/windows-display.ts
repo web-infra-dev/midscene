@@ -28,7 +28,7 @@ interface WindowsDisplayEnumerationRunners {
 
 export type WindowsCoordinateContext =
   | { mode: 'physical' }
-  | { mode: 'legacy'; systemDpi: number };
+  | { mode: 'legacy' };
 
 class WindowsDisplayEnumerationEmptyError extends Error {}
 
@@ -139,17 +139,6 @@ export function discoverWindowsDisplays(
   }
 }
 
-export function readPhysicalWindowsSystemDpi(): number {
-  const output = runWindowsPhysicalPixelPowershell(
-    '[Console]::Out.Write($midsceneNativeMethods::GetDpiForSystem())',
-  ).trim();
-  const dpi = Number(output);
-  if (!Number.isFinite(dpi) || dpi <= 0) {
-    throw new Error(`Windows returned an invalid system DPI value: ${output}`);
-  }
-  return dpi;
-}
-
 function readPngDimensions(dataUri: string): Size {
   const prefix = 'data:image/png;base64,';
   if (!dataUri.startsWith(prefix)) {
@@ -173,7 +162,6 @@ function readPngDimensions(dataUri: string): Size {
 
 export function assertLegacyWindowsCoordinateCompatibility({
   geometry,
-  systemDpi,
   screenshotBase64,
   inputSize,
 }: {
@@ -183,7 +171,6 @@ export function assertLegacyWindowsCoordinateCompatibility({
         bounds: WindowsDisplayGeometry['bounds'];
       }
     | undefined;
-  systemDpi: number;
   screenshotBase64: string;
   inputSize: Size;
 }): void {
@@ -197,12 +184,6 @@ export function assertLegacyWindowsCoordinateCompatibility({
       `Windows legacy coordinate compatibility mode requires a primary display origin of (0, 0), got (${geometry.bounds.x}, ${geometry.bounds.y})`,
     );
   }
-  if (systemDpi !== 96) {
-    throw new Error(
-      `Windows legacy coordinate compatibility mode requires 100% display scaling (96 DPI), got ${systemDpi} DPI`,
-    );
-  }
-
   const screenshotSize = readPngDimensions(screenshotBase64);
   const displaySize = {
     width: Math.round(geometry.bounds.width),
