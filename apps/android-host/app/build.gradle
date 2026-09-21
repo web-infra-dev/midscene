@@ -1,0 +1,235 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android' version '2.0.21'
+    // Required for Kotlin 2.x: the Compose compiler ships as its own plugin.
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21'
+}
+
+dependencies {
+    // Official Shizuku API: requestPermission() is what makes Shizuku raise its
+    // authorization activity for this app; a rish call cannot trigger it.
+    // Lets the overlay call setSkipScreenshot (hidden API) so a always-visible
+    // diagnostic layer never lands in the agent's screenshots.
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:6.1'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+
+    // Material 3 resources: the app theme (`Theme.Material3.DayNight.NoActionBar` in
+    // res/values/themes.xml) is the only View-system dependency left — every screen is
+    // Compose, whose own Material 3 scheme comes from the Compose BOM below.
+    implementation 'com.google.android.material:material:1.12.0'
+}
+
+/**
+ * Signing values, in order of precedence:
+ *
+ *   1. the environment (what CI sets, and what the README has always documented);
+ *   2. `local-signing.properties` next to this build — machine-local and ignored by git,
+ *      so a release build does not need four exported variables every time.
+ *
+ * The file is the same four names, one per line. A value left as a `<placeholder>` counts
+ * as unset, so a half-filled file fails the signing check with a message that says so
+ * rather than letting Gradle report a keystore password error.
+ */
+def localSigningFile = rootProject.file('local-signing.properties')
+def localSigning = new Properties()
+if (localSigningFile.isFile()) {
+    localSigningFile.withInputStream { localSigning.load(it) }
+}
+def signingValue = { String name ->
+    def value = System.getenv(name)
+    if (value == null || value.trim().isEmpty()) {
+        value = localSigning.getProperty(name)
+    }
+    if (value == null) {
+        return null
+    }
+    def trimmed = value.trim()
+    return (trimmed.isEmpty() || trimmed.startsWith('<')) ? null : trimmed
+}
+
+def releaseKeystorePath = signingValue('MIDSCENE_KEYSTORE')
+def releaseStorePassword = signingValue('MIDSCENE_KEYSTORE_PASSWORD')
+def releaseKeyAlias = signingValue('MIDSCENE_KEY_ALIAS')
+def releaseKeyPassword = signingValue('MIDSCENE_KEY_PASSWORD')
+def releaseKeystore = releaseKeystorePath ? rootProject.file(releaseKeystorePath) : null
+def releaseSigningReady = releaseKeystore?.isFile() && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
+/**
+ * Build identity: one number and one timestamp for the artefact, the About page and the
+ * packaged file name, so a phone, a file on disk and a bug report can be matched up
+ * without opening anything.
+ *
+ * The build number is the number of commits this artefact sits on: it grows by itself,
+ * it means the same thing on every machine, and it needs no CI counter to be stored
+ * somewhere. A source tree without git (an exported copy) gets 0.
+ */
+def gitBuildNumber = {
+    try {
+        def process = ['git', 'rev-list', '--count', 'HEAD'].execute(null, rootProject.projectDir)
+        process.waitFor()
+        def text = process.text.trim()
+        return text ? text.toInteger() : 0
+    } catch (Exception ignored) {
+        return 0
+    }
+}()
+def buildTimestamp = new Date().format('yyyyMMdd-HHmmss')
+def buildTimeText = new Date().format('yyyy-MM-dd HH:mm:ss')
+
+android {
+    namespace 'com.midscene.android'
+    compileSdk 35
+
+    sourceSets {
+        main.jniLibs.srcDirs = ['../.cache/native']
+    }
+
+    defaultConfig {
+        applicationId 'com.midscene.android'
+        minSdk 29
+        targetSdk 34
+        // 1.0.0 -> 10000: an update has to carry a code the phone can compare.
+        versionCode 10000
+        versionName '1.0.0'
+        // Read by the About page; the same two values name the packaged APK.
+        buildConfigField 'int', 'BUILD_NUMBER', "${gitBuildNumber}"
+        buildConfigField 'String', 'BUILD_TIME', "\"${buildTimeText}\""
+    }
+
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile releaseKeystore
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Debug builds are debuggable so `adb run-as` can drop a config file
+            // in during development (the model key is not typed on screen).
+        }
+        release {
+            signingConfig releaseSigningReady ? signingConfigs.release : null
+            minifyEnabled false
+            // Reflection carries real weight here (Shizuku's API, HiddenApiBypass for
+            // setSkipScreenshot), so nothing is renamed or shrunk away.
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+
+    packaging {
+        // The Node runtime is executed from the app's native library directory,
+        // so the libraries must be extracted to disk rather than loaded from
+        // the APK (AGP defaults to extractNativeLibs=false).
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    buildFeatures {
+        viewBinding false
+        // BuildConfig carries the version, the build number and the build time to the
+        // About page (AGP 8 leaves it off unless asked for).
+        buildConfig true
+        compose true
+        // The Shizuku user service is reached over AIDL.
+        aidl true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+/**
+ * Put the shippable APK somewhere a person can find it, named for what it is:
+ * `<version>-build<commits>-<timestamp>.apk`. Debug builds get a `-debug` suffix so the
+ * two can never be confused on a phone.
+ *
+ * The copy is a separate task rather than an output rename because `build/outputs` is
+ * wiped by `clean`, and because the name has to stay stable for whatever reads it next.
+ */
+def distDir = rootProject.file('dist')
+def distName = { String suffix ->
+    "midscene-android-${android.defaultConfig.versionName}-build${gitBuildNumber}-${buildTimestamp}${suffix}.apk"
+}
+tasks.register('distRelease', Copy) {
+    dependsOn 'assembleRelease'
+    from layout.buildDirectory.file('outputs/apk/release/app-release.apk')
+    into distDir
+    rename { distName('') }
+    doLast {
+        logger.lifecycle("release package: " + new File(distDir, distName('')))
+    }
+}
+tasks.register('distDebug', Copy) {
+    dependsOn 'assembleDebug'
+    from layout.buildDirectory.file('outputs/apk/debug/app-debug.apk')
+    into distDir
+    rename { distName('-debug') }
+    doLast {
+        logger.lifecycle("debug package: " + new File(distDir, distName('-debug')))
+    }
+}
+
+tasks.register('requireReleaseSigning') {
+    doLast {
+        if (!releaseSigningReady) {
+            throw new GradleException(
+                    'Release signing needs MIDSCENE_KEYSTORE (an existing file), '
+                    + 'MIDSCENE_KEYSTORE_PASSWORD, MIDSCENE_KEY_ALIAS and MIDSCENE_KEY_PASSWORD.\n'
+                    + 'Set them as environment variables, or fill them in once in '
+                    + rootProject.file('local-signing.properties').absolutePath
+                    + ' (machine-local, ignored by git).')
+        }
+    }
+}
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    dependsOn tasks.named('requireReleaseSigning')
+}
+
+dependencies {
+    // Compose: the console is designed rather than assembled from widgets, and the
+    // studio palette maps cleanly onto a Material 3 colour scheme.
+    def composeBom = platform('androidx.compose:compose-bom:2024.09.00')
+    implementation composeBom
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.activity:activity-compose:1.9.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}
+
+tasks.register('verifyRuntimeAssets') {
+    doLast {
+        def required = [
+            'src/main/assets/agent-bundle.zip',
+            'src/main/assets/bundle-info.txt',
+            'src/main/assets/yadb',
+            '../.cache/native/arm64-v8a/libnodebin.so',
+            // The local adb client that drives the device's own adbd. Missing it
+            // only breaks the adb channel, which is exactly the kind of failure
+            // that should stop the build rather than surface on a phone.
+            '../.cache/native/arm64-v8a/libadbbin.so',
+        ]
+        def missing = required.findAll { !file(it).isFile() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing Android runtime assets: ${missing.join(', ')}. Run pnpm --filter android-host assemble to fetch and package them.")
+        }
+    }
+}
+tasks.matching { it.name in ['packageDebug', 'packageRelease'] }.configureEach {
+    dependsOn tasks.named('verifyRuntimeAssets')
+}
