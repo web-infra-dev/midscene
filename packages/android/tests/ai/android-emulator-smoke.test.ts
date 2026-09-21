@@ -10,9 +10,10 @@ import {
   MIDSCENE_MODEL_TIMEOUT,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it, rs } from '@rstest/core';
 import type ADB from 'appium-adb';
-import { describe, expect, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
+import { dumpUiHierarchyWithRetry } from '../android-emulator-ui-dump';
 
 const RUN_LIVE_SMOKE =
   process.env.AI_TEST_TYPE === 'android' &&
@@ -28,6 +29,10 @@ const SYSTEM_ERROR_DIALOG_ACTION_IDS = [
 const POLL_INTERVAL_MS = 500;
 const TARGET_TIMEOUT_MS = 30_000;
 const UI_DUMP_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_MAX_ATTEMPTS = 3;
+const SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS = 10_000;
+const SEARCH_MAX_ATTEMPTS = 3;
+const SEARCH_TIMEOUT_MS = 90_000;
 
 interface Bounds {
   left: number;
@@ -55,54 +60,32 @@ interface ReportDump {
   executions?: ReportExecution[];
 }
 
-vi.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
+rs.setConfig({ testTimeout: 240_000, hookTimeout: 30_000 });
 
 function sleep(timeMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeMs));
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isTransientAdbTransportError(error: unknown): boolean {
-  return /device offline|device unauthorized|no devices\/emulators found/i.test(
-    errorMessage(error),
-  );
-}
-
-function isRetryableUiDumpError(error: unknown): boolean {
-  return (
-    isTransientAdbTransportError(error) ||
-    /No such file or directory|empty uiautomator dump/i.test(
-      errorMessage(error),
-    )
-  );
+class AndroidUiStateTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AndroidUiStateTimeoutError';
+  }
 }
 
 async function dumpUiautomatorXml(adb: ADB): Promise<string> {
-  for (let attempt = 1; attempt <= UI_DUMP_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      await adb.shell(`rm -f ${UI_DUMP_PATH}`);
-      await adb.shell(`uiautomator dump --compressed ${UI_DUMP_PATH}`);
-      const xml = await adb.shell(`cat ${UI_DUMP_PATH}`);
-      if (typeof xml !== 'string' || xml.trim().length === 0) {
-        throw new Error('Android emulator returned an empty uiautomator dump');
-      }
-      return xml;
-    } catch (error) {
-      if (attempt === UI_DUMP_MAX_ATTEMPTS || !isRetryableUiDumpError(error)) {
-        throw error;
-      }
-      if (isTransientAdbTransportError(error)) {
-        await adb.waitForDevice(15);
-      } else {
-        await sleep(POLL_INTERVAL_MS);
-      }
-    }
-  }
-
-  throw new Error('UI dump retry loop completed without a result');
+  const result = await dumpUiHierarchyWithRetry(adb, {
+    remotePath: UI_DUMP_PATH,
+    label: 'uiautomator',
+    maxAttempts: UI_DUMP_MAX_ATTEMPTS,
+    retryIntervalMs: POLL_INTERVAL_MS,
+    onRetry: ({ nextAttempt, phase, error }) => {
+      console.log(
+        `UI hierarchy dump failed during ${phase}; retrying attempt ${nextAttempt}: ${String(error)}`,
+      );
+    },
+  });
+  return result.xml;
 }
 
 function boundsForResourceId(xml: string, resourceId: string): Bounds[] {
@@ -166,46 +149,38 @@ async function waitForEditableNode(
   adb: ADB,
   diagnosticsFile: string,
   expectedText?: string,
+  deadline = Date.now() + TARGET_TIMEOUT_MS,
 ): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> {
-  const deadline = Date.now() + TARGET_TIMEOUT_MS;
   let lastXml = '';
-  let lastError: unknown;
+  let lastState = 'No hierarchy has been read';
   while (Date.now() < deadline) {
-    try {
-      lastXml = await dumpUiautomatorXml(adb);
-      await writeFile(diagnosticsFile, lastXml, 'utf8');
-      const candidates = (lastXml.match(/<node\b[^>]*>/g) ?? []).filter(
-        (tag) => {
-          const className = attributeValue(tag, 'class');
-          const text = attributeValue(tag, 'text');
-          return (
-            className?.endsWith('EditText') &&
-            (expectedText === undefined || text === expectedText)
-          );
-        },
+    lastXml = await dumpUiautomatorXml(adb);
+    await writeFile(diagnosticsFile, lastXml, 'utf8');
+    const candidates = (lastXml.match(/<node\b[^>]*>/g) ?? []).filter((tag) => {
+      const className = attributeValue(tag, 'class');
+      const text = attributeValue(tag, 'text');
+      return (
+        className?.endsWith('EditText') &&
+        (expectedText === undefined || text === expectedText)
       );
-      const focusedCandidates = candidates.filter(
-        (tag) => attributeValue(tag, 'focused') === 'true',
-      );
-      const matches =
-        focusedCandidates.length === 1 ? focusedCandidates : candidates;
-      if (matches.length === 1) {
-        return {
-          resourceId: attributeValue(matches[0], 'resource-id'),
-          bounds: boundsForNodeTag(matches[0], 'editable node'),
-          xml: lastXml,
-        };
-      }
-      lastError = new Error(
-        `Expected one editable node, found ${candidates.length} (${focusedCandidates.length} focused)`,
-      );
-    } catch (error) {
-      lastError = error;
+    });
+    const focusedCandidates = candidates.filter(
+      (tag) => attributeValue(tag, 'focused') === 'true',
+    );
+    const matches =
+      focusedCandidates.length === 1 ? focusedCandidates : candidates;
+    if (matches.length === 1) {
+      return {
+        resourceId: attributeValue(matches[0], 'resource-id'),
+        bounds: boundsForNodeTag(matches[0], 'editable node'),
+        xml: lastXml,
+      };
     }
+    lastState = `Expected one editable node, found ${candidates.length} (${focusedCandidates.length} focused)`;
     await sleep(POLL_INTERVAL_MS);
   }
-  throw new Error(
-    `Timed out waiting for Android editable node${expectedText ? ` with text ${expectedText}` : ''}. Last error: ${String(lastError)}. Last XML saved to ${diagnosticsFile} (${lastXml.length} bytes)`,
+  throw new AndroidUiStateTimeoutError(
+    `Timed out waiting for Android editable node${expectedText ? ` with text ${expectedText}` : ''}. Last state: ${lastState}. Last XML saved to ${diagnosticsFile} (${lastXml.length} bytes)`,
   );
 }
 
@@ -213,34 +188,26 @@ async function waitForResource(
   adb: ADB,
   resourceIds: readonly string[],
   diagnosticsFile?: string,
+  deadline = Date.now() + TARGET_TIMEOUT_MS,
 ): Promise<{ resourceId: string; bounds: Bounds; xml: string }> {
-  const deadline = Date.now() + TARGET_TIMEOUT_MS;
   let lastXml = '';
-  let lastError: unknown;
+  let lastState = 'No hierarchy has been read';
   while (Date.now() < deadline) {
-    try {
-      lastXml = await dumpUiautomatorXml(adb);
-      if (diagnosticsFile) {
-        await writeFile(diagnosticsFile, lastXml, 'utf8');
+    lastXml = await dumpUiautomatorXml(adb);
+    if (diagnosticsFile) {
+      await writeFile(diagnosticsFile, lastXml, 'utf8');
+    }
+    for (const resourceId of resourceIds) {
+      const matches = boundsForResourceId(lastXml, resourceId);
+      if (matches.length === 1) {
+        return { resourceId, bounds: matches[0], xml: lastXml };
       }
-      for (const resourceId of resourceIds) {
-        const matches = boundsForResourceId(lastXml, resourceId);
-        if (matches.length === 1) {
-          return { resourceId, bounds: matches[0], xml: lastXml };
-        }
-        if (matches.length > 1) {
-          lastError = new Error(
-            `Expected one ${resourceId}, found ${matches.length}`,
-          );
-        }
-      }
-    } catch (error) {
-      lastError = error;
+      lastState = `Expected one ${resourceId}, found ${matches.length}`;
     }
     await sleep(POLL_INTERVAL_MS);
   }
-  throw new Error(
-    `Timed out waiting for Android resources ${resourceIds.join(', ')}. Last error: ${String(lastError)}. Last XML length: ${lastXml.length}`,
+  throw new AndroidUiStateTimeoutError(
+    `Timed out waiting for Android resources ${resourceIds.join(', ')}. Last state: ${lastState}. Last XML length: ${lastXml.length}`,
   );
 }
 
@@ -309,12 +276,12 @@ async function waitForKeyboardState(
 function locate(bounds: Bounds, prompt: string) {
   return {
     prompt,
-    locatedPixelBbox: [
-      bounds.left,
-      bounds.top,
-      bounds.left + bounds.width,
-      bounds.top + bounds.height,
-    ] as [number, number, number, number],
+    locatedPixelResult: {
+      center: [
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height / 2,
+      ] as [number, number],
+    },
   };
 }
 
@@ -381,10 +348,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       'settings-system-dialog.xml',
     );
     const searchXmlFile = path.join(diagnosticsDir, 'settings-search.xml');
-    const firstSearchAttemptXmlFile = path.join(
-      diagnosticsDir,
-      'settings-search-attempt-1.xml',
-    );
     const finalXmlFile = path.join(diagnosticsDir, 'settings-final.xml');
     const screenshotFile = path.join(diagnosticsDir, 'settings-search.png');
     const dumpFile = path.join(diagnosticsDir, 'agent-dump.json');
@@ -416,20 +379,53 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         systemDialog: Awaited<
           ReturnType<typeof dismissSystemErrorDialogIfPresent>
         >;
+        ready: boolean;
+        error?: string;
       }> = [];
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
+      evidence.settingsLaunches = settingsLaunches;
+      let initialTarget:
+        | Awaited<ReturnType<typeof waitForResource>>
+        | undefined;
+      for (
+        let attempt = 1;
+        attempt <= SETTINGS_LAUNCH_MAX_ATTEMPTS;
+        attempt += 1
+      ) {
         await adb.shell('am force-stop com.android.settings');
         await adb.shell('am start -W -n com.android.settings/.Settings');
         const systemDialog = await dismissSystemErrorDialogIfPresent(
           adb,
           systemDialogXmlFile,
         );
-        settingsLaunches.push({ attempt, systemDialog });
-        if (!systemDialog.detected) {
+        try {
+          initialTarget = await waitForResource(
+            adb,
+            [SETTINGS_SEARCH_BAR_ID],
+            initialXmlFile,
+            Date.now() + SETTINGS_LAUNCH_ATTEMPT_TIMEOUT_MS,
+          );
+          settingsLaunches.push({ attempt, systemDialog, ready: true });
           break;
+        } catch (error) {
+          settingsLaunches.push({
+            attempt,
+            systemDialog,
+            ready: false,
+            error: String(error),
+          });
+          if (
+            !(error instanceof AndroidUiStateTimeoutError) ||
+            attempt === SETTINGS_LAUNCH_MAX_ATTEMPTS
+          ) {
+            throw error;
+          }
         }
       }
-      evidence.settingsLaunches = settingsLaunches;
+      if (!initialTarget) {
+        throw new Error(
+          'Settings launch retry loop completed without a search target',
+        );
+      }
 
       const logicalSize = await device.size();
       const screenshot = await device.screenshotBase64();
@@ -447,12 +443,6 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       expect(logicalSize.height).toBeGreaterThan(0);
       expect(screenshotSize.width).toBeGreaterThan(logicalSize.width);
       expect(screenshotSize.height).toBeGreaterThan(logicalSize.height);
-
-      const initialTarget = await waitForResource(
-        adb,
-        [SETTINGS_SEARCH_BAR_ID],
-        initialXmlFile,
-      );
 
       agent = new AndroidAgent(device, {
         modelConfig: {
@@ -475,9 +465,10 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       let searchAttempts = 0;
       let locateActionCalls = 0;
       const searchAttemptErrors: string[] = [];
-      const performSearchAttempt = async (target: {
-        bounds: Bounds;
-      }): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
+      const performSearchAttempt = async (
+        target: { bounds: Bounds },
+        deadline: number,
+      ): Promise<{ resourceId?: string; bounds: Bounds; xml: string }> => {
         searchAttempts += 1;
         evidence.searchAttempts = searchAttempts;
         locateActionCalls += 1;
@@ -485,39 +476,80 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
         await agent!.callActionInActionSpace('Tap', {
           locate: locate(target.bounds, 'Settings search bar'),
         });
-        const searchInput = await waitForEditableNode(adb, searchXmlFile);
+        const searchInput = await waitForEditableNode(
+          adb,
+          searchXmlFile,
+          undefined,
+          deadline,
+        );
         evidence.searchInputResourceId = searchInput.resourceId;
 
         locateActionCalls += 1;
         evidence.locateActionCalls = locateActionCalls;
         await agent!.callActionInActionSpace('Input', {
           value: 'wifi',
-          mode: 'typeOnly',
+          mode: 'replace',
           autoDismissKeyboard: false,
           locate: locate(searchInput.bounds, 'Settings search input'),
         });
-        return waitForEditableNode(adb, searchXmlFile, 'wifi');
+        return waitForEditableNode(adb, searchXmlFile, 'wifi', deadline);
       };
 
-      let searchState: { resourceId?: string; bounds: Bounds; xml: string };
-      try {
-        searchState = await performSearchAttempt(initialTarget);
-      } catch (error) {
-        searchAttemptErrors.push(String(error));
-        evidence.searchAttemptErrors = searchAttemptErrors;
-        await writeFile(
-          firstSearchAttemptXmlFile,
-          await readFile(searchXmlFile, 'utf8'),
-          'utf8',
+      let searchState:
+        | { resourceId?: string; bounds: Bounds; xml: string }
+        | undefined;
+      let searchTarget = initialTarget;
+      const searchDeadline = Date.now() + SEARCH_TIMEOUT_MS;
+      for (let attempt = 1; attempt <= SEARCH_MAX_ATTEMPTS; attempt += 1) {
+        const attemptDeadline = Math.min(
+          searchDeadline,
+          Date.now() + TARGET_TIMEOUT_MS,
         );
-        await adb.shell('am force-stop com.android.settings');
-        await adb.shell('am start -W -n com.android.settings/.Settings');
-        const retryTarget = await waitForResource(
-          adb,
-          [SETTINGS_SEARCH_BAR_ID],
-          initialXmlFile,
+        try {
+          if (attempt > 1) {
+            await adb.shell('am force-stop com.android.settings');
+            await adb.shell('am start -W -n com.android.settings/.Settings');
+            searchTarget = await waitForResource(
+              adb,
+              [SETTINGS_SEARCH_BAR_ID],
+              initialXmlFile,
+              attemptDeadline,
+            );
+          }
+          searchState = await performSearchAttempt(
+            searchTarget,
+            attemptDeadline,
+          );
+          break;
+        } catch (error) {
+          searchAttemptErrors.push(String(error));
+          evidence.searchAttemptErrors = searchAttemptErrors;
+          const failedSearchXml = await readFile(searchXmlFile, 'utf8').catch(
+            () => '',
+          );
+          if (failedSearchXml) {
+            await writeFile(
+              path.join(
+                diagnosticsDir,
+                `settings-search-attempt-${attempt}.xml`,
+              ),
+              failedSearchXml,
+              'utf8',
+            );
+          }
+          if (
+            !(error instanceof AndroidUiStateTimeoutError) ||
+            attempt === SEARCH_MAX_ATTEMPTS ||
+            Date.now() >= searchDeadline
+          ) {
+            throw error;
+          }
+        }
+      }
+      if (!searchState) {
+        throw new Error(
+          'Settings search retry loop completed without a result',
         );
-        searchState = await performSearchAttempt(retryTarget);
       }
       evidence.searchAttemptErrors = searchAttemptErrors;
       expect(searchState.xml).toMatch(/text="wifi"/i);
@@ -551,7 +583,11 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const locateTasks = dumpTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(locateTasks).toHaveLength(locateActionCalls);
+      // A retry can fail after locating the search bar but before locating the
+      // editable input. The final successful attempt always has both locates,
+      // while each earlier attempt has at least the search-bar locate.
+      expect(locateTasks.length).toBeGreaterThanOrEqual(searchAttempts + 1);
+      expect(locateTasks.length).toBeLessThanOrEqual(searchAttempts * 2);
       expect(locateTasks.every((task) => task.hitBy?.from === 'Plan')).toBe(
         true,
       );
@@ -576,7 +612,7 @@ describe.skipIf(!RUN_LIVE_SMOKE)('Android Emulator live smoke', () => {
       const reportLocateTasks = reportTasks.filter(
         (task) => task.type === 'Planning' && task.subType === 'Locate',
       );
-      expect(reportLocateTasks).toHaveLength(locateActionCalls);
+      expect(reportLocateTasks).toHaveLength(locateTasks.length);
       expect(
         reportLocateTasks.every((task) => task.hitBy?.from === 'Plan'),
       ).toBe(true);

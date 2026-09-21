@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,
@@ -8,8 +8,10 @@ import {
 } from './test-utils';
 import { launchPage } from './utils';
 
-const modelConfig = globalModelConfigManager.getModelConfig('default');
-const canRunAiTest = !!modelConfig.modelFamily && !!modelConfig.openaiApiKey;
+const modelConfig = process.env.MIDSCENE_MODEL_NAME
+  ? globalModelConfigManager.getModelConfig('default')
+  : undefined;
+const canRunAiTest = !!modelConfig?.modelFamily && !!modelConfig.openaiApiKey;
 
 describe(
   'puppeteer integration - aiNumber',

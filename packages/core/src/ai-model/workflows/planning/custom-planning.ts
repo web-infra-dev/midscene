@@ -1,4 +1,3 @@
-import { type TUserPrompt, userPromptToString } from '@/common';
 import type { PlanningAIResponse, PlanningAction } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { ScreenshotItem } from '../../../screenshot-item';
@@ -7,39 +6,42 @@ import type {
   CustomPlanningMessageConfig,
   ResolvedCustomPlanningDefinition,
 } from '../../model-adapter/custom-planning-types';
+import { prepareModelImage } from '../../model-adapter/image-preprocess';
 import {
   AIResponseParseError,
   callAIWithStringResponse,
 } from '../../service-caller/index';
-import { prepareModelImage } from '../image-preprocess';
+import {
+  type PreparedUserPrompt,
+  preparedReferenceImagesToChatMessages,
+} from '../../shared/multimodal-prompt';
 import { normalizePlanningActionLocateFields } from './locate-normalization';
 import type { PlanOptions } from './types';
 
-function appendHighPriorityKnowledge(
+function appendActionContext(
   systemPrompt: string,
   actionContext?: string,
 ): string {
-  return (
-    systemPrompt +
-    (actionContext
-      ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n`
-      : '')
-  );
+  return systemPrompt + (actionContext ? `${actionContext}\n` : '');
 }
 
 export function buildCustomPlanningMessages<TParsed>(
   input: CustomPlanningInput,
   config: CustomPlanningMessageConfig<TParsed>,
 ): ChatCompletionMessageParam[] {
-  const { options, userInstructionText } = input;
+  const { options } = input;
   const { conversationHistory, context, actionContext } = options;
-  const systemPrompt = appendHighPriorityKnowledge(
+  const systemPrompt = appendActionContext(
     config.buildSystemPrompt(),
     actionContext,
   );
+  const userInstructionText = input.userInstruction.text;
   const userInstruction = config.buildUserInstruction
     ? config.buildUserInstruction(userInstructionText)
     : userInstructionText;
+  const referenceImageMessages = preparedReferenceImagesToChatMessages(
+    input.userInstruction.referenceImages,
+  );
 
   if (conversationHistory.pendingFeedbackMessage) {
     conversationHistory.append({
@@ -71,7 +73,7 @@ export function buildCustomPlanningMessages<TParsed>(
         role: 'user',
         content: [{ type: 'text', text: userInstruction }],
       },
-      ...(options.referenceImageMessages ?? []),
+      ...referenceImageMessages,
       ...conversationHistory.snapshot(config.historyImageLimit),
     ];
   }
@@ -81,13 +83,13 @@ export function buildCustomPlanningMessages<TParsed>(
       role: 'user',
       content: `${systemPrompt}${userInstruction}`,
     },
-    ...(options.referenceImageMessages ?? []),
+    ...referenceImageMessages,
     ...conversationHistory.snapshot(config.historyImageLimit),
   ];
 }
 
 export async function runCustomPlanning<TParsed>(
-  userInstruction: TUserPrompt,
+  userInstruction: PreparedUserPrompt,
   options: PlanOptions,
   config: ResolvedCustomPlanningDefinition<TParsed>,
 ): Promise<PlanningAIResponse> {
@@ -111,7 +113,6 @@ export async function runCustomPlanning<TParsed>(
   };
   const input: CustomPlanningInput = {
     userInstruction,
-    userInstructionText: userPromptToString(userInstruction),
     options: preparedOptions,
     coordinateSystem: config.coordinateSystem,
   };
@@ -136,11 +137,12 @@ export async function runCustomPlanning<TParsed>(
     normalizePlanningActionLocateFields(actions, {
       actionSpace: preparedOptions.actionSpace,
       includeLocateInPlanning: preparedOptions.includeLocateInPlanning,
-      locateResultAdapter: config.coordinateNormalizer,
+      locateResultCodec: config.coordinateNormalizer,
       locateResultContext: {
         preparedSize: preparedImage.preparedSize,
         contentSize: preparedImage.contentSize,
       },
+      acceptBbox2dAlias: preparedOptions.modelRuntime.adapter.acceptBbox2dAlias,
     });
     shouldContinuePlanning = config.shouldContinuePlanning(parsed, actions);
   } catch (parseError) {
@@ -160,6 +162,7 @@ export async function runCustomPlanning<TParsed>(
     content,
     input,
   );
+  // UI-TARS and Auto-GLM define their own assistant history format.
   if (assistantContent) {
     options.conversationHistory.append({
       role: 'assistant',

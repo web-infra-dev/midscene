@@ -37,7 +37,7 @@ const DARK_TOKENS = {
   colorPrimary: BRAND,
   colorBgContainer: '#2b2b2b',
   colorBgElevated: '#2b2b2b',
-  colorBgLayout: '#171717',
+  colorBgLayout: '#282828',
   colorText: '#ffffff',
   colorTextSecondary: '#d0d0d1',
   colorTextTertiary: '#9da0a1',

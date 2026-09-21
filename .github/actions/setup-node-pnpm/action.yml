@@ -1,0 +1,57 @@
+name: Setup Node.js and pnpm
+
+description: Restore the Node.js toolcache on self-hosted runners, then set up Node.js and pnpm
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: false
+    default: 24.13.0
+  pnpm-version:
+    description: pnpm version to install
+    required: false
+    default: 9.3.0
+
+outputs:
+  node-cache-hit:
+    description: Whether the self-hosted Node.js toolcache was restored
+    value: ${{ steps.node-cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve Node.js toolcache
+      id: node-toolcache
+      if: ${{ runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        if [ -z "${RUNNER_TOOL_CACHE:-}" ]; then
+          echo "::error::RUNNER_TOOL_CACHE is not configured"
+          exit 1
+        fi
+        echo "path=$RUNNER_TOOL_CACHE/node/${{ inputs.node-version }}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Node.js toolcache
+      id: node-cache
+      if: ${{ runner.environment == 'self-hosted' }}
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ${{ steps.node-toolcache.outputs.path }}
+        key: midscene-node-toolcache-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Save Node.js toolcache
+      if: ${{ runner.environment == 'self-hosted' && steps.node-cache.outputs.cache-hit != 'true' }}
+      uses: ./.github/actions/cache/save
+      with:
+        path: ${{ steps.node-toolcache.outputs.path }}
+        key: midscene-node-toolcache-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.node-version }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
+      with:
+        version: ${{ inputs.pnpm-version }}

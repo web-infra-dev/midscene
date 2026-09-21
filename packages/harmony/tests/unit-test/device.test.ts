@@ -1,67 +1,65 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import type { HarmonyDeviceInputOpt } from '../../src/device';
 
 // Mock HdcClient
 const mockHdc = {
-  getScreenInfo: vi.fn().mockResolvedValue({ width: 1216, height: 2688 }),
-  shell: vi.fn().mockResolvedValue(''),
-  click: vi.fn().mockResolvedValue(undefined),
-  doubleClick: vi.fn().mockResolvedValue(undefined),
-  longClick: vi.fn().mockResolvedValue(undefined),
-  inputText: vi.fn().mockResolvedValue(undefined),
-  keyEvent: vi.fn().mockResolvedValue(undefined),
-  swipe: vi.fn().mockResolvedValue(undefined),
-  fling: vi.fn().mockResolvedValue(undefined),
-  drag: vi.fn().mockResolvedValue(undefined),
-  screenshot: vi
+  getScreenInfo: rs.fn().mockResolvedValue({ width: 1216, height: 2688 }),
+  shell: rs.fn().mockResolvedValue(''),
+  click: rs.fn().mockResolvedValue(undefined),
+  doubleClick: rs.fn().mockResolvedValue(undefined),
+  longClick: rs.fn().mockResolvedValue(undefined),
+  inputText: rs.fn().mockResolvedValue(undefined),
+  keyEvent: rs.fn().mockResolvedValue(undefined),
+  swipe: rs.fn().mockResolvedValue(undefined),
+  fling: rs.fn().mockResolvedValue(undefined),
+  drag: rs.fn().mockResolvedValue(undefined),
+  screenshot: rs
     .fn()
     .mockResolvedValue(
       'success: snapshot display 0 , write to /data/local/tmp/ms_screen.jpeg as jpeg, width 1216, height 2688',
     ),
-  fileRecv: vi.fn().mockResolvedValue(undefined),
-  startAbility: vi.fn().mockResolvedValue(undefined),
-  queryMainAbility: vi.fn().mockResolvedValue(undefined),
-  forceStop: vi.fn().mockResolvedValue(undefined),
-  clearTextField: vi.fn().mockResolvedValue(undefined),
+  fileRecv: rs.fn().mockResolvedValue(undefined),
+  startAbility: rs.fn().mockResolvedValue(undefined),
+  launchBundle: rs.fn().mockResolvedValue(undefined),
+  forceStop: rs.fn().mockResolvedValue(undefined),
+  clearTextField: rs.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../src/hdc', () => ({
-  HdcClient: vi.fn().mockImplementation(() => mockHdc),
+rs.mock('../../src/hdc', () => ({
+  HdcClient: rs.fn().mockImplementation(() => mockHdc),
 }));
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    default: {
-      ...actual,
-      promises: {
-        readFile: vi.fn().mockResolvedValue(Buffer.from('fake-image-data')),
-      },
+rs.mock('node:fs', () => ({
+  ...fsActual,
+  default: {
+    ...fsActual,
+    promises: {
+      readFile: rs.fn().mockResolvedValue(Buffer.from('fake-image-data')),
     },
-    unlink: vi.fn((_path, cb) => cb?.(null)),
-  };
-});
-
-vi.mock('@midscene/core/utils', () => ({
-  getTmpFile: vi.fn().mockReturnValue('/tmp/test-screenshot.jpeg'),
-  sleep: vi.fn().mockResolvedValue(undefined),
+  },
+  unlink: rs.fn((_path, cb) => cb?.(null)),
 }));
 
-vi.mock('@midscene/shared/img', () => ({
-  createImgBase64ByFormat: vi
+rs.mock('@midscene/core/utils', () => ({
+  getTmpFile: rs.fn().mockReturnValue('/tmp/test-screenshot.jpeg'),
+  sleep: rs.fn().mockResolvedValue(undefined),
+}));
+
+rs.mock('@midscene/shared/img', () => ({
+  createImgBase64ByFormat: rs
     .fn()
     .mockReturnValue('data:image/jpeg;base64,fake'),
 }));
 
-// @ts-ignore package tsconfig keeps module=ES2020 for build compatibility; this test intentionally uses top-level dynamic import so mocks are registered first.
+// Top-level dynamic import so the mocks above are registered first.
 const { HarmonyDevice } = await import('../../src/device');
 
 describe('HarmonyDevice', () => {
   let device: InstanceType<typeof HarmonyDevice>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     mockHdc.getScreenInfo.mockResolvedValue({ width: 1216, height: 2688 });
     device = new HarmonyDevice('test-device-id');
   });
@@ -170,7 +168,7 @@ describe('HarmonyDevice', () => {
     });
 
     it('should warn when deprecated screenshotResizeScale is used', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('screenshotResizeScale is deprecated'),
@@ -179,7 +177,7 @@ describe('HarmonyDevice', () => {
     });
 
     it('should ignore deprecated screenshotResizeScale in size()', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       await d.connect();
       const size = await d.size();
@@ -222,6 +220,21 @@ describe('HarmonyDevice', () => {
     });
   });
 
+  describe('swipe', () => {
+    it('should pass the converted speed to HDC for every repeat', async () => {
+      await device.connect();
+      await device.inputPrimitives.touch.swipe(
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { duration: 300, repeat: 2 },
+      );
+
+      expect(mockHdc.swipe).toHaveBeenCalledTimes(2);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(1, 0, 0, 300, 0, 1000);
+      expect(mockHdc.swipe).toHaveBeenNthCalledWith(2, 0, 0, 300, 0, 1000);
+    });
+  });
+
   describe('inputText', () => {
     beforeEach(async () => {
       await device.connect();
@@ -239,6 +252,42 @@ describe('HarmonyDevice', () => {
         replace: false,
       });
       expect(mockHdc.inputText).toHaveBeenCalledWith(500, 600, 'hello');
+    });
+
+    it('forces one HDC call per Unicode character for sequential input', async () => {
+      device.options = {
+        ...device.options,
+        inputStrategy: 'sequential',
+      };
+      await device.inputPrimitives.keyboard.typeText('A😀B', {
+        replace: false,
+        autoDismissKeyboard: false,
+      });
+
+      expect(mockHdc.inputText.mock.calls).toEqual([
+        [608, 1344, 'A'],
+        [608, 1344, '😀'],
+        [608, 1344, 'B'],
+      ]);
+    });
+
+    it('rejects bulk input when the device has a positive keyboard delay', async () => {
+      const delayedDevice = new HarmonyDevice('delayed-device', {
+        keyboardTypeDelay: 10,
+        autoDismissKeyboard: false,
+      });
+      await delayedDevice.connect();
+
+      await expect(
+        delayedDevice.inputPrimitives.keyboard.typeText('hello', {
+          inputStrategy: 'bulk',
+          target: { center: [10, 20] },
+        }),
+      ).rejects.toThrow(
+        'inputStrategy "bulk" requires keyboardTypeDelay to be omitted or set to 0; use inputStrategy "sequential" for delayed input',
+      );
+      expect(mockHdc.clearTextField).not.toHaveBeenCalled();
+      await delayedDevice.destroy();
     });
 
     it('should use lastTapPosition when no element', async () => {
@@ -263,8 +312,8 @@ describe('HarmonyDevice', () => {
 
       // 1. click to focus
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      // 2. clearTextField to batch-delete existing content
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      // 2. clearTextField to select and delete existing content
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
       // 3. actual inputText
       expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'new text');
     });
@@ -365,13 +414,25 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
       await d.destroy();
     });
+
+    it('should dismiss keyboard by default from the Input action', async () => {
+      const inputAction = device
+        .actionSpace()
+        .find((action) => action.name === 'Input') as any;
+      const param = inputAction.paramSchema.parse({ value: 'hi' });
+
+      await inputAction.call(param);
+
+      expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'hi');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
+    });
   });
 
   describe('clearInput', () => {
-    it('should call clearTextField to batch-delete text', async () => {
+    it('should call clearTextField to select and delete text', async () => {
       await device.connect();
       await device.clearInput();
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
     });
 
     it('should click element before clearing when element is provided', async () => {
@@ -379,7 +440,40 @@ describe('HarmonyDevice', () => {
       const element = { center: [100, 200] as [number, number] } as any;
       await device.clearInput(element);
       expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
-      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('keyboard validation', () => {
+    it('should reject an unsupported key before connecting to HDC', async () => {
+      await expect(
+        device.inputPrimitives.keyboard.keyboardPress('not-a-key'),
+      ).rejects.toThrow('Unsupported HarmonyOS keyboardPress key: "not-a-key"');
+      expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+    });
+
+    it.each(['?', 'KeyA', 'Digit1', 'F5', '2210', '中文'])(
+      'should reject unsupported key %j before connecting to HDC',
+      async (key) => {
+        await expect(
+          device.inputPrimitives.keyboard.keyboardPress(key),
+        ).rejects.toThrow(
+          `Unsupported HarmonyOS keyboardPress key: ${JSON.stringify(key)}`,
+        );
+        expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+        expect(mockHdc.keyEvent).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject key combinations before connecting to HDC', async () => {
+      await expect(
+        device.inputPrimitives.keyboard.keyboardPress('Control+A'),
+      ).rejects.toThrow(
+        'HarmonyOS keyboardPress does not support key combinations: "Control+A"',
+      );
+      expect(mockHdc.getScreenInfo).not.toHaveBeenCalled();
+      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -390,56 +484,15 @@ describe('HarmonyDevice', () => {
 
     it.each([
       ['Enter', '2054'],
-      ['Backspace', '2055'],
-      ['Tab', '2049'],
-      ['Escape', '2070'],
-      ['ArrowUp', '2012'],
-      ['ArrowDown', '2013'],
-      ['ArrowLeft', '2014'],
-      ['ArrowRight', '2015'],
-      ['Space', '2050'],
-      ['Delete', '2071'],
+      ['Home', 'Home'],
+      ['A', '2017'],
+      ['a', '2017'],
+      ['1', '2001'],
+      ['Back', 'Back'],
+      ['Power', 'Power'],
     ])('should map %s to keycode %s', async (key, code) => {
       await device.inputPrimitives.keyboard.keyboardPress(key);
       expect(mockHdc.keyEvent).toHaveBeenCalledWith(code);
-    });
-
-    it('should map Home to string "Home"', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('Home');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('Home');
-    });
-
-    it('should normalize case-insensitive key names', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('enter');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2054');
-    });
-
-    it('should normalize aliases (esc -> Escape)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('esc');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2070');
-    });
-
-    it('should normalize arrow aliases (up -> ArrowUp)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('up');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2012');
-    });
-
-    it('should normalize arrow aliases (down/left/right)', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('down');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2013');
-
-      mockHdc.keyEvent.mockClear();
-      await device.inputPrimitives.keyboard.keyboardPress('left');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2014');
-
-      mockHdc.keyEvent.mockClear();
-      await device.inputPrimitives.keyboard.keyboardPress('right');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2015');
-    });
-
-    it('should pass through unknown keys as-is', async () => {
-      await device.inputPrimitives.keyboard.keyboardPress('F5');
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('F5');
     });
   });
 
@@ -458,9 +511,9 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.keyEvent).toHaveBeenCalledWith('Home');
     });
 
-    it('should send RecentApps key', async () => {
+    it('should send the API 18+ Recent keycode', async () => {
       await device.recentApps();
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('RecentApps');
+      expect(mockHdc.keyEvent).toHaveBeenCalledWith('10011');
     });
 
     it('should send Escape key for hideKeyboard by default', async () => {
@@ -499,6 +552,15 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
     });
 
+    it('should not replace a direct URI with an app name mapping', async () => {
+      device.setAppNameMapping({
+        'myapp://page': 'com.example.app/MainAbility',
+      });
+      await device.launch('myapp://page');
+      expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
+      expect(mockHdc.startAbility).not.toHaveBeenCalled();
+    });
+
     it('should use startAbility for bundleName/abilityName format', async () => {
       await device.launch('com.example.app/MainAbility');
       expect(mockHdc.startAbility).toHaveBeenCalledWith(
@@ -507,12 +569,10 @@ describe('HarmonyDevice', () => {
       );
     });
 
-    it('should use startAbility with EntryAbility for plain bundle name', async () => {
+    it('should launch a plain bundle name through HDC bundle resolution', async () => {
       await device.launch('com.example.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.example.app',
-        'EntryAbility',
-      );
+
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.example.app');
     });
 
     it('should throw with descriptive error on launch failure', async () => {
@@ -549,6 +609,22 @@ describe('HarmonyDevice', () => {
       });
       await device.terminate('Music');
       expect(mockHdc.forceStop).toHaveBeenCalledWith('com.huawei.hmsapp.music');
+    });
+
+    it('should use only the bundle part of a mapped bundle/ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('Video');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
+    });
+
+    it('should resolve the mapped bundle part of an explicit ability target', async () => {
+      device.setAppNameMapping({
+        Video: 'com.example.video/PhoneAbility',
+      });
+      await device.terminate('video/MainAbility');
+      expect(mockHdc.forceStop).toHaveBeenCalledWith('com.example.video');
     });
 
     it('should throw on terminate failure', async () => {
@@ -759,7 +835,7 @@ describe('HarmonyDevice', () => {
       const customAction = {
         name: 'CustomAction',
         description: 'A custom test action',
-        call: vi.fn(),
+        call: rs.fn(),
       };
       const d = new HarmonyDevice('dev', { customActions: [customAction] });
       const actionNames = d.actionSpace().map((a: any) => a.name);
@@ -779,20 +855,29 @@ describe('HarmonyDevice', () => {
         browser: 'com.huawei.hmos.browser',
       });
       await device.launch('Browser');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith(
         'com.huawei.hmos.browser',
-        'EntryAbility',
       );
+    });
+
+    it('should start an explicit ability from app name mapping', async () => {
+      await device.connect();
+      device.setAppNameMapping({
+        'Video App': 'com.example.video/PhoneAbility',
+      });
+      await device.launch('video-app');
+      expect(mockHdc.startAbility).toHaveBeenCalledWith(
+        'com.example.video',
+        'PhoneAbility',
+      );
+      expect(mockHdc.launchBundle).not.toHaveBeenCalled();
     });
 
     it('should fall back to original name if not in mapping', async () => {
       await device.connect();
       device.setAppNameMapping({});
       await device.launch('com.unknown.app');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.unknown.app',
-        'EntryAbility',
-      );
+      expect(mockHdc.launchBundle).toHaveBeenCalledWith('com.unknown.app');
     });
   });
 

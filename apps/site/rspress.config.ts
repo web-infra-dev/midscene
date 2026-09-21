@@ -6,8 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
+import { getGitHubStars } from './scripts/github-stars';
 
-const GITHUB_STARS_FALLBACK = '13k+';
 const SITE_URL = 'https://midscenejs.com';
 const FAVICON_URL = `${SITE_URL}/favicon.png`;
 const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
@@ -40,44 +40,11 @@ const SEARCH_IDENTITY_JSON_LD = JSON.stringify({
   ],
 });
 
-async function fetchGithubStars(): Promise<string> {
-  const repo = 'web-infra-dev/midscene';
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'midscene-docs-build',
-        ...(process.env.GITHUB_TOKEN
-          ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-          : {}),
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      console.warn(
-        `[midscene-docs] GitHub stars fetch returned ${res.status}, using fallback ${GITHUB_STARS_FALLBACK}`,
-      );
-      return GITHUB_STARS_FALLBACK;
-    }
-    const data = (await res.json()) as { stargazers_count?: number };
-    const stars = data.stargazers_count;
-    if (typeof stars !== 'number' || stars <= 0) {
-      return GITHUB_STARS_FALLBACK;
-    }
-    return `${Math.floor(stars / 1000)}k+`;
-  } catch (err) {
-    console.warn(
-      `[midscene-docs] GitHub stars fetch failed (${(err as Error).message}), using fallback ${GITHUB_STARS_FALLBACK}`,
-    );
-    return GITHUB_STARS_FALLBACK;
-  }
-}
-
 export default defineConfig(async () => {
-  const githubStars = await fetchGithubStars();
+  const githubStars = await getGitHubStars({
+    strict: process.env.MIDSCENE_SITE_BUILD === 'true',
+    token: process.env.GITHUB_TOKEN,
+  });
   return {
     root: path.join(__dirname, 'docs'),
     title: 'Midscene - Vision-Driven UI Automation',
@@ -125,6 +92,8 @@ export default defineConfig(async () => {
         },
       ],
       ['meta', { name: 'twitter:image:alt', content: 'Midscene.js logo' }],
+      // Prevent Bing from selecting arbitrary homepage images as search previews.
+      ['meta', { name: 'bingbot', content: 'max-image-preview:none' }],
       `<script type="application/ld+json">${SEARCH_IDENTITY_JSON_LD}</script>`,
     ],
     markdown: {
@@ -132,8 +101,14 @@ export default defineConfig(async () => {
         checkDeadLinks: true,
       },
     },
+    mediumZoom: {
+      selector: '.rspress-doc img:not(.no-zoom)',
+    },
     themeConfig: {
       lastUpdated: true,
+      llmsUI: {
+        placement: 'outline',
+      },
       socialLinks: [
         {
           icon: 'github',
@@ -190,38 +165,34 @@ export default defineConfig(async () => {
             link: '/introduction',
           },
           {
-            text: 'Quick start 🔥',
-            link: '/quick-start',
-          },
-          {
-            text: 'Showcases',
-            link: '/showcases',
-          },
-          {
-            text: 'Control any platform with Skills 🔥',
-            link: '/skills',
-          },
-          {
-            sectionHeaderText: 'Models',
+            text: 'The Basics',
+            link: '/basics',
           },
           {
             text: 'Model strategy',
             link: '/model-strategy',
           },
           {
-            text: 'Configure your model 🔥',
+            text: 'Showcases',
+            link: '/showcases',
+          },
+          {
+            sectionHeaderText: 'Getting Started',
+          },
+          {
+            text: 'Quick start',
+            link: '/quick-start',
+          },
+          {
+            text: 'Supported models & setup',
             link: '/model-common-config',
           },
           {
-            text: 'All configuration options',
-            link: '/model-config',
+            text: 'Control any platform with Skills',
+            link: '/skills',
           },
           {
             sectionHeaderText: 'Web browser',
-          },
-          {
-            text: 'Quick experience by Chrome extension',
-            link: '/quick-experience',
           },
           {
             text: 'Integrate with Playwright',
@@ -236,68 +207,46 @@ export default defineConfig(async () => {
             link: '/bridge-mode',
           },
           {
-            text: 'API reference (web browser)',
-            link: '/web-api-reference',
+            sectionHeaderText: 'More platforms',
           },
           {
-            sectionHeaderText: 'Android',
+            text: 'Platform overview',
+            link: '/platforms/',
           },
           {
-            text: 'Introduction',
-            link: '/android-introduction',
+            text: 'Android',
+            link: '/platforms/android',
           },
           {
-            text: 'Getting started',
-            link: '/android-getting-started',
+            text: 'iOS',
+            link: '/platforms/ios',
           },
           {
-            text: 'API reference (Android)',
-            link: '/android-api-reference',
+            text: 'HarmonyOS',
+            link: '/platforms/harmonyos',
           },
           {
-            sectionHeaderText: 'iOS',
+            text: 'Desktop',
+            link: '/platforms/desktop',
           },
           {
-            text: 'Introduction',
-            link: '/ios-introduction',
+            sectionHeaderText: 'Test Framework (Beta)',
           },
           {
-            text: 'Getting started',
-            link: '/ios-getting-started',
+            text: 'Midscene Test overview',
+            link: '/midscene-test/overview',
           },
           {
-            text: 'API reference (iOS)',
-            link: '/ios-api-reference',
+            text: 'Create and use test projects',
+            link: '/midscene-test/use',
           },
           {
-            sectionHeaderText: 'HarmonyOS',
+            text: 'Configure test projects',
+            link: '/midscene-test/configuration',
           },
           {
-            text: 'Introduction',
-            link: '/harmony-introduction',
-          },
-          {
-            text: 'Getting started',
-            link: '/harmony-getting-started',
-          },
-          {
-            text: 'API reference (HarmonyOS)',
-            link: '/harmony-api-reference',
-          },
-          {
-            sectionHeaderText: 'PC Desktop',
-          },
-          {
-            text: 'Introduction',
-            link: '/computer-introduction',
-          },
-          {
-            text: 'Getting started',
-            link: '/computer-getting-started',
-          },
-          {
-            text: 'API reference (PC Desktop)',
-            link: '/computer-api-reference',
+            text: 'Develop custom Nodes',
+            link: '/midscene-test/extend',
           },
           {
             sectionHeaderText: 'YAML automation',
@@ -311,48 +260,53 @@ export default defineConfig(async () => {
             link: '/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: 'More features',
+            text: 'Migrate to Midscene Test',
+            link: '/migrate-to-midscene-test',
           },
           {
-            text: 'Caching AI planning & locate',
-            link: '/caching',
+            sectionHeaderText: 'Reference',
           },
           {
-            text: 'Consume report files',
+            text: 'API reference',
+            link: '/reference/',
+          },
+          {
+            text: 'Model configuration',
+            link: '/model-config',
+          },
+          {
+            sectionHeaderText: 'Advanced guides',
+          },
+          {
+            text: 'Provide application knowledge to a GUI Agent',
+            link: '/provide-application-knowledge-to-gui-agent',
+          },
+          {
+            text: 'Model debugging & observability',
+            link: '/model-debugging-observability',
+          },
+          {
+            text: 'Process report files',
             link: '/consume-report-file',
           },
           {
-            text: 'Integrate Midscene with any interface',
+            text: 'Write BDD scripts with Gherkin',
+            link: '/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: 'Integrate with any interface',
             link: '/integrate-with-any-interface',
           },
           {
-            sectionHeaderText: 'API reference',
+            text: 'Cache AI plans & DOM locators',
+            link: '/caching',
           },
           {
-            text: 'API reference (Common)',
-            link: '/api',
-          },
-          {
-            sectionHeaderText: 'Advanced',
-          },
-          {
-            text: 'BDD-style scripts with Gherkin',
-            link: '/advanced/bdd-style-scripts-with-gherkin',
+            sectionHeaderText: 'Resources',
           },
           {
             text: 'FAQ',
             link: '/faq',
-          },
-          {
-            text: 'Use JavaScript to optimize your workflow',
-            link: '/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: 'More',
-          },
-          {
-            text: 'Android World Benchmark Report',
-            link: '/android-world-benchmark-report',
           },
           {
             text: 'Changelog',
@@ -363,12 +317,23 @@ export default defineConfig(async () => {
             link: '/awesome-midscene',
           },
           {
-            text: 'LLMs.txt',
-            link: '/llm-txt',
-          },
-          {
             text: 'Data privacy',
             link: '/data-privacy',
+          },
+          {
+            sectionHeaderText: 'Benchmark',
+          },
+          {
+            text: 'AndroidWorld Benchmark',
+            link: '/android-world-benchmark-report',
+          },
+          {
+            text: 'MobileWorld Benchmark',
+            link: '/mobile-world-benchmark-report',
+          },
+          {
+            text: 'AppControlBench Benchmark',
+            link: '/app-control-bench-report',
           },
         ],
         '/zh': [
@@ -380,38 +345,34 @@ export default defineConfig(async () => {
             link: '/zh/introduction',
           },
           {
-            text: '快速开始 🔥',
-            link: '/zh/quick-start',
-          },
-          {
-            text: '案例展示',
-            link: '/zh/showcases',
-          },
-          {
-            text: '使用 Skills 控制任意平台 🔥',
-            link: '/zh/skills',
-          },
-          {
-            sectionHeaderText: '模型',
+            text: '基本概念',
+            link: '/zh/basics',
           },
           {
             text: '模型策略',
             link: '/zh/model-strategy',
           },
           {
-            text: '配置你的模型 🔥',
+            text: '案例展示',
+            link: '/zh/showcases',
+          },
+          {
+            sectionHeaderText: '开始使用',
+          },
+          {
+            text: '快速开始',
+            link: '/zh/quick-start',
+          },
+          {
+            text: '支持的模型与配置',
             link: '/zh/model-common-config',
           },
           {
-            text: '全部配置项',
-            link: '/zh/model-config',
+            text: '使用 Skills 控制任意平台',
+            link: '/zh/skills',
           },
           {
             sectionHeaderText: 'Web 浏览器',
-          },
-          {
-            text: '通过 Chrome 插件快速体验',
-            link: '/zh/quick-experience',
           },
           {
             text: '集成到 Playwright',
@@ -426,71 +387,49 @@ export default defineConfig(async () => {
             link: '/zh/bridge-mode',
           },
           {
-            text: 'API 参考（Web 浏览器）',
-            link: '/zh/web-api-reference',
+            sectionHeaderText: '更多平台',
           },
           {
-            sectionHeaderText: 'Android',
+            text: '平台概览',
+            link: '/zh/platforms/',
           },
           {
-            text: '介绍',
-            link: '/zh/android-introduction',
+            text: 'Android',
+            link: '/zh/platforms/android',
           },
           {
-            text: '开始使用',
-            link: '/zh/android-getting-started',
+            text: 'iOS',
+            link: '/zh/platforms/ios',
           },
           {
-            text: 'API 参考（Android）',
-            link: '/zh/android-api-reference',
+            text: 'HarmonyOS',
+            link: '/zh/platforms/harmonyos',
           },
           {
-            sectionHeaderText: 'iOS',
+            text: '桌面端',
+            link: '/zh/platforms/desktop',
           },
           {
-            text: '介绍',
-            link: '/zh/ios-introduction',
+            sectionHeaderText: '测试框架 (Beta)',
           },
           {
-            text: '开始使用',
-            link: '/zh/ios-getting-started',
+            text: 'Midscene Test 概览',
+            link: '/zh/midscene-test/overview',
           },
           {
-            text: 'API 参考（iOS）',
-            link: '/zh/ios-api-reference',
+            text: '创建和使用测试项目',
+            link: '/zh/midscene-test/use',
           },
           {
-            sectionHeaderText: 'HarmonyOS',
+            text: '配置测试项目',
+            link: '/zh/midscene-test/configuration',
           },
           {
-            text: '介绍',
-            link: '/zh/harmony-introduction',
+            text: '编写自定义 Node',
+            link: '/zh/midscene-test/extend',
           },
           {
-            text: '开始使用',
-            link: '/zh/harmony-getting-started',
-          },
-          {
-            text: 'API 参考（HarmonyOS）',
-            link: '/zh/harmony-api-reference',
-          },
-          {
-            sectionHeaderText: 'PC 桌面',
-          },
-          {
-            text: '介绍',
-            link: '/zh/computer-introduction',
-          },
-          {
-            text: '开始使用',
-            link: '/zh/computer-getting-started',
-          },
-          {
-            text: 'API 参考（PC 桌面）',
-            link: '/zh/computer-api-reference',
-          },
-          {
-            sectionHeaderText: 'YAML automation',
+            sectionHeaderText: 'YAML 自动化',
           },
           {
             text: 'YAML 脚本运行器',
@@ -501,48 +440,53 @@ export default defineConfig(async () => {
             link: '/zh/automate-with-scripts-in-yaml',
           },
           {
-            sectionHeaderText: '更多特性',
+            text: '迁移到 Midscene Test',
+            link: '/zh/migrate-to-midscene-test',
           },
           {
-            text: '缓存 AI 规划和定位',
-            link: '/zh/caching',
+            sectionHeaderText: '参考文档',
           },
           {
-            text: '解析报告文件',
+            text: 'API 参考',
+            link: '/zh/reference/',
+          },
+          {
+            text: '模型配置',
+            link: '/zh/model-config',
+          },
+          {
+            sectionHeaderText: '进阶指南',
+          },
+          {
+            text: '为 GUI Agent 补充应用知识',
+            link: '/zh/provide-application-knowledge-to-gui-agent',
+          },
+          {
+            text: '模型调试与可观测性',
+            link: '/zh/model-debugging-observability',
+          },
+          {
+            text: '处理报告文件',
             link: '/zh/consume-report-file',
           },
           {
-            text: '将 Midscene 集成到任意界面',
+            text: '使用 Gherkin 编写 BDD 脚本',
+            link: '/zh/advanced/bdd-style-scripts-with-gherkin',
+          },
+          {
+            text: '与任意界面集成',
             link: '/zh/integrate-with-any-interface',
           },
           {
-            sectionHeaderText: 'API 参考',
+            text: '缓存 AI 规划与 DOM 定位',
+            link: '/zh/caching',
           },
           {
-            text: 'API 参考（公共）',
-            link: '/zh/api',
-          },
-          {
-            sectionHeaderText: '进阶',
-          },
-          {
-            text: 'BDD 风格脚本（Gherkin）',
-            link: '/zh/advanced/bdd-style-scripts-with-gherkin',
+            sectionHeaderText: '资源',
           },
           {
             text: '常见问题 FAQ',
             link: '/zh/faq',
-          },
-          {
-            text: '使用 JavaScript 优化工作流',
-            link: '/zh/use-javascript-to-optimize-ai-automation-code',
-          },
-          {
-            sectionHeaderText: '更多',
-          },
-          {
-            text: 'Android World Benchmark 测试报告',
-            link: '/zh/android-world-benchmark-report',
           },
           {
             text: '更新日志',
@@ -553,12 +497,23 @@ export default defineConfig(async () => {
             link: '/zh/awesome-midscene',
           },
           {
-            text: 'LLMs.txt',
-            link: '/zh/llm-txt',
-          },
-          {
             text: '数据隐私',
             link: '/zh/data-privacy',
+          },
+          {
+            sectionHeaderText: 'Benchmark',
+          },
+          {
+            text: 'AndroidWorld Benchmark',
+            link: '/zh/android-world-benchmark-report',
+          },
+          {
+            text: 'MobileWorld Benchmark',
+            link: '/zh/mobile-world-benchmark-report',
+          },
+          {
+            text: 'AppControlBench Benchmark',
+            link: '/zh/app-control-bench-report',
           },
         ],
       },
@@ -637,29 +592,119 @@ export default defineConfig(async () => {
       }),
       pluginClientRedirects({
         redirects: [
+          ...['', '/zh'].flatMap((locale) =>
+            [
+              ['test-runner-overview', 'overview'],
+              ['extend-test-runner', 'extend'],
+              ['use-test-runner', 'use'],
+            ].map(([previous, current]) => ({
+              from: `^${locale}/${previous}(?:\\.html)?/?$`,
+              to: `${locale}/midscene-test/${current}`,
+            })),
+          ),
+          {
+            from: '^/android-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/platforms/android',
+          },
+          {
+            from: '^/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/platforms/ios',
+          },
+          {
+            from: '^/harmony-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/platforms/harmonyos',
+          },
+          {
+            from: '^/computer-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/platforms/desktop',
+          },
+          {
+            from: '^/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
+            to: '/reference/#android',
+          },
+          {
+            from: '^/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
+            to: '/reference/#ios',
+          },
+          {
+            from: '^/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
+            to: '/reference/#harmonyos',
+          },
+          {
+            from: '^/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
+            to: '/reference/#desktop',
+          },
+          {
+            from: '^/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
+            to: '/reference/#web',
+          },
+          {
+            from: '^/(?:api|reference/common)(?:\\.html)?/?$',
+            to: '/reference/#common',
+          },
+          {
+            from: '^/zh/android-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/zh/platforms/android',
+          },
+          {
+            from: '^/zh/ios-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/zh/platforms/ios',
+          },
+          {
+            from: '^/zh/harmony-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/zh/platforms/harmonyos',
+          },
+          {
+            from: '^/zh/computer-(?:introduction|getting-started)(?:\\.html)?/?$',
+            to: '/zh/platforms/desktop',
+          },
+          {
+            from: '^/zh/(?:android-api-reference|reference/android)(?:\\.html)?/?$',
+            to: '/zh/reference/#android',
+          },
+          {
+            from: '^/zh/(?:ios-api-reference|reference/ios)(?:\\.html)?/?$',
+            to: '/zh/reference/#ios',
+          },
+          {
+            from: '^/zh/(?:harmony-api-reference|reference/harmonyos)(?:\\.html)?/?$',
+            to: '/zh/reference/#harmonyos',
+          },
+          {
+            from: '^/zh/(?:computer-api-reference|reference/desktop)(?:\\.html)?/?$',
+            to: '/zh/reference/#desktop',
+          },
+          {
+            from: '^/zh/(?:web-api-reference|reference/web)(?:\\.html)?/?$',
+            to: '/zh/reference/#web',
+          },
+          {
+            from: '^/zh/(?:api|reference/common)(?:\\.html)?/?$',
+            to: '/zh/reference/#common',
+          },
           {
             from: '^/integrate-with-android(?:\\.html)?/?$',
-            to: '/android-getting-started',
+            to: '/platforms/android',
           },
           {
             from: '^/integrate-with-ios(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/platforms/ios',
           },
           {
             from: '^/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/harmony-getting-started',
+            to: '/platforms/harmonyos',
           },
           {
             from: '^/android-playground(?:\\.html)?/?$',
-            to: '/android-introduction',
+            to: '/platforms/android',
           },
           {
             from: '^/ios-playground(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/platforms/ios',
           },
           {
             from: '^/choose-a-model(?:\\.html)?/?$',
-            to: '/model-strategy',
+            to: '/model-common-config',
           },
           {
             from: '^/model-provider(?:\\.html)?/?$',
@@ -667,7 +712,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/use-javascript-to-optimize-ai-automation-code',
+            to: '/basics#javascript-orchestration',
+          },
+          {
+            from: '^/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/basics#javascript-orchestration',
           },
           {
             from: '^/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
@@ -683,19 +732,23 @@ export default defineConfig(async () => {
           },
           {
             from: '^/blog-support-android-automation(?:\\.html)?/?$',
-            to: '/android-introduction',
+            to: '/platforms/android',
           },
           {
             from: '^/blog-support-ios-automation(?:\\.html)?/?$',
-            to: '/ios-introduction',
+            to: '/platforms/ios',
+          },
+          {
+            from: '^/quick-experience(?:\\.html)?/?$',
+            to: '/quick-start#chrome-extension',
           },
           {
             from: '^/quick-experience-with-android(?:\\.html)?/?$',
-            to: '/android-getting-started',
+            to: '/platforms/android',
           },
           {
             from: '^/quick-experience-with-ios(?:\\.html)?/?$',
-            to: '/ios-getting-started',
+            to: '/platforms/ios',
           },
           {
             from: '^/zh/web-mcp(?:\\.html)?/?$',
@@ -707,35 +760,39 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/integrate-with-android(?:\\.html)?/?$',
-            to: '/zh/android-getting-started',
+            to: '/zh/platforms/android',
           },
           {
             from: '^/zh/integrate-with-ios(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/platforms/ios',
           },
           {
             from: '^/zh/integrate-with-harmony(?:\\.html)?/?$',
-            to: '/zh/harmony-getting-started',
+            to: '/zh/platforms/harmonyos',
           },
           {
             from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',
-            to: '/zh/android-introduction',
+            to: '/zh/platforms/android',
           },
           {
             from: '^/zh/blog-support-ios-automation(?:\\.html)?/?$',
-            to: '/zh/ios-introduction',
+            to: '/zh/platforms/ios',
+          },
+          {
+            from: '^/zh/quick-experience(?:\\.html)?/?$',
+            to: '/zh/quick-start#chrome-extension',
           },
           {
             from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',
-            to: '/zh/android-getting-started',
+            to: '/zh/platforms/android',
           },
           {
             from: '^/zh/quick-experience-with-ios(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/platforms/ios',
           },
           {
             from: '^/zh/choose-a-model(?:\\.html)?/?$',
-            to: '/zh/model-strategy',
+            to: '/zh/model-common-config',
           },
           {
             from: '^/zh/model-provider(?:\\.html)?/?$',
@@ -743,7 +800,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
-            to: '/zh/use-javascript-to-optimize-ai-automation-code',
+            to: '/zh/basics#javascript-orchestration',
+          },
+          {
+            from: '^/zh/use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
+            to: '/zh/basics#javascript-orchestration',
           },
           {
             from: '^/zh/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
@@ -751,11 +812,11 @@ export default defineConfig(async () => {
           },
           {
             from: '^/zh/android-playground(?:\\.html)?/?$',
-            to: '/zh/android-introduction',
+            to: '/zh/platforms/android',
           },
           {
             from: '^/zh/ios-playground(?:\\.html)?/?$',
-            to: '/zh/ios-getting-started',
+            to: '/zh/platforms/ios',
           },
           {
             from: '^/command-line-tools(?:\\.html)?/?$',

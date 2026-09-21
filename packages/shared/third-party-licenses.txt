@@ -3,7 +3,6 @@ https://www.npmjs.com/package/generate-license-file
 
 The following npm packages may be included in this product:
 
- - @silvia-odwyer/photon-node@0.3.3
  - @silvia-odwyer/photon@0.3.3
 
 These packages each contain the following license:

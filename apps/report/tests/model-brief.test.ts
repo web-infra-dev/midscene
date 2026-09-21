@@ -1,6 +1,6 @@
 import { formatModelBriefText } from '@/utils/model-brief';
 import type { ModelBrief } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('formatModelBriefText', () => {
   it('hides intent when all intents use the same model', () => {

@@ -9,6 +9,7 @@ on:
       - 'packages/core/**'
       - 'packages/shared/**'
       - 'scripts/report-template-utils.mjs'
+      - 'scripts/validate-core-report-template.mjs'
       - 'nx.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -20,6 +21,14 @@ on:
         required: false
         default: 'main'
         type: string
+      display_scale:
+        description: 'Windows display scale used by the live desktop smoke'
+        required: true
+        default: '100'
+        type: choice
+        options:
+          - '100'
+          - '125'
 
 permissions:
   contents: read
@@ -30,6 +39,7 @@ concurrency:
 
 jobs:
   windows-desktop:
+    # The self-hosted Windows runner runs as a non-interactive service.
     runs-on: windows-2022
     timeout-minutes: 50
     env:
@@ -45,12 +55,24 @@ jobs:
       MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
       MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
       MIDSCENE_TODO_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+      MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT: ${{ inputs.display_scale || '100' }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure requested Windows display scale
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.display_scale != '100' }}
+        shell: pwsh
+        run: |
+          $diagnosticsDir = $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR
+          New-Item -ItemType Directory -Force -Path $diagnosticsDir | Out-Null
+          $diagnosticsPath = Join-Path $diagnosticsDir 'display-scale-configuration.json'
+          & packages/computer/tests/ai/fixtures/windows-set-display-scale.ps1 `
+            -ScalePercent ([int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT) `
+            -DiagnosticsFile $diagnosticsPath
 
       - name: Verify interactive Windows desktop
         shell: pwsh
@@ -80,22 +102,15 @@ jobs:
             Add-Type -TypeDefinition @'
           using System.Runtime.InteropServices;
           public static class MidsceneNativeDpi {
-            [DllImport("user32.dll", SetLastError = true)]
-            [return: MarshalAs(UnmanagedType.Bool)]
-            public static extern bool SetProcessDPIAware();
-
             [DllImport("user32.dll")]
             public static extern uint GetDpiForSystem();
+
+            [DllImport("user32.dll")]
+            public static extern System.IntPtr SetThreadDpiAwarenessContext(
+              System.IntPtr dpiContext
+            );
           }
           '@
-
-            $dpiAware = [MidsceneNativeDpi]::SetProcessDPIAware()
-            if (-not $dpiAware) {
-              $lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-              if ($lastError -ne 5) {
-                throw "SetProcessDPIAware failed with Win32 error $lastError."
-              }
-            }
 
             Add-Type -AssemblyName System.Windows.Forms
             $process = [System.Diagnostics.Process]::GetCurrentProcess()
@@ -106,7 +121,28 @@ jobs:
 
             $bounds = $primaryScreen.Bounds
             $workingArea = $primaryScreen.WorkingArea
-            $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            # PowerShell is DPI-unaware by default, so an unqualified
+            # GetDpiForSystem call always returns 96 even after Settings has
+            # applied 175%. Temporarily query from a system-aware thread
+            # context, then restore the runner's original context so the
+            # production smoke still exercises DPI virtualization.
+            $systemAwareContext = [System.IntPtr]::new(-2)
+            $previousDpiContext = [MidsceneNativeDpi]::SetThreadDpiAwarenessContext(
+              $systemAwareContext
+            )
+            if ($previousDpiContext -eq [System.IntPtr]::Zero) {
+              throw 'Unable to enter a system-aware thread DPI context for the display-scale probe.'
+            }
+            try {
+              $dpi = [int][MidsceneNativeDpi]::GetDpiForSystem()
+            }
+            finally {
+              [MidsceneNativeDpi]::SetThreadDpiAwarenessContext(
+                $previousDpiContext
+              ) | Out-Null
+            }
+            $expectedScalePercent = [int]$env:MIDSCENE_WINDOWS_EXPECTED_SCALE_PERCENT
+            $expectedDpi = [int][Math]::Round(96 * $expectedScalePercent / 100)
             $windowsPowerShellVersion = (
               & powershell.exe -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()' |
                 Out-String
@@ -121,6 +157,8 @@ jobs:
             $probe.powerShellVersion = $PSVersionTable.PSVersion.ToString()
             $probe.windowsPowerShellVersion = $windowsPowerShellVersion
             $probe.dpi = $dpi
+            $probe.expectedScalePercent = $expectedScalePercent
+            $probe.expectedDpi = $expectedDpi
             $probe.primaryScreen = [ordered]@{
               deviceName = $primaryScreen.DeviceName
               primary = $primaryScreen.Primary
@@ -141,10 +179,9 @@ jobs:
             if ($bounds.Width -le 0 -or $bounds.Height -le 0) {
               $violations += "Primary screen has invalid bounds $($bounds.Width)x$($bounds.Height)"
             }
-            if ($dpi -ne 96) {
-              $violations += "Expected 96 DPI (100% scaling), received $dpi DPI"
+            if ($dpi -ne $expectedDpi) {
+              $violations += "Expected $expectedScalePercent% display scaling ($expectedDpi DPI), but the fresh PowerShell process observed $dpi DPI"
             }
-
             $probe.violations = $violations
             $probe.valid = $violations.Count -eq 0
             Write-ProbeManifest
@@ -168,11 +205,18 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24.13.0'
-          cache: 'pnpm'
+
+      - name: Cache pnpm store
+        id: pnpm-cache
+        uses: ./.github/actions/pnpm-cache/restore
 
       - name: Install dependencies
         shell: pwsh
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Save pnpm store
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/pnpm-cache/save
 
       - name: Build report and computer packages
         id: build
@@ -184,9 +228,9 @@ jobs:
             throw '@midscene/report or @midscene/computer failed to build.'
           }
 
-          node apps/report/scripts/inject-report-template.mjs
+          node scripts/validate-core-report-template.mjs
           if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to inject the report template into @midscene/core.'
+            throw 'Invalid report template modules in @midscene/core.'
           }
 
       - name: Validate computer package outputs
@@ -278,6 +322,25 @@ jobs:
             throw "Windows desktop smoke failed with exit code $testExitCode."
           }
 
+      - name: Run Windows Swipe AI E2E
+        id: swipe-ai
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        env:
+          AI_TEST_TYPE: computer
+          MIDSCENE_WINDOWS_DESKTOP_SWIPE: '1'
+          MIDSCENE_WINDOWS_DIAGNOSTICS_DIR: ${{ github.workspace }}/midscene_run/windows-desktop-diagnostics
+          MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+        run: |
+          $logPath = Join-Path $env:MIDSCENE_WINDOWS_DIAGNOSTICS_DIR 'swipe-ai.log'
+          pnpm exec nx test @midscene/computer --skip-nx-cache -- tests/ai/windows-desktop-swipe.test.ts --retry=1 2>&1 |
+            Tee-Object -FilePath $logPath
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            throw "Windows Swipe AI E2E failed with exit code $testExitCode."
+          }
+
       - name: Run Windows TodoMVC AI test
         id: todo-mvc
         continue-on-error: true
@@ -304,6 +367,7 @@ jobs:
             packageSmoke = '${{ steps.package-smoke.outcome }}'
             unitTests = '${{ steps.unit-tests.outcome }}'
             liveSmoke = '${{ steps.live-smoke.outcome }}'
+            swipeAi = '${{ steps.swipe-ai.outcome }}'
             todoMvc = '${{ steps.todo-mvc.outcome }}'
           }
           $outcomes | ConvertTo-Json |
@@ -317,6 +381,15 @@ jobs:
         with:
           name: windows-desktop-smoke-report
           path: midscene_run/report/windows-desktop-smoke.html
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload Windows Swipe AI report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-desktop-swipe-report
+          path: midscene_run/report/windows-desktop-swipe.html
           if-no-files-found: warn
           retention-days: 7
 
@@ -347,6 +420,7 @@ jobs:
           if ('${{ steps.package-smoke.outcome }}' -ne 'success') { $failed += 'package smoke' }
           if ('${{ steps.unit-tests.outcome }}' -ne 'success') { $failed += 'unit tests' }
           if ('${{ steps.live-smoke.outcome }}' -ne 'success') { $failed += 'live desktop smoke' }
+          if ('${{ steps.swipe-ai.outcome }}' -ne 'success') { $failed += 'Swipe AI E2E' }
           if ('${{ steps.todo-mvc.outcome }}' -ne 'success') { $failed += 'TodoMVC' }
           if ($failed.Count -gt 0) {
             throw "Windows validation failed: $($failed -join ', ')"

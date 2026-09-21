@@ -13,29 +13,136 @@ import type {
   IReportActionDump,
 } from '../types';
 import { restoreImageReferences } from './screenshot-restoration';
-import { ScreenshotStore } from './screenshot-store';
+import {
+  type ImageUrlRef,
+  ReportImageStore,
+  isBase64ImageDataUrl,
+} from './screenshot-store';
+
+/** A multimodal prompt image descriptor retained by an execution dump. */
+interface ReportReferenceImageDescriptor {
+  name: string;
+  url: string;
+}
+
+function isReferenceImageDescriptor(
+  value: unknown,
+): value is ReportReferenceImageDescriptor {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.name === 'string' && typeof record.url === 'string';
+}
+
+function getPageOrBrowserObjectName(value: unknown): 'Page' | 'Browser' | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const constructorName = value.constructor?.name;
+  return constructorName === 'Page' || constructorName === 'Browser'
+    ? constructorName
+    : null;
+}
+
+function isCustomSerializableObject(
+  value: unknown,
+): value is { toSerializable(): unknown } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { toSerializable?: unknown }).toSerializable === 'function'
+  );
+}
+
+function isPlainRecord(value: object): value is Record<string, unknown> {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
 /**
  * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
  */
-function replacerForDumpSerialization(_key: string, value: any): any {
+function replacerForDumpSerialization(key: string, value: any): any {
   // screenshotSequence is a transient model input (multi-frame capture). Its
   // frames are not persisted by collectScreenshots, so serializing them would
   // emit dangling screenshot refs. The representative `screenshot` is kept.
-  if (_key === 'screenshotSequence') {
+  if (key === 'screenshotSequence') {
     return undefined;
   }
-  if (value && value.constructor?.name === 'Page') {
-    return '[Page object]';
+  const opaqueObjectName = getPageOrBrowserObjectName(value);
+  if (opaqueObjectName) {
+    return `[${opaqueObjectName} object]`;
   }
-  if (value && value.constructor?.name === 'Browser') {
-    return '[Browser object]';
-  }
-  // Handle ScreenshotItem serialization
-  if (value && typeof value.toSerializable === 'function') {
+  if (isCustomSerializableObject(value)) {
     return value.toSerializable();
   }
   return value;
+}
+
+function stringifyDump(data: unknown, indents?: number): string {
+  return JSON.stringify(data, replacerForDumpSerialization, indents);
+}
+
+/**
+ * Clone serializable plain data while replacing image descriptors only when
+ * they occur inside an `images` array. Cloning per occurrence deliberately
+ * avoids object-identity coupling when callers reuse the same descriptor in
+ * another, unrelated field.
+ */
+function replaceReferenceImageUrls(
+  value: unknown,
+  referenceImageRefsByUrl: ReadonlyMap<string, ImageUrlRef>,
+  ancestors: WeakSet<object> = new WeakSet(),
+): unknown {
+  if (typeof value !== 'object' || value === null) return value;
+  if (
+    getPageOrBrowserObjectName(value) ||
+    isCustomSerializableObject(value) ||
+    (!Array.isArray(value) && !isPlainRecord(value))
+  ) {
+    return value;
+  }
+  if (ancestors.has(value)) return value;
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        replaceReferenceImageUrls(item, referenceImageRefsByUrl, ancestors),
+      );
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      if (key === 'images' && Array.isArray(nestedValue)) {
+        result[key] = nestedValue.map((image) => {
+          const transformedImage = replaceReferenceImageUrls(
+            image,
+            referenceImageRefsByUrl,
+            ancestors,
+          );
+          if (!isReferenceImageDescriptor(image)) return transformedImage;
+
+          const referenceImageRef = referenceImageRefsByUrl.get(image.url);
+          if (
+            !referenceImageRef ||
+            typeof transformedImage !== 'object' ||
+            transformedImage === null ||
+            !isPlainRecord(transformedImage)
+          ) {
+            return transformedImage;
+          }
+          return { ...transformedImage, url: referenceImageRef };
+        });
+        continue;
+      }
+      result[key] = replaceReferenceImageUrls(
+        nestedValue,
+        referenceImageRefsByUrl,
+        ancestors,
+      );
+    }
+    return result;
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /**
@@ -69,21 +176,28 @@ export class ExecutionDump implements IExecutionDump {
   description?: string;
   tasks: ExecutionTask[];
   aiActContext?: string;
+  private readonly referenceImageUrls: readonly string[];
 
-  constructor(data: IExecutionDump) {
+  constructor(
+    data: IExecutionDump,
+    options?: { referenceImageUrls?: readonly string[] },
+  ) {
     this.id = data.id;
     this.logTime = data.logTime;
     this.name = data.name;
     this.description = data.description;
     this.tasks = data.tasks;
     this.aiActContext = data.aiActContext;
+    this.referenceImageUrls = Array.from(
+      new Set((options?.referenceImageUrls ?? []).filter(isBase64ImageDataUrl)),
+    );
   }
 
   /**
    * Serialize the ExecutionDump to a JSON string
    */
   serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+    return stringifyDump(this.toJSON(), indents);
   }
 
   /**
@@ -148,6 +262,14 @@ export class ExecutionDump implements IExecutionDump {
 
     return screenshots;
   }
+
+  /**
+   * Return persistable base64 reference-image URLs explicitly registered while
+   * building this execution. This sidecar is excluded from serialized dumps.
+   */
+  getReferenceImageUrls(): readonly string[] {
+    return [...this.referenceImageUrls];
+  }
 }
 
 /**
@@ -174,10 +296,28 @@ export class ReportActionDump implements IReportActionDump {
 
   /**
    * Serialize the ReportActionDump to a JSON string
-   * Uses compact { $screenshot: id } format
+   * Uses typed report references for persisted screenshots.
    */
   serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+    return stringifyDump(this.toJSON(), indents);
+  }
+
+  /**
+   * Serialize a report dump while replacing persisted multimodal prompt image
+   * URLs with their compact report asset references.
+   *
+   * @param referenceImageRefsByUrl Maps registered prompt image URLs to assets.
+   * @param indents Optional JSON indentation.
+   * @returns The serialized report dump.
+   */
+  serializeWithReferenceImages(
+    referenceImageRefsByUrl: ReadonlyMap<string, ImageUrlRef>,
+    indents?: number,
+  ): string {
+    return stringifyDump(
+      replaceReferenceImageUrls(this.toJSON(), referenceImageRefsByUrl),
+      indents,
+    );
   }
 
   /**
@@ -296,36 +436,16 @@ export class ReportActionDump implements IReportActionDump {
     const dumpString = readFileSync(basePath, 'utf-8');
     const screenshotsDir = `${basePath}.screenshots`;
 
-    const loadFromExecutionScreenshotDir = (id: string, mimeType: string) => {
-      const ext = mimeType === 'image/jpeg' ? 'jpeg' : 'png';
-      const filePath = join(screenshotsDir, `${id}.${ext}`);
-      if (!existsSync(filePath)) {
-        return '';
-      }
-      const data = readFileSync(filePath);
-      return `data:image/${ext};base64,${data.toString('base64')}`;
-    };
-
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const store = new ScreenshotStore({
+    const imageStore = new ReportImageStore({
       mode: 'directory',
       reportPath: basePath,
+      screenshotsDir,
     });
-    const processedData = restoreImageReferences(dumpData, (ref) => {
-      const executionFileImage = loadFromExecutionScreenshotDir(
-        ref.id,
-        ref.mimeType,
-      );
-      if (executionFileImage) {
-        return executionFileImage;
-      }
-
-      if (ref.storage === 'inline') {
-        return '';
-      }
-      return store.loadBase64(ref);
-    });
+    const resolveImage = (ref: Parameters<typeof imageStore.loadDataUri>[0]) =>
+      imageStore.loadDataUri(ref);
+    const processedData = restoreImageReferences(dumpData, resolveImage);
     return JSON.stringify(processedData);
   }
 

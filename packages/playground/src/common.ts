@@ -8,7 +8,7 @@ import type {
   ValidationResult,
 } from './types';
 
-// APIs that should not generate replay scripts
+// APIs that return extracted data from the current interface.
 export const dataExtractionAPIs = [
   'aiQuery',
   'aiBoolean',
@@ -19,6 +19,7 @@ export const dataExtractionAPIs = [
 
 export const validationAPIs = ['aiAssert', 'aiWaitFor'];
 
+// APIs whose executions should not be rendered as replays by StandardPlayground.
 export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
 const agentPromptAPIs = [
@@ -65,7 +66,7 @@ export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
 
   if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-start.html#chrome-extension-faq';
   }
 
   if (errorMessage.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
@@ -151,7 +152,6 @@ export function validateStructuredParams(
       locatorFieldKeys.forEach((key: string) => {
         if (typeof paramsForValidation[key] === 'string') {
           paramsForValidation[key] = {
-            midscene_location_field_flag: true,
             prompt: paramsForValidation[key],
             center: [0, 0],
             rect: { left: 0, top: 0, width: 0, height: 0 },
@@ -170,11 +170,7 @@ export function validateStructuredParams(
       const errorMessages = zodError.errors
         .filter((err) => {
           const path = err.path.join('.');
-          return (
-            !path.includes('center') &&
-            !path.includes('rect') &&
-            !path.includes('midscene_location_field_flag')
-          );
+          return !path.includes('center') && !path.includes('rect');
         })
         .map((err) => {
           const field = err.path.join('.');

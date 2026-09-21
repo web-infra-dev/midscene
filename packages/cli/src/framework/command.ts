@@ -125,7 +125,10 @@ export async function runFrameworkTestConfig(
     maxConcurrency: commandOptions.concurrent ?? config.concurrent,
     bail: config.continueOnError ? 0 : 1,
     retry: config.retry,
-    batchConfig: config.shareBrowserContext ? config : undefined,
+    // setup requires one orchestrated batch even when its target does not use
+    // a shared Puppeteer BrowserContext (for example Android or Computer).
+    batchConfig:
+      config.shareBrowserContext || config.setup ? config : undefined,
   });
 
   const runner = commandOptions.rstestRunner || runRstestYamlProject;

@@ -1,0 +1,303 @@
+# 编写自定义 Node
+
+自定义 Node 将业务操作封装为用例作者可以在 YAML 中调用的步骤。本文介绍输入定义与校验、跨 Node 数据共享，以及执行与清理。
+
+尚未创建测试项目时，请先阅读[创建和使用测试项目](./use)。平台环境、Agent 接入和运行参数见[配置测试项目](./configuration)。
+
+- [注册 Node](#注册自定义业务-node)：定义操作、在 YAML 中调用，并通过生成 Node 说明书验证注册。
+- [Node 执行参数](#node-执行参数)：区分业务参数与框架的步骤配置。
+- [跨 Node 共享上下文](#跨-node-共享上下文)：创建、读取和重置共享测试数据。
+- [进阶用法](#进阶用法)：返回结果、处理错误与取消，以及清理资源。
+
+## 注册自定义业务 Node
+
+自定义 Node 从 YAML 接收参数并执行操作。下面以创建测试用户数据为例，将用户信息写入 JSON 文件，供测试服务或数据导入步骤加载。
+
+### 1. 定义并注册 Node
+
+创建 `midscene.config.ts`：
+
+```ts filename=midscene.config.ts
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { defineNode, z } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+
+const createUser = defineNode({
+  name: 'user.create',
+  description: '创建测试用户数据文件。',
+  inputSchema: z.strictObject({
+    name: z.string().min(1).describe('测试用户姓名。'),
+    email: z.string().email().describe('测试用户邮箱。'),
+  }),
+  async execute({ input }) {
+    const user = { id: randomUUID(), name: input.name, email: input.email };
+    const filePath = `fixtures/users/${user.id}.json`;
+    await mkdir('fixtures/users', { recursive: true });
+    await writeFile(filePath, JSON.stringify(user, null, 2));
+  },
+});
+
+export default defineTestProject({
+  nodes: [createUser],
+});
+```
+
+`name` 是 YAML 中使用的操作名称。`inputSchema` 定义参数，`execute({ input })` 接收校验后的参数值。将 Node 加入 `nodes` 数组后，用例就可以调用它。扩展已有项目时，将它追加到原有的 `nodes` 数组即可。
+
+`inputSchema` 是可选字段，但定义后，Midscene Test 会在调用 `execute()` 前校验参数。示例中的 `z.string().min(1)` 要求姓名非空，`.email()` 校验邮箱格式，`z.strictObject()` 拒绝未知字段。输入不符合要求时，会抛出 `NodeInputValidationError`。
+
+TypeScript 根据 schema 推导 `input` 的类型。`.describe()` 中的字段说明会出现在生成的 Node 说明书中。
+
+### 2. 在 YAML 中调用
+
+创建 `cases/user.yaml`：
+
+```yaml filename=cases/user.yaml
+cases:
+  - name: 创建测试用户数据
+    steps:
+      - user.create:
+          name: Alice
+          email: alice@example.com
+```
+
+Midscene Test 读取 YAML，找到名为 `user.create` 的 Node，并调用它的 `execute()`。此时 `input` 为 `{ name: "Alice", email: "alice@example.com" }`，Node 无需自行解析 YAML 文件。
+
+示例使用 `async execute({ input })` 和 `await` 等待文件写入。写入失败时会抛出错误，使 Node 执行失败。这里创建的是本地测试数据文件；需要在业务系统中创建用户时，将文件写入替换为测试数据接口或数据库调用即可。
+
+### 3. 生成 Node 说明书，验证注册
+
+保存配置后，生成 Node 说明书：
+
+```bash
+pnpm exec midscene-test nodes
+```
+
+命令加载项目配置，并在当前目录生成 `midscene-node-reference.md`。检查说明书是否包含：
+
+- 可用 Node 列表中的 `user.create`。
+- “创建测试用户数据文件。”这一操作说明。
+- `name`、`email` 两个输入字段及其描述。
+
+这一步验证 Node 是否已注册、输入 schema 是否可以导出，不会执行 Node 或创建用户数据。修改 Node 定义或注册配置后，可以重新生成说明书，供用例作者和 AI Agent 查阅。完整使用方法见[生成当前项目的 Node 说明书](./use#生成当前项目的-node-说明书)。
+
+## Node 执行参数
+
+Midscene Test 调用 `execute()` 时，会传入包含本次执行参数和运行信息的对象。可以通过 `execute({ input, $, context })` 这样的解构写法，直接取出需要的字段。
+
+### 业务参数与步骤配置
+
+`input` 包含 Node 的 `inputSchema` 定义的业务参数。`$` 包含框架处理的步骤配置，例如超时时间和发生错误后是否继续执行。
+
+例如，为前面的 `user.create` 调用添加步骤配置：
+
+```yaml
+steps:
+  - user.create:
+      name: Alice
+      email: alice@example.com
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+框架将 `$` 与业务参数分开，并规范化其中的字段名。在 `execute({ input, $ })` 中，可以读取到：
+
+```ts
+input.name; // 'Alice'
+input.email; // 'alice@example.com'
+$.timeoutMs; // 30000
+$.continueOnError; // true
+```
+
+`inputSchema` 只需声明 `name` 和 `email`，`input` 中不包含 `$`。超时和出错后是否继续执行由框架控制。`continue-on-error` 允许当前阶段的后续步骤在失败后继续执行，但失败的步骤仍会使整个用例失败。
+
+### 可用的执行字段
+
+`execute()` 接收的参数对象包含以下常用字段：
+
+* `input`：从 YAML 传入并经过 Zod 校验后的业务参数。
+* `$`：由 Midscene Test 控制的通用 Step 属性（如规范化后的 `timeoutMs` 和 `continueOnError`）。
+* `signal`：超时或运行取消时触发的 `AbortSignal`，在异步请求或长耗时任务中使用它以响应取消。
+* `context`：在 `defineProjectSetup()` 中返回并共享的项目级运行时资源。
+* `onTeardown()`：注册当前 Node 所创建资源的清理函数，支持 attempt 级别或 Document 级，按 LIFO（后进先出）顺序执行。
+* `scope`：标记当前 Node 执行的上下文边界，值为 `case` 或 `document`。
+* `case` 或 `document`：当前执行位置的详细运行信息。
+
+其中，`context` 用于访问项目共享的资源与状态。下一节介绍如何通过它在多个 Node 之间共享数据。
+
+## 跨 Node 共享上下文
+
+Node 的每次执行都是独立调用，框架不会自动将上一次执行的结果传入下一次调用。当一个业务流程由多个 Node 完成时，它们可能需要使用同一份测试数据。例如，订单退款用例先创建订单，再打开该订单的退款页面，最后删除测试订单。下面沿着这份数据的使用过程，说明 Node 如何协作。
+
+### 创建共享上下文
+
+Midscene Test 提供了项目级上下文机制。同一个执行项目中的 Node 可以通过共享的 `context` 对象访问运行资源、传递测试数据。这个对象由项目的 `setup` 创建并返回，框架在执行各 Node 时，将它传入 `execute()`。
+
+对于上面的订单退款流程，setup 可以提供浏览器页面、应用地址和订单服务，订单 ID 则在 Node 创建订单后写入。下面的 `setup.ts` 展示了这个共享对象的创建方式：`ProjectContext` 描述它的类型，`setup` 负责创建并返回实际的对象。
+
+导入的 `orderService` 是你自己的测试数据服务，需要实现 `create` 和 `remove` 方法。应用地址也需替换为测试环境地址。
+
+```ts filename=setup.ts
+import { defineProjectSetup } from '@midscene/test/config';
+import { chromium, type Page } from 'playwright';
+import { orderService } from './order-service';
+
+export interface ProjectContext {
+  appBaseUrl: string;
+  page: Page;
+  orderId?: string; // 用于在 Node 之间共享测试状态
+  orderService: {
+    create(input: { status: 'paid' }): Promise<{ id: string }>;
+    remove(orderId: string): Promise<void>;
+  };
+}
+
+export const setup = defineProjectSetup<ProjectContext>({
+  name: 'refund',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    const page = await browser.newPage();
+
+    const context: ProjectContext = {
+      page,
+      appBaseUrl: 'https://yoursite.com',
+      orderService,
+    };
+    return context;
+  },
+});
+```
+
+setup 返回的 `context` 是当前执行项目共享的同一个对象。在 `execute({ input, context })` 中，`input` 来自当前 YAML 步骤，`context` 则是这里创建的对象，此时 `orderId` 尚未赋值。
+
+### 在 Node 中写入数据
+
+接着创建 `nodes.ts`。`order.prepare` 使用 `context` 中的订单服务创建订单，再将 ID 写入 `context.orderId`，供后续 Node 使用：
+
+```ts filename=nodes.ts
+import { defineNode, z } from '@midscene/test';
+import type { ProjectContext } from './setup';
+
+const emptyInputSchema = z.strictObject({});
+const prepareOrderInputSchema = z.strictObject({
+  status: z.literal('paid').describe('待创建订单的状态。'),
+});
+
+// 1. 准备订单环境
+const prepareOrder = defineNode<
+  typeof prepareOrderInputSchema,
+  { orderId: string },
+  ProjectContext
+>({
+  name: 'order.prepare',
+  description: '调用订单服务创建测试订单。',
+  inputSchema: prepareOrderInputSchema,
+  async execute({ input, context, onTeardown }) {
+    const order = await context.orderService.create(input);
+    context.orderId = order.id; // 将 ID 保存至上下文
+    onTeardown(async () => {
+      await context.orderService.remove(order.id);
+      delete context.orderId;
+    });
+    return {
+      summary: `已创建测试订单 ${order.id}`,
+      data: { orderId: order.id },
+    };
+  },
+});
+```
+
+`context.orderId = order.id` 修改共享对象，使后续 Node 可以读取这个 ID。返回 `data` 不会自动将它写入 `context`。
+
+创建订单后，`onTeardown()` 注册清理函数，在清理时删除本次创建的订单并清除保存的 ID。回调直接使用本次调用的 `order.id`，因此创建与清理封装在同一个 Node 中，YAML 无需额外调用清理步骤。
+
+### 在后续 Node 中读取数据
+
+`browser.openRefundPage` 读取保存的 ID，打开退款页面。如果订单 ID 不存在，这个 Node 会报错。
+
+```ts filename=nodes.ts
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('测试订单尚未创建。');
+  }
+  return context.orderId;
+};
+
+// 2. 访问已保存的订单状态
+const openRefundPage = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'browser.openRefundPage',
+  description: '打开当前测试订单的退款页面。',
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.page.goto(`${context.appBaseUrl}/orders/${orderId}/refund`);
+  },
+});
+
+export const refundNodes = [prepareOrder, openRefundPage];
+```
+
+将 setup 和 Node 一起注册，框架就会把 setup 返回的对象传给各 Node：
+
+```ts filename=midscene.config.ts
+import { defineTestProject } from '@midscene/test/config';
+import { refundNodes } from './nodes';
+import { setup, type ProjectContext } from './setup';
+
+export default defineTestProject<ProjectContext>({
+  setup,
+  nodes: refundNodes,
+});
+```
+
+在 YAML 中，通过 `beforeEach` 调用 `order.prepare`，然后在用例步骤中使用保存的订单 ID：
+
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+cases:
+  - name: 打开退款页面
+    steps:
+      - browser.openRefundPage: {}
+```
+
+已注册的清理函数在本次用例的 `afterEach` 阶段之后执行，即使 YAML 没有声明 `afterEach` 步骤也会执行。后续准备步骤或用例步骤失败时，框架仍会执行已注册的清理。每次重试有独立的清理范围；如果创建订单失败、尚未注册回调，则本次调用没有对应的清理函数。
+
+Agent 接入和平台资源配置见[配置测试项目](./configuration)。
+
+## 进阶用法
+
+以下介绍 Node 内部的执行结果、错误处理、取消和资源清理。
+
+### 记录执行结果
+
+上面的订单准备 Node 还返回了 `summary` 和 `data`。`summary` 是供报告展示的执行摘要，`data` 保存结构化输出。两者均为可选字段，Node 也可以不返回结果。这些值保存在运行结果中，与共享的 `context` 相互独立。
+
+### 异步操作、错误与取消
+
+异步操作使用 `async execute()`，并通过 `await` 等待完成。操作失败时应抛出错误。
+
+Midscene Test 在执行 Node 时通过 `signal` 提供 `AbortSignal`。调用支持取消的 API 时，将它传入，例如 `fetch(url, { signal })`。长时间运行的循环可以在每次迭代之间调用 `signal.throwIfAborted()`，以响应步骤超时或运行取消。
+
+### 资源的生命周期与清理
+
+Node 创建资源后，可以通过 `onTeardown()` 注册清理函数。清理时机取决于 Node 所在的执行阶段。
+
+资源清理分为以下范围：
+
+- 在 `beforeEach`、用例 `steps` 或 `afterEach` 的 Node 中注册的清理，在本次用例执行的 `afterEach` 之后运行。每次重试有独立的清理范围。
+- 在 `beforeAll` 或 `afterAll` 的 Node 中注册的清理，在当前文件的 `afterAll` 之后运行。
+
+每个范围内的清理函数按注册顺序的逆序执行，即 LIFO（后进先出）。Node 可以借此释放自己创建的资源，或完成报告生成。注册清理不会自动创建新的 Agent 或重置缓存；这些行为取决于项目实现。
+
+测试运行被中断时，框架仍会尝试执行 `afterEach`、`afterAll` 和通过 `onTeardown()` 注册的清理函数。取消机制的详细说明见[超时与取消机制](./configuration#超时与取消机制)。
+
+项目级浏览器和 Agent 的清理见[使用 setup 创建和清理共享资源](./configuration#使用-setup-创建和清理共享资源)。

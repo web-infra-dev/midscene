@@ -22,13 +22,13 @@ import {
   collectNestedMacCodeSignTargets,
   collectPackagedNodeModuleSymlinkIssues,
   collectWorkspaceDependencyClosure,
+  copyStudioFontLicenseToStageDir,
   dedupePlaygroundStatic,
   dropAntdEsmBuild,
   dropMidsceneEsmBuilds,
   getStudioElectronVersion,
   loadAppDmg,
   normalizeReleaseVersion,
-  packagedAsarOptions,
   parseBooleanLike,
   pathContainsReportTemplatePlaceholder,
   pruneAntdUmdBundles,
@@ -48,6 +48,7 @@ import {
   shouldUseShellForCommand,
   slimStageNodeModules,
 } from '../scripts/package-electron.mjs';
+import { packagedAsarOptions } from '../scripts/packaged-asar-resources.mjs';
 
 const createThinMacMachOBuffer = (arch) => {
   const cpuTypes = {
@@ -295,19 +296,28 @@ describe('package-electron helpers', () => {
     });
   });
 
-  it('keeps native modules and helper binaries outside app.asar', () => {
-    expect(packagedAsarOptions.unpack).toContain('*.{node,dll,dylib,so,exe}');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/sharp');
-    expect(packagedAsarOptions.unpackDir).toContain('node_modules/@img');
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@computer-use', 'libnut'),
+  it('copies the Inter OFL into the packaged app staging directory', async () => {
+    const stageDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'midscene-studio-license-'),
     );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@ffmpeg-installer'),
-    );
-    expect(packagedAsarOptions.unpackDir).toContain(
-      path.join('node_modules', '@midscene', 'computer', 'bin'),
-    );
+
+    try {
+      const destinationPath = await copyStudioFontLicenseToStageDir(stageDir);
+      const [sourceLicense, packagedLicense] = await Promise.all([
+        fs.readFile(
+          new URL('../src/renderer/assets/fonts/OFL.txt', import.meta.url),
+          'utf8',
+        ),
+        fs.readFile(destinationPath, 'utf8'),
+      ]);
+
+      expect(destinationPath).toBe(
+        path.join(stageDir, 'licenses', 'Inter-OFL.txt'),
+      );
+      expect(packagedLicense).toBe(sourceLicense);
+    } finally {
+      await fs.rm(stageDir, { force: true, recursive: true });
+    }
   });
 
   it('points packager at the Midscene .icns on macOS', () => {
@@ -1423,15 +1433,16 @@ describe('package-electron helpers', () => {
   });
 
   it('detects unresolved report template placeholders in runtime output only', async () => {
+    const reportTemplatePlaceholderFixture = 'REPLACE_ME_WITH_REPORT_HTML';
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'midscene-report-'));
     try {
       await fs.writeFile(
         path.join(root, 'guard.js'),
-        "if (html.includes('REPLACE_ME_WITH_REPORT_HTML')) reportHTML = null;",
+        `if (html.includes('${reportTemplatePlaceholderFixture}')) reportHTML = null;`,
       );
       await fs.writeFile(
         path.join(root, 'bundle.js.map'),
-        '{"sourcesContent":["const reportTpl = \'REPLACE_ME_WITH_REPORT_HTML\';"]}',
+        `{"sourcesContent":["const reportTpl = '${reportTemplatePlaceholderFixture}';"]}`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(
@@ -1440,7 +1451,7 @@ describe('package-electron helpers', () => {
 
       await fs.writeFile(
         path.join(root, 'utils.js'),
-        "const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';",
+        `const reportTpl = '${reportTemplatePlaceholderFixture}';`,
       );
 
       await expect(pathContainsReportTemplatePlaceholder(root)).resolves.toBe(

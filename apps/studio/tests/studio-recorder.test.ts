@@ -483,6 +483,12 @@ describe('studio recorder replay adapters', () => {
     expect(prompt).toContain(
       'Do not undo visible progress or change durable application state',
     );
+    expect(prompt).toContain(
+      'do not keep repeating the same navigation or action pattern',
+    );
+    expect(prompt).toContain(
+      'current UI likely does not match the recording state',
+    );
     expect(prompt).not.toMatch(
       /\blogin\b|authorization|SMS|phone|one-tap|product|recommendations|hot search/i,
     );

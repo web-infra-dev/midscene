@@ -8,6 +8,7 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
+import { buildLocatePromptWithContext } from '../agent/prompt-context';
 
 const debugUtils = getDebug('yaml:utils');
 
@@ -113,6 +114,28 @@ export function resolveWebTarget(
       ...target,
       mode,
     },
+  };
+}
+
+/** Legacy output settings apply to every host, including native Test setup.
+ * Target-local values keep their original priority; config supplies defaults.
+ */
+export function resolveYamlOutputConfig(
+  script: Omit<MidsceneYamlScript, 'tasks'>,
+): {
+  output?: string;
+  unstableLogContent?: boolean | string;
+} {
+  const target =
+    resolveWebTarget(script)?.target ??
+    script.android ??
+    script.ios ??
+    script.harmony ??
+    script.computer;
+  return {
+    output: target?.output ?? script.config?.output,
+    unstableLogContent:
+      target?.unstableLogContent ?? script.config?.unstableLogContent,
   };
 }
 
@@ -235,6 +258,15 @@ export function parseYamlScript(
   content: string,
   filePath?: string,
 ): MidsceneYamlScript {
+  return parseLegacyYamlScript(content, filePath);
+}
+
+/** Internal collection observer; the public parser keeps its original signature. */
+export function parseLegacyYamlScript(
+  content: string,
+  filePath?: string,
+  onConfig?: (config: Omit<MidsceneYamlScript, 'tasks'>) => void,
+): MidsceneYamlScript {
   let processedContent = content;
   if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
     let matchedDeviceId;
@@ -254,6 +286,7 @@ export function parseYamlScript(
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
 
+  if (obj && typeof obj === 'object' && !Array.isArray(obj)) onConfig?.(obj);
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
   resolveWebTarget(obj);
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
@@ -315,6 +348,10 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
+  const promptDisplay = typeof prompt === 'string' ? prompt : prompt.prompt;
+  const context = opt?.context?.trim() || undefined;
+  prompt = buildLocatePromptWithContext(prompt, opt?.context);
+
   const multimodalPrompt = extractMultimodalPrompt(opt);
   if (multimodalPrompt) {
     prompt =
@@ -331,6 +368,7 @@ export function buildDetailedLocateParam(
 
   return {
     prompt,
+    ...(context ? { promptDisplay, context } : {}),
     deepLocate,
     cacheable,
     xpath,
@@ -355,7 +393,7 @@ export function buildDetailedLocateParamAndRestParams(
     // Get all keys from opt
     const allKeys = Object.keys(opt);
 
-    // Keys already included in locateParam: prompt, deepLocate, cacheable, xpath
+    // `context` has already been merged into the locate prompt.
     const locateParamKeys = Object.keys(locateParam || {});
     const multimodalPromptKeys =
       typeof locateParam?.prompt === 'object' && locateParam?.prompt !== null
@@ -366,6 +404,8 @@ export function buildDetailedLocateParamAndRestParams(
     for (const key of allKeys) {
       if (
         !locateParamKeys.includes(key) &&
+        key !== 'context' &&
+        key !== 'deepThink' &&
         !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&
         key !== 'locate'

@@ -11,8 +11,8 @@ import {
 } from '@/agent-tools-puppeteer';
 import { parseWebCliOptions } from '@/cli-options';
 import { runToolsCLI } from '@midscene/shared/cli';
+import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
 import puppeteer from 'puppeteer-core';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const html = `<!DOCTYPE html>
 <html lang="en">

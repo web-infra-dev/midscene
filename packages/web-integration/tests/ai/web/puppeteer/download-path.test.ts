@@ -5,7 +5,14 @@ import path from 'node:path';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from '@rstest/core';
 
 // End-to-end check that `downloadPath` declared in a YAML script controls
 // Chrome's actual download location. A mock-based unit test only proves that

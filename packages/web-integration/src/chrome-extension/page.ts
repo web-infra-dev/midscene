@@ -18,6 +18,7 @@ import type {
   DeviceAction,
   FileChooserHandler,
   FileChooserRegistration,
+  TextInputOptions,
 } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -32,6 +33,7 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
+import { selectAllInputScript } from '../common/input-scripts';
 import {
   type KeyInput,
   type MouseButton,
@@ -48,6 +50,87 @@ const debug = getDebug('web:chrome-extension:page');
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const NAVIGATION_COMPLETE_TIMEOUT_MS = 30_000;
+
+function isBlankUrl(url: string | undefined): boolean {
+  if (!url) return true;
+  return url === 'about:blank' || url.startsWith('chrome://newtab');
+}
+
+/**
+ * Wait for the browser target to settle before sending CDP commands to it.
+ *
+ * A cross-origin redirect can replace the target after `tabs.update()`
+ * resolves. Sending `Runtime.evaluate` during that hand-off intermittently
+ * fails because Chrome has detached the debugger from the old target.
+ */
+function waitForTabNavigationComplete(
+  tabId: number,
+  targetUrl: string,
+  updatedTab?: chrome.tabs.Tab,
+  timeoutMs = NAVIGATION_COMPLETE_TIMEOUT_MS,
+): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      clearTimeout(timer);
+      resolve();
+    };
+
+    const isTargetTab = (tab: chrome.tabs.Tab | undefined): boolean => {
+      if (!tab) return false;
+      return tab.url === targetUrl || tab.pendingUrl === targetUrl;
+    };
+
+    const isReady = (
+      tab: chrome.tabs.Tab | undefined,
+      navigationUpdateObserved: boolean,
+    ): boolean => {
+      if (!tab || tab.status !== 'complete') return false;
+      const currentUrl = tab.url || tab.pendingUrl || '';
+      const isExpectedUrlKind = isBlankUrl(targetUrl)
+        ? isBlankUrl(currentUrl)
+        : !isBlankUrl(currentUrl);
+      return (
+        isExpectedUrlKind && (navigationUpdateObserved || isTargetTab(tab))
+      );
+    };
+
+    const onUpdated = (
+      id: number,
+      info: chrome.tabs.TabChangeInfo,
+      tab: chrome.tabs.Tab,
+    ) => {
+      // This listener is registered after tabs.update(), so a completion
+      // event received here belongs to the navigation we initiated.
+      if (id === tabId && isReady(tab, info.status === 'complete')) finish();
+    };
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    const timer = setTimeout(finish, timeoutMs);
+
+    // tabs.update() returns the updated target. A completed returned tab is
+    // already a settled result of this navigation, including a fast redirect.
+    if (isReady(updatedTab, true)) {
+      finish();
+      return;
+    }
+
+    // The tab may have completed before the listener was added. Only accept
+    // the requested target here: a previous complete HTTPS page is not proof
+    // that this navigation has settled.
+    chrome.tabs
+      .get(tabId)
+      .then((tab) => {
+        if (isReady(tab, false)) finish();
+      })
+      .catch(() => {});
+  });
 }
 
 function hasFlatNodeAttribute(
@@ -78,6 +161,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public forceSameTabNavigation: boolean;
 
+  readonly keyboardTypeDelay?: number;
+
+  readonly inputStrategy?: TextInputOptions['inputStrategy'];
+
   private viewportSize?: Size;
 
   private activeTabId: number | null = null;
@@ -96,23 +183,38 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   private isMobileEmulation: boolean | null = null;
 
+  protected waterFlowAnimationEnabled = true;
+
   public _continueWhenFailedToAttachDebugger = false;
 
-  constructor(forceSameTabNavigation: boolean) {
+  constructor(
+    forceSameTabNavigation: boolean,
+    inputOptions?: TextInputOptions,
+  ) {
     this.forceSameTabNavigation = forceSameTabNavigation;
+    this.keyboardTypeDelay = inputOptions?.keyboardTypeDelay;
+    this.inputStrategy = inputOptions?.inputStrategy;
   }
 
   actionSpace(): DeviceAction[] {
     return commonWebActionsForWebPage(this);
   }
 
-  public async setActiveTabId(tabId: number) {
+  /**
+   * Set the tab currently used by Midscene and optionally activate it in Chrome.
+   */
+  public async setActiveTabId(
+    tabId: number,
+    options: { activate?: boolean } = {},
+  ) {
     if (this.activeTabId) {
       throw new Error(
         `Active tab id is already set, which is ${this.activeTabId}, cannot set it to ${tabId}`,
       );
     }
-    await chrome.tabs.update(tabId, { active: true });
+    if (options.activate !== false) {
+      await chrome.tabs.update(tabId, { active: true });
+    }
     this.activeTabId = tabId;
   }
 
@@ -145,7 +247,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public async getTabIdOrConnectToCurrentTab() {
     if (this.activeTabId) {
-      // alway keep on the connected tab
+      // Always reuse the controlled tab to avoid switching to a tab activated later by the user.
       return this.activeTabId;
     }
     const tabId = await chrome.tabs
@@ -210,6 +312,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   private async showMousePointer(x: number, y: number) {
+    if (!this.waterFlowAnimationEnabled) return;
+
     // update mouse pointer while redirecting
     const pointerScript = `(() => {
       if(typeof window.midsceneWaterFlowAnimation !== 'undefined') {
@@ -273,6 +377,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       });
     }
 
+    if (!this.waterFlowAnimationEnabled) {
+      return;
+    }
+
     const script = await injectWaterFlowAnimation();
     // we will call this function in sendCommandToDebugger, so we have to use the chrome.debugger.sendCommand
     await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
@@ -286,6 +394,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
       expression: script,
     });
+  }
+
+  public async setWaterFlowAnimationEnabled(enabled: boolean) {
+    this.waterFlowAnimationEnabled = enabled;
+    if (!enabled) {
+      const script = await injectStopWaterFlowAnimation();
+      await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: script,
+      });
+    }
+  }
+
+  /**
+   * Returns the current water-flow animation enabled flag.
+   */
+  public getWaterFlowAnimationEnabled(): boolean {
+    return this.waterFlowAnimationEnabled;
   }
 
   /**
@@ -552,9 +677,29 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     const startTime = Date.now();
     let lastReadyState = '';
     while (Date.now() - startTime < timeout) {
-      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-        expression: 'document.readyState',
-      });
+      let result: any;
+      try {
+        result = await this.sendCommandToDebugger('Runtime.evaluate', {
+          expression: 'document.readyState',
+        });
+      } catch (error) {
+        // Navigation can replace the target between tabs.update() and this
+        // probe. Chrome occasionally reports that race as an empty object,
+        // which cannot be recognised by sendCommandToDebugger's message-based
+        // detach detection. Reattach and keep waiting for the settled page.
+        debug('Failed to probe document readyState; retrying after attach', {
+          error,
+        });
+        try {
+          await this.ensureDebuggerAttached();
+        } catch (attachError) {
+          debug('Failed to reattach debugger while waiting for navigation', {
+            error: attachError,
+          });
+        }
+        await sleep(300);
+        continue;
+      }
       lastReadyState = result.result.value;
       if (lastReadyState === 'complete') {
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -686,9 +831,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async navigate(url: string): Promise<void> {
     const tabId = await this.getTabIdOrConnectToCurrentTab();
-    await chrome.tabs.update(tabId, { url });
-    // Wait for navigation to complete
-    // Note: debugger will auto-reattach on next command if detached during navigation
+    const updatedTab = await chrome.tabs.update(tabId, { url });
+    await waitForTabNavigationComplete(tabId, url, updatedTab);
+    // Wait for navigation to complete. The tab-level wait above avoids sending
+    // CDP commands during cross-origin target replacement.
     await this.waitUntilNetworkIdle();
   }
 
@@ -817,6 +963,33 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     await this.keyboard.press({
       key: 'Backspace',
+    });
+  }
+
+  async selectAllInput(element?: ElementInfo) {
+    if (!element) {
+      throw new Error('Bulk replace input requires a target element');
+    }
+
+    await this.mouse.click(element.center[0], element.center[1]);
+    const selectionResult = await this.sendCommandToDebugger(
+      'Runtime.evaluate',
+      {
+        expression: selectAllInputScript,
+        returnByValue: true,
+      },
+    );
+    if (selectionResult?.result?.value === true) {
+      return;
+    }
+
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyDown',
+      commands: ['selectAll'],
+    });
+    await this.sendCommandToDebugger('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      commands: ['selectAll'],
     });
   }
 
@@ -960,6 +1133,9 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         send: this.sendCommandToDebugger.bind(this),
       });
       await cdpKeyboard.type(text, { delay: 0 });
+    },
+    insertText: async (text: string) => {
+      await this.sendCommandToDebugger('Input.insertText', { text });
     },
     press: async (
       action:

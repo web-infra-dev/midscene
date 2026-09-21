@@ -1,18 +1,19 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
+import { locateParamStr } from '@/agent/ui-utils';
 import { dumpActionParam, findAllMidsceneLocatorField } from '@/common';
 import { getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 import {
-  ifPlanLocateParamHasLocatedPixelBbox,
-  isPixelBbox,
+  ifLocateParamHasLocatedPixelResult,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
 } from '../../src/agent/utils';
 import {
+  getReportTpl,
   getTmpDir,
   getTmpFile,
   insertScriptBeforeClosingHtml,
@@ -26,6 +27,25 @@ import {
 } from '../../src/yaml/utils';
 import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
+import * as fsActual from 'node:fs' with { rstest: 'importActual' };
+
+const { readFileSyncMock } = rs.hoisted(() => ({
+  readFileSyncMock: rs.fn(),
+}));
+
+rs.mock('node:fs', () => {
+  readFileSyncMock.mockImplementation(fsActual.readFileSync);
+
+  return {
+    ...fsActual,
+    default: {
+      ...fsActual,
+      readFileSync: readFileSyncMock,
+    },
+    readFileSync: readFileSyncMock,
+  };
+});
+
 function createTempHtmlFile(content: string): string {
   const filePath = getTmpFile('html');
   if (!filePath) {
@@ -36,6 +56,12 @@ function createTempHtmlFile(content: string): string {
 }
 
 describe('utils', () => {
+  it('rejects an unresolved report template placeholder', () => {
+    readFileSyncMock.mockReturnValueOnce('REPLACE_ME_WITH_REPORT_HTML');
+
+    expect(() => getReportTpl()).toThrow('pnpm exec nx build @midscene/report');
+  });
+
   it('tmpDir', () => {
     const testDir = getTmpDir();
     expect(typeof testDir).toBe('string');
@@ -267,6 +293,19 @@ describe('utils', () => {
 });
 
 describe('buildDetailedLocateParam', () => {
+  it('adds per-call context to the locate prompt', () => {
+    const result = buildDetailedLocateParam('Click the checkout button', {
+      context: 'The current user is a wholesale customer.',
+    });
+
+    expect(result?.prompt).toBe(
+      '<CONTEXT>\nThe current user is a wholesale customer.\n</CONTEXT>\n\n<LOCATE_TARGET>\nClick the checkout button\n</LOCATE_TARGET>',
+    );
+    expect(result?.promptDisplay).toBe('Click the checkout button');
+    expect(result?.context).toBe('The current user is a wholesale customer.');
+    expect(locateParamStr(result)).toBe('Click the checkout button');
+  });
+
   it('merges multimodal locate options into the prompt object', () => {
     const result = buildDetailedLocateParam('Click the icon', {
       images: [
@@ -298,6 +337,20 @@ describe('buildDetailedLocateParam', () => {
 });
 
 describe('buildDetailedLocateParamAndRestParams', () => {
+  it('consumes context without leaking it into action params', () => {
+    const result = buildDetailedLocateParamAndRestParams(
+      'Click the checkout button',
+      {
+        context: 'The current user is a wholesale customer.',
+      },
+    );
+
+    expect(result.locateParam?.prompt).toContain(
+      'The current user is a wholesale customer.',
+    );
+    expect(result.restParams).not.toHaveProperty('context');
+  });
+
   it('does not leak multimodal locate options into rest params', () => {
     const uiContext = {
       screenshot: {
@@ -503,13 +556,11 @@ describe('dumpActionParam', () => {
     const input1 = {
       foo: 'test',
       locator1: {
-        midscene_location_field_flag: true,
         prompt: 'first locator',
         center: [100, 200],
         rect: { left: 50, top: 100, width: 100, height: 50 },
       },
       locator2: {
-        midscene_location_field_flag: true,
         prompt: 'second locator',
         center: [200, 300],
         rect: { left: 150, top: 200, width: 100, height: 50 },
@@ -533,7 +584,6 @@ describe('dumpActionParam', () => {
     const input2 = {
       foo: 'test2',
       locator1: {
-        midscene_location_field_flag: true,
         prompt: 'only locator',
         center: [50, 100],
         rect: { left: 25, top: 50, width: 50, height: 25 },
@@ -558,7 +608,6 @@ describe('dumpActionParam', () => {
 
     const inputWithImages = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the button',
           images: [
@@ -580,7 +629,6 @@ describe('dumpActionParam', () => {
 
     const inputWithOneImage = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the text',
           images: [{ name: 'text.png', url: 'data:image/png;base64,abc' }],
@@ -599,7 +647,6 @@ describe('dumpActionParam', () => {
 
     const inputWithEmptyImages = {
       locator: {
-        midscene_location_field_flag: true,
         prompt: {
           prompt: 'find the link',
           images: [],
@@ -645,13 +692,11 @@ describe('dumpActionParam', () => {
     const input2 = {
       foo: 'test2',
       locator1: {
-        midscene_location_field_flag: true,
         // missing prompt
         center: [100, 200],
         rect: { left: 50, top: 100, width: 100, height: 50 },
       },
       locator2: {
-        midscene_location_field_flag: true,
         prompt: 'valid locator',
         center: [200, 300],
         rect: { left: 150, top: 200, width: 100, height: 50 },
@@ -667,7 +712,6 @@ describe('dumpActionParam', () => {
             100,
             200,
           ],
-          "midscene_location_field_flag": true,
           "rect": {
             "height": 50,
             "left": 50,
@@ -744,117 +788,118 @@ describe('dumpActionParam', () => {
   });
 });
 
-describe('ifPlanLocateParamHasLocatedPixelBbox', () => {
-  it('should return true when locatedPixelBbox is valid array with 4 elements', () => {
+describe('ifLocateParamHasLocatedPixelResult', () => {
+  it.each([
+    null,
+    1,
+    'invalid',
+    {},
+    { rect: { left: 0, top: 0, width: 1, height: 1 } },
+  ])('rejects a pixel result without a center: %j', (locatedPixelResult) => {
+    expect(
+      ifLocateParamHasLocatedPixelResult({
+        prompt: 'target',
+        locatedPixelResult,
+      }),
+    ).toBe(false);
+  });
+  it('should return true when locatedPixelResult.center is valid array with 2 elements', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300, 400] as [
-        number,
-        number,
-        number,
-        number,
-      ],
+      locatedPixelResult: { center: [200, 300] as [number, number] },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(true);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(true);
   });
 
-  it('should return false when locatedPixelBbox is undefined', () => {
+  it('should return false when locatedPixelResult is undefined', () => {
     const param = {
       prompt: 'test element',
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox is not an array', () => {
+  it('should return false when locatedPixelResult.center is not an array', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: 'not an array' as any,
+      locatedPixelResult: { center: 'not an array' as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox array length is not 4', () => {
+  it('should return false when locatedPixelResult.center array length is not 2', () => {
     const param1 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200] as any,
+      locatedPixelResult: { center: [100] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param1)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param1)).toBe(false);
 
     const param2 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300] as any,
+      locatedPixelResult: { center: [100, 200, 300] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param2)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param2)).toBe(false);
 
     const param3 = {
       prompt: 'test element',
-      locatedPixelBbox: [100, 200, 300, 400, 500] as any,
+      locatedPixelResult: { center: [100, 200, 300, 400, 500] as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param3)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param3)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox is null', () => {
+  it('should return false when locatedPixelResult.center is null', () => {
     const param = {
       prompt: 'test element',
-      locatedPixelBbox: null as any,
+      locatedPixelResult: { center: null as any },
     };
-    expect(ifPlanLocateParamHasLocatedPixelBbox(param)).toBe(false);
+    expect(ifLocateParamHasLocatedPixelResult(param)).toBe(false);
   });
 
-  it('should return false when locatedPixelBbox contains non-finite or non-number values', () => {
+  it('should return false when locatedPixelResult.center contains non-finite or non-number values', () => {
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelResult({
         prompt: 'test element',
-        locatedPixelBbox: [100, Number.NaN, 300, 400] as any,
+        locatedPixelResult: { center: [100, Number.NaN, 300, 400] as any },
       }),
     ).toBe(false);
     expect(
-      ifPlanLocateParamHasLocatedPixelBbox({
+      ifLocateParamHasLocatedPixelResult({
         prompt: 'test element',
-        locatedPixelBbox: [100, '200', 300, 400] as any,
+        locatedPixelResult: { center: [100, '200', 300, 400] as any },
       }),
     ).toBe(false);
-  });
-});
-
-describe('isPixelBbox', () => {
-  it('should return true for a finite four-number array', () => {
-    expect(isPixelBbox([1, 2, 3, 4])).toBe(true);
-  });
-
-  it('should return false for invalid bbox values', () => {
-    expect(isPixelBbox([1, 2, 3])).toBe(false);
-    expect(isPixelBbox([1, 2, 3, Number.POSITIVE_INFINITY])).toBe(false);
-    expect(isPixelBbox([1, 2, 3, '4'])).toBe(false);
-    expect(isPixelBbox(null)).toBe(false);
   });
 });
 
 describe('shrunkShotToLogicalRatio', () => {
+  it('scales an existing center independently from the retained rect', () => {
+    expect(
+      transformLogicalElementToScreenshot(
+        {
+          description: 'test element',
+          center: [150.125, 250.125],
+          rect: { left: 100.2, top: 200.2, width: 80.2, height: 40.2 },
+        },
+        2,
+      ),
+    ).toStrictEqual({
+      description: 'test element',
+      center: [300.25, 500.25],
+      rect: { left: 200, top: 400, width: 160, height: 80 },
+    });
+  });
+
   it('transformLogicalElementToScreenshot with shrunkShotToLogicalRatio=1', () => {
     expect(
       transformLogicalElementToScreenshot(
         {
           description: 'test element',
           center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-          },
         },
         1,
       ),
     ).toStrictEqual({
       description: 'test element',
       center: [150, 250],
-      rect: {
-        left: 100,
-        top: 200,
-        width: 300,
-        height: 400,
-      },
     });
   });
 
@@ -864,24 +909,12 @@ describe('shrunkShotToLogicalRatio', () => {
         {
           description: 'test element',
           center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-          },
         },
         2,
       ),
     ).toStrictEqual({
       description: 'test element',
       center: [300, 500],
-      rect: {
-        left: 200,
-        top: 400,
-        width: 600,
-        height: 800,
-      },
     });
   });
 

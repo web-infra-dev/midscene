@@ -21,7 +21,7 @@ import type Service from '@/service';
 import type { ExecutionTask, ExecutionTaskApply, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { getMidsceneLocationSchema, z } from '../../src';
 
 /**
@@ -85,15 +85,15 @@ describe('bbox locate cache fix', () => {
     // Create mock interface with typed methods
     mockInterface = {
       interfaceType: 'web',
-      screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
-      size: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
-      actionSpace: vi.fn().mockReturnValue([
+      screenshotBase64: rs.fn().mockResolvedValue(validBase64Image),
+      size: rs.fn().mockResolvedValue({ width: 1920, height: 1080 }),
+      actionSpace: rs.fn().mockReturnValue([
         {
           name: 'Tap',
           paramSchema: z.object({
             locate: getMidsceneLocationSchema(),
           }),
-          call: vi.fn().mockResolvedValue({}),
+          call: rs.fn().mockResolvedValue({}),
         },
         {
           name: 'Input',
@@ -101,19 +101,19 @@ describe('bbox locate cache fix', () => {
             locate: getMidsceneLocationSchema(),
             value: z.string(),
           }),
-          call: vi.fn().mockResolvedValue({}),
+          call: rs.fn().mockResolvedValue({}),
         },
       ]),
-      cacheFeatureForPoint: vi.fn().mockResolvedValue({
+      cacheFeatureForPoint: rs.fn().mockResolvedValue({
         xpaths: ['/html/body/input[1]'],
         texts: ['search box'],
       }),
-      rectMatchesCacheFeature: vi.fn().mockResolvedValue(undefined),
+      rectMatchesCacheFeature: rs.fn().mockResolvedValue(undefined),
     } as unknown as AbstractInterface;
 
     // Create mock service with typed methods
     mockService = {
-      contextRetrieverFn: vi.fn().mockImplementation(async () => {
+      contextRetrieverFn: rs.fn().mockImplementation(async () => {
         const screenshot = ScreenshotItem.create(validBase64Image, Date.now());
         return {
           screenshot,
@@ -126,7 +126,7 @@ describe('bbox locate cache fix', () => {
           },
         };
       }),
-      locate: vi.fn().mockResolvedValue({
+      locate: rs.fn().mockResolvedValue({
         element: {
           id: 'element-id',
           center: [500, 300],
@@ -173,12 +173,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'search input box',
-              locatedPixelBbox: [450, 280, 550, 320] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [500, 300] as [number, number] },
             },
           },
           thought: 'tap the search box',
@@ -198,7 +193,7 @@ describe('bbox locate cache fix', () => {
       expect(locateTask).toBeDefined();
 
       // Execute the locate task
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -228,12 +223,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              locatedPixelBbox: [100, 200, 200, 250] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 225] as [number, number] },
             },
           },
           thought: 'tap submit',
@@ -248,7 +238,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -264,12 +254,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'submit button',
-              locatedPixelBbox: [100, 200, 200, 250] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 225] as [number, number] },
               deepLocate: true,
             },
           },
@@ -285,7 +270,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -294,17 +279,12 @@ describe('bbox locate cache fix', () => {
       expect(mockService.locate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: 'submit button',
-          locatedPixelBbox: [100, 200, 200, 250],
+          locatedPixelResult: { center: [150, 225] },
           deepLocate: true,
         }),
         expect.objectContaining({
           planLocatedElement: expect.objectContaining({
-            rect: {
-              left: 100,
-              top: 200,
-              width: 101,
-              height: 51,
-            },
+            center: [150, 225],
           }),
         }),
         expect.objectContaining({
@@ -349,12 +329,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'existing element',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap existing element',
@@ -370,9 +345,9 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Clear the mock to track new calls
-      vi.mocked(mockInterface.cacheFeatureForPoint!).mockClear();
+      rs.mocked(mockInterface.cacheFeatureForPoint!).mockClear();
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -383,7 +358,7 @@ describe('bbox locate cache fix', () => {
   });
 
   it('should annotate AI locate usage with default intent while preserving raw slot', async () => {
-    vi.mocked(mockService.locate).mockResolvedValueOnce({
+    rs.mocked(mockService.locate).mockResolvedValueOnce({
       element: {
         id: 'element-id',
         center: [500, 300],
@@ -427,7 +402,7 @@ describe('bbox locate cache fix', () => {
 
     const runtimeTask = createRuntimeTask(locateTask!);
 
-    await locateTask!.executor(locateTask!.param, {
+    await locateTask!.executor({
       task: runtimeTask,
       uiContext: await createMockUIContext(validBase64Image),
     });
@@ -443,6 +418,61 @@ describe('bbox locate cache fix', () => {
   });
 
   describe('cache hit on second execution', () => {
+    it.each(['xpath', 'cache'])(
+      'retains the DOM rect on a %s hit and scales the center independently',
+      async (source) => {
+        const internal = getTaskCacheInternal(taskCache);
+        internal.cache.caches.push({
+          type: 'locate',
+          prompt: 'login button',
+          cache: { xpaths: ['/html/body/button[1]'] },
+        });
+        internal.cacheOriginalLength = 1;
+        rs.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+          left: 100.125,
+          top: 200.125,
+          width: 81,
+          height: 41,
+        });
+
+        const { tasks } = await taskBuilder.build(
+          [
+            {
+              type: 'Tap',
+              param: {
+                locate: {
+                  prompt: 'login button',
+                  ...(source === 'xpath'
+                    ? { xpath: '/html/body/button[1]' }
+                    : {}),
+                },
+              },
+              thought: 'tap login',
+            },
+          ],
+          mockModelRuntime,
+          mockModelRuntime,
+        );
+        const locateTask = tasks.find((task) => task.subType === 'Locate');
+        const result = await locateTask!.executor({
+          task: createRuntimeTask(locateTask!),
+          uiContext: {
+            ...(await createMockUIContext(validBase64Image)),
+            shrunkShotToLogicalRatio: 2,
+          },
+        });
+
+        expect(result!.hitBy?.from).toBe(
+          source === 'xpath' ? 'User expected path' : 'Cache',
+        );
+        expect(result!.output.element).toMatchObject({
+          center: [281.25, 441.25],
+          rect: { left: 200, top: 400, width: 162, height: 82 },
+        });
+        expect(mockService.locate).not.toHaveBeenCalled();
+      },
+    );
+
     it('should hit locate cache on second execution without bbox', async () => {
       // Create cache with proper initialization for cache reading
       const cacheId = uuid();
@@ -469,7 +499,7 @@ describe('bbox locate cache fix', () => {
       });
 
       // Mock rectMatchesCacheFeature to return a rect (simulating cache hit)
-      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
+      rs.mocked(mockInterface.rectMatchesCacheFeature!).mockResolvedValue({
         left: 300,
         top: 400,
         width: 100,
@@ -497,7 +527,7 @@ describe('bbox locate cache fix', () => {
       );
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -519,12 +549,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: '',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap element',
@@ -540,7 +565,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw even with empty prompt
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -556,12 +581,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'no cache element',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap without cache',
@@ -577,7 +597,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -595,7 +615,7 @@ describe('bbox locate cache fix', () => {
 
     it('should handle cacheFeatureForPoint returning empty object', async () => {
       // Mock cacheFeatureForPoint to return empty object
-      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({});
+      rs.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({});
 
       const plansWithBbox = [
         {
@@ -603,12 +623,7 @@ describe('bbox locate cache fix', () => {
           param: {
             locate: {
               prompt: 'element with no cache features',
-              locatedPixelBbox: [100, 100, 200, 150] as [
-                number,
-                number,
-                number,
-                number,
-              ],
+              locatedPixelResult: { center: [150, 125] as [number, number] },
             },
           },
           thought: 'tap element',
@@ -624,7 +639,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Should not throw
-      const result = await locateTask!.executor(locateTask!.param, {
+      const result = await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -660,24 +675,23 @@ describe('bbox locate cache fix', () => {
       internal.cacheOriginalLength = 1;
 
       // 2. Mock rectMatchesCacheFeature to reject (simulates xpath validation failure)
-      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
+      rs.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
         new Error(
           'No matching element rect found for the provided cache feature',
         ),
       );
 
       // 3. Mock AI locate to return new element with new xpath
-      vi.mocked(mockService.locate).mockResolvedValue({
+      rs.mocked(mockService.locate).mockResolvedValue({
         element: {
           description: 'new-element',
           center: [600, 400],
-          rect: { left: 550, top: 380, width: 100, height: 40 },
         },
         dump: mockServiceDump,
       });
 
       // 4. Mock cacheFeatureForPoint to return new xpath
-      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
+      rs.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
         xpaths: ['/html/body/div[2]/label[1]'],
         texts: ['高一'],
       });
@@ -712,7 +726,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
       expect(locateTask).toBeDefined();
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });
@@ -758,21 +772,20 @@ describe('bbox locate cache fix', () => {
       internal.cacheOriginalLength = 1;
 
       // Mock validation failure
-      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
+      rs.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
         new Error('Element not found'),
       );
 
       // Mock AI locate success with new xpath
-      vi.mocked(mockService.locate).mockResolvedValue({
+      rs.mocked(mockService.locate).mockResolvedValue({
         element: {
           description: 'submit-btn',
           center: [500, 300],
-          rect: { left: 450, top: 280, width: 100, height: 40 },
         },
         dump: mockServiceDump,
       });
 
-      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
+      rs.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
         xpaths: ['/html/body/form[1]/button[1]'],
         texts: ['Submit'],
       });
@@ -805,7 +818,7 @@ describe('bbox locate cache fix', () => {
 
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
-      await locateTask!.executor(locateTask!.param, {
+      await locateTask!.executor({
         task: createRuntimeTask(locateTask!),
         uiContext: await createMockUIContext(validBase64Image),
       });

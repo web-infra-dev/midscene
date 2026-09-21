@@ -1,8 +1,8 @@
+import { afterEach, beforeAll, describe, expect, it, rs } from '@rstest/core';
 /** @vitest-environment jsdom */
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import ScreenshotViewer from '../src/component/screenshot-viewer';
 
 describe('ScreenshotViewer', () => {
@@ -15,7 +15,7 @@ describe('ScreenshotViewer', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    rs.useRealTimers();
   });
 
   it('renders a screen-only variant without viewer chrome', () => {
@@ -48,7 +48,7 @@ describe('ScreenshotViewer', () => {
   });
 
   it('reconnects an MJPEG image when the first frame never loads', async () => {
-    vi.useFakeTimers();
+    rs.useFakeTimers();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -74,7 +74,7 @@ describe('ScreenshotViewer', () => {
     const initialSrc = initialImage?.src;
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2500);
+      await rs.advanceTimersByTimeAsync(2500);
     });
 
     const retriedImage = container.querySelector(
@@ -89,9 +89,77 @@ describe('ScreenshotViewer', () => {
     container.remove();
   });
 
+  it('reconnects an MJPEG image that becomes blank after initially loading', async () => {
+    rs.useFakeTimers();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(ScreenshotViewer, {
+          getScreenshot: async () => null,
+          serverOnline: true,
+          mjpegUrl: 'http://127.0.0.1:9234/mjpeg',
+          mode: 'screen-only',
+        }),
+      );
+    });
+
+    const loadedImage = container.querySelector(
+      'img[alt="Device Live Stream"]',
+    ) as HTMLImageElement;
+    const initialSrc = loadedImage.src;
+
+    Object.defineProperty(loadedImage, 'naturalWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    Object.defineProperty(loadedImage, 'naturalHeight', {
+      configurable: true,
+      value: 720,
+    });
+
+    await act(async () => {
+      await rs.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(
+      (
+        container.querySelector(
+          'img[alt="Device Live Stream"]',
+        ) as HTMLImageElement
+      ).src,
+    ).toBe(initialSrc);
+
+    Object.defineProperty(loadedImage, 'naturalWidth', {
+      configurable: true,
+      value: 0,
+    });
+    Object.defineProperty(loadedImage, 'naturalHeight', {
+      configurable: true,
+      value: 0,
+    });
+
+    await act(async () => {
+      await rs.advanceTimersByTimeAsync(2500);
+    });
+
+    const retriedImage = container.querySelector(
+      'img[alt="Device Live Stream"]',
+    ) as HTMLImageElement;
+    expect(retriedImage.src).toContain('_mjpegRetry=');
+    expect(retriedImage.src).not.toBe(initialSrc);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it('does not call the screenshot API while MJPEG preview is active', async () => {
-    vi.useFakeTimers();
-    const getScreenshot = vi.fn(async () => null);
+    rs.useFakeTimers();
+    const getScreenshot = rs.fn(async () => null);
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -109,7 +177,7 @@ describe('ScreenshotViewer', () => {
     });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await rs.advanceTimersByTimeAsync(5000);
     });
 
     await act(async () => {

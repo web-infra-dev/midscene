@@ -6,10 +6,7 @@ tasks:
   - name: status summary cards show correct counts
     flow:
       - sleep: 3000
-      - aiAssert: There are test status summary cards showing Total, Passed, and Failed counts
-      - aiAssert: The Total count is 2
-      - aiAssert: The Passed count is 1
-      - aiAssert: The Failed count is 1
+      - aiAssert: There are test status summary cards showing Total, Passed, and Failed counts; Total is 2, Passed is 1, and Failed is 1
 
   # --- Failed status indicator ---
   - name: merged report shows failed status indicator

@@ -1,7 +1,7 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { buildCustomPlanningMessages } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 function createPlanOptions(
   conversationHistory = new ConversationHistory(),
@@ -28,19 +28,22 @@ function createPlanOptions(
     } as any,
     conversationHistory,
     includeLocateInPlanning: true,
+    effort: 'balance',
   };
 }
 
 describe('custom planning messages', () => {
-  it('consumes pending feedback in the latest screenshot message', () => {
+  it('consumes pending feedback in the latest screenshot message', async () => {
     const conversationHistory = new ConversationHistory();
     conversationHistory.pendingFeedbackMessage =
       'Current time: 2026-06-16 19:35:17 (YYYY-MM-DD HH:mm:ss)';
 
-    const messages = buildCustomPlanningMessages(
+    const messages = await buildCustomPlanningMessages(
       {
-        userInstruction: 'click save',
-        userInstructionText: 'click save',
+        userInstruction: {
+          text: 'click save',
+          referenceImages: [],
+        },
         options: createPlanOptions(conversationHistory),
       },
       {

@@ -155,6 +155,7 @@ export interface SettingsPanelProps {
     onDownload: () => void;
     onInstall: () => void;
     onOpenDownloadPage?: () => void;
+    onOpenRunDirectory?: () => void;
   };
 }
 
@@ -261,6 +262,7 @@ export default function SettingsPanel({
               onDownload={updater.onDownload}
               onInstall={updater.onInstall}
               onOpenDownloadPage={updater.onOpenDownloadPage}
+              onOpenRunDirectory={updater.onOpenRunDirectory}
               status={updater.status}
             />
           </>

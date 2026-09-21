@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/studio/**'
       - '.github/workflows/studio-headless-linux.yml'
+      - 'scripts/report-template-utils.mjs'
+      - 'scripts/validate-core-report-template.mjs'
   workflow_dispatch:
     inputs:
       branch:
@@ -18,6 +20,7 @@ permissions:
 
 jobs:
   studio-startup:
+    # The computer-agent smoke test needs the hosted image's desktop tooling.
     runs-on: ubuntu-22.04
     env:
       CI: '1'
@@ -43,7 +46,19 @@ jobs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24.13.0'
-        cache: 'pnpm'
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Cache Electron binary
+      id: electron-cache
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.cache/electron
+        key: midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Install system dependencies
       run: |
@@ -75,24 +90,30 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
+      env:
+        PUPPETEER_SKIP_DOWNLOAD: 'true'
 
-    - name: Install Puppeteer browser binary
-      # `pnpm install` normally triggers puppeteer's `postinstall` to fetch
-      # the Chrome binary into `~/.cache/puppeteer`, but the added
-      # `optionalDependencies` (appdmg) shifts the install layout enough
-      # that the postinstall sometimes does not fire on the headless Linux
-      # runner. The Studio Web playground session needs that Chrome to
-      # launch its puppeteer page; without it `createSession` throws
-      # "Could not find Chrome" and the web preview e2e asserts on a
-      # permanently disconnected device. Install it explicitly so the test
-      # environment is deterministic.
-      run: pnpm --dir apps/studio exec puppeteer browsers install chrome
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Save Electron binary
+      if: steps.electron-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/electron
+        key: midscene-electron-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Setup Puppeteer browser
+      uses: ./.github/actions/setup-puppeteer-browser
+      with:
+        package-directory: apps/studio
 
     - name: Build Studio
       run: npx nx run-many --target=build --projects=studio,@midscene/report
 
-    - name: Re-inject report template into @midscene/core dist
-      run: node apps/report/scripts/inject-report-template.mjs
+    - name: Validate report template modules in @midscene/core dist
+      run: node scripts/validate-core-report-template.mjs
 
     - name: Run Studio startup smoke test
       run: xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm --dir apps/studio run test:smoke

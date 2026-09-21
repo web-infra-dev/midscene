@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   buildMarkdownArchiveFiles,
   buildMarkdownArchiveFilesForDownload,
@@ -43,7 +43,7 @@ describe('markdown-export helpers', () => {
   });
 
   it('returns the error message and warns when report markdown generation fails', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = getReportMarkdownView(
       {
@@ -155,11 +155,11 @@ describe('markdown-export helpers', () => {
 
   it('packages fetchable file-backed attachments under their markdown names', async () => {
     const fileBytes = new TextEncoder().encode('file-bytes');
-    const fetchMock = vi.fn(async () => ({
+    const fetchMock = rs.fn(async () => ({
       ok: true,
       arrayBuffer: async () => fileBytes.buffer,
     }));
-    vi.stubGlobal('fetch', fetchMock);
+    rs.stubGlobal('fetch', fetchMock);
 
     const result = await buildMarkdownArchiveFilesForDownload('# report', [
       {
@@ -192,7 +192,7 @@ describe('markdown-export helpers', () => {
     expect(result.packagedAttachmentCount).toBe(1);
     expect(result.missingAttachmentCount).toBe(0);
 
-    vi.unstubAllGlobals();
+    rs.unstubAllGlobals();
   });
 
   it('counts packageable attachments by base64 availability', () => {

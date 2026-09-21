@@ -12,7 +12,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { ChromeRecordedEvent } from '@midscene/recorder-ui';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import {
   AutoComplete,

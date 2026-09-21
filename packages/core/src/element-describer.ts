@@ -84,9 +84,12 @@ const buildLocateValidatorResult = (
   verifyLocateOption?: LocatorValidatorOption,
 ): LocateValidatorResult => {
   const distance = distanceOfTwoPoints(expectCenter, located.center);
-  const included = includedInRect(expectCenter, located.rect);
+  const included = located.rect
+    ? includedInRect(expectCenter, located.rect)
+    : undefined;
   const pass =
-    distance <= (verifyLocateOption?.centerDistanceThreshold || 20) || included;
+    distance <= (verifyLocateOption?.centerDistanceThreshold || 20) ||
+    included === true;
   return {
     pass,
     rect: located.rect,

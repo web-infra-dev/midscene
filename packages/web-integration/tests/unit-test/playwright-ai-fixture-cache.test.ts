@@ -1,26 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock the global config manager to control environment variables
-// IMPORTANT: This must be before any imports that might use @midscene/shared/env
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    MIDSCENE_CACHE: 'MIDSCENE_CACHE',
-    globalConfigManager: {
-      ...actual.globalConfigManager,
-      getEnvConfigInBoolean: vi.fn(),
-    },
-  };
-});
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
 import { processCacheConfig } from '@midscene/core/utils';
 import { globalConfigManager } from '@midscene/shared/env';
 
+rs.spyOn(globalConfigManager, 'getEnvConfigInBoolean');
+
 describe('PlaywrightAiFixture Cache Configuration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('should create fixture with cache: false configuration', () => {
@@ -69,7 +57,7 @@ describe('PlaywrightAiFixture Cache Configuration', () => {
   describe('Legacy compatibility mode', () => {
     it('should enable cache when MIDSCENE_CACHE env var is true (legacy mode)', () => {
       // Mock environment variable to enable legacy cache mode
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 
@@ -96,7 +84,7 @@ describe('PlaywrightAiFixture Cache Configuration', () => {
 
     it('should not enable cache when MIDSCENE_CACHE env var is false (legacy mode)', () => {
       // Mock environment variable to disable legacy cache mode
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         false,
       );
 
@@ -121,7 +109,7 @@ describe('PlaywrightAiFixture Cache Configuration', () => {
 
     it('should prefer new cache config over legacy mode', () => {
       // Mock environment variable to enable legacy cache mode
-      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+      rs.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
         true,
       );
 

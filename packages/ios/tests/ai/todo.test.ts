@@ -2,14 +2,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, rs } from '@rstest/core';
 import {
   type IOSAgent,
   agentFromWebDriverAgent,
   checkIOSEnvironment,
 } from '../../src';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 240 * 1000,
   hookTimeout: 60 * 1000,
 });
@@ -42,6 +42,36 @@ async function queryVisibleTodoListWithRetry(
     ) {
       return tasks;
     }
+  }
+
+  return tasks;
+}
+
+async function tapFilterUntilVisible(
+  agent: IOSAgent,
+  filterName: 'Completed',
+  expectedTasks: readonly string[],
+): Promise<string[]> {
+  let tasks: string[] = [];
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await agent.aiTap(`the "${filterName}" status filter below the todo list`);
+    await sleep(1000);
+    tasks = await queryVisibleTodoListWithRetry(
+      agent,
+      expectedTasks,
+      `${filterName.toLowerCase()}FilterTaskList`,
+    );
+    if (
+      tasks.length === expectedTasks.length &&
+      expectedTasks.every((task) => tasks.includes(task))
+    ) {
+      return tasks;
+    }
+    console.log(
+      `${filterName} filter attempt ${attempt} did not show the expected tasks`,
+      tasks,
+    );
   }
 
   return tasks;
@@ -203,13 +233,10 @@ describe('Test todo list', () => {
       await agent.aiTap(
         'the checkbox immediately to the left of "Learning AI the day after tomorrow"',
       );
-      await agent.aiTap('the "Completed" status filter below the todo list');
 
-      const completedTasks = await queryVisibleTodoListWithRetry(
-        agent,
-        [completedTask],
-        'completedTaskList',
-      );
+      const completedTasks = await tapFilterUntilVisible(agent, 'Completed', [
+        completedTask,
+      ]);
       expect(completedTasks).toEqual([completedTask]);
 
       const placeholder = await agent.aiQuery<string>(

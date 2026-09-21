@@ -1,5 +1,4 @@
 import { pathToFileURL } from 'node:url';
-import puppeteer, { type Browser, type CDPSession, type Page } from 'puppeteer';
 import {
   afterAll,
   afterEach,
@@ -8,44 +7,45 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest';
+  rs,
+} from '@rstest/core';
+import puppeteer, { type Browser, type CDPSession, type Page } from 'puppeteer';
 
 const TEST_TIMEOUT_MS = 120_000;
 const DRAG_FIXTURE_URL = pathToFileURL(
   `${__dirname}/fixtures/base-page-drag.html`,
 ).toString();
 
-const mockSendCommand = vi.fn();
+const mockSendCommand = rs.fn();
 
-vi.stubGlobal('chrome', {
+rs.stubGlobal('chrome', {
   runtime: {
-    getURL: vi.fn((path: string) => path),
+    getURL: rs.fn((path: string) => path),
   },
   tabs: {
-    get: vi.fn(),
-    query: vi.fn(),
-    update: vi.fn(),
+    get: rs.fn(),
+    query: rs.fn(),
+    update: rs.fn(),
   },
   debugger: {
-    attach: vi.fn(),
-    detach: vi.fn(),
+    attach: rs.fn(),
+    detach: rs.fn(),
     sendCommand: mockSendCommand,
     onEvent: {
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
+      addListener: rs.fn(),
+      removeListener: rs.fn(),
     },
   },
 });
 
-vi.mock('@midscene/shared/logger', () => ({
-  getDebug: vi.fn(() => vi.fn()),
+rs.mock('@midscene/shared/logger', () => ({
+  getDebug: rs.fn(() => rs.fn()),
 }));
 
-vi.mock('../../src/chrome-extension/dynamic-scripts', () => ({
-  getHtmlElementScript: vi.fn(async () => 'void 0'),
-  injectStopWaterFlowAnimation: vi.fn(async () => 'void 0'),
-  injectWaterFlowAnimation: vi.fn(async () => 'void 0'),
+rs.mock('../../src/chrome-extension/dynamic-scripts', () => ({
+  getHtmlElementScript: rs.fn(async () => 'void 0'),
+  injectStopWaterFlowAnimation: rs.fn(async () => 'void 0'),
+  injectWaterFlowAnimation: rs.fn(async () => 'void 0'),
 }));
 
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
@@ -166,11 +166,11 @@ describe('ChromeExtensionProxyPage drag', () => {
   let page: ChromeExtensionProxyPage;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     page = new ChromeExtensionProxyPage(false);
     (page as any).activeTabId = 7;
 
-    vi.mocked(chrome.tabs.get).mockResolvedValue({
+    rs.mocked(chrome.tabs.get).mockResolvedValue({
       id: 7,
       url: 'https://example.com',
       status: 'complete',
@@ -180,7 +180,7 @@ describe('ChromeExtensionProxyPage drag', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('dispatches drag mouse events with left button state', async () => {

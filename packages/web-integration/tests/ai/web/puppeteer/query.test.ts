@@ -1,5 +1,5 @@
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { launchPage } from './utils';
 
 describe(

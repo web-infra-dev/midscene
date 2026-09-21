@@ -7,22 +7,36 @@ import { parseArgs } from 'node:util';
 import { notarize } from '@electron/notarize';
 import { packager } from '@electron/packager';
 import {
+  reportTemplateMagicString,
+  validateCoreReportTemplateModules,
+} from '../../../scripts/report-template-utils.mjs';
+import {
   writeAppUpdateYmlIntoResources,
   writeUpdateMetadataForArtifact,
 } from './build-update-metadata.mjs';
+import {
+  assertPackagedExternalResourcesUnpacked,
+  packagedAsarOptions,
+} from './packaged-asar-resources.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const studioRootDir = path.resolve(__dirname, '..');
 const workspaceRootDir = path.resolve(studioRootDir, '..', '..');
 const studioBuildDir = path.join(studioRootDir, 'build');
+const studioFontLicensePath = path.join(
+  studioRootDir,
+  'src',
+  'renderer',
+  'assets',
+  'fonts',
+  'OFL.txt',
+);
 const reportRootDir = path.join(workspaceRootDir, 'apps', 'report');
-const coreRootDir = path.join(workspaceRootDir, 'packages', 'core');
-const coreDistDir = path.join(coreRootDir, 'dist');
+const coreDistDir = path.join(workspaceRootDir, 'packages', 'core', 'dist');
 const reportTemplatePath = path.join(reportRootDir, 'dist', 'index.html');
-const reportTemplatePlaceholder = 'REPLACE_ME_WITH_REPORT_HTML';
 const unresolvedReportTemplatePattern = new RegExp(
-  String.raw`(?:=|return)\s*(['"])${reportTemplatePlaceholder}\1`,
+  String.raw`(?:=|return)\s*(['"])${reportTemplateMagicString}\1`,
 );
 
 // Keep release packaging state outside `apps/studio` so local build outputs do
@@ -51,19 +65,6 @@ const packagedIgnorePatterns = [
   // Source maps duplicate what `pruneSourceMapFiles` already removed.
   /\.js\.map$/,
 ];
-const packagedAsarUnpackDirs = [
-  'node_modules/@computer-use/libnut',
-  'node_modules/@ffmpeg-installer',
-  'node_modules/@img',
-  'node_modules/@midscene/android/bin',
-  'node_modules/@midscene/computer/bin',
-  'node_modules/@midscene/computer/native',
-  'node_modules/sharp',
-].map((relativePath) => relativePath.split('/').join(path.sep));
-export const packagedAsarOptions = {
-  unpack: '**/{.**,**}/**/*.{node,dll,dylib,so,exe}',
-  unpackDir: `{${packagedAsarUnpackDirs.join(',')}}`,
-};
 const defaultMacEntitlementsPath = path.join(
   studioBuildDir,
   'entitlements.mac.plist',
@@ -870,35 +871,6 @@ const prepareReportBuildOutput = async () => {
   await ensureReportTemplateReady();
 };
 
-const ensureCoreReportTemplateInjected = async () => {
-  let status = await getBuildStatus({
-    packageDir: coreRootDir,
-    sourceTargets: packageBuildSourceTargets,
-    additionalSourceTargets: [reportTemplatePath],
-  });
-
-  if (
-    !status.needsBuild &&
-    (await pathContainsReportTemplatePlaceholder(coreDistDir))
-  ) {
-    status = {
-      needsBuild: true,
-      reason: 'report template placeholder remains in build output',
-    };
-  }
-
-  if (status.needsBuild) {
-    console.log(`Building packages/core (${status.reason}).`);
-    await buildPackageDir(path.relative(workspaceRootDir, coreRootDir));
-  }
-
-  if (await pathContainsReportTemplatePlaceholder(coreDistDir)) {
-    throw new Error(
-      `packages/core build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
-    );
-  }
-};
-
 const prepareStudioWorkspacePackages = async (workspacePackages) => {
   for (const workspacePackage of workspacePackages) {
     const status = await getBuildStatus({
@@ -947,7 +919,7 @@ const prepareStudioBuildOutput = async ({
 
   if (await pathContainsReportTemplatePlaceholder(studioDistDir)) {
     throw new Error(
-      `apps/studio build still contains ${reportTemplatePlaceholder}; rebuild apps/report before packaging.`,
+      `apps/studio build still contains ${reportTemplateMagicString}; rebuild apps/report before packaging.`,
     );
   }
 };
@@ -1582,7 +1554,7 @@ const findPackagedAppPayloadDir = async (packagedAppPath) => {
   return null;
 };
 
-const findPackagedResourcesDir = async (packagedAppPath) => {
+const resolvePackagedResourcesDir = async (packagedAppPath) => {
   const candidates = await buildPackagedResourcesCandidates(packagedAppPath);
 
   for (const candidatePath of candidates) {
@@ -1598,7 +1570,9 @@ const findPackagedResourcesDir = async (packagedAppPath) => {
     }
   }
 
-  return null;
+  throw new Error(
+    `Unable to locate the resources directory in packaged Midscene Studio app: ${packagedAppPath}`,
+  );
 };
 
 const findPackagedNodeModulesDir = async (packagedAppPath) => {
@@ -1654,11 +1628,19 @@ export const assertPortablePackagedNodeModules = async (packagedAppPath) => {
   );
 };
 
+export const copyStudioFontLicenseToStageDir = async (stageDir) => {
+  const destinationPath = path.join(stageDir, 'licenses', 'Inter-OFL.txt');
+  await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+  await fs.copyFile(studioFontLicensePath, destinationPath);
+  return destinationPath;
+};
+
 const copyStudioBuildOutputToStageDir = async (stageDir) => {
   await fs.mkdir(stageDir, { recursive: true });
   await fs.cp(path.join(studioRootDir, 'dist'), path.join(stageDir, 'dist'), {
     recursive: true,
   });
+  await copyStudioFontLicenseToStageDir(stageDir);
 };
 
 const installStageDependencies = async (stageDir) => {
@@ -1693,9 +1675,9 @@ const createPackagingWorkspace = async ({
   await prepareStaticWorkspacePackageSources(workspacePackages);
   await prepareStudioWorkspacePackages(workspacePackages);
   await prepareReportBuildOutput();
-  await ensureCoreReportTemplateInjected();
+  validateCoreReportTemplateModules(coreDistDir);
   await prepareStudioBuildOutput({
-    additionalSourceTargets: [reportTemplatePath, coreDistDir],
+    additionalSourceTargets: [coreDistDir],
   });
   await removeIfExists(stageDir);
   await fs.mkdir(path.dirname(stageDir), { recursive: true });
@@ -2413,8 +2395,12 @@ export const packageStudioElectronApp = async ({
 
   const packagedAppPath = packagedAppPaths[0];
   const artifactPath = path.join(artifactDir, `${baseName}.zip`);
+  const resourcesDir = await resolvePackagedResourcesDir(packagedAppPath);
 
-  await assertPortablePackagedNodeModules(packagedAppPath);
+  await Promise.all([
+    assertPortablePackagedNodeModules(packagedAppPath),
+    assertPackagedExternalResourcesUnpacked(resourcesDir),
+  ]);
   const packagedPayloadDir = await findPackagedAppPayloadDir(packagedAppPath);
   if (packagedPayloadDir) {
     await dedupePlaygroundStatic(path.join(packagedPayloadDir, 'node_modules'));
@@ -2425,10 +2411,7 @@ export const packageStudioElectronApp = async ({
   // at runtime to learn which provider / repo / cache dir to use. Must be
   // written before signing on macOS so it ends up inside the signed
   // bundle.
-  const resourcesDir = await findPackagedResourcesDir(packagedAppPath);
-  if (resourcesDir) {
-    await writeAppUpdateYmlIntoResources(resourcesDir);
-  }
+  await writeAppUpdateYmlIntoResources(resourcesDir);
 
   let dmgArtifactPath;
   if (platform === 'darwin') {

@@ -1,16 +1,17 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
 import { resolveCustomPlanningDefinition } from '@/ai-model/model-adapter/planning';
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { autoGlmAdapters } from '@/ai-model/models/auto-glm/adapter';
 import { createAutoGlmPlanner } from '@/ai-model/models/auto-glm/planning';
 import { callAIWithStringResponse } from '@/ai-model/service-caller/index';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import { runCustomPlanning } from '@/ai-model/workflows/planning/custom-planning';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { mockActionSpace } from '../../../common';
 
-const serviceCallerMock = vi.hoisted(() => {
+const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
@@ -32,15 +33,15 @@ const serviceCallerMock = vi.hoisted(() => {
 
   return {
     AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
+    callAIWithStringResponse: rs.fn(),
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', () => {
+rs.mock('@/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
-vi.mock('../../../../src/ai-model/service-caller/index', () => {
+rs.mock('../../../../src/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
@@ -77,16 +78,17 @@ function createPlanOptions(overrides: Partial<PlanOptions> = {}): PlanOptions {
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
     ...overrides,
+    effort: overrides.effort ?? 'balance',
   };
 }
 
-function runAutoGlmPlanning(
+async function runAutoGlmPlanning(
   userInstruction: string,
   options: PlanOptions,
   isMultilingual = false,
 ) {
   return runCustomPlanning(
-    userInstruction,
+    await prepareUserPrompt(userInstruction),
     options,
     resolveCustomPlanningDefinition(createAutoGlmPlanner(isMultilingual)),
   );
@@ -94,11 +96,42 @@ function runAutoGlmPlanning(
 
 describe('createAutoGlmPlanner', () => {
   beforeEach(() => {
-    vi.mocked(callAIWithStringResponse).mockReset();
+    rs.mocked(callAIWithStringResponse).mockReset();
   });
 
+  it.each([
+    { rounding: 'round', center: [38, 41], distance: 38 },
+    { rounding: 'trunc', center: [37, 40], distance: 37 },
+    { rounding: 'none', center: [37.875, 40.5], distance: 37.875 },
+  ] as const)(
+    'passes adapter rounding=$rounding to both swipe position and distance',
+    async ({ rounding, center, distance }) => {
+      rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+        content:
+          '<think>Swipe left</think><answer>do(action="Swipe", start=[375,500], end=[0,500])</answer>',
+      });
+      const planner = createAutoGlmPlanner(false);
+      const result = await runCustomPlanning(
+        await prepareUserPrompt('swipe left'),
+        createPlanOptions({
+          context: { ...context, shotSize: { width: 101, height: 81 } },
+        }),
+        resolveCustomPlanningDefinition({
+          ...planner,
+          coordinates: { ...planner.coordinates, rounding },
+        }),
+      );
+      expect(result.actions).toMatchObject([
+        {
+          type: 'Scroll',
+          param: { locate: { locatedPixelResult: { center } }, distance },
+        },
+      ]);
+    },
+  );
+
   it('runs Auto-GLM custom planning and transforms tap coordinates', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content:
         '<think>Need to click submit</think><answer>do(action="Tap", element=[500,500])</answer>',
       usage: { total_tokens: 12 } as any,
@@ -124,7 +157,7 @@ describe('createAutoGlmPlanner', () => {
         type: 'Tap',
         param: {
           locate: {
-            locatedPixelBbox: [490, 392, 509, 407],
+            locatedPixelResult: { center: [500, 400] },
           },
         },
       },
@@ -134,7 +167,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('uses actionSpace names for Auto-GLM Back and Home planning actions', async () => {
-    vi.mocked(callAIWithStringResponse)
+    rs.mocked(callAIWithStringResponse)
       .mockResolvedValueOnce({
         content: 'Need to go back. do(action="Back")',
       })
@@ -173,7 +206,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('stops Auto-GLM custom planning on finish action', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'Task is done. finish(message="done")',
     });
 
@@ -193,7 +226,7 @@ describe('createAutoGlmPlanner', () => {
   });
 
   it('wraps Auto-GLM planning parse failures with raw response and usage', async () => {
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({
       content: 'do(action="UnknownAction")',
       usage: { total_tokens: 3 } as any,
     });

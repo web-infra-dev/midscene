@@ -1,5 +1,5 @@
 import { resolveChatCompletion } from '@/ai-model/model-adapter/chat-completion';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('chat completion content extraction', () => {
   const defaultExtractContentAndReasoning =
@@ -114,5 +114,21 @@ describe('chat completion content extraction', () => {
       content: 'custom content',
       reasoning_content: 'custom reasoning',
     });
+  });
+
+  it('increases the default temperature on a semantic retry without changing user config', () => {
+    const adapter = resolveChatCompletion({});
+
+    expect(
+      adapter.buildChatCompletionParams({
+        semanticRetryAttempt: 2,
+      }),
+    ).toEqual({ config: { temperature: 0.2 } });
+    expect(
+      adapter.buildChatCompletionParams({
+        semanticRetryAttempt: 1,
+        userConfig: { temperature: 0 },
+      }),
+    ).toEqual({ config: { temperature: 0 } });
   });
 });

@@ -1,12 +1,12 @@
 import { defineActionInput } from '@/device';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 describe('Input action with mode option', () => {
   const mockContext = {} as any;
 
   const createInputAction = (
-    clearInputMock: ReturnType<typeof vi.fn>,
-    typeTextMock: ReturnType<typeof vi.fn>,
+    clearInputMock: ReturnType<typeof rs.fn>,
+    typeTextMock: ReturnType<typeof rs.fn>,
   ) =>
     defineActionInput({
       clearInput: async (target) => {
@@ -19,8 +19,8 @@ describe('Input action with mode option', () => {
     });
 
   it('should request replace when mode is replace', async () => {
-    const clearInputMock = vi.fn();
-    const typeTextMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const typeTextMock = rs.fn();
 
     const inputAction = createInputAction(clearInputMock, typeTextMock);
 
@@ -42,8 +42,8 @@ describe('Input action with mode option', () => {
   });
 
   it('should only clear input when mode is clear', async () => {
-    const clearInputMock = vi.fn();
-    const typeTextMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const typeTextMock = rs.fn();
 
     const inputAction = createInputAction(clearInputMock, typeTextMock);
 
@@ -62,8 +62,8 @@ describe('Input action with mode option', () => {
   });
 
   it('should skip clearInput when mode is typeOnly', async () => {
-    const clearInputMock = vi.fn();
-    const typeTextMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const typeTextMock = rs.fn();
 
     const inputAction = createInputAction(clearInputMock, typeTextMock);
 
@@ -85,8 +85,8 @@ describe('Input action with mode option', () => {
   });
 
   it('should request replace by default when mode is not specified', async () => {
-    const clearInputMock = vi.fn();
-    const typeTextMock = vi.fn();
+    const clearInputMock = rs.fn();
+    const typeTextMock = rs.fn();
 
     const inputAction = createInputAction(clearInputMock, typeTextMock);
 

@@ -11,7 +11,7 @@ import type {
   WaitAction,
 } from '@/ai-model/models/auto-glm/actions';
 import { parseAutoGLMPlanningAction } from '@/ai-model/models/auto-glm/parser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('parseAutoGLMPlanningAction', () => {
   it('should parse Tap action', () => {

@@ -8,7 +8,7 @@ import { ThemeProvider } from '../src/renderer/theme/ThemeProvider';
 (globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = 'test-version';
 
 describe('studio sidebar settings entrypoints', () => {
-  it('renders Settings and Model Config as stacked rows in the bottom dock', () => {
+  it('renders Settings and Config as stacked rows in the bottom dock', () => {
     const html = renderToStaticMarkup(
       createElement(SettingsDock, {
         onEnvClick: () => undefined,
@@ -18,7 +18,7 @@ describe('studio sidebar settings entrypoints', () => {
     );
 
     expect(html).toContain('Settings');
-    expect(html).toContain('Model Config');
+    expect(html).toContain('Config');
     expect(html).not.toContain('>Env<');
   });
 
@@ -34,6 +34,6 @@ describe('studio sidebar settings entrypoints', () => {
     expect(html).toContain('GitHub');
     expect(html).toContain('Website');
     expect(html).not.toContain('Environment');
-    expect(html).not.toContain('Model Config');
+    expect(html).not.toContain('Config');
   });
 });

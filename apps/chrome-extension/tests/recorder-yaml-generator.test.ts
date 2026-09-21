@@ -3,30 +3,30 @@ import {
   generateRecorderYamlTestStream,
 } from '@midscene/core/ai-model';
 import type { IModelConfig } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
   generateYamlTest,
   generateYamlTestStream,
 } from '../src/extension/recorder/generators/yamlGenerator';
 
-vi.mock('@midscene/core/ai-model', () => ({
-  generateRecorderYamlTest: vi.fn(
+rs.mock('@midscene/core/ai-model', () => ({
+  generateRecorderYamlTest: rs.fn(
     async () => 'web:\n  url: "https://example.com"\n',
   ),
-  generateRecorderYamlTestStream: vi.fn(async () => ({
+  generateRecorderYamlTestStream: rs.fn(async () => ({
     content: 'web:\n  url: "https://example.com"\n',
     usage: undefined,
     isStreamed: true,
   })),
 }));
 
-vi.mock('../src/extension/recorder/logger', () => ({
+rs.mock('../src/extension/recorder/logger', () => ({
   recordLogger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    success: vi.fn(),
-    debug: vi.fn(),
+    error: rs.fn(),
+    info: rs.fn(),
+    warn: rs.fn(),
+    success: rs.fn(),
+    debug: rs.fn(),
   },
 }));
 
@@ -72,7 +72,7 @@ describe('chrome extension recorder YAML generator', () => {
   });
 
   it('passes streaming options through to core YAML generation', async () => {
-    const onChunk = vi.fn();
+    const onChunk = rs.fn();
     await generateYamlTestStream(
       [
         {

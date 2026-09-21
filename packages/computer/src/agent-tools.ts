@@ -1,4 +1,5 @@
 import { z } from '@midscene/core';
+import { inputStrategies } from '@midscene/core/device';
 import {
   type AgentBehaviorInitArgs,
   agentBehaviorInitArgShape,
@@ -46,6 +47,34 @@ const computerInitArgShape = {
     .optional()
     .describe(
       'Start virtual display via Xvfb (Linux local mode only). Ignored when host is set.',
+    ),
+  keyboardTypeDelay: z
+    .number()
+    .finite()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Finite non-negative delay in milliseconds between keystrokes. In "legacy" mode, positive values enable key-by-key input; zero or omitted uses clipboard input.',
+    ),
+  inputStrategy: z
+    .enum(inputStrategies)
+    .optional()
+    .describe(
+      'Text input strategy. "legacy" (default) preserves current Computer behavior, "sequential" sends one Unicode code point at a time, and "bulk" uses one backend input operation. "bulk" requires keyboardTypeDelay to be omitted or set to 0.',
+    ),
+  keyboardModifierDelay: z
+    .number()
+    .finite()
+    .nonnegative()
+    .optional()
+    .describe(
+      'Finite non-negative delay in milliseconds after each modifier transition and the main key for local libnut keyboard events. Positive values pace shortcuts and the implicit Shift used by uppercase letters during sequential input. Layout-dependent punctuation also requires keyboardLayout. Ignored in RDP mode and by the macOS AppleScript driver.',
+    ),
+  keyboardLayout: z
+    .enum(['en-US'])
+    .optional()
+    .describe(
+      'Keyboard layout used to resolve layout-dependent shifted punctuation to base keys during sequential local libnut input. Currently only "en-US" is supported. Ignored in RDP mode and by the macOS AppleScript driver.',
     ),
   // RDP options. Providing `host` switches connect into RDP mode and routes
   // the session through the RDP helper binary instead of the local desktop.
@@ -101,12 +130,20 @@ const computerInitArgShape = {
 export type ComputerLocalInitArgs = {
   mode: 'local';
 } & Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+  Pick<
+    ComputerDeviceOpt,
+    | 'inputStrategy'
+    | 'keyboardTypeDelay'
+    | 'keyboardModifierDelay'
+    | 'keyboardLayout'
+  > &
   AgentBehaviorInitArgs;
 
 /** Init args for the RDP remote-desktop agent. */
 export type ComputerRDPInitArgs = {
   mode: 'rdp';
 } & RDPConnectionConfig &
+  Pick<ComputerDeviceOpt, 'inputStrategy' | 'keyboardTypeDelay'> &
   AgentBehaviorInitArgs;
 
 /**
@@ -117,10 +154,23 @@ export type ComputerRDPInitArgs = {
 export type ComputerInitArgs = ComputerLocalInitArgs | ComputerRDPInitArgs;
 
 type ExtractedComputerInitArgs = Partial<
-  Pick<ComputerDeviceOpt, 'displayId' | 'headless'> &
+  Pick<
+    ComputerDeviceOpt,
+    | 'displayId'
+    | 'headless'
+    | 'inputStrategy'
+    | 'keyboardTypeDelay'
+    | 'keyboardModifierDelay'
+    | 'keyboardLayout'
+  > &
     RDPConnectionConfig &
     AgentBehaviorInitArgs
 >;
+
+export interface ComputerMidsceneToolsOptions {
+  /** Keep CLI-owned Xvfb alive until process exit so Xlib clients stay valid. */
+  keepXvfbAliveUntilProcessExit?: boolean;
+}
 
 function adaptComputerInitArgs(
   extracted: ExtractedComputerInitArgs | undefined,
@@ -130,7 +180,13 @@ function adaptComputerInitArgs(
   }
   if (extracted.host) {
     // Drop local-only fields; they're meaningless in RDP mode.
-    const { displayId: _d, headless: _h, ...rdpFields } = extracted;
+    const {
+      displayId: _d,
+      headless: _h,
+      keyboardModifierDelay: _s,
+      keyboardLayout: _l,
+      ...rdpFields
+    } = extracted;
     const host = normalizeRdpHost(extracted.host);
     return {
       mode: 'rdp',
@@ -142,6 +198,10 @@ function adaptComputerInitArgs(
     mode: 'local',
     displayId: extracted.displayId,
     headless: extracted.headless,
+    keyboardTypeDelay: extracted.keyboardTypeDelay,
+    inputStrategy: extracted.inputStrategy,
+    keyboardModifierDelay: extracted.keyboardModifierDelay,
+    keyboardLayout: extracted.keyboardLayout,
     ...(extractAgentBehaviorInitArgs(extracted) ?? {}),
   };
 }
@@ -175,6 +235,10 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
   ComputerInitArgs
 > {
   private lastInitArgsSignature?: string;
+
+  constructor(private readonly options: ComputerMidsceneToolsOptions = {}) {
+    super();
+  }
 
   protected getCliReportSessionName() {
     return 'midscene-computer';
@@ -230,10 +294,23 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<
 
     const displayId = opts?.mode === 'local' ? opts.displayId : undefined;
     const headless = opts?.mode === 'local' ? opts.headless : undefined;
+    const keyboardTypeDelay = opts?.keyboardTypeDelay;
+    const inputStrategy = opts?.inputStrategy;
+    const keyboardModifierDelay =
+      opts?.mode === 'local' ? opts.keyboardModifierDelay : undefined;
+    const keyboardLayout =
+      opts?.mode === 'local' ? opts.keyboardLayout : undefined;
     debug('Creating Computer agent with displayId:', displayId || 'primary');
     const agentOpts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
+      ...(keyboardTypeDelay !== undefined ? { keyboardTypeDelay } : {}),
+      ...(inputStrategy !== undefined ? { inputStrategy } : {}),
+      ...(keyboardModifierDelay !== undefined ? { keyboardModifierDelay } : {}),
+      ...(keyboardLayout !== undefined ? { keyboardLayout } : {}),
+      ...(this.options.keepXvfbAliveUntilProcessExit
+        ? { keepXvfbAliveUntilProcessExit: true }
+        : {}),
       ...(extractAgentBehaviorInitArgs(opts) ?? {}),
       ...(reportOptions ?? {}),
     };

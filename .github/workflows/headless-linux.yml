@@ -21,16 +21,67 @@ on:
         required: false
         default: 'main'
         type: string
+      suite:
+        description: 'Jobs to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - drag-only
 
 permissions:
   contents: read
+
+concurrency:
+  group: headless-linux-${{ github.event.pull_request.number || inputs.branch || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
 jobs:
-  headless-linux-ai-todo:
+  headless-linux-drag-and-drop:
     runs-on: ubuntu-22.04
+    env:
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build computer projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+
+    - name: Run Linux drag-and-drop regression
+      # libnut keeps a process-wide X11 connection. Retrying after the test
+      # tears down Xvfb would terminate the worker before it can report the
+      # original assertion, so this live-display regression runs once.
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/linux-drag-and-drop.test.ts --retry 0
+      timeout-minutes: 10
+
+  headless-linux-ai-todo:
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -47,43 +98,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        # Install Google Chrome (not snap chromium which can't access Xvfb)
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build AI todo projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,@midscene/computer" --skip-nx-cache
 
     - name: Verify system setup
       run: |
@@ -94,7 +127,7 @@ jobs:
         echo "--- import (imagemagick) ---"
         which import && echo "import: OK"
         echo "--- Browser ---"
-        google-chrome-stable --version || echo "Chrome not found"
+        chromium --version || echo "Chrome not found"
         echo "--- DISPLAY ---"
         echo "DISPLAY=${DISPLAY:-(not set)}"
 
@@ -117,7 +150,8 @@ jobs:
       run: exit 1
 
   chrome-extension:
-    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       # Env vars for computer agent (screenshot + AI actions)
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -137,43 +171,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        # Install Google Chrome (not snap chromium which can't access Xvfb)
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Chrome extension test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
@@ -194,7 +210,8 @@ jobs:
       run: exit 1
 
   chrome-extension-bridge:
-    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -212,46 +229,29 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Bridge mode start/stop test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-bridge.test.ts
-      timeout-minutes: 25
+      timeout-minutes: 40
       id: test-bridge
       continue-on-error: true
 
@@ -268,7 +268,16 @@ jobs:
       run: exit 1
 
   chrome-extension-playground:
-    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - file: chrome-extension-playground.test.ts
+            report: chrome-extension-playground-report
+          - file: chrome-extension-playground-dark-timeline.test.ts
+            report: chrome-extension-playground-dark-timeline-report
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -286,45 +295,28 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
 
-    - name: Run Playground advanced tests
-      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-playground.test.ts
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
+
+    - name: Run Playground E2E test
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/${{ matrix.test.file }}
       timeout-minutes: 40
       id: test-playground
       continue-on-error: true
@@ -333,7 +325,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: chrome-extension-playground-report
+        name: ${{ matrix.test.report }}
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
@@ -342,7 +334,8 @@ jobs:
       run: exit 1
 
   chrome-extension-recorder:
-    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -360,42 +353,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Recorder mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-recorder.test.ts
@@ -416,7 +392,8 @@ jobs:
       run: exit 1
 
   chrome-extension-settings:
-    runs-on: ubuntu-22.04
+    if: github.event_name != 'workflow_dispatch' || inputs.suite != 'drag-only'
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
@@ -434,42 +411,25 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch || github.ref }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
-      with:
-        version: 9.3.0
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
 
-    - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          x11-xserver-utils \
-          imagemagick \
-          libxtst6 \
-          libxinerama1 \
-          libx11-6 \
-          libxkbcommon-x11-0 \
-          libpng16-16 \
-          libnss3 \
-          libatk-bridge2.0-0 \
-          libdrm2 \
-          libgbm1 \
-          libasound2
-        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+    - name: Cache pnpm store
+      id: pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --ignore-scripts
 
-    - name: Build project
-      run: pnpm run build:skip-cache
+    - name: Save pnpm store
+      if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+
+    - name: Setup headless browser
+      uses: ./.github/actions/setup-headless-browser
+
+    - name: Build Chrome extension projects
+      run: pnpm exec nx run-many --target=build --projects="@midscene/report,chrome-extension" --skip-nx-cache
 
     - name: Run Settings and cross-mode tests
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension-settings.test.ts

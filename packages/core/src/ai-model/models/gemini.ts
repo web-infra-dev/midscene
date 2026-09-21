@@ -195,8 +195,10 @@ export const geminiAdapters = {
       },
     },
     locate: {
-      resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'yx', normalizedBy: 1000 },
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'yx', normalizedBy: 1000 },
+        },
       },
     },
   },

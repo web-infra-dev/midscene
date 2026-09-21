@@ -9,17 +9,18 @@
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { beforeAll, describe, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
   injectExtensionConfig,
   launchChromeWithExtension,
+  openExtensionSidePanel,
   readExtensionId,
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 600 * 1000 });
+rs.setConfig({ testTimeout: 600 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -46,12 +47,7 @@ describe('chrome extension recorder mode tests', () => {
   });
 
   it('open side panel and configure', async () => {
-    await agent.aiAct(
-      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
-    );
-    await sleep(1000);
-    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
-    await sleep(3000);
+    await openExtensionSidePanel(agent, extId);
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI',
     );

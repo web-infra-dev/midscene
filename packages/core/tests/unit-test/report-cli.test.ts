@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseCliArgs, runToolsCLI } from '@midscene/shared/cli';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { generateDumpScriptTag, generateImageScriptTag } from '../../src/dump';
 import type { ScreenshotRef } from '../../src/dump/screenshot-store';
 import {
@@ -672,16 +672,16 @@ describe('createReportCliCommands', () => {
     });
 
     const logs: string[] = [];
-    const consoleSpy = vi
+    const consoleSpy = rs
       .spyOn(console, 'log')
       .mockImplementation((...args: unknown[]) => {
         logs.push(args.map((a) => String(a)).join(' '));
       });
 
     const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      destroy: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([]),
+      initTools: rs.fn().mockResolvedValue(undefined),
+      destroy: rs.fn().mockResolvedValue(undefined),
+      getToolDefinitions: rs.fn().mockReturnValue([]),
     } as any;
 
     await runToolsCLI(tools, 'midscene-test', {

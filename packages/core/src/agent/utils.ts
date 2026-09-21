@@ -1,15 +1,13 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { pixelBboxToRect } from '@/ai-model/workflows/inspect/locate-result-rect';
+import type { PixelLocateResult } from '@/ai-model/shared/model-locate-result';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
 import type {
+  DetailedLocateParam,
   ElementCacheFeature,
   LocateResultElement,
-  PixelBbox,
-  PlanningLocateParam,
-  PlanningLocateParamWithLocatedPixelBbox,
   Rect,
   ScrollParam,
   Size,
@@ -18,23 +16,20 @@ import type {
 import { uploadTestInfoToServer } from '@/utils';
 import {
   MIDSCENE_REPORT_QUIET,
-  MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { generateElementByRect } from '@midscene/shared/extractor';
 import {
-  convertImgBufferToJpeg,
   createImgBase64ByFormat,
   imageInfoOfBase64,
-  parseBase64,
-  resizeImgBase64,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import { assert, ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
-import dayjs from 'dayjs';
+import { assert, ifInBrowser, logMsg } from '@midscene/shared/utils';
+import { prepareRawScreenshot } from './screenshot-preparation';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
+
+export { getReportFileName } from './report-file-name';
 
 const agentDebug = getDebug('agent');
 const screenshotDataUrlPattern = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i;
@@ -131,22 +126,14 @@ export async function commonContextParser(
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
   const screenshotCapturedAt = Date.now();
   assert(screenshotBase64!, 'screenshotBase64 is required');
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
-  // Get physical screenshot dimensions
   debug('will get screenshot dimensions');
+  const preparedScreenshot = await prepareRawScreenshot(screenshotBase64, {
+    shrinkFactor: userShrinkFactor,
+  });
   const { width: imgWidth, height: imgHeight } =
-    await imageInfoOfBase64(screenshotBase64);
-
-  if (!Number.isFinite(imgWidth) || !Number.isFinite(imgHeight)) {
-    throw new Error(
-      `Invalid screenshot dimensions: width and height must be finite numbers. Received width: ${imgWidth}, height: ${imgHeight}`,
-    );
-  }
-  if (imgWidth <= 0 || imgHeight <= 0) {
-    throw new Error(
-      `Invalid screenshot dimensions: width and height must be positive numbers. Received width: ${imgWidth}, height: ${imgHeight}`,
-    );
-  }
+    preparedScreenshot.originalSize;
   debug('screenshot dimensions', imgWidth, 'x', imgHeight);
 
   // Detect orientation mismatch between logical size and screenshot.
@@ -165,14 +152,6 @@ export async function commonContextParser(
     finalLogicalHeight = logicalWidth;
   }
 
-  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
-
-  if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {
-    throw new Error(
-      `Invalid screenshotShrinkFactor: must be a finite number >= 1. Received: ${userShrinkFactor}`,
-    );
-  }
-
   const dpr = imgWidth / finalLogicalWidth;
 
   debug('calculated dpr:', dpr);
@@ -181,59 +160,21 @@ export async function commonContextParser(
 
   debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
 
-  if (userShrinkFactor !== 1) {
-    const targetWidth = Math.round(imgWidth / userShrinkFactor);
-    const targetHeight = Math.round(imgHeight / userShrinkFactor);
-
+  if (userShrinkFactor > 1) {
     debug(
-      `Applying screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
+      `Applied screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${preparedScreenshot.shotSize.width}x${preparedScreenshot.shotSize.height})`,
     );
-
-    const resizedBase64 = await resizeImgBase64(screenshotBase64, {
-      width: targetWidth,
-      height: targetHeight,
-    });
-    return {
-      shotSize: {
-        width: targetWidth,
-        height: targetHeight,
-      },
-      deprecatedDpr: dpr,
-      screenshot: ScreenshotItem.create(resizedBase64, screenshotCapturedAt),
-      shrunkShotToLogicalRatio,
-    };
-  } else {
-    // For screenshots that do not need shrinking, convert PNG to JPEG to reduce the image payload in model requests and reports. (Shrunk images are already JPEG.)
-    // This mainly covers Android's default screenshot path, which produces PNG screenshots.
-    // Compared with conversion on Android, centralizing it here means each platform does not need to handle screenshot formats itself, and allows future output formats such as WebP.
-    // Built-in paths that already output JPEG are unaffected, and custom devices that output JPEG will not be compressed again.
-    // The Web platform already outputs JPEG, so it does not enter this branch. Other built-in device platforms run in Node, where Sharp conversion is fast enough that its extra cost is negligible.
-    let outputScreenshotBase64 = screenshotBase64;
-    const { mimeType, body } = parseBase64(screenshotBase64);
-    if (mimeType.toLowerCase() === 'image/png') {
-      const jpegBuffer = await convertImgBufferToJpeg(
-        Buffer.from(body, 'base64'),
-        90,
-      );
-      outputScreenshotBase64 = createImgBase64ByFormat(
-        'jpeg',
-        jpegBuffer.toString('base64'),
-      );
-    }
-
-    return {
-      shotSize: {
-        width: imgWidth,
-        height: imgHeight,
-      },
-      deprecatedDpr: dpr,
-      screenshot: ScreenshotItem.create(
-        outputScreenshotBase64,
-        screenshotCapturedAt,
-      ),
-      shrunkShotToLogicalRatio,
-    };
   }
+
+  return {
+    shotSize: preparedScreenshot.shotSize,
+    deprecatedDpr: dpr,
+    screenshot: ScreenshotItem.create(
+      preparedScreenshot.base64,
+      screenshotCapturedAt,
+    ),
+    shrunkShotToLogicalRatio,
+  };
 }
 
 export async function createScreenshotBoundUIContext(
@@ -267,16 +208,6 @@ export async function createScreenshotBoundUIContext(
     shrunkShotToLogicalRatio: 1,
     _isFrozen: true,
   };
-}
-
-export function getReportFileName(tag = 'web') {
-  const reportTagName = globalConfigManager.getEnvConfigValue(
-    MIDSCENE_REPORT_TAG_NAME,
-  );
-  const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
-  // ensure uniqueness at the same time
-  const uniqueId = uuid().substring(0, 8);
-  return `${reportTagName || tag}-${dateTimeInFileName}-${uniqueId}`;
 }
 
 export function printReportMsg(filepath: string) {
@@ -331,40 +262,45 @@ export function normalizeFilePaths(
   });
 }
 
-export function isPixelBbox(value: unknown): value is PixelBbox {
+type LocateParamWithMaybeLocatedPixelResult = DetailedLocateParam & {
+  locatedPixelResult?: unknown;
+};
+
+type LocateParamWithLocatedPixelResult = DetailedLocateParam & {
+  locatedPixelResult: PixelLocateResult;
+};
+
+export function ifLocateParamHasLocatedPixelResult(
+  planLocateParam: LocateParamWithMaybeLocatedPixelResult,
+): planLocateParam is LocateParamWithLocatedPixelResult {
+  const result = planLocateParam.locatedPixelResult;
+  if (!result || typeof result !== 'object' || !('center' in result)) {
+    return false;
+  }
+  const point = result.center;
   return (
-    Array.isArray(value) &&
-    value.length === 4 &&
-    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+    Array.isArray(point) &&
+    point.length === 2 &&
+    point.every((v) => typeof v === 'number' && Number.isFinite(v))
   );
 }
 
-type PlanningLocateParamWithMaybeLocatedPixelBbox = PlanningLocateParam & {
-  locatedPixelBbox?: unknown;
-};
-
-export function ifPlanLocateParamHasLocatedPixelBbox(
-  planLocateParam: PlanningLocateParamWithMaybeLocatedPixelBbox,
-): planLocateParam is PlanningLocateParamWithLocatedPixelBbox {
-  return isPixelBbox(planLocateParam.locatedPixelBbox);
-}
-
 export function matchElementFromPlan(
-  planLocateParam: PlanningLocateParamWithLocatedPixelBbox,
+  planLocateParam: LocateParamWithLocatedPixelResult,
 ): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;
   }
 
-  const rect = pixelBboxToRect(planLocateParam.locatedPixelBbox);
-
-  const element = generateElementByRect(
-    rect,
-    typeof planLocateParam.prompt === 'string'
-      ? planLocateParam.prompt
-      : planLocateParam.prompt?.prompt || '',
-  );
-  return element;
+  const { center, rect } = planLocateParam.locatedPixelResult;
+  return {
+    center: [...center],
+    description:
+      typeof planLocateParam.prompt === 'string'
+        ? planLocateParam.prompt
+        : planLocateParam.prompt?.prompt || '',
+    ...(rect ? { rect } : {}),
+  };
 }
 
 export async function matchElementFromCache(
@@ -400,10 +336,7 @@ export async function matchElementFromCache(
     const rect =
       await context.interfaceInstance.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
-      center: [
-        Math.round(rect.left + rect.width / 2),
-        Math.round(rect.top + rect.height / 2),
-      ],
+      center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
       rect,
       description:
         typeof cachePrompt === 'string'
@@ -467,16 +400,17 @@ export const transformLogicalElementToScreenshot = (
   return {
     ...element,
     center: [
-      Math.round(element.center[0] * shrunkShotToLogicalRatio),
-      Math.round(element.center[1] * shrunkShotToLogicalRatio),
+      element.center[0] * shrunkShotToLogicalRatio,
+      element.center[1] * shrunkShotToLogicalRatio,
     ],
-    rect: {
-      ...element.rect,
-      left: Math.round(element.rect.left * shrunkShotToLogicalRatio),
-      top: Math.round(element.rect.top * shrunkShotToLogicalRatio),
-      width: Math.round(element.rect.width * shrunkShotToLogicalRatio),
-      height: Math.round(element.rect.height * shrunkShotToLogicalRatio),
-    },
+    ...(element.rect
+      ? {
+          rect: transformLogicalRectToScreenshotRect(
+            element.rect,
+            shrunkShotToLogicalRatio,
+          ),
+        }
+      : {}),
   };
 };
 

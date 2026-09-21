@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.10.4",
+  "version": "1.13.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -55,6 +55,11 @@
       "require": "./dist/lib/playwright/index.js",
       "import": "./dist/es/playwright/index.mjs"
     },
+    "./playwright/agent": {
+      "types": "./dist/types/playwright/agent.d.ts",
+      "require": "./dist/lib/playwright/agent.js",
+      "import": "./dist/es/playwright/agent.mjs"
+    },
     "./playwright-report": {
       "types": "./dist/types/playwright/reporter/index.d.ts",
       "require": "./dist/lib/playwright/reporter/index.js",
@@ -84,6 +89,11 @@
       "types": "./dist/types/static/index.d.ts",
       "require": "./dist/lib/static/index.js",
       "import": "./dist/es/static/index.mjs"
+    },
+    "./playwright/test": {
+      "types": "./dist/types/playwright/test-runner/index.d.ts",
+      "require": "./dist/lib/playwright/test-runner/index.js",
+      "import": "./dist/es/playwright/test-runner/index.mjs"
     }
   },
   "scripts": {
@@ -92,10 +102,10 @@
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
-    "test": "vitest --run",
-    "test:u": "vitest --run -u",
-    "test:ai": "AI_TEST_TYPE=web vitest --run",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web vitest --run",
+    "test": "rstest",
+    "test:u": "rstest -u",
+    "test:ai": "AI_TEST_TYPE=web rstest",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=web rstest",
     "e2e": "playwright test --config=tests/playwright.config.ts",
     "e2e:report": "MIDSCENE_REPORT=true playwright test --config=tests/playwright.config.ts",
     "e2e:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts",
@@ -118,11 +128,13 @@
     "semver": "7.5.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^3.25.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.5",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",
@@ -135,8 +147,7 @@
     "playwright": "^1.45.0",
     "puppeteer": "24.6.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "@playwright/test": "^1.45.0",

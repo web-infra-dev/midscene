@@ -4,7 +4,6 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import { isLocateIntent } from './utils/intent';
 
 const buildGlmChatCompletionParams = (
   input: ChatCompletionCallContext,
@@ -19,7 +18,10 @@ const buildGlmChatCompletionParams = (
 
   // Zhipu structured output JSON mode:
   // https://docs.bigmodel.cn/cn/guide/capabilities/struct-output
-  if (isLocateIntent(input.intent)) {
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
@@ -48,8 +50,10 @@ export const glmAdapters = {
       useReasoningAsContentFallback: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+      element: {
+        resultFormat: {
+          coordinates: { shape: 'bbox', order: 'xy', normalizedBy: 1000 },
+        },
       },
     },
   },

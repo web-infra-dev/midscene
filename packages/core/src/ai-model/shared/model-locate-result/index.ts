@@ -1,7 +1,8 @@
 export {
-  createLocateResultAdapter,
+  createLocateResultCodec,
   resolveLocateResultCoordinates,
 } from './factory';
+export { formatLocateExampleValue } from './prompt-spec';
 export { createCoordinateDistanceToPixels } from './coordinate-distance';
 export {
   isBboxLocateResultValue,
@@ -14,13 +15,13 @@ export {
   unwrapCoordinateListLikeInput,
 } from './parse';
 export type {
+  CoordinateRounding,
   LocateResultBbox,
   PixelBbox,
+  PixelLocateResult,
   RawLocateValue,
-  SectionLocatePixelBboxGroup,
-  CustomLocateResultAdapterDefinition,
-  LocateResultAdapter,
-  LocateResultAdapterDefinition,
+  LocateResultCodec,
+  LocateResultFormatDefinition,
   LocateResultCoordinates,
   LocateResultContext,
   LocateResultShape,
@@ -28,5 +29,4 @@ export type {
   LocateResultValue,
   NonEmptyArray,
   ResolvedLocateResultCoordinates,
-  StandardLocateResultAdapterDefinition,
 } from './types';

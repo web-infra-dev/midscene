@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { matchYamlFiles, parseProcessArgs } from '@/cli-utils';
 import { launchServer } from '@/create-yaml-player';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from '@rstest/core';
 
 (global as any).__VERSION__ = '0.0.0-test';
 
@@ -225,31 +225,27 @@ describe('parseProcessArgs', () => {
     expect(options.concurrent).toBe(10);
   });
 
-  test('should auto-parse iOS device options', async () => {
+  test('should auto-parse iOS WDA options', async () => {
     process.argv = [
       'node',
       'midscene',
-      '--ios.device-id',
-      '00008110-001234567890',
       '--ios.wda-port',
       '8100',
       '--ios.wda-host',
       '192.168.1.100',
-      '--ios.use-wda',
-      'true',
+      '--ios.session-id',
+      'external-session-id',
       '--ios.auto-dismiss-keyboard',
       'true',
     ];
     const { options } = await parseProcessArgs();
     expect(options.ios).toEqual({
-      'device-id': '00008110-001234567890',
-      deviceId: '00008110-001234567890',
       'wda-port': 8100,
       wdaPort: 8100,
       'wda-host': '192.168.1.100',
       wdaHost: '192.168.1.100',
-      'use-wda': 'true',
-      useWda: 'true',
+      'session-id': 'external-session-id',
+      sessionId: 'external-session-id',
       'auto-dismiss-keyboard': 'true',
       autoDismissKeyboard: 'true',
     });
@@ -265,6 +261,8 @@ describe('parseProcessArgs', () => {
       '/custom/path/to/adb',
       '--android.ime-strategy',
       'yadb-for-non-ascii',
+      '--android.screenshot-strategy',
+      'always-yadb',
       '--android.remote-adb-host',
       '192.168.1.100',
       '--android.remote-adb-port',
@@ -284,6 +282,8 @@ describe('parseProcessArgs', () => {
       androidAdbPath: '/custom/path/to/adb',
       'ime-strategy': 'yadb-for-non-ascii',
       imeStrategy: 'yadb-for-non-ascii',
+      'screenshot-strategy': 'always-yadb',
+      screenshotStrategy: 'always-yadb',
       'remote-adb-host': '192.168.1.100',
       remoteAdbHost: '192.168.1.100',
       'remote-adb-port': 5037,
@@ -294,6 +294,46 @@ describe('parseProcessArgs', () => {
       autoDismissKeyboard: 'true',
       'keyboard-dismiss-strategy': 'esc-first',
       keyboardDismissStrategy: 'esc-first',
+    });
+  });
+
+  test('should parse HarmonyOS options in both key formats', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.device-id',
+      '127.0.0.1:5555',
+      '--harmony.hdc-path',
+      '/custom/path/to/hdc',
+      '--harmony.auto-dismiss-keyboard',
+      'false',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'device-id': '127.0.0.1:5555',
+      deviceId: '127.0.0.1:5555',
+      'hdc-path': '/custom/path/to/hdc',
+      hdcPath: '/custom/path/to/hdc',
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
+    });
+  });
+
+  test('should parse camelCase HarmonyOS boolean options as booleans', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--harmony.autoDismissKeyboard',
+      'false',
+    ];
+
+    const { options } = await parseProcessArgs();
+
+    expect(options.harmony).toEqual({
+      'auto-dismiss-keyboard': false,
+      autoDismissKeyboard: false,
     });
   });
 
@@ -311,8 +351,8 @@ describe('parseProcessArgs', () => {
       'always-yadb',
       '--ios.wda-port',
       '8100',
-      '--ios.device-id',
-      'test-ios',
+      '--ios.wda-host',
+      '127.0.0.1',
     ];
     const { options } = await parseProcessArgs();
 
@@ -336,8 +376,8 @@ describe('parseProcessArgs', () => {
     expect(options.ios).toEqual({
       'wda-port': 8100,
       wdaPort: 8100,
-      'device-id': 'test-ios',
-      deviceId: 'test-ios',
+      'wda-host': '127.0.0.1',
+      wdaHost: '127.0.0.1',
     });
   });
 
@@ -367,10 +407,14 @@ describe('parseProcessArgs', () => {
       '900',
       '--android.deviceId',
       'android-doc-device',
+      '--harmony.deviceId',
+      'harmony-doc-device',
       '--ios.wdaPort',
       '8100',
       '--ios.wdaHost',
       '127.0.0.1',
+      '--computer.displayId',
+      'main',
       '--dotenv-debug',
       '--dotenv-override',
     ];
@@ -397,9 +441,15 @@ describe('parseProcessArgs', () => {
       android: {
         deviceId: 'android-doc-device',
       },
+      harmony: {
+        deviceId: 'harmony-doc-device',
+      },
       ios: {
         wdaPort: 8100,
         wdaHost: '127.0.0.1',
+      },
+      computer: {
+        displayId: 'main',
       },
     });
   });
@@ -439,7 +489,9 @@ describe('parseProcessArgs', () => {
     const { options } = await parseProcessArgs();
     expect(options.web).toBeUndefined();
     expect(options.android).toBeUndefined();
+    expect(options.harmony).toBeUndefined();
     expect(options.ios).toBeUndefined();
+    expect(options.computer).toBeUndefined();
   });
 });
 
@@ -450,7 +502,10 @@ describe('launch server', () => {
     expect(serverResult).toBeDefined();
 
     const serverAddress = serverResult.server.address();
-    const staticServerUrl = `http://${serverAddress?.address}:${serverAddress?.port}`;
+    if (!serverAddress || typeof serverAddress === 'string') {
+      throw new Error('Expected the static server to expose a TCP address.');
+    }
+    const staticServerUrl = `http://${serverAddress.address}:${serverAddress.port}`;
 
     const contents = await fetch(`${staticServerUrl}/index.html`);
     expect(contents.status).toBe(200);

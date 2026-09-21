@@ -1,6 +1,9 @@
+import LegacyYamlNotice from './common/legacy-yaml-notice.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 # Automate with scripts in YAML
+
+<LegacyYamlNotice />
 
 In most cases, developers write automation scripts just to perform some smoke tests, like checking for the appearance of certain content or verifying that a key user path is accessible. In such situations, maintaining a large test project is unnecessary.
 
@@ -32,6 +35,8 @@ You can find a sample project that uses YAML scripts for automation here:
 - [Computer (Mac/Windows/Linux)](https://github.com/web-infra-dev/midscene-example/tree/main/computer/yaml-scripts-demo)
 
 :::
+
+## Set up API keys for model
 
 <SetupEnv />
 
@@ -86,9 +91,11 @@ agent:
   # Maximum AI replanning cycle limit, optional, defaults to 20 (40 for UI-TARS model)
   replanningCycleLimit: <number>
 
-  # Background knowledge to send to the AI model when calling aiAct, optional
-  aiActContext: <string>
-  # Legacy alias (aiActionContext) remains for backward compatibility, but avoid using it in new scripts
+  # Additional AI guidance, optional. default is the shared fallback.
+  aiContexts:
+    default: <string>
+    aiAct: <string>
+    aiQuery: <string>
 
   # Cache configuration, optional
   cache:
@@ -98,11 +105,12 @@ agent:
     id: <string>
 ```
 
-:::tip Agent Configuration Notes
+:::info Agent Configuration Notes
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. A legacy alias remains for backward compatibility (see inline comment) but should not be used in new scripts.
+- **aiContexts**: Provides additional AI guidance such as business facts, rules, constraints, or output requirements. If `default` is configured, it is used only when neither the current call nor the matching API has its own context. A per-call `context` overrides the API value, which overrides `default`; these values are not automatically merged. Empty strings explicitly clear inherited user context. For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](./provide-application-knowledge-to-gui-agent).
+- **aiActContext / aiActionContext**: Deprecated compatibility fields for `aiContexts.aiAct`; both remain supported. Resolution uses `aiContexts.aiAct ?? aiActContext ?? aiActionContext`; an empty string takes precedence over lower-priority aliases. Use `aiContexts.aiAct` in new YAML scripts.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
@@ -119,7 +127,9 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActContext: "If any popup appears, click agree. If login page appears, skip it."
+  aiContexts:
+    default: "Prices are displayed in USD."
+    aiAct: "If any popup appears, click agree. If login page appears, skip it."
   cache:
     id: "checkout-cache"
     strategy: "read-write"
@@ -272,9 +282,9 @@ android:
   # See the AndroidDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete Android Configuration Options
+:::info View Complete Android Configuration Options
 
-YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, please refer to [AndroidDevice Constructor in Android Integration Documentation](./android-getting-started#androiddevice-constructor).
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, see [`AndroidDevice`](./reference/#androiddevice) in the Android API reference.
 
 :::
 
@@ -373,9 +383,9 @@ ios:
   # See the IOSDevice constructor documentation for the complete list
 ```
 
-:::tip View Complete iOS Configuration Options
+:::info View Complete iOS Configuration Options
 
-YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, see [`IOSDevice`](./reference/#iosdevice) in the iOS API reference.
 
 :::
 
@@ -465,12 +475,13 @@ harmony:
   # The path to the HDC executable, optional.
   hdcPath: <path-to-hdc>
 
-  # Whether to auto dismiss keyboard after input, optional, defaults to false.
+  # Whether to auto dismiss keyboard after input, optional, defaults to true.
   autoDismissKeyboard: <boolean>
 
-  # Custom mapping of app names to bundle names, optional. User-provided mappings take precedence over defaults.
+  # Custom mapping of app names to bundle names or explicit bundle/ability targets, optional.
+  # User-provided mappings take precedence over defaults.
   appNameMapping:
-    <app-name>: <bundle-name>
+    <app-name>: <bundle-name-or-bundle/ability>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
@@ -482,16 +493,18 @@ harmony:
 
 **`launch` - Launch App**
 
-Launch a HarmonyOS app by its bundle name.
+Launch a HarmonyOS app by its bundle name or an explicit `bundle/Ability` target.
 
 ```yaml
 harmony:
   deviceId: 'test-device'
+  appNameMapping:
+    Video: com.example.video/PhoneAbility
 
 tasks:
   - name: Launch app
     flow:
-      - launch: com.example.app
+      - launch: Video
 ```
 
 **`terminate` - Terminate App**
@@ -556,7 +569,7 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
-:::tip Platform Notes
+:::info Platform Notes
 
 The demo scripts above use macOS commands. For Windows, modify the scripts to use:
 - `press Windows key` instead of `press Cmd+Space`
@@ -569,7 +582,7 @@ The demo scripts above use macOS commands. For Windows, modify the scripts to us
 
 The `tasks` part is an array that defines the steps of the script. Remember to add a `-` before each step to indicate it's an array item.
 
-The interfaces in the `flow` section are almost identical to the [API](./api.html), with some differences in parameter nesting levels.
+The interfaces in the `flow` section are almost identical to the [API](./reference/#common), with some differences in parameter nesting levels.
 
 ```yaml
 tasks:
@@ -729,11 +742,12 @@ Notes:
 - `fileChooserAccept` is only available for web pages (Playwright, Puppeteer, or Chrome extension Bridge mode).
 - Relative paths are resolved from the current command working directory, not from the YAML file directory.
 - If a file does not exist, the script throws before the tap is executed.
+- In Chrome extension Bridge mode, local file uploads require the Midscene extension's "Allow access to file URLs" permission. Enable it in `chrome://extensions` > Midscene > "Details", then reconnect Bridge mode from the target `http(s)://` page.
 - Chrome extension Bridge mode does not support directory upload inputs (`webkitdirectory` / `directory`). Use Playwright for directory uploads.
 
 #### Prompting with images
 
-For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api#prompting-with-images)), replace the string value with an object that contains:
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./reference/#prompting-with-images)), replace the string value with an object that contains:
 
 - `prompt`: The text prompt.
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
@@ -766,7 +780,7 @@ tasks:
 
 > The legacy nested format (where `locate` is indented under the action key, e.g. `aiTap: \n    locate: ...`) is still supported but not recommended.
 
-For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+For `aiAct` (and its `ai` shorthand), and for insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly under the action key.
 
 ```yaml
 tasks:

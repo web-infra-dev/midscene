@@ -16,15 +16,16 @@ export {
 export type { FrameworkTestCommandOptions } from './command';
 export type {
   CreateRstestYamlProjectOptions,
+  GeneratedRstestYamlModule,
   GeneratedRstestYamlProject,
   GeneratedYamlTestCase,
-  RstestYamlCaseOptions,
-  WebYamlRuntimeOptions,
 } from './rstest-project';
 export type {
   DefineYamlBatchTestOptions,
   DefineYamlCaseTestOptions,
-} from './rstest-entry';
+  RstestYamlCaseOptions,
+  WebYamlRuntimeOptions,
+} from './rstest-contract';
 export type { RunRstestYamlProjectOptions } from './rstest-runner';
 export type { RunYamlBatchInRstestOptions } from './yaml-batch';
 export type { RunYamlCaseOptions, RunYamlCaseResult } from './yaml-case';

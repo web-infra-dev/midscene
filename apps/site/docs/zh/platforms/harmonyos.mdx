@@ -1,0 +1,229 @@
+import SetupEnv from '../common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# HarmonyOS
+
+Midscene 通过 HarmonyOS Device Connector（HDC）连接 HarmonyOS NEXT 设备，可自动化 App 和系统界面。
+
+本指南介绍设备连接、模型配置、Playground 体验，以及 `@midscene/harmony` 的 JavaScript SDK 集成。
+
+## 效果展示
+
+**提示词：** 打开设置，找到“关于手机”，查看设备信息。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
+
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
+
+## 快速开始
+
+### 准备 HarmonyOS 设备
+
+在编写脚本前，先确认 HDC 能够连接设备且设备信任当前电脑。
+
+#### 安装 HDC
+
+HDC（HarmonyOS Device Connector）是 HarmonyOS 提供的命令行工具，用于与 HarmonyOS 设备通信。安装方式：
+
+- 通过 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 安装（推荐）
+- 通过 [HarmonyOS 命令行工具](https://developer.huawei.com/consumer/cn/download/) 单独安装
+
+验证 HDC 是否安装成功：
+
+```bash
+hdc version
+```
+
+出现版本号表示安装成功。
+
+:::info 配置 HDC 路径
+
+如果 `hdc` 不在系统 PATH 中，你可以设置 `HDC_HOME` 环境变量指向 HDC 所在目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+#### 启用开发者模式并验证设备
+
+在 HarmonyOS 设备的设置中进入 **开发者选项**，开启 **USB 调试**，然后用数据线连接设备。
+
+验证连接：
+
+```bash
+hdc list targets
+```
+
+出现设备 ID 代表连接成功：
+
+```log
+0123456789ABCDEF
+```
+
+### 启动 Playground
+
+Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/harmony` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/harmony-playground
+```
+
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
+
+## 使用 JavaScript SDK
+
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
+
+### 配置模型
+
+<SetupEnv />
+
+### 安装依赖
+
+<PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
+
+### 编写脚本
+
+下面的示例会在设备上打开设置应用，并执行滚动操作。
+
+```typescript title="./demo.ts"
+import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new HarmonyDevice(devices[0].deviceId, {});
+
+    const agent = new HarmonyAgent(device, {
+      aiContexts: {
+        aiAct: '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+      },
+    });
+    await device.connect();
+
+    // 打开设置应用
+    await agent.launch('com.huawei.hmos.settings');
+    await sleep(2000);
+
+    // 向下滚动列表
+    await agent.aiAct('scroll down one screen');
+
+    // 查询页面内容
+    const items = await agent.aiQuery(
+      'string[], 列表中可见的所有设置项名称',
+    );
+    console.log('设置项列表', items);
+
+    // 断言
+    await agent.aiAssert('页面中有设置项列表');
+  })(),
+);
+```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
+
+### 运行脚本
+
+```bash
+npx tsx demo.ts
+```
+
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
+
+## 进阶
+
+本节介绍如何自定义设备行为、把 Midscene 接入独立框架，以及排查 HDC 问题。更多构造函数参数位于 [API 参考的 HarmonyOS 章节](../reference/#harmonyos)。
+
+### 扩展 HarmonyOS 上的 Midscene
+
+使用 `defineAction()` 定义自定义动作。构造 `HarmonyDevice` 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const devices = await getConnectedDevices();
+const device = new HarmonyDevice(devices[0].deviceId, {
+  customActions: [ContinuousClick],
+});
+await device.connect();
+
+const agent = new HarmonyAgent(device);
+
+await agent.aiAct('click the red button five times');
+```
+
+关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](../integrate-with-any-interface#define-a-custom-action)。
+
+## 常见问题
+
+### 输入后键盘没有隐藏，或页面发生返回
+
+Midscene 在输入文本后会自动隐藏键盘。HarmonyOS 默认发送 ESC，以减少触发页面返回的概率。如果你的应用里 ESC 无法关闭键盘，可以切换为优先使用 Back：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+如果你的输入框监听了 Back 并执行清空或关闭操作，可以关闭自动隐藏键盘：
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+关闭后键盘不会自动隐藏，你可以使用 `aiAct` 指令手动隐藏键盘，例如 `await agent.aiAct('隐藏键盘')`。
+
+### 如何使用自定义的 HDC 路径？
+
+通过 `HDC_HOME` 环境变量指定 HDC 所在目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+也可以通过构造函数传入：
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
+- HarmonyOS 专属参数与接口：[API 参考（HarmonyOS）](../reference/#harmonyos)
+- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
+- 示例项目
+  - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)

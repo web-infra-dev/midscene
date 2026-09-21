@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import type { Agent } from '@midscene/core/agent';
+import type { Agent, AgentOpt } from '@midscene/core/agent';
 import type {
   LaunchPlaygroundResult,
   PlaygroundPreviewDescriptor,
@@ -8,8 +8,10 @@ import type {
   RegisteredPlaygroundPlatform,
 } from '@midscene/playground';
 import { getDebug } from '@midscene/shared/logger';
+import type { StudioAgentOptions } from '@shared/agent-options';
 import type { DiscoveredDevice } from '@shared/electron-contract';
 import type { PlaygroundBootstrap } from '@shared/electron-contract';
+import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import { ensureStudioShellEnvHydrated } from '../shell-env';
 import { createStudioCorsOptions } from './cors';
 import type { DeviceDiscoveryService } from './device-discovery';
@@ -39,7 +41,7 @@ type PlaygroundModule = typeof import('@midscene/playground');
 
 type StudioPuppeteerAgentConstructor = new (
   page: unknown,
-  opts?: { cacheId?: string },
+  opts?: AgentOpt & { cacheId?: string },
 ) => Agent;
 
 type StudioLaunchPuppeteerPage = (
@@ -72,6 +74,22 @@ type MultiPlatformRuntimeModules = {
 type StudioWebCleanup = {
   name: string;
   fn: () => void | Promise<void>;
+};
+
+type StudioWebNavigationFrame = {
+  isMainFrame?: () => boolean;
+  url?: () => string;
+};
+
+type StudioWebNavigationEventPage = {
+  on?: (
+    event: 'framenavigated',
+    listener: (frame: StudioWebNavigationFrame) => void,
+  ) => unknown;
+  off?: (
+    event: 'framenavigated',
+    listener: (frame: StudioWebNavigationFrame) => void,
+  ) => unknown;
 };
 
 type StudioDeviceDiscoveryService =
@@ -237,6 +255,26 @@ async function createScrcpyDeviceListSource(
   };
 }
 
+async function createStudioScrcpyController(
+  ScrcpyServer: AndroidPlaygroundModule['ScrcpyServer'],
+  deviceDiscoveryService?: StudioDeviceDiscoveryService,
+) {
+  const deviceListSource = deviceDiscoveryService
+    ? await createScrcpyDeviceListSource(deviceDiscoveryService)
+    : undefined;
+
+  // Unit tests and non-Electron consumers keep the in-process implementation.
+  // Studio uses a utility process so report/main-process stalls cannot starve
+  // the preview Socket.IO heartbeat.
+  if (process.versions.electron && deviceListSource) {
+    const { StudioScrcpySidecarProcess } = await import(
+      './scrcpy-sidecar-process'
+    );
+    return new StudioScrcpySidecarProcess(deviceListSource);
+  }
+  return new ScrcpyServer(deviceListSource ? { deviceListSource } : undefined);
+}
+
 const DEFAULT_STUDIO_WEB_URL = 'https://todomvc.com/examples/react/dist/';
 
 function normalizeWebUrl(value: unknown): string {
@@ -297,8 +335,10 @@ function createStudioWebPreviewDescriptor(): PlaygroundPreviewDescriptor {
 
 async function prepareStudioWebPlatform({
   loadWebModule,
+  getAgentOptions,
 }: {
   loadWebModule: typeof loadWebPlaygroundModule;
+  getAgentOptions: () => StudioAgentOptions;
 }): Promise<PreparedPlaygroundPlatform> {
   const webModule = await loadWebModule();
   // The two cleanup baskets are kept separate so the playground server's
@@ -340,13 +380,13 @@ async function prepareStudioWebPlatform({
               key: 'viewportWidth',
               label: 'Viewport width',
               type: 'number',
-              defaultValue: 1280,
+              defaultValue: DEFAULT_STUDIO_WEB_VIEWPORT.width,
             },
             {
               key: 'viewportHeight',
               label: 'Viewport height',
               type: 'number',
-              defaultValue: 768,
+              defaultValue: DEFAULT_STUDIO_WEB_VIEWPORT.height,
             },
             {
               key: 'headed',
@@ -377,11 +417,11 @@ async function prepareStudioWebPlatform({
         const url = normalizeWebUrl(input?.url);
         const viewportWidth = normalizeViewportDimension(
           input?.viewportWidth,
-          1280,
+          DEFAULT_STUDIO_WEB_VIEWPORT.width,
         );
         const viewportHeight = normalizeViewportDimension(
           input?.viewportHeight,
-          768,
+          DEFAULT_STUDIO_WEB_VIEWPORT.height,
         );
         const headed = input?.headed === true;
 
@@ -419,6 +459,7 @@ async function prepareStudioWebPlatform({
           }
 
           const agent = new webModule.PuppeteerAgent(currentPage, {
+            ...getAgentOptions(),
             cacheId: 'studio-web',
           });
           agentCleanup = [
@@ -432,6 +473,25 @@ async function prepareStudioWebPlatform({
 
         return {
           agentFactory,
+          subscribeNavigationEvents(listener) {
+            const page = currentPage as StudioWebNavigationEventPage | null;
+            if (!page || typeof page.on !== 'function') {
+              return () => {};
+            }
+            const onFrameNavigated = (frame: StudioWebNavigationFrame) => {
+              if (frame.isMainFrame?.() === false) {
+                return;
+              }
+              const navigatedUrl = frame.url?.();
+              if (navigatedUrl) {
+                listener({ url: navigatedUrl, timestamp: Date.now() });
+              }
+            };
+            page.on('framenavigated', onFrameNavigated);
+            return () => {
+              page.off?.('framenavigated', onFrameNavigated);
+            };
+          },
           displayName: url,
           metadata: {
             interfaceType: 'web',
@@ -462,6 +522,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule = loadHarmonyPlaygroundModule,
   loadIosModule = loadIosPlaygroundModule,
   loadWebModule = loadWebPlaygroundModule,
+  getAgentOptions = () => ({}),
 }: {
   loadAndroidModule?: typeof loadAndroidPlaygroundModule;
   loadComputerModule?: typeof loadComputerPlaygroundModule;
@@ -469,6 +530,7 @@ const createStudioPlatformSpecs = ({
   loadHarmonyModule?: typeof loadHarmonyPlaygroundModule;
   loadIosModule?: typeof loadIosPlaygroundModule;
   loadWebModule?: typeof loadWebPlaygroundModule;
+  getAgentOptions?: () => StudioAgentOptions;
 } = {}): StudioPlatformSpec[] => [
   {
     id: 'web',
@@ -478,6 +540,7 @@ const createStudioPlatformSpecs = ({
     prepare: async () =>
       prepareStudioWebPlatform({
         loadWebModule,
+        getAgentOptions,
       }),
   },
   {
@@ -489,14 +552,10 @@ const createStudioPlatformSpecs = ({
       const androidModule = await loadAndroidModule();
       return androidModule.androidPlaygroundPlatform.prepare({
         staticDir,
-        scrcpyServer: new androidModule.ScrcpyServer(
-          deviceDiscoveryService
-            ? {
-                deviceListSource: await createScrcpyDeviceListSource(
-                  deviceDiscoveryService,
-                ),
-              }
-            : undefined,
+        getAgentOptions,
+        scrcpyServer: await createStudioScrcpyController(
+          androidModule.ScrcpyServer,
+          deviceDiscoveryService,
         ),
       });
     },
@@ -508,7 +567,10 @@ const createStudioPlatformSpecs = ({
     staticDirPackage: '@midscene/ios',
     prepare: async (staticDir) => {
       const iosModule = await loadIosModule();
-      return iosModule.iosPlaygroundPlatform.prepare({ staticDir });
+      return iosModule.iosPlaygroundPlatform.prepare({
+        staticDir,
+        getAgentOptions,
+      });
     },
   },
   {
@@ -521,6 +583,7 @@ const createStudioPlatformSpecs = ({
       return harmonyModule.harmonyPlaygroundPlatform.prepare({
         staticDir,
         deferConnection: true,
+        getAgentOptions,
       });
     },
   },
@@ -538,6 +601,7 @@ const createStudioPlatformSpecs = ({
       return computerModule.computerPlaygroundPlatform.prepare({
         staticDir,
         getWindowController: () => null,
+        getAgentOptions,
       });
     },
   },
@@ -587,6 +651,7 @@ export function createMultiPlatformRuntimeService({
   loadWebModule?: typeof loadWebPlaygroundModule;
   resolvePackageStaticDir?: (packageName: string) => string;
 } = {}): PlaygroundRuntimeService {
+  let agentOptions: StudioAgentOptions = {};
   let bootstrap: PlaygroundBootstrap = {
     status: 'starting',
     serverUrl: null,
@@ -642,6 +707,7 @@ export function createMultiPlatformRuntimeService({
                         PuppeteerAgent: runtimeModules.PuppeteerAgent,
                         launchPuppeteerPage: runtimeModules.launchPuppeteerPage,
                       }),
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
                 {
@@ -649,20 +715,17 @@ export function createMultiPlatformRuntimeService({
                   label: 'Android',
                   description: 'Connect to an Android device via ADB',
                   staticDirPackage: '@midscene/android-playground',
-                  prepare: async (staticDir) =>
-                    runtimeModules.androidPlaygroundPlatform.prepare({
+                  prepare: async (staticDir) => {
+                    const scrcpyServer = await createStudioScrcpyController(
+                      runtimeModules.ScrcpyServer,
+                      deviceDiscoveryService,
+                    );
+                    return runtimeModules.androidPlaygroundPlatform.prepare({
                       staticDir,
-                      scrcpyServer: new runtimeModules.ScrcpyServer(
-                        deviceDiscoveryService
-                          ? {
-                              deviceListSource:
-                                await createScrcpyDeviceListSource(
-                                  deviceDiscoveryService,
-                                ),
-                            }
-                          : undefined,
-                      ),
-                    }),
+                      scrcpyServer,
+                      getAgentOptions: () => agentOptions,
+                    });
+                  },
                 },
                 {
                   id: 'ios',
@@ -670,7 +733,10 @@ export function createMultiPlatformRuntimeService({
                   description: 'Connect to an iOS device via WebDriverAgent',
                   staticDirPackage: '@midscene/ios',
                   prepare: (staticDir) =>
-                    runtimeModules.iosPlaygroundPlatform.prepare({ staticDir }),
+                    runtimeModules.iosPlaygroundPlatform.prepare({
+                      staticDir,
+                      getAgentOptions: () => agentOptions,
+                    }),
                 },
                 {
                   id: 'harmony',
@@ -681,6 +747,7 @@ export function createMultiPlatformRuntimeService({
                     runtimeModules.harmonyPlaygroundPlatform.prepare({
                       staticDir,
                       deferConnection: true,
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
                 {
@@ -692,6 +759,7 @@ export function createMultiPlatformRuntimeService({
                     runtimeModules.computerPlaygroundPlatform.prepare({
                       staticDir,
                       getWindowController: () => null,
+                      getAgentOptions: () => agentOptions,
                     }),
                 },
               ]
@@ -702,6 +770,7 @@ export function createMultiPlatformRuntimeService({
                 loadHarmonyModule,
                 loadIosModule,
                 loadWebModule,
+                getAgentOptions: () => agentOptions,
               }),
           resolvePackageStaticDir,
         );
@@ -763,5 +832,8 @@ export function createMultiPlatformRuntimeService({
       return start();
     },
     start,
+    async updateAgentOptions(nextOptions) {
+      agentOptions = nextOptions;
+    },
   };
 }

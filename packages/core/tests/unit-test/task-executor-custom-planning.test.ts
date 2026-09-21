@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
-const serviceCallerMock = vi.hoisted(() => {
+const serviceCallerMock = rs.hoisted(() => {
   class AIResponseParseError extends Error {
     rawResponse?: string;
     usage?: unknown;
@@ -22,15 +22,15 @@ const serviceCallerMock = vi.hoisted(() => {
 
   return {
     AIResponseParseError,
-    callAIWithStringResponse: vi.fn(),
+    callAIWithStringResponse: rs.fn(),
   };
 });
 
-vi.mock('@/ai-model/service-caller/index', () => {
+rs.mock('@/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
-vi.mock('../../src/ai-model/service-caller/index', () => {
+rs.mock('../../src/ai-model/service-caller/index', () => {
   return serviceCallerMock;
 });
 
@@ -62,8 +62,8 @@ function createCustomPlanningModel(plannedActions: any[] = []): ModelRuntime {
     config: {
       modelName: 'custom-planning-model',
       modelDescription: 'custom-planning-model',
-      intent: 'planning',
-      slot: 'planning',
+      intent: 'default',
+      slot: 'default',
     },
     adapter: new ResolvedModelAdapter(
       {
@@ -95,11 +95,11 @@ describe('TaskExecutor custom planning adapters', () => {
   beforeEach(() => {
     mockInterface = {
       interfaceType: 'web',
-      actionSpace: vi.fn(),
+      actionSpace: rs.fn(),
     } as unknown as AbstractInterface;
 
     mockService = {
-      contextRetrieverFn: vi.fn().mockResolvedValue({
+      contextRetrieverFn: rs.fn().mockResolvedValue({
         screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
         shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
@@ -113,7 +113,7 @@ describe('TaskExecutor custom planning adapters', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('passes normalized deepLocate through custom planning adapters', async () => {
@@ -127,12 +127,12 @@ describe('TaskExecutor custom planning adapters', () => {
         call: async () => undefined,
       },
     ];
-    mockInterface.actionSpace = vi.fn().mockReturnValue(actionSpace);
+    mockInterface.actionSpace = rs.fn().mockReturnValue(actionSpace);
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       replanningCycleLimit: 1,
       actionSpace,
     });
-    vi.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
+    rs.spyOn(taskExecutor, 'convertPlanToExecutable').mockResolvedValue({
       tasks: [],
       yamlFlow: [],
     } as any);
@@ -150,14 +150,12 @@ describe('TaskExecutor custom planning adapters', () => {
       },
     ];
     const customPlanningModel = createCustomPlanningModel(plannedActions);
-    vi.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
-    const convertSpy = vi.mocked(taskExecutor.convertPlanToExecutable);
+    rs.mocked(callAIWithStringResponse).mockResolvedValueOnce({ content: '' });
+    const convertSpy = rs.mocked(taskExecutor.convertPlanToExecutable);
     await taskExecutor.action(
       'prompt',
       customPlanningModel,
       defaultModel(),
-      true,
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -168,7 +166,12 @@ describe('TaskExecutor custom planning adapters', () => {
 
     expect(convertSpy).toHaveBeenCalledWith(
       expect.any(Array),
-      customPlanningModel,
+      // modelRuntime objects may carry extra CI-injected fields (e.g. an
+      // execution id) when running the full suite, so match on its core shape.
+      expect.objectContaining({
+        config: customPlanningModel.config,
+        adapter: customPlanningModel.adapter,
+      }),
       expect.anything(),
       expect.objectContaining({
         deepLocate: true,
@@ -176,7 +179,7 @@ describe('TaskExecutor custom planning adapters', () => {
     );
     expect(convertSpy.mock.calls[0][0][0].param.locate.deepLocate).toBe(true);
     expect(
-      convertSpy.mock.calls[0][0][0].param.locate.locatedPixelBbox,
-    ).toHaveLength(4);
+      convertSpy.mock.calls[0][0][0].param.locate.locatedPixelResult.center,
+    ).toHaveLength(2);
   });
 });

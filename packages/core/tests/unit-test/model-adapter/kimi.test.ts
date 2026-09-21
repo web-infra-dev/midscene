@@ -1,8 +1,9 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { kimiAdapters } from '@/ai-model/models/kimi';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const kimiAdapter = new ResolvedModelAdapter(kimiAdapters.kimi, 'kimi');
+const kimi3Adapter = new ResolvedModelAdapter(kimiAdapters.kimi3, 'kimi3');
 
 describe('kimi model adapter', () => {
   it('uses 0-1 normalized xy point coordinates for kimi locate results', () => {
@@ -12,12 +13,11 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [0.371, 0.109],
-        { preparedSize: { width: 1920, height: 1440 } },
-      );
-    expect(result).toEqual([693, 142, 731, 171]);
+    const result = locateAdapter.element.resultCodec.toPixelResult(
+      [0.371, 0.109],
+      { preparedSize: { width: 1920, height: 1440 } },
+    );
+    expect(result).toEqual({ center: [712, 157] });
   });
 
   it('accepts pixel xy point coordinates for kimi locate results', () => {
@@ -27,12 +27,10 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [960, 540],
-        { preparedSize: { width: 1920, height: 1080 } },
-      );
-    expect(result).toEqual([950, 530, 970, 550]);
+    const result = locateAdapter.element.resultCodec.toPixelResult([960, 540], {
+      preparedSize: { width: 1920, height: 1080 },
+    });
+    expect(result).toEqual({ center: [960, 540] });
   });
 
   it('accepts pixel xy point strings for kimi locate results', () => {
@@ -42,12 +40,10 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        '960 540',
-        { preparedSize: { width: 1920, height: 1080 } },
-      );
-    expect(result).toEqual([950, 530, 970, 550]);
+    const result = locateAdapter.element.resultCodec.toPixelResult('960 540', {
+      preparedSize: { width: 1920, height: 1080 },
+    });
+    expect(result).toEqual({ center: [960, 540] });
   });
 
   it('rejects out-of-range kimi pixel point coordinates', () => {
@@ -57,11 +53,11 @@ describe('kimi model adapter', () => {
       throw new Error('kimi should use standard locate adapter');
     }
 
-    expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [2000, 540],
-        { preparedSize: { width: 1920, height: 1080 } },
-      ),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult([2000, 540], {
+          preparedSize: { width: 1920, height: 1080 },
+        }).rect,
     ).toThrow(/exceed image size/);
   });
 
@@ -150,12 +146,53 @@ describe('kimi model adapter', () => {
     });
   });
 
-  it('uses json_object response format for kimi locate intent', () => {
+  it('uses json_object response format when expected for kimi', () => {
     const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
-      intent: 'default',
+      expectedJsonObjectResponse: true,
       userConfig: {},
     });
 
     expect(result.config.response_format).toEqual({ type: 'json_object' });
+  });
+
+  it('does not use json_object response format when disabled', () => {
+    const result = kimiAdapter.chatCompletion.buildChatCompletionParams({
+      expectedJsonObjectResponse: true,
+      userConfig: { responseFormat: 'none' },
+    });
+
+    expect(result.config.response_format).toBeUndefined();
+  });
+});
+
+describe('kimi3 model adapter', () => {
+  it('replays the raw assistant message for multi-turn reasoning', () => {
+    expect(kimi3Adapter.chatCompletion.replayRawAssistantMessage).toBe(true);
+    expect(kimiAdapter.chatCompletion.replayRawAssistantMessage).toBe(false);
+  });
+
+  it('does not send reasoning or thinking config when unset', () => {
+    const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
+      userConfig: {},
+    });
+
+    expect(result.config).toEqual({
+      temperature: undefined,
+    });
+  });
+
+  it('maps reasoning effort to the Kimi 3 top-level config', () => {
+    const result = kimi3Adapter.chatCompletion.buildChatCompletionParams({
+      userConfig: { reasoningEffort: 'max', reasoningEnabled: false },
+    });
+
+    expect(kimi3Adapter.chatCompletion.unsupportedUserConfig).toEqual([
+      'reasoningEnabled',
+      'reasoningBudget',
+    ]);
+    expect(result.config).toEqual({
+      temperature: undefined,
+      reasoning_effort: 'max',
+    });
   });
 });

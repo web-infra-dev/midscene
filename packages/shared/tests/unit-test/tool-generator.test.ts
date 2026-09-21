@@ -1,12 +1,26 @@
-import { existsSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  type ObservationArtifactAdapter,
+  observationArtifactAdapterSymbol,
+} from '@/agent-tools/observation-artifact';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
 } from '@/agent-tools/tool-generator';
 import { composeUserPrompt } from '@/agent-tools/user-prompt';
 import { withCliVerboseContext } from '@/cli';
-import { describe, expect, it, vi } from 'vitest';
+import * as cliInterrupt from '@/cli/interrupt';
+import { createRecordCliCommand } from '@/cli/record-command';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const multimodalPromptSchema = z.object({
@@ -44,15 +58,25 @@ const actionSpace = [
 
 const screenshotBase64 = 'data:image/png;base64,Zm9v';
 
+function withObservationArtifactAdapter<T extends object>(
+  agent: T,
+  adapter: ObservationArtifactAdapter,
+): T {
+  Object.defineProperty(agent, observationArtifactAdapterSymbol, {
+    value: adapter,
+  });
+  return agent;
+}
+
 describe('generateToolsFromActionSpace', () => {
   it('passes structured locate extras through callActionInActionSpace and keeps locate options at top level', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const page = {
-      screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
     };
     const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
       callActionInActionSpace,
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page,
     }));
 
@@ -91,12 +115,12 @@ describe('generateToolsFromActionSpace', () => {
   });
 
   it('normalizes string locate shorthand before direct action execution', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
       callActionInActionSpace,
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
       },
     }));
 
@@ -123,9 +147,9 @@ describe('generateToolsFromActionSpace', () => {
         },
       ],
       async () => ({
-        getActionSpace: vi.fn().mockResolvedValue([]),
+        getActionSpace: rs.fn().mockResolvedValue([]),
         page: {
-          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
         },
       }),
     );
@@ -134,12 +158,12 @@ describe('generateToolsFromActionSpace', () => {
   });
 
   it('falls back to aiAction when direct action execution is unavailable', async () => {
-    const aiAction = vi.fn().mockResolvedValue(undefined);
+    const aiAction = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
       aiAction,
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
       },
     }));
 
@@ -155,7 +179,7 @@ describe('generateToolsFromActionSpace', () => {
   });
 
   it('includes direct action return values in the tool result', async () => {
-    const callActionInActionSpace = vi
+    const callActionInActionSpace = rs
       .fn()
       .mockResolvedValue('pm clear output');
     const [tool] = generateToolsFromActionSpace(
@@ -170,9 +194,9 @@ describe('generateToolsFromActionSpace', () => {
       ],
       async () => ({
         callActionInActionSpace,
-        getActionSpace: vi.fn().mockResolvedValue([]),
+        getActionSpace: rs.fn().mockResolvedValue([]),
         page: {
-          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
         },
       }),
     );
@@ -194,14 +218,14 @@ describe('generateToolsFromActionSpace', () => {
   });
 
   it('passes raw args to the agent getter while stripping init args from action payload', async () => {
-    const callActionInActionSpace = vi
+    const callActionInActionSpace = rs
       .fn()
       .mockResolvedValue('pm clear output');
-    const getAgent = vi.fn().mockResolvedValue({
+    const getAgent = rs.fn().mockResolvedValue({
       callActionInActionSpace,
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
       },
     });
     const [tool] = generateToolsFromActionSpace(
@@ -247,9 +271,9 @@ describe('generateToolsFromActionSpace', () => {
     const [actionTool] = generateToolsFromActionSpace(
       actionSpace,
       async () => ({
-        getActionSpace: vi.fn().mockResolvedValue([]),
+        getActionSpace: rs.fn().mockResolvedValue([]),
         page: {
-          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
         },
       }),
       undefined,
@@ -258,9 +282,9 @@ describe('generateToolsFromActionSpace', () => {
     );
     const commonTools = generateCommonTools(
       async () => ({
-        getActionSpace: vi.fn().mockResolvedValue([]),
+        getActionSpace: rs.fn().mockResolvedValue([]),
         page: {
-          screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+          screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
         },
       }),
       initArgSchema,
@@ -286,6 +310,35 @@ describe('generateToolsFromActionSpace', () => {
       initArgCliMetadata,
     );
 
+    const recordTool = createRecordCliCommand(
+      async () => ({
+        getActionSpace: rs.fn().mockResolvedValue([]),
+      }),
+      initArgSchema,
+      initArgCliMetadata,
+    );
+    expect(commonTools.find((tool) => tool.name === 'record')).toBeUndefined();
+    expect(recordTool.schema).toEqual(
+      expect.objectContaining({
+        action: expect.anything(),
+        output: expect.anything(),
+        'android.deviceId': expect.anything(),
+      }),
+    );
+    expect(recordTool.cli).toEqual({
+      positionals: ['action'],
+      options: expect.objectContaining({
+        intervalMs: {
+          preferredName: 'interval-ms',
+          aliases: ['intervalMs'],
+        },
+        'android.deviceId': {
+          preferredName: 'device-id',
+          aliases: ['deviceId'],
+        },
+      }),
+    });
+
     expect(commonTools.find((tool) => tool.name === 'assert')?.schema).toEqual(
       expect.objectContaining({
         prompt: expect.anything(),
@@ -298,24 +351,26 @@ describe('generateToolsFromActionSpace', () => {
   });
 
   it('includes aiAction return values in the common act tool result', async () => {
-    const aiAction = vi.fn().mockResolvedValue('Midscene');
+    const aiAction = rs.fn().mockResolvedValue('Midscene');
     const commonTools = generateCommonTools(async () => ({
       aiAction,
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page: {
-        screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64),
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
       },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
 
     const result = await actTool?.handler({
       prompt: 'return the first Google result heading for Midscene',
+      fileChooserAllowedDir: './fixtures',
     });
 
     expect(aiAction).toHaveBeenCalledWith(
       'return the first Google result heading for Midscene',
       {
         deepThink: false,
+        fileChooserAllowedDir: './fixtures',
       },
     );
     expect(result).toEqual({
@@ -327,11 +382,158 @@ describe('generateToolsFromActionSpace', () => {
     });
   });
 
+  it('stops a foreground recording on Ctrl+C before writing its artifact', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'midscene-record-test-'));
+    const output = join(tempDir, 'toast-observation.json');
+    const sourceFrame = join(tempDir, 'source.png');
+    writeFileSync(sourceFrame, Buffer.from('recorded-frame'));
+    const dispose = rs.fn().mockResolvedValue(undefined);
+    const exportRecord = rs.fn().mockResolvedValue({
+      type: 'midscene_ui_observation',
+      version: 1,
+      startedAt: 50,
+      endedAt: 150,
+      frames: [
+        {
+          path: sourceFrame,
+          mimeType: 'image/png',
+          capturedAt: 100,
+        },
+      ],
+      shotSize: { width: 100, height: 50 },
+      shrunkShotToLogicalRatio: 1,
+    });
+    const stop = rs.fn().mockResolvedValue({
+      frameCount: 1,
+      startedAt: 50,
+      endedAt: 150,
+      aiAssert: rs.fn(),
+    });
+    const startObserving = rs.fn().mockResolvedValue({
+      stop,
+      bufferedFrameCount: 1,
+      dispose,
+    });
+    const getAgent = rs.fn(async () =>
+      withObservationArtifactAdapter(
+        {
+          startObserving,
+          getActionSpace: rs.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
+          },
+        },
+        {
+          exportRecord,
+          loadRecord: rs.fn(),
+        },
+      ),
+    );
+    const recordTool = createRecordCliCommand(getAgent);
+    const interruptDispose = rs.fn();
+    const interruptSpy = rs
+      .spyOn(cliInterrupt, 'createCliInterruptWaiter')
+      .mockReturnValue({
+        result: Promise.resolve('sigint'),
+        dispose: interruptDispose,
+      });
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () =>
+        recordTool.handler({
+          action: 'start',
+          output,
+          intervalMs: 250,
+          maxFrames: 12,
+          watchdogMs: 5000,
+        }),
+    );
+
+    expect(startObserving).toHaveBeenCalledWith({
+      intervalMs: 250,
+      maxFrames: 12,
+      watchdogMs: 5000,
+    });
+    expect(interruptSpy).toHaveBeenCalledWith(5000);
+    expect(getAgent).toHaveBeenCalledTimes(1);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(exportRecord).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(interruptDispose).toHaveBeenCalledOnce();
+    expect(existsSync(output)).toBe(true);
+    expect(startObserving.mock.invocationCallOrder[0]).toBeLessThan(
+      stop.mock.invocationCallOrder[0],
+    );
+    expect(dispose.mock.invocationCallOrder[0]).toBeLessThan(
+      interruptDispose.mock.invocationCallOrder[0],
+    );
+    expect(result).toEqual({
+      content: [{ type: 'text', text: `Observation record saved: ${output}` }],
+    });
+    interruptSpy.mockRestore();
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('fails clearly when startObserving is unavailable', async () => {
+    const consoleErrorSpy = rs
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const recordTool = createRecordCliCommand(async () => ({
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: {
+        screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
+      },
+    }));
+
+    const result = await withCliVerboseContext(
+      {
+        enabled: false,
+        scriptName: 'midscene-web',
+        commandName: 'record',
+      },
+      () => recordTool.handler({ action: 'start' }),
+    );
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Failed to execute record: record is not supported because this agent does not provide startObserving',
+        },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('rejects a missing record operation before creating an agent', async () => {
+    const getAgent = rs.fn();
+    const recordTool = createRecordCliCommand(getAgent);
+
+    const missingAction = await recordTool.handler({});
+
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(missingAction).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'record requires the start operation (for example: record start --output ./observation.json)',
+        },
+      ],
+      isError: true,
+    });
+  });
+
   it('records take_screenshot in reports with the captured screenshot', async () => {
-    const screenshotBase64Fn = vi.fn().mockResolvedValue(screenshotBase64);
-    const recordToReport = vi.fn().mockResolvedValue(undefined);
+    const screenshotBase64Fn = rs.fn().mockResolvedValue(screenshotBase64);
+    const recordToReport = rs.fn().mockResolvedValue(undefined);
     const commonTools = generateCommonTools(async () => ({
-      getActionSpace: vi.fn().mockResolvedValue([]),
+      getActionSpace: rs.fn().mockResolvedValue([]),
       page: {
         screenshotBase64: screenshotBase64Fn,
       },
@@ -524,11 +726,11 @@ describe('generateCommonTools — assert image prompts', () => {
   const screenshotBase64 = 'data:image/png;base64,Zm9v';
 
   it('passes prompt through unchanged when no images are supplied', async () => {
-    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
     const tools = generateCommonTools(async () => ({
       aiAssert,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     const assert = tools.find((t) => t.name === 'assert')!;
@@ -538,11 +740,11 @@ describe('generateCommonTools — assert image prompts', () => {
   });
 
   it('forwards the custom failure message to aiAssert', async () => {
-    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
     const tools = generateCommonTools(async () => ({
       aiAssert,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     const assert = tools.find((t) => t.name === 'assert')!;
@@ -557,12 +759,147 @@ describe('generateCommonTools — assert image prompts', () => {
     );
   });
 
-  it('forwards images to aiAssert as a TUserPrompt-style object', async () => {
-    const aiAssert = vi.fn().mockResolvedValue(undefined);
+  it('loads an observation record and forwards it to aiAssert', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'midscene-assert-record-test-'));
+    const recordPath = join(tempDir, 'toast-observation.json');
+    const framesDir = join(tempDir, 'toast-observation.frames');
+    mkdirSync(framesDir, { recursive: true });
+    const framePath = join(framesDir, 'frame.png');
+    writeFileSync(framePath, Buffer.from('frame'));
+    const observationRecord = {
+      type: 'midscene_ui_observation' as const,
+      version: 1 as const,
+      startedAt: 50,
+      endedAt: 250,
+      frames: [
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 100,
+        },
+        {
+          path: 'toast-observation.frames/frame.png',
+          mimeType: 'image/png' as const,
+          capturedAt: 200,
+        },
+      ],
+      shotSize: { width: 100, height: 100 },
+      shrunkShotToLogicalRatio: 1,
+    };
+    writeFileSync(recordPath, JSON.stringify(observationRecord), 'utf8');
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
+    const observationAssert = rs.fn().mockResolvedValue(undefined);
+    const dispose = rs.fn().mockResolvedValue(undefined);
+    const loadRecord = rs.fn().mockReturnValue({
+      frameCount: 2,
+      startedAt: 50,
+      endedAt: 250,
+      aiAssert: observationAssert,
+      dispose,
+    });
+    const tools = generateCommonTools(async () =>
+      withObservationArtifactAdapter(
+        {
+          aiAssert,
+          getActionSpace: rs.fn().mockResolvedValue([]),
+          page: {
+            screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64),
+          },
+        },
+        {
+          exportRecord: rs.fn(),
+          loadRecord,
+        },
+      ),
+    );
+
+    const assert = tools.find((t) => t.name === 'assert')!;
+    const result = await assert.handler({
+      prompt: 'a success toast appeared',
+      record: recordPath,
+    });
+
+    expect(loadRecord).toHaveBeenCalledWith({
+      ...observationRecord,
+      frames: observationRecord.frames.map((frame) => ({
+        ...frame,
+        path: framePath,
+      })),
+    });
+    expect(observationAssert).toHaveBeenCalledWith(
+      'a success toast appeared',
+      undefined,
+    );
+    expect(aiAssert).not.toHaveBeenCalled();
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(result).toEqual({
+      content: [{ type: 'text', text: 'Assertion passed.' }],
+    });
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('rejects a record whose image path escapes the manifest directory', async () => {
+    const tempDir = mkdtempSync(
+      join(tmpdir(), 'midscene-invalid-record-test-'),
+    );
+    const recordPath = join(tempDir, 'invalid-observation.json');
+    writeFileSync(
+      recordPath,
+      JSON.stringify({
+        type: 'midscene_ui_observation',
+        version: 1,
+        startedAt: 50,
+        endedAt: 150,
+        frames: [
+          {
+            path: '../not-an-image.png',
+            mimeType: 'image/png',
+            capturedAt: 100,
+          },
+        ],
+        shotSize: { width: 100, height: 100 },
+        shrunkShotToLogicalRatio: 1,
+      }),
+      'utf8',
+    );
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
+    const consoleErrorSpy = rs
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const tools = generateCommonTools(async () => ({
       aiAssert,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const assert = tools.find((tool) => tool.name === 'assert')!;
+    const result = await assert.handler({
+      prompt: 'a success toast appeared',
+      record: recordPath,
+    });
+
+    expect(aiAssert).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: expect.stringContaining(
+            'Invalid UI observation record at frames.0.path',
+          ),
+        },
+      ],
+      isError: true,
+    });
+    consoleErrorSpy.mockRestore();
+    rmSync(tempDir, { recursive: true });
+  });
+
+  it('forwards images to aiAssert as a TUserPrompt-style object', async () => {
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAssert,
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     const assert = tools.find((t) => t.name === 'assert')!;
@@ -582,11 +919,11 @@ describe('generateCommonTools — assert image prompts', () => {
   });
 
   it('forwards a local-path url verbatim so core can resolve it', async () => {
-    const aiAssert = vi.fn().mockResolvedValue(undefined);
+    const aiAssert = rs.fn().mockResolvedValue(undefined);
     const tools = generateCommonTools(async () => ({
       aiAssert,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     const assert = tools.find((t) => t.name === 'assert')!;
@@ -607,37 +944,111 @@ describe('generateCommonTools — assert image prompts', () => {
 
   it('exposes images and convertHttpImage2Base64 on the assert schema (no imageFiles flag)', () => {
     const tools = generateCommonTools(async () => ({
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     const assertSchema = tools.find((t) => t.name === 'assert')!.schema;
     expect(assertSchema).toHaveProperty('prompt');
     expect(assertSchema).toHaveProperty('message');
+    expect(assertSchema).toHaveProperty('record');
     expect(assertSchema).toHaveProperty('image');
     expect(assertSchema).toHaveProperty('imageName');
     expect(assertSchema).toHaveProperty('convertHttpImage2Base64');
     expect(assertSchema).not.toHaveProperty('images');
     expect(assertSchema).not.toHaveProperty('imageFiles');
 
-    // act schema stays string-only because the underlying core aiAct
-    // does not yet parse multimodal prompts.
+    // act mirrors assert: it exposes the same reference-image flags, which
+    // core aiAct forwards to the planner as reference images.
     const actSchema = tools.find((t) => t.name === 'act')!.schema;
     expect(actSchema).toHaveProperty('prompt');
+    expect(actSchema).toHaveProperty('image');
+    expect(actSchema).toHaveProperty('imageName');
+    expect(actSchema).toHaveProperty('convertHttpImage2Base64');
     expect(actSchema).not.toHaveProperty('images');
     expect(actSchema).not.toHaveProperty('imageFiles');
   });
 });
 
+describe('generateCommonTools — act image prompts', () => {
+  const screenshotBase64 = 'data:image/png;base64,Zm9v';
+
+  it('passes the prompt through unchanged when no images are supplied', async () => {
+    const aiAction = rs.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({ prompt: 'click the login button' });
+
+    expect(aiAction).toHaveBeenCalledWith('click the login button', {
+      deepThink: false,
+    });
+  });
+
+  it('forwards images to aiAction as a TUserPrompt-style object', async () => {
+    const aiAction = rs.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({
+      prompt: 'tap the icon that matches the reference image',
+      image: 'https://example.com/icon.png',
+      imageName: 'target',
+    });
+
+    expect(aiAction).toHaveBeenCalledWith(
+      {
+        prompt: 'tap the icon that matches the reference image',
+        images: [{ name: 'target', url: 'https://example.com/icon.png' }],
+      },
+      { deepThink: false },
+    );
+  });
+
+  it('forwards a local-path url verbatim so core can resolve it', async () => {
+    const aiAction = rs.fn().mockResolvedValue(undefined);
+    const tools = generateCommonTools(async () => ({
+      aiAction,
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
+    }));
+
+    const act = tools.find((t) => t.name === 'act')!;
+    await act.handler({
+      prompt: 'tap the icon that matches the supplied image',
+      image: './fixtures/icon.png',
+      imageName: 'icon',
+      convertHttpImage2Base64: true,
+    });
+
+    expect(aiAction).toHaveBeenCalledWith(
+      {
+        prompt: 'tap the icon that matches the supplied image',
+        images: [{ name: 'icon', url: './fixtures/icon.png' }],
+        convertHttpImage2Base64: true,
+      },
+      { deepThink: false },
+    );
+  });
+});
+
 describe('toolDefaults (deep locate / deep think)', () => {
   it('defaults locate.deepLocate to true for action tools when enabled', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(
       actionSpace,
       async () => ({
         callActionInActionSpace,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -656,13 +1067,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('keeps an explicit locate.deepLocate=false even when forced', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(
       actionSpace,
       async () => ({
         callActionInActionSpace,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -683,13 +1094,13 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('treats an explicit deepThink alias as deepLocate already set', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(
       actionSpace,
       async () => ({
         callActionInActionSpace,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -710,11 +1121,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('does not inject deepLocate for action tools when disabled', async () => {
-    const callActionInActionSpace = vi.fn().mockResolvedValue(undefined);
+    const callActionInActionSpace = rs.fn().mockResolvedValue(undefined);
     const [tool] = generateToolsFromActionSpace(actionSpace, async () => ({
       callActionInActionSpace,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
 
     await tool.handler({ locate: 'the login button' });
@@ -725,12 +1136,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('passes deepLocate to the act tool when enabled', async () => {
-    const aiAction = vi.fn().mockResolvedValue('done');
+    const aiAction = rs.fn().mockResolvedValue('done');
     const commonTools = generateCommonTools(
       async () => ({
         aiAction,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -753,7 +1164,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     let progressListener:
       | ((event: Record<string, unknown>) => void)
       | undefined;
-    const unsubscribe = vi.fn();
+    const unsubscribe = rs.fn();
     const reportFile = join(
       process.cwd(),
       'midscene_run/report/midscene-report.html',
@@ -851,7 +1262,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         locate: {
           prompt: 'Submit button',
           bbox: [8, 18, 12, 22],
-          locatedPixelBbox: [80, 180, 120, 220],
+          locatedPixelResult: { center: [100, 200] },
         },
       },
     };
@@ -935,7 +1346,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         tasks,
       });
     };
-    const aiAction = vi.fn().mockImplementation(async () => {
+    const aiAction = rs.fn().mockImplementation(async () => {
       emitProgress({
         event: 'start',
         prompt: 'open settings',
@@ -1035,11 +1446,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       emitDump([plan1, locate1, tapFinished, plan2, sleepFinished, plan3]);
       return 'Settings opened.';
     });
-    const addDumpUpdateListener = vi.fn((listener) => {
+    const addDumpUpdateListener = rs.fn((listener) => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addProgressListener = vi.fn((listener) => {
+    const addProgressListener = rs.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
@@ -1048,11 +1459,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       addProgressListener,
       addDumpUpdateListener,
       reportFile,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await withCliVerboseContext(
       {
@@ -1121,17 +1532,17 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('does not render aiAct dump progress without core progress listener', async () => {
-    const unsubscribe = vi.fn();
-    const aiAction = vi.fn().mockResolvedValue('Settings opened.');
-    const addDumpUpdateListener = vi.fn(() => unsubscribe);
+    const unsubscribe = rs.fn();
+    const aiAction = rs.fn().mockResolvedValue('Settings opened.');
+    const addDumpUpdateListener = rs.fn(() => unsubscribe);
     const commonTools = generateCommonTools(async () => ({
       aiAction,
       addDumpUpdateListener,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await withCliVerboseContext(
       {
@@ -1162,7 +1573,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     let progressListener:
       | ((event: Record<string, unknown>) => void)
       | undefined;
-    const unsubscribe = vi.fn();
+    const unsubscribe = rs.fn();
     const reportFile = join(
       process.cwd(),
       'midscene_run/report/midscene-report.html',
@@ -1177,7 +1588,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         data,
       });
     };
-    const aiAction = vi.fn().mockImplementation(async () => {
+    const aiAction = rs.fn().mockImplementation(async () => {
       emitProgress({
         event: 'start',
         prompt: 'open settings',
@@ -1237,11 +1648,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       });
       throw new Error('Task failed: The settings entry is not visible.');
     });
-    const addDumpUpdateListener = vi.fn((listener) => {
+    const addDumpUpdateListener = rs.fn((listener) => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addProgressListener = vi.fn((listener) => {
+    const addProgressListener = rs.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
@@ -1250,12 +1661,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
       addProgressListener,
       addDumpUpdateListener,
       reportFile,
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const consoleErrorSpy = vi
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleErrorSpy = rs
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 
@@ -1296,7 +1707,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
     let progressListener:
       | ((event: Record<string, unknown>) => void)
       | undefined;
-    const unsubscribe = vi.fn();
+    const unsubscribe = rs.fn();
     const inlineScreenshot = {
       extension: 'png',
       rawBase64: 'Zm9v',
@@ -1308,7 +1719,7 @@ describe('toolDefaults (deep locate / deep think)', () => {
         storage: 'inline',
       }),
     };
-    const aiAction = vi.fn().mockImplementation(async () => {
+    const aiAction = rs.fn().mockImplementation(async () => {
       progressListener?.({
         scope: 'aiAct',
         sequence: 1,
@@ -1342,11 +1753,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       });
       return 'done';
     });
-    const addDumpUpdateListener = vi.fn((listener) => {
+    const addDumpUpdateListener = rs.fn((listener) => {
       dumpListener = listener;
       return unsubscribe;
     });
-    const addProgressListener = vi.fn((listener) => {
+    const addProgressListener = rs.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
@@ -1355,11 +1766,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       addProgressListener,
       addDumpUpdateListener,
       reportFile: '/tmp/midscene-report.html',
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await withCliVerboseContext(
       {
@@ -1400,8 +1811,8 @@ describe('toolDefaults (deep locate / deep think)', () => {
     let progressListener:
       | ((event: Record<string, unknown>) => void)
       | undefined;
-    const unsubscribe = vi.fn();
-    const aiAction = vi.fn().mockImplementation(async () => {
+    const unsubscribe = rs.fn();
+    const aiAction = rs.fn().mockImplementation(async () => {
       progressListener?.({
         scope: 'aiAct',
         sequence: 1,
@@ -1421,8 +1832,8 @@ describe('toolDefaults (deep locate / deep think)', () => {
       });
       return 'done';
     });
-    const addDumpUpdateListener = vi.fn(() => unsubscribe);
-    const addProgressListener = vi.fn((listener) => {
+    const addDumpUpdateListener = rs.fn(() => unsubscribe);
+    const addProgressListener = rs.fn((listener) => {
       progressListener = listener;
       return unsubscribe;
     });
@@ -1431,11 +1842,11 @@ describe('toolDefaults (deep locate / deep think)', () => {
       addProgressListener,
       addDumpUpdateListener,
       reportFile: '/tmp/midscene-report.html',
-      getActionSpace: vi.fn().mockResolvedValue([]),
-      page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+      getActionSpace: rs.fn().mockResolvedValue([]),
+      page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
     }));
     const actTool = commonTools.find((tool) => tool.name === 'act');
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = rs.spyOn(console, 'log').mockImplementation(() => {});
 
     await withCliVerboseContext(
       {
@@ -1489,12 +1900,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('lets an explicit act deepLocate arg override the server default', async () => {
-    const aiAction = vi.fn().mockResolvedValue('done');
+    const aiAction = rs.fn().mockResolvedValue('done');
     const commonTools = generateCommonTools(
       async () => ({
         aiAction,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -1511,12 +1922,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('plans the act tool with deepThink when enabled', async () => {
-    const aiAction = vi.fn().mockResolvedValue('done');
+    const aiAction = rs.fn().mockResolvedValue('done');
     const commonTools = generateCommonTools(
       async () => ({
         aiAction,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -1532,12 +1943,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('lets an explicit act deepThink arg override the server default', async () => {
-    const aiAction = vi.fn().mockResolvedValue('done');
+    const aiAction = rs.fn().mockResolvedValue('done');
     const commonTools = generateCommonTools(
       async () => ({
         aiAction,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,
@@ -1553,12 +1964,12 @@ describe('toolDefaults (deep locate / deep think)', () => {
   });
 
   it('applies both locate and act defaults together', async () => {
-    const aiAction = vi.fn().mockResolvedValue('done');
+    const aiAction = rs.fn().mockResolvedValue('done');
     const commonTools = generateCommonTools(
       async () => ({
         aiAction,
-        getActionSpace: vi.fn().mockResolvedValue([]),
-        page: { screenshotBase64: vi.fn().mockResolvedValue(screenshotBase64) },
+        getActionSpace: rs.fn().mockResolvedValue([]),
+        page: { screenshotBase64: rs.fn().mockResolvedValue(screenshotBase64) },
       }),
       undefined,
       undefined,

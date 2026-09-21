@@ -8,6 +8,7 @@ import type {
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,
+  DefaultBridgeServerHost,
   DefaultBridgeServerPort,
   KeyboardEvent,
   MouseEvent,
@@ -101,7 +102,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
 
   private async setupBridgeClient() {
     const endpoint =
-      this.serverEndpoint || `ws://localhost:${DefaultBridgeServerPort}`;
+      this.serverEndpoint ||
+      `ws://${DefaultBridgeServerHost}:${DefaultBridgeServerPort}`;
 
     // Create confirmation gate BEFORE establishing connection,
     // so that any calls received immediately after connection are blocked
@@ -172,6 +174,9 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 
+        // Generic method lookup. Methods like `setWaterFlowAnimationEnabled`
+        // and `getWaterFlowAnimationEnabled` are inherited from
+        // ChromeExtensionProxyPage and found via `this[method]`.
         if (!this[method as keyof ChromeExtensionProxyPage]) {
           this.onLogMessage(`method not found: ${method}`, 'log');
           return undefined;
@@ -230,7 +235,17 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       forceSameTabNavigation: true,
     },
   ) {
-    const tab = await chrome.tabs.create({ url });
+    // Set the water-flow animation flag BEFORE any debugger commands are
+    // sent (which trigger enableWaterFlowAnimation via sendCommandToDebugger).
+    // Otherwise the animation gets injected during the connection flow
+    // before the CLI side's setWaterFlowAnimationEnabled(false) arrives.
+    if (options.enableWaterFlowAnimation !== undefined) {
+      this.waterFlowAnimationEnabled = options.enableWaterFlowAnimation;
+    }
+
+    // Preserve the historical default: activate the new tab unless the caller opts into background mode.
+    const activate = options.activateTab ?? true;
+    const tab = await chrome.tabs.create({ url, active: activate });
     const tabId = tab.id;
     assert(tabId, 'failed to get tabId after creating a new tab');
 
@@ -250,7 +265,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     // stable target.
     await waitForTabNavigationComplete(tabId, url);
 
-    await this.setActiveTabId(tabId);
+    await this.setActiveTabId(tabId, { activate });
   }
 
   public async connectCurrentTab(
@@ -258,6 +273,12 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       forceSameTabNavigation: true,
     },
   ) {
+    // Set the water-flow animation flag BEFORE any debugger commands are
+    // sent (which trigger enableWaterFlowAnimation via sendCommandToDebugger).
+    if (options.enableWaterFlowAnimation !== undefined) {
+      this.waterFlowAnimationEnabled = options.enableWaterFlowAnimation;
+    }
+
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tabId = tabs[0]?.id;
     assert(tabId, 'failed to get tabId');

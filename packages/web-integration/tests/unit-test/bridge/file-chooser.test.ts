@@ -1,7 +1,7 @@
 import { getBridgePageInCliSide } from '@/bridge-mode/agent-cli-side';
 import { BridgeEvent, MouseEvent } from '@/bridge-mode/common';
 import { BridgeClient } from '@/bridge-mode/io-client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@rstest/core';
 
 const DEFAULT_HOST = '127.0.0.1';
 let testPort = 16376;

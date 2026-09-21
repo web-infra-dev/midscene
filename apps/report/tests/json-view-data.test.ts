@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   OMITTED_SCREENSHOT_BASE64_TEXT,
   sanitizeJsonViewData,

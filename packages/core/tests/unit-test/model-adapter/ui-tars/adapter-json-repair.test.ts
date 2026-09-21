@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const uiTarsAdapter = new ResolvedModelAdapter(
   uiTarsAdapters['vlm-ui-tars'],

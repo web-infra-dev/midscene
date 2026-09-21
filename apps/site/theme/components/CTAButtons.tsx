@@ -1,27 +1,51 @@
 import { Link } from '@rspress/core/theme-original';
+import { ArrowRight } from 'lucide-react';
 import { useI18n, useI18nUrl } from '../i18n';
 
-export function CTAButtons() {
+interface CTAButtonsProps {
+  variant?: 'default' | 'hero';
+}
+
+export function CTAButtons({ variant = 'default' }: CTAButtonsProps) {
   const t = useI18n();
   const tUrl = useI18nUrl();
 
+  if (variant === 'hero') {
+    return (
+      <div className="home-hero__actions">
+        <Link
+          href={tUrl('/introduction')}
+          className="home-hero__button home-hero__button--primary"
+        >
+          <span>{t('introduction')}</span>
+          <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+        </Link>
+        <Link
+          href={tUrl('/showcases')}
+          className="home-hero__button home-hero__button--secondary"
+        >
+          <span>{t('whatsNew')}</span>
+          <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col md:flex-row items-stretch md:items-start gap-3 md:gap-x-5 w-full md:w-auto">
+    <div className="home-hero__actions home-bottom-cta__actions">
       <Link
         href={tUrl('/introduction')}
-        className="w-full md:w-auto h-12 px-6 flex items-center justify-center rounded-full bg-[#0555FF] hover:bg-[#0444DD] transition-colors"
+        className="home-hero__button home-hero__button--primary"
       >
-        <span className="text-sm font-semibold font-sans text-[#FAFAFA] whitespace-nowrap">
-          {t('introduction')}
-        </span>
+        <span>{t('introduction')}</span>
+        <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
       </Link>
       <Link
         href={tUrl('/showcases')}
-        className="w-full md:w-auto h-12 px-6 flex items-center justify-center rounded-full transition-colors bg-[#E5E5E5] hover:bg-[#D4D4D4] dark:bg-[#292929] dark:hover:bg-[#333333]"
+        className="home-hero__button home-hero__button--secondary"
       >
-        <span className="font-semibold font-sans text-sm whitespace-nowrap text-black dark:text-white">
-          {t('whatsNew')}
-        </span>
+        <span>{t('whatsNew')}</span>
+        <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
       </Link>
     </div>
   );

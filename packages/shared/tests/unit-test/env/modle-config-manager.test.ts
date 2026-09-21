@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 import { ModelConfigManager } from '../../../src/env/model-config-manager';
 import {
@@ -34,7 +34,7 @@ import {
 
 describe('ModelConfigManager', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
+    rs.unstubAllEnvs();
   });
 
   const baseMap = {
@@ -91,12 +91,12 @@ describe('ModelConfigManager', () => {
   });
 
   it('prefer MIDSCENE_MODEL', () => {
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
-    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
-    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
-    vi.stubEnv(OPENAI_API_KEY, 'openai-api-env-key');
-    vi.stubEnv(OPENAI_BASE_URL, 'openai-base-url');
-    vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    rs.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    rs.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+    rs.stubEnv(OPENAI_API_KEY, 'openai-api-env-key');
+    rs.stubEnv(OPENAI_BASE_URL, 'openai-base-url');
+    rs.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
     const manager = new ModelConfigManager();
     manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -110,10 +110,10 @@ describe('ModelConfigManager', () => {
   });
 
   it('reads from environment when no config function provided', () => {
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
-    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
-    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
-    vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    rs.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    rs.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+    rs.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
     const manager = new ModelConfigManager();
     manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -138,9 +138,9 @@ describe('ModelConfigManager', () => {
   });
 
   it('clears model config map when called by global manager', () => {
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
-    vi.stubEnv(OPENAI_API_KEY, 'env-key');
-    vi.stubEnv(OPENAI_BASE_URL, 'https://env.example.com');
+    rs.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    rs.stubEnv(OPENAI_API_KEY, 'env-key');
+    rs.stubEnv(OPENAI_BASE_URL, 'https://env.example.com');
 
     const manager = new ModelConfigManager();
     manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -154,7 +154,7 @@ describe('ModelConfigManager', () => {
   });
 
   it('injects createOpenAIClient when provided', () => {
-    const createClient = vi.fn();
+    const createClient = rs.fn();
     const manager = new ModelConfigManager(baseMap, createClient);
 
     const config = manager.getModelConfig('default');
@@ -275,23 +275,23 @@ describe('ModelConfigManager', () => {
     });
 
     it('reads per-intent timeout from environment variables', () => {
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
-      vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
-      vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
-      vi.stubEnv(MIDSCENE_MODEL_TIMEOUT, '120000');
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'insight-model');
-      vi.stubEnv(
+      rs.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+      rs.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+      rs.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+      rs.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+      rs.stubEnv(MIDSCENE_MODEL_TIMEOUT, '120000');
+      rs.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'insight-model');
+      rs.stubEnv(
         MIDSCENE_INSIGHT_MODEL_BASE_URL,
         'https://insight.example.com',
       );
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_TIMEOUT, '180000');
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'planning-model');
-      vi.stubEnv(
+      rs.stubEnv(MIDSCENE_INSIGHT_MODEL_TIMEOUT, '180000');
+      rs.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'planning-model');
+      rs.stubEnv(
         MIDSCENE_PLANNING_MODEL_BASE_URL,
         'https://planning.example.com',
       );
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_TIMEOUT, '240000');
+      rs.stubEnv(MIDSCENE_PLANNING_MODEL_TIMEOUT, '240000');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { AgentAIContexts } from '@midscene/shared/agent-tools/agent-context';
+import type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -8,6 +10,7 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
+import type OpenAI from 'openai';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
@@ -24,6 +27,12 @@ export type {
   Size,
   Point,
 } from '@midscene/shared/types';
+export type { SerializedError } from '@midscene/shared/agent-tools/error-formatter';
+export type {
+  AgentAIContextKey,
+  AgentAIContexts,
+  AiApiName,
+} from '@midscene/shared/agent-tools/agent-context';
 export * from './yaml';
 
 export { ServiceError } from './errors';
@@ -38,7 +47,12 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   cached_input: number | undefined;
+  /** Duration of the final successful request attempt, in milliseconds. */
   time_cost: number | undefined;
+  /** Request duration including all attempts and retry waits, excluding preparation, in milliseconds. */
+  total_time_cost?: number;
+  /** Request retries performed within this call; excludes semantic parse retries. */
+  retry_count?: number;
   model_name: string | undefined;
   model_description: string | undefined;
   /**
@@ -77,7 +91,7 @@ export type PixelBbox = Bbox;
 export interface AIElementLocateResponse {
   bbox?: LocateResultBbox;
   point?: LocateResultPoint;
-  errors?: string[];
+  error?: string;
 }
 
 export interface AIDataExtractionResponse<DataDemand> {
@@ -110,9 +124,10 @@ export interface LocatorValidatorOption {
 
 export interface LocateValidatorResult {
   pass: boolean;
-  rect: Rect;
+  rect?: Rect;
   center: [number, number];
   centerDistance?: number;
+  /** Whether the expected point is inside the located rect; absent for point-only results. */
   includedInRect?: boolean;
 }
 
@@ -129,6 +144,19 @@ export interface AgentDescribeElementAtPointResult {
 /**
  * context
  */
+
+export interface UiNode {
+  type: string;
+  attrs: Record<string, string | undefined>;
+  bounds: Rect;
+  children: UiNode[];
+}
+
+export interface UITreeSnapshot {
+  platform: 'android';
+  capturedAt: number;
+  root: UiNode;
+}
 
 export abstract class UIContext {
   /**
@@ -179,10 +207,11 @@ export type ElementCacheFeature = Record<string, unknown>;
 
 export interface LocateResult {
   element: LocateResultElement | null;
-  rect?: Rect;
 }
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
+
+export type AiActEffort = 'fast' | 'balance' | 'deepThink';
 
 export type DeepThinkOption = 'unset' | true | false;
 
@@ -230,7 +259,6 @@ export interface ServiceDump extends DumpMeta {
     assertion?: TUserPrompt;
   };
   matchedElement?: LocateResultElement[];
-  matchedRect?: Rect;
   deepLocate?: boolean;
   data: any;
   assertionPass?: boolean;
@@ -285,8 +313,53 @@ export interface AgentWaitForOpt extends ServiceExtractOption {
 
 export interface AgentAssertOpt {
   keepRawResponse?: boolean;
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this assertion. It overrides `aiContexts.aiAssert` and
+   * `aiContexts.default`;
+   * `''` disables inherited user context for this call.
+   */
   context?: string;
   abortSignal?: AbortSignal;
+}
+
+export interface AgentAssertResult {
+  pass: boolean;
+  thought?: string;
+  message?: string;
+}
+
+export type QueryOptions = ServiceExtractOption;
+export type AssertOptions = AgentAssertOpt & ServiceExtractOption;
+
+/** Options for fixed observations, which never read the live DOM. */
+export type ObservationQueryOptions = Omit<QueryOptions, 'domIncluded'> & {
+  domIncluded?: never;
+};
+
+/** Assertion options for fixed observations, which never read the live DOM. */
+export type ObservationAssertOptions = Omit<AssertOptions, 'domIncluded'> & {
+  domIncluded?: never;
+};
+
+/** Read-only AI operations supported by both live Agents and UI observations. */
+export interface InsightAPI<
+  QueryOpt extends QueryOptions = QueryOptions,
+  AssertOpt extends AssertOptions = AssertOptions,
+> {
+  aiQuery<ReturnType = any>(
+    demand: ServiceExtractParam,
+    options?: QueryOpt,
+  ): Promise<ReturnType>;
+  aiBoolean(prompt: TUserPrompt, options?: QueryOpt): Promise<boolean>;
+  aiNumber(prompt: TUserPrompt, options?: QueryOpt): Promise<number>;
+  aiString(prompt: TUserPrompt, options?: QueryOpt): Promise<string>;
+  aiAsk(prompt: TUserPrompt, options?: QueryOpt): Promise<string>;
+  aiAssert(
+    assertion: TUserPrompt,
+    message?: string,
+    options?: AssertOpt,
+  ): Promise<AgentAssertResult | undefined>;
 }
 
 /**
@@ -294,22 +367,14 @@ export interface AgentAssertOpt {
  *
  */
 
-export interface PlanningLocateParam extends DetailedLocateParam {
-  bbox?: LocateResultBbox;
-  point?: LocateResultPoint;
-}
-
-export type PlanningLocateParamWithLocatedPixelBbox = PlanningLocateParam & {
-  /** Pixel bbox of the located element in screenshot coordinates. */
-  locatedPixelBbox: PixelBbox;
-};
-
-export interface PlanningAction<ParamType = any> {
+type PlanningActionBase = {
   thought?: string;
   log?: string; // a brief preamble to the user explaining what you’re about to do
   type: string;
-  param: ParamType;
-}
+};
+
+export type PlanningAction<ParamType = undefined> = PlanningActionBase &
+  ([ParamType] extends [undefined] ? { param?: any } : { param: ParamType });
 
 export type SubGoalStatus = 'pending' | 'running' | 'finished';
 
@@ -321,7 +386,7 @@ export interface SubGoal {
 }
 
 export interface RawResponsePlanningAIResponse {
-  action: PlanningAction;
+  action: PlanningAction | null;
   thought?: string;
   log: string;
   memory?: string;
@@ -527,7 +592,6 @@ export interface ExecutionTaskApply<
   thought?: string;
   uiContext?: UIContext;
   executor: (
-    param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
     | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
@@ -569,7 +633,12 @@ export type ExecutionTask<
      * This is execution metadata, not part of the action return value.
      */
     planningFeedback?: string;
-    error?: Error;
+    /**
+     * A bounded diagnostic DTO created when the task executor throws. Arbitrary
+     * upstream payloads are intentionally omitted; use this field for structured
+     * diagnostics or errorMessage/errorStack for the common display path.
+     */
+    error?: SerializedError;
     errorMessage?: string;
     errorStack?: string;
     timing?: {
@@ -612,8 +681,6 @@ export interface IExecutionDump extends DumpMeta {
 /*
 task - service-locate
 */
-export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
-
 export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
@@ -622,7 +689,7 @@ export type ExecutionTaskInsightDump = ServiceDump;
 
 export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
-  ExecutionTaskInsightLocateParam,
+  DetailedLocateParam,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskInsightDump
 >;
@@ -636,6 +703,7 @@ task - service-query
 export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
   domIncluded?: boolean | 'visible-only';
+  context?: string;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -703,7 +771,7 @@ export interface ExecutionTaskPlanningParam {
   replanningCycleLimit?: number;
   aiActContext?: string;
   imagesIncludeCount?: number;
-  deepThink?: DeepThinkOption;
+  effort?: AiActEffort;
   subGoalStatus?: string;
   memoriesStatus?: string;
 }
@@ -719,8 +787,6 @@ export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
 /*
 task - planning-locate
 */
-export type ExecutionTaskPlanningLocateParam = PlanningLocateParam;
-
 export interface ExecutionTaskPlanningLocateOutput {
   element: LocateResultElement | null;
 }
@@ -729,7 +795,7 @@ export type ExecutionTaskPlanningDump = ServiceDump;
 
 export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
   'Planning',
-  ExecutionTaskPlanningLocateParam,
+  DetailedLocateParam,
   ExecutionTaskPlanningLocateOutput,
   ExecutionTaskPlanningDump
 >;
@@ -820,8 +886,8 @@ export interface CodeGenerationChunk {
   accumulated: string;
   /** Whether this is the final chunk */
   isComplete: boolean;
-  /** Token usage information if available */
-  usage?: AIUsageInfo;
+  /** Provider token usage, without guaranteed Midscene metadata. See the final response for AIUsageInfo. */
+  usage?: OpenAI.CompletionUsage;
 }
 
 export interface StreamingAIResponse {
@@ -929,7 +995,27 @@ export interface AgentOpt {
   outputFormat?: 'single-html' | 'html-and-external-assets';
 
   onTaskStartTip?: OnTaskStartTip;
+  /**
+   * Agent-level AI guidance containing business facts, rules, constraints, or
+   * output requirements. `aiContexts.default` is a shared fallback used only
+   * when neither the call nor the matching API key provides a context.
+   *
+   * A per-call `options.context` overrides the matching API context, which
+   * overrides `aiContexts.default`. An empty string explicitly clears
+   * inherited user context for that scope. These layers are not automatically
+   * merged.
+   */
+  aiContexts?: AgentAIContexts;
+  /**
+   * Compatibility alias for `aiContexts.aiAct`. `aiContexts.aiAct` takes
+   * precedence when both are provided.
+   * @deprecated Use `aiContexts.aiAct` instead.
+   */
   aiActContext?: string;
+  /**
+   * Older compatibility alias for `aiContexts.aiAct`.
+   * @deprecated Use `aiContexts.aiAct` instead.
+   */
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
@@ -1033,12 +1119,16 @@ export interface ReportFileAttributes {
   testDescription: string;
 }
 
+type SkippedReportFileAttributes = Omit<ReportFileAttributes, 'testStatus'> & {
+  testStatus: 'skipped';
+};
+
 export type ReportFileWithAttributes =
   | {
       reportFilePath: string;
       reportAttributes: ReportFileAttributes;
     }
   | {
-      reportFilePath?: string;
-      reportAttributes: ReportFileAttributes & { testStatus: 'skipped' };
+      reportFilePath?: undefined;
+      reportAttributes: SkippedReportFileAttributes;
     };

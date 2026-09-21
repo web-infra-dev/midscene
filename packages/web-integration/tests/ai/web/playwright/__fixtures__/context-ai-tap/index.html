@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Context AI Tap Fixture</title>
+    <style>
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background: #f6f7fb;
+        color: #20232a;
+        font-family: system-ui, sans-serif;
+      }
+
+      main {
+        padding: 32px;
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 12px 36px rgb(28 39 49 / 12%);
+        text-align: center;
+      }
+
+      .choices {
+        display: flex;
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      button {
+        min-width: 120px;
+        padding: 14px 20px;
+        border: 1px solid #c9ced8;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 18px;
+      }
+
+      button:hover {
+        background: #f0f3f8;
+      }
+
+      #result {
+        min-height: 24px;
+        margin: 0;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Choose a fruit</h1>
+      <div class="choices">
+        <button type="button" data-fruit="apple">apple</button>
+        <button type="button" data-fruit="banana">banana</button>
+        <button type="button" data-fruit="orange">orange</button>
+      </div>
+      <p id="result" aria-live="polite">No fruit selected</p>
+    </main>
+    <script>
+      document.querySelectorAll('[data-fruit]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const fruit = button.dataset.fruit;
+          document.body.dataset.selectedFruit = fruit;
+          document.querySelector('#result').textContent = `Selected: ${fruit}`;
+        });
+      });
+    </script>
+  </body>
+</html>

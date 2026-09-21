@@ -1,5 +1,9 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
-import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import {
+  type AgentOpt,
+  type AgentTestRunnerNodeDefinition,
+  Agent as PageAgent,
+} from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
@@ -13,14 +17,16 @@ import {
   HarmonyDevice,
   type HarmonyDeviceOpt,
 } from './device';
+import { harmonyAgentTestRunnerNodeDefinitions } from './test-runner-nodes';
 import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('harmony:agent');
 
 export type HarmonyAgentOpt = AgentOpt & {
   /**
-   * Custom mapping of app names to bundle names
-   * User-provided mappings will take precedence over default mappings
+   * Custom mapping of app names to bundle names or explicit bundle/ability
+   * targets. Bundle-only targets use bundle metadata to resolve their declared
+   * launch ability. User-provided mappings take precedence over defaults.
    */
   appNameMapping?: Record<string, string>;
 };
@@ -34,20 +40,25 @@ type WrappedAction<T extends DeviceAction> = (
 ) => Promise<ActionReturn<T>>;
 
 export class HarmonyAgent extends PageAgent<HarmonyDevice> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...PageAgent.getTestRunnerNodeDefinitions(),
+      ...harmonyAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
   back!: WrappedAction<DeviceActionHarmonyBackButton>;
   home!: WrappedAction<DeviceActionHarmonyHomeButton>;
   recentApps!: WrappedAction<DeviceActionHarmonyRecentAppsButton>;
 
-  private appNameMapping: Record<string, string>;
-
   constructor(device: HarmonyDevice, opts?: HarmonyAgentOpt) {
     super(device, opts);
-    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+    const appNameMapping = mergeAndNormalizeAppNameMapping(
       defaultAppNameMapping,
       opts?.appNameMapping,
     );
 
-    device.setAppNameMapping(this.appNameMapping);
+    device.setAppNameMapping(appNameMapping);
 
     this.back =
       this.createActionWrapper<DeviceActionHarmonyBackButton>(

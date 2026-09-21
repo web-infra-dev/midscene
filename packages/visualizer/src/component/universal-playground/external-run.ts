@@ -1,5 +1,20 @@
 import type { ExternalRunRequest } from '../../types';
 
+export async function preparePlaygroundExecution({
+  clearTimeline,
+  clearTimelineBeforeRun = false,
+  onBeforeExecutionStart,
+}: {
+  clearTimeline: () => Promise<void>;
+  clearTimelineBeforeRun?: boolean;
+  onBeforeExecutionStart?: () => Promise<void> | void;
+}) {
+  await onBeforeExecutionStart?.();
+  if (clearTimelineBeforeRun) {
+    await clearTimeline();
+  }
+}
+
 export function shouldExecuteExternalRunRequest({
   request,
   handledRequestIds,

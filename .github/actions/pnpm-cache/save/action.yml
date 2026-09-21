@@ -1,0 +1,20 @@
+name: Save pnpm store
+
+description: Save the pnpm content-addressable store to the runner-appropriate backend
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve pnpm store
+      id: pnpm-store
+      shell: bash
+      run: |
+        echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
+        echo "node_version=$(node --version)" >> "$GITHUB_OUTPUT"
+
+    - name: Save pnpm store
+      uses: ./.github/actions/cache/save
+      with:
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: midscene-pnpm-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ steps.pnpm-store.outputs.node_version }}-${{ hashFiles('pnpm-lock.yaml') }}

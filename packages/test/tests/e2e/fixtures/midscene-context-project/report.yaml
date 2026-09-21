@@ -1,0 +1,26 @@
+beforeAll:
+  - document.lifecycle: Document started
+
+beforeEach:
+  - attempt.start: Start case attempt
+  - recordToReport:
+      title: Attempt started
+      options:
+        content: Shared document Agent
+
+cases:
+  - name: report-only case
+    steps:
+      - recordToReport:
+          title: Ready
+          options:
+            content: Agent came from Project setup
+
+afterEach:
+  - recordToReport:
+      title: Attempt finished
+      options:
+        content: Shared document Agent
+
+afterAll:
+  - document.lifecycle: Document finished

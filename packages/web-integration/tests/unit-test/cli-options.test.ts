@@ -1,7 +1,7 @@
 import { parseWebCliOptions } from '@/cli-options';
 import { defaultPuppeteerWindowViewportSize } from '@/common/viewport';
 import { CLIError } from '@midscene/shared/cli';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('parseWebCliOptions', () => {
   it('uses Puppeteer mode without forcing viewport when no global flags are provided', () => {

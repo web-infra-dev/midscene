@@ -1,0 +1,259 @@
+import SetupEnv from '../common/setup-env.mdx';
+import PrepareIOS from '../common/prepare-ios.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# iOS
+
+Midscene 通过 WebDriverAgent 连接 iOS 设备，可自动化 App 和系统界面。
+
+本指南介绍 WebDriverAgent 配置、模型配置、Playground 体验，以及 `@midscene/ios` 的 JavaScript SDK 集成。
+
+## 效果展示
+
+**提示词：** 打开美团，帮我下单一杯 Manner 超大杯冰美式咖啡，选择加浓、少冰，并在进入结算页面后等待确认。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan.png" height="300" controls />
+
+查看[完整报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/meituan.html)，或浏览更多 [Midscene 案例](../showcases.mdx)。
+
+## 快速开始
+
+### 准备 iOS 环境
+
+WebDriver 是 W3C 制定的浏览器自动化标准协议。它提供统一的 API，用于控制不同的浏览器和应用。该协议定义了客户端与服务端之间的通信方式，使自动化工具可以跨平台控制界面。
+
+Appium 团队和其他开源社区维护了多种 WebDriver 工具。这些工具可以把桌面端和移动端的自动化操作转换为 WebDriver 协议：
+
+- **Appium**：跨平台移动自动化框架。
+- **WebDriverAgent**：用于 iOS 设备自动化的服务。
+- **Selenium**：Web 浏览器自动化工具。
+- **WinAppDriver**：Windows 应用自动化工具。
+
+Midscene 支持 WebDriver 协议。你可以使用 AI 模型自动化任何兼容设备。除了点击和输入，Midscene 还可以理解界面上下文、执行多步骤操作、验证结果并提取数据。
+
+在 iOS 上，Midscene 通过 WebDriverAgent 连接设备。连接后，你可以使用自然语言指令控制 iOS App 和系统界面。
+
+继续之前，请确保 WebDriverAgent 可以与设备通信。
+
+<PrepareIOS />
+
+### 启动 Playground
+
+Playground 是验证连接的最快方式。无需编写代码，即可体验 `aiAct`、`aiQuery` 和 `aiAssert` 等核心能力。它与 `@midscene/ios` 共享相同的核心，因此在 Playground 中通过的流程，在脚本中运行会保持一致。
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/ios-playground
+```
+
+2. 点击窗口中的齿轮按钮进入配置页，粘贴你的 API Key 配置。如果还没有模型配置，请参考[支持的模型与配置](../model-common-config)。
+
+## 使用 JavaScript SDK
+
+当 Playground 工作正常后，就可以切换到可复用的 JavaScript 脚本。
+
+### 配置模型
+
+<SetupEnv />
+
+### 安装依赖
+
+<PackageManagerTabs command="install @midscene/ios dotenv --save-dev" />
+
+### 编写脚本
+
+下面的示例会在设备上打开 Safari，搜索 eBay，并断言结果列表。
+
+```typescript title="./demo.ts"
+import 'dotenv/config'; // 通过 dotenv/config 自动加载 .env 文件中的环境变量
+import {
+  IOSAgent,
+  IOSDevice,
+  agentFromWebDriverAgent,
+} from '@midscene/ios';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    // 方式一：直接创建设备和 Agent
+    const page = new IOSDevice({
+      wdaPort: 8100,
+      wdaHost: 'localhost',
+    });
+
+    // 👀 初始化 Midscene Agent
+    const agent = new IOSAgent(page, {
+      aiContexts: {
+        aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+      },
+    });
+    await page.connect();
+
+    // 方式二：使用便捷函数（推荐）
+    // const agent = await agentFromWebDriverAgent({
+    //   wdaPort: 8100,
+    //   wdaHost: 'localhost',
+    //   aiContexts: {
+    //     aiAct: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    //   },
+    // });
+
+    // 👀 直接打开 ebay.com（推荐做法）
+    await page.launch('https://ebay.com');
+    await sleep(3000);
+
+    // 👀 输入关键字并执行搜索
+    await agent.aiAct('Search for "Headphones"');
+
+    // 👀 等待加载完成
+    await agent.aiWaitFor('At least one headphone product is displayed on the page');
+    // 或简单地等待几秒：
+    // await sleep(5000);
+
+    // 👀 理解页面内容并提取数据
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find product titles and prices in the list',
+    );
+    console.log('Headphone product information', items);
+
+    // 👀 使用 AI 断言
+    await agent.aiAssert('Multiple headphone products are displayed on the interface');
+
+    await page.destroy();
+  })(),
+);
+```
+
+关于上下文知识的编写和传入方式，参见[为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)。
+
+### 运行脚本
+
+```bash
+npx tsx demo.ts
+```
+
+脚本运行结束后，你应该能在控制台看到 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开生成的 HTML 文件，即可回放每次交互、查询和断言。
+
+## 隐藏键盘
+
+`autoDismissKeyboard` 默认值为 `true`。文本输入完成后，Midscene 会尽力定位标准的 iOS 键盘辅助工具栏、触发其中的隐藏控件，并等待 WebDriverAgent 确认键盘已经消失。部分键盘（例如 iPhone 数字键盘）不提供隐藏控件。如果无法安全识别工具栏、键盘仍然可见或隐藏请求失败，Midscene 不会因此将本次文本输入判为失败，只会记录一条警告日志。
+
+如果自动隐藏键盘后紧接着执行 `Enter`、`Return` 或 `Tab`，Midscene 可以在发送按键前恢复一次原输入框的焦点。其他指针、触控、系统、自定义或文本输入动作都会使这个待恢复目标失效。
+
+:::warning
+App 自定义的输入辅助工具栏可能包含 Save、Submit 等业务操作。对于不符合标准 iOS“左侧导航、右侧隐藏”结构的工具栏，Midscene 会主动拒绝点击。使用自定义工具栏时，请关闭自动隐藏，并向 `hideKeyboard()` 传入该控件稳定的 accessibility name。
+:::
+
+```typescript
+const device = new IOSDevice({
+  autoDismissKeyboard: false,
+});
+
+// 输入完成后，显式触发自定义键盘隐藏控件。
+await device.hideKeyboard(['Close Keyboard']);
+```
+
+## 自定义动作
+
+使用 `defineAction()` 定义自定义动作。使用 `agentFromWebDriverAgent()` 构造 Agent 时，通过 `customActions` 传入这些动作。Midscene 会把这些动作追加到规划器中，让 Agent 可以调用你定义的领域特定动作。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    console.log('click target center', param.locate.center);
+    console.log('click count', param.count);
+    // Carry out your clicking logic using locate + count.
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
+
+## API 参考与更多资源
+
+构造函数、辅助方法和平台专属设备 API 位于 [API 参考的 iOS 章节](../reference/#ios)。该章节还包含详细参数和自定义操作等进阶内容。跨平台共用的 API 位于[通用章节](../reference/#common)。
+
+## 常见问题
+
+### 为什么 WebDriverAgent 已连接，但仍无法控制设备？
+
+请检查以下事项：
+
+1. **开发者模式**：在“设置 > 隐私与安全性 > 开发者模式”中确认已开启。
+2. **UI Automation**：在“设置 > 开发者 > UI Automation”中确认已开启。
+3. **设备信任**：确保设备信任当前 Mac。
+
+### 模拟器与真机有哪些区别？
+
+| 特性 | 真机 | 模拟器 |
+|------|------|--------|
+| 端口转发 | 需要 iproxy | 不需要 |
+| 开发者模式 | 必须手动开启 | 默认开启 |
+| UI Automation 设置 | 需手动开启 | 默认开启 |
+| 性能 | 真实设备性能 | 取决于 Mac 性能 |
+| 传感器 | 真实硬件 | 模拟数据 |
+
+### 如何自定义 WebDriverAgent 的端口和 Host？
+
+可以通过 `IOSDevice` 构造函数或 `agentFromWebDriverAgent` 来指定端口和 Host：
+
+```typescript
+// 方式一：使用 IOSDevice
+const device = new IOSDevice({
+  wdaPort: 8100,        // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机
+});
+
+// 方式二：使用便捷函数（推荐）
+const agent = await agentFromWebDriverAgent({
+  wdaPort: 8100,        // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机
+});
+```
+
+针对远程设备，还需要按需设置端口转发：
+
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```
+
+### 如何在 Playground 中获得更流畅的实时画面？
+
+Playground 的画面预览支持两种模式：
+
+- **轮询模式**（默认）：逐帧调用 WDA 截图 API，帧率约 5-10fps。
+- **原生 MJPEG 流**（推荐）：直接代理 WDA 内置的 MJPEG Server，帧率更高、延迟更低。
+
+要启用原生 MJPEG 流，需要将 WDA MJPEG Server 的端口（默认 9100）转发到本机：
+
+```bash
+# 真机需要端口转发（模拟器不需要）
+iproxy 9100 9100 YOUR_DEVICE_ID
+```
+
+Playground 启动时会自动探测 9100 端口。如果可用，日志会显示 `MJPEG: streaming via native WDA MJPEG server`；否则自动回退到轮询模式。
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](../reference/#interaction-methods)
+- iOS 专属参数与接口：[API 参考（iOS）](../reference/#ios)
+- 使用 [YAML 自动化脚本和命令行工具](../automate-with-scripts-in-yaml)。
+- 示例项目
+  - iOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
+  - iOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)

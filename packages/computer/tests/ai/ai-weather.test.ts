@@ -1,8 +1,8 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, rs } from '@rstest/core';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import { openBrowserAndNavigate } from './test-utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
@@ -22,7 +22,7 @@ describe('computer weather query automation', () => {
     'should query San Jose tomorrow weather temperature on Google',
     async () => {
       if (isCacheEnabled) {
-        vi.setConfig({ testTimeout: 1000 * 1000 });
+        rs.setConfig({ testTimeout: 1000 * 1000 });
       }
 
       await openBrowserAndNavigate(agent, 'https://www.google.com');

@@ -1,6 +1,7 @@
 import path from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import {
+  convertImgBufferToJpeg,
   inferBase64ImageFormat,
   normalizeBase64Image,
   normalizeScreenshotBase64,
@@ -58,7 +59,7 @@ describe('preapareImageUrl', () => {
 
   it('http url will be converted to base64 if convertHttpImage2Base64 is true', async () => {
     const mockData = Buffer.from('image-data');
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchSpy = rs.spyOn(global, 'fetch').mockResolvedValue(
       new Response(mockData, {
         status: 200,
         headers: { 'content-type': 'image/svg+xml' },
@@ -141,6 +142,26 @@ describe('inferBase64ImageFormat', () => {
   });
 });
 
+describe('convertImgBufferToJpeg', () => {
+  it('preserves the Sharp failure when Photon is unavailable in Node.js', async () => {
+    const sharpError = new Error('Sharp not available');
+    const getSharpModule = await import('../../src/img/get-sharp');
+    rs.spyOn(getSharpModule, 'default').mockRejectedValue(sharpError);
+
+    try {
+      await expect(
+        convertImgBufferToJpeg(Buffer.from('invalid image')),
+      ).rejects.toMatchObject({
+        message:
+          'Failed to convert image to JPEG with Sharp: Sharp not available',
+        cause: sharpError,
+      });
+    } finally {
+      rs.restoreAllMocks();
+    }
+  });
+});
+
 describe('scaleImage', () => {
   // 1x1 white pixel JPEG image in base64
   const onePixelWhiteImage =
@@ -178,47 +199,34 @@ describe('scaleImage', () => {
     );
   });
 
-  it('should fall back to Photon when Sharp fails', async () => {
+  it('should throw when Sharp is unavailable in Node.js', async () => {
     // Mock getSharp to throw an error
     const getSharpModule = await import('../../src/img/get-sharp');
-    const originalGetSharp = getSharpModule.default;
-
-    vi.spyOn(getSharpModule, 'default').mockRejectedValue(
+    rs.spyOn(getSharpModule, 'default').mockRejectedValue(
       new Error('Sharp not available'),
     );
 
-    const result = await scaleImage(onePixelWhiteImage, 2);
-
-    expect(result.width).toBe(2);
-    expect(result.height).toBe(2);
-    expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCAACAAIDAREAAhEBAxEB/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9U6AP/9k="`,
+    await expect(scaleImage(onePixelWhiteImage, 2)).rejects.toThrow(
+      'Sharp not available',
     );
 
-    // Restore original implementation
-    vi.spyOn(getSharpModule, 'default').mockResolvedValue(
-      await originalGetSharp(),
-    );
+    rs.restoreAllMocks();
   });
 
-  it('should fall back to Photon when Sharp throws during processing', async () => {
+  it('should throw when Sharp fails during processing in Node.js', async () => {
     // Mock getSharp to return a mock Sharp that throws during processing
     const getSharpModule = await import('../../src/img/get-sharp');
-    const mockSharp = vi.fn(() => {
+    const mockSharp = rs.fn(() => {
       throw new Error('Sharp processing failed');
     });
 
-    vi.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
+    rs.spyOn(getSharpModule, 'default').mockResolvedValue(mockSharp as any);
 
-    const result = await scaleImage(onePixelWhiteImage, 3);
-
-    expect(result.width).toBe(3);
-    expect(result.height).toBe(3);
-    expect(result.imageBase64).toMatchInlineSnapshot(
-      `"data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCAADAAMDAREAAhEBAxEB/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9U6AP/9k="`,
+    await expect(scaleImage(onePixelWhiteImage, 3)).rejects.toThrow(
+      'Sharp processing failed',
     );
 
     // Restore
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 });

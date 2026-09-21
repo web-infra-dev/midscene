@@ -1,4 +1,5 @@
 import type { DeviceAction } from '../types';
+import type { InputStrategy } from './input-strategy';
 
 /**
  * Android device input options
@@ -9,17 +10,24 @@ export type AndroidDeviceInputOpt = {
   /** Strategy for dismissing the keyboard: 'esc-first' tries ESC before BACK, 'back-first' tries BACK before ESC */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too
-   * fast (e.g. WiFi password fields on automotive displays).
+   * A positive value can type text one Unicode code point at a time instead of
+   * sending the whole string at once. This helps on devices or input fields
+   * that drop characters when input arrives too fast (e.g. WiFi password
+   * fields on automotive displays).
    *
-   * Only applies to the `input text` path (non-yadb). When yadb is used, the
-   * entire string is committed atomically and this option is ignored.
+   * In legacy mode, this applies to the native `input text` path and is
+   * ignored by yadb. Set `inputStrategy` to `sequential` to split yadb input.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text to Android. `sequential` splits Unicode code
+   * points; `bulk` uses one backend operation where the selected IME supports
+   * it and requires `keyboardTypeDelay` to be omitted or set to zero.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**
@@ -34,12 +42,33 @@ export type AndroidDeviceOpt = {
   remoteAdbPort?: number;
   /** Input method editor strategy: 'always-yadb' always uses yadb, 'yadb-for-non-ascii' uses yadb only for non-ASCII characters */
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  /**
+   * Screenshot strategy: 'auto' uses the standard capture paths (scrcpy →
+   * adb.takeScreenshot → screencap) and uses yadb only if the screencap command
+   * itself fails. It does not detect black frames. 'always-yadb' skips the
+   * earlier paths and captures directly via the yadb tool. Use 'always-yadb'
+   * on devices where `screencap` produces black frames for secure
+   * (FLAG_SECURE) content but yadb succeeds (e.g. with a rooted/Magisk-hooked
+   * system, or on Android versions where yadb's secure virtual display works).
+   * Yadb only supports the default display; combining 'always-yadb' with a
+   * non-zero displayId throws an error.
+   *
+   * @default 'auto'
+   */
+  screenshotStrategy?: 'auto' | 'always-yadb';
   /** Display ID to use for this device */
   displayId?: number;
   /** Use physical display ID for screenshot operations */
   usePhysicalDisplayIdForScreenshot?: boolean;
   /** Use physical display ID when looking up display information */
   usePhysicalDisplayIdForDisplayLookup?: boolean;
+  /**
+   * Whether to expose the built-in `RunAdbShell` action in the Android action
+   * space.
+   *
+   * @default true
+   */
+  exposeRunAdbShellAction?: boolean;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
   /**
@@ -82,6 +111,7 @@ export type AndroidDeviceOpt = {
    *     maxSize: 0,        // 0 = no scaling
    *     idleTimeoutMs: 30000,
    *     videoBitRate: 8_000_000,
+   *     videoResetFrameTimeoutMs: 1000,
    *   },
    * });
    * ```
@@ -95,11 +125,15 @@ export type AndroidDeviceOpt = {
     /**
      * Maximum video dimension (width or height).
      * Video stream will be scaled down if device resolution exceeds this value.
+     * ADB/yadb fallback screenshots use the same limit so they do not return to
+     * full device resolution while scrcpy is temporarily unavailable.
      * Lower values reduce bandwidth but may affect image quality.
      *
      * @default 0 (no scaling, use original resolution)
      * @example
      * { maxSize: 1024 } // Always scale to 1024
+     * Values must be non-negative integers; invalid values throw when the
+     * scrcpy configuration is used.
      */
     maxSize?: number;
     /**
@@ -111,10 +145,19 @@ export type AndroidDeviceOpt = {
     idleTimeoutMs?: number;
     /**
      * Video bit rate for H.264 encoding in bits per second.
-     * Higher values improve quality but increase bandwidth usage.
-     * @default 2000000 (2 Mbps)
+     * Changing it trades encoded bandwidth against screenshot detail. Tune it
+     * only from independent transport measurements, then validate recognition
+     * quality. A freshness-timeout warning alone is not a reason to change it.
+     * @default 100000000 (100 Mbps)
      */
     videoBitRate?: number;
+    /**
+     * Time in milliseconds to wait for a fresh keyframe after scrcpy accepts
+     * an in-band video reset. Increase this for devices whose display capture
+     * pipeline has a slower restart tail. Must be a positive integer.
+     * @default 800
+     */
+    videoResetFrameTimeoutMs?: number;
   };
 } & AndroidDeviceInputOpt;
 
@@ -125,21 +168,26 @@ export type IOSDeviceInputOpt = {
   /** Automatically dismiss the keyboard after input is completed */
   autoDismissKeyboard?: boolean;
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too fast.
+   * In legacy mode, a positive value types text one Unicode code point at a
+   * time instead of sending the whole string at once. This helps on devices or
+   * input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text through WDA. `sequential` makes one WDA call per
+   * Unicode code point; `bulk` makes one WDA text call and requires
+   * `keyboardTypeDelay` to be omitted or set to zero.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**
  * iOS device options
  */
 export type IOSDeviceOpt = {
-  /** Device ID (UDID) to connect to */
-  deviceId?: string;
   /**
    * Optional npm module path used to override the default iOS device implementation.
    * The target module must export an `IOSDevice` class (or default export) compatible with Midscene's iOS device interface.
@@ -157,8 +205,6 @@ export type IOSDeviceOpt = {
    * the external session during cleanup.
    */
   sessionId?: string;
-  /** Whether to use WebDriverAgent */
-  useWDA?: boolean;
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
   /**
@@ -184,13 +230,20 @@ export type HarmonyDeviceInputOpt = {
   /** Strategy for dismissing the keyboard. Defaults to 'esc-first'. */
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   /**
-   * Delay in milliseconds between keystrokes when typing text.
+   * Finite non-negative delay in milliseconds between keystrokes.
    *
-   * When set, text is typed one character at a time with this delay between
-   * each character, instead of sending the whole string at once. This helps
-   * on devices or input fields that drop characters when input arrives too fast.
+   * In legacy mode, a positive value types text one Unicode code point at a
+   * time instead of sending the whole string at once. This helps on devices or
+   * input fields that drop characters when input arrives too fast.
    */
   keyboardTypeDelay?: number;
+  /**
+   * How Midscene sends text through HDC. `sequential` makes one HDC call per
+   * Unicode code point; `bulk` makes one HDC text call and requires
+   * `keyboardTypeDelay` to be omitted or set to zero.
+   * @default 'legacy'
+   */
+  inputStrategy?: InputStrategy;
 };
 
 /**

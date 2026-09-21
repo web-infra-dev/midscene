@@ -5,20 +5,24 @@ import {
   createFilesConfig,
   parseConfigYaml,
 } from '@/config-factory';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import * as yamlActual from '@midscene/core/yaml' with {
+  rstest: 'importActual',
+};
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
 // Mock dependencies
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn(),
+rs.mock('node:fs', () => ({
+  readFileSync: rs.fn(),
 }));
 
-vi.mock('@/cli-utils', () => ({
-  matchYamlFiles: vi.fn(),
+rs.mock('@/cli-utils', () => ({
+  matchYamlFiles: rs.fn(),
 }));
 
-vi.mock('@midscene/core/yaml', () => ({
-  interpolateEnvVars: vi.fn((content) => content),
-  resolveWebTarget: vi.fn((config) => {
+rs.mock('@midscene/core/yaml', () => ({
+  ...yamlActual,
+  interpolateEnvVars: rs.fn((content) => content),
+  resolveWebTarget: rs.fn((config) => {
     const sources = ['page', 'browser', 'web', 'target'] as const;
     const entries = sources
       .map((source) => [source, config[source]] as const)
@@ -51,8 +55,8 @@ vi.mock('@midscene/core/yaml', () => ({
   }),
 }));
 
-vi.mock('js-yaml', () => ({
-  load: vi.fn(),
+rs.mock('js-yaml', () => ({
+  load: rs.fn(),
 }));
 
 import { matchYamlFiles } from '@/cli-utils';
@@ -62,7 +66,7 @@ import merge from 'lodash.merge';
 
 describe('config-factory', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   describe('parseConfigYaml', () => {
@@ -83,6 +87,8 @@ web:
   userAgent: "yaml-ua"
 android:
   deviceId: "yaml-device"
+harmony:
+  deviceId: "yaml-harmony-device"
 summary: "yaml-summary.json"
 `;
       const mockParsedYaml = {
@@ -98,13 +104,14 @@ summary: "yaml-summary.json"
         web: { url: 'http://example.com', userAgent: 'yaml-ua' },
         target: undefined,
         android: { deviceId: 'yaml-device' },
+        harmony: { deviceId: 'yaml-harmony-device' },
         summary: 'yaml-summary.json',
       };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
       const result = await parseConfigYaml(mockIndexPath);
 
@@ -118,6 +125,7 @@ summary: "yaml-summary.json"
         dotenvDebug: false,
         web: { url: 'http://example.com', userAgent: 'yaml-ua' },
         android: { deviceId: 'yaml-device' },
+        harmony: { deviceId: 'yaml-harmony-device' },
         summary: 'yaml-summary.json',
         patterns: ['*.yml'],
         shareBrowserContext: false,
@@ -130,10 +138,10 @@ summary: "yaml-summary.json"
       const mockYamlContent = `files: ["*.yml"]`;
       const mockParsedYaml = { files: ['*.yml'] };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
 
       const result = await parseConfigYaml(mockIndexPath);
 
@@ -151,10 +159,10 @@ summary: "yaml-summary.json"
       const mockYamlContent = `files: ["*.yml"]\nretry: 2`;
       const mockParsedYaml = { files: ['*.yml'], retry: 2 };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
 
       const result = await parseConfigYaml(mockIndexPath);
 
@@ -165,8 +173,8 @@ summary: "yaml-summary.json"
       const mockYamlContent = `files: "not-an-array"`;
       const mockParsedYaml = { files: 'not-an-array' };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
 
       await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
         'Config YAML must contain a "files" array',
@@ -177,9 +185,9 @@ summary: "yaml-summary.json"
       const mockYamlContent = `files: ["*.yml"]`;
       const mockParsedYaml = { files: ['*.yml'] };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue([]); // No files found
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue([]); // No files found
 
       await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
         'No YAML files found matching the patterns in "files"',
@@ -197,11 +205,11 @@ files:
         files: ['*.yml'],
       };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       // First call expands `files`, second call resolves `setup`
-      vi.mocked(matchYamlFiles)
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml'])
         .mockResolvedValueOnce(['login.yml']);
 
@@ -215,10 +223,10 @@ files:
       const mockYamlContent = `files: ["*.yml"]`;
       const mockParsedYaml = { files: ['*.yml'] };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
 
       const result = await parseConfigYaml(mockIndexPath);
 
@@ -236,10 +244,10 @@ files:
         files: ['*.yml'],
       };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce([]); // setup matches nothing
 
@@ -259,10 +267,10 @@ files:
         files: ['*.yml'],
       };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['setup-a.yml', 'setup-b.yml']); // setup matches >1
 
@@ -282,10 +290,10 @@ files:
         files: ['login.yml', 'test.yml', 'login.yml'],
       };
 
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['login.yml'])
         .mockResolvedValueOnce(['test.yml'])
         .mockResolvedValueOnce(['login.yml']);
@@ -316,9 +324,9 @@ headed: false
         summary: 'parsed.json',
         shareBrowserContext: false,
       };
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
       // Test 1: keepWindow from config file should enable headed
       const result1 = await createConfig('/test/index.yml');
@@ -363,11 +371,16 @@ concurrent: 2
         web: { userAgent: 'from-file', viewportWidth: 800 },
         target: undefined,
         android: { deviceId: 'from-file' },
+        harmony: {
+          deviceId: 'harmony-from-file',
+          launch: 'file.bundle',
+          autoDismissKeyboard: false,
+        },
         ios: undefined,
       };
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
       const cmdLineOptions: ConfigFactoryOptions = {
         concurrent: 5,
@@ -375,6 +388,10 @@ concurrent: 2
         summary: 'from-cmd.json',
         web: { userAgent: 'from-cmd', viewportHeight: 900 },
         android: { deviceId: 'from-cmd' },
+        harmony: {
+          deviceId: 'harmony-from-cmd',
+          autoDismissKeyboard: true,
+        },
       };
 
       const result = await createConfig('/test/index.yml', cmdLineOptions);
@@ -385,6 +402,7 @@ concurrent: 2
           browser: mockParsedYaml.browser,
           web: mockParsedYaml.web,
           android: mockParsedYaml.android,
+          harmony: mockParsedYaml.harmony,
           ios: mockParsedYaml.ios,
           target: mockParsedYaml.target,
         },
@@ -393,6 +411,7 @@ concurrent: 2
           browser: cmdLineOptions.browser,
           web: cmdLineOptions.web,
           android: cmdLineOptions.android,
+          harmony: cmdLineOptions.harmony,
           ios: cmdLineOptions.ios,
           target: cmdLineOptions.target,
         },
@@ -402,6 +421,11 @@ concurrent: 2
       expect(result.headed).toBe(true);
       expect(result.summary).toBe('from-cmd.json');
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
+      expect(result.globalConfig?.harmony).toEqual({
+        deviceId: 'harmony-from-cmd',
+        launch: 'file.bundle',
+        autoDismissKeyboard: true,
+      });
     });
 
     test('should keep setup when shareBrowserContext is enabled', async () => {
@@ -416,9 +440,9 @@ shareBrowserContext: true
         files: ['search.yml'],
         shareBrowserContext: true,
       };
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
@@ -429,7 +453,7 @@ shareBrowserContext: true
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setup without shareBrowserContext', async () => {
+    test('should keep setup without deciding target-specific sharing', async () => {
       const mockYamlContent = `
 setup: login.yml
 files:
@@ -439,15 +463,17 @@ files:
         setup: 'login.yml',
         files: ['search.yml'],
       };
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
-      await expect(createConfig('/test/index.yml')).rejects.toThrow(
-        'setup requires shareBrowserContext: true',
-      );
+      const result = await createConfig('/test/index.yml');
+
+      expect(result.setup).toBe('login.yml');
+      expect(result.files).toEqual(['search.yml']);
+      expect(result.shareBrowserContext).toBe(false);
     });
 
     test('should override config files with command-line files parameter', async () => {
@@ -468,13 +494,13 @@ concurrent: 2
         summary: 'parsed.json',
         shareBrowserContext: false,
       };
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      rs.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      rs.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       // Calls for parseConfigYaml - one for each pattern in config file
-      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file1.yml']);
-      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file2.yml']);
+      rs.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file1.yml']);
+      rs.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file2.yml']);
       // Call for command-line files override
-      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['cmd-file.yml']);
+      rs.mocked(matchYamlFiles).mockResolvedValueOnce(['cmd-file.yml']);
 
       const cmdLineOptions: ConfigFactoryOptions = {
         files: ['cmd-file.yml'],
@@ -493,7 +519,7 @@ concurrent: 2
     test('should automatically enable headed when keepWindow is true', async () => {
       const patterns = ['test.yml'];
       const expandedFiles = ['test.yml'];
-      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+      rs.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
 
       // Test 1: keepWindow true should enable headed
       const result1 = await createFilesConfig(patterns, {
@@ -531,7 +557,7 @@ concurrent: 2
       const patterns = ['test1.yml', 'test*.yml'];
       const expandedFiles = ['test1.yml', 'testA.yml', 'testB.yml'];
       // Mock to return different results for each pattern call
-      vi.mocked(matchYamlFiles)
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['test1.yml'])
         .mockResolvedValueOnce(['test1.yml', 'testA.yml', 'testB.yml']);
 
@@ -551,14 +577,7 @@ concurrent: 2
         keepWindow: false,
         dotenvOverride: false,
         dotenvDebug: false,
-        globalConfig: {
-          page: undefined,
-          browser: undefined,
-          web: undefined,
-          target: undefined,
-          android: undefined,
-          ios: undefined,
-        },
+        globalConfig: {},
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
         cwd: process.cwd(),
@@ -570,7 +589,7 @@ concurrent: 2
 
     test('should resolve setup when shareBrowserContext is enabled', async () => {
       const patterns = ['search.yml'];
-      vi.mocked(matchYamlFiles)
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
@@ -583,20 +602,24 @@ concurrent: 2
       expect(result.files).toEqual(['search.yml']);
     });
 
-    test('should reject setup without shareBrowserContext', async () => {
+    test('should resolve setup without deciding target-specific sharing', async () => {
       const patterns = ['search.yml'];
-      vi.mocked(matchYamlFiles)
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['search.yml']) // files
         .mockResolvedValueOnce(['login.yml']); // setup
 
-      await expect(
-        createFilesConfig(patterns, { setup: 'login.yml' }),
-      ).rejects.toThrow('setup requires shareBrowserContext: true');
+      const result = await createFilesConfig(patterns, {
+        setup: 'login.yml',
+      });
+
+      expect(result.setup).toBe('login.yml');
+      expect(result.files).toEqual(['search.yml']);
+      expect(result.shareBrowserContext).toBe(false);
     });
 
     test('should forward the retry option through createFilesConfig', async () => {
       const patterns = ['*.yml'];
-      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+      rs.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
       const result = await createFilesConfig(patterns, { retry: 3 });
 
@@ -606,7 +629,7 @@ concurrent: 2
     test('should create config with all custom options and expand patterns', async () => {
       const patterns = ['*.yml'];
       const expandedFiles = ['file1.yml', 'file2.yml'];
-      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+      rs.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
 
       const options: ConfigFactoryOptions = {
         concurrent: 3,
@@ -619,6 +642,9 @@ concurrent: 2
         dotenvDebug: false,
         web: { userAgent: 'custom-ua' },
         android: { deviceId: 'custom-device' },
+        harmony: { deviceId: 'custom-harmony-device' },
+        computer: { displayId: 'main' },
+        interface: { module: './custom-interface.js' },
       };
       const result = await createFilesConfig(patterns, options);
 
@@ -635,12 +661,11 @@ concurrent: 2
         dotenvOverride: true,
         dotenvDebug: false,
         globalConfig: {
-          page: undefined,
-          browser: undefined,
           web: { userAgent: 'custom-ua' },
-          target: undefined,
           android: { deviceId: 'custom-device' },
-          ios: undefined,
+          harmony: { deviceId: 'custom-harmony-device' },
+          computer: { displayId: 'main' },
+          interface: { module: './custom-interface.js' },
         },
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
@@ -655,7 +680,7 @@ concurrent: 2
         './scripts/search-headphones.yaml',
         './scripts/search-camera.yaml',
       ];
-      vi.mocked(matchYamlFiles)
+      rs.mocked(matchYamlFiles)
         .mockResolvedValueOnce(['./scripts/search-iphone.yaml'])
         .mockResolvedValueOnce(['./scripts/search-laptop.yaml'])
         .mockResolvedValueOnce(['./scripts/search-headphones.yaml'])
@@ -693,14 +718,11 @@ concurrent: 2
         dotenvOverride: false,
         dotenvDebug: false,
         globalConfig: {
-          page: undefined,
-          browser: undefined,
           web: {
             userAgent: 'Doc Agent',
             viewportWidth: 1440,
             viewportHeight: 900,
           },
-          target: undefined,
           android: {
             deviceId: 'android-doc-device',
           },

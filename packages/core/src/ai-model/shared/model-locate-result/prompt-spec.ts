@@ -5,6 +5,10 @@ import type {
   ResolvedLocateResultCoordinates,
 } from './types';
 
+export function formatLocateExampleValue(value: unknown): string {
+  return Array.isArray(value) ? `[${value.join(', ')}]` : JSON.stringify(value);
+}
+
 function describeLocateResultCoordinates({
   shape,
   order,

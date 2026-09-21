@@ -1,3 +1,4 @@
+import { DEFAULT_STUDIO_WEB_VIEWPORT } from '@shared/web-viewport';
 import { useState } from 'react';
 import { assetUrls } from '../../assets';
 import { MaskedIcon } from '../MaskedIcon';
@@ -189,8 +190,8 @@ export function WebCreateAgentCard({
   busy,
   defaultHeaded = false,
   defaultUrl = 'https://example.com',
-  defaultViewportHeight = 768,
-  defaultViewportWidth = 1280,
+  defaultViewportHeight = DEFAULT_STUDIO_WEB_VIEWPORT.height,
+  defaultViewportWidth = DEFAULT_STUDIO_WEB_VIEWPORT.width,
   onSubmit,
 }: WebCreateAgentCardProps) {
   const [url, setUrl] = useState(defaultUrl);

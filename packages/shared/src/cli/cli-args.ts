@@ -2,26 +2,12 @@ import { z } from 'zod';
 import type { ToolCliOption, ToolDefinition } from '../agent-tools/types';
 import { getKeyAliases } from '../key-alias-utils';
 import { CLIError } from './cli-error';
-
-export function parseValue(raw: string): unknown {
-  if (raw.startsWith('{') || raw.startsWith('[')) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      // Not valid JSON, treat as string below
-    }
-  }
-
-  if (/^-?\d+(\.\d+)?$/.test(raw)) {
-    return Number(raw);
-  }
-
-  return raw;
-}
+import { parseCliValue } from './cli-value';
+export { parseValue } from './cli-value';
 
 function walkCliArgs(
   args: string[],
-  setArgValue: (key: string, value: unknown) => void,
+  setArgValue: (key: string, value: string | true) => void,
 ): void {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -31,34 +17,69 @@ function walkCliArgs(
     const eqIdx = body.indexOf('=');
 
     if (eqIdx >= 0) {
-      setArgValue(body.slice(0, eqIdx), parseValue(body.slice(eqIdx + 1)));
+      const key = body.slice(0, eqIdx);
+      setArgValue(key, body.slice(eqIdx + 1));
     } else if (args[i + 1] && !args[i + 1].startsWith('--')) {
       i++;
-      setArgValue(body, parseValue(args[i]));
+      setArgValue(body, args[i]);
     } else {
       setArgValue(body, true);
     }
   }
 }
 
-export function parseCliArgs(args: string[]): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+function buildCliFieldIndex(
+  def: ToolDefinition,
+): ReadonlyMap<string, z.ZodTypeAny> {
+  const fieldByCliName = new Map<string, z.ZodTypeAny>();
 
-  walkCliArgs(args, (key, value) => {
-    const existing = result[key];
-    if (existing === undefined) {
-      result[key] = value;
-      return;
+  for (const [schemaKey, field] of Object.entries(def.schema)) {
+    for (const cliName of getAcceptedCliOptionNames(
+      schemaKey,
+      def.cli?.options?.[schemaKey],
+    )) {
+      fieldByCliName.set(cliName, field);
     }
+  }
 
-    if (Array.isArray(existing)) {
-      existing.push(value);
-      result[key] = existing;
-      return;
-    }
+  return fieldByCliName;
+}
 
-    result[key] = [existing, value];
+export function parseCliArgs(
+  args: string[],
+  def?: ToolDefinition,
+): Record<string, unknown> {
+  const fieldByCliName = def ? buildCliFieldIndex(def) : undefined;
+  const tokensByName = new Map<string, Array<string | true>>();
+  walkCliArgs(args, (key, raw) => {
+    const tokens = tokensByName.get(key) ?? [];
+    tokens.push(raw);
+    tokensByName.set(key, tokens);
   });
+
+  const result: Record<string, unknown> = {};
+  for (const [key, tokens] of tokensByName) {
+    let elementIndex = 0;
+    for (const raw of tokens) {
+      const existing = result[key];
+      const value =
+        raw === true
+          ? true
+          : parseCliValue(
+              raw,
+              fieldByCliName?.get(key),
+              tokens.length > 1 ? elementIndex : undefined,
+            );
+      if (existing === undefined) {
+        result[key] = value;
+      } else if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        result[key] = [existing, value];
+      }
+      elementIndex = Array.isArray(result[key]) ? result[key].length : 1;
+    }
+  }
 
   return result;
 }

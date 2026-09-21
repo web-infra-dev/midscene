@@ -8,7 +8,7 @@
     },
     "declarationDir": "dist/types"
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "scripts"],
   "references": [
     {
       "path": "../../packages/core"

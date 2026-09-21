@@ -17,10 +17,6 @@ import { IOSDevice, type IOSDeviceOpt } from './device';
 const debug = getDebug('agent-tools:ios');
 
 const iosInitArgShape = {
-  deviceId: z
-    .string()
-    .optional()
-    .describe('iOS device UDID (optional when WDA auto-detect is sufficient)'),
   wdaHost: z
     .string()
     .optional()
@@ -30,10 +26,6 @@ const iosInitArgShape = {
     .string()
     .optional()
     .describe('Existing WebDriverAgent session ID to reuse'),
-  useWDA: z
-    .boolean()
-    .optional()
-    .describe('Whether to reuse an existing WebDriverAgent session'),
   wdaMjpegPort: z
     .number()
     .optional()
@@ -50,22 +42,10 @@ const iosInitArgShape = {
 type IOSInitArgs = AgentBehaviorInitArgs &
   Pick<
     IOSDeviceOpt,
-    | 'deviceId'
-    | 'wdaHost'
-    | 'wdaPort'
-    | 'sessionId'
-    | 'useWDA'
-    | 'wdaMjpegPort'
-    | 'wdaMjpegFrameSource'
+    'wdaHost' | 'wdaPort' | 'sessionId' | 'wdaMjpegPort' | 'wdaMjpegFrameSource'
   >;
 
 function getTargetIdentity(initArgs?: IOSInitArgs): string {
-  if (initArgs?.deviceId) {
-    return initArgs.sessionId
-      ? `${initArgs.deviceId}-session-${initArgs.sessionId}`
-      : initArgs.deviceId;
-  }
-
   if (initArgs?.wdaHost || initArgs?.wdaPort || initArgs?.sessionId) {
     const wdaHost = initArgs.wdaHost ?? 'localhost';
     const wdaPort = initArgs.wdaPort ?? 'default';
@@ -165,7 +145,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent, IOSInitArgs> {
             content: [
               {
                 type: 'text',
-                text: `Connected to iOS device${initArgs?.deviceId ? `: ${initArgs.deviceId}` : ''}`,
+                text: 'Connected to iOS device',
               },
               ...this.buildScreenshotContent(screenshot),
             ],

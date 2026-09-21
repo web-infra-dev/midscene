@@ -132,6 +132,7 @@ describe('Sidebar device list', () => {
 
     expect(html).not.toContain('Set up iOS via the playground form');
     expect(html.match(/No devices/g)).toHaveLength(5);
+    expect(html.match(/h-8 w-\[22px\] shrink-0/g)).toHaveLength(5);
   });
 
   it('keeps visual separation between adjacent platform hover and selected states', () => {
@@ -184,6 +185,24 @@ describe('Sidebar device list', () => {
     });
   });
 
+  it('matches the Figma platform row structure for sidebar headers', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        StudioPlaygroundContext.Provider,
+        { value: createReadyContextValue() },
+        createElement(Sidebar, {
+          activeView: 'overview',
+          onSelectDevice: () => undefined,
+          onSelectOverview: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html.match(/justify-between rounded-\[8px\]/g)).toHaveLength(5);
+    expect(html.match(/size-\[22px\]/g)).toHaveLength(6);
+    expect(html.match(/text-\[#474848\]/g)).toHaveLength(10);
+  });
+
   it('does not disconnect when clicking the active Web session in the sidebar', async () => {
     const { context, createSession, destroySession, setFieldsValue } =
       createConnectedWebContextValue();
@@ -210,6 +229,9 @@ describe('Sidebar device list', () => {
     );
     expect(webButton).toBeTruthy();
     expect(webButton?.className).toContain('outline-none');
+    expect(webButton?.querySelector('span.flex-1')?.className).toContain(
+      'leading-[22.11px]',
+    );
 
     await act(async () => {
       webButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));

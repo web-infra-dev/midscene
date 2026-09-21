@@ -8,8 +8,13 @@ import { getDebug } from '../logger';
 
 const warnChromePath = getDebug('agent-tools:chrome-path', { console: true });
 let hasWarnedLegacyChromePath = false;
+let cachedSystemChromePath: string | undefined;
 
 export function getSystemChromePath(): string | undefined {
+  if (cachedSystemChromePath !== undefined) {
+    return cachedSystemChromePath;
+  }
+
   const platform = process.platform;
 
   const chromePaths: Record<string, string[]> = {
@@ -37,7 +42,11 @@ export function getSystemChromePath(): string | undefined {
   };
 
   const paths = chromePaths[platform] ?? [];
-  return paths.find((p) => existsSync(p));
+  const foundPath = paths.find((p) => existsSync(p));
+  if (foundPath) {
+    cachedSystemChromePath = foundPath;
+  }
+  return foundPath;
 }
 
 export function resolveChromePath(): string {

@@ -6,35 +6,26 @@ import type {
 } from '../model-adapter/types';
 import {
   type LocateResultValue,
-  type PixelBbox,
   createLocateResultValue,
-  isBboxLocateResultValue,
   unwrapCoordinateListLikeInput,
 } from '../shared/model-locate-result';
 
-const defaultBboxSize = 20;
 const qwen25BboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
+  rounding: 'round',
 } as const;
 const qwen25PointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
+  rounding: 'round',
 } as const;
 const qwen3BboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
-
-function topLeftPointToPixelBbox(x: number, y: number): PixelBbox {
-  return [
-    Math.round(x),
-    Math.round(y),
-    Math.round(x + defaultBboxSize),
-    Math.round(y + defaultBboxSize),
-  ];
-}
 
 function parseQwen25RawLocateValue(input: unknown): LocateResultValue {
   const bbox = unwrapCoordinateListLikeInput(input as any) as number[];
@@ -56,23 +47,6 @@ function parseQwen25RawLocateValue(input: unknown): LocateResultValue {
     bbox[0],
     bbox[1],
   ]);
-}
-
-function normalizeQwen25ResultToPixelBbox(
-  result: LocateResultValue,
-): PixelBbox {
-  if (isBboxLocateResultValue(result)) {
-    const { coordinates } = result;
-    return [
-      Math.round(coordinates[0]),
-      Math.round(coordinates[1]),
-      Math.round(coordinates[2]),
-      Math.round(coordinates[3]),
-    ];
-  }
-
-  const { coordinates } = result;
-  return topLeftPointToPixelBbox(coordinates[0], coordinates[1]);
 }
 
 const buildQwenChatCompletionParams = (
@@ -133,6 +107,7 @@ const buildQwen25ChatCompletionParams = (
 };
 
 const qwen3Adapter: ModelAdapterDefinition = {
+  acceptBbox2dAlias: true,
   chatCompletion: {
     unsupportedUserConfig: ['reasoningEffort'],
     buildChatCompletionParams: buildQwenChatCompletionParams,
@@ -147,14 +122,17 @@ const qwen3Adapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: qwen3BboxCoordinatesMeta,
+    element: {
+      resultFormat: {
+        coordinates: qwen3BboxCoordinatesMeta,
+      },
     },
   },
 };
 
 export const qwenAdapters = {
   'qwen2.5-vl': {
+    acceptBbox2dAlias: true,
     chatCompletion: {
       unsupportedUserConfig: [
         'reasoningEnabled',
@@ -167,10 +145,11 @@ export const qwenAdapters = {
       padBlockSize: 28,
     },
     locate: {
-      resultAdapter: {
-        coordinates: qwen25BboxCoordinatesMeta,
-        parseRawLocateValue: parseQwen25RawLocateValue,
-        mapLocateResultToPixelBbox: normalizeQwen25ResultToPixelBbox,
+      element: {
+        resultFormat: {
+          coordinates: qwen25BboxCoordinatesMeta,
+          parseRawLocateValue: parseQwen25RawLocateValue,
+        },
       },
     },
   },

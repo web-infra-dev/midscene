@@ -13,7 +13,7 @@ own GitHub account and then [clone](https://help.github.com/articles/cloning-a-r
 
 ### Install Node.js
 
-We recommend using Node.js 20.9.0. You can check your currently used Node.js version with the following command:
+We recommend using Node.js 20.19.0. You can check your currently used Node.js version with the following command:
 
 ```bash
 node -v
@@ -21,17 +21,17 @@ node -v
 
 If you do not have Node.js installed in your current environment, you can use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to install it.
 
-Here is an example of how to install the Node.js 20.9.0 version via nvm:
+Here is an example of how to install the Node.js 20.19.0 version via nvm:
 
 ```bash
 # Install the LTS version of Node.js 20
-nvm install 20.9.0 --lts
+nvm install 20.19.0 --lts
 
 # Make the newly installed Node.js 20 as the default version
-nvm alias default 20.9.0
+nvm alias default 20.19.0
 
 # Switch to the newly installed Node.js 20
-nvm use 20.9.0
+nvm use 20.19.0
 ```
 
 ### Install Dependencies
@@ -86,6 +86,7 @@ git config user.email "SOME_EMAIL@example.com"
 - `packages/web-integration`: source for npm package `@midscene/web`;
   Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
 - `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
+- `packages/test`: Midscene Test, an extensible YAML testing framework and Node SDK. The package name is `@midscene/test`.
 - `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
   `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
 - `packages/visualizer` and `apps/report`: report rendering and viewer UI.
@@ -152,17 +153,62 @@ cd apps/playground && pnpm run dev
 cd apps/chrome-extension && pnpm run dev
 ```
 
-### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
+### Report template contains an unresolved placeholder / Cannot find module './report-html-template.js'
 
-`apps/report` is not standalone at runtime. Its built `index.html` template is
-injected back into `packages/core/dist` during build. If report UI changes do
-not show up, or you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, the
-template injection is usually stale. Rebuild the entire workspace without Nx
-cache to fix it:
+#### Background: Core's embedded Report template
+
+Core embeds a complete Report HTML template so it can generate reports without
+a runtime dependency on `@midscene/report`. Because Report itself depends on
+Core, the Core source contains only a placeholder; `@midscene/report:build`
+owns writing the real HTML into the Core CJS and ESM template modules. An actual
+Core build also tries to synchronize an existing Report HTML as a best-effort
+convenience.
+
+#### When the unresolved-placeholder error occurs
+
+This usually happens in one of these development scenarios:
+
+- Core is built before Report has produced a valid
+  `apps/report/dist/index.html`, for example because Report has not been built
+  or its build failed. Core's best-effort synchronization then leaves the
+  generated placeholder modules in place.
+- Placeholder modules already exist on disk, and a cached Core build skips the
+  synchronization hook that could have replaced them.
+
+Core can still load in both cases, but report generation throws this error
+instead of producing an invalid report.
+
+#### When the missing-module error occurs
+
+Nx does not save or restore the two template modules as part of the
+`@midscene/core:build` cache. The missing-module error occurs only when all of
+the following are true:
+
+1. A valid local Core build cache already exists.
+2. `packages/core/dist`, or its template modules, is removed without clearing
+   that cache.
+3. Only Core is rebuilt, and the build is restored from the cache, so neither
+   the real build nor its synchronization hook runs.
+
+The excluded template modules are not restored, so loading Core fails
+immediately. Current CI does not restore `.nx/cache` or use Nx remote caching,
+and `pnpm clean` removes both cache and dist, so this is unlikely in normal
+workflows.
+
+#### Resolution
+
+Both errors can be resolved by building Report, which produces the HTML and
+both Core template modules:
 
 ```sh
-# Rebuild the entire project without cache
-pnpm run build:skip-cache
+pnpm exec nx build @midscene/report
+```
+
+For either error, if `apps/report/dist/index.html` already exists and only the
+Core template modules need to be repaired, synchronize them directly:
+
+```sh
+pnpm --filter @midscene/core sync-report-template
 ```
 
 ---
@@ -246,6 +292,17 @@ For VS Code users, you can install the [Biome VS Code extension](https://marketp
 ## Documentation
 
 You can find the Midscene documentation in the [website](./apps/site) folder.
+
+Production site builds fetch the current GitHub star count and require an
+authenticated GitHub API token. Set `GITHUB_TOKEN` in the deployment
+environment, or provide it when building locally:
+
+```sh
+GITHUB_TOKEN=$(gh auth token) pnpm --filter doc build
+```
+
+The site development server does not require a token. If GitHub is unavailable,
+it renders a non-numeric placeholder instead of a stale star count.
 
 ---
 

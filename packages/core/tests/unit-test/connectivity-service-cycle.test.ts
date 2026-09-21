@@ -1,35 +1,38 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IModelConfig } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import ts from 'typescript';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  callAI: vi.fn(),
-  callAIWithObjectResponse: vi.fn(),
-  AiExtractElementInfo: vi.fn(),
-  AiLocateElement: vi.fn(),
-  AiLocateSection: vi.fn(),
-  buildSearchAreaConfig: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  callAI: rs.fn(),
+  callAIWithObjectResponse: rs.fn(),
+  AiExtractElementInfo: rs.fn(),
+  AiLocateElement: rs.fn(),
+  AiLocateSection: rs.fn(),
+  buildSearchAreaConfig: rs.fn(),
 }));
 
-vi.mock('@/ai-model/service-caller', () => ({
+rs.mock('@/ai-model/service-caller', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   callAI: mocks.callAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/service-caller/index', () => ({
+rs.mock('@/ai-model/service-caller/index', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
   callAI: mocks.callAI,
   callAIWithObjectResponse: mocks.callAIWithObjectResponse,
 }));
 
-vi.mock('@/ai-model/inspect', () => ({
-  AiExtractElementInfo: mocks.AiExtractElementInfo,
+rs.mock('@/ai-model/workflows/grounding', () => ({
   AiLocateElement: mocks.AiLocateElement,
   AiLocateSection: mocks.AiLocateSection,
   buildSearchAreaConfig: mocks.buildSearchAreaConfig,
+}));
+
+rs.mock('@/ai-model/workflows/insight', () => ({
+  AiExtractElementInfo: mocks.AiExtractElementInfo,
 }));
 
 import { runConnectivityTest } from '@/ai-model/connectivity';
@@ -84,7 +87,7 @@ describe('runConnectivityTest service load order', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('runs the default locate check through the real Service constructor', async () => {

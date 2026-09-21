@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "rspress dev",
-    "build": "rspress build && ./config_deploy.sh && node ./scripts/check-search-metadata.mjs",
-    "preview": "rspress preview"
+    "build": "MIDSCENE_SITE_BUILD=true rspress build && ./config_deploy.sh && node ./scripts/check-search-metadata.mjs",
+    "preview": "rspress preview",
+    "test": "rstest"
   },
   "engines": {
     "pnpm": ">=9.3.0",
-    "node": ">=18.19.0"
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "packageManager": "pnpm@9.3.0",
   "dependencies": {
@@ -20,10 +21,11 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@rspress/core": "2.0.8",
-    "@rspress/plugin-client-redirects": "2.0.8",
-    "@rspress/plugin-llms": "2.0.8",
-    "@rspress/plugin-sitemap": "2.0.8",
+    "@rspress/core": "2.0.18",
+    "@rspress/plugin-client-redirects": "2.0.18",
+    "@rspress/plugin-llms": "2.0.18",
+    "@rspress/plugin-sitemap": "2.0.18",
+    "@rstest/core": "0.11.5",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",

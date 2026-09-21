@@ -1,22 +1,24 @@
+import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { getModelRuntime } from '@/ai-model/models';
 import Service from '@/service';
+import { type AIUsageInfo, ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { createFakeContext } from '../utils';
 
-vi.mock('@/ai-model/inspect', () => ({
+rs.mock('@/ai-model/workflows/grounding', () => ({
   AIResponseParseError: class AIResponseParseError extends Error {},
-  AiExtractElementInfo: vi.fn(),
-  AiLocateElement: vi.fn(),
-  AiLocateSection: vi.fn(),
-  buildSearchAreaConfig: vi.fn(),
+  AiExtractElementInfo: rs.fn(),
+  AiLocateElement: rs.fn(),
+  AiLocateSection: rs.fn(),
+  buildSearchAreaConfig: rs.fn(),
 }));
 
 import {
   AiLocateElement,
   AiLocateSection,
   buildSearchAreaConfig,
-} from '@/ai-model/inspect';
+} from '@/ai-model/workflows/grounding';
 
 describe('service.locate deepLocate routing', () => {
   const modelConfig: IModelConfig = {
@@ -29,9 +31,9 @@ describe('service.locate deepLocate routing', () => {
   const modelRuntime = getModelRuntime(modelConfig);
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
 
-    vi.mocked(AiLocateElement).mockResolvedValue({
+    rs.mocked(AiLocateElement).mockResolvedValue({
       parseResult: {
         element: {
           center: [120, 220],
@@ -48,7 +50,7 @@ describe('service.locate deepLocate routing', () => {
       reasoning_content: undefined,
     } as any);
 
-    vi.mocked(AiLocateSection).mockResolvedValue({
+    rs.mocked(AiLocateSection).mockResolvedValue({
       searchAreaConfig: {
         sourceRect: { left: 10, top: 20, width: 300, height: 200 },
         image: {
@@ -65,7 +67,7 @@ describe('service.locate deepLocate routing', () => {
       usage: undefined,
     });
 
-    vi.mocked(buildSearchAreaConfig).mockResolvedValue({
+    rs.mocked(buildSearchAreaConfig).mockResolvedValue({
       sourceRect: { left: 20, top: 30, width: 280, height: 180 },
       image: {
         imageBase64: 'data:image/png;base64,BBB',
@@ -104,6 +106,55 @@ describe('service.locate deepLocate routing', () => {
     expect(AiLocateSection).not.toHaveBeenCalled();
   });
 
+  it('falls back to the center for point-only planning and retains the fine result', async () => {
+    const service = new Service(createFakeContext());
+    const result = await service.locate(
+      { prompt: 'target', deepLocate: true },
+      { planLocatedElement: { center: [10.25, 20.75], description: 'coarse' } },
+      modelRuntime,
+    );
+    expect(buildSearchAreaConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseRect: { left: 10, top: 21, width: 1, height: 1 },
+      }),
+    );
+    expect(
+      rs.mocked(buildSearchAreaConfig).mock.calls[0][0],
+    ).not.toHaveProperty('basePoint');
+    expect(result.element?.center).toEqual([120, 220]);
+    expect(result.element?.rect).toEqual({
+      left: 100,
+      top: 200,
+      width: 40,
+      height: 40,
+    });
+  });
+
+  it('uses a point-only first pass without synthesizing bbox metadata', async () => {
+    const service = new Service(createFakeContext());
+    rs.mocked(AiLocateElement).mockResolvedValueOnce({
+      parseResult: {
+        element: { center: [10.25, 20.75], description: 'coarse' },
+        errors: [],
+      },
+      rawResponse: '{}',
+    });
+    const result = await service.locate(
+      { prompt: 'target', deepLocate: true },
+      {},
+      getModelRuntime({ ...modelConfig, modelFamily: 'auto-glm' }),
+    );
+    expect(buildSearchAreaConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseRect: { left: 10, top: 21, width: 1, height: 1 },
+      }),
+    );
+    expect(
+      rs.mocked(buildSearchAreaConfig).mock.calls[0][0],
+    ).not.toHaveProperty('basePoint');
+    expect(result.element?.center).toEqual([120, 220]);
+  });
+
   it('uses AiLocateSection to build search area when the model supports it', async () => {
     const service = new Service(createFakeContext());
 
@@ -122,16 +173,83 @@ describe('service.locate deepLocate routing', () => {
     expect(buildSearchAreaConfig).not.toHaveBeenCalled();
   });
 
-  it('uses first-pass locate when the model does not support search-area locate', async () => {
+  it('records search-area model data when section locate fails', async () => {
+    const service = new Service(createFakeContext());
+    const rawChoiceMessage = {
+      content: '{"bbox":["invalid bbox"]}',
+      role: 'assistant',
+    };
+    const usage: AIUsageInfo = {
+      prompt_tokens: 12,
+      completion_tokens: 6,
+      total_tokens: 18,
+      cached_input: undefined,
+      time_cost: undefined,
+      model_name: undefined,
+      model_description: undefined,
+      response_model_name: undefined,
+      intent: undefined,
+      slot: undefined,
+      request_id: undefined,
+    };
+    rs.mocked(AiLocateSection).mockResolvedValue({
+      searchAreaConfig: undefined,
+      error: 'invalid bbox data',
+      rawResponse: '{"bbox":["invalid bbox"]}',
+      rawChoiceMessage,
+      usage,
+    });
+
+    const error = await service
+      .locate({ prompt: 'target', deepLocate: true }, {}, modelRuntime)
+      .catch((caughtError: unknown) => caughtError);
+
+    expect(error).toBeInstanceOf(ServiceError);
+    expect((error as ServiceError).message).toBe(
+      'cannot find search area for "target": invalid bbox data',
+    );
+    expect((error as ServiceError).dump).toMatchObject({
+      type: 'locate',
+      userQuery: { element: 'target' },
+      matchedElement: [],
+      deepLocate: true,
+      error: 'cannot find search area for "target": invalid bbox data',
+      taskInfo: {
+        searchAreaRawResponse: '{"bbox":["invalid bbox"]}',
+        searchAreaRawChoiceMessage: rawChoiceMessage,
+        searchAreaUsage: usage,
+      },
+    });
+    expect(AiLocateElement).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      description: 'a custom locate adapter',
+      modelRuntime: getModelRuntime({
+        ...modelConfig,
+        modelFamily: 'auto-glm',
+      }),
+    },
+    {
+      description: 'a standard adapter with search-area locate disabled',
+      modelRuntime: {
+        ...modelRuntime,
+        adapter: new ResolvedModelAdapter(
+          {
+            locate: { searchArea: false },
+          },
+          'test-search-area-disabled',
+        ),
+      },
+    },
+  ])('uses first-pass locate for $description', async ({ modelRuntime }) => {
     const service = new Service(createFakeContext());
 
     await service.locate(
       { prompt: 'target', deepLocate: true },
       {},
-      getModelRuntime({
-        ...modelConfig,
-        modelFamily: 'auto-glm',
-      }),
+      modelRuntime,
     );
 
     expect(AiLocateSection).not.toHaveBeenCalled();

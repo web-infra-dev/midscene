@@ -1,12 +1,11 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Control Any Platform with Midscene Skills',
+  newBadge: 'Now supports the DeepSeek V4 vision model',
   changelogLink: 'Details',
 
   // Banner - Title
-  heroTitle: 'Midscene.js',
-  heroSubtitle:
-    'Open-source, vision-driven UI testing — write tests in natural language, automate any platform.',
+  heroTitle: 'Midscene.js\nthe GUI Agent\nfor E2E Testing',
+  heroSubtitle: 'AI-powered vision. Cross-platform. Batteries included.',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -16,6 +15,7 @@ export const EN_US = {
   introduction: 'Documentation',
   whatsNew: 'Showcases',
   benchmark: 'Pass@1',
+  completion: 'Completion',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
@@ -44,34 +44,38 @@ and more`,
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: `Vision Models
- Multi-model combination
- Adapt open-source models`,
-  modelsDesc1: 'Vision locates elements precisely — no selectors to maintain',
-  modelsDesc2: 'Multi-model setups raise completion rates',
-  modelsDesc3: 'Bring your own model, including strong open-source options',
+  modelsHeading: 'Pure vision at the core',
+  modelsDesc1: 'Works from screenshots — no selectors or annotations',
+  modelsDesc2: 'Start with one model; add specialists for complex tasks',
+  modelsDesc3: 'Choose from supported models, including self-hosted options',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
     'Strong visual grounding for reliable element location — a solid default for Midscene.',
-  modelQwenName: 'qwen3.7-plus',
-  modelQwenDesc:
-    'High-quality visual grounding at competitive pricing, with open-source builds you can self-host.',
-  modelGeminiName: 'gemini-3.5-flash',
-  modelGeminiDesc:
-    'Powerful multimodal understanding with excellent element localization.',
+  modelSupportedName: 'Multiple model options',
+  modelSupportedDesc:
+    'Works with Qwen, GPT, Gemini, Kimi, and more — choose what fits your needs.',
+  modelDeepSeekName: 'deepseek-v4-flash-vision-exp',
+  modelDeepSeekDesc:
+    'Extremely fast visual grounding, but less reliable on complex interfaces.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
     'Pair a planning model with a vision model to raise task completion rates.',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: 'DEVELOPER EXPERIENCE',
-  debuggingHeading: `Rich APIs
-& Tools`,
+  debuggingTitle: 'TESTING TOOLKIT',
+  debuggingHeading: `Ready-to-use
+UI testing toolkit`,
   debuggingDesc1: 'Practical APIs to script tests and control automation flows',
   debuggingDesc2: 'Supports extending your own UI action agents',
   debuggingDesc3: 'Lowers the maintenance cost of your UI tests',
+
+  // Feature Sections - BENCHMARKS
+  benchmarksTitle: 'EVALUATION',
+  benchmarksHeading: 'Benchmarks',
+  benchmarksDesc:
+    "Explore Midscene's results on AndroidWorld, MobileWorld, and AppControlBench.",
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',
@@ -85,14 +89,14 @@ and more`,
     'Replay every step in a visual report, and try ideas fast in the playground.',
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
-    'Write flows in YAML, integrate with your test runner, and customize agent execution strategies.',
-  featureBenchmarkDesc:
-    'Review the AndroidWorld benchmark score, run configuration, reports, and validation notes.',
+    'Write tests in YAML with Midscene Test and extend them with custom TypeScript Nodes.',
   featureRichAPIsLink: '/api',
   featureSkillsLink: '/skills',
-  featureReportsPlaygroundLink: '/quick-experience',
-  featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
+  featureReportsPlaygroundLink: '/quick-start#chrome-extension',
+  featureFlexibleIntegrationLink: '/midscene-test/overview',
   featureBenchmarkLink: '/android-world-benchmark-report',
+  featureMobileWorldBenchmarkLink: '/mobile-world-benchmark-report',
+  featureAppControlBenchLink: '/app-control-bench-report',
 
   // View All APIs
   apiMoreLink: 'View All APIs',
@@ -100,6 +104,7 @@ and more`,
     'Explore the complete API documentation for more automation capabilities.',
 
   // Who is Using
+  whoIsUsingEyebrow: 'USERS',
   whoIsUsingTitle: 'Who is using Midscene',
   userVolcengine: 'Volcengine',
   userDouyin: 'Douyin',
@@ -115,10 +120,16 @@ and more`,
   userDoubao: 'Doubao',
   userDongchedi: 'Dongchedi',
 
+  // Bottom CTA and Footer
+  bottomCtaTitle: 'The GUI Agent for E2E Testing',
+  licenseNotice:
+    'Midscene is free and open source software released under the MIT license.',
+  copyrightNotice: '© 2024-present ByteDance Inc. and its affiliates.',
+
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
-  platformWebLink: '/quick-experience.html',
-  platformPCLink: '/quick-experience.html',
-  platformMobileLink: '/android-introduction.html',
+  platformWebLink: '/quick-start#chrome-extension',
+  platformPCLink: '/quick-start#chrome-extension',
+  platformMobileLink: '/platforms/android.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

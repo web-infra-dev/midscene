@@ -10,11 +10,13 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 
 ![bridge mode](/midscene-bridge-mode.png)
 
-:::info Demo Project
+:::info 演示项目
 
 查看桥接模式的示例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
 
 :::
+
+## 配置 AI 模型服务
 
 <SetupEnv />
 
@@ -25,6 +27,12 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 ### 第一步：在 Chrome 应用商店安装 Midscene 插件
 
 安装 [Midscene Chrome 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。
+
+:::info 文件上传权限
+
+如果桥接模式脚本需要上传本地文件，请打开 `chrome://extensions`，找到 Midscene 插件，进入 “Details”，开启 “Allow access to file URLs”。开启后请切回目标 `http(s)://` 页面，再重新连接桥接模式。
+
+:::
 
 ### 第二步：安装依赖
 
@@ -69,7 +77,7 @@ tsx demo-new-tab.ts
   <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
 
-:::tip
+:::info
 
 扩展安装后默认在后台持续监听连接请求，无需手动操作。扩展图标会显示状态徽标：黄点表示正在监听，绿点表示已连接。
 
@@ -150,11 +158,11 @@ const agent = new AgentOverChromeBridge({
 
 - **模型配置（如 `MIDSCENE_MODEL_API_KEY`）应该配置在浏览器还是终端？**
 
-  使用桥接模式时，请在终端（Node.js 环境）中配置模型参数。更多配置信息请参考[模型策略](./model-strategy)文档。
+  使用桥接模式时，请在终端（Node.js 环境）中配置模型参数。支持的模型和配置示例请参考[支持的模型与配置](./model-common-config)。
 
 ## 更多
 
-- 更多 Agent 的 API 请参考 [API 参考](./api#interaction-methods)。
-- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./web-api-reference#chrome-bridge-agent)。
+- 更多 Agent 的 API 请参考 [API 参考](./reference/#interaction-methods)。
+- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./reference/#chrome-bridge-agent)。
 - 样例项目
   - 桥接模式示例：[https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)

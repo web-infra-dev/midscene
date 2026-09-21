@@ -1,4 +1,5 @@
 import {
+  type ExecutionReferenceImage,
   type TaskExecutionError,
   TaskRunner,
   type TaskRunnerEventListener,
@@ -11,6 +12,7 @@ import type {
 
 type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
+  referenceImages?: readonly ExecutionReferenceImage[];
   onSnapshotChange?: (
     runner: TaskRunner,
     error?: TaskExecutionError,

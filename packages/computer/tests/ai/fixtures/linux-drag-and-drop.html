@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Linux drag-and-drop regression fixture</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #f4f4f5;
+        font: 24px sans-serif;
+      }
+
+      .item {
+        position: absolute;
+        left: 240px;
+        display: grid;
+        width: 240px;
+        height: 140px;
+        place-items: center;
+        border: 4px solid #18181b;
+        border-radius: 12px;
+        user-select: none;
+      }
+
+      #target {
+        top: 60px;
+        background: #bbf7d0;
+      }
+
+      #source {
+        top: 330px;
+        background: #bfdbfe;
+      }
+
+      #status {
+        position: absolute;
+        top: 520px;
+        left: 240px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target" class="item">Target folder</div>
+    <div id="source" class="item">Source file</div>
+    <div id="status">Waiting</div>
+
+    <script>
+      const source = document.querySelector('#source');
+      const target = document.querySelector('#target');
+      const status = document.querySelector('#status');
+      let pointerDown = false;
+      let dragStarted = false;
+      let targetObservedAfterDragStart = false;
+      let startX = 0;
+      let startY = 0;
+
+      const report = (name, event) => {
+        const params = new URLSearchParams({ name });
+        if (event) {
+          params.set('x', event.clientX);
+          params.set('y', event.clientY);
+          params.set('buttons', event.buttons);
+          params.set('element', document.elementFromPoint(event.clientX, event.clientY)?.id || '');
+        }
+        fetch(`/event?${params}`, { method: 'POST' }).catch(() => {});
+      };
+
+      source.addEventListener('mousedown', (event) => {
+        pointerDown = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        status.textContent = 'Pressed';
+        report('pressed', event);
+      });
+
+      document.addEventListener('mousemove', (event) => {
+        if (!pointerDown || event.buttons !== 1) return;
+
+        const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
+        if (!dragStarted && distance >= 8) {
+          // Desktop toolkits use the first motion beyond their threshold to
+          // enter drag mode. The drop target can only observe later motions.
+          dragStarted = true;
+          status.textContent = 'Dragging';
+          report('drag-started', event);
+          return;
+        }
+
+        if (dragStarted && target.contains(document.elementFromPoint(event.clientX, event.clientY))) {
+          targetObservedAfterDragStart = true;
+          target.style.background = '#4ade80';
+          status.textContent = 'Target observed';
+          report('target-observed', event);
+        }
+      });
+
+      document.addEventListener('mouseup', (event) => {
+        if (!pointerDown) return;
+        pointerDown = false;
+
+        const releasedOnTarget = target.contains(
+          document.elementFromPoint(event.clientX, event.clientY),
+        );
+        if (dragStarted && targetObservedAfterDragStart && releasedOnTarget) {
+          status.textContent = 'Dropped';
+          report('dropped', event);
+        } else {
+          status.textContent = 'Drop missed';
+          report('drop-missed', event);
+        }
+      });
+
+      for (const type of ['mousedown', 'mousemove', 'mouseup']) {
+        document.addEventListener(type, (event) => report(`raw-${type}`, event), true);
+      }
+
+      // Chromium can report its initial, pre-maximize window geometry during
+      // the first animation frames on Xvfb. Wait for the native window to
+      // settle, then send element centers in display coordinates to the test.
+      setTimeout(() => {
+        const viewportLeft = window.screenX + (window.outerWidth - window.innerWidth) / 2;
+        const viewportTop = window.screenY + window.outerHeight - window.innerHeight;
+        const sourceRect = source.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const params = new URLSearchParams({
+          left: viewportLeft,
+          top: viewportTop,
+          sourceX: viewportLeft + sourceRect.left + sourceRect.width / 2,
+          sourceY: viewportTop + sourceRect.top + sourceRect.height / 2,
+          targetX: viewportLeft + targetRect.left + targetRect.width / 2,
+          targetY: viewportTop + targetRect.top + targetRect.height / 2,
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          outerWidth: window.outerWidth,
+          outerHeight: window.outerHeight,
+        });
+        fetch(`/ready?${params}`, { method: 'POST' }).catch(() => {});
+      }, 1000);
+    </script>
+  </body>
+</html>

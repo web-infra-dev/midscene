@@ -1,6 +1,6 @@
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import {
   DEFAULT_TEST_TIMEOUT,
   createTestContext,

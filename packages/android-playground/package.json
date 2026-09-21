@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.10.4",
+  "version": "1.13.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/midscene.git",
@@ -25,8 +25,8 @@
   },
   "scripts": {
     "dev": "npm run build:watch",
-    "dev:server": "npm run build && ./bin/playground",
-    "test": "vitest --run",
+    "dev:server": "npm run build && ./bin/android-playground",
+    "test": "rstest",
     "prebuild": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
@@ -38,11 +38,11 @@
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@yume-chan/adb": "2.5.1",
+    "@yume-chan/adb": "2.6.3",
     "@yume-chan/adb-scrcpy": "2.3.2",
     "@yume-chan/adb-server-node-tcp": "2.5.2",
     "@yume-chan/scrcpy": "2.3.0",
-    "@yume-chan/stream-extra": "2.1.0",
+    "@yume-chan/stream-extra": "2.6.1",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "open": "10.1.0",
@@ -50,11 +50,12 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
+    "@rstest/core": "0.11.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "socket.io-client": "4.8.1",
+    "typescript": "^5.8.3"
   },
   "license": "MIT"
 }

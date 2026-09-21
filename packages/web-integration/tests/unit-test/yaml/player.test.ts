@@ -11,7 +11,7 @@ import type {
 import { actionTapParamSchema } from '@midscene/core/device';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { type MockedFunction, describe, expect, test, vi } from 'vitest';
+import { type Mock, describe, expect, rs, test } from '@rstest/core';
 
 const serverRoot = join(__dirname, 'server_root');
 
@@ -27,47 +27,56 @@ const getMockAgent = async () => {
     {
       name: 'Tap',
       interfaceAlias: 'aiTap',
-      call: vi.fn(),
+      call: rs.fn(),
     },
     {
       name: 'RightClick',
       interfaceAlias: 'aiRightClick',
-      call: vi.fn(),
+      call: rs.fn(),
     },
     {
       name: 'Hover',
       interfaceAlias: 'aiHover',
-      call: vi.fn(),
+      call: rs.fn(),
     },
     {
       name: 'Input',
       interfaceAlias: 'aiInput',
-      call: vi.fn(),
+      call: rs.fn(),
+    },
+    {
+      name: 'KeyboardPress',
+      interfaceAlias: 'aiKeyboardPress',
+      call: rs.fn(),
     },
   ];
 
   return {
     agent: {
-      aiTap: vi.fn(async (...args) => {
+      aiTap: rs.fn(async (...args) => {
         methodCalls.push({ method: 'aiTap', args });
         return {};
       }),
-      aiRightClick: vi.fn(async (...args) => {
+      aiRightClick: rs.fn(async (...args) => {
         methodCalls.push({ method: 'aiRightClick', args });
         return {};
       }),
-      aiAction: vi.fn(async (...args) => {
+      aiAction: rs.fn(async (...args) => {
         methodCalls.push({ method: 'aiAction', args });
         return {};
       }),
-      aiInput: vi.fn(),
-      aiScroll: vi.fn(),
-      aiKeyboardPress: vi.fn(),
+      aiInput: rs.fn(),
+      aiScroll: rs.fn(),
+      aiKeyboardPress: rs.fn(),
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => dump),
+      _unstableLogContent: rs.fn(async () => dump),
       dump,
-      callActionInActionSpace: vi.fn(),
+      callActionInActionSpace: rs.fn(async (name: string) => {
+        if (!actionSpace.some((action) => action.name === name)) {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }
+      }),
       getActionSpace: async () => actionSpace,
     } as unknown as PageAgent,
     freeFn: [],
@@ -199,8 +208,7 @@ tasks:
     // Verify aiRightClick was called with correct parameters
     expect(mockAgent.agent.aiRightClick).toBeCalledTimes(0);
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -252,8 +260,7 @@ tasks:
     expect(player.status).toBe('done');
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -334,7 +341,7 @@ tasks:
 
     // Verify aiTap was called with correct parameters
     expect(
-      (mockAgent.agent.aiTap as MockedFunction<any>).mock.calls,
+      (mockAgent.agent.aiTap as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -364,8 +371,7 @@ tasks:
 
     // Verify remaining actions still go through callActionInActionSpace
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -426,8 +432,7 @@ tasks:
     expect(player.status).toBe('done');
 
     // Both formats should produce the same aiTap calls
-    const aiTapCalls = (mockAgent.agent.aiTap as MockedFunction<any>).mock
-      .calls;
+    const aiTapCalls = (mockAgent.agent.aiTap as Mock<any>).mock.calls;
     expect(aiTapCalls).toHaveLength(2);
     // Both calls should have the same arguments regardless of YAML nesting style
     expect(aiTapCalls[0]).toEqual(aiTapCalls[1]);
@@ -536,8 +541,7 @@ tasks:
 
     // Verify aiRightClick was called with correct parameters
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -699,16 +703,12 @@ tasks:
         ],
       ]
     `);
-    expect(
-      (mockAgent.agent.aiInput as MockedFunction<any>).mock.calls,
-    ).toHaveLength(0);
+    expect((mockAgent.agent.aiInput as Mock<any>).mock.calls).toHaveLength(0);
+
+    expect((mockAgent.agent.aiScroll as Mock<any>).mock.calls).toHaveLength(2);
 
     expect(
-      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
-    ).toHaveLength(2);
-
-    expect(
-      (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
+      (mockAgent.agent.aiKeyboardPress as Mock<any>).mock.calls,
     ).toHaveLength(0);
   });
 
@@ -732,9 +732,7 @@ tasks:
 
     expect(player.errorInSetup).toBeUndefined();
     expect(player.status).toBe('done');
-    expect(
-      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
-    ).toEqual([
+    expect((mockAgent.agent.aiScroll as Mock<any>).mock.calls).toEqual([
       [
         undefined,
         {
@@ -789,10 +787,10 @@ tasks:
     // Create mock where first call throws error, second succeeds
     const errorMockSetup = {
       agent: {
-        aiRightClick: vi.fn(async () => {
+        aiRightClick: rs.fn(async () => {
           throw new Error('Element not found for right click');
         }),
-        aiTap: vi.fn(),
+        aiTap: rs.fn(),
         reportFile: null,
         onTaskStartTip: undefined,
         getActionSpace: async () => [
@@ -800,10 +798,12 @@ tasks:
             name: 'aiTap',
             interfaceAlias: 'aiTap',
             paramSchema: actionTapParamSchema,
-            call: vi.fn(),
+            call: rs.fn(),
           },
         ],
-        callActionInActionSpace: vi.fn(),
+        callActionInActionSpace: rs.fn(async (name: string) => {
+          throw new Error(`Action type '${name}' is not in the action space`);
+        }),
       },
       freeFn: [],
     };
@@ -825,7 +825,7 @@ tasks:
 
     // Verify aiTap was called via agent.aiTap
     expect(
-      (errorMockSetup.agent.aiTap as MockedFunction<any>).mock.calls,
+      (errorMockSetup.agent.aiTap as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -927,8 +927,7 @@ tasks:
 
     // Verify Input was called with number value
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -971,8 +970,7 @@ tasks:
     expect(player.errorInSetup).toBeUndefined();
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -1015,8 +1013,7 @@ tasks:
     expect(player.errorInSetup).toBeUndefined();
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -1059,8 +1056,7 @@ tasks:
     expect(player.errorInSetup).toBeUndefined();
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -1109,8 +1105,7 @@ tasks:
     expect(player.errorInSetup).toBeUndefined();
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
@@ -1189,8 +1184,7 @@ tasks:
     expect(player.errorInSetup).toBeUndefined();
 
     expect(
-      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (mockAgent.agent.callActionInActionSpace as Mock<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [

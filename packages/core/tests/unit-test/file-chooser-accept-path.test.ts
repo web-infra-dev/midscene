@@ -2,7 +2,7 @@ import { unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { Agent } from '@/agent';
 import { normalizeFilePaths } from '@/agent/utils';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from '@rstest/core';
 
 const createMockInterface = () =>
   ({

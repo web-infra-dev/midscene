@@ -1,5 +1,35 @@
 # 更新日志
 
+## v1.12 - DeepSeek V4、Midscene Test 与报告耗时汇总
+
+v1.12 支持 DeepSeek V4 视觉模型，推出Midscene Test（Beta），并为报告增加耗时汇总。
+
+### DeepSeek V4 视觉模型支持
+
+- 支持 `deepseek-v4-flash-vision-exp`。配置方法参见[常用模型配置](./model-common-config#deepseek)，更多信息参见[Midscene 1.12 支持 DeepSeek V4 Flash Vision Exp](https://mp.weixin.qq.com/s/FDAPd1WrNP6Sb8SRJUen6w)。
+
+### Midscene Test（Beta）
+
+- 新增 `@midscene/test`，支持使用 YAML 编写自然语言测试，也可通过 TypeScript Node 扩展。Midscene Test 将逐步替代旧版 YAML 自动化方案，协议和 API 目前仍处于 Beta 阶段。详见 [Midscene Test 概览](./midscene-test/overview)。
+
+### 报告与稳定性
+
+- Report 侧边栏新增总耗时和模型调用耗时，Markdown 报告也会按模型汇总耗时和 Token 用量。
+- 截图处理流程会把观察帧统一保存为 JPEG，减少运行产物占用的空间。
+- 修复 Electron ASAR 包中的资源路径解析问题。受影响的资源包括 yadb 和 scrcpy 外部二进制文件。
+
+## v1.11 - 多平台稳定性改进
+
+v1.11 提高了模型验证、移动端输入和报告生成的稳定性。
+
+### 稳定性与文档
+
+- 修复模型验证回调丢失 Playground SDK 方法上下文的问题。
+- 修复 HarmonyOS 无法正确解析应用启动目标的问题。该问题会影响已声明的 ability 和经过映射的目标。
+- Android 和 HarmonyOS 清空输入框前会先全选文本，以兼容更多输入法和控件。
+- Playwright 报告文件名增加长度限制和重名规避，避免长标题触发 `ENAMETOOLONG` 错误。
+- 补充 Doubao Seed Android showcase 的执行成本数据。
+
 ## v1.10 - BDD 风格脚本、Doubao-Seed-2.1 与 MCP 下线
 
 v1.10 新增 BDD 风格的 Gherkin 脚本执行能力，升级推荐模型到 Doubao-Seed-2.1，并正式下线 MCP server 包，后续推荐通过 Skills 与各平台 CLI 让 AI Agent 驱动 Midscene。
@@ -53,7 +83,7 @@ Midscene 新增 AndroidWorld benchmark 报告。使用 v1.9.5 测试时，Midsce
 
 - `1.9.8` 是最后一个包含 MCP 支持的 Midscene 版本。后续版本会下线 MCP server 包，改为推荐 Skills 与各平台 CLI。
 - 各平台 CLI 支持传入 agent behavior init args。
-- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./harmony-api-reference)
+- CLI 的 YAML 脚本新增 HarmonyOS target，HarmonyOS 自动化可以通过与 Web、Android、iOS、Computer 一致的脚本运行器流程执行。详见：[YAML 脚本自动化](./automate-with-scripts-in-yaml)、[HarmonyOS API](./reference/#harmonyos)
 - YAML Web config 支持自定义 HTTP headers。
 - YAML Web config 支持通过 `downloadPath` 指定浏览器下载目录。
 - YAML 执行会暴露真实错误，不再只落到静默的 "not executed" 结果。
@@ -117,12 +147,12 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 
 ### YAML 工作流增强
 
-- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./android-api-reference)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
+- **Android runAdbShell timeout**：在 JavaScript API 和 YAML 脚本中都支持 `timeout` 选项。详见：[Android API](./reference/#android)、[YAML 脚本自动化](./automate-with-scripts-in-yaml)
 
 ### 新增交互 API
 
-- **`agent.aiLongPress()`**：对指定元素执行长按操作，适用于触发长按菜单等场景。详见 [API 文档](./api.mdx#agentailongpress)
-- **`agent.aiClearInput()`**：清空指定输入框的内容，适合把清空当作独立一步的场景。详见 [API 文档](./api.mdx#agentaiclearinput)
+- **`agent.aiLongPress()`**：对指定元素执行长按操作，适用于触发长按菜单等场景。详见 [API 文档](./reference/#agentailongpress)
+- **`agent.aiClearInput()`**：清空指定输入框的内容，适合把清空当作独立一步的场景。详见 [API 文档](./reference/#agentaiclearinput)
 
 ### 设备与平台集成
 
@@ -135,7 +165,7 @@ Midscene Studio 是一个基于 Electron 的桌面应用，把多平台 Playgrou
 ### 模型与规划行为
 
 - **使用意图与配置槽位分离**：模型使用意图与实际解析到的配置槽位分离，多模型 Planning、定位和报告展示更清晰
-- **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-strategy#模型原生的思考模式)
+- **默认关闭原生思考**：对于已支持的模型系列，Midscene 默认关闭模型原生思考，以提升执行速度和稳定性。详见：[模型原生的思考模式](./model-config#model-native-reasoning)
 - **豆包低延迟模式**：支持豆包低延迟模式配置方式，可通过 `MIDSCENE_MODEL_EXTRA_BODY_JSON={"service_tier":"fast"}` 开启。详见：[常用模型配置](./model-common-config)
 - **GLM-5V-Turbo 支持**：新增智谱 GLM-5V-Turbo 模型支持。详见：[常用模型配置](./model-common-config)
 - **滚动选择规划优化**：优化滚动选择（scrollable select）的规划流程，提升复杂下拉与滚轮选择场景的成功率
@@ -220,7 +250,7 @@ Chrome 扩展的录制设置中新增了 YAML 输出语言选项，支持 Englis
 
 ### Android / 鸿蒙端改进
 
-- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./android-api-reference)、[鸿蒙 API](./harmony-api-reference)
+- Android 和鸿蒙端新增 `terminate` 操作，支持强制停止指定应用，方便在测试中重置应用状态。详见：[Android API](./reference/#android)、[鸿蒙 API](./reference/#harmonyos)
 - 修复 Android 端在 X/Twitter 上输入时 placeholder 文本被意外保留的问题
 - 修复 Android Playground 局域网访问问题
 
@@ -254,7 +284,7 @@ v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、G
 
 ### 新增跨平台双指缩放手势
 
-在 Android、iOS、鸿蒙等移动端平台支持 pinch/zoom 双指缩放操作，可用于地图缩放、图片预览等场景。详见：[API 文档 - aiPinch](./api.mdx#agentaipinch)
+在 Android、iOS、鸿蒙等移动端平台支持 pinch/zoom 双指缩放操作，可用于地图缩放、图片预览等场景。详见：[API 文档 - aiPinch](./reference/#agentaipinch)
 
 ### 新增 GPT-5 / GPT-5.4 与 Codex app-server provider 支持
 
@@ -266,18 +296,18 @@ v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、G
 
 ### `deepThink` 更名为 `deepLocate`
 
-元素定位相关 API 中的 `deepThink` 参数正式更名为 `deepLocate`，更准确地表达其"深度定位"的含义。原有 `deepThink` 参数仍可使用，但建议逐步迁移。详见：[API 文档](./api.mdx)
+元素定位相关 API 中的 `deepThink` 参数正式更名为 `deepLocate`，更准确地表达其"深度定位"的含义。原有 `deepThink` 参数仍可使用，但建议逐步迁移。详见：[API 文档](./reference/#common)
 
 ### Skill CLI 与平台工具增强
 
 - **Skill CLI 自定义接口**：Skill CLI 支持自定义接口，开发者可以更灵活地扩展 Skill 能力。详见：[Skills 文档](./skills)
 - **统一 MCP 工具导出**：所有平台包（Web、Android、iOS 等）统一导出 MidsceneTools，在 MCP 场景下集成更简单。详见：[MCP 服务](./mcp)
-- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./ios-api-reference)
+- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./reference/#ios)
 - **CLI 版本查看**：CLI 新增版本查看功能，健康检查中显示各包版本信息，便于排查环境问题
 
 ### 任务取消支持
 
-`aiAct` 新增 `AbortSignal` 支持，开发者可以在任务执行过程中随时取消操作，避免长时间等待。详见：[API 文档 - aiAct](./api.mdx#agentaiact)
+`aiAct` 新增 `AbortSignal` 支持，开发者可以在任务执行过程中随时取消操作，避免长时间等待。详见：[API 文档 - aiAct](./reference/#agentaiact)
 
 ### 元素定位优化
 
@@ -387,7 +417,7 @@ Midscene Skills 是一套可安装到 Claude Code、OpenClaw 等 AI 助手中的
 
 新增 `@midscene/computer-mcp` 包，将 PC 桌面自动化能力以独立 MCP 服务的形式提供。开发者可以直接在 Cursor、Trae 等支持 MCP 的工具中使用桌面自动化能力，无需额外集成。
 
-详见文档：[PC 桌面自动化](./computer-introduction)
+详见文档：[PC 桌面自动化](./platforms/desktop)
 
 ### Chrome 扩展支持 MCP 后台连接
 
@@ -440,13 +470,13 @@ Midscene 现在支持 PC 桌面自动化，在 Windows、macOS 和 Linux 上驱�
 - 支持 YAML 格式的自动化脚本和命令行工具
 - 支持 HTML 报告回放所有操作路径
 
-详见文档：[PC 桌面自动化](./computer-introduction)
+详见文档：[PC 桌面自动化](./platforms/desktop)
 
 ### Android 截图性能大幅提升
 
 开启 Scrcpy 截图模式后，截图耗时从原来的 500–2000ms 降低到 **100–200ms**，显著提升 Android 自动化的响应速度，特别适用于远程设备调试和高帧率场景。
 
-详见文档：[Scrcpy 截图模式](./android-api-reference#scrcpy)
+详见文档：[Scrcpy 截图模式](./reference/#scrcpy)
 
 ### 深度思考模式增强
 
@@ -501,7 +531,7 @@ v1.2 版本中我们加入了对智谱 AI 开源模型的支持，新增了文�
 
 在 Web 自动化场景中，文件上传是一个常见需求。v1.2 版本为 web 端新增了文件上传能力，支持通过自然语言操作文件输入框，让表单自动化更加完整。
 
-详见：[aiTap 文件上传](./api.mdx#agentaitap)
+详见：[aiTap 文件上传](./reference/#agentaitap)
 
 ### 缓存机制优化
 
@@ -725,7 +755,7 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
 ## v0.29 - 新增 iOS 平台支持
 
 ### 新增 iOS 平台支持
-v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，你可以通过 WebDriver 连接并自动化 iOS 设备，将 Midscene 的强大 AI 自动化能力扩展到苹果生态系统，了解详情: [支持 iOS 自动化](./ios-introduction)
+v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，你可以通过 WebDriver 连接并自动化 iOS 设备，将 Midscene 的强大 AI 自动化能力扩展到苹果生态系统，了解详情: [支持 iOS 自动化](./platforms/ios)
 
 ### 适配 Qwen3-VL 模型
 
@@ -806,11 +836,11 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 ## v0.26 - 工具链全面接入 [Rslib](https://github.com/web-infra-dev/rslib)，大幅提高开发体验、降低贡献门槛
 
 ### Web 集成优化
-- 支持冻结页面上下文（[freezePageContext](./api.mdx#agentfreezepagecontext)/[unfreezePageContext](./api.mdx#agentunfreezepagecontext)），使后续所有的操作都复用同一个页面快照，避免多次重复获取页面状态
+- 支持冻结页面上下文（[freezePageContext](./reference/#agentfreezepagecontext)/[unfreezePageContext](./reference/#agentunfreezepagecontext)），使后续所有的操作都复用同一个页面快照，避免多次重复获取页面状态
 - 为 Playwright fixture 补全所有 agent api，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
 ### Android 自动化增强
-- 新增隐藏键盘策略（[keyboardDismissStrategy](./android-api-reference#androiddevice)），允许指定自动隐藏键盘的方式
+- 新增隐藏键盘策略（[keyboardDismissStrategy](./reference/#androiddevice)），允许指定自动隐藏键盘的方式
 
 ### 报告功能优化
 - 报告内容引入懒解析，解决大体积报告的崩溃问题
@@ -834,14 +864,14 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 
 ### 核心功能增强
 - 新增运行环境，支持运行在 Worker 环境
-- 支持使用图像作为 AI prompt 输入，详见 [使用图片作为提示词](./api.mdx#%E4%BD%BF%E7%94%A8%E5%9B%BE%E7%89%87%E4%BD%9C%E4%B8%BA%E6%8F%90%E7%A4%BA%E8%AF%8D)
+- 支持使用图像作为 AI prompt 输入，详见 [使用图片作为提示词](./reference/#%E4%BD%BF%E7%94%A8%E5%9B%BE%E7%89%87%E4%BD%9C%E4%B8%BA%E6%8F%90%E7%A4%BA%E8%AF%8D)
 - 图像处理升级，采用 Photon & Sharp 进行高效图片裁剪
 
 ### Web 集成优化
 - 通过坐标获取 XPath，提高缓存可复现性
 - 缓存文件将 plan 模块提到最前面，增加可读性
 - Chrome Recorder 支持导出所有事件到 markdown 文档
-- agent 支持指定 HTML 报告名称，详见 [reportFileName](./api.mdx)
+- agent 支持指定 HTML 报告名称，详见 [reportFileName](./reference/#common)
 
 ### Android 自动化增强
 - 长按手势支持
@@ -996,7 +1026,7 @@ await agent.aiTap('提交按钮', { xpath: '//button[@id="submit"]' })
 
 对了，Midscene 的报告就是根据这份数据生成了，也就是说，使用这份数据，你甚至可以定制一个属于你自己的报告！
 
-详情请参考：[API 文档](./api.mdx#agent_unstablelogcontent)
+详情请参考：[API 文档](./reference/#agent_unstablelogcontent)
 
 ### CLI 新增参数支持调整 Midscene 环境变量优先级
 
@@ -1015,8 +1045,6 @@ await agent.aiTap('提交按钮', { xpath: '//button[@id="submit"]' })
 ### 在报告中增加自定义节点
 
 * 为 agent 添加 `recordToReport` API，将当前页面的截图作为报告节点。支持设置节点标题和描述，使报告内容更加丰富。适用于关键步骤截图记录、错误状态捕获、UI 验证等。
-
-![](/blog/recordToReport-api.png)
 
 * 示例：
 
@@ -1080,8 +1108,8 @@ const agent = await agentFromAdbDevice('s4ey59', {
 
 立即升级版本，体验这些强大新功能！
 
-* [自定义报告节点 API 文档](/zh/api.mdx#agentlogscreenshot)
-* [Android 更多配置项 API 文档](/zh/android-api-reference#androiddevice)
+* [自定义报告节点 API 文档](/zh/reference/#agentlogscreenshot)
+* [Android 更多配置项 API 文档](/zh/reference/#androiddevice)
 
 
 ## v0.17 - 让 AI 看见页面 DOM
@@ -1188,7 +1216,7 @@ await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
 
 APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
-了解详情: [使用结构化 API 优化自动化代码](./use-javascript-to-optimize-ai-automation-code.md)
+了解详情: [使用结构化 API 优化自动化代码](./basics#javascript-orchestration)
 
 ## v0.15 - Android 自动化上线！
 
@@ -1207,7 +1235,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 * 增强超时配置和日志记录，支持网络空闲和导航超时
 * 适配 gemini-2.5-pro
 
-了解详情: [支持 Android 自动化](./android-introduction)
+了解详情: [支持 Android 自动化](./platforms/android)
 
 ## v0.14 - 即时操作 API
 
@@ -1227,7 +1255,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
 * 增强点击准确性，提供更深层次的上下文理解
 
-![](/blog/0.13.jpeg)
+![](/blog/0.13.0.jpeg)
 
 ## v0.12 - 集成 Qwen 2.5 VL
 
@@ -1310,7 +1338,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 通过 Chrome 插件，你可以零代码、任意页面随时运行 Midscene，体验它的 Action \ Query \ Assert 等能力。
 
-体验方式：[ 使用 Chrome 插件体验 Midscene](./quick-experience.mdx)
+体验方式：[ 使用 Chrome 插件体验 Midscene](./quick-start#chrome-extension)
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Midscene_extension.mov" controls/>
 

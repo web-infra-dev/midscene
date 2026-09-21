@@ -1,0 +1,229 @@
+import SetupEnv from '../common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# HarmonyOS
+
+Midscene connects to HarmonyOS NEXT devices through HarmonyOS Device Connector (HDC) to automate apps and system interfaces.
+
+This guide covers device connection, model configuration, Playground, and JavaScript SDK integration with `@midscene/harmony`.
+
+## See it in action
+
+**Prompt:** Open Settings, find About phone, and view the device information.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.png" height="300" controls />
+
+View the [full report](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html), or explore more [Midscene showcases](../showcases.mdx).
+
+## Get started
+
+### Prepare your HarmonyOS device
+
+Before writing scripts, verify that HDC can connect to your device and the device trusts the current computer.
+
+#### Install HDC
+
+HDC (HarmonyOS Device Connector) is a command-line tool provided by HarmonyOS for communicating with devices. Installation options:
+
+- Via [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) (recommended)
+- Via [HarmonyOS command-line tools](https://developer.huawei.com/consumer/en/download/) standalone installation
+
+Verify HDC is installed:
+
+```bash
+hdc version
+```
+
+A version number in the output confirms successful installation.
+
+:::info Configuring HDC Path
+
+If `hdc` is not in your system PATH, set the `HDC_HOME` environment variable to the directory containing HDC:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+#### Enable Developer Mode and verify the device
+
+In your HarmonyOS device settings, go to **Developer Options** and enable **USB Debugging**, then connect via USB cable.
+
+Verify the connection:
+
+```bash
+hdc list targets
+```
+
+A device ID in the output confirms a successful connection:
+
+```log
+0123456789ABCDEF
+```
+
+### Launch Playground
+
+Playground is the fastest way to validate the connection and try core capabilities such as `aiAct`, `aiQuery`, and `aiAssert` without writing code. It shares the same core as `@midscene/harmony`, so anything that works here will behave the same once scripted.
+
+1. Launch the Playground CLI:
+
+```bash
+npx --yes @midscene/harmony-playground
+```
+
+2. Click the gear button in the Playground window and paste your API Key configuration. See [Supported models and setup](../model-common-config) if you still need a model configuration.
+
+## Use the JavaScript SDK
+
+Once Playground runs successfully, you can switch to reusable JavaScript scripts.
+
+### Configure the model
+
+<SetupEnv />
+
+### Install dependencies
+
+<PackageManagerTabs command="install @midscene/harmony dotenv --save-dev" />
+
+### Write a script
+
+The following example opens the Settings app on the device and performs scrolling operations.
+
+```typescript title="./demo.ts"
+import 'dotenv/config'; // load Midscene environment variables from .env if present
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new HarmonyDevice(devices[0].deviceId, {});
+
+    const agent = new HarmonyAgent(device, {
+      aiContexts: {
+        aiAct: 'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+      },
+    });
+    await device.connect();
+
+    // Open Settings app
+    await agent.launch('com.huawei.hmos.settings');
+    await sleep(2000);
+
+    // Scroll down
+    await agent.aiAct('scroll down one screen');
+
+    // Query page content
+    const items = await agent.aiQuery(
+      'string[], list all visible setting item names',
+    );
+    console.log('Settings items', items);
+
+    // Assert
+    await agent.aiAssert('There is a settings item list on the page');
+  })(),
+);
+```
+
+For guidance on writing and supplying context, see [Provide application knowledge to a GUI Agent](../provide-application-knowledge-to-gui-agent).
+
+### Run the script
+
+```bash
+npx tsx demo.ts
+```
+
+After the script finishes, you should see `Midscene - report file updated: /path/to/report/some_id.html` in the console. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
+
+## Advanced
+
+Use this section to customize device behavior, integrate Midscene into a standalone framework, or troubleshoot HDC issues. See the [HarmonyOS section of the API reference](../reference/#harmonyos) for more constructor parameters.
+
+### Extending Midscene on HarmonyOS
+
+Use `defineAction()` to define custom actions. When constructing `HarmonyDevice`, pass these actions through `customActions`. Midscene appends these actions to the planner so the Agent can call the domain-specific actions you define.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const devices = await getConnectedDevices();
+const device = new HarmonyDevice(devices[0].deviceId, {
+  customActions: [ContinuousClick],
+});
+await device.connect();
+
+const agent = new HarmonyAgent(device);
+
+await agent.aiAct('click the red button five times');
+```
+
+For more details on custom actions and action schemas, see [Integrate with Any Interface](../integrate-with-any-interface#define-a-custom-action).
+
+## FAQ
+
+### Keyboard is not dismissed or the page goes back after typing
+
+Midscene automatically dismisses the keyboard after entering text. By default, HarmonyOS uses the ESC key so the current page is less likely to navigate back. If ESC does not close the keyboard in your app, switch to Back first:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+If your input field listens for Back and clears or closes in response, disable auto keyboard dismiss:
+
+```typescript
+const device = new HarmonyDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
+With auto dismiss disabled, the keyboard will remain visible. You can use `aiAct` to manually dismiss it, e.g. `await agent.aiAct('dismiss the keyboard')`.
+
+### How to use a custom HDC path?
+
+Set the `HDC_HOME` environment variable to point to the HDC directory:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+Or pass it via the constructor:
+
+```typescript
+const device = new HarmonyDevice('0123456789ABCDEF', {
+  hdcPath: '/path/to/hdc',
+});
+```
+
+## More
+
+- View all Agent methods: [API Reference (Common)](../reference/#interaction-methods)
+- HarmonyOS-specific parameters and interfaces: [API reference (HarmonyOS)](../reference/#harmonyos)
+- Use [YAML automation scripts and command-line tools](../automate-with-scripts-in-yaml).
+- Demo projects
+  - HarmonyOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)

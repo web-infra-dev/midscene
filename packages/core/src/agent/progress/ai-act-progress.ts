@@ -121,15 +121,7 @@ function bboxArrayFromProperty(
   return [left, top, right, bottom];
 }
 
-function centerPointFromBbox(
-  bbox: readonly [number, number, number, number],
-): [number, number] {
-  return [
-    Math.floor((bbox[0] + bbox[2]) / 2),
-    Math.floor((bbox[1] + bbox[3]) / 2),
-  ];
-}
-
+/** Read the resolved screenshot center; never infer it from raw model fields. */
 function pointFromLocateLike(
   value: Record<string, unknown>,
 ): [number, number] | undefined {
@@ -142,36 +134,12 @@ function pointFromLocateLike(
     }
   }
 
-  const point = value.point;
-  if (Array.isArray(point) && point.length >= 2) {
-    const x = numberFromUnknown(point[0]);
-    const y = numberFromUnknown(point[1]);
-    if (x !== undefined && y !== undefined) {
-      return [x, y];
-    }
-  }
-
-  const locatedPixelBbox = bboxArrayFromProperty(value, 'locatedPixelBbox');
-  if (locatedPixelBbox) {
-    return centerPointFromBbox(locatedPixelBbox);
-  }
-
-  const bbox = bboxArrayFromProperty(value, 'bbox');
-  if (bbox) {
-    return centerPointFromBbox(bbox);
-  }
-
   return undefined;
 }
 
 function bboxFromLocateLike(
   value: Record<string, unknown>,
 ): [number, number, number, number] | undefined {
-  const locatedPixelBbox = bboxArrayFromProperty(value, 'locatedPixelBbox');
-  if (locatedPixelBbox) {
-    return locatedPixelBbox;
-  }
-
   const bbox = bboxArrayFromProperty(value, 'bbox');
   if (bbox) {
     return bbox;
@@ -213,6 +181,7 @@ function isLocateLike(value: unknown): value is Record<string, unknown> {
   }
 
   return (
+    'locatedPixelResult' in value ||
     'center' in value ||
     'rect' in value ||
     'point' in value ||
@@ -251,11 +220,7 @@ function hasUnresolvedLocateLikeParam(param: unknown): boolean {
       return true;
     }
 
-    return (
-      isLocateLike(value) &&
-      !pointFromLocateLike(value) &&
-      !bboxFromLocateLike(value)
-    );
+    return isLocateLike(value) && !pointFromLocateLike(value);
   });
 }
 
@@ -295,7 +260,7 @@ export function extractProgressAction(
     }
   }
 
-  // A locate-like param that has not resolved to a point/bbox is not reportable
+  // A locate-like param that has not resolved to a center is not reportable
   // yet; skip it so the consumer never renders a half-resolved action.
   if (hasUnresolvedLocateLikeParam(task.param)) {
     return undefined;

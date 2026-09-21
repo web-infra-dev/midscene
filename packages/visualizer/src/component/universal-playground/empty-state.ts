@@ -11,3 +11,9 @@ export function shouldRenderCustomEmptyState(
     infoList[0]?.id === 'welcome'
   );
 }
+
+export function shouldShowTimelineActions(
+  renderCustomEmptyState: boolean,
+): boolean {
+  return !renderCustomEmptyState;
+}

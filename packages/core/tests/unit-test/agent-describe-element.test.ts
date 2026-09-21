@@ -13,7 +13,7 @@ import {
   MIDSCENE_MODEL_NAME,
 } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { getFixture } from '../utils';
 
 const modelConfig = {
@@ -50,24 +50,23 @@ function createElementDescriberRuntime(agent: Agent): ElementDescriberRuntime {
 function mockServiceLocate(
   agent: Agent,
   element: {
-    rect: { left: number; top: number; width: number; height: number };
+    rect?: { left: number; top: number; width: number; height: number };
     center: [number, number];
     description?: string;
   },
 ) {
-  return vi.spyOn(agent.service, 'locate').mockResolvedValue({
+  return rs.spyOn(agent.service, 'locate').mockResolvedValue({
     element: {
       ...element,
       description: element.description || 'mock element',
     },
-    rect: element.rect,
     dump: {} as any,
   });
 }
 
 describe('element describer utils', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
   });
 
   it('skips locator verification when verifyPrompt is false', async () => {
@@ -75,10 +74,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'LocalSearch title',
     });
-    const locate = vi
+    const locate = rs
       .spyOn(agent.service, 'locate')
       .mockRejectedValue(new Error('should not verify locator'));
 
@@ -106,11 +105,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'LocalSearch title',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10] as [number, number],
     });
 
@@ -121,10 +119,8 @@ describe('element describer utils', () => {
 
     expect(result.verifyResult).toEqual({
       pass: true,
-      rect: { left: 0, top: 0, width: 20, height: 20 },
       center: [10, 10],
       centerDistance: 10,
-      includedInRect: true,
     });
     expect(locate).toHaveBeenCalledWith(
       {
@@ -140,12 +136,12 @@ describe('element describer utils', () => {
     await agent.destroy();
   });
 
-  it('passes by default when the located rect contains the target point without retrying', async () => {
+  it('accepts a distant center when the returned rect contains the target', async () => {
     const agent = new Agent(createMockInterface(), {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Broad row container',
     });
     mockServiceLocate(agent, {
@@ -183,10 +179,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Missing target',
     });
-    vi.spyOn(agent.service, 'locate').mockRejectedValue(
+    rs.spyOn(agent.service, 'locate').mockRejectedValue(
       new Error('failed to locate element'),
     );
 
@@ -215,11 +211,10 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Screenshot target',
     });
     const locate = mockServiceLocate(agent, {
-      rect: { left: 0, top: 0, width: 1, height: 1 },
       center: [0.5, 0.5] as [number, number],
     });
 
@@ -268,7 +263,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'Broad target',
@@ -312,7 +307,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'Broad target',
@@ -357,7 +352,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'Broad target',
@@ -405,7 +400,7 @@ describe('element describer utils', () => {
       /^data:image\/[a-zA-Z0-9.+-]+;base64,/,
       '',
     );
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Screenshot target',
     });
     mockServiceLocate(agent, {
@@ -442,7 +437,7 @@ describe('element describer utils', () => {
       shrunkShotToLogicalRatio: 1,
       _isFrozen: true,
     };
-    const runPlans = vi
+    const runPlans = rs
       .spyOn(agent.taskExecutor, 'runPlans')
       .mockResolvedValue({
         output: {
@@ -471,6 +466,38 @@ describe('element describer utils', () => {
       { uiContext },
     );
 
+    runPlans.mockResolvedValueOnce({
+      output: { element: { center: [2.5, 4] } },
+      runner: {},
+    } as any);
+    expect(await agent.aiLocate('Point-only target', { uiContext })).toEqual({
+      rect: { left: 0, top: 0.5, width: 8, height: 8 },
+      center: [2.5, 4],
+      dpr: undefined,
+    });
+
+    await agent.destroy();
+  });
+
+  it('rejects a distant center when no rect is returned', async () => {
+    const agent = new Agent(createMockInterface(), {
+      generateReport: false,
+      modelConfig,
+    });
+    mockServiceLocate(agent, { center: [50, 50] });
+    const result = await verifyLocator(
+      createElementDescriberRuntime(agent),
+      'target element',
+      undefined,
+      [10, 10],
+    );
+    expect(result).toEqual({
+      pass: false,
+      center: [50, 50],
+      centerDistance: 57,
+    });
+    expect(result.rect).toBeUndefined();
+    expect(result.includedInRect).toBeUndefined();
     await agent.destroy();
   });
 
@@ -510,7 +537,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'First target',
@@ -547,7 +574,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'First target',
@@ -594,7 +621,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    vi.spyOn(agent.service, 'describe')
+    rs.spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'First target',
       })
@@ -632,7 +659,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi
+    const describe = rs
       .spyOn(agent.service, 'describe')
       .mockResolvedValueOnce({
         description: 'First target',
@@ -672,7 +699,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Mapped target',
     });
     const locate = mockServiceLocate(agent, {
@@ -720,7 +747,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'should not run',
     });
 
@@ -742,7 +769,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const describe = vi.spyOn(agent.service, 'describe').mockResolvedValue({
+    const describe = rs.spyOn(agent.service, 'describe').mockResolvedValue({
       description: 'Actual-size target',
     });
 
@@ -862,7 +889,7 @@ describe('element describer utils', () => {
       generateReport: false,
       modelConfig,
     });
-    const locate = vi
+    const locate = rs
       .spyOn(agent.service, 'locate')
       .mockRejectedValue(new Error('should not verify locator'));
 

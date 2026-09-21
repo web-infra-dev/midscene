@@ -6,12 +6,15 @@ import {
 } from '@/common/browser-agent';
 import { applyForceChromeSelectRendering } from '@/common/browser-agent-utils';
 import type { WebPageAgentOpt } from '@/web-element';
+import type { AgentTestRunnerNodeDefinition } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type {
   BrowserContext as PlaywrightBrowserContext,
   Page as PlaywrightPage,
 } from 'playwright';
 import { WebPage as PlaywrightWebPage } from './page';
+import { playwrightAgentTestRunnerNodeDefinitions } from './test-runner/agent-nodes';
+import type { PlaywrightTestRunnerOptions } from './test-runner/types';
 
 const debug = getDebug('playwright:browser-agent');
 
@@ -31,6 +34,7 @@ export type PlaywrightBrowserAgentOpt = Omit<
   WebPageAgentOpt,
   'forceSameTabNavigation'
 > & {
+  testRunner?: PlaywrightTestRunnerOptions;
   autoFollowNewPage?: boolean;
   newPageTimeout?: number;
 };
@@ -40,6 +44,15 @@ export type PlaywrightBrowserAgentCreateOpt = PlaywrightBrowserAgentOpt & {
 };
 
 export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
+  static override getTestRunnerNodeDefinitions(): readonly AgentTestRunnerNodeDefinition[] {
+    return [
+      ...WebAgentCore.getTestRunnerNodeDefinitions(),
+      ...playwrightAgentTestRunnerNodeDefinitions,
+    ];
+  }
+
+  readonly testRunner?: PlaywrightTestRunnerOptions;
+
   private readonly pageManager: BrowserPageManager<
     PlaywrightPage,
     PlaywrightPage
@@ -88,6 +101,7 @@ export class PlaywrightBrowserAgent extends WebAgentCore<PlaywrightWebPage> {
     });
     super(webPage, agentOpts);
     this.pageManager = pageManager;
+    this.testRunner = opts?.testRunner;
 
     applyForceChromeSelectRendering(
       initialPage,

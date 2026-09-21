@@ -6,6 +6,7 @@ import {
   getSummaryAbsolutePath,
   printExecutionSummary,
 } from './execution-summary';
+import { isYamlBatchExecutionError } from './yaml-batch-error';
 import {
   type BatchRunnerConfig,
   type RunYamlBatchOptions,
@@ -20,8 +21,16 @@ class BatchRunner {
   async run(
     options: RunYamlBatchOptions = {},
   ): Promise<MidsceneYamlConfigResult[]> {
-    this.results = await runYamlBatch(this.config, options);
-    return this.results;
+    this.results = [];
+    try {
+      this.results = await runYamlBatch(this.config, options);
+      return this.results;
+    } catch (error) {
+      if (isYamlBatchExecutionError(error)) {
+        this.results = [...error.results];
+      }
+      throw error;
+    }
   }
 
   getExecutionSummary(): ExecutionSummary {

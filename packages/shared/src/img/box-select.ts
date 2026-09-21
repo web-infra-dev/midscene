@@ -1,9 +1,16 @@
 import assert from 'node:assert';
-import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
+import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon';
 import { NodeType } from '../constants';
 import type { BaseElement, Rect } from '../types';
+import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
-import { photonFromBase64, photonToBase64 } from './transform';
+import getSharp from './get-sharp';
+import {
+  createImgBase64ByFormat,
+  parseBase64,
+  photonFromBase64,
+  photonToBase64,
+} from './transform';
 
 // Simple 5x7 bitmap font for digits 0-9
 const DIGIT_FONT: Record<string, number[][]> = {
@@ -715,6 +722,47 @@ const createSvgOverlay = async (
   return overlayPixels;
 };
 
+async function decodeImageWithSharp(
+  inputImgBase64: string,
+  size?: { width: number; height: number },
+) {
+  const { body } = parseBase64(inputImgBase64);
+  const Sharp = await getSharp();
+  let pipeline = Sharp(Buffer.from(body, 'base64'));
+  if (size) {
+    pipeline = pipeline.resize(size.width, size.height, {
+      fit: 'fill',
+      kernel: 'nearest',
+    });
+  }
+  const { data, info } = await pipeline
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  if (!info.width || !info.height || info.channels !== 4) {
+    throw new Error('Image processing failed to produce RGBA pixels');
+  }
+  return {
+    pixels: new Uint8Array(data),
+    width: info.width,
+    height: info.height,
+  };
+}
+
+async function encodeRgbaWithSharp(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+) {
+  const Sharp = await getSharp();
+  const output = await Sharp(Buffer.from(pixels), {
+    raw: { width, height, channels: 4 },
+  })
+    .jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
+    .toBuffer();
+  return createImgBase64ByFormat('jpeg', output.toString('base64'));
+}
+
 export const compositeElementInfoImg = async (options: {
   inputImgBase64: string;
   elementsPositionInfo: Array<ElementForOverlay>;
@@ -725,6 +773,27 @@ export const compositeElementInfoImg = async (options: {
   prompt?: string;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
+  if (ifInNode) {
+    const { pixels, width, height } = await decodeImageWithSharp(
+      options.inputImgBase64,
+      options.size,
+    );
+    const overlayPixels = await createSvgOverlay(
+      options.elementsPositionInfo,
+      width,
+      height,
+      options.annotationPadding,
+      options.borderThickness,
+      options.prompt,
+      options.centerPoint,
+    );
+    return encodeRgbaWithSharp(
+      blendPixels(pixels, overlayPixels, width, height),
+      width,
+      height,
+    );
+  }
+
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
 
   let width = 0;
@@ -800,6 +869,27 @@ export const compositePointMarkerImg = async (options: {
   indexId?: number;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
+  if (ifInNode) {
+    const { pixels, width, height } = await decodeImageWithSharp(
+      options.inputImgBase64,
+      options.size,
+    );
+    const overlayPixels = new Uint8Array(width * height * 4);
+    drawPointMarker(
+      overlayPixels,
+      width,
+      height,
+      options.point,
+      options.radius ?? 14,
+      options.indexId ?? 1,
+    );
+    return encodeRgbaWithSharp(
+      blendPixels(pixels, overlayPixels, width, height),
+      width,
+      height,
+    );
+  }
+
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
 
   let width = 0;

@@ -1,9 +1,4 @@
 import { resolveBrowserAgentRuntimeOptions } from '@/common/browser-agent';
-import {
-  PlaywrightAgent,
-  PlaywrightBrowserAgent,
-  type PlaywrightWebPage,
-} from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
@@ -13,10 +8,15 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
+import { replaceIllegalPathCharsAndSpace, uuid } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
+import {
+  PlaywrightAgent,
+  PlaywrightBrowserAgent,
+  type PlaywrightWebPage,
+} from './agent';
+import { buildPlaywrightReportTag } from './report-filename';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
 
 const debugPage = getDebug('web:playwright:ai-fixture');
@@ -146,9 +146,9 @@ export const PlaywrightAiFixture = (options?: PlaywrightAiFixtureOptions) => {
       const cacheConfig = processTestCacheConfig(testInfo);
       // `replaceIllegalPathCharsAndSpace` intentionally preserves `/` and `\`
       // so groupName/groupDescription can still carry hierarchy. But
-      // ReportGenerator rejects path separators in the file name, so strip
-      // them here for the report tag only.
-      const reportTag = `playwright-${title.replace(/[\\/]/g, '-')}-${idForPage}`;
+      // ReportGenerator rejects path separators in the file name, so the
+      // report tag builder strips them without changing the group metadata.
+      const reportTag = buildPlaywrightReportTag(title, idForPage);
 
       if (autoFollowNewPage && forceSameTabNavigation === true) {
         throw new Error(

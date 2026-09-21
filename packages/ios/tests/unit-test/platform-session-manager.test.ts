@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, rs, test } from '@rstest/core';
 
-const agentFromWebDriverAgentMock = vi.fn();
-const getConnectedDeviceInfoMock = vi.fn();
-const findAvailablePortMock = vi.fn(async (port: number) => port);
+const agentFromWebDriverAgentMock = rs.fn();
+const getConnectedDeviceInfoMock = rs.fn();
+const findAvailablePortMock = rs.fn(async (port: number) => port);
 
-vi.mock('@midscene/shared/node', () => ({
+rs.mock('@midscene/shared/node', () => ({
   findAvailablePort: findAvailablePortMock,
 }));
 
-vi.mock('../../src/agent', () => ({
+rs.mock('../../src/agent', () => ({
   agentFromWebDriverAgent: agentFromWebDriverAgentMock,
 }));
 
@@ -16,12 +16,12 @@ const mockAgent = {
   interface: {
     getConnectedDeviceInfo: getConnectedDeviceInfoMock,
   },
-  destroy: vi.fn(),
+  destroy: rs.fn(),
 };
 
 describe('iosPlaygroundPlatform session manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     agentFromWebDriverAgentMock.mockResolvedValue({
       ...mockAgent,
       interface: {
@@ -82,6 +82,34 @@ describe('iosPlaygroundPlatform session manager', () => {
     expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
       wdaHost: 'wda.example.com',
       wdaPort: 8300,
+    });
+  });
+
+  test('passes host Agent options to each new iOS Agent', async () => {
+    const agentOptions = {
+      replanningCycleLimit: 12,
+      waitAfterAction: 500,
+      screenshotShrinkFactor: 2,
+    };
+    const { iosPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await iosPlaygroundPlatform.prepare({
+      getAgentOptions: () => agentOptions,
+    });
+    const created = await prepared.sessionManager?.createSession({
+      host: 'localhost',
+      port: 8100,
+    });
+    await created?.agentFactory?.();
+
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(1, {
+      ...agentOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
+    });
+    expect(agentFromWebDriverAgentMock).toHaveBeenNthCalledWith(2, {
+      ...agentOptions,
+      wdaHost: 'localhost',
+      wdaPort: 8100,
     });
   });
 });

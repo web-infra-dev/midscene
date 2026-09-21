@@ -1,8 +1,8 @@
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 import { launchPage } from './utils';
 
-vi.setConfig({
+rs.setConfig({
   testTimeout: 120 * 1000,
 });
 
@@ -44,7 +44,7 @@ describe('parameter validation', () => {
     agent = new PuppeteerAgent(originPage);
 
     // Spy on the page's scrollDown method to verify default values are applied
-    const scrollDownSpy = vi.spyOn(agent.page as any, 'scrollDown');
+    const scrollDownSpy = rs.spyOn(agent.page as any, 'scrollDown');
 
     // Call Scroll action via callActionInActionSpace without optional direction/scrollType
     // The parseActionParam should apply defaults: direction='down', scrollType='once'

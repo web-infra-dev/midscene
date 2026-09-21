@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { HdcClient } from '../../src/hdc';
 import { getConnectedDevices } from '../../src/utils';
 
-vi.mock('../../src/hdc', () => {
-  const mockListTargets = vi.fn();
+rs.mock('../../src/hdc', () => {
+  const mockListTargets = rs.fn();
   return {
-    HdcClient: vi.fn(() => ({
+    HdcClient: rs.fn(() => ({
       listTargets: mockListTargets,
     })),
     __mockListTargets: mockListTargets,

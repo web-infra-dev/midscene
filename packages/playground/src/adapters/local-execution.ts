@@ -73,7 +73,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   formatErrorMessage(error: any): string {
     const errorMessage = error?.message || '';
     if (errorMessage.includes('of different extension')) {
-      return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
+      return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-start.html#chrome-extension-faq';
     }
     return this.formatBasicErrorMessage(error);
   }
@@ -351,22 +351,16 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       );
     }
 
-    // Try to get reportHTML separately - this may fail in browser environment
-    // where fs.readFileSync is not available
+    // Try to get reportHTML separately so failures do not affect dump retrieval.
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
         const html = this.agent.reportHTMLString();
-        if (
-          html &&
-          typeof html === 'string' &&
-          !html.includes('REPLACE_ME_WITH_REPORT_HTML')
-        ) {
+        if (html && typeof html === 'string') {
           reportHTML = html;
         }
       }
     } catch (error) {
-      // reportHTMLString may throw in browser environment (fs not available)
-      // This is expected, just continue with dump data only
+      // Report generation is best-effort here; continue with dump data only.
       console.warn(
         '[LocalExecutionAdapter] reportHTMLString not available in this environment',
       );

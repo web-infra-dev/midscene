@@ -20,12 +20,22 @@ export interface ValidationResult {
 export interface ServerResponse {
   result?: unknown;
   dump?: any;
-  reportHTML?: string;
+  reportHTML?: string | null;
+  report?: PlaygroundReportRef | null;
   error?: string;
+}
+
+export interface PlaygroundReportRef {
+  id: string;
+  url: string;
+  replayUrl?: string;
+  bytes: number;
+  format?: 'single-html' | 'html-and-external-assets';
 }
 
 export interface DeviceOptions {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  screenshotStrategy?: 'auto' | 'always-yadb';
   autoDismissKeyboard?: boolean;
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
   alwaysRefreshScreenInfo?: boolean;
@@ -44,6 +54,7 @@ export interface ExecutionOptions {
   planningStrategy?: 'fast' | 'standard';
   context?: any;
   requestId?: string;
+  abortSignal?: AbortSignal;
   deviceOptions?: DeviceOptions;
   reportDisplay?: ExecutionReportDisplay;
 }

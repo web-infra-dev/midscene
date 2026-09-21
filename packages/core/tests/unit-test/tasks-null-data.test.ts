@@ -1,19 +1,19 @@
 import { TaskExecutor } from '@/agent/tasks';
 import { getModelRuntime } from '@/ai-model/models';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import { ScreenshotItem } from '@/screenshot-item';
 import type { AIUsageInfo, ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('@/ai-model/workflows/planning', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/ai-model/workflows/planning')>();
-  return {
-    ...actual,
-    genericXmlPlan: vi.fn(),
-  };
-});
+import * as planningActual from '@/ai-model/workflows/planning' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@/ai-model/workflows/planning', () => ({
+  ...planningActual,
+  standardPlan: rs.fn(),
+}));
 
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
@@ -55,6 +55,8 @@ const createMockUsage = (totalTokens: number): AIUsageInfo => ({
   request_id: undefined,
 });
 
+const referenceImageDataUrl = 'data:image/webp;base64,dGVzdA==';
+
 // Helper function to create mock ServiceDump
 const createMockDump = (
   data: any,
@@ -79,12 +81,46 @@ const createMockDump = (
  * This covers the bug fix for: TypeError: Cannot read properties of null (reading 'StatementIsTruthy')
  */
 describe('TaskExecutor - Null Data Handling', () => {
+  it('registers insight reference images when the execution is created', async () => {
+    const mockInsight = {
+      contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+      extract: rs.fn(async () => ({
+        data: { answer: 'matched' },
+        thought: 'matched the reference',
+        dump: createMockDump({ answer: 'matched' }),
+      })),
+    } as any;
+    const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+      actionSpace: [],
+    });
+    const modelRuntime = getModelRuntime({
+      modelName: 'mock-model',
+      modelDescription: 'mock-model-description',
+      intent: 'default',
+      slot: 'default',
+    });
+
+    const result = await taskExecutor.createTypeQueryExecution(
+      'Query',
+      'compare with the reference',
+      modelRuntime,
+      {},
+      {
+        images: [{ name: 'reference', url: referenceImageDataUrl }],
+      },
+    );
+
+    expect(result.runner.dump().getReferenceImageUrls()).toEqual([
+      referenceImageDataUrl,
+    ]);
+  });
+
   describe('createTypeQueryTask', () => {
     it('should handle null data for WaitFor operation', async () => {
       // Mock service that returns null
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: null, // AI returns null
           usage: { totalTokens: 100 },
           thought: 'Could not determine if condition is true',
@@ -118,7 +154,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       );
 
       // Execute the task
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -130,8 +166,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle undefined data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: undefined, // AI returns undefined
           usage: { totalTokens: 100 },
           thought: 'Failed to evaluate condition',
@@ -160,7 +196,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -171,8 +207,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Assert operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not verify assertion',
@@ -201,13 +237,26 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      // For Assert with null data (falsy), should throw error
+      // Keep a falsy assertion result as task output. The caller turns it into
+      // an assertion error after TaskRunner persists the task dump.
       await expect(
-        queryTask.executor({}, {
+        queryTask.executor({
           task: queryTask,
           uiContext: await createEmptyUIContext(),
         } as any),
-      ).rejects.toThrow('Assertion failed: Could not verify assertion');
+      ).resolves.toMatchObject({
+        output: false,
+        thought: 'Could not verify assertion',
+      });
+
+      expect(queryTask.log).toMatchObject({
+        rawResponse: 'null',
+        dump: expect.objectContaining({
+          taskInfo: expect.objectContaining({
+            rawResponse: 'null',
+          }),
+        }),
+      });
 
       expect(mockInsight.extract).toHaveBeenCalledWith(
         {
@@ -225,8 +274,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle valid data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             StatementIsTruthy: true,
           },
@@ -259,7 +308,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -297,8 +346,8 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as ServiceDump;
 
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             Boolean: true,
           },
@@ -327,7 +376,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -344,7 +393,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should preserve planning intent while recording resolved config slot', async () => {
-      const planSpy = vi.mocked(genericXmlPlan).mockResolvedValue({
+      const planSpy = rs.mocked(standardPlan).mockResolvedValue({
         actions: [],
         usage: {
           prompt_tokens: 20,
@@ -359,7 +408,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as any);
 
       const mockService = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
         onceDumpUpdatedFn: undefined,
       } as any;
 
@@ -390,7 +439,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         'complete the task',
         getModelRuntime(planningModelConfig),
         getModelRuntime(defaultModelConfig),
-        false,
       );
 
       const planningTask = result.runner.tasks[0];
@@ -404,7 +452,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     });
 
     it('should preserve existing intent and warn instead of overwriting it', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
       const dump = {
         ...createMockDump({ Boolean: true }, 'Condition is met'),
@@ -423,8 +471,8 @@ describe('TaskExecutor - Null Data Handling', () => {
       } as ServiceDump;
 
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             Boolean: true,
           },
@@ -453,7 +501,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      await queryTask.executor({}, {
+      await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -472,8 +520,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle string data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: 'true', // AI returns plain string instead of structured format
           usage: { totalTokens: 100 },
           thought: 'Condition is met',
@@ -502,7 +550,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -513,8 +561,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Query operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
           thought: 'No result found',
@@ -541,7 +589,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -552,8 +600,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for String type query', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not extract string',
@@ -582,7 +630,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -592,8 +640,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should extract Number type query result from the structured Number field', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             Number: 42,
           },
@@ -626,7 +674,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -647,10 +695,10 @@ describe('TaskExecutor - Null Data Handling', () => {
       expect(result.thought).toBe('Extracted the numeric value successfully');
     });
 
-    it('should preserve domIncluded on Insight task params for report rendering', async () => {
+    it('should preserve report fields on Insight task params', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             Number: 42,
           },
@@ -680,10 +728,14 @@ describe('TaskExecutor - Null Data Handling', () => {
         'Number',
         'Extract the price',
         getModelRuntime(mockModelConfig),
-        { domIncluded: true },
+        {
+          context: 'Use wholesale pricing rules.',
+          domIncluded: true,
+        },
       );
 
       expect(queryTask.param).toEqual({
+        context: 'Use wholesale pricing rules.',
         domIncluded: true,
         dataDemand: 'Extract the price',
       });
@@ -691,8 +743,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Number type query', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not extract number',
@@ -721,7 +773,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);
@@ -743,8 +795,8 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should prepend current screenshot guidance for Boolean type query', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
-        extract: vi.fn(async () => ({
+        contextRetrieverFn: rs.fn(async () => await createMockUIContext()),
+        extract: rs.fn(async () => ({
           data: {
             Boolean: true,
           },
@@ -777,7 +829,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
+      const result = await queryTask.executor({
         task: queryTask,
         uiContext: await createEmptyUIContext(),
       } as any);

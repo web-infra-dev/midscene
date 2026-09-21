@@ -1,0 +1,526 @@
+.playground-shell .studio-playground-execution,
+.playground-shell .studio-replay-execution {
+  height: 100%;
+  background: transparent;
+}
+
+.playground-shell .studio-playground-execution .command-form,
+.playground-shell .studio-replay-execution .command-form {
+  height: 100%;
+  gap: 8px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.playground-shell .studio-playground-execution .command-form::-webkit-scrollbar,
+.playground-shell .studio-replay-execution .command-form::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-shell .studio-playground-execution .command-form,
+.playground-shell .studio-replay-execution .command-form {
+  scrollbar-width: none;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper
+  .studio-timeline-empty-state {
+  margin: 0;
+}
+
+.playground-shell .studio-playground-timeline-collapsed .middle-dialog-area {
+  height: 44.077px;
+  min-height: 44.077px;
+  flex-basis: 44.077px;
+}
+
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .clear-button-container,
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .info-list-container,
+.playground-shell
+  .studio-playground-timeline-collapsed
+  .middle-dialog-area
+  .scroll-to-bottom-button {
+  display: none;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .middle-dialog-area {
+  min-height: 0;
+  height: auto;
+  flex: 0 1 auto;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .middle-dialog-area-empty {
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .studio-timeline-panel-scroll-body {
+  max-height: calc(100% - 44.077px);
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  flex: 1 1 auto;
+  padding: 5.846px 16px 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .info-list-container-empty {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0;
+  overflow: hidden;
+}
+
+/*
+ * The visualizer ships a conversation skin with equally specific execution
+ * rules. Scope Studio's Figma geometry through the shared execution-panel
+ * class so Replay and Playground override that skin in exactly the same way.
+ */
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container {
+  padding: 5.846px 16px 20px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .ant-list-items {
+  gap: 0;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row) {
+  min-height: 38px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:not(:has(.progress-row))
+  + .list-item:has(.progress-row),
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row)
+  + .list-item:not(:has(.progress-row)) {
+  margin-top: 20px;
+}
+
+/* A completed execution ends in a result/system item. Keep the next run's
+ * prompt bubble separated from that result just like the progress boundaries.
+ */
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.system-message-container)
+  + .list-item:has(.user-message-container) {
+  margin-top: 20px;
+}
+
+/* The timeline panel is normally nested inside the playground container. */
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.system-message-container)
+  + .list-item:has(.user-message-container) {
+  margin-top: 20px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row) {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: start;
+  min-height: 38px;
+  padding: 0;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row {
+  display: contents;
+  margin: 0;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row)
+  > div:has(> .progress-row)::after {
+  position: absolute;
+  left: 8px;
+  width: 1px;
+  background: #444;
+  content: "";
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row)
+  > div:has(> .progress-row)::after {
+  top: 30px;
+  bottom: 0;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row-content {
+  min-width: 0;
+  padding: 8px;
+  line-height: 24px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row-copy {
+  min-width: 0;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-status-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 11px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-status-icon.completed {
+  color: #188f4d;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-action-item {
+  color: inherit;
+  font-size: 13px;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-weight: 700 !important;
+  line-height: 24px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row-content
+  .ant-alert-message,
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .user-message-container
+  .user-message-bubble {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description,
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description.shiny-text,
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description.shiny-text.disabled {
+  font-size: 13px;
+  font-weight: 400 !important;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+/* Execution progress should not reuse ShinyText's dark-mode blue gradient. */
+[data-theme="dark"]
+  .studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description.shiny-text {
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  -webkit-text-fill-color: currentColor;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row-copy {
+  display: -webkit-box;
+  max-height: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+}
+
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-action-item
+  + .progress-description-wrap,
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-action-item
+  + .progress-description-wrap
+  .shiny-text,
+.studio-execution-timeline-skin
+  .playground-container.playground-conversation-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+/* The execution panel is nested inside the visualizer's playground container. */
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .ant-list-items {
+  gap: 0;
+}
+
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item
+  > div:has(> .progress-row) {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: start;
+  min-height: 38px;
+  padding: 0;
+}
+
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row {
+  display: contents;
+  margin: 0;
+}
+
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row)
+  > div:has(> .progress-row)::after {
+  position: absolute;
+  top: 30px;
+  bottom: 0;
+  left: 8px;
+  width: 1px;
+  background: #d9d9d9;
+  content: "";
+}
+
+[data-theme="dark"]
+  .playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row)
+  > div:has(> .progress-row)::after {
+  background: #444;
+}
+
+/* The final Figma step connects into its tick but does not draw a tail. */
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .list-item:has(.progress-row-last)
+  > div:has(> .progress-row)::after {
+  display: none !important;
+}
+
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-row-content {
+  min-width: 0;
+  padding: 8px;
+  line-height: 24px;
+}
+
+.playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-status-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 11px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+[data-theme="dark"]
+  .playground-container.playground-conversation-skin
+  .studio-execution-timeline-skin
+  .middle-dialog-area
+  .info-list-container
+  .progress-description.shiny-text {
+  background: none !important;
+  background-image: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.playground-container.playground-conversation-skin .result-wrapper {
+  width: 100%;
+  align-items: stretch;
+  justify-content: stretch;
+  margin: 0;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.playground-shell
+  .studio-playground-timeline-wrapped
+  .studio-playground-timeline-panel
+  .playground-empty-state-wrapper
+  .studio-timeline-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+/* Replay is rendered inside the same shell as Playground. The shell takes
+ * the remaining column space but lets the shared timeline stay content-sized
+ * until it reaches that bound. */
+.studio-replay-column > .playground-shell {
+  height: auto;
+  min-height: 0;
+  max-height: calc(100% - 212.077px);
+  flex: 0 1 auto;
+}

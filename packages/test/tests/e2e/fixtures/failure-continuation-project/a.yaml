@@ -1,0 +1,11 @@
+cases:
+  - name: failing case
+    steps:
+      - test.record:
+          value: first:failed
+          fail: true
+
+  - name: later case
+    steps:
+      - test.record:
+          value: second:passed

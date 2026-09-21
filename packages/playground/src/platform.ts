@@ -201,6 +201,7 @@ export interface PlaygroundRecorderDescribeTrace {
   screenshotPersistError?: string;
   annotatedScreenshotPersistError?: string;
   elementDescription?: string;
+  verifyPrompt?: boolean;
   verifyPassed?: boolean;
   centerDistance?: number;
   verifyResult?: {
@@ -232,6 +233,15 @@ export interface PlaygroundSessionState {
   setupBlockingReason?: string;
 }
 
+export interface PlaygroundSessionNavigationEvent {
+  url: string;
+  timestamp?: number;
+}
+
+export type PlaygroundSessionNavigationSubscriber = (
+  listener: (event: PlaygroundSessionNavigationEvent) => void,
+) => () => void;
+
 export interface PlaygroundCreatedSession {
   agent?: Agent;
   agentFactory?: AgentFactory;
@@ -243,6 +253,7 @@ export interface PlaygroundCreatedSession {
   platformDescription?: string;
   executionHooks?: PlaygroundExecutionHooks;
   sidecars?: PlaygroundSidecar[];
+  subscribeNavigationEvents?: PlaygroundSessionNavigationSubscriber;
 }
 
 export interface PlaygroundSessionManager {

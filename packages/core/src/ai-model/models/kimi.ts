@@ -9,16 +9,17 @@ import {
   createLocateResultValue,
   parseCoordinateList,
 } from '../shared/model-locate-result';
-import { isLocateIntent } from './utils/intent';
 
 const kimiNormalizedPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1,
+  rounding: 'round',
 } as const;
 const kimiPixelPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
+  rounding: 'round',
 } as const;
 
 function parseKimiRawLocateValue(input: unknown): LocateResultValue {
@@ -49,7 +50,10 @@ const buildKimiChatCompletionParams = (
 
   // Kimi Chat Completions response_format:
   // https://platform.kimi.com/docs/api/chat
-  if (isLocateIntent(input.intent)) {
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
     commonOverrideConfig.response_format = { type: 'json_object' };
   }
 
@@ -68,6 +72,35 @@ const buildKimiChatCompletionParams = (
   };
 };
 
+const buildKimi3ChatCompletionParams = (
+  input: ChatCompletionCallContext,
+): ChatCompletionParamsResult => {
+  const { midsceneDefaults, userConfig } = input;
+  const commonOverrideConfig: Record<string, unknown> = {};
+
+  // Kimi disallows custom temperature.
+  commonOverrideConfig.temperature = undefined;
+
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
+  // Kimi K3 currently only supports reasoning_effort="max"; its docs say
+  // additional effort levels will be available later.
+  const reasoningEffort = userConfig.reasoningEffort;
+
+  return {
+    config: {
+      ...midsceneDefaults,
+      ...commonOverrideConfig,
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+    },
+  };
+};
+
 export const kimiAdapters = {
   kimi: {
     chatCompletion: {
@@ -76,10 +109,34 @@ export const kimiAdapters = {
       useReasoningAsContentFallback: true,
     },
     locate: {
-      resultAdapter: {
-        coordinates: kimiNormalizedPointCoordinatesMeta,
-        parseRawLocateValue: parseKimiRawLocateValue,
+      element: {
+        resultFormat: {
+          coordinates: kimiNormalizedPointCoordinatesMeta,
+          parseRawLocateValue: parseKimiRawLocateValue,
+        },
       },
     },
   },
-} satisfies Pick<Record<TModelFamily, ModelAdapterDefinition>, 'kimi'>;
+  kimi3: {
+    chatCompletion: {
+      unsupportedUserConfig: ['reasoningEnabled', 'reasoningBudget'],
+      buildChatCompletionParams: buildKimi3ChatCompletionParams,
+      useReasoningAsContentFallback: true,
+      // Kimi K3 multi-turn and tool calls must replay the complete assistant
+      // message, including reasoning_content and tool_calls.
+      // https://platform.kimi.com/docs/guide/use-thinking-effort
+      replayRawAssistantMessage: true,
+    },
+    locate: {
+      element: {
+        resultFormat: {
+          coordinates: kimiNormalizedPointCoordinatesMeta,
+          parseRawLocateValue: parseKimiRawLocateValue,
+        },
+      },
+    },
+  },
+} satisfies Pick<
+  Record<TModelFamily, ModelAdapterDefinition>,
+  'kimi' | 'kimi3'
+>;

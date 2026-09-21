@@ -14,6 +14,7 @@ function createRuntimeMock(
       error: null,
     }),
     restart: vi.fn(),
+    updateAgentOptions: vi.fn().mockResolvedValue(undefined),
     start: vi.fn().mockResolvedValue({
       status: 'ready',
       serverUrl: 'http://127.0.0.1:3000',

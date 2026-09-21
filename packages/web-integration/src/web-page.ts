@@ -4,8 +4,11 @@ import {
   AbstractInterface,
   type BrowserInputPrimitives,
   type DeviceAction,
+  type InputStrategy,
   defineAction,
   defineActionsFromInputPrimitives,
+  resolveTextInputOptions,
+  sendTextSequentially,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -356,6 +359,7 @@ export interface MouseAction {
 
 export interface KeyboardAction {
   type: (text: string, options?: { delay?: number }) => Promise<void>;
+  insertText: (text: string) => Promise<void>;
   press: (
     action:
       | { key: KeyInput; command?: string }
@@ -368,14 +372,16 @@ export interface ChromePageDestroyOptions {
 }
 
 export abstract class AbstractWebPage extends AbstractInterface {
+  readonly keyboardTypeDelay?: number;
+  readonly inputStrategy?: InputStrategy;
   navigate?(url: string): Promise<void>;
   reload?(): Promise<void>;
   goBack?(): Promise<void>;
   goForward?(): Promise<void>;
   stopLoading?(): Promise<void>;
   navigationState?(): Promise<{ isLoading: boolean }>;
-  flushPendingVisualUpdate?(): Promise<void>;
-  schedulePendingVisualUpdate?(): void;
+  flushPendingVisualUpdate?(force?: boolean): Promise<void>;
+  schedulePendingVisualUpdate?(force?: boolean): void;
   waitForDomQuiet?(opts?: {
     quietMs?: number;
     timeoutMs?: number;
@@ -401,6 +407,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
   get keyboard(): KeyboardAction {
     return {
       type: async (text: string, options?: { delay?: number }) => {},
+      insertText: async (text: string) => {},
       press: async (
         action:
           | { key: KeyInput; command?: string }
@@ -410,6 +417,10 @@ export abstract class AbstractWebPage extends AbstractInterface {
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {}
+
+  async selectAllInput(element?: ElementInfo): Promise<void> {
+    throw new Error('Bulk text input is not supported by this web page');
+  }
 
   abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
   abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
@@ -434,51 +445,78 @@ export abstract class AbstractWebPage extends AbstractInterface {
   ): Promise<void>;
 }
 
+const scheduleWebVisualUpdate = (
+  page: AbstractWebPage,
+  force = false,
+): void => {
+  if (page.schedulePendingVisualUpdate) {
+    if (force) {
+      page.schedulePendingVisualUpdate(true);
+    } else {
+      page.schedulePendingVisualUpdate();
+    }
+    return;
+  }
+
+  const pendingRefresh = force
+    ? page.flushPendingVisualUpdate?.(true)
+    : page.flushPendingVisualUpdate?.();
+  void pendingRefresh?.catch(() => undefined);
+};
+
 export function createWebInputPrimitives(
   page: AbstractWebPage,
 ): BrowserInputPrimitives {
-  const scheduleVisualUpdate = () => {
-    if (page.schedulePendingVisualUpdate) {
-      page.schedulePendingVisualUpdate();
-      return;
-    }
-
-    const pendingRefresh = page.flushPendingVisualUpdate?.();
-    void pendingRefresh?.catch(() => undefined);
-  };
+  const scheduleVisualUpdate = () => scheduleWebVisualUpdate(page);
 
   return {
     pointer: {
       tap: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left' });
+        scheduleVisualUpdate();
       },
       rightClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'right' });
+        scheduleVisualUpdate();
       },
       doubleClick: async ({ x, y }) => {
         await page.mouse.click(x, y, { button: 'left', count: 2 });
+        scheduleVisualUpdate();
       },
       hover: async ({ x, y }) => {
         await page.mouse.move(x, y);
+        scheduleVisualUpdate();
       },
       dragAndDrop: async (from, to) => {
         await page.mouse.drag(from, to);
+        scheduleVisualUpdate();
       },
       longPress: async ({ x, y }, opts) => {
         await page.longPress(x, y, opts?.duration);
+        scheduleVisualUpdate();
       },
     },
     keyboard: {
       typeText: async (value, opts) => {
         const element = opts?.target;
+        const { inputStrategy, keyboardTypeDelay } = resolveTextInputOptions(
+          opts,
+          page,
+        );
         if (element && opts?.replace !== false) {
-          await page.clearInput(element as ElementInfo);
-          // Frameworks (React/Vue/etc.) often re-render in response to
-          // the `input` event fired by clearing. If that re-render lands
-          // between clearInput returning and the first typed character,
-          // the keypresses can be dropped. Wait for the DOM to settle
-          // before starting to type.
-          await page.waitForDomQuiet?.({ target: element as ElementInfo });
+          if (inputStrategy === 'bulk') {
+            // Keep the current value selected so insertText replaces it in one
+            // input operation instead of emitting a separate empty value.
+            await page.selectAllInput(element as ElementInfo);
+          } else {
+            await page.clearInput(element as ElementInfo);
+            // Frameworks (React/Vue/etc.) often re-render in response to
+            // the `input` event fired by clearing. If that re-render lands
+            // between clearInput returning and the first typed character,
+            // the keypresses can be dropped. Wait for the DOM to settle
+            // before starting to type.
+            await page.waitForDomQuiet?.({ target: element as ElementInfo });
+          }
         } else if (element && opts?.focusOnly) {
           const target = element as ElementInfo;
           await page.mouse.click(target.center[0], target.center[1], {
@@ -491,11 +529,28 @@ export function createWebInputPrimitives(
           return;
         }
 
-        const keyboardTypeOptions =
-          opts?.keyboardTypeDelay === undefined
-            ? undefined
-            : { delay: opts.keyboardTypeDelay };
-        await page.keyboard.type(value, keyboardTypeOptions);
+        if (inputStrategy === 'bulk') {
+          await page.keyboard.insertText(value);
+        } else if (inputStrategy === 'sequential') {
+          await sendTextSequentially(
+            value,
+            {
+              // The shared loop owns the inter-character delay. Explicitly
+              // disable the page default so action-level zero remains
+              // effective and positive delays are not applied twice.
+              sendCharacter: (character) =>
+                page.keyboard.type(character, { delay: 0 }),
+              wait: sleep,
+            },
+            { delayMs: keyboardTypeDelay },
+          );
+        } else {
+          const keyboardTypeOptions =
+            keyboardTypeDelay === undefined
+              ? undefined
+              : { delay: keyboardTypeDelay };
+          await page.keyboard.type(value, keyboardTypeOptions);
+        }
         scheduleVisualUpdate();
       },
       keyboardPress: async (keyName, opts) => {
@@ -575,6 +630,7 @@ export function createWebInputPrimitives(
             )}`,
           );
         }
+        scheduleVisualUpdate();
       },
     },
   };
@@ -606,6 +662,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.navigate(param.url);
+        scheduleWebVisualUpdate(page, true);
       },
     }),
 
@@ -619,6 +676,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.reload();
+        scheduleWebVisualUpdate(page, true);
       },
     }),
 
@@ -632,6 +690,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goBack();
+        scheduleWebVisualUpdate(page, true);
       },
     }),
     defineAction({
@@ -644,6 +703,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           );
         }
         await page.goForward();
+        scheduleWebVisualUpdate(page, true);
       },
     }),
   ];

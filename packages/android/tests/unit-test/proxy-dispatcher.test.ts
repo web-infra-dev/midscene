@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
-vi.mock('undici', () => ({
-  ProxyAgent: vi.fn(),
+rs.mock('undici', () => ({
+  ProxyAgent: rs.fn(),
 }));
 
 import { ProxyAgent } from 'undici';
@@ -52,7 +52,7 @@ describe('proxy dispatcher helper', () => {
   });
 
   it('logs sanitized proxy url and creates dispatcher from env', () => {
-    const log = vi.fn();
+    const log = rs.fn();
 
     createLoggedProxyDispatcher({
       env: {

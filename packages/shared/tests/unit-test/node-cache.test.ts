@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from '@rstest/core';
 import { getXpathsById } from '../../src/extractor/locator';
 import {
   getNodeFromCacheList,

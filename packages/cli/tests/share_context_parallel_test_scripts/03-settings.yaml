@@ -1,0 +1,9 @@
+tasks:
+  - name: Verify settings tab isolation and setup state
+    flow:
+      - javascript: verifyParallelYamlCase('settings')
+      - javascript: openParallelYamlPopup('settings')
+      - sleep: 500
+      - javascript: verifyParallelYamlPopup('settings')
+      - recordToReport: Settings tab verification passed
+        content: The settings YAML inherited setup Cookie and localStorage state, observed cookies written live by all three parallel YAML files, did not inherit sessionStorage, retained isolated window and sessionStorage state, and only followed its own popup in browser mode.

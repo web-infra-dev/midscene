@@ -4,7 +4,7 @@ import type {
   MidsceneYamlScriptEnv,
 } from '@midscene/core/yaml';
 import { ScriptPlayer } from '@midscene/core/yaml';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { z } from 'zod';
 
 const runAdbShellParamSchema = z.object({
@@ -20,15 +20,15 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: vi.fn(async (param: { command: string }) => mockResult),
+      call: rs.fn(async (param: { command: string }) => mockResult),
     };
 
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runAdbShellAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runAdbShellAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           // Simulate the actual behavior of callActionInActionSpace
           if (actionName === 'RunAdbShell') {
@@ -78,15 +78,15 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: vi.fn(async (param: { command: string }) => mockResult),
+      call: rs.fn(async (param: { command: string }) => mockResult),
     };
 
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runAdbShellAction]),
-      callActionInActionSpace: vi.fn(async () => mockResult),
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runAdbShellAction]),
+      callActionInActionSpace: rs.fn(async () => mockResult),
     };
 
     const script: MidsceneYamlScript = {
@@ -125,9 +125,9 @@ describe('YAML runAdbShell support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => []), // Empty actionSpace, no runAdbShell
-      callActionInActionSpace: vi.fn(),
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => []), // Empty actionSpace, no runAdbShell
+      callActionInActionSpace: rs.fn(),
     };
 
     const script: MidsceneYamlScript = {
@@ -167,15 +167,15 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: vi.fn(async (param: { command: string }) => mockResult),
+      call: rs.fn(async (param: { command: string }) => mockResult),
     };
 
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runAdbShellAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runAdbShellAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           if (actionName === 'RunAdbShell') {
             return mockResult;
@@ -224,7 +224,7 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: vi.fn(async (param: { command: string }) => {
+      call: rs.fn(async (param: { command: string }) => {
         if (!param.command) {
           throw new Error('Command is required for runAdbShell');
         }
@@ -235,9 +235,9 @@ describe('YAML runAdbShell support via ActionSpace', () => {
     const mockAgent = {
       reportFile: null,
       onTaskStartTip: undefined,
-      _unstableLogContent: vi.fn(async () => ({})),
-      getActionSpace: vi.fn(async () => [runAdbShellAction]),
-      callActionInActionSpace: vi.fn(
+      _unstableLogContent: rs.fn(async () => ({})),
+      getActionSpace: rs.fn(async () => [runAdbShellAction]),
+      callActionInActionSpace: rs.fn(
         async (actionName: string, params: any) => {
           if (actionName === 'RunAdbShell') {
             // Call the actual action to trigger validation

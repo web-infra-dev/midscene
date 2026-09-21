@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { Rect, Size } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { ComputerAgent, RDPDevice } from '../../../src';
 import type {
   RDPBackendClient,

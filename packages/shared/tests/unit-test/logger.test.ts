@@ -1,14 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
-const mocks = vi.hoisted(() => ({
-  debugFn: vi.fn(),
+const mocks = rs.hoisted(() => ({
+  debugFn: rs.fn(),
 }));
 
-vi.mock('debug', () => ({
-  default: vi.fn(() => mocks.debugFn),
+rs.mock('debug', () => ({
+  default: rs.fn(() => mocks.debugFn),
 }));
 
-vi.mock('../../src/utils', () => ({
+rs.mock('../../src/utils', () => ({
   ifInNode: false,
 }));
 
@@ -16,12 +16,12 @@ import { getDebug } from '../../src/logger';
 
 describe('getDebug', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    rs.restoreAllMocks();
     mocks.debugFn.mockClear();
   });
 
   it('does not throw when console logging cannot write', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+    const warnSpy = rs.spyOn(console, 'warn').mockImplementation(() => {
       throw new Error('write EIO');
     });
     const debugLog = getDebug('logger:test', { console: true });

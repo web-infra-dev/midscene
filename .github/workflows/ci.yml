@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'apps/site/**'
+      - '.changeset/**'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -12,8 +22,89 @@ permissions:
 
 
 jobs:
+  rdp-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - name: Setup Node.js and pnpm
+      uses: ./.github/actions/setup-node-pnpm
+    - name: Restore pnpm store
+      id: rdp-pnpm-cache
+      uses: ./.github/actions/pnpm-cache/restore
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --ignore-scripts
+    - name: Save pnpm store
+      if: steps.rdp-pnpm-cache.outputs.cache-hit != 'true'
+      uses: ./.github/actions/pnpm-cache/save
+    - name: Install RDP build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake dbus-x11 pkg-config python3-tk \
+          freerdp3-dev xorgxrdp xrdp
+    - name: Build RDP helper and native tests
+      run: |
+        cmake -S packages/computer/native/rdp -B /tmp/midscene-rdp-build \
+          -DBUILD_TESTING=ON -DRDP_HELPER_OUTPUT_DIR=/tmp/midscene-rdp-build/bin
+        cmake --build /tmp/midscene-rdp-build --parallel 2
+        install -Dm755 /tmp/midscene-rdp-build/bin/rdp-helper \
+          packages/computer/bin/linux/rdp-helper
+    - name: Build report and computer packages
+      run: >-
+        pnpm exec nx run-many --target=build
+        --projects="@midscene/report,@midscene/computer" --skip-nx-cache
+    - name: Test RDP capture and connection policies
+      run: ctest --test-dir /tmp/midscene-rdp-build --output-on-failure
+    - name: Start a local RDP desktop
+      env:
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+      run: |
+        sudo useradd --create-home --shell /bin/bash "$MIDSCENE_XRDP_USERNAME"
+        echo "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_PASSWORD" | sudo chpasswd
+        sudo install -o "$MIDSCENE_XRDP_USERNAME" -g "$MIDSCENE_XRDP_USERNAME" \
+          packages/computer/native/rdp/tests/xrdp_desktop.py \
+          "/home/$MIDSCENE_XRDP_USERNAME/xrdp_desktop.py"
+        sudo tee "/home/$MIDSCENE_XRDP_USERNAME/.xsession" >/dev/null <<'EOF'
+        #!/bin/sh
+        exec python3 "$HOME/xrdp_desktop.py"
+        EOF
+        sudo chown -R "$MIDSCENE_XRDP_USERNAME:$MIDSCENE_XRDP_USERNAME" \
+          "/home/$MIDSCENE_XRDP_USERNAME"
+        sudo chmod +x "/home/$MIDSCENE_XRDP_USERNAME/.xsession"
+        sudo systemctl restart xrdp
+        for attempt in {1..20}; do
+          if nc -z 127.0.0.1 3389; then exit 0; fi
+          sleep 1
+        done
+        sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+        exit 1
+    - name: Test Midscene RDP end to end against xrdp
+      env:
+        AI_TEST_TYPE: computer-rdp
+        MIDSCENE_XRDP_CI_E2E: '1'
+        MIDSCENE_XRDP_USERNAME: midscene-rdp-ci
+        MIDSCENE_XRDP_PASSWORD: midscene-rdp-ci-password
+        MIDSCENE_REPORT_QUIET: 'true'
+        MIDSCENE_RUN_DIR: ${{ github.workspace }}/midscene_run
+      run: >-
+        pnpm exec nx test @midscene/computer --skip-nx-cache --
+        tests/ai/rdp/xrdp-ci-e2e.test.ts --retry=0
+    - name: Print xrdp diagnostics
+      if: failure()
+      run: sudo journalctl -u xrdp -u xrdp-sesman --no-pager
+    - name: Upload Midscene RDP E2E report
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        if-no-files-found: warn
+        name: rdp-midscene-report
+        path: midscene_run/report/rdp-xrdp-ci-e2e.html
+
   main:
-    runs-on: ubuntu-latest
+    # The viewport e2e relies on the hosted image's Chrome window behavior.
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         node-version: [24.13.0]
@@ -23,8 +114,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      with:
-        fetch-depth: 0
 
     - name: Setup pnpm
       uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2.4.1
@@ -37,7 +126,7 @@ jobs:
         node-version: '24.13.0'
 
     - name: Cache Puppeteer dependencies
-      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
+      uses: ./.github/actions/cache/restore
       id: cache-puppeteer
       with:
         path: ~/.cache/puppeteer
@@ -53,11 +142,21 @@ jobs:
         cd packages/web-integration
         npx puppeteer browsers install chrome
 
+    - name: Save Puppeteer cache
+      if: steps.cache-puppeteer.outputs.cache-hit != 'true'
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/puppeteer
+        key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
+
     - name: Check tsconfig references
       run: pnpm run check:references
 
     - name: Build project
       run: pnpm run build
+
+    - name: Check Report build feedback loop
+      run: pnpm run check:report-build-feedback-loop
 
     - name: Check CLI CJS bundle on minimum supported Node
       run: |
@@ -106,6 +205,12 @@ jobs:
 
     - name: Run tests with coverage
       run: pnpm run test:coverage
+
+    # Run the Chrome/YAML batch after full-workspace coverage so it does not compete
+    # with the other Nx projects for runner resources.
+    - name: Run CLI shared-browser YAML e2e
+      timeout-minutes: 5
+      run: pnpm --filter @midscene/cli test:e2e:shared-browser
 
     - name: Upload coverage reports
       id: upload-coverage

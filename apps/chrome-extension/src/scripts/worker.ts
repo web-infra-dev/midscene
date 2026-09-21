@@ -216,7 +216,7 @@ async function showConnectionConfirmDialog(
   }
 
   // Create confirm popup - centered on screen
-  const serverUrl = serverEndpoint || 'ws://localhost:3766';
+  const serverUrl = serverEndpoint || 'ws://127.0.0.1:3766';
   const popupWidth = 420;
   const popupHeight = 340;
 

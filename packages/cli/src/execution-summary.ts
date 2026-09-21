@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname, relative, resolve } from 'node:path';
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlConfigAttempt,
   MidsceneYamlConfigResult,
@@ -54,15 +62,44 @@ export function createNotExecutedYamlResult(
   };
 }
 
+export function createUnexpectedYamlResult(options: {
+  file: string;
+  error: Error;
+  duration: number;
+  player?: ScriptPlayer<MidsceneYamlScriptEnv>;
+}): MidsceneYamlConfigResult {
+  const { file, error, duration, player } = options;
+  const output = player?.output;
+
+  return {
+    file,
+    success: false,
+    executed: true,
+    output: output && existsSync(output) ? output : undefined,
+    report: player?.reportFile || undefined,
+    duration,
+    resultType: 'failed',
+    error: error.message,
+  };
+}
+
+export function isYamlPlayerSuccessful(
+  player: ScriptPlayer<MidsceneYamlScriptEnv>,
+): boolean {
+  return (
+    player.status !== 'error' &&
+    !player.taskStatusList?.some((task) => task.status === 'error')
+  );
+}
+
 export function createExecutedYamlResult(options: {
   file: string;
   player: ScriptPlayer<MidsceneYamlScriptEnv>;
   duration: number;
 }): MidsceneYamlConfigResult {
   const { file, player, duration } = options;
-  const hasFailedTasks =
-    player.taskStatusList?.some((task) => task.status === 'error') ?? false;
   const hasPlayerError = player.status === 'error';
+  const hasFailedTasks = !isYamlPlayerSuccessful(player) && !hasPlayerError;
 
   let success: boolean;
   let resultType: 'success' | 'failed' | 'partialFailed';
@@ -109,6 +146,78 @@ export function createExecutedYamlResult(options: {
     resultType,
     error: errorMessage,
   };
+}
+
+export function resolveYamlMaxAttempts(retry?: number): number {
+  if (!Number.isFinite(retry) || !retry || retry < 1) return 1;
+  return Math.floor(retry) + 1;
+}
+
+export function createYamlAttempt(
+  result: MidsceneYamlConfigResult,
+  attempt: number,
+): MidsceneYamlConfigAttempt {
+  return {
+    attempt,
+    success: result.success,
+    output: result.output,
+    report: result.report,
+    error: result.error,
+    duration: result.duration,
+    resultType: result.resultType,
+  };
+}
+
+export function getYamlAttemptsDuration(
+  attempts: MidsceneYamlConfigAttempt[],
+): number {
+  return attempts.reduce(
+    (total, attempt) => total + (attempt.duration ?? 0),
+    0,
+  );
+}
+
+const retryAttemptReportPath = (
+  reportFile: string,
+  attempt: number,
+): string => {
+  if (basename(reportFile) === 'index.html') {
+    const reportDir = dirname(reportFile);
+    return join(
+      dirname(reportDir),
+      `${basename(reportDir)}-attempt-${attempt}`,
+      'index.html',
+    );
+  }
+
+  const extension = extname(reportFile);
+  const stem = basename(reportFile, extension);
+  return join(dirname(reportFile), `${stem}-attempt-${attempt}${extension}`);
+};
+
+/**
+ * Move a completed attempt's report aside before a stable, user-configured
+ * reportFileName is reused by the next attempt.
+ */
+export function preserveYamlAttemptReport(
+  attempt: MidsceneYamlConfigAttempt,
+): MidsceneYamlConfigAttempt {
+  const source = attempt.report;
+  if (!source || !existsSync(source)) return attempt;
+
+  const target = retryAttemptReportPath(source, attempt.attempt);
+  if (basename(source) === 'index.html') {
+    const sourceDir = dirname(source);
+    const targetDir = dirname(target);
+    rmSync(targetDir, { recursive: true, force: true });
+    cpSync(sourceDir, targetDir, { recursive: true });
+    rmSync(sourceDir, { recursive: true, force: true });
+  } else {
+    copyFileSync(source, target);
+    unlinkSync(source);
+  }
+
+  return { ...attempt, report: target };
 }
 
 export function getExecutionSummary(

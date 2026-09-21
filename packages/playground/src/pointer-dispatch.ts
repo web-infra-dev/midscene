@@ -5,7 +5,10 @@ import type {
   PointerPoint,
   TouchInputPrimitives,
 } from '@midscene/core/device';
-import { normalizePinchParam } from '@midscene/core/device';
+import {
+  normalizePinchParam,
+  resolveSwipeInputPrimitive,
+} from '@midscene/core/device';
 
 /**
  * Thrown when an /interact request is malformed (missing field, wrong type)
@@ -149,8 +152,8 @@ export async function dispatchPointer(
     }
 
     case 'Swipe': {
-      const touch = getTouchInput(input);
-      return ensureCapability(touch.swipe, 'Swipe')(
+      const swipe = resolveSwipeInputPrimitive(input);
+      return ensureCapability(swipe?.swipe, 'Swipe')(
         requirePoint(body),
         requirePoint(body, 'endX', 'endY'),
         {
@@ -246,7 +249,7 @@ export async function dispatchPointer(
           x !== undefined && y !== undefined
             ? {
                 center: [x, y],
-                rect: { left: x, top: y, width: 1, height: 1 },
+
                 description: 'manual scroll target',
               }
             : undefined,
@@ -267,7 +270,6 @@ export async function dispatchPointer(
         {
           locate: {
             center: [center.x, center.y],
-            rect: { left: center.x, top: center.y, width: 1, height: 1 },
             description: 'manual pinch target',
           },
           direction,

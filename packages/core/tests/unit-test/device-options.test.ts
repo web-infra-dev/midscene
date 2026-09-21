@@ -10,7 +10,7 @@ import type {
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptIOSEnv,
 } from '@/yaml';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from '@rstest/core';
 
 describe('Device Options Type Definitions', () => {
   describe('AndroidDeviceOpt', () => {
@@ -20,9 +20,11 @@ describe('Device Options Type Definitions', () => {
         remoteAdbHost: '192.168.1.100',
         remoteAdbPort: 5037,
         imeStrategy: 'yadb-for-non-ascii',
+        screenshotStrategy: 'auto',
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
+        exposeRunAdbShellAction: false,
         screenshotResizeScale: 0.5,
         minScreenshotBufferSize: 4096,
         alwaysRefreshScreenInfo: true,
@@ -46,6 +48,8 @@ describe('Device Options Type Definitions', () => {
       const inputOptions: AndroidDeviceInputOpt = {
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'back-first',
+        keyboardTypeDelay: 20,
+        inputStrategy: 'sequential',
       };
 
       expect(inputOptions).toBeDefined();
@@ -55,17 +59,29 @@ describe('Device Options Type Definitions', () => {
   describe('IOSDeviceOpt', () => {
     test('should include all required iOS device options', () => {
       const options: IOSDeviceOpt = {
-        deviceId: '00008110-000123456789ABCD',
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         sessionId: 'external-session-id',
-        useWDA: true,
         autoDismissKeyboard: true,
       };
 
       // Type check - this will fail at compile time if types are incorrect
       expect(options).toBeDefined();
+    });
+
+    test('should reject unsupported device selectors', () => {
+      const deviceIdOptions: IOSDeviceOpt = {
+        // @ts-expect-error - select the target through the WDA endpoint
+        deviceId: '00008110-000123456789ABCD',
+      };
+      const useWDAOptions: IOSDeviceOpt = {
+        // @ts-expect-error - IOSDevice is always backed by WebDriverAgent
+        useWDA: true,
+      };
+
+      expect(deviceIdOptions).toBeDefined();
+      expect(useWDAOptions).toBeDefined();
     });
 
     test('should work with partial options', () => {
@@ -87,6 +103,8 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceInputOpt should include keyboard options', () => {
       const inputOptions: IOSDeviceInputOpt = {
         autoDismissKeyboard: true,
+        keyboardTypeDelay: 20,
+        inputStrategy: 'bulk',
       };
 
       expect(inputOptions).toBeDefined();
@@ -109,6 +127,8 @@ describe('Device Options Type Definitions', () => {
       const inputOptions: HarmonyDeviceInputOpt = {
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'back-first',
+        keyboardTypeDelay: 20,
+        inputStrategy: 'legacy',
       };
 
       expect(inputOptions).toBeDefined();
@@ -124,9 +144,11 @@ describe('Device Options Type Definitions', () => {
         remoteAdbHost: '192.168.1.100',
         remoteAdbPort: 5037,
         imeStrategy: 'yadb-for-non-ascii',
+        screenshotStrategy: 'always-yadb',
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
+        exposeRunAdbShellAction: false,
         screenshotResizeScale: 0.5,
         minScreenshotBufferSize: 4096,
         alwaysRefreshScreenInfo: true,
@@ -153,12 +175,10 @@ describe('Device Options Type Definitions', () => {
     test('MidsceneYamlScriptIOSEnv should include all IOSDeviceOpt except customActions', () => {
       const yamlConfig: MidsceneYamlScriptIOSEnv = {
         // From IOSDeviceOpt
-        deviceId: '00008110-000123456789ABCD',
         iOSDeviceClassOverride: '@private-package/ios',
         wdaPort: 8100,
         wdaHost: 'localhost',
         sessionId: 'external-session-id',
-        useWDA: true,
         autoDismissKeyboard: true,
 
         // YAML-specific
@@ -210,7 +230,7 @@ describe('Device Options Type Definitions', () => {
     test('IOSDeviceOpt should be assignable to agent function parameter', () => {
       const options: IOSDeviceOpt = {
         wdaPort: 8100,
-        deviceId: 'test-device',
+        wdaHost: 'localhost',
       };
 
       // This simulates what happens in agentFromWebDriverAgent
@@ -269,6 +289,35 @@ describe('Device Options Type Definitions', () => {
       validStrategies.forEach((strategy) => {
         const options: HarmonyDeviceOpt = {
           keyboardDismissStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+    });
+  });
+
+  describe('Screenshot Strategy Types', () => {
+    test('should only accept valid screenshotStrategy values', () => {
+      const validStrategies: Array<AndroidDeviceOpt['screenshotStrategy']> = [
+        'auto',
+        'always-yadb',
+        undefined,
+      ];
+
+      validStrategies.forEach((strategy) => {
+        const options: AndroidDeviceOpt = {
+          screenshotStrategy: strategy,
+        };
+        expect(options).toBeDefined();
+      });
+    });
+
+    test('should reject invalid screenshotStrategy values', () => {
+      const invalidStrategies = ['invalid', '', 123] as const;
+
+      invalidStrategies.forEach((strategy) => {
+        const options: AndroidDeviceOpt = {
+          // @ts-expect-error - invalid values should cause a type error
+          screenshotStrategy: strategy,
         };
         expect(options).toBeDefined();
       });

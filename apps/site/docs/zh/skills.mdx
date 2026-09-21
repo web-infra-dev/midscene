@@ -16,6 +16,24 @@ Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充�
 
 在默认 Puppeteer 模式下，可以通过 `--viewport-width <width>` 和 `--viewport-height <height>` 覆盖默认的 `1440x800` 视口尺寸。这两个参数仅支持默认 Puppeteer 模式，不支持 `--bridge` 或 `--cdp` 模式。
 
+在 CDP 模式下，每个 HTTP header 使用一个独立的 `--extra-http-header 'Name:Value'` 参数。每条 CLI 命令都会创建新的 CDP session，因此所有可能发起请求的独立命令都必须重复携带这些参数：
+
+```bash
+npx @midscene/web connect \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
+  --url https://example.com
+
+npx @midscene/web act \
+  --cdp ws://127.0.0.1:9222/devtools/browser \
+  --extra-http-header 'x-use-ppe:1' \
+  --extra-http-header 'x-tt-env:ppe_example' \
+  --prompt "click the button"
+```
+
+header 会在 `connect --url` 导航前生效，因此初始文档请求也会携带这些 header。不要把敏感鉴权值直接留在 shell 历史中。
+
 如果 Chrome 安装在非标准路径，请将 `MIDSCENE_CHROME_PATH` 设置为 Chrome 可执行文件路径。`MIDSCENE_MCP_CHROME_PATH` 会暂时作为迁移别名继续生效。
 
 ## 安装
@@ -46,7 +64,7 @@ MIDSCENE_MODEL_BASE_URL="https://..."
 MIDSCENE_MODEL_FAMILY="family-identifier"
 ```
 
-支持的模型和配置详情请参考 [模型策略](./model-strategy) 和 [常用模型配置](./model-common-config)。
+支持的模型和配置详情请参考[支持的模型与配置](./model-common-config)。
 
 ## 使用 Skills
 

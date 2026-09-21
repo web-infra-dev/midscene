@@ -9,7 +9,7 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
-    "@midscene/recorder": "workspace:*",
+    "@midscene/recorder-ui": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "^1.11.11",
     "react": "18.3.1",

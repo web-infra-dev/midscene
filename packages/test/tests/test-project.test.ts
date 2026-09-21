@@ -1,0 +1,738 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadTestProject } from '../src/cli/test-project';
+import { NodeRegistry } from '../src/engine/registry';
+
+const directories: string[] = [];
+
+afterEach(() => {
+  for (const directory of directories.splice(0)) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+  (globalThis as Record<string, unknown>).__testSetupMarker = undefined;
+});
+
+const createConfig = (
+  source: string,
+  directoryPrefix = 'test-project-config-',
+): { directory: string; path: string } => {
+  const directory = mkdtempSync(join(tmpdir(), directoryPrefix));
+  directories.push(directory);
+  const path = join(directory, 'midscene.config.ts');
+  writeFileSync(path, source);
+  return { directory, path };
+};
+
+describe('test project config', () => {
+  it.each([
+    ['output: { report: { enabled: false } }', 'output.report'],
+    ['output: { report: { fileName: "custom" } }', 'output.report'],
+    ['output: { report: { overwrite: true } }', 'output.report'],
+    ['documentSetup: { name: "yaml", setup() {} }', 'root.documentSetup'],
+    ['legacy: { getOptions() {} }', 'root.legacy'],
+    [
+      'setup: { name: "setup", setup() {}, onDocumentResult() {} }',
+      'setup.onDocumentResult',
+    ],
+    [
+      'projects: [{ name: "native", retryScope: "document" }]',
+      'projects[0].retryScope',
+    ],
+    [
+      'projects: [{ name: "native", fileConcurrency: 2 }]',
+      'projects[0].fileConcurrency',
+    ],
+    [
+      'projects: [{ name: "native", setupFile: "setup.yaml" }]',
+      'projects[0].setupFile',
+    ],
+    [
+      'projects: [{ name: "native", documentSetup: { name: "yaml", setup() {} } }]',
+      'projects[0].documentSetup',
+    ],
+    [
+      'projects: [{ name: "native", files: { include: ["cases/*.yaml"], order: "listed" } }]',
+      'projects[0].files.order',
+    ],
+  ])(
+    'rejects compatibility controls in native configuration: %s',
+    async (field, key) => {
+      const { path } = createConfig(`export default { ${field} };`);
+      await expect(loadTestProject(path)).rejects.toThrow(
+        `${key} is not supported`,
+      );
+    },
+  );
+  it.each([
+    '{}',
+    '{ getOptions: 42 }',
+    '{ getOptions() {}, unsupported: true }',
+  ])('rejects an invalid legacy host adapter: %s', async (legacy) => {
+    const { path } = createConfig(
+      `export default { nodes: [], legacy: ${legacy} };`,
+    );
+    await expect(loadTestProject(path)).rejects.toThrow(/legacy/);
+  });
+
+  it('loads TypeScript syntax and Project file selection', async () => {
+    const { path } = createConfig(`
+      interface Config {
+        projects: Array<{
+          name: string;
+          files: { include: string[]; exclude: string[] };
+        }>;
+        nodes: unknown[];
+      }
+      const config: Config = {
+        projects: [{
+          name: 'web',
+          files: {
+            include: ['workflows/**/*.{yaml,yml}'],
+            exclude: ['workflows/**/*.draft.yaml'],
+          },
+        }],
+        nodes: [],
+      };
+      export default config;
+    `);
+
+    const project = await loadTestProject(path);
+
+    expect(project.projects[0].files).toEqual({
+      include: ['workflows/**/*.{yaml,yml}'],
+      exclude: ['workflows/**/*.draft.yaml'],
+    });
+  });
+
+  it('loads configs from paths containing URL control characters', async () => {
+    const { path } = createConfig(
+      'export default { nodes: [] };',
+      'test-project-config-#-',
+    );
+
+    const project = await loadTestProject(path);
+
+    expect(project.hasExplicitProjects).toBe(false);
+  });
+
+  it('loads adjacent TypeScript modules', async () => {
+    const { directory, path } = createConfig(`
+      import { nodes } from './nodes.ts';
+      export default { nodes };
+    `);
+    writeFileSync(
+      join(directory, 'nodes.ts'),
+      `export const nodes = [{ name: 'local.node', execute() {} }];`,
+    );
+
+    const project = await loadTestProject(path);
+
+    expect(project.resolveNode('local.node')?.name).toBe('local.node');
+  });
+
+  it('attaches root setup to the implicit Project without executing it', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      export default {
+        nodes: [],
+        setup: {
+          name: 'android',
+          setup() {
+            globalThis.__testSetupMarker();
+            return { ready: true };
+          },
+        },
+      };
+    `);
+
+    const project = await loadTestProject<{ ready: boolean }>(path);
+
+    expect(marker).not.toHaveBeenCalled();
+    expect(project.projects[0]).toMatchObject({
+      projectId: 'project-0',
+      name: 'default',
+      setup: { name: 'android' },
+    });
+    expect(await project.projects[0].setup?.setup({} as never)).toEqual({
+      ready: true,
+    });
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('requires a default export', async () => {
+    const { path } = createConfig('export const config = { nodes: [] };');
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      /must have a default export|root\.config is not supported/,
+    );
+  });
+
+  it('creates a compatible implicit default project', async () => {
+    const { path } = createConfig('export default { nodes: [] };');
+
+    const loaded = await loadTestProject(path);
+
+    expect(loaded.hasExplicitProjects).toBe(false);
+    expect(loaded.projects).toEqual([
+      {
+        projectId: 'project-0',
+        name: 'default',
+        tags: { include: [], exclude: [] },
+        retry: 0,
+        variables: {},
+        nodes: expect.any(NodeRegistry),
+      },
+    ]);
+    expect(loaded.test.maxConcurrency).toBe(1);
+  });
+
+  it('defaults omitted global and Project Nodes to empty registries', async () => {
+    const implicit = createConfig('export default {};');
+    const explicit = createConfig(`export default {
+      projects: [{ name: 'web' }],
+    };`);
+
+    for (const { path } of [implicit, explicit]) {
+      const loaded = await loadTestProject(path);
+      expect(loaded.nodes.names()).toEqual([]);
+      expect(loaded.projects[0].nodes.names()).toEqual([]);
+      expect(loaded.resolveNode('missing')).toBeUndefined();
+    }
+  });
+
+  it('inherits root-only Nodes without changing the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [{ name: 'shared', execute() {} }],
+      projects: [
+        { name: 'android' },
+        { name: 'ios' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const shared = loaded.resolveNode('shared');
+    expect(shared).toBeDefined();
+    expect(loaded.nodes.get('shared')).toBe(shared);
+    for (const project of loaded.projects) {
+      expect(project.nodes.names()).toEqual(['shared']);
+      expect(project.nodes.get('shared')).toBe(shared);
+    }
+  });
+
+  it('supports Project-only Nodes without adding them to the global resolver', async () => {
+    const { path } = createConfig(`export default {
+      projects: [{
+        name: 'android',
+        nodes: [{ name: 'launch', execute() {} }],
+      }],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    expect(loaded.nodes.names()).toEqual([]);
+    expect(loaded.resolveNode('launch')).toBeUndefined();
+    expect(loaded.projects[0].nodes.names()).toEqual(['launch']);
+  });
+
+  it('overrides global Nodes by name and isolates each Project registry', async () => {
+    const { path } = createConfig(`export default {
+      nodes: [
+        { name: 'shared', execute() {} },
+        { name: 'launch', description: 'global', execute() {} },
+      ],
+      projects: [
+        {
+          name: 'android',
+          nodes: [
+            { name: 'launch', description: 'android', execute() {} },
+            { name: 'android.only', execute() {} },
+          ],
+        },
+        {
+          name: 'ios',
+          nodes: [{ name: 'launch', description: 'ios', execute() {} }],
+        },
+        { name: 'web' },
+      ],
+    };`);
+
+    const loaded = await loadTestProject(path);
+    const [android, ios, web] = loaded.projects;
+    expect(loaded.resolveNode('launch')?.description).toBe('global');
+    expect(android.nodes.get('launch')?.description).toBe('android');
+    expect(ios.nodes.get('launch')?.description).toBe('ios');
+    expect(web.nodes.get('launch')).toBe(loaded.resolveNode('launch'));
+    for (const project of loaded.projects) {
+      expect(project.nodes.get('shared')).toBe(loaded.resolveNode('shared'));
+    }
+    expect(ios.nodes.has('android.only')).toBe(false);
+    expect(web.nodes.has('android.only')).toBe(false);
+    expect(loaded.resolveNode('android.only')).toBeUndefined();
+
+    android.nodes.register({ name: 'android.later', execute() {} });
+    expect(ios.nodes.has('android.later')).toBe(false);
+    expect(web.nodes.has('android.later')).toBe(false);
+    expect(loaded.nodes.has('android.later')).toBe(false);
+  });
+
+  it.each(['global', 'Project'])(
+    'rejects duplicate Node names within the %s layer',
+    async (layer) => {
+      const duplicateNodes = `[
+        { name: 'duplicate', execute() {} },
+        { name: 'duplicate', execute() {} },
+      ]`;
+      const { path } = createConfig(
+        layer === 'global'
+          ? `export default {
+              nodes: ${duplicateNodes},
+              projects: [{ name: 'web', nodes: [{ name: 'duplicate', execute() {} }] }],
+            };`
+          : `export default {
+              nodes: [{ name: 'duplicate', execute() {} }],
+              projects: [{ name: 'web', nodes: ${duplicateNodes} }],
+            };`,
+      );
+
+      await expect(loadTestProject(path)).rejects.toThrow(
+        'Node "duplicate" is already registered.',
+      );
+    },
+  );
+
+  it.each(['null', '{}', '"invalid"'])(
+    'rejects non-array global and Project Nodes: %s',
+    async (value) => {
+      const root = createConfig(`export default { nodes: ${value} };`);
+      const project = createConfig(`export default {
+        projects: [{ name: 'web', nodes: ${value} }],
+      };`);
+
+      await expect(loadTestProject(root.path)).rejects.toThrow(
+        'nodes must be an array',
+      );
+      await expect(loadTestProject(project.path)).rejects.toThrow(
+        'projects[0].nodes must be an array',
+      );
+    },
+  );
+
+  it('resolves Project selectors, setup binding, test options, and output', async () => {
+    const setupMarker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = setupMarker;
+    const { path } = createConfig(`
+      const androidSetup = {
+        name: 'dora-android',
+        setup() {
+          globalThis.__testSetupMarker();
+          return { connected: true };
+        },
+      };
+      export default {
+        projects: [
+          {
+            name: 'android-smoke',
+            setup: androidSetup,
+            files: {
+              include: ['cases/**/*.{yaml,yml}'],
+              exclude: ['cases/**/*.draft.yaml'],
+            },
+            tags: { include: ['smoke'], exclude: ['ios-only'] },
+            retry: 1,
+            variables: {
+              appName: 'Aweme',
+              launch: { reinstall: false },
+            },
+          },
+          {
+            name: 'ios-regression',
+            files: { include: ['ios/**/*.yaml'], exclude: [] },
+          },
+        ],
+        test: { maxConcurrency: 2, bail: 2, testTimeout: 30000 },
+        output: {
+          reportDir: './out/report',
+        },
+        nodes: [],
+      };
+    `);
+
+    const loaded = await loadTestProject(path);
+
+    expect(setupMarker).not.toHaveBeenCalled();
+    expect(loaded.hasExplicitProjects).toBe(true);
+    expect(loaded.projects[0]).toMatchObject({
+      projectId: 'project-0',
+      name: 'android-smoke',
+      files: {
+        include: ['cases/**/*.{yaml,yml}'],
+        exclude: ['cases/**/*.draft.yaml'],
+      },
+      tags: { include: ['smoke'], exclude: ['ios-only'] },
+      retry: 1,
+      variables: {
+        appName: 'Aweme',
+        launch: { reinstall: false },
+      },
+      setup: { name: 'dora-android' },
+    });
+    expect(Object.isFrozen(loaded.projects[0].variables)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].variables.launch)).toBe(true);
+    expect(Object.isFrozen(loaded.projects)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].files)).toBe(true);
+    expect(Object.isFrozen(loaded.projects[0].files?.include)).toBe(true);
+    expect(loaded.projects[1]).toMatchObject({
+      projectId: 'project-1',
+      files: { include: ['ios/**/*.yaml'], exclude: [] },
+      tags: { include: [], exclude: [] },
+      retry: 0,
+    });
+    expect(loaded.test).toEqual({
+      maxConcurrency: 2,
+      bail: 2,
+      testTimeout: 30000,
+    });
+    expect(loaded.output).toEqual({
+      reportDir: './out/report',
+    });
+  });
+
+  it.each([
+    ['empty projects', 'projects: []', 'projects must be a non-empty array'],
+    [
+      'duplicate project names',
+      `projects: [
+        { name: 'same' },
+        { name: 'same' },
+      ]`,
+      'project name "same" must be unique',
+    ],
+    [
+      'removed project platform',
+      `projects: [{ name: 'bad', platform: 'desktop' }]`,
+      'projects[0].platform is not supported',
+    ],
+    [
+      'removed project setup platform',
+      `projects: [{
+        name: 'ios',
+        setup: { name: 'device', platform: 'ios', setup() {} },
+      }]`,
+      'projects[0].setup.platform is not supported',
+    ],
+    [
+      'root setup with explicit projects',
+      `setup: { name: 'web', setup() {} },
+       projects: [{ name: 'web' }]`,
+      'setup cannot be used together with projects',
+    ],
+    [
+      'removed root setup platform',
+      `setup: { name: 'mobile', platform: ['android', 'ios'], setup() {} }`,
+      'setup.platform is not supported',
+    ],
+    [
+      'empty project include',
+      `projects: [{
+        name: 'web', files: { include: [] },
+      }]`,
+      'projects[0].files.include must be a non-empty array',
+    ],
+    [
+      'invalid tags',
+      `projects: [{
+        name: 'web', tags: { include: 'smoke' },
+      }]`,
+      'projects[0].tags.include must be an array',
+    ],
+    [
+      'unknown Project field',
+      `projects: [{ name: 'web', unknown: true }]`,
+      'projects[0].unknown is not supported',
+    ],
+    [
+      'removed output summary',
+      `output: { summary: './out/summary.json' }`,
+      'output.summary is not supported',
+    ],
+    [
+      'invalid report switch',
+      `output: { report: { enabled: 'yes' } }`,
+      'output.report is not supported',
+    ],
+    [
+      'invalid report file name',
+      `output: { report: { fileName: '' } }`,
+      'output.report is not supported',
+    ],
+    [
+      'negative retry',
+      `projects: [{ name: 'web', retry: -1 }]`,
+      'projects[0].retry must be a non-negative integer',
+    ],
+    [
+      'non-JSON variable',
+      `projects: [{
+        name: 'web', variables: { bad() {} },
+      }]`,
+      'projects[0].variables.bad must be JSON-compatible',
+    ],
+    [
+      'non-plain variable',
+      `projects: [{
+        name: 'web', variables: { bad: new Date() },
+      }]`,
+      'projects[0].variables.bad must be JSON-compatible',
+    ],
+    [
+      'zero max concurrency',
+      'test: { maxConcurrency: 0 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'negative max concurrency',
+      'test: { maxConcurrency: -1 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'fractional max concurrency',
+      'test: { maxConcurrency: 1.5 }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'string max concurrency',
+      `test: { maxConcurrency: '2' }`,
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'infinite max concurrency',
+      'test: { maxConcurrency: Infinity }',
+      'test.maxConcurrency must be a positive integer',
+    ],
+    [
+      'negative bail',
+      'test: { bail: -1 }',
+      'test.bail must be a non-negative integer',
+    ],
+  ])('rejects invalid %s configuration', async (_name, field, message) => {
+    const { path } = createConfig(`export default { ${field}, nodes: [] };`);
+    await expect(loadTestProject(path)).rejects.toThrow(message);
+  });
+
+  it('loads a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      `
+        const configUrl = import.meta.url;
+        await Promise.resolve();
+        export default {
+          nodes: [],
+          projects: [{ name: 'esm', variables: { configUrl } }],
+        };
+      `,
+    );
+
+    await expect(loadTestProject(path)).resolves.toMatchObject({
+      projects: [{ name: 'esm' }],
+    });
+  });
+
+  it('does not transform TypeScript syntax in a JavaScript ESM config', async () => {
+    const { directory } = createConfig('export default { nodes: [] };');
+    const path = join(directory, 'config.mjs');
+    writeFileSync(
+      path,
+      'const config: { nodes: unknown[] } = { nodes: [] }; export default config;',
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.cause.message).toMatch(
+      /Expected a semicolon|Unexpected token/,
+    );
+  });
+
+  it.each(['.js', '.cjs', '.mts', '.cts', '.tsx', '.json'])(
+    'rejects the %s extension',
+    async (extension) => {
+      const { directory } = createConfig('export default { nodes: [] };');
+      const path = join(directory, `config${extension}`);
+      writeFileSync(path, 'export default { nodes: [] };');
+
+      await expect(loadTestProject(path)).rejects.toThrow(
+        `Unsupported Midscene config extension: ${extension}. Supported extensions: .ts, .mjs.`,
+      );
+    },
+  );
+
+  it('preserves the config path and cause for import failures', async () => {
+    const { path } = createConfig(
+      `import './missing'; export default { nodes: [] };`,
+    );
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+  });
+
+  it('preserves the config path and cause for TypeScript syntax errors', async () => {
+    const { path } = createConfig('export default { nodes: [ };');
+
+    const error = await loadTestProject(path).catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain(`Failed to load Midscene config "${path}"`);
+    expect(error.cause).toBeInstanceOf(Error);
+  });
+
+  it('does not execute a config twice when it throws a runtime SyntaxError', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      globalThis.__testSetupMarker();
+      throw new SyntaxError('runtime syntax error');
+    `);
+
+    await expect(loadTestProject(path)).rejects.toThrow('runtime syntax error');
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('falls back once when an imported module has an unknown extension', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { directory, path } = createConfig(`
+      import './plugin.unsupported';
+      globalThis.__testSetupMarker();
+      export default { nodes: [] };
+    `);
+    writeFileSync(join(directory, 'plugin.unsupported'), 'export default 1;');
+
+    await expect(loadTestProject(path)).resolves.toBeDefined();
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('does not retry runtime errors that only reuse a loader error code', async () => {
+    const marker = vi.fn();
+    (globalThis as Record<string, unknown>).__testSetupMarker = marker;
+    const { path } = createConfig(`
+      globalThis.__testSetupMarker();
+      const error = new Error('runtime extension error');
+      error.code = 'ERR_UNKNOWN_FILE_EXTENSION';
+      throw error;
+    `);
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      'runtime extension error',
+    );
+    expect(marker).toHaveBeenCalledOnce();
+  });
+
+  it('does not resolve tsconfig paths', async () => {
+    const { directory, path } = createConfig(
+      `import { nodes } from '#nodes'; export default { nodes };`,
+    );
+    writeFileSync(
+      join(directory, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: { paths: { '#nodes': ['./nodes.ts'] } },
+      }),
+    );
+    writeFileSync(join(directory, 'nodes.ts'), 'export const nodes = [];');
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      `Failed to load Midscene config "${path}"`,
+    );
+  });
+
+  it('rejects removed setup lifecycle config', async () => {
+    const { path } = createConfig(
+      'export default { nodes: [], setupDocument: true };',
+    );
+
+    await expect(loadTestProject(path)).rejects.toThrow(
+      'Midscene config setupDocument is not supported.',
+    );
+
+    const removedSetup = createConfig(
+      'export default { nodes: [], setupWorkflow() {} };',
+    );
+    await expect(loadTestProject(removedSetup.path)).rejects.toThrow(
+      'setupWorkflow is no longer supported',
+    );
+  });
+
+  it.each([
+    [
+      'root',
+      'export default { nodes: [], root: "./e2e" };',
+      'root is not supported',
+    ],
+    [
+      'root files',
+      'export default { nodes: [], files: { include: ["*.yaml"] } };',
+      'files is not supported at the root',
+    ],
+    [
+      'renamed testRunner',
+      'export default { nodes: [], testRunner: {} };',
+      'testRunner is not supported. Rename it to test',
+    ],
+    [
+      'Project files',
+      'export default { nodes: [], projects: [{ name: "web", files: [] }] };',
+      'projects[0].files must be an object',
+    ],
+    [
+      'missing include',
+      'export default { nodes: [], projects: [{ name: "web", files: {} }] };',
+      'projects[0].files.include must be an array',
+    ],
+    [
+      'empty include',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: [] } }] };',
+      'projects[0].files.include must be a non-empty array',
+    ],
+    [
+      'absolute pattern',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["/outside/*.yaml"] } }] };',
+      'must be relative to the project root',
+    ],
+    [
+      'parent pattern',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["../outside/*.yaml"] } }] };',
+      'must not contain a ".." path segment',
+    ],
+    [
+      'negated include',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["!draft.yaml"] } }] };',
+      'Use files.exclude instead',
+    ],
+    [
+      'negated exclude',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: ["!keep.yaml"] } }] };',
+      'projects[0].files.exclude[0] must not be a negated pattern',
+    ],
+    [
+      'non-POSIX separator',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["flows\\\\*.yaml"] } }] };',
+      'must use POSIX path separators',
+    ],
+    [
+      'invalid exclude',
+      'export default { nodes: [], projects: [{ name: "web", files: { include: ["*.yaml"], exclude: true } }] };',
+      'projects[0].files.exclude must be an array',
+    ],
+  ])('rejects invalid %s config', async (_name, source, message) => {
+    const { path } = createConfig(source);
+    await expect(loadTestProject(path)).rejects.toThrow(message);
+  });
+});

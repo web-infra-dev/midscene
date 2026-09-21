@@ -8,11 +8,20 @@ final class FlippedDocumentView: NSView {
 
 @MainActor
 final class SmokeButton: NSButton {
-  var onMouseDown: (() -> Void)?
+  // AppKit normally consumes the first click while a programmatically
+  // activated application is still transitioning to the foreground. The
+  // hosted macOS runner can remain in that transition even after System
+  // Events says the process is frontmost. Accepting the activation click
+  // keeps this fixture focused on whether the global mouse event arrived.
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
+  }
+}
 
-  override func mouseDown(with event: NSEvent) {
-    onMouseDown?()
-    super.mouseDown(with: event)
+@MainActor
+final class SmokeTextField: NSTextField {
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+    true
   }
 }
 
@@ -23,13 +32,20 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
 
   private var window: NSWindow!
   private var button: SmokeButton!
-  private var textField: NSTextField!
+  private var textField: SmokeTextField!
   private var scrollView: NSScrollView!
   private var activationSource: DispatchSourceSignal?
+  private var pointerMonitor: DispatchSourceTimer?
+  private var leftButtonWasDown = false
 
   private var activationCount = 0
+  private var inputReadyGeneration = 0
+  private var pointerDownCount = 0
+  private var lastPointerX: CGFloat = -1
+  private var lastPointerY: CGFloat = -1
   private var clickCount = 0
   private var buttonActionCount = 0
+  private var textChangeCount = 0
   private var lastKey = ""
   private var wheelEventCount = 0
 
@@ -60,6 +76,11 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     )
     window.title = "Midscene macOS Desktop Smoke"
     window.isReleasedWhenClosed = false
+    // GitHub-hosted macOS sessions can keep Chrome above a newly activated
+    // regular-level window even after System Events reports this fixture as
+    // frontmost. Keep this test-only fixture above the browser so the
+    // computer-input smoke checks are delivered to their intended target.
+    window.level = .floating
 
     button = SmokeButton(title: "Midscene Smoke Button", target: self, action: #selector(buttonClicked))
     button.frame = NSRect(x: 190, y: 370, width: 260, height: 72)
@@ -69,13 +90,8 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     button.layer?.cornerRadius = 6
     button.contentTintColor = .black
     window.contentView?.addSubview(button)
-    button.onMouseDown = { [weak self] in
-      guard let self else { return }
-      self.clickCount += 1
-      self.writeState()
-    }
 
-    textField = NSTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
+    textField = SmokeTextField(frame: NSRect(x: 120, y: 275, width: 400, height: 44))
     textField.placeholderString = "Type smoke text"
     textField.delegate = self
     textField.target = self
@@ -102,13 +118,9 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     window.contentView?.addSubview(scrollView)
 
     installActivationSignal()
+    installPointerMonitor()
     activateFixture()
-    window.makeFirstResponder(textField)
     writeState()
-
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-      self?.writeReadyMetadata()
-    }
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -116,6 +128,7 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   }
 
   func controlTextDidChange(_ obj: Notification) {
+    textChangeCount += 1
     writeState()
   }
 
@@ -135,21 +148,51 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
   }
 
   private func activateFixture() {
-    focusFixture()
     activationCount += 1
+    let activation = activationCount
+    focusFixture()
     writeState()
+
+    // Hosted macOS sessions can report the app as active before the first
+    // activation request has settled. Repeat the complete focus sequence on a
+    // later AppKit turn, then publish readiness only after the window is key.
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-      self?.focusFixture()
-      self?.writeState()
+      guard let self else { return }
+      guard activation == self.activationCount else { return }
+      self.focusFixture()
+      self.publishInputReady(for: activation, attemptsRemaining: 40)
     }
   }
 
   private func focusFixture() {
     NSApplication.shared.unhide(nil)
-    window.orderFrontRegardless()
-    window.makeKeyAndOrderFront(nil)
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSRunningApplication.current.activate(options: [.activateAllWindows])
+    window.orderFrontRegardless()
+    window.makeKeyAndOrderFront(nil)
+    window.makeFirstResponder(textField)
+  }
+
+  private func publishInputReady(for activation: Int, attemptsRemaining: Int) {
+    guard activation == activationCount else { return }
+    if window.isVisible && window.isKeyWindow && NSApplication.shared.isActive {
+      inputReadyGeneration += 1
+      writeState()
+      if inputReadyGeneration == 1 {
+        writeReadyMetadata()
+      }
+      return
+    }
+    guard attemptsRemaining > 0 else {
+      writeState()
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      self?.publishInputReady(
+        for: activation,
+        attemptsRemaining: attemptsRemaining - 1
+      )
+    }
   }
 
   private func installActivationSignal() {
@@ -160,6 +203,40 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
     }
     source.resume()
     activationSource = source
+  }
+
+  private func installPointerMonitor() {
+    // GitHub-hosted AppKit sessions can drop control dispatch even when the
+    // fixture is frontmost. Sample the combined session while Midscene holds
+    // the button for 100 ms so the smoke still proves a real targeted press.
+    let source = DispatchSource.makeTimerSource(queue: .main)
+    source.schedule(deadline: .now(), repeating: .milliseconds(10))
+    source.setEventHandler { [weak self] in
+      self?.samplePointerState()
+    }
+    source.resume()
+    pointerMonitor = source
+  }
+
+  private func samplePointerState() {
+    let leftButtonIsDown = CGEventSource.buttonState(
+      .combinedSessionState,
+      button: .left
+    )
+    defer { leftButtonWasDown = leftButtonIsDown }
+    guard leftButtonIsDown && !leftButtonWasDown else { return }
+
+    let pointerLocation = NSEvent.mouseLocation
+    pointerDownCount += 1
+    lastPointerX = pointerLocation.x
+    lastPointerY = pointerLocation.y
+
+    let buttonWindowRect = button.convert(button.bounds, to: nil)
+    let buttonScreenRect = window.convertToScreen(buttonWindowRect)
+    if buttonScreenRect.contains(pointerLocation) {
+      clickCount += 1
+    }
+    writeState()
   }
 
   private func installMainMenu() {
@@ -249,8 +326,13 @@ final class FixtureController: NSObject, NSApplicationDelegate, NSTextFieldDeleg
         "active": NSApplication.shared.isActive,
         "keyWindow": window.isKeyWindow,
         "activationCount": activationCount,
+        "inputReadyGeneration": inputReadyGeneration,
+        "pointerDownCount": pointerDownCount,
+        "lastPointerX": lastPointerX,
+        "lastPointerY": lastPointerY,
         "clickCount": clickCount,
         "buttonActionCount": buttonActionCount,
+        "textChangeCount": textChangeCount,
         "text": textField.stringValue,
         "lastKey": lastKey,
         "wheelEventCount": wheelEventCount,

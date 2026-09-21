@@ -10,9 +10,9 @@
  * - Users cannot stop/start listening in bridge mode
  * - Users cannot change remote server URL because the input is always disabled
  *
- * Run: npx vitest run apps/chrome-extension/tests/bridge-start-stop.test.ts
+ * Run: npx rstest run apps/chrome-extension/tests/bridge-start-stop.test.ts
  */
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 
 // ─── BridgeConnector unit tests ──────────────────────────────────────────────
 

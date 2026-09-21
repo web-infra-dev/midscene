@@ -6,6 +6,7 @@ import type {
 } from '@midscene/core';
 import type { TModelConfig } from '@midscene/shared/env';
 import type { ComponentType, ReactNode } from 'react';
+import type { EnvConfigReminderProps } from './component/env-config-reminder';
 
 // Zod schema related types - compatible with actual zod types
 export interface ZodType {
@@ -84,9 +85,6 @@ export const VALIDATION_CONSTANTS = {
     STRING: 'ZodString',
     BOOLEAN: 'ZodBoolean',
   },
-  FIELD_FLAGS: {
-    LOCATION: 'midscene_location_field_flag',
-  },
   DEFAULT_VALUES: {
     ACTION_TYPE: 'aiAct',
     TIMEOUT_MS: 15000,
@@ -108,6 +106,8 @@ export const isZodObjectSchema = (
 export const isLocateField = (field: ZodType): boolean => {
   // Handle both runtime Zod objects and processed schema objects from server
   const fieldWithRuntime = field as ZodRuntimeAccess;
+  const hasMidsceneLocationInputShape = (shape?: Record<string, ZodType>) =>
+    !!shape?.prompt;
 
   // Check if it's a runtime ZodObject
   if (field._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OBJECT) {
@@ -126,8 +126,11 @@ export const isLocateField = (field: ZodType): boolean => {
       shape = fieldWithRuntime.shape;
     }
 
-    // Check for the location flag in shape
-    if (shape && VALIDATION_CONSTANTS.FIELD_FLAGS.LOCATION in shape) {
+    if (shape && 'prompt' in shape && shape.prompt) {
+      return true;
+    }
+
+    if (hasMidsceneLocationInputShape(shape)) {
       return true;
     }
 
@@ -174,6 +177,10 @@ export const isLocateField = (field: ZodType): boolean => {
       (fieldWithRuntime as { typeName?: string }).typeName === 'ZodObject' ||
       (fieldWithRuntime as { type?: string }).type === 'ZodObject'
     ) {
+      if (hasMidsceneLocationInputShape(fieldWithRuntime.shape)) {
+        return true;
+      }
+
       // For processed schemas, location fields are often described as input fields
       return (
         typeof description === 'string' &&
@@ -242,6 +249,7 @@ import type {
   BeforeActionHook,
   ExecutionOptions,
   PlaygroundAgent,
+  PlaygroundReportRef,
   PlaygroundRuntimeInfo,
 } from '@midscene/playground';
 
@@ -250,6 +258,7 @@ export interface PlaygroundResult {
   result: any;
   dump?: ExecutionDump | IExecutionDump | IReportActionDump | null;
   reportHTML?: string | null;
+  report?: PlaygroundReportRef | null;
   error: string | null;
 }
 
@@ -345,10 +354,12 @@ export interface PlaygroundSDKLike {
   cancelExecution?(requestId: string): Promise<{
     dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
+    report?: PlaygroundReportRef | null;
   } | null>;
   getCurrentExecutionData?(): Promise<{
     dump: ExecutionDump | IExecutionDump | IReportActionDump | null;
     reportHTML: string | null;
+    report?: PlaygroundReportRef | null;
   }>;
   overrideConfig?(config: any): Promise<void>;
   runConnectivityTest?(config: TModelConfig): Promise<ConnectivityTestResult>;
@@ -381,7 +392,7 @@ export interface ContextProvider {
 // info list item type (based on Chrome Extension design)
 export interface InfoListItem {
   id: string;
-  type: 'user' | 'system' | 'result' | 'progress' | 'separator';
+  type: 'user' | 'system' | 'result' | 'progress';
   content: string;
   timestamp: Date;
   result?: PlaygroundResult | null;
@@ -410,6 +421,12 @@ export type ReportDownloadHandler = (
   request: ReportDownloadRequest,
 ) => void | Promise<void>;
 
+export interface PlaygroundExecutionStatus {
+  running: boolean;
+  stoppable: boolean;
+  stop: () => void | Promise<void>;
+}
+
 // main component config interface
 export interface UniversalPlaygroundConfig {
   showContextPreview?: boolean;
@@ -425,10 +442,35 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
+  /**
+   * Whether automatic SDK config sync failures should show a toast.
+   * Defaults to `true`. Embedded hosts that already handle config application
+   * can set this to `false` to avoid duplicate background warnings.
+   */
+  suppressConfigErrorToast?: boolean;
   deviceType?: DeviceType;
   executionUx?: ExecutionUxConfig;
   promptInputChrome?: PromptInputChromeConfig;
+  /**
+   * Where the prompt composer is composed relative to the timeline. Hosts
+   * with a dedicated prompt panel can render it before the execution area.
+   */
+  promptInputPlacement?: 'before-timeline' | 'after-timeline';
+  /**
+   * When true, render only the execution/conversation area and omit the
+   * prompt composer. Hosts can use this for replay views that execute an
+   * externally supplied request instead of accepting free-form input.
+   */
+  hidePromptInput?: boolean;
   externalRunRequest?: ExternalRunRequest | null;
+  /**
+   * Whether to clear all previous execution messages before starting a new
+   * run. Defaults to `false` so conversation-style playgrounds retain their
+   * existing history behaviour.
+   */
+  clearTimelineBeforeRun?: boolean;
+  /** Hide report fullscreen controls when the embedding host cannot support fullscreen. */
+  hidePlayerFullscreenControl?: boolean;
   /**
    * Whether to render the "clear conversation" button that appears above the
    * message list once there is more than one item. Defaults to `true`.
@@ -448,6 +490,34 @@ export interface UniversalPlaygroundConfig {
    * state, but compact hosts can replace its default text block visually.
    */
   emptyState?: ReactNode;
+  /**
+   * Marks the current execution scope. When this value changes, any in-flight
+   * execution is cancelled so work from a previous target does not keep
+   * calling the backend after the host switches platform/device/session.
+   */
+  executionScopeKey?: string | null;
+  /**
+   * Called immediately before a new execution is started. Embedded hosts can
+   * use this to stop an existing execution in a sibling playground instance
+   * before the backend receives the new request.
+   */
+  onBeforeExecutionStart?: () => Promise<void> | void;
+  onExecutionStatusChange?: (status: PlaygroundExecutionStatus) => void;
+  /**
+   * Optional host-provided header rendered above the execution message list.
+   * Compact hosts can use this to align the execution timeline chrome with
+   * surrounding panels without changing the execution flow itself.
+   */
+  timelineHeader?: ReactNode;
+  /**
+   * Optional host-provided wrapper around the execution message area.
+   * This lets embedded hosts reuse their own timeline panel chrome while
+   * keeping the playground execution flow unchanged.
+   */
+  timelineWrapper?: (
+    content: ReactNode,
+    state: { empty: boolean; headerAction?: ReactNode },
+  ) => ReactNode;
   /**
    * Opt-in controls for how consecutive progress items render in the
    * conversation log. Defaults flatten every progress step inline (no
@@ -506,6 +576,11 @@ export interface PromptInputChromeConfig {
     history?: string;
     settings?: string;
   };
+  /**
+   * Controls where the run configuration trigger is rendered.
+   * Defaults to `toolbar` for the classic prompt chrome.
+   */
+  settingsPlacement?: 'toolbar' | 'input' | 'hidden';
   inputActions?: ReactNode;
 }
 
@@ -528,6 +603,12 @@ export interface UniversalPlaygroundProps {
 
   // UI config
   config?: UniversalPlaygroundConfig;
+
+  /**
+   * Extra capabilities for the empty-model-config reminder shown above the
+   * prompt input. The current Playground SDK is supplied automatically.
+   */
+  envConfigReminderProps?: Omit<EnvConfigReminderProps, 'playgroundSDK'>;
 
   // branding
   branding?: PlaygroundBranding;

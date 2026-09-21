@@ -1,4 +1,7 @@
+import { useRef } from 'react';
 import type { UpdateStatus } from '../../../shared/updater-contract';
+
+const VERSION_CLICKS_TO_OPEN_RUN_DIRECTORY = 5;
 
 export interface UpdaterSectionProps {
   status: UpdateStatus;
@@ -6,6 +9,7 @@ export interface UpdaterSectionProps {
   onDownload: () => void;
   onInstall: () => void;
   onOpenDownloadPage?: () => void;
+  onOpenRunDirectory?: () => void;
 }
 
 function formatPercent(percent: number): string {
@@ -28,7 +32,10 @@ function InlineUpdateButton({
     <button
       className={`${base} ${tone}`}
       disabled={disabled}
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
       type="button"
     >
       {label}
@@ -42,7 +49,9 @@ export default function UpdaterSection({
   onDownload,
   onInstall,
   onOpenDownloadPage,
+  onOpenRunDirectory,
 }: UpdaterSectionProps) {
+  const versionClickCountRef = useRef(0);
   const versionLabel = appVersion ? `v${appVersion}` : '—';
   const externalDownloadOnly =
     status.state === 'available' && status.externalDownloadOnly === true;
@@ -66,8 +75,23 @@ export default function UpdaterSection({
       />
     ) : null;
 
+  const handleVersionClick = () => {
+    if (!onOpenRunDirectory) {
+      return;
+    }
+    versionClickCountRef.current += 1;
+    if (versionClickCountRef.current < VERSION_CLICKS_TO_OPEN_RUN_DIRECTORY) {
+      return;
+    }
+    versionClickCountRef.current = 0;
+    onOpenRunDirectory();
+  };
+
   return (
-    <div className="flex px-[8px] py-[6px]">
+    <div
+      className="flex cursor-default px-[8px] py-[6px]"
+      onClick={handleVersionClick}
+    >
       <div className="flex min-h-[22px] w-full items-center justify-between gap-[12px]">
         <span className="shrink-0 font-sans text-[13px] leading-[22px] text-text-secondary">
           Version

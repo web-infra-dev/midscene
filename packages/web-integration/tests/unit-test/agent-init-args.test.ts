@@ -15,60 +15,61 @@ import {
 } from '@/agent-tools-puppeteer';
 import { AgentOverChromeBridge } from '@/bridge-mode';
 import { PuppeteerAgent } from '@/puppeteer';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 const validPngBase64 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 const mockPage = {
-  url: vi.fn(() => 'https://example.com/'),
-  bringToFront: vi.fn(),
-  goto: vi.fn(),
-  setViewport: vi.fn(),
-  target: vi.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
+  url: rs.fn(() => 'https://example.com/'),
+  bringToFront: rs.fn(),
+  goto: rs.fn(),
+  setExtraHTTPHeaders: rs.fn(),
+  setViewport: rs.fn(),
+  target: rs.fn((): { _targetId?: string } => ({ _targetId: 'target-1' })),
 };
 
 const mockBrowser = {
-  pages: vi.fn(async () => [mockPage]),
-  newPage: vi.fn(async () => mockPage),
-  disconnect: vi.fn(),
-  close: vi.fn(),
+  pages: rs.fn(async () => [mockPage]),
+  newPage: rs.fn(async () => mockPage),
+  disconnect: rs.fn(),
+  close: rs.fn(),
 };
 
-vi.mock('puppeteer-core', () => ({
+rs.mock('puppeteer-core', () => ({
   default: {
-    connect: vi.fn(async () => mockBrowser),
+    connect: rs.fn(async () => mockBrowser),
   },
 }));
 
-vi.mock('@/bridge-mode', () => ({
-  AgentOverChromeBridge: vi.fn().mockImplementation(() => ({
-    connectCurrentTab: vi.fn(),
-    connectNewTabWithUrl: vi.fn(),
+rs.mock('@/bridge-mode', () => ({
+  AgentOverChromeBridge: rs.fn().mockImplementation(() => ({
+    connectCurrentTab: rs.fn(),
+    connectNewTabWithUrl: rs.fn(),
     page: {
-      screenshotBase64: vi.fn(async () => validPngBase64),
+      screenshotBase64: rs.fn(async () => validPngBase64),
     },
-    destroy: vi.fn(),
+    destroy: rs.fn(),
   })),
 }));
 
-vi.mock('@/puppeteer', () => ({
-  PuppeteerAgent: vi.fn().mockImplementation(() => ({
+rs.mock('@/puppeteer', () => ({
+  PuppeteerAgent: rs.fn().mockImplementation(() => ({
     page: {
-      screenshotBase64: vi.fn(async () => validPngBase64),
+      screenshotBase64: rs.fn(async () => validPngBase64),
     },
-    destroy: vi.fn(),
+    destroy: rs.fn(),
   })),
 }));
 
-vi.mock('@/cdp-proxy-manager', () => ({
-  getProxyEndpoint: vi.fn(async () => 'ws://127.0.0.1:9222/devtools/browser/1'),
+rs.mock('@/cdp-proxy-manager', () => ({
+  getProxyEndpoint: rs.fn(async () => 'ws://127.0.0.1:9222/devtools/browser/1'),
 }));
 
-vi.mock('@/cdp-target-store', () => ({
-  cleanupTargetIdFile: vi.fn(),
-  readSavedTargetId: vi.fn(() => undefined),
-  saveTargetId: vi.fn(),
+rs.mock('@/cdp-target-store', () => ({
+  cleanupTargetIdFile: rs.fn(),
+  readSavedTargetId: rs.fn(() => undefined),
+  saveTargetId: rs.fn(),
 }));
 
 function createPersistenceRoot(): {
@@ -105,7 +106,7 @@ type WebInitArgTestFactory = () => {
 
 describe('web agent tool init args', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   afterEach(() => {
@@ -196,7 +197,7 @@ describe('web agent tool init args', () => {
       }),
     );
     expect(
-      vi.mocked(AgentOverChromeBridge).mock.results[0].value
+      rs.mocked(AgentOverChromeBridge).mock.results[0].value
         .connectNewTabWithUrl,
     ).toHaveBeenCalledWith('https://example.com');
   });
@@ -238,13 +239,13 @@ describe('web agent tool init args', () => {
     const { root, persistence } = createPersistenceRoot();
     const newerPage = {
       ...mockPage,
-      url: vi.fn(() => 'https://bbb.example.com/'),
-      target: vi.fn(() => ({ _targetId: 'target-bbb' })),
+      url: rs.fn(() => 'https://bbb.example.com/'),
+      target: rs.fn(() => ({ _targetId: 'target-bbb' })),
     };
     const olderPage = {
       ...mockPage,
-      url: vi.fn(() => 'https://aaa.example.com/'),
-      target: vi.fn(() => ({ _targetId: 'target-aaa' })),
+      url: rs.fn(() => 'https://aaa.example.com/'),
+      target: rs.fn(() => ({ _targetId: 'target-aaa' })),
     };
 
     try {
@@ -359,7 +360,7 @@ describe('web agent tool init args', () => {
     const { root, persistence } = createPersistenceRoot();
     const pageWithoutTargetId = {
       ...mockPage,
-      target: vi.fn(() => ({})),
+      target: rs.fn(() => ({})),
     };
 
     try {
@@ -414,17 +415,17 @@ describe('web agent tool init args', () => {
     try {
       const firstAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
-      vi.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -463,17 +464,17 @@ describe('web agent tool init args', () => {
     try {
       const firstAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
       const secondAgent = {
         page: {
-          screenshotBase64: vi.fn(async () => validPngBase64),
+          screenshotBase64: rs.fn(async () => validPngBase64),
         },
-        destroy: vi.fn(),
+        destroy: rs.fn(),
       };
-      vi.mocked(PuppeteerAgent)
+      rs.mocked(PuppeteerAgent)
         .mockReturnValueOnce(firstAgent as any)
         .mockReturnValueOnce(secondAgent as any);
 
@@ -491,7 +492,7 @@ describe('web agent tool init args', () => {
 
       expect(PuppeteerAgent).toHaveBeenCalledTimes(2);
       expect(firstAgent.destroy).toHaveBeenCalledTimes(1);
-      const lastAgentOptions = vi.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
+      const lastAgentOptions = rs.mocked(PuppeteerAgent).mock.calls.at(-1)?.[1];
       expect(lastAgentOptions).not.toHaveProperty('waitAfterAction');
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -506,7 +507,7 @@ describe('web agent tool init args', () => {
       }),
       () => {
         expect(AgentOverChromeBridge).toHaveBeenCalledTimes(2);
-        const openUrlCallCount = vi
+        const openUrlCallCount = rs
           .mocked(AgentOverChromeBridge)
           .mock.results.map((result) => result.value.connectNewTabWithUrl)
           .reduce(
@@ -594,5 +595,119 @@ describe('web agent tool init args', () => {
         screenshotShrinkFactor: 2,
       }),
     );
+  });
+
+  it('exposes extra HTTP headers only in CDP mode', async () => {
+    const bridgeTools = new WebMidsceneTools();
+    const puppeteerTools = new WebPuppeteerMidsceneTools();
+    const cdpTools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+
+    await Promise.all([
+      bridgeTools.initTools(),
+      puppeteerTools.initTools(),
+      cdpTools.initTools(),
+    ]);
+
+    const getConnectSchema = (
+      tools: WebMidsceneTools | WebPuppeteerMidsceneTools | WebCdpMidsceneTools,
+    ) =>
+      tools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.schema;
+
+    expect(getConnectSchema(bridgeTools)?.['web.extraHttpHeader']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(puppeteerTools)?.['web.extraHttpHeader']).toBe(
+      undefined,
+    );
+    expect(getConnectSchema(cdpTools)?.['web.extraHttpHeader']).toBeDefined();
+    expect(
+      cdpTools.getToolDefinitions().find((tool) => tool.name === 'web_connect')
+        ?.cli?.options?.['web.extraHttpHeader']?.preferredName,
+    ).toBe('extra-http-header');
+  });
+
+  it('combines repeated CDP extra HTTP headers before navigating', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    await connectTool?.handler({
+      url: 'https://example.com',
+      extraHttpHeader: [
+        'x-use-ppe:1',
+        'x-tt-env:ppe_example',
+        'x-callback-url:https://example.com/callback',
+      ],
+    });
+
+    expect(mockPage.setExtraHTTPHeaders).toHaveBeenCalledWith({
+      'x-use-ppe': '1',
+      'x-tt-env': 'ppe_example',
+      'x-callback-url': 'https://example.com/callback',
+    });
+    expect(
+      mockPage.setExtraHTTPHeaders.mock.invocationCallOrder[0],
+    ).toBeLessThan(mockPage.goto.mock.invocationCallOrder[0]);
+  });
+
+  it('does not apply CDP extra HTTP headers when omitted', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+
+    await connectTool?.handler({ url: 'https://example.com' });
+
+    expect(mockPage.setExtraHTTPHeaders).not.toHaveBeenCalled();
+  });
+
+  it('accepts one CDP extra HTTP header without an array', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+
+    await connectTool?.handler({
+      url: 'https://example.com',
+      extraHttpHeader: 'x-use-ppe:1',
+    });
+
+    expect(mockPage.setExtraHTTPHeaders).toHaveBeenCalledWith({
+      'x-use-ppe': '1',
+    });
+  });
+
+  it.each(['missing-colon', ':missing-name', 'invalid name:value'])(
+    'rejects invalid CDP extra HTTP header entry %s',
+    async (entry) => {
+      const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+      await tools.initTools();
+
+      const connectTool = tools
+        .getToolDefinitions()
+        .find((tool) => tool.name === 'web_connect');
+      const headerSchema = connectTool?.schema['web.extraHttpHeader'];
+
+      expect(headerSchema?.safeParse(entry).success).toBe(false);
+    },
+  );
+
+  it('rejects an empty CDP extra HTTP header array', async () => {
+    const tools = new WebCdpMidsceneTools('ws://127.0.0.1:9222/devtools/1');
+    await tools.initTools();
+
+    const connectTool = tools
+      .getToolDefinitions()
+      .find((tool) => tool.name === 'web_connect');
+    const headerSchema = connectTool?.schema['web.extraHttpHeader'];
+
+    expect(headerSchema?.safeParse([]).success).toBe(false);
   });
 });

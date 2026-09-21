@@ -2,16 +2,17 @@ import {
   getSummary,
   getUiTarsPlanningPrompt,
 } from '@/ai-model/models/ui-tars/prompt';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, rs } from '@rstest/core';
 import { mockNonChinaTimeZone, restoreIntl } from '../../mocks/intl-mock';
 
-vi.mock('@midscene/shared/env', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@midscene/shared/env')>();
-  return {
-    ...actual,
-    getPreferredLanguage: vi.fn().mockReturnValue('English'),
-  };
-});
+import * as sharedEnvActual from '@midscene/shared/env' with {
+  rstest: 'importActual',
+};
+
+rs.mock('@midscene/shared/env', () => ({
+  ...sharedEnvActual,
+  getPreferredLanguage: rs.fn().mockReturnValue('English'),
+}));
 
 describe('ui-tars prompt', () => {
   it('renders UI-TARS planning prompt', () => {

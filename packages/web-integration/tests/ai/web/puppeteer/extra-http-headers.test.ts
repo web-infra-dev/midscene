@@ -11,7 +11,7 @@ import {
   describe,
   expect,
   it,
-} from 'vitest';
+} from '@rstest/core';
 
 // End-to-end check that `extraHTTPHeaders` declared in a YAML script actually
 // reaches the server. This drives the full user-facing path

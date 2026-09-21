@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { qwenAdapters } from '@/ai-model/models/qwen';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const qwen25Adapter = new ResolvedModelAdapter(
   qwenAdapters['qwen2.5-vl'],
@@ -21,6 +21,43 @@ const qwen36Adapter = new ResolvedModelAdapter(
 );
 
 describe('qwen model adapter', () => {
+  it.each([
+    ['qwen2.5-vl', qwen25Adapter],
+    ['qwen3-vl', qwen3VlAdapter],
+  ])('accepts bbox_2d as a target alias for %s', (_modelFamily, adapter) => {
+    const locateAdapter = adapter.locate;
+    if (locateAdapter.kind !== 'standard') {
+      throw new Error('qwen should use a standard locate protocol');
+    }
+
+    expect(
+      locateAdapter.element.protocol.parseRawResponse(
+        '{"bbox_2d":[100,200,300,400]}',
+        locateAdapter.element.resultCodec.promptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+  });
+
+  it('does not treat references_bbox_2d as a references alias', () => {
+    const locateAdapter = qwen3VlAdapter.locate;
+    if (locateAdapter.kind !== 'standard' || !locateAdapter.searchArea) {
+      throw new Error('qwen3-vl should use a standard search area protocol');
+    }
+
+    expect(
+      locateAdapter.searchArea.protocol.parseRawResponse(
+        '{"bbox_2d":[100,200,300,400],"references_bbox_2d":[[500,600,700,800]]}',
+        locateAdapter.searchArea.resultCodec.promptSpec,
+      ),
+    ).toEqual({
+      kind: 'located',
+      target: [100, 200, 300, 400],
+    });
+  });
+
   it('keeps qwen3, qwen3.5 and qwen3.6 chat completion behavior aligned', () => {
     expect(
       qwen36Adapter.chatCompletion.buildChatCompletionParams({
@@ -298,41 +335,34 @@ describe('qwen model adapter', () => {
     });
   });
 
-  it('normalizes actual-pixel bbox coordinates for qwen2.5-vl', () => {
+  it('preserves fractional pixel bbox coordinates and center for qwen2.5-vl', () => {
     const locateAdapter = qwen25Adapter.locate;
     expect(locateAdapter.kind).toBe('standard');
     if (locateAdapter.kind !== 'standard') {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100.3, 200.4, 301, 401],
-        { preparedSize: { width: 1000, height: 1000 } },
-      );
-    expect(result).toEqual([100, 200, 301, 401]);
+    const result = locateAdapter.element.resultCodec.toPixelResult(
+      [100.25, 200.5, 301.75, 401.25],
+      { preparedSize: { width: 1000, height: 1000 } },
+    );
+    expect(result).toEqual({
+      center: [201, 300.875],
+      rect: { left: 100.25, top: 200.5, width: 202.5, height: 201.75 },
+    });
   });
 
-  it('normalizes qwen2.5-vl point fallback to a bbox', () => {
+  it('preserves qwen2.5-vl point fallback without a rect', () => {
     const locateAdapter = qwen25Adapter.locate;
     expect(locateAdapter.kind).toBe('standard');
     if (locateAdapter.kind !== 'standard') {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 100],
-        { preparedSize: { width: 1000, height: 1000 } },
-      );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        100,
-        100,
-        120,
-        120,
-      ]
-    `);
+    const result = locateAdapter.element.resultCodec.toPixelResult([100, 100], {
+      preparedSize: { width: 1000, height: 1000 },
+    });
+    expect(result).toEqual({ center: [100, 100] });
   });
 
   it('throws on invalid qwen2.5-vl bbox data', () => {
@@ -342,10 +372,11 @@ describe('qwen model adapter', () => {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox([100], {
-        preparedSize: { width: 0, height: 0 },
-      }),
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult([100], {
+          preparedSize: { width: 0, height: 0 },
+        }).rect,
     ).toThrow();
   });
 
@@ -356,11 +387,32 @@ describe('qwen model adapter', () => {
       throw new Error('qwen2.5-vl should use standard locate adapter');
     }
 
-    expect(() =>
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 200, 1000, 2000],
-        { preparedSize: { width: 1000, height: 1000 } },
-      ),
-    ).toThrow(/outside the image size/);
+    expect(
+      () =>
+        locateAdapter.element.resultCodec.toPixelResult(
+          [100, 200, 1000, 2000],
+          {
+            preparedSize: { width: 1000, height: 1000 },
+          },
+        ).rect,
+    ).toThrow(/exceed image size/);
+  });
+});
+
+describe('Qwen point grounding', () => {
+  it('preserves Qwen 2.5 point fallback at an edge instead of shifting by 10px', () => {
+    const locate = qwen25Adapter.locate;
+    if (locate.kind !== 'standard') throw new Error('Expected standard locate');
+    const context = { preparedSize: { width: 100, height: 80 } };
+    expect(
+      locate.element.resultCodec.toPixelResult([0.25, 0.5], context).center,
+    ).toEqual([0.25, 0.5]);
+    expect(
+      locate.element.resultCodec.toPixelResult([99, 79], context).center,
+    ).toEqual([99, 79]);
+    expect(
+      locate.element.resultCodec.toPixelResult([10, 20, 11, 21], context)
+        .center,
+    ).toEqual([10.5, 20.5]);
   });
 });

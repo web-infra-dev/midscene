@@ -1,15 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { agentFromHdcDevice } from '../../src/agent';
 import { HarmonyMidsceneTools } from '../../src/agent-tools';
 
-vi.mock('../../src/agent', () => ({
-  agentFromHdcDevice: vi.fn(),
+rs.mock('../../src/agent', () => ({
+  agentFromHdcDevice: rs.fn(),
 }));
 
-vi.mock('../../src/device', () => ({
-  HarmonyDevice: vi.fn().mockImplementation(() => ({
-    actionSpace: vi.fn().mockReturnValue([]),
-    destroy: vi.fn(),
+rs.mock('../../src/device', () => ({
+  HarmonyDevice: rs.fn().mockImplementation(() => ({
+    actionSpace: rs.fn().mockReturnValue([]),
+    destroy: rs.fn(),
   })),
 }));
 
@@ -19,20 +19,20 @@ const validPngBase64 =
 function createMockAgent() {
   return {
     page: {
-      screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
+      screenshotBase64: rs.fn().mockResolvedValue(validPngBase64),
     },
-    aiAction: vi.fn().mockResolvedValue('done'),
-    destroy: vi.fn(),
+    aiAction: rs.fn().mockResolvedValue('done'),
+    destroy: rs.fn(),
   };
 }
 
 describe('HarmonyMidsceneTools', () => {
   beforeEach(() => {
-    vi.mocked(agentFromHdcDevice).mockResolvedValue(createMockAgent() as any);
+    rs.mocked(agentFromHdcDevice).mockResolvedValue(createMockAgent() as any);
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
   });
 
   it('passes nested harmony.device-id to take_screenshot', async () => {
@@ -56,7 +56,7 @@ describe('HarmonyMidsceneTools', () => {
 
   it('passes nested harmony.deviceId to act', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new HarmonyMidsceneTools();
     await tools.initTools();
@@ -136,7 +136,7 @@ describe('HarmonyMidsceneTools', () => {
 
   it('reuses the Harmony agent when called twice with identical init args', async () => {
     const mockAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
+    rs.mocked(agentFromHdcDevice).mockResolvedValue(mockAgent as any);
 
     const tools = new HarmonyMidsceneTools();
     await tools.initTools();
@@ -159,7 +159,7 @@ describe('HarmonyMidsceneTools', () => {
   it('rebuilds the Harmony agent when init args change', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice)
+    rs.mocked(agentFromHdcDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 
@@ -188,7 +188,7 @@ describe('HarmonyMidsceneTools', () => {
   it('rebuilds the Harmony agent when init args are omitted after being set', async () => {
     const firstAgent = createMockAgent();
     const secondAgent = createMockAgent();
-    vi.mocked(agentFromHdcDevice)
+    rs.mocked(agentFromHdcDevice)
       .mockResolvedValueOnce(firstAgent as any)
       .mockResolvedValueOnce(secondAgent as any);
 

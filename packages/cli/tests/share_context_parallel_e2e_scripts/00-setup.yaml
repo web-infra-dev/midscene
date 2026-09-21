@@ -1,0 +1,12 @@
+tasks:
+  - name: Establish shared login state
+    flow:
+      - javascript: |
+          (function() {
+            document.cookie = 'authToken=parallel-token; path=/';
+            localStorage.setItem('userId', 'parallel-user');
+            sessionStorage.setItem('sessionId', 'setup-session');
+            document.querySelector('h1').textContent = 'Setup: shared login state established';
+            checkLoginStatus();
+            return true;
+          })()

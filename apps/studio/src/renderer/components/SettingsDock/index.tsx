@@ -77,7 +77,7 @@ export default function SettingsDock({
     <div className="flex flex-col gap-[2px]">
       <DockRow
         icon={<EnvIcon alert={envAlert} />}
-        label="Model Config"
+        label="Config"
         onClick={onEnvClick}
       />
       <DockRow

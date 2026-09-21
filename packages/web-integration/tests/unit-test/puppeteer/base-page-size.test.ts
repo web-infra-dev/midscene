@@ -2,8 +2,8 @@ import { PuppeteerWebPage } from '@/puppeteer';
 import { launchPuppeteerPage } from '@/puppeteer/agent-launcher';
 import { commonContextParser } from '@midscene/core/agent';
 import { imageInfoOfBase64 } from '@midscene/shared/img';
+import { describe, expect, it } from '@rstest/core';
 import type { Viewport } from 'puppeteer';
-import { describe, expect, it } from 'vitest';
 
 async function launchPage(
   url: string,

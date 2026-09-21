@@ -1,18 +1,18 @@
-import { ConversationHistory } from '@/ai-model/conversation-history';
 import { getModelRuntime } from '@/ai-model/models';
 import { transformUiTarsActions } from '@/ai-model/models/ui-tars/actions';
 import {
   type UiTarsParsedPlanningResponse,
   parseUiTarsPlanningResponse,
 } from '@/ai-model/models/ui-tars/parser';
+import { ConversationHistory } from '@/ai-model/workflows/planning/conversation-history';
 import type { PlanOptions } from '@/ai-model/workflows/planning/types';
 import type { UIContext } from '@/types';
 import { UITarsModelVersion } from '@midscene/shared/env';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 import { actionParser } from '@ui-tars/action-parser';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui-tars/action-parser', () => ({
-  actionParser: vi.fn(),
+rs.mock('@ui-tars/action-parser', () => ({
+  actionParser: rs.fn(),
 }));
 
 const context: UIContext = {
@@ -41,6 +41,7 @@ function createPlanOptions(): PlanOptions {
     modelRuntime,
     conversationHistory: new ConversationHistory(),
     includeLocateInPlanning: true,
+    effort: 'balance',
   };
 }
 
@@ -56,11 +57,11 @@ function parsedResponse(
 
 describe('parseUiTarsPlanningResponse failures', () => {
   beforeEach(() => {
-    vi.mocked(actionParser).mockReset();
+    rs.mocked(actionParser).mockReset();
   });
 
   it('throws action parser exceptions directly', () => {
-    vi.mocked(actionParser).mockImplementationOnce(() => {
+    rs.mocked(actionParser).mockImplementationOnce(() => {
       throw new Error('parser exploded');
     });
 
@@ -74,7 +75,7 @@ describe('parseUiTarsPlanningResponse failures', () => {
   });
 
   it('converts bbox tags to center coordinates before parsing', () => {
-    vi.mocked(actionParser).mockReturnValueOnce({ parsed: [] });
+    rs.mocked(actionParser).mockReturnValueOnce({ parsed: [] });
 
     parseUiTarsPlanningResponse(
       "Thought: Click converted bbox\nAction: click(start_box='<bbox>400 300 600 700</bbox>')",

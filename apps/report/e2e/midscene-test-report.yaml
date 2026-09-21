@@ -1,0 +1,96 @@
+target:
+  serve: ./dist
+  url: demo-midscene-test.html
+  viewportWidth: 1440
+  viewportHeight: 1200
+  # Keep screenshot coordinates consistent on Retina and CI machines.
+  deviceScaleFactor: 1
+tasks:
+  - name: batch health and compact project tree
+    flow:
+      - aiAssert: The overview shows 2 of 2 cases passed, a 100% final pass rate, a 50% first-pass rate, one case passed after retry, and an 8 second Run time. Compact is selected. The Web regression project is collapsed.
+      - aiTap: the expand chevron to the left of Web regression
+      - aiAssert: Checkout with retry and Verify cart summary appear as compact connected child rows under Web regression. Case names and status tags are readable and there are no separate Inspect buttons in these rows.
+      - aiTap: the status filter showing All statuses
+      - aiTap: the Needs attention option
+      - aiAssert: Only Checkout with retry remains under Web regression; Verify cart summary is filtered out.
+      - aiTap: the status filter showing Needs attention
+      - aiTap: the All statuses option
+      - aiTap: the Detailed view button
+      - aiAssert: Both cases are visible. Detailed rows show their source file, attempt count and duration. Checkout with retry has a numbered screenshot timeline on the right, while Verify cart summary has no screenshot evidence.
+      - aiHover: a screenshot thumbnail in the Checkout with retry timeline
+      - aiAssert: An enlarged screenshot preview is visible near the hovered thumbnail.
+      - aiHover: the Projects and cases heading on the left, outside the screenshot timeline and its floating preview
+      - aiTap: the Compact view button
+      - aiAssert: Compact is selected. Case rows show their names and status tags without screenshot timelines.
+
+  - name: direct case navigation and browser history
+    flow:
+      - aiTap: the Verify cart summary case row under Web regression
+      - aiAssert: The Verify cart summary case detail has an Overview back link and an Execution panel with cart.verify selected. There is no Attempt selector for this single attempt.
+      # Check history navigation through the route, then assert only visible UI with AI.
+      - javascript: |
+          new Promise((resolve, reject) => {
+            const params = new URLSearchParams(location.hash.slice(1));
+            if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') throw new Error('Missing Verify cart summary case route');
+            const timeout = setTimeout(() => {
+              window.removeEventListener('hashchange', onRouteChange);
+              reject(new Error('Browser Back did not navigate to the overview'));
+            }, 5000);
+            function onRouteChange() {
+              clearTimeout(timeout);
+              const page = new URLSearchParams(location.hash.slice(1)).get('runner-page');
+              if (page && page !== 'overview') reject(new Error(`Expected overview route, got ${location.hash}`));
+              else resolve();
+            }
+            window.addEventListener('hashchange', onRouteChange, { once: true });
+            history.back();
+          });
+        name: browserBackFromCase
+      - aiAssert: The overview shows the Projects and cases heading and the Compact and Detailed view controls.
+      - javascript: |
+          new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              window.removeEventListener('hashchange', onRouteChange);
+              reject(new Error('Browser Forward did not navigate to the case'));
+            }, 5000);
+            function onRouteChange() {
+              clearTimeout(timeout);
+              const params = new URLSearchParams(location.hash.slice(1));
+              if (params.get('runner-page') !== 'case' || params.get('runner-case') !== 'web-demo:checkout-document:first-pass-case') {
+                reject(new Error(`Expected Verify cart summary case route, got ${location.hash}`));
+              } else resolve();
+            }
+            window.addEventListener('hashchange', onRouteChange, { once: true });
+            history.forward();
+          });
+        name: browserForwardToCase
+      - aiAssert: The Verify cart summary case detail has an Overview back link, a Passed status, and an Execution panel showing cart.verify.
+      - aiTap: the Overview back link
+
+  - name: retry attempts and custom node errors
+    flow:
+      - aiTap: the Checkout with retry case row
+      - aiAssert: The Checkout with retry case detail has Attempt 1 selected. The selected order.create step shows Inventory was not ready.
+      - aiTap: the Attempt 2 selector
+      - aiAssert: Attempt 2 is selected. The visual timeline is above Execution and the evidence panel; aiAct is selected and an Inspect GUI agent action is available.
+      - aiHover: a screenshot in the full width Visual timeline
+      - aiAssert: A screenshot preview is displayed and aiAct is the selected execution step.
+      - aiHover: the Checkout with retry case title at the top left, outside the Visual timeline and its floating preview
+      - aiTap: the Attempt 1 selector
+      - aiAssert: Attempt 1 is selected. The selected order.create step shows NODE_EXECUTION_ERROR and Inventory was not ready. Input & output includes the redacted apiKey. This custom step offers no AI trace action.
+
+  - name: AI trace and namespaced deep link
+    flow:
+      - aiTap: the Attempt 2 selector
+      - aiAssert: aiAct is selected, with Input & output and Events tabs and actions to Inspect GUI agent and Open AI trace in new tab.
+      - javascript: |
+          const link = document.querySelector('.runner-detail-trace-new-page');
+          if (!(link instanceof HTMLAnchorElement)) throw new Error('Missing trace link');
+          const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+          if (link.target !== '_blank' || params.get('runner-trace') !== 'page' || params.get('runner-step') !== 'attempt-2:steps:0') {
+            throw new Error('Trace link lost its namespaced step context');
+          }
+        name: assertTraceDeepLink
+      - aiTap: the Inspect GUI agent button
+      - aiAssert: A wide AI trace drawer overlays the Case workspace, with the recorded Agent task list and screenshot replay visible inside the drawer.

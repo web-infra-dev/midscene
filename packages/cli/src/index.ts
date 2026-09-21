@@ -3,10 +3,19 @@ import type { BaseMidsceneTools } from '@midscene/shared/agent-tools/base-tools'
 import { runToolsCLI } from '@midscene/shared/cli';
 import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { createConfig, createFilesConfig } from './config-factory';
+import {
+  type ConfigFactoryOptions,
+  createConfig,
+  createFilesConfig,
+} from './config-factory';
+import { pickYamlTargetConfig } from './config-options';
 import { loadDotenvConfig } from './dotenv-loader';
 import { runFrameworkTestConfig } from './framework';
 import { runModelCommand } from './model-command';
+import {
+  assertLegacyBatchConfigPath,
+  assertLegacyWorkflowSelection,
+} from './workflow-format';
 
 Promise.resolve(
   (async () => {
@@ -56,6 +65,7 @@ Promise.resolve(
 
     // Extract new configuration options
     const configOptions = {
+      ...pickYamlTargetConfig(options),
       concurrent: options.concurrent,
       continueOnError: options['continue-on-error'],
       retry: options.retry,
@@ -65,16 +75,14 @@ Promise.resolve(
       keepWindow: options['keep-window'],
       dotenvOverride: options['dotenv-override'],
       dotenvDebug: options['dotenv-debug'],
-      web: options.web,
-      android: options.android,
-      ios: options.ios,
       files: cmdFiles,
       setup: options.setup as string | undefined,
-    };
+    } satisfies ConfigFactoryOptions;
 
     let config;
 
     if (configFile) {
+      assertLegacyBatchConfigPath(configFile);
       config = await createConfig(configFile, configOptions);
       console.log(`   Config file: ${configFile}`);
     } else if (cmdFiles && cmdFiles.length > 0) {
@@ -94,6 +102,11 @@ Promise.resolve(
       console.error('Could not create a valid configuration.');
       process.exit(1);
     }
+
+    assertLegacyWorkflowSelection([
+      ...(config.setup ? [config.setup] : []),
+      ...config.files,
+    ]);
 
     loadDotenvConfig({
       dotenvDebug: config.dotenvDebug,

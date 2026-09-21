@@ -1,0 +1,26 @@
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Preserve successful setup state across main-file retry
+    flow:
+      - javascript: |
+          (function() {
+            const setupState = localStorage.getItem('successfulSetupState');
+            const failedSetupResidue = localStorage.getItem('failedSetupResidue');
+            const setupCookie = document.cookie.includes('successfulSetupCookie=ready');
+            const attempt = Number(localStorage.getItem('mainFileAttempt') || '0') + 1;
+            localStorage.setItem('mainFileAttempt', String(attempt));
+
+            if (setupState !== 'ready' || !setupCookie || failedSetupResidue !== null) {
+              throw new Error('main file did not receive a clean successful setup context');
+            }
+            if (attempt === 1) {
+              throw new Error('intentional first main-file failure');
+            }
+
+            return { attempt, setupState, setupCookie };
+          })()
+        name: check_setup_retry

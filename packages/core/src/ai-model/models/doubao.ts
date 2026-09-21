@@ -4,7 +4,7 @@ import type {
   ChatCompletionParamsResult,
   ModelAdapterDefinition,
 } from '../model-adapter/types';
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import {
   type LocateResultValue,
   createLocateResultValue,
@@ -15,11 +15,13 @@ const doubaoBboxCoordinatesMeta = {
   shape: 'bbox',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 const doubaoPointCoordinatesMeta = {
   shape: 'point',
   order: 'xy',
   normalizedBy: 1000,
+  rounding: 'round',
 } as const;
 
 /**
@@ -114,6 +116,15 @@ const buildDoubaoChatCompletionParams = (
     commonOverrideConfig.temperature = userConfig.temperature;
   }
 
+  // Doubao Chat Completions JSON mode:
+  // https://docs.volcengine.com/docs/82379/1568221?lang=zh
+  if (
+    userConfig.responseFormat !== 'none' &&
+    input.expectedJsonObjectResponse
+  ) {
+    commonOverrideConfig.response_format = { type: 'json_object' };
+  }
+
   const modelSpecificConfig: Record<string, unknown> = {};
 
   if (reasoningEnabled !== 'default') {
@@ -142,9 +153,11 @@ const doubaoVisionAdapter: ModelAdapterDefinition = {
     useReasoningAsContentFallback: true,
   },
   locate: {
-    resultAdapter: {
-      coordinates: doubaoBboxCoordinatesMeta,
-      parseRawLocateValue: parseDoubaoRawLocateValue,
+    element: {
+      resultFormat: {
+        coordinates: doubaoBboxCoordinatesMeta,
+        parseRawLocateValue: parseDoubaoRawLocateValue,
+      },
     },
   },
 };

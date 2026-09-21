@@ -3,7 +3,7 @@ import type {
   ExecutionTask,
   GroupedActionDump,
 } from '@midscene/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 import { anchorIdForTask, findTaskByAnchor } from './task-anchor';
 
 const makeTask = (id: string): ExecutionTask =>

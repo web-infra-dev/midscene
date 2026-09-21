@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, rs } from '@rstest/core';
 
 // A 1x1 PNG, base64-encoded, as PowerShell's CopyFromScreen path would print
 // to stdout.
@@ -8,16 +8,16 @@ const FAKE_PNG_BASE64 =
 
 // Typed params so `mock.calls[i]` is a `[file, args, options]` tuple the type
 // checker can index into.
-const execFileSync = vi.fn(
+const execFileSync = rs.fn(
   (_file: string, _args: string[], _options?: unknown): string =>
     FAKE_PNG_BASE64,
 );
 
-vi.mock('node:child_process', () => ({
+rs.mock('node:child_process', () => ({
   execFileSync: (file: string, args: string[], options?: unknown) =>
     execFileSync(file, args, options),
-  execSync: vi.fn(),
-  spawnSync: vi.fn(),
+  execSync: rs.fn(),
+  spawnSync: rs.fn(),
 }));
 
 /** Decode the -EncodedCommand argument back to the PowerShell script. */
@@ -33,7 +33,7 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
   afterEach(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
     execFileSync.mockClear();
-    vi.resetModules();
+    rs.resetModules();
   });
 
   it('captures through powershell.exe and returns a PNG data URI', async () => {
@@ -58,12 +58,14 @@ describe('Windows screenshot via PowerShell (issue #2150)', () => {
     const script = decodeEncodedCommand(execFileSync.mock.calls[0]);
     expect(script).toContain('CopyFromScreen');
     expect(script).toContain('PrimaryScreen');
-    expect(script).not.toContain('throw');
+    expect(script).not.toContain('Requested display not found');
 
-    // No runtime C# compile: this PR's whole point is to drop the .NET
-    // compiler dependency, so the DPI Add-Type/csc path must not reappear.
-    expect(script).not.toContain('SetProcessDPIAware');
-    expect(script).not.toContain('DllImport');
+    // Enter a physical-pixel DPI context without restoring the runtime C#
+    // compiler dependency that screenshot-desktop's old path required.
+    expect(script).toContain('SetThreadDpiAwarenessContext');
+    expect(script).toContain('DefinePInvokeMethod');
+    expect(script).toContain('[System.IntPtr](-4)');
+    expect(script).not.toContain('Add-Type -TypeDefinition');
   });
 
   it('targets the requested display by DeviceName and fails fast if missing', async () => {

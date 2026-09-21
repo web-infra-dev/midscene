@@ -37,6 +37,12 @@ export interface WebDriverOptions {
   sessionId?: string;
 }
 
+/** Per-request overrides for WebDriver transport calls. */
+export interface WebDriverRequestOptions {
+  /** Override the client-wide timeout for this request only. */
+  timeout?: number;
+}
+
 export interface Point {
   x: number;
   y: number;

@@ -50,10 +50,13 @@ export type ToolSchema = Record<string, z.ZodTypeAny>;
 export interface ToolCliOption {
   preferredName?: string;
   aliases?: string[];
+  hidden?: boolean;
 }
 
 export interface ToolCliMetadata {
   options?: Record<string, ToolCliOption>;
+  /** Schema keys populated from leading positional CLI arguments. */
+  positionals?: string[];
 }
 
 /**
@@ -84,9 +87,10 @@ export interface ActionSpaceItem {
  * Structural shape compatible with @midscene/core `TUserPrompt`.
  * Declared locally to avoid a circular dep on `@midscene/core` from `@midscene/shared`.
  *
- * Currently consumed only by the `assert` tool in `generateCommonTools`.
- * `aiAction` and `aiWaitFor` stay string-only at the CLI surface because the
- * tools generator does not yet expose multimodal entry points for them.
+ * Consumed by the `assert` and `act` tools in `generateCommonTools`, both of
+ * which forward reference images to core (`aiAssert` / `aiAct`). `aiWaitFor`
+ * stays string-only at the CLI surface because the tools generator does not
+ * yet expose a multimodal entry point for it.
  */
 export type UserPromptLike =
   | string
@@ -121,6 +125,69 @@ export interface BaseAgentProgressEvent {
   data?: unknown;
 }
 
+/** A single frame in a portable UI observation record. */
+export interface UIObservationFrame {
+  /** Path to the captured image. Serialized manifests use relative paths. */
+  path: string;
+  /** MIME type of the captured image file. */
+  mimeType: 'image/png' | 'image/jpeg';
+  /** Capture timestamp in milliseconds. */
+  capturedAt: number;
+}
+
+/**
+ * Serializable observation window that can be persisted and loaded later.
+ * Frames are ordered from earliest to latest; the final frame represents the
+ * UI state at the end of the observation window.
+ */
+export interface UIObservationRecord {
+  type: 'midscene_ui_observation';
+  version: 1;
+  /** Time when observation sampling started. */
+  startedAt: number;
+  /** Time when the final representative frame was captured. */
+  endedAt: number;
+  frames: UIObservationFrame[];
+  shotSize: {
+    width: number;
+    height: number;
+  };
+  shrunkShotToLogicalRatio: number;
+}
+
+/** Fixed observation window consumed by shared CLI surfaces. */
+export interface BaseUIObservation {
+  readonly frameCount: number;
+  readonly startedAt: number;
+  readonly endedAt: number;
+  aiAssert(
+    assertion: UserPromptLike,
+    message?: string,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
+  /** Release any resources owned by this observation. */
+  dispose?(): Promise<void>;
+}
+
+/** Minimal UI observation lifecycle required by shared tool surfaces. */
+export interface BaseUIObserver {
+  readonly bufferedFrameCount: number;
+  /** Stop sampling and return the fixed observed window. */
+  stop(): Promise<BaseUIObservation>;
+  /** Release temporary backing files if observation does not complete. */
+  dispose?(): Promise<void>;
+}
+
+/** Options for {@link BaseAgent.startObserving}. */
+export interface BaseUIObserverOptions {
+  /** Sampling interval in milliseconds. Defaults to 1000; minimum 200. */
+  intervalMs?: number;
+  /** Maximum number of buffered frames. Defaults to 30; minimum 2. */
+  maxFrames?: number;
+  /** Auto-stop timeout in milliseconds. Defaults to 300000; 0 disables it. */
+  watchdogMs?: number;
+}
+
 /**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
@@ -148,7 +215,7 @@ export interface BaseAgent {
     params?: unknown,
   ) => Promise<unknown>;
   aiAction?: (
-    description: string,
+    description: UserPromptLike,
     params?: Record<string, unknown>,
   ) => Promise<unknown>;
   aiWaitFor?: (
@@ -160,6 +227,8 @@ export interface BaseAgent {
     msg?: string,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
+  /** Start a UI observation window and capture its baseline frame. */
+  startObserving?: (options?: BaseUIObserverOptions) => Promise<BaseUIObserver>;
 }
 
 /**
@@ -176,5 +245,6 @@ export interface BaseDevice {
 export interface IMidsceneTools {
   initTools(): Promise<void>;
   destroy?(): Promise<void>;
+  getCliToolDefinitions?(): ToolDefinition[];
   setToolDefaults?(toolDefaults: ToolDefaults): void;
 }

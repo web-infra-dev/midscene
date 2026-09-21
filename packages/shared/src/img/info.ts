@@ -1,9 +1,76 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
+import { ifInNode } from '../utils';
 import getPhoton from './get-photon';
+import getSharp from './get-sharp';
 
 export interface ImageInfo extends Size {}
+
+const isJpegStartOfFrameMarker = (marker: number): boolean =>
+  marker >= 0xc0 &&
+  marker <= 0xcf &&
+  marker !== 0xc4 &&
+  marker !== 0xc8 &&
+  marker !== 0xcc;
+
+function jpegInfoFromBuffer(imageBuffer: Buffer): ImageInfo {
+  let offset = 2;
+  while (offset < imageBuffer.length) {
+    if (imageBuffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    while (offset < imageBuffer.length && imageBuffer[offset] === 0xff) {
+      offset += 1;
+    }
+    if (offset >= imageBuffer.length) break;
+
+    const marker = imageBuffer[offset];
+    offset += 1;
+    if (marker === 0xd9 || marker === 0xda) break;
+    if (
+      marker === 0x01 ||
+      marker === 0xd8 ||
+      (marker >= 0xd0 && marker <= 0xd7)
+    ) {
+      continue;
+    }
+    if (offset + 2 > imageBuffer.length) break;
+
+    const segmentLength = imageBuffer.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > imageBuffer.length) break;
+    if (isJpegStartOfFrameMarker(marker)) {
+      if (segmentLength < 7) break;
+      const height = imageBuffer.readUInt16BE(offset + 3);
+      const width = imageBuffer.readUInt16BE(offset + 5);
+      assert(width && height, 'Invalid image: cannot get width or height');
+      return { width, height };
+    }
+    offset += segmentLength;
+  }
+
+  throw new Error('Invalid image: cannot get JPEG width or height');
+}
+
+/**
+ * Reads PNG/JPEG dimensions from the encoded header without decoding pixels.
+ * This is intended for validating already-decoded dimension hints before an
+ * image transform; full image validation remains the decoder's responsibility.
+ */
+export function encodedImageInfoOfBuffer(imageBuffer: Buffer): ImageInfo {
+  if (isValidPNGImageBuffer(imageBuffer)) {
+    const width = imageBuffer.readUInt32BE(16);
+    const height = imageBuffer.readUInt32BE(20);
+    assert(width && height, 'Invalid image: cannot get width or height');
+    return { width, height };
+  }
+  if (isValidJPEGImageBuffer(imageBuffer)) {
+    return jpegInfoFromBuffer(imageBuffer);
+  }
+  throw new Error('Invalid image: unsupported format');
+}
 
 /**
  * Retrieves the dimensions of an image from a base64-encoded string
@@ -15,7 +82,6 @@ export interface ImageInfo extends Size {}
 export async function imageInfoOfBase64(
   imageBase64: string,
 ): Promise<ImageInfo> {
-  const { PhotonImage } = await getPhoton();
   const base64Data = imageBase64
     .replace(/^data:image\/\w+;base64,/, '')
     .replace(/\s/g, '');
@@ -26,17 +92,34 @@ export async function imageInfoOfBase64(
   );
   const imageBuffer = Buffer.from(base64Data, 'base64');
   assert(isValidImageBuffer(imageBuffer), 'Invalid image: unsupported format');
-  // Support both sync (Photon) and async (Canvas fallback) versions
-  let result: ReturnType<typeof PhotonImage.new_from_base64>;
+  if (ifInNode) {
+    let metadata;
+    try {
+      const Sharp = await getSharp();
+      metadata = await Sharp(imageBuffer).metadata();
+    } catch (error) {
+      throw new Error(
+        `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
+        { cause: error },
+      );
+    }
+    assert(
+      metadata.width && metadata.height,
+      'Invalid image: cannot get width or height',
+    );
+    return { width: metadata.width, height: metadata.height };
+  }
+
+  const { PhotonImage } = await getPhoton();
+  let image: ReturnType<typeof PhotonImage.new_from_base64>;
   try {
-    result = PhotonImage.new_from_base64(base64Data);
+    image = PhotonImage.new_from_base64(base64Data);
   } catch (error) {
     throw new Error(
       `Invalid image: failed to decode base64 data (${error instanceof Error ? error.message : String(error)})`,
       { cause: error },
     );
   }
-  const image = result instanceof Promise ? await result : result;
   const width = image.get_width();
   const height = image.get_height();
   image.free();
@@ -50,7 +133,10 @@ export async function imageInfoOfBase64(
  * @returns true if the Buffer is a valid PNG image, otherwise false
  */
 export function isValidPNGImageBuffer(buffer: Buffer): boolean {
-  if (!buffer || buffer.length < 8) {
+  // A PNG consists of the 8-byte signature followed by chunks and must end
+  // with the 12-byte IEND chunk. Checking only the signature lets truncated
+  // screenshots through, which then fail when sent to an image model.
+  if (!buffer || buffer.length < 20) {
     return false;
   }
 
@@ -66,7 +152,18 @@ export function isValidPNGImageBuffer(buffer: Buffer): boolean {
     buffer[6] === 0x1a &&
     buffer[7] === 0x0a;
 
-  return isPNG;
+  if (!isPNG) {
+    return false;
+  }
+
+  // IEND has a zero-length payload and a fixed CRC (AE 42 60 82). It must be
+  // the final chunk in a conforming PNG.
+  const pngIendChunk = Buffer.from([
+    0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  ]);
+  return buffer
+    .subarray(buffer.length - pngIendChunk.length)
+    .equals(pngIendChunk);
 }
 
 /**

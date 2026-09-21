@@ -1,5 +1,3 @@
-import type { IModelConfig } from '@midscene/shared/env';
-
 /**
  * Default hard timeout (ms) applied to every AI HTTP call.
  *
@@ -10,25 +8,35 @@ import type { IModelConfig } from '@midscene/shared/env';
  * Override per intent via `MIDSCENE_MODEL_TIMEOUT`,
  * `MIDSCENE_INSIGHT_MODEL_TIMEOUT`, or `MIDSCENE_PLANNING_MODEL_TIMEOUT`.
  * Set the env var (or `modelConfig.timeout`) to `0` to disable the hard
- * timeout entirely; only a caller-provided `abortSignal` will cancel the
- * request in that case.
+ * timeout. SDK and network timeouts still apply, and a caller-provided
+ * `abortSignal` can still cancel the request. Each retry gets a fresh timeout;
+ * retry waiting is not included in that timeout.
  */
 export const DEFAULT_AI_CALL_TIMEOUT_MS = 180_000;
 
-/** Identifying code set on the AbortError raised by our hard timeout. */
+/** Identifying code for Midscene single-request timeouts. */
 export const AI_CALL_HARD_TIMEOUT_CODE = 'AI_CALL_HARD_TIMEOUT';
+
+export class AIRequestTimeoutError extends Error {
+  readonly code = AI_CALL_HARD_TIMEOUT_CODE;
+
+  constructor(readonly timeoutMs: number) {
+    super(
+      `AI call hard timeout after ${timeoutMs}ms (full request time exceeded)`,
+    );
+    this.name = 'AIRequestTimeoutError';
+  }
+}
 
 /**
  * Resolve the hard request timeout for an AI call.
  * Returns `null` when the user explicitly opted out (`timeout === 0`).
  */
-export function resolveEffectiveTimeoutMs(
-  modelConfig: Pick<IModelConfig, 'timeout'>,
-): number | null {
-  const { timeout } = modelConfig;
-  if (typeof timeout !== 'number') return DEFAULT_AI_CALL_TIMEOUT_MS;
-  if (timeout <= 0) return null;
-  return timeout;
+export function resolveEffectiveTimeoutMs(timeout?: number): number | null {
+  if (timeout === undefined) {
+    return DEFAULT_AI_CALL_TIMEOUT_MS;
+  }
+  return timeout === 0 ? null : timeout;
 }
 
 /**
@@ -70,11 +78,7 @@ export function buildRequestAbortSignal(
   let timer: ReturnType<typeof setTimeout> | undefined;
   if (timeoutMs !== null) {
     timer = setTimeout(() => {
-      const err = new Error(
-        `AI call hard timeout after ${timeoutMs}ms (full request time exceeded)`,
-      ) as Error & { code?: string };
-      err.code = AI_CALL_HARD_TIMEOUT_CODE;
-      controller.abort(err);
+      controller.abort(new AIRequestTimeoutError(timeoutMs));
     }, timeoutMs);
     if (typeof (timer as { unref?: () => void }).unref === 'function') {
       (timer as { unref: () => void }).unref();
@@ -97,4 +101,44 @@ export function buildRequestAbortSignal(
       }
     },
   };
+}
+
+/** Stops awaiting promptly while still forwarding cancellation to the actual request. */
+export async function runWithAbortSignal<T>(
+  signal: AbortSignal,
+  operation: () => Promise<T>,
+): Promise<T> {
+  signal.throwIfAborted();
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([operation(), aborted]);
+  } finally {
+    if (onAbort) {
+      signal.removeEventListener('abort', onAbort);
+    }
+  }
+}
+
+/** Both completion paths remove the listener and cancel the unused timer. */
+export function waitForRetry(ms: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }

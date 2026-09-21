@@ -10,6 +10,8 @@ const siteRoot = path.resolve(
 const outputRoot = path.join(siteRoot, 'doc_build');
 const faviconUrl = 'https://midscenejs.com/favicon.png';
 const ogImageUrl = 'https://midscenejs.com/og-image.png';
+const bingImagePreviewMeta =
+  '<meta name="bingbot" content="max-image-preview:none">';
 
 const readOutput = (relativePath, encoding = 'utf8') =>
   readFile(path.join(outputRoot, relativePath), encoding);
@@ -24,6 +26,10 @@ for (const relativePath of ['index.html', 'zh/index.html']) {
   assert.ok(
     html.includes(ogImageUrl),
     `${relativePath} must reference the production OG image`,
+  );
+  assert.ok(
+    html.includes(bingImagePreviewMeta),
+    `${relativePath} must disable Bing image previews`,
   );
   const jsonLdMatch = html.match(
     /<script type="application\/ld\+json">([^<]+)<\/script>/,

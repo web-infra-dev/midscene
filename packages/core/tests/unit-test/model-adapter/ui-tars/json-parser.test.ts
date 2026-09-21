@@ -1,6 +1,6 @@
 import { ResolvedModelAdapter } from '@/ai-model/model-adapter/resolve';
 import { uiTarsAdapters } from '@/ai-model/models/ui-tars/adapter';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const uiTarsAdapter = new ResolvedModelAdapter(
   uiTarsAdapters['vlm-ui-tars'],
@@ -42,7 +42,7 @@ describe('ui-tars json parser', () => {
   it('does not repair malformed json for generic parser sources', () => {
     const parser = uiTarsAdapter.jsonParser;
 
-    expect(() => parser('{"a": truely}')).toThrow(
+    expect(() => parser('{"a": true false}')).toThrow(
       /failed to parse LLM response into JSON/,
     );
   });
@@ -51,7 +51,7 @@ describe('ui-tars json parser', () => {
     const parser = uiTarsAdapter.jsonParser;
 
     expect(() =>
-      parser('```json\n{"bbox": truely}\n```', {
+      parser('```json\n{"bbox": true false}\n```', {
         source: 'locate',
       }),
     ).toThrow(/Response - \n ```json/);

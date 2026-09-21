@@ -3,7 +3,7 @@ import {
   extractGeminiContentAndReasoning,
   geminiAdapters,
 } from '@/ai-model/models/gemini';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 const geminiAdapter = new ResolvedModelAdapter(geminiAdapters.gemini, 'gemini');
 
@@ -15,7 +15,7 @@ describe('gemini model adapter', () => {
       throw new Error('gemini should use standard locate adapter');
     }
     expect(
-      locateAdapter.resultAdapter.promptSpec.resultValueDescription,
+      locateAdapter.element.resultCodec.promptSpec.resultValueDescription,
     ).toContain('[ymin, xmin, ymax, xmax]');
   });
 
@@ -316,18 +316,10 @@ describe('gemini model adapter', () => {
       throw new Error('gemini should use standard locate adapter');
     }
 
-    const result =
-      locateAdapter.resultAdapter.adaptElementLocateResultToPixelBbox(
-        [100, 150, 200, 250],
-        { preparedSize: { width: 2000, height: 2000 } },
-      );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        300,
-        200,
-        500,
-        400,
-      ]
-    `);
+    const result = locateAdapter.element.resultCodec.toPixelResult(
+      [100, 150, 200, 250],
+      { preparedSize: { width: 2000, height: 2000 } },
+    ).rect;
+    expect(result).toEqual({ left: 300, top: 200, width: 201, height: 201 });
   });
 });

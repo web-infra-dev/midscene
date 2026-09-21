@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from '@rstest/core';
 
 describe('Dependencies version validation', () => {
   it('should ensure uuid version in package.json is less than 13', () => {

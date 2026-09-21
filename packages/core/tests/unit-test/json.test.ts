@@ -2,8 +2,8 @@ import { getModelAdapter } from '@/ai-model/models';
 import {
   extractJSONFromCodeBlock,
   parseModelResponseJson,
-} from '@/ai-model/service-caller/json';
-import { describe, expect, it } from 'vitest';
+} from '@/ai-model/shared/json';
+import { describe, expect, it } from '@rstest/core';
 
 describe('extractJSONFromCodeBlock', () => {
   it('should extract JSON from a direct JSON object', () => {
@@ -89,33 +89,25 @@ describe('parseModelResponseJson', () => {
     );
   });
 
-  it('should reject top-level non-object JSON values', () => {
-    expect(() => parseModelResponseJson('[1, 2]')).toThrow(
-      /expected parsed LLM response to be a JSON object/,
-    );
-  });
-
-  it('should allow top-level non-object JSON values when object validation is disabled', () => {
+  it('should allow top-level non-object JSON values', () => {
     expect(
       parseModelResponseJson('[" todo 1 ", " todo 2 "]', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toEqual(['todo 1', 'todo 2']);
 
     expect(
       parseModelResponseJson('" todo list "', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe('todo list');
 
     expect(
       parseModelResponseJson('42', {
         source: 'generic-object',
-        requireObject: false,
       }),
     ).toBe(42);
+    expect(parseModelResponseJson('null')).toBeNull();
   });
 
   it('should parse JSON from code block', () => {
@@ -187,6 +179,25 @@ describe('parseModelResponseJson', () => {
           bbox: [574, 308, 865, 352],
           prompt: "The 'Login' button",
         },
+      },
+    });
+  });
+
+  it('should repair bare quotes inside planning action prompt strings', () => {
+    const input = `{
+  "locate": {
+    "prompt": "搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"",
+    "bbox": [120, 200, 780, 260]
+  }
+}`;
+    const result = parseModelResponseJson(input, {
+      source: 'planning-action-param',
+    });
+
+    expect(result).toEqual({
+      locate: {
+        prompt: '搜索输入框，当前显示文本为"世界杯 7 队仍保持不败战绩"',
+        bbox: [120, 200, 780, 260],
       },
     });
   });

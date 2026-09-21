@@ -1,8 +1,12 @@
-import { parseModelResponseJson } from '../service-caller/json';
+import { parseModelResponseJson } from '../shared/json';
 import { resolveChatCompletion } from './chat-completion';
+import { buildDefaultCodexAppServerParams } from './codex-app-server';
+import { resolveInsight } from './insight';
+import type { InsightAdapter } from './insight-protocol';
 import { resolveLocate } from './locate';
 import { resolveCustomPlanningDefinition, resolvePlanning } from './planning';
 import type {
+  BuildCodexAppServerParams,
   ChatCompletionAdapter,
   ImagePreprocessPolicy,
   JsonParser,
@@ -37,20 +41,43 @@ function resolveImagePreprocess(
 export class ResolvedModelAdapter implements ModelAdapter {
   readonly jsonParser: JsonParser;
   readonly chatCompletion: ChatCompletionAdapter;
+  readonly buildCodexAppServerParams: BuildCodexAppServerParams;
+  readonly acceptBbox2dAlias: boolean;
   readonly imagePreprocess: ImagePreprocessPolicy;
+  readonly insight: InsightAdapter;
   readonly planning: PlanningAdapter;
   readonly locate: LocateAdapter;
 
   constructor(config: ModelAdapterDefinition, modelFamily: string) {
     this.jsonParser = resolveJsonParser(config.jsonParser);
     this.chatCompletion = resolveChatCompletion(config.chatCompletion);
+    this.buildCodexAppServerParams =
+      config.buildCodexAppServerParams ?? buildDefaultCodexAppServerParams;
+    this.acceptBbox2dAlias = config.acceptBbox2dAlias ?? false;
     this.imagePreprocess = resolveImagePreprocess(config.imagePreprocess);
+    this.insight = resolveInsight(config.insight, {
+      jsonParser: this.jsonParser,
+    });
     const customPlanner =
       config.planning?.kind === 'custom' ? config.planning.planner : undefined;
     const resolvedCustomPlanner = customPlanner
       ? resolveCustomPlanningDefinition(customPlanner)
       : undefined;
-    this.planning = resolvePlanning(config.planning, resolvedCustomPlanner);
-    this.locate = resolveLocate(config.locate, resolvedCustomPlanner);
+    this.locate = resolveLocate(
+      config.locate,
+      resolvedCustomPlanner,
+      {
+        jsonParser: this.jsonParser,
+      },
+      this.acceptBbox2dAlias,
+    );
+    this.planning = resolvePlanning(
+      config.planning,
+      resolvedCustomPlanner,
+      { jsonParser: this.jsonParser },
+      this.locate.kind === 'standard'
+        ? this.locate.element.resultCodec
+        : undefined,
+    );
   }
 }

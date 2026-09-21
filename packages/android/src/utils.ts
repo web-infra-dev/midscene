@@ -1,5 +1,7 @@
+import type { AndroidDeviceOpt } from '@midscene/core/device';
 import { getDebug } from '@midscene/shared/logger';
-import { ADB, type Device } from 'appium-adb';
+import type { ADB, Device } from 'appium-adb';
+import { createAndroidAdb } from './adb';
 
 const debugUtils = getDebug('android:utils');
 const DETAIL_LOOKUP_ADB_TIMEOUT_MS = 8000;
@@ -54,17 +56,26 @@ async function withTimeout<T>(
   }
 }
 
-async function createAdbForDetailLookup(): Promise<ADB> {
-  return await ADB.createADB({
+async function createAdbForDetailLookup(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<ADB> {
+  return await createAndroidAdb({
     adbExecTimeout: DETAIL_LOOKUP_ADB_TIMEOUT_MS,
+    deviceOptions,
   });
 }
 
-export async function getConnectedDevices(): Promise<Device[]> {
+export async function getConnectedDevices(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<Device[]> {
+  let adbExecutable: string | undefined;
+
   try {
-    const adb = await ADB.createADB({
+    const adb = await createAndroidAdb({
       adbExecTimeout: 60000,
+      deviceOptions,
     });
+    adbExecutable = adb.executable.path;
     const devices = await adb.getConnectedDevices();
 
     debugUtils(`Found ${devices.length} connected devices: `, devices);
@@ -72,8 +83,11 @@ export async function getConnectedDevices(): Promise<Device[]> {
     return devices;
   } catch (error: any) {
     console.error('Failed to get device list:', error);
+    const adbExecutableContext = adbExecutable
+      ? ` (ADB executable: ${adbExecutable})`
+      : '';
     throw new Error(
-      `Unable to get connected Android device list, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+      `Unable to get connected Android device list${adbExecutableContext}, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
       {
         cause: error,
       },
@@ -81,10 +95,10 @@ export async function getConnectedDevices(): Promise<Device[]> {
   }
 }
 
-export async function getConnectedDevicesWithDetails(): Promise<
-  AndroidConnectedDevice[]
-> {
-  const devices = await getConnectedDevices();
+export async function getConnectedDevicesWithDetails(
+  deviceOptions?: AndroidDeviceOpt,
+): Promise<AndroidConnectedDevice[]> {
+  const devices = await getConnectedDevices(deviceOptions);
 
   if (devices.length === 0) {
     return [];
@@ -95,7 +109,7 @@ export async function getConnectedDevicesWithDetails(): Promise<
       const detailedDevice: AndroidConnectedDevice = { ...device };
 
       try {
-        const adb = await createAdbForDetailLookup();
+        const adb = await createAdbForDetailLookup(deviceOptions);
         adb.setDeviceId(device.udid);
 
         const [modelResult, brandResult, sizeResult, densityResult] =

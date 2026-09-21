@@ -12,15 +12,16 @@ import {
   type MidsceneYamlConfigResult,
   ReportMergingTool,
 } from '@midscene/core';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, rs, test } from '@rstest/core';
 import {
+  preserveYamlAttemptReport,
   printExecutionPlan,
   printExecutionSummary,
   writeExecutionSummaryFile,
 } from '../../src/execution-summary';
 
-const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
-const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleLog = rs.spyOn(console, 'log').mockImplementation(() => {});
+const consoleWarn = rs.spyOn(console, 'warn').mockImplementation(() => {});
 
 const writeFakeReport = (
   file: string,
@@ -40,6 +41,44 @@ afterEach(() => {
 });
 
 describe('execution summary', () => {
+  test('preserves a directory-based report as a complete retry artifact', () => {
+    const root = mkdtempSync(join(tmpdir(), 'midscene-summary-'));
+    const reportFile = join(root, 'custom-report', 'index.html');
+    const screenshotFile = join(root, 'custom-report', 'screenshots', '1.png');
+    mkdirSync(dirname(screenshotFile), { recursive: true });
+    writeFileSync(reportFile, '<html>attempt one</html>', {
+      flag: 'w',
+    });
+    writeFileSync(screenshotFile, 'screenshot');
+
+    try {
+      const preserved = preserveYamlAttemptReport({
+        attempt: 1,
+        success: false,
+        report: reportFile,
+        duration: 10,
+        resultType: 'failed',
+      });
+      const archivedReport = join(
+        root,
+        'custom-report-attempt-1',
+        'index.html',
+      );
+
+      expect(preserved.report).toBe(archivedReport);
+      expect(existsSync(reportFile)).toBe(false);
+      expect(readFileSync(archivedReport, 'utf8')).toContain('attempt one');
+      expect(
+        readFileSync(
+          join(root, 'custom-report-attempt-1', 'screenshots', '1.png'),
+          'utf8',
+        ),
+      ).toBe('screenshot');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('prints the configured retry count in the execution plan', () => {
     printExecutionPlan({
       files: ['/tmp/case.yaml'],
@@ -296,7 +335,7 @@ describe('execution summary', () => {
     writeFileSync(yaml, 'web:\n  url: about:blank\ntasks: []\n');
     writeFakeReport(attemptOneReport, 'attempt-one', 'failed-before-retry');
     writeFakeReport(attemptTwoReport, 'attempt-two', 'failed-after-retry');
-    const mergeReports = vi
+    const mergeReports = rs
       .spyOn(ReportMergingTool.prototype, 'mergeReports')
       .mockImplementationOnce(() => {
         throw new Error('merge failed');
@@ -344,7 +383,7 @@ describe('execution summary', () => {
         expect.stringContaining('Failed to merge retry attempt report'),
       );
       expect(mergeReports).toHaveBeenCalled();
-      await vi.waitFor(() => {
+      await rs.waitFor(() => {
         expect(existsSync(join(runDir, 'log', 'execution-summary.log'))).toBe(
           true,
         );

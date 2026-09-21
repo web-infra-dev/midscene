@@ -1,0 +1,129 @@
+# Midscene Test 概览
+
+Midscene Test 是面向 AI 驱动的端到端（E2E）测试的新框架。
+
+它由 `@midscene/test` 提供，将声明式用例与可编程扩展分离：用 YAML 和自然语言描述测试流程，用 TypeScript 扩展业务操作和测试工程能力。
+
+:::info 项目状态说明（Beta）
+Midscene Test 用于替代原有的 YAML 自动化方案，目前处于 **Beta** 体验阶段，测试协议与 API 正在持续演进。旧 `tasks/flow` YAML 链路已进入维护状态，只保留兼容和必要修复，不再新增能力；新项目和新增用例推荐使用 Midscene Test。如果您有任何问题或建议，诚邀在 GitHub 上提交反馈。
+
+（如果您仍在使用旧版方案，请查阅 [YAML 脚本运行器](../yaml-script-runner)）
+:::
+
+## AI 变革时代下的测试工程挑战
+
+即使 GUI Agent 已经能驱动起 E2E 测试流程，但离真正落地依然有很多实际的诉求，典型的有：
+
+1. **需要结合确定性的脚本**：在实际测试场景中，仍然需要结合确定性的脚本（如 API 调用、数据准备、测试用例的生命周期控制等）来处理后台或前置任务，以确保测试工程的稳定、极速和高性价比。
+2. **核心流程应为声明式语言**：希望核心流程是类似 YAML 的声明式语言，而不是在 `.ts` / `.js` 代码里揉着大量的自然语言，影响长期维护体验。
+3. **留有共同维护的扩展空间**：需要留有扩展空间，让 Agent 和人类能共同维护测试脚本，使底层的确定性工程能与上层的自然语言意图具备清晰的边界和协作模式，避免代码和自然语言混杂。
+
+为了应对这些落地挑战，Midscene 设计了全新的测试框架 `@midscene/test`。
+
+## 设计理念：声明式语义与确定性工程并重
+
+为了顺应测试工程的演进，`@midscene/test` 回归端到端（E2E）测试的第一性原理，提倡**“声明式语义与确定性工程并重”的设计理念**。
+
+为了应对上述问题，Midscene 的测试框架着重提供了以下能力：
+
+### 基础原子能力与定制扩展能力
+Midscene 提供 `aiAct`、`aiAssert` 等通用 AI 操作，以及设备与浏览器等平台操作。`midscene-test create` 生成的脚手架会按所选平台显式注册这些官方 Node；手写配置时需要自行注册。
+
+为了应对复杂的业务场景，Midscene 支持通过 TypeScript 自定义原子节点（自定义 Node）。你可以将业务接口、数据准备或特定工具链进行封装，并在 YAML 用例中直接调用。这在保持 YAML 脚本简洁的同时，也使测试工程能够应对定制化的业务场景。
+
+### 用声明式语义的 YAML 文件来编写日常用例
+聚焦“测什么” (What to test)，承载业务测试意图。用例编写者可以直接用自然语言描述界面操作（如 `aiAct`）与校验（如 `aiAssert`），同时调用和装配由“确定性工程”所提供的各种业务节点。这有助于专注于业务测试流程，无需关注底层细节，提升了用例的编写效率与长期可维护性。
+
+### 自动生成 Node 说明书
+`midscene-test nodes` 能够将当前项目实际注册的官方 Node、自定义 Node 及其入参校验规则（Zod Schema）导出为 Markdown 格式的 Node 说明书。这免去了手动维护项目 API 手册的成本，方便用例编写者及 AI Agent 直接查阅当前项目的真实能力。
+
+### E2E 项目的工程化诉求
+在实际企业级落地中，E2E 测试项目绝非一次性的、由 AI 驱动的即时验证，而是需要作为长期资产持续运行。因此，它必须面临稳定性、执行速度、可维护性等真实且严苛的工程化诉求。为此，Midscene 提供了配套的工程能力支持，保障测试在实际生产中的稳定高效：
+- **统一的可观测性与日志记录（Observability & Logging）**：无论是 AI 交互步骤还是自定义 Node 的运行，都将被统一记录在执行生命周期中。测试报告与运行日志会完整呈现每一个步骤的入参、出参、耗时、执行状态与界面截图。这方便了人类工程师进行问题排查与回放，同时也为 AI Agent 自主化地诊断问题、优化用例提供了必要的上下文数据。
+- **标准的生命周期与并发控制**：提供生命周期钩子（Before/After）、环境并发机制，确保定制用例在持续集成（CI）等环境中并发、稳定地运行。
+
+## 实战案例：验证订单退款流程
+
+假设电商团队需要验证已支付订单的退款流程：
+
+1. **确定性工程（TypeScript 节点）**：用例开始前通过自定义 Node `order.prepare` 提前准备测试订单，结束后执行 `order.cleanup` 清理。
+2. **声明式语义（AI 自然语言）**：Agent 根据 YAML 中的自然语言指令，在页面上提交退款申请并检查结果。
+
+#### 项目文件结构
+
+该实战项目的推荐文件目录结构如下：
+
+```text
+ecommerce-tests/
+├── cases/
+│   └── refund.yaml            # 声明式用例：通过 YAML 文件描述具体测试用例和步骤
+└── midscene.config.ts         # 确定性工程：注册自定义 Node (如 order.prepare)，定义执行环境
+```
+
+* **`midscene.config.ts`**：由自动化/测试平台开发人员维护，用来实现底层“确定性工程”（编写自定义 Zod Schema 和 Node 的 execute 执行逻辑，配置浏览器/环境等）。
+* **`cases/refund.yaml`**：由业务测试人员（或 AI Agent）维护，用来通过“声明式语义”（结合自然语言和自定义 Node）装配、表达高层业务测试意图。
+
+#### 1. 自动导出的 Node 说明书示例
+
+在此实战中，工程搭建者编写的 `order.prepare` 自定义节点，经过 `nodes` 工具编译后，会自动出现在 Node 说明书中：
+
+```markdown
+## order.prepare
+
+* **标题**：准备订单数据
+* **说明**：在数据库中提前创建一个处于指定状态的订单。
+* **参数格式 (JSON Schema)**：
+
+{
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "订单状态，如 paid (已支付), refunded (已退款)。"
+    }
+  },
+  "required": ["status"]
+}
+```
+
+#### 2. 用例编写与运行（YAML）
+
+用例编写者（或 AI Agent）阅读说明书后，可以直接在声明式 YAML 脚本中自由组装、调用该节点与 AI 动作：
+
+```yaml
+# 1. 确定性工程：数据与环境准备
+beforeEach:
+  - order.prepare:
+      status: paid
+  - browser.openRefundPage: {}
+
+# 2. 声明式语义：表达业务测试意图
+cases:
+  - name: 已支付订单可以申请全额退款
+    steps:
+      - aiAct: 点击申请退款，选择全额退款并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为订单的全部金额
+          message: 全额退款申请提交失败
+
+  - name: 已支付订单可以申请部分退款
+    steps:
+      - aiAct: 点击申请退款，输入退款金额 10 元并提交
+      - aiAssert:
+          prompt: 页面显示退款申请已提交，退款金额为 10 元
+          message: 部分退款申请提交失败
+
+# 3. 确定性工程：资源清理
+afterEach:
+  - order.cleanup: {}
+```
+
+框架维护者注册 `order.prepare`、`browser.openRefundPage` 和 `order.cleanup` 等自定义 Node 负责数据与页面管理，Midscene Node 负责界面操作与校验。测试意图与技术实现彼此分离，两类维护工作可以独立演进。
+
+## 接下来
+
+* 阅读[创建和使用测试项目](./use)，创建项目、编写 YAML 用例并查看运行结果。
+* 阅读[编写自定义 Node](./extend)，实现业务操作并在 Node 之间共享数据。
+* 阅读[配置测试项目](./configuration)，管理运行资源和配置多个执行项目。
+* 阅读 [为 GUI Agent 补充应用知识](../provide-application-knowledge-to-gui-agent)，了解如何补充必要的应用知识，帮助 GUI Agent 更稳定地执行任务。
+* 已有 `tasks/flow` YAML 项目可以继续使用 `midscene` 命令，无需改文件即可获得共享内核和新报告；完整转换文件及配置后，再切换到 `midscene-test`。详见[迁移到 Midscene Test](../migrate-to-midscene-test)。

@@ -6,7 +6,7 @@ on:
 
 jobs:
   issue-close-require:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     if: github.repository == 'web-infra-dev/midscene'
     permissions:
       issues: write

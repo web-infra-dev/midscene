@@ -9,21 +9,16 @@ export interface LibNut {
   mouseToggle(state: 'up' | 'down', button?: MouseButton): void;
   scrollMouse(x: number, y: number): void;
   keyTap(key: string, modifiers?: string[]): void;
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void;
   typeString(text: string): void;
   getActiveWindow?(): number;
-  getWindowRect?(handle: number): WindowRect;
   focusWindow?(handle: number): void;
 }
 
 export type MouseButton = 'left' | 'right' | 'middle';
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
-export interface WindowRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+const MOUSE_COORDINATE_TOLERANCE_PX = 5;
 
 interface ComputerInputDriverOptions {
   getLibnut(): LibNut | null;
@@ -66,6 +61,24 @@ export class ComputerInputDriver {
     this.getLibnutOrThrow('moveMouse').moveMouse(x, y);
   }
 
+  assertMousePosition(
+    targetX: number,
+    targetY: number,
+    context: string,
+  ): { x: number; y: number } {
+    const current = this.getMousePos();
+    const drift = { x: current.x - targetX, y: current.y - targetY };
+    if (
+      Math.abs(drift.x) > MOUSE_COORDINATE_TOLERANCE_PX ||
+      Math.abs(drift.y) > MOUSE_COORDINATE_TOLERANCE_PX
+    ) {
+      throw new Error(
+        `${context}: expected (${targetX}, ${targetY}), got (${current.x}, ${current.y}), drift=(${drift.x}, ${drift.y})`,
+      );
+    }
+    return drift;
+  }
+
   focusActiveWindow(): boolean {
     const lib = this.getLibnutOrThrow('focusActiveWindow');
     if (
@@ -83,38 +96,6 @@ export class ComputerInputDriver {
     } catch (error) {
       this.options.debug(`focusActiveWindow failed: ${error}`);
       return false;
-    }
-  }
-
-  getActiveWindowRect(): WindowRect | null {
-    const lib = this.getLibnutOrThrow('getActiveWindowRect');
-    if (
-      typeof lib.getActiveWindow !== 'function' ||
-      typeof lib.getWindowRect !== 'function'
-    ) {
-      return null;
-    }
-
-    try {
-      const handle = lib.getActiveWindow();
-      if (!handle) return null;
-
-      const rect = lib.getWindowRect(handle);
-      if (
-        !Number.isFinite(rect.x) ||
-        !Number.isFinite(rect.y) ||
-        !Number.isFinite(rect.width) ||
-        !Number.isFinite(rect.height) ||
-        rect.width <= 0 ||
-        rect.height <= 0
-      ) {
-        return null;
-      }
-
-      return rect;
-    } catch (error) {
-      this.options.debug(`getActiveWindowRect failed: ${error}`);
-      return null;
     }
   }
 
@@ -171,6 +152,72 @@ export class ComputerInputDriver {
     } else {
       lib.keyTap(key);
     }
+  }
+
+  keyToggle(key: string, state: 'up' | 'down', modifiers?: string[]): void {
+    const lib = this.getLibnutOrThrow('keyToggle');
+    if (modifiers !== undefined) {
+      lib.keyToggle(key, state, modifiers);
+    } else {
+      lib.keyToggle(key, state);
+    }
+  }
+
+  /**
+   * Send one modified key through libnut. A positive delay expands the compact
+   * key tap into individually observable modifier transitions. A zero delay
+   * preserves libnut's compact key-tap behavior.
+   */
+  async keyTapWithModifierDelay(
+    key: string,
+    modifiers: string[],
+    delayMs: number,
+  ): Promise<void> {
+    const uniqueModifiers = [...new Set(modifiers)];
+    if (uniqueModifiers.length === 0) {
+      this.keyTap(key);
+      return;
+    }
+    if (delayMs === 0) {
+      this.keyTap(key, uniqueModifiers);
+      return;
+    }
+
+    const pressedModifiers: string[] = [];
+    let failure: unknown;
+    try {
+      for (const modifier of uniqueModifiers) {
+        this.keyToggle(modifier, 'down');
+        pressedModifiers.push(modifier);
+        await this.delay(delayMs);
+      }
+      this.keyTap(key);
+      await this.delay(delayMs);
+    } catch (error) {
+      failure = error;
+    }
+
+    for (const modifier of pressedModifiers.reverse()) {
+      const releaseFailure = this.tryReleaseKey(modifier);
+      if (failure === undefined && releaseFailure !== undefined) {
+        failure = releaseFailure;
+      }
+      if (failure === undefined) {
+        try {
+          await this.delay(delayMs);
+        } catch (error) {
+          failure = error;
+        }
+      }
+    }
+
+    if (failure !== undefined) {
+      throw failure;
+    }
+  }
+
+  typeString(text: string): void {
+    this.getLibnutOrThrow('typeString').typeString(text);
   }
 
   sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
@@ -276,6 +323,24 @@ export class ComputerInputDriver {
       libnut.mouseToggle('up', button);
     } catch (error) {
       this.options.debug(`Failed to release mouse button ${button}: ${error}`);
+    }
+  }
+
+  private tryReleaseKey(key: string): Error | undefined {
+    try {
+      const libnut = this.options.getLibnut();
+      assert(libnut, 'libnut not initialized');
+      libnut.keyToggle(key, 'up');
+      return undefined;
+    } catch (error) {
+      const releaseError = new Error(
+        `Failed to release modifier key "${key}"`,
+        {
+          cause: error,
+        },
+      );
+      this.options.debug(`${releaseError.message}: ${error}`);
+      return releaseError;
     }
   }
 

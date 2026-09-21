@@ -1,0 +1,71 @@
+name: Setup Puppeteer browser
+
+description: Restore and install the Puppeteer Chrome for Testing binary
+
+inputs:
+  package-directory:
+    description: Workspace package that provides the Puppeteer CLI
+    required: false
+    default: packages/web-integration
+  expose-as-chromium:
+    description: Add a chromium alias for tests that discover browsers from PATH
+    required: false
+    default: "false"
+
+outputs:
+  browser-path:
+    description: Absolute path to the Chrome for Testing executable
+    value: ${{ steps.browser.outputs.path }}
+  browser-cache-hit:
+    description: Whether the Puppeteer browser cache was restored
+    value: ${{ steps.browser-cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Puppeteer browser
+      id: browser-cache
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ~/.cache/puppeteer
+        key: midscene-puppeteer-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          midscene-puppeteer-v1-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Install Chrome for Testing
+      shell: bash
+      run: pnpm --dir "${{ inputs.package-directory }}" exec puppeteer browsers install chrome
+
+    - name: Save Puppeteer browser
+      if: ${{ steps.browser-cache.outputs.cache-hit != 'true' }}
+      uses: ./.github/actions/cache/save
+      with:
+        path: ~/.cache/puppeteer
+        key: midscene-puppeteer-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Resolve Chrome for Testing
+      id: browser
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        browser_path="$(
+          pnpm --dir "${{ inputs.package-directory }}" exec node -e \
+            'process.stdout.write(require("puppeteer").executablePath())'
+        )"
+        if [ ! -x "$browser_path" ]; then
+          echo "::error::Puppeteer resolved a missing or non-executable browser: $browser_path"
+          exit 1
+        fi
+
+        echo "PUPPETEER_EXECUTABLE_PATH=$browser_path" >> "$GITHUB_ENV"
+
+        if [ "${{ inputs.expose-as-chromium }}" = "true" ]; then
+          bin_dir="$RUNNER_TEMP/midscene-browser-bin"
+          mkdir -p "$bin_dir"
+          ln -sfn "$browser_path" "$bin_dir/chromium"
+          echo "$bin_dir" >> "$GITHUB_PATH"
+        fi
+
+        echo "path=$browser_path" >> "$GITHUB_OUTPUT"
+        "$browser_path" --version

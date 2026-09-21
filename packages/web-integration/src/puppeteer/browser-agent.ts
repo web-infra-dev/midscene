@@ -1,6 +1,5 @@
 import {
-  type BrowserAgentAdapter,
-  BrowserPageManager,
+  type BrowserPageManager,
   WebAgentCore,
   resolveBrowserAgentRuntimeOptions,
 } from '@/common/browser-agent';
@@ -12,22 +11,10 @@ import type {
   Page as PuppeteerPage,
   Target as PuppeteerTarget,
 } from 'puppeteer';
+import { createPuppeteerBrowserPageManager } from './browser-page-manager';
 import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:browser-agent');
-
-const createPuppeteerBrowserAdapter = (
-  browser: PuppeteerBrowser,
-): BrowserAgentAdapter<PuppeteerPage, PuppeteerTarget> => ({
-  pages: () => browser.pages(),
-  newPage: () => browser.newPage(),
-  isPageClosed: (page) => page.isClosed(),
-  bringToFront: (page) => page.bringToFront(),
-  onNewPage: (handler) => browser.on('targetcreated', handler),
-  offNewPage: (handler) => browser.off('targetcreated', handler),
-  isNewPageEvent: (target) => target.type() === 'page',
-  resolveNewPage: (target) => target.page(),
-});
 
 export type PuppeteerBrowserAgentOpt = Omit<
   WebPageAgentOpt,
@@ -42,10 +29,7 @@ export type PuppeteerBrowserAgentCreateOpt = PuppeteerBrowserAgentOpt & {
 };
 
 export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
-  private readonly pageManager: BrowserPageManager<
-    PuppeteerPage,
-    PuppeteerTarget
-  >;
+  protected pageManager: BrowserPageManager<PuppeteerPage, PuppeteerTarget>;
 
   constructor(
     browser: PuppeteerBrowser,
@@ -77,15 +61,10 @@ export class PuppeteerBrowserAgent extends WebAgentCore<PuppeteerWebPage> {
       ...agentOpts,
       forceSameTabNavigation: runtimeOptions.forceSameTabNavigation,
     });
-    const pageManager = new BrowserPageManager({
-      agentName: 'PuppeteerBrowserAgent',
-      adapter: createPuppeteerBrowserAdapter(browser),
-      getActivePage: () => webPage.underlyingPage as PuppeteerPage,
-      setActivePageValue: (page) => {
-        webPage.underlyingPage = page;
-      },
-      autoFollowNewPage: runtimeOptions.autoFollowNewPage,
-      newPageTimeout: runtimeOptions.newPageTimeout,
+    const pageManager = createPuppeteerBrowserPageManager({
+      browser,
+      webPage,
+      runtimeOptions,
       debug,
     });
     super(webPage, agentOpts);

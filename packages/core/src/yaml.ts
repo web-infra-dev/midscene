@@ -4,11 +4,18 @@ import type {
   HarmonyDeviceOpt,
   IOSDeviceOpt,
 } from './device';
+import type { WorkflowExecutionRecord } from './test-runner/execution-record';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
 export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
+  /**
+   * Additional facts, rules, or constraints for this AI call. It overrides
+   * the matching API context and `aiContexts.default`; `''` disables inherited
+   * user context for this call.
+   */
+  context?: string;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
   deepThink?: boolean; // alias for deepLocate
@@ -19,14 +26,27 @@ export interface LocateOption extends Partial<TMultimodalPrompt> {
 }
 
 export interface ServiceExtractOption {
+  /**
+   * Additional facts, decision rules, constraints, or output requirements for
+   * this AI call. It overrides the matching API context and
+   * `aiContexts.default`; `''` disables inherited user context for this call.
+   */
+  context?: string;
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   [key: string]: unknown;
 }
 
 export interface DetailedLocateParam
-  extends Omit<LocateOption, 'deepThink' | keyof TMultimodalPrompt> {
+  extends Omit<
+    LocateOption,
+    'context' | 'deepThink' | keyof TMultimodalPrompt
+  > {
   prompt: TUserPrompt;
+  /** Original prompt text used for user-facing reports. */
+  promptDisplay?: string;
+  /** Per-call AI guidance recorded in user-facing reports. */
+  context?: string;
 }
 
 export type ScrollType =
@@ -105,10 +125,12 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'groupName'
   | 'groupDescription'
   | 'generateReport'
+  | 'outputFormat'
   | 'persistExecutionDump'
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
+  | 'aiContexts'
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'
@@ -245,10 +267,12 @@ export interface MidsceneYamlScriptHarmonyEnv
   // The HarmonyOS device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
-  // The app package to launch, optional, will use the current screen if not specified
+  // The bundle name, bundle/Ability target, or mapped app name to launch, optional,
+  // will use the current screen if not specified
   launch?: string;
 
-  // Custom mapping of app names to bundle names, user-provided mappings take precedence over defaults
+  // Custom mapping of app names to bundle names or explicit bundle/Ability targets;
+  // user-provided mappings take precedence over defaults
   appNameMapping?: Record<string, string>;
 }
 
@@ -264,6 +288,41 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv
   | MidsceneYamlScriptHarmonyEnv
   | MidsceneYamlScriptComputerEnv;
+
+/** Target sections that can be supplied as batch-wide YAML overrides. */
+export type MidsceneYamlTargetKey = Exclude<
+  keyof MidsceneYamlScript,
+  'config' | 'agent' | 'tasks'
+>;
+
+const midsceneYamlTargetKeyMap = {
+  target: true,
+  page: true,
+  browser: true,
+  web: true,
+  android: true,
+  ios: true,
+  harmony: true,
+  computer: true,
+  interface: true,
+} as const satisfies Record<MidsceneYamlTargetKey, true>;
+
+export const midsceneYamlTargetKeys = Object.keys(
+  midsceneYamlTargetKeyMap,
+) as MidsceneYamlTargetKey[];
+
+/**
+ * Partial target settings applied to every script in a YAML batch.
+ *
+ * Batch settings are deep-merged over each script's target section, so every
+ * nested target field is optional here even when a standalone script requires
+ * it.
+ */
+export type MidsceneYamlTargetConfig = {
+  [Target in MidsceneYamlTargetKey]?: Partial<
+    NonNullable<MidsceneYamlScript[Target]>
+  >;
+};
 
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
@@ -317,7 +376,7 @@ export type MidsceneYamlFlowItem =
 
 export interface FreeFn {
   name: string;
-  fn: () => void;
+  fn: () => void | Promise<void>;
 }
 
 export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
@@ -330,31 +389,27 @@ export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
 export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 
 // Index YAML file types for batch execution
-export interface MidsceneYamlConfig {
+export interface MidsceneYamlConfig extends MidsceneYamlTargetConfig {
+  /** @deprecated Use `web`, `page`, or `browser` instead. */
+  target?: Partial<MidsceneYamlScriptWebEnv>;
   concurrent?: number;
   continueOnError?: boolean;
   /**
-   * Number of times to retry a failed yaml file before marking it as failed.
-   * A value of 2 means each failing case is re-executed up to 2 extra times
-   * (3 attempts in total). Only the cases that failed in the previous attempt
-   * are retried. Defaults to 0 (no retry).
+   * Number of times to retry the complete YAML file after an execution
+   * failure, including tasks that already passed. Defaults to 0 (no retry).
    */
   retry?: number;
   summary?: string;
-  shareBrowserContext?: boolean;
-  /** @deprecated Use `web`, `page`, or `browser` instead. */
-  target?: MidsceneYamlScriptWebEnv;
-  page?: MidsceneYamlScriptWebEnv;
-  browser?: MidsceneYamlScriptWebEnv;
-  web?: MidsceneYamlScriptWebEnv;
-  android?: MidsceneYamlScriptAndroidEnv;
-  ios?: MidsceneYamlScriptIOSEnv;
   /**
-   * A setup yaml file that runs before the main `files`. It shares the same
-   * browser context as the main files, so authentication or other prerequisite
-   * state established here is visible to every main file. A setup failure
-   * aborts the whole batch and the main files are marked as not executed. Only
-   * meaningful with `shareBrowserContext: true`.
+   * Share one BrowserContext across Puppeteer Web YAML files, with a separate
+   * Page per file. This is not supported by bridge mode or non-Web targets.
+   */
+  shareBrowserContext?: boolean;
+  /**
+   * A setup yaml file that runs before the main `files`. A setup failure aborts
+   * the whole batch and the main files are marked as not executed. Puppeteer
+   * Web setup requires `shareBrowserContext: true` to pass browser state to the
+   * main files. Other targets run setup without browser-context sharing.
    */
   setup?: string;
   files: string[];
@@ -383,6 +438,16 @@ export interface MidsceneYamlConfigAttempt {
   error?: string;
   duration?: number;
   resultType?: MidsceneYamlConfigResultType;
+  /** Complete execution facts, persisted separately from the legacy summary. */
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
 }
 
 export interface MidsceneYamlConfigResult {
@@ -393,6 +458,15 @@ export interface MidsceneYamlConfigResult {
   report?: string | null;
   retryReport?: string | null;
   attempts?: MidsceneYamlConfigAttempt[];
+  executionRecordPath?: string;
+  /** @internal Complete facts retained when the sidecar could not be published. */
+  executionRecordFallback?: WorkflowExecutionRecord;
+  /** @internal Infrastructure failures, separate from legacy execution status. */
+  publicationErrors?: readonly unknown[];
+  /** @internal Entry observation failed; action success remains unchanged. */
+  observerErrors?: readonly unknown[];
+  /** @internal Agent report generation or cleanup failed after execution. */
+  infrastructureErrors?: readonly unknown[];
   error?: string;
   duration?: number;
   /**

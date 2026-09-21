@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../src/shared/electron-contract';
 describe('IPC_CHANNELS', () => {
   it('includes shell and playground bridge channels', () => {
     expect(IPC_CHANNELS.openExternalUrl).toBe('shell:open-external-url');
+    expect(IPC_CHANNELS.openRunDirectory).toBe('shell:open-run-directory');
     expect(IPC_CHANNELS.chooseReportSavePath).toBe(
       'shell:choose-report-save-path',
     );

@@ -15,7 +15,22 @@ export {
 } from './utils/color';
 
 export { EnvConfig } from './component/env-config';
+export type { EnvConfigProps } from './component/env-config';
 export { EnvConfigReminder } from './component/env-config-reminder';
+export type { EnvConfigReminderProps } from './component/env-config-reminder';
+export {
+  ConfigModal,
+  agentOptionsToFormValues,
+  parseAgentOptionFormValues,
+} from './component/config-modal';
+export type {
+  CommonAgentOptionFormValues,
+  CommonAgentOptionKey,
+  CommonAgentOptions,
+  ConfigModalEnvField,
+  ConfigModalProps,
+  ConfigModalTab,
+} from './component/config-modal';
 export { NavActions } from './component/nav-actions';
 export type { NavActionsProps } from './component/nav-actions';
 
@@ -23,6 +38,7 @@ export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
 export { useTheme } from './hooks/useTheme';
 export { useServerValid } from './hooks/useServerValid';
+export { useTextTruncation } from './hooks/useTextTruncation';
 export {
   useSafeOverrideAIConfig,
   safeOverrideAIConfig,
@@ -76,6 +92,7 @@ export type {
   ExecutionUxHint,
   ExecutionUxConfig,
   PromptInputChromeConfig,
+  PlaygroundExecutionStatus,
   ReportDownloadHandler,
   ReportDownloadRequest,
 } from './types';

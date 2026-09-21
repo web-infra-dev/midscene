@@ -1,16 +1,16 @@
 import type { DeviceAction, PlanningAction } from '@midscene/core';
 import { TaskExecutor } from '@midscene/core/agent';
 import { getModelRuntime } from '@midscene/core/ai-model';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, rs } from '@rstest/core';
 
 // Mock page with mouse operations
 const mockPage = {
   interfaceType: 'puppeteer',
   mouse: {
-    click: vi.fn().mockResolvedValue(undefined),
+    click: rs.fn().mockResolvedValue(undefined),
   },
-  screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
-  evaluateJavaScript: vi.fn(),
+  screenshotBase64: rs.fn().mockResolvedValue('mock-screenshot'),
+  evaluateJavaScript: rs.fn(),
   actionSpace: () =>
     [
       {
@@ -31,7 +31,7 @@ const mockPage = {
 
 // Mock insight
 const mockInsight = {
-  contextRetrieverFn: vi.fn().mockResolvedValue({
+  contextRetrieverFn: rs.fn().mockResolvedValue({
     screenshotBase64: 'mock-screenshot',
     shotSize: { width: 1024, height: 768 },
     shrunkShotToLogicalRatio: 1,
@@ -50,7 +50,7 @@ describe('TaskExecutor RightClick Action', () => {
   let taskExecutor: TaskExecutor;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    rs.clearAllMocks();
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
       actionSpace: mockPage.actionSpace(),
     });
@@ -170,7 +170,7 @@ describe('TaskExecutor RightClick Action', () => {
     };
 
     // Execute the right click task
-    await rightClickTask.executor(null, mockContext);
+    await rightClickTask.executor(mockContext);
 
     // Verify mouse.click was called with right button
     expect(mockPage.mouse.click).toHaveBeenCalledWith(
@@ -208,6 +208,6 @@ describe('TaskExecutor RightClick Action', () => {
     };
 
     // Should throw error when element is null
-    await expect(rightClickTask.executor(null, mockContext)).rejects.toThrow();
+    await expect(rightClickTask.executor(mockContext)).rejects.toThrow();
   });
 });

@@ -6,6 +6,12 @@
 ## Model Info
 - No model metadata recorded.
 
+## Timing Summary
+| Metric | Duration(ms) | Definition |
+| --- | --- | --- |
+| Elapsed Time | 100 | Total span from the first recorded task start to the last recorded task end, including model calls, actions, waits, and gaps. |
+| Model Call Time | 0 | Total duration of all recorded model calls. |
+
 ## Token Usage Summary
 - No token usage recorded.
 

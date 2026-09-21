@@ -1,6 +1,9 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { findActionInActionSpaceOrThrow } from '@/common';
+import {
+  findActionInActionSpaceOrThrow,
+  validateRequiredLocateFields,
+} from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import { setTimingFieldOnce } from '@/task-timing';
@@ -16,23 +19,20 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningLocateParam,
   Rect,
   ServiceDump,
 } from '@/types';
 import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
-import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
 import { withUsageIntent } from './usage-intent';
 import {
-  ifPlanLocateParamHasLocatedPixelBbox,
+  ifLocateParamHasLocatedPixelResult,
   matchElementFromCache,
   matchElementFromPlan,
   transformLogicalElementToScreenshot,
-  transformLogicalRectToScreenshotRect,
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
@@ -52,21 +52,12 @@ function hasNonEmptyCache(cache: unknown): boolean {
 function invalidLocateElementReason(
   element: LocateResultElement,
 ): string | undefined {
-  const values = [
-    element.center?.[0],
-    element.center?.[1],
-    element.rect?.left,
-    element.rect?.top,
-    element.rect?.width,
-    element.rect?.height,
-  ];
+  const values = [element.center?.[0], element.center?.[1]];
   if (
+    element.center?.length !== 2 ||
     values.some((value) => typeof value !== 'number' || !Number.isFinite(value))
   ) {
     return `Invalid locate result coordinates: ${JSON.stringify(element)}`;
-  }
-  if (element.rect.width <= 0 || element.rect.height <= 0) {
-    return `Invalid locate result rect size: ${JSON.stringify(element)}`;
   }
   return undefined;
 }
@@ -90,7 +81,7 @@ function normalizeLocateParam(
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = normalizeLocateParam(param);
-  const locatePlan: PlanningAction<PlanningLocateParam> = {
+  const locatePlan: PlanningAction<DetailedLocateParam> = {
     type: 'Locate',
     param: locate,
     thought: '',
@@ -171,7 +162,7 @@ export class TaskBuilder {
         'Locate',
         (plan) =>
           this.handleLocatePlan(
-            plan as PlanningAction<PlanningLocateParam>,
+            plan as PlanningAction<DetailedLocateParam>,
             context,
           ),
       ],
@@ -206,7 +197,7 @@ export class TaskBuilder {
   }
 
   private async handleLocatePlan(
-    plan: PlanningAction<PlanningLocateParam>,
+    plan: PlanningAction<DetailedLocateParam>,
     context: PlanBuildContext,
   ): Promise<void> {
     const taskLocate = this.createLocateTask(plan, plan.param, context);
@@ -224,22 +215,19 @@ export class TaskBuilder {
 
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
 
-    const requiredLocateFields = findAllMidsceneLocatorField(
-      action.paramSchema,
-      true,
-    );
+    validateRequiredLocateFields(param, action.paramSchema);
 
     locateFields.forEach((field) => {
-      if (param[field]) {
+      if (param?.[field]) {
         // Always use createLocateTask for all locate params.
-        // This ensures cache writing happens even when locatedPixelBbox is available
+        // This ensures cache writing happens even when locatedPixelResult is available
         const locatePlan = locatePlanForLocate(param[field]);
         debug(
           'will prepend locate param for field',
           `action.type=${planType}`,
           `param=${JSON.stringify(param[field])}`,
           `locatePlan=${JSON.stringify(locatePlan)}`,
-          `hasLocatedPixelBbox=${ifPlanLocateParamHasLocatedPixelBbox(param[field])}`,
+          `hasLocatedPixelResult=${ifLocateParamHasLocatedPixelResult(param[field])}`,
         );
         const locateTask = this.createLocateTask(
           locatePlan,
@@ -251,10 +239,6 @@ export class TaskBuilder {
         );
         context.tasks.push(locateTask);
       } else {
-        assert(
-          !requiredLocateFields.includes(field),
-          `Required locate field '${field}' is not provided for action ${planType}`,
-        );
         debug(`field '${field}' is not provided for action ${planType}`);
       }
     });
@@ -269,7 +253,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const timing = taskContext.task.timing;
 
         debug(
@@ -282,12 +266,7 @@ export class TaskBuilder {
         const uiContext = taskContext.uiContext;
         assert(uiContext, 'uiContext is required for Action task');
 
-        requiredLocateFields.forEach((field) => {
-          assert(
-            param[field],
-            `field '${field}' is required for action ${planType} but not provided. Cannot execute action ${planType}.`,
-          );
-        });
+        validateRequiredLocateFields(param, action.paramSchema);
 
         setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         const delayBeforeRunner = action.delayBeforeRunner ?? 200;
@@ -325,9 +304,13 @@ export class TaskBuilder {
           );
         }
 
-        if (action.paramSchema) {
+        const parsedParam = (() => {
+          if (!action.paramSchema) {
+            return param;
+          }
+
           try {
-            param = parseActionParam(param, action.paramSchema, {
+            return parseActionParam(param, action.paramSchema, {
               shrunkShotToLogicalRatio,
             });
           } catch (error: any) {
@@ -336,13 +319,13 @@ export class TaskBuilder {
               { cause: error },
             );
           }
-        }
+        })();
 
         setTimingFieldOnce(timing, 'callActionStart');
 
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
-        const actionResult = await actionFn(param, taskContext);
+        const actionResult = await actionFn(parsedParam, taskContext);
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
@@ -359,7 +342,7 @@ export class TaskBuilder {
             debug(
               `will call "afterInvokeAction" for interface with action name ${action.name}`,
             );
-            await this.interface.afterInvokeAction(action.name, param);
+            await this.interface.afterInvokeAction(action.name, parsedParam);
             debug(
               `called "afterInvokeAction" for interface with action name ${action.name}`,
             );
@@ -385,7 +368,7 @@ export class TaskBuilder {
   }
 
   private createLocateTask(
-    plan: PlanningAction<PlanningLocateParam>,
+    plan: PlanningAction<DetailedLocateParam>,
     detailedLocateParam: DetailedLocateParam | string,
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
@@ -413,19 +396,19 @@ export class TaskBuilder {
       subType: 'Locate',
       param: locateParam,
       thought: plan.thought,
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const { task } = taskContext;
         let { uiContext } = taskContext;
-        const paramWithLocatedPixelBbox = ifPlanLocateParamHasLocatedPixelBbox(
-          param,
+        const paramWithLocatedPixelResult = ifLocateParamHasLocatedPixelResult(
+          locateParam,
         )
-          ? param
+          ? locateParam
           : undefined;
 
         assert(
-          param?.prompt || paramWithLocatedPixelBbox,
-          `No prompt or id or position or locatedPixelBbox to locate, param=${JSON.stringify(
-            param,
+          locateParam?.prompt || paramWithLocatedPixelResult,
+          `No prompt or id or position or locatedPixelResult to locate, param=${JSON.stringify(
+            locateParam,
           )}`,
         );
 
@@ -473,14 +456,14 @@ export class TaskBuilder {
           }
         };
 
-        const planLocatedElement = paramWithLocatedPixelBbox
-          ? matchElementFromPlan(paramWithLocatedPixelBbox)
+        const planLocatedElement = paramWithLocatedPixelResult
+          ? matchElementFromPlan(paramWithLocatedPixelResult)
           : undefined;
 
-        // from locatedPixelBbox (direct plan hit)
-        // when deepLocate is enabled, locatedPixelBbox should be used as search
+        // from locatedPixelResult (direct plan hit)
+        // when deepLocate is enabled, locatedPixelResult should be used as search
         // area hint, not as a final direct hit
-        const elementFromPlan = param.deepLocate
+        const elementFromPlan = locateParam.deepLocate
           ? undefined
           : planLocatedElement;
         const isPlanDirectHit = !!elementFromPlan;
@@ -489,12 +472,12 @@ export class TaskBuilder {
         let rectFromXpath: Rect | undefined;
         if (
           !isPlanDirectHit &&
-          param.xpath &&
+          locateParam.xpath &&
           this.interface.rectMatchesCacheFeature
         ) {
           try {
             rectFromXpath = await this.interface.rectMatchesCacheFeature({
-              xpaths: [param.xpath],
+              xpaths: [locateParam.xpath],
             });
           } catch {
             // xpath locate failed, allow fallback to cache or AI locate
@@ -502,21 +485,25 @@ export class TaskBuilder {
         }
 
         const elementFromXpath = rectFromXpath
-          ? generateElementByRect(
-              // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
-              transformLogicalRectToScreenshotRect(
-                rectFromXpath,
-                shrunkShotToLogicalRatio,
-              ),
-              typeof param.prompt === 'string'
-                ? param.prompt
-                : param.prompt?.prompt || '',
+          ? transformLogicalElementToScreenshot(
+              {
+                center: [
+                  rectFromXpath.left + rectFromXpath.width / 2,
+                  rectFromXpath.top + rectFromXpath.height / 2,
+                ],
+                description:
+                  typeof locateParam.prompt === 'string'
+                    ? locateParam.prompt
+                    : locateParam.prompt?.prompt || '',
+                rect: rectFromXpath,
+              },
+              shrunkShotToLogicalRatio,
             )
           : undefined;
 
         const isXpathHit = !!elementFromXpath;
 
-        const cachePrompt = param.prompt;
+        const cachePrompt = locateParam.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
@@ -530,7 +517,7 @@ export class TaskBuilder {
                 },
                 cacheEntry,
                 cachePrompt,
-                param.cacheable,
+                locateParam.cacheable,
               );
 
         // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
@@ -549,7 +536,7 @@ export class TaskBuilder {
           try {
             setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
-              param,
+              locateParam,
               {
                 context: uiContext,
                 planLocatedElement,
@@ -602,32 +589,24 @@ export class TaskBuilder {
           this.taskCache &&
           !isCacheHit &&
           (!isPlanDirectHit || !locateCacheAlreadyExists) &&
-          param?.cacheable !== false
+          locateParam.cacheable !== false
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {
               // Transform coordinates to logical space for cacheFeatureForPoint
               // cacheFeatureForPoint needs logical coordinates to locate elements in DOM
-              let pointForCache: [number, number] = element.center;
-              if (shrunkShotToLogicalRatio !== 1) {
-                pointForCache = [
-                  Math.round(element.center[0] / shrunkShotToLogicalRatio),
-                  Math.round(element.center[1] / shrunkShotToLogicalRatio),
-                ];
-                debug(
-                  'Transformed coordinates for cacheFeatureForPoint: %o -> %o',
-                  element.center,
-                  pointForCache,
-                );
-              }
+              const pointForCache: [number, number] = [
+                Math.round(element.center[0] / shrunkShotToLogicalRatio),
+                Math.round(element.center[1] / shrunkShotToLogicalRatio),
+              ];
 
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,
                 {
                   targetDescription:
-                    typeof param.prompt === 'string'
-                      ? param.prompt
-                      : param.prompt?.prompt,
+                    typeof locateParam.prompt === 'string'
+                      ? locateParam.prompt
+                      : locateParam.prompt?.prompt,
                   modelRuntime: defaultModel,
                 },
               );
@@ -663,27 +642,28 @@ export class TaskBuilder {
         if (!element) {
           if (locateDump) {
             throw new ServiceError(
-              `Element not found : ${param.prompt}`,
+              `Element not found : ${locateParam.prompt}`,
               locateDump,
             );
           }
-          throw new Error(`Element not found: ${param.prompt}`);
+          throw new Error(`Element not found: ${locateParam.prompt}`);
         }
 
         let hitBy: ExecutionTaskHitBy | undefined;
 
-        if (isPlanDirectHit && paramWithLocatedPixelBbox) {
+        if (isPlanDirectHit && paramWithLocatedPixelResult) {
           hitBy = {
             from: 'Plan',
             context: {
-              locatedPixelBbox: paramWithLocatedPixelBbox.locatedPixelBbox,
+              locatedPixelResult:
+                paramWithLocatedPixelResult.locatedPixelResult,
             },
           };
         } else if (isXpathHit) {
           hitBy = {
             from: 'User expected path',
             context: {
-              xpath: param.xpath,
+              xpath: locateParam.xpath,
             },
           };
         } else if (isCacheHit) {
@@ -696,12 +676,29 @@ export class TaskBuilder {
           };
         }
 
-        onResult?.(element);
+        const promptDisplay = locateParam.promptDisplay;
+        const elementForAction = promptDisplay
+          ? {
+              ...element,
+              description: promptDisplay,
+            }
+          : element;
+
+        if (promptDisplay && locateDump?.matchedElement) {
+          locateDump.matchedElement = locateDump.matchedElement.map(
+            (matchedElement) => ({
+              ...matchedElement,
+              description: promptDisplay,
+            }),
+          );
+        }
+
+        onResult?.(elementForAction);
 
         return {
           output: {
             element: {
-              ...element,
+              ...elementForAction,
               // backward compatibility for aiLocate, which return value needs a dpr field
               dpr: uiContext.deprecatedDpr,
             },

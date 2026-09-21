@@ -1,0 +1,303 @@
+# Develop custom Nodes
+
+Custom Nodes turn business operations into steps that test authors can call from YAML. This guide covers defining and validating inputs, sharing data between Nodes, and handling execution and cleanup.
+
+Start with [Create and use test projects](./use) if you do not have a test project yet. For platform setup, Agent integration, and execution settings, see [Configure test projects](./configuration).
+
+- [Register a Node](#register-custom-business-nodes): define an operation, call it from YAML, and verify registration through the generated Node Spec.
+- [Node execution arguments](#node-execution-arguments): distinguish business inputs from framework step settings.
+- [Share context across Nodes](#share-context-across-nodes): create, read, and reset shared test data.
+- [Advanced usage](#advanced-usage): return results, handle errors and cancellation, and clean up resources.
+
+## Register custom business Nodes
+
+A custom Node receives parameters from YAML and performs an operation. This example creates a test user fixture and saves it as a JSON file for a test service or data import step to load.
+
+### 1. Define and register the Node
+
+Create `midscene.config.ts`:
+
+```ts filename=midscene.config.ts
+import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { defineNode, z } from '@midscene/test';
+import { defineTestProject } from '@midscene/test/config';
+
+const createUser = defineNode({
+  name: 'user.create',
+  description: 'Create a test user fixture.',
+  inputSchema: z.strictObject({
+    name: z.string().min(1).describe('Test user name.'),
+    email: z.string().email().describe('Test user email.'),
+  }),
+  async execute({ input }) {
+    const user = { id: randomUUID(), name: input.name, email: input.email };
+    const filePath = `fixtures/users/${user.id}.json`;
+    await mkdir('fixtures/users', { recursive: true });
+    await writeFile(filePath, JSON.stringify(user, null, 2));
+  },
+});
+
+export default defineTestProject({
+  nodes: [createUser],
+});
+```
+
+`name` is the operation name used in YAML. `inputSchema` defines its parameters, and `execute({ input })` receives the validated values. Add the Node to `nodes` to make it available to test cases. In an existing project, append it to the existing `nodes` array.
+
+`inputSchema` is optional, but defining it lets Midscene Test validate parameters before calling `execute()`. In this example, `z.string().min(1)` requires a non-empty name, `.email()` validates the email format, and `z.strictObject()` rejects unknown fields. Invalid input produces a `NodeInputValidationError`.
+
+TypeScript infers the type of `input` from the schema. Field descriptions written with `.describe()` appear in the generated Node Spec.
+
+### 2. Call the Node from YAML
+
+Create `cases/user.yaml`:
+
+```yaml filename=cases/user.yaml
+cases:
+  - name: Create test user data
+    steps:
+      - user.create:
+          name: Alice
+          email: alice@example.com
+```
+
+Midscene Test reads the YAML, finds the Node named `user.create`, and calls its `execute()` with `input` set to `{ name: "Alice", email: "alice@example.com" }`. The Node does not need to parse the YAML itself.
+
+The example uses `async execute({ input })` and `await` to wait for the file write. A failed write throws an error and fails the Node. This creates a local fixture; to create a user in your application, replace the file write with your test data API or database call.
+
+### 3. Generate a Node Spec to verify registration
+
+After saving the configuration, generate the Node Spec:
+
+```bash
+pnpm exec midscene-test nodes
+```
+
+The command loads the project configuration and writes `midscene-node-reference.md` to the current directory. Check that the Spec includes:
+
+- `user.create` in the available Nodes.
+- The description “Create a test user fixture.”
+- The `name` and `email` input fields and their descriptions.
+
+This verifies that the Node is registered and its input schema can be exported; it does not execute the Node or create user data. After changing Node definitions or registrations, you can regenerate the Spec for case authors and AI Agents to consult. For complete usage, see [Generate the current Project's Node Spec](./use#generate-the-current-projects-node-spec).
+
+## Node execution arguments
+
+Midscene Test calls `execute()` with an object containing the parameters and runtime information for the current invocation. Use destructuring, such as `execute({ input, $, context })`, to access the fields you need.
+
+### Business inputs and step settings
+
+`input` contains the business parameters defined by the Node's `inputSchema`. `$` contains step settings handled by the framework, such as timeout and whether to continue after an error.
+
+For example, add step settings to the `user.create` invocation above:
+
+```yaml
+steps:
+  - user.create:
+      name: Alice
+      email: alice@example.com
+      $:
+        timeout: 30000
+        continue-on-error: true
+```
+
+The framework separates `$` from the business inputs and normalizes its field names. Inside `execute({ input, $ })`, the fields have these values:
+
+```ts
+input.name; // 'Alice'
+input.email; // 'alice@example.com'
+$.timeoutMs; // 30000
+$.continueOnError; // true
+```
+
+`inputSchema` only needs to declare `name` and `email`; `$` is not included in `input`. The framework enforces the timeout and continuation policy. `continue-on-error` allows later steps in the current phase to run after a failure, but the failed step still makes the case fail.
+
+### Available execution fields
+
+The argument object passed to `execute()` contains these commonly used fields:
+
+- `input`: business parameters passed from YAML and validated by Zod.
+- `$`: general Step properties controlled by Midscene Test, such as `timeoutMs` and `continueOnError`.
+- `signal`: an `AbortSignal` triggered by a timeout or cancellation. Use it in asynchronous requests or long-running tasks to exit early and cleanly.
+- `context`: Project-level runtime resources returned by `defineProjectSetup()` and shared within the Project.
+- `onTeardown()`: registers cleanup functions for resources created by the current Node. Cleanup can use attempt or Document scope and runs in LIFO order.
+- `scope`: identifies the current Node execution boundary as either `case` or `document`.
+- `case` or `document`: detailed runtime information for the current execution position.
+
+The `context` field provides access to the project's shared resources and state. The next section explains how to use it to share data between Nodes.
+
+## Share context across Nodes
+
+Each Node execution is a separate invocation; the framework does not automatically pass the result of one invocation to the next. When a workflow spans several Nodes, they may need to use the same test data. An order refund test, for example, creates an order, opens its refund page, and deletes the order after the case finishes. The following example follows that data through the workflow.
+
+### Create the shared context
+
+Midscene Test provides a project-level context mechanism. Nodes in the same execution project can access runtime resources and pass test data through a shared `context` object. The project's `setup` creates and returns this object, and the framework passes it to each Node's `execute()`.
+
+For the order refund workflow above, setup can provide a browser page, an application URL, and an order service. A Node adds the order ID after creating an order. The following `setup.ts` shows how to create this shared object: `ProjectContext` describes its type, and `setup` creates and returns the actual object.
+
+The imported `orderService` is your own test data service implementing `create` and `remove`. Replace the application URL with your test environment URL.
+
+```ts filename=setup.ts
+import { defineProjectSetup } from '@midscene/test/config';
+import { chromium, type Page } from 'playwright';
+import { orderService } from './order-service';
+
+export interface ProjectContext {
+  appBaseUrl: string;
+  page: Page;
+  orderId?: string; // Share test state across Nodes
+  orderService: {
+    create(input: { status: 'paid' }): Promise<{ id: string }>;
+    remove(orderId: string): Promise<void>;
+  };
+}
+
+export const setup = defineProjectSetup<ProjectContext>({
+  name: 'refund',
+  async setup({ onTeardown }) {
+    const browser = await chromium.launch();
+    onTeardown(() => browser.close());
+    const page = await browser.newPage();
+
+    const context: ProjectContext = {
+      page,
+      appBaseUrl: 'https://yoursite.com',
+      orderService,
+    };
+    return context;
+  },
+});
+```
+
+The returned `context` is one shared object for this execution project. In `execute({ input, context })`, `input` comes from the current YAML step, while `context` is the object created here. Its `orderId` is initially absent.
+
+### Write data to the context
+
+Next, create `nodes.ts`. `order.prepare` uses the order service in `context` to create an order, then writes its ID to `context.orderId` for later Nodes:
+
+```ts filename=nodes.ts
+import { defineNode, z } from '@midscene/test';
+import type { ProjectContext } from './setup';
+
+const emptyInputSchema = z.strictObject({});
+const prepareOrderInputSchema = z.strictObject({
+  status: z.literal('paid').describe('Status of the order to create.'),
+});
+
+// 1. Prepare the order environment
+const prepareOrder = defineNode<
+  typeof prepareOrderInputSchema,
+  { orderId: string },
+  ProjectContext
+>({
+  name: 'order.prepare',
+  description: 'Call the order service to create a test order.',
+  inputSchema: prepareOrderInputSchema,
+  async execute({ input, context, onTeardown }) {
+    const order = await context.orderService.create(input);
+    context.orderId = order.id; // Save the ID in the context
+    onTeardown(async () => {
+      await context.orderService.remove(order.id);
+      delete context.orderId;
+    });
+    return {
+      summary: `Created test order ${order.id}`,
+      data: { orderId: order.id },
+    };
+  },
+});
+```
+
+`context.orderId = order.id` updates the shared object so later Nodes can read the ID. Returning `data` does not write it to `context` automatically.
+
+After creating the order, `onTeardown()` registers a callback that deletes this order and clears the saved ID. The callback captures `order.id`, so it cleans up the order created by this invocation. Creation and cleanup stay in the same Node; YAML does not need a separate cleanup step.
+
+### Read data in a later Node
+
+`browser.openRefundPage` reads the saved ID to navigate to the refund page. It reports an error if the order ID is missing.
+
+```ts filename=nodes.ts
+const getOrderId = (context: ProjectContext) => {
+  if (!context.orderId) {
+    throw new Error('The test order has not been created.');
+  }
+  return context.orderId;
+};
+
+// 2. Access the saved order state
+const openRefundPage = defineNode<
+  typeof emptyInputSchema,
+  unknown,
+  ProjectContext
+>({
+  name: 'browser.openRefundPage',
+  description: "Open the current test order's refund page.",
+  inputSchema: emptyInputSchema,
+  async execute({ context }) {
+    const orderId = getOrderId(context);
+    await context.page.goto(`${context.appBaseUrl}/orders/${orderId}/refund`);
+  },
+});
+
+export const refundNodes = [prepareOrder, openRefundPage];
+```
+
+Register the setup and Nodes together so the framework passes the setup result to each Node:
+
+```ts filename=midscene.config.ts
+import { defineTestProject } from '@midscene/test/config';
+import { refundNodes } from './nodes';
+import { setup, type ProjectContext } from './setup';
+
+export default defineTestProject<ProjectContext>({
+  setup,
+  nodes: refundNodes,
+});
+```
+
+In YAML, call `order.prepare` from `beforeEach`, then use the saved order ID in the case steps:
+
+```yaml
+beforeEach:
+  - order.prepare:
+      status: paid
+cases:
+  - name: Open the refund page
+    steps:
+      - browser.openRefundPage: {}
+```
+
+The registered callback runs after the case's `afterEach` phase, even when no `afterEach` steps are declared. If a later preparation step or case step fails, the framework still runs the registered cleanup. Each retry has its own cleanup scope. If order creation fails before the callback is registered, there is no cleanup callback for that invocation.
+
+For Agent integration and platform resources, see [Configure test projects](./configuration).
+
+## Advanced usage
+
+This section covers execution results, errors, cancellation, and cleanup within a Node.
+
+### Record execution results
+
+The order preparation Node also returns `summary` and `data`. `summary` describes the operation for the report, while `data` holds structured output. Both are optional; a Node can finish without returning a result. These values are saved in the run result, independently of the shared `context`.
+
+### Asynchronous operations, errors, and cancellation
+
+Use `async execute()` and `await` for asynchronous work. Throw an error when an operation fails.
+
+Midscene Test passes an `AbortSignal` as `signal` when executing a Node. Pass it to APIs that support cancellation, such as `fetch(url, { signal })`. For long-running loops, check `signal.throwIfAborted()` between iterations. This lets the operation stop when the step times out or the run is cancelled.
+
+### Resource lifecycle and cleanup
+
+When a Node creates a resource, register its cleanup with `onTeardown()`. The execution phase determines when that cleanup runs.
+
+Cleanup has these lifetimes:
+
+- Cleanup registered by Nodes in `beforeEach`, case `steps`, or `afterEach` runs after that execution's `afterEach`. Each retry has its own cleanup scope.
+- Cleanup registered by Nodes in `beforeAll` or `afterAll` runs after the current file's `afterAll`.
+
+Within each scope, cleanup functions run in reverse registration order, or LIFO (last in, first out). Nodes can use them to release resources they created or finalize reports. Registering cleanup does not automatically create a new Agent or reset caches; those behaviors depend on the project implementation.
+
+When a test run is interrupted, the framework still attempts to run `afterEach`, `afterAll`, and cleanup functions registered with `onTeardown()`. See [Timeouts and cancellation](./configuration#timeouts-and-cancellation) for details.
+
+Project-level browser and Agent cleanup is covered in [Create and clean up shared resources with setup](./configuration#create-and-clean-up-shared-resources-with-setup).

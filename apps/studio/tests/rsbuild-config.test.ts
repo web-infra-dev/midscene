@@ -24,5 +24,6 @@ describe('rsbuild config', () => {
     expect(alias['@/utils$']).toContain(
       'packages/visualizer/src/utils/index.ts',
     );
+    expect(alias['@silvia-odwyer/photon']).toBe(false);
   });
 });

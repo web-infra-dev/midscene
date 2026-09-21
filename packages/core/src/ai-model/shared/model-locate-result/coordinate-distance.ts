@@ -1,4 +1,5 @@
 import type { Size } from '@/types';
+import { normalizedCoordinateToPixel } from './pixel-mapper';
 import type { ResolvedLocateResultCoordinates } from './types';
 
 export type CoordinateDistanceAxis = 'x' | 'y';
@@ -13,8 +14,11 @@ export function createCoordinateDistanceToPixels(
     }
 
     const length = axis === 'x' ? size.width : size.height;
-    return Math.round(
-      (Math.abs(delta) * length) / coordinateSystem.normalizedBy,
+    return normalizedCoordinateToPixel(
+      Math.abs(delta),
+      coordinateSystem.normalizedBy,
+      length,
+      coordinateSystem.rounding,
     );
   };
 }

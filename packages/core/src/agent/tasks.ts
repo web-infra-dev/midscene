@@ -1,22 +1,28 @@
 import { AIResponseParseError, ConversationHistory } from '@/ai-model';
 import type { ModelRuntime } from '@/ai-model/models';
-import { buildTypeQueryDemandValue } from '@/ai-model/prompt/extraction';
-import { genericXmlPlan } from '@/ai-model/workflows/planning';
+import { buildTypeQueryDemandValue } from '@/ai-model/prompt/insight';
+import { prepareUserPrompt } from '@/ai-model/shared/multimodal-prompt';
+import { standardPlan } from '@/ai-model/workflows/planning';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
   getReadableTimeString,
-  multimodalPromptToChatMessages,
   userPromptToMultimodalPrompt,
   userPromptToString,
 } from '@/common';
-import type { AbstractInterface, FileChooserHandler } from '@/device';
+import { type AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/service';
-import type { TaskRunner, TaskRunnerEvent } from '@/task-runner';
+import type {
+  ExecutionReferenceImage,
+  TaskRunner,
+  TaskRunnerEvent,
+} from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  AiActEffort,
   AiActProgressData,
   AiActProgressPhase,
+  DetailedLocateParam,
   DeviceAction,
   ExecutionRecorderItem,
   ExecutionTask,
@@ -28,7 +34,6 @@ import type {
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamWaitFor,
-  PlanningLocateParam,
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -38,11 +43,13 @@ import { ServiceError, aiActProgressScope } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
+import { withFileChooser } from './file-chooser';
 import {
   type AgentProgressPublisher,
   createAiActActionReporter,
   errorMessageForAiAct,
 } from './progress';
+import { renderAIContext } from './prompt-context';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
@@ -93,6 +100,7 @@ function truncatePlanningFeedback(feedback: string): string {
 }
 
 export { TaskExecutionError };
+export { withFileChooser } from './file-chooser';
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -156,6 +164,7 @@ export class TaskExecutor {
     options?: {
       tasks?: ExecutionTaskApply[];
       uiContext?: UIContext;
+      referenceImages?: readonly ExecutionReferenceImage[];
       onSnapshotChange?: (
         runner: TaskRunner,
         error?: TaskExecutionError,
@@ -172,6 +181,7 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
+        referenceImages: options?.referenceImages,
         onSnapshotChange: async (runner, error) => {
           await this.hooks?.onSnapshotChange?.(runner, error);
           await options?.onSnapshotChange?.(runner, error);
@@ -291,6 +301,9 @@ export class TaskExecutor {
         reportOptions?.type || 'Act',
         reportOptions?.prompt || userPromptToString(userInstruction),
       ),
+      {
+        referenceImages: userPromptToMultimodalPrompt(userInstruction)?.images,
+      },
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -302,7 +315,7 @@ export class TaskExecutor {
           ? { userInstructionDisplay: reportOptions.prompt }
           : {}),
       },
-      executor: async (param, executorContext) => {
+      executor: async (executorContext) => {
         const { uiContext } = executorContext;
         assert(uiContext, 'uiContext is required for Planning task');
         return {
@@ -332,6 +345,28 @@ export class TaskExecutor {
     };
   }
 
+  async sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
+    const session = this.createExecutionSession('Sleep');
+    const action = defineActionSleep(abortSignal);
+    await session.appendAndRun({
+      type: 'Action Space',
+      subType: action.name,
+      param: { timeMs: ms },
+      executor: async ({ task }) => {
+        assert(
+          Number.isFinite(ms) && ms > 0,
+          `ms for sleep must be a finite number greater than 0, but got ${ms}`,
+        );
+        setTimingFieldOnce(task.timing, 'callActionStart');
+        try {
+          await action.call({ timeMs: ms });
+        } finally {
+          setTimingFieldOnce(task.timing, 'callActionEnd');
+        }
+      },
+    });
+  }
+
   async runPlans(
     title: string,
     plans: PlanningAction[],
@@ -340,12 +375,14 @@ export class TaskExecutor {
     options?: { uiContext?: UIContext },
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title, options);
+    const runner = session.getRunner();
+    const executionPlanningModel = { ...planningModel, executionId: runner.id };
+    const executionDefaultModel = { ...defaultModel, executionId: runner.id };
     const { tasks } = await this.convertPlanToExecutable(
       plans,
-      planningModel,
-      defaultModel,
+      executionPlanningModel,
+      executionDefaultModel,
     );
-    const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
     return {
@@ -358,12 +395,10 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    imagesIncludeCount?: number,
-    deepThink?: boolean,
+    effort: AiActEffort = 'balance',
     fileChooserAccept?: string[],
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
@@ -382,12 +417,10 @@ export class TaskExecutor {
         userPrompt,
         planningModel,
         defaultModel,
-        includeLocateInPlanning,
         aiActContext,
         cacheable,
         replanningCycleLimitOverride,
-        imagesIncludeCount,
-        deepThink,
+        effort,
         deepLocate,
         abortSignal,
         reportOptions,
@@ -421,7 +454,7 @@ export class TaskExecutor {
         task.subType === 'Locate' &&
         task.hitBy?.from === 'Cache'
       ) {
-        const prompt = (task.param as PlanningLocateParam | undefined)?.prompt;
+        const prompt = (task.param as DetailedLocateParam | undefined)?.prompt;
         if (prompt) {
           this.taskCache.markLocateCacheStale(prompt);
         }
@@ -433,12 +466,10 @@ export class TaskExecutor {
     userPrompt: TUserPrompt,
     planningModel: ModelRuntime,
     defaultModel: ModelRuntime,
-    includeLocateInPlanning: boolean,
     aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
-    imagesIncludeCount?: number,
-    deepThink?: boolean,
+    effort: AiActEffort = 'balance',
     deepLocate?: boolean,
     abortSignal?: AbortSignal,
     reportOptions?: ActionReportOptions,
@@ -466,12 +497,25 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr(reportOptions?.type || 'Act', promptDisplay),
       {
+        referenceImages: userPromptToMultimodalPrompt(userPrompt)?.images,
         onTaskEvent: async (event) => {
           await activeActionReporter?.(event);
         },
       },
     );
     const runner = session.getRunner();
+    planningModel = { ...planningModel, executionId: runner.id };
+    defaultModel = { ...defaultModel, executionId: runner.id };
+
+    const noIndividualLocateModel = planningModel.config.slot === 'default';
+    const includeLocateInPlanning =
+      effort !== 'deepThink' && noIndividualLocateModel;
+    const imagesIncludeCount = effort === 'deepThink' ? 2 : 1;
+
+    debug('setting includeLocateInPlanning to', includeLocateInPlanning, {
+      effort,
+      noIndividualLocateModel,
+    });
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -513,9 +557,14 @@ export class TaskExecutor {
         `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
       );
     }
-    const referenceImageMessages = await multimodalPromptToChatMessages(
-      userPromptToMultimodalPrompt(userPrompt),
-    );
+    const getPreparedUserPrompt = (() => {
+      let promise: ReturnType<typeof prepareUserPrompt> | undefined;
+
+      return () => {
+        promise ??= prepareUserPrompt(userPrompt);
+        return promise;
+      };
+    })();
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -548,11 +597,11 @@ export class TaskExecutor {
             replanningCycleLimit,
             aiActContext,
             imagesIncludeCount,
-            deepThink,
+            effort,
             ...(subGoalStatus ? { subGoalStatus } : {}),
             ...(memoriesStatus ? { memoriesStatus } : {}),
           },
-          executor: async (param, executorContext) => {
+          executor: async (executorContext) => {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const planningUiContext = uiContext as UIContext;
@@ -578,21 +627,22 @@ export class TaskExecutor {
             const planImpl =
               planningModel.adapter.planning.kind === 'custom'
                 ? planningModel.adapter.planning.planFn
-                : genericXmlPlan;
+                : standardPlan;
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
+              const preparedUserPrompt = await getPreparedUserPrompt();
+
               setTimingFieldOnce(timing, 'callAiStart');
-              planResult = await planImpl(param.userInstruction, {
+              planResult = await planImpl(preparedUserPrompt, {
                 context: planningUiContext,
-                actionContext: param.aiActContext,
+                actionContext: renderAIContext(aiActContext),
                 actionSpace,
                 modelRuntime: planningModel,
                 conversationHistory,
                 includeLocateInPlanning,
                 imagesIncludeCount,
-                deepThink,
-                referenceImageMessages,
+                effort,
                 abortSignal,
               });
             } catch (planError) {
@@ -856,6 +906,7 @@ export class TaskExecutor {
       subType: type,
       param: {
         domIncluded: opt?.domIncluded,
+        ...(opt?.context !== undefined ? { context: opt.context } : {}),
         dataDemand: multimodalPrompt
           ? ({
               demand,
@@ -863,7 +914,7 @@ export class TaskExecutor {
             } as never)
           : demand, // for user param presentation in report right sidebar
       },
-      executor: async (param, taskContext) => {
+      executor: async (taskContext) => {
         const { task } = taskContext;
         let queryDump: ServiceDump | undefined;
         const applyDump = (dump: ServiceDump) => {
@@ -963,9 +1014,10 @@ export class TaskExecutor {
           }
         }
 
-        if (type === 'Assert' && !outputResult) {
-          task.thought = thought;
-          throw new Error(`Assertion failed: ${thought}`);
+        // Keep assertion failures in the task result so TaskRunner can persist
+        // the model dump before aiAssert turns the result into a thrown error.
+        if (type === 'Assert') {
+          outputResult = Boolean(outputResult);
         }
 
         return {
@@ -994,21 +1046,25 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
-      executionOptions?.uiContext
-        ? { uiContext: executionOptions.uiContext }
-        : undefined,
+      {
+        ...(executionOptions?.uiContext
+          ? { uiContext: executionOptions.uiContext }
+          : {}),
+        referenceImages: multimodalPrompt?.images,
+      },
     );
 
+    const runner = session.getRunner();
+    const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
     const queryTask = await this.createTypeQueryTask(
       type,
       demand,
-      modelRuntime,
+      executionModelRuntime,
       opt,
       multimodalPrompt,
       executionOptions,
     );
 
-    const runner = session.getRunner();
     const result = await session.appendAndRun(queryTask);
 
     if (!result) {
@@ -1036,8 +1092,10 @@ export class TaskExecutor {
     const description = `waitFor: ${textPrompt}`;
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
+      { referenceImages: multimodalPrompt?.images },
     );
     const runner = session.getRunner();
+    const executionModelRuntime = { ...modelRuntime, executionId: runner.id };
     const {
       timeoutMs,
       checkIntervalMs,
@@ -1070,7 +1128,7 @@ export class TaskExecutor {
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
-        modelRuntime,
+        executionModelRuntime,
         serviceExtractOpt,
         multimodalPrompt,
       );
@@ -1112,12 +1170,11 @@ export class TaskExecutor {
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
   }
 }
-
 /**
  * Surface a captured screenshot sequence in the report timeline, then release
  * it from the UIContext.
  *
- * When a UIObserver assertion runs, the observed frames live on
+ * When a UIObservation insight runs, the observed frames live on
  * `uiContext.screenshotSequence` only as a transient model input. This attaches
  * them to the task recorder so the report renders the full sequence the model
  * saw (the report timeline builds one screenshot per recorder item), then drops
@@ -1157,39 +1214,5 @@ export function recordAndReleaseScreenshotSequence(
   }
   if (uiContext?.screenshotSequence) {
     uiContext.screenshotSequence = undefined;
-  }
-}
-
-export async function withFileChooser<T>(
-  interfaceInstance: AbstractInterface,
-  fileChooserAccept: string[] | undefined,
-  action: () => Promise<T>,
-): Promise<T> {
-  if (!fileChooserAccept?.length) {
-    return action();
-  }
-
-  if (!interfaceInstance.registerFileChooserListener) {
-    throw new Error(
-      `File upload is not supported on ${interfaceInstance.interfaceType}`,
-    );
-  }
-
-  const handler = async (chooser: FileChooserHandler) => {
-    await chooser.accept(fileChooserAccept);
-  };
-
-  const { dispose, getError } =
-    await interfaceInstance.registerFileChooserListener(handler);
-  try {
-    const result = await action();
-    // Check for errors that occurred during file chooser handling
-    const error = await getError();
-    if (error) {
-      throw error;
-    }
-    return result;
-  } finally {
-    dispose();
   }
 }
