@@ -1,4 +1,8 @@
-import { ScreenshotItem } from '@midscene/core';
+import {
+  GroupedActionDump,
+  ScreenshotItem,
+  restoreImageReferences,
+} from '@midscene/core';
 import { describe, expect, it } from '@rstest/core';
 import { StaticPage, StaticPageAgent } from '../../src/static';
 
@@ -27,6 +31,43 @@ describe('StaticPage', () => {
     const page = new StaticPage(createContext({ base64: screenshotBase64 }));
 
     await expect(page.screenshotBase64()).resolves.toBe(screenshotBase64);
+  });
+
+  it('keeps an Insight task report context available to the Playground', async () => {
+    const screenshot = ScreenshotItem.create(screenshotBase64, 123);
+    const dump = new GroupedActionDump({
+      sdkVersion: '1.13.0',
+      groupName: 'aiAssert report',
+      modelBriefs: [],
+      executions: [
+        {
+          logTime: 123,
+          name: 'aiAssert',
+          tasks: [
+            {
+              taskId: 'assert-task',
+              type: 'Insight',
+              subType: 'Assert',
+              status: 'finished',
+              uiContext: createContext(screenshot),
+              executor: async () => undefined,
+            } as any,
+          ],
+        },
+      ],
+    });
+
+    const restored = restoreImageReferences(
+      JSON.parse(dump.serialize()),
+      () => screenshotBase64,
+    ) as any;
+    const context = restored.executions[0].tasks[0].uiContext;
+    const agent = new StaticPageAgent(new StaticPage(context));
+
+    await expect(agent.getUIContext()).resolves.toMatchObject({
+      shotSize: { width: 800, height: 600 },
+      screenshot: { base64: screenshotBase64, capturedAt: 123 },
+    });
   });
 
   it('returns base64 from a JSON-serialized ScreenshotItem', async () => {
