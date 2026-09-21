@@ -71,6 +71,7 @@ Promise.resolve(
       retry: options.retry,
       summary: options.summary,
       shareBrowserContext: options['share-browser-context'],
+      reusePage: options['reuse-page'],
       headed: options.headed,
       keepWindow: options['keep-window'],
       dotenvOverride: options['dotenv-override'],

@@ -191,6 +191,20 @@ describe('shareBrowserContext CLI YAML e2e', () => {
     });
   });
 
+  test('should preserve page-scoped state when sequential page sharing is enabled', async () => {
+    await runFixture({
+      scriptDir: join(__dirname, '../share_page_test_scripts'),
+      indexFile: 'index.yaml',
+      targetSource: 'web',
+      targetDeclaredInIndex: false,
+      expectedScripts: [
+        '01-login.yaml',
+        '02-check-page.yaml',
+        '03-check-continuity.yaml',
+      ],
+    });
+  });
+
   test('should execute a shared-browser batch through the built CLI entrypoint', async () => {
     const scriptDir = join(__dirname, '../share_context_parallel_e2e_scripts');
     const runDir = mkdtempSync(join(tmpdir(), 'midscene-cli-e2e-'));

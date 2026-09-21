@@ -86,6 +86,10 @@ Usage:
         type: 'boolean',
         description: `Share a Puppeteer Web browser context across multiple yaml files, default is ${defaultConfig.shareBrowserContext}`,
       },
+      'reuse-page': {
+        type: 'boolean',
+        description: `Reuse one Puppeteer Web page across sequential yaml files; requires --share-browser-context and --concurrent 1, default is ${defaultConfig.reusePage}`,
+      },
       'dotenv-override': {
         type: 'boolean',
         description: `Whether the variables in the .env file override the global variables, the default is ${defaultConfig.dotenvOverride}`,
