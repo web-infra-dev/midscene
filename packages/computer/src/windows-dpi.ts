@@ -42,20 +42,6 @@ $midsceneSetDpiMethod.SetImplementationFlags(
   $midsceneSetDpiMethod.GetMethodImplementationFlags() -bor
   [System.Reflection.MethodImplAttributes]::PreserveSig
 )
-$midsceneGetDpiForSystemMethod = $midsceneType.DefinePInvokeMethod(
-  'GetDpiForSystem',
-  'user32.dll',
-  $midsceneMethodAttributes,
-  [System.Reflection.CallingConventions]::Standard,
-  [uint32],
-  [System.Type[]]@(),
-  [System.Runtime.InteropServices.CallingConvention]::Winapi,
-  [System.Runtime.InteropServices.CharSet]::None
-)
-$midsceneGetDpiForSystemMethod.SetImplementationFlags(
-  $midsceneGetDpiForSystemMethod.GetMethodImplementationFlags() -bor
-  [System.Reflection.MethodImplAttributes]::PreserveSig
-)
 $midsceneGetForegroundWindowMethod = $midsceneType.DefinePInvokeMethod(
   'GetForegroundWindow',
   'user32.dll',
