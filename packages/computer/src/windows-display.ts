@@ -17,7 +17,7 @@ export interface WindowsDisplayGeometry {
 }
 
 export interface WindowsDisplayDiscovery {
-  coordinateMode: 'physical' | 'legacy';
+  coordinateMode: WindowsCoordinateMode;
   geometries: WindowsDisplayGeometry[];
 }
 
@@ -26,9 +26,7 @@ interface WindowsDisplayEnumerationRunners {
   legacy: (script: string) => string;
 }
 
-export type WindowsCoordinateContext =
-  | { mode: 'physical' }
-  | { mode: 'legacy' };
+export type WindowsCoordinateMode = 'physical' | 'legacy';
 
 class WindowsDisplayEnumerationEmptyError extends Error {}
 
@@ -59,7 +57,7 @@ function isWindowsDisplayGeometry(
 
 function readWindowsDisplayGeometriesWith(
   runPowershell: (script: string) => string,
-  context: 'physical' | 'legacy',
+  context: WindowsCoordinateMode,
 ): WindowsDisplayGeometry[] {
   const serializeScreens =
     context === 'legacy'

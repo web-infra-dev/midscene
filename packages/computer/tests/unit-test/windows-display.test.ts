@@ -1,6 +1,9 @@
 import { Buffer } from 'node:buffer';
 import { describe, expect, it } from '@rstest/core';
-import { assertLegacyWindowsCoordinateCompatibility } from '../../src/windows-display';
+import {
+  assertLegacyWindowsCoordinateCompatibility,
+  discoverWindowsDisplays,
+} from '../../src/windows-display';
 
 function pngDataUri(width: number, height: number): string {
   const buffer = Buffer.alloc(24);
@@ -16,6 +19,84 @@ const primaryGeometry = {
   primary: true,
   bounds: { x: 0, y: 0, width: 1920, height: 1080 },
 };
+
+const primaryGeometryJson = JSON.stringify([primaryGeometry]);
+
+describe('Windows display discovery', () => {
+  it('keeps the physical path when physical enumeration succeeds', () => {
+    let legacyCalls = 0;
+    const discovery = discoverWindowsDisplays({
+      physical: () => primaryGeometryJson,
+      legacy: () => {
+        legacyCalls += 1;
+        return primaryGeometryJson;
+      },
+    });
+
+    expect(discovery).toEqual({
+      coordinateMode: 'physical',
+      geometries: [primaryGeometry],
+    });
+    expect(legacyCalls).toBe(0);
+  });
+
+  it('uses the legacy path only when physical enumeration is empty', () => {
+    const discovery = discoverWindowsDisplays({
+      physical: () => '',
+      legacy: () => primaryGeometryJson,
+    });
+
+    expect(discovery).toEqual({
+      coordinateMode: 'legacy',
+      geometries: [primaryGeometry],
+    });
+  });
+
+  it('does not downgrade when the physical runner fails', () => {
+    let legacyCalls = 0;
+
+    expect(() =>
+      discoverWindowsDisplays({
+        physical: () => {
+          throw new Error('PowerShell failed');
+        },
+        legacy: () => {
+          legacyCalls += 1;
+          return primaryGeometryJson;
+        },
+      }),
+    ).toThrow(/PowerShell failed/);
+    expect(legacyCalls).toBe(0);
+  });
+
+  it('does not downgrade malformed physical output', () => {
+    let legacyCalls = 0;
+    const legacy = () => {
+      legacyCalls += 1;
+      return primaryGeometryJson;
+    };
+
+    expect(() =>
+      discoverWindowsDisplays({ physical: () => '{', legacy }),
+    ).toThrow();
+    expect(() =>
+      discoverWindowsDisplays({
+        physical: () => JSON.stringify([{ id: '\\\\.\\DISPLAY6' }]),
+        legacy,
+      }),
+    ).toThrow(/invalid geometry/);
+    expect(legacyCalls).toBe(0);
+  });
+
+  it('reports an empty legacy enumeration after fallback', () => {
+    expect(() =>
+      discoverWindowsDisplays({
+        physical: () => '[]',
+        legacy: () => '[]',
+      }),
+    ).toThrow(/Windows legacy display enumeration returned no displays/);
+  });
+});
 
 describe('Windows legacy coordinate compatibility', () => {
   it('accepts an unscaled primary display with one consistent coordinate size', () => {

@@ -38,7 +38,7 @@ import {
 } from './keyboard-layout';
 import { clampPointerPointToSize } from './pointer';
 import {
-  type WindowsCoordinateContext,
+  type WindowsCoordinateMode,
   type WindowsDisplayGeometry,
   assertLegacyWindowsCoordinateCompatibility,
   discoverWindowsDisplays,
@@ -714,9 +714,7 @@ export class ComputerDevice implements AbstractInterface {
   private options?: ComputerDeviceOpt;
   private displayId?: string;
   private displayGeometry?: DisplayGeometry;
-  private windowsCoordinateContext: WindowsCoordinateContext = {
-    mode: 'physical',
-  };
+  private windowsCoordinateMode: WindowsCoordinateMode = 'physical';
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
@@ -908,8 +906,7 @@ export class ComputerDevice implements AbstractInterface {
 
   private usesPhysicalWindowsCoordinates(): boolean {
     return (
-      process.platform === 'win32' &&
-      this.windowsCoordinateContext.mode === 'physical'
+      process.platform === 'win32' && this.windowsCoordinateMode === 'physical'
     );
   }
 
@@ -918,7 +915,7 @@ export class ComputerDevice implements AbstractInterface {
   ): void {
     if (
       process.platform !== 'win32' ||
-      this.windowsCoordinateContext.mode !== 'legacy'
+      this.windowsCoordinateMode !== 'legacy'
     ) {
       return;
     }
@@ -1107,10 +1104,8 @@ export class ComputerDevice implements AbstractInterface {
           'Windows display enumeration returned no data in the Per-Monitor V2 DPI context; using the legacy Windows coordinate path for this device connection.',
         );
       }
-      this.windowsCoordinateContext =
-        windowsDisplayDiscovery?.coordinateMode === 'legacy'
-          ? { mode: 'legacy' }
-          : { mode: 'physical' };
+      this.windowsCoordinateMode =
+        windowsDisplayDiscovery?.coordinateMode ?? 'physical';
       this.displayGeometry = resolveDisplayGeometry(
         this.displayId,
         windowsDisplayGeometries,
@@ -1131,7 +1126,7 @@ Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
 Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
-${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordinateContext.mode}` : ''}
+${process.platform === 'win32' ? `Windows Coordinate Mode: ${this.windowsCoordinateMode}` : ''}
 `;
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
