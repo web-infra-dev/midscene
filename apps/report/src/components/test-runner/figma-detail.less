@@ -28,72 +28,11 @@
     padding-bottom: 0;
   }
 
-  .runner-detail-title-line {
-    gap: 12px;
-  }
-
-  .runner-detail-title-line h1 {
-    margin: 0;
-    color: #000;
-    font-size: 30px;
-    font-weight: 500;
-    font-family: 'PingFang SC', 'Report Inter', sans-serif;
-    letter-spacing: 0;
-    line-height: 38px;
-  }
-
-  .runner-detail-title-line .runner-status-pill {
-    min-height: 24px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-  }
-
-  .runner-detail-title-line .runner-status-pill > .anticon {
-    display: none;
-  }
-
   .runner-case-meta {
     display: flex;
     margin-top: 8px;
     align-items: center;
     gap: 0;
-    color: var(--runner-muted);
-    font-size: 12px;
-    line-height: 24px;
-  }
-
-  .runner-case-meta > span {
-    display: inline-flex;
-    max-width: none;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .runner-overview-run-meta > span + span::before,
-  .runner-case-meta > span + span::before {
-    display: block;
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 1px;
-    height: 12px;
-    margin: 0;
-    background: var(--runner-border);
-    transform: translateY(-50%);
-    content: '';
-  }
-
-  .runner-case-meta strong {
-    color: var(--runner-text);
-    font-weight: 600;
-  }
-
-  .runner-case-meta > span + span {
-    position: relative;
-    margin-left: 16px;
-    padding-left: 16px;
-    border-left: 0;
   }
 
   .runner-case-run-bar {
@@ -109,9 +48,7 @@
   .runner-single-attempt-label {
     display: inline-flex;
     min-height: 34px;
-    padding: 2px 4px;
     align-items: center;
-    gap: 6px;
     color: var(--runner-text);
     border: 1px solid var(--runner-border-strong);
     border-radius: 12px;
@@ -119,22 +56,14 @@
     font-size: 14px;
   }
 
-  .runner-attempt-select-shell > span {
-    padding: 2px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 16px;
-    text-transform: lowercase;
+  .runner-attempt-select-shell {
+    padding: 0 4px;
+    gap: 6px;
   }
 
-  .runner-attempt-select-shell > span.is-failed {
-    color: var(--runner-danger);
-    background: var(--runner-danger-soft);
-  }
-
-  .runner-attempt-select-shell > span.is-success {
-    color: var(--runner-success);
-    background: var(--runner-success-soft);
+  .runner-single-attempt-label {
+    padding: 4px 12px;
+    gap: 8px;
   }
 
   .runner-attempt-select-shell > .ant-select {
@@ -320,6 +249,8 @@
   }
 
   .runner-detail-step-panel > .runner-detail-timeline-card.is-detail {
+    --runner-timeline-frame-half-width: 63px;
+
     height: 120px;
     min-height: 120px;
     margin: 8px 8px 0;
@@ -340,6 +271,8 @@
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis {
     height: 28px;
+    border-radius: 16px 16px 0 0;
+    background: var(--runner-surface-muted);
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-axis span {
@@ -349,8 +282,9 @@
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-lane {
     height: 92px;
+    border-top: 0;
     border-bottom: 0;
-    background: var(--runner-surface);
+    background: transparent;
   }
 
   .runner-detail-timeline-card.is-detail .runner-detail-timeline-frame {

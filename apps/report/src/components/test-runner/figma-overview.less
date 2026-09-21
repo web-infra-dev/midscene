@@ -13,30 +13,6 @@
   .runner-overview-title-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-  }
-
-  .runner-overview-title-row h1 {
-    margin: 0;
-    color: #000;
-    font-size: 30px;
-    font-weight: 500;
-    font-family: 'PingFang SC', 'Report Inter', sans-serif;
-    letter-spacing: 0;
-    line-height: 38px;
-  }
-
-  .runner-overview-title-row .runner-status-pill {
-    min-height: 24px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 12px;
-  }
-
-  .runner-overview-title-row .runner-status-pill > .anticon {
-    display: none;
   }
 
   .runner-overview-run-meta {
@@ -47,29 +23,10 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0;
-    color: var(--runner-muted);
-    font-size: 12px;
-    line-height: 24px;
   }
 
   .runner-overview-run-meta > span {
-    display: inline-flex;
-    max-width: none;
-    align-items: center;
-    gap: 8px;
     white-space: nowrap;
-  }
-
-  .runner-overview-run-meta > span + span {
-    position: relative;
-    margin-left: 16px;
-    padding-left: 16px;
-    border-left: 0;
-  }
-
-  .runner-overview-run-meta strong {
-    color: var(--runner-text);
-    font-weight: 600;
   }
 
   .runner-overview-passed {
@@ -200,6 +157,7 @@
   }
 
   .runner-breakdown-view-switch > button {
+    appearance: none;
     min-width: auto;
     min-height: 32px;
     padding: 0 12px;
@@ -215,11 +173,22 @@
   .runner-breakdown-view-switch > button.is-selected {
     color: #000;
     background: var(--runner-control-bg);
+    box-shadow: none;
+  }
+
+  .runner-breakdown-view-switch > button:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .runner-breakdown-view-switch > button:focus-visible {
+    outline: 1px solid var(--runner-border-strong);
+    outline-offset: 1px;
+    box-shadow: none;
   }
 
   .runner-breakdown-panel .runner-breakdown-toolbar {
     display: grid;
-    grid-template-columns: 155px 146px minmax(240px, 317px) 32px;
+    grid-template-columns: 184px 146px minmax(240px, 317px) 32px;
     width: auto;
     min-height: 32px;
     margin: 0;
@@ -321,10 +290,6 @@
     background: currentColor;
     mask: url('./assets/project-expansion.svg') no-repeat center / 14.315px
       10.479px;
-  }
-
-  .runner-project-tree-summary {
-    display: none;
   }
 
   .runner-project-tree-header {
@@ -485,6 +450,10 @@
     cursor: default;
   }
 
+  .runner-project-tree-case-item:last-child .runner-project-tree-case {
+    border-bottom: 0;
+  }
+
   .runner-project-tree-case-open {
     display: grid;
     min-width: 0;
@@ -571,6 +540,8 @@
   }
 
   .runner-case-evidence-preview .runner-detail-timeline-card.is-overview {
+    --runner-timeline-frame-half-width: 44px;
+
     height: 76px;
     min-height: 76px;
     margin: 0;
@@ -591,6 +562,8 @@
 
   .runner-detail-timeline-card.is-overview .runner-detail-timeline-axis {
     height: 23px;
+    border-radius: 8px 8px 0 0;
+    background: color-mix(in srgb, var(--runner-surface) 97%, var(--runner-bg));
   }
 
   .runner-detail-timeline-card.is-overview .runner-detail-timeline-axis span {
@@ -600,8 +573,9 @@
 
   .runner-detail-timeline-card.is-overview .runner-detail-timeline-lane {
     height: 51px;
+    border-top: 0;
     border-bottom: 0;
-    background: var(--runner-surface);
+    background: transparent;
   }
 
   .runner-detail-timeline-card.is-overview .runner-detail-timeline-frame {

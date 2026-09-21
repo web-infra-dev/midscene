@@ -145,7 +145,10 @@ export function RunnerAttemptTimeline({
                   } ${isPreview ? 'is-preview' : ''}`}
                   key={`${item.frame.key}-${index}`}
                   style={{
-                    left: `${Math.max(5, Math.min(95, item.offsetPercent))}%`,
+                    left: `clamp(var(--runner-timeline-frame-half-width), ${Math.max(
+                      0,
+                      Math.min(100, item.offsetPercent),
+                    )}%, calc(100% - var(--runner-timeline-frame-half-width)))`,
                     zIndex: index + 2,
                   }}
                   onBlur={() => onPreview(undefined)}

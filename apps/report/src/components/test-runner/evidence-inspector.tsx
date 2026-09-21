@@ -62,6 +62,44 @@ export function RunnerEvidenceInspector({
 
   useEffect(() => setCopyState('idle'), [step.id]);
 
+  const recordContent = hasAgentTrace ? (
+    <div className="runner-detail-inline-trace">
+      <RunnerAgentTraceContent
+        key={step.id}
+        step={step}
+        reports={reports}
+        renderAgentReport={renderAgentReport}
+      />
+    </div>
+  ) : activeFrame ? (
+    <div className="runner-detail-record-view">
+      <section className="runner-detail-screenshot-stage">
+        <div className="runner-detail-screenshot-toolbar">
+          <span>
+            <PictureOutlined />
+            {activeFrame.label || 'Step screenshot'}
+          </span>
+          <span>
+            {activePosition
+              ? formatTimelineTime(activePosition.offsetMs)
+              : 'Frame'}
+          </span>
+        </div>
+        <div className="runner-detail-screenshot-canvas">
+          <img
+            alt={`Captured evidence for ${step.node}`}
+            src={activeFrame.screenshot.base64}
+          />
+        </div>
+        <div className="runner-detail-screenshot-caption">
+          <EyeOutlined />
+          Hover the timeline to preview a frame. Click a frame to lock it and
+          jump to its owning Step.
+        </div>
+      </section>
+    </div>
+  ) : undefined;
+
   const copyError = async () => {
     try {
       await copyRunnerText(
@@ -112,57 +150,7 @@ export function RunnerEvidenceInspector({
             step={step}
             tab={tab}
             onChange={onTabChange}
-            recordContent={
-              hasAgentTrace ? (
-                <div className="runner-detail-inline-trace">
-                  <RunnerAgentTraceContent
-                    key={step.id}
-                    step={step}
-                    reports={reports}
-                    renderAgentReport={renderAgentReport}
-                  />
-                </div>
-              ) : (
-                <div className="runner-detail-record-view">
-                  <section className="runner-detail-screenshot-stage">
-                    <div className="runner-detail-screenshot-toolbar">
-                      <span>
-                        <PictureOutlined />
-                        {activeFrame?.label || 'Step screenshot'}
-                      </span>
-                      <span>
-                        {activePosition
-                          ? formatTimelineTime(activePosition.offsetMs)
-                          : 'No frame'}
-                      </span>
-                    </div>
-                    <div className="runner-detail-screenshot-canvas">
-                      {activeFrame ? (
-                        <img
-                          alt={`Captured evidence for ${step.node}`}
-                          src={activeFrame.screenshot.base64}
-                        />
-                      ) : (
-                        <div>
-                          <PictureOutlined />
-                          <strong>No screenshot for this Step</strong>
-                          <span>
-                            Inspect the Step data and runtime events instead.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {activeFrame && (
-                      <div className="runner-detail-screenshot-caption">
-                        <EyeOutlined />
-                        Hover the timeline to preview a frame. Click a frame to
-                        lock it and jump to its owning Step.
-                      </div>
-                    )}
-                  </section>
-                </div>
-              )
-            }
+            recordContent={recordContent}
           />
           {hasAgentTrace && tab === 'record' ? (
             <div className="runner-detail-trace-actions">

@@ -473,6 +473,7 @@ describe('Midscene Test hybrid report model', () => {
     const item = flattenRunnerCases(dump)[0];
     const props = {
       item,
+      selectedAttempt: item.finalAttempt,
       backLabel: 'Overview',
       onBack() {},
       onSelectAttempt() {},
@@ -506,6 +507,10 @@ describe('Midscene Test hybrid report model', () => {
     expect(regular).toContain('runner-back-button');
     expect(regular).not.toContain('Copy case link');
     expect(regular).not.toContain('Run information');
+    expect(regular).toContain('runner-single-attempt-label');
+    expect(regular).toContain('is-success is-quiet');
+    expect(regular).toContain('>passed</span>');
+    expect(regular).not.toContain('runner-step-status is-success');
   });
 
   it('shows a pass percentage matching the all-case fraction, including not-run cases', () => {
@@ -522,6 +527,8 @@ describe('Midscene Test hybrid report model', () => {
     );
     expect(markup).not.toContain('runner-overview-outcome-message');
     expect(markup).toContain('aria-label="Review case results"');
+    expect(markup).toContain('>run failed</span>');
+    expect(markup).not.toContain('>Run failed</span>');
   });
 
   it('does not invent a pass percentage for an empty run', () => {

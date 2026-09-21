@@ -62,6 +62,9 @@ const renderTimeline = ({
 describe('attempt timeline', () => {
   it('highlights every frame that belongs to the selected step', () => {
     const initialHtml = renderTimeline();
+    expect(initialHtml).toContain(
+      'left:clamp(var(--runner-timeline-frame-half-width), 10%, calc(100% - var(--runner-timeline-frame-half-width)))',
+    );
     expect(initialHtml).toMatch(
       /aria-label="First frame[^"]*" aria-pressed="true"/,
     );
@@ -101,5 +104,6 @@ describe('attempt timeline', () => {
     expect(html).toContain('runner-detail-timeline-card is-overview');
     expect(html).toContain('runner-detail-timeline-preview-callout');
     expect(html).toContain('aria-label="First frame at 100ms"');
+    expect(html).not.toContain('runner-detail-timeline-toolbar');
   });
 });

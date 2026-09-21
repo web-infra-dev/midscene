@@ -1,8 +1,27 @@
 import type { TestRunReportAttempt } from '@midscene/core';
-import { Tag } from 'antd';
 import type { RunnerCaseView } from './model';
 import { Select } from './select';
-import { StepStatus, formatDuration } from './view-primitives';
+import { StatusBadge } from './status-badge';
+import { formatDuration } from './view-primitives';
+
+function AttemptStatusBadge({
+  status,
+  label = status === 'success' ? 'passed' : 'failed',
+  className,
+}: {
+  status: TestRunReportAttempt['status'];
+  label?: string;
+  className?: string;
+}): JSX.Element {
+  return (
+    <StatusBadge
+      label={label}
+      tone={status === 'success' ? 'success' : 'failed'}
+      quiet
+      className={className}
+    />
+  );
+}
 
 function AttemptOptionLabel({
   title,
@@ -14,13 +33,10 @@ function AttemptOptionLabel({
   return (
     <span className="runner-attempt-option">
       <span>{title}</span>
-      <Tag
+      <AttemptStatusBadge
         className="runner-attempt-option-status"
-        color={status === 'success' ? 'success' : 'error'}
-        bordered={false}
-      >
-        {status === 'success' ? 'Passed' : 'Failed'}
-      </Tag>
+        status={status}
+      />
     </span>
   );
 }
@@ -49,7 +65,7 @@ export function AttemptSelect({
   if (item.document.attempts) {
     return (
       <div className="runner-attempt-select-shell">
-        <span className={`is-${attemptStatus}`}>{attemptStatus}</span>
+        {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
         <Select<number>
           aria-label="File attempts"
           popupMatchSelectWidth={false}
@@ -74,7 +90,7 @@ export function AttemptSelect({
   if (item.testCase.attempts.length > 1) {
     return (
       <div className="runner-attempt-select-shell">
-        <span className={`is-${attemptStatus}`}>{attemptStatus}</span>
+        {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
         <Select<string>
           aria-label="Attempts"
           popupMatchSelectWidth={false}
@@ -103,8 +119,8 @@ export function AttemptSelect({
 
   return (
     <span className="runner-single-attempt-label">
-      {attemptStatus ? <StepStatus status={attemptStatus} /> : null}
-      Attempt 1 ({formatDuration(attemptDuration)})
+      {attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null}
+      <span>Attempt 1 ({formatDuration(attemptDuration)})</span>
     </span>
   );
 }

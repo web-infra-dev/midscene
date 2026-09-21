@@ -17,10 +17,6 @@
   --runner-border-strong: #e5e5e5;
   --runner-primary: #4f78ff;
   --runner-primary-soft: #edf3ff;
-  --runner-success: #00ad4b;
-  --runner-warning: #f59e0b;
-  --runner-danger: #e94f2c;
-  --runner-danger-soft: #feece9;
   --runner-scroll-thumb: rgba(16, 24, 40, 0.24);
   --runner-scroll-thumb-hover: rgba(16, 24, 40, 0.42);
   background: var(--runner-bg);
@@ -103,12 +99,67 @@
     height: 20px;
   }
 
-  .runner-status-badge.runner-status-pill {
-    min-height: 24px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 12px;
+  .runner-overview-title-row,
+  .runner-detail-title-line {
+    gap: 12px;
+  }
+
+  .runner-overview-title-row h1,
+  .runner-detail-title-line h1 {
+    margin: 0;
+    color: #000;
+    font-size: 30px;
     font-weight: 500;
-    line-height: 16px;
+    font-family: 'PingFang SC', 'Report Inter', sans-serif;
+    letter-spacing: 0;
+    line-height: 38px;
+  }
+
+  .runner-overview-title-row .runner-status-pill > .anticon,
+  .runner-detail-title-line .runner-status-pill > .anticon {
+    display: none;
+  }
+
+  .runner-overview-run-meta strong,
+  .runner-case-meta strong {
+    color: var(--runner-text);
+    font-weight: 600;
+  }
+
+  .runner-overview-run-meta,
+  .runner-case-meta {
+    color: var(--runner-muted);
+    font-size: 12px;
+    line-height: 24px;
+  }
+
+  .runner-overview-run-meta > span,
+  .runner-case-meta > span {
+    display: inline-flex;
+    max-width: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .runner-overview-run-meta > span + span,
+  .runner-case-meta > span + span {
+    position: relative;
+    margin-left: 16px;
+    padding-left: 16px;
+    border-left: 0;
+  }
+
+  .runner-overview-run-meta > span + span::before,
+  .runner-case-meta > span + span::before {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 1px;
+    height: 12px;
+    margin: 0;
+    background: var(--runner-border);
+    transform: translateY(-50%);
+    content: '';
   }
 }

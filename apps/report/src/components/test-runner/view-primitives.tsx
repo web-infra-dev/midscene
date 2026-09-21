@@ -50,22 +50,22 @@ const statusMeta: Record<
   }
 > = {
   passed: {
-    label: 'Passed',
+    label: 'passed',
     tone: 'success',
     icon: <CheckCircleFilled />,
   },
   'retry-passed': {
-    label: 'Passed after retry',
+    label: 'passed after retry',
     tone: 'warning',
     icon: <ReloadOutlined />,
   },
   failed: {
-    label: 'Failed',
+    label: 'failed',
     tone: 'failed',
     icon: <CloseCircleFilled />,
   },
   'not-run': {
-    label: 'Not run',
+    label: 'not run',
     tone: 'neutral',
     icon: <ClockCircleOutlined />,
   },

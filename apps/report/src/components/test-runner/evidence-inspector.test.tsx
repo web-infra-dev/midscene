@@ -9,7 +9,7 @@ import { createTestReportFixture } from '../../../e2e/fixtures/test-report.mjs';
 import type { PlaywrightTasks } from '../../types';
 import { RunnerEvidenceInspector } from './evidence-inspector';
 import type { RunnerInspectorTab } from './evidence-tabs';
-import { flattenRunnerCases } from './model';
+import { type RunnerVisualFrame, flattenRunnerCases } from './model';
 
 const source = {
   sources: [
@@ -72,6 +72,7 @@ describe('case evidence inspection', () => {
     tab: RunnerInspectorTab,
     reports = [report],
     selectedStep = step,
+    activeFrame?: RunnerVisualFrame,
   ) => {
     const renderAgentReport = rs.fn((reports: PlaywrightTasks[]) => (
       <div>
@@ -87,6 +88,7 @@ describe('case evidence inspection', () => {
         item={item}
         attempt={item.finalAttempt}
         step={selectedStep}
+        activeFrame={activeFrame}
         tab={tab}
         reports={reports}
         renderAgentReport={renderAgentReport}
@@ -121,14 +123,43 @@ describe('case evidence inspection', () => {
     expect(html).toContain('The referenced Agent report group is missing.');
   });
 
-  it('keeps the screenshot fallback for steps without an agent recording', () => {
+  it('hides Record and falls back to Input & output when the step has no recording or screenshot', () => {
     const { html, renderAgentReport } = render('record', [], {
       ...step,
       node: 'custom.verify',
       agentDetails: undefined,
     });
     expect(renderAgentReport).not.toHaveBeenCalled();
-    expect(html).toContain('No screenshot for this Step');
+    expect(html).not.toContain('>Record</button>');
+    expect(html).toMatch(
+      /aria-selected="true" class="is-selected">Input &amp; output<\/button>/,
+    );
+    expect(html).toContain('<h4>Input</h4>');
     expect(html).not.toContain('Open AI trace in new tab');
+  });
+
+  it('keeps Record available when the step has a screenshot', () => {
+    const screenshotFrame: RunnerVisualFrame = {
+      key: 'screenshot-frame',
+      reportId: 'agent-report',
+      executionId: 'screenshot-execution',
+      label: 'Step screenshot',
+      screenshot: { base64: 'data:image/png;base64,c2NyZWVuc2hvdA==' },
+    };
+    const { html } = render(
+      'record',
+      [],
+      {
+        ...step,
+        node: 'custom.verify',
+        agentDetails: undefined,
+      },
+      screenshotFrame,
+    );
+    expect(html).toMatch(
+      /aria-selected="true" class="is-selected">Record<\/button>/,
+    );
+    expect(html).toContain('Captured evidence for custom.verify');
+    expect(html).toContain(screenshotFrame.screenshot.base64);
   });
 });

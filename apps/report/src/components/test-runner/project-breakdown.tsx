@@ -199,7 +199,7 @@ function ProjectBreakdownNode({
             ) : item.notRunCount ? (
               <b>{item.notRunCount} not run</b>
             ) : (
-              <b className="is-passed">Passed</b>
+              <b className="is-passed">passed</b>
             )}
           </span>
           <span>

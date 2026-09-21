@@ -21,12 +21,29 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
   }
 
   .runner-attempt-option-status {
+    display: inline-flex;
+    height: 20px;
+    min-height: 20px;
+    padding: 0 8px;
+    align-items: center;
     margin-inline-end: 0;
     border-radius: 6px;
+    font-size: 12px;
     font-weight: 400;
+    line-height: 20px;
+  }
+
+  .runner-attempt-option-status.is-success {
+    color: #2d9b44;
+    background: #edf8ef;
+  }
+
+  .runner-attempt-option-status.is-failed {
+    color: #e53f39;
+    background: #feece9;
   }
 }

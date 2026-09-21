@@ -1,5 +1,6 @@
 import type { TestRunReportStep } from '@midscene/core';
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import {
   ReportValue,
   formatDuration,
@@ -70,23 +71,29 @@ export function EvidenceTabs({
   step: TestRunReportStep;
   tab: RunnerInspectorTab;
   onChange(tab: RunnerInspectorTab): void;
-  recordContent: ReactNode;
+  recordContent?: ReactNode;
 }): JSX.Element {
+  const hasRecord = recordContent !== undefined && recordContent !== null;
+  const activeTab = tab === 'record' && !hasRecord ? 'io' : tab;
+  const tabs = [
+    ...(hasRecord ? ([['record', 'Record']] as const) : []),
+    ['io', 'Input & output'],
+    ['logs', 'Events'],
+  ] as const;
+
+  useEffect(() => {
+    if (activeTab !== tab) onChange(activeTab);
+  }, [activeTab, onChange, tab]);
+
   return (
     <>
       <div className="runner-detail-inspector-tabs" role="tablist">
-        {(
-          [
-            ['record', 'Record'],
-            ['io', 'Input & output'],
-            ['logs', 'Events'],
-          ] as const
-        ).map(([value, label]) => (
+        {tabs.map(([value, label]) => (
           <button
             type="button"
             role="tab"
-            aria-selected={tab === value}
-            className={tab === value ? 'is-selected' : ''}
+            aria-selected={activeTab === value}
+            className={activeTab === value ? 'is-selected' : ''}
             key={value}
             onClick={() => onChange(value)}
           >
@@ -95,9 +102,9 @@ export function EvidenceTabs({
         ))}
       </div>
       <div className="runner-detail-inspector-content">
-        {tab === 'record' ? recordContent : null}
-        {tab === 'io' ? <InputOutput step={step} /> : null}
-        {tab === 'logs' ? <RuntimeEvents step={step} /> : null}
+        {activeTab === 'record' ? recordContent : null}
+        {activeTab === 'io' ? <InputOutput step={step} /> : null}
+        {activeTab === 'logs' ? <RuntimeEvents step={step} /> : null}
       </div>
     </>
   );

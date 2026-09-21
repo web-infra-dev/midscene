@@ -5,12 +5,24 @@ const styles = readFileSync(
   new URL('./refinements.less', import.meta.url),
   'utf8',
 );
+const baseStyles = readFileSync(
+  new URL('./index.less', import.meta.url),
+  'utf8',
+);
 const figmaStyles = readFileSync(
   new URL('./figma-layout.less', import.meta.url),
   'utf8',
 );
 const figmaEvidenceStyles = readFileSync(
   new URL('./figma-evidence.less', import.meta.url),
+  'utf8',
+);
+const figmaDetailStyles = readFileSync(
+  new URL('./figma-detail.less', import.meta.url),
+  'utf8',
+);
+const figmaOverviewStyles = readFileSync(
+  new URL('./figma-overview.less', import.meta.url),
   'utf8',
 );
 const source = readFileSync(new URL('./index.tsx', import.meta.url), 'utf8');
@@ -43,13 +55,13 @@ const attemptSelect = readFileSync(
   'utf8',
 );
 const select = readFileSync(new URL('./select.tsx', import.meta.url), 'utf8');
+const selectStyles = readFileSync(
+  new URL('./select.less', import.meta.url),
+  'utf8',
+);
 
 describe('Midscene Test report layout', () => {
   it('keeps lifecycle hover rows square inside the rounded list', () => {
-    const baseStyles = readFileSync(
-      new URL('./index.less', import.meta.url),
-      'utf8',
-    );
     expect(baseStyles).toMatch(
       /\.runner-lifecycle-errors\s*\{[^}]*overflow: hidden;/,
     );
@@ -67,22 +79,40 @@ describe('Midscene Test report layout', () => {
     expect(source).not.toContain('Test Runner');
   });
 
-  it('shares two aligned columns between run metrics and the footer', () => {
-    for (const selector of [
-      'runner-secondary-metrics',
-      'runner-overview-outcome-footer',
-    ]) {
-      expect(styles).toMatch(
-        new RegExp(
-          `\\.runner-overview-summary-footer \\.${selector}\\s*\\{[^}]*grid-template-columns: repeat\\(2, minmax\\(0, 1fr\\)\\);`,
-        ),
-      );
-    }
-  });
-
   it('uses the shared status tag spacing', () => {
     expect(styles).toMatch(
-      /\.runner-status-badge\.runner-status-pill\s*\{[^}]*padding: 2px 10px;/,
+      /\.runner-status-badge\.runner-status-pill\s*\{[^}]*min-height: 24px;[^}]*padding: 4px 8px;[^}]*border-radius: 8px;/s,
+    );
+  });
+
+  it('uses the report status palette and aligned attempt tag spacing', () => {
+    for (const token of [
+      '--runner-danger: #e53f39;',
+      '--runner-danger-soft: #feece9;',
+      '--runner-warning: #d97906;',
+      '--runner-warning-soft: #fff0d6;',
+      '--runner-success: #2d9b44;',
+      '--runner-success-soft: #edf8ef;',
+    ]) {
+      expect(baseStyles).toContain(token);
+    }
+    expect(figmaDetailStyles).toMatch(
+      /\.runner-single-attempt-label\s*\{[^}]*padding: 4px 12px;[^}]*gap: 8px;/s,
+    );
+    expect(attemptSelect).toContain(
+      'attemptStatus ? <AttemptStatusBadge status={attemptStatus} /> : null',
+    );
+    expect(figmaDetailStyles).not.toContain(
+      '.runner-attempt-select-shell > span.is-',
+    );
+    expect(selectStyles).toMatch(
+      /\.runner-attempt-option-status\s*\{[^}]*height: 20px;[^}]*min-height: 20px;[^}]*padding: 0 8px;[^}]*border-radius: 6px;/s,
+    );
+    expect(selectStyles).toMatch(
+      /\.runner-attempt-option-status\.is-success\s*\{[^}]*color: #2d9b44;[^}]*background: #edf8ef;/s,
+    );
+    expect(selectStyles).toMatch(
+      /\.runner-attempt-option-status\.is-failed\s*\{[^}]*color: #e53f39;[^}]*background: #feece9;/s,
     );
   });
 
@@ -90,6 +120,15 @@ describe('Midscene Test report layout', () => {
     expect(breakdown).not.toContain('runner-project-tree-case-cta');
     expect(breakdown).toContain('className="runner-project-tree-case-open"');
     expect(breakdown).toContain('onClick={() => onOpen(item, failure?.id)}');
+  });
+
+  it('draws one separator between expanded projects', () => {
+    expect(baseStyles).toMatch(
+      /\.runner-project-tree-node \+ \.runner-project-tree-node\s*\{[^}]*border-top: 1px solid var\(--runner-border\);/s,
+    );
+    expect(figmaOverviewStyles).toMatch(
+      /\.runner-project-tree-case-item:last-child \.runner-project-tree-case\s*\{[^}]*border-bottom: 0;/s,
+    );
   });
 
   it('shares the interactive attempt timeline between overview and detail', () => {
@@ -104,6 +143,9 @@ describe('Midscene Test report layout', () => {
 
   it('uses one shared Select for report filters and attempt switching', () => {
     expect(filters).toContain("import { Select } from './select'");
+    expect(figmaOverviewStyles).toMatch(
+      /\.runner-breakdown-panel \.runner-breakdown-toolbar\s*\{[^}]*grid-template-columns: 184px 146px minmax\(240px, 317px\) 32px;/s,
+    );
     expect(header).toContain(
       "import { AttemptSelect } from './attempt-select'",
     );
